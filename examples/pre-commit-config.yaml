@@ -1,0 +1,7 @@
+# .pre-commit-config.yaml: check staged functions before each commit.
+# Judged when TYPESAFE_AI_API_KEY is set in your shell; otherwise the look-alikes are listed unjudged.
+repos:
+  - repo: https://github.com/gigaverse-app/dry-lint
+    rev: main
+    hooks:
+      - id: dry-lint

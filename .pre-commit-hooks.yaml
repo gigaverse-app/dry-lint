@@ -1,0 +1,8 @@
+- id: dry-lint
+  name: dry-lint
+  description: Flag staged functions that re-implement code the repository already has.
+  entry: dry-lint check --staged
+  language: python
+  types: [python]
+  pass_filenames: false
+  require_serial: true

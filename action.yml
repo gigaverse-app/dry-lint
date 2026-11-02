@@ -1,0 +1,95 @@
+name: dry-lint
+description: Find functions a pull request re-implements, judge them, and annotate and comment on the pull request.
+author: Gigaverse
+branding:
+  icon: copy
+  color: green
+
+inputs:
+  base:
+    description: Ref or SHA to compare with. Defaults to the pull request base, or the previous push.
+    required: false
+    default: ""
+  judge:
+    description: auto, jev, command or none. auto uses Jev when typesafe-api-key is set.
+    required: false
+    default: auto
+  judge-command:
+    description: For judge "command", a command that reads the prompt on stdin and prints a JSON verdict.
+    required: false
+    default: ""
+  typesafe-api-key:
+    description: TypeSafe API key for the Jev judge.
+    required: false
+    default: ""
+  comment:
+    description: Post or update one pull request comment with the findings.
+    required: false
+    default: "true"
+  fail-on-findings:
+    description: Fail the step when a judged duplicate reaches report_at.
+    required: false
+    default: "false"
+  github-token:
+    description: Token for the pull request comment.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  exit-code:
+    description: 0 nothing reported, 1 duplicates reported, 2 error.
+    value: ${{ steps.check.outputs.exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+    - name: Restore verdicts
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: ${{ runner.temp }}/dry-lint
+        key: dry-lint-verdicts-${{ github.run_id }}
+        restore-keys: dry-lint-verdicts-
+    - name: Check
+      id: check
+      shell: bash
+      env:
+        TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
+        BASE: ${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}
+        JUDGE: ${{ inputs.judge }}
+        JUDGE_COMMAND: ${{ inputs.judge-command }}
+        FAIL: ${{ inputs.fail-on-findings }}
+        STORE: ${{ runner.temp }}/dry-lint/verdicts.jsonl
+        REPORT: ${{ runner.temp }}/dry-lint-report.md
+      run: |
+        set +e
+        args=(check --base "$BASE" --judge "$JUDGE" --store "$STORE" --format github --output "$REPORT")
+        [ -n "$JUDGE_COMMAND" ] && args+=(--judge-command "$JUDGE_COMMAND")
+        [ "$FAIL" = "true" ] || args+=(--warn-only)
+        uvx --from "${{ github.action_path }}" dry-lint "${args[@]}"
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        [ -f "$REPORT" ] && cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+        exit $code
+    - name: Save verdicts
+      if: always()
+      uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: ${{ runner.temp }}/dry-lint
+        key: dry-lint-verdicts-${{ github.run_id }}
+    - name: Comment
+      if: always() && inputs.comment == 'true' && github.event_name == 'pull_request' && steps.check.outputs.exit-code != '2'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR: ${{ github.event.pull_request.number }}
+        REPORT: ${{ runner.temp }}/dry-lint-report.md
+      run: |
+        existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+          --jq '[.[] | select(.body | startswith("<!-- dry-lint -->"))][0].id // empty')
+        if grep -q "No duplicated concepts" "$REPORT" && [ -z "$existing" ]; then exit 0; fi
+        if [ -n "$existing" ]; then
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -F body=@"$REPORT" >/dev/null
+        else
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@"$REPORT" >/dev/null
+        fi
