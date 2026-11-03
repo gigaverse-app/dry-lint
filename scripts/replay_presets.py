@@ -339,15 +339,17 @@ def reported(verdicts: dict[str, dict], preset: str) -> tuple[bool, bool]:
     return counts and chosen["score"] >= report_at, counts and chosen["score"] >= fail_at
 
 
-OPTIONS = ("baseline", "k5", "floor", "behaviour", "aggressive", "rank1", "rank2")
+OPTIONS = ("baseline", "k5", "floor", "behaviour", "added", "aggressive", "rank1", "rank2")
 PRESETS = ("jev", "jev+sonnet")
 
 
 def proposes(row: dict, option: str) -> bool:
-    """Production's pairs, the pairs a wider option adds to them, all of them, or production's best one or two."""
+    """Production's pairs, what one wider option or all of them add, everything, or production's best one or two."""
     found = set(row["sources"])
     if option == "aggressive":
         return bool(found)
+    if option == "added":
+        return bool(found) and "baseline" not in found
     if option in ("rank1", "rank2"):
         return "baseline" in found and row["rank_min"] <= int(option[-1])
     return option in found if option == "baseline" else (option in found and "baseline" not in found)
@@ -355,7 +357,7 @@ def proposes(row: dict, option: str) -> bool:
 
 def totals(rows: list[dict], labels: dict[int, dict], scores: dict[int, dict[str, dict]], option: str) -> dict[str, float]:
     """Weighted totals over labelled rows: pairs, real duplicates, and what each preset reports or fails on."""
-    found: dict[str, float] = defaultdict(float)
+    found: dict[str, float] = defaultdict(float, pairs=0.0, positives=0.0)
     for row in rows:
         if not proposes(row, option):
             continue

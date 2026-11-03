@@ -265,6 +265,7 @@ def test_report_weights_labelled_and_judged_pairs_back_to_the_population(replay,
             if isinstance(value, list):
                 assert value[1] <= value[0] + 1e-9 or name.endswith("precision") and value[0] != value[0]
     assert options["rank1"]["labelled"] <= options["rank2"]["labelled"] <= options["baseline"]["labelled"]
+    assert options["added"]["pairs"][0] + options["baseline"]["pairs"][0] == pytest.approx(aggressive["pairs"][0])
     assert result["all"]["options"]["aggressive"]["pairs"][0] == pytest.approx(aggressive["pairs"][0])
 
 
