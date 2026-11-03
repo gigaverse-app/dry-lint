@@ -37,9 +37,9 @@ def base_ref(root: Path, base: str | None) -> str:
     return base if given(base) else default_base(root)
 
 
-def changed_lines(root: Path, base: str | None = None, staged: bool = False) -> dict[str, set[int]]:
-    """Lines added or modified, per file: against `base` (merge base with HEAD), or the staged changes."""
-    diff = git(root, "diff", "--cached", "-U0") if staged else git(root, "diff", "-U0", f"{base_ref(root, base)}...HEAD")
+def changed_lines(root: Path, base: str | None = None, staged: bool = False, *, head: str = "HEAD") -> dict[str, set[int]]:
+    """Lines added or modified, per file: from the merge base of base/head to head, or the staged changes."""
+    diff = git(root, "diff", "--cached", "-U0") if staged else git(root, "diff", "-U0", f"{base_ref(root, base)}...{head}")
     changed: dict[str, set[int]] = {}
     current = None
     for line in diff.splitlines():

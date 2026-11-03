@@ -13,6 +13,7 @@ from dry_lint.detector import Detector
 from dry_lint.models import Candidate, CandidatesFile, Consolidation, Run
 from dry_lint.settings import Settings
 
+from conftest import coverage_pair as pair
 from conftest import function
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "replay_coverage.py"
@@ -21,14 +22,6 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "replay_coverage.py"
 @pytest.fixture
 def api():
     return runpy.run_path(str(SCRIPT))
-
-
-def pair(number: int) -> Candidate:
-    return Candidate(
-        new=function("new.py", "def new(value):\n    return value"),
-        existing=function(f"existing{number}.py", f"def existing(value):\n    return value + {number}"),
-        similarity=0.9,
-    )
 
 
 def step(api, name: str, baseline: list[Candidate], semantic: list[Candidate] = (), **kwargs):

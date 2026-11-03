@@ -2,11 +2,13 @@ import sys
 import textwrap
 from pathlib import Path
 
+import anthropic
+import httpx2
 import pytest
 
 from dry_lint.functions import behaviour_tokens, function_calls, structure_hash
 from dry_lint.git import git
-from dry_lint.models import Function
+from dry_lint.models import Candidate, Function
 from dry_lint.store import DirectoryStore, VerdictStore
 
 EXISTING = '''
@@ -96,6 +98,23 @@ def function(path: str, source: str, name: str | None = None, owner: str | None 
     plain = Function(path=path, name=found, owner=owner, line=1, end_line=len(code.splitlines()), code=code)
     return plain.model_copy(update={"hash": structure_hash(plain), "tokens": behaviour_tokens(plain),
                                     "calls": function_calls(plain)})
+
+
+def coverage_pair(number: int = 1) -> Candidate:
+    """Distinct pairs for scheduling and accounting experiments."""
+    return Candidate(new=function("new.py", "def new(value):\n    return value"),
+                     existing=function(f"existing{number}.py", f"def existing(value):\n    return value + {number}"),
+                     similarity=0.9)
+
+
+def claude(reply: dict, requests: list, *, status: int = 200) -> anthropic.DefaultHttpxClient:
+    """A real SDK HTTP client whose transport answers every Messages call with `reply`."""
+    def answer(request: httpx2.Request) -> httpx2.Response:
+        requests.append(request)
+        return httpx2.Response(status, json={"id": "msg_1", "type": "message", "role": "assistant",
+                                             "model": "claude-sonnet-5-5", "stop_sequence": None,
+                                             "usage": {"input_tokens": 900, "output_tokens": 120}, **reply})
+    return anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(answer))
 
 
 def judge_script(tmp_path: Path, score: float) -> str:
