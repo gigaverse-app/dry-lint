@@ -20,8 +20,8 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "replay_coverage.py"
 
 
 @pytest.fixture
-def api():
-    return runpy.run_path(str(SCRIPT))
+def api(load_script):
+    return load_script("replay_coverage")
 
 
 def step(api, name: str, baseline: list[Candidate], semantic: list[Candidate] = (), **kwargs):
@@ -237,9 +237,8 @@ def test_probe_cli_captures_and_compares_policies_on_a_real_repository(
     assert all(rows[-1]["attempts"] <= 5 for rows in result["policies"].values())
 
 
-def test_probe_does_not_apply_labels_to_changed_or_missing_code(repo, monkeypatch) -> None:
-    monkeypatch.syspath_prepend(str(SCRIPT.parent))
-    capture = runpy.run_path(str(SCRIPT.with_name("probe_coverage.py")))["capture"]
+def test_probe_does_not_apply_labels_to_changed_or_missing_code(repo, load_script) -> None:
+    capture = load_script("probe_coverage")["capture"]
     detector = Detector.for_repository(repo.root, Settings())
     candidate = detector.candidates(detector.functions)[0]
     label = GoldPair(

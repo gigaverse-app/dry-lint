@@ -1,6 +1,9 @@
+import runpy
 import sys
 import textwrap
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import anthropic
 import httpx2
@@ -105,6 +108,18 @@ def coverage_pair(number: int = 1) -> Candidate:
     return Candidate(new=function("new.py", "def new(value):\n    return value"),
                      existing=function(f"existing{number}.py", f"def existing(value):\n    return value + {number}"),
                      similarity=0.9)
+
+
+@pytest.fixture
+def load_script(monkeypatch: pytest.MonkeyPatch) -> Callable[[str], dict[str, Any]]:
+    """Load an experiment's dynamic module namespace with its sibling imports available."""
+    directory = Path(__file__).resolve().parents[1] / "scripts"
+    monkeypatch.syspath_prepend(str(directory))
+
+    def load(name: str) -> dict[str, Any]:
+        return runpy.run_path(str(directory / f"{name}.py"))
+
+    return load
 
 
 def claude(reply: dict, requests: list, *, status: int = 200) -> anthropic.DefaultHttpxClient:

@@ -1,8 +1,5 @@
 """Real SDK requests against a fake provider: accounting and evaluation are the code under test."""
 
-import runpy
-from pathlib import Path
-
 import anthropic
 import httpx2
 import pytest
@@ -12,14 +9,11 @@ from dry_lint.models import CandidatesFile
 from conftest import claude
 from conftest import coverage_pair as candidate
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "judge_history.py"
-
 
 @pytest.fixture
-def api(monkeypatch):
-    monkeypatch.syspath_prepend(str(SCRIPT.parent))
+def api(monkeypatch, load_script):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "fake-test-key")
-    return runpy.run_path(str(SCRIPT))
+    return load_script("judge_history")
 
 
 def provider(requests, *, model="claude-sonnet-5-5", text='{"label":"duplicate","score":0.9}', status=200, usage=True):
@@ -35,11 +29,11 @@ def provider(requests, *, model="claude-sonnet-5-5", text='{"label":"duplicate",
     )
 
 
-def test_provider_usage_is_counted_once_physically_but_each_policy_pays_its_own_cost(api, tmp_path) -> None:
+def test_provider_usage_is_counted_once_physically_but_each_policy_pays_its_own_cost(api, tmp_path, load_script) -> None:
     requests = []
     answers = api["LiveAnswers"](tmp_path, http_client=provider(requests))
     first, second = candidate(), candidate(2)
-    replay_api = runpy.run_path(str(SCRIPT.with_name("replay_coverage.py")))
+    replay_api = load_script("replay_coverage")
     step = replay_api["ReplayStep"](
         run_id="one",
         sources={"baseline": CandidatesFile(candidates=[first]), "deep": CandidatesFile(candidates=[first, second])},
@@ -128,8 +122,8 @@ def test_baseline_first_cannot_guarantee_later_baseline_with_one_shared_campaign
     assert refill["curves"][-1]["cumulative_attempts"] == 1
 
 
-def test_changed_evidence_is_not_credited_as_current_and_missing_labels_are_not_negatives(api, tmp_path) -> None:
-    scorer = runpy.run_path(str(SCRIPT.with_name("score_history.py")))["score"]
+def test_changed_evidence_is_not_credited_as_current_and_missing_labels_are_not_negatives(api, tmp_path, load_script) -> None:
+    scorer = load_script("score_history")["score"]
     answers = api["LiveAnswers"](tmp_path, http_client=provider([]))
     early = candidate()
     late = early.model_copy(update={"new": early.new.model_copy(update={"code": "def run(x):\n    return list(x)"})})
