@@ -2,7 +2,7 @@
 
 
 def comment_marker(name: str = "") -> str:
-    if name:
+    if name:  # a keyed marker
         return f"<!-- dry-lint:{name} -->"
     return "<!-- dry-lint -->"
 
