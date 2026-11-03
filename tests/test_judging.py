@@ -6,7 +6,7 @@ from dry_lint.judges import label_for
 from dry_lint.judging import Judging, default_store, open_store
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.settings import Escalation, PluginChoice, Settings
-from dry_lint.store import DirectoryStore, S3Store, VerdictStore
+from dry_lint.store import S3Store, VerdictStore
 
 from conftest import Repo, function
 
@@ -29,11 +29,6 @@ class ScoringJudge:
         self.asked += [c.new.name for c in candidates]
         return [Verdict(label=label_for(self.scores[c.new.name], 0.0, settings), score=self.scores[c.new.name],
                         why=f"{self.name} says so", judge=self.name, judge_version=self.version) for c in candidates]
-
-
-@pytest.fixture
-def store(tmp_path: Path) -> VerdictStore:
-    return VerdictStore(DirectoryStore(tmp_path / "verdicts"))
 
 
 def test_without_a_judge_every_proposed_pair_is_an_unjudged_finding(store: VerdictStore) -> None:
