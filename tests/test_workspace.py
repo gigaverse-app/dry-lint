@@ -80,7 +80,7 @@ def test_workspace_cli_uses_existing_judge_and_report_pipeline(workspace, tmp_pa
         args.extend(["--repo", f"{name}={root}"])
     assert main(args) == 0
     data = json.loads(output.read_text())
-    assert data["schema"] == 3 and data["findings"][0]["reported"]
+    assert data["schema"] == 4 and data["findings"][0]["reported"]
     assert data["functions"] == 33 and data["scope"] == "repository"
     assert "https://github.com/org/" in capsys.readouterr().out
     assert main(["report", "--root", str(workspace["org/web"]), "--from", str(output), "--format", "sarif"]) == 2
@@ -97,3 +97,23 @@ def test_schema_two_functions_still_have_local_identity() -> None:
     loaded = CandidatesFile.model_validate({"schema": 2, "candidates": []})
     assert loaded.schema_version == 2
     assert function.origin is None and function.qualname == "src/a.ts::shorten"
+
+
+def test_workspace_check_queries_only_changed_primary_functions(workspace, tmp_path, twin_judge, capsys):
+    from dry_lint.git import git
+    web = workspace["org/web"]
+    base = git(web, "rev-parse", "HEAD")
+    (web / "src/text.py").write_text(EXISTING.replace('rstrip(".,;")', 'rstrip(".,;!")'), encoding="utf-8")
+    git(web, "add", ".")
+    git(web, "commit", "-qm", "fix(text): adjust punctuation")
+    output = tmp_path / "change.json"
+    args = ["check", "--root", str(web), "--base", base, "--judge", "command", "--judge-command", twin_judge,
+            "--warn-only", "--report", str(output)]
+    for name, root in workspace.items():
+        args.extend(["--repo", f"{name}={root}"])
+    assert main(args) == 0
+    report = json.loads(output.read_text())
+    assert report["changed"] == 1
+    assert report["run"]["repository"] == "org/web"
+    assert all(f["candidate"]["new"]["origin"]["repository"] == "org/web" for f in report["findings"])
+    assert main(["report", "--root", str(web), "--from", str(output), "--format", "github", "--warn-only"]) == 0

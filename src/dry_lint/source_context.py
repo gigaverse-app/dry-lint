@@ -55,7 +55,9 @@ class SourceContext:
             if needed & identifiers(statement):
                 picked[statement.start_byte] = statement
         context = "\n".join(with_comments(statement) for _, statement in sorted(picked.items()))
-        own = node.parent if node.parent is not None and node.parent.type == "export_statement" else node
+        own = node
+        while own.parent is not None and own.parent.type in {"export_statement", "lexical_declaration", "variable_declaration"}:
+            own = own.parent
         comments = with_comments(own).removesuffix(own.text.decode("utf-8")).strip()
         if comments:
             context = comments + "\n" + context

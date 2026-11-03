@@ -5,6 +5,7 @@ import httpx
 from dry_lint.detector import Detector
 from dry_lint.judges.jev import JevJudge
 from dry_lint.models import Candidate, Run, Verdict
+from dry_lint.ranking import rank_candidates
 from dry_lint.report import Finding
 from dry_lint.settings import Settings
 from dry_lint.typescript import TypeScriptExtractor
@@ -68,3 +69,33 @@ def test_context_and_destination_changes_invalidate_even_separate_cached_verdict
     assert store.lookup(destination, "jev", .05).verdict is None
     moved = pair.model_copy(update={"new": pair.new.model_copy(update={"origin": Run(head="b" * 40)})})
     assert moved.context_hash == pair.context_hash
+
+
+def test_ranking_reserves_shared_repository_slots_and_diversifies_file_families():
+    extractor = TypeScriptExtractor()
+    def pair(a, b, name, similarity):
+        sides = [extractor.functions("src/a.ts", f"function {name}(x: number) {{ return x + 1; }}")[0]
+                 .model_copy(update={"origin": Run(repository=repo)}) for repo in (a, b)]
+        return Candidate.model_validate({"new": sides[0], "existing": sides[1], "similarity": similarity,
+                                         "consolidation": [{"repository": "org/common", "path": "src"}]})
+    copies = [pair("org/web", "org/mobile", f"copy{i}", 1) for i in range(20)]
+    common = pair("org/web", "org/common", "normalize", .74)
+    assert common in rank_candidates([*copies, common])[:2]
+
+
+def test_judge_budget_defers_uncached_pairs_without_claiming_they_are_clear(store):
+    from test_judging import ScoringJudge, pair
+
+    from dry_lint.judging import Judging
+    from dry_lint.report import Report, as_markdown
+    settings = Settings(max_judgements=1)
+    judge = ScoringJudge("test", {"a": .1, "b": .1})
+    judging = Judging(settings, judge, None, store)
+    first = judging.findings([pair("a"), pair("b")])
+    assert first[1].deferred and first[1].verdict is None and judge.asked == ["a"]
+    report = Report.build(first, settings, judge="test", changed=2)
+    assert not report.visible
+    assert "deferred" in as_markdown(report)
+    assert "Every changed function is the only" not in as_markdown(report)
+    second = judging.findings([pair("a"), pair("b")])
+    assert second[0].cached and not second[1].deferred

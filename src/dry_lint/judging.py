@@ -68,9 +68,12 @@ class Judging:
         version = self.judge.version if refresh or getattr(self.judge, "context", False) else None
         known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict for c in proposed]
         pending = [i for i, verdict in enumerate(known) if verdict is None]
+        deferred = set(pending[self.settings.max_judgements:]) if self.settings.max_judgements is not None else set()
+        pending = [i for i in pending if i not in deferred]
         if pending:
             asked = [proposed[i] for i in pending]
             for i, verdict in zip(pending, self.escalated(asked, self.judge.judge(asked, self.settings))):
                 self.store.remember(proposed[i], verdict, source)
                 known[i] = verdict
-        return [Finding(candidate=c, verdict=known[i], cached=i not in pending) for i, c in enumerate(proposed)]
+        return [Finding(candidate=c, verdict=known[i], cached=known[i] is not None and i not in pending,
+                        deferred=i in deferred) for i, c in enumerate(proposed)]

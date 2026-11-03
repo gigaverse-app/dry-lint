@@ -8,8 +8,8 @@ The benchmark numbers belong to this exact wording: change it and re-measure.
 """
 
 import os
-from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 
 import httpx
 

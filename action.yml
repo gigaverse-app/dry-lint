@@ -37,6 +37,13 @@ inputs:
     description: Where the repository (or the package to check in a monorepo) is.
     required: false
     default: "."
+  repositories:
+    description: >
+      Optional checked-out repositories, one OWNER/NAME=PATH per line, including working-directory.
+      Compare changed functions only against peers. Paths are relative to the workflow working directory.
+      Checkout trusted peers before this action; no repositories are fetched or executed by dry-lint.
+    required: false
+    default: ""
   comment:
     description: Keep one pull request comment with the findings up to date.
     required: false
@@ -132,6 +139,7 @@ runs:
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_JUDGE: ${{ inputs.judge }}
         INPUT_JUDGE_COMMAND: ${{ inputs.judge-command }}
+        INPUT_REPOSITORIES: ${{ inputs.repositories }}
         INPUT_BASE: ${{ inputs.base }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         INPUT_COMMENT: ${{ inputs.comment }}
