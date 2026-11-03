@@ -17,6 +17,7 @@ import json
 import re
 import shlex
 import subprocess
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Literal
@@ -56,17 +57,23 @@ def prompt(candidate: Candidate) -> str:
             .replace("<<existing_name>>", candidate.existing.qualname).replace("<<existing_code>>", candidate.existing.code))
 
 
-def parse_verdict(text: str, judge: str, version: str) -> Verdict:
-    """The first JSON object with a `label` in a text answer, as a verdict; text and other objects around it are ignored."""
+def first_object(text: str, accepts: Callable[[dict], bool]) -> dict | None:
+    """The first JSON object in a model's text answer that `accepts`; text and other objects around it are ignored."""
     decoder = json.JSONDecoder()
     for match in re.finditer(r"\{", text):
         try:
             answer, _ = decoder.raw_decode(text, match.start())
         except json.JSONDecodeError:
             continue
-        if isinstance(answer, dict) and "label" in answer:
-            break
-    else:
+        if isinstance(answer, dict) and accepts(answer):
+            return answer
+    return None
+
+
+def parse_verdict(text: str, judge: str, version: str) -> Verdict:
+    """The first JSON object with a `label` in a text answer, as a verdict."""
+    answer = first_object(text, lambda found: "label" in found)
+    if answer is None:
         raise ValueError(f"The judge {judge} answered without a JSON verdict: {text[:200]!r}")
     return Verdict(label=answer["label"], score=float(answer.get("score", 1.0)),
                    behaves_differently=float(answer.get("behaves_differently", 0.0)), owner=answer.get("owner", ""),

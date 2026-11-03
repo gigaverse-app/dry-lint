@@ -27,22 +27,18 @@ from dry_lint.labelling import (
     stratum,
     summarise,
 )
-from dry_lint.models import Candidate, Function, Verdict
+from dry_lint.models import Candidate, Verdict
 from dry_lint.replay import Replay
 from dry_lint.report import Finding
 from dry_lint.settings import Settings
 
-from conftest import EXISTING, TWIN, Repo, filler_module, run_cli
-
-
-def function(path: str, name: str) -> Function:
-    return Function(path=path, name=name, line=1, end_line=2, code=f"def {name}():\n    return 1")
+from conftest import function, run_cli
 
 
 def finding(n: int, score: float | None, reported: bool = False, blocking: bool = False, new: str = "",
             existing: str = "") -> Finding:
-    candidate = Candidate(new=function("a.py", new or f"f{n}"), existing=function("b.py", existing or f"g{n}"),
-                          similarity=0.5)
+    candidate = Candidate(new=function("a.py", f"def {new or f'f{n}'}():\n    return 1"),
+                          existing=function("b.py", f"def {existing or f'g{n}'}():\n    return 1"), similarity=0.5)
     verdict = None if score is None else Verdict(label="duplicate" if score >= 0.6 else "separate", score=score, judge="j")
     return Finding(candidate=candidate, verdict=verdict, reported=reported, blocking=blocking)
 
@@ -242,17 +238,6 @@ def test_figures_round_to_whole_numbers_from_ten_up() -> None:
                                              "blocking_false", "missed"), (1.0, 30.0)))
     text = labels.as_text()
     assert "real duplicates proposed  25 (1.0-30)" in text and "reported                  3.2" in text
-
-
-@pytest.fixture
-def history(tmp_path: Path) -> Repo:
-    repo = Repo(tmp_path / "repo")
-    repo.write("src/text.py", EXISTING)
-    repo.write("src/filler.py", filler_module())
-    repo.commit("helper")
-    repo.write("src/widgets/caption.py", TWIN)
-    repo.commit("twin")
-    return repo
 
 
 def test_bench_replay_labels_a_sample_writes_gold_and_reports_outcomes(history, tmp_path, blocking_twin_judge,

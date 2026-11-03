@@ -10,8 +10,9 @@ Borderline pairs are kept in the file and left out of the numbers.
 import math
 import random
 import textwrap
+from collections.abc import Callable
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -23,6 +24,8 @@ from dry_lint.plugins import Extractor, Judge
 from dry_lint.settings import Budget, Settings
 
 BANDS = (0.0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01)
+Row = TypeVar("Row")
+Statistic = TypeVar("Statistic")
 
 
 class GoldFunction(BaseModel):
@@ -75,24 +78,30 @@ def precision_recall(rows: list[tuple[str, bool, float, bool]]) -> tuple[float, 
     return (hits / flagged if flagged else 0.0), (hits / duplicates if duplicates else 0.0)
 
 
+def resampled(rows: list[Row], stratum: Callable[[Row], str], statistic: Callable[[list[Row]], Statistic],
+              resamples: int = 1000, seed: int = 7) -> list[Statistic]:
+    """
+    `statistic` over a stratified bootstrap: each stratum is resampled with replacement and keeps its weights, so the
+    spread shows how much a handful of heavily weighted pairs can move the numbers.
+    """
+    strata: dict[str, list[Row]] = {}
+    for row in rows:
+        strata.setdefault(stratum(row), []).append(row)
+    rng = random.Random(seed)
+    return [statistic([rng.choice(members) for members in strata.values() for _ in members]) for _ in range(resamples)]
+
+
+def spread(values: list[float]) -> tuple[float, float]:
+    """The 90% interval of bootstrap values."""
+    ordered = sorted(values)
+    return ordered[int(0.05 * (len(ordered) - 1))], ordered[int(0.95 * (len(ordered) - 1))]
+
+
 def intervals(rows: list[tuple[str, bool, float, bool]], resamples: int = 1000,
               seed: int = 7) -> tuple[tuple[float, float], tuple[float, float]]:
-    """
-    90% intervals for precision and recall: each stratum is resampled with replacement and keeps its weight, so the
-    interval shows how much a handful of heavily weighted pairs can move the numbers.
-    """
-    strata: dict[str, list] = {}
-    for row in rows:
-        strata.setdefault(row[0], []).append(row)
-    rng = random.Random(seed)
-    draws = [precision_recall([rng.choice(members) for members in strata.values() for _ in members])
-             for _ in range(resamples)] if rows else [(0.0, 0.0)]
-
-    def interval(values: list[float]) -> tuple[float, float]:
-        ordered = sorted(values)
-        return ordered[int(0.05 * (len(ordered) - 1))], ordered[int(0.95 * (len(ordered) - 1))]
-
-    return interval([p for p, _ in draws]), interval([r for _, r in draws])
+    """90% intervals for precision and recall."""
+    draws = resampled(rows, lambda row: row[0], precision_recall, resamples, seed) if rows else [(0.0, 0.0)]
+    return spread([p for p, _ in draws]), spread([r for _, r in draws])
 
 
 class Band(BaseModel):

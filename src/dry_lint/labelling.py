@@ -13,10 +13,8 @@ A labeller is an OpenRouter model id (needs OPENROUTER_API_KEY), or `command:<cl
 prompt on stdin and prints a JSON answer: a subscription CLI, or a script that asks a person.
 """
 
-import json
 import os
 import random
-import re
 import shlex
 import subprocess
 from collections import Counter
@@ -28,12 +26,14 @@ from typing import Literal, Protocol
 import httpx
 from pydantic import BaseModel, Field
 
-from dry_lint.bench import BANDS, GoldFunction, GoldPair, JudgeBench, judge_bench
+from dry_lint.bench import BANDS, GoldFunction, GoldPair, JudgeBench, judge_bench, resampled, spread
+from dry_lint.judges.command import first_object
 from dry_lint.models import Candidate
 from dry_lint.report import Finding
 from dry_lint.settings import Settings
 
 OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
+LABELS = ("CONSOLIDATE", "SEPARATE", "PATTERN")
 GUIDELINE = """You label pairs of functions from one codebase for a benchmark of duplicated concepts (DRY).
 
 The test: does reconciling the two reveal ONE real concept with legitimate variations (it should have one
@@ -115,15 +115,8 @@ def prompt(candidate: Candidate) -> str:
 
 def parse(text: str) -> dict | None:
     """The first JSON object in the text with a known label."""
-    decoder = json.JSONDecoder()
-    for match in re.finditer(r"\{", text):
-        try:
-            answer, _ = decoder.raw_decode(text, match.start())
-        except json.JSONDecodeError:
-            continue
-        if isinstance(answer, dict) and str(answer.get("label", "")).upper() in {"CONSOLIDATE", "SEPARATE", "PATTERN"}:
-            return {**answer, "label": str(answer["label"]).upper()}
-    return None
+    found = first_object(text, lambda answer: str(answer.get("label", "")).upper() in LABELS)
+    return {**found, "label": str(found["label"]).upper()} if found else None
 
 
 class Sampled(BaseModel):
@@ -271,18 +264,10 @@ def outcomes(rows: list[tuple[Sampled, GoldPair]]) -> dict[str, float]:
 def outcome_intervals(rows: list[tuple[Sampled, GoldPair]], resamples: int = 1000,
                       seed: int = 7) -> dict[str, tuple[float, float]]:
     """90% intervals for each outcome total, from a stratified bootstrap of the labelled pairs."""
-    strata: dict[str, list] = {}
-    for row in rows:
-        strata.setdefault(row[0].stratum, []).append(row)
-    rng = random.Random(seed)
-    draws = [outcomes([rng.choice(members) for members in strata.values() for _ in members]) for _ in range(resamples)]
-    if not draws or not rows:
+    if not rows:
         return dict.fromkeys(OUTCOMES, (0.0, 0.0))
-    found = {}
-    for name in OUTCOMES:
-        ordered = sorted(d[name] for d in draws)
-        found[name] = (ordered[int(0.05 * (len(ordered) - 1))], ordered[int(0.95 * (len(ordered) - 1))])
-    return found
+    draws = resampled(rows, lambda row: row[0].stratum, outcomes, resamples, seed)
+    return {name: spread([draw[name] for draw in draws]) for name in OUTCOMES}
 
 
 class Labels(BaseModel):
