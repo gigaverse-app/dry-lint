@@ -513,7 +513,14 @@ def test_an_inline_ignore_settles_the_pair_before_any_judge_call(repo: Repo, git
     github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
                working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
-    assert github.stickies() == [] and judge_calls(tmp_path) == 0
+    [body] = github.stickies()
+    assert "✨ No duplicated concepts" in body and "| Settled by a rule | 1 |" in body and judge_calls(tmp_path) == 0
+
+    quiet = FakeGitHub(head=github.head)
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
+               working_directory=str(repo.root), comment_on_clean="false")
+    assert action.main(["run"], transport=httpx.MockTransport(quiet)) == 0
+    assert quiet.stickies() == []
 
 
 def test_the_fail_at_input_raises_the_bar_so_lower_findings_only_warn(repo: Repo, github_env, tmp_path,
