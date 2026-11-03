@@ -51,7 +51,7 @@ For pre-commit, add `additional_dependencies: ['.[dryer]']` and `args: [--detect
 
 | Behavior | TF-IDF | Dryer |
 | --- | --- | --- |
-| Fingerprint | Calls, attributes, identifier words, control flow | Upstream normalized syntax subtree fingerprints |
+| Fingerprint | Calls, attributes, field/key identities, identifier words, control flow | Upstream normalized syntax subtree fingerprints |
 | Similarity | Cosine over TF-IDF vectors | Upstream Jaccard over fingerprint sets |
 | Default floor | 0.5; 0.3 below six source lines | 0.82 |
 | Minimum size | Python extractor: two source lines | Four source lines and 20 normalized nodes |
