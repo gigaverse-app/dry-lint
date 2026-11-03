@@ -117,3 +117,11 @@ def test_workspace_check_queries_only_changed_primary_functions(workspace, tmp_p
     assert report["run"]["repository"] == "org/web"
     assert all(f["candidate"]["new"]["origin"]["repository"] == "org/web" for f in report["findings"])
     assert main(["report", "--root", str(web), "--from", str(output), "--format", "github", "--warn-only"]) == 0
+    detected = tmp_path / "candidates.json"
+    assert main(["detect", *args[1:], "--out", str(detected)]) == 0
+    assert json.loads(detected.read_text())["run"]["repository"] == "org/web"
+    without_primary = args[:args.index("--repo")]
+    for name in ["org/mobile", "org/common"]:
+        without_primary.extend(["--repo", f"{name}={workspace[name]}"])
+    assert main(without_primary) == 2
+    assert "primary" in capsys.readouterr().err

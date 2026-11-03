@@ -19,8 +19,7 @@ def with_comments(node: Node) -> str:
     while start.prev_named_sibling is not None and start.prev_named_sibling.type == "comment":
         start = start.prev_named_sibling
     parent = node.parent
-    if parent is None:
-        return node.text.decode("utf-8")
+    assert parent is not None
     return parent.text[start.start_byte - parent.start_byte:node.end_byte - parent.start_byte].decode("utf-8")
 
 

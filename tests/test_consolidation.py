@@ -1,12 +1,13 @@
 import json
 
 import httpx
+import pytest
 
 from dry_lint.detector import Detector
 from dry_lint.judges.jev import JevJudge
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.ranking import rank_candidates
-from dry_lint.report import Finding
+from dry_lint.report import Finding, Report, as_markdown, as_text
 from dry_lint.settings import Settings
 from dry_lint.typescript import TypeScriptExtractor
 
@@ -29,7 +30,8 @@ export function useContext(status: string) {
     assert "maybeContext = () => sdkContext()" in function.context
 
 
-def test_destinations_work_within_one_repository_and_reach_judge_and_advice(tmp_path):
+@pytest.mark.parametrize("boundary,reported", [(0, True), (.95, False)])
+def test_destinations_work_within_one_repository_and_reach_judge_and_advice(tmp_path, boundary, reported):
     repo = Repo(tmp_path / "app")
     repo.write("web/normalize.ts", 'export function normalize(x: number) { return x > 0 ? x : 0; }')
     repo.write("native/normalize.ts", 'export function normalize(x: number) { return x > 0 ? x : 0; }')
@@ -47,13 +49,15 @@ def test_destinations_work_within_one_repository_and_reach_judge_and_advice(tmp_
         return httpx.Response(200, json={"answers": {
             "same_concept": {"noul": 0.95}, "behaves_differently": {"noul": 0.1},
             "owner": {"choice": "shared", "probabilities": {"shared": 1}},
-            "shareable": {"noul": 1}, "reason": {"choice": "portable"},
+            "separate_boundary": {"noul": boundary}, "reason": {"choice": "portable"},
         }})
 
     judge = JevJudge(api_key="test", context=True, transport=httpx.MockTransport(answer))
     verdict = judge.judge([pair], settings)[0]
     assert bodies[0]["state"]["consolidation"][0]["path"] == "shared/domain"
-    assert "shared/domain" in Finding(candidate=pair, verdict=verdict).advice()
+    assert ("shared/domain" in Finding(candidate=pair, verdict=verdict).advice()) == reported
+    report = Report.build([Finding(candidate=pair, verdict=verdict)], settings, judge="jev")
+    assert ("shared/domain" in as_markdown(report)) == reported
 
 
 def test_context_and_destination_changes_invalidate_even_separate_cached_verdicts(store):
@@ -97,5 +101,21 @@ def test_judge_budget_defers_uncached_pairs_without_claiming_they_are_clear(stor
     assert not report.visible
     assert "deferred" in as_markdown(report)
     assert "Every changed function is the only" not in as_markdown(report)
+    assert "1 deferred" in as_text(report)
     second = judging.findings([pair("a"), pair("b")])
     assert second[0].cached and not second[1].deferred
+
+
+@pytest.mark.parametrize("path", ["../shared", "/shared", "C:/shared", "shared\\domain"])
+def test_consolidation_destination_cannot_escape_its_repository(path):
+    with pytest.raises(ValueError, match="repository-relative"):
+        Settings.model_validate({"consolidation": [{"path": path}]})
+
+
+def test_context_includes_variable_policy_and_marks_bounded_dependency_text():
+    source = 'const catalogue = ' + json.dumps(list(range(4000))) + ';\n'
+    source += '// Includes every configured identifier.\nexport const lookup = (x: number) => catalogue.includes(x);'
+    [function] = TypeScriptExtractor().functions("src/catalogue.ts", source)
+    assert "Includes every configured identifier" in function.context
+    assert function.context.endswith("[context truncated]")
+    assert len(function.context) < 8050
