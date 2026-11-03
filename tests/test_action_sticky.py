@@ -4,8 +4,10 @@ from pathlib import Path
 
 import httpx
 import pytest
+from test_ledger import duplicate, push
 
 from dry_lint import sticky
+from dry_lint.ledger import PullLedger, RepositoryLedger
 from dry_lint.report import CLEAN, NOTE_SLOT
 from dry_lint.sticky import MARKER, GitHub, compose, marker, upsert
 
@@ -17,8 +19,10 @@ class FakeGitHub:
     """The slice of the GitHub REST API the sticky uses, in memory: comments of one pull request, and its head."""
 
     def __init__(self, comments: list[str] = (), head: str = HEAD, write_status: int = 200, banner: int = 404,
-                 labels: list[str] = ()):
+                 labels: list[str] = (), merged: list[dict] = (), elsewhere: dict[int, list[str]] | None = None,
+                 pulls_status: int = 200):
         self.comments = [{"id": i + 1, "body": body} for i, body in enumerate(comments)]
+        self.merged, self.elsewhere, self.pulls_status = list(merged), elsewhere or {}, pulls_status
         self.labels = [{"name": name} for name in labels]
         self.head, self.write_status, self.banner = head, write_status, banner
         self.writes: list[str] = []
@@ -30,6 +34,11 @@ class FakeGitHub:
             return httpx.Response(self.banner)
         if method == "GET" and path == f"/repos/{REPO}/pulls/{PR}":
             return httpx.Response(200, json={"head": {"sha": self.head}, "labels": self.labels})
+        if method == "GET" and path == f"/repos/{REPO}/pulls":
+            return httpx.Response(self.pulls_status, json=self.merged)
+        if method == "GET" and (other := re.fullmatch(rf"/repos/{REPO}/issues/(\d+)/comments", path)) and \
+                int(other[1]) != PR:
+            return httpx.Response(200, json=[{"id": 900, "body": body} for body in self.elsewhere.get(int(other[1]), [])])
         if method == "GET" and path == f"/repos/{REPO}/issues/{PR}/comments":
             page, size = int(request.url.params["page"]), int(request.url.params["per_page"])
             return httpx.Response(200, json=self.comments[(page - 1) * size: page * size])
@@ -234,3 +243,78 @@ def test_an_incomplete_scope_cannot_resolve_previous_findings(tmp_path, monkeypa
                  "--pull-request", str(PR), "--findings", "0"], transport=httpx.MockTransport(fake))
     [body] = fake.stickies()
     assert "Resolved" not in body and "did not complete" in body
+
+
+def post(fake: FakeGitHub, tmp_path: Path, report, run: str, *extra: str) -> None:
+    body, saved = tmp_path / "comment.md", tmp_path / f"report-{run}.json"
+    body.write_text(REPORT)
+    saved.write_text(report.model_dump_json())
+    args = ["--body", str(body), "--repository", REPO, "--pull-request", str(PR), "--findings", "0",
+            "--report", str(saved), "--run", run, *extra]
+    assert sticky.main(args, transport=httpx.MockTransport(fake)) == 0
+
+
+def ledger_of(fake: FakeGitHub) -> PullLedger:
+    [body] = fake.stickies()
+    return PullLedger.read(body)
+
+
+def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    fake = FakeGitHub()
+    post(fake, tmp_path, push("a" * 40, duplicate()), "1")
+    post(fake, tmp_path, push("b" * 40), "2")
+    post(fake, tmp_path, push("b" * 40), "2")  # the same run, posting again
+    ledger = ledger_of(fake)
+    assert (ledger.pushed, ledger.tally.runs, ledger.count("kept-out")) == (2, 2, 1)
+    assert "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes." in fake.stickies()[0]
+
+
+def test_the_run_defaults_to_the_workflow_run_and_attempt(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    monkeypatch.setenv("GITHUB_RUN_ID", "41")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "2")
+    fake = FakeGitHub()
+    body, saved = tmp_path / "comment.md", tmp_path / "report.json"
+    body.write_text(REPORT)
+    saved.write_text(push("a" * 40).model_dump_json())
+    sticky.main(["--body", str(body), "--repository", REPO, "--pull-request", str(PR), "--findings", "0",
+                 "--report", str(saved)], transport=httpx.MockTransport(fake))
+    assert ledger_of(fake).runs == ["41-2"]
+
+
+def test_the_ledger_with_the_most_runs_survives_racing_copies() -> None:
+    fewer = PullLedger().advance([push("a" * 40)], run="1")
+    more = fewer.advance([push("b" * 40, duplicate())], run="2")
+    fake = FakeGitHub([f"{MARKER}\nold\n{fewer.snapshot()}", f"{MARKER}\nnew\n{more.snapshot()}"])
+    upsert(client(fake), REPO, PR, REPORT, 1, reports=[push("c" * 40)], run="3")
+    ledger = ledger_of(fake)
+    assert ledger.pushed == 3 and ledger.count("kept-out") == 1
+
+
+def test_a_post_without_a_report_keeps_the_ledger_as_it_was() -> None:
+    before = PullLedger().advance([push("a" * 40, duplicate())], run="1")
+    fake = FakeGitHub([f"{MARKER}\nold\n{before.snapshot()}"])
+    upsert(client(fake), REPO, PR, REPORT, 1)
+    assert ledger_of(fake) == before
+
+
+def test_no_ledger_is_shown_before_a_run_reports() -> None:
+    fake = FakeGitHub()
+    upsert(client(fake), REPO, PR, REPORT, 1)
+    assert "so far" not in fake.stickies()[0] and PullLedger.read(fake.stickies()[0]) is None
+
+
+def test_the_repositorys_totals_follow_the_pull_requests_own(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    totals = RepositoryLedger(repository=REPO, since="2026-10-01T00:00:00+00:00")
+    totals.add_pull(3, PullLedger().advance([push("a" * 40, duplicate())], run="1").advance([push("b" * 40)], run="2"))
+    saved = tmp_path / "repository.json"
+    saved.write_text(totals.model_dump_json())
+    fake = FakeGitHub()
+    post(fake, tmp_path, push("c" * 40), "5", "--repository-ledger", str(saved))
+    post(fake, tmp_path, push("d" * 40), "6", "--repository-ledger", str(tmp_path / "missing.json"))
+    assert "🏆" not in fake.stickies()[0]
+    fake = FakeGitHub()
+    post(fake, tmp_path, push("c" * 40), "5", "--repository-ledger", str(saved))
+    assert "<sub>🏆 `acme/shop` since Oct 1, 2026: **1 duplicate kept out of the codebase**" in fake.stickies()[0]

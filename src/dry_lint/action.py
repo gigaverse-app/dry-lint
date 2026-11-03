@@ -24,6 +24,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import httpx
@@ -32,6 +33,8 @@ from dry_lint import sticky
 from dry_lint.detector import base_ref, given
 from dry_lint.git import git
 from dry_lint.github import github_event
+from dry_lint.ledger import PullLedger, RepositoryLedger, Tally
+from dry_lint.report import Report
 
 ARTIFACT = "dry-lint-candidates"
 OVERRIDE_LABEL = "dry-lint: override"
@@ -190,6 +193,10 @@ def comment(repository: str, number: int, body: Path, findings: int, expect_head
             "--findings", str(findings), "--key", env("INPUT_STICKY_KEY"), "--run-url", run_url(), "--note", note]
     if expect_head:
         args += ["--expect-head", expect_head]
+    if (report := body.parent / "report.json").exists():
+        args += ["--report", str(report)]
+    if ledger_path().exists():
+        args += ["--repository-ledger", str(ledger_path())]
     if env("INPUT_COMMENT_ON_CLEAN", "true").lower() in ("false", "0", "no"):
         args.append("--skip-clean")
     sticky.main(args, transport=transport)
@@ -225,6 +232,53 @@ def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTr
         print("::warning title=dry-lint::No check run: give the judge job `checks: write`.")
         return "forbidden"
     return "posted"
+
+
+def ledger_path() -> Path:
+    """The repository's ledger, beside the verdicts: in the cache every pull request restores from."""
+    return workdir() / "verdicts" / "ledger" / "repository.json"
+
+
+def default_branch(event_name: str, event: dict) -> str:
+    """The default branch, when this run is a push to it; otherwise ""."""
+    default = (event.get("repository") or {}).get("default_branch", "")
+    return default if event_name == "push" and default and event.get("ref") == f"refs/heads/{default}" else ""
+
+
+def fold(repository: str, branch: str, head: str, report: Path, transport: httpx.BaseTransport | None = None) -> str:
+    """
+    Add this default-branch run, and the final ledger of each pull request merged since the repository's ledger
+    began, to that ledger. Each run looks back over the latest merged pull requests, not only this push's, so a
+    run that was cancelled or failed is caught up by the next. The pull request this push merged counts even when
+    the ledger is new.
+    """
+    path = ledger_path()
+    ledger = RepositoryLedger.load(path.read_text() if path.exists() else "", repository)
+    if report.exists():
+        ledger.add_run(Tally.of(Report.model_validate_json(report.read_text())), sticky.run_id())
+    outcome = "folded"
+    token = env("GITHUB_TOKEN")
+    if token:
+        github = sticky.GitHub(token, env("GITHUB_API_URL", "https://api.github.com"), transport)
+        since = datetime.fromisoformat(ledger.since)
+        try:
+            for pull in github.merged_pulls(repository, branch):
+                number = pull["number"]
+                if number in ledger.pulls or number in ledger.unaccounted or not (
+                        pull.get("merge_commit_sha") == head or datetime.fromisoformat(pull["merged_at"]) >= since):
+                    continue
+                found = [pulled for c in sticky.ours(github.comments(repository, number))
+                         if (pulled := PullLedger.read(c.get("body", ""))) is not None]
+                if found:
+                    ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs))
+                else:
+                    ledger.unaccounted.append(number)
+        except httpx.HTTPError as error:
+            print(f"::warning title=dry-lint::Could not read merged pull requests for the ledger: {error}")
+            outcome = "partial"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(ledger.model_dump_json(indent=2) + "\n")
+    return outcome
 
 
 def pull_labels(repository: str, number: int, transport: httpx.BaseTransport | None = None) -> set[str]:
@@ -325,6 +379,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     if mode == "judge":
         check_run(root, repository, report, transport, blocked)
     comment(repository, number, body, findings, head, transport, status_note(blocking, overridden))
+    if branch := default_branch(event_name, event):
+        fold(repository, branch, event.get("after", ""), report, transport)
     write_outputs(mode=mode, exit_code=code, findings=findings, blocking=blocking, overridden=str(overridden).lower())
     return 1 if blocked else 0
 

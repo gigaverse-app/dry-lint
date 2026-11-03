@@ -28,6 +28,10 @@ That is the whole setup for a repository whose pull requests come from its own b
     compared with, look-alike pairs, what the judge cleared and the closest call. Opt out with
     `comment-on-clean: "false"`.
   - When findings are fixed, the comment says so instead of going stale.
+  - **A running account of the pull request**: what every push cost, how many functions were checked and how
+    many judgments were made, and every duplicate it caught, as one line a reader remembers ("2 duplicates kept
+    out of the codebase for $0.007 of judging, across 4 pushes"), badges, and push by push in a fold.
+    See [the ledger](#the-ledger).
   - Old keyed comments are removed on the next publish. Serialize publishers to prevent creation races.
   - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never
     shows a broken image.
@@ -146,6 +150,29 @@ Verdicts are kept in the Actions cache:
   request can read them.
 
 Losing the cache only costs re-judging.
+
+## The ledger
+
+The sticky keeps a running account across a pull request's pushes, and the repository keeps one across its merged
+pull requests.
+
+- **The pull request's ledger lives in its comment**, as one hidden `<!-- dry-lint-ledger {...} -->` line. Each
+  run adds its cost, checks and judgments once: a run is counted by its id and attempt, and a re-run of the same
+  commit adds what it cost but no new checks.
+- **A duplicate is kept out of the codebase** when a push reported it and a later push no longer does. A pair a
+  person settles with `distinct-from`, `ignore` or a pattern counts as dismissed instead, even after it went away,
+  and a pair left unjudged (the budget ran out) stays open.
+- **The repository's ledger** is folded by the run on each push to the default branch: it adds that run, and the
+  final ledger of each pull request merged since the ledger began, once each. It looks back over the latest 100
+  merged pull requests, so a cancelled run is caught up by the next. It lives beside the verdicts in the cache
+  every pull request restores, and each sticky shows its line: "🏆 `owner/repo` since Oct 6, 2026: 31 duplicates
+  kept out of the codebase across 58 merged pull requests, for $0.84 of judging."
+- **It says since when it counts.** If the cache is evicted, the repository's ledger starts again from that day;
+  it never estimates what it lost. A merged pull request without a dry-lint comment (`comment-on-clean: "false"`
+  and nothing found) is not counted.
+
+The fold needs the default branch to run dry-lint on push, as [the example workflow](../examples/dry-lint.yml)
+does, and a token that can read pull requests.
 
 ## Running it in a monorepo, or more than once
 
