@@ -63,6 +63,9 @@ class Finding(BaseModel):
                 parts.append(OWNERS[self.verdict.owner])
             if self.verdict.why:
                 parts.append(plain(self.verdict.why))
+            if self.verdict.label != "separate" and self.candidate.consolidation:
+                parts.append("preferred consolidation home: " + "; ".join(
+                    target.destination for target in self.candidate.consolidation))
         parts.append(f"similarity {self.candidate.similarity:.2f}")
         if self.family > 1:
             parts.append(f"{self.family} look-alikes")

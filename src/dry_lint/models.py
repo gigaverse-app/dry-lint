@@ -9,11 +9,13 @@ Each file carries `schema`. Bump it, and keep reading the old one, whenever a fi
 """
 
 import hashlib
+import json
+from pathlib import PurePosixPath
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 3
+SCHEMA = 4
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -43,6 +45,7 @@ class Function(BaseModel):
     line: int
     end_line: int
     code: str
+    context: str = Field(default="", description="Bounded source dependencies and policy comments; never executed.")
     origin: Run | None = Field(default=None, description="Source checkout for a multi-repository scan.")
     hash: str = Field(default="", description="Changes with runtime logic; the language extractor normalizes safe cosmetic edits.")
     tokens: list[str] = Field(default_factory=list, exclude=True,
@@ -52,12 +55,32 @@ class Function(BaseModel):
 
     @property
     def qualname(self) -> str:
-        prefix = f"{self.origin.repository}/" if self.origin else ""
+        prefix = f"{self.origin.repository}/" if self.origin and self.origin.repository else ""
         return f"{prefix}{self.path}::{self.owner + '.' if self.owner else ''}{self.name}"
 
     @property
     def lines(self) -> int:
         return self.end_line - self.line + 1
+
+
+class Consolidation(BaseModel):
+    """A preferred home for related implementations, not a requirement to merge unrelated concepts."""
+
+    sources: list[str] = Field(default_factory=lambda: ["*"], min_length=1)
+    repository: str = ""
+    path: str = Field(min_length=1)
+    guidance: str = ""
+
+    @field_validator("path")
+    @classmethod
+    def relative_path(cls, value: str) -> str:
+        if PurePosixPath(value).is_absolute() or ".." in PurePosixPath(value).parts or "\\" in value or ":" in value:
+            raise ValueError("consolidation path must be repository-relative, without '..'")
+        return value.rstrip("/") or "."
+
+    @property
+    def destination(self) -> str:
+        return "/".join(part for part in (self.repository, self.path) if part)
 
 
 def pair_key(a: str, b: str) -> str:
@@ -75,6 +98,15 @@ class Candidate(BaseModel):
     comparer: str = Field(default="", description="The comparer and version that measured the similarity, e.g. 'tfidf:1'.")
     filtered: str | None = Field(default=None, description="Why a rule dropped the pair; None when it goes to the judge.")
     similarity_reusable: bool = Field(default=False, description="Whether this metric permits reuse after logic changes.")
+    consolidation: list[Consolidation] = Field(default_factory=list)
+
+    @property
+    def context_hash(self) -> str:
+        if not (self.new.context or self.existing.context or self.consolidation):
+            return ""
+        payload = [sorted((f.qualname, f.context) for f in (self.new, self.existing)),
+                   [target.model_dump() for target in self.consolidation]]
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     @property
     def key(self) -> str:

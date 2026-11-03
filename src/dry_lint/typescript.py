@@ -9,6 +9,7 @@ from tree_sitter import Language, Node, Parser
 
 from dry_lint.functions import words
 from dry_lint.models import Function
+from dry_lint.source_context import SourceContext
 
 FUNCTIONS = {"function_declaration", "function_expression", "generator_function_declaration",
              "generator_function", "arrow_function", "method_definition"}
@@ -109,6 +110,7 @@ class TypeScriptExtractor:
         if path.endswith((".d.ts", ".d.mts", ".d.cts")):
             return []
         root = self.parser(path).parse(source.encode("utf-8")).root_node
+        context = SourceContext(root)
         found = []
 
         def add(node: Node, code: Node, name: str, owner: str | None) -> None:
@@ -124,7 +126,8 @@ class TypeScriptExtractor:
             if code.type == "variable_declarator":
                 snippet = "const " + snippet + ";"
             found.append(Function(path=path, name=name, owner=owner, line=code.start_point.row + 1,
-                                  end_line=code.end_point.row + 1, code=snippet, tokens=tokens, calls=calls))
+                                  end_line=code.end_point.row + 1, code=snippet, tokens=tokens, calls=calls,
+                                  context=context.for_function(code)))
 
         def visit(node: Node, owner: str | None = None) -> None:
             if node.type in TYPE_ONLY:

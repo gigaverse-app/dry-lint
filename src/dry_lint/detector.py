@@ -14,6 +14,7 @@ from dry_lint.functions import extractor_for, repository_functions
 from dry_lint.git import git
 from dry_lint.models import Candidate, Function, Run
 from dry_lint.plugins import Comparer, Extractor, identity, load
+from dry_lint.ranking import rank_candidates
 from dry_lint.settings import Settings
 
 SUPPRESSION = re.compile(r"(?:#|//)\s*dry-lint:\s*distinct-from\s+(\S+)")
@@ -91,6 +92,7 @@ class Detector:
         self.comparer = comparer
         self.extractors = extractors
         self.cross_repository = cross_repository
+        self.repositories = sorted({f.origin.repository for f in functions if f.origin})
         self.comparer_id = identity(comparer)
         self.file_extractors = {path: extractor_for(path, extractors) for path in {f.path for f in functions}}
         self.position = {f.qualname: i for i, f in enumerate(functions)}
@@ -141,6 +143,11 @@ class Detector:
             return ((different_repository if self.cross_repository else different_repository or other.path != function.path)
                     and self.file_extractors[other.path] is extractor)
 
+        if self.cross_repository:
+            return [pair for repository in self.repositories if not function.origin or repository != function.origin.repository
+                    for pair in self.comparer.neighbours(function, self.settings.neighbours,
+                        allowed=lambda other, repository=repository: allowed(other) and other.origin is not None
+                        and other.origin.repository == repository)]
         return self.comparer.neighbours(function, self.settings.neighbours, allowed=allowed)
 
     def hashed(self, function: Function) -> Function:
@@ -149,9 +156,12 @@ class Detector:
         return function.model_copy(update={"hash": extractor.structure_hash(function)})
 
     def pair(self, new: Function, existing: Function, similarity: float) -> Candidate:
+        targets = [target for target in self.settings.consolidation if all(
+            any(fnmatch.fnmatch(f.qualname.split("::")[0], pattern) for pattern in target.sources)
+            for f in (new, existing))]
         return Candidate(new=self.hashed(new), existing=self.hashed(existing), similarity=round(similarity, 3),
                          comparer=self.comparer_id, filtered=why_skipped(new, existing, self.settings),
-                         similarity_reusable=getattr(self.comparer, "similarity_reusable", False))
+                         similarity_reusable=getattr(self.comparer, "similarity_reusable", False), consolidation=targets)
 
     def candidates(self, changed: list[Function]) -> list[Candidate]:
         """Pairs for the changed functions; those a rule settles carry the rule in `filtered`."""
@@ -162,10 +172,28 @@ class Detector:
                 if key not in seen:
                     seen.add(key)
                     found.append(self.pair(function, other, similarity))
-        return found
+        return rank_candidates(found) if self.cross_repository or self.settings.consolidation else found
 
     def scan(self) -> list[Candidate]:
         """Every pair in the repository that are each other's nearest neighbour across files: the backlog."""
+        if self.cross_repository:
+            best = {}
+            for function in self.functions:
+                for other, similarity in self.neighbours(function):
+                    key = (function.qualname, other.origin.repository)
+                    if key not in best:
+                        best[key] = (other, similarity)
+            pairs = []
+            for (name, _), (other, similarity) in best.items():
+                if name >= other.qualname:
+                    continue
+                function = self.functions[self.position[name]]
+                reverse = best.get((other.qualname, function.origin.repository))
+                if reverse and reverse[0].qualname == name:
+                    pair = self.pair(function, other, similarity)
+                    if pair.filtered is None:
+                        pairs.append(pair)
+            return rank_candidates(pairs)
         best: dict[str, tuple[str, float]] = {}
         for function in self.functions:
             near = self.neighbours(function)
@@ -177,4 +205,4 @@ class Detector:
                 pair = self.pair(self.functions[self.position[name]], self.functions[self.position[other]], similarity)
                 if pair.filtered is None:
                     pairs.append(pair)
-        return sorted(pairs, key=lambda c: -c.similarity)
+        return rank_candidates(pairs) if self.settings.consolidation else sorted(pairs, key=lambda c: -c.similarity)

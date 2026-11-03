@@ -65,7 +65,7 @@ class Judging:
         proposed = [c for c in candidates if c.filtered is None]
         if self.judge is None:
             return [Finding(candidate=c) for c in proposed]
-        version = self.judge.version if refresh else None
+        version = self.judge.version if refresh or getattr(self.judge, "context", False) else None
         known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict for c in proposed]
         pending = [i for i, verdict in enumerate(known) if verdict is None]
         if pending:
