@@ -18,9 +18,12 @@ That is the whole setup for a repository whose pull requests come from its own b
 - **Annotations** on the changed functions that re-implement existing code, with the function they duplicate
   and what to do about it.
 - **One sticky comment**, found again by its `<!-- dry-lint -->` marker and edited in place on every push:
-  - Blocking or override status comes first. Findings link to both functions at the analyzed commit, including on GitHub Enterprise.
-  - Counts distinguish findings from changed functions; cached and newly judged pairs show how much work ran.
-  - Expand evidence for judge scores, detector similarity and the exact pair-specific suppression target.
+  - A headline and badges say how many duplicated concepts there are, how many block and how many have drifted;
+    a blocking, advisory or overridden status follows as a GitHub alert.
+  - One row per pair: a severity dot, the concept, both copies linked at the analyzed commit (short file names,
+    the full path on hover, GitHub Enterprise included) and the verdict with the judge's fix.
+  - Fold-outs hold each judge reason with a copy-paste `distinct-from` line, and every scope of override.
+  - A `dry-lint scan` report reads as an audit of existing code that never blocks, not as a pull request review.
   - A clean pull request gets no comment.
   - When findings are fixed, the comment says so instead of going stale.
   - Copies left by two runs racing are deleted.

@@ -3,43 +3,54 @@
 Illustrative verdicts, not measured findings. Generated from [the example report](../examples/comment-report.json) with the production Markdown renderer. On a pull request, function names link to their exact source revision; this local example has no repository metadata.
 
 <!-- dry-lint -->
-### dry-lint · Review findings
+### dry-lint · 2 duplicated concepts
 
-**2 findings across 3 functions**. Reuse the existing owner or share the common behavior.
+![duplicated concepts: 2](https://img.shields.io/badge/duplicated_concepts-2-CF222E?style=flat-square&labelColor=24292F) ![blocking: 1](https://img.shields.io/badge/blocking-1-CF222E?style=flat-square&labelColor=24292F) ![drifted: 1](https://img.shields.io/badge/drifted-1-EA580C?style=flat-square&labelColor=24292F) ![changed functions: 5](https://img.shields.io/badge/changed_functions-5-6E7781?style=flat-square&labelColor=24292F) ![judge: illustrative](https://img.shields.io/badge/judge-illustrative-6E7781?style=flat-square&labelColor=24292F)
 
-**1 at the blocking threshold** (`fail_at`).
+<!-- dry-lint note -->
 
-5 changed functions · 2 candidate pairs · 0 skipped by rule · 1 cached · 1 newly judged
+Each row is one concept implemented twice: a function this pull request changed, and code the repository already has. Reuse it, or parameterize the difference.
 
-| Function | Looks like | Verdict | Suggestion |
-| --- | --- | --- | --- |
-| src/captions.py::clip | src/text.py::shorten | **blocking drifted** 0.95 | call the existing function; Both shorten text, but one cuts through a word while the other preserves whole words. (2 look-alikes) |
-| src/captions.py::clip | src/previews.py::preview | **duplicate** 0.86 | extract a shared helper both can call; Both apply the same length limit; share that policy while keeping presentation separate. (2 look-alikes) |
+| | Concept | Copies | Verdict |
+| :-: | :-- | :-- | :-- |
+| 🔴 | `clip` ≈ `shorten` <sub>· 2 look-alikes</sub> | src/captions.py:8 <sub>changed</sub><br>src/text.py:3 | **drifted**&nbsp;0.95<br><sub>blocks · call the existing one</sub> |
+| 🟡 | `clip` ≈ `preview` <sub>· 2 look-alikes</sub> | src/captions.py:8 <sub>changed</sub><br>src/previews.py:3 | **duplicate**&nbsp;0.86<br><sub>extract a shared helper</sub> |
 
-<details><summary>Evidence and next steps</summary>
+<sub>🔴 fails the check · 🟡 duplicate</sub>
 
-**src/captions.py::clip** → **src/text.py::shorten**
+<details><summary><strong>Reasons, and a one-line dismissal for each</strong></summary>
 
-Judge score: **0.95** · similarity: **0.71** · new verdict
+🔴 **`clip` ≈ `shorten` <sub>· 2 look-alikes</sub>** · drifted 0.95 · similarity 0.71 · new verdict · the copies already behave differently
 
-These functions already behave differently; check callers before consolidating.
+> Both shorten text, but one cuts through a word while the other preserves whole words.
 
-If they represent different concepts, add this pair-specific decision inside the changed function:
+Different concepts? Add to captions.py:
 
-\# dry-lint: distinct-from src/text.py::shorten
+```python
+# dry-lint: distinct-from src/text.py::shorten
+```
 
-**src/captions.py::clip** → **src/previews.py::preview**
+🟡 **`clip` ≈ `preview` <sub>· 2 look-alikes</sub>** · duplicate 0.86 · similarity 0.71 · from the verdict store
 
-Judge score: **0.86** · similarity: **0.71** · cached verdict
+> Both apply the same length limit; share that policy while keeping presentation separate.
 
-If they represent different concepts, add this pair-specific decision inside the changed function:
+Different concepts? Add to captions.py:
 
-\# dry-lint: distinct-from src/previews.py::preview
+```python
+# dry-lint: distinct-from src/previews.py::preview
+```
+
+</details>
+
+<details><summary><strong>False positive? Choose the scope of your decision</strong></summary>
+
+| Scope | Decision |
+| :-- | :-- |
+| this pair | `# dry-lint: distinct-from <qualified name>` in the changed function |
+| one function | `# dry-lint: ignore` in that function |
+| a family of look-alikes | a `patterns` entry under `[tool.dry-lint]`, or in `.dry-lint.toml` |
+| this pull request only | the `dry-lint: override` label |
 
 </details>
 
-<details><summary>False positive? Choose the scope of your decision</summary>
-
-False positive? Add `# dry-lint: distinct-from <qualified name>` to the new function (this pair), `# dry-lint: ignore` to a function (that function), a `patterns` entry under `[tool.dry-lint]` (a family), or the `dry-lint: override` label to the pull request (this pull request only). For TypeScript/TSX, use `//` instead of `#`; configuration can also live in `.dry-lint.toml`.
-
-</details>
+<sub>5 changed functions · 2 pairs compared · 1 from the verdict store · judge `illustrative`</sub>

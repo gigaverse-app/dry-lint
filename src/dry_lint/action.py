@@ -118,13 +118,12 @@ def status_note(blocking: int, overridden: bool) -> str:
     if not blocking:
         return ""
     if overridden:
-        return (f"**Overridden:** the `{override_label()}` label is set, so the {blocking} blocking finding(s) "
-                "do not fail this pull request.")
+        return (f"> [!NOTE]\n> **Overridden:** the `{override_label()}` label is set, so the {blocking} blocking "
+                "finding(s) do not fail this pull request.")
     if flag("INPUT_WARN_ONLY"):
-        return "**Advisory mode:** `warn-only` is enabled, so this check does not fail on these findings."
-    return (f"**Blocking:** {blocking} finding(s) reach `fail_at`, so this check "
-            f"fails. A false positive? Use the scoped decisions below, or add the `{override_label()}` label to this "
-            "pull request.")
+        return "> [!NOTE]\n> **Advisory mode:** `warn-only` is enabled, so this check does not fail on these findings."
+    return (f"> [!CAUTION]\n> **Blocking:** {blocking} finding(s) reach `fail_at`, so this check fails. A false "
+            f"positive? Use the scoped decisions below, or add the `{override_label()}` label to this pull request.")
 
 
 def write_outputs(**outputs: object) -> None:
