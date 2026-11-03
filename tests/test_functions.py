@@ -1,7 +1,10 @@
+from textwrap import indent
+
 import pytest
 
 from dry_lint.functions import (
     behaviour_tokens,
+    calls,
     functions_in,
     repository_functions,
     structure_hash,
@@ -66,7 +69,7 @@ def test_functions_in_skips_files_that_do_not_parse() -> None:
 
 
 def test_behaviour_tokens_capture_calls_attributes_names_and_control_flow() -> None:
-    source = '''
+    source = """
     async def fetch_rows(client, query):
         rows = []
         for page in client.pages(query):
@@ -75,14 +78,18 @@ def test_behaviour_tokens_capture_calls_attributes_names_and_control_flow() -> N
             except KeyError:
                 pass
         return rows
-    '''
+    """
     tokens = behaviour_tokens(function("a.py", source))
     assert tokens.count("fn:fetch") == 2 and tokens.count("fn:rows") == 2
-    assert {"call:pages", "call:load", "attr:pages", "w:client", "w:query", "ctl:loop", "ctl:try", "ctl:await"} <= set(tokens)
+    assert {"call:pages", "call:load", "attr:pages", "w:client", "w:query", "ctl:loop", "ctl:try", "ctl:await"} <= set(
+        tokens
+    )
 
 
 def test_behaviour_tokens_of_unparsable_code_fall_back_to_the_name() -> None:
-    assert behaviour_tokens(function("a.py", "def parse_header(:", name="parse_header")) == ["fn:parse", "fn:header"] * 2
+    assert (
+        behaviour_tokens(function("a.py", "def parse_header(:", name="parse_header")) == ["fn:parse", "fn:header"] * 2
+    )
 
 
 def test_words_split_identifiers_and_drop_generic_ones() -> None:
@@ -110,3 +117,38 @@ def test_structure_hash_treats_async_functions_like_functions() -> None:
     b = function("b.py", "async def load(api, name):\n    return await api.get(name)\n")
     c = function("c.py", "def load(api, name):\n    return api.get(name)\n")
     assert structure_hash(a) == structure_hash(b) != structure_hash(c)
+
+
+def test_calls_preserve_real_invocations_and_ignore_unresolvable_targets() -> None:
+    source = "def wrapper(client):\n    return client.load_user (factory()(), callbacks[0]())\n"
+    assert calls(function("a.py", source)) == {"load_user", "factory"}
+    assert calls(function("a.py", "def broken(:", name="broken")) == set()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "pass",
+        "...",
+        '"""Interface contract."""',
+        '"""Interface contract."""\n    raise NotImplementedError',
+        "raise NotImplementedError()",
+    ],
+)
+def test_declaration_only_stubs_are_not_indexed(body: str) -> None:
+    assert functions_in(f"def load_user(client):\n    {body}\n", "ports.py") == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "return None",
+        'raise ValueError("unsupported")',
+        "client.read()\nraise NotImplementedError",
+        "raise NotImplementedError(client.reason())",
+        "raise NotImplementedError from cause",
+    ],
+)
+def test_implemented_methods_remain_indexed_even_when_abstract_or_raising(body: str) -> None:
+    source = "class Port:\n    @abstractmethod\n    def load_user(self, client):\n" + indent(body, "        ") + "\n"
+    assert [f.qualname for f in functions_in(source, "ports.py")] == ["ports.py::Port.load_user"]

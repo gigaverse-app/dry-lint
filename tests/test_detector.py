@@ -27,7 +27,9 @@ def test_changed_lines_of_staged_changes_ignore_unstaged_ones_and_deleted_files(
 def test_only_functions_overlapping_changed_lines_count_as_changed(repo: Repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
     assert changed_functions(repo, detector, base="main") == [
-        "src/widgets/caption.py::preview_caption_text", "src/widgets/caption.py::register_widget"]
+        "src/widgets/caption.py::preview_caption_text",
+        "src/widgets/caption.py::register_widget",
+    ]
 
 
 def test_a_reimplementation_of_an_existing_helper_becomes_a_candidate(repo: Repo) -> None:
@@ -67,8 +69,9 @@ def test_a_pair_is_proposed_once_even_when_both_sides_changed(repo: Repo) -> Non
 
 def test_scan_reports_mutual_nearest_neighbours_closest_first(repo: Repo) -> None:
     pairs = Detector.for_repository(repo.root, Settings()).scan()
-    assert {(c.new.name, c.existing.name) for c in pairs} >= {("preview_caption_text", "shorten_text")} or \
-        {(c.existing.name, c.new.name) for c in pairs} >= {("preview_caption_text", "shorten_text")}
+    assert {(c.new.name, c.existing.name) for c in pairs} >= {("preview_caption_text", "shorten_text")} or {
+        (c.existing.name, c.new.name) for c in pairs
+    } >= {("preview_caption_text", "shorten_text")}
     assert [c.similarity for c in pairs] == sorted((c.similarity for c in pairs), reverse=True)
 
 
@@ -92,8 +95,15 @@ def test_why_skipped_names_the_rule_that_makes_look_alikes_not_duplicates(a, b, 
 
 
 def test_skipped_pairs_are_listed_with_their_reason(repo: Repo) -> None:
-    repo.write("src/widgets/caption.py", (repo.root / "src/widgets/caption.py").read_text().replace(
-        "    if len(caption_text)", "    # dry-lint: distinct-from src/text.py::shorten_text\n    if len(caption_text)"))
+    repo.write(
+        "src/widgets/caption.py",
+        (repo.root / "src/widgets/caption.py")
+        .read_text()
+        .replace(
+            "    if len(caption_text)",
+            "    # dry-lint: distinct-from src/text.py::shorten_text\n    if len(caption_text)",
+        ),
+    )
     repo.commit("suppress")
     detector = Detector.for_repository(repo.root, Settings())
     candidates, skipped = detector.candidates(touched(detector.functions, changed_lines(repo.root, base="main")))
@@ -121,26 +131,33 @@ def test_same_named_implementations_reach_both_check_and_scan(repo: Repo, declar
         assert any({pair.new.qualname, pair.existing.qualname} == expected for pair in pairs)
 
 
-@pytest.mark.parametrize("body", [
-    '# load_user(store, key) is a possible alternative\n    return store.read(key)',
-    '"""Unlike load_user(store, key), this reads an account."""\n    return store.read(key)',
-    'return "load_user(store, key)"',
-])
+@pytest.mark.parametrize(
+    "body",
+    [
+        "# load_user(store, key) is a possible alternative\n    return store.read(key)",
+        '"""Unlike load_user(store, key), this reads an account."""\n    return store.read(key)',
+        'return "load_user(store, key)"',
+    ],
+)
 def test_mentions_of_another_function_do_not_suppress_a_candidate(body: str) -> None:
     other = function("b.py", f"def load_account(store, key):\n    {body}\n")
     assert why_skipped(A, other, Settings()) is None
 
 
 def test_same_file_methods_cannot_hide_cross_file_neighbours(repo: Repo) -> None:
-    repo.write("src/digests.py", "\n".join(
-        f"class Resource{i}:\n"
-        "    def phone_digest(self, phone_number):\n"
-        "        return hashlib.sha256(phone_number.encode()).hexdigest()\n"
-        for i in range(12)
-    ))
-    repo.write("src/forensics.py",
-               "def phone_digest(phone_number):\n"
-               "    return hashlib.sha256(phone_number.strip().encode()).hexdigest()\n")
+    repo.write(
+        "src/digests.py",
+        "\n".join(
+            f"class Resource{i}:\n"
+            "    def phone_digest(self, phone_number):\n"
+            "        return hashlib.sha256(phone_number.encode()).hexdigest()\n"
+            for i in range(12)
+        ),
+    )
+    repo.write(
+        "src/forensics.py",
+        "def phone_digest(phone_number):\n    return hashlib.sha256(phone_number.strip().encode()).hexdigest()\n",
+    )
     repo.commit()
     detector = Detector.for_repository(repo.root, Settings())
     local = next(f for f in detector.functions if f.owner == "Resource0")
