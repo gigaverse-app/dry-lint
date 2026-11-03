@@ -30,6 +30,9 @@ dry-lint is a fixed core (the pipeline, the file formats, the verdict store's ru
 plugin slots: how functions are found, how they are compared, how a pair is judged, and where verdicts are kept.
 See [docs/design.md](docs/design.md) and [docs/plugins.md](docs/plugins.md).
 
+For the experimental work on profiles, judging budgets and discovery across repeated runs, see
+[Discovery over time](docs/coverage-exploration.md), including the offline replay tools and measured tradeoffs.
+
 1. **Detector** (local, no model, about 4.5 s on 10,000 functions). It finds the functions the diff touched. The
    **comparer** proposes each one's nearest look-alikes in other files; the built-in one is a TF-IDF fingerprint
    of what a function *does*: the names it calls, the attributes it touches, the words in its identifiers, its
