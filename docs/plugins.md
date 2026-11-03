@@ -5,7 +5,7 @@ implements one; nothing needs to inherit from dry-lint.
 
 | Slot | Settings key | Built in | Entry-point group |
 | --- | --- | --- | --- |
-| Extractor | `extractors` (a list, one per language) | `python` | `dry_lint.extractors` |
+| Extractor | `extractors` (a list, one per language) | `python`, `typescript` | `dry_lint.extractors` |
 | Comparer | `comparer` | `tfidf`, optional `dryer` | `dry_lint.comparers` |
 | Judge | `judge`, `escalate` | `jev`, `command` (and `auto`, `none`) | `dry_lint.judges` |
 | Store backend | `store` | `dir`, `s3` | `dry_lint.stores` |
@@ -14,7 +14,7 @@ A slot takes a name, or a table whose `use` names the plugin and whose other key
 
 ```toml
 [tool.dry-lint]
-extractors = ["python", { use = "tree-sitter", languages = ["typescript"] }]
+extractors = ["python", "typescript"]
 comparer = { use = "embedding", model = "jinaai/jina-embeddings-v2-base-code" }
 judge = "jev"
 escalate = { use = "command", command = "claude -p --model sonnet", version = "sonnet-1", between = [0.6, 0.8] }
@@ -47,7 +47,8 @@ class Extractor(Protocol):
 ```
 
 `functions` returns every function in a file, with `tokens` filled in if your comparer uses them; leave `hash`
-empty. `structure_hash` must change when the logic changes and not for comments, formatting or renames; core
+empty. `structure_hash` must change when the logic changes and not for comments or formatting. Normalize
+renames only when the language's binding rules make that safe; conservative re-judging is preferable. Core
 calls it only for the functions in a candidate pair. `owner` is the enclosing class, if any.
 
 ## Comparer

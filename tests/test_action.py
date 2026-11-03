@@ -313,6 +313,42 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     assert "Resolved" in body and "preview_caption_text" not in body
 
 
+def test_typescript_pull_request_updates_and_resolves_one_sticky_comment(
+        repo: Repo, github_env, tmp_path, twin_judge, capsys):
+    repo.git("checkout", "-q", "main")
+    repo.write(".dry-lint.toml", 'include = ["*.ts", "src/filler.py"]')
+    repo.write("src/text.ts", '''export function shorten_text(text: string, limit: number) {
+      if (text.length <= limit) return text;
+      return text.slice(0, limit - 1).trimEnd() + "…";
+    }''')
+    repo.write("package.json", '{"scripts":{"test":"bun test"}}')
+    repo.commit()
+    repo.git("checkout", "-q", "-b", "typescript")
+    repo.write("src/caption.ts", '''export const preview_caption_text = (caption: string, limit: number) => {
+      if (caption.length <= limit) return caption;
+      return caption.slice(0, limit - 1).trimEnd() + "…";
+    };''')
+    repo.commit()
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), warn_only="true")
+    for _ in range(2):
+        assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "src/caption.ts::preview_caption_text" in body and "src/text.ts::shorten_text" in body
+    assert "For TypeScript/TSX" in body and judge_calls(tmp_path) == 1
+    assert "blocking" not in body
+    assert "// dry-lint: distinct-from src/text.ts::shorten_text" in capsys.readouterr().out
+    repo.write("src/caption.ts", 'export { shorten_text as preview_caption_text } from "./text";')
+    repo.commit()
+    github.head = repo.git("rev-parse", "HEAD").strip()
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), warn_only="true")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "Resolved" in body
+
+
 def test_without_a_judge_the_real_cli_lists_look_alikes_and_comments_nothing(repo: Repo, github_env, tmp_path, capsys):
     github = FakeGitHub()
     github_env("pull_request", pr_event(repo), working_directory=str(repo.root))

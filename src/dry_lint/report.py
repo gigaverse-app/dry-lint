@@ -9,11 +9,12 @@ it is shown, and never rendered as markdown or links.
 
 import json
 import re
+from urllib.parse import quote
 
 from pydantic import BaseModel, Field
 
 from dry_lint import __version__
-from dry_lint.models import Candidate, Run, Verdict, Versioned
+from dry_lint.models import Candidate, Function, Run, Verdict, Versioned
 from dry_lint.settings import Settings
 
 MARKER = "<!-- dry-lint -->"
@@ -64,7 +65,8 @@ class Finding(BaseModel):
         parts.append(f"similarity {self.candidate.similarity:.2f}")
         if self.family > 1:
             parts.append(f"{self.family} look-alikes")
-        parts.append(f"if they are different concepts, add `# dry-lint: distinct-from {self.candidate.existing.qualname}`")
+        prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
+        parts.append(f"if they are different concepts, add `{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}`")
         return "; ".join(parts)
 
 
@@ -101,6 +103,9 @@ class Report(Versioned):
         """Unjudged candidates, and judged pairs at or above the report threshold."""
         return [f for f in self.findings if f.verdict is None or f.reported]
 
+    def as_warnings(self) -> "Report":
+        return self.model_copy(update={"findings": [f.model_copy(update={"blocking": False}) for f in self.findings]})
+
     @property
     def stats(self) -> dict[str, int]:
         judged = [f for f in self.findings if f.verdict is not None]
@@ -125,7 +130,8 @@ def level(finding: Finding) -> str:
 OVERRIDES = (
     "False positive? Add `# dry-lint: distinct-from <qualified name>` to the new function (this pair), "
     "`# dry-lint: ignore` to a function (that function), a `patterns` entry under `[tool.dry-lint]` (a family), "
-    "or the `dry-lint: override` label to the pull request (this pull request only)."
+    "or the `dry-lint: override` label to the pull request (this pull request only). "
+    "For TypeScript/TSX, use `//` instead of `#`; configuration can also live in `.dry-lint.toml`."
 )
 
 
@@ -143,6 +149,14 @@ def as_github(report: Report) -> str:
     return "\n".join(lines)
 
 
+def function_link(function: Function, run: Run) -> str:
+    label = f"`{function.qualname.replace('`', '')}`"
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", run.repository) or not re.fullmatch(r"[a-fA-F0-9]{40}", run.head):
+        return label
+    path = quote(function.path, safe="/")
+    return f"[{label}](https://github.com/{run.repository}/blob/{run.head}/{path}#L{function.line}-L{function.end_line})"
+
+
 def as_markdown(report: Report, max_findings: int = 10) -> str:
     if report.judge is None:
         return (f"{MARKER}\n### dry-lint\n\nNo judge is configured, so the {len(report.findings)} look-alike pair(s) "
@@ -151,7 +165,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
     shown = report.visible
     if not shown:
         return f"{MARKER}\n### dry-lint\n\nNo duplicated concepts found in the changed functions."
-    rows = ["| Changed function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
+    rows = ["| Function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
     for f in shown[:max_findings]:
         if f.verdict:
             verdict = f"**{'blocking ' if f.blocking else ''}{f.verdict.label}** {f.verdict.score:.2f}"
@@ -160,8 +174,9 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
             verdict, suggestion = f"similarity {f.candidate.similarity:.2f}", "not judged"
         if f.family > 1:
             suggestion += f" ({f.family} look-alikes)"
-        rows.append(f"| `{f.candidate.new.qualname}` | `{f.candidate.existing.qualname}` | {verdict} | {suggestion} |")
-    more = ["", f"And {len(shown) - max_findings} more; run `dry-lint check` to see them all."] \
+        rows.append(f"| {function_link(f.candidate.new, report.run)} | "
+                    f"{function_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
+    more = ["", f"And {len(shown) - max_findings} more; see the full report in the run output."] \
         if len(shown) > max_findings else []
     skipped = [f"<details><summary>Not reported ({len(report.filtered)} settled by a rule)</summary>", "",
                *(f"- `{c.new.qualname}` ~ `{c.existing.qualname}`: {escaped(c.filtered or '')}" for c in report.filtered),
@@ -171,7 +186,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
         if blocking else []
     return "\n".join([
         MARKER, "### dry-lint", "",
-        f"{len(shown)} changed function(s) look like code that already exists. One concept should have one "
+        f"{len(shown)} implementation pair(s) look like the same concept. One concept should have one "
         "implementation: reuse it, or parameterize the difference.", "", *verdict_line, *rows, *more, "",
         OVERRIDES,
         *([""] + skipped if skipped else []),
@@ -217,6 +232,8 @@ def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False
     The body for `POST /repos/{owner}/{repo}/check-runs`: a failure only for a blocking finding (and not
     `warn_only`), neutral for findings that only warn, success otherwise.
     """
+    if warn_only:
+        report = report.as_warnings()
     reported = [f for f in report.findings if f.reported]
     failed = any(f.blocking for f in reported) and not warn_only
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
@@ -234,8 +251,10 @@ FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
 
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
-    if form == "markdown":
-        return as_markdown(report, settings.max_findings)
     if form == "check-run":
         return as_check_run(report, settings.max_findings, warn_only)
+    if warn_only and form != "json":
+        report = report.as_warnings()
+    if form == "markdown":
+        return as_markdown(report, settings.max_findings)
     return {"text": as_text, "github": as_github, "json": as_json, "sarif": as_sarif}[form](report)
