@@ -76,4 +76,5 @@ jobs:
       - uses: gigaverse-app/ci-esta/actions/validation-gate@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
         with:
           needs: ${{ toJSON(needs) }}
-          required: '{"test": true, "lint-ci": true, "dogfood": ${{ github.event_name == 'pull_request' }}}'
+          required: >-
+            {"test": true, "lint-ci": true, "dogfood": ${{ github.event_name == 'pull_request' }}}
