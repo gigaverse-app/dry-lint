@@ -38,7 +38,11 @@ inputs:
     required: false
     default: "."
   comment:
-    description: Keep one pull request comment with the findings up to date. A clean PR gets no comment.
+    description: Keep one pull request comment with the findings up to date.
+    required: false
+    default: "true"
+  comment-on-clean:
+    description: Comment on a clean pull request too, with what was checked. "false" comments only once there are findings.
     required: false
     default: "true"
   check-run:
@@ -131,6 +135,7 @@ runs:
         INPUT_BASE: ${{ inputs.base }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_COMMENT_ON_CLEAN: ${{ inputs.comment-on-clean }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
         INPUT_FAIL_AT: ${{ inputs.fail-at }}

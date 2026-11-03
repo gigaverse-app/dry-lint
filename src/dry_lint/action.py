@@ -153,6 +153,8 @@ def comment(repository: str, number: int, body: Path, findings: int, expect_head
             "--findings", str(findings), "--key", env("INPUT_STICKY_KEY"), "--run-url", run_url(), "--note", note]
     if expect_head:
         args += ["--expect-head", expect_head]
+    if env("INPUT_COMMENT_ON_CLEAN", "true").lower() in ("false", "0", "no"):
+        args.append("--skip-clean")
     sticky.main(args, transport=transport)
     return "posted"
 

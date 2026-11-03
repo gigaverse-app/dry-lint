@@ -95,7 +95,7 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
 runs. The comment links both functions at the analyzed commit, shows the review workload, and folds evidence and
-pair-specific suppression instructions under each summary. A clean pull request gets no comment. A reported duplicate fails the check; set `fail-at: "0.91"` to fail only
+pair-specific suppression instructions under each summary. A clean pull request gets a green sticky with what was checked (`comment-on-clean: "false"` to opt out). A reported duplicate fails the check; set `fail-at: "0.91"` to fail only
 on near-certain ones (no false positive at that level in the benchmark), and the `dry-lint: override` label lets
 one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)

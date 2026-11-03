@@ -70,11 +70,11 @@ def settings_for(root: Path, args: argparse.Namespace) -> Settings:
 
 
 def judged(candidates: list[Candidate], settings: Settings, root: Path, args: argparse.Namespace, run: Run,
-           changed: int, refresh: bool = False) -> Report:
+           changed: int, refresh: bool = False, functions: int = 0, scope: str = "change") -> Report:
     judging = Judging.configured(settings, open_store(settings, root, args.store))
     findings = judging.findings(candidates, source=run, refresh=refresh)
     return Report.build(findings, settings, filtered=[c for c in candidates if c.filtered], run=run, changed=changed,
-                        judge=judging.name)
+                        judge=judging.name, functions=functions, scope=scope)
 
 
 def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
@@ -91,13 +91,16 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     detector = Detector.for_repository(root, settings)
     changed = touched(detector.functions, changed_lines(root, args.base, args.staged))
-    report = judged(detector.candidates(changed), settings, root, args, run_info(root, args.base), len(changed))
+    report = judged(detector.candidates(changed), settings, root, args, run_info(root, args.base), len(changed),
+                    functions=len(detector.functions))
     return finish(report, settings, args)
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    candidates = Detector.for_repository(root, settings).scan()[: args.limit]
-    report = judged(candidates, settings, root, args, run_info(root, None), 0, refresh=args.refresh)
+    detector = Detector.for_repository(root, settings)
+    candidates = detector.scan()[: args.limit]
+    report = judged(candidates, settings, root, args, run_info(root, None), 0, refresh=args.refresh,
+                    functions=len(detector.functions), scope="repository")
     return finish(report, settings, args)
 
 
@@ -108,7 +111,8 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     else:
         changed = touched(detector.functions, changed_lines(root, args.base, args.staged))
         candidates = detector.candidates(changed)
-    found = CandidatesFile(run=run_info(root, args.base), changed=len(changed), candidates=candidates)
+    found = CandidatesFile(run=run_info(root, args.base), changed=len(changed), functions=len(detector.functions),
+                           candidates=candidates)
     text = found.model_dump_json(indent=1)
     if args.out:
         args.out.write_text(text + "\n")
@@ -122,7 +126,8 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 def judge(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     found = CandidatesFile.model_validate_json(args.candidates.read_text())
-    return finish(judged(found.candidates, settings, root, args, found.run, found.changed), settings, args)
+    return finish(judged(found.candidates, settings, root, args, found.run, found.changed, functions=found.functions),
+                  settings, args)
 
 
 def report(root: Path, settings: Settings, args: argparse.Namespace) -> int:
