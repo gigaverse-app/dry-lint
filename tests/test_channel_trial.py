@@ -151,11 +151,6 @@ def test_lsi_handles_an_empty_corpus_and_functions_without_known_tokens() -> Non
     assert lsi.similarity(doc("a.py", "call:never"), fillers()[0]) == 0.0
 
 
-def detector_for(sources: dict[str, str]) -> Detector:
-    functions = [function(path, source) for path, source in sources.items()]
-    return Detector(functions, Settings(), TfidfComparer(), [PythonExtractor()])
-
-
 def test_mutual_nearest_reproduces_the_detector_scan(repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
     pairs = trial["mutual_nearest"](detector, trial["nearest"](detector))
@@ -164,8 +159,9 @@ def test_mutual_nearest_reproduces_the_detector_scan(repo) -> None:
 
 
 def test_mutual_nearest_applies_the_production_rules() -> None:
-    detector = detector_for({"a.py": "def helper(text):\n    return text.strip().lower()",
-                             "b.py": "def caller(text):\n    return helper(text.strip().lower())"})
+    functions = [function("a.py", "def helper(text):\n    return text.strip().lower()"),
+                 function("b.py", "def caller(text):\n    return helper(text.strip().lower())")]
+    detector = Detector(functions, Settings(), TfidfComparer(), [PythonExtractor()])
     assert trial["mutual_nearest"](detector, trial["nearest"](detector)) == set()
 
 
