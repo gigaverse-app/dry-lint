@@ -182,3 +182,65 @@ repository-wide recall, or a reason to retune the global judge thresholds. Real 
 notification queries, role-label defaults, phone validation, OAuth refresh requests and batching; intentional
 patterns included unrelated serializers, command options, factories, fake providers and adapters already calling
 the same shared helper. No broad framework-name exclusions were introduced.
+
+## Follow-up: synonyms, stopwords, size and call signatures
+
+A second exploratory pass starts from `tfidf:2` at dry-lint commit `1344627`, using the same backend commit,
+5,057 functions and 110 previously judged pairs above. **These labels have already informed feature selection;
+none of their splits is a fresh holdout for this pass.** Each variant changes one signal, fits the full corpus,
+uses the existing floors and three-neighbour budget, and applies the production filtering and scan rules.
+`PYTHONHASHSEED=0` fixes ordering. No runtime defaults changed as a result.
+
+Higher positive retention and lower negative retention are better. Counts are retained **known pairs**; newly
+proposed neighbours were not judged, so a lower negative count does not establish higher overall precision.
+
+| Variant | Positives in `check` / `scan` (of 27) | Negatives in `check` / `scan` (of 83) |
+| --- | ---: | ---: |
+| Current fingerprint | 27 / 27 | 72 / 59 |
+| Add synonym hints | 27 / 27 | 73 / 59 |
+| Replace word tokens with canonical synonyms | 27 / 27 | 72 / 59 |
+| Remove nine additional English words | 27 / 27 | 72 / 58 |
+| Remove framework word tokens | 27 / 26 | 70 / 57 |
+| Lower `max_df` from 0.30 to 0.15 | 27 / 26 | 72 / 56 |
+| Penalize different AST sizes | 25 / 24 | 61 / 42 |
+| Add call-specific keyword names | 27 / 26 | 71 / 58 |
+| Add call arity and keyword-set shape | 27 / 26 | 70 / 54 |
+| Add attribute read/write roles | 27 / 26 | 73 / 57 |
+
+The variants are deliberately simple probes, not claims that every possible implementation of a signal fails:
+
+- **Synonyms:** use six groups: `fetch/load/retrieve/read`, `remove/delete`, `shorten/truncate/clip`,
+  `validate/check`, `create/build/make`, and `send/emit/publish`. For each existing `w:` or `fn:` token in a
+  group, either add `syn:<first-word>` alongside the original token, or replace its word with the first word
+  while preserving the token family. Leave `call:`, `attr:` and `key:` identities intact. Neither variant
+  improves known-pair retrieval here. These verbs are not universally interchangeable: a load may fetch, cache,
+  validate or mutate; a publish may have different guarantees from a send. Do not add a global natural-language
+  synonym dictionary on this evidence. If a repository needs domain aliases, test a small explicit mapping as
+  an optional comparer, preserving original tokens and versioning its similarity semantics.
+- **Stopwords:** the English probe drops `the/and/with/from/that/this/for/into/then` from `w:` and `fn:` tokens.
+  The framework probe instead drops `create/update/save/object/objects/serializer/client/request/response/validated/default/context`
+  from those two families. The latter and stricter `max_df` filtering both displace the image-replacement
+  duplicate from the scan. The English probe removes just one known negative from scanning; that is too little
+  repeatedly consulted evidence to change the default. Keep the existing code-specific stopwords and frequency
+  filter. Avoid a general English list that might discard meaningful terms such as negation; tokenization and
+  stopword lists must agree ([scikit-learn guidance](https://github.com/scikit-learn/scikit-learn/blob/main/doc/modules/feature_extraction.rst#using-stop-words)).
+- **Size:** count executable AST nodes, excluding annotations, decorators and type parameters. Multiply cosine
+  by `sqrt(min(size_a, size_b) / max(size_a, size_b))`, then rerank and apply the same floors. This loses the
+  rendition-admission and clip-eligibility pairs from PR retrieval, plus a privileged-role policy from scanning.
+  Drift can add guards or side effects to only one implementation, which is precisely a reason to inspect it.
+  Keep the existing lower floor for tiny functions; do not introduce a hard size-ratio rejection or this penalty.
+- **Keywords:** current `key:` tokens already preserve keyword names without making their order significant.
+  The extra keyword probe adds `kw:<callee-leaf>:<keyword-name>` per named keyword. The shape probe instead adds
+  `shape:<callee-leaf>:<positional-count>:<sorted-keywords>` per call, using `**` for an unpacked mapping. Both
+  displace the privileged-role pair from scanning. Positional and keyword calls may be equivalent; resolving that
+  requires a known callable signature. Do not infer argument names for unknown SDK methods or dynamic calls.
+- **Attribute roles:** add `access:<AST-context>:<attribute-name>` for each attribute access, distinguishing
+  `Load`, `Store` and `Del`. This also displaces the privileged-role pair from scanning and admits one extra
+  known negative in PR checking. It does not justify another token family by itself.
+
+The next useful experiments should target information these probes lack: statically resolved API identities
+(import aliases should not change meaning), arguments bound to a known signature, and which domain field feeds
+an output or mutation. Keep these as separate experimental comparers until they improve retrieval on **newly
+judged pairs and a second repository**, with the same judge budget. Another option is reserving a candidate slot
+for a complementary comparer rather than adding every token to one cosine score; test both extra recall and the
+false-positive cost. More features can change which neighbour wins even when a true pair's score remains high.
