@@ -3,21 +3,17 @@
 import json
 import math
 import runpy
-import sys
-from pathlib import Path
 
 import pytest
 
-from dry_lint.bench import GoldFunction, GoldPair
 from dry_lint.comparers import TfidfComparer
 from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Function, pair_key
 from dry_lint.settings import Settings
 
-from conftest import function
+from conftest import SCRIPTS, function, gold_line, run_main, run_script
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 trial = runpy.run_path(str(SCRIPTS / "channel_trial.py"))
 CslsComparer, Floored, LsiComparer = trial["CslsComparer"], trial["Floored"], trial["LsiComparer"]
 
@@ -37,8 +33,7 @@ def anywhere(_: Function) -> bool:
 
 @pytest.fixture
 def harness(monkeypatch):
-    monkeypatch.syspath_prepend(str(SCRIPTS))
-    return runpy.run_path(str(SCRIPTS / "benchmark_channel_trial.py"))
+    return run_script(monkeypatch, "benchmark_channel_trial.py")
 
 
 @pytest.mark.parametrize("plural,singular", [
@@ -175,18 +170,12 @@ def test_calibrated_floor_keeps_the_requested_share_of_functions() -> None:
     assert trial["share_with_neighbour"]({}) == 0.0
 
 
-def gold_line(new: str, existing: str, label: str) -> str:
-    pair = GoldPair(new=GoldFunction(id=new, code=""), existing=GoldFunction(id=existing, code=""), label=label)
-    return pair.model_dump_json() + "\n"
-
-
 def test_trial_cli_scores_every_variant_on_a_real_repository(repo, tmp_path, monkeypatch, harness) -> None:
     gold = tmp_path / "gold.jsonl"
     gold.write_text(gold_line("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text", "duplicate")
                     + gold_line("src/widgets/caption.py::register_widget", "src/text.py::shorten_text", "borderline"))
     out = tmp_path / "trial"
-    monkeypatch.setattr(sys, "argv", ["trial", "--root", str(repo.root), "--out", str(out), "--gold", str(gold)])
-    runpy.run_path(str(SCRIPTS / "benchmark_channel_trial.py"), run_name="__main__")
+    run_main(monkeypatch, "benchmark_channel_trial.py", "--root", str(repo.root), "--out", str(out), "--gold", str(gold))
     results = json.loads((out / "results.json").read_text())
     assert results["head"] == repo.git("rev-parse", "HEAD").strip() and not results["dirty"]
     assert set(results["variants"]) == set(harness["VARIANTS"]) and results["unavailable"] == {}

@@ -1,13 +1,37 @@
+import runpy
 import sys
 import textwrap
 from pathlib import Path
 
 import pytest
 
+from dry_lint.bench import GoldFunction, GoldPair
 from dry_lint.functions import behaviour_tokens, function_calls, structure_hash
 from dry_lint.git import git
 from dry_lint.models import Function
 from dry_lint.store import DirectoryStore, VerdictStore
+
+SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+
+
+def run_script(monkeypatch: pytest.MonkeyPatch, name: str) -> dict:
+    """An offline experiment script's globals, loaded with scripts/ importable, as it is when run."""
+    monkeypatch.syspath_prepend(str(SCRIPTS))
+    return runpy.run_path(str(SCRIPTS / name))
+
+
+def run_main(monkeypatch: pytest.MonkeyPatch, name: str, *args: str) -> None:
+    """An offline experiment script run from the command line: `python scripts/<name> <args>`."""
+    monkeypatch.syspath_prepend(str(SCRIPTS))
+    monkeypatch.setattr(sys, "argv", [name, *args])
+    runpy.run_path(str(SCRIPTS / name), run_name="__main__")
+
+
+def gold_line(new: str, existing: str, label: str) -> str:
+    """One labelled pair, as a line of a `dry-lint bench` gold file."""
+    pair = GoldPair(new=GoldFunction(id=new, code=""), existing=GoldFunction(id=existing, code=""), label=label)
+    return pair.model_dump_json() + "\n"
+
 
 EXISTING = '''
 def shorten_text(text: str, limit: int) -> str:
