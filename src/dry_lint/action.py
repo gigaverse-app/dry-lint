@@ -28,8 +28,8 @@ from pathlib import Path
 import httpx
 
 from dry_lint import sticky
+from dry_lint.git import git
 
-ZERO_SHA = "0" * 40
 ARTIFACT = "dry-lint-candidates"
 
 
@@ -63,13 +63,15 @@ def resolve_mode(requested: str, event_name: str, event: dict) -> str:
 
 
 def resolve_base(explicit: str, event_name: str, event: dict) -> str:
-    """What to compare with: the input, the PR's base commit, the previous push, or "" for dry-lint's default."""
+    """
+    What to compare with: the input, the PR's base commit, or the previous push. A branch's first push reports
+    an all-zero commit; dry-lint itself turns that, and "", into the default branch.
+    """
     if explicit:
         return explicit
     if event_name.startswith("pull_request"):
         return ((event.get("pull_request") or {}).get("base") or {}).get("sha", "")
-    before = event.get("before", "") if event_name == "push" else ""
-    return "" if before in ("", ZERO_SHA) else before
+    return event.get("before", "") if event_name == "push" else ""
 
 
 def resolve_judge(requested: str, has_key: bool) -> str:
@@ -77,16 +79,12 @@ def resolve_judge(requested: str, has_key: bool) -> str:
     return ("jev" if has_key else "none") if requested == "auto" else requested
 
 
-def git(root: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
-
-
 def ensure_history(root: Path, base: str) -> None:
     """Comparing with a merge base needs history: deepen a shallow checkout, and fetch a base it does not have."""
-    if git(root, "rev-parse", "--is-shallow-repository").stdout.strip() == "true":
-        git(root, "fetch", "--quiet", "--no-tags", "--unshallow", "origin")
-    if base and git(root, "cat-file", "-e", f"{base}^{{commit}}").returncode != 0:
-        git(root, "fetch", "--quiet", "--no-tags", "origin", base)
+    if git(root, "rev-parse", "--is-shallow-repository", check=False) == "true":
+        git(root, "fetch", "--quiet", "--no-tags", "--unshallow", "origin", check=False)
+    if base.strip("0") and not git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False):
+        git(root, "fetch", "--quiet", "--no-tags", "origin", base, check=False)
 
 
 def dry_lint(*args: str, echo: bool = True) -> tuple[int, list[str]]:

@@ -9,7 +9,7 @@ import pytest
 from test_action_sticky import FakeGitHub
 
 from dry_lint import action, sticky
-from dry_lint.action import ZERO_SHA, count_findings, ensure_history, resolve_base, resolve_judge, resolve_mode
+from dry_lint.action import count_findings, ensure_history, resolve_base, resolve_judge, resolve_mode
 
 from conftest import Repo
 
@@ -48,7 +48,7 @@ def test_an_unknown_mode_is_an_error() -> None:
     ("", "pull_request", pull_request(), BASE),
     ("", "pull_request_target", pull_request(), BASE),
     ("", "push", {"before": BASE}, BASE),
-    ("", "push", {"before": ZERO_SHA}, ""),  # a new branch's first push: dry-lint's default branch
+    ("", "push", {"before": "0" * 40}, "0" * 40),  # a new branch's first push: dry-lint maps it to the default branch
     ("", "workflow_dispatch", {}, ""),
 ])  # fmt: skip
 def test_the_base_is_the_pull_requests_base_or_the_previous_push(explicit, event_name, event, base) -> None:
@@ -358,3 +358,15 @@ def test_no_check_run_when_off_or_when_the_report_cannot_be_rendered(github_env,
     broken = tmp_path / "report.json"
     broken.write_text("not json")
     assert action.check_run(tmp_path, "acme/shop", broken) == "failed"
+
+
+def test_a_base_the_checkout_lacks_is_fetched(repo: Repo, tmp_path: Path) -> None:
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", "--single-branch", "--branch", "feature", f"file://{repo.root}", str(clone)],
+                   check=True)
+    repo.git("checkout", "-q", "main")
+    repo.write("src/later.py", "def later(x):\n    return x\n")
+    repo.commit("later on main")
+    later = repo.git("rev-parse", "HEAD").strip()
+    ensure_history(clone, later)
+    assert subprocess.run(["git", "cat-file", "-e", f"{later}^{{commit}}"], cwd=clone).returncode == 0
