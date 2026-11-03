@@ -19,13 +19,18 @@ Every run goes through the same six steps, whatever plugins it uses:
 
 1. **Extract.** The extractors turn every tracked file under `include`, and not under `exclude`, into functions:
    each a qualified name (`path::Class.name`), a line range and its code. A file goes to the first extractor whose
-   globs match it.
+   globs match it. The Python extractor leaves out declaration-only stubs (docstrings, `pass`, `...`, and a bare
+   or argument-free `raise NotImplementedError`), so they do not use up neighbour or judge slots; abstract methods
+   with an implementation, other exceptions, and methods that do work before raising stay in.
 2. **Select.** A function is changed when the diff against the merge base with `--base` touches its lines. The
    base defaults to the remote's default branch (`origin/HEAD`), and an all-zero base, a branch's first push,
    falls back to it. Only changed functions are queried, so nothing that already existed is shown on a PR.
 3. **Propose.** The comparer indexes every function and returns each changed one's `neighbours` (3) nearest in
-   other files, above its own floor.
-4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other, both match a
+   other files, above its own floor. Functions in the same file are excluded before the list is cut, so a file
+   full of similar methods cannot crowd out neighbours elsewhere.
+4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other (call names come
+   from the extractor's syntax tree, never from declarations, comments or strings; receivers and imports are not
+   resolved), both match a
    declared `pattern`, or one carries `# dry-lint: distinct-from <qualified name suffix>`. Settled pairs stay
    in the output with their rule, so "why wasn't this flagged?" has an answer. The extractor hashes both
    functions of every pair.

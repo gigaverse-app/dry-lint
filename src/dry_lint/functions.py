@@ -38,6 +38,11 @@ def _parse(code: str) -> ast.Module | None:
 FunctionNode = ast.FunctionDef | ast.AsyncFunctionDef
 
 
+def _call_name(node: ast.Call) -> str | None:
+    target = node.func
+    return target.attr if isinstance(target, ast.Attribute) else target.id if isinstance(target, ast.Name) else None
+
+
 def _function_node(code: str) -> FunctionNode | None:
     tree = _parse(code)
     first = tree.body[0] if tree and tree.body else None
@@ -54,8 +59,7 @@ def node_tokens(node: FunctionNode) -> list[str]:
     for part in (node.args, *([node.returns] if node.returns else []), *node.body):  # not its decorators
         for child in ast.walk(part):
             if isinstance(child, ast.Call):
-                target = child.func
-                leaf = target.attr if isinstance(target, ast.Attribute) else target.id if isinstance(target, ast.Name) else None
+                leaf = _call_name(child)
                 if leaf:
                     tokens.append(f"call:{leaf.lower()}")
                     tokens += [f"w:{word}" for word in words(leaf)]
@@ -75,16 +79,12 @@ def node_tokens(node: FunctionNode) -> list[str]:
 
 
 def node_calls(node: FunctionNode) -> list[str]:
-    """The names the function calls, in its signature defaults and body; not its own name or its decorators."""
-    found = []
-    for part in (node.args, *node.body):
-        for child in ast.walk(part):
-            if isinstance(child, ast.Call):
-                target = child.func
-                leaf = target.attr if isinstance(target, ast.Attribute) else target.id if isinstance(target, ast.Name) else None
-                if leaf:
-                    found.append(leaf)
-    return found
+    """
+    The names the function calls, in its signature defaults and body: real call nodes, so not its own name, its
+    decorators, or mentions in comments and strings. Names only: receivers and imports are not resolved.
+    """
+    return [name for part in (node.args, *node.body) for child in ast.walk(part)
+            if isinstance(child, ast.Call) and (name := _call_name(child))]
 
 
 def behaviour_tokens(function: Function) -> list[str]:
@@ -148,8 +148,29 @@ def structure_hash(function: Function) -> str:
     return hashlib.sha256(ast.dump(_Canonical().visit(node), annotate_fields=False).encode()).hexdigest()[:16]
 
 
+def _is_stub(node: FunctionNode) -> bool:
+    """Declaration-only bodies have no implementation to reuse; retain any executable behaviour."""
+    for statement in node.body:
+        if isinstance(statement, ast.Pass):
+            continue
+        if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant):
+            if isinstance(statement.value.value, str) or statement.value.value is Ellipsis:
+                continue
+        if isinstance(statement, ast.Raise) and statement.cause is None:
+            exception = statement.exc
+            if isinstance(exception, ast.Call) and not exception.args and not exception.keywords:
+                exception = exception.func
+            if isinstance(exception, ast.Name) and exception.id == "NotImplementedError":
+                continue
+        return False
+    return True
+
+
 def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Function, FunctionNode]]:
-    """Top-level functions and methods, with their syntax trees (nested functions stay part of their parent)."""
+    """
+    Top-level functions and methods, with their syntax trees (nested functions stay part of their parent).
+    Declaration-only stubs are left out: they otherwise dominate exact-match rankings and use up judge calls.
+    """
     try:
         tree = ast.parse(source)
     except SyntaxError:
@@ -163,7 +184,7 @@ def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Fun
                 visit(child, child.name)
             elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 end = child.end_lineno or child.lineno
-                if end - child.lineno + 1 >= min_lines:
+                if end - child.lineno + 1 >= min_lines and not _is_stub(child):
                     found.append((Function(path=path, name=child.name, owner=owner, line=child.lineno, end_line=end,
                                            code="\n".join(lines[child.lineno - 1 : end])), child))
 
