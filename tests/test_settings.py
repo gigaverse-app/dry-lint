@@ -6,6 +6,7 @@ from dry_lint.settings import Escalation, Pattern, PluginChoice, Settings
 def test_defaults_are_the_measured_thresholds_and_the_built_in_plugins(tmp_path: Path) -> None:
     settings = Settings.load(tmp_path)
     assert (settings.drop_below, settings.report_at, settings.drift_at, settings.neighbours) == (0.6, 0.8, 0.8, 3)
+    assert settings.fail_at == settings.report_at  # every reported duplicate fails until fail_at is raised
     assert [c.use for c in settings.extractors] == ["python"]
     assert (settings.comparer.use, settings.judge.use, settings.store.use, settings.escalate) == ("tfidf", "auto", "dir", None)
 

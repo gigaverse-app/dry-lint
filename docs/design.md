@@ -31,7 +31,8 @@ Every run goes through the same six steps, whatever plugins it uses:
 4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other (call names come
    from the extractor's syntax tree, never from declarations, comments or strings; receivers and imports are not
    resolved), both match a
-   declared `pattern`, or one carries `# dry-lint: distinct-from <qualified name suffix>`. Settled pairs stay
+   declared `pattern`, one carries `# dry-lint: distinct-from <qualified name suffix>`, or either carries
+   `# dry-lint: ignore`. Settled pairs stay
    in the output with their rule, so "why wasn't this flagged?" has an answer. The extractor hashes both
    functions of every pair.
 5. **Look up.** Each remaining pair's record is read from the store and kept if it still holds (below).
@@ -58,7 +59,8 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 - `candidates.json` carries the run: repository, pull request and head commit. If the pull request has moved on
   by the time the judge finishes, its verdicts are still stored (they are keyed by structure hashes) and the newer
   run posts.
-- Nothing blocks a merge: the check run is `neutral` with findings and `success` without.
+- Only a blocking finding (a judged duplicate at or above `fail_at`) fails: the check run is `failure` for one,
+  `neutral` for findings that only warn, and `success` without findings. `--warn-only` makes it `neutral`.
 - A repository without outside contributors can run `dry-lint check` in one job instead. The files are the same.
 
 ## File formats
@@ -128,7 +130,12 @@ they are reviewed, versioned and visible to the next reader.
 
 A judge returns a verdict per pair: `label` (`duplicate`, `drifted` or `separate`), `score` (0–1, one concept),
 `behaves_differently` (0–1), `owner` and `why`. The thresholds are core: below `drop_below` (0.6) a pair is
-separate, at `report_at` (0.8) it is reported, and at `drift_at` (0.8) on `behaves_differently` it is drifted.
+separate, at `report_at` (0.8) it is reported, at `fail_at` (0.8 by default, `--fail-at` on the command line) it
+blocks, and at `drift_at` (0.8) on
+`behaves_differently` it is drifted. With the default, every reported duplicate blocks: 75% precise on the
+gold set, so about one failed check in four is a false positive to override. Raising `fail_at` to 0.91 leaves
+the band from 0.8 warning only; at 0.91 nothing on the gold set was a false positive (the highest scored 0.892)
+([benchmark](benchmark.md)).
 
 `escalate = { use = "command", command = "claude -p", between = [0.6, 0.8] }` sends pairs whose first score falls
 in the band to a second judge, and its answer replaces the first. The record stays under the first judge's name
@@ -141,7 +148,8 @@ run list the same findings in the same order: drifted first, then by score.
 
 - `text` for the terminal, `github` for workflow annotations, `markdown` for the one PR comment (marked
   `<!-- dry-lint -->`, at most `max_findings` rows, settled pairs folded), `json` for scripts and agents, `sarif`
-  for code scanning, and `check-run` for the body of a check run that is never a failure.
+  for code scanning, and `check-run` for the body of a check run that fails only for a blocking finding.
+- Blocking findings come first and are labelled; the comment ends with every way to override a false positive.
 - Without a judge, the comment does not list unjudged pairs; it says no judge is configured. Annotations and the
   terminal still show them.
 - A judge's reason is untrusted text: an LLM judge read code from the pull request. It is flattened to one line,
