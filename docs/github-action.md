@@ -28,7 +28,9 @@ That is the whole setup for a repository whose pull requests come from its own b
     compared with, look-alike pairs, what the judge cleared and the closest call. Opt out with
     `comment-on-clean: "false"`.
   - When findings are fixed, the comment says so instead of going stale.
-  - **A running account of the pull request**: what every push cost, how many functions were checked and how
+  - **Cleanup progress above the findings**: a basket of pairs cleaned up, still tangled, and dismissed, with a
+    small celebration when the latest analyzed commit clears a pair. The running account shows what every push cost,
+    how many functions were checked and how
     many judgments were made, and every duplicate it caught, as one line a reader remembers ("2 duplicates kept
     out of the codebase for $0.007 of judging, across 4 pushes"), badges, and push by push in a fold.
     See [the ledger](#the-ledger).
@@ -162,6 +164,11 @@ Losing the cache only costs re-judging.
 The sticky keeps a running account across a pull request's pushes, and the repository keeps one across its merged
 pull requests.
 
+The cleanup basket appears before the current findings. Its counts describe pairs, not functions: one function
+can participate in several pairs. The latest analyzed commit shows its cleanup credit, and the folded history's
+**Cleaned here** column attributes currently resolved pairs to earlier commits. A pair that returns is open again;
+dismissals do not earn cleanup credit. Commits before the first recorded report are not backfilled.
+
 - **The pull request's ledger lives in its comment**, as one hidden `<!-- dry-lint-ledger {...} -->` line. Each
   run adds its cost, checks and judgments once: a run is counted by its id and attempt, and a re-run of the same
   commit adds what it cost but no new checks.
@@ -183,18 +190,22 @@ does, and a token that can read pull requests.
 ## Running it in a monorepo, or more than once
 
 Run local and cross-repository checks in one job, with `comment: "false"` on both steps.
-Use distinct `sticky-key` values for their verdict caches, and copy `$RUNNER_TEMP/dry-lint/comment.md`
-after each step to `$RUNNER_TEMP/local.md` and `$RUNNER_TEMP/cross-repository.md`. Then publish once:
+Use distinct `sticky-key` values for their verdict caches. After each step, preserve both
+`$RUNNER_TEMP/dry-lint/comment.md` and `$RUNNER_TEMP/dry-lint/report.json` as `local.md` / `local-report.json`
+and `cross-repository.md` / `cross-repository-report.json`. When both scopes completed, publish once:
 
 ```bash
 python -I -m dry_lint.sticky \
   --body "$RUNNER_TEMP/local.md" --body "$RUNNER_TEMP/cross-repository.md" \
+  --report "$RUNNER_TEMP/local-report.json" --report "$RUNNER_TEMP/cross-repository-report.json" \
   --pull-request "$PR_NUMBER" --expect-head "$HEAD_SHA" --findings "$TOTAL_FINDINGS"
 ```
 
 Repeated `--body` arguments combine the scopes under headings derived from their filenames. Sum findings
 from both step outputs. If either scope fails, include an explicit incomplete-scope warning; do not call it
 clean. Keep repository/backlog audits in job summaries and artifacts, with no separate comment publisher.
+Pass no `--report` arguments on an incomplete run: the existing ledger stays intact instead of treating a missing
+scope's findings as cleaned up. Markdown alone does not start a ledger, because it cannot identify pairs reliably.
 A single publisher per PR, workflow concurrency, and `--expect-head` prevent concurrent or stale reports.
 GitHub has no atomic comment upsert, so several independent jobs must not each publish. Legacy keyed comments
 are reconciled into the one current report. A key no longer creates an independent comment.
