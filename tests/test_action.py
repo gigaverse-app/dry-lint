@@ -125,7 +125,8 @@ def test_single_mode_comments_and_reports_without_failing_by_default(github_env,
     assert args[args.index("--format") + 1] == "github"
     posted = post.call_args.args[0]
     assert posted[posted.index("--pull-request") + 1] == "7" and posted[posted.index("--findings") + 1] == "1"
-    assert "--expect-head" not in posted and posted[posted.index("--run-url") + 1].endswith("/acme/shop/actions/runs/55")
+    assert posted[posted.index("--expect-head") + 1] == HEAD
+    assert posted[posted.index("--run-url") + 1].endswith("/acme/shop/actions/runs/55")
     assert outputs(tmp_path) == {"mode": "single", "exit-code": "0", "findings": "1", "blocking": "0",
                                  "overridden": "false", "stored": "false"}
     assert posted[posted.index("--note") + 1] == ""
@@ -565,3 +566,65 @@ def test_the_fail_at_input_reaches_every_dry_lint_command(github_env, tmp_path) 
         action.main(["run"])
     args = cli.call_args.args
     assert args[args.index("--fail-at") + 1] == "0.95"
+
+
+def test_shallow_comparison_does_not_download_old_history_or_other_branches(tmp_path):
+    remote = Repo(tmp_path / "remote")
+    for i in range(40):
+        remote.write("src/history.py", f"value = {i}\n")
+        remote.commit()
+    oldest = remote.git("rev-list", "--max-parents=0", "HEAD")
+    base = remote.git("rev-parse", "HEAD")
+    remote.git("checkout", "-b", "junk")
+    remote.write("junk.bin", "unrelated branch content")
+    remote.commit()
+    junk = remote.git("rev-parse", "HEAD:junk.bin")
+    remote.git("checkout", "-b", "feature", base)
+    remote.write("src/new.py", "def new():\n    return 42\n")
+    remote.commit()
+    clone = tmp_path / "shallow"
+    subprocess.run(["git", "clone", "-q", "--depth", "1", "--branch", "feature",
+                    remote.root.as_uri(), str(clone)], check=True)
+    ensure_history(clone, base)
+    from dry_lint.detector import changed_lines
+    from dry_lint.git import git
+    assert changed_lines(clone, base) == {"src/new.py": {1, 2}}
+    assert git(clone, "rev-parse", "--is-shallow-repository") == "true"
+    for missing in (oldest, junk):
+        assert not git(clone, "cat-file", "-t", missing, check=False)
+
+
+@pytest.mark.parametrize("depths, succeeds", [((2,), False), ((32,), True)])
+def test_shallow_history_is_bounded_and_uses_the_real_merge_base(repo, tmp_path, monkeypatch, depths, succeeds):
+    from dry_lint.detector import changed_lines
+    from dry_lint.git import git
+    original_base = repo.git("rev-parse", "main")
+    for i in range(3):
+        repo.write("src/new.py", f"value = {i}\n")
+        repo.commit()
+    repo.git("checkout", "main")
+    repo.write("src/base_only.py", "value = 5\n")
+    repo.commit()
+    clone = tmp_path / "bounded"
+    subprocess.run(["git", "clone", "-q", "--depth", "1", "--branch", "feature",
+                    repo.root.as_uri(), str(clone)], check=True)
+    monkeypatch.setattr(action, "HISTORY_DEPTHS", depths)
+    if not succeeds:
+        with pytest.raises(ValueError, match="No merge base"):
+            ensure_history(clone, "origin/main")
+        assert git(clone, "rev-parse", "--is-shallow-repository") == "true"
+    else:
+        monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+        monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+        monkeypatch.setenv("GIT_CONFIG_KEY_0", "fetch.prune")
+        monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
+        with patch.object(action, "git", wraps=git) as calls:
+            ensure_history(clone, "origin/main")
+        fetch = next(c for c in calls.call_args_list if "fetch" in c.args)
+        config = fetch.kwargs["env"]
+        assert config["GIT_CONFIG_COUNT"] == "2" and config["GIT_CONFIG_KEY_0"] == "fetch.prune"
+        assert config["GIT_CONFIG_KEY_1"] == "http.https://github.com/.extraheader"
+        assert "test-token" not in str(fetch.args)
+        assert not git(clone, "config", "--local", "--get", "http.https://github.com/.extraheader", check=False)
+        assert git(clone, "merge-base", "origin/main", "HEAD") == original_base
+        assert "src/base_only.py" not in changed_lines(clone, "origin/main")

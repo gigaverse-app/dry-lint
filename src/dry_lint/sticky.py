@@ -1,11 +1,12 @@
 """
-The sticky pull request comment: one comment per pull request (and key), edited in place on every run.
+The sticky pull request comment: one comment per pull request, edited in place on every run.
 
     python -m dry_lint.sticky --body comment.md --repository owner/repo --pull-request 12 --findings 2 \
         [--key api] [--expect-head SHA] [--run-url URL] [--skip-clean]
 
 - **Found by its marker.** The comment's first line is `<!-- dry-lint -->`, or `<!-- dry-lint:KEY -->` when one
-  repository reports several packages or workflows. Extra copies left by two runs racing are deleted.
+  repository labels its report. All legacy keys are reconciled into one comment. Serialize publishers per PR.
+  GitHub has no atomic comment upsert; independent writers must not race.
 - **Clean is news too.** A clean pull request gets a clean report with what was checked, unless `--skip-clean`.
   A comment from an earlier run with findings is updated to say they are resolved, so it never goes stale.
 - **Never about the wrong commit.** With `--expect-head`, nothing is posted once the pull request has moved on
@@ -18,6 +19,7 @@ The token comes from GITHUB_TOKEN, and the API root from GITHUB_API_URL (GitHub 
 
 import argparse
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -46,7 +48,7 @@ def banner_available(transport: httpx.BaseTransport | None = None) -> bool:
 def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "", head: str = "", note: str = "") -> str:
     """The comment body: the marker, the banner if it can render, the report, and where it came from."""
     lines = markdown.strip().splitlines()
-    if lines and lines[0].strip().startswith("<!-- dry-lint"):
+    if lines and re.fullmatch(r"<!-- dry-lint(?::[^\n]*?)? -->", lines[0].strip()):
         lines = lines[1:]
     parts = [marker(key)]
     if banner:
@@ -122,10 +124,12 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
     try:
         if expect_head and github.head_of(repository, number) != expect_head:
             return "stale"
-        mine = [c for c in github.comments(repository, number) if c.get("body", "").startswith(marker(key))]
+        mine = [c for c in github.comments(repository, number)
+                if re.match(r"^<!-- dry-lint(?::[^\n]*?)? -->", c.get("body", ""))]
         if not mine and findings == 0 and skip_clean:
             return "skipped"
-        resolving = findings == 0 and bool(mine) and CLEAN not in mine[0].get("body", "")
+        resolving = (findings == 0 and CLEAN in markdown and len(mine) == 1
+                     and mine[0].get("body", "").startswith(marker(key)) and CLEAN not in mine[0].get("body", ""))
         if resolving:
             note = "\n\n".join(part for part in (RESOLVED, note) if part)
         body = compose(markdown, key, banner, run_url, expect_head, note)
@@ -142,13 +146,28 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
         raise
 
 
+def combine(paths: list[Path]) -> str:
+    if len(paths) == 1:
+        return paths[0].read_text(encoding="utf-8")
+    sections = []
+    clean = True
+    for path in paths:
+        body = path.read_text(encoding="utf-8")
+        clean = clean and CLEAN in body
+        body = re.sub(r"^<!-- dry-lint(?::[^\n]*?)? -->\n?", "", body).replace(CLEAN, "")
+        sections.append(f"## {path.stem.replace('-', ' ').capitalize()}\n\n{body.strip()}")
+    return (CLEAN + "\n" if clean else "") + "\n\n---\n\n".join(sections)
+
+
 def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dry_lint.sticky", description="Upsert dry-lint's PR comment.")
-    parser.add_argument("--body", type=Path, required=True, help="The markdown report (dry-lint --output).")
+    parser.add_argument("--body", type=Path, action="append", required=True,
+                        help="Markdown report; repeat to combine scopes under headings from file names.")
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""))
     parser.add_argument("--pull-request", type=int, required=True)
     parser.add_argument("--findings", type=int, required=True, help="How many findings the report has.")
-    parser.add_argument("--key", default="", help="Keeps one comment per key, for several reports per PR.")
+    parser.add_argument("--key", default="",
+                        help="Legacy marker label; all dry-lint markers share one comment. Serialize publishers per PR.")
     parser.add_argument("--expect-head", default="", help="Post only while this is still the PR's head commit.")
     parser.add_argument("--run-url", default="")
     parser.add_argument("--note", default="", help="A line before the report, e.g. whether the findings block.")
@@ -159,7 +178,7 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
         print("::warning title=dry-lint::No GITHUB_TOKEN, so no pull request comment.")
         return 0
     github = GitHub(token, os.environ.get("GITHUB_API_URL", "https://api.github.com"), transport)
-    outcome = upsert(github, args.repository, args.pull_request, args.body.read_text(), args.findings, args.key,
+    outcome = upsert(github, args.repository, args.pull_request, combine(args.body), args.findings, args.key,
                      args.expect_head, banner_available(transport), args.run_url, args.note, args.skip_clean)
     if outcome == "forbidden":
         print("::warning title=dry-lint::This token may not comment on the pull request (a fork?). "

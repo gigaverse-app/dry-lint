@@ -57,7 +57,7 @@ inputs:
     required: false
     default: "true"
   sticky-key:
-    description: Name for this report's comment, when one repository runs dry-lint more than once per pull request.
+    description: Cache namespace and legacy marker label. All reports share one PR comment; use one serialized publisher.
     required: false
     default: ""
   fail-at:
