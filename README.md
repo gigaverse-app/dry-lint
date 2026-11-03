@@ -60,6 +60,7 @@ Start with a local candidate pass, then add a judge when you want duplication de
 | Understand one candidate | `dry-lint explain path/to/new.py::function path/to/existing.py::function` |
 | Try structural matching as well | [Install the optional Dryer comparer](docs/detectors.md) |
 | Put judged findings on pull requests | [GitHub Action setup](docs/github-action.md) |
+| Find copies across related repositories | [Workspace scans and shared ownership](docs/workspaces.md) |
 | See the comment before installing | [Example report](docs/comment-preview.md) |
 
 ```bash
@@ -70,7 +71,7 @@ uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 3
 | Command | Does |
 | --- | --- |
 | `check [--base REF \| --staged]` | detect, judge and report the functions a change touched (base: `origin/HEAD`) |
-| `scan [--limit N] [--refresh]` | the same for the whole repository's backlog |
+| `scan [--limit N] [--refresh] [--repo OWNER/NAME=PATH ...]` | the repository's backlog, or cross-repository pairs from a combined workspace |
 | `detect --out candidates.json` | CI job 1: propose pairs; no judge, no secrets, no store |
 | `judge --candidates candidates.json` | CI job 2: judge them, store the verdicts, report |
 | `report --from report.json --format F` | render a report as `text`, `github`, `markdown`, `json`, `sarif` or `check-run` |

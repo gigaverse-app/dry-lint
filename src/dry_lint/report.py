@@ -158,10 +158,14 @@ def as_github(report: Report) -> str:
 def function_link(function: Function, run: Run) -> str:
     """Link to the measured revision, not a moving branch; local reports keep the full location."""
     url = source_url(function, run)
-    return f"[{escaped(function.qualname.split('::', 1)[1])}]({url})" if url else escaped(function.qualname)
+    label = function.qualname.split('::', 1)[1]
+    if function.origin:
+        label = f"{function.origin.repository}: {label}"
+    return f"[{escaped(label)}]({url})" if url else escaped(function.qualname)
 
 
 def source_url(function: Function, run: Run) -> str:
+    run = function.origin or run
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", run.repository) or not re.fullmatch(r"[a-fA-F0-9]{40}", run.head):
         return ""
     server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
@@ -281,6 +285,8 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         for side, short in zip((new, existing), short_paths(new.path, existing.path), strict=True):
             url = source_url(side, report.run)
             title = side.path.replace('"', "'")
+            if side.origin:
+                short = f"{side.origin.repository}/{short}"
             copies.append(f'[{escaped(f"{short}:{side.line}")}]({url} "{escaped(title)}")' if url
                           else escaped(f"{side.path}:{side.line}"))
         if not audit:
@@ -427,6 +433,10 @@ FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
 
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
+    if form not in ("text", "json", "markdown") and any(
+        side.origin for finding in report.findings for side in (finding.candidate.new, finding.candidate.existing)
+    ):
+        raise ValueError("A workspace report supports text, json and markdown; annotations belong to one repository")
     if form == "check-run":
         return as_check_run(report, settings.max_findings, warn_only, settings.report_at)
     if warn_only and form != "json":

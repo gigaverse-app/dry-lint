@@ -13,7 +13,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-SCHEMA = 2
+SCHEMA = 3
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -25,6 +25,15 @@ class Versioned(BaseModel):
     schema_version: int = Field(default=SCHEMA, alias="schema")
 
 
+class Run(BaseModel):
+    """Where analyzed code came from, so reports link to the right repository and commit."""
+
+    repository: str = ""
+    pull_request: int | None = None
+    head: str = ""
+    base: str = ""
+
+
 class Function(BaseModel):
     """One function or method, by the qualified name dry-lint keys everything on. An extractor fills it in."""
 
@@ -34,6 +43,7 @@ class Function(BaseModel):
     line: int
     end_line: int
     code: str
+    origin: Run | None = Field(default=None, description="Source checkout for a multi-repository scan.")
     hash: str = Field(default="", description="Changes with runtime logic; the language extractor normalizes safe cosmetic edits.")
     tokens: list[str] = Field(default_factory=list, exclude=True,
                               description="Behaviour tokens, for comparers that use them. Not written to files.")
@@ -42,7 +52,8 @@ class Function(BaseModel):
 
     @property
     def qualname(self) -> str:
-        return f"{self.path}::{self.owner + '.' if self.owner else ''}{self.name}"
+        prefix = f"{self.origin.repository}/" if self.origin else ""
+        return f"{prefix}{self.path}::{self.owner + '.' if self.owner else ''}{self.name}"
 
     @property
     def lines(self) -> int:
@@ -81,15 +92,6 @@ class Verdict(BaseModel):
     judge: str = Field(description="The judge's name, e.g. 'jev' or 'command:claude'.")
     judge_version: str = Field(default="", description="Its model and prompt version, e.g. 'reuse-v2'.")
     second_opinion: str | None = Field(default=None, description="The escalation judge whose answer this is, if any.")
-
-
-class Run(BaseModel):
-    """Where a run's candidates came from, so the judge job reports on the right pull request and commit."""
-
-    repository: str = ""
-    pull_request: int | None = None
-    head: str = ""
-    base: str = ""
 
 
 class CandidatesFile(Versioned):
