@@ -83,7 +83,7 @@ uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 3
 | `report --from report.json --format F` | render a report as `text`, `github`, `markdown`, `json`, `sarif` or `check-run` |
 | `explain A B` | why a pair is, or is not, reported |
 | `bench --gold gold.jsonl [--comparer]` | measure the judge, or the comparer, on a gold set |
-| `bench --replay N [--preset P] [--fail-at X]` | what `check` would have done on each of the last N commits of the default branch |
+| `bench --replay N [--preset P] [--fail-at X] [--label K]` | what `check` would have done on each of the last N commits of the default branch; with `--label`, labelled: what it would have caught, missed and blocked wrongly |
 
 `--report report.json` and `--output comment.md` write the report and the PR comment from any command that judges.
 

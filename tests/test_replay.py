@@ -13,21 +13,7 @@ from dry_lint.replay import Replay, replay
 from dry_lint.settings import PluginChoice, Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
-from conftest import EXISTING, TWIN, Repo, filler_module, judge_calls, run_cli
-
-
-@pytest.fixture
-def history(tmp_path: Path) -> Repo:
-    """On main, oldest first: a helper and fillers; a twin of the helper; a docs-only change."""
-    repo = Repo(tmp_path / "repo")
-    repo.write("src/text.py", EXISTING)
-    repo.write("src/filler.py", filler_module())
-    repo.commit("helper")
-    repo.write("src/widgets/caption.py", TWIN)
-    repo.commit("twin")
-    repo.write("README.md", "docs\n")
-    repo.commit("docs")
-    return repo
+from conftest import TWIN, Repo, judge_calls, run_cli
 
 
 def judged_by(command: str, **thresholds: float) -> Settings:

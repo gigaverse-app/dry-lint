@@ -118,6 +118,20 @@ def repo(tmp_path: Path) -> Repo:
     return repo
 
 
+@pytest.fixture
+def history(tmp_path: Path) -> Repo:
+    """On main, oldest first: the helper and fillers; a twin of the helper; a docs-only change."""
+    repo = Repo(tmp_path / "repo")
+    repo.write("src/text.py", EXISTING)
+    repo.write("src/filler.py", filler_module())
+    repo.commit("helper")
+    repo.write("src/widgets/caption.py", TWIN)
+    repo.commit("twin")
+    repo.write("README.md", "docs\n")
+    repo.commit("docs")
+    return repo
+
+
 def function(path: str, source: str, name: str | None = None, owner: str | None = None) -> Function:
     """A function as the Python extractor and the detector would hand it on: with its tokens and its hash."""
     code = textwrap.dedent(source).strip()
