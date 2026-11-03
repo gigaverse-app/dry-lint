@@ -1,5 +1,17 @@
 # Benchmark
 
+## Backend follow-up
+
+A follow-up review uses gigaverse-backend commit `22dfbe180c6704101658a088cc269a25fa9c82dd` and the
+detector after PR #1. The assistant judged 90 of its 420 scan pairs: the first 30 plus 60 sampled without
+replacement from the remaining pairs (Python `random.Random(20261103)`). Thirty of those 90 were reserved
+as a holdout before feature experiments; the remaining 60 are the development set.
+
+Labels distinguish duplication (including drift), intentional patterns, and separate concepts. This is
+a single assistant's review, not an independent two-labeller gold set or an estimate of repository-wide recall.
+Private source and per-pair judgments remain outside this public repository. Signal ablations and the final
+results will be recorded here after evaluation.
+
 Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded), much of it written with
 coding agents. The gold labels contain that private code and are not published. The method is described here so
 it can be repeated on another codebase.
