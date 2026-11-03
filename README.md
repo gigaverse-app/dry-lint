@@ -80,8 +80,8 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 ```
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
-runs. A clean pull request gets no comment. Findings warn; only near-certain duplicates (judge score ≥ 0.9, no false
-positive at that level in the benchmark) fail the check, and the `dry-lint: override` label lets one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
+runs. A clean pull request gets no comment. Findings warn; only near-certain duplicates (judge score ≥ `fail_at`, with no
+false positive at that level in the benchmark) fail the check, and the `dry-lint: override` label lets one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
 

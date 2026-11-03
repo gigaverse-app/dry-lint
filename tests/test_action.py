@@ -437,3 +437,40 @@ def test_labels_are_unknown_without_a_token_or_when_the_api_fails(monkeypatch) -
     assert action.pull_labels("acme/shop", 7) == set()
     monkeypatch.setenv("GITHUB_TOKEN", "token")
     assert action.pull_labels("acme/shop", 7, httpx.MockTransport(lambda request: httpx.Response(500))) == set()
+
+
+def test_a_near_certain_reimplementation_fails_the_check_end_to_end(repo: Repo, github_env, tmp_path,
+                                                                    blocking_twin_judge, capsys) -> None:
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
+               working_directory=str(repo.root))
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
+    assert "::error file=src/widgets/caption.py,line=1" in capsys.readouterr().out
+    [body] = github.stickies()
+    assert "**Blocking:** 1 finding(s)" in body and "`dry-lint: override` label" in body
+    assert outputs(tmp_path)["blocking"] == "1"
+
+
+def test_the_override_label_lets_a_blocking_finding_through_end_to_end(repo: Repo, github_env, tmp_path,
+                                                                       blocking_twin_judge) -> None:
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    event = pr_event(repo)
+    event["pull_request"]["labels"] = [{"name": "dry-lint: override"}]
+    github_env("pull_request", event, judge="command", judge_command=blocking_twin_judge,
+               working_directory=str(repo.root))
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "**Overridden:**" in body and outputs(tmp_path)["overridden"] == "true"
+
+
+def test_an_inline_ignore_settles_the_pair_before_any_judge_call(repo: Repo, github_env, tmp_path,
+                                                                  blocking_twin_judge) -> None:
+    source = (repo.root / "src/widgets/caption.py").read_text()
+    repo.write("src/widgets/caption.py", source.replace(
+        "    if len(caption_text)", "    # dry-lint: ignore\n    if len(caption_text)", 1))
+    repo.commit("this caption rule is deliberately separate")
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
+               working_directory=str(repo.root))
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    assert github.stickies() == [] and judge_calls(tmp_path) == 0
