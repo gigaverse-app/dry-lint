@@ -7,7 +7,7 @@ from dry_lint.bench import GoldFunction, GoldPair, as_function, auc, bench_compa
 from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Candidate, Verdict
-from dry_lint.settings import Settings
+from dry_lint.settings import Escalation, Settings
 
 from conftest import EXISTING, TWIN, Repo
 
@@ -57,8 +57,8 @@ def test_a_judge_benchmark_without_labelled_pairs_is_empty_not_an_error() -> Non
 def test_gold_code_becomes_the_named_function() -> None:
     method = as_function(GoldFunction(id="pkg/box.py::Box.open", code="    def open(self):\n        return 1\n"), PythonExtractor())
     assert (method.qualname, method.tokens != []) == ("pkg/box.py::Box.open", True)
-    with pytest.raises(ValueError, match="no function the python extractor can read"):
-        as_function(GoldFunction(id="a.py::f", code="x = 1"), PythonExtractor())
+    truncated = as_function(GoldFunction(id="a.py::Box.f", code="    def f(self, x=[\n        1,"), PythonExtractor())
+    assert (truncated.qualname, truncated.code, truncated.lines) == ("a.py::Box.f", "def f(self, x=[\n    1,", 2)
 
 
 def test_gold_sets_load_from_json_lines(tmp_path: Path) -> None:
@@ -79,3 +79,15 @@ def test_the_comparer_benchmark_checks_each_gold_duplicate_is_proposed(repo: Rep
     assert result.recall == pytest.approx(0.25)
     assert "partner among the top 3 proposed: 25%" in result.as_text()
     assert bench_comparer([gone], detector).recall == 0.0
+
+
+def test_the_judge_benchmark_measures_escalation_as_it_runs() -> None:
+    pairs = [gold("a", "x", "duplicate"), gold("b", "x", "separate")]
+    first = TableJudge({"a": 0.7, "b": 0.85})
+    second = TableJudge({"a": 0.95, "b": 0.2})
+    second.name = "second"
+    settings = Settings(escalate=Escalation(use="second", between=(0.6, 0.91)))
+    result = bench_judge(pairs, first, settings, PythonExtractor(), escalation=second)
+    assert result.judge == "table:1 > second:1"
+    assert (result.precision, result.recall, result.auc) == (1.0, 1.0, 1.0)
+    assert bench_judge(pairs, first, settings, PythonExtractor()).precision == 0.0

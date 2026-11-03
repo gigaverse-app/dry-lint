@@ -14,8 +14,9 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from dry_lint.detector import Detector
+from dry_lint.judging import decide, judges_name
 from dry_lint.models import Candidate, Function
-from dry_lint.plugins import Extractor, Judge, identity
+from dry_lint.plugins import Extractor, Judge
 from dry_lint.settings import Settings
 
 BANDS = (0.0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01)
@@ -40,12 +41,17 @@ def load_gold(path: Path) -> list[GoldPair]:
 
 
 def as_function(side: GoldFunction, extractor: Extractor) -> Function:
+    """
+    The gold code as a function. Code that does not parse (a sample truncated at labelling time, say) is kept as
+    text: a judge reads the text, so the pair is still measured.
+    """
     path, _, qualified = side.id.partition("::")
-    found = extractor.functions(path, textwrap.dedent(side.code).strip() + "\n")
-    if not found:
-        raise ValueError(f"The gold code for {side.id} has no function the {extractor.name} extractor can read")
     owner, _, name = qualified.rpartition(".")
-    return found[0].model_copy(update={"name": name, "owner": owner or None})
+    found = extractor.functions(path, textwrap.dedent(side.code).strip() + "\n")
+    if found:
+        return found[0].model_copy(update={"name": name, "owner": owner or None})
+    code = textwrap.dedent(side.code).strip()
+    return Function(path=path, name=name, owner=owner or None, line=1, end_line=code.count("\n") + 1, code=code)
 
 
 def auc(scored: list[tuple[float, bool, float]]) -> float:
@@ -85,11 +91,13 @@ class JudgeBench(BaseModel):
         return "\n".join(lines)
 
 
-def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extractor: Extractor) -> JudgeBench:
+def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extractor: Extractor,
+                escalation: Judge | None = None) -> JudgeBench:
+    """The judging that runs in CI, measured: the judge, and the escalation judge on its band when one is set."""
     labelled = [g for g in gold if g.label != "borderline"]
     candidates = [Candidate(new=as_function(g.new, extractor), existing=as_function(g.existing, extractor), similarity=0.0)
                   for g in labelled]
-    verdicts = judge.judge(candidates, settings) if candidates else []
+    verdicts = decide(candidates, judge, escalation, settings)
     scored = [(v.score, g.label == "duplicate", g.weight) for g, v in zip(labelled, verdicts)]
 
     def weight(condition) -> float:
@@ -103,7 +111,7 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
                   duplicates=weight(lambda s, d, lo=low, hi=high: d and lo <= s < hi),
                   separate=weight(lambda s, d, lo=low, hi=high: not d and lo <= s < hi))
              for low, high in zip(BANDS, BANDS[1:])]  # fmt: skip
-    return JudgeBench(judge=identity(judge), pairs=len(labelled), duplicates=sum(1 for g in labelled if g.label == "duplicate"),
+    return JudgeBench(judge=judges_name(judge, escalation), pairs=len(labelled), duplicates=sum(1 for g in labelled if g.label == "duplicate"),
                       auc=auc(scored), precision=hits / flagged if flagged else 0.0,
                       recall=hits / duplicates if duplicates else 0.0, recall_at_drop=kept / duplicates if duplicates else 0.0,
                       bands=[b for b in bands if b.duplicates or b.separate])

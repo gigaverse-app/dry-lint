@@ -33,6 +33,23 @@ to the whole population with stratum weights (each band's size over its sample s
 
 The pairs between 0.6 and 0.8 are where a stronger second judge would earn its cost.
 
+## Escalation
+
+Jev (`reuse-v2`) first, and Gemini (`gemini-3.1-pro-preview`, the command judge's DRY prompt) on first scores in
+`[0.6, 0.91)`: the default when `GEMINI_API_KEY` is set. Live runs of `dry-lint bench` on the same 96 pairs:
+
+| Judging | Precision at 0.8 | Recall at 0.8 | Gemini calls |
+| --- | --- | --- | --- |
+| Jev alone | 74% | 54% | none |
+| Jev, then Gemini on `[0.6, 0.91)`, run 1 | 82% | 76% | about 52 of 295 candidates |
+| run 2 | 71% | 75% | |
+| run 3 | 76% | 76% | |
+
+Recall rose in every run; precision moved within the run-to-run spread. An offline simulation from a single Gemini
+pass had suggested 91% precision: Gemini's answers vary between runs even at temperature 0, so measure escalation
+live, more than once, before claiming a precision gain. The gold labels came from Claude labellers, so a Claude
+escalation judge would be measured against its own family's opinions; Gemini avoids that.
+
 ## Known duplicates (seeds)
 
 Thirteen duplicates were found by hand in the codebase before the spike. Eleven scored ≥ 0.81, and a threshold of

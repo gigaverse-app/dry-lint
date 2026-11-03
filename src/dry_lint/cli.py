@@ -33,7 +33,7 @@ from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.git import git
 from dry_lint.github import github_event
-from dry_lint.judges import make_judge
+from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, open_store
 from dry_lint.models import Candidate, CandidatesFile, Run
 from dry_lint.plugins import load
@@ -161,7 +161,8 @@ def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     chosen = make_judge(settings.judge)
     if chosen is None:
         raise ValueError("bench needs a judge: set TYPESAFE_AI_API_KEY, or pass --judge")
-    result = bench_judge(gold, chosen, settings, load("extractors", settings.extractors[0]))
+    escalation = make_escalation(settings)
+    result = bench_judge(gold, chosen, settings, load("extractors", settings.extractors[0]), escalation)
     print(result.model_dump_json(indent=2) if args.format == "json" else result.as_text(settings))
     return 0
 

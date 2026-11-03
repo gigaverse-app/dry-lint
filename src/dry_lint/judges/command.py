@@ -17,6 +17,7 @@ import json
 import re
 import shlex
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
 
 from dry_lint.models import Candidate, Verdict
@@ -45,32 +46,43 @@ Use "drifted" when it is one concept and the two already give different results 
 """
 
 
+PROMPT_VERSION = "dry-v1"  # bump when PROMPT changes meaning, so the store knows its answers changed
+
+
+def prompt(candidate: Candidate) -> str:
+    """The DRY question about one pair, for any judge that answers in text."""
+    return (PROMPT.replace("<<new_name>>", candidate.new.qualname).replace("<<new_code>>", candidate.new.code)
+            .replace("<<existing_name>>", candidate.existing.qualname).replace("<<existing_code>>", candidate.existing.code))
+
+
+def parse_verdict(text: str, judge: str, version: str) -> Verdict:
+    """The one JSON object in a text answer, as a verdict; text around it is ignored."""
+    match = re.search(r"\{.*\}", text, re.S)
+    if match is None:
+        raise ValueError(f"The judge {judge} answered without a JSON verdict: {text[:200]!r}")
+    answer = json.loads(match.group(0))
+    return Verdict(label=answer["label"], score=float(answer.get("score", 1.0)),
+                   behaves_differently=float(answer.get("behaves_differently", 0.0)), owner=answer.get("owner", ""),
+                   why=answer.get("why", ""), judge=judge, judge_version=version)
+
+
 class CommandJudge:
     def __init__(self, command: str = "", input: Literal["prompt", "candidate"] = "prompt", version: str = "1",
-                 name: str | None = None, timeout: float = 180) -> None:
+                 name: str | None = None, timeout: float = 180, workers: int = 4) -> None:
         if not command:
             raise ValueError("The command judge needs a command (--judge-command, or `command` in its settings)")
-        self.command, self.input, self.version, self.timeout = command, input, version, timeout
+        self.command, self.input, self.version, self.timeout, self.workers = command, input, version, timeout, workers
         self.name = name or f"command:{shlex.split(command)[0].rsplit('/', 1)[-1]}"
 
-    def prompt(self, candidate: Candidate) -> str:
-        return (PROMPT.replace("<<new_name>>", candidate.new.qualname).replace("<<new_code>>", candidate.new.code)
-                .replace("<<existing_name>>", candidate.existing.qualname).replace("<<existing_code>>", candidate.existing.code))
-
     def stdin(self, candidate: Candidate) -> str:
-        return candidate.model_dump_json() + "\n" if self.input == "candidate" else self.prompt(candidate)
+        return candidate.model_dump_json() + "\n" if self.input == "candidate" else prompt(candidate)
+
+    def ask(self, candidate: Candidate) -> Verdict:
+        out = subprocess.run(shlex.split(self.command), input=self.stdin(candidate), capture_output=True, text=True,
+                             timeout=self.timeout, check=True).stdout
+        return parse_verdict(out, self.name, self.version)
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
-        verdicts = []
-        for candidate in candidates:
-            out = subprocess.run(shlex.split(self.command), input=self.stdin(candidate), capture_output=True,
-                                 text=True, timeout=self.timeout, check=True).stdout
-            match = re.search(r"\{.*\}", out, re.S)
-            if match is None:
-                raise ValueError(f"The judge command printed no JSON verdict: {out[:200]!r}")
-            answer = json.loads(match.group(0))
-            verdicts.append(Verdict(label=answer["label"], score=float(answer.get("score", 1.0)),
-                                    behaves_differently=float(answer.get("behaves_differently", 0.0)),
-                                    owner=answer.get("owner", ""), why=answer.get("why", ""), judge=self.name,
-                                    judge_version=self.version))
-        return verdicts
+        """One verdict per candidate, in order; up to `workers` commands run at once."""
+        with ThreadPoolExecutor(self.workers) as pool:
+            return list(pool.map(self.ask, candidates))

@@ -7,7 +7,8 @@ command line:
 | --- | --- | --- |
 | `auto` (default) | Jev when `TYPESAFE_AI_API_KEY` is set, otherwise `none` | |
 | `jev` | TypeSafe's System One decision model, prompt `reuse-v2` | about 0.3 s per pair, 8 pairs in parallel |
-| `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout | whatever your model costs |
+| `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout; 4 at once | whatever your model costs |
+| `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 6 s per pair, 4 in parallel |
 | `none` | Lists candidate pairs unjudged; never fails the build | free |
 | anything installed | A package registering `dry_lint.judges` | |
 
@@ -66,16 +67,20 @@ it, so changing the program means judging again.
 
 ## A second opinion
 
-Scores between `drop_below` and `report_at` are where a first judge is least sure. `escalate` sends them to a
-second judge, whose answer replaces the first:
+`escalate` sends the first judge's scores in a band to a second judge, whose answer replaces the first. The
+default is `escalate = "auto"`: Gemini on `[0.6, 0.91)` when `GEMINI_API_KEY` is set, otherwise no escalation.
 
 ```toml
 judge = "jev"
-escalate = { use = "command", command = "claude -p --model sonnet", version = "sonnet-1", between = [0.6, 0.8] }
+escalate = { use = "gemini", model = "gemini-3.1-pro-preview", between = [0.6, 0.91] }   # the default, spelled out
+escalate = { use = "command", command = "claude -p --model sonnet", version = "sonnet-1" }  # any other judge
+escalate = "none"                                                                          # off
 ```
 
-On gigaverse-ai that is about 0.3 pairs per pull request. The stored verdict keeps the first judge's name and
-records the second in `second_opinion`.
+Measured on the gold set ([benchmark](benchmark.md#escalation)), it finds about 40% more of the real duplicates
+(recall at 0.8 from 54% to 76%) at about the same precision (around 75%), for about one Gemini call every three
+pull requests. It does not reduce false blocks; raise `fail_at` for that. The stored verdict keeps the first
+judge's name and records the second in `second_opinion`, so it is reused like any other.
 
 ## Writing a judge
 

@@ -140,7 +140,7 @@ measured thresholds above:
 | `max_findings` | 10 | rows in the PR comment |
 | `extractors` | `["python"]` | one per language |
 | `comparer` | `"tfidf"` | options `min_similarity` (0.5), `min_similarity_small` (0.3) under `small_function_lines` (6) |
-| `judge` / `escalate` | `"auto"` / none | `escalate = { use = "command", command = "...", between = [0.6, 0.8] }` |
+| `judge` / `escalate` | `"auto"` / `"auto"` | Jev when `TYPESAFE_AI_API_KEY` is set; Gemini on first scores in `[0.6, 0.91)` when `GEMINI_API_KEY` is set (about 40% more duplicates found); `escalate = "none"` turns it off |
 | `store` | `"dir"` | `.git/dry-lint/verdicts/`, or `{ use = "s3", uri = "s3://bucket/prefix" }` |
 
 A plugin slot takes a name, or a table with `use` and the plugin's options:
