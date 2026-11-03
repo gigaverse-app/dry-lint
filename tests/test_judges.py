@@ -1,4 +1,5 @@
 import json
+import shlex
 import sys
 from pathlib import Path
 
@@ -264,9 +265,9 @@ def test_an_http_judge_must_say_how_to_ask_and_how_to_read_an_answer() -> None:
 
 def fake_cli(tmp_path: Path, name: str, body: str) -> str:
     path = tmp_path / name
-    path.write_text(f"#!{sys.executable}\n{body}")
-    path.chmod(0o755)
-    return str(path)
+    path.write_text(body)
+    # Invoke Python explicitly: Windows neither executes shebangs nor preserves unquoted backslashes in shlex.
+    return shlex.join([sys.executable, str(path)])
 
 
 def test_the_claude_code_judge_runs_the_cli_without_tools_and_without_an_api_key(tmp_path: Path, monkeypatch) -> None:
