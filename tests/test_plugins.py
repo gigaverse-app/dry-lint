@@ -23,7 +23,7 @@ def test_built_in_plugins_are_found_by_name() -> None:
 def test_load_passes_the_options_and_lets_settings_override_defaults() -> None:
     comparer = load("comparers", PluginChoice(use="tfidf", min_similarity=0.4), min_similarity=0.9, max_df=0.2)
     assert (comparer.min_similarity, comparer.max_df) == (0.4, 0.2)
-    assert identity(comparer) == "tfidf:1"
+    assert identity(comparer) == "tfidf:2"
 
 
 @pytest.fixture

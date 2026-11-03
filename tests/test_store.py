@@ -56,11 +56,12 @@ def test_a_separate_verdict_survives_logic_changes_that_do_not_bring_the_pair_cl
     assert closer.verdict is None and "now 0.76" in closer.why
 
 
-def test_similarities_from_another_comparer_are_not_compared(store: VerdictStore) -> None:
+@pytest.mark.parametrize("comparer", ["embedding:1", "tfidf:2"])
+def test_similarities_from_another_comparer_are_not_compared(store: VerdictStore, comparer: str) -> None:
     store.remember(candidate(similarity=0.9, comparer="tfidf:1"), verdict("separate", 0.2))
     changed = edited(OLD, "limit - 1", "limit - 2")
-    assert lookup(store, candidate(old=changed, similarity=0.1, comparer="embedding:1")) is None
-    unchanged = lookup(store, candidate(similarity=0.1, comparer="embedding:1"))
+    assert lookup(store, candidate(old=changed, similarity=0.1, comparer=comparer)) is None
+    unchanged = lookup(store, candidate(similarity=0.1, comparer=comparer))
     assert unchanged == verdict("separate", 0.2)  # same logic: the answer holds whatever measured it
 
 

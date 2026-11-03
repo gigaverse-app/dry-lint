@@ -175,9 +175,16 @@ The Python extractor gives each function **behaviour tokens**, a bag of what it 
 
 - `call:` for each name it calls;
 - `attr:` for each attribute it touches;
-- `w:` for each word in its identifiers, split from snake_case and camelCase, with generic words dropped;
+- `w:` for each word in its identifiers, split from snake_case, camelCase and acronym boundaries (`parseHTTPHeader`), with generic words dropped;
+- `key:` for keyword arguments, literal mapping keys and command option names;
 - `fn:` for the words in its own name, counted twice;
 - `ctl:` for loops, `try` blocks and `await`s.
+
+Annotations, arbitrary string prose and enclosing class names do not contribute tokens. Class names used in
+executable code do: `HTTPInvoiceClient()` contributes `http`, `invoice` and `client`. These choices were measured
+against judged backend candidates; adding every available signal lost real duplicates ([results](benchmark.md)).
+The built-in extractor and comparer are version 2 so cached similarities from version 1 are not compared after
+logic changes. Unchanged-logic verdicts remain reusable.
 
 Its **structure hash** is the syntax tree with docstrings, annotations, decorators and the function's own name
 removed, and every name the function binds itself renumbered in order of first use (`v0`, `v1`, …). Comments,

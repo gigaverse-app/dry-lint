@@ -219,7 +219,7 @@ def test_a_fork_pull_request_only_proposes_candidates(github_env, tmp_path, caps
     with patch.object(action, "dry_lint", return_value=(0, [])) as cli, patch.object(sticky, "main") as post:
         assert action.main(["run"]) == 0
     args = cli.call_args.args
-    assert args[0] == "detect" and args[args.index("--out") + 1].endswith("dry-lint/candidates.json")
+    assert args[0] == "detect" and Path(args[args.index("--out") + 1]).parts[-2:] == ("dry-lint", "candidates.json")
     assert "--judge" not in args
     post.assert_not_called()
     assert "dry-lint-candidates" in capsys.readouterr().out

@@ -14,7 +14,7 @@ from dry_lint.models import Function
 
 class TfidfComparer:
     name = "tfidf"
-    version = "1"
+    version = "2"
 
     def __init__(self, min_similarity: float = 0.5, min_similarity_small: float = 0.3, small_function_lines: int = 6,
                  max_df: float = 0.3) -> None:

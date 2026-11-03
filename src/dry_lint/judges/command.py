@@ -17,6 +17,7 @@ import json
 import re
 import shlex
 import subprocess
+from pathlib import Path
 from typing import Literal
 
 from dry_lint.models import Candidate, Verdict
@@ -51,7 +52,7 @@ class CommandJudge:
         if not command:
             raise ValueError("The command judge needs a command (--judge-command, or `command` in its settings)")
         self.command, self.input, self.version, self.timeout = command, input, version, timeout
-        self.name = name or f"command:{shlex.split(command)[0].rsplit('/', 1)[-1]}"
+        self.name = name or f"command:{Path(shlex.split(command)[0]).name}"
 
     def prompt(self, candidate: Candidate) -> str:
         return (PROMPT.replace("<<new_name>>", candidate.new.qualname).replace("<<new_code>>", candidate.new.code)
