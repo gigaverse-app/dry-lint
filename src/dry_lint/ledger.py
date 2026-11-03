@@ -210,7 +210,8 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> 
     if cleaned[ledger.pushed] and ledger.pushes:
         lines += [f"Latest analyzed commit `{ledger.pushes[-1].head[:7]}` · "
                   f"**+{plural(cleaned[ledger.pushed], 'pair')} cleaned up** ✨", ""]
-    lines += [headline(ledger), "", " ".join(badges), "",
+    lines += ["<details><summary><strong>History and check stats</strong></summary>", "",
+              headline(ledger), "", " ".join(badges), "",
               "<sub>Previously reported pairs no longer reported; dismissals do not count as cleanup. "
               "Counts reflect current outcomes across analyzed commits.</sub>", ""]
     if ledger.pushed > 1 or ledger.pairs:
@@ -225,10 +226,10 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> 
         rows.append(f"| **{ledger.pushed}** | | **{tally.functions:,}** | **{tally.pairs:,}** | "
                     f"**{tally.judgments:,}** | | **{kept:,}** | **{tally.cost()}** |")
         pairs = sorted(ledger.pairs.values(), key=lambda p: (list(ICONS).index(p.state), p.found))
-        lines += ["<details><summary><strong>Push by push</strong></summary>", "", *rows, "",
-                  *(f"- {pair_line(pair)}" for pair in pairs), *([""] if pairs else []), "</details>", ""]
+        lines += [*rows, "", *(f"- {pair_line(pair)}" for pair in pairs), *([""] if pairs else [])]
     if repository and repository.pulls:
         lines += [f"<sub>{repository.line()}</sub>", ""]
+    lines += ["</details>", ""]
     return "\n".join([*lines, ledger.snapshot()])
 
 

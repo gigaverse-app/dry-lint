@@ -290,7 +290,7 @@ def plural(count: int, noun: str) -> str:
 
 def as_markdown(report: Report, max_findings: int = 10, report_at: float | None = None) -> str:
     """
-    The pull request comment, the job summary and the check run summary. A headline and badges say how bad it is
+    The pull request comment, the job summary and the check run summary. A headline says how bad it is
     at a glance; one row per pair says where and what to do; the folds hold the reasons and the ways out.
     """
     audit, stats, shown = report.repository_wide, report.stats, report.visible
@@ -298,41 +298,35 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
     coverage = " · ".join(part for part in (
         "" if audit else plural(stats["changed"], "changed function"),
         f"{plural(stats['candidates'], 'pair')} compared",
+        f"{plural(stats['judged'] + stats['cached'], 'pair')} judged" if audit else "",
         f"{below} below the report threshold" if below else "",
         f"{stats['filtered']} settled by a rule" if stats["filtered"] else "",
         f"{stats['cached']} from the verdict store" if stats["cached"] else "",
         f"{report.deferred} deferred by the judge budget" if report.deferred else "",
-        f"judge {code(report.judge)}" if report.judge else "no judge",
+        (f"judge {code(report.judge)}" if report.judge else "no judge") if not report.judging else "",
     ) if part)  # fmt: skip
     footer = ["", f"<sub>{coverage}</sub>", *([f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else [])]
-    scope = [] if audit else [badge("changed functions", stats["changed"], GRAY)]
     if report.judge is None:
         return "\n".join([
             MARKER, f"### dry-lint · {plural(len(report.findings), 'look-alike pair')}, not judged", "",
-            " ".join([badge("look-alikes", len(report.findings), GRAY), *scope, badge("judge", "none", GRAY)]), "",
             NOTE_SLOT, "",
             "No judge is configured, so these pairs have not been assessed for duplication and nothing is listed. "
             "Set `TYPESAFE_AI_API_KEY`, or configure a judge, to have them judged and reported here.", *footer,
         ])  # fmt: skip
-    judge = badge("judge", report.judge, GRAY)
     if not shown:
         if report.deferred:
             return "\n".join([MARKER, "### dry-lint · Partial assessment", "", NOTE_SLOT, "",
                               f"No judged pair reached the threshold; {report.deferred} pairs were deferred by the "
                               "judge budget and have not been cleared.", *footer])
-        return clean(report, audit, scope, judge, report_at)
+        return clean(report, audit, report_at)
     blocking = sum(f.blocking for f in shown)
-    drifted = sum(f.verdict is not None and f.verdict.label == "drifted" for f in shown)
     headline = (f"### dry-lint audit · {plural(len(shown), 'duplicated concept')} in existing code" if audit else
                 f"### dry-lint · {plural(len(shown), 'duplicated concept')}")
-    badges = [badge("duplicated concepts", len(shown), RED if blocking else AMBER),
-              *([badge("blocking", blocking, RED)] if blocking else []),
-              *([badge("drifted", drifted, ORANGE)] if drifted else []),
-              *(scope or [badge("pairs judged", stats["cached"] + stats["judged"], GRAY)]), judge]
+    if blocking:
+        headline += f" · 🔴 {blocking} blocking"
     lead = ("A repository-wide audit of code that already exists: each row is one concept implemented twice. "
             "Not introduced by this pull request, and never blocking." if audit else
-            "Each row is one concept implemented twice: a function this pull request changed, and code the "
-            "repository already has. Reuse it, or parameterize the difference.")
+            "")
     actions = AUDIT_ACTIONS if audit else ACTIONS
     listed = shown[:max_findings]
     def action(f: Finding) -> str:
@@ -343,9 +337,9 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
     advised = {action(f) for f in listed}
     common = advised.pop() if len(advised) == 1 else ""
     if common:
-        lead += f" The judge's fix for every pair listed: **{escaped(common)}**."
+        lead += f" **Suggested fix:** {escaped(common)}."
     rows = ["| | Concept | Copies | Verdict |", "| :-: | :-- | :-- | :-- |"]
-    details = ["<details><summary><strong>Reasons, and a one-line dismissal for each</strong></summary>", ""]
+    details = ["<details><summary><strong>Why these match & how to dismiss</strong></summary>", ""]
     for f in listed:
         new, existing = f.candidate.new, f.candidate.existing
         names = [side.qualname.split("::", 1)[1] for side in (new, existing)]
@@ -381,42 +375,32 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
             *([f"```{'ts' if suppression.startswith('//') else 'python'}", suppression, "```"]
               if not re.search(r"[`\n]", suppression) else [escaped(suppression)]), "",
         ])  # fmt: skip
-    details.append("</details>")
     legend = " · ".join(f"{icon} {text}" for icon, text in LEGEND.items() if any(dot(f) == icon for f in listed))
+    details += [f"<sub>{legend}</sub>", "", "</details>"]
     more = [f"<sub>+ {plural(len(shown) - max_findings, 'more pair')} not listed here; the run log lists every one.</sub>",
             ""] if len(shown) > max_findings else []
     skipped = ["", f"<details><summary><strong>Settled by a rule ({len(report.filtered)})</strong></summary>", "",
                *(f"- {code(c.new.qualname)} ~ {code(c.existing.qualname)}: {escaped(c.filtered or '')}"
                  for c in report.filtered), "", "</details>"] if report.filtered else []
     return "\n".join([
-        MARKER, headline, "", " ".join(badges), "", NOTE_SLOT, "", lead, "", *rows, "", *more, f"<sub>{legend}</sub>",
+        MARKER, headline, "", NOTE_SLOT, "", lead.strip(), "", *rows, "", *more,
         "", *details, "", "<details><summary><strong>False positive? Choose the scope of your decision</strong></summary>",
         "", *overrides(shown, audit), "", "</details>", *skipped, *footer,
     ])  # fmt: skip
 
 
-def clean(report: Report, audit: bool, scope: list[str], judge: str, report_at: float | None) -> str:
+def clean(report: Report, audit: bool, report_at: float | None) -> str:
     """No findings: say so plainly, and show how much was checked to earn it."""
     stats = report.stats
     judged = [f for f in report.findings if f.verdict is not None]
     closest = max(judged, key=lambda f: f.verdict.score, default=None)
-    if audit:
-        lead = ("**No concept is implemented twice.** The judge or a rule cleared every look-alike pair in this audit."
-                if report.findings or report.filtered else "**No two functions in the repository look alike.**")
-    elif not report.changed:
-        lead = "**Nothing to compare.** This pull request changes no functions."
-    elif report.findings or report.filtered:
-        lead = (f"**No duplicate among the closest look-alikes.** "
-                f"{plural(stats['candidates'], 'look-alike pair')} came up; the judge or a rule cleared every one.")
-    else:
-        against = f" any of the {report.functions:,} functions it was compared with" if report.functions else " anything"
-        lead = (f"**No look-alikes found.** None of the {plural(report.changed, 'changed function')} came close "
-                f"enough to{against} to need judging.")
-    rows = ["| Check | Result |", "| :-- | --: |",
-            *([] if audit else [f"| Changed functions | {report.changed:,} |"]),
-            *([f"| {'Functions in the repository' if audit else 'Compared with'} | {plural(report.functions, 'function')} |"]
-              if report.functions else []),
-            f"| Look-alike pairs | {stats['candidates']:,} |",
+    counts = [*([] if audit else [("🔎 Changed functions", f"{report.changed:,}")]),
+              *([("🗂 Functions in the repository" if audit else "🗂 Compared with", plural(report.functions, "function"))]
+                if report.functions else []), ("🧶 Look-alike pairs", f"{stats['candidates']:,}")]
+    rows = ["| " + " | ".join(label for label, _ in counts) + " |",
+            "| " + " | ".join("--:" for _ in counts) + " |",
+            "| " + " | ".join(value for _, value in counts) + " |"]
+    extra = [
             *([f"| Settled by a rule | {stats['filtered']:,} |"] if stats["filtered"] else []),
             *([f"| Cleared by the judge | {len(judged):,}"
                + (f" ({stats['cached']:,} from the verdict store)" if stats["cached"] else "") + " |"] if judged else [])]
@@ -424,14 +408,14 @@ def clean(report: Report, audit: bool, scope: list[str], judge: str, report_at: 
         names = [side.qualname.split("::", 1)[1] for side in (closest.candidate.new, closest.candidate.existing)]
         pair = code(names[0]) if names[0] == names[1] else f"{code(names[0])} ≈ {code(names[1])}"
         bar = f" · under the {report_at:.2f} bar" if report_at is not None else ""
-        rows.append(f"| Closest call | {pair} · {closest.verdict.label} {closest.verdict.score:.2f}{bar} |")
-    badges = [badge("duplicated concepts", "none ✓", GREEN), *scope,
-              *([badge("compared with" if not audit else "functions", f"{report.functions:,}", BLUE)]
-                if report.functions else []), judge]
+        extra.append(f"| Closest call | {pair} · {closest.verdict.label} {closest.verdict.score:.2f}{bar} |")
+    if extra:
+        rows += ["", "| Review | Result |", "| :-- | --: |", *extra]
     title = "### dry-lint audit · ✨ No duplicated concepts in existing code" if audit else \
         "### dry-lint · ✨ No duplicated concepts"
-    judging = ["", f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else []
-    return "\n".join([MARKER, CLEAN, title, "", " ".join(badges), "", NOTE_SLOT, "", lead, "", *rows, *judging])
+    empty = ["**Nothing to compare.** This pull request changes no functions.", ""] if not audit and not report.changed else []
+    judging = report.judging.line() if report.judging else f"judge {report.judge}"
+    return "\n".join([MARKER, CLEAN, title, "", NOTE_SLOT, "", *empty, *rows, "", f"<sub>{escaped(judging)}</sub>"])
 
 
 def overrides(shown: list[Finding], audit: bool) -> list[str]:

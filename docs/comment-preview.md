@@ -1,6 +1,6 @@
 # Sticky comment preview
 
-Illustrative verdicts, not measured findings. Generated with the production sticky and ledger renderers: three pairs were reported on the first analyzed commit, one was cleaned up on the second, and another on the third. The remaining pair stays visible below the cleanup totals. See [the report fixture](../examples/comment-report.json) and [how the ledger counts](github-action.md#the-ledger).
+Illustrative verdicts, not measured findings. Generated with the production sticky and ledger renderers: three pairs were reported on the first analyzed commit, one was cleaned up on the second, and another on the third. Expand the scan below the cleanup totals for the remaining pair. See [the report fixture](../examples/comment-report.json) and [how the ledger counts](github-action.md#the-ledger).
 
 <!-- dry-lint -->
 
@@ -12,13 +12,13 @@ Illustrative verdicts, not measured findings. Generated with the production stic
 
 Latest analyzed commit `ccccccc` · **+1 pair cleaned up** ✨
 
+<details><summary><strong>History and check stats</strong></summary>
+
 **2 duplicates kept out of the codebase** for $0 of judging, across 3 pushes. 1 duplicate still open.
 
 ![pushes: 3](https://img.shields.io/badge/pushes-3-6E7781?style=flat-square&labelColor=24292F) ![functions checked: 15](https://img.shields.io/badge/functions_checked-15-6E7781?style=flat-square&labelColor=24292F) ![judgments: 3](https://img.shields.io/badge/judgments-3-6E7781?style=flat-square&labelColor=24292F) ![spent: $0](https://img.shields.io/badge/spent-%240-2563EB?style=flat-square&labelColor=24292F)
 
 <sub>Previously reported pairs no longer reported; dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits.</sub>
-
-<details><summary><strong>Push by push</strong></summary>
 
 | Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |
 | --: | :-- | --: | --: | --: | --: | --: | --: |
@@ -37,19 +37,16 @@ Latest analyzed commit `ccccccc` · **+1 pair cleaned up** ✨
 
 ---
 
-### dry-lint · 1 duplicated concept
+<details><summary><strong>1 duplicated concept</strong></summary>
 
-![duplicated concepts: 1](https://img.shields.io/badge/duplicated_concepts-1-BF8700?style=flat-square&labelColor=24292F) ![changed functions: 5](https://img.shields.io/badge/changed_functions-5-6E7781?style=flat-square&labelColor=24292F) ![judge: illustrative](https://img.shields.io/badge/judge-illustrative-6E7781?style=flat-square&labelColor=24292F)
-
-Each row is one concept implemented twice: a function this pull request changed, and code the repository already has. Reuse it, or parameterize the difference. The judge's fix for every pair listed: **extract a shared helper**.
+**Suggested fix:** extract a shared helper.
 
 | | Concept | Copies | Verdict |
 | :-: | :-- | :-- | :-- |
 | 🟡 | `clip` ≈ `preview` <sub>· 2 look-alikes</sub> | src/captions.py:8 <sub>changed</sub><br>src/previews.py:3 | **duplicate**&nbsp;0.86 |
 
-<sub>🟡 duplicate</sub>
 
-<details><summary><strong>Reasons, and a one-line dismissal for each</strong></summary>
+<details><summary><strong>Why these match & how to dismiss</strong></summary>
 
 🟡 **`clip` ≈ `preview` <sub>· 2 look-alikes</sub>** · duplicate 0.86 · similarity 0.71 · from the verdict store
 
@@ -60,6 +57,8 @@ Different concepts? Add to captions.py:
 ```python
 # dry-lint: distinct-from src/previews.py::preview
 ```
+
+<sub>🟡 duplicate</sub>
 
 </details>
 
@@ -75,5 +74,8 @@ Different concepts? Add to captions.py:
 </details>
 
 <sub>5 changed functions · 1 pair compared · 1 from the verdict store · judge `illustrative`</sub>
+
+</details>
+
 
 <sub>[dry-lint](https://github.com/gigaverse-app/dry-lint) · commit ccccccc</sub>

@@ -24,6 +24,7 @@ The token comes from GITHUB_TOKEN, and the API root from GITHUB_API_URL (GitHub 
 """
 
 import argparse
+import html
 import os
 import re
 import sys
@@ -68,18 +69,34 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
             "</picture>\n"
         )
     report = "\n".join(lines).strip()
-    if NOTE_SLOT in report:
-        report = report.replace(NOTE_SLOT, note).replace("\n\n\n\n", "\n\n")
-    elif note:
-        report = f"{note}\n\n{report}"
+    report = report.replace(NOTE_SLOT, "").replace("\n\n\n\n", "\n\n")
     if ledger:
         parts.append(f"\n{ledger}\n\n---\n")
-    parts.append(report)
+    if note:
+        parts.append(f"{note}\n")
+    parts.append(collapse_reports(report))
     source = ["[dry-lint](https://github.com/gigaverse-app/dry-lint)", f"commit {head[:7]}" if head else "",
               f"[run]({run_url})" if run_url else ""]
     if head or run_url:
         parts.append(f"\n<sub>{' · '.join(s for s in source if s)}</sub>")
     return "\n".join(parts) + "\n"
+
+
+def collapse_reports(markdown: str) -> str:
+    """Keep each scope's result visible while folding its evidence and accounting."""
+    sections = re.split(r"(?m)^## (.+)\n", markdown.replace(CLEAN, "").strip())
+    scopes = list(zip(sections[1::2], sections[2::2], strict=True)) if len(sections) > 1 else [("", sections[0])]
+    folded = [CLEAN] if CLEAN in markdown else []
+    for scope, body in scopes:
+        heading = re.search(r"(?m)^### (.+)$", body)
+        result = "Assessment unavailable" if "[!WARNING]" in body else "Scan details"
+        if heading:
+            result = heading[1].removeprefix("dry-lint · ") if heading[1] != "dry-lint" else result
+            body = body[:heading.start()] + body[heading.end():]
+        title = f"{scope} · {result}" if scope else result
+        folded += [f"<details><summary><strong>{html.escape(title)}</strong></summary>", "",
+                   body.strip(), "", "</details>", ""]
+    return "\n".join(folded)
 
 
 RESOLVED = "> [!TIP]\n> **Resolved:** the duplicated concepts reported earlier on this pull request are gone."
