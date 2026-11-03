@@ -261,8 +261,8 @@ Without a gold set, `dry-lint bench --replay N` shows what `check` would have do
 commits of the default branch, with this checkout's settings and preset: which commits would have failed or only
 warned, the findings, how many pairs were judged and the estimated cost. It replays oldest first in a temporary
 worktree, so your checkout is never touched, and it goes through the verdict store like `check`: running it again with
-another `--fail-at` or `report_at` judges nothing new, and later checks reuse its verdicts. The budget applies to the
-whole replay; raise it with `--budget-usd` for a long one.
+another `--fail-at` or `report_at` judges nothing new, and later checks reuse its verdicts. Each commit gets the judging
+budget a pull request's check would (`budget.usd`, or `--budget-usd`), so a replay spends what CI would have.
 
 ```bash
 dry-lint bench --replay 50                             # the configured preset on the last 50 commits

@@ -7,13 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from dry_lint.costs import ANSWER_TOKENS
 from dry_lint.functions import repository_functions
 from dry_lint.plugins import load
 from dry_lint.replay import Replay, replay
-from dry_lint.settings import PluginChoice, Settings
+from dry_lint.settings import Budget, PluginChoice, Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
-from conftest import TWIN, Repo, judge_calls, run_cli
+from conftest import EXISTING, TWIN, Repo, judge_calls, run_cli
 
 
 def judged_by(command: str, **thresholds: float) -> Settings:
@@ -126,3 +127,20 @@ def test_bench_needs_exactly_one_of_a_gold_set_or_a_replay(history, tmp_path) ->
         run(history, tmp_path)
     with pytest.raises(SystemExit):
         run(history, tmp_path, "--replay", "3", "--gold", "gold.jsonl")
+
+
+def test_each_commit_has_the_judging_budget_of_its_own_check(history, tmp_path, twin_judge) -> None:
+    history.write("src/clip.py", EXISTING.replace("shorten_text", "clip_text"))
+    history.commit("another copy")
+    # A flat $1 a pair (output tokens only) and a $1.50 budget: one judgement per check.
+    priced = Settings(judge=PluginChoice(use="command", command=twin_judge, name="twin"),
+                      prices={"twin": (0.0, 1_000_000 / ANSWER_TOKENS)}, budget=Budget(usd=1.5))
+    result = replay(history.root, priced, VerdictStore(DirectoryStore(tmp_path / "store")), 10, "main")
+    checked = [c for c in result.commits if c.report.findings]
+    assert len(checked) == 2 and judge_calls(tmp_path) == 2  # a shared budget would have stopped after one
+    for commit in checked:
+        assert sum(f.verdict is not None for f in commit.report.findings) == 1
+        assert commit.report.judging.spend[0].calls == 1
+    total = result.judging.spend[0]
+    assert total.calls == 2 and total.usd == pytest.approx(2.0)
+    assert total.skipped == sum(len(c.report.findings) for c in checked) - 2
