@@ -2,7 +2,7 @@
 
 
 def comment_marker(name: str = "") -> str:
-    if name:  # a keyed marker
+    if name:  # a keyed marker, one per report
         return f"<!-- dry-lint:{name} -->"
     return "<!-- dry-lint -->"
 
