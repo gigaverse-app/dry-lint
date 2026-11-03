@@ -14,7 +14,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from dry_lint.judges.command import PROMPT_VERSION, parse_verdict, prompt
+from dry_lint.judges.command import PROMPT_POLICIES, parse_verdict, prompt
 from dry_lint.models import Candidate, Verdict
 from dry_lint.settings import Settings
 
@@ -26,7 +26,10 @@ class AnthropicJudge:
     subscription = False
 
     def __init__(self, model: str = "claude-sonnet-5-5", api_key: str | None = None, effort: str | None = None,
-                 workers: int = 4, timeout: float = 120, http_client: Any = None) -> None:
+                 workers: int = 4, timeout: float = 120, http_client: Any = None,
+                 prompt_policy: str = "concept", max_tokens: int = 8000) -> None:
+        if prompt_policy not in PROMPT_POLICIES or max_tokens < 1:
+            raise ValueError("Unknown prompt policy or nonpositive output limit")
         try:
             import anthropic
         except ImportError as error:  # an optional extra
@@ -35,7 +38,13 @@ class AnthropicJudge:
         if not key:
             raise ValueError("The anthropic judge needs ANTHROPIC_API_KEY (or use the claude-code judge with a subscription)")
         self.model, self.effort, self.workers = model, effort, workers
-        self.version = f"{PROMPT_VERSION}:{model}" + (f":{effort}" if effort else "")
+        self.prompt_policy, self.max_tokens = prompt_policy, max_tokens
+        # An opt-in policy cannot inherit legacy answers, nor contaminate a rollback to the legacy judge.
+        self.name = "anthropic" if prompt_policy == "concept" else "anthropic-operations"
+        self.strict_version = prompt_policy != "concept" or max_tokens != 8000
+        self.version = f"{PROMPT_POLICIES[prompt_policy][0]}:{model}" + (f":{effort}" if effort else "")
+        if max_tokens != 8000:
+            self.version += f":output={max_tokens}"
         self.client = anthropic.Anthropic(api_key=key, timeout=timeout, http_client=http_client)
         self.tokens = {"input": 0, "output": 0}
 
@@ -44,7 +53,8 @@ class AnthropicJudge:
         if self.model in FALLBACK_MODELS:
             options |= {"betas": ["server-side-fallback-2026-07-01"], "fallbacks": "default"}
         response = self.client.beta.messages.create(
-            model=self.model, max_tokens=8000, messages=[{"role": "user", "content": prompt(candidate)}], **options)
+            model=self.model, max_tokens=self.max_tokens,
+            messages=[{"role": "user", "content": prompt(candidate, policy=self.prompt_policy)}], **options)
         self.tokens["input"] += response.usage.input_tokens
         self.tokens["output"] += response.usage.output_tokens
         if response.stop_reason == "refusal":
