@@ -66,7 +66,12 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
-New files carry `"schema": 2`; schema 1 remains readable with conservative cache defaults. The models are in `models.py`, `store.py` and `report.py`.
+New files carry `"schema": 4`; schemas 1, 2 and 3 remain readable with conservative cache defaults. Schema 3 adds
+optional function `origin` using the existing `Run` contract. Workspace function identities include the repository,
+while their paths remain repository-relative and their links use the source commit. Single-repository identities
+and pair keys stay unchanged. Schema 4 adds bounded function `context`, a full-source `context_digest`, candidate
+`consolidation` destinations, verdict-store `context_hash`, and finding `deferred` state. Old records default to
+empty context, so they cannot satisfy a new contextual request. The models are in `models.py`, `store.py` and `report.py`.
 
 | File | Written by | Holds |
 | --- | --- | --- |
@@ -102,7 +107,7 @@ it came from the store, how many look-alikes its changed function has (`family`)
 
 The store is a cache of machine answers, not a reviewed file. Each record is its own object, so concurrent judge
 jobs never conflict and a run reads only the records of the pairs it has. A record is reused when the answer
-cannot have changed:
+cannot have changed. Context and destination hashes must match before either rule below applies:
 
 - **both structure hashes match**: nothing that matters changed; or
 - **the verdict was `separate`, both records permit similarity reuse, the similarity comes from the same comparer version,
@@ -116,7 +121,8 @@ only exact hashes reuse a verdict until a new record declares the policy. See [D
 
 A `duplicate` or `drifted` verdict reopens on any logic change, because that change might be the fix, or more
 drift. A verdict from another judge is never reused. One from an older version of the same judge is, until
-`dry-lint scan --refresh` asks again. Renaming or moving a function changes its key, so its pairs are judged again.
+`dry-lint scan --refresh` asks again. Contextual judges always require the exact model/prompt version, even without
+`--refresh`. Renaming or moving a function changes its key, so its pairs are judged again.
 
 `dry-lint explain A B` shows all of this for one pair: the similarity and the tokens behind it, whether the
 comparer proposes it, the rule that settles it, the stored verdict and why it is or is not reused.
@@ -135,17 +141,19 @@ they are reviewed, versioned and visible to the next reader.
 ## Judging and escalation
 
 A judge returns a verdict per pair: `label` (`duplicate`, `drifted` or `separate`), `score` (0–1, one concept),
-`behaves_differently` (0–1), `owner` and `why`. The thresholds are core: below `drop_below` (0.6) a pair is
-separate, at `report_at` (0.8) it is reported, at `fail_at` (0.8 by default, `--fail-at` on the command line) it
-blocks, and at `drift_at` (0.8) on
-`behaves_differently` it is drifted. With the default, every reported duplicate blocks: 75% precise on the
-gold set, so about one failed check in four is a false positive to override. Raising `fail_at` to 0.91 leaves
-the band from 0.8 warning only; at 0.91 nothing on the gold set was a false positive (the highest scored 0.892)
-([benchmark](benchmark.md)).
+`behaves_differently` (0–1), `owner` and `why`. The thresholds are core: below `drop_below` a pair is separate, at
+`report_at` it is reported, at `fail_at` (`--fail-at` on the command line) it fails the run, and at `drift_at`
+(0.8) on `behaves_differently` it is drifted.
 
-`escalate = { use = "command", command = "claude -p", between = [0.6, 0.8] }` sends pairs whose first score falls
-in the band to a second judge, and its answer replaces the first. The record stays under the first judge's name
-with `second_opinion` set, so it is reused like any other. See [judges.md](judges.md).
+A threshold means something only for the judges it was measured with, so the judges and the thresholds are chosen
+together as a **preset** (`presets.py`, [judges.md](judges.md)): `jev+sonnet` (Jev, then Claude Sonnet 5.5 on Jev
+scores in `[0.5, 0.91)`, reporting from 0.6 and failing at 0.7: 97% precision, 84% recall), its subscription twins
+`jev+claude-code` and `jev+codex`, `sonnet`, `claude-code`, `jev` (failing at 0.8: 94%, 73%) and `none`.
+`preset = "auto"` picks by the credentials present; explicit settings win over the preset's. `escalate` sends
+first scores in its band to the second judge, whose answer replaces the first; the record stays under the first
+judge's name with `second_opinion` set, so it is reused like any other. Each run's judging is bounded by a budget
+(`budget.usd` for priced judges, `budget.subscription_calls` for subscriptions; riskiest pairs first) and every
+report states the preset, the judges, the thresholds and the estimated cost (`costs.py`).
 
 ## Reports
 

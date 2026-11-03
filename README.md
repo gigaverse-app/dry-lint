@@ -56,10 +56,13 @@ Start with a local candidate pass, then add a judge when you want duplication de
 
 | Your next step | Run or read |
 | --- | --- |
+| See which judges, thresholds and budget would run, and what they cost | `dry-lint config` |
+| Set it up with an agent | point it at [skills/dry-lint/SKILL.md](skills/dry-lint/SKILL.md) |
 | Inspect your branch without a model or API key | `dry-lint check --judge none` |
 | Understand one candidate | `dry-lint explain path/to/new.py::function path/to/existing.py::function` |
 | Try structural matching as well | [Install the optional Dryer comparer](docs/detectors.md) |
 | Put judged findings on pull requests | [GitHub Action setup](docs/github-action.md) |
+| Find copies across related repositories | [Workspace scans and shared ownership](docs/workspaces.md) |
 | See the comment before installing | [Example report](docs/comment-preview.md) |
 
 ```bash
@@ -70,7 +73,7 @@ uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 3
 | Command | Does |
 | --- | --- |
 | `check [--base REF \| --staged]` | detect, judge and report the functions a change touched (base: `origin/HEAD`) |
-| `scan [--limit N] [--refresh]` | the same for the whole repository's backlog |
+| `scan [--limit N] [--refresh] [--repo OWNER/NAME=PATH ...]` | the repository's backlog, or cross-repository pairs from a combined workspace |
 | `detect --out candidates.json` | CI job 1: propose pairs; no judge, no secrets, no store |
 | `judge --candidates candidates.json` | CI job 2: judge them, store the verdicts, report |
 | `report --from report.json --format F` | render a report as `text`, `github`, `markdown`, `json`, `sarif` or `check-run` |
@@ -95,9 +98,9 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
 runs. The comment links both functions at the analyzed commit, shows the review workload, and folds evidence and
-pair-specific suppression instructions under each summary. A clean pull request gets no comment. A reported duplicate fails the check; set `fail-at: "0.91"` to fail only
-on near-certain ones (no false positive at that level in the benchmark), and the `dry-lint: override` label lets
-one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
+pair-specific suppression instructions under each summary. A clean pull request gets a green sticky with what was checked (`comment-on-clean: "false"` to opt out). A reported duplicate fails the check at the preset's threshold
+(97% of them are real duplicates with `jev+sonnet`); `fail-at` raises or lowers it, and the `dry-lint: override`
+label lets one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
 
@@ -127,7 +130,7 @@ Machine "not a duplicate" verdicts stay in the store and do not need to be check
 
 ## Measured
 
-On 120 recent gigaverse-ai pull requests, against a blind two-labeller gold set ([docs/benchmark.md](docs/benchmark.md)):
+On 600 gigaverse-ai pull requests, against a 250-pair gold set labelled blind by three vendors' models ([docs/benchmark.md](docs/benchmark.md)):
 
 | | |
 | --- | --- |
@@ -135,28 +138,31 @@ On 120 recent gigaverse-ai pull requests, against a blind two-labeller gold set 
 | Judge calls per PR (uncached) | 2.5 |
 | Findings per PR at the default threshold | about 0.2 |
 | Jev `reuse-v2`: ranking quality | AUC 0.97 |
-| at `report_at = 0.8` | 75% precision, 59% recall |
-| at `drop_below = 0.6` | 100% recall |
-| at `fail_at = 0.91`, if raised | 100% precision, 21% recall; about 1 PR in 20 |
+| preset `jev+sonnet`, failing at 0.7 | 97% precision, 84% recall; about $0.004 per pull request |
+| preset `jev+codex` (ChatGPT subscription), failing at 0.7 | 96% precision, 85% recall; no per-call cost |
+| preset `jev`, failing at 0.8 | 94% precision, 73% recall; 15% of pull requests fail |
 | Known duplicates found and scored ≥ 0.8 | 11 of 13 |
 | Verdict store for the whole repository | about 1,900 pairs, 0.75 MB |
 
 ## Settings
 
-All settings live under `[tool.dry-lint]` in `pyproject.toml` or in a `.dry-lint.toml` file. The defaults are the
-measured thresholds above:
+All settings live under `[tool.dry-lint]` in `pyproject.toml` or in a `.dry-lint.toml` file. Judges and
+thresholds come from the preset ([docs/judges.md](docs/judges.md)); anything set here wins over it:
 
 | Setting | Default | |
 | --- | --- | --- |
 | `include` / `exclude` | everything / tests, migrations, scripts | fnmatch over tracked paths |
 | `neighbours` | 3 | candidates per changed function |
-| `drop_below` / `report_at` / `drift_at` | 0.6 / 0.8 / 0.8 | judge thresholds: separate below, reported at, drifted at |
-| `fail_at` | 0.8 | judged duplicates at or above this fail the run (`--fail-at` overrides it); raise it above `report_at` to make the band between them warn only |
+| `preset` | `"auto"` | judges and their measured thresholds together: `jev+sonnet`, `jev+claude-code`, `jev+codex`, `sonnet`, `claude-code`, `jev`, `none`; auto picks by the credentials present |
+| `drop_below` / `report_at` / `fail_at` | from the preset | separate below, reported at, failing at (`--fail-at` overrides it); `jev+sonnet` is 0.5 / 0.6 / 0.7 |
+| `drift_at` | 0.8 | a duplicate whose `behaves_differently` reaches this is drifted |
+| `budget` | `{ usd = 0.25, subscription_calls = 20 }` | most a run spends on priced judges (`--budget-usd`), and calls to subscription judges |
+| `prices` | built-in table | USD per million input and output tokens, by model |
 | `reopen_margin` | 0.05 | how much closer a "separate" pair must get before it is judged again |
 | `max_findings` | 10 | rows in the PR comment |
 | `extractors` | `["python", "typescript"]` | `.py`, `.ts`, `.tsx`, `.mts`, `.cts` |
 | `comparer` | `"tfidf"` | options `min_similarity` (0.5), `min_similarity_small` (0.3) under `small_function_lines` (6) |
-| `judge` / `escalate` | `"auto"` / none | `escalate = { use = "command", command = "...", between = [0.6, 0.8] }` |
+| `judge` / `escalate` | from the preset | name your own judge to run it alone, or `escalate = "none"` to turn the second judge off |
 | `store` | `"dir"` | `.git/dry-lint/verdicts/`, or `{ use = "s3", uri = "s3://bucket/prefix" }` |
 
 A plugin slot takes a name, or a table with `use` and the plugin's options:

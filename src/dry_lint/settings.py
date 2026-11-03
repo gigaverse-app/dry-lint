@@ -16,6 +16,8 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
+from dry_lint.models import Consolidation
+
 
 class Pattern(BaseModel):
     """A declared family of deliberate look-alikes, never reported (e.g. one router per resource)."""
@@ -38,7 +40,7 @@ class PluginChoice(BaseModel):
 class Escalation(PluginChoice):
     """A second judge for the scores the first judge is least sure about."""
 
-    between: tuple[float, float] = Field(default=(0.6, 0.8), description="First-judge scores in [low, high) escalate.")
+    between: tuple[float, float] = Field(default=(0.6, 0.91), description="First-judge scores in [low, high) escalate.")
 
     def options(self) -> dict[str, Any]:
         return {name: value for name, value in super().options().items() if name != "between"}
@@ -51,18 +53,39 @@ def _named(value: Any) -> Any:
 Choice = Annotated[PluginChoice, BeforeValidator(_named)]
 
 
+class Budget(BaseModel):
+    """What one run may spend on judges."""
+
+    usd: float = Field(default=0.25, description="Most a run spends on judges with a per-token price (estimated). "
+                                                 "The riskiest pairs are judged first; the rest keep the first judge's "
+                                                 "answer, or stay unjudged.")
+    subscription_calls: int = Field(default=20, description="Most calls a run makes to subscription judges, which "
+                                                            "are rate-limited rather than billed.")
+
+
 class Settings(BaseModel):
     include: list[str] = Field(default_factory=lambda: ["*"], description="fnmatch over tracked paths.")
     exclude: list[str] = Field(default_factory=lambda: ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"])
     patterns: list[Pattern] = Field(default_factory=list)
     neighbours: int = Field(default=3, description="Nearest functions in other files considered per changed function.")
+    consolidation: list[Consolidation] = Field(default_factory=list)
+    max_judgements: int | None = Field(default=None, ge=1, description="Maximum uncached pairs judged per run.")
 
     extractors: list[Choice] = Field(default_factory=lambda: [PluginChoice(use="python"), PluginChoice(use="typescript")],
                                      description="One per language; the first whose file globs match a file reads it.")
     comparer: Choice = Field(default_factory=lambda: PluginChoice(use="tfidf"))
     judge: Choice = Field(default_factory=lambda: PluginChoice(use="auto"),
                           description="auto: Jev when TYPESAFE_AI_API_KEY is set, otherwise none (list candidates).")
-    escalate: Annotated[Escalation | None, BeforeValidator(_named)] = None
+    escalate: Annotated[Escalation | None, BeforeValidator(_named)] = Field(
+        default_factory=lambda: Escalation(use="auto"),
+        description="auto: Claude Sonnet 5.5 when ANTHROPIC_API_KEY is set, otherwise none; \"none\" turns it off.")
+    preset: str = Field(default="auto", description="The judging setup: judges and the thresholds measured for them "
+                                                    "(presets.py). auto: the best one the credentials allow. Explicit "
+                                                    "judge, escalate and threshold settings win over the preset's.")
+    budget: Budget = Field(default_factory=Budget)
+    prices: dict[str, tuple[float, float]] = Field(default_factory=dict,
+                                                   description="USD per million input and output tokens, by model or "
+                                                               "judge name, over the built-in table.")
     store: Choice = Field(default_factory=lambda: PluginChoice(use="dir"),
                           description="dir: a folder, by default inside the git directory; s3: a bucket prefix.")
 

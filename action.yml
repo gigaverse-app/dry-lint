@@ -37,8 +37,19 @@ inputs:
     description: Where the repository (or the package to check in a monorepo) is.
     required: false
     default: "."
+  repositories:
+    description: >
+      Optional checked-out repositories, one OWNER/NAME=PATH per line, including working-directory.
+      Compare changed functions only against peers. Paths are relative to the workflow working directory.
+      Checkout trusted peers before this action; no repositories are fetched or executed by dry-lint.
+    required: false
+    default: ""
   comment:
-    description: Keep one pull request comment with the findings up to date. A clean PR gets no comment.
+    description: Keep one pull request comment with the findings up to date.
+    required: false
+    default: "true"
+  comment-on-clean:
+    description: Comment on a clean pull request too, with what was checked. "false" comments only once there are findings.
     required: false
     default: "true"
   check-run:
@@ -119,8 +130,8 @@ runs:
       uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
       with:
         path: ${{ runner.temp }}/dry-lint/verdicts
-        key: dry-lint-verdicts-${{ github.run_id }}-${{ github.run_attempt }}
-        restore-keys: dry-lint-verdicts-
+        key: dry-lint-verdicts-${{ github.job }}-${{ inputs.sticky-key || 'default' }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: dry-lint-verdicts-${{ github.job }}-${{ inputs.sticky-key || 'default' }}-
     - name: Run
       id: run
       shell: bash
@@ -128,9 +139,11 @@ runs:
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_JUDGE: ${{ inputs.judge }}
         INPUT_JUDGE_COMMAND: ${{ inputs.judge-command }}
+        INPUT_REPOSITORIES: ${{ inputs.repositories }}
         INPUT_BASE: ${{ inputs.base }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_COMMENT_ON_CLEAN: ${{ inputs.comment-on-clean }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
         INPUT_FAIL_AT: ${{ inputs.fail-at }}
@@ -144,7 +157,7 @@ runs:
       uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
       with:
         path: ${{ runner.temp }}/dry-lint/verdicts
-        key: dry-lint-verdicts-${{ github.run_id }}-${{ github.run_attempt }}
+        key: dry-lint-verdicts-${{ github.job }}-${{ inputs.sticky-key || 'default' }}-${{ github.run_id }}-${{ github.run_attempt }}
     - name: Upload candidates
       if: steps.plan.outputs.mode == 'detect'
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

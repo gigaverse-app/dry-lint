@@ -2,16 +2,20 @@ import json
 
 import pytest
 
+from dry_lint.costs import Spend
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.report import (
+    CLEAN,
     FORMATS,
     GRAY,
     MARKER,
     NOTE_SLOT,
     Finding,
+    JudgingSummary,
     Report,
     as_check_run,
     as_github,
+    as_json,
     as_markdown,
     as_sarif,
     as_text,
@@ -140,12 +144,43 @@ def test_one_shared_fix_is_said_once_instead_of_on_every_row() -> None:
     assert "<sub>extract a shared helper</sub>" not in body
 
 
-def test_markdown_comment_says_so_when_nothing_is_found() -> None:
-    body = as_markdown(report(finding("separate")))
-    assert body.startswith(MARKER) and "### dry-lint · ✅ No duplicated concepts" in body
-    assert "duplicated_concepts-0-2EA043" in body and "No pair reached the report threshold." in body
-    assert "2 changed functions" in body and "1 below the report threshold" in body
-    assert "No function here looks like another one." in as_markdown(report())
+def clean_report(*findings: Finding, filtered: list[Candidate] = (), changed: int = 2, functions: int = 1284,
+                 scope: str = "change") -> Report:
+    return Report.build(list(findings), SETTINGS, filtered=filtered, run=Run(repository="o/r", head=HEAD),
+                        changed=changed, judge="jev:v", functions=functions, scope=scope)
+
+
+def test_a_clean_report_says_so_and_shows_what_was_checked_to_earn_it() -> None:
+    body = as_markdown(clean_report(finding("separate", 0.62), finding("duplicate", 0.7, cached=True, existing="trim"),
+                                    filtered=[pair("z", filtered="declared pattern")]), report_at=0.8)
+    assert body.startswith(f"{MARKER}\n{CLEAN}\n### dry-lint · ✨ No duplicated concepts")
+    assert "![duplicated concepts: none ✓](https://img.shields.io/badge/duplicated_concepts-none_%E2%9C%93-2EA043?" in body
+    assert "compared_with-1%2C284-2563EB" in body and "| Check | Result |" in body
+    assert "**Every changed function is the only implementation of its concept.** 3 look-alike pairs came up" in body
+    for row in ("| Changed functions | 2 |", "| Compared with | 1,284 functions |", "| Look-alike pairs | 3 |",
+                "| Settled by a rule | 1 |", "| Cleared by the judge | 2 (1 from the verdict store) |",
+                "| Closest call | `clip` ≈ `trim` · duplicate 0.70 · under the 0.80 bar |"):
+        assert row in body
+    assert NOTE_SLOT in body and "<details>" not in body
+
+
+def test_a_clean_report_without_look_alikes_names_the_scale_of_the_comparison() -> None:
+    body = as_markdown(clean_report())
+    assert "None of the 2 changed functions looks like any of the 1,284 functions in the repository." in body
+    assert "Closest call" not in body and "Cleared by the judge" not in body and "Settled by a rule" not in body
+    assert "looks like anything." in as_markdown(clean_report(functions=0))
+    assert "Compared with" not in as_markdown(clean_report(functions=0))
+    assert "**Nothing to compare.** This pull request changes no functions." in as_markdown(clean_report(changed=0))
+    assert "under the" not in as_markdown(clean_report(finding("separate")))
+
+
+def test_a_clean_audit_speaks_of_the_repository() -> None:
+    body = as_markdown(clean_report(finding("separate"), changed=0, scope="repository"))
+    assert "### dry-lint audit · ✨ No duplicated concepts in existing code" in body
+    assert "The judge or a rule cleared every look-alike pair in this audit." in body
+    assert "| Functions in the repository | 1,284 functions |" in body and "functions-1%2C284-2563EB" in body
+    assert "Changed functions" not in body and "changed_functions" not in body
+    assert "No two functions in the repository look alike." in as_markdown(clean_report(changed=0, scope="repository"))
 
 
 def test_without_a_judge_the_comment_lists_nothing_and_says_how_to_get_one() -> None:
@@ -229,8 +264,7 @@ def test_evidence_separates_judge_scores_from_similarity_and_cache() -> None:
 
 
 def test_a_repository_scan_reads_as_an_audit_of_existing_code_that_never_blocks() -> None:
-    scan = Report.build([finding("drifted", 0.95, owner="new")], SETTINGS, run=Run(repository="o/r", head=HEAD),
-                        changed=0, judge="jev:v").as_warnings()
+    scan = clean_report(finding("drifted", 0.95, owner="new"), changed=0, scope="repository").as_warnings()
     assert scan.repository_wide and not report(finding("duplicate")).repository_wide
     body = as_markdown(scan)
     assert "### dry-lint audit · 1 duplicated concept in existing code" in body
@@ -247,7 +281,7 @@ def test_the_status_note_has_a_slot_below_the_badges() -> None:
 def test_json_report_round_trips() -> None:
     built = report(finding("duplicate", existing="a"), finding("separate", existing="b"))
     loaded = Report.model_validate_json(render(built, "json", SETTINGS))
-    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 2
+    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 4
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:
@@ -288,3 +322,25 @@ def test_a_path_that_could_close_a_code_fence_is_shown_escaped_instead() -> None
     built.findings[0].candidate.existing.path = "src/```evil.py"
     body = as_markdown(built)
     assert "```python" not in body and "distinct-from src/\\`\\`\\`evil.py::shorten" in body
+
+
+def test_the_judging_line_names_judges_band_thresholds_and_the_bill() -> None:
+    summary = JudgingSummary(preset="jev+sonnet", judge="jev:reuse-v2", escalation="anthropic:dry-v1:claude-sonnet-5-5",
+                             band=(0.5, 0.91), report_at=0.6, fail_at=0.7, budget_usd=0.25,
+                             spend=[Spend(judge="jev:reuse-v2", calls=4, usd=0.0002),
+                                    Spend(judge="anthropic:dry-v1:claude-sonnet-5-5", calls=1, skipped=2, usd=0.0033)])
+    assert summary.line() == ("preset jev+sonnet · jev:reuse-v2 > anthropic:dry-v1:claude-sonnet-5-5 on [0.5, 0.91) · "
+                              "reports at 0.6, fails at 0.7 · est. $0.004 of $0.25 budget · 2 pairs not judged (budget)")
+    plain = JudgingSummary(judge="jev:reuse-v2", report_at=0.8, fail_at=0.8, budget_usd=0.25,
+                           spend=[Spend(judge="claude-code:x", calls=3, subscription=True), Spend(judge="c", calls=1, usd=None)])
+    assert plain.line() == "jev:reuse-v2 · reports and fails at 0.8 · cost unknown · 3 subscription calls"
+    assert JudgingSummary().line() == "no judge · reports and fails at 0.8 · est. $0.000 of $0 budget"
+
+
+def test_every_view_states_the_judging() -> None:
+    summary = JudgingSummary(preset="jev", judge="jev:reuse-v2", report_at=0.8, fail_at=0.8, budget_usd=0.25)
+    built = Report.build([finding("duplicate")], SETTINGS, run=Run(repository="o/r", head="abc"), judge="jev:reuse-v2",
+                         judging=summary)
+    assert as_text(built).endswith("judging: preset jev · jev:reuse-v2 · reports and fails at 0.8 · est. $0.000 of $0.25 budget")
+    assert "<sub>preset jev · jev:reuse-v2 · reports and fails at 0.8" in as_markdown(built)
+    assert Report.model_validate_json(as_json(built)).judging == summary

@@ -9,11 +9,13 @@ Each file carries `schema`. Bump it, and keep reading the old one, whenever a fi
 """
 
 import hashlib
+import json
+from pathlib import PurePosixPath
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 2
+SCHEMA = 4
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -25,6 +27,15 @@ class Versioned(BaseModel):
     schema_version: int = Field(default=SCHEMA, alias="schema")
 
 
+class Run(BaseModel):
+    """Where analyzed code came from, so reports link to the right repository and commit."""
+
+    repository: str = ""
+    pull_request: int | None = None
+    head: str = ""
+    base: str = ""
+
+
 class Function(BaseModel):
     """One function or method, by the qualified name dry-lint keys everything on. An extractor fills it in."""
 
@@ -34,6 +45,9 @@ class Function(BaseModel):
     line: int
     end_line: int
     code: str
+    context: str = Field(default="", description="Bounded source dependencies and policy comments; never executed.")
+    context_digest: str = Field(default="", description="Full source-file digest, including context beyond the prompt limit.")
+    origin: Run | None = Field(default=None, description="Source checkout for a multi-repository scan.")
     hash: str = Field(default="", description="Changes with runtime logic; the language extractor normalizes safe cosmetic edits.")
     tokens: list[str] = Field(default_factory=list, exclude=True,
                               description="Behaviour tokens, for comparers that use them. Not written to files.")
@@ -42,11 +56,32 @@ class Function(BaseModel):
 
     @property
     def qualname(self) -> str:
-        return f"{self.path}::{self.owner + '.' if self.owner else ''}{self.name}"
+        prefix = f"{self.origin.repository}/" if self.origin and self.origin.repository else ""
+        return f"{prefix}{self.path}::{self.owner + '.' if self.owner else ''}{self.name}"
 
     @property
     def lines(self) -> int:
         return self.end_line - self.line + 1
+
+
+class Consolidation(BaseModel):
+    """A preferred home for related implementations, not a requirement to merge unrelated concepts."""
+
+    sources: list[str] = Field(default_factory=lambda: ["*"], min_length=1)
+    repository: str = ""
+    path: str = Field(min_length=1)
+    guidance: str = ""
+
+    @field_validator("path")
+    @classmethod
+    def relative_path(cls, value: str) -> str:
+        if PurePosixPath(value).is_absolute() or ".." in PurePosixPath(value).parts or "\\" in value or ":" in value:
+            raise ValueError("consolidation path must be repository-relative, without '..'")
+        return value.rstrip("/") or "."
+
+    @property
+    def destination(self) -> str:
+        return "/".join(part for part in (self.repository, self.path) if part)
 
 
 def pair_key(a: str, b: str) -> str:
@@ -64,6 +99,16 @@ class Candidate(BaseModel):
     comparer: str = Field(default="", description="The comparer and version that measured the similarity, e.g. 'tfidf:1'.")
     filtered: str | None = Field(default=None, description="Why a rule dropped the pair; None when it goes to the judge.")
     similarity_reusable: bool = Field(default=False, description="Whether this metric permits reuse after logic changes.")
+    consolidation: list[Consolidation] = Field(default_factory=list)
+
+    @property
+    def context_hash(self) -> str:
+        if not (self.new.context or self.existing.context or self.new.context_digest or self.existing.context_digest
+                or self.consolidation):
+            return ""
+        payload = [sorted((f.qualname, f.context, f.context_digest) for f in (self.new, self.existing)),
+                   [target.model_dump() for target in self.consolidation]]
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     @property
     def key(self) -> str:
@@ -83,18 +128,10 @@ class Verdict(BaseModel):
     second_opinion: str | None = Field(default=None, description="The escalation judge whose answer this is, if any.")
 
 
-class Run(BaseModel):
-    """Where a run's candidates came from, so the judge job reports on the right pull request and commit."""
-
-    repository: str = ""
-    pull_request: int | None = None
-    head: str = ""
-    base: str = ""
-
-
 class CandidatesFile(Versioned):
     """`candidates.json`: what the detect job hands to the judge job."""
 
     run: Run = Field(default_factory=Run)
     changed: int = Field(default=0, description="How many functions the change touched.")
+    functions: int = Field(default=0, description="How many functions the repository has: what changed ones meet.")
     candidates: list[Candidate] = Field(default_factory=list, description="Proposed pairs, and filtered ones with why.")

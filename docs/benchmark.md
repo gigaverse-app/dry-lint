@@ -1,37 +1,107 @@
 # Benchmark
 
-Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded), much of it written with
-coding agents. The gold labels contain that private code and are not published. The method is described here so
+The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
+Its small diagnostic sample does not inherit the Python precision/recall claims below.
+
+Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded),
+much of it written with coding agents. The gold labels contain that private code and are not published. The method is described here so
 it can be repeated on another codebase.
-
-## Population
-
-The population is the 120 most recent merged pull requests. For each, the detector ran at its merge commit against
-the functions the PR changed, which produced **295 candidate pairs**. Jev `reuse-v2` scored each pair.
-
-Changed functions per commit: median 1, p90 13. Per PR that is 2.46 Jev calls on average before caching, so a
-judge is cheap at PR scale.
 
 ## Gold set
 
-The 295 pairs were split by Jev score into six bands: <0.1, 0.1–0.3, 0.3–0.5, 0.5–0.7, 0.7–0.9 and 0.9+. Sampling
-was stratified across the bands, giving **96 pairs**. Two labellers labelled them blind, without the scores, using
-[the guideline below](#labelling-guideline), and disagreements were reconciled. Precision and recall are projected
-to the whole population with stratum weights (each band's size over its sample size).
+**Population.** dry-lint's own detector ran on the functions changed by the 600 most recent merged gigaverse-ai
+pull requests (10 September to 3 November 2026), against main, and proposed **2,012 candidate pairs** (per PR:
+median 0, p90 10). Jev `reuse-v2` scored every pair; the scores are used only to stratify the sample.
 
-## Results, prompt `reuse-v2`
+**Sample.** 250 pairs, stratified by Jev score and weighted toward where decisions happen: 15, 15 and 20 pairs from
+below 0.1, 0.1–0.3 and 0.3–0.5; 30, 40, 40, 45 and 45 from 0.5–0.6, 0.6–0.7, 0.7–0.8, 0.8–0.9 and 0.9 up. Each
+pair carries its stratum's weight (stratum size over sample size), so the numbers describe all 2,012 pairs.
 
-| | |
-| --- | --- |
-| AUC | 0.97 |
-| `report_at = 0.8` | 75% precision, 59% recall |
-| `drop_below = 0.6` | 100% recall: no true duplicate scored under 0.6 |
-| `fail_at = 0.8` (the default) | the same pairs as `report_at`: 75% precision, 59% recall |
-| `fail_at = 0.91`, if raised | 100% precision, 21% recall; about 6 of the 295 candidates, roughly 1 PR in 20. The highest false positive scored 0.892 and the lowest true positive above it 0.910, so 0.90 and 0.91 flag the same pairs; 0.91 keeps twice the margin |
-| Comments per PR at 0.8 | about 0.18 |
-| Pairs between 0.6 and 0.8 per PR | about 0.3 |
+**Labels.** Three labellers from three vendors (Claude Opus 5.5, GPT-5.5, Gemini 3.1 Pro) labelled every pair blind,
+without scores, with [the guideline below](#labelling-guideline); the label is the majority. They were unanimous on
+211 of 250, and agreed pairwise on 86% to 96%. All 16 pairs shared with the earlier gold set got the same label.
+**117 duplicates.** Labels from one vendor's model would lean toward that vendor's judge; three vendors dilute that,
+but the labels are still LLM opinions, not people's.
 
-The pairs between 0.6 and 0.8 are where a stronger second judge would earn its cost.
+`dry-lint bench` reports every figure with a 90% interval from a stratified bootstrap, because a few heavily
+weighted pairs can move a point estimate a long way.
+
+## Results
+
+Jev `reuse-v2` alone, by threshold (the default `report_at` and `fail_at` are both 0.8):
+
+| Score at or above | Precision | Recall | Pairs flagged, of 2,012 | Pull requests failed, of 600 |
+| --- | --- | --- | --- | --- |
+| 0.6 | 70% (66–74) | 95% (89–99) | 714 | |
+| 0.7 | 82% (78–86) | 85% (80–91) | 550 | |
+| **0.8** | **94% (91–98)** | **73% (68–79)** | **410** | **92 (15%)** |
+| 0.85 | 99% (97–100) | 61% (55–67) | 326 | 84 (14%) |
+| 0.9 | 100% (100–100) | 45% (42–49) | 238 | 69 (12%) |
+| 0.95 | 100% | 19% (14–25) | 100 | |
+
+AUC 0.97. A failed pull request has a median of 2 flagged pairs. These are pull requests before any `patterns` or
+`distinct-from` comments, which a repository adds as it meets its deliberate look-alikes.
+
+## Escalation
+
+`dry-lint bench`, live, Jev first and the second judge on first scores in `[0.6, 0.91)`, at 0.8:
+
+| Judging | Precision | Recall |
+| --- | --- | --- |
+| Jev alone (2 runs) | 94–95% (91–98) | 71–73% (66–79) |
+| **Jev, then Claude Sonnet 5.5** (2 runs) | **98% (96–100)** | **75–76% (69–83)** |
+
+Sonnet 5.5 roughly halves false blocks, from about one in 18 to about one in 50; the recall gain is within the
+intervals. About a quarter of candidates fall in the band, so it is about 0.8 Sonnet calls per pull request at
+about 3 seconds each, 4 at a time. Sonnet is a Claude model and one of the three labellers was Claude Opus; the
+other two vendors' labels keep that from deciding the gold labels on their own.
+
+**Choosing the second judge.** Before the gold set grew, five models judged the same 38 band pairs three times each
+(through OpenRouter, the same prompt). The sample was too small to rank precision and recall, but two things held:
+
+| Second judge | Block decisions that changed between runs | Median seconds per pair |
+| --- | --- | --- |
+| Claude Sonnet 5.5 | 1 of 38 | 3 |
+| Claude Opus 5.5 | 2 of 38 | 7 |
+| Gemini 3.1 Pro (preview) | 4 of 38 | 12 |
+| GPT-5.5 | 5 of 38 | 8 |
+| Gemini 2.5 Pro | 12 of 38 | 17 |
+
+Sonnet 5.5 was the most consistent and the fastest; Gemini 2.5 Pro was the least consistent and the least precise.
+
+## Thresholds with a second judge
+
+When a stronger judge re-judges the uncertain band, the threshold that fails a pull request can come down. Claude
+Sonnet 5.5 judged all 250 gold pairs twice through the API (7 of 250 block decisions changed between the runs);
+the table combines its answers with Jev's on Jev scores in the band, with 90% intervals:
+
+| Judging | Fails at | Precision | Recall | Second-judge calls per pull request |
+| --- | --- | --- | --- | --- |
+| Jev alone | 0.8 | 94% (91–98) | 73% (68–79) | 0 |
+| Jev, then Sonnet on [0.5, 0.91) | 0.6 | 94% (89–98) | 88% (82–94) | 1.1 |
+| **Jev, then Sonnet on [0.5, 0.91)** (`jev+sonnet`) | **0.7** | **97% (94–99)** | **84% (77–91)** | **1.1** |
+| Jev, then Sonnet on [0.5, 0.91) | 0.8 | 98% (96–100) | 77% (70–84) | 1.1 |
+| Jev, then Sonnet on [0.3, 0.91) | 0.7 | 97% (94–99) | 84% (77–91) | 1.7 |
+| Sonnet alone (`sonnet`) | 0.7 | 97% (94–99) | 84% (77–91) | 3.4 |
+| Jev, then `codex` (ChatGPT subscription) on [0.5, 0.91) (`jev+codex`) | 0.7 | 96% (93–99) | 85% (79–91) | 1.1 |
+
+Escalating below 0.5 found nothing more; failing at 0.7 rather than 0.8 trades a point of precision for seven of
+recall. `codex` used the account's default model, its scores barely moved between 0.6 and 0.8, and it agreed with
+Sonnet on 138 of the 158 band pairs. Live `dry-lint bench` runs of the shipped `jev+sonnet` preset gave 96–98%
+precision and 85% recall at 0.7 (two runs).
+
+**Cost, measured.** A Sonnet 5.5 call on a gigaverse-ai pair used 959 input tokens and about 126 output tokens
+(thinking included; p90 150), 2.8 characters per token: about $0.0032 at $2 and $10 per million. With 3.35
+candidate pairs per pull request and a third of them in the band, `jev+sonnet` costs about $0.004 per pull request
+(Jev's share is about $0.0001), and the largest pull request in the sample (103 candidates) about $0.12. A Sonnet
+call took a median of 2.1 s through the API; a `codex` call took 14 s.
+
+## Earlier gold set (superseded)
+
+The first gold set had 96 pairs from the 120 most recent pull requests, with 23 duplicates. It put Jev at 75%
+precision and 59% recall at 0.8, and suggested `fail_at` 0.91. With so few duplicates and heavy stratum weights,
+one pair in a low band moved recall by 8 points: those figures were mostly noise, and the 250-pair set replaces
+them. The lesson is built into `bench`: every figure now comes with its interval.
 
 ## Known duplicates (seeds)
 

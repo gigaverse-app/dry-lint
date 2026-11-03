@@ -87,10 +87,11 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                   "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"), "RUNNER_TEMP": str(tmp_path / "runner"),
                   "INPUT_COMMENT": "true", "INPUT_CHECK_RUN": "true", "INPUT_WORKING_DIRECTORY": str(tmp_path)}
         values.update({f"INPUT_{k.upper()}": v for k, v in inputs.items() if k != "key"})
+        # Hermetic: a developer's or Claude Code's own keys must never reach a judge from a test.
+        for name_ in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"):
+            monkeypatch.delenv(name_, raising=False)
         if "key" in inputs:
             values["TYPESAFE_AI_API_KEY"] = inputs["key"]
-        else:
-            monkeypatch.delenv("TYPESAFE_AI_API_KEY", raising=False)
         for name_, value in values.items():
             monkeypatch.setenv(name_, value)
         return tmp_path
@@ -102,15 +103,20 @@ def outputs(tmp_path: Path) -> dict[str, str]:
     return dict(line.split("=", 1) for line in (tmp_path / "output").read_text().splitlines())
 
 
-def cli_writes_comment(tmp_path: Path, findings: list[str], code: int = 0, run: dict | None = None):
-    """A stand-in for the dry-lint CLI that leaves the files the real one writes."""
+def cli_writes_comment(tmp_path: Path, findings: list[str], code: int = 0, run: dict | None = None,
+                       judge: str | None = "test-judge"):
+    """
+    A stand-in for the dry-lint CLI: judging leaves the files the real one writes (report.json names the judge,
+    or null when nothing was judged), and `report --format github` renders the findings as annotations.
+    """
 
     def fake(*args: str, echo: bool = True):
         work = tmp_path / "runner" / "dry-lint"
+        if args[0] == "report":
+            return code, findings
         (work / "comment.md").write_text("<!-- dry-lint -->\n### dry-lint\n")
-        if run is not None:
-            (work / "report.json").write_text(json.dumps({"run": run}))
-        return code, findings
+        (work / "report.json").write_text(json.dumps({"run": run or {}, "judge": judge}))
+        return code, [f"dry-lint: {len(findings)} finding(s)"]
 
     return fake
 
@@ -120,9 +126,11 @@ def test_single_mode_comments_and_reports_without_failing_by_default(github_env,
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [ANNOTATION])) as cli, \
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[0] == "check" and args[args.index("--base") + 1] == BASE and args[args.index("--judge") + 1] == "jev"
-    assert args[args.index("--format") + 1] == "github"
+    assert args[args.index("--format") + 1] == "text"
+    rendered = cli.call_args_list[1].args
+    assert rendered[0] == "report" and rendered[rendered.index("--format") + 1] == "github"
     posted = post.call_args.args[0]
     assert posted[posted.index("--pull-request") + 1] == "7" and posted[posted.index("--findings") + 1] == "1"
     assert "--expect-head" not in posted and posted[posted.index("--run-url") + 1].endswith("/acme/shop/actions/runs/55")
@@ -191,7 +199,7 @@ def test_without_a_judge_nothing_is_annotated_commented_or_failed(github_env, tm
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
             patch.object(sticky, "main") as post:
         assert action.main(["run"]) == 0
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[args.index("--judge") + 1] == "none" and args[args.index("--format") + 1] == "text"
     post.assert_not_called()
     assert "Set typesafe-api-key" in capsys.readouterr().out
@@ -219,7 +227,7 @@ def test_a_fork_pull_request_only_proposes_candidates(github_env, tmp_path, caps
     github_env("pull_request", pull_request(fork=True), key="leaked?")
     with patch.object(action, "dry_lint", return_value=(0, [])) as cli, patch.object(sticky, "main") as post:
         assert action.main(["run"]) == 0
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[0] == "detect" and Path(args[args.index("--out") + 1]).parts[-2:] == ("dry-lint", "candidates.json")
     assert "--judge" not in args
     post.assert_not_called()
@@ -361,6 +369,29 @@ def test_without_a_judge_the_real_cli_lists_look_alikes_and_comments_nothing(rep
     assert github.stickies() == [] and github.writes == []
 
 
+@pytest.mark.parametrize("mode", ["single", "detect"])
+def test_workspace_action_keeps_primary_annotations_and_peer_links(repo, github_env, tmp_path, twin_judge, mode):
+    from conftest import EXISTING
+    peer = Repo(tmp_path / "peer checkout")
+    peer.write("src/shared.py", EXISTING)
+    peer.commit()
+    repo.write(".dry-lint.toml", '[[consolidation]]\nrepository = "acme/common"\npath = "src"\n')
+    repo.commit()
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), mode=mode, judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), warn_only="true",
+               repositories=f"acme/shop={repo.root}\n\nacme/common={peer.root}\n")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    folder = tmp_path / "runner" / "dry-lint"
+    data = json.loads((folder / ("report.json" if mode == "single" else "candidates.json")).read_text())
+    pairs = [finding["candidate"] for finding in data["findings"]] if mode == "single" else data["candidates"]
+    assert pairs and all(pair["new"]["origin"]["repository"] == "acme/shop" for pair in pairs)
+    assert all(pair["existing"]["origin"]["repository"] == "acme/common" for pair in pairs)
+    if mode == "single":
+        [body] = github.stickies()
+        assert "/acme/common/blob/" in body and "acme/common/src" in body
+
+
 def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, github_env, tmp_path, twin_judge) -> None:
     head = repo.git("rev-parse", "HEAD").strip()
     github_env("pull_request", pr_event(repo, fork=True), working_directory=str(repo.root))
@@ -400,7 +431,7 @@ def test_a_check_run_the_token_may_not_post_is_a_warning(repo, github_env, tmp_p
     report, head = judged_report(tmp_path, repo, twin_judge, github_env)
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, judge="command",
                judge_command=twin_judge, working_directory=str(repo.root), comment="false", check_run="false")
-    assert action.main(["run"]) == 1
+    assert action.main(["run"], transport=httpx.MockTransport(FakeGitHub(head=head))) == 1
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, check_run="true")
     transport = httpx.MockTransport(lambda request: httpx.Response(status, json={}))
     assert action.check_run(repo.root, "acme/shop", report, transport) == outcome
@@ -411,7 +442,7 @@ def test_check_run_errors_other_than_permissions_are_raised(repo, github_env, tm
     report, head = judged_report(tmp_path, repo, twin_judge, github_env)
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, judge="command",
                judge_command=twin_judge, working_directory=str(repo.root), comment="false", check_run="false")
-    action.main(["run"])
+    action.main(["run"], transport=httpx.MockTransport(FakeGitHub(head=head)))
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, check_run="true")
     with pytest.raises(httpx.HTTPStatusError):
         action.check_run(repo.root, "acme/shop", report, httpx.MockTransport(lambda request: httpx.Response(500)))
@@ -443,7 +474,7 @@ def judge_run(tmp_path: Path, lines: list[str], code: int):
     judged = cli_writes_comment(tmp_path, lines, code=code, run={"pull_request": PR_NUMBER, "head": HEAD})
 
     def fake(*args: str, echo: bool = True):
-        if args[0] == "report":
+        if args[0] == "report" and "check-run" in args:
             return 1, [json.dumps({"name": "dry-lint", "head_sha": HEAD, "conclusion": "neutral"})]
         return judged(*args)
 
@@ -513,7 +544,14 @@ def test_an_inline_ignore_settles_the_pair_before_any_judge_call(repo: Repo, git
     github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
                working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
-    assert github.stickies() == [] and judge_calls(tmp_path) == 0
+    [body] = github.stickies()
+    assert "✨ No duplicated concepts" in body and "| Settled by a rule | 1 |" in body and judge_calls(tmp_path) == 0
+
+    quiet = FakeGitHub(head=github.head)
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
+               working_directory=str(repo.root), comment_on_clean="false")
+    assert action.main(["run"], transport=httpx.MockTransport(quiet)) == 0
+    assert quiet.stickies() == []
 
 
 def test_the_fail_at_input_raises_the_bar_so_lower_findings_only_warn(repo: Repo, github_env, tmp_path,
@@ -533,5 +571,22 @@ def test_the_fail_at_input_reaches_every_dry_lint_command(github_env, tmp_path) 
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
             patch.object(sticky, "main", return_value=0):
         action.main(["run"])
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[args.index("--fail-at") + 1] == "0.95"
+
+
+def test_settings_that_turn_judging_off_keep_the_action_quiet_even_with_keys(github_env, tmp_path, capsys) -> None:
+    github_env("pull_request", pull_request(), key="secret")
+    unjudged = cli_writes_comment(tmp_path, [ANNOTATION], code=0, judge=None)
+    with patch.object(action, "dry_lint", side_effect=unjudged) as cli, patch.object(sticky, "main") as post:
+        assert action.main(["run"]) == 0
+    assert [c.args[0] for c in cli.call_args_list] == ["check"]  # no annotations rendered
+    post.assert_not_called()
+    assert "listed unjudged" in capsys.readouterr().out
+    assert outputs(tmp_path)["findings"] == "0"
+
+
+def test_an_unreadable_report_counts_as_unjudged(tmp_path: Path) -> None:
+    assert action.judged(tmp_path / "missing.json") is False
+    (tmp_path / "bad.json").write_text("{")
+    assert action.judged(tmp_path / "bad.json") is False

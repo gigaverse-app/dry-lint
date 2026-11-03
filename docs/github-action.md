@@ -24,7 +24,9 @@ That is the whole setup for a repository whose pull requests come from its own b
     the full path on hover, GitHub Enterprise included) and the verdict with the judge's fix.
   - Fold-outs hold each judge reason with a copy-paste `distinct-from` line, and every scope of override.
   - A `dry-lint scan` report reads as an audit of existing code that never blocks, not as a pull request review.
-  - A clean pull request gets no comment.
+  - A clean pull request gets a green report of what was checked: changed functions, how many they were
+    compared with, look-alike pairs, what the judge cleared and the closest call. Opt out with
+    `comment-on-clean: "false"`.
   - When findings are fixed, the comment says so instead of going stale.
   - Copies left by two runs racing are deleted.
   - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never
@@ -59,22 +61,17 @@ action input (or `--fail-at` on the command line) overrides `fail_at` for one wo
 | `report_at` up to `fail_at` | warning annotation, listed in the comment | green |
 | `fail_at` and above | error annotation, listed first as **blocking** | **red** |
 
-By default `fail_at` is 0.8, the same as `report_at`, so **every reported duplicate fails the check**. On the gold
-set (the shipped `reuse-v2` prompt) that is 75% precision and 59% recall. A quarter of red checks will be false
-positives, which is what the overrides below are for.
+The thresholds come from the judging preset, which the keys you pass choose ([judges](judges.md)):
 
-To fail only on near-certain duplicates, set `fail-at: "0.91"`:
+| Keys passed | Preset | Fails at | Precision / recall | Red pull requests |
+| --- | --- | --- | --- | --- |
+| `typesafe-api-key` + `anthropic-api-key` | `jev+sonnet` | 0.7 (warns from 0.6) | 97% / 84% | |
+| `typesafe-api-key` only | `jev` | 0.8 | 94% / 73% | 15% of 600 |
 
-| `fail_at` | Precision | Recall | Red pull requests |
-| --- | --- | --- | --- |
-| 0.80 (default) | 75% | 59% | about 1 in 6 |
-| 0.85 | 78% | 44% | |
-| 0.88 | 90% | 32% | |
-| 0.91 | 100% | 21% | about 1 in 20 |
-
-At 0.91, the highest-scoring false positive was 0.892 and the lowest true duplicate above it was 0.910, so
-nothing is lost against 0.90 and the margin is wider. Findings between 0.8 and 0.91 then only warn
-([benchmark](benchmark.md)). `warn-only` never fails.
+A red check is a real duplicate about 33 times in 34 with `jev+sonnet`, 17 in 18 with `jev`; the overrides below
+handle the rest. To fail only on near-certain duplicates, raise `fail-at` (with `jev`, 0.9 is 100% precise and
+45% recall); findings between `report_at` and `fail-at` then only warn ([benchmark](benchmark.md)). `warn-only`
+never fails.
 
 **When dry-lint is wrong**, record the decision where it belongs:
 
@@ -121,10 +118,12 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `mode` | `auto` | See above. |
 | `base` | the PR's base commit, or the previous push, or the default branch | What to compare with. |
 | `working-directory` | `.` | The repository, or the package within a monorepo. |
+| `repositories` | | One `OWNER/NAME=PATH` per line, including the primary checkout. Enables changed-function checks against committed peers in `single`/`detect` mode. Checkout and credentials remain the workflow's responsibility. See [workspaces](workspaces.md). |
 | `comment` | `true` | Keep the sticky comment. |
+| `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
 | `sticky-key` | | One comment per key, when several dry-lint steps report on one pull request. |
-| `fail-at` | `fail_at` from `[tool.dry-lint]` (0.8) | Judge score at or above which a duplicate fails the check; `0.91` fails only near-certain ones. |
+| `fail-at` | the preset's (0.7 with `jev+sonnet`, 0.8 with `jev`) | Judge score at or above which a duplicate fails the check. |
 | `warn-only` | `false` | Never fail; blocking findings are reported like the rest. |
 | `override-label` | `dry-lint: override` | The pull request label that lets blocking findings through. |
 | `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read` and `checks: write`. |
@@ -139,6 +138,8 @@ and the command line all agree ([README](../README.md#settings)).
 ## Verdict cache
 
 Verdicts are kept in the Actions cache:
+- Caches are partitioned by job and `sticky-key`, so concurrent local and cross-repository jobs do not race to
+  save different verdict sets under the same key. Use a distinct `sticky-key` for multiple steps in one job.
 - A pull request's run restores the newest verdicts it can see, so a later push only judges pairs whose logic
   changed.
 - Runs on the default branch, that is pushes to `main` and judge-mode runs, save their verdicts where every pull
