@@ -224,6 +224,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     # judge, dry-lint exits 1 when a finding blocks (at or above fail_at); the action decides what that means.
     judging = ["--judge", judge, "--store", str(store), "--report", str(report), "--output", str(body), *fail_at()]
     judging += ["--format", "text", "--warn-only"] if judge == "none" else ["--format", "github"]
+    if flag("INPUT_WARN_ONLY"):
+        judging.append("--warn-only")
     if env("INPUT_JUDGE_COMMAND"):
         judging += ["--judge-command", env("INPUT_JUDGE_COMMAND")]
 

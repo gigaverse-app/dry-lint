@@ -66,8 +66,12 @@ class Finding(BaseModel):
         parts.append(f"similarity {self.candidate.similarity:.2f}")
         if self.family > 1:
             parts.append(f"{self.family} look-alikes")
-        parts.append(f"if they are different concepts, add `# dry-lint: distinct-from {self.candidate.existing.qualname}`")
+        parts.append(f"if they are different concepts, add `{self.suppression()}`")
         return "; ".join(parts)
+
+    def suppression(self) -> str:
+        prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
+        return f"{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}"
 
 
 class Report(Versioned):
@@ -103,6 +107,9 @@ class Report(Versioned):
         """Unjudged candidates, and judged pairs at or above the report threshold."""
         return [f for f in self.findings if f.verdict is None or f.reported]
 
+    def as_warnings(self) -> "Report":
+        return self.model_copy(update={"findings": [f.model_copy(update={"blocking": False}) for f in self.findings]})
+
     @property
     def stats(self) -> dict[str, int]:
         judged = [f for f in self.findings if f.verdict is not None]
@@ -127,7 +134,8 @@ def level(finding: Finding) -> str:
 OVERRIDES = (
     "False positive? Add `# dry-lint: distinct-from <qualified name>` to the new function (this pair), "
     "`# dry-lint: ignore` to a function (that function), a `patterns` entry under `[tool.dry-lint]` (a family), "
-    "or the `dry-lint: override` label to the pull request (this pull request only)."
+    "or the `dry-lint: override` label to the pull request (this pull request only). "
+    "For TypeScript/TSX, use `//` instead of `#`; configuration can also live in `.dry-lint.toml`."
 )
 
 
@@ -145,9 +153,9 @@ def as_github(report: Report) -> str:
     return "\n".join(lines)
 
 
-def source_link(function: Function, run: Run) -> str:
+def function_link(function: Function, run: Run) -> str:
     """Link to the measured revision, not a moving branch; local reports keep the full location."""
-    if not run.repository or not run.head:
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", run.repository) or not re.fullmatch(r"[a-fA-F0-9]{40}", run.head):
         return escaped(function.qualname)
     server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
     url = (f"{server}/{quote(run.repository, safe='/')}/blob/{quote(run.head, safe='')}/"
@@ -166,7 +174,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
     shown = report.visible
     if not shown:
         return f"{MARKER}\n### dry-lint · No findings reported\n\nNo pairs reached the report threshold.\n\n{coverage}"
-    rows = ["| Changed function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
+    rows = ["| Function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
     evidence = ["<details><summary>Evidence and next steps</summary>", ""]
     for f in shown[:max_findings]:
         if f.verdict:
@@ -176,8 +184,8 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
             verdict, suggestion = f"similarity {f.candidate.similarity:.2f}", "not judged"
         if f.family > 1:
             suggestion += f" ({f.family} look-alikes)"
-        rows.append(f"| {source_link(f.candidate.new, report.run)} | "
-                    f"{source_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
+        rows.append(f"| {function_link(f.candidate.new, report.run)} | "
+                    f"{function_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
         evidence.extend([
             f"**{escaped(f.candidate.new.qualname)}** → **{escaped(f.candidate.existing.qualname)}**", "",
             (f"Judge score: **{f.verdict.score:.2f}** · " if f.verdict else "Not judged · ")
@@ -186,10 +194,10 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
             *(["These functions already behave differently; check callers before consolidating.", ""]
               if f.verdict and f.verdict.label == "drifted" else []),
             "If they represent different concepts, add this pair-specific decision inside the changed function:", "",
-            escaped(f"# dry-lint: distinct-from {f.candidate.existing.qualname}"), "",
+            escaped(f.suppression()), "",
         ])
     evidence.append("</details>")
-    more = ["", f"And {len(shown) - max_findings} more; run `dry-lint check` to see them all."] \
+    more = ["", f"And {len(shown) - max_findings} more; see the full report in the run output."] \
         if len(shown) > max_findings else []
     skipped = [f"<details><summary>Not reported ({len(report.filtered)} settled by a rule)</summary>", "",
                *(f"- `{c.new.qualname}` ~ `{c.existing.qualname}`: {escaped(c.filtered or '')}" for c in report.filtered),
@@ -197,10 +205,10 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
     blocking = sum(f.blocking for f in shown)
     verdict_line = [f"**{blocking} at the blocking threshold** (`fail_at`).", ""] \
         if blocking else []
-    functions = len({f.candidate.new.qualname for f in shown})
+    functions = len({side.qualname for f in shown for side in (f.candidate.new, f.candidate.existing)})
     return "\n".join([
         MARKER, "### dry-lint · Review findings", "",
-        f"**{len(shown)} finding{'s' if len(shown) != 1 else ''} across {functions} changed "
+        f"**{len(shown)} finding{'s' if len(shown) != 1 else ''} across {functions} "
         f"function{'s' if functions != 1 else ''}**. Reuse the existing owner or share the common behavior.",
         "", *verdict_line, coverage, "", *rows, *more, "", *evidence, "",
         "<details><summary>False positive? Choose the scope of your decision</summary>", "", OVERRIDES, "", "</details>",
@@ -247,6 +255,8 @@ def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False
     The body for `POST /repos/{owner}/{repo}/check-runs`: a failure only for a blocking finding (and not
     `warn_only`), neutral for findings that only warn, success otherwise.
     """
+    if warn_only:
+        report = report.as_warnings()
     reported = [f for f in report.findings if f.reported]
     failed = any(f.blocking for f in reported) and not warn_only
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
@@ -264,8 +274,10 @@ FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
 
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
-    if form == "markdown":
-        return as_markdown(report, settings.max_findings)
     if form == "check-run":
         return as_check_run(report, settings.max_findings, warn_only)
+    if warn_only and form != "json":
+        report = report.as_warnings()
+    if form == "markdown":
+        return as_markdown(report, settings.max_findings)
     return {"text": as_text, "github": as_github, "json": as_json, "sarif": as_sarif}[form](report)

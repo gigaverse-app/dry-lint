@@ -37,7 +37,7 @@ from dry_lint.judges import make_judge
 from dry_lint.judging import Judging, open_store
 from dry_lint.models import Candidate, CandidatesFile, Run
 from dry_lint.plugins import load
-from dry_lint.report import FORMATS, Report, as_json, as_markdown, render
+from dry_lint.report import FORMATS, Report, as_json, render
 from dry_lint.settings import PluginChoice, Settings
 
 
@@ -82,7 +82,7 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
     if output:
         print(output)
     if args.output:
-        args.output.write_text(as_markdown(report, settings.max_findings) + "\n")
+        args.output.write_text(render(report, "markdown", settings, args.warn_only) + "\n")
     if args.report:
         args.report.write_text(as_json(report) + "\n")
     return 1 if any(f.blocking for f in report.findings) and not args.warn_only else 0

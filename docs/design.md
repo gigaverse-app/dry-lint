@@ -6,7 +6,7 @@ verdicts are kept are plugins ([plugins.md](plugins.md)).
 
 | Concern | Core, fixed | Plugin, chosen in settings |
 | --- | --- | --- |
-| Finding functions | Which functions a change touched, from the git diff; qualified names | **Extractor**, one per language: splits files into functions, hashes their structure. `python` is built in |
+| Finding functions | Which functions a change touched, from the git diff; qualified names | **Extractor**, one per language: splits files into functions, hashes their structure. `python` and `typescript` are built in |
 | Proposing look-alikes | The nearest few per changed function, in other files; the rules that settle a pair | **Comparer**: indexes every function, returns nearest neighbours with a 0–1 similarity. `tfidf` is built in |
 | Judging a pair | Which pairs need an answer; the thresholds; escalation | **Judge**: answers whether a pair is one concept. `jev` and `command` are built in |
 | Remembering | The verdict record, its key and when it is reused | **Store backend**: get and put a record by key. `dir` and `s3` are built in |
@@ -18,7 +18,8 @@ verdicts are kept are plugins ([plugins.md](plugins.md)).
 Every run goes through the same six steps, whatever plugins it uses:
 
 1. **Extract.** The extractors turn every tracked file under `include`, and not under `exclude`, into functions:
-   each a qualified name (`path::Class.name`), a line range and its code. A file goes to the first extractor whose
+   each a qualified name (`path::Class.name`), a line range and its code. Python and TypeScript/TSX are enabled
+   by default ([TypeScript behavior and hash guarantees](typescript.md)). A file goes to the first extractor whose
    globs match it. The Python extractor leaves out declaration-only stubs (docstrings, `pass`, `...`, and a bare
    or argument-free `raise NotImplementedError`), so they do not use up neighbour or judge slots; abstract methods
    with an implementation, other exceptions, and methods that do work before raising stay in.
@@ -26,7 +27,7 @@ Every run goes through the same six steps, whatever plugins it uses:
    base defaults to the remote's default branch (`origin/HEAD`), and an all-zero base, a branch's first push,
    falls back to it. Only changed functions are queried, so nothing that already existed is shown on a PR.
 3. **Propose.** The comparer indexes every function and returns each changed one's `neighbours` (3) nearest in
-   other files, above its own floor. Functions in the same file are excluded before the list is cut, so a file
+   other files handled by the same extractor, above its own floor. Functions in the same file are excluded before the list is cut, so a file
    full of similar methods cannot crowd out neighbours elsewhere.
 4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other (call names come
    from the extractor's syntax tree, never from declarations, comments or strings; receivers and imports are not

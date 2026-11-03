@@ -22,6 +22,7 @@ from dry_lint.settings import Settings
 from conftest import function
 
 SETTINGS = Settings(fail_at=0.91)  # raised above report_at, so there is a band that only warns
+HEAD = "a" * 40
 NEW = function("src/widgets/caption.py", "def clip(text, n):\n    return text[:n]\n")
 
 
@@ -37,7 +38,7 @@ def finding(label: str | None, score: float = 0.9, owner: str = "existing", why:
 
 
 def report(*findings: Finding, filtered: list[Candidate] = (), judge: str | None = "jev:v") -> Report:
-    return Report.build(list(findings), SETTINGS, filtered=filtered, run=Run(repository="o/r", pull_request=5, head="abc"),
+    return Report.build(list(findings), SETTINGS, filtered=filtered, run=Run(repository="o/r", pull_request=5, head=HEAD),
                         changed=2, judge=judge)
 
 
@@ -103,11 +104,11 @@ def test_github_annotations_escape_percent_signs_and_judge_text_is_one_line() ->
 def test_markdown_comment_lists_findings_under_a_stable_marker() -> None:
     body = as_markdown(report(finding("duplicate", 0.88, "existing", "same truncation"), finding(None, existing="other")))
     assert body.startswith(MARKER)
-    assert "[clip](https://github.com/o/r/blob/abc/src/widgets/caption.py#L1-L2)" in body
-    assert "[shorten](https://github.com/o/r/blob/abc/src/text.py#L1-L2)" in body
+    assert f"[clip](https://github.com/o/r/blob/{HEAD}/src/widgets/caption.py#L1-L2)" in body
+    assert f"[shorten](https://github.com/o/r/blob/{HEAD}/src/text.py#L1-L2)" in body
     assert "**duplicate** 0.88 | call the existing function; same truncation (2 look-alikes) |" in body
     assert "| similarity 0.71 | not judged (2 look-alikes) |" in body
-    assert "2 findings across 1 changed function" in body
+    assert "2 findings across 3 functions" in body
     assert "<summary>Evidence and next steps</summary>" in body
     assert "# dry-lint: distinct-from src/text.py::shorten" in body
 
@@ -160,7 +161,7 @@ def test_source_links_pin_the_commit_escape_paths_and_support_enterprise(monkeyp
     built = report(finding("duplicate")).model_copy(deep=True)
     built.findings[0].candidate.new.path = "src/a [draft](1).py"
     body = as_markdown(built)
-    assert "https://git.example.com/o/r/blob/abc/src/a%20%5Bdraft%5D%281%29.py#L1-L2" in body
+    assert f"https://git.example.com/o/r/blob/{HEAD}/src/a%20%5Bdraft%5D%281%29.py#L1-L2" in body
     built.run = Run()
     body = as_markdown(built)
     assert "/blob/" not in body and "src/a \\[draft\\]\\(1\\).py::clip" in body
@@ -194,10 +195,14 @@ def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_r
 def test_the_check_run_fails_only_for_blocking_findings_unless_warn_only() -> None:
     blocking = report(finding("drifted", 0.93, existing="a"), finding("duplicate", 0.85, existing="b"))
     body = json.loads(as_check_run(blocking))
-    assert (body["name"], body["head_sha"], body["status"], body["conclusion"]) == ("dry-lint", "abc", "completed", "failure")
+    assert (body["name"], body["head_sha"], body["status"], body["conclusion"]) == ("dry-lint", HEAD, "completed", "failure")
     assert body["output"]["title"] == "2 duplicated concept(s)" and body["output"]["summary"].startswith(MARKER)
     assert [a["annotation_level"] for a in body["output"]["annotations"]] == ["failure", "warning"]
-    assert json.loads(as_check_run(blocking, warn_only=True))["conclusion"] == "neutral"
+    warnings = json.loads(as_check_run(blocking, warn_only=True))
+    assert warnings["conclusion"] == "neutral"
+    assert [a["annotation_level"] for a in warnings["output"]["annotations"]] == ["warning", "warning"]
+    assert "blocking" not in warnings["output"]["summary"]
+    assert blocking.findings[0].blocking
     assert json.loads(as_check_run(report(finding("duplicate", 0.85))))["conclusion"] == "neutral"
     clean = json.loads(as_check_run(report(finding("separate"))))
     assert (clean["conclusion"], clean["output"]["title"], clean["output"]["annotations"]) == ("success", "No duplicated concepts", [])

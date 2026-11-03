@@ -254,7 +254,7 @@ def repository_functions(root: Path, include: list[str], exclude: list[str], ext
         if extractor is None:
             continue
         try:
-            found += extractor.functions(path, (root / path).read_text())
+            found += extractor.functions(path, (root / path).read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError):
             continue
     return found

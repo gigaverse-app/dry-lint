@@ -43,10 +43,14 @@ See [docs/design.md](docs/design.md) and [docs/plugins.md](docs/plugins.md).
    Any LLM CLI, or any program, can be the judge instead, and a second judge can take the scores the first is
    least sure about.
 3. **Verdict store** (a cache, not a reviewed file). Each verdict is kept per pair with a *structure hash* of each
-   function, which comments, formatting and renames do not change. A pair is judged again only when its logic
-   changes, so most pushes cost zero judge calls.
+   function, which comments and formatting do not change. Python also normalizes local renames; TypeScript
+   conservatively re-judges them to preserve binding semantics. Most cosmetic pushes cost zero judge calls.
 
 ## Quick start
+
+Python, TypeScript, and TSX are supported out of the box. TypeScript repositories do not need a Python
+project, `bun install`, Node, or a build step. The GitHub Action installs its own tools and parses source
+without executing your code. See [TypeScript and Bun](docs/typescript.md) for monorepo configuration.
 
 Start with a local candidate pass, then add a judge when you want duplication decisions and failing checks:
 
@@ -150,7 +154,7 @@ measured thresholds above:
 | `fail_at` | 0.8 | judged duplicates at or above this fail the run (`--fail-at` overrides it); raise it above `report_at` to make the band between them warn only |
 | `reopen_margin` | 0.05 | how much closer a "separate" pair must get before it is judged again |
 | `max_findings` | 10 | rows in the PR comment |
-| `extractors` | `["python"]` | one per language |
+| `extractors` | `["python", "typescript"]` | `.py`, `.ts`, `.tsx`, `.mts`, `.cts` |
 | `comparer` | `"tfidf"` | options `min_similarity` (0.5), `min_similarity_small` (0.3) under `small_function_lines` (6) |
 | `judge` / `escalate` | `"auto"` / none | `escalate = { use = "command", command = "...", between = [0.6, 0.8] }` |
 | `store` | `"dir"` | `.git/dry-lint/verdicts/`, or `{ use = "s3", uri = "s3://bucket/prefix" }` |

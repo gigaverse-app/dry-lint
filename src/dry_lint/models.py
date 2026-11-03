@@ -34,7 +34,7 @@ class Function(BaseModel):
     line: int
     end_line: int
     code: str
-    hash: str = Field(default="", description="Changes when the logic changes; not for comments, formatting or renames.")
+    hash: str = Field(default="", description="Changes with runtime logic; the language extractor normalizes safe cosmetic edits.")
     tokens: list[str] = Field(default_factory=list, exclude=True,
                               description="Behaviour tokens, for comparers that use them. Not written to files.")
     calls: list[str] | None = Field(default=None, exclude=True,

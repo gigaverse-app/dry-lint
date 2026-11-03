@@ -74,6 +74,7 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(rep
                "--output", str(comment), "--report", str(report))
     assert code == 0
     assert comment.read_text().startswith("<!-- dry-lint -->") and escaped(TWIN) in comment.read_text()
+    assert "blocking" not in comment.read_text()
     written = json.loads(report.read_text())
     assert written["schema"] == 2 and any(f["reported"] for f in written["findings"])
 
