@@ -7,7 +7,8 @@ The ledger: what dry-lint has cost and caught, across a pull request's pushes an
 - **A duplicate is kept out of the codebase** when a push reported it and a later push no longer does, without a
   person's decision (`distinct-from`, `ignore`, a pattern) settling it. A pair left unjudged is still open, and so
   is one whose scope (the local check, or the check against peer repositories) did not report on that push: a
-  check that did not run cannot say the duplicate is gone.
+  check that did not run cannot say the duplicate is gone. A pair from an older ledger, which never recorded its
+  scope, stays open until a push reports it again (and so names its scope) or a person settles it.
 - **A repository's ledger** is folded on the default branch: each push there adds its own run, and the final ledger
   of every pull request merged since, once. It lives beside the verdicts in the Actions cache, where every pull
   request can read it, and says since when it counts: losing the cache starts it again, never invents figures.
@@ -142,11 +143,11 @@ class PullLedger(Versioned):
             pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
             pair.state, pair.settled, pair.scope = "open", None, scope
         for key, pair in ledger.pairs.items():
-            if key in reported or key in unjudged or (pair.scope is not None and pair.scope not in completed):
+            if key in reported or key in unjudged:
                 continue
             if key in settled_by_rule and pair.state != "dismissed":  # a person's decision, even after the fact
                 pair.state, pair.settled = "dismissed", ledger.pushed
-            elif pair.state == "open":
+            elif pair.state == "open" and pair.scope in completed:  # absent only from a check that ran
                 pair.state, pair.settled = "kept-out", ledger.pushed
         return ledger
 

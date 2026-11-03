@@ -62,10 +62,20 @@ def test_functions_that_both_call_a_builtin_method_are_judged_not_taken_as_deleg
     [normalize] = extractor.functions("src/b.ts", "export function normalize(value: string) {\n  return value.trim().toLowerCase();\n}")
     assert trim.calls == normalize.calls == []
     assert why_skipped(trim, normalize, Settings()) is None
-    [wrapper] = extractor.functions("src/c.ts", "export function clean(value: string) {\n  return trim(value);\n}")
-    assert why_skipped(wrapper, trim, Settings()) == "one calls the other"
     [method] = extractor.functions("src/d.ts", "class Text {\n  clean(value: string) {\n    return this.trim(value);\n  }\n}")
     assert method.calls == ["this.trim"]
+
+
+def test_an_imported_function_of_the_same_name_is_judged_not_taken_as_delegation(extractor):
+    """INVARIANT: a bare call is not resolved to a symbol, so calling an imported `normalize` proves nothing."""
+    [normalize] = extractor.functions("src/a.ts", "export function normalize(value: string) {\n  return value.trim().toLowerCase();\n}")
+    [clean] = extractor.functions("src/b.ts", 'import { normalize } from "third-party";\n'
+                                  "export function clean(value: string) {\n  return normalize(value).trim().toLowerCase();\n}")
+    assert clean.calls == ["normalize"]
+    assert why_skipped(clean, normalize, Settings()) is None
+    [shadowing] = extractor.functions("src/c.ts", "export function clean(value: string, normalize: (v: string) => string) {\n"
+                                      "  return normalize(value).trim();\n}")
+    assert why_skipped(shadowing, normalize, Settings()) is None
 
 
 def test_tsx_wrapped_components_keep_their_exported_identity(extractor):

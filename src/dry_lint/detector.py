@@ -89,14 +89,13 @@ def calls(function: Function) -> set[str]:
 
 def delegates(caller: Function, callee: Function) -> bool:
     """
-    Whether `caller` provably calls `callee`: a bare call of a module-level function, or a call through `self`,
-    `cls` or `this` of a method of the same class. A call on any other receiver proves nothing: `value.trim()` in
-    two functions named `trim` and `normalize` calls String.trim, not either of them.
+    Whether `caller` provably calls `callee`: a call through `self`, `cls` or `this` of a method of the same class in
+    the same file. Names are not resolved to symbols, so nothing else proves it: a bare `normalize(value)` may call an
+    imported `normalize` or a parameter of that name, and `value.trim()` calls String.trim. Those pairs go to the
+    judge, which reads the code.
     """
     called = calls(caller)
-    if callee.owner is None:
-        return callee.name in called
-    return (callee.owner == caller.owner and callee.path == caller.path
+    return (callee.owner is not None and callee.owner == caller.owner and callee.path == caller.path
             and any(f"{receiver}.{callee.name}" in called for receiver in ("self", "cls", "this")))
 
 
