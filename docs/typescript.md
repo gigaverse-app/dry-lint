@@ -45,6 +45,8 @@ max_findings = 8
 Patterns use Python `fnmatch`: `*` also matches directory separators. Both languages are enabled by default;
 set `extractors` explicitly to restrict a mixed repository. `.d.ts`, `.d.mts`, and `.d.cts` declarations are
 always skipped. Only git-tracked files are read.
+Candidates stay within the same extractor, so a mixed Python/TypeScript repository is not told to call a
+Python function from TypeScript. TS and TSX implementations can be compared with each other.
 
 For intentional families, add `[[patterns]]` entries to this file. For an individual pair, put a real
 TypeScript comment inside the function body:

@@ -163,3 +163,14 @@ def test_typescript_change_finds_existing_helper_without_python_configuration(tm
     suppressed = extractor.functions("src/preview.ts", pair.new.code.replace(
         "if (", "// dry-lint: distinct-from src/original.ts::shortenText\nif (", 1))[0]
     assert why_skipped(suppressed, pair.existing, Settings()) == "inline distinct-from"
+
+
+def test_mixed_language_repository_does_not_recommend_python_as_typescript_reuse(tmp_path):
+    repo = Repo(tmp_path / "mixed-project")
+    repo.write("web.ts", "export const trimInvoice = (invoice: string) => invoice.trim();")
+    repo.write("server.py", "def trimInvoice(invoice):\n    return invoice.trim()\n")
+    repo.commit()
+    settings = Settings(comparer={"use": "tfidf", "max_df": 1.0, "min_similarity_small": 0.0})
+    detector = Detector.for_repository(repo.root, settings)
+    assert len(detector.functions) == 2
+    assert detector.neighbours(detector.find("web.ts::trimInvoice")) == []
