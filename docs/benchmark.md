@@ -225,6 +225,24 @@ dry-lint bench --gold gold.jsonl --judge command --judge-command "claude -p"
 dry-lint bench --gold gold.jsonl --comparer            # is each duplicate's partner proposed, on today's code?
 ```
 
+Without a gold set, `dry-lint bench --replay N` shows what `check` would have done on each of the last N first-parent
+commits of the default branch, with this checkout's settings and preset: which commits would have failed or only
+warned, the findings, how many pairs were judged and the estimated cost. It replays oldest first in a temporary
+worktree, so your checkout is never touched, and it goes through the verdict store like `check`: running it again with
+another `--fail-at` or `report_at` judges nothing new, and later checks reuse its verdicts. The budget applies to the
+whole replay; raise it with `--budget-usd` for a long one.
+
+```bash
+dry-lint bench --replay 50                             # the configured preset on the last 50 commits
+dry-lint bench --replay 50 --fail-at 0.9               # the same verdicts, a stricter threshold: free
+dry-lint bench --replay 50 --preset jev --ref origin/release --format json --report replay.json
+```
+
+On gigaverse-backend, the last 30 commits with `jev+sonnet` took about 70 seconds and $0.18: 19 findings, 5 commits
+that would have failed. At `--fail-at 0.9` the same 19 findings fail 2 commits and warn on 3, with no new judge
+calls. The store keeps one verdict per pair, the latest, so a pair met again at a later commit reuses it whenever
+`check` would.
+
 ## Labelling guideline
 
 Use this to build a gold set for your own codebase:

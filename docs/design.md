@@ -11,7 +11,7 @@ verdicts are kept are plugins ([plugins.md](plugins.md)).
 | Judging a pair | Which pairs need an answer; the thresholds; escalation | **Judge**: answers whether a pair is one concept. `jev` and `command` are built in |
 | Remembering | The verdict record, its key and when it is reused | **Store backend**: get and put a record by key. `dir` and `s3` are built in |
 | Reporting | One report, rendered as text, annotations, a PR comment, JSON, SARIF and a check run | none |
-| Measuring | The gold-set format and `dry-lint bench` | none |
+| Measuring | The gold-set format, `dry-lint bench` and its replay of recent commits | none |
 
 ## Pipeline
 

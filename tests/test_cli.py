@@ -14,6 +14,7 @@ from dry_lint.models import CandidatesFile
 
 from conftest import EXISTING, Repo, judge_calls
 from conftest import TWIN as TWIN_SOURCE
+from conftest import run_cli as run
 
 TWIN = "src/widgets/caption.py::preview_caption_text"
 
@@ -23,10 +24,6 @@ def outside_actions(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY",
                  "CLAUDE_CODE_OAUTH_TOKEN"):
         monkeypatch.delenv(name, raising=False)
-
-
-def run(repo: Repo, tmp_path: Path, *args: str, command: str = "check") -> int:
-    return main([command, "--root", str(repo.root), "--store", str(tmp_path / "store"), *args])
 
 
 def test_check_fails_and_annotates_an_error_for_a_blocking_reimplementation(repo: Repo, tmp_path: Path,
