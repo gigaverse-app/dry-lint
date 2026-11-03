@@ -120,7 +120,9 @@ class JudgingSummary(BaseModel):
         calls = sum(s.calls for s in self.spend if s.subscription)
         parts = [f"preset {self.preset}" if self.preset else "", judges, thresholds, bill,
                  f"{calls} subscription calls" if calls else "",
-                 f"{self.skipped} pairs not judged (budget)" if self.skipped else ""]
+                 f"{self.skipped} pairs not judged (budget)" if self.skipped else "",
+                 *(f"{s.judge} failed ({s.error}): {s.failed} pairs kept the first judge's answer, asked again next run"
+                   for s in self.spend if s.error)]
         return " · ".join(p for p in parts if p)
 
 
@@ -428,7 +430,8 @@ def clean(report: Report, audit: bool, scope: list[str], judge: str, report_at: 
                 if report.functions else []), judge]
     title = "### dry-lint audit · ✨ No duplicated concepts in existing code" if audit else \
         "### dry-lint · ✨ No duplicated concepts"
-    return "\n".join([MARKER, CLEAN, title, "", " ".join(badges), "", NOTE_SLOT, "", lead, "", *rows])
+    judging = ["", f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else []
+    return "\n".join([MARKER, CLEAN, title, "", " ".join(badges), "", NOTE_SLOT, "", lead, "", *rows, *judging])
 
 
 def overrides(shown: list[Finding], audit: bool) -> list[str]:

@@ -141,6 +141,16 @@ def test_the_benchmark_measures_the_failing_threshold_and_the_cost_too() -> None
     assert "at fail_at" not in unpriced.as_text(Settings())
 
 
+def test_the_benchmark_refuses_to_measure_when_the_second_judge_fails() -> None:
+    class Broken(TableJudge):
+        def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
+            raise ValueError("OAuth session expired")
+
+    settings = Settings(escalate=Escalation(use="second", between=(0.5, 1.0)))
+    with pytest.raises(ValueError, match="failed, so nothing was measured: OAuth session expired"):
+        bench_judge([gold("a", "x", "duplicate")], TableJudge({"a": 0.7}), settings, PythonExtractor(), Broken({}))
+
+
 def test_subscription_calls_are_counted_and_priced_at_their_models_list_price() -> None:
     class Subscribed(TableJudge):
         subscription = True

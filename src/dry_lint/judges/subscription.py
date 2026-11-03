@@ -4,8 +4,10 @@ Judges that run on a subscription instead of an API key, through the vendor's ow
     escalate = "claude-code"                     # a Claude Pro, Max or Team subscription: `claude` CLI, logged in
     escalate = { use = "codex", model = "" }      # a ChatGPT subscription: `codex` CLI, logged in
 
-No per-token charge, so they cost nothing against `budget.usd`; subscriptions are rate-limited instead, so each
-run asks them at most `budget.subscription_calls` times. In CI, log the CLI in with a token:
+A call through a subscription uses the same model as the API, so it is counted against `budget.usd` at that model's
+list price; subscriptions are rate-limited too, so each run also asks them at most `budget.subscription_calls`
+times. If the CLI fails (an expired login, a limit reached), the pairs keep the first judge's answer and are asked
+again on the next run. In CI, log the CLI in with a token:
 `claude setup-token` makes a long-lived CLAUDE_CODE_OAUTH_TOKEN for the `claude-code` judge.
 """
 

@@ -1,0 +1,246 @@
+"""
+The ledger: what dry-lint has cost and caught, across a pull request's pushes and a repository's merged pull requests.
+
+- **A pull request's ledger travels in its sticky comment**, as one hidden `<!-- dry-lint-ledger {...} -->` line,
+  the way CI-esta carries its snapshot. It needs no cache, so losing one loses nothing. Each run adds its figures
+  once: runs are counted by id and attempt, so posting the same run again changes nothing.
+- **A duplicate is kept out of the codebase** when a push reported it and a later push no longer does, without a
+  person's decision (`distinct-from`, `ignore`, a pattern) settling it. A pair left unjudged is still open.
+- **A repository's ledger** is folded on the default branch: each push there adds its own run, and the final ledger
+  of every pull request merged since, once. It lives beside the verdicts in the Actions cache, where every pull
+  request can read it, and says since when it counts: losing the cache starts it again, never invents figures.
+"""
+
+import json
+import re
+from datetime import UTC, datetime
+from typing import Literal
+
+from pydantic import BaseModel, Field, ValidationError
+
+from dry_lint.models import Versioned
+from dry_lint.report import AMBER, BLUE, GRAY, GREEN, Report, badge, code, plural
+
+SNAPSHOT = re.compile(r"<!-- dry-lint-ledger (?P<ledger>\{.*?\}) -->")
+RECENT_RUNS = 20
+PUSHES_SHOWN = 30
+
+
+class Tally(BaseModel):
+    """Additive figures for one run, or the sum of many."""
+
+    runs: int = 0
+    functions: int = Field(default=0, description="Changed functions checked, summed over runs.")
+    codebase: int = Field(default=0, description="The most functions any run compared them with.")
+    pairs: int = Field(default=0, description="Look-alike pairs compared.")
+    judgments: int = Field(default=0, description="New verdicts: a judge was asked.")
+    reused: int = Field(default=0, description="Verdicts reused from the store.")
+    usd: float = 0.0
+    unpriced: bool = Field(default=False, description="A judge's price was unknown, so `usd` is a lower bound.")
+    subscription_calls: int = 0
+
+    @classmethod
+    def of(cls, report: Report) -> "Tally":
+        stats, judging = report.stats, report.judging
+        usd = judging.usd if judging else 0.0
+        calls = sum(s.calls for s in judging.spend if s.subscription) if judging else 0
+        return cls(runs=1, functions=report.changed, codebase=report.functions, pairs=stats["candidates"],
+                   judgments=stats["judged"], reused=stats["cached"], usd=usd or 0.0, unpriced=usd is None,
+                   subscription_calls=calls)
+
+    def __add__(self, other: "Tally") -> "Tally":
+        return Tally(runs=self.runs + other.runs, functions=self.functions + other.functions,
+                     codebase=max(self.codebase, other.codebase), pairs=self.pairs + other.pairs,
+                     judgments=self.judgments + other.judgments, reused=self.reused + other.reused,
+                     usd=self.usd + other.usd, unpriced=self.unpriced or other.unpriced,
+                     subscription_calls=self.subscription_calls + other.subscription_calls)
+
+    def again(self) -> "Tally":
+        """A re-run of a commit already counted: its judging costs again, but it checks nothing new."""
+        return self.model_copy(update={"functions": 0, "pairs": 0})
+
+    def cost(self) -> str:
+        """What priced judging cost, with subscription calls; "unknown" when no judge had a price."""
+        usd = f"${self.usd:.2f}" if self.usd >= 0.1 else f"${self.usd:.3f}" if self.usd >= 0.001 else (
+            "under $0.001" if self.usd else "")
+        calls = plural(self.subscription_calls, "subscription call") if self.subscription_calls else ""
+        bill = " + ".join(part for part in (usd, calls) if part)
+        return bill or ("unknown" if self.unpriced else "$0")
+
+    def spent(self) -> str:
+        """The cost as a phrase: "for $0.012 of judging", and whether an unpriced judge adds to it."""
+        if self.cost() == "unknown":
+            return "with an unpriced judge"
+        return f"for {self.cost()} of judging" + (" plus an unpriced judge" if self.unpriced else "")
+
+
+class Push(BaseModel):
+    head: str
+    tally: Tally
+    reported: int = Field(default=0, description="Duplicates this push reported.")
+
+
+class Pair(BaseModel):
+    """A pair some push reported, and where it stands now."""
+
+    new: str
+    existing: str
+    found: int = Field(description="The push that first reported it.")
+    state: Literal["open", "kept-out", "dismissed"] = "open"
+    settled: int | None = Field(default=None, description="The push that kept it out or dismissed it.")
+
+    def concept(self) -> str:
+        return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
+
+
+class PullLedger(Versioned):
+    """A pull request's ledger: every run's figures, every push, and every pair any push reported."""
+
+    pushed: int = 0
+    tally: Tally = Field(default_factory=Tally)
+    pushes: list[Push] = Field(default_factory=list, description=f"The last {PUSHES_SHOWN} pushes.")
+    pairs: dict[str, Pair] = Field(default_factory=dict)
+    runs: list[str] = Field(default_factory=list, description=f"The last {RECENT_RUNS} runs counted.")
+
+    def count(self, state: str) -> int:
+        return sum(pair.state == state for pair in self.pairs.values())
+
+    def advance(self, reports: list[Report], run: str = "") -> "PullLedger":
+        """This ledger with one more run added; the same ledger if that run was counted already."""
+        if not reports or (run and run in self.runs):
+            return self
+        ledger = self.model_copy(deep=True)
+        tally = sum((Tally.of(report) for report in reports), Tally())
+        findings = [f for report in reports for f in report.findings]
+        reported = {f.candidate.key: f for f in findings if f.reported}
+        head = reports[0].run.head
+        if ledger.pushes and ledger.pushes[-1].head == head:
+            tally = tally.again()
+            last = ledger.pushes[-1]
+            last.tally, last.reported = last.tally + tally, len(reported)
+        else:
+            ledger.pushed += 1
+            ledger.pushes = [*ledger.pushes, Push(head=head, tally=tally, reported=len(reported))][-PUSHES_SHOWN:]
+        ledger.tally = ledger.tally + tally
+        ledger.runs = [*ledger.runs, run][-RECENT_RUNS:] if run else ledger.runs
+        unjudged = {f.candidate.key for f in findings if f.deferred or f.verdict is None}
+        settled_by_rule = {c.key for report in reports for c in report.filtered}
+        for key, finding in reported.items():
+            names = [side.qualname.split("::", 1)[1] for side in (finding.candidate.new, finding.candidate.existing)]
+            pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
+            pair.state, pair.settled = "open", None
+        for key, pair in ledger.pairs.items():
+            if key in reported or key in unjudged:
+                continue
+            if key in settled_by_rule and pair.state != "dismissed":  # a person's decision, even after the fact
+                pair.state, pair.settled = "dismissed", ledger.pushed
+            elif pair.state == "open":
+                pair.state, pair.settled = "kept-out", ledger.pushed
+        return ledger
+
+    def snapshot(self) -> str:
+        return f"<!-- dry-lint-ledger {self.model_dump_json()} -->"
+
+    @classmethod
+    def read(cls, body: str) -> "PullLedger | None":
+        match = SNAPSHOT.search(body)
+        if not match:
+            return None
+        try:
+            return cls.model_validate_json(match.group("ledger"))
+        except ValidationError:
+            return None
+
+
+def headline(ledger: PullLedger) -> str:
+    """The sentence a reader remembers: what this pull request's checks cost, and what they caught."""
+    tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
+    across = f"across {ledger.pushed:,} pushes" if ledger.pushed > 1 else "on its first push"
+    if kept:
+        tail = f" {plural(still, 'duplicate')} still open." if still else ""
+        return f"**{plural(kept, 'duplicate')} kept out of the codebase** {tally.spent()}, {across}.{tail}"
+    if still:
+        return (f"**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
+                "Each one fixed here is kept out of the codebase.")
+    if not tally.functions:
+        return f"**No changed functions to check yet**, {across}."
+    return f"**{plural(tally.functions, 'function')} checked, nothing duplicated**, {tally.spent()}, {across}."
+
+
+ICONS = {"kept-out": "✅", "open": "🟡", "dismissed": "⚪"}
+
+
+def pair_line(pair: Pair) -> str:
+    where = {"kept-out": f"kept out in push {pair.settled}", "open": "still open",
+             "dismissed": f"dismissed by a person's decision in push {pair.settled}"}[pair.state]
+    return f"{ICONS[pair.state]} {pair.concept()} · found in push {pair.found}, {where}"
+
+
+def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> str:
+    """The sticky's running account: a headline, the figures as badges, and push by push in a fold."""
+    tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
+    badges = [badge("kept out", kept, GREEN if kept else GRAY), *([badge("still open", still, AMBER)] if still else []),
+              badge("pushes", ledger.pushed, GRAY), badge("functions checked", f"{tally.functions:,}", GRAY),
+              badge("judgments", f"{tally.judgments:,}", GRAY), badge("spent", tally.cost(), BLUE)]
+    lines = ["#### 🛡️ This pull request so far", "", headline(ledger), "", " ".join(badges), ""]
+    if ledger.pushed > 1 or ledger.pairs:
+        first = ledger.pushed - len(ledger.pushes) + 1
+        rows = ["| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cost |",
+                "| --: | :-- | --: | --: | --: | --: | --: |"]
+        for n, push in enumerate(ledger.pushes, first):
+            reused = f" <sub>+{push.tally.reused:,} reused</sub>" if push.tally.reused else ""
+            rows.append(f"| {n} | `{push.head[:7]}` | {push.tally.functions:,} | {push.tally.pairs:,} | "
+                        f"{push.tally.judgments:,}{reused} | {push.reported:,} | {push.tally.cost()} |")
+        rows.append(f"| **{ledger.pushed}** | | **{tally.functions:,}** | **{tally.pairs:,}** | "
+                    f"**{tally.judgments:,}** | | **{tally.cost()}** |")
+        pairs = sorted(ledger.pairs.values(), key=lambda p: (list(ICONS).index(p.state), p.found))
+        lines += ["<details><summary><strong>Push by push</strong></summary>", "", *rows, "",
+                  *(f"{pair_line(pair)}  " for pair in pairs), *([""] if pairs else []), "</details>", ""]
+    if repository and repository.pulls:
+        lines += [f"<sub>{repository.line()}</sub>", ""]
+    return "\n".join([*lines, ledger.snapshot()])
+
+
+class RepositoryLedger(Versioned):
+    """A repository's ledger: its default-branch runs and the final ledgers of its merged pull requests."""
+
+    repository: str = ""
+    since: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
+    pulls: list[int] = Field(default_factory=list, description="Merged pull requests already counted.")
+    unaccounted: list[int] = Field(default_factory=list, description="Merged pull requests that had no ledger.")
+    runs: list[str] = Field(default_factory=list, description=f"The last {RECENT_RUNS} default-branch runs counted.")
+    tally: Tally = Field(default_factory=Tally)
+    pushes: int = 0
+    kept_out: int = 0
+    dismissed: int = 0
+    merged_open: int = Field(default=0, description="Duplicates still open when their pull request merged.")
+
+    def add_run(self, tally: Tally, run: str) -> None:
+        if run and run in self.runs:
+            return
+        self.tally = self.tally + tally
+        self.runs = [*self.runs, run][-RECENT_RUNS:] if run else self.runs
+
+    def add_pull(self, number: int, ledger: PullLedger) -> None:
+        if number in self.pulls:
+            return
+        self.pulls.append(number)
+        self.tally = self.tally + ledger.tally
+        self.pushes += ledger.pushed
+        self.kept_out += ledger.count("kept-out")
+        self.dismissed += ledger.count("dismissed")
+        self.merged_open += ledger.count("open")
+
+    def line(self) -> str:
+        since, name = datetime.fromisoformat(self.since), code(self.repository) if self.repository else "This repository"
+        return (f"🏆 {name} since {since:%b} {since.day}, {since.year}: "
+                f"**{plural(self.kept_out, 'duplicate')} kept out of the codebase** across "
+                f"{plural(len(self.pulls), 'merged pull request')}, {self.tally.spent()}.")
+
+    @classmethod
+    def load(cls, text: str, repository: str) -> "RepositoryLedger":
+        """The saved ledger, or a new one from today when there is none or it cannot be read."""
+        try:
+            return cls.model_validate(json.loads(text))
+        except (ValueError, ValidationError):
+            return cls(repository=repository)

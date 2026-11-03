@@ -6,9 +6,12 @@ from unittest.mock import patch
 import httpx
 import pytest
 from test_action_sticky import FakeGitHub
+from test_ledger import push
+from test_report import finding
 
 from dry_lint import action, sticky
-from dry_lint.action import count_findings, ensure_history, resolve_base, resolve_judge, resolve_mode
+from dry_lint.action import count_findings, default_branch, ensure_history, resolve_base, resolve_judge, resolve_mode
+from dry_lint.ledger import PullLedger, RepositoryLedger
 
 from conftest import Repo, judge_calls
 
@@ -91,6 +94,7 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         # Hermetic: a developer's or Claude Code's own keys must never reach a judge from a test.
         for name_ in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
             monkeypatch.delenv(name_, raising=False)
+        monkeypatch.delenv("GITHUB_RUN_ATTEMPT", raising=False)  # set when the tests themselves run in Actions
         if "key" in inputs:
             values["TYPESAFE_AI_API_KEY"] = inputs["key"]
         for name_, value in values.items():
@@ -299,7 +303,7 @@ def pr_event(repo: Repo, fork: bool = False) -> dict:
 
 
 def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_the_fix(
-        repo: Repo, github_env, tmp_path, twin_judge, capsys) -> None:
+        repo: Repo, github_env, tmp_path, twin_judge, capsys, monkeypatch) -> None:
     github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
     github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
                working_directory=str(repo.root))
@@ -313,6 +317,7 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
 
     # The next push changes nothing that matters: the verdict comes from the store, the comment is edited.
     first = judge_calls(tmp_path)
+    monkeypatch.setenv("GITHUB_RUN_ID", "56")
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
     assert judge_calls(tmp_path) == first and len(github.stickies()) == 1
 
@@ -320,9 +325,16 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     repo.write("src/widgets/caption.py", "from src.text import shorten_text\n\n\ndef register_widget(registry, widget):\n"
                "    registry.add(widget)\n    return widget\n")
     repo.commit("reuse shorten_text")
+    github.head = repo.git("rev-parse", "HEAD").strip()
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root))
+    monkeypatch.setenv("GITHUB_RUN_ID", "57")
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     [body] = github.stickies()
-    assert "Resolved" in body and "preview_caption_text" not in body
+    assert "Resolved" in body and "distinct-from src/text.py::shorten_text" not in body
+    # The ledger remembers what the fix was worth: the run on the same commit was not a new push.
+    assert "**1 duplicate kept out of the codebase**" in body and "across 2 pushes" in body
+    assert "`preview_caption_text` ≈ `shorten_text` · found in push 1, kept out in push 2" in body
 
 
 def test_typescript_pull_request_updates_and_resolves_one_sticky_comment(
@@ -714,3 +726,108 @@ def test_fetch_replaces_inherited_auth_headers_without_persisting_token(repo, mo
         thread.join()
     assert headers == [["basic eC1hY2Nlc3MtdG9rZW46bmV3LXRva2Vu"]]
     assert repo.git("config", "--get", f"http.{url}/.extraheader") == "Authorization: old-checkout-token"
+
+
+# The repository's ledger: folded on the default branch, shown on every pull request.
+
+MAIN_PUSH = {"ref": "refs/heads/main", "before": BASE, "after": HEAD, "repository": {"default_branch": "main"}}
+
+
+@pytest.mark.parametrize("event_name, event, expected", [
+    ("push", MAIN_PUSH, "main"),
+    ("push", {**MAIN_PUSH, "ref": "refs/heads/feature"}, ""),
+    ("push", {"ref": "refs/heads/main"}, ""),
+    ("pull_request", MAIN_PUSH, ""),
+])  # fmt: skip
+def test_only_a_push_to_the_default_branch_folds_the_ledger(event_name, event, expected) -> None:
+    assert default_branch(event_name, event) == expected
+
+
+def merged_ledger(*reports) -> str:
+    ledger = PullLedger()
+    for n, report in enumerate(reports):
+        ledger = ledger.advance([report], run=str(n))
+    return f"<!-- dry-lint -->\nreport\n{ledger.snapshot()}"
+
+
+def saved_ledger() -> RepositoryLedger:
+    return RepositoryLedger.model_validate_json(action.ledger_path().read_text())
+
+
+def test_folding_counts_each_pull_request_merged_since_the_ledger_began_once(github_env, tmp_path) -> None:
+    github_env("push", MAIN_PUSH)
+    action.ledger_path().parent.mkdir(parents=True)
+    action.ledger_path().write_text(RepositoryLedger(repository="acme/shop", since="2026-11-01T00:00:00+00:00",
+                                                     pulls=[6]).model_dump_json())
+    report = tmp_path / "report.json"
+    report.write_text(push(HEAD, usd=0.01).model_dump_json())
+    github = FakeGitHub(merged=[
+        {"number": 2, "merged_at": "2026-10-30T00:00:00Z", "merge_commit_sha": "e" * 40},  # before the ledger
+        {"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD},  # this push merged it
+        {"number": 4, "merged_at": "2026-11-02T00:00:00Z", "merge_commit_sha": "f" * 40},
+        {"number": 5, "merged_at": "2026-11-02T00:00:00Z", "merge_commit_sha": "f" * 40},  # never commented
+        {"number": 6, "merged_at": "2026-11-02T00:00:00Z", "merge_commit_sha": "f" * 40},  # already counted
+        {"number": 8, "merged_at": None},  # closed without merging
+    ], elsewhere={2: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))],
+                  3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))],
+                  4: [merged_ledger(push("a" * 40, finding("duplicate"))), "a person's comment"],
+                  6: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]})
+    assert action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github)) == "folded"
+    ledger = saved_ledger()
+    assert ledger.pulls == [6, 3, 4] and ledger.unaccounted == [5]
+    assert (ledger.kept_out, ledger.merged_open, ledger.pushes) == (1, 1, 3)
+    assert round(ledger.tally.usd, 3) == 0.016 and ledger.runs == ["55"]
+
+    # The next push looks back over the same pull requests, and changes nothing but its own run.
+    assert action.fold("acme/shop", "main", "d" * 40, report, httpx.MockTransport(github)) == "folded"
+    assert saved_ledger().model_copy(update={"runs": ["55"]}) == ledger
+
+
+def test_a_new_ledger_counts_the_pull_request_this_push_merged(github_env, tmp_path) -> None:
+    github_env("push", MAIN_PUSH)
+    github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
+                        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]})
+    action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
+    ledger = saved_ledger()
+    assert ledger.pulls == [3] and ledger.kept_out == 1 and ledger.repository == "acme/shop"
+
+
+def test_folding_without_the_pull_requests_still_counts_this_run(github_env, tmp_path, monkeypatch, capsys) -> None:
+    github_env("push", MAIN_PUSH)
+    report = tmp_path / "report.json"
+    report.write_text(push(HEAD, usd=0.01).model_dump_json())
+    github = FakeGitHub(pulls_status=403)
+    assert action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github)) == "partial"
+    assert "Could not read merged pull requests" in capsys.readouterr().out
+    monkeypatch.delenv("GITHUB_TOKEN")
+    monkeypatch.setenv("GITHUB_RUN_ID", "56")
+    assert action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github)) == "folded"
+    assert saved_ledger().tally.runs == 2 and saved_ledger().pulls == []
+
+
+def test_a_merged_pull_requests_ledger_reaches_the_next_pull_requests_comment(
+        repo: Repo, github_env, tmp_path, twin_judge, monkeypatch) -> None:
+    head = repo.git("rev-parse", "HEAD").strip()
+    github = FakeGitHub(head=head)
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root))
+    action.main(["run"], transport=httpx.MockTransport(github))
+    [sticky_body] = github.stickies()
+
+    # The pull request merges: the push to main folds its ledger into the repository's.
+    merged = FakeGitHub([sticky_body], head=head,
+                        merged=[{"number": 7, "merged_at": "2026-11-03T00:00:00Z", "merge_commit_sha": head}])
+    github_env("push", {**MAIN_PUSH, "before": repo.git("rev-parse", "main").strip(), "after": head},
+               judge="command", judge_command=twin_judge, working_directory=str(repo.root))
+    monkeypatch.setenv("GITHUB_RUN_ID", "60")
+    action.main(["run"], transport=httpx.MockTransport(merged))
+    ledger = saved_ledger()
+    assert ledger.pulls == [7] and ledger.merged_open == 1 and ledger.tally.runs == 2
+
+    # The next pull request's comment shows the repository's totals.
+    following = FakeGitHub(head=head)
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root))
+    monkeypatch.setenv("GITHUB_RUN_ID", "61")
+    action.main(["run"], transport=httpx.MockTransport(following))
+    assert "<sub>🏆 `acme/shop` since " in following.stickies()[0]

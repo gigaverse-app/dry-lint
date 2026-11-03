@@ -209,6 +209,9 @@ def test_judge_failures_exit_2_without_a_traceback(repo: Repo, tmp_path: Path, m
     with patch.object(JevJudge, "judge", side_effect=httpx.ConnectError("api unreachable")):
         assert run(repo, tmp_path, "--base", "main", "--judge", "jev") == 2
     assert capsys.readouterr().err.startswith("dry-lint: ")
+    with patch.object(JevJudge, "judge", side_effect=subprocess.TimeoutExpired("judge", 180)):
+        assert run(repo, tmp_path, "--base", "main", "--judge", "jev") == 2
+    assert "timed out" in capsys.readouterr().err
 
 
 def test_config_shows_the_resolved_preset_its_numbers_and_what_unlocks_the_others(repo: Repo, monkeypatch, capsys) -> None:

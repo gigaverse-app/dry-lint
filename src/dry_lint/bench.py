@@ -158,6 +158,9 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
     unlimited = settings.model_copy(update={"budget": Budget(usd=float("inf"), subscription_calls=10**9)})
     ledger = Ledger(unlimited)
     verdicts = [v for v in decide(candidates, judge, escalation, unlimited, ledger) if v is not None]
+    for spend in ledger.spend.values():
+        if spend.error:
+            raise ValueError(f"The judge {spend.judge} failed, so nothing was measured: {spend.error}")
     return judge_bench(labelled, verdicts, settings, judges_name(judge, escalation), ledger)
 
 

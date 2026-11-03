@@ -376,7 +376,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         root = repository_root(args.root)
         return COMMANDS[args.command](root, settings_for(root, args), args)
-    except (subprocess.CalledProcessError, httpx.HTTPError, ValueError, OSError) as error:
+    except (subprocess.SubprocessError, httpx.HTTPError, ValueError, OSError) as error:
         detail = getattr(error, "stderr", None) or error
         print(f"dry-lint: {str(detail).strip()}", file=sys.stderr)
         return 2

@@ -1,5 +1,7 @@
+import subprocess
 from pathlib import Path
 
+import httpx
 import pytest
 
 from dry_lint.costs import Ledger, estimate
@@ -175,3 +177,42 @@ def test_a_subscription_judge_spends_the_same_budget_at_its_models_list_price(st
     judging = Judging(settings, Subscribed("first", {"a": 0.9, "b": 0.9}), None, store)
     judging.findings([pair("a"), pair("b")], source=Run(repository="o/r", pull_request=3))
     assert judging.judge.asked == ["a"] and judging.summary().usd == pytest.approx(one)
+
+
+class Failing(ScoringJudge):
+    """A second judge that cannot answer, as when a CLI login has expired."""
+
+    def __init__(self, error: Exception) -> None:
+        super().__init__("second", {})
+        self.error = error
+
+    def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
+        self.asked += [c.new.name for c in candidates]
+        raise self.error
+
+
+@pytest.mark.parametrize("error", [
+    subprocess.CalledProcessError(1, "claude", stderr="OAuth session expired"),
+    subprocess.TimeoutExpired("claude", 300),
+    httpx.ConnectError("api unreachable"),
+    ValueError("The judge answered without a JSON verdict"),
+    OSError("claude: not found"),
+])
+def test_a_failing_second_judge_leaves_its_pairs_on_the_first_answer_until_it_answers_again(
+        store: VerdictStore, error: Exception) -> None:
+    first = ScoringJudge("first", {"unsure": 0.7, "sure": 0.9})
+    judging = Judging(SETTINGS, first, Failing(error), store)
+    findings = judging.findings([pair("unsure"), pair("sure")], source=Run(repository="o/r", pull_request=3))
+    assert [(f.verdict.score, f.verdict.second_opinion, f.deferred) for f in findings] == [(0.7, None, False), (0.9, None, False)]
+    assert [r.verdict.score for r in store.records()] == [0.9]  # only the answer no second judge was owed is kept
+    [failed] = [s for s in judging.summary().spend if s.error]
+    assert (failed.judge, failed.failed, failed.calls, failed.usd) == ("second:1", 1, 0, 0.0)
+    back = ScoringJudge("second", {"unsure": 0.95})
+    later = Judging(SETTINGS, ScoringJudge("first", {"unsure": 0.7}), back, store)
+    assert [f.verdict.score for f in later.findings([pair("unsure"), pair("sure")])] == [0.95, 0.9]
+    assert back.asked == ["unsure"] and not later.ledger.failed
+
+
+def test_without_a_ledger_a_failing_second_judge_is_an_error() -> None:
+    with pytest.raises(ValueError, match="no verdict"):
+        decide([pair("a")], ScoringJudge("first", {"a": 0.7}), Failing(ValueError("no verdict")), SETTINGS)

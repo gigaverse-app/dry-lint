@@ -43,7 +43,8 @@ def estimate(judge: Judge, candidates: list[Candidate], settings: Settings) -> f
     rates = price(judge, settings)
     if rates is None:
         return None
-    tokens = sum(len(prompt(c)) for c in candidates) / CHARS_PER_TOKEN
+    policy = getattr(judge, "prompt_policy", "concept")  # Optional plugin contract for the rendered prompt.
+    tokens = sum(len(prompt(c, policy=policy)) for c in candidates) / CHARS_PER_TOKEN
     answer = ANSWERS.get(getattr(judge, "model", "") or "", ANSWER_TOKENS)
     return (tokens * rates[0] + len(candidates) * answer * rates[1]) / 1_000_000
 
@@ -55,6 +56,8 @@ class Spend(BaseModel):
     usd: float | None = Field(default=0.0, description="Estimated at list price, also for a subscription; None when "
                                                        "the judge's price is unknown.")
     subscription: bool = False
+    failed: int = Field(default=0, description="Pairs left on the first judge's answer because this judge failed.")
+    error: str = Field(default="", description="Why this judge failed, when it did.")
 
 
 class Ledger:
@@ -92,3 +95,14 @@ class Ledger:
         spend.calls += len(asked)
         spend.skipped += skipped
         spend.usd = None if cost is None or spend.usd is None else spend.usd + cost
+
+    def fail(self, judge: Judge, asked: list[Candidate], error: Exception) -> None:
+        """`judge` failed on `asked`; nothing is charged, since it is unknown how much of it ran."""
+        name = identity(judge)
+        spend = self.spend.setdefault(name, Spend(judge=name, subscription=getattr(judge, "subscription", False)))
+        spend.failed += len(asked)
+        spend.error = " ".join(str(getattr(error, "stderr", None) or error).split())[:200]
+
+    @property
+    def failed(self) -> bool:
+        return any(s.error for s in self.spend.values())

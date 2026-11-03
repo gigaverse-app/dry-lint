@@ -11,17 +11,25 @@ from pathlib import Path
 
 import anthropic
 import httpx2
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from replay_coverage import ReplayInput, ReplayState, choose, digest, pool
 
 from dry_lint.costs import PRICES
 from dry_lint.judges.anthropic import AnthropicJudge
-from dry_lint.judges.command import prompt
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
 from dry_lint.models import Candidate, Verdict
 from dry_lint.presets import resolve
 from dry_lint.settings import Settings
 
 MODEL = "claude-sonnet-5-5"
+
+
+class Protection(BaseModel):
+    """Capacity exploration may never spend; baseline work can use it on any later revision."""
+
+    baseline_calls: int = Field(ge=0)
+    baseline_usd: float = Field(ge=0)
+    exploration_per_run: int = Field(default=1, ge=0)
 
 
 class Observation(BaseModel):
@@ -39,13 +47,20 @@ class Observation(BaseModel):
     error: str | None = None
 
 
-def answer_key(candidate: Candidate, version: str) -> str:
+def answer_key(candidate: Candidate, version: str, policy: str = "concept", *, template: str | None = None) -> str:
     # Orientation and the actual judge input matter, even when the unordered pair is identical.
-    return digest([version, prompt(candidate)])
+    return digest([version, prompt(candidate, policy=policy, template=template)])
 
 
 class LiveAnswers:
-    def __init__(self, directory: Path, limit: float = 10.0, http_client=None) -> None:
+    def __init__(
+        self,
+        directory: Path,
+        limit: float = 10.0,
+        http_client=None,
+        prompt_policy: str = "concept",
+        max_tokens: int = 8000,
+    ) -> None:
         self.directory, self.limit = directory, limit
         directory.mkdir(parents=True, exist_ok=True)
         if list(directory.glob("*.unmetered")):
@@ -56,7 +71,9 @@ class LiveAnswers:
         self.response = None
         client = http_client or anthropic.DefaultHttpxClient()
         client.event_hooks.setdefault("response", []).append(self.capture_response)
-        self.judge = AnthropicJudge(model=MODEL, workers=1, http_client=client)
+        self.judge = AnthropicJudge(
+            model=MODEL, workers=1, http_client=client, prompt_policy=prompt_policy, max_tokens=max_tokens
+        )
         self.judge.client = self.judge.client.with_options(max_retries=0)
         self.settings = resolve(Settings(preset="sonnet"))
 
@@ -66,7 +83,7 @@ class LiveAnswers:
             self.response = response.json()
 
     def key(self, candidate: Candidate) -> str:
-        return answer_key(candidate, self.judge.version)
+        return answer_key(candidate, self.judge.version, self.judge.prompt_policy)
 
     @property
     def spent(self) -> float:
@@ -75,8 +92,8 @@ class LiveAnswers:
     def reserve(self, candidate: Candidate) -> float:
         # Conservative UTF-8 byte bound plus framing, at the maximum price of the selected model.
         # Reserve max output even when this experiment already has an answer: same admission rule in both arms.
-        tokens = len(prompt(candidate).encode("utf-8")) + 1000
-        return (tokens * 2.5 + 8000 * 10) / 1_000_000
+        tokens = len(prompt(candidate, policy=self.judge.prompt_policy).encode("utf-8")) + 1000
+        return (tokens * 2.5 + self.judge.max_tokens * 10) / 1_000_000
 
     def get(self, candidate: Candidate) -> Observation:
         key = self.key(candidate)
@@ -148,28 +165,55 @@ def evaluate(
     total: int = 40,
     run_usd: float = 0.15,
     total_usd: float = 0.50,
+    protection: Protection | None = None,
 ) -> dict:
-    if policy not in ("fixed", "refill") or min(per_run, total, run_usd, total_usd) < 0:
-        raise ValueError("Use fixed/refill and nonnegative budgets")
-    state, spent, curves = ReplayState(policy=policy), 0.0, []
+    if policy not in ("fixed", "refill", "protected") or min(per_run, total, run_usd, total_usd) < 0:
+        raise ValueError("Use fixed/refill/protected and nonnegative budgets")
+    if policy == "protected" and protection is None:
+        protection = Protection(baseline_calls=(total + 1) // 2, baseline_usd=total_usd / 2)
+    if protection and (
+        policy != "protected" or protection.baseline_calls > total or protection.baseline_usd > total_usd
+    ):
+        raise ValueError("Protected capacity must fit the campaign budget and use the protected policy")
+    state = ReplayState(policy="fixed" if policy == "fixed" else "refill")
+    spent, exploration_spent, exploration_attempts, curves = 0.0, 0.0, 0, []
+    baseline_query_attempts = {}
     for ordinal, step in enumerate(payload.steps):
+        raw = step.model_dump(mode="json")
+        raw["failed_keys"] = sorted(step.failed_keys)
+        run_digest = digest(raw)
+        repeated = step.run_id in state.runs
+        if repeated and state.runs[step.run_id] != run_digest:
+            raise ValueError("Logical run identity was reused for different evidence")
         candidates, ranks = pool(step)
         keys = {k: answers.key(c) for k, c in candidates.items()}
         pending = {k for k in candidates if state.completed.get(k) != keys[k]}
         for key in candidates:
             state.first_seen.setdefault(key, ordinal)
-        selected, run_spent, run_seconds = [], 0.0, 0.0
-        for _ in range(min(per_run, total - state.attempts)):
+        selected, run_spent, run_seconds, run_exploration = [], 0.0, 0.0, 0
+        for _ in range(0 if repeated else min(per_run, total - state.attempts)):
             baseline = {k for k in pending if "baseline" in ranks[k]}
             # Protect the current baseline before cost filtering. An expensive baseline item must not
             # silently donate its slot to cheaper exploration. Future revisions need a separate reserve.
-            eligible = baseline or (pending if policy == "refill" else set())
-            affordable = {
-                k for k in eligible if answers.reserve(candidates[k]) <= min(run_usd - run_spent, total_usd - spent)
-            }
+            eligible = baseline or (pending if policy != "fixed" else set())
+            room = min(run_usd - run_spent, total_usd - spent)
+            if not baseline and protection:
+                # Never borrow baseline capacity for exploration, even on an empty early baseline.
+                if (
+                    exploration_attempts >= total - protection.baseline_calls
+                    or run_exploration >= protection.exploration_per_run
+                ):
+                    break
+                room = min(room, total_usd - protection.baseline_usd - exploration_spent)
+            affordable = {k for k in eligible if answers.reserve(candidates[k]) <= room}
             if not affordable:
                 break
-            key = choose(affordable, candidates, ranks, state, "baseline")
+            chooser = (
+                state.model_copy(update={"query_attempts": baseline_query_attempts})
+                if baseline and protection
+                else state
+            )
+            key = choose(affordable, candidates, ranks, chooser, "baseline")
             if key is None:
                 break
             c = candidates[key]
@@ -179,6 +223,12 @@ def evaluate(
             state.completed[key] = keys[key]
             state.historical_pairs.add(key)
             state.query_attempts[c.new.qualname] = state.query_attempts.get(c.new.qualname, 0) + 1
+            if baseline:
+                baseline_query_attempts[c.new.qualname] = baseline_query_attempts.get(c.new.qualname, 0) + 1
+            else:
+                exploration_attempts += 1
+                run_exploration += 1
+                exploration_spent += observation.usd
             spent += observation.usd
             run_spent += observation.usd
             run_seconds += observation.seconds
@@ -186,6 +236,7 @@ def evaluate(
                 {"key": key, "answer": observation.key, "usd": observation.usd, "sources": sorted(ranks[key])}
             )
             pending.remove(key)
+        state.runs[step.run_id] = run_digest
         current = {k: state.completed[k] for k in candidates if state.completed.get(k) == keys[k]}
         reports = [
             k
@@ -206,6 +257,9 @@ def evaluate(
                 "run_usd": run_spent,
                 "cumulative_usd": spent,
                 "serial_api_seconds": run_seconds,
+                "exploration_attempts": exploration_attempts,
+                "exploration_usd": exploration_spent,
+                "repeated": repeated,
             }
         )
         print(policy, step.run_id.split("/")[-1][:8], len(selected), "new answers", f"${spent:.5f}", flush=True)
@@ -216,6 +270,9 @@ def evaluate(
         "run_usd": run_usd,
         "total_usd": total_usd,
         "judge": answers.judge.version,
+        "prompt_policy": answers.judge.prompt_policy,
+        "prompt_template": PROMPT_POLICIES[answers.judge.prompt_policy][1],
+        "protection": protection.model_dump() if protection else None,
         "report_at": answers.settings.report_at,
         "curves": curves,
     }
@@ -230,14 +287,19 @@ def main() -> None:
     parser.add_argument("--total", type=int, default=40)
     parser.add_argument("--run-usd", type=float, default=0.15)
     parser.add_argument("--total-usd", type=float, default=0.50)
+    parser.add_argument("--prompt-policy", choices=["concept", "shared-operations"], default="concept")
+    parser.add_argument("--max-tokens", type=int, default=8000)
+    parser.add_argument("--policies", nargs="+", choices=["fixed", "refill", "protected"], default=["fixed", "refill"])
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     if list((args.out / "answers").glob("*.unmetered")):
         raise ValueError("Unmetered attempt exists; reconcile it before resuming")
-    answers = LiveAnswers(args.out / "answers", args.limit_usd)
+    answers = LiveAnswers(
+        args.out / "answers", args.limit_usd, prompt_policy=args.prompt_policy, max_tokens=args.max_tokens
+    )
     for path in sorted(args.captures.glob("*/replay.json")):
         payload = ReplayInput.model_validate_json(path.read_text(encoding="utf-8"))
-        for policy in ("fixed", "refill"):
+        for policy in args.policies:
             result = evaluate(payload, answers, policy, args.per_run, args.total, args.run_usd, args.total_usd)
             (args.out / f"{path.parent.name}-{policy}.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print("Physical live usage-priced cost:", answers.spent, flush=True)
