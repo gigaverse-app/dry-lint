@@ -30,7 +30,170 @@ def provider(requests, *, model="claude-sonnet-5-5", text='{"label":"duplicate",
     )
 
 
-def test_provider_usage_is_counted_once_physically_but_each_policy_pays_its_own_cost(api, tmp_path, load_script) -> None:
+def test_cheaper_model_uses_its_own_price_reservation_and_cache_identity(api, tmp_path) -> None:
+    requests = []
+    cheap = api["LiveAnswers"](
+        tmp_path,
+        model="claude-haiku-5-5",
+        max_tokens=512,
+        http_client=provider(requests, model="claude-haiku-5-5"),
+    )
+    original = api["LiveAnswers"](tmp_path, http_client=provider([]))
+    assert cheap.key(candidate()) != original.key(candidate())
+    assert cheap.reserve(candidate()) < 0.003
+    answer = cheap.get(candidate())
+    assert answer.usd == pytest.approx(0.00015)
+    assert answer.model == "claude-haiku-5-5"
+    assert cheap.spent == pytest.approx(answer.usd)
+    with pytest.raises(ValueError, match="price"):
+        api["LiveAnswers"](tmp_path, model="unpriced")
+
+
+def test_cache_tokens_are_priced_for_the_selected_model(api, tmp_path) -> None:
+    client = claude(
+        {
+            "model": "claude-sonnet-5-5",
+            "stop_reason": "end_turn",
+            "usage": {
+                "input_tokens": 1000,
+                "output_tokens": 100,
+                "cache_creation_input_tokens": 200,
+                "cache_read_input_tokens": 300,
+            },
+            "content": [{"type": "text", "text": '{"label":"separate","score":0.9}'}],
+        },
+        [],
+    )
+    answer = api["LiveAnswers"](tmp_path, http_client=client).get(candidate())
+    assert answer.usd == pytest.approx(0.00356)
+    assert answer.cache_creation_tokens == 200
+    assert answer.cache_read_tokens == 300
+
+
+@pytest.mark.parametrize("different", ["directory", "allowance"])
+def test_mixed_judges_cannot_spend_from_separate_physical_ledgers(api, tmp_path, different) -> None:
+    answers = api["LiveAnswers"](tmp_path, http_client=provider([]))
+    baseline = api["LiveAnswers"](
+        tmp_path / "other" if different == "directory" else tmp_path,
+        limit=1 if different == "allowance" else answers.limit,
+        http_client=provider([]),
+    )
+    with pytest.raises(ValueError, match="share one physical"):
+        api["evaluate"](payload(api), answers, "protected", baseline_answers=baseline)
+
+
+def test_mixed_policy_rejudges_exploration_when_it_becomes_baseline(api, tmp_path, load_script) -> None:
+    response = '{"label":"duplicate","score":0.65}'
+    cheap = api["LiveAnswers"](
+        tmp_path,
+        model="claude-haiku-5-5",
+        max_tokens=512,
+        http_client=provider([], model="claude-haiku-5-5", text=response),
+    )
+    cheap.settings = cheap.settings.model_copy(update={"report_at": 0.7})
+    baseline = api["LiveAnswers"](tmp_path, max_tokens=512, http_client=provider([], text=response))
+    pair = candidate()
+    history = payload(api, {"deep": [pair]}, {"baseline": [pair]})
+    result = api["evaluate"](history, cheap, "protected", total_usd=0.04, baseline_answers=baseline)
+    first, second = result["curves"]
+    assert first["covered"][pair.key] != second["covered"][pair.key]
+    assert second["cumulative_attempts"] == 2
+    assert second["cumulative_usd"] == pytest.approx(0.00315)
+    assert cheap.observations is baseline.observations
+    assert first["reported"] == []
+    assert len(second["reported"]) == 1
+    labels = {cheap.key(pair): "duplicate", baseline.key(pair): "duplicate"}
+    scored = load_script("score_history")["score"](history, result, labels, cheap.observations)
+    assert scored["curves"][0]["reported_positives"] == 0
+    assert scored["curves"][-1]["reported_positives"] == 1
+    assert scored["unique_true_reports"] == 1
+
+
+def test_dollar_pacing_leaves_exploration_for_later_revisions(api, tmp_path) -> None:
+    answers = api["LiveAnswers"](
+        tmp_path, model="claude-haiku-5-5", max_tokens=512, http_client=provider([], model="claude-haiku-5-5")
+    )
+    pairs = [candidate(n) for n in range(10)]
+    allowance = answers.reserve(pairs[0]) * 1.1
+    protection = api["Protection"](
+        baseline_calls=20, baseline_usd=0.03, exploration_per_run=10, exploration_run_usd=allowance
+    )
+    result = api["evaluate"](
+        payload(api, {"deep": pairs}, {"deep": pairs}), answers, "protected", total_usd=0.04, protection=protection
+    )
+    assert [len(c["selected"]) for c in result["curves"]] == [1, 1]
+    assert result["curves"][-1]["exploration_usd"] == pytest.approx(0.0003)
+    assert result["curves"][-1]["cumulative_usd"] <= 0.01
+
+
+def test_historical_reports_keep_the_threshold_at_the_time_of_reporting(api, tmp_path, load_script) -> None:
+    response = '{"label":"duplicate","score":0.65}'
+    answers = api["LiveAnswers"](tmp_path, max_tokens=512, http_client=provider([], text=response))
+    answers.settings = answers.settings.model_copy(update={"report_at": 0.7})
+    baseline = api["LiveAnswers"](tmp_path, max_tokens=512, http_client=provider([], text=response))
+    pair = candidate()
+    history = payload(api, {"baseline": [pair]}, {"deep": [pair]})
+    result = api["evaluate"](history, answers, "protected", baseline_answers=baseline)
+    assert [len(c["reported"]) for c in result["curves"]] == [1, 0]
+    scored = load_script("score_history")["score"](
+        history, result, {answers.key(pair): "duplicate"}, answers.observations
+    )
+    assert scored["unique_true_reports"] == 1
+
+
+def test_unused_exploration_credit_accumulates_only_on_new_revisions(api, tmp_path) -> None:
+    answers = api["LiveAnswers"](
+        tmp_path, model="claude-haiku-5-5", max_tokens=512, http_client=provider([], model="claude-haiku-5-5")
+    )
+    pair = candidate()
+    reserve = answers.reserve(pair)
+    history = payload(api, {"deep": [pair]}, {"deep": [pair]})
+    for index, step in enumerate(history.steps):
+        step.sources["deep"].run.head = f"head-{index}"
+    history.steps.insert(1, history.steps[0].model_copy(update={"run_id": "rerun-same-head"}))
+    history.steps.insert(1, history.steps[0])
+    result = api["evaluate"](
+        history,
+        answers,
+        "protected",
+        total_usd=0.04,
+        protection=api["Protection"](
+            baseline_calls=20,
+            baseline_usd=0.03,
+            exploration_per_run=10,
+            exploration_run_usd=reserve * 0.6,
+            exploration_carry_usd=reserve * 2,
+        ),
+    )
+    assert [len(c["selected"]) for c in result["curves"]] == [0, 0, 0, 1]
+    first, repeated, rerun, second = result["curves"]
+    assert repeated["exploration_credit_usd"] == first["exploration_credit_usd"]
+    assert rerun["exploration_credit_usd"] == first["exploration_credit_usd"]
+    assert second["exploration_credit_usd"] == pytest.approx(reserve * 1.2 - 0.00015)
+    assert second["cumulative_usd"] == pytest.approx(0.00015)
+
+
+def test_failed_paid_replay_answer_consumes_budget_without_becoming_coverage(api, tmp_path, load_script) -> None:
+    requests = []
+    answers = api["LiveAnswers"](tmp_path, max_tokens=512, http_client=provider(requests, text="invalid"))
+    history = payload(api, {"baseline": [candidate()]}, {"baseline": [candidate()]})
+    result = api["evaluate"](history, answers, "fixed")
+    assert len(requests) == 1
+    assert result["curves"][-1]["covered"] == {}
+    assert result["curves"][-1]["cumulative_attempts"] == 1
+    assert result["curves"][-1]["cumulative_usd"] == pytest.approx(0.003)
+    scored = load_script("score_history")["score"](
+        history, result, {answers.key(candidate()): "duplicate"}, answers.observations
+    )
+    assert scored["unique_failed_evidence"] == 1
+    assert scored["unique_judged_evidence"] == 0
+    assert scored["unique_selected_positive_evidence"] == 1
+    assert scored["unique_judged_positive_evidence"] == 0
+
+
+def test_provider_usage_is_counted_once_physically_but_each_policy_pays_its_own_cost(
+    api, tmp_path, load_script
+) -> None:
     requests = []
     answers = api["LiveAnswers"](tmp_path, http_client=provider(requests))
     first, second = candidate(), candidate(2)
@@ -117,7 +280,9 @@ def test_baseline_first_cannot_guarantee_later_baseline_with_one_shared_campaign
     assert refill["curves"][-1]["cumulative_attempts"] == 1
 
 
-def test_changed_evidence_is_not_credited_as_current_and_missing_labels_are_not_negatives(api, tmp_path, load_script) -> None:
+def test_changed_evidence_is_not_credited_as_current_and_missing_labels_are_not_negatives(
+    api, tmp_path, load_script
+) -> None:
     scorer = load_script("score_history")["score"]
     answers = api["LiveAnswers"](tmp_path, http_client=provider([]))
     early = candidate()

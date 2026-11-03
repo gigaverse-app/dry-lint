@@ -5,6 +5,9 @@ workflows, can exploration leave capacity for later baseline candidates, and do 
 new balanced default? Defaults remain unchanged. The judge policy is usable today; protected discovery is a
 historical replay experiment, not a live discovery profile.
 
+The follow-up [four-cent experiment](four-cent-discovery.md) tests cheaper models, compact baseline judging,
+dollar pacing and later-commit capacity at the default-sized allowance. It includes a fresh chronological panel.
+
 ## What changed
 
 The opt-in `shared-operations` Anthropic prompt asks for a concrete shared operation, its inputs, ordering and

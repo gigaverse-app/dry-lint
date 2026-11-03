@@ -8,7 +8,7 @@ import argparse
 import json
 from pathlib import Path
 
-from judge_history import Observation, answer_key
+from judge_history import Observation, answer_key, key_for_result
 from replay_coverage import ReplayInput, pool
 from score_history import score
 
@@ -34,12 +34,11 @@ def score_comparison(captures: Path, results: Path, labels: Path, answers: Path)
             policy = result["prompt_policy"]
             translated = {}
             for step in payload.steps:
-                for candidate in pool(step)[0].values():
+                candidates, ranks = pool(step)
+                for candidate in candidates.values():
                     identity = answer_key(candidate, "reference-v1")
                     if identity in reference:
-                        translated[
-                            answer_key(candidate, result["judge"], policy, template=result.get("prompt_template"))
-                        ] = reference[identity]
+                        translated[key_for_result(candidate, ranks[candidate.key], result)] = reference[identity]
             arms[f"{policy}/{result['policy']}"] = score(payload, result, translated, observations)
         cohorts[path.parent.name] = arms
     return {

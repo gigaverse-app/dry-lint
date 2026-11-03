@@ -12,7 +12,8 @@ implements one; nothing needs to inherit from dry-lint.
 
 A slot takes a name, or a table whose `use` names the plugin and whose other keys are passed to its constructor:
 
-The Anthropic judge accepts opt-in `prompt_policy = "shared-operations"` and `max_tokens` constructor options.
+The Anthropic judge accepts opt-in `prompt_policy = "shared-operations"` or `"shared-operations-compact"` and
+`max_tokens` constructor options. The [compact-policy experiment](four-cent-discovery.md) uses a 512-token cap.
 See the [configuration and measurements](protected-exploration.md); legacy judging remains the default, and
 experimental prompt answers have a distinct cache identity.
 

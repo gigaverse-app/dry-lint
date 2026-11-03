@@ -1,4 +1,4 @@
-"""Meter live Sonnet judgments while replaying fixed and baseline-first discovery. Private outputs.
+"""Meter live model judgments while replaying fixed and baseline-first discovery. Private outputs.
 
 Reads captures from capture_history.py. Supply ANTHROPIC_API_KEY in the environment. Uses the canonical judge,
 prompt, preset and price table. Never loads credentials from a repository or executes captured source.
@@ -30,6 +30,8 @@ class Protection(BaseModel):
     baseline_calls: int = Field(ge=0)
     baseline_usd: float = Field(ge=0)
     exploration_per_run: int = Field(default=1, ge=0)
+    exploration_run_usd: float | None = Field(default=None, ge=0)
+    exploration_carry_usd: float | None = Field(default=None, ge=0)
 
 
 class Observation(BaseModel):
@@ -62,7 +64,10 @@ class LiveAnswers:
         http_client=None,
         prompt_policy: str = "concept",
         max_tokens: int = 8000,
+        model: str = MODEL,
     ) -> None:
+        if model not in PRICES:
+            raise ValueError("Live model needs a known price before spending")
         self.directory, self.limit = directory, limit
         directory.mkdir(parents=True, exist_ok=True)
         if list(directory.glob("*.unmetered")):
@@ -74,7 +79,7 @@ class LiveAnswers:
         client = http_client or anthropic.DefaultHttpxClient()
         client.event_hooks.setdefault("response", []).append(self.capture_response)
         self.judge = AnthropicJudge(
-            model=MODEL, workers=1, http_client=client, prompt_policy=prompt_policy, max_tokens=max_tokens
+            model=model, workers=1, http_client=client, prompt_policy=prompt_policy, max_tokens=max_tokens
         )
         self.judge.client = self.judge.client.with_options(max_retries=0)
         self.settings = resolve(Settings(preset="sonnet"))
@@ -95,7 +100,18 @@ class LiveAnswers:
         # Conservative UTF-8 byte bound plus framing, at the maximum price of the selected model.
         # Reserve max output even when this experiment already has an answer: same admission rule in both arms.
         tokens = len(prompt(candidate, policy=self.judge.prompt_policy).encode("utf-8")) + 1000
-        return (tokens * 2.5 + self.judge.max_tokens * 10) / 1_000_000
+        input_rate, output_rate = PRICES[self.judge.model]
+        return (tokens * input_rate * 1.25 + self.judge.max_tokens * output_rate) / 1_000_000
+
+    def observe(self, candidate: Candidate) -> Observation:
+        """A known paid failure is evidence of spending, never evidence that the pair is separate."""
+        try:
+            return self.get(candidate)
+        except ValueError:
+            observation = self.observations.get(self.key(candidate))
+            if observation is None or observation.error is None:
+                raise
+            return observation
 
     def get(self, candidate: Candidate) -> Observation:
         key = self.key(candidate)
@@ -130,13 +146,16 @@ class LiveAnswers:
         ):
             (self.directory / f"{key}.unmetered").write_text("missing or invalid usage", encoding="utf-8")
             raise ValueError("Live response has invalid usage; experiment stopped")
-        if model != MODEL:
+        if model != self.judge.model:
             (self.directory / f"{key}.unmetered").write_text("unexpected returned model", encoding="utf-8")
             raise ValueError("Unexpected returned model; do not price it as the requested model")
         input_rate, output_rate = PRICES[model]
         creation, read = usage.get("cache_creation_input_tokens", 0), usage.get("cache_read_input_tokens", 0)
         usd = (
-            usage["input_tokens"] * input_rate + usage["output_tokens"] * output_rate + creation * 2.5 + read * 0.10
+            usage["input_tokens"] * input_rate
+            + usage["output_tokens"] * output_rate
+            + creation * input_rate * 1.25
+            + read * input_rate * 0.10
         ) / 1_000_000
         observation = Observation(
             key=key,
@@ -162,6 +181,27 @@ class LiveAnswers:
         return observation
 
 
+def judge_manifest(answers: LiveAnswers) -> dict:
+    return {
+        "judge": answers.judge.version,
+        "prompt_policy": answers.judge.prompt_policy,
+        "prompt_template": PROMPT_POLICIES[answers.judge.prompt_policy][1],
+        "report_at": answers.settings.report_at,
+    }
+
+
+def judge_for_result(ranks: dict[str, int], result: dict) -> dict:
+    config = result.get("baseline_judge") if "baseline" in ranks else None
+    return config if config is not None else result
+
+
+def key_for_result(candidate: Candidate, ranks: dict[str, int], result: dict) -> str:
+    config = judge_for_result(ranks, result)
+    return answer_key(
+        candidate, config["judge"], config.get("prompt_policy", "concept"), template=config.get("prompt_template")
+    )
+
+
 def evaluate(
     payload: ReplayInput,
     answers: LiveAnswers,
@@ -171,6 +211,7 @@ def evaluate(
     run_usd: float = 0.15,
     total_usd: float = 0.50,
     protection: Protection | None = None,
+    baseline_answers: LiveAnswers | None = None,
 ) -> dict:
     if policy not in ("fixed", "refill", "protected") or min(per_run, total, run_usd, total_usd) < 0:
         raise ValueError("Use fixed/refill/protected and nonnegative budgets")
@@ -180,9 +221,22 @@ def evaluate(
         policy != "protected" or protection.baseline_calls > total or protection.baseline_usd > total_usd
     ):
         raise ValueError("Protected capacity must fit the campaign budget and use the protected policy")
+    if protection and protection.exploration_carry_usd is not None and protection.exploration_run_usd is None:
+        raise ValueError("Carried exploration credit requires a per-revision dollar allowance")
+    if baseline_answers is not None:
+        if (
+            baseline_answers.directory.resolve() != answers.directory.resolve()
+            or baseline_answers.limit != answers.limit
+        ):
+            raise ValueError("Mixed judges must share one physical answer directory and allowance")
+        # Both clients spend from one physical ledger; independent snapshots would undercount later calls.
+        answers.observations.update(baseline_answers.observations)
+        baseline_answers.observations = answers.observations
     state = ReplayState(policy="fixed" if policy == "fixed" else "refill")
     spent, exploration_spent, exploration_attempts, curves = 0.0, 0.0, 0, []
     baseline_query_attempts = {}
+    failed_answers = set()
+    exploration_credit, credited_revisions = 0.0, set()
     for ordinal, step in enumerate(payload.steps):
         raw = step.model_dump(mode="json")
         raw["failed_keys"] = sorted(step.failed_keys)
@@ -190,12 +244,24 @@ def evaluate(
         repeated = step.run_id in state.runs
         if repeated and state.runs[step.run_id] != run_digest:
             raise ValueError("Logical run identity was reused for different evidence")
+        revision = next(iter(step.sources.values())).run.head or step.run_id
+        if protection and protection.exploration_carry_usd is not None and revision not in credited_revisions:
+            assert protection.exploration_run_usd is not None, "A carry bank requires a per-revision allowance"
+            exploration_credit = min(
+                protection.exploration_carry_usd, exploration_credit + protection.exploration_run_usd
+            )
+            credited_revisions.add(revision)
         candidates, ranks = pool(step)
-        keys = {k: answers.key(c) for k, c in candidates.items()}
-        pending = {k for k in candidates if state.completed.get(k) != keys[k]}
+        routes = {
+            k: baseline_answers if baseline_answers is not None and "baseline" in ranks[k] else answers
+            for k in candidates
+        }
+        keys = {k: routes[k].key(c) for k, c in candidates.items()}
+        pending = {k for k in candidates if state.completed.get(k) != keys[k] and keys[k] not in failed_answers}
         for key in candidates:
             state.first_seen.setdefault(key, ordinal)
         selected, run_spent, run_seconds, run_exploration = [], 0.0, 0.0, 0
+        run_exploration_usd = 0.0
         stopped_reason = "repeated_run" if repeated else "campaign_calls" if state.attempts >= total else "run_calls"
         for _ in range(0 if repeated else min(per_run, total - state.attempts)):
             baseline = {k for k in pending if "baseline" in ranks[k]}
@@ -215,7 +281,14 @@ def evaluate(
                     stopped_reason = "exploration_pacing"
                     break
                 room = min(room, total_usd - protection.baseline_usd - exploration_spent)
-            affordable = {k for k in eligible if answers.reserve(candidates[k]) <= room}
+                if protection.exploration_run_usd is not None:
+                    pacing_room = (
+                        exploration_credit
+                        if protection.exploration_carry_usd is not None
+                        else protection.exploration_run_usd - run_exploration_usd
+                    )
+                    room = min(room, pacing_room)
+            affordable = {k for k in eligible if routes[k].reserve(candidates[k]) <= room}
             if not affordable:
                 stopped_reason = "baseline_request_does_not_fit" if baseline else "exploration_request_does_not_fit"
                 break
@@ -228,10 +301,12 @@ def evaluate(
             if key is None:
                 break
             c = candidates[key]
-            observation = answers.get(c)
-            assert observation.verdict is not None
+            observation = routes[key].observe(c)
             state.attempts += 1
-            state.completed[key] = keys[key]
+            if observation.verdict is None:
+                failed_answers.add(keys[key])
+            else:
+                state.completed[key] = keys[key]
             state.historical_pairs.add(key)
             state.query_attempts[c.new.qualname] = state.query_attempts.get(c.new.qualname, 0) + 1
             if baseline:
@@ -240,11 +315,20 @@ def evaluate(
                 exploration_attempts += 1
                 run_exploration += 1
                 exploration_spent += observation.usd
+                run_exploration_usd += observation.usd
+                if protection and protection.exploration_carry_usd is not None:
+                    exploration_credit -= observation.usd
             spent += observation.usd
             run_spent += observation.usd
             run_seconds += observation.seconds
             selected.append(
-                {"key": key, "answer": observation.key, "usd": observation.usd, "sources": sorted(ranks[key])}
+                {
+                    "key": key,
+                    "answer": observation.key,
+                    "usd": observation.usd,
+                    "sources": sorted(ranks[key]),
+                    "error": observation.error,
+                }
             )
             pending.remove(key)
         state.runs[step.run_id] = run_digest
@@ -253,7 +337,7 @@ def evaluate(
             k
             for k, v in current.items()
             if answers.observations[v].verdict.label != "separate"
-            and answers.observations[v].verdict.score >= answers.settings.report_at
+            and answers.observations[v].verdict.score >= routes[k].settings.report_at
         ]
         curves.append(
             {
@@ -270,6 +354,7 @@ def evaluate(
                 "serial_api_seconds": run_seconds,
                 "exploration_attempts": exploration_attempts,
                 "exploration_usd": exploration_spent,
+                "exploration_credit_usd": exploration_credit,
                 "repeated": repeated,
                 "stopped_reason": stopped_reason,
             }
@@ -281,11 +366,9 @@ def evaluate(
         "total": total,
         "run_usd": run_usd,
         "total_usd": total_usd,
-        "judge": answers.judge.version,
-        "prompt_policy": answers.judge.prompt_policy,
-        "prompt_template": PROMPT_POLICIES[answers.judge.prompt_policy][1],
+        **judge_manifest(answers),
+        "baseline_judge": judge_manifest(baseline_answers) if baseline_answers is not None else None,
         "protection": protection.model_dump() if protection else None,
-        "report_at": answers.settings.report_at,
         "curves": curves,
     }
 
