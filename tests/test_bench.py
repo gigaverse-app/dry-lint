@@ -6,11 +6,13 @@ import pytest
 from dry_lint.bench import (
     GoldFunction,
     GoldPair,
+    JudgeBench,
     as_function,
     auc,
     bench_comparer,
     bench_judge,
     intervals,
+    judge_bench,
     load_gold,
     precision_recall,
 )
@@ -163,3 +165,11 @@ def test_the_benchmark_holds_unescalated_answers_to_the_first_judges_bar_as_a_re
     lowered = settings.model_copy(update={"escalate": Escalation(use="second", between=(0.6, 0.91), first_at=0.8)})
     both = bench_judge(pairs, first, lowered, PythonExtractor(), escalation=second)
     assert (both.precision, both.recall) == (0.5, 1.0)  # the second judge's answers meet report_at
+
+
+def test_a_gold_set_without_both_kinds_of_pair_has_no_auc_and_still_round_trips(tmp_path) -> None:
+    only = [GoldPair(new=GoldFunction(id="a.py::f", code="def f():\n    return 1"),
+                     existing=GoldFunction(id="b.py::g", code="def g():\n    return 1"), label="duplicate")]
+    result = judge_bench(only, [Verdict(label="duplicate", score=0.9, judge="j")], Settings(), "j")
+    assert result.auc is None and "AUC n/a" in result.as_text(Settings())
+    assert JudgeBench.model_validate_json(result.model_dump_json()) == result

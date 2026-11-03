@@ -103,7 +103,9 @@ dry-lint bench --replay 50 --fail-at 0.9            # the same verdicts at a str
 ```
 
 Before turning dry-lint on, or changing a preset or `fail_at`, replay the repository's recent history: it shows
-which pull requests would have failed or warned and what judging cost, from verdicts kept in the store.
+which pull requests would have failed or warned and what judging cost, from verdicts kept in the store. Add
+`--label 100` (with `OPENROUTER_API_KEY`, about $3) to learn what that judging would catch, miss and block wrongly
+on this repository, and to get a gold set for `bench --gold`.
 
 A gold set is JSON lines of labelled pairs ([format](../../docs/benchmark.md#running-it)). Label at least 200
 pairs, most from the scores where decisions happen; report every number with its interval, because a handful of

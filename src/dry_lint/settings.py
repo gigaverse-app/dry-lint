@@ -86,6 +86,10 @@ class Settings(BaseModel):
                                                     "(presets.py). auto: the best one the credentials allow. Explicit "
                                                     "judge, escalate and threshold settings win over the preset's.")
     budget: Budget = Field(default_factory=Budget)
+    labellers: list[str] = Field(
+        default_factory=lambda: ["anthropic/claude-opus-5.5", "openai/gpt-5.5", "google/gemini-3.1-pro-preview"],
+        description="For `bench --replay --label`: OpenRouter model ids, or `command:<cli>`; the strict majority labels a "
+                    "pair. Three vendors, so no judge's own family decides its gold labels.")
     prices: dict[str, tuple[float, float]] = Field(default_factory=dict,
                                                    description="USD per million input and output tokens, by model or "
                                                                "judge name, over the built-in table.")

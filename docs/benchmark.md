@@ -243,6 +243,31 @@ that would have failed. At `--fail-at 0.9` the same 19 findings fail 2 commits a
 calls. The store keeps one verdict per pair, the latest, so a pair met again at a later commit reuses it whenever
 `check` would.
 
+### Labelling a replay
+
+`--label K` turns the replay into a gold set of your own and says what the judging made of it. About K distinct
+pairs are sampled by the configured judge's score, most from the bands where presets decide (as for the gigaverse-ai
+gold set), each weighted by its band's size over its sample size. A panel labels each pair blind, with the
+[guideline below](#labelling-guideline) and the two functions only, no score or verdict; the strict majority is the
+label, and a split is borderline. The default panel is the `labellers` setting, three vendors' models through
+OpenRouter (`OPENROUTER_API_KEY`), so no single judge's family decides its own gold; `--labeller` replaces it, and
+`--labeller "command:<cli>"` runs any command that reads the prompt and prints a JSON answer, including a script that
+asks a person.
+
+```bash
+dry-lint bench --replay 150 --label 100                # about $3 through OpenRouter
+dry-lint bench --gold .git/dry-lint/gold/replay.jsonl --preset jev    # any other preset, on the same labels
+```
+
+The report adds, per 100 commits with 90% intervals: real duplicates proposed, reported (real and not), blocking
+(real and not), and real duplicates the judging did not report, plus precision and recall when reporting and when
+blocking. They come from the replay's own verdicts, so labelling never re-judges. The gold set is written inside the
+git directory by default (`--gold-out` to choose); every answer is kept beside it, so running again, or with a larger
+`--label`, asks only about pairs nobody has answered. `--label-budget-usd` (default 5) caps a run's labelling.
+
+On gigaverse-backend's last 30 commits, 60 labelled pairs ($1.71) gave about 80 real duplicates proposed per 100
+commits, 63 reported with none wrongly, and 16 (0–49) not reported.
+
 ## Labelling guideline
 
 Use this to build a gold set for your own codebase:
