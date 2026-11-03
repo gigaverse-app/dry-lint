@@ -24,10 +24,55 @@ That is the whole setup for a repository whose pull requests come from its own b
   - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never
     shows a broken image.
 - **The job summary**, with the same report.
-- **No red X by default.** Set `fail-on-findings: "true"` once the team trusts the findings.
+- **Red for a reported duplicate**, unless overridden. The threshold is the `fail-at` input. See
+  [When it fails](#when-it-fails-and-false-positives).
 
 Without a judge (no `typesafe-api-key` and no `judge-command`), dry-lint lists look-alikes in the log. It adds no
 annotations, no comment and no failure, so installing it before the secret exists costs nothing.
+
+## When it fails, and false positives
+
+Two thresholds decide what a finding does: `report_at` and `fail_at`, both in `[tool.dry-lint]`. The `fail-at`
+action input (or `--fail-at` on the command line) overrides `fail_at` for one workflow.
+
+| Judge score | Finding | Check |
+| --- | --- | --- |
+| below `report_at` (0.8) | not shown | green |
+| `report_at` up to `fail_at` | warning annotation, listed in the comment | green |
+| `fail_at` and above | error annotation, listed first as **blocking** | **red** |
+
+By default `fail_at` is 0.8, the same as `report_at`, so **every reported duplicate fails the check**. On the gold
+set (the shipped `reuse-v2` prompt) that is 75% precision and 59% recall. A quarter of red checks will be false
+positives, which is what the overrides below are for.
+
+To fail only on near-certain duplicates, set `fail-at: "0.91"`:
+
+| `fail_at` | Precision | Recall | Red pull requests |
+| --- | --- | --- | --- |
+| 0.80 (default) | 75% | 59% | about 1 in 6 |
+| 0.85 | 78% | 44% | |
+| 0.88 | 90% | 32% | |
+| 0.91 | 100% | 21% | about 1 in 20 |
+
+At 0.91, the highest-scoring false positive was 0.892 and the lowest true duplicate above it was 0.910, so
+nothing is lost against 0.90 and the margin is wider. Findings between 0.8 and 0.91 then only warn
+([benchmark](benchmark.md)). `warn-only` never fails.
+
+**When dry-lint is wrong**, record the decision where it belongs:
+
+| Scope | How | Where it lives |
+| --- | --- | --- |
+| this pair | `# dry-lint: distinct-from src/text.py::shorten_text` in the new function | next to the code it explains |
+| this function | `# dry-lint: ignore` in the function | next to the code |
+| a family of deliberate look-alikes | a `patterns` entry (`members`, `reason`) in `[tool.dry-lint]` | configuration, reviewed |
+| whole paths | `exclude` in `[tool.dry-lint]` | configuration, reviewed |
+| this pull request only | the `dry-lint: override` label | the pull request; the comment says it was overridden |
+
+The code and configuration routes are permanent and reviewed like any change: the pair is never proposed again.
+The label is for an urgent merge or a call you don't want to write down. It lets blocking findings through for this
+pull request only, and the comment records that it did. Adding or removing the label re-runs dry-lint (the example
+workflow listens for `labeled` and `unlabeled`), and the verdicts come from the cache, so that re-run costs no
+judge calls.
 
 ## Modes, and pull requests from forks
 
@@ -61,12 +106,14 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment` | `true` | Keep the sticky comment. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
 | `sticky-key` | | One comment per key, when several dry-lint steps report on one pull request. |
-| `fail-on-findings` | `false` | Fail when a judged duplicate reaches `report_at`. |
+| `fail-at` | `fail_at` from `[tool.dry-lint]` (0.8) | Judge score at or above which a duplicate fails the check; `0.91` fails only near-certain ones. |
+| `warn-only` | `false` | Never fail; blocking findings are reported like the rest. |
+| `override-label` | `dry-lint: override` | The pull request label that lets blocking findings through. |
 | `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read` and `checks: write`. |
 
-The outputs are `mode`, `findings` (how many duplicates were reported) and `exit-code`: 0 for clean, 1 for
-duplicates reported, 2 when dry-lint could not run. Exit code 2 always fails the step, so a broken setup is never
-silent.
+The outputs are `mode`, `findings` (how many duplicates were reported), `blocking` (how many reached `fail_at`),
+`overridden` and `exit-code`: 0 for nothing blocking, 1 for blocking findings, 2 when dry-lint could not run. Exit
+code 2 always fails the step, so a broken setup is never silent.
 
 Thresholds and exclusions live in `[tool.dry-lint]` in `pyproject.toml`, so that the action, the pre-commit hook
 and the command line all agree ([README](../README.md#settings)).

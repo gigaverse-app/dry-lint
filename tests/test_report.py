@@ -21,7 +21,7 @@ from dry_lint.settings import Settings
 
 from conftest import function
 
-SETTINGS = Settings()
+SETTINGS = Settings(fail_at=0.91)  # raised above report_at, so there is a band that only warns
 NEW = function("src/widgets/caption.py", "def clip(text, n):\n    return text[:n]\n")
 
 
@@ -48,11 +48,28 @@ def test_only_unjudged_candidates_and_confident_duplicates_are_visible() -> None
     assert [f.reported for f in built.findings] == [True, True, False, False, False]
 
 
-def test_findings_are_ordered_drifted_first_then_by_score_and_count_their_family() -> None:
+def test_findings_are_ordered_blocking_then_drifted_then_by_score_and_count_their_family() -> None:
     built = report(finding("duplicate", 0.85, existing="a"), finding("duplicate", 0.95, existing="b"),
-                   finding("drifted", 0.81, existing="c"))
-    assert [f.candidate.existing.name for f in built.findings] == ["c", "b", "a"]
-    assert {f.family for f in built.findings} == {3}
+                   finding("drifted", 0.81, existing="c"), finding("duplicate", 0.88, existing="d"))
+    assert [f.candidate.existing.name for f in built.findings] == ["b", "c", "d", "a"]
+    assert [f.blocking for f in built.findings] == [True, False, False, False]
+    assert {f.family for f in built.findings} == {4}
+
+
+@pytest.mark.parametrize("label, score, reported, blocking", [
+    ("duplicate", 0.79, False, False), ("duplicate", 0.8, True, False), ("drifted", 0.89, True, False),
+    ("duplicate", 0.9, True, False), ("duplicate", 0.91, True, True), ("drifted", 0.97, True, True),
+    ("separate", 0.95, False, False),
+])  # fmt: skip
+def test_blocking_means_a_reported_duplicate_at_or_above_fail_at(label, score, reported, blocking) -> None:
+    [f] = report(finding(label, score)).findings
+    assert (f.reported, f.blocking) == (reported, blocking)
+
+
+def test_fail_at_below_report_at_never_blocks_an_unreported_pair() -> None:
+    settings = Settings(report_at=0.8, fail_at=0.5)
+    [f] = Report.build([finding("duplicate", 0.7)], settings).findings
+    assert (f.reported, f.blocking) == (False, False)
 
 
 def test_stats_count_every_kind_of_pair() -> None:
@@ -71,10 +88,10 @@ def test_text_report_gives_location_verdict_advice_and_a_way_out() -> None:
     assert as_text(report(judge=None)).endswith("(no judge), 0 reported")
 
 
-def test_github_annotations_are_warnings_for_duplicates_and_errors_for_drift() -> None:
-    lines = as_github(report(finding("duplicate", existing="a"), finding("drifted", existing="b"),
-                             finding("separate", existing="c"))).splitlines()
-    assert [line.split(" ", 1)[0] for line in lines] == ["::error", "::warning"]
+def test_github_annotations_are_errors_for_blocking_findings_and_warnings_for_the_rest() -> None:
+    lines = as_github(report(finding("duplicate", 0.85, existing="a"), finding("drifted", 0.86, existing="b"),
+                             finding("duplicate", 0.93, existing="c"), finding("separate", existing="d"))).splitlines()
+    assert [line.split(" ", 1)[0] for line in lines] == ["::error", "::warning", "::warning"]
     assert lines[1].startswith("::warning file=src/widgets/caption.py,line=1,endLine=2,title=dry-lint::clip looks like")
 
 
@@ -119,17 +136,27 @@ def test_judge_text_cannot_inject_markdown_links_or_html() -> None:
 
 
 def test_markdown_uses_the_reason_alone_when_there_is_no_owner() -> None:
-    assert "| **duplicate** 0.90 | same truncation |" in as_markdown(report(finding("duplicate", owner="", why="same truncation")))
+    assert "| **duplicate** 0.85 | same truncation |" in as_markdown(report(finding("duplicate", 0.85, owner="", why="same truncation")))
+
+
+def test_markdown_labels_blocking_findings_first_and_lists_every_override() -> None:
+    body = as_markdown(report(finding("duplicate", 0.85, existing="a"), finding("duplicate", 0.93, existing="b")))
+    assert body.index("**blocking duplicate** 0.93") < body.index("**duplicate** 0.85")
+    assert "1 of them are blocking" in body
+    for override in ("`# dry-lint: distinct-from <qualified name>`", "`# dry-lint: ignore`", "`patterns`",
+                     "`dry-lint: override`"):
+        assert override in body
+    assert "blocking" not in as_markdown(report(finding("duplicate", 0.85)))
 
 
 def test_json_report_round_trips() -> None:
     built = report(finding("duplicate", existing="a"), finding("separate", existing="b"))
     loaded = Report.model_validate_json(render(built, "json", SETTINGS))
-    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 1
+    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 2
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:
-    data = json.loads(as_sarif(report(finding("drifted", existing="a"), finding(None, existing="b"), finding("separate", existing="c"))))
+    data = json.loads(as_sarif(report(finding("drifted", 0.95, existing="a"), finding(None, existing="b"), finding("separate", existing="c"))))
     assert data["version"] == "2.1.0"
     [run] = data["runs"]
     assert [(r["ruleId"], r["level"]) for r in run["results"]] == [("dry-lint/drifted", "error"), ("dry-lint/candidate", "note")]
@@ -140,11 +167,14 @@ def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_r
     assert first["partialFingerprints"]["dryLintPair/v1"] == pair("a").key
 
 
-def test_the_check_run_is_neutral_with_findings_and_never_fails() -> None:
-    body = json.loads(as_check_run(report(finding("drifted", existing="a"), finding("duplicate", existing="b"))))
-    assert (body["name"], body["head_sha"], body["status"], body["conclusion"]) == ("dry-lint", "abc", "completed", "neutral")
+def test_the_check_run_fails_only_for_blocking_findings_unless_warn_only() -> None:
+    blocking = report(finding("drifted", 0.93, existing="a"), finding("duplicate", 0.85, existing="b"))
+    body = json.loads(as_check_run(blocking))
+    assert (body["name"], body["head_sha"], body["status"], body["conclusion"]) == ("dry-lint", "abc", "completed", "failure")
     assert body["output"]["title"] == "2 duplicated concept(s)" and body["output"]["summary"].startswith(MARKER)
     assert [a["annotation_level"] for a in body["output"]["annotations"]] == ["failure", "warning"]
+    assert json.loads(as_check_run(blocking, warn_only=True))["conclusion"] == "neutral"
+    assert json.loads(as_check_run(report(finding("duplicate", 0.85))))["conclusion"] == "neutral"
     clean = json.loads(as_check_run(report(finding("separate"))))
     assert (clean["conclusion"], clean["output"]["title"], clean["output"]["annotations"]) == ("success", "No duplicated concepts", [])
 

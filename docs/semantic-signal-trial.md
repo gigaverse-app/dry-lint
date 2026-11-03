@@ -24,6 +24,7 @@ so this probe tests additive evidence, not complete invariance of the fingerprin
 
 Each experimental comparer has a distinct `trial-<variant>-tfidf:1` identity. Its exported scores must not enter
 the verdict cache under the production `tfidf:2` identity. The scripts do not write verdicts or change a repository.
+Experimental comparers also disable similarity-based reuse after logic changes under the shared cache contract.
 
 ## Method
 
@@ -32,6 +33,8 @@ the verdict cache under the production `tfidf:2` identity. The scripts do not wr
   over all 44,892 function/feature combinations; no corpus feature tokens changed.
 - Backend: `22dfbe180c6704101658a088cc269a25fa9c82dd`, 5,057 implemented functions.
 - AI: `78467d3e72508d355eb1fcf923f290a7a69980ef`, 9,907 implemented functions.
+- Merged main through `f7f95bf` after the trial. Native tokenization/ranking is unchanged; the new inline-ignore
+  rule matches no function in either corpus. Experiments adopt the new cache-reuse capability conservatively.
 - Both worktrees were clean. Run with Python 3.14.7 and `PYTHONHASHSEED=0`; these repositories use syntax that older
   parsers may skip. Fit every index over the full repository, not just the sample.
 - For each repository, take 12 pairs from the baseline scan and 8 from the union of variant scan pairs absent

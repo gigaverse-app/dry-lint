@@ -142,7 +142,9 @@ def test_trial_cli_runs_each_variant_with_real_repository_and_gold(repo, tmp_pat
     for variant in results["variants"]:
         expected = "tfidf:2" if variant == "baseline" else f"trial-{variant}-tfidf:1"
         assert results["variants"][variant]["comparer"] == expected
-        assert all(pair["comparer"] == expected for pair in json.loads((out / f"{variant}-scan.json").read_text()))
+        pairs = json.loads((out / f"{variant}-scan.json").read_text())
+        assert all(pair["comparer"] == expected for pair in pairs)
+        assert all(pair["similarity_reusable"] == (variant == "baseline") for pair in pairs)
 
     gold.write_text(gold.read_text().replace("src/text.py::shorten_text", "missing.py::gone"))
     runner = runpy.run_path(str(scripts / "benchmark_semantic_signals.py"))["run"]

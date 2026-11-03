@@ -68,6 +68,8 @@ class Settings(BaseModel):
 
     drop_below: float = Field(default=0.6, description="Judge scores below this are not duplicates.")
     report_at: float = Field(default=0.8, description="Judge scores at or above this are reported.")
+    fail_at: float = Field(default=0.8, description="Judged duplicates at or above this fail `check`; between "
+                                                    "report_at and fail_at they only warn.")
     drift_at: float = Field(default=0.8, description="Behaves-differently scores at or above this mark a finding drifted.")
     reopen_margin: float = Field(default=0.05, description="A 'not a duplicate' verdict reopens only if the pair got this much closer.")
     max_findings: int = Field(default=10, description="Findings listed in a pull request comment; the rest are counted.")

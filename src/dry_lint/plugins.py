@@ -74,7 +74,7 @@ class StoreBackend(Protocol):
 
 BUILT_IN = {
     "extractors": {"python": "dry_lint.extractors:PythonExtractor"},
-    "comparers": {"tfidf": "dry_lint.comparers:TfidfComparer"},
+    "comparers": {"tfidf": "dry_lint.comparers:TfidfComparer", "dryer": "dry_lint.dryer:DryerComparer"},
     "judges": {"jev": "dry_lint.judges.jev:JevJudge", "command": "dry_lint.judges.command:CommandJudge"},
     "stores": {"dir": "dry_lint.store:DirectoryStore", "s3": "dry_lint.store:S3Store"},
 }

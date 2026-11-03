@@ -27,9 +27,15 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache-environment: "false"
+          sync-args: --extra dryer
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
       - run: uv build
+      - name: Default install stays lightweight
+        run: >-
+          uv run --isolated --no-project --with . python -c
+          "from importlib.util import find_spec; from dry_lint.plugins import load;
+          from dry_lint.settings import Settings; load('comparers', Settings().comparer).index([]); assert find_spec('dryer') is None"
 
   lint-ci:
     name: Lint the action and workflows

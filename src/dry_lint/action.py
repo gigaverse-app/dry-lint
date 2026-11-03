@@ -33,6 +33,7 @@ from dry_lint.git import git
 from dry_lint.github import github_event
 
 ARTIFACT = "dry-lint-candidates"
+OVERRIDE_LABEL = "dry-lint: override"
 
 
 def env(name: str, default: str = "") -> str:
@@ -93,8 +94,37 @@ def dry_lint(*args: str, echo: bool = True) -> tuple[int, list[str]]:
     return result.returncode, result.stdout.splitlines()
 
 
-def count_findings(lines: list[str]) -> int:
-    return sum(line.startswith(("::warning file=", "::error file=")) for line in lines)
+def count_findings(lines: list[str]) -> tuple[int, int]:
+    """All findings, and the blocking ones (dry-lint marks a finding at or above `fail_at` as an error)."""
+    return sum(line.startswith(("::warning file=", "::error file=")) for line in lines), \
+        sum(line.startswith("::error file=") for line in lines)
+
+
+def fail_at() -> list[str]:
+    """The fail-at input, passed through to dry-lint; empty means the repository's `fail_at` setting."""
+    return ["--fail-at", env("INPUT_FAIL_AT")] if env("INPUT_FAIL_AT") else []
+
+
+def override_label() -> str:
+    return env("INPUT_OVERRIDE_LABEL") or OVERRIDE_LABEL
+
+
+def labels_of(pull: dict) -> set[str]:
+    return {label.get("name", "") for label in pull.get("labels") or []}
+
+
+def status_note(blocking: int, overridden: bool) -> str:
+    """The comment's last word on whether this pull request is blocked, and how to unblock a false positive."""
+    if not blocking:
+        return ""
+    if overridden:
+        return (f"**Overridden:** the `{override_label()}` label is set, so the {blocking} blocking finding(s) "
+                "do not fail this pull request.")
+    if flag("INPUT_WARN_ONLY"):
+        return ""
+    return (f"**Blocking:** {blocking} finding(s) reach `fail_at`, so this check "
+            f"fails. A false positive? Mark it in the code as above, or add the `{override_label()}` label to this "
+            "pull request.")
 
 
 def write_outputs(**outputs: object) -> None:
@@ -117,26 +147,28 @@ def run_url() -> str:
 
 
 def comment(repository: str, number: int, body: Path, findings: int, expect_head: str,
-            transport: httpx.BaseTransport | None = None) -> str:
+            transport: httpx.BaseTransport | None = None, note: str = "") -> str:
     if not flag("INPUT_COMMENT") or not number or not body.exists():
         return "off"
     args = ["--body", str(body), "--repository", repository, "--pull-request", str(number),
-            "--findings", str(findings), "--key", env("INPUT_STICKY_KEY"), "--run-url", run_url()]
+            "--findings", str(findings), "--key", env("INPUT_STICKY_KEY"), "--run-url", run_url(), "--note", note]
     if expect_head:
         args += ["--expect-head", expect_head]
     sticky.main(args, transport=transport)
     return "posted"
 
 
-def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTransport | None = None) -> str:
+def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTransport | None = None,
+              blocked: bool = False) -> str:
     """
     A workflow_run job does not show among a pull request's checks, so judge mode posts a check run on the pull
-    request's head commit. It is neutral with findings and success without: it informs, never blocks.
+    request's head commit: a failure when a finding blocks, otherwise neutral with findings and success without.
     """
     token = env("GITHUB_TOKEN")
     if not flag("INPUT_CHECK_RUN") or not token or not report.exists():
         return "off"
-    code, lines = dry_lint("report", "--root", str(root), "--from", str(report), "--format", "check-run", echo=False)
+    code, lines = dry_lint("report", "--root", str(root), "--from", str(report), "--format", "check-run", *fail_at(),
+                           echo=False)
     try:
         body = json.loads("\n".join(lines))
     except json.JSONDecodeError:
@@ -144,6 +176,8 @@ def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTr
     if code == 2:  # 1 only means the report has findings
         print("::warning title=dry-lint::Could not render the check run.")
         return "failed"
+    if blocked:
+        body["conclusion"] = "failure"
     github = sticky.GitHub(token, env("GITHUB_API_URL", "https://api.github.com"), transport)
     try:
         github.check_run(repository, body)
@@ -153,6 +187,18 @@ def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTr
         print("::warning title=dry-lint::No check run: give the judge job `checks: write`.")
         return "forbidden"
     return "posted"
+
+
+def pull_labels(repository: str, number: int, transport: httpx.BaseTransport | None = None) -> set[str]:
+    """In judge mode the event is the workflow run, not the pull request: ask the API for the labels."""
+    token = env("GITHUB_TOKEN")
+    if not token or not number:
+        return set()
+    github = sticky.GitHub(token, env("GITHUB_API_URL", "https://api.github.com"), transport)
+    try:
+        return labels_of(github.pull(repository, number))
+    except httpx.HTTPStatusError:
+        return set()
 
 
 def plan() -> int:
@@ -174,9 +220,10 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     root = Path(env("INPUT_WORKING_DIRECTORY", ".") or ".").resolve()
     store, report, body = work / "verdicts", work / "report.json", work / "comment.md"
     judge = resolve_judge(env("INPUT_JUDGE"), bool(env("TYPESAFE_AI_API_KEY")))
-    # Unjudged look-alikes go to the log only: as annotations they would be noise on every pull request.
-    judging = ["--judge", judge, "--store", str(store), "--report", str(report), "--output", str(body),
-               "--format", "text" if judge == "none" else "github", "--warn-only"]
+    # Unjudged look-alikes go to the log only: as annotations they would be noise on every pull request. With a
+    # judge, dry-lint exits 1 when a finding blocks (at or above fail_at); the action decides what that means.
+    judging = ["--judge", judge, "--store", str(store), "--report", str(report), "--output", str(body), *fail_at()]
+    judging += ["--format", "text", "--warn-only"] if judge == "none" else ["--format", "github"]
     if env("INPUT_JUDGE_COMMAND"):
         judging += ["--judge-command", env("INPUT_JUDGE_COMMAND")]
 
@@ -203,29 +250,35 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
             write_outputs(mode=mode, exit_code=2, findings=0)
             return 2
         number, repository = run_info.get("pull_request") or 0, env("GITHUB_REPOSITORY")
-        if code != 2 and judge != "none":
-            check_run(root, repository, report, transport)
+        labels = pull_labels(repository, number, transport) if code == 1 else set()
     else:
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)
         code, lines = dry_lint("check", "--root", str(root), *(["--base", base] if base else []), *judging)
         pull = event.get("pull_request") or {}
         number, repository, head = pull.get("number") or 0, env("GITHUB_REPOSITORY"), ""
+        labels = labels_of(pull)
 
-    findings = count_findings(lines)
+    findings, blocking = count_findings(lines)
     write_summary(body)
     if code == 2:
-        write_outputs(mode=mode, exit_code=2, findings=findings)
+        write_outputs(mode=mode, exit_code=2, findings=findings, blocking=blocking, overridden="false")
         return 2
     if judge == "none":
         print("::notice title=dry-lint::Look-alikes are listed unjudged in the log. Set typesafe-api-key (or "
               "judge-command) to judge them; until then dry-lint does not comment or fail.")
-        write_outputs(mode=mode, exit_code=0, findings=0)
+        write_outputs(mode=mode, exit_code=0, findings=0, blocking=0, overridden="false")
         return 0
-    comment(repository, number, body, findings, head, transport)
-    failed = findings > 0 and flag("INPUT_FAIL_ON_FINDINGS")
-    write_outputs(mode=mode, exit_code=1 if findings else 0, findings=findings)
-    return 1 if failed else 0
+    blocking = blocking if code == 1 else 0
+    overridden = bool(blocking) and override_label() in labels
+    blocked = bool(blocking) and not overridden and not flag("INPUT_WARN_ONLY")
+    if overridden:
+        print(f"::notice title=dry-lint::{blocking} blocking finding(s) overridden by the `{override_label()}` label.")
+    if mode == "judge":
+        check_run(root, repository, report, transport, blocked)
+    comment(repository, number, body, findings, head, transport, status_note(blocking, overridden))
+    write_outputs(mode=mode, exit_code=code, findings=findings, blocking=blocking, overridden=str(overridden).lower())
+    return 1 if blocked else 0
 
 
 def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = None) -> int:

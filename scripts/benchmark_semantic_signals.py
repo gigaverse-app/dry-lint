@@ -44,6 +44,7 @@ def run(root: Path, out: Path, gold_path: Path | None = None) -> None:
         if selected:
             # Experimental similarities must never masquerade as the production scale in a verdict cache.
             comparer.name, comparer.version = f"trial-{variant}-tfidf", "1"
+            comparer.similarity_reusable = False
         detector = Detector(functions, Settings(), comparer, base.extractors)
         scan = detector.scan()
         scan_keys = {p.key for p in scan}
