@@ -47,7 +47,8 @@ class Extractor(Protocol):
 ```
 
 `functions` returns every function in a file, with `tokens` filled in if your comparer uses them; leave `hash`
-empty. `structure_hash` must change when the logic changes and not for comments, formatting or renames; core
+empty. `structure_hash` must change when the logic changes and not for comments or formatting. Normalize
+renames only when the language's binding rules make that safe; conservative re-judging is preferable. Core
 calls it only for the functions in a candidate pair. `owner` is the enclosing class, if any.
 
 ## Comparer

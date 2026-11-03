@@ -43,8 +43,8 @@ See [docs/design.md](docs/design.md) and [docs/plugins.md](docs/plugins.md).
    Any LLM CLI, or any program, can be the judge instead, and a second judge can take the scores the first is
    least sure about.
 3. **Verdict store** (a cache, not a reviewed file). Each verdict is kept per pair with a *structure hash* of each
-   function, which comments, formatting and renames do not change. A pair is judged again only when its logic
-   changes, so most pushes cost zero judge calls.
+   function, which comments and formatting do not change. Python also normalizes local renames; TypeScript
+   conservatively re-judges them to preserve binding semantics. Most cosmetic pushes cost zero judge calls.
 
 ## Quick start
 

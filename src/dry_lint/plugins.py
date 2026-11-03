@@ -37,7 +37,7 @@ class Extractor(Protocol):
         ...
 
     def structure_hash(self, function: Function) -> str:
-        """Changes when the function's logic changes; not for comments, formatting or renames."""
+        """Changes with runtime logic; ignore cosmetics and normalize renames only when binding semantics allow."""
         ...
 
 
