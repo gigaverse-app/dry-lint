@@ -17,6 +17,7 @@ from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.settings import Settings
 
 SUPPRESSION = re.compile(r"(?:#|//)\s*dry-lint:\s*distinct-from\s+(\S+)")
+IGNORE = re.compile(r"(?:#|//)\s*dry-lint:\s*ignore\b")
 
 
 def default_base(root: Path) -> str:
@@ -66,6 +67,8 @@ def calls(function: Function) -> set[str]:
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
     """Look-alikes that are never duplicates, by structure, by rule, or by a person's inline decision."""
+    if IGNORE.search(a.code) or IGNORE.search(b.code):
+        return "inline ignore"
     if a.name.startswith("__") and b.name.startswith("__"):
         return "constructor or dunder pattern"
     if b.name in calls(a) or a.name in calls(b):

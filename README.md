@@ -80,8 +80,9 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 ```
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
-runs. A clean pull request gets no comment, and it warns rather than fails until you set
-`fail-on-findings: "true"`. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
+runs. A clean pull request gets no comment. A reported duplicate fails the check; set `fail-at: "0.91"` to fail only
+on near-certain ones (no false positive at that level in the benchmark), and the `dry-lint: override` label lets
+one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
 
@@ -94,6 +95,8 @@ Some look-alikes are deliberate. Silence them where the decision belongs:
 
 - **Inline**: put `# dry-lint: distinct-from src/text.py::shorten_text` in the new function. The reason sits next
   to the code it explains, and moves or disappears with it.
+- **A whole function**: put `# dry-lint: ignore` in it (generated code, a deliberate copy). It is left out of
+  every pair, on either side.
 - **Families**: declare a pattern of deliberate per-resource instances in `pyproject.toml`:
 
 ```toml
@@ -119,6 +122,7 @@ On 120 recent gigaverse-ai pull requests, against a blind two-labeller gold set 
 | Jev `reuse-v2`: ranking quality | AUC 0.97 |
 | at `report_at = 0.8` | 75% precision, 59% recall |
 | at `drop_below = 0.6` | 100% recall |
+| at `fail_at = 0.91`, if raised | 100% precision, 21% recall; about 1 PR in 20 |
 | Known duplicates found and scored ≥ 0.8 | 11 of 13 |
 | Verdict store for the whole repository | about 1,900 pairs, 0.75 MB |
 
@@ -131,7 +135,8 @@ measured thresholds above:
 | --- | --- | --- |
 | `include` / `exclude` | everything / tests, migrations, scripts | fnmatch over tracked paths |
 | `neighbours` | 3 | candidates per changed function |
-| `drop_below` / `report_at` / `drift_at` | 0.6 / 0.8 / 0.8 | judge thresholds |
+| `drop_below` / `report_at` / `drift_at` | 0.6 / 0.8 / 0.8 | judge thresholds: separate below, reported at, drifted at |
+| `fail_at` | 0.8 | judged duplicates at or above this fail the run (`--fail-at` overrides it); raise it above `report_at` to make the band between them warn only |
 | `reopen_margin` | 0.05 | how much closer a "separate" pair must get before it is judged again |
 | `max_findings` | 10 | rows in the PR comment |
 | `extractors` | `["python"]` | one per language |

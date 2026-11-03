@@ -16,8 +16,8 @@ And to look closer:
     dry-lint explain src/a.py::shorten src/b.py::clip                      # why a pair is, or is not, reported
     dry-lint bench --gold gold.jsonl [--comparer]                          # measure the judge, or the comparer
 
-Exit status: 0 when nothing is reported, 1 when a judged duplicate reaches `report_at` (unless --warn-only),
-2 on errors.
+Exit status: 0 when nothing blocks, 1 when a judged duplicate reaches `fail_at` (unless --warn-only), 2 on errors.
+Duplicates between `report_at` and `fail_at` are reported as warnings and exit 0.
 """
 
 import argparse
@@ -58,6 +58,8 @@ def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     settings = Settings.load(root)
     if args.detector:
         settings.comparer = PluginChoice(use=args.detector)
+    if args.fail_at is not None:
+        settings = settings.model_copy(update={"fail_at": args.fail_at})
     if args.judge or args.judge_command:
         use = args.judge or settings.judge.use
         options = settings.judge.options() if use == settings.judge.use else {}
@@ -76,14 +78,14 @@ def judged(candidates: list[Candidate], settings: Settings, root: Path, args: ar
 
 
 def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
-    output = render(report, args.format, settings)
+    output = render(report, args.format, settings, args.warn_only)
     if output:
         print(output)
     if args.output:
         args.output.write_text(as_markdown(report, settings.max_findings) + "\n")
     if args.report:
         args.report.write_text(as_json(report) + "\n")
-    return 1 if any(f.reported for f in report.findings) and not args.warn_only else 0
+    return 1 if any(f.blocking for f in report.findings) and not args.warn_only else 0
 
 
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -176,6 +178,8 @@ def parser() -> argparse.ArgumentParser:
     common.add_argument("--format", choices=FORMATS, default="text")
     common.add_argument("--output", type=Path, help="Also write the markdown report here, e.g. for a PR comment.")
     common.add_argument("--report", type=Path, help="Also write report.json here.")
+    common.add_argument("--fail-at", type=float, help="Judge score at or above which a duplicate fails the run, "
+                                                      "overriding fail_at in the settings.")
     common.add_argument("--warn-only", action="store_true", help="Report, but always exit 0.")
 
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")

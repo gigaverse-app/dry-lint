@@ -26,6 +26,8 @@ to the whole population with stratum weights (each band's size over its sample s
 | AUC | 0.97 |
 | `report_at = 0.8` | 75% precision, 59% recall |
 | `drop_below = 0.6` | 100% recall: no true duplicate scored under 0.6 |
+| `fail_at = 0.8` (the default) | the same pairs as `report_at`: 75% precision, 59% recall |
+| `fail_at = 0.91`, if raised | 100% precision, 21% recall; about 6 of the 295 candidates, roughly 1 PR in 20. The highest false positive scored 0.892 and the lowest true positive above it 0.910, so 0.90 and 0.91 flag the same pairs; 0.91 keeps twice the margin |
 | Comments per PR at 0.8 | about 0.18 |
 | Pairs between 0.6 and 0.8 per PR | about 0.3 |
 

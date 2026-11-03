@@ -28,11 +28,28 @@ def run(repo: Repo, tmp_path: Path, *args: str, command: str = "check") -> int:
     return main([command, "--root", str(repo.root), "--store", str(tmp_path / "store"), *args])
 
 
-def test_check_fails_and_annotates_a_judged_reimplementation(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
-    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--format", "github")
+def test_check_fails_and_annotates_an_error_for_a_blocking_reimplementation(repo: Repo, tmp_path: Path,
+                                                                              blocking_twin_judge: str, capsys) -> None:
+    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", blocking_twin_judge,
+               "--format", "github")
     assert code == 1
     out = capsys.readouterr().out
-    assert out.startswith("::warning file=src/widgets/caption.py,line=1,") and "src/text.py::shorten_text" in out
+    assert out.startswith("::error file=src/widgets/caption.py,line=1,") and "src/text.py::shorten_text" in out
+
+
+def test_a_reported_duplicate_below_fail_at_warns_without_failing(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                                  capsys) -> None:
+    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--format", "github",
+               "--fail-at", "0.9")
+    assert code == 0
+    assert capsys.readouterr().out.startswith("::warning file=src/widgets/caption.py,line=1,")
+    (repo.root / ".dry-lint.toml").write_text("fail_at = 0.9\n")
+    assert run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge) == 0
+    assert run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--fail-at", "0.8") == 1
+
+
+def test_by_default_every_reported_duplicate_fails(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
+    assert run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge) == 1
 
 
 def test_verdicts_are_remembered_so_the_judge_is_asked_once(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
@@ -89,7 +106,7 @@ def test_scan_refresh_re_judges_answers_from_an_older_judge_version(repo: Repo, 
     assert judge_calls(tmp_path) == 2
 
 
-def test_the_two_ci_jobs_hand_over_through_candidates_json(repo: Repo, tmp_path: Path, twin_judge: str,
+def test_the_two_ci_jobs_hand_over_through_candidates_json(repo: Repo, tmp_path: Path, blocking_twin_judge: str,
                                                            monkeypatch: pytest.MonkeyPatch, capsys) -> None:
     event = tmp_path / "event.json"
     event.write_text(json.dumps({"pull_request": {"number": 42, "head": {"sha": "feedbeef"}}}))
@@ -104,13 +121,16 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(repo: Repo, tmp_path:
     assert not (tmp_path / "store").exists()  # detect never touches the store
 
     report = tmp_path / "report.json"
-    code = run(repo, tmp_path, "--candidates", str(candidates), "--judge", "command", "--judge-command", twin_judge,
+    code = run(repo, tmp_path, "--candidates", str(candidates), "--judge", "command", "--judge-command", blocking_twin_judge,
                "--report", str(report), "--warn-only", command="judge")
     assert code == 0 and judge_calls(tmp_path) >= 1
     capsys.readouterr()
     assert main(["report", "--root", str(repo.root), "--from", str(report), "--format", "check-run"]) == 1
     body = json.loads(capsys.readouterr().out)
-    assert (body["head_sha"], body["conclusion"]) == ("feedbeef", "neutral")
+    assert (body["head_sha"], body["conclusion"]) == ("feedbeef", "failure")
+    assert json.loads(report.read_text())["findings"][0]["blocking"] is True
+    main(["report", "--root", str(repo.root), "--from", str(report), "--format", "check-run", "--warn-only"])
+    assert json.loads(capsys.readouterr().out)["conclusion"] == "neutral"
     assert json.loads(report.read_text())["run"]["pull_request"] == 42
 
 
@@ -133,7 +153,7 @@ def test_explain_shows_the_similarity_the_rule_and_the_stored_verdict(repo: Repo
     capsys.readouterr()
     run(repo, tmp_path, "caption.py::preview_caption_text", "text.py::shorten_text", command="explain")
     out = capsys.readouterr().out
-    assert "stored verdict: duplicate 0.90 by command:" in out and "reused: yes, neither function's logic changed" in out
+    assert "stored verdict: duplicate 0.85 by command:" in out and "reused: yes, neither function's logic changed" in out
     run(repo, tmp_path, "caption.py::register_widget", "filler.py::sync_invoice", command="explain")
     assert "proposed: not among" in capsys.readouterr().out
 
