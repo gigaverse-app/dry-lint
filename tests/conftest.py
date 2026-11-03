@@ -98,9 +98,8 @@ def function(path: str, source: str, name: str | None = None, owner: str | None 
                                     "calls": function_calls(plain)})
 
 
-@pytest.fixture
-def twin_judge(tmp_path: Path) -> str:
-    """A judge command that calls the caption twin a duplicate, everything else separate, and counts its calls."""
+def judge_script(tmp_path: Path, score: float) -> str:
+    """A judge command that scores the caption twin `score`, everything else 0.1, and counts its calls."""
     path, calls = tmp_path / "judge.py", tmp_path / "judge-calls"
     path.write_text(
         "import json, pathlib, sys\n"
@@ -108,10 +107,22 @@ def twin_judge(tmp_path: Path) -> str:
         "calls.write_text(str(int(calls.read_text()) + 1) if calls.exists() else '1')\n"
         "prompt = sys.stdin.read()\n"
         "twin = 'preview_caption_text' in prompt and 'shorten_text' in prompt\n"
-        "print(json.dumps({'label': 'duplicate' if twin else 'separate', 'score': 0.9 if twin else 0.1, "
+        f"print(json.dumps({{'label': 'duplicate' if twin else 'separate', 'score': {score} if twin else 0.1, "
         "'owner': 'existing', 'why': 'both shorten text with an ellipsis'}))\n"
     )
     return f'"{sys.executable}" "{path}"'
+
+
+@pytest.fixture
+def twin_judge(tmp_path: Path) -> str:
+    """Judges the caption twin a duplicate worth reporting, below `fail_at`: a warning."""
+    return judge_script(tmp_path, 0.85)
+
+
+@pytest.fixture
+def blocking_twin_judge(tmp_path: Path) -> str:
+    """Judges the caption twin a duplicate at or above `fail_at`: it fails the check."""
+    return judge_script(tmp_path, 0.95)
 
 
 def judge_calls(tmp_path: Path) -> int:

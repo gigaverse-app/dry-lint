@@ -44,6 +44,7 @@ class Finding(BaseModel):
     cached: bool = False
     family: int = Field(default=1, description="How many look-alikes were proposed for the same changed function.")
     reported: bool = Field(default=False, description="Judged a duplicate at or above report_at.")
+    blocking: bool = Field(default=False, description="Reported, and at or above fail_at: fails the check.")
 
     def headline(self) -> str:
         new, existing = self.candidate.new, self.candidate.existing
@@ -82,14 +83,16 @@ class Report(Versioned):
         family: dict[str, int] = {}
         for f in findings:
             family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
+        def duplicate_at(f: Finding, threshold: float) -> bool:
+            return f.verdict is not None and f.verdict.label != "separate" and f.verdict.score >= threshold
+
         marked = [
-            f.model_copy(update={
-                "family": family[f.candidate.new.qualname],
-                "reported": f.verdict is not None and f.verdict.label != "separate" and f.verdict.score >= settings.report_at,
-            })
+            f.model_copy(update={"family": family[f.candidate.new.qualname], "reported": duplicate_at(f, settings.report_at),
+                                 "blocking": duplicate_at(f, max(settings.report_at, settings.fail_at))})
             for f in findings
         ]  # fmt: skip
-        order = sorted(marked, key=lambda f: (not f.reported, f.verdict is None or f.verdict.label != "drifted",
+        order = sorted(marked, key=lambda f: (not f.blocking, not f.reported,
+                                              f.verdict is None or f.verdict.label != "drifted",
                                               -(f.verdict.score if f.verdict else f.candidate.similarity)))
         return cls(run=run or Run(), changed=changed, judge=judge, findings=order, filtered=list(filtered))
 
@@ -116,7 +119,14 @@ def as_text(report: Report) -> str:
 
 
 def level(finding: Finding) -> str:
-    return "error" if finding.verdict and finding.verdict.label == "drifted" else "warning"
+    return "error" if finding.blocking else "warning"
+
+
+OVERRIDES = (
+    "False positive? Add `# dry-lint: distinct-from <qualified name>` to the new function (this pair), "
+    "`# dry-lint: ignore` to a function (that function), a `patterns` entry under `[tool.dry-lint]` (a family), "
+    "or the `dry-lint: override` label to the pull request (this pull request only)."
+)
 
 
 def as_github(report: Report) -> str:
@@ -144,7 +154,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
     rows = ["| Changed function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
     for f in shown[:max_findings]:
         if f.verdict:
-            verdict = f"**{f.verdict.label}** {f.verdict.score:.2f}"
+            verdict = f"**{'blocking ' if f.blocking else ''}{f.verdict.label}** {f.verdict.score:.2f}"
             suggestion = "; ".join(part for part in (OWNERS.get(f.verdict.owner, ""), escaped(f.verdict.why)) if part)
         else:
             verdict, suggestion = f"similarity {f.candidate.similarity:.2f}", "not judged"
@@ -156,11 +166,14 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
     skipped = [f"<details><summary>Not reported ({len(report.filtered)} settled by a rule)</summary>", "",
                *(f"- `{c.new.qualname}` ~ `{c.existing.qualname}`: {escaped(c.filtered or '')}" for c in report.filtered),
                "", "</details>"] if report.filtered else []
+    blocking = sum(f.blocking for f in shown)
+    verdict_line = [f"{blocking} of them are blocking: judged duplicates at or above `fail_at`, which fail the check.", ""] \
+        if blocking else []
     return "\n".join([
         MARKER, "### dry-lint", "",
         f"{len(shown)} changed function(s) look like code that already exists. One concept should have one "
-        "implementation: reuse it, or parameterize the difference.", "", *rows, *more, "",
-        "Different concepts after all? Add `# dry-lint: distinct-from <qualified name>` to the new function.",
+        "implementation: reuse it, or parameterize the difference.", "", *verdict_line, *rows, *more, "",
+        OVERRIDES,
         *([""] + skipped if skipped else []),
     ])
 
@@ -199,16 +212,20 @@ def as_sarif(report: Report) -> str:
     return json.dumps(sarif, indent=2)
 
 
-def as_check_run(report: Report, max_findings: int = 10) -> str:
-    """The body for `POST /repos/{owner}/{repo}/check-runs`: never a failure, so it never blocks a merge."""
+def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False) -> str:
+    """
+    The body for `POST /repos/{owner}/{repo}/check-runs`: a failure only for a blocking finding (and not
+    `warn_only`), neutral for findings that only warn, success otherwise.
+    """
     reported = [f for f in report.findings if f.reported]
+    failed = any(f.blocking for f in reported) and not warn_only
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
     annotations = [{
         "path": f.candidate.new.path, "start_line": f.candidate.new.line, "end_line": f.candidate.new.end_line,
         "annotation_level": "failure" if level(f) == "error" else "warning", "title": f.headline(), "message": f.advice(),
     } for f in reported[:50]]  # fmt: skip
     body = {"name": "dry-lint", "head_sha": report.run.head, "status": "completed",
-            "conclusion": "neutral" if reported else "success",
+            "conclusion": "failure" if failed else "neutral" if reported else "success",
             "output": {"title": title, "summary": as_markdown(report, max_findings), "annotations": annotations}}
     return json.dumps(body, indent=2)
 
@@ -216,9 +233,9 @@ def as_check_run(report: Report, max_findings: int = 10) -> str:
 FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
 
 
-def render(report: Report, form: str, settings: Settings) -> str:
+def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
     if form == "markdown":
         return as_markdown(report, settings.max_findings)
     if form == "check-run":
-        return as_check_run(report, settings.max_findings)
+        return as_check_run(report, settings.max_findings, warn_only)
     return {"text": as_text, "github": as_github, "json": as_json, "sarif": as_sarif}[form](report)

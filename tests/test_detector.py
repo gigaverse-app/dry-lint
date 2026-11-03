@@ -97,6 +97,14 @@ def test_why_skipped_names_the_rule_that_makes_look_alikes_not_duplicates(a, b, 
     assert why_skipped(b, a, settings) == reason
 
 
+@pytest.mark.parametrize("marker", ["# dry-lint: ignore", "// dry-lint: ignore", "#dry-lint:ignore (generated code)"])
+def test_an_inline_ignore_settles_every_pair_the_function_is_in(marker: str) -> None:
+    ignored = function("b.py", f"def load_account(store, key):\n    {marker}\n    return store.read(key)\n")
+    assert why_skipped(A, ignored, Settings()) == why_skipped(ignored, A, Settings()) == "inline ignore"
+    assert why_skipped(A, function("b.py", "def load_account(store, key):\n    # dry-lint: ignored? no\n    return store.read(key)\n"),
+                       Settings()) is None
+
+
 def test_same_named_functions_that_do_not_call_each_other_are_judged_not_skipped() -> None:
     connect = "def connect(self):\n    self.session = open_session(BASE_URL)\n    return self.session\n"
     a, b = function("feeds/youredge.py", connect, owner="YourEdge"), function("feeds/polymarket.py", connect, owner="Polymarket")
