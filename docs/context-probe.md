@@ -14,28 +14,31 @@ not an independent test set or a population precision estimate. Borderline cases
 
 | Measurement | Function-only `reuse-v2` | Contextual `reuse-context-v3` |
 | --- | ---: | ---: |
-| Useful matches retained / 10 | 9 | 8 |
-| False positives / 25 | 18 | 7 |
+| Useful matches retained / 10 | 10 | 9 |
+| False positives / 25 | 17 | 5 |
 | Known form/provider false positives / 5 | 5 | 0 |
-| API input tokens, 44 requests | 39,015 | 74,043 |
-| Judge batch wall time | 1.19 s | 1.38 s |
-| Estimated model charge | $0.00164 | $0.00311 |
+| API input tokens, 44 requests | 39,015 | 75,209 |
+| Judge batch wall time | 1.21 s | 1.30 s |
+| Estimated model charge | $0.00164 | $0.00316 |
 
 The five regression cases comprise a form wrapper closing over different schemas and four accessors tied to
 separate SDK/provider contexts. Bounded imports, local declarations and policy comments make that evidence
 available to the judge. No function names or repository-specific exceptions are hardcoded in the library.
 
-Seven negative cases still report: a constructor, a trivial SDK selector, a persistence projection, a single SDK
-enum comparison, unrelated truncation contracts, sorting versus timestamp projection, and different view-model
-adapters. Two positives are missed: a mutation/invalidation wrapper and an SDK-to-logger mapping. Some negatives
+Five negative cases still report: a constructor, a persistence projection, a single SDK enum comparison,
+unrelated truncation contracts, and different view-model adapters. One positive is missed: an SDK-to-logger mapping. Some negatives
 are low-value extraction suggestions rather than different semantics. The current judge does not reliably
 distinguish those; grouping whole families and richer caller/import resolution remain useful future work.
 
 The initial context prompt suppressed every positive and was rejected. Version 2 retained seven positives and
 was also rejected. Version 3 separates duplication confidence from uncertainty over ownership, then suppresses
-probable explicit separation or non-reuse reasons. The unchanged acceptance gate requires all five regressions
+probable explicit separation or non-reuse reasons. Its first configuration retained 8/10 positives and reduced
+false positives from 18 to 7. Narrowing shared-domain destinations to `.ts` modules then exposed one provider
+false positive: pairs outside the destination scope lost their architecture guidance. The final configuration
+keeps global judge guidance independent of destination scope, and includes its digest in the judge version
+(`reuse-context-v3:jev-1.14.0:3d89552164889c24`). The table above records that final paired run. The unchanged acceptance gate requires all five regressions
 to clear, at least eight positives to remain, and fewer false positives than the baseline. Model outputs vary:
-earlier baseline runs retained 10/10, while the paired run above retained 9/10. Keep rerunning the frozen probe
+earlier baseline runs retained 9–10/10 and reported 17–18 false positives. Keep rerunning the frozen probe
 when changing the prompt/model, and obtain independent labels before claiming broader precision or blocking CI.
 
 ## Retrieval and review budget
@@ -52,8 +55,8 @@ source discovery time, not model time. Reciprocal matches are now computed separ
 ranking gives repository pairs and file families turns instead of letting app-to-app clones fill every slot.
 These counts measure exposure of shared-library candidates, not the correctness of those candidates.
 
-At the observed mean context request size, 30 uncached judgments cost approximately $0.00212 in model charges,
-or $2.12 per 1,000 such runs. That is an extrapolation, not a bill or a hard monetary cap. Request sizes vary,
+At the observed mean context request size, 30 uncached judgments cost approximately $0.00215 in model charges,
+or $2.15 per 1,000 such runs. That is an extrapolation, not a bill or a hard monetary cap. Request sizes vary,
 and runner time, checkout/setup, optional escalation and subsequent runs cost extra. TypeSafe currently charges
 $0.042 per million input tokens with output tokens free; checked on 2026-11-03 against its
 [model pricing](https://docs.typesafe.ai/models). The configuration limits primary requests to 30 and explicitly

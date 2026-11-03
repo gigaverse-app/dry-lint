@@ -66,8 +66,13 @@ owners. A destination need not exist yet. It guides ranking, judging and reporte
 different concepts to merge, imports one application into another, or moves code automatically.
 
 Use the contextual judge's `guidance` option for repository-wide architecture constraints, independently of
-destination rules. For example, `judge = { use = "jev", context = true, guidance = "Keep independent platform
-providers and UI adapters in their apps." }` (on one line in TOML). This guidance applies even when no destination
+destination rules:
+
+```toml
+judge = { use = "jev", context = true, guidance = "Keep independent platform providers and UI adapters in their apps." }
+```
+
+This guidance applies even when no destination
 matches. Changing it changes the judge identity and reopens cached answers. Destination-specific `guidance`
 still applies only to matching pairs. For example, `sources = ["*.ts"]` avoids directing JSX components into a
 shared domain directory without losing the judge's global platform constraints.

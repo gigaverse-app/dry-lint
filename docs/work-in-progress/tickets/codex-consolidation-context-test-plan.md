@@ -18,8 +18,10 @@ through `scripts/probe_context.py`, separately from deterministic CI tests.
 - [x] Budget: cached answers are free, excess uncached pairs defer explicitly, subsequent runs progress.
 - [x] Judge response integration: destination uncertainty does not erase duplication; concrete separation and
   probable boilerplate do suppress it. This verifies response handling, not model accuracy.
-- [x] Live calibration: retain at least 8/10 labelled positives, reject five known platform/schema negatives,
-  and reduce false positives on the frozen 44-pair sample. Record remaining errors, time and token cost.
+- [x] Live calibration: final scoped configuration retains 9/10 labelled positives, rejects all five known
+  platform/schema negatives, and reduces false positives from 17 to 5 on the frozen 44-pair sample. Remaining
+  errors, time and token cost are recorded in `docs/context-probe.md`.
+- [x] Architecture guidance remains available outside destination scopes; guidance changes reopen cached verdicts.
 - [x] Full suite on the integrated upstream baseline: 359 tests, 100% statement coverage; Ruff, wheel build and
   offline self-check pass. Additional destination escaping cases exercise both report summary and table output.
 - GitHub checks on each PR are the authority for its current head, including the live self-check and all adopter
