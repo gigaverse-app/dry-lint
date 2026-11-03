@@ -89,14 +89,18 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    detector = Detector.for_repository(root, settings)
-    changed = touched(detector.functions, changed_lines(root, args.base, args.staged))
-    report = judged(detector.candidates(changed), settings, root, args, run_info(root, args.base), len(changed),
+    detector, primary = detector_for(root, settings, args)
+    changed = touched([f for f in detector.functions if not f.origin or f.origin.repository == primary],
+                      changed_lines(root, args.base, args.staged))
+    run = run_info(root, args.base)
+    if primary:
+        run.repository = primary
+    report = judged(detector.candidates(changed), settings, root, args, run, len(changed),
                     functions=len(detector.functions))
     return finish(report, settings, args)
 
 
-def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Detector, str]:
     if args.repo:
         roots: dict[str, Path] = {}
         for spec in args.repo:
@@ -106,11 +110,17 @@ def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
             if name in roots:
                 raise ValueError(f"Duplicate repository: {name}")
             roots[name] = Path(path)
-        if args.format not in ("text", "json", "markdown"):
+        if args.command == "scan" and args.format not in ("text", "json", "markdown"):
             raise ValueError("A workspace scan supports text, json and markdown; annotations belong to one repository")
-        detector = Detector.for_workspace(roots, settings)
-    else:
-        detector = Detector.for_repository(root, settings)
+        primary = next((name for name, path in roots.items() if repository_root(path).resolve() == root.resolve()), "")
+        if args.command in {"check", "detect"} and not primary:
+            raise ValueError("--repo must include the primary --root repository")
+        return Detector.for_workspace(roots, settings), primary
+    return Detector.for_repository(root, settings), ""
+
+
+def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    detector, _ = detector_for(root, settings, args)
     candidates = detector.scan()[: args.limit]
     report = judged(candidates, settings, root, args, run_info(root, None), 0, refresh=args.refresh,
                     functions=len(detector.functions), scope="repository")
@@ -118,13 +128,17 @@ def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    detector = Detector.for_repository(root, settings)
+    detector, primary = detector_for(root, settings, args)
     if args.all:
         changed, candidates = detector.functions, detector.scan()
     else:
-        changed = touched(detector.functions, changed_lines(root, args.base, args.staged))
+        changed = touched([f for f in detector.functions if not f.origin or f.origin.repository == primary],
+                          changed_lines(root, args.base, args.staged))
         candidates = detector.candidates(changed)
-    found = CandidatesFile(run=run_info(root, args.base), changed=len(changed), functions=len(detector.functions),
+    run = run_info(root, args.base)
+    if primary:
+        run.repository = primary
+    found = CandidatesFile(run=run, changed=len(changed), functions=len(detector.functions),
                            candidates=candidates)
     text = found.model_dump_json(indent=1)
     if args.out:
@@ -190,6 +204,8 @@ def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
+    common.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH",
+                        help="Repeat for every checkout; compare across repositories. Include --root for checks.")
     common.add_argument("--detector", help="Comparer plugin, overriding the settings: tfidf, dryer, or installed.")
     common.add_argument("--judge", help="Judge plugin, overriding the settings: auto, jev, command, none, or installed.")
     common.add_argument("--judge-command", help="For the command judge: a command reading the candidate on stdin.")
@@ -216,8 +232,6 @@ def parser() -> argparse.ArgumentParser:
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
     sweep.add_argument("--limit", type=int, default=50, help="Judge and show at most this many pairs, closest first.")
     sweep.add_argument("--refresh", action="store_true", help="Re-judge verdicts from older versions of the judge.")
-    sweep.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH",
-                       help="Repeat for every checkout in a workspace; scan only cross-repository pairs.")
     proposing = commands.add_parser("detect", parents=[common], help="Write candidates.json; no judge, no store.")
     where(proposing, everything=True)
     proposing.add_argument("--out", type=Path, help="Write candidates.json here (default: print it).")

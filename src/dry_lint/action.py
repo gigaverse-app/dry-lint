@@ -229,12 +229,14 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         judging.append("--warn-only")
     if env("INPUT_JUDGE_COMMAND"):
         judging += ["--judge-command", env("INPUT_JUDGE_COMMAND")]
+    repositories = [argument for line in env("INPUT_REPOSITORIES").splitlines() if line.strip()
+                    for argument in ("--repo", line.strip())]
 
     if mode == "detect":
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)
         code, _ = dry_lint("detect", "--root", str(root), "--out", str(work / "candidates.json"),
-                           *(["--base", base] if base else []))
+                           *(["--base", base] if base else []), *repositories)
         write_outputs(mode=mode, exit_code=code, findings=0)
         print(f"::notice title=dry-lint::Candidates saved as the {ARTIFACT} artifact for the judge workflow.")
         return 2 if code == 2 else 0
@@ -257,7 +259,7 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     else:
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)
-        code, lines = dry_lint("check", "--root", str(root), *(["--base", base] if base else []), *judging)
+        code, lines = dry_lint("check", "--root", str(root), *(["--base", base] if base else []), *repositories, *judging)
         pull = event.get("pull_request") or {}
         number, repository, head = pull.get("number") or 0, env("GITHUB_REPOSITORY"), ""
         labels = labels_of(pull)

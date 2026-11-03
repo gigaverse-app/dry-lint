@@ -16,6 +16,8 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
+from dry_lint.models import Consolidation
+
 
 class Pattern(BaseModel):
     """A declared family of deliberate look-alikes, never reported (e.g. one router per resource)."""
@@ -56,6 +58,8 @@ class Settings(BaseModel):
     exclude: list[str] = Field(default_factory=lambda: ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"])
     patterns: list[Pattern] = Field(default_factory=list)
     neighbours: int = Field(default=3, description="Nearest functions in other files considered per changed function.")
+    consolidation: list[Consolidation] = Field(default_factory=list)
+    max_judgements: int | None = Field(default=None, ge=1, description="Maximum uncached pairs judged per run.")
 
     extractors: list[Choice] = Field(default_factory=lambda: [PluginChoice(use="python"), PluginChoice(use="typescript")],
                                      description="One per language; the first whose file globs match a file reads it.")
