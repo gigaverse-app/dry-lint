@@ -65,6 +65,13 @@ All matching rules are retained as possible homes. Scope rules narrowly when dif
 owners. A destination need not exist yet. It guides ranking, judging and reported advice; it never forces two
 different concepts to merge, imports one application into another, or moves code automatically.
 
+Use the contextual judge's `guidance` option for repository-wide architecture constraints, independently of
+destination rules. For example, `judge = { use = "jev", context = true, guidance = "Keep independent platform
+providers and UI adapters in their apps." }` (on one line in TOML). This guidance applies even when no destination
+matches. Changing it changes the judge identity and reopens cached answers. Destination-specific `guidance`
+still applies only to matching pairs. For example, `sources = ["*.ts"]` avoids directing JSX components into a
+shared domain directory without losing the judge's global platform constraints.
+
 ## Source context, cache and cost
 
 Contextual Jev judging is opt-in; the legacy Python `reuse-v2` prompt remains unchanged. The TypeScript extractor

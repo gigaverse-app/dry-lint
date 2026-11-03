@@ -167,3 +167,27 @@ def test_destination_text_cannot_inject_markup_into_summary_or_table(homes):
     markdown = as_markdown(Report.build(findings, Settings(), judge="jev"))
     assert "<unsafe>" not in markdown
     assert r"\<unsafe\>" in markdown
+
+
+def test_architecture_guidance_applies_without_a_matching_destination_and_invalidates_cache(store):
+    from test_judging import pair
+
+    from dry_lint.judging import Judging
+    bodies = []
+    def answer(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={"answers": {
+            "same_concept": {"noul": .95}, "behaves_differently": {"noul": .1},
+            "owner": {"choice": "shared"}, "separate_boundary": {"noul": .1},
+            "reason": {"choice": "portable"},
+        }})
+    candidate = pair("adapter")
+    settings = Settings()
+    for guidance in ["Keep platform adapters in their app.", "Providers have independent lifetimes."]:
+        judge = JevJudge(api_key="test", context=True, guidance=guidance, transport=httpx.MockTransport(answer))
+        judging = Judging(settings, judge, None, store)
+        assert not judging.findings([candidate])[0].cached
+        assert judging.findings([candidate])[0].cached
+    assert len(bodies) == 2
+    assert bodies[0]["state"]["guidance"] == "Keep platform adapters in their app."
+    assert bodies[0]["state"]["consolidation"] == []

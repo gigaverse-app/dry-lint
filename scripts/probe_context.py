@@ -72,7 +72,8 @@ def main():
     results = {}
     for arm in ["baseline", "context"]:
         meter = Meter()
-        judge = JevJudge(model="jev-1.14.0", context=arm == "context", workers=4, transport=meter)
+        guidance = settings.judge.options().get("guidance", "") if arm == "context" else ""
+        judge = JevJudge(model="jev-1.14.0", context=arm == "context", guidance=guidance, workers=4, transport=meter)
         start = time.perf_counter()
         verdicts = judge.judge(candidates, settings)
         rows = [{"id": case["id"], "label": case["label"], "regression": case["regression"],

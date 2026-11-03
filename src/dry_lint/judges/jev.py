@@ -8,6 +8,7 @@ counts and the family of look-alikes to the state did not help, so the state is 
 The benchmark numbers belong to this exact wording: change it and re-measure.
 """
 
+import hashlib
 import os
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -133,18 +134,23 @@ class JevJudge:
     version = PROMPT_VERSION
 
     def __init__(self, api_key: str | None = None, model: str | None = None, url: str = API_URL, workers: int = 8,
-                 transport: httpx.BaseTransport | None = None, context: bool = False):
+                 transport: httpx.BaseTransport | None = None, context: bool = False, guidance: str = ""):
         self.api_key = api_key or os.environ.get("TYPESAFE_AI_API_KEY", "")
         if not self.api_key:
             raise ValueError("The Jev judge needs TYPESAFE_AI_API_KEY")
         self.context = context
+        self.guidance = guidance
         self.model = model or ("jev-1.14.0" if context else "jev-latest")
         self.url, self.workers, self.transport = url, workers, transport
         self.version = f"{CONTEXT_PROMPT_VERSION}:{self.model}" if context else PROMPT_VERSION
+        if context and guidance:
+            self.version += ":" + hashlib.sha256(guidance.encode()).hexdigest()[:16]
 
     def _ask(self, client: httpx.Client, candidate: Candidate, settings: Settings) -> Verdict:
         body = {"model": self.model, "state": state(candidate, self.context),
                 "questions": CONTEXT_QUESTIONS if self.context else QUESTIONS}
+        if self.context and self.guidance:
+            body["state"]["guidance"] = self.guidance
         response = client.post(self.url, json=body, headers={"Authorization": f"Bearer {self.api_key}"})
         response.raise_for_status()
         answers = response.json()["answers"]
