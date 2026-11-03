@@ -55,6 +55,8 @@ class Spend(BaseModel):
     usd: float | None = Field(default=0.0, description="Estimated at list price, also for a subscription; None when "
                                                        "the judge's price is unknown.")
     subscription: bool = False
+    failed: int = Field(default=0, description="Pairs left on the first judge's answer because this judge failed.")
+    error: str = Field(default="", description="Why this judge failed, when it did.")
 
 
 class Ledger:
@@ -92,3 +94,14 @@ class Ledger:
         spend.calls += len(asked)
         spend.skipped += skipped
         spend.usd = None if cost is None or spend.usd is None else spend.usd + cost
+
+    def fail(self, judge: Judge, asked: list[Candidate], error: Exception) -> None:
+        """`judge` failed on `asked`; nothing is charged, since it is unknown how much of it ran."""
+        name = identity(judge)
+        spend = self.spend.setdefault(name, Spend(judge=name, subscription=getattr(judge, "subscription", False)))
+        spend.failed += len(asked)
+        spend.error = " ".join(str(getattr(error, "stderr", None) or error).split())[:200]
+
+    @property
+    def failed(self) -> bool:
+        return any(s.error for s in self.spend.values())
