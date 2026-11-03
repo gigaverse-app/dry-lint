@@ -1,3 +1,5 @@
+from textwrap import indent
+
 import pytest
 
 from dry_lint.extractors import PythonExtractor
@@ -135,7 +137,7 @@ def test_each_file_is_read_by_the_first_extractor_whose_globs_match_it(repo: Rep
 
 
 def test_the_python_extractor_gives_tokens_and_leaves_hashing_to_whoever_needs_it() -> None:
-    source = "@cache\ndef shorten(text, limit):\n    return text[:limit]\n\ndef tiny(): pass\n"
+    source = "@cache\ndef shorten(text, limit):\n    return text[:limit]\n\ndef tiny(): return 1\n"
     [found] = PythonExtractor().functions("a.py", source)
     assert found.hash == "" and found.tokens == behaviour_tokens(found)
     assert PythonExtractor().structure_hash(found) == structure_hash(found)
@@ -163,3 +165,31 @@ def test_structure_hash_treats_async_functions_like_functions() -> None:
     b = function("b.py", "async def load(api, name):\n    return await api.get(name)\n")
     c = function("c.py", "def load(api, name):\n    return api.get(name)\n")
     assert structure_hash(a) == structure_hash(b) != structure_hash(c)
+
+
+def test_calls_preserve_real_invocations_and_ignore_unresolvable_targets() -> None:
+    source = "def wrapper(client):\n    return client.load_user (factory()(), callbacks[0]())\n"
+    assert set(function_calls(function("a.py", source))) == {"load_user", "factory"}
+
+
+@pytest.mark.parametrize("body", [
+    "pass",
+    "...",
+    '"""Interface contract."""',
+    '"""Interface contract."""\n    raise NotImplementedError',
+    "raise NotImplementedError()",
+])  # fmt: skip
+def test_declaration_only_stubs_are_not_indexed(body: str) -> None:
+    assert PythonExtractor().functions("ports.py", f"def load_user(client):\n    {body}\n") == []
+
+
+@pytest.mark.parametrize("body", [
+    "return None",
+    'raise ValueError("unsupported")',
+    "client.read()\nraise NotImplementedError",
+    "raise NotImplementedError(client.reason())",
+    "raise NotImplementedError from cause",
+])  # fmt: skip
+def test_implemented_methods_remain_indexed_even_when_abstract_or_raising(body: str) -> None:
+    source = "class Port:\n    @abstractmethod\n    def load_user(self, client):\n" + indent(body, "        ") + "\n"
+    assert [f.qualname for f in PythonExtractor().functions("ports.py", source)] == ["ports.py::Port.load_user"]
