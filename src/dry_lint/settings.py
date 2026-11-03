@@ -53,6 +53,16 @@ def _named(value: Any) -> Any:
 Choice = Annotated[PluginChoice, BeforeValidator(_named)]
 
 
+class Budget(BaseModel):
+    """What one run may spend on judges."""
+
+    usd: float = Field(default=0.25, description="Most a run spends on judges with a per-token price (estimated). "
+                                                 "The riskiest pairs are judged first; the rest keep the first judge's "
+                                                 "answer, or stay unjudged.")
+    subscription_calls: int = Field(default=20, description="Most calls a run makes to subscription judges, which "
+                                                            "are rate-limited rather than billed.")
+
+
 class Settings(BaseModel):
     include: list[str] = Field(default_factory=lambda: ["*"], description="fnmatch over tracked paths.")
     exclude: list[str] = Field(default_factory=lambda: ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"])
@@ -69,6 +79,13 @@ class Settings(BaseModel):
     escalate: Annotated[Escalation | None, BeforeValidator(_named)] = Field(
         default_factory=lambda: Escalation(use="auto"),
         description="auto: Claude Sonnet 5.5 when ANTHROPIC_API_KEY is set, otherwise none; \"none\" turns it off.")
+    preset: str = Field(default="auto", description="The judging setup: judges and the thresholds measured for them "
+                                                    "(presets.py). auto: the best one the credentials allow. Explicit "
+                                                    "judge, escalate and threshold settings win over the preset's.")
+    budget: Budget = Field(default_factory=Budget)
+    prices: dict[str, tuple[float, float]] = Field(default_factory=dict,
+                                                   description="USD per million input and output tokens, by model or "
+                                                               "judge name, over the built-in table.")
     store: Choice = Field(default_factory=lambda: PluginChoice(use="dir"),
                           description="dir: a folder, by default inside the git directory; s3: a bucket prefix.")
 
