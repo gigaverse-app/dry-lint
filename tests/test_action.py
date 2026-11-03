@@ -360,7 +360,7 @@ def test_a_check_run_the_token_may_not_post_is_a_warning(repo, github_env, tmp_p
     report, head = judged_report(tmp_path, repo, twin_judge, github_env)
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, judge="command",
                judge_command=twin_judge, working_directory=str(repo.root), comment="false", check_run="false")
-    assert action.main(["run"]) == 1
+    assert action.main(["run"], transport=httpx.MockTransport(FakeGitHub(head=head))) == 1
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, check_run="true")
     transport = httpx.MockTransport(lambda request: httpx.Response(status, json={}))
     assert action.check_run(repo.root, "acme/shop", report, transport) == outcome
@@ -371,7 +371,7 @@ def test_check_run_errors_other_than_permissions_are_raised(repo, github_env, tm
     report, head = judged_report(tmp_path, repo, twin_judge, github_env)
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, judge="command",
                judge_command=twin_judge, working_directory=str(repo.root), comment="false", check_run="false")
-    action.main(["run"])
+    action.main(["run"], transport=httpx.MockTransport(FakeGitHub(head=head)))
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, check_run="true")
     with pytest.raises(httpx.HTTPStatusError):
         action.check_run(repo.root, "acme/shop", report, httpx.MockTransport(lambda request: httpx.Response(500)))
