@@ -31,8 +31,8 @@ jobs:
       - name: Default install stays lightweight
         run: >-
           uv run --isolated --no-project --with . python -c
-          "from importlib.util import find_spec; from dry_lint.sources import make_source;
-          from dry_lint.settings import Settings; make_source([], Settings()); assert find_spec('dryer') is None"
+          "from importlib.util import find_spec; from dry_lint.plugins import load;
+          from dry_lint.settings import Settings; load('comparers', Settings().comparer).index([]); assert find_spec('dryer') is None"
 
   dogfood:
     name: dry-lint on itself
@@ -46,5 +46,13 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./
+        id: dry-lint
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
+      - name: The action reports its mode and result
+        env:
+          MODE: ${{ steps.dry-lint.outputs.mode }}
+          CODE: ${{ steps.dry-lint.outputs.exit-code }}
+        run: |
+          echo "mode=$MODE exit-code=$CODE"
+          [ "$MODE" = single ] && [ "$CODE" != 2 ]

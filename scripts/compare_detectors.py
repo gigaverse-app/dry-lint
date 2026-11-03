@@ -5,7 +5,6 @@ import hashlib
 import json
 import platform
 import statistics
-import subprocess
 import time
 from importlib.metadata import version
 from pathlib import Path
@@ -13,22 +12,22 @@ from pathlib import Path
 from dryer.extract import entries_in_source
 
 from dry_lint.detector import Candidate, Detector, changed_lines, touched
-from dry_lint.functions import Function, repository_functions
-from dry_lint.settings import Settings
-from dry_lint.sources.dryer import DryerSource
-
-
-def git(root: Path, *args: str) -> str:
-    return subprocess.check_output(["git", *args], cwd=root, text=True).strip()
+from dry_lint.dryer import DryerComparer
+from dry_lint.functions import repository_functions
+from dry_lint.git import git
+from dry_lint.models import Function
+from dry_lint.plugins import load
+from dry_lint.settings import PluginChoice, Settings
 
 
 def pair_keys(pairs: list[Candidate]) -> set[tuple[str, str]]:
     return {tuple(sorted((pair.new.qualname, pair.existing.qualname))) for pair in pairs}
 
 
-def verify_upstream(root: Path, functions: list[Function], settings: Settings) -> int:
+def verify_upstream(root: Path, functions: list[Function]) -> int:
     """Whole-file upstream extraction must match the adapter, including overloads and methods."""
-    source = DryerSource(functions, settings)
+    source = DryerComparer()
+    source.index(functions)
     full = {}
     for path in sorted({f.path for f in functions}):
         entries, warning = entries_in_source("python", (root / path).read_text(encoding="utf-8"), path, path)
@@ -38,14 +37,10 @@ def verify_upstream(root: Path, functions: list[Function], settings: Settings) -
     for function in functions:
         location = (function.path, function.line)
         expected, actual = full[location], source.entries[location]
-        keep = (
-            expected.end_line - expected.start_line + 1 >= settings.dryer_min_lines
-            and expected.nodes >= settings.dryer_min_nodes
-        )
-        assert (actual is not None) == keep, function.qualname
-        if actual is not None:
-            assert actual.fingerprints == expected.fingerprints and actual.nodes == expected.nodes, function.qualname
-            eligible += 1
+        keep = expected.end_line - expected.start_line + 1 >= source.min_lines and expected.nodes >= source.min_nodes
+        assert actual is not None, function.qualname
+        assert actual.fingerprints == expected.fingerprints and actual.nodes == expected.nodes, function.qualname
+        eligible += keep
     return eligible
 
 
@@ -64,7 +59,8 @@ def main() -> None:
     sha, base = git(root, "rev-parse", "HEAD"), git(root, "rev-parse", args.base)
     settings = Settings.load(root)
     start = time.perf_counter()
-    functions = repository_functions(root, settings.include, settings.exclude)
+    extractors = [load("extractors", choice) for choice in settings.extractors]
+    functions = repository_functions(root, settings.include, settings.exclude, extractors)
     extraction_seconds = time.perf_counter() - start
     changed = touched(functions, changed_lines(root, base=base))
     manifest = "\n".join(f"{f.qualname}:{f.line}:{f.end_line}:{f.code}" for f in functions)
@@ -80,7 +76,7 @@ def main() -> None:
         "changed_functions": len(changed),
         "corpus_sha256": hashlib.sha256(manifest.encode()).hexdigest(),
         "extraction_seconds": extraction_seconds,
-        "dryer_eligible_functions": verify_upstream(root, functions, settings),
+        "dryer_eligible_functions": verify_upstream(root, functions),
         "upstream_parity": "all canonical function spans match full-file upstream extraction",
         "runs": [],
     }
@@ -88,11 +84,13 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=True)
     for repetition in range(args.runs):
         for name in ("tfidf", "dryer") if repetition % 2 == 0 else ("dryer", "tfidf"):
-            config = settings.model_copy(update={"detector": name})
+            config = settings.model_copy(update={"comparer": PluginChoice(use=name)})
             started = time.perf_counter()
-            detector = Detector(functions, config)
+            detector = Detector(functions, config, load("comparers", config.comparer), extractors)
             built = time.perf_counter()
-            checks, skipped = detector.candidates(changed)
+            proposed = detector.candidates(changed)
+            checks = [p for p in proposed if p.filtered is None]
+            skipped = [p for p in proposed if p.filtered is not None]
             checked = time.perf_counter()
             scans = detector.scan()
             scanned = time.perf_counter()

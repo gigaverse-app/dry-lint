@@ -1,11 +1,20 @@
 # .github/workflows/dry-lint.yml: annotate and comment on pull requests that re-implement existing code.
+#
+# Pull requests from this repository are judged and commented on here. Pull requests from forks get no secrets,
+# so this job only proposes candidates; add dry-lint-judge.yml to judge them.
 name: dry-lint
 on:
   pull_request:
+  push:
+    branches: [main]  # judges merged code too, and its verdict cache is shared with every pull request
 
 permissions:
   contents: read
   pull-requests: write
+
+concurrency:
+  group: dry-lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   dry-lint:
@@ -13,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0  # the merge base with the pull request base is needed
+          fetch-depth: 0
       - uses: gigaverse-app/dry-lint@main
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}

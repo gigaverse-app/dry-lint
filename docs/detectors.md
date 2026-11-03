@@ -1,8 +1,8 @@
-# Detector plugins
+# Dryer comparer plugin
 
 TF-IDF remains the default. Select [unclebob/dryer](https://github.com/unclebob/dryer) to find functions with similar
-normalized syntax trees. Both plugins feed the same candidate, suppression, judge, report and verdict-store flow.
-This integration handles tracked Python functions, even though standalone Dryer supports other languages too.
+normalized syntax trees. Dryer implements dry-lint's existing `Comparer` protocol; extraction, rules, judging,
+reports and storage stay in the shared pipeline. This plugin compares Python functions and skips other languages.
 
 ## Install and select
 
@@ -22,22 +22,30 @@ uvx --from 'dry-lint[dryer] @ git+https://github.com/gigaverse-app/dry-lint' dry
 
 The extra installs upstream Dryer at commit `66ff6d21a42c04afcad89c78a80066176d1294b0`, plus tree-sitter and its
 language pack. The first Dryer invocation downloads the Python grammar through the language pack; provision that
-cache before offline use. TF-IDF needs none of these optional dependencies and never imports them.
+cache before offline use. TF-IDF needs none of these dependencies and never imports them.
 
-Select the source in `.dry-lint.toml` or under `[tool.dry-lint]` in `pyproject.toml`:
+Select it in `.dry-lint.toml` or under `[tool.dry-lint]` in `pyproject.toml`:
 
 ```toml
-detector = "dryer"
-dryer_threshold = 0.82
-dryer_min_lines = 4
-dryer_min_nodes = 20
+comparer = { use = "dryer", threshold = 0.82, min_lines = 4, min_nodes = 20 }
 ```
 
-`--detector tfidf` or `--detector dryer` overrides configuration for either `check` or `scan`. A missing optional
-installation produces exit code 2 with installation guidance; it does not silently substitute another detector.
-In the GitHub Action, set `detector: dryer` to select and install the plugin. This input is required to install the
-extra even if the repository already selects Dryer in its configuration. With pre-commit, add
-`additional_dependencies: ['.[dryer]']` and `args: [--detector, dryer]` to the hook.
+`--detector NAME` selects a comparer with its defaults, overriding the configured comparer and its options.
+It works with `check`, `scan`, `detect` and `explain`, and with `bench --comparer`. Installed third-party comparer
+names work through the same override. No new plugin slot or parallel ranking framework is introduced.
+A missing extra produces exit code 2 with installation guidance; it does not silently substitute TF-IDF.
+
+For the GitHub Action, select the comparer in repository configuration and install the upstream dependency via
+the existing `plugins` input (there is no separate detector input):
+
+```yaml
+- uses: gigaverse-app/dry-lint@main
+  with:
+    plugins: dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0
+```
+
+Use the same dry-lint release in the detect and judge jobs so both understand schema 2's cache policy.
+For pre-commit, add `additional_dependencies: ['.[dryer]']` and `args: [--detector, dryer]` to the hook.
 
 ## Shared policy, different scores
 
@@ -46,40 +54,46 @@ extra even if the repository already selects Dryer in its configuration. With pr
 | Fingerprint | Calls, attributes, identifier words, control flow | Upstream normalized syntax subtree fingerprints |
 | Similarity | Cosine over TF-IDF vectors | Upstream Jaccard over fingerprint sets |
 | Default floor | 0.5; 0.3 below six source lines | 0.82 |
-| Minimum size | Canonical extractor: two source lines | Four source lines and 20 normalized nodes |
+| Minimum size | Python extractor: two source lines | Four source lines and 20 normalized nodes |
 | Query cost | Inverted-index search | Compare eligible fingerprints, pruning impossible set-size ratios |
 | Default | Yes | Opt-in |
 
-A source implements `CandidateSource.similar(function, limit, exclude)` and is constructed by `make_source`. It returns
-ranked corpus positions and scores, excluding the caller-supplied corpus positions before taking the limit. `Detector` owns cross-file selection, the three-neighbour budget, dunder/call
-rules, declared patterns and inline suppression. `scan` still returns mutual nearest neighbours. Same-file functions are
-excluded before limiting, so local look-alikes cannot hide cross-file matches. Equal Dryer scores break ties in
-canonical corpus order. Both sources omit declaration-only stubs and use AST call nodes for delegation rules.
+The comparer implements `index`, `neighbours` and `similarity` from [the plugin protocol](plugins.md#comparer).
+`Detector` owns the cross-file policy, three-neighbour budget, dunder/call rules, patterns and inline suppression.
+Both comparers exclude same-file functions before taking the neighbour limit, and the Python extractor omits
+pure declaration stubs. `scan` returns mutual nearest neighbours. Equal Dryer scores break ties in corpus order.
+`similarity` returns a raw score even below size gates, so `explain` can explain why a pair was not proposed.
 
 The adapter calls upstream `entries_in_source` and `jaccard`; it does not copy the normalizer or scoring formula.
-Source spans distinguish overloaded signatures from their implementation. Nested functions stay with the enclosing
-canonical function. The comparison harness verifies every extracted fingerprint against full-file upstream
-extraction before timing. It never invokes the standalone CLI or creates Dryer's `.metrics/dry.edn` in the target.
+Source spans distinguish repeated declarations. Nested functions stay inside their canonical enclosing function.
+The comparison harness verifies every extracted fingerprint against full-file upstream extraction before timing.
+It never invokes the standalone CLI or writes `.metrics/dry.edn` in the target repository.
 
-Dryer source-line minimums include docstrings and multiline signatures, just as upstream does. Boilerplate can therefore pass its size gates; declaration-only abstract methods are omitted by the shared
-canonical extractor before either source runs. A score of 1 means the fingerprints match, not that two
-functions have the same purpose. Neither source replaces the judge.
+Source-line minimums include docstrings and multiline signatures, just as upstream does. Boilerplate may pass
+those gates. A score of 1 means fingerprints match, not that two functions have the same purpose. Neither comparer
+replaces the judge. Dryer's identity includes the upstream revision and language-pack version.
 
-JSON candidates and stored records carry `detector`. Existing records default to `tfidf`. Unchanged structure
-hashes can reuse a verdict across sources. After a logic change, a previous score can only support the existing
-TF-IDF reuse heuristic when both old and new sources are TF-IDF. Dryer erases literals and field names, so a flat
-Jaccard score cannot justify reusing a verdict about changed logic.
+## Cache compatibility
+
+Schema 2 adds `similarity_reusable` to candidates and stored records. Comparers opt into that policy with an
+optional attribute of the same name; absence means false. TF-IDF opts in to retain its existing heuristic.
+Dryer leaves it false because normalization erases literals and fields: a flat Jaccard score does not justify
+reusing a verdict about changed logic. Exact structure-hash reuse still works, including across comparers.
+
+Schema 1 candidates and records remain readable and default to false. Their exact-hash matches still reuse the
+verdict; changed code is rejudged once rather than guessing an old metric's policy. Existing same-comparer/version
+checks remain in force when both sides opt in. The cache policy stays in core and survives detect/judge serialization.
 
 ## Reproduce the backend comparison
 
-Use a clean detached checkout of the commit recorded in [the comparison](dryer-comparison.md), then:
+Use a clean detached checkout of the commit in [the comparison](dryer-comparison.md), then:
 
 ```bash
 PYTHONUTF8=1 uv run --extra dryer python scripts/compare_detectors.py /path/to/frozen-backend \
   --base 9d5314c54bb3e7e15c825e8eac44e6960ab42d9d --runs 3 --output /outside/repository/evidence
 ```
 
-The harness extracts one corpus, verifies upstream parity, alternates detector order, records every duration and
-pair count, and checks that repeated runs return the same pairs. `summary.json` records source/base SHAs, versions,
-settings and a corpus hash. The four candidate JSON files contain private source: keep them in private evidence
+The harness extracts one corpus, verifies upstream parity, alternates comparer order, records each duration and
+pair count, and checks repeated runs return the same pairs. `summary.json` records source/base SHAs, versions,
+settings and a corpus hash. Four candidate JSON files contain private source; keep them in private evidence
 storage. No judge is called. Candidate counts measure review volume; quality requires labelled examples.
