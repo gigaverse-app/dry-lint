@@ -55,6 +55,22 @@ def test_default_prompt_remains_legacy() -> None:
     assert prompt(candidate) == prompt(candidate, policy="concept")
 
 
+def test_compact_policy_uses_separate_evidence_and_bounded_response() -> None:
+    requests = []
+    reply = {"content": [{"type": "text", "text": '{"label":"duplicate","score":0.9,"why":"Shared cancellation."}'}]}
+    judge = AnthropicJudge(
+        api_key="test", prompt_policy="shared-operations-compact", max_tokens=512, http_client=claude(reply, requests)
+    )
+    [verdict] = judge.judge([coverage_pair()], Settings())
+    assert verdict.judge_version.startswith("dry-operations-compact-v1:")
+    assert len(prompt(coverage_pair(), policy="shared-operations-compact")) < len(
+        prompt(coverage_pair(), policy="shared-operations")
+    )
+    body = json.loads(requests[0].content)
+    assert body["max_tokens"] == 512
+    assert "30 words" in body["messages"][0]["content"]
+
+
 @pytest.mark.parametrize("options", [{"prompt_policy": "unknown"}, {"max_tokens": 0}])
 def test_invalid_prompt_configuration_fails_before_provider_request(options) -> None:
     with pytest.raises(ValueError):
