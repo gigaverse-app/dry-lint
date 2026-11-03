@@ -36,12 +36,12 @@ Two thresholds in `[tool.dry-lint]` decide what a finding does:
 | Judge score | Finding | Check |
 | --- | --- | --- |
 | below `report_at` (0.8) | not shown | green |
-| `report_at` to `fail_at` (0.8 to 0.9) | warning annotation, listed in the comment | green |
-| `fail_at` (0.9) and above | error annotation, listed first as **blocking** | **red** |
+| `report_at` to `fail_at` (0.8 to 0.91) | warning annotation, listed in the comment | green |
+| `fail_at` (0.91) and above | error annotation, listed first as **blocking** | **red** |
 
 `fail_at` is set where the benchmark found no false positives. On the gold set (the shipped `reuse-v2` prompt),
 precision was 75% at 0.8, 78% at 0.85, 90% at 0.88 and 100% from 0.90. The highest-scoring false positive was
-0.892, and the lowest true duplicate above it 0.910. At that level the check goes red for about one pull request
+0.892, and the lowest true duplicate above it 0.910, so `fail_at` sits at 0.91. At that level the check goes red for about one pull request
 in twenty, catching a fifth of the duplicates; the rest warn ([benchmark](benchmark.md)). Raise it, lower it, or
 set `warn-only`, as your team's experience suggests.
 

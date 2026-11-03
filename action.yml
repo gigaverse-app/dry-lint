@@ -51,7 +51,7 @@ inputs:
     default: ""
   warn-only:
     description: >
-      Never fail. By default the check fails only on near-certain duplicates (judge score at or above fail_at, 0.9,
+      Never fail. By default the check fails only on near-certain duplicates (judge score at or above fail_at, 0.91,
       in [tool.dry-lint]); findings between report_at and fail_at only warn.
     required: false
     default: "false"
