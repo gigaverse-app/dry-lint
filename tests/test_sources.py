@@ -127,11 +127,31 @@ def test_nested_functions_remain_with_their_parent() -> None:
     assert {pair.new.name, pair.existing.name} == {"outer", "wrapper"}
 
 
+def test_shared_recall_rules_apply_to_dryer_before_ranking() -> None:
+    from textwrap import indent
+
+    from dry_lint.functions import functions_in
+
+    local = "\n".join(f"class Resource{i}:\n{indent(SHAPE, '    ')}" for i in range(12))
+    local += "\ndef declaration(\n    values: list[int],\n) -> int:\n    raise NotImplementedError\n"
+    functions = functions_in(local, "a.py") + functions_in(SHAPE, "b.py")
+    assert len(functions) == 13
+    detector = Detector(functions, Settings(detector="dryer"))
+    assert [(other.path, score) for other, score in detector.neighbours(functions[0])] == [("b.py", 1.0)]
+    pairs, _ = detector.candidates([functions[0]])
+    assert len(pairs) == 1 and pairs[0].new.name == pairs[0].existing.name == "compute"
+    assert len(detector.scan()) == 1
+
+
 def test_overload_signatures_do_not_inherit_the_implementation_fingerprint() -> None:
     from dry_lint.functions import functions_in
 
     source = "@overload\ndef compute(\n    values: list[int],\n) -> int: ...\n\n" + SHAPE
-    functions = functions_in(source, "a.py") + [function("b.py", SHAPE.replace("compute", "calculate"))]
+    functions = (
+        [function("a.py", "def compute(\n    values: list[int],\n) -> int: ...")]
+        + functions_in(source, "a.py")
+        + [function("b.py", SHAPE.replace("compute", "calculate"))]
+    )
     detector = Detector(functions, Settings(detector="dryer"))
     assert detector.neighbours(functions[0]) == []
     assert [(other.name, score) for other, score in detector.neighbours(functions[1])] == [("calculate", 1.0)]

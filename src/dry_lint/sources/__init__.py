@@ -8,19 +8,17 @@ from dry_lint.settings import Settings
 
 
 class CandidateSource(Protocol):
-    def similar(self, function: Function, limit: int) -> list[tuple[int, float]]:
-        """Rank corpus positions, excluding the query itself, before cross-file policy."""
+    def similar(self, function: Function, limit: int, exclude: set[int]) -> list[tuple[int, float]]:
+        """Rank corpus positions, applying the caller's exclusions before limiting."""
         ...
 
 
 class TfidfSource:
     def __init__(self, functions: list[Function]) -> None:
         self.index = TfidfIndex([behaviour_tokens(f) for f in functions])
-        self.position = {f.qualname: i for i, f in enumerate(functions)}
 
-    def similar(self, function: Function, limit: int) -> list[tuple[int, float]]:
-        own = self.position.get(function.qualname)
-        return self.index.similar(behaviour_tokens(function), limit=limit, exclude={own} if own is not None else set())
+    def similar(self, function: Function, limit: int, exclude: set[int]) -> list[tuple[int, float]]:
+        return self.index.similar(behaviour_tokens(function), limit=limit, exclude=exclude)
 
 
 def make_source(functions: list[Function], settings: Settings) -> CandidateSource:

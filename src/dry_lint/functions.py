@@ -50,6 +50,20 @@ def _parse(code: str) -> ast.Module | None:
         return None
 
 
+def _call_name(node: ast.Call) -> str | None:
+    target = node.func
+    return target.attr if isinstance(target, ast.Attribute) else target.id if isinstance(target, ast.Name) else None
+
+
+def calls(function: Function) -> set[str]:
+    """Names actually invoked, excluding declarations and mentions in comments or strings."""
+    tree = _parse(function.code)
+    if tree is None:
+        return set()
+    # Suppression needs a real call node; textual resemblance is not evidence of delegation.
+    return {name for node in ast.walk(tree) if isinstance(node, ast.Call) if (name := _call_name(node))}
+
+
 def behaviour_tokens(function: Function) -> list[str]:
     """
     What the function does, as a bag of tokens: the names it calls, the attributes it touches, the words in its
@@ -62,8 +76,7 @@ def behaviour_tokens(function: Function) -> list[str]:
         return tokens
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
-            target = node.func
-            leaf = target.attr if isinstance(target, ast.Attribute) else target.id if isinstance(target, ast.Name) else None
+            leaf = _call_name(node)
             if leaf:
                 tokens.append(f"call:{leaf.lower()}")
                 tokens += [f"w:{word}" for word in words(leaf)]
@@ -131,6 +144,24 @@ def structure_hash(function: Function) -> str:
     return hashlib.sha256(ast.dump(canonical, annotate_fields=False).encode()).hexdigest()[:16]
 
 
+def _is_stub(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Declaration-only bodies have no implementation to reuse; retain any executable behavior."""
+    for statement in node.body:
+        if isinstance(statement, ast.Pass):
+            continue
+        if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant):
+            if isinstance(statement.value.value, str) or statement.value.value is Ellipsis:
+                continue
+        if isinstance(statement, ast.Raise) and statement.cause is None:
+            exception = statement.exc
+            if isinstance(exception, ast.Call) and not exception.args and not exception.keywords:
+                exception = exception.func
+            if isinstance(exception, ast.Name) and exception.id == "NotImplementedError":
+                continue
+        return False
+    return True
+
+
 def functions_in(source: str, path: str, min_lines: int = 2) -> list[Function]:
     """Top-level functions and methods (nested functions stay part of their parent)."""
     try:
@@ -146,9 +177,18 @@ def functions_in(source: str, path: str, min_lines: int = 2) -> list[Function]:
                 visit(child, child.name)
             elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 end = child.end_lineno or child.lineno
-                if end - child.lineno + 1 >= min_lines:
-                    found.append(Function(path=path, name=child.name, owner=owner, line=child.lineno, end_line=end,
-                                          code="\n".join(lines[child.lineno - 1 : end])))
+                # Stubs otherwise dominate exact-match rankings and consume the judge's candidate budget.
+                if end - child.lineno + 1 >= min_lines and not _is_stub(child):
+                    found.append(
+                        Function(
+                            path=path,
+                            name=child.name,
+                            owner=owner,
+                            line=child.lineno,
+                            end_line=end,
+                            code="\n".join(lines[child.lineno - 1 : end]),
+                        )
+                    )
 
     visit(tree, None)
     return found

@@ -6,7 +6,10 @@ is the expensive part, so it is pluggable and asked as little as possible. The v
 ## Detector
 
 `functions.py` turns every tracked Python file into functions: top-level functions and methods, with nested
-functions kept in their parent. Each one gets two fingerprints:
+functions kept in their parent. Declaration-only stubs (docstrings, `pass`, `...`, and bare or zero-argument
+`raise NotImplementedError`) are omitted before indexing so they do not consume neighbour or judge slots.
+Abstract methods with implementations, other exceptions, and methods that do work before raising remain eligible.
+Each remaining function gets two fingerprints:
 
 - **Behaviour tokens** describe what the function does, as a bag of tokens:
   - `call:` for each name it calls;
@@ -33,9 +36,12 @@ takes about 2 ms. That keeps it usable as a pre-commit hook without numpy or a m
 2. Map those lines to the functions they touch.
 3. For each touched function, take its three nearest neighbours **in other files** above a floor: 0.5, or 0.3 for
    functions shorter than six lines. Tiny helpers share few tokens, so their real twins score lower.
+   Exclude all functions in the same file before limiting the results; a file with many similar methods must not
+   crowd out eligible neighbours elsewhere.
 4. Drop the pairs a rule settles:
    - both are dunders;
-   - one calls the other;
+   - one calls the other (call names come from AST call nodes, never declarations, comments or strings; names
+     remain a heuristic, without import or receiver resolution);
    - both match a declared `pattern`;
    - one carries `# dry-lint: distinct-from <qualified name suffix>`.
 5. Return the rest as candidate pairs.

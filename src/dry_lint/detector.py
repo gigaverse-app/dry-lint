@@ -9,11 +9,12 @@ no usable answer (store.py).
 import fnmatch
 import re
 import subprocess
+from collections import defaultdict
 from pathlib import Path
 
 from pydantic import BaseModel
 
-from dry_lint.functions import Function, repository_functions
+from dry_lint.functions import Function, calls, repository_functions
 from dry_lint.settings import Settings
 from dry_lint.sources import make_source
 
@@ -55,10 +56,6 @@ def touched(functions: list[Function], lines: dict[str, set[int]]) -> list[Funct
     return [f for f in functions if lines.get(f.path, set()) & set(range(f.line, f.end_line + 1))]
 
 
-def calls(function: Function) -> set[str]:
-    return set(re.findall(r"\b(\w+)\(", function.code))
-
-
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
     """Look-alikes that are never duplicates, by structure, by rule, or by a person's inline decision."""
     if a.name.startswith("__") and b.name.startswith("__"):
@@ -81,6 +78,9 @@ class Detector:
         self.settings = settings
         self.source = make_source(functions, settings)
         self.position = {f.qualname: i for i, f in enumerate(functions)}
+        self.positions_by_path: dict[str, set[int]] = defaultdict(set)
+        for i, function in enumerate(functions):
+            self.positions_by_path[function.path].add(i)
 
     @classmethod
     def for_repository(cls, root: Path, settings: Settings) -> "Detector":
@@ -94,15 +94,18 @@ class Detector:
 
     def neighbours(self, function: Function) -> list[tuple[Function, float]]:
         """The closest functions in other files, above the detector floor, before any filtering."""
-        found = self.source.similar(function, limit=self.settings.neighbours + 8)
+        # Exclude the entire file before limiting so local look-alikes cannot exhaust the shortlist.
+        found = self.source.similar(
+            function,
+            limit=self.settings.neighbours,
+            exclude=self.positions_by_path.get(function.path, set()),
+        )
         result = []
         for position, similarity in found:
             other = self.functions[position]
-            if other.path == function.path or similarity < self.floor(function):
+            if similarity < self.floor(function):
                 continue
             result.append((other, similarity))
-            if len(result) == self.settings.neighbours:
-                break
         return result
 
     def candidates(self, changed: list[Function]) -> tuple[list[Candidate], list[str]]:

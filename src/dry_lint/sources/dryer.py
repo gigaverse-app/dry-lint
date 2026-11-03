@@ -27,7 +27,7 @@ class DryerSource:
             return None
         return entry if entry.nodes >= self.settings.dryer_min_nodes else None
 
-    def similar(self, function: Function, limit: int) -> list[tuple[int, float]]:
+    def similar(self, function: Function, limit: int, exclude: set[int]) -> list[tuple[int, float]]:
         location = (function.path, function.line)
         entry = self.entries[location] if location in self.entries else self._entry(function)
         if entry is None:
@@ -35,7 +35,7 @@ class DryerSource:
         found = []
         for position, other in enumerate(self.functions):
             target = self.entries[(other.path, other.line)]
-            if target is None or other.qualname == function.qualname:
+            if target is None or position in exclude:
                 continue
             # Set-size ratio is an upper bound on Jaccard; skip only provably impossible matches.
             smaller, larger = sorted((len(entry.fingerprints), len(target.fingerprints)))
