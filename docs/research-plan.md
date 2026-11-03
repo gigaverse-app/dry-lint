@@ -10,7 +10,10 @@ decision rules fixed before their results are seen. It changes no runtime behavi
 
 **Status:** E1 to E3 have run as [the channel trial](channel-trial.md); no variant met the decision rules.
 Reserved slots keep every known duplicate but their extra pairs are judged real about 15% of the time, against 38%
-for the baseline scan. Next: E4 (does the judge filter them?) and E9 (a less brittle backlog rule).
+for the baseline scan. E4 has run as [retrieval presets](retrieval-presets.md), on 600 commits of four repositories:
+with a second judge, wider retrieval keeps its precision but adds few reported duplicates for 2.6 times the judge
+calls; with Jev alone its false reports almost quadruple. Retrieval stays as it is. Next: E9 (a less brittle backlog
+rule) and E10 (replay calibration as a product command).
 
 ## What we know
 
@@ -99,15 +102,17 @@ how much a change moves the output, not whether it improves it.
 | E1 | Reserved-slot channels: TF-IDF keeps three slots; a behaviour-only TF-IDF channel (calls, attributes, keys, control flow; no words), an LSI channel and Dryer each add one | H1, H2 | Offline script, numpy for LSI |
 | E2 | Hub correction (CSLS) of TF-IDF scores before the neighbour budget and mutual-nearest scan | H3 | A few lines |
 | E3 | Singular/plural folding of `w:` and `fn:` words | H4 | A few lines |
-| E4 | Judge-labelled gold set of several hundred pairs drawn from every channel | H6 | Judge calls |
+| E4 | Judge-labelled gold set of several hundred pairs drawn from every channel | H6 | Judge calls; done: [retrieval presets](retrieval-presets.md) |
 | E5 | Import graph: owner suggestion and an "already imports" feature | H5 | `ruff analyze graph` |
 | E6 | API identity (#11) plus syntax-level receiver types, as a separate channel | H2 | Offline script |
 | E7 | Docstring channel | H2 | Offline script |
 | E8 | Pattern-family detection: report a dense family once instead of as many pairs | H3 | Offline script |
 | E9 | A softer backlog rule: pairs in each other's top two, not only mutual first neighbours | H1 | Offline script |
+| E10 | `dry-lint bench --replay`: replay a repository's recent commits, label a sample and report settings on its own history | | Product command |
 
-E1 to E3 ran first, together, as [the channel trial](channel-trial.md). E4 is next: it decides whether a cheap
-channel such as behaviour-only TF-IDF pays for its extra judge calls. Dryer and LSI are dropped as channels.
+E1 to E3 ran first, together, as [the channel trial](channel-trial.md), and E4 as [retrieval presets](retrieval-presets.md).
+Dryer, LSI and the behaviour-only channel are dropped as channels: the judge filters what they add, but they add
+almost nothing it reports.
 
 ### Protocol for E1 to E3
 

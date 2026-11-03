@@ -15,7 +15,9 @@ the same bar. So dry-lint chooses the judges and the thresholds together, as a *
 | `jev` | Jev on every pair | 0.8 | 94% / 73% | ~$0.0001 |
 | `none` | no judge: candidates are listed, nothing fails | - | - | free |
 
-Measured on the 250-pair gold set ([benchmark](benchmark.md#thresholds-with-a-second-judge)). The default,
+Measured on the 250-pair gold set ([benchmark](benchmark.md#thresholds-with-a-second-judge)); on gigaverse-backend,
+-web-app and -mobile, `jev+sonnet` failing at 0.7 kept 91–100% precision, while Jev alone fell to about 80% on
+TypeScript ([other repositories](benchmark.md#other-repositories)). The default,
 `preset = "auto"`, takes the first of `jev+sonnet`, `jev+claude-code`, `jev`, `sonnet`, `claude-code`, `none`
 whose credentials are in the environment (`TYPESAFE_AI_API_KEY`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`);
 `jev+codex` must be named, because a `codex` login shows in no environment variable. Any field set explicitly
