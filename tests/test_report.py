@@ -58,7 +58,8 @@ def test_findings_are_ordered_blocking_then_drifted_then_by_score_and_count_thei
 
 @pytest.mark.parametrize("label, score, reported, blocking", [
     ("duplicate", 0.79, False, False), ("duplicate", 0.8, True, False), ("drifted", 0.89, True, False),
-    ("duplicate", 0.9, True, True), ("drifted", 0.97, True, True), ("separate", 0.95, False, False),
+    ("duplicate", 0.9, True, False), ("duplicate", 0.91, True, True), ("drifted", 0.97, True, True),
+    ("separate", 0.95, False, False),
 ])  # fmt: skip
 def test_blocking_means_a_reported_duplicate_at_or_above_fail_at(label, score, reported, blocking) -> None:
     [f] = report(finding(label, score)).findings
@@ -155,7 +156,7 @@ def test_json_report_round_trips() -> None:
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:
-    data = json.loads(as_sarif(report(finding("drifted", existing="a"), finding(None, existing="b"), finding("separate", existing="c"))))
+    data = json.loads(as_sarif(report(finding("drifted", 0.95, existing="a"), finding(None, existing="b"), finding("separate", existing="c"))))
     assert data["version"] == "2.1.0"
     [run] = data["runs"]
     assert [(r["ruleId"], r["level"]) for r in run["results"]] == [("dry-lint/drifted", "error"), ("dry-lint/candidate", "note")]
