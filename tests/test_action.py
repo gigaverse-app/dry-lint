@@ -55,9 +55,10 @@ def test_the_base_is_the_pull_requests_base_or_the_previous_push(explicit, event
 
 
 @pytest.mark.parametrize("requested, has_key, judge", [
-    ("auto", True, "jev"), ("auto", False, "none"), ("", False, "none"), ("command", False, "command"),
+    ("auto", True, "auto"), ("auto", False, "none"), ("", False, "none"), ("command", False, "command"),
+    ("jev", True, "jev"),
 ])  # fmt: skip
-def test_auto_judge_is_jev_only_with_a_key(requested, has_key, judge) -> None:
+def test_auto_leaves_the_preset_to_dry_lint_while_any_judge_key_is_present(requested, has_key, judge) -> None:
     assert resolve_judge(requested, has_key) == judge
 
 
@@ -88,7 +89,7 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                   "INPUT_COMMENT": "true", "INPUT_CHECK_RUN": "true", "INPUT_WORKING_DIRECTORY": str(tmp_path)}
         values.update({f"INPUT_{k.upper()}": v for k, v in inputs.items() if k != "key"})
         # Hermetic: a developer's or Claude Code's own keys must never reach a judge from a test.
-        for name_ in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"):
+        for name_ in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
             monkeypatch.delenv(name_, raising=False)
         if "key" in inputs:
             values["TYPESAFE_AI_API_KEY"] = inputs["key"]
@@ -127,7 +128,7 @@ def test_single_mode_comments_and_reports_without_failing_by_default(github_env,
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
     args = cli.call_args_list[0].args
-    assert args[0] == "check" and args[args.index("--base") + 1] == BASE and args[args.index("--judge") + 1] == "jev"
+    assert args[0] == "check" and args[args.index("--base") + 1] == BASE and "--judge" not in args
     assert args[args.index("--format") + 1] == "text"
     rendered = cli.call_args_list[1].args
     assert rendered[0] == "report" and rendered[rendered.index("--format") + 1] == "github"
@@ -573,6 +574,33 @@ def test_the_fail_at_input_reaches_every_dry_lint_command(github_env, tmp_path) 
         action.main(["run"])
     args = cli.call_args_list[0].args
     assert args[args.index("--fail-at") + 1] == "0.95"
+
+
+@pytest.mark.parametrize("key", ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"])
+def test_any_judge_key_turns_judging_on_and_dry_lint_picks_the_preset(github_env, tmp_path, monkeypatch, key) -> None:
+    github_env("pull_request", pull_request())
+    monkeypatch.setenv(key, "secret")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [ANNOTATION])) as cli, \
+            patch.object(sticky, "main", return_value=0) as post:
+        action.main(["run"])
+    args = cli.call_args_list[0].args
+    assert "--judge" not in args and args[args.index("--format") + 1] == "text"
+    assert cli.call_args_list[1].args[0] == "report"
+    post.assert_called_once()
+
+
+def test_preset_and_budget_inputs_pass_through_only_when_set(github_env, tmp_path) -> None:
+    github_env("pull_request", pull_request(), key="secret", preset="jev", budget_usd="0.5")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
+            patch.object(sticky, "main", return_value=0):
+        action.main(["run"])
+    args = cli.call_args_list[0].args
+    assert args[args.index("--preset") + 1] == "jev" and args[args.index("--budget-usd") + 1] == "0.5"
+    github_env("pull_request", pull_request(), key="secret", preset="", budget_usd="")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
+            patch.object(sticky, "main", return_value=0):
+        action.main(["run"])
+    assert "--preset" not in cli.call_args_list[0].args and "--budget-usd" not in cli.call_args_list[0].args
 
 
 def test_settings_that_turn_judging_off_keep_the_action_quiet_even_with_keys(github_env, tmp_path, capsys) -> None:
