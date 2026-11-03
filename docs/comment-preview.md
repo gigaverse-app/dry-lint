@@ -54,3 +54,31 @@ Different concepts? Add to captions.py:
 </details>
 
 <sub>5 changed functions · 2 pairs compared · 1 from the verdict store · judge `illustrative`</sub>
+
+## The running account
+
+Every sticky ends with the pull request's ledger, here after four pushes, and the repository's line once its default branch has folded a merged pull request. Illustrative figures, rendered with the production ledger renderer.
+
+#### 🛡️ This pull request so far
+
+**2 duplicates kept out of the codebase** for $0.007 of judging, across 4 pushes.
+
+![kept out: 2](https://img.shields.io/badge/kept_out-2-2EA043?style=flat-square&labelColor=24292F) ![pushes: 4](https://img.shields.io/badge/pushes-4-6E7781?style=flat-square&labelColor=24292F) ![functions checked: 60](https://img.shields.io/badge/functions_checked-60-6E7781?style=flat-square&labelColor=24292F) ![judgments: 3](https://img.shields.io/badge/judgments-3-6E7781?style=flat-square&labelColor=24292F) ![spent: $0.007](https://img.shields.io/badge/spent-%240.007-2563EB?style=flat-square&labelColor=24292F)
+
+<details><summary><strong>Push by push</strong></summary>
+
+| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cost |
+| --: | :-- | --: | --: | --: | --: | --: |
+| 1 | `3f9a1c2` | 14 | 3 | 3 | 3 | $0.004 |
+| 2 | `8be41d0` | 15 | 1 | 0 <sub>+1 reused</sub> | 1 | $0.001 |
+| 3 | `c01d7e9` | 15 | 1 | 0 | 0 | under $0.001 |
+| 4 | `e5a0b37` | 16 | 0 | 0 | 0 | under $0.001 |
+| **4** | | **60** | **5** | **3** | | **$0.007** |
+
+✅ `clip` ≈ `shorten` · found in push 1, kept out in push 2  
+✅ `clip` ≈ `trim` · found in push 1, kept out in push 3  
+⚪ `clip` ≈ `cut` · found in push 1, dismissed by a person's decision in push 3  
+
+</details>
+
+<sub>🏆 `acme/shop` since Oct 6, 2026: **31 duplicates kept out of the codebase** across 58 merged pull requests, for $0.84 of judging.</sub>
