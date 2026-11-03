@@ -125,6 +125,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `repositories` | | One `OWNER/NAME=PATH` per line, including the primary checkout. Enables changed-function checks against committed peers in `single`/`detect` mode. Checkout and credentials remain the workflow's responsibility. See [workspaces](workspaces.md). |
 | `comment` | `true` | Keep the sticky comment. |
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
+| `share-totals` | `true` | On the default branch, add each merged pull request's counts to [the global counter](#the-global-counter); `false` opts out. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
 | `sticky-key` | | Cache namespace and legacy marker label; all keys share one PR comment. |
 | `fail-at` | the preset's (0.7 with `jev+sonnet`, 0.8 with `jev`) | Judge score at or above which a duplicate fails the check. |
@@ -173,6 +174,20 @@ pull requests.
 
 The fold needs the default branch to run dry-lint on push, as [the example workflow](../examples/dry-lint.yml)
 does, and a token that can read pull requests.
+
+### The global counter
+
+After folding, the run sends each newly merged pull request's counts to dry-lint's public counter, a
+[Cloudflare Worker](../counter) at `https://dry-lint-counter.gigaverse-oss.workers.dev`, so [the sign in the README](../README.md#the-counter) counts every
+repository that shares. A contribution holds the SHA-256 of the lower-cased repository name, the pull request
+number, the counts the ledger keeps (kept out, caught, dismissed, still open at merge, pushes, runs, judgments,
+functions checked, spend) and the dry-lint version: no code, names, paths or people.
+
+- **Opt out** with `share-totals: "false"`. Nothing is sent, and anything waiting is dropped.
+- **Counted once.** The counter keys contributions on the repository hash and pull request number, so a resend
+  changes nothing. A send that fails waits in the repository's ledger (`outbox`) for the next push, and never
+  fails the run.
+- **Bounded.** Counts are self-reported; the counter refuses a pull request claiming implausible figures.
 
 ## Running it in a monorepo, or more than once
 

@@ -8,6 +8,11 @@
   <img alt="dry-lint" src="docs/assets/sticky-banner-light.svg" width="640">
 </picture>
 
+<a href="#the-counter"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark">
+  <img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg" width="640">
+</picture></a>
+
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
 (pylint's `duplicate-code`, jscpd) look for repeated lines, so they miss this. Every rewrite is also a chance to
@@ -106,6 +111,29 @@ pair-specific suppression instructions under each summary. A clean pull request 
 label lets one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
+
+Every sticky also keeps a running account: what each push cost, and each duplicate kept out of the codebase
+([the ledger](docs/github-action.md#the-ledger)).
+
+### The counter
+
+The sign above counts every duplicate dry-lint has kept out of a codebase: a duplicate a pull request introduced,
+dry-lint reported, and a later push removed before merging. When a pull request merges, the action's run on the
+default branch sends its counts (duplicates kept out, caught and dismissed, pushes, judgments, functions checked,
+judging spend and the dry-lint version) to a [Cloudflare Worker](counter). The repository is sent only as the
+SHA-256 of its name; no code, names, paths or people. Each pull request is counted once. Opt out with
+`share-totals: "false"`.
+
+Put your own repository's sign in its README:
+
+```html
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&repository=OWNER/NAME">
+  <img alt="Duplicates dry-lint kept out of OWNER/NAME" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?repository=OWNER/NAME" width="640">
+</picture>
+```
+
+or a badge: `![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Frepository%3DOWNER%2FNAME)`.
 
 **pre-commit** ([examples/pre-commit-config.yaml](examples/pre-commit-config.yaml)): hook id `dry-lint` checks the
 staged functions.

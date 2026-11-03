@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -803,3 +804,41 @@ def test_a_merged_pull_requests_ledger_reaches_the_next_pull_requests_comment(
     monkeypatch.setenv("GITHUB_RUN_ID", "61")
     action.main(["run"], transport=httpx.MockTransport(following))
     assert "<sub>🏆 `acme/shop` since " in following.stickies()[0]
+
+
+# The global counter: each merged pull request's counts, once, unless the repository opts out.
+
+
+def test_merged_pull_requests_are_shared_with_the_counter_by_hash_once(github_env, tmp_path) -> None:
+    github_env("push", MAIN_PUSH)
+    github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
+                        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]})
+    action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
+    action.fold("acme/shop", "main", "d" * 40, tmp_path / "no-report.json", httpx.MockTransport(github))
+    [sent] = github.counted
+    assert sent["repository"] == hashlib.sha256(b"acme/shop").hexdigest() and "acme" not in json.dumps(sent)
+    assert {k: sent[k] for k in ("pull", "kept_out", "caught", "dismissed", "merged_open", "pushes", "runs")} == {
+        "pull": 3, "kept_out": 1, "caught": 1, "dismissed": 0, "merged_open": 0, "pushes": 2, "runs": 2}
+    assert sent["usd"] == 0.004 and sent["version"] and saved_ledger().outbox == []
+
+
+def test_an_unavailable_counter_is_retried_on_the_next_push(github_env, tmp_path, capsys) -> None:
+    github_env("push", MAIN_PUSH)
+    github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
+                        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")))]}, counter_status=503)
+    assert action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github)) == "folded"
+    assert "global counter is unavailable" in capsys.readouterr().out and len(saved_ledger().outbox) == 1
+    github.counter_status = 200
+    action.fold("acme/shop", "main", "d" * 40, tmp_path / "no-report.json", httpx.MockTransport(github))
+    assert [sent["pull"] for sent in github.counted] == [3] and saved_ledger().outbox == []
+
+
+def test_a_repository_that_opts_out_shares_nothing(github_env, tmp_path) -> None:
+    github_env("push", MAIN_PUSH, share_totals="false")
+    action.ledger_path().parent.mkdir(parents=True)
+    queued = RepositoryLedger(repository="acme/shop", outbox=[{"pull": 1}])
+    action.ledger_path().write_text(queued.model_dump_json())
+    github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
+                        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")))]})
+    action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
+    assert github.counted == [] and saved_ledger().outbox == [] and saved_ledger().pulls == [3]

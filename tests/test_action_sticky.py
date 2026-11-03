@@ -21,9 +21,10 @@ class FakeGitHub:
 
     def __init__(self, comments: list[str] = (), head: str = HEAD, write_status: int = 200, banner: int = 404,
                  labels: list[str] = (), merged: list[dict] = (), elsewhere: dict[int, list[str]] | None = None,
-                 pulls_status: int = 200):
+                 pulls_status: int = 200, counter_status: int = 200):
         self.comments = [{"id": i + 1, "body": body} for i, body in enumerate(comments)]
         self.merged, self.elsewhere, self.pulls_status = list(merged), elsewhere or {}, pulls_status
+        self.counter_status, self.counted = counter_status, []
         self.labels = [{"name": name} for name in labels]
         self.head, self.write_status, self.banner = head, write_status, banner
         self.writes: list[str] = []
@@ -33,6 +34,10 @@ class FakeGitHub:
         path, method = request.url.path, request.method
         if request.url.host == "raw.githubusercontent.com":
             return httpx.Response(self.banner)
+        if request.url.host.endswith(".workers.dev"):  # dry-lint's global counter
+            if self.counter_status == 200:
+                self.counted.append(json.loads(request.content))
+            return httpx.Response(self.counter_status, json={"counted": True})
         if method == "GET" and path == f"/repos/{REPO}/pulls/{PR}":
             return httpx.Response(200, json={"head": {"sha": self.head}, "labels": self.labels})
         if method == "GET" and path == f"/repos/{REPO}/pulls":
