@@ -11,7 +11,6 @@ from dry_lint.bench import GoldFunction, GoldPair
 from dry_lint.cli import main, parser, run_info, settings_for
 from dry_lint.judges.jev import JevJudge
 from dry_lint.models import CandidatesFile
-from dry_lint.report import escaped
 
 from conftest import EXISTING, Repo, judge_calls
 from conftest import TWIN as TWIN_SOURCE
@@ -73,7 +72,7 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(rep
     code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--warn-only",
                "--output", str(comment), "--report", str(report))
     assert code == 0
-    assert comment.read_text().startswith("<!-- dry-lint -->") and escaped(TWIN) in comment.read_text()
+    assert comment.read_text().startswith("<!-- dry-lint -->") and f"`{TWIN.split('::')[1]}`" in comment.read_text()
     assert "blocking" not in comment.read_text()
     written = json.loads(report.read_text())
     assert written["schema"] == 3 and any(f["reported"] for f in written["findings"])

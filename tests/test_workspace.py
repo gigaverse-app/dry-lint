@@ -82,6 +82,8 @@ def test_workspace_cli_uses_existing_judge_and_report_pipeline(workspace, tmp_pa
     data = json.loads(output.read_text())
     assert data["schema"] == 3 and data["findings"][0]["reported"]
     assert "https://github.com/org/" in capsys.readouterr().out
+    assert main(["report", "--root", str(workspace["org/web"]), "--from", str(output), "--format", "sarif"]) == 2
+    assert "workspace report" in capsys.readouterr().err
     assert main([*args, "--repo", f"org/web={workspace['org/web']}"]) == 2
     assert "Duplicate repository" in capsys.readouterr().err
     assert main([*args, "--format", "github"]) == 2

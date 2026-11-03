@@ -23,6 +23,8 @@ from pathlib import Path
 
 import httpx
 
+from dry_lint.report import GREEN, NOTE_SLOT, badge
+
 MARKER = "<!-- dry-lint -->"
 ASSETS = "https://raw.githubusercontent.com/gigaverse-app/dry-lint/main/docs/assets"
 PAGE = 100
@@ -54,18 +56,22 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
             f'  <img alt="dry-lint" src="{ASSETS}/sticky-banner-light.svg" width="640">\n'
             "</picture>\n"
         )
-    if note:
-        parts.append(f"\n{note}\n")
-    parts.append("\n".join(lines).strip())
-    source = [f"commit {head[:7]}" if head else "", f"[run]({run_url})" if run_url else ""]
-    if any(source):
-        parts.append(f"\n<sub>dry-lint · {' · '.join(s for s in source if s)}</sub>")
+    report = "\n".join(lines).strip()
+    if NOTE_SLOT in report:
+        report = report.replace(NOTE_SLOT, note).replace("\n\n\n\n", "\n\n")
+    elif note:
+        report = f"{note}\n\n{report}"
+    parts.append(report)
+    source = ["[dry-lint](https://github.com/gigaverse-app/dry-lint)", f"commit {head[:7]}" if head else "",
+              f"[run]({run_url})" if run_url else ""]
+    if head or run_url:
+        parts.append(f"\n<sub>{' · '.join(s for s in source if s)}</sub>")
     return "\n".join(parts) + "\n"
 
 
 def resolved(key: str = "", banner: bool = False, run_url: str = "", head: str = "") -> str:
-    return compose("### dry-lint · Resolved\n\nNo findings remain at the configured report threshold in this run.", key,
-                   banner, run_url, head)
+    return compose(f"### dry-lint · ✅ Resolved\n\n{badge('duplicated concepts', 0, GREEN)}\n\n"
+                   "No findings remain at the configured report threshold in this run.", key, banner, run_url, head)
 
 
 class GitHub:
