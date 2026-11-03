@@ -49,10 +49,16 @@ inputs:
     description: Name for this report's comment, when one repository runs dry-lint more than once per pull request.
     required: false
     default: ""
-  fail-on-findings:
-    description: Fail when a judged duplicate reaches report_at. Off by default, so a team can watch it before enforcing it.
+  warn-only:
+    description: >
+      Never fail. By default the check fails only on near-certain duplicates (judge score at or above fail_at, 0.9,
+      in [tool.dry-lint]); findings between report_at and fail_at only warn.
     required: false
     default: "false"
+  override-label:
+    description: A pull request label that turns blocking findings into warnings, for a false positive or an urgent merge.
+    required: false
+    default: "dry-lint: override"
   github-token:
     description: Token for commenting and, in judge mode, for downloading the triggering run's artifact.
     required: false
@@ -65,8 +71,14 @@ outputs:
   findings:
     description: How many duplicates were reported.
     value: ${{ steps.run.outputs.findings }}
+  blocking:
+    description: How many of them are near-certain (at or above fail_at).
+    value: ${{ steps.run.outputs.blocking }}
+  overridden:
+    description: Whether the override label turned blocking findings into warnings.
+    value: ${{ steps.run.outputs.overridden }}
   exit-code:
-    description: 0 nothing reported, 1 duplicates reported, 2 dry-lint could not run.
+    description: dry-lint's exit code, 0 nothing blocking, 1 blocking findings, 2 dry-lint could not run.
     value: ${{ steps.run.outputs.exit-code }}
 
 runs:
@@ -116,7 +128,8 @@ runs:
         INPUT_COMMENT: ${{ inputs.comment }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
-        INPUT_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+        INPUT_WARN_ONLY: ${{ inputs.warn-only }}
+        INPUT_OVERRIDE_LABEL: ${{ inputs.override-label }}
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: python -m dry_lint.action run

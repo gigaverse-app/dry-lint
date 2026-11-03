@@ -64,7 +64,7 @@ def test_auto_judge_is_jev_only_with_a_key(requested, has_key, judge) -> None:
 
 def test_findings_are_counted_from_file_annotations_only() -> None:
     lines = [ANNOTATION, ANNOTATION.replace("::warning", "::error"), "::notice title=dry-lint::hi", "dry-lint: 3 pairs"]
-    assert count_findings(lines) == 2
+    assert count_findings(lines) == (2, 1)
 
 
 def test_a_shallow_checkout_gets_the_history_a_merge_base_needs(repo: Repo, tmp_path: Path) -> None:
@@ -127,19 +127,67 @@ def test_single_mode_comments_and_reports_without_failing_by_default(github_env,
     posted = post.call_args.args[0]
     assert posted[posted.index("--pull-request") + 1] == "7" and posted[posted.index("--findings") + 1] == "1"
     assert "--expect-head" not in posted and posted[posted.index("--run-url") + 1].endswith("/acme/shop/actions/runs/55")
-    assert outputs(tmp_path) == {"mode": "single", "exit-code": "1", "findings": "1", "stored": "false"}
+    assert outputs(tmp_path) == {"mode": "single", "exit-code": "0", "findings": "1", "blocking": "0",
+                                 "overridden": "false", "stored": "false"}
+    assert posted[posted.index("--note") + 1] == ""
     assert "### dry-lint" in (tmp_path / "summary").read_text()
 
 
-def test_fail_on_findings_fails_the_step(github_env, tmp_path) -> None:
-    github_env("pull_request", pull_request(), key="secret", fail_on_findings="true")
-    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [ANNOTATION])), \
-            patch.object(sticky, "main", return_value=0):
+BLOCKING = ANNOTATION.replace("::warning", "::error")
+
+
+def labelled(*names: str) -> dict:
+    event = pull_request()
+    event["pull_request"]["labels"] = [{"name": name} for name in names]
+    return event
+
+
+def test_a_near_certain_duplicate_fails_the_check_and_says_how_to_override(github_env, tmp_path) -> None:
+    github_env("pull_request", labelled("enhancement"), key="secret")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [BLOCKING, ANNOTATION], code=1)), \
+            patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 1
+    note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
+    assert note.startswith("**Blocking:** 1 finding(s)") and "`dry-lint: override` label" in note
+    assert outputs(tmp_path) | {} == {"mode": "single", "exit-code": "1", "findings": "2", "blocking": "1",
+                                      "overridden": "false", "stored": "false"}
+
+
+def test_findings_below_fail_at_only_warn(github_env, tmp_path) -> None:
+    github_env("pull_request", pull_request(), key="secret")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [ANNOTATION], code=0)), \
+            patch.object(sticky, "main", return_value=0):
+        assert action.main(["run"]) == 0
+
+
+def test_the_override_label_turns_a_blocking_finding_into_a_warning(github_env, tmp_path, capsys) -> None:
+    github_env("pull_request", labelled("dry-lint: override"), key="secret")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [BLOCKING], code=1)), \
+            patch.object(sticky, "main", return_value=0) as post:
+        assert action.main(["run"]) == 0
+    note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
+    assert note.startswith("**Overridden:**")
+    assert "overridden by the `dry-lint: override` label" in capsys.readouterr().out
+    assert outputs(tmp_path)["overridden"] == "true"
+
+
+def test_the_override_label_name_is_configurable(github_env, tmp_path) -> None:
+    github_env("pull_request", labelled("ship-it"), key="secret", override_label="ship-it")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [BLOCKING], code=1)), \
+            patch.object(sticky, "main", return_value=0):
+        assert action.main(["run"]) == 0
+
+
+def test_warn_only_never_fails_and_does_not_claim_to_block(github_env, tmp_path) -> None:
+    github_env("pull_request", pull_request(), key="secret", warn_only="true")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [BLOCKING], code=1)), \
+            patch.object(sticky, "main", return_value=0) as post:
+        assert action.main(["run"]) == 0
+    assert post.call_args.args[0][post.call_args.args[0].index("--note") + 1] == ""
 
 
 def test_without_a_judge_nothing_is_annotated_commented_or_failed(github_env, tmp_path, capsys) -> None:
-    github_env("pull_request", pull_request(), fail_on_findings="true")
+    github_env("pull_request", pull_request())
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
             patch.object(sticky, "main") as post:
         assert action.main(["run"]) == 0
@@ -370,3 +418,44 @@ def test_a_base_the_checkout_lacks_is_fetched(repo: Repo, tmp_path: Path) -> Non
     later = repo.git("rev-parse", "HEAD").strip()
     ensure_history(clone, later)
     assert subprocess.run(["git", "cat-file", "-e", f"{later}^{{commit}}"], cwd=clone).returncode == 0
+
+
+def judge_run(tmp_path: Path, lines: list[str], code: int):
+    """A stand-in CLI for judge mode: judges with `code`, and renders the check run the way dry-lint does."""
+    judged = cli_writes_comment(tmp_path, lines, code=code, run={"pull_request": PR_NUMBER, "head": HEAD})
+
+    def fake(*args: str, echo: bool = True):
+        if args[0] == "report":
+            return 1, [json.dumps({"name": "dry-lint", "head_sha": HEAD, "conclusion": "neutral"})]
+        return judged(*args)
+
+    return fake
+
+
+PR_NUMBER = 7
+
+
+@pytest.mark.parametrize("labels, result, conclusion", [
+    ([], 1, "failure"),
+    (["dry-lint: override"], 0, "neutral"),
+])  # fmt: skip
+def test_a_fork_pull_request_is_blocked_through_its_check_run_unless_overridden(
+        github_env, tmp_path, labels, result, conclusion) -> None:
+    github_env("workflow_run", WORKFLOW_RUN, key="secret")
+    candidates = tmp_path / "runner" / "dry-lint" / "in" / "candidates.json"
+    candidates.parent.mkdir(parents=True)
+    candidates.write_text("{}")
+    github = FakeGitHub(head=HEAD, labels=labels)
+    with patch.object(action, "dry_lint", side_effect=judge_run(tmp_path, [BLOCKING], code=1)), \
+            patch.object(sticky, "banner_available", return_value=False):
+        assert action.main(["run"], transport=httpx.MockTransport(github)) == result
+    [check] = github.check_runs
+    assert check["conclusion"] == conclusion
+    assert ("**Overridden:**" in github.stickies()[0]) is bool(labels)
+
+
+def test_labels_are_unknown_without_a_token_or_when_the_api_fails(monkeypatch) -> None:
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    assert action.pull_labels("acme/shop", 7) == set()
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    assert action.pull_labels("acme/shop", 7, httpx.MockTransport(lambda request: httpx.Response(500))) == set()

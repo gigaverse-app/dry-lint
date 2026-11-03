@@ -24,10 +24,41 @@ That is the whole setup for a repository whose pull requests come from its own b
   - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never
     shows a broken image.
 - **The job summary**, with the same report.
-- **No red X by default.** Set `fail-on-findings: "true"` once the team trusts the findings.
+- **Red only when near-certain.** See [When it fails](#when-it-fails-and-false-positives).
 
 Without a judge (no `typesafe-api-key` and no `judge-command`), dry-lint lists look-alikes in the log. It adds no
 annotations, no comment and no failure, so installing it before the secret exists costs nothing.
+
+## When it fails, and false positives
+
+Two thresholds in `[tool.dry-lint]` decide what a finding does:
+
+| Judge score | Finding | Check |
+| --- | --- | --- |
+| below `report_at` (0.8) | not shown | green |
+| `report_at` to `fail_at` (0.8 to 0.9) | warning annotation, listed in the comment | green |
+| `fail_at` (0.9) and above | error annotation, listed first as **blocking** | **red** |
+
+`fail_at` is set where the benchmark found no false positives. On the gold set, precision was 75% at 0.8, 88% at
+0.85 and 100% at 0.88 and above; the highest-scoring false positive was 0.87. On gigaverse-ai's history that is
+about one pull request in forty ([benchmark](benchmark.md)). Raise it, lower it, or set `warn-only`, as your
+team's experience suggests.
+
+**When dry-lint is wrong**, record the decision where it belongs:
+
+| Scope | How | Where it lives |
+| --- | --- | --- |
+| this pair | `# dry-lint: distinct-from src/text.py::shorten_text` in the new function | next to the code it explains |
+| this function | `# dry-lint: ignore` in the function | next to the code |
+| a family of deliberate look-alikes | a `patterns` entry (`members`, `reason`) in `[tool.dry-lint]` | configuration, reviewed |
+| whole paths | `exclude` in `[tool.dry-lint]` | configuration, reviewed |
+| this pull request only | the `dry-lint: override` label | the pull request; the comment says it was overridden |
+
+The code and configuration routes are permanent and reviewed like any change: the pair is never proposed again.
+The label is for an urgent merge or a call you don't want to write down. It lets blocking findings through for this
+pull request only, and the comment records that it did. Adding or removing the label re-runs dry-lint (the example
+workflow listens for `labeled` and `unlabeled`), and the verdicts come from the cache, so that re-run costs no
+judge calls.
 
 ## Modes, and pull requests from forks
 
@@ -61,12 +92,13 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment` | `true` | Keep the sticky comment. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
 | `sticky-key` | | One comment per key, when several dry-lint steps report on one pull request. |
-| `fail-on-findings` | `false` | Fail when a judged duplicate reaches `report_at`. |
+| `warn-only` | `false` | Never fail; blocking findings are reported like the rest. |
+| `override-label` | `dry-lint: override` | The pull request label that lets blocking findings through. |
 | `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read` and `checks: write`. |
 
-The outputs are `mode`, `findings` (how many duplicates were reported) and `exit-code`: 0 for clean, 1 for
-duplicates reported, 2 when dry-lint could not run. Exit code 2 always fails the step, so a broken setup is never
-silent.
+The outputs are `mode`, `findings` (how many duplicates were reported), `blocking` (how many reached `fail_at`),
+`overridden` and `exit-code`: 0 for nothing blocking, 1 for blocking findings, 2 when dry-lint could not run. Exit
+code 2 always fails the step, so a broken setup is never silent.
 
 Thresholds and exclusions live in `[tool.dry-lint]` in `pyproject.toml`, so that the action, the pre-commit hook
 and the command line all agree ([README](../README.md#settings)).
