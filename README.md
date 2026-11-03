@@ -26,20 +26,25 @@ src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_t
 
 ## How it works
 
-1. **Detector** (local, no model, about 5 s on 10,000 functions). It finds the functions the diff touched. Each one
-   is compared against every function in other files by a TF-IDF fingerprint of what it *does*: the names it calls,
-   the attributes it touches, the words in its identifiers, its loops, `try` blocks and `await`s. The three nearest
-   above a floor become candidate pairs. Rules drop known non-duplicates: dunders, one calling the other, declared
+dry-lint is a fixed core (the pipeline, the file formats, the verdict store's rules and the reports) with four
+plugin slots: how functions are found, how they are compared, how a pair is judged, and where verdicts are kept.
+See [docs/design.md](docs/design.md) and [docs/plugins.md](docs/plugins.md).
+
+1. **Detector** (local, no model, about 4.5 s on 10,000 functions). It finds the functions the diff touched. The
+   **comparer** proposes each one's nearest look-alikes in other files; the built-in one is a TF-IDF fingerprint
+   of what a function *does*: the names it calls, the attributes it touches, the words in its identifiers, its
+   loops, `try` blocks and `await`s. Rules settle known non-duplicates: dunders, one calling the other, declared
    patterns, inline `distinct-from`.
 2. **Judge** (separate and pluggable). [Jev](docs/judges.md) answers three typed questions per pair in about 0.3 s:
    - Is it one concept?
    - Do the two already behave differently?
    - Which side should own the single implementation?
 
-   Any LLM CLI can be the judge instead.
-3. **Verdict store** (a cache, not a reviewed file). Each verdict is keyed on the pair plus a *structure hash* of
-   each function, which comments, formatting and renames do not change. A pair is judged again only when its logic
-   changes, so most pushes cost zero judge calls. See [docs/design.md](docs/design.md).
+   Any LLM CLI, or any program, can be the judge instead, and a second judge can take the scores the first is
+   least sure about.
+3. **Verdict store** (a cache, not a reviewed file). Each verdict is kept per pair with a *structure hash* of each
+   function, which comments, formatting and renames do not change. A pair is judged again only when its logic
+   changes, so most pushes cost zero judge calls.
 
 ## Quick start
 
@@ -47,6 +52,18 @@ src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_t
 uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint check            # changes since origin/main
 uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 30  # the whole repo's backlog
 ```
+
+| Command | Does |
+| --- | --- |
+| `check [--base REF \| --staged]` | detect, judge and report the functions a change touched (base: `origin/HEAD`) |
+| `scan [--limit N] [--refresh]` | the same for the whole repository's backlog |
+| `detect --out candidates.json` | CI job 1: propose pairs; no judge, no secrets, no store |
+| `judge --candidates candidates.json` | CI job 2: judge them, store the verdicts, report |
+| `report --from report.json --format F` | render a report as `text`, `github`, `markdown`, `json`, `sarif` or `check-run` |
+| `explain A B` | why a pair is, or is not, reported |
+| `bench --gold gold.jsonl [--comparer]` | measure the judge, or the comparer, on a gold set |
+
+`--report report.json` and `--output comment.md` write the report and the PR comment from any command that judges.
 
 Without a judge, dry-lint lists the candidate pairs and never fails. With `TYPESAFE_AI_API_KEY` set, Jev judges
 them. To use another judge, pass `--judge command --judge-command "your-llm-cli"` (see [docs/judges.md](docs/judges.md)).
@@ -63,7 +80,9 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 ```
 
 The action caches verdicts between runs, adds annotations and keeps a single PR comment up to date. It warns by
-default; set `fail-on-findings: "true"` once the team trusts it.
+default; set `fail-on-findings: "true"` once the team trusts it. To keep the judge's key away from pull request
+code (pull requests from forks), run it as two jobs: `detect` on the pull request and `judge` on `workflow_run`
+([docs/design.md](docs/design.md#two-jobs-in-ci)).
 
 **pre-commit** ([examples/pre-commit-config.yaml](examples/pre-commit-config.yaml)): hook id `dry-lint` checks the
 staged functions.
@@ -109,11 +128,18 @@ measured thresholds above:
 
 | Setting | Default | |
 | --- | --- | --- |
-| `include` / `exclude` | `*.py` / tests, migrations, scripts | fnmatch over tracked paths |
+| `include` / `exclude` | everything / tests, migrations, scripts | fnmatch over tracked paths |
 | `neighbours` | 3 | candidates per changed function |
-| `min_similarity` / `min_similarity_small` | 0.5 / 0.3 | detector floors; small means under `small_function_lines` (6) |
 | `drop_below` / `report_at` / `drift_at` | 0.6 / 0.8 / 0.8 | judge thresholds |
 | `reopen_margin` | 0.05 | how much closer a "separate" pair must get before it is judged again |
+| `max_findings` | 10 | rows in the PR comment |
+| `extractors` | `["python"]` | one per language |
+| `comparer` | `"tfidf"` | options `min_similarity` (0.5), `min_similarity_small` (0.3) under `small_function_lines` (6) |
+| `judge` / `escalate` | `"auto"` / none | `escalate = { use = "command", command = "...", between = [0.6, 0.8] }` |
+| `store` | `"dir"` | `.git/dry-lint/verdicts/`, or `{ use = "s3", uri = "s3://bucket/prefix" }` |
+
+A plugin slot takes a name, or a table with `use` and the plugin's options:
+`comparer = { use = "tfidf", min_similarity = 0.45 }`.
 
 ## Lint
 

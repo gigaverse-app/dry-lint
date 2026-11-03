@@ -12,10 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 
-from dry_lint.detector import Candidate
 from dry_lint.judges import label_for
+from dry_lint.models import Candidate, Verdict
 from dry_lint.settings import Settings
-from dry_lint.store import Verdict
 
 PROMPT_VERSION = "reuse-v2"
 API_URL = "https://api.typesafe.ai/v1/systemone"
@@ -76,7 +75,8 @@ def state(candidate: Candidate) -> dict:
 
 
 class JevJudge:
-    name = f"jev:{PROMPT_VERSION}"
+    name = "jev"
+    version = PROMPT_VERSION
 
     def __init__(self, api_key: str | None = None, model: str = "jev-latest", url: str = API_URL, workers: int = 8,
                  transport: httpx.BaseTransport | None = None):
@@ -95,7 +95,8 @@ class JevJudge:
         owner = answers["owner"]
         score = same * (1 - float(owner.get("probabilities", {}).get("none", 0.0)))
         return Verdict(label=label_for(score, differs, settings), score=round(score, 3),
-                       behaves_differently=round(differs, 3), owner=owner.get("choice", ""), judge=self.name)
+                       behaves_differently=round(differs, 3), owner=owner.get("choice", ""), judge=self.name,
+                       judge_version=self.version)
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         with httpx.Client(timeout=30, transport=self.transport) as client, ThreadPoolExecutor(self.workers) as pool:

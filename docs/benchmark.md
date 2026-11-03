@@ -55,6 +55,26 @@ about 0.55 would catch twelve.
 The judged sample's negatives were TF-IDF's mistakes, which favours the embeddings on AUC. The two kinds of
 detector agree on about 40% of their top pairs.
 
+## Running it
+
+`dry-lint bench` runs a judge, or the comparer, on a gold set: JSON lines, one labelled pair per line.
+
+```json
+{"new": {"id": "src/widgets/caption.py::preview_caption_text", "code": "def preview_caption_text(...): ..."},
+ "existing": {"id": "src/text.py::shorten_text", "code": "def shorten_text(...): ..."},
+ "label": "duplicate", "drifted": true, "owner": "existing", "weight": 4.5}
+```
+
+- `label` is `duplicate`, `separate` or `borderline`; borderline pairs are left out of the numbers.
+- Each side carries its code as it was when labelled, so the judge benchmark still runs after the code has moved.
+- `weight` projects a stratified sample back to its population: the stratum's size over its sample size.
+
+```bash
+dry-lint bench --gold gold.jsonl                       # the configured judge: AUC, precision and recall, bands
+dry-lint bench --gold gold.jsonl --judge command --judge-command "claude -p"
+dry-lint bench --gold gold.jsonl --comparer            # is each duplicate's partner proposed, on today's code?
+```
+
 ## Labelling guideline
 
 Use this to build a gold set for your own codebase:
