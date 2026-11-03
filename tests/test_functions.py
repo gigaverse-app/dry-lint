@@ -93,8 +93,26 @@ def test_behaviour_tokens_of_unparsable_code_fall_back_to_the_name() -> None:
 
 
 def test_words_split_identifiers_and_drop_generic_ones() -> None:
-    assert words("parseHTTPHeader_value") == ["parse", "httpheader"]
+    assert words("parseHTTPHeader_value") == ["parse", "http", "header"]
     assert words("get_user_id") == ["user"]
+
+
+@pytest.mark.parametrize("identifier", ["parse_http_header", "parseHTTPHeader", "ParseHTTPHeader"])
+def test_identifier_spelling_preserves_the_same_words(identifier: str) -> None:
+    assert words(identifier) == ["parse", "http", "header"]
+
+
+def test_class_identifiers_in_executable_code_contribute_words() -> None:
+    source = "def create():\n    return HTTPInvoiceClient()\n"
+    tokens = behaviour_tokens(function("a.py", source))
+    assert {"w:http", "w:invoice", "w:client", "call:httpinvoiceclient"} <= set(tokens)
+
+
+def test_moving_an_implementation_to_another_class_does_not_change_its_fingerprint() -> None:
+    source = "def digest(value):\n    return hashlib.sha256(value.encode()).hexdigest()\n"
+    assert behaviour_tokens(function("a.py", source, owner="User")) == behaviour_tokens(
+        function("b.py", source, owner="CommunityEvent")
+    )
 
 
 def test_tracked_python_files_respect_include_and_exclude(repo: Repo) -> None:
@@ -152,3 +170,37 @@ def test_declaration_only_stubs_are_not_indexed(body: str) -> None:
 def test_implemented_methods_remain_indexed_even_when_abstract_or_raising(body: str) -> None:
     source = "class Port:\n    @abstractmethod\n    def load_user(self, client):\n" + indent(body, "        ") + "\n"
     assert [f.qualname for f in functions_in(source, "ports.py")] == ["ports.py::Port.load_user"]
+
+
+def test_behaviour_fingerprint_ignores_annotations_but_preserves_executable_names() -> None:
+    plain = "def lookup(client, key):\n    response = client.fetch(key)\n    return response\n"
+    annotated = (
+        "def lookup(client: Client[User], key: Identifier) -> User:\n"
+        "    response: User = client.fetch(key)\n"
+        "    return response\n"
+    )
+    assert behaviour_tokens(function("a.py", plain)) == behaviour_tokens(function("a.py", annotated))
+    assert "w:client" in behaviour_tokens(function("a.py", annotated))
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        '{"customer_id": value}',
+        "dict(customer_id=value)",
+        'data["customer_id"]',
+        'data.get("customer_id")',
+        'data.pop("customer_id", None)',
+        'data.setdefault("customer_id", value)',
+    ],
+)
+def test_field_identity_survives_different_mapping_syntax(expression: str) -> None:
+    tokens = behaviour_tokens(function("a.py", f"def project(data, value):\n    return {expression}\n"))
+    assert "key:customer_id" in tokens
+
+
+def test_command_options_contribute_identity_without_help_prose() -> None:
+    source = 'def add_arguments(parser):\n    parser.add_argument("--invoice-id", help="unrelated explanation")\n'
+    tokens = behaviour_tokens(function("a.py", source))
+    assert "key:--invoice-id" in tokens
+    assert not any("unrelated" in token or "explanation" in token for token in tokens)

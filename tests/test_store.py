@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -7,8 +8,13 @@ from dry_lint.store import Verdict, VerdictStore, key
 
 from conftest import function
 
-NEW = function("new.py", "def clip(text, n):\n    if len(text) <= n:\n        return text\n    return text[: n - 1] + '…'\n")
-OLD = function("old.py", "def shorten(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[: limit - 1] + '…'\n")
+NEW = function(
+    "new.py", "def clip(text, n):\n    if len(text) <= n:\n        return text\n    return text[: n - 1] + '…'\n"
+)
+OLD = function(
+    "old.py",
+    "def shorten(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[: limit - 1] + '…'\n",
+)
 
 
 def verdict(label: str, score: float = 0.9) -> Verdict:
@@ -75,3 +81,21 @@ def test_an_empty_store_saves_an_empty_file_and_ignores_blank_lines(store: Verdi
     assert store.path.read_text() == ""
     store.path.write_text("\n\n")
     assert VerdictStore(store.path).records == {}
+
+
+@pytest.mark.parametrize("version", [None, "previous-fingerprint"])
+def test_changed_code_reopens_when_saved_similarity_used_a_different_fingerprint(
+    store: VerdictStore, version: str | None
+) -> None:
+    store.remember(candidate(), verdict("separate", 0.2))
+    [record] = store.export()
+    if version is not None:
+        record["similarity_version"] = version
+    else:
+        record.pop("similarity_version", None)  # Legacy cache entries remain readable.
+    store.path.parent.mkdir(parents=True, exist_ok=True)
+    store.path.write_text(json.dumps(record) + "\n")
+    loaded = VerdictStore(store.path)
+    assert loaded.lookup(candidate(similarity=0.1), reopen_margin=0.05) == verdict("separate", 0.2)
+    changed = edited(NEW, "n - 1", "n - 2")
+    assert loaded.lookup(candidate(new=changed, similarity=0.1), reopen_margin=0.05) is None

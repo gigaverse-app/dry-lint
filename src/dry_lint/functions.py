@@ -6,9 +6,13 @@ import fnmatch
 import hashlib
 import re
 import subprocess
+from collections import deque
+from collections.abc import Iterator
 from pathlib import Path
 
 from pydantic import BaseModel, Field
+
+BEHAVIOUR_FINGERPRINT_VERSION = "2"
 
 STOP_WORDS = {
     "self", "cls", "return", "none", "true", "false", "args", "kwargs", "value", "result", "data", "item", "items",
@@ -36,7 +40,8 @@ class Function(BaseModel):
 
 
 def words(identifier: str) -> list[str]:
-    """Split snake_case and camelCase into lower-case words, dropping very short and generic ones."""
+    """Split snake_case, camelCase and acronym boundaries, dropping very short and generic words."""
+    identifier = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", identifier)
     parts = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", identifier).lower().split("_")
     return [part for part in parts if len(part) > 2 and part not in STOP_WORDS]
 
@@ -64,6 +69,42 @@ def calls(function: Function) -> set[str]:
     return {name for node in ast.walk(tree) if isinstance(node, ast.Call) if (name := _call_name(node))}
 
 
+def _behaviour_nodes(tree: ast.AST) -> Iterator[ast.AST]:
+    """Walk executable syntax without letting shared type annotations masquerade as shared behavior."""
+    pending = deque([tree])
+    while pending:
+        node = pending.popleft()
+        yield node
+        for field, value in ast.iter_fields(node):
+            if field in {"annotation", "returns", "type_params"}:
+                continue
+            if isinstance(value, ast.AST):
+                pending.append(value)
+            elif isinstance(value, list):
+                pending.extend(child for child in value if isinstance(child, ast.AST))
+
+
+def _field_keys(node: ast.AST) -> Iterator[str]:
+    """Preserve schema/option identity across mapping syntaxes without tokenizing arbitrary prose."""
+    if isinstance(node, ast.keyword) and node.arg is not None:
+        yield node.arg
+    elif isinstance(node, ast.Dict):
+        for key in node.keys:
+            if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                yield key.value
+    elif isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
+        yield node.slice.value
+    elif (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"get", "pop", "setdefault", "add_argument"}
+        and node.args
+    ):
+        first = node.args[0]
+        if isinstance(first, ast.Constant) and isinstance(first.value, str):
+            yield first.value
+
+
 def behaviour_tokens(function: Function) -> list[str]:
     """
     What the function does, as a bag of tokens: the names it calls, the attributes it touches, the words in its
@@ -74,7 +115,8 @@ def behaviour_tokens(function: Function) -> list[str]:
     tokens = [f"fn:{word}" for word in words(function.name)] * 2
     if tree is None:
         return tokens
-    for node in ast.walk(tree):
+    for node in _behaviour_nodes(tree):
+        tokens.extend(f"key:{key}" for key in _field_keys(node))
         if isinstance(node, ast.Call):
             leaf = _call_name(node)
             if leaf:

@@ -162,3 +162,16 @@ def test_same_file_methods_cannot_hide_cross_file_neighbours(repo: Repo) -> None
     detector = Detector.for_repository(repo.root, Settings())
     local = next(f for f in detector.functions if f.owner == "Resource0")
     assert any(other.path == "src/forensics.py" for other, _ in detector.neighbours(local))
+
+
+def test_schema_identity_ranks_the_real_twin_above_unrelated_serializer_glue(repo: Repo) -> None:
+    # Different schemas used to receive identical fingerprints: only their field keys differ.
+    for name, key in (("a_unrelated", "invoice_id"), ("b_existing", "customer_id"), ("c_new", "customer_id")):
+        repo.write(
+            f"src/{name}.py", f'def create(validated_data):\n    return dict({key}=validated_data.get("{key}"))\n'
+        )
+    repo.commit()
+    detector = Detector.for_repository(repo.root, Settings(neighbours=1))
+    changed = next(f for f in detector.functions if f.path == "src/c_new.py")
+    candidates, _ = detector.candidates([changed])
+    assert [pair.existing.path for pair in candidates] == ["src/b_existing.py"]

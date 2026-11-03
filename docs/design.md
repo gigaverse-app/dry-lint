@@ -14,11 +14,21 @@ Each remaining function gets two fingerprints:
 - **Behaviour tokens** describe what the function does, as a bag of tokens:
   - `call:` for each name it calls;
   - `attr:` for each attribute it touches;
-  - `w:` for each word in its identifiers, split from snake_case and camelCase, with generic words dropped;
+  - `w:` for each word in its executable identifiers, split from snake_case, camelCase and acronym boundaries
+    (`parseHTTPHeader` becomes `parse`, `http`, `header`), with generic words dropped;
   - `fn:` for the words in its own name, counted twice;
+  - `key:` for keyword argument names, string dictionary/subscript keys, literal keys passed to `get`, `pop` or
+    `setdefault`, and the first literal option name passed to `add_argument`;
   - `ctl:` for loops, `try` blocks and `await`s.
 
+  Type annotations and type parameters are excluded from behavior tokens. Arbitrary strings, comments and
+  docstrings do not contribute prose tokens. Executable class identifiers are split like other identifiers;
+  the enclosing class name is not added as context, because that displaced real cross-class duplicates in the
+  [backend evaluation](benchmark.md#backend-follow-up-more-signals-are-not-always-better).
+
   Two functions that solve the same problem share many of these even when their names and structure differ.
+  Field identities keep unrelated schemas from receiving identical fingerprints merely because both use
+  `dict` and `get`. Different field names lower similarity; they never hard-suppress a candidate.
 - **Structure hash** is the AST with docstrings, annotations and the function's own name removed, and every name the
   function binds itself renumbered in order of first use (`v0`, `v1`, …). Comments, formatting and renames do not
   change it; any change to the logic does.
@@ -67,15 +77,20 @@ A judge turns a candidate pair into a `Verdict`:
 The store has one JSON line per pair a judge decided. It is keyed on the two qualified names, sorted, and records:
 - both structure hashes;
 - the detector similarity at the time;
+- the behavior fingerprint version used to measure that similarity;
 - the verdict.
 
 A stored verdict is reused when:
 
 - **both structure hashes match**: nothing that matters changed; or
-- **the verdict was `separate` and the pair is not more than `reopen_margin` (0.05) closer than when it was judged.**
+- **the verdict was `separate`, the fingerprint version matches, and the pair is not more than
+  `reopen_margin` (0.05) closer than when it was judged.**
   Changes that move two different concepts further apart cannot make them one concept.
 
 A `duplicate` or `drifted` verdict reopens on any logic change, because that change might be the fix, or more drift.
+Legacy records remain readable, and matching structure hashes still reuse their verdict. A logic change reopens
+a record from an older/unknown fingerprint version instead of comparing distances from incompatible tokenizations.
+Increment `BEHAVIOUR_FINGERPRINT_VERSION` whenever behavior-token semantics change; structure hashes are separate.
 
 So a pair costs a judge call when it is first seen, and again only when it changes in a way that could change the
 answer. The store is a cache of machine answers, not a reviewed file:

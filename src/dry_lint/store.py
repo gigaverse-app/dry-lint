@@ -19,7 +19,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from dry_lint.detector import Candidate
-from dry_lint.functions import structure_hash
+from dry_lint.functions import BEHAVIOUR_FINGERPRINT_VERSION, structure_hash
 
 Label = Literal["duplicate", "drifted", "separate"]
 
@@ -30,7 +30,9 @@ class Verdict(BaseModel):
     label: Label
     score: float = Field(description="0-1: how sure the judge is that this is one concept with two implementations.")
     behaves_differently: float = Field(default=0.0, description="0-1: whether callers would notice a difference.")
-    owner: str = Field(default="", description="Which side should own the single implementation: new, existing, shared.")
+    owner: str = Field(
+        default="", description="Which side should own the single implementation: new, existing, shared."
+    )
     why: str = ""
     judge: str = Field(description="Judge and prompt version, e.g. 'jev:reuse-v2'.")
 
@@ -43,6 +45,7 @@ class Record(BaseModel):
     a_hash: str
     b_hash: str
     similarity_when_judged: float
+    similarity_version: str | None = None
     verdict: Verdict
     judged_at: str = Field(default_factory=lambda: datetime.now(UTC).date().isoformat())
 
@@ -67,10 +70,15 @@ class VerdictStore:
         if record is None:
             return None
         hashes = {record.a: record.a_hash, record.b: record.b_hash}
-        now = {candidate.new.qualname: structure_hash(candidate.new),
-               candidate.existing.qualname: structure_hash(candidate.existing)}
+        now = {
+            candidate.new.qualname: structure_hash(candidate.new),
+            candidate.existing.qualname: structure_hash(candidate.existing),
+        }
         if hashes == now:
             return record.verdict
+        # Changed code cannot reuse a distance comparison measured with a different fingerprint.
+        if record.similarity_version != BEHAVIOUR_FINGERPRINT_VERSION:
+            return None
         not_closer = candidate.similarity <= record.similarity_when_judged + reopen_margin
         if record.verdict.label == "separate" and not_closer:
             return record.verdict
@@ -78,10 +86,19 @@ class VerdictStore:
 
     def remember(self, candidate: Candidate, verdict: Verdict) -> None:
         a, b = key(candidate.new.qualname, candidate.existing.qualname)
-        hashes = {candidate.new.qualname: structure_hash(candidate.new),
-                  candidate.existing.qualname: structure_hash(candidate.existing)}
-        self.records[(a, b)] = Record(a=a, b=b, a_hash=hashes[a], b_hash=hashes[b],
-                                      similarity_when_judged=candidate.similarity, verdict=verdict)
+        hashes = {
+            candidate.new.qualname: structure_hash(candidate.new),
+            candidate.existing.qualname: structure_hash(candidate.existing),
+        }
+        self.records[(a, b)] = Record(
+            a=a,
+            b=b,
+            a_hash=hashes[a],
+            b_hash=hashes[b],
+            similarity_when_judged=candidate.similarity,
+            similarity_version=BEHAVIOUR_FINGERPRINT_VERSION,
+            verdict=verdict,
+        )
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
