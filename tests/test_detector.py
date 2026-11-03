@@ -97,6 +97,22 @@ def test_why_skipped_names_the_rule_that_makes_look_alikes_not_duplicates(a, b, 
     assert why_skipped(b, a, settings) == reason
 
 
+def test_same_named_functions_that_do_not_call_each_other_are_judged_not_skipped() -> None:
+    connect = "def connect(self):\n    self.session = open_session(BASE_URL)\n    return self.session\n"
+    a, b = function("feeds/youredge.py", connect, owner="YourEdge"), function("feeds/polymarket.py", connect, owner="Polymarket")
+    assert why_skipped(a, b, Settings()) is None
+    caller = function("feeds/retry.py", "def connect(self):\n    return self.inner.connect()\n", owner="Retrying")
+    assert why_skipped(caller, a, Settings()) == "one calls the other"
+
+
+def test_without_calls_from_the_extractor_the_defining_line_does_not_count_as_a_call() -> None:
+    a = function("a.ts", "function load(key) {\n  return cache.get(key)\n}", name="load").model_copy(update={"calls": None})
+    b = function("b.ts", "function load(id) {\n  return store.read(id)\n}", name="load").model_copy(update={"calls": None})
+    assert why_skipped(a, b, Settings()) is None
+    wrapper = function("c.ts", "function fetch(key) {\n  return load(key)\n}", name="fetch").model_copy(update={"calls": None})
+    assert why_skipped(wrapper, a, Settings()) == "one calls the other"
+
+
 def test_skipped_pairs_are_listed_with_their_reason(repo: Repo) -> None:
     repo.write("src/widgets/caption.py", (repo.root / "src/widgets/caption.py").read_text().replace(
         "    if len(caption_text)", "    # dry-lint: distinct-from src/text.py::shorten_text\n    if len(caption_text)"))

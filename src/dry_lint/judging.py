@@ -4,9 +4,9 @@ holds, otherwise the judge's answer; for first scores in the escalation band, a 
 Every new answer goes to the store. Filtered pairs never reach a judge.
 """
 
-import subprocess
 from pathlib import Path
 
+from dry_lint.git import git
 from dry_lint.judges import make_judge
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.plugins import Judge, identity, load
@@ -17,8 +17,7 @@ from dry_lint.store import DirectoryStore, VerdictStore
 
 def default_store(root: Path) -> Path:
     """Inside the git directory: kept between runs, never committed."""
-    out = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=root, capture_output=True, text=True, check=True)
-    return (root / out.stdout.strip()).resolve() / "dry-lint" / "verdicts"
+    return (root / git(root, "rev-parse", "--git-common-dir")).resolve() / "dry-lint" / "verdicts"
 
 
 def open_store(settings: Settings, root: Path, path: Path | None = None) -> VerdictStore:

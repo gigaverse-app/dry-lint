@@ -32,16 +32,13 @@ import httpx
 from dry_lint import __version__
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
+from dry_lint.git import git
 from dry_lint.judges import make_judge
 from dry_lint.judging import Judging, open_store
 from dry_lint.models import Candidate, CandidatesFile, Run
 from dry_lint.plugins import load
 from dry_lint.report import FORMATS, Report, as_json, as_markdown, render
 from dry_lint.settings import PluginChoice, Settings
-
-
-def git(root: Path, *args: str) -> str:
-    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=True).stdout.strip()
 
 
 def repository_root(start: Path) -> Path:

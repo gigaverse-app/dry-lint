@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from dry_lint.functions import behaviour_tokens, structure_hash
+from dry_lint.functions import behaviour_tokens, function_calls, structure_hash
 from dry_lint.models import Function
 
 EXISTING = '''
@@ -92,4 +92,5 @@ def function(path: str, source: str, name: str | None = None, owner: str | None 
     code = textwrap.dedent(source).strip()
     found = name or code.split("def ", 1)[1].split("(", 1)[0]
     plain = Function(path=path, name=found, owner=owner, line=1, end_line=len(code.splitlines()), code=code)
-    return plain.model_copy(update={"hash": structure_hash(plain), "tokens": behaviour_tokens(plain)})
+    return plain.model_copy(update={"hash": structure_hash(plain), "tokens": behaviour_tokens(plain),
+                                    "calls": function_calls(plain)})

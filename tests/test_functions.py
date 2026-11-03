@@ -4,7 +4,7 @@ from dry_lint.extractors import PythonExtractor
 from dry_lint.functions import (
     behaviour_tokens,
     extractor_for,
-    functions_in,
+    function_calls,
     repository_functions,
     structure_hash,
     tracked_files,
@@ -53,19 +53,19 @@ def test_structure_hash_of_unparsable_code_is_still_stable() -> None:
     assert len(structure_hash(broken)) == 16
 
 
-def test_functions_in_lists_functions_and_methods_by_qualified_name() -> None:
+def test_the_extractor_lists_functions_and_methods_by_qualified_name() -> None:
     source = (
         "def top(a):\n    return a\n\n"
         "class Box:\n    def open(self):\n        def helper():\n            return 1\n        return helper()\n\n"
         "def one_liner(): pass\n"
     )
-    found = functions_in(source, "pkg/box.py")
+    found = PythonExtractor().functions("pkg/box.py", source)
     assert [f.qualname for f in found] == ["pkg/box.py::top", "pkg/box.py::Box.open"]
     assert found[1].lines == 4 and "helper" in found[1].code
 
 
-def test_functions_in_skips_files_that_do_not_parse() -> None:
-    assert functions_in("def broken(:\n", "x.py") == []
+def test_the_extractor_skips_files_that_do_not_parse() -> None:
+    assert PythonExtractor().functions("x.py", "def broken(:\n") == []
 
 
 def test_behaviour_tokens_capture_calls_attributes_names_and_control_flow() -> None:
@@ -140,6 +140,14 @@ def test_the_python_extractor_gives_tokens_and_leaves_hashing_to_whoever_needs_i
     assert found.hash == "" and found.tokens == behaviour_tokens(found)
     assert PythonExtractor().structure_hash(found) == structure_hash(found)
     assert [f.name for f in PythonExtractor(min_lines=1).functions("a.py", source)] == ["shorten", "tiny"]
+
+
+def test_the_extractor_lists_calls_from_the_body_not_the_name_or_decorators() -> None:
+    source = "@retry(times=3)\ndef connect(self, timeout=default_timeout()):\n    return self.client.connect(timeout)\n"
+    [found] = PythonExtractor().functions("a.py", source)
+    assert sorted(found.calls) == ["connect", "default_timeout"]
+    assert PythonExtractor().functions("a.py", "def connect(self):\n    return 1\n")[0].calls == []
+    assert function_calls(function("a.py", "def broken(:", name="broken")) is None
 
 
 def test_decorators_change_neither_tokens_nor_hash() -> None:

@@ -37,6 +37,8 @@ class Function(BaseModel):
     hash: str = Field(default="", description="Changes when the logic changes; not for comments, formatting or renames.")
     tokens: list[str] = Field(default_factory=list, exclude=True,
                               description="Behaviour tokens, for comparers that use them. Not written to files.")
+    calls: list[str] | None = Field(default=None, exclude=True,
+                                    description="Names the function calls, from its extractor; None if it cannot tell.")
 
     @property
     def qualname(self) -> str:

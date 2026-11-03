@@ -8,10 +8,10 @@ store has no usable answer (store.py). The extractors and the comparer are plugi
 
 import fnmatch
 import re
-import subprocess
 from pathlib import Path
 
 from dry_lint.functions import extractor_for, repository_functions
+from dry_lint.git import git
 from dry_lint.models import Candidate, Function
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.settings import Settings
@@ -21,9 +21,8 @@ SUPPRESSION = re.compile(r"(?:#|//)\s*dry-lint:\s*distinct-from\s+(\S+)")
 
 def default_base(root: Path) -> str:
     """The remote's default branch (origin/HEAD), or origin/main when the clone does not record one."""
-    out = subprocess.run(["git", "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], cwd=root, capture_output=True,
-                         text=True)
-    return out.stdout.strip().removeprefix("refs/remotes/") or "origin/main"
+    remote_head = git(root, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD", check=False)
+    return remote_head.removeprefix("refs/remotes/") or "origin/main"
 
 
 def base_ref(root: Path, base: str | None) -> str:
@@ -33,11 +32,7 @@ def base_ref(root: Path, base: str | None) -> str:
 
 def changed_lines(root: Path, base: str | None = None, staged: bool = False) -> dict[str, set[int]]:
     """Lines added or modified, per file: against `base` (merge base with HEAD), or the staged changes."""
-    if staged:
-        command = ["git", "diff", "--cached", "-U0"]
-    else:
-        command = ["git", "diff", "-U0", f"{base_ref(root, base)}...HEAD"]
-    diff = subprocess.run(command, cwd=root, capture_output=True, text=True, check=True).stdout
+    diff = git(root, "diff", "--cached", "-U0") if staged else git(root, "diff", "-U0", f"{base_ref(root, base)}...HEAD")
     changed: dict[str, set[int]] = {}
     current = None
     for line in diff.splitlines():
@@ -58,7 +53,10 @@ def touched(functions: list[Function], lines: dict[str, set[int]]) -> list[Funct
 
 
 def calls(function: Function) -> set[str]:
-    return set(re.findall(r"\b(\w+)\(", function.code))
+    """The names the function calls: from its extractor, else from its code after the line that defines it."""
+    if function.calls is not None:
+        return set(function.calls)
+    return set(re.findall(r"\b(\w+)\(", function.code.partition("\n")[2]))
 
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:

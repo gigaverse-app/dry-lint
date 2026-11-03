@@ -8,9 +8,9 @@ import ast
 import fnmatch
 import hashlib
 import re
-import subprocess
 from pathlib import Path
 
+from dry_lint.git import git
 from dry_lint.models import Function
 from dry_lint.plugins import Extractor
 
@@ -74,6 +74,19 @@ def node_tokens(node: FunctionNode) -> list[str]:
     return tokens
 
 
+def node_calls(node: FunctionNode) -> list[str]:
+    """The names the function calls, in its signature defaults and body; not its own name or its decorators."""
+    found = []
+    for part in (node.args, *node.body):
+        for child in ast.walk(part):
+            if isinstance(child, ast.Call):
+                target = child.func
+                leaf = target.attr if isinstance(target, ast.Attribute) else target.id if isinstance(target, ast.Name) else None
+                if leaf:
+                    found.append(leaf)
+    return found
+
+
 def behaviour_tokens(function: Function) -> list[str]:
     """`node_tokens` of a function's code; only its name's words when the code does not parse."""
     node = _function_node(function.code)
@@ -118,6 +131,12 @@ class _Canonical(ast.NodeTransformer):
         return node
 
 
+def function_calls(function: Function) -> list[str] | None:
+    """`node_calls` of a function's code, or None when the code does not parse."""
+    node = _function_node(function.code)
+    return node_calls(node) if node else None
+
+
 def structure_hash(function: Function) -> str:
     """
     A hash that changes when the logic changes, and not for comments, docstrings, formatting, decorators, renamed
@@ -152,12 +171,8 @@ def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Fun
     return found
 
 
-def functions_in(source: str, path: str, min_lines: int = 2) -> list[Function]:
-    return [function for function, _ in function_nodes(source, path, min_lines)]
-
-
 def tracked_files(root: Path, include: list[str], exclude: list[str]) -> list[str]:
-    listed = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, text=True, check=True).stdout
+    listed = git(root, "ls-files", "-z")
     return [
         path for path in listed.split("\0")
         if path and any(fnmatch.fnmatch(path, pattern) for pattern in include)

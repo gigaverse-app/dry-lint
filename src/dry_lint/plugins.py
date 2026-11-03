@@ -30,7 +30,10 @@ class Extractor(Protocol):
     files: tuple[str, ...]  # fnmatch globs over paths it reads, e.g. ("*.py",)
 
     def functions(self, path: str, source: str) -> list[Function]:
-        """Every function in the file, without `hash`: core asks for that only for the functions in a pair."""
+        """
+        Every function in the file, without `hash` (core asks for that only for the functions in a pair). Fill
+        `calls` when the language allows it; otherwise core reads calls from the code after its first line.
+        """
         ...
 
     def structure_hash(self, function: Function) -> str:
