@@ -86,7 +86,7 @@ def test_github_annotations_escape_percent_signs_and_judge_text_is_one_line() ->
 def test_markdown_comment_lists_findings_under_a_stable_marker() -> None:
     body = as_markdown(report(finding("duplicate", 0.88, "existing", "same truncation"), finding(None, existing="other")))
     assert body.startswith(MARKER)
-    assert "| `src/widgets/caption.py::clip` | `src/text.py::shorten` | **duplicate** 0.88 | call the existing function same truncation (2 look-alikes) |" in body
+    assert "| `src/widgets/caption.py::clip` | `src/text.py::shorten` | **duplicate** 0.88 | call the existing function; same truncation (2 look-alikes) |" in body
     assert "| similarity 0.71 | not judged (2 look-alikes) |" in body
 
 
