@@ -33,7 +33,7 @@ dryer = ["dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad8
 allow-direct-references = true
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-cov>=6", "ruff>=0.14", "build>=1.2", "boto3>=1.35", "anthropic>=1.0"]
+dev = ["pytest>=8", "pytest-cov>=6", "ruff>=0.14", "build>=1.2", "boto3>=1.35", "anthropic>=1.0", "numpy>=2.2"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dry_lint"]

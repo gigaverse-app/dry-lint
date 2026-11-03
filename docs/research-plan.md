@@ -8,6 +8,10 @@ slots, not a shortage of signal.
 This page records the evidence so far, the hypotheses it suggests, and the experiments queued to test them, with
 decision rules fixed before their results are seen. It changes no runtime behaviour.
 
+**Status:** E1 to E3 have run as [the channel trial](channel-trial.md); no variant met the decision rules.
+Reserved slots keep every known duplicate but their extra pairs are judged real about 15% of the time, against 38%
+for the baseline scan. Next: E4 (does the judge filter them?) and E9 (a less brittle backlog rule).
+
 ## What we know
 
 | Source | Finding |
@@ -79,14 +83,14 @@ how much a change moves the output, not whether it improves it.
 
 ## Hypotheses
 
-| | Hypothesis | Evidence that would refute it |
-| --- | --- | --- |
-| H1 | Richer variants lose known positives by displacement: the true partner is still above the floor but no longer in the top three or the mutual first neighbour. | Lost positives mostly fall below the floor. |
-| H2 | A complementary channel with one reserved slot retrieves positives the baseline misses without losing any it keeps. | Its novel pairs are judged positive less often than baseline scan pairs. |
-| H3 | Hub correction lowers the negatives `scan` retains without losing known positives, because pattern families are dense neighbourhoods. | Known positives drop out, or negatives do not fall. |
-| H4 | Folding singular and plural words is close to neutral on known pairs and finds a few new ones. | A known positive drops out, or more than two extra known negatives are retained. |
-| H5 | Import relationships predict which side should own a consolidation. | Owner labels in the gold set disagree with import direction. |
-| H6 | A larger, judge-labelled gold set (Jev and Gemini, people only on disagreements) ranks variants the same way as the hand labels. | Rankings disagree on the overlapping pairs. |
+| | Hypothesis | Evidence that would refute it | Outcome |
+| --- | --- | --- | --- |
+| H1 | Richer variants lose known positives by displacement: the true partner is still above the floor but no longer in the top three or the mutual first neighbour. | Lost positives mostly fall below the floor. | Partly supported: `scan` losses were displacements, `check` losses dilution below the floor |
+| H2 | A complementary channel with one reserved slot retrieves positives the baseline misses without losing any it keeps. | Its novel pairs are judged positive less often than baseline scan pairs. | Refuted as stated: novel pairs 15% positive against 38% |
+| H3 | Hub correction lowers the negatives `scan` retains without losing known positives, because pattern families are dense neighbourhoods. | Known positives drop out, or negatives do not fall. | Refuted: helps AI, displaces a known duplicate on backend |
+| H4 | Folding singular and plural words is close to neutral on known pairs and finds a few new ones. | A known positive drops out, or more than two extra known negatives are retained. | Refuted: displaces a known duplicate in each repository |
+| H5 | Import relationships predict which side should own a consolidation. | Owner labels in the gold set disagree with import direction. | Untested |
+| H6 | A larger, judge-labelled gold set (Jev and Gemini, people only on disagreements) ranks variants the same way as the hand labels. | Rankings disagree on the overlapping pairs. | Untested |
 
 ## Experiment queue
 
@@ -100,8 +104,10 @@ how much a change moves the output, not whether it improves it.
 | E6 | API identity (#11) plus syntax-level receiver types, as a separate channel | H2 | Offline script |
 | E7 | Docstring channel | H2 | Offline script |
 | E8 | Pattern-family detection: report a dense family once instead of as many pairs | H3 | Offline script |
+| E9 | A softer backlog rule: pairs in each other's top two, not only mutual first neighbours | H1 | Offline script |
 
-E1 to E3 run first, together, as one offline trial.
+E1 to E3 ran first, together, as [the channel trial](channel-trial.md). E4 is next: it decides whether a cheap
+channel such as behaviour-only TF-IDF pays for its extra judge calls. Dryer and LSI are dropped as channels.
 
 ### Protocol for E1 to E3
 
@@ -116,9 +122,15 @@ Fixed before any result:
   source and score; a third breaks disagreements. Freeze labels before scoring them.
 - **Budget.** `check` gives TF-IDF its usual three neighbours and each extra channel one; `scan` takes the union of
   each channel's mutual-nearest pairs. Count the extra candidates, since judge calls are the real cost.
-- **Floors.** Calibrated without labels. Channels on the TF-IDF scale keep its floors. LSI's floor is the quantile
-  at which the same share of functions has a neighbour above the floor as with native TF-IDF. Dryer keeps its
-  defaults.
+- **Floors.** Calibrated without labels. Each one-slot channel except Dryer gets the single floor at which the same
+  share of functions has a neighbour as with native TF-IDF. Dryer keeps its defaults. (Amended before any trial
+  corpus was run: the first draft kept TF-IDF's floors for the behaviour-only channel, but a smoke run on
+  dry-lint's own code showed its shorter vectors give 28% of functions a neighbour, against 17% for the baseline.)
+- **Fixed parameters.** LSI rank 128, two power iterations, seed 0, `max_df` 0.3. CSLS uses the ten nearest
+  functions in other files. Plural folding changes regular plurals only (`-ies`, `-sses`, `-xes`, `-ches`,
+  `-shes`, `-zes`, `-s`, but not `-ss`, `-us`, `-is` or `-ous`).
+- **Sample.** Per repository, 8 baseline scan pairs and 4 scan pairs found only by each of the plural, CSLS,
+  behaviour, LSI and Dryer channels, excluding labelled pairs, drawn with `random.Random(20261106)`.
 
 ### Decision rules
 
