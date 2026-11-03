@@ -116,9 +116,15 @@ Fixed before any result:
   source and score; a third breaks disagreements. Freeze labels before scoring them.
 - **Budget.** `check` gives TF-IDF its usual three neighbours and each extra channel one; `scan` takes the union of
   each channel's mutual-nearest pairs. Count the extra candidates, since judge calls are the real cost.
-- **Floors.** Calibrated without labels. Channels on the TF-IDF scale keep its floors. LSI's floor is the quantile
-  at which the same share of functions has a neighbour above the floor as with native TF-IDF. Dryer keeps its
-  defaults.
+- **Floors.** Calibrated without labels. Each one-slot channel except Dryer gets the single floor at which the same
+  share of functions has a neighbour as with native TF-IDF. Dryer keeps its defaults. (Amended before any trial
+  corpus was run: the first draft kept TF-IDF's floors for the behaviour-only channel, but a smoke run on
+  dry-lint's own code showed its shorter vectors give 28% of functions a neighbour, against 17% for the baseline.)
+- **Fixed parameters.** LSI rank 128, two power iterations, seed 0, `max_df` 0.3. CSLS uses the ten nearest
+  functions in other files. Plural folding changes regular plurals only (`-ies`, `-sses`, `-xes`, `-ches`,
+  `-shes`, `-zes`, `-s`, but not `-ss`, `-us`, `-is` or `-ous`).
+- **Sample.** Per repository, 8 baseline scan pairs and 4 scan pairs found only by each of the plural, CSLS,
+  behaviour, LSI and Dryer channels, excluding labelled pairs, drawn with `random.Random(20261106)`.
 
 ### Decision rules
 
