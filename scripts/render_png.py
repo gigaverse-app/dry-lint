@@ -3,7 +3,7 @@ Render the PNG assets from their SVG sources with headless Chromium.
 
     uv run --with playwright==1.58.0 python scripts/render_png.py
 
-Writes docs/assets/avatar.png (512x512, for the GitHub avatar) and docs/assets/social-preview.png (1280x640).
+Writes docs/assets/social-preview.png (1280x640), for the repository's social preview.
 """
 
 from pathlib import Path
@@ -11,7 +11,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 ASSETS = Path(__file__).resolve().parents[1] / "docs" / "assets"
-TARGETS = [("avatar.svg", "avatar.png", 512, 512), ("social-preview.svg", "social-preview.png", 1280, 640)]
+TARGETS = [("social-preview.svg", "social-preview.png", 1280, 640)]
 
 
 def main() -> None:

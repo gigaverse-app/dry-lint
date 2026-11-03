@@ -16,7 +16,7 @@ drift: one version rounds, the other truncates, and callers get different answer
 dry-lint finds functions in a pull request that look like they re-implement something that already exists. A
 judge decides whether each pair really is one concept, and the result goes back as PR annotations and one comment.
 
-<img src="docs/assets/avatar.png" alt="Lint, the dry-lint mascot: a piece of dryer lint with a blow-dried pompadour" width="160" align="right">
+<img src="docs/assets/avatar.png" alt="Lint, the dry-lint mascot: a purple ball of dryer lint holding a lint roller covered in code" width="160" align="right">
 
 ```text
 src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_text (drifted)
@@ -119,8 +119,9 @@ measured thresholds above:
 
 <img src="docs/assets/dry-lint-mark.svg" alt="" width="48" align="left">
 
-Lint is what is left behind when you dry things, and the dryer it wears is how it got its pompadour.
-`python scripts/make_assets.py` redraws Lint and the banners from a fixed seed.
+Lint is what is left behind when you dry things. It carries a lint roller for picking up duplicated code.
+`uv run --with pillow python scripts/make_assets.py` rebuilds the avatar, the mark and the banners from
+[docs/assets/lint.png](docs/assets/lint.png).
 
 <br clear="left">
 

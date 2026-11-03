@@ -14,5 +14,5 @@ uv build
   invariant it broke.
 - **Thresholds and judge wording come from measurements.** If you change them, re-measure and update
   [docs/benchmark.md](docs/benchmark.md). If you change the Jev questions, bump `PROMPT_VERSION`.
-- **Assets.** Regenerate them with `python scripts/make_assets.py`, then
+- **Assets.** Regenerate them from `docs/assets/lint.png` with `uv run --with pillow python scripts/make_assets.py`, then
   `uv run --with playwright==1.58.0 python scripts/render_png.py`.
