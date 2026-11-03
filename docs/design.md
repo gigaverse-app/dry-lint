@@ -154,7 +154,10 @@ run list the same findings in the same order: drifted first, then by score.
 - `text` for the terminal, `github` for workflow annotations, `markdown` for the one PR comment (marked
   `<!-- dry-lint -->`, at most `max_findings` rows, settled pairs folded), `json` for scripts and agents, `sarif`
   for code scanning, and `check-run` for the body of a check run that fails only for a blocking finding.
-- Blocking findings come first and are labelled; the comment ends with every way to override a false positive.
+- Blocking findings come first and are labelled. Comments link both functions to the analyzed revision, count
+  findings separately from changed functions, and fold score evidence and pair-specific suppression guidance.
+  The Action's effective blocking/override note precedes the findings; a clean result means no pair met the
+  configured report threshold, not proof that the repository has no duplication.
 - Without a judge, the comment does not list unjudged pairs; it says no judge is configured. Annotations and the
   terminal still show them.
 - A judge's reason is untrusted text: an LLM judge read code from the pull request. It is flattened to one line,

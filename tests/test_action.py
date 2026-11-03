@@ -9,6 +9,7 @@ from test_action_sticky import FakeGitHub
 
 from dry_lint import action, sticky
 from dry_lint.action import count_findings, ensure_history, resolve_base, resolve_judge, resolve_mode
+from dry_lint.report import escaped
 
 from conftest import Repo, judge_calls
 
@@ -296,7 +297,8 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     out = capsys.readouterr().out
     assert "::error file=src/widgets/caption.py,line=1" in out  # 0.85 >= the default fail_at
     [body] = github.stickies()
-    assert "preview_caption_text" in body and "src/text.py::shorten_text" in body
+    assert escaped("preview_caption_text") in body and escaped("src/text.py::shorten_text") in body
+    assert f"/blob/{github.head}/src/widgets/caption.py#L1-L5" in body
     assert outputs(tmp_path)["findings"] == "1" and outputs(tmp_path)["stored"] == "true"
 
     # The next push changes nothing that matters: the verdict comes from the store, the comment is edited.
@@ -338,7 +340,8 @@ def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, githu
                judge="command", judge_command=twin_judge, working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
     [body] = github.stickies()
-    assert "preview_caption_text" in body and f"commit {head[:7]}" in body
+    assert escaped("preview_caption_text") in body and f"commit {head[:7]}" in body
+    assert f"/blob/{head}/src/widgets/caption.py#L1-L5" in body
     [check] = github.check_runs
     assert (check["name"], check["head_sha"], check["conclusion"]) == ("dry-lint", head, "failure")
     assert check["output"]["annotations"][0]["path"] == "src/widgets/caption.py"

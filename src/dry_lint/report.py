@@ -8,12 +8,14 @@ it is shown, and never rendered as markdown or links.
 """
 
 import json
+import os
 import re
+from urllib.parse import quote
 
 from pydantic import BaseModel, Field
 
 from dry_lint import __version__
-from dry_lint.models import Candidate, Run, Verdict, Versioned
+from dry_lint.models import Candidate, Function, Run, Verdict, Versioned
 from dry_lint.settings import Settings
 
 MARKER = "<!-- dry-lint -->"
@@ -143,15 +145,29 @@ def as_github(report: Report) -> str:
     return "\n".join(lines)
 
 
+def source_link(function: Function, run: Run) -> str:
+    """Link to the measured revision, not a moving branch; local reports keep the full location."""
+    if not run.repository or not run.head:
+        return escaped(function.qualname)
+    server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
+    url = (f"{server}/{quote(run.repository, safe='/')}/blob/{quote(run.head, safe='')}/"
+           f"{quote(function.path, safe='/')}#L{function.line}-L{function.end_line}")
+    return f"[{escaped(function.qualname.split('::', 1)[1])}]({url})"
+
+
 def as_markdown(report: Report, max_findings: int = 10) -> str:
+    stats = report.stats
+    coverage = (f"{stats['changed']} changed functions · {stats['candidates']} candidate pairs · "
+                f"{stats['filtered']} skipped by rule · {stats['cached']} cached · {stats['judged']} newly judged")
     if report.judge is None:
         return (f"{MARKER}\n### dry-lint\n\nNo judge is configured, so the {len(report.findings)} look-alike pair(s) "
-                "found are shown only as annotations. Set `TYPESAFE_AI_API_KEY`, or configure a judge, to have them "
-                "judged and reported here.")
+                "found have not been assessed for duplication. Set `TYPESAFE_AI_API_KEY`, or configure a judge, "
+                f"to have them judged and reported here.\n\n{coverage}")
     shown = report.visible
     if not shown:
-        return f"{MARKER}\n### dry-lint\n\nNo duplicated concepts found in the changed functions."
+        return f"{MARKER}\n### dry-lint · No findings reported\n\nNo pairs reached the report threshold.\n\n{coverage}"
     rows = ["| Changed function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
+    evidence = ["<details><summary>Evidence and next steps</summary>", ""]
     for f in shown[:max_findings]:
         if f.verdict:
             verdict = f"**{'blocking ' if f.blocking else ''}{f.verdict.label}** {f.verdict.score:.2f}"
@@ -160,20 +176,33 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
             verdict, suggestion = f"similarity {f.candidate.similarity:.2f}", "not judged"
         if f.family > 1:
             suggestion += f" ({f.family} look-alikes)"
-        rows.append(f"| `{f.candidate.new.qualname}` | `{f.candidate.existing.qualname}` | {verdict} | {suggestion} |")
+        rows.append(f"| {source_link(f.candidate.new, report.run)} | {source_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
+        evidence.extend([
+            f"**{escaped(f.candidate.new.qualname)}** → **{escaped(f.candidate.existing.qualname)}**", "",
+            (f"Judge score: **{f.verdict.score:.2f}** · " if f.verdict else "Not judged · ")
+            + f"similarity: **{f.candidate.similarity:.2f}** · "
+            + ("cached verdict" if f.cached else "new verdict" if f.verdict else "candidate only"), "",
+            *( ["These functions already behave differently; check callers before consolidating.", ""]
+               if f.verdict and f.verdict.label == "drifted" else [] ),
+            "If they represent different concepts, add this pair-specific decision inside the changed function:", "",
+            escaped(f"# dry-lint: distinct-from {f.candidate.existing.qualname}"), "",
+        ])
+    evidence.append("</details>")
     more = ["", f"And {len(shown) - max_findings} more; run `dry-lint check` to see them all."] \
         if len(shown) > max_findings else []
     skipped = [f"<details><summary>Not reported ({len(report.filtered)} settled by a rule)</summary>", "",
                *(f"- `{c.new.qualname}` ~ `{c.existing.qualname}`: {escaped(c.filtered or '')}" for c in report.filtered),
                "", "</details>"] if report.filtered else []
     blocking = sum(f.blocking for f in shown)
-    verdict_line = [f"{blocking} of them are blocking: judged duplicates at or above `fail_at`, which fail the check.", ""] \
+    verdict_line = [f"**{blocking} at the blocking threshold** (`fail_at`).", ""] \
         if blocking else []
+    functions = len({f.candidate.new.qualname for f in shown})
     return "\n".join([
-        MARKER, "### dry-lint", "",
-        f"{len(shown)} changed function(s) look like code that already exists. One concept should have one "
-        "implementation: reuse it, or parameterize the difference.", "", *verdict_line, *rows, *more, "",
-        OVERRIDES,
+        MARKER, "### dry-lint · Review findings", "",
+        f"**{len(shown)} finding{'s' if len(shown) != 1 else ''} across {functions} changed "
+        f"function{'s' if functions != 1 else ''}**. Reuse the existing owner or share the common behavior.",
+        "", *verdict_line, coverage, "", *rows, *more, "", *evidence, "",
+        "<details><summary>False positive? Choose the scope of your decision</summary>", "", OVERRIDES, "", "</details>",
         *([""] + skipped if skipped else []),
     ])
 

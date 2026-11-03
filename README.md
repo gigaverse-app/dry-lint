@@ -48,6 +48,16 @@ See [docs/design.md](docs/design.md) and [docs/plugins.md](docs/plugins.md).
 
 ## Quick start
 
+Start with a local candidate pass, then add a judge when you want duplication decisions and failing checks:
+
+| Your next step | Run or read |
+| --- | --- |
+| Inspect your branch without a model or API key | `dry-lint check --judge none` |
+| Understand one candidate | `dry-lint explain path/to/new.py::function path/to/existing.py::function` |
+| Try structural matching as well | [Install the optional Dryer comparer](docs/detectors.md) |
+| Put judged findings on pull requests | [GitHub Action setup](docs/github-action.md) |
+| See the comment before installing | [Example report](docs/comment-preview.md) |
+
 ```bash
 uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint check            # changes since origin/main
 uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 30  # the whole repo's backlog
@@ -80,7 +90,8 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 ```
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
-runs. A clean pull request gets no comment. A reported duplicate fails the check; set `fail-at: "0.91"` to fail only
+runs. The comment links both functions at the analyzed commit, shows the review workload, and folds evidence and
+pair-specific suppression instructions under each summary. A clean pull request gets no comment. A reported duplicate fails the check; set `fail-at: "0.91"` to fail only
 on near-certain ones (no false positive at that level in the benchmark), and the `dry-lint: override` label lets
 one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)

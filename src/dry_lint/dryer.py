@@ -34,13 +34,18 @@ class DryerComparer:
         self._extract, self._jaccard = entries_in_source, jaccard
         self.version = f"66ff6d2-{version('tree-sitter-language-pack')}"
         self.threshold, self.min_lines, self.min_nodes = threshold, min_lines, min_nodes
-        self.functions: list[Function] = []
         self.entries: dict[tuple[str, int], Entry | None] = {}
+        self.by_size: dict[int, list[tuple[int, Function, Entry]]] = {}
 
     def index(self, functions: list[Function]) -> None:
-        self.functions = functions
         # Overloads can share a qualified name; their source spans identify different fingerprints.
         self.entries = {(f.path, f.line): self._entry(f) for f in functions}
+        self.by_size = {}
+        for position, function in enumerate(functions):
+            entry = self.entries[(function.path, function.line)]
+            if self._eligible(entry):
+                assert entry is not None
+                self.by_size.setdefault(len(entry.fingerprints), []).append((position, function, entry))
 
     def _entry(self, function: Function) -> Entry | None:
         if not function.path.endswith(".py"):
@@ -70,19 +75,19 @@ class DryerComparer:
             return []
         assert entry is not None
         found = []
-        for other in self.functions:
-            target = self._get(other)
-            if other.qualname == function.qualname or not allowed(other) or not self._eligible(target):
-                continue
-            assert target is not None
-            # Set-size ratio is an upper bound on Jaccard: prune only provably impossible matches.
-            smaller, larger = sorted((len(entry.fingerprints), len(target.fingerprints)))
+        for size, targets in self.by_size.items():
+            # Set-size ratio bounds Jaccard. Exclude impossible size buckets before visiting their functions.
+            smaller, larger = sorted((len(entry.fingerprints), size))
             if larger and smaller / larger < self.threshold:
                 continue
-            score = self._jaccard(entry.fingerprints, target.fingerprints)
-            if score >= self.threshold:
-                found.append((other, score))
-        return sorted(found, key=lambda pair: -pair[1])[:k]
+            for position, other, target in targets:
+                if other.qualname == function.qualname or not allowed(other):
+                    continue
+                score = self._jaccard(entry.fingerprints, target.fingerprints)
+                if score >= self.threshold:
+                    found.append((other, score, position))
+        # Bucket order is unrelated to source order; retain the original tie-breaking contract explicitly.
+        return [(other, score) for other, score, _ in sorted(found, key=lambda pair: (-pair[1], pair[2]))[:k]]
 
     def similarity(self, a: Function, b: Function) -> float:
         left, right = self._get(a), self._get(b)

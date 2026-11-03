@@ -103,13 +103,19 @@ def test_github_annotations_escape_percent_signs_and_judge_text_is_one_line() ->
 def test_markdown_comment_lists_findings_under_a_stable_marker() -> None:
     body = as_markdown(report(finding("duplicate", 0.88, "existing", "same truncation"), finding(None, existing="other")))
     assert body.startswith(MARKER)
-    assert "| `src/widgets/caption.py::clip` | `src/text.py::shorten` | **duplicate** 0.88 | call the existing function; same truncation (2 look-alikes) |" in body
+    assert "[clip](https://github.com/o/r/blob/abc/src/widgets/caption.py#L1-L2)" in body
+    assert "[shorten](https://github.com/o/r/blob/abc/src/text.py#L1-L2)" in body
+    assert "**duplicate** 0.88 | call the existing function; same truncation (2 look-alikes) |" in body
     assert "| similarity 0.71 | not judged (2 look-alikes) |" in body
+    assert "2 findings across 1 changed function" in body
+    assert "<summary>Evidence and next steps</summary>" in body
+    assert "# dry-lint: distinct-from src/text.py::shorten" in body
 
 
 def test_markdown_comment_says_so_when_nothing_is_found() -> None:
     body = as_markdown(report(finding("separate")))
-    assert body.startswith(MARKER) and "No duplicated concepts" in body
+    assert body.startswith(MARKER) and "No findings reported" in body
+    assert "2 changed functions" in body
 
 
 def test_without_a_judge_the_comment_lists_nothing_and_says_how_to_get_one() -> None:
@@ -121,7 +127,7 @@ def test_without_a_judge_the_comment_lists_nothing_and_says_how_to_get_one() -> 
 def test_markdown_caps_the_rows_and_lists_settled_pairs_folded() -> None:
     many = [finding("duplicate", 0.9, existing=f"f{i}") for i in range(4)]
     body = as_markdown(report(*many, filtered=[pair("z", filtered="declared pattern: one per resource")]), max_findings=2)
-    assert body.count("| `src/widgets/caption.py::clip`") == 2 and "And 2 more" in body
+    assert body.count("| [clip](") == 2 and "And 2 more" in body
     assert "<details><summary>Not reported (1 settled by a rule)</summary>" in body
     assert "- `src/widgets/caption.py::clip` ~ `src/text.py::z`: declared pattern: one per resource" in body
 
@@ -142,11 +148,29 @@ def test_markdown_uses_the_reason_alone_when_there_is_no_owner() -> None:
 def test_markdown_labels_blocking_findings_first_and_lists_every_override() -> None:
     body = as_markdown(report(finding("duplicate", 0.85, existing="a"), finding("duplicate", 0.93, existing="b")))
     assert body.index("**blocking duplicate** 0.93") < body.index("**duplicate** 0.85")
-    assert "1 of them are blocking" in body
+    assert "1 at the blocking threshold" in body
     for override in ("`# dry-lint: distinct-from <qualified name>`", "`# dry-lint: ignore`", "`patterns`",
                      "`dry-lint: override`"):
         assert override in body
     assert "blocking" not in as_markdown(report(finding("duplicate", 0.85)))
+
+
+def test_source_links_pin_the_commit_escape_paths_and_support_enterprise(monkeypatch) -> None:
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://git.example.com")
+    built = report(finding("duplicate")).model_copy(deep=True)
+    built.findings[0].candidate.new.path = "src/a [draft](1).py"
+    body = as_markdown(built)
+    assert "https://git.example.com/o/r/blob/abc/src/a%20%5Bdraft%5D%281%29.py#L1-L2" in body
+    built.run = Run()
+    body = as_markdown(built)
+    assert "/blob/" not in body and "src/a \\[draft\\]\\(1\\).py::clip" in body
+
+
+def test_evidence_separates_judge_scores_from_similarity_and_cache() -> None:
+    body = as_markdown(report(finding("drifted", 0.95, cached=True)))
+    assert "Judge score: **0.95**" in body and "similarity: **0.71**" in body
+    assert "cached verdict" in body and "already behave differently" in body
+    assert "1 cached" in body and "0 newly judged" in body
 
 
 def test_json_report_round_trips() -> None:
