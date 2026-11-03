@@ -37,7 +37,7 @@ from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, open_store
 from dry_lint.models import Candidate, CandidatesFile, Run
 from dry_lint.plugins import load
-from dry_lint.report import FORMATS, Report, as_json, as_markdown, render
+from dry_lint.report import FORMATS, Report, as_json, render
 from dry_lint.settings import PluginChoice, Settings
 
 
@@ -70,11 +70,11 @@ def settings_for(root: Path, args: argparse.Namespace) -> Settings:
 
 
 def judged(candidates: list[Candidate], settings: Settings, root: Path, args: argparse.Namespace, run: Run,
-           changed: int, refresh: bool = False) -> Report:
+           changed: int, refresh: bool = False, functions: int = 0, scope: str = "change") -> Report:
     judging = Judging.configured(settings, open_store(settings, root, args.store))
     findings = judging.findings(candidates, source=run, refresh=refresh)
     return Report.build(findings, settings, filtered=[c for c in candidates if c.filtered], run=run, changed=changed,
-                        judge=judging.name)
+                        judge=judging.name, functions=functions, scope=scope)
 
 
 def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
@@ -82,7 +82,7 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
     if output:
         print(output)
     if args.output:
-        args.output.write_text(as_markdown(report, settings.max_findings) + "\n")
+        args.output.write_text(render(report, "markdown", settings, args.warn_only) + "\n")
     if args.report:
         args.report.write_text(as_json(report) + "\n")
     return 1 if any(f.blocking for f in report.findings) and not args.warn_only else 0
@@ -91,13 +91,29 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     detector = Detector.for_repository(root, settings)
     changed = touched(detector.functions, changed_lines(root, args.base, args.staged))
-    report = judged(detector.candidates(changed), settings, root, args, run_info(root, args.base), len(changed))
+    report = judged(detector.candidates(changed), settings, root, args, run_info(root, args.base), len(changed),
+                    functions=len(detector.functions))
     return finish(report, settings, args)
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    candidates = Detector.for_repository(root, settings).scan()[: args.limit]
-    report = judged(candidates, settings, root, args, run_info(root, None), 0, refresh=args.refresh)
+    if args.repo:
+        roots: dict[str, Path] = {}
+        for spec in args.repo:
+            name, separator, path = spec.partition("=")
+            if not separator or not path:
+                raise ValueError("--repo expects OWNER/NAME=PATH")
+            if name in roots:
+                raise ValueError(f"Duplicate repository: {name}")
+            roots[name] = Path(path)
+        if args.format not in ("text", "json", "markdown"):
+            raise ValueError("A workspace scan supports text, json and markdown; annotations belong to one repository")
+        detector = Detector.for_workspace(roots, settings)
+    else:
+        detector = Detector.for_repository(root, settings)
+    candidates = detector.scan()[: args.limit]
+    report = judged(candidates, settings, root, args, run_info(root, None), 0, refresh=args.refresh,
+                    functions=len(detector.functions), scope="repository")
     return finish(report, settings, args)
 
 
@@ -108,7 +124,8 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     else:
         changed = touched(detector.functions, changed_lines(root, args.base, args.staged))
         candidates = detector.candidates(changed)
-    found = CandidatesFile(run=run_info(root, args.base), changed=len(changed), candidates=candidates)
+    found = CandidatesFile(run=run_info(root, args.base), changed=len(changed), functions=len(detector.functions),
+                           candidates=candidates)
     text = found.model_dump_json(indent=1)
     if args.out:
         args.out.write_text(text + "\n")
@@ -122,7 +139,8 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 def judge(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     found = CandidatesFile.model_validate_json(args.candidates.read_text())
-    return finish(judged(found.candidates, settings, root, args, found.run, found.changed), settings, args)
+    return finish(judged(found.candidates, settings, root, args, found.run, found.changed, functions=found.functions),
+                  settings, args)
 
 
 def report(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -198,6 +216,8 @@ def parser() -> argparse.ArgumentParser:
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
     sweep.add_argument("--limit", type=int, default=50, help="Judge and show at most this many pairs, closest first.")
     sweep.add_argument("--refresh", action="store_true", help="Re-judge verdicts from older versions of the judge.")
+    sweep.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH",
+                       help="Repeat for every checkout in a workspace; scan only cross-repository pairs.")
     proposing = commands.add_parser("detect", parents=[common], help="Write candidates.json; no judge, no store.")
     where(proposing, everything=True)
     proposing.add_argument("--out", type=Path, help="Write candidates.json here (default: print it).")

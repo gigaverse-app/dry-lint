@@ -291,3 +291,5 @@ an output or mutation. Keep these as separate experimental comparers until they 
 judged pairs and a second repository**, with the same judge budget. Another option is reserving a candidate slot
 for a complementary comparer rather than adding every token to one cosine score; test both extra recall and the
 false-positive cost. More features can change which neighbour wins even when a true pair's score remains high.
+
+The [research plan](research-plan.md) collects these results, hypotheses and the experiments queued next.

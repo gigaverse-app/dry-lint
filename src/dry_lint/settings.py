@@ -57,7 +57,7 @@ class Settings(BaseModel):
     patterns: list[Pattern] = Field(default_factory=list)
     neighbours: int = Field(default=3, description="Nearest functions in other files considered per changed function.")
 
-    extractors: list[Choice] = Field(default_factory=lambda: [PluginChoice(use="python")],
+    extractors: list[Choice] = Field(default_factory=lambda: [PluginChoice(use="python"), PluginChoice(use="typescript")],
                                      description="One per language; the first whose file globs match a file reads it.")
     comparer: Choice = Field(default_factory=lambda: PluginChoice(use="tfidf"))
     judge: Choice = Field(default_factory=lambda: PluginChoice(use="auto"),

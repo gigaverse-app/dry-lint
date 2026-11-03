@@ -4,8 +4,11 @@ import pytest
 
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.report import (
+    CLEAN,
     FORMATS,
+    GRAY,
     MARKER,
+    NOTE_SLOT,
     Finding,
     Report,
     as_check_run,
@@ -13,15 +16,20 @@ from dry_lint.report import (
     as_markdown,
     as_sarif,
     as_text,
+    badge,
+    code,
     escaped,
+    function_link,
     plain,
     render,
+    short_paths,
 )
 from dry_lint.settings import Settings
 
 from conftest import function
 
 SETTINGS = Settings(fail_at=0.91)  # raised above report_at, so there is a band that only warns
+HEAD = "a" * 40
 NEW = function("src/widgets/caption.py", "def clip(text, n):\n    return text[:n]\n")
 
 
@@ -37,7 +45,7 @@ def finding(label: str | None, score: float = 0.9, owner: str = "existing", why:
 
 
 def report(*findings: Finding, filtered: list[Candidate] = (), judge: str | None = "jev:v") -> Report:
-    return Report.build(list(findings), SETTINGS, filtered=filtered, run=Run(repository="o/r", pull_request=5, head="abc"),
+    return Report.build(list(findings), SETTINGS, filtered=filtered, run=Run(repository="o/r", pull_request=5, head=HEAD),
                         changed=2, judge=judge)
 
 
@@ -102,28 +110,89 @@ def test_github_annotations_escape_percent_signs_and_judge_text_is_one_line() ->
 
 def test_markdown_comment_lists_findings_under_a_stable_marker() -> None:
     body = as_markdown(report(finding("duplicate", 0.88, "existing", "same truncation"), finding(None, existing="other")))
-    assert body.startswith(MARKER)
-    assert "| `src/widgets/caption.py::clip` | `src/text.py::shorten` | **duplicate** 0.88 | call the existing function; same truncation (2 look-alikes) |" in body
-    assert "| similarity 0.71 | not judged (2 look-alikes) |" in body
+    assert body.startswith(MARKER) and "### dry-lint · 2 duplicated concepts" in body
+    assert f'[caption.py:1](https://github.com/o/r/blob/{HEAD}/src/widgets/caption.py#L1-L2 "src/widgets/caption.py")' in body
+    assert f'[text.py:1](https://github.com/o/r/blob/{HEAD}/src/text.py#L1-L2 "src/text.py")' in body
+    assert "| 🟡 | `clip` ≈ `shorten` <sub>· 2 look-alikes</sub> |" in body
+    assert "**duplicate**&nbsp;0.88<br><sub>call the existing one</sub> |" in body
+    assert "| ⚪ | `clip` ≈ `other` <sub>· 2 look-alikes</sub> |" in body and "<sub>not judged</sub>" in body
+    assert "> same truncation" in body
+    assert "```python\n# dry-lint: distinct-from src/text.py::shorten\n```" in body
+    assert "<sub>2 changed functions · 2 pairs compared · judge `jev:v`</sub>" in body
 
 
-def test_markdown_comment_says_so_when_nothing_is_found() -> None:
-    body = as_markdown(report(finding("separate")))
-    assert body.startswith(MARKER) and "No duplicated concepts" in body
+def test_markdown_headline_badges_say_how_many_and_how_bad() -> None:
+    body = as_markdown(report(finding("drifted", 0.95, existing="a"), finding("duplicate", 0.85, existing="b")))
+    assert "![duplicated concepts: 2](https://img.shields.io/badge/duplicated_concepts-2-CF222E?" in body
+    assert "![blocking: 1](https://img.shields.io/badge/blocking-1-CF222E?" in body
+    assert "![drifted: 1](https://img.shields.io/badge/drifted-1-EA580C?" in body
+    assert "![judge: jev:v](https://img.shields.io/badge/judge-jev%3Av-6E7781?" in body
+    calm = as_markdown(report(finding("duplicate", 0.85)))
+    assert "duplicated_concepts-1-BF8700" in calm and "blocking" not in calm and "drifted" not in calm
+
+
+def test_badges_escape_shields_separators() -> None:
+    assert badge("look-alike pairs", "a_b-c", GRAY).endswith("/look--alike_pairs-a__b--c-6E7781?style=flat-square&labelColor=24292F)")
+
+
+def test_one_shared_fix_is_said_once_instead_of_on_every_row() -> None:
+    body = as_markdown(report(finding("duplicate", 0.9, "shared", existing="a"), finding("duplicate", 0.85, "shared", existing="b")))
+    assert "The judge's fix for every pair listed: **extract a shared helper**." in body
+    assert "<sub>extract a shared helper</sub>" not in body
+
+
+def clean_report(*findings: Finding, filtered: list[Candidate] = (), changed: int = 2, functions: int = 1284,
+                 scope: str = "change") -> Report:
+    return Report.build(list(findings), SETTINGS, filtered=filtered, run=Run(repository="o/r", head=HEAD),
+                        changed=changed, judge="jev:v", functions=functions, scope=scope)
+
+
+def test_a_clean_report_says_so_and_shows_what_was_checked_to_earn_it() -> None:
+    body = as_markdown(clean_report(finding("separate", 0.62), finding("duplicate", 0.7, cached=True, existing="trim"),
+                                    filtered=[pair("z", filtered="declared pattern")]), report_at=0.8)
+    assert body.startswith(f"{MARKER}\n{CLEAN}\n### dry-lint · ✨ No duplicated concepts")
+    assert "![duplicated concepts: none ✓](https://img.shields.io/badge/duplicated_concepts-none_%E2%9C%93-2EA043?" in body
+    assert "compared_with-1%2C284-2563EB" in body and "| Check | Result |" in body
+    assert "**Every changed function is the only implementation of its concept.** 3 look-alike pairs came up" in body
+    for row in ("| Changed functions | 2 |", "| Compared with | 1,284 functions |", "| Look-alike pairs | 3 |",
+                "| Settled by a rule | 1 |", "| Cleared by the judge | 2 (1 from the verdict store) |",
+                "| Closest call | `clip` ≈ `trim` · duplicate 0.70 · under the 0.80 bar |"):
+        assert row in body
+    assert NOTE_SLOT in body and "<details>" not in body
+
+
+def test_a_clean_report_without_look_alikes_names_the_scale_of_the_comparison() -> None:
+    body = as_markdown(clean_report())
+    assert "None of the 2 changed functions looks like any of the 1,284 functions in the repository." in body
+    assert "Closest call" not in body and "Cleared by the judge" not in body and "Settled by a rule" not in body
+    assert "looks like anything." in as_markdown(clean_report(functions=0))
+    assert "Compared with" not in as_markdown(clean_report(functions=0))
+    assert "**Nothing to compare.** This pull request changes no functions." in as_markdown(clean_report(changed=0))
+    assert "under the" not in as_markdown(clean_report(finding("separate")))
+
+
+def test_a_clean_audit_speaks_of_the_repository() -> None:
+    body = as_markdown(clean_report(finding("separate"), changed=0, scope="repository"))
+    assert "### dry-lint audit · ✨ No duplicated concepts in existing code" in body
+    assert "The judge or a rule cleared every look-alike pair in this audit." in body
+    assert "| Functions in the repository | 1,284 functions |" in body and "functions-1%2C284-2563EB" in body
+    assert "Changed functions" not in body and "changed_functions" not in body
+    assert "No two functions in the repository look alike." in as_markdown(clean_report(changed=0, scope="repository"))
 
 
 def test_without_a_judge_the_comment_lists_nothing_and_says_how_to_get_one() -> None:
     body = as_markdown(report(finding(None), finding(None, existing="other"), judge=None))
-    assert body.startswith(MARKER) and "No judge is configured" in body and "2 look-alike pair(s)" in body
-    assert "`src/text.py::shorten`" not in body
+    assert body.startswith(MARKER) and "No judge is configured" in body and "2 look-alike pairs, not judged" in body
+    assert "shorten" not in body and "no judge" in body
 
 
 def test_markdown_caps_the_rows_and_lists_settled_pairs_folded() -> None:
     many = [finding("duplicate", 0.9, existing=f"f{i}") for i in range(4)]
     body = as_markdown(report(*many, filtered=[pair("z", filtered="declared pattern: one per resource")]), max_findings=2)
-    assert body.count("| `src/widgets/caption.py::clip`") == 2 and "And 2 more" in body
-    assert "<details><summary>Not reported (1 settled by a rule)</summary>" in body
+    assert body.count("| 🟡 | `clip`") == 2 and "+ 2 more pairs not listed here" in body
+    assert "<details><summary><strong>Settled by a rule (1)</strong></summary>" in body
     assert "- `src/widgets/caption.py::clip` ~ `src/text.py::z`: declared pattern: one per resource" in body
+    assert "1 settled by a rule" in body
 
 
 def test_judge_text_cannot_inject_markdown_links_or_html() -> None:
@@ -135,24 +204,81 @@ def test_judge_text_cannot_inject_markdown_links_or_html() -> None:
     assert plain("  two\n lines ") == "two lines"
 
 
-def test_markdown_uses_the_reason_alone_when_there_is_no_owner() -> None:
-    assert "| **duplicate** 0.85 | same truncation |" in as_markdown(report(finding("duplicate", 0.85, owner="", why="same truncation")))
+def test_names_that_could_break_a_code_span_or_table_are_escaped_instead() -> None:
+    assert code("clip") == "`clip`" and code("a`b|c") == "a\\`b\\|c"
+
+
+def test_rows_say_the_verdict_alone_when_there_is_no_owner() -> None:
+    assert "| **duplicate**&nbsp;0.85 |" in as_markdown(report(finding("duplicate", 0.85, owner="", why="same truncation")))
 
 
 def test_markdown_labels_blocking_findings_first_and_lists_every_override() -> None:
     body = as_markdown(report(finding("duplicate", 0.85, existing="a"), finding("duplicate", 0.93, existing="b")))
-    assert body.index("**blocking duplicate** 0.93") < body.index("**duplicate** 0.85")
-    assert "1 of them are blocking" in body
-    for override in ("`# dry-lint: distinct-from <qualified name>`", "`# dry-lint: ignore`", "`patterns`",
-                     "`dry-lint: override`"):
+    assert body.index("| 🔴 | `clip` ≈ `b`") < body.index("| 🟡 | `clip` ≈ `a`")
+    assert "**duplicate**&nbsp;0.93<br><sub>blocks</sub>" in body
+    assert "🔴 fails the check" in body and "🟡 duplicate" in body and "🟠" not in body
+    for override in ("`# dry-lint: distinct-from <qualified name>` in the changed function", "`# dry-lint: ignore`",
+                     "`patterns`", "`.dry-lint.toml`", "the `dry-lint: override` label"):
         assert override in body
     assert "blocking" not in as_markdown(report(finding("duplicate", 0.85)))
+
+
+def test_overrides_use_the_comment_syntax_of_the_findings_languages() -> None:
+    typescript = Finding(candidate=pair("shorten").model_copy(update={"new": function("src/caption.ts", "def clip(text, n):\n    return text[:n]\n")}),
+                         verdict=Verdict(label="duplicate", score=0.9, owner="new", judge="jev", judge_version="v"))
+    only = as_markdown(report(typescript))
+    assert "`// dry-lint: ignore`" in only and "start with `//`" not in only
+    assert "```ts\n// dry-lint: distinct-from src/text.py::shorten\n```" in only
+    mixed = as_markdown(report(typescript, finding("duplicate", existing="other")))
+    assert "`# dry-lint: ignore`" in mixed and "In TypeScript and TSX, the comments start with `//`." in mixed
+
+
+def test_paths_show_only_as_much_as_tells_the_two_files_apart() -> None:
+    assert short_paths("a/b/view.tsx", "c/d/other.tsx") == ("view.tsx", "other.tsx")
+    assert short_paths("chat/x/Quoted.tsx", "live/y/Quoted.tsx") == ("x/Quoted.tsx", "y/Quoted.tsx")
+    assert short_paths("src/same.py", "src/same.py") == ("same.py", "same.py")
+    assert short_paths("Quoted.tsx", "live/Quoted.tsx") == ("Quoted.tsx", "live/Quoted.tsx")
+
+
+def test_source_links_pin_the_commit_escape_paths_and_support_enterprise(monkeypatch) -> None:
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://git.example.com")
+    built = report(finding("duplicate")).model_copy(deep=True)
+    built.findings[0].candidate.new.path = 'src/a [draft](1)".py'
+    body = as_markdown(built)
+    assert f"https://git.example.com/o/r/blob/{HEAD}/src/a%20%5Bdraft%5D%281%29%22.py#L1-L2 \"src/a \\[draft\\]\\(1\\)'.py\"" in body
+    assert function_link(built.findings[0].candidate.new, built.run).startswith("[clip](https://git.example.com/")
+    built.run = Run()
+    body = as_markdown(built)
+    assert "/blob/" not in body and "src/a \\[draft\\]\\(1\\)\".py:1" in body
+    assert function_link(built.findings[0].candidate.new, built.run) == escaped(built.findings[0].candidate.new.qualname)
+
+
+def test_evidence_separates_judge_scores_from_similarity_and_cache() -> None:
+    body = as_markdown(report(finding("drifted", 0.95, cached=True)))
+    assert "🔴 **`clip` ≈ `shorten`** · drifted 0.95 · similarity 0.71 · from the verdict store" in body
+    assert "the copies already behave differently" in body and "1 from the verdict store" in body
+    assert "· new verdict" in as_markdown(report(finding("duplicate")))
+
+
+def test_a_repository_scan_reads_as_an_audit_of_existing_code_that_never_blocks() -> None:
+    scan = clean_report(finding("drifted", 0.95, owner="new"), changed=0, scope="repository").as_warnings()
+    assert scan.repository_wide and not report(finding("duplicate")).repository_wide
+    body = as_markdown(scan)
+    assert "### dry-lint audit · 1 duplicated concept in existing code" in body
+    assert "Not introduced by this pull request, and never blocking." in body
+    assert "pairs_judged-1" in body and "changed function" not in body and "<sub>changed</sub>" not in body
+    assert "keep the first copy" in body and "in either function" in body and "dry-lint: override" not in body
+
+
+def test_the_status_note_has_a_slot_below_the_badges() -> None:
+    body = as_markdown(report(finding("duplicate")))
+    assert body.index("img.shields.io") < body.index(NOTE_SLOT) < body.index("| :-: |")
 
 
 def test_json_report_round_trips() -> None:
     built = report(finding("duplicate", existing="a"), finding("separate", existing="b"))
     loaded = Report.model_validate_json(render(built, "json", SETTINGS))
-    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 2
+    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 3
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:
@@ -170,10 +296,14 @@ def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_r
 def test_the_check_run_fails_only_for_blocking_findings_unless_warn_only() -> None:
     blocking = report(finding("drifted", 0.93, existing="a"), finding("duplicate", 0.85, existing="b"))
     body = json.loads(as_check_run(blocking))
-    assert (body["name"], body["head_sha"], body["status"], body["conclusion"]) == ("dry-lint", "abc", "completed", "failure")
+    assert (body["name"], body["head_sha"], body["status"], body["conclusion"]) == ("dry-lint", HEAD, "completed", "failure")
     assert body["output"]["title"] == "2 duplicated concept(s)" and body["output"]["summary"].startswith(MARKER)
     assert [a["annotation_level"] for a in body["output"]["annotations"]] == ["failure", "warning"]
-    assert json.loads(as_check_run(blocking, warn_only=True))["conclusion"] == "neutral"
+    warnings = json.loads(as_check_run(blocking, warn_only=True))
+    assert warnings["conclusion"] == "neutral"
+    assert [a["annotation_level"] for a in warnings["output"]["annotations"]] == ["warning", "warning"]
+    assert "blocking" not in warnings["output"]["summary"]
+    assert blocking.findings[0].blocking
     assert json.loads(as_check_run(report(finding("duplicate", 0.85))))["conclusion"] == "neutral"
     clean = json.loads(as_check_run(report(finding("separate"))))
     assert (clean["conclusion"], clean["output"]["title"], clean["output"]["annotations"]) == ("success", "No duplicated concepts", [])
@@ -182,3 +312,10 @@ def test_the_check_run_fails_only_for_blocking_findings_unless_warn_only() -> No
 @pytest.mark.parametrize("form", FORMATS)
 def test_every_format_renders(form: str) -> None:
     assert render(report(finding("duplicate")), form, SETTINGS)
+
+
+def test_a_path_that_could_close_a_code_fence_is_shown_escaped_instead() -> None:
+    built = report(finding("duplicate")).model_copy(deep=True)
+    built.findings[0].candidate.existing.path = "src/```evil.py"
+    body = as_markdown(built)
+    assert "```python" not in body and "distinct-from src/\\`\\`\\`evil.py::shorten" in body

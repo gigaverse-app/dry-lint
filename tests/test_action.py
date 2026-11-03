@@ -147,7 +147,7 @@ def test_a_near_certain_duplicate_fails_the_check_and_says_how_to_override(githu
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 1
     note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
-    assert note.startswith("**Blocking:** 1 finding(s)") and "`dry-lint: override` label" in note
+    assert note.startswith("> [!CAUTION]\n> **Blocking:** 1 finding(s)") and "`dry-lint: override` label" in note
     assert outputs(tmp_path) | {} == {"mode": "single", "exit-code": "1", "findings": "2", "blocking": "1",
                                       "overridden": "false", "stored": "false"}
 
@@ -165,7 +165,7 @@ def test_the_override_label_turns_a_blocking_finding_into_a_warning(github_env, 
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
     note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
-    assert note.startswith("**Overridden:**")
+    assert note.startswith("> [!NOTE]\n> **Overridden:**")
     assert "overridden by the `dry-lint: override` label" in capsys.readouterr().out
     assert outputs(tmp_path)["overridden"] == "true"
 
@@ -182,7 +182,8 @@ def test_warn_only_never_fails_and_does_not_claim_to_block(github_env, tmp_path)
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [BLOCKING], code=1)), \
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
-    assert post.call_args.args[0][post.call_args.args[0].index("--note") + 1] == ""
+    note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
+    assert note.startswith("> [!NOTE]\n> **Advisory mode:**") and "does not fail" in note
 
 
 def test_without_a_judge_nothing_is_annotated_commented_or_failed(github_env, tmp_path, capsys) -> None:
@@ -296,7 +297,8 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     out = capsys.readouterr().out
     assert "::error file=src/widgets/caption.py,line=1" in out  # 0.85 >= the default fail_at
     [body] = github.stickies()
-    assert "preview_caption_text" in body and "src/text.py::shorten_text" in body
+    assert "`preview_caption_text` ≈ `shorten_text`" in body and "distinct-from src/text.py::shorten_text" in body
+    assert f"/blob/{github.head}/src/widgets/caption.py#L1-L5" in body
     assert outputs(tmp_path)["findings"] == "1" and outputs(tmp_path)["stored"] == "true"
 
     # The next push changes nothing that matters: the verdict comes from the store, the comment is edited.
@@ -311,6 +313,43 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     [body] = github.stickies()
     assert "Resolved" in body and "preview_caption_text" not in body
+
+
+def test_typescript_pull_request_updates_and_resolves_one_sticky_comment(
+        repo: Repo, github_env, tmp_path, twin_judge, capsys):
+    repo.git("checkout", "-q", "main")
+    repo.write(".dry-lint.toml", 'include = ["*.ts", "src/filler.py"]')
+    repo.write("src/text.ts", '''export function shorten_text(text: string, limit: number) {
+      if (text.length <= limit) return text;
+      return text.slice(0, limit - 1).trimEnd() + "…";
+    }''')
+    repo.write("package.json", '{"scripts":{"test":"bun test"}}')
+    repo.commit()
+    repo.git("checkout", "-q", "-b", "typescript")
+    repo.write("src/caption.ts", '''export const preview_caption_text = (caption: string, limit: number) => {
+      if (caption.length <= limit) return caption;
+      return caption.slice(0, limit - 1).trimEnd() + "…";
+    };''')
+    repo.commit()
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), warn_only="true")
+    for _ in range(2):
+        assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "`preview_caption_text` ≈ `shorten_text`" in body
+    assert "```ts\n// dry-lint: distinct-from src/text.ts::shorten_text\n```" in body
+    assert "`// dry-lint: ignore`" in body and judge_calls(tmp_path) == 1
+    assert "blocking" not in body
+    assert "// dry-lint: distinct-from src/text.ts::shorten_text" in capsys.readouterr().out
+    repo.write("src/caption.ts", 'export { shorten_text as preview_caption_text } from "./text";')
+    repo.commit()
+    github.head = repo.git("rev-parse", "HEAD").strip()
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), warn_only="true")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "Resolved" in body
 
 
 def test_without_a_judge_the_real_cli_lists_look_alikes_and_comments_nothing(repo: Repo, github_env, tmp_path, capsys):
@@ -338,7 +377,8 @@ def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, githu
                judge="command", judge_command=twin_judge, working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
     [body] = github.stickies()
-    assert "preview_caption_text" in body and f"commit {head[:7]}" in body
+    assert "`preview_caption_text`" in body and f"commit {head[:7]}" in body
+    assert f"/blob/{head}/src/widgets/caption.py#L1-L5" in body
     [check] = github.check_runs
     assert (check["name"], check["head_sha"], check["conclusion"]) == ("dry-lint", head, "failure")
     assert check["output"]["annotations"][0]["path"] == "src/widgets/caption.py"
@@ -473,7 +513,14 @@ def test_an_inline_ignore_settles_the_pair_before_any_judge_call(repo: Repo, git
     github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
                working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
-    assert github.stickies() == [] and judge_calls(tmp_path) == 0
+    [body] = github.stickies()
+    assert "✨ No duplicated concepts" in body and "| Settled by a rule | 1 |" in body and judge_calls(tmp_path) == 0
+
+    quiet = FakeGitHub(head=github.head)
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
+               working_directory=str(repo.root), comment_on_clean="false")
+    assert action.main(["run"], transport=httpx.MockTransport(quiet)) == 0
+    assert quiet.stickies() == []
 
 
 def test_the_fail_at_input_raises_the_bar_so_lower_findings_only_warn(repo: Repo, github_env, tmp_path,

@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from dry_lint import sticky
+from dry_lint.report import CLEAN, NOTE_SLOT
 from dry_lint.sticky import MARKER, GitHub, compose, marker, upsert
 
 REPO, PR, HEAD = "acme/shop", 7, "a" * 40
@@ -66,17 +67,28 @@ def test_a_pull_request_with_findings_gets_exactly_one_comment_across_runs() -> 
     assert [c["body"] for c in fake.comments[:2]] == ["LGTM", "nice"]
 
 
-def test_a_clean_pull_request_gets_no_comment() -> None:
+CLEAN_REPORT = f"{MARKER}\n{CLEAN}\n### dry-lint · ✨ No duplicated concepts\n\n{NOTE_SLOT}\n\n| Look-alike pairs | 0 |"
+
+
+def test_a_clean_pull_request_gets_a_clean_report_unless_skipped() -> None:
     fake = FakeGitHub()
-    assert upsert(client(fake), REPO, PR, REPORT, findings=0) == "skipped"
-    assert fake.writes == []
+    assert upsert(client(fake), REPO, PR, CLEAN_REPORT, findings=0) == "created"
+    [body] = fake.stickies()
+    assert "✨ No duplicated concepts" in body and "Resolved" not in body
+    assert upsert(client(fake), REPO, PR, CLEAN_REPORT, findings=0) == "updated"
+    assert "Resolved" not in fake.stickies()[0]
+    quiet = FakeGitHub()
+    assert upsert(client(quiet), REPO, PR, CLEAN_REPORT, findings=0, skip_clean=True) == "skipped"
+    assert quiet.writes == []
 
 
 def test_fixing_the_findings_turns_the_comment_into_resolved() -> None:
-    fake = FakeGitHub(comments=[compose(REPORT)])
-    assert upsert(client(fake), REPO, PR, REPORT, findings=0) == "resolved"
-    [body] = fake.stickies()
-    assert "Resolved" in body and "b.py::shorten" not in body
+    for skip_clean in (False, True):
+        fake = FakeGitHub(comments=[compose(REPORT)])
+        assert upsert(client(fake), REPO, PR, CLEAN_REPORT, findings=0, skip_clean=skip_clean) == "resolved"
+        [body] = fake.stickies()
+        assert body.index("> [!TIP]\n> **Resolved:**") < body.index("| Look-alike pairs | 0 |")
+        assert "b.py::shorten" not in body
 
 
 def test_copies_left_by_racing_runs_are_removed() -> None:
@@ -166,11 +178,24 @@ def test_without_a_token_the_command_warns_and_succeeds(tmp_path: Path, monkeypa
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     body = tmp_path / "comment.md"
     body.write_text(REPORT)
-    assert sticky.main(["--body", str(body), "--pull-request", "1", "--findings", "1"]) == 0
+    assert sticky.main(["--body", str(body), "--pull-request", "1", "--findings", "1", "--skip-clean"]) == 0
     assert "No GITHUB_TOKEN" in capsys.readouterr().out
 
 
-def test_a_note_follows_the_report_and_precedes_the_source_line() -> None:
+def test_effective_status_precedes_findings_so_overrides_are_visible() -> None:
     body = compose(REPORT, note="**Blocking:** 1 finding(s)", head=HEAD)
-    assert body.index("b.py::shorten") < body.index("**Blocking:**") < body.index(f"commit {HEAD[:7]}")
+    assert body.index("**Blocking:**") < body.index("b.py::shorten") < body.index(f"commit {HEAD[:7]}")
     assert "**Blocking:**" not in compose(REPORT)
+
+
+def test_a_status_note_fills_the_reports_slot_and_an_empty_one_leaves_no_trace() -> None:
+    slotted = f"{MARKER}\n### dry-lint\n\nbadges\n\n{NOTE_SLOT}\n\nlead\n\n| a | b |"
+    body = compose(slotted, note="> [!CAUTION]\n> **Blocking:** 1 finding(s)")
+    assert body.index("badges") < body.index("> [!CAUTION]") < body.index("lead") and NOTE_SLOT not in body
+    assert "badges\n\nlead" in compose(slotted) and NOTE_SLOT not in compose(slotted)
+
+
+def test_the_source_line_names_dry_lint_the_commit_and_the_run() -> None:
+    body = compose(REPORT, run_url="https://github.com/acme/shop/actions/runs/9", head=HEAD)
+    assert body.rstrip().endswith(f"<sub>[dry-lint](https://github.com/gigaverse-app/dry-lint) · commit {HEAD[:7]} · "
+                                  "[run](https://github.com/acme/shop/actions/runs/9)</sub>")

@@ -43,10 +43,25 @@ See [docs/design.md](docs/design.md) and [docs/plugins.md](docs/plugins.md).
    Any LLM CLI, or any program, can be the judge instead, and a second judge can take the scores the first is
    least sure about.
 3. **Verdict store** (a cache, not a reviewed file). Each verdict is kept per pair with a *structure hash* of each
-   function, which comments, formatting and renames do not change. A pair is judged again only when its logic
-   changes, so most pushes cost zero judge calls.
+   function, which comments and formatting do not change. Python also normalizes local renames; TypeScript
+   conservatively re-judges them to preserve binding semantics. Most cosmetic pushes cost zero judge calls.
 
 ## Quick start
+
+Python, TypeScript, and TSX are supported out of the box. TypeScript repositories do not need a Python
+project, `bun install`, Node, or a build step. The GitHub Action installs its own tools and parses source
+without executing your code. See [TypeScript and Bun](docs/typescript.md) for monorepo configuration.
+
+Start with a local candidate pass, then add a judge when you want duplication decisions and failing checks:
+
+| Your next step | Run or read |
+| --- | --- |
+| Inspect your branch without a model or API key | `dry-lint check --judge none` |
+| Understand one candidate | `dry-lint explain path/to/new.py::function path/to/existing.py::function` |
+| Try structural matching as well | [Install the optional Dryer comparer](docs/detectors.md) |
+| Put judged findings on pull requests | [GitHub Action setup](docs/github-action.md) |
+| Find copies across related repositories | [Workspace scans and shared ownership](docs/workspaces.md) |
+| See the comment before installing | [Example report](docs/comment-preview.md) |
 
 ```bash
 uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint check            # changes since origin/main
@@ -56,7 +71,7 @@ uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 3
 | Command | Does |
 | --- | --- |
 | `check [--base REF \| --staged]` | detect, judge and report the functions a change touched (base: `origin/HEAD`) |
-| `scan [--limit N] [--refresh]` | the same for the whole repository's backlog |
+| `scan [--limit N] [--refresh] [--repo OWNER/NAME=PATH ...]` | the repository's backlog, or cross-repository pairs from a combined workspace |
 | `detect --out candidates.json` | CI job 1: propose pairs; no judge, no secrets, no store |
 | `judge --candidates candidates.json` | CI job 2: judge them, store the verdicts, report |
 | `report --from report.json --format F` | render a report as `text`, `github`, `markdown`, `json`, `sarif` or `check-run` |
@@ -80,7 +95,8 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 ```
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
-runs. A clean pull request gets no comment. A reported duplicate fails the check (94% of them are real
+runs. The comment links both functions at the analyzed commit, shows the review workload, and folds evidence and
+pair-specific suppression instructions under each summary. A clean pull request gets a green sticky with what was checked (`comment-on-clean: "false"` to opt out). A reported duplicate fails the check (94% of them are real
 duplicates in the benchmark; 98% with Claude Sonnet 5.5 as the second judge); set `fail-at: "0.9"` to fail only on
 near-certain ones, and the `dry-lint: override` label lets one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
@@ -139,7 +155,7 @@ measured thresholds above:
 | `fail_at` | 0.8 | judged duplicates at or above this fail the run (`--fail-at` overrides it); raise it above `report_at` to make the band between them warn only |
 | `reopen_margin` | 0.05 | how much closer a "separate" pair must get before it is judged again |
 | `max_findings` | 10 | rows in the PR comment |
-| `extractors` | `["python"]` | one per language |
+| `extractors` | `["python", "typescript"]` | `.py`, `.ts`, `.tsx`, `.mts`, `.cts` |
 | `comparer` | `"tfidf"` | options `min_similarity` (0.5), `min_similarity_small` (0.3) under `small_function_lines` (6) |
 | `judge` / `escalate` | `"auto"` / `"auto"` | Jev when `TYPESAFE_AI_API_KEY` is set; Claude Sonnet 5.5 on first scores in `[0.6, 0.91)` when `ANTHROPIC_API_KEY` is set (about half the false blocks); `escalate = "none"` turns it off |
 | `store` | `"dir"` | `.git/dry-lint/verdicts/`, or `{ use = "s3", uri = "s3://bucket/prefix" }` |

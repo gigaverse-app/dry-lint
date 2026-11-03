@@ -114,17 +114,16 @@ def labels_of(pull: dict) -> set[str]:
 
 
 def status_note(blocking: int, overridden: bool) -> str:
-    """The comment's last word on whether this pull request is blocked, and how to unblock a false positive."""
+    """Lead the comment with the effective check status, including advisory mode and overrides."""
     if not blocking:
         return ""
     if overridden:
-        return (f"**Overridden:** the `{override_label()}` label is set, so the {blocking} blocking finding(s) "
-                "do not fail this pull request.")
+        return (f"> [!NOTE]\n> **Overridden:** the `{override_label()}` label is set, so the {blocking} blocking "
+                "finding(s) do not fail this pull request.")
     if flag("INPUT_WARN_ONLY"):
-        return ""
-    return (f"**Blocking:** {blocking} finding(s) reach `fail_at`, so this check "
-            f"fails. A false positive? Mark it in the code as above, or add the `{override_label()}` label to this "
-            "pull request.")
+        return "> [!NOTE]\n> **Advisory mode:** `warn-only` is enabled, so this check does not fail on these findings."
+    return (f"> [!CAUTION]\n> **Blocking:** {blocking} finding(s) reach `fail_at`, so this check fails. A false "
+            f"positive? Use the scoped decisions below, or add the `{override_label()}` label to this pull request.")
 
 
 def write_outputs(**outputs: object) -> None:
@@ -154,6 +153,8 @@ def comment(repository: str, number: int, body: Path, findings: int, expect_head
             "--findings", str(findings), "--key", env("INPUT_STICKY_KEY"), "--run-url", run_url(), "--note", note]
     if expect_head:
         args += ["--expect-head", expect_head]
+    if env("INPUT_COMMENT_ON_CLEAN", "true").lower() in ("false", "0", "no"):
+        args.append("--skip-clean")
     sticky.main(args, transport=transport)
     return "posted"
 
@@ -224,6 +225,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     # judge, dry-lint exits 1 when a finding blocks (at or above fail_at); the action decides what that means.
     judging = ["--judge", judge, "--store", str(store), "--report", str(report), "--output", str(body), *fail_at()]
     judging += ["--format", "text", "--warn-only"] if judge == "none" else ["--format", "github"]
+    if flag("INPUT_WARN_ONLY"):
+        judging.append("--warn-only")
     if env("INPUT_JUDGE_COMMAND"):
         judging += ["--judge-command", env("INPUT_JUDGE_COMMAND")]
 

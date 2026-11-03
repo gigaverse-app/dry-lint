@@ -18,7 +18,15 @@ That is the whole setup for a repository whose pull requests come from its own b
 - **Annotations** on the changed functions that re-implement existing code, with the function they duplicate
   and what to do about it.
 - **One sticky comment**, found again by its `<!-- dry-lint -->` marker and edited in place on every push:
-  - A clean pull request gets no comment.
+  - A headline and badges say how many duplicated concepts there are, how many block and how many have drifted;
+    a blocking, advisory or overridden status follows as a GitHub alert.
+  - One row per pair: a severity dot, the concept, both copies linked at the analyzed commit (short file names,
+    the full path on hover, GitHub Enterprise included) and the verdict with the judge's fix.
+  - Fold-outs hold each judge reason with a copy-paste `distinct-from` line, and every scope of override.
+  - A `dry-lint scan` report reads as an audit of existing code that never blocks, not as a pull request review.
+  - A clean pull request gets a green report of what was checked: changed functions, how many they were
+    compared with, look-alike pairs, what the judge cleared and the closest call. Opt out with
+    `comment-on-clean: "false"`.
   - When findings are fixed, the comment says so instead of going stale.
   - Copies left by two runs racing are deleted.
   - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never
@@ -29,6 +37,18 @@ That is the whole setup for a repository whose pull requests come from its own b
 
 Without a judge (no `typesafe-api-key` and no `judge-command`), dry-lint lists look-alikes in the log. It adds no
 annotations, no comment and no failure, so installing it before the secret exists costs nothing.
+
+### Preview without posting
+
+[Open the illustrative report](comment-preview.md), or render it locally without a token or model:
+
+```bash
+uv run dry-lint report --from examples/comment-report.json --format markdown --warn-only
+```
+
+The fixture contains illustrative verdicts, not measured findings. To preview your own run, substitute its
+`report.json`. `report` renders saved results and never posts a comment. Local reports without repository/commit
+metadata show full qualified names instead of source links.
 
 ## When it fails, and false positives
 
@@ -102,6 +122,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `base` | the PR's base commit, or the previous push, or the default branch | What to compare with. |
 | `working-directory` | `.` | The repository, or the package within a monorepo. |
 | `comment` | `true` | Keep the sticky comment. |
+| `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
 | `sticky-key` | | One comment per key, when several dry-lint steps report on one pull request. |
 | `fail-at` | `fail_at` from `[tool.dry-lint]` (0.8) | Judge score at or above which a duplicate fails the check; `0.9` fails only near-certain ones. |
