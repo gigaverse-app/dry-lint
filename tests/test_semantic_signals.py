@@ -2,11 +2,10 @@
 
 import json
 import runpy
-import sys
 
 import pytest
 
-from conftest import SCRIPTS, gold_line, run_script
+from conftest import SCRIPTS, gold_line, run_main, run_script
 
 Signals = runpy.run_path(str(SCRIPTS / "semantic_signals.py"))["Signals"]
 
@@ -129,8 +128,7 @@ def test_trial_cli_runs_each_variant_with_real_repository_and_gold(repo, tmp_pat
     gold = tmp_path / "gold.jsonl"
     gold.write_text(gold_line("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text", "duplicate"))
     out = tmp_path / "trial"
-    monkeypatch.setattr(sys, "argv", ["trial", "--root", str(repo.root), "--out", str(out), "--gold", str(gold)])
-    runpy.run_path(str(SCRIPTS / "benchmark_semantic_signals.py"), run_name="__main__")
+    run_main(monkeypatch, "benchmark_semantic_signals.py", "--root", str(repo.root), "--out", str(out), "--gold", str(gold))
     results = json.loads((out / "results.json").read_text())
     assert results["schema"] == 1
     assert results["head"] == repo.git("rev-parse", "HEAD").strip() and not results["dirty"]

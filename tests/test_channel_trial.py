@@ -3,7 +3,6 @@
 import json
 import math
 import runpy
-import sys
 
 import pytest
 
@@ -13,7 +12,7 @@ from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Function, pair_key
 from dry_lint.settings import Settings
 
-from conftest import SCRIPTS, function, gold_line, run_script
+from conftest import SCRIPTS, function, gold_line, run_main, run_script
 
 trial = runpy.run_path(str(SCRIPTS / "channel_trial.py"))
 CslsComparer, Floored, LsiComparer = trial["CslsComparer"], trial["Floored"], trial["LsiComparer"]
@@ -176,8 +175,7 @@ def test_trial_cli_scores_every_variant_on_a_real_repository(repo, tmp_path, mon
     gold.write_text(gold_line("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text", "duplicate")
                     + gold_line("src/widgets/caption.py::register_widget", "src/text.py::shorten_text", "borderline"))
     out = tmp_path / "trial"
-    monkeypatch.setattr(sys, "argv", ["trial", "--root", str(repo.root), "--out", str(out), "--gold", str(gold)])
-    runpy.run_path(str(SCRIPTS / "benchmark_channel_trial.py"), run_name="__main__")
+    run_main(monkeypatch, "benchmark_channel_trial.py", "--root", str(repo.root), "--out", str(out), "--gold", str(gold))
     results = json.loads((out / "results.json").read_text())
     assert results["head"] == repo.git("rev-parse", "HEAD").strip() and not results["dirty"]
     assert set(results["variants"]) == set(harness["VARIANTS"]) and results["unavailable"] == {}

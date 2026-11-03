@@ -20,6 +20,13 @@ def run_script(monkeypatch: pytest.MonkeyPatch, name: str) -> dict:
     return runpy.run_path(str(SCRIPTS / name))
 
 
+def run_main(monkeypatch: pytest.MonkeyPatch, name: str, *args: str) -> None:
+    """An offline experiment script run from the command line: `python scripts/<name> <args>`."""
+    monkeypatch.syspath_prepend(str(SCRIPTS))
+    monkeypatch.setattr(sys, "argv", [name, *args])
+    runpy.run_path(str(SCRIPTS / name), run_name="__main__")
+
+
 def gold_line(new: str, existing: str, label: str) -> str:
     """One labelled pair, as a line of a `dry-lint bench` gold file."""
     pair = GoldPair(new=GoldFunction(id=new, code=""), existing=GoldFunction(id=existing, code=""), label=label)

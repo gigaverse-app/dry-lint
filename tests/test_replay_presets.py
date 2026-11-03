@@ -1,8 +1,6 @@
 """The preset replay measures what `check` would have proposed on each past commit, and nothing else."""
 
 import json
-import runpy
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,7 +11,7 @@ from dry_lint.bench import GoldPair
 from dry_lint.models import Candidate, Function, Verdict
 from dry_lint.settings import Settings
 
-from conftest import EXISTING, SCRIPTS, TWIN, Repo, filler_module, gold_line, run_script
+from conftest import EXISTING, TWIN, Repo, filler_module, gold_line, run_main, run_script
 
 
 @pytest.fixture
@@ -274,33 +272,24 @@ def test_report_precision_is_undefined_when_nothing_is_reported(replay, history,
 
 def test_cli_dispatches_each_step(replay, history, tmp_path, monkeypatch, capsys) -> None:
     out = tmp_path / "out"
-    script = str(SCRIPTS / "replay_presets.py")
-    monkeypatch.setattr(sys, "argv", ["replay", "replay", "--root", str(history.root), "--ref", "HEAD", "--out", str(out)])
-    runpy.run_path(script, run_name="__main__")
-    monkeypatch.setattr(sys, "argv", ["replay", "sample", "--out", str(out)])
-    runpy.run_path(script, run_name="__main__")
+    run_main(monkeypatch, "replay_presets.py", "replay", "--root", str(history.root), "--ref", "HEAD", "--out", str(out))
+    run_main(monkeypatch, "replay_presets.py", "sample", "--out", str(out))
     assert (out / "sample.json").exists()
     monkeypatch.setenv("OPENROUTER_API_KEY", "key")
     monkeypatch.setenv("TYPESAFE_AI_API_KEY", "key")
-    monkeypatch.setattr(sys, "argv", ["replay", "label", "--out", str(out), "--budget", "0"])
-    runpy.run_path(script, run_name="__main__")
+    run_main(monkeypatch, "replay_presets.py", "label", "--out", str(out), "--budget", "0")
     assert json.loads(capsys.readouterr().out)["spent"] == 0
-    monkeypatch.setattr(sys, "argv", ["replay", "judge", "--out", str(out)])
     with patch.object(httpx.Client, "post", side_effect=httpx.ConnectError("offline")):
-        runpy.run_path(script, run_name="__main__")
+        run_main(monkeypatch, "replay_presets.py", "judge", "--out", str(out))
     assert replay["read"](out / "verdicts.jsonl") == []  # every batch failed, so nothing is recorded
-    monkeypatch.setattr(sys, "argv", ["replay", "report", str(out)])
-    runpy.run_path(script, run_name="__main__")
+    run_main(monkeypatch, "replay_presets.py", "report", str(out))
     assert json.loads(capsys.readouterr().out)[out.name]["commits"] == 4
-    monkeypatch.setattr(sys, "argv", ["replay", "score", "--out", str(out)])
     with patch.object(httpx.Client, "post", side_effect=httpx.ConnectError("offline")):
-        runpy.run_path(script, run_name="__main__")
+        run_main(monkeypatch, "replay_presets.py", "score", "--out", str(out))
     assert replay["read"](out / "jev-population.jsonl") == []
     calibration = tmp_path / "calibration"
-    monkeypatch.setattr(sys, "argv", ["replay", "calibrate", "--out", str(out), "--into", str(calibration)])
-    runpy.run_path(script, run_name="__main__")
-    monkeypatch.setattr(sys, "argv", ["replay", "export", "--out", str(calibration), "--gold", str(tmp_path / "gold.jsonl")])
-    runpy.run_path(script, run_name="__main__")
+    run_main(monkeypatch, "replay_presets.py", "calibrate", "--out", str(out), "--into", str(calibration))
+    run_main(monkeypatch, "replay_presets.py", "export", "--out", str(calibration), "--gold", str(tmp_path / "gold.jsonl"))
     assert capsys.readouterr().out.split() == ["0", "0"]  # nothing scored, so nothing sampled or exported
 
 
