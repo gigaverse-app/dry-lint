@@ -91,6 +91,24 @@ def test_ranking_reserves_shared_repository_slots_and_diversifies_file_families(
     copies = [pair("org/web", "org/mobile", f"copy{i}", 1) for i in range(20)]
     common = pair("org/web", "org/common", "normalize", .74)
     assert common in rank_candidates([*copies, common])[:2]
+    different_file = copies[0].model_copy(update={"new": copies[0].new.model_copy(update={"path": "src/b.ts"}),
+                                                 "similarity": .7})
+    assert different_file in rank_candidates([*copies, different_file])[:2]
+
+
+def test_consolidation_scopes_require_both_sides_and_preserve_multiple_valid_destinations(tmp_path):
+    repo = Repo(tmp_path / "app")
+    for path in ["web/a.ts", "native/a.ts", "server/a.ts"]:
+        repo.write(path, 'export const normalize = (x: number) => Math.max(0, x);')
+    repo.commit()
+    settings = Settings.model_validate({"consolidation": [
+        {"sources": ["web/*", "native/*"], "path": "shared/domain"},
+        {"sources": ["web/*", "native/*"], "path": "shared/utils"},
+    ]})
+    detector = Detector.for_repository(repo.root, settings)
+    web, native, server = [detector.find(f"{tree}/a.ts::normalize") for tree in ["web", "native", "server"]]
+    assert len(detector.pair(web, native, 1).consolidation) == 2
+    assert not detector.pair(web, server, 1).consolidation
 
 
 def test_judge_budget_defers_uncached_pairs_without_claiming_they_are_clear(store):
