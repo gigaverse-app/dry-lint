@@ -15,8 +15,10 @@ REPORT = f"{MARKER}\n### dry-lint\n\n| Changed function | Looks like |\n| --- | 
 class FakeGitHub:
     """The slice of the GitHub REST API the sticky uses, in memory: comments of one pull request, and its head."""
 
-    def __init__(self, comments: list[str] = (), head: str = HEAD, write_status: int = 200, banner: int = 404):
+    def __init__(self, comments: list[str] = (), head: str = HEAD, write_status: int = 200, banner: int = 404,
+                 labels: list[str] = ()):
         self.comments = [{"id": i + 1, "body": body} for i, body in enumerate(comments)]
+        self.labels = [{"name": name} for name in labels]
         self.head, self.write_status, self.banner = head, write_status, banner
         self.writes: list[str] = []
         self.check_runs: list[dict] = []
@@ -26,7 +28,7 @@ class FakeGitHub:
         if request.url.host == "raw.githubusercontent.com":
             return httpx.Response(self.banner)
         if method == "GET" and path == f"/repos/{REPO}/pulls/{PR}":
-            return httpx.Response(200, json={"head": {"sha": self.head}})
+            return httpx.Response(200, json={"head": {"sha": self.head}, "labels": self.labels})
         if method == "GET" and path == f"/repos/{REPO}/issues/{PR}/comments":
             page, size = int(request.url.params["page"]), int(request.url.params["per_page"])
             return httpx.Response(200, json=self.comments[(page - 1) * size: page * size])
@@ -166,3 +168,9 @@ def test_without_a_token_the_command_warns_and_succeeds(tmp_path: Path, monkeypa
     body.write_text(REPORT)
     assert sticky.main(["--body", str(body), "--pull-request", "1", "--findings", "1"]) == 0
     assert "No GITHUB_TOKEN" in capsys.readouterr().out
+
+
+def test_a_note_follows_the_report_and_precedes_the_source_line() -> None:
+    body = compose(REPORT, note="**Blocking:** 1 finding(s)", head=HEAD)
+    assert body.index("b.py::shorten") < body.index("**Blocking:**") < body.index(f"commit {HEAD[:7]}")
+    assert "**Blocking:**" not in compose(REPORT)
