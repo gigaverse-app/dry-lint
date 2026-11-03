@@ -56,6 +56,8 @@ def run_info(root: Path, base: str | None) -> Run:
 def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     """The repository's settings, with the judge the command line names, if any."""
     settings = Settings.load(root)
+    if args.detector:
+        settings.comparer = PluginChoice(use=args.detector)
     if args.fail_at is not None:
         settings = settings.model_copy(update={"fail_at": args.fail_at})
     if args.judge or args.judge_command:
@@ -169,6 +171,7 @@ def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
+    common.add_argument("--detector", help="Comparer plugin, overriding the settings: tfidf, dryer, or installed.")
     common.add_argument("--judge", help="Judge plugin, overriding the settings: auto, jev, command, none, or installed.")
     common.add_argument("--judge-command", help="For the command judge: a command reading the candidate on stdin.")
     common.add_argument("--store", type=Path, help="A folder for the verdict store, overriding the settings.")

@@ -21,7 +21,7 @@ def verdict(label: str, score: float = 0.9, judge: str = "jev", version: str = "
 
 
 def candidate(new=NEW, old=OLD, similarity: float = 0.7, comparer: str = "tfidf:1") -> Candidate:
-    return Candidate(new=new, existing=old, similarity=similarity, comparer=comparer)
+    return Candidate(new=new, existing=old, similarity=similarity, comparer=comparer, similarity_reusable=True)
 
 
 def edited(f, before: str, after: str):
@@ -89,13 +89,32 @@ def test_unknown_pairs_have_no_verdict(store: VerdictStore) -> None:
     assert store.lookup(candidate(), "jev", reopen_margin=0.05) == (None, "never judged")
 
 
+def test_lossy_comparers_require_unchanged_hashes_even_with_an_unchanged_score(store: VerdictStore) -> None:
+    before = candidate(comparer="dryer:1").model_copy(update={"similarity_reusable": False})
+    store.remember(before, verdict("separate"))
+    assert lookup(store, before) == verdict("separate")
+    after = before.model_copy(update={"new": edited(NEW, "n - 1", "n - 2")})
+    result = store.lookup(after, "jev", 0.05)
+    assert result.verdict is None and "exact-hash" in result.why
+
+
+def test_schema_one_records_still_load_with_conservative_similarity_reuse(store: VerdictStore) -> None:
+    record = store.remember(candidate(), verdict("separate")).model_dump()
+    record["schema"] = 1
+    del record["similarity_reusable"]
+    store.backend.put(candidate().key, json.dumps(record).encode())
+    assert lookup(store, candidate()) == verdict("separate")
+    changed = candidate(new=edited(NEW, "n - 1", "n - 2"))
+    assert lookup(store, changed) is None
+
+
 def test_each_record_is_its_own_file_holding_hashes_and_never_code(store: VerdictStore, tmp_path: Path) -> None:
     source = Run(repository="o/r", pull_request=7, head="abc")
     store.remember(candidate(), verdict("drifted"), source)
     [path] = (tmp_path / "verdicts").iterdir()
     assert path.name == f"{candidate().key}.json"
     data = json.loads(path.read_text())
-    assert data["schema"] == 1 and data["pair"] == ["new.py::clip", "old.py::shorten"]
+    assert data["schema"] == 2 and data["pair"] == ["new.py::clip", "old.py::shorten"]
     assert data["hashes"] == [NEW.hash, OLD.hash] and data["comparer"] == "tfidf:1" and data["similarity"] == 0.7
     assert data["source"]["pull_request"] == 7 and "code" not in path.read_text()
     assert [r.verdict.label for r in store.records()] == ["drifted"]

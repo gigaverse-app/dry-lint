@@ -160,3 +160,8 @@ Lint is what is left behind when you dry things. It carries a lint roller for pi
 ## License
 
 Apache 2.0. See [CONTRIBUTING.md](CONTRIBUTING.md) to work on dry-lint itself.
+
+## Optional Dryer comparer
+
+Install the `dryer` extra and select `comparer = "dryer"` or pass `--detector dryer` to use structural fingerprints.
+TF-IDF remains the default. See [setup](docs/detectors.md) and the [gigaverse-backend comparison](docs/dryer-comparison.md).

@@ -107,6 +107,11 @@ Measured on gigaverse-ai with a warm checkout:
 | `scan`, the whole-repository backlog | 22 s |
 | Parse, tokenize and index 9,976 functions | 3.2 s, 1.6 s, 0.2 s |
 
+## Optional Dryer detector on gigaverse-backend
+
+The [backend comparison](dryer-comparison.md) measures the native TF-IDF and optional Dryer plugins on the same
+frozen Python corpus, with shared candidate policy, repeated timings and exploratory source review.
+
 ## Backend follow-up: more signals are not always better
 
 The backend review uses commit `22dfbe180c6704101658a088cc269a25fa9c82dd`, default settings, and the detector
