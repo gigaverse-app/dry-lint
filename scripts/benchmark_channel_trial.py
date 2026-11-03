@@ -140,7 +140,7 @@ def run(root: Path, out: Path, gold_paths: list[Path] = (), seed: int = 20261106
                      "new": {"id": a, "code": by_name[a].code}, "existing": {"id": b, "code": by_name[b].code}})
     (out / "sample.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
     results = {"schema": 1, "python": platform.python_version(), "head": git(root, "rev-parse", "HEAD"),
-               "dirty": bool(git(root, "status", "--porcelain")), "functions": len(by_name), "seed": seed,
+               "dirty": bool(git(root, "status", "--porcelain")), "functions": len(base.functions), "seed": seed,
                "channels": report, "unavailable": unavailable, "variants": variants}
     (out / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     return results
