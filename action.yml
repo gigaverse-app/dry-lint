@@ -19,15 +19,15 @@ inputs:
     default: ""
   anthropic-api-key:
     description: >
-      Anthropic API key. With it, first-judge scores in the escalation band get a second opinion from Claude Sonnet
-      (escalate = "auto"): higher recall at about the same precision, about one call every three PRs. Empty means no
+      Anthropic API key. With typesafe-api-key, preset jev+opus: Claude Opus re-judges the Jev scores it is least
+      sure of, for 98% precision and 85% recall within the budget, about $0.005 a pull request. Empty means no
       escalation. (Gemini needs escalate = "gemini" in [tool.dry-lint] and GEMINI_API_KEY in the environment.)
     required: false
     default: ""
   claude-code-oauth-token:
     description: >
       Claude subscription token (claude setup-token). With it, the claude-code judge runs on the subscription
-      (preset jev+claude-code, or claude-code alone); the claude CLI is installed only when this is set.
+      (preset jev+claude-code: Opus, as jev+opus; or claude-code alone); the claude CLI is installed only when this is set.
     required: false
     default: ""
   claude-code-version:
@@ -39,7 +39,9 @@ inputs:
     required: false
     default: ""
   budget-usd:
-    description: Spending cap per run for paid judges; pairs past it are left unjudged and say so. Empty uses the settings.
+    description: >
+      Most judging spends on a pull request, across all its pushes, at list price (subscriptions included); the
+      riskiest pairs are judged first, and the report counts the rest. Empty uses the settings (default 0.04).
     required: false
     default: ""
   judge:
@@ -87,9 +89,9 @@ inputs:
     default: ""
   fail-at:
     description: >
-      Judge score at or above which a duplicate fails the check. Empty uses fail_at from [tool.dry-lint] (default 0.8,
-      the same as report_at, so every reported duplicate fails). 0.91 fails only near-certain ones: no false positive
-      at that level in the benchmark; findings between report_at and it only warn.
+      Judge score at or above which a duplicate fails the check. Empty uses the preset's (0.55 with jev+opus, 0.8
+      with jev) or fail_at from [tool.dry-lint]. A higher value fails only near-certain ones; findings between
+      report_at and it only warn.
     required: false
     default: ""
   warn-only:

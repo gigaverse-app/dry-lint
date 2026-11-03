@@ -96,6 +96,61 @@ candidate pairs per pull request and a third of them in the band, `jev+sonnet` c
 (Jev's share is about $0.0001), and the largest pull request in the sample (103 candidates) about $0.12. A Sonnet
 call took a median of 2.1 s through the API; a `codex` call took 14 s.
 
+## Within a budget
+
+The question for a team: at most $0.04 of model use per pull request, every push included and subscription use
+counted at list price, which judging finds the most duplicates without blocking separate code?
+
+**Method.** Claude Opus 5.5 and Haiku 5.5 judged all 250 gold pairs twice through the API, as Sonnet had, with the
+same prompt. Every gold pair belongs to one of the 600 pull requests, so each setup was simulated on each pull
+request's real candidates, exactly as the ledger runs it: the first judge takes pairs by similarity, the second
+takes first scores nearest the middle of its band, each until the pull request's budget is spent, with each pair's
+real prompt length and each model's measured answer length (Sonnet 126 tokens, Opus 217, Haiku 444). To count the
+pushes, every one of the 184 pull requests with candidates was replayed commit by commit: a pair is judged once
+when it appears and again whenever its new function's logic changes, 1.27 times on average if every commit were
+pushed alone. Figures average the two runs of each model.
+
+**Every judge on every pair, no budget** (fails at the threshold shown):
+
+| Judge | Fails at | Precision | Recall | Cost a pull request |
+| --- | --- | --- | --- | --- |
+| Jev | 0.8 | 94% (91–98) | 73% (68–79) | $0.0002 |
+| Claude Haiku 5.5 | 0.7 | 92% (87–97) | 89% (82–95) | $0.0014 |
+| Claude Sonnet 5.5 | 0.6 | 94% (89–98) | 92% (88–95) | $0.015 |
+| Claude Opus 5.5 | 0.6 | 99% (98–100) | 87% (79–94) | $0.037 |
+
+**Jev first, a second judge on [0.5, 0.91), within $0.04 a pull request**, the second judge's answers at the
+threshold shown and Jev's unescalated answers at its own 0.8:
+
+| Judging | Fails at | Precision | Recall | Average a pull request | Pull requests that reach the budget |
+| --- | --- | --- | --- | --- | --- |
+| Jev alone (`jev`) | 0.8 | 94% (91–98) | 73% (68–79) | $0.0002 | 0 of 600 |
+| Jev, then Sonnet (`jev+sonnet`) | 0.7 | 97% (94–99) | 84% (77–90) | $0.0035 | 25 |
+| Jev, then Sonnet | 0.6 | 94% (89–98) | 87% (81–93) | $0.0035 | 25 |
+| **Jev, then Opus** (`jev+opus`) | **0.55** | **98% (96–100)** | **85% (79–92)** | **$0.0053** | **51** |
+| Jev, then Opus | 0.7 | 99% (97–100) | 78% (71–85) | $0.0053 | 51 |
+| Jev, then Sonnet, then Opus on Sonnet's [0.5, 0.85) | 0.55 | 96% (91–99) | 86% (79–92) | $0.0057 | 55 |
+| Sonnet alone (`sonnet`) | 0.7 | 97% (93–99) | 63% (55–72) | $0.0068 | 62 |
+| Opus alone | 0.55 | 99% | 40% | $0.0083 | 115 |
+
+So `jev+opus` is the default when both keys are present. It blocks about one separate pair in 60 against one in
+30 for `jev+sonnet`, at the same recall. A budget only binds on large pull requests (72% of candidate pairs come
+from pull requests with 12 or more), so a judge that can fall back on Jev's answers keeps most of its recall:
+Sonnet or Opus on every pair loses a third or more of it to unjudged pairs. Without the first-judge bar, a large
+pull request that ran out of budget failed on Jev's scores from 0.55, and `jev+opus` fell to 82% precision. A
+looser cap buys little: `jev+opus` gets 99% and 88% within $0.10 a pull request (average $0.009), and 99% and 90%
+with no budget at all (average $0.013).
+
+**Checks.** Opus 5.5 was one of the three labellers, which favours it. On the 219 pairs where the two non-Claude
+labellers (GPT-5.5 and Gemini 3.1 Pro) agree, without the Opus label, `jev+opus` scores 99% precision and 86%
+recall within the budget, `jev+sonnet` 99% and 84%, and Jev alone 96% and 74%: Opus still leads, but by less than
+the intervals, so part of its lead on all labels is likely the shared vendor. Between its two runs, Opus changed 7
+of 250 decisions at 0.55, and Sonnet 7 at 0.7. Haiku 5.5 often gives a high score with a `separate` label, so its
+scores cannot pick a band; read by label, as reports do, it is a fair cheap judge (`jev` then Haiku on [0.5, 0.91)
+fails at 0.8 with 97% precision and 78% recall for $0.0007 a pull request), but no Haiku combination beat
+`jev+opus`. The claude-code presets use the same models and prompt through the CLI and were not measured through
+it: the local CLI login had expired.
+
 ## Earlier gold set (superseded)
 
 The first gold set had 96 pairs from the 120 most recent pull requests, with 23 duplicates. It put Jev at 75%

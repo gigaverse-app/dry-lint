@@ -5,24 +5,33 @@
 A threshold means something only for the judges it was measured with: Jev's 0.8 and Claude Sonnet's 0.7 are not
 the same bar. So dry-lint chooses the judges and the thresholds together, as a **preset**:
 
-| Preset | Judges | Fails at | Precision / recall | Per pull request |
+| Preset | Judges | Reports and fails at | Precision / recall within $0.04 a PR | Average cost a PR |
 | --- | --- | --- | --- | --- |
-| `jev+sonnet` | Jev, then Claude Sonnet 5.5 (API) on Jev scores in [0.5, 0.91) | 0.7 (reports from 0.6) | 97% / 84% | ~1.1 Sonnet calls, ~$0.004 |
-| `jev+claude-code` | the same, through a Claude subscription (`claude` CLI) | 0.7 (from 0.6) | same model and prompt; not measured through the CLI | ~1.1 subscription calls |
+| `jev+opus` | Jev, then Claude Opus 5.5 (API) on Jev scores in [0.5, 0.91) | 0.55 | 98% / 85% (99% / 90% unbudgeted) | ~$0.005 |
+| `jev+claude-code` | the same, through a Claude subscription (`claude` CLI) | 0.55 | same model and prompt; not measured through the CLI | ~$0.005 of subscription use |
+| `jev+sonnet` | Jev, then Claude Sonnet 5.5 (API) on [0.5, 0.91) | 0.7 (reports from 0.6) | 97% / 84% | ~$0.0035 |
+| `jev+claude-code-sonnet` | the same, through a Claude subscription | 0.7 (from 0.6) | same model and prompt | ~$0.0035 of subscription use |
 | `jev+codex` | Jev, then the ChatGPT subscription's model (`codex` CLI) on [0.5, 0.91) | 0.7 | 96% / 85% | ~1.1 subscription calls, ~14 s each |
-| `sonnet` | Claude Sonnet 5.5 (API) on every pair | 0.7 (from 0.6) | 97% / 84% | ~3.4 calls, ~$0.011 |
-| `claude-code` | the same, through a Claude subscription | 0.7 (from 0.6) | same model and prompt | ~3.4 subscription calls |
-| `jev` | Jev on every pair | 0.8 | 94% / 73% | ~$0.0001 |
+| `sonnet` | Claude Sonnet 5.5 (API) on every pair | 0.7 (from 0.6) | 97% / 63% (84% unbudgeted) | ~$0.007 |
+| `claude-code` | the same, through a Claude subscription | 0.7 (from 0.6) | same model and prompt | ~$0.007 of subscription use |
+| `jev` | Jev on every pair | 0.8 | 94% / 73% | ~$0.0002 |
 | `none` | no judge: candidates are listed, nothing fails | - | - | free |
 
-Measured on the 250-pair gold set ([benchmark](benchmark.md#thresholds-with-a-second-judge)). The default,
-`preset = "auto"`, takes the first of `jev+sonnet`, `jev+claude-code`, `jev`, `sonnet`, `claude-code`, `none`
-whose credentials are in the environment (`TYPESAFE_AI_API_KEY`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`);
-`jev+codex` must be named, because a `codex` login shows in no environment variable. Any field set explicitly
-(`judge`, `escalate`, `drop_below`, `report_at`, `fail_at`, or `--fail-at`) wins over the preset's; naming your
-own `judge` without a preset runs it alone, as `custom`, with the default thresholds, since no preset was measured
-for it. `dry-lint config` prints what would run and why, and every report ends with the same line: the preset,
-the judges, the thresholds and the cost.
+Measured on the 250-pair gold set and simulated on each pull request's own candidates under the default budget,
+every push included ([benchmark](benchmark.md#within-a-budget)). The default, `preset = "auto"`, takes the first of
+`jev+opus`, `jev+claude-code`, `jev`, `sonnet`, `claude-code`, `none` whose credentials are in the environment
+(`TYPESAFE_AI_API_KEY`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`); the others must be named. `jev+sonnet` costs
+a third less than `jev+opus` but blocks about twice as many separate pairs. `sonnet` and `claude-code` have
+no cheap first judge to fall back on, so on the largest pull requests the budget runs out and pairs stay unjudged:
+that is why `jev` comes before them. Any field set explicitly (`judge`, `escalate`, `drop_below`, `report_at`,
+`fail_at`, or `--fail-at`) wins over the preset's; naming your own `judge` without a preset runs it alone, as
+`custom`, with the default thresholds, since no preset was measured for it. `dry-lint config` prints what would run
+and why, and every report ends with the same line: the preset, the judges, the thresholds and the cost.
+
+Each threshold belongs to the judge whose scores it was measured on. With a second judge, its answers meet the
+preset's thresholds, and the first judge's answers that it did not see (outside the band, or once the budget has
+run out) meet the first judge's own bar, `escalate.first_at`: 0.8 for Jev. Without that, a large pull request that
+ran out of budget would fail on Jev scores of 0.55, where Jev alone is right about two times in three.
 
 ## Paying with a subscription instead of an API key
 
@@ -32,27 +41,36 @@ the judges, the thresholds and the cost.
 - **ChatGPT:** the `codex` judge runs `codex exec` in an empty folder in a read-only sandbox, on the account's
   default model unless `model` is set. Log it in with `codex login`.
 
-Subscriptions are rate-limited rather than billed, so each run asks them at most `budget.subscription_calls`
-(20) times. They are slower than the APIs: about 14 s a pair for `codex` against 2 s for Sonnet's API.
+Subscriptions are rate-limited as well as billed through their quota, so each run also asks them at most
+`budget.subscription_calls` (20) times. A `claude-code` call uses the same model as the API, so it is counted
+against `budget.usd` at that model's list price, like an API call. They are slower than the APIs: about 14 s a
+pair for `codex` against 2 to 3 s for Sonnet and Opus through the API.
 
 ## Budget and cost
 
 ```toml
 [tool.dry-lint.budget]
-usd = 0.25                 # most one run spends on judges with a per-token price (--budget-usd overrides it)
+usd = 0.04                 # most judging spends on one pull request, across all its pushes (--budget-usd overrides it)
 subscription_calls = 20    # most calls one run makes to subscription judges
 
 [tool.dry-lint.prices]     # USD per million input and output tokens, over the built-in table
 "my-model" = [1.0, 4.0]
 ```
 
-Costs are estimated from the prompt's length (2.8 characters per token, measured) and a measured answer length
-(150 tokens), at the prices in `costs.py` (Claude Sonnet 5.5: $2 and $10 per million; Jev: $0.04 per million
-input). Measured on gigaverse-ai, a Sonnet call is about $0.003. When the budget runs out, the closest look-alikes
-have been judged first and the highest first scores escalated first; a pair the first judge could not afford stays
-unjudged (and is asked again next run), and one the second could not afford keeps the first judge's answer. The
-report says how many. A judge whose price is unknown, such as a custom command, is not budgeted, and its cost
-shows as unknown, never as zero.
+The budget is for a pull request, not a run: the verdict store keeps what each pull request has spent so far, so a
+push that re-judges only its changed pairs spends what is left. A run outside a pull request has the whole budget.
+Replaying 184 gigaverse-ai pull requests commit by commit, a pair is judged 1.27 times on average over the life of
+its pull request, because a duplicate verdict reopens when its code changes.
+
+Costs are estimated at list price, subscriptions included, from the prompt's length (2.8 characters per token,
+measured) and a measured answer length (150 tokens for Sonnet, 220 for Opus), at the prices in `costs.py` (Claude
+Sonnet 5.5: $2 and $10 per million; Opus 5.5: $4 and $20; Jev: $0.04 per million input). Measured on gigaverse-ai, a
+Sonnet call is about $0.0035 and an Opus call about $0.008. When the budget runs out, the closest look-alikes have
+been judged first, and the second judge has taken the first scores nearest the middle of its band first, where the
+first judge is least sure. A pair the first judge could not afford stays unjudged (and is asked again by a later
+run while the pull request has budget left), and one the second could not afford keeps the first judge's answer,
+held to the first judge's own bar. The report says how many. A judge whose price is unknown, such as a custom
+command or `codex` on the account's default model, is not budgeted, and its cost shows as unknown, never as zero.
 
 ## Every judge
 
@@ -61,9 +79,9 @@ shows as unknown, never as zero.
 | `auto` (default) | Jev when `TYPESAFE_AI_API_KEY` is set, otherwise `none` | |
 | `jev` | TypeSafe's System One decision model, prompt `reuse-v2` | about 0.3 s per pair, 8 pairs in parallel |
 | `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout; 4 at once | whatever your model costs |
-| `anthropic` | Claude through the official SDK (`dry-lint[anthropic]`) with the same DRY prompt and server-side refusal fallbacks; needs `ANTHROPIC_API_KEY`. Default model `claude-sonnet-5-5`; option `effort` | about 2 s and $0.003 per pair, 4 in parallel |
+| `anthropic` | Claude through the official SDK (`dry-lint[anthropic]`) with the same DRY prompt and server-side refusal fallbacks; needs `ANTHROPIC_API_KEY`. Default model `claude-sonnet-5-5`; option `effort` | per pair: Sonnet 2 s and $0.0035, Opus 3 s and $0.008; 4 in parallel |
 | `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 12 s per pair, 4 in parallel |
-| `claude-code` | Claude through `claude -p` on a Claude subscription; default model `claude-sonnet-5-5` | no per-call cost; rate-limited |
+| `claude-code` | Claude through `claude -p` on a Claude subscription; default model `claude-sonnet-5-5` | the model's list price, out of the subscription; rate-limited |
 | `codex` | The ChatGPT subscription's model through `codex exec`; `model` optional | no per-call cost; about 14 s per pair |
 | `none` | Lists candidate pairs unjudged; never fails the build | free |
 | anything installed | A package registering `dry_lint.judges` | |
@@ -124,20 +142,22 @@ it, so changing the program means judging again.
 ## A second opinion
 
 `escalate` sends the first judge's scores in a band to a second judge, whose answer replaces the first. The
-presets set it; spelled out, `jev+sonnet` is:
+presets set it; spelled out, `jev+opus` is:
 
 ```toml
 judge = "jev"
-escalate = { use = "anthropic", model = "claude-sonnet-5-5", between = [0.5, 0.91] }
+escalate = { use = "anthropic", model = "claude-opus-5-5", between = [0.5, 0.91], first_at = 0.8 }
 drop_below = 0.5
-report_at = 0.6
-fail_at = 0.7
+report_at = 0.55
+fail_at = 0.55
 ```
 
-With Sonnet re-judging the band, the thresholds can come down: Sonnet's scores are more decisive than Jev's, so
-failing at 0.7 is more precise than Jev alone at 0.8 (97% against 94%) and finds more (84% against 73% recall).
-Among five second judges compared on the same pairs, Sonnet 5.5 changed its mind least between runs and was the
-fastest; avoid Gemini 2.5 Pro. Escalating below 0.5 found nothing more. With an API key set in a developer's
+With a stronger judge re-judging the band, the thresholds can come down: failing at Opus's 0.55 is more precise
+than Jev alone at 0.8 (98% against 94%) and finds more (85% against 73% recall). Sonnet is less precise on the same
+pairs (94% at 0.6), so `jev+sonnet` fails at 0.7.
+Opus 5.5 is the most precise second judge measured; among five compared on the same band pairs, Sonnet 5.5
+changed its mind least between runs and was the fastest; avoid Gemini 2.5 Pro. Claude Haiku 5.5 often scores high while labelling a pair separate, so its scores cannot
+place a band. Escalating below 0.5 found nothing more. With an API key set in a developer's
 environment, code in the pairs goes to that vendor; set `escalate = "none"`, or `preset = "jev"`, to keep it
 local. The stored verdict keeps the first judge's name and records the second in `second_opinion`, so it is reused
 like any other.
