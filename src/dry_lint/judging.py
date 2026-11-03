@@ -4,7 +4,10 @@ holds, otherwise the judge's answer; for first scores in the escalation band, a 
 Every new answer goes to the store. Filtered pairs never reach a judge.
 """
 
+import subprocess
 from pathlib import Path
+
+import httpx
 
 from dry_lint.costs import Ledger
 from dry_lint.git import git
@@ -14,6 +17,9 @@ from dry_lint.plugins import Judge, identity, load
 from dry_lint.report import Finding, JudgingSummary
 from dry_lint.settings import Settings
 from dry_lint.store import DirectoryStore, VerdictStore
+
+# What a judge raises when it cannot answer: a CLI that fails or times out, an API error, an answer without a verdict.
+JUDGE_ERRORS = (subprocess.SubprocessError, httpx.HTTPError, ValueError, OSError)
 
 
 def default_store(root: Path) -> Path:
@@ -40,7 +46,8 @@ def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, 
     With a `ledger`, each judge is asked only about the pairs the budget covers, riskiest first: the closest look-
     alikes for the first judge; for the second, the first scores nearest the middle of the band, where the first
     judge is least sure. A pair the first judge could not afford stays unjudged (None); one the second could not
-    afford keeps the first judge's answer.
+    afford keeps the first judge's answer. So does every pair the second judge was asked about when it fails (an
+    expired login, an outage), as long as there is a ledger to record that on.
     """
     order = sorted(range(len(candidates)), key=lambda i: -candidates[i].similarity)
     allowed = ledger.affordable(judge, [candidates[i] for i in order]) if ledger else len(order)
@@ -57,9 +64,16 @@ def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, 
     unsure = sorted((i for i, v in enumerate(answers) if v is not None and low <= v.score < high),
                     key=lambda i: abs(answers[i].score - middle))
     allowed = ledger.affordable(escalation, [candidates[i] for i in unsure]) if ledger else len(unsure)
-    second = escalation.judge([candidates[i] for i in unsure[:allowed]], settings) if allowed else []
+    escalated = [candidates[i] for i in unsure[:allowed]]
+    try:
+        second = escalation.judge(escalated, settings) if allowed else []
+    except JUDGE_ERRORS as error:
+        if ledger is None:
+            raise
+        ledger.fail(escalation, escalated, error)
+        return answers
     if ledger:
-        ledger.charge(escalation, [candidates[i] for i in unsure[:allowed]], skipped=len(unsure) - allowed)
+        ledger.charge(escalation, escalated, skipped=len(unsure) - allowed)
     for i, verdict in zip(unsure, second):
         answers[i] = verdict.model_copy(update={"judge": judge.name, "judge_version": judge.version,
                                                 "second_opinion": identity(escalation)})
@@ -98,6 +112,11 @@ class Judging:
             budget_usd=self.settings.budget.usd, subscription_calls=self.settings.budget.subscription_calls,
             spend=list(self.ledger.spend.values()), spent_before=self.ledger.spent, pull_request=self.pull_request)
 
+    def unsure(self, verdict: Verdict) -> bool:
+        """A first answer in the escalation band, which the second judge did not replace."""
+        band = self.settings.escalate.between if self.escalation and self.settings.escalate else None
+        return band is not None and verdict.second_opinion is None and band[0] <= verdict.score < band[1]
+
     def findings(self, candidates: list[Candidate], source: Run | None = None, refresh: bool = False) -> list[Finding]:
         """A finding per proposed candidate: unjudged when there is no judge, else from the store or the judge."""
         proposed = [c for c in candidates if c.filtered is None]
@@ -115,7 +134,7 @@ class Judging:
             for i, verdict in zip(pending, decide(asked, self.judge, self.escalation, self.settings, self.ledger)):
                 if verdict is None:
                     deferred.add(i)  # the budget ran out before this pair: not cleared, asked again next run
-                else:
+                elif not (self.ledger.failed and self.unsure(verdict)):  # else asked again once the judge is back
                     self.store.remember(proposed[i], verdict, source)
                 known[i] = verdict
             self.store.add_spent(source, self.ledger.usd)

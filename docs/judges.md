@@ -49,6 +49,11 @@ Subscriptions are rate-limited as well as billed through their quota, so each ru
 against `budget.usd` at that model's list price, like an API call. They are slower than the APIs: about 14 s a
 pair for `codex` against 2 to 3 s for Sonnet and Opus through the API.
 
+A second judge that fails (an expired login, a reached limit, an outage, a timeout) does not fail the check: its
+pairs keep Jev's answer, held to Jev's own 0.8, the report's judging line says which judge failed and why, and
+those pairs are asked again on the next run. `bench` refuses to measure instead, so a failure never passes for
+Jev's numbers. A failing first judge is still an error.
+
 ## Budget and cost
 
 ```toml

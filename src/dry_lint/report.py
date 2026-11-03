@@ -120,7 +120,9 @@ class JudgingSummary(BaseModel):
         calls = sum(s.calls for s in self.spend if s.subscription)
         parts = [f"preset {self.preset}" if self.preset else "", judges, thresholds, bill,
                  f"{calls} subscription calls" if calls else "",
-                 f"{self.skipped} pairs not judged (budget)" if self.skipped else ""]
+                 f"{self.skipped} pairs not judged (budget)" if self.skipped else "",
+                 *(f"{s.judge} failed ({s.error}): {s.failed} pairs kept the first judge's answer, asked again next run"
+                   for s in self.spend if s.error)]
         return " · ".join(p for p in parts if p)
 
 

@@ -337,6 +337,10 @@ def test_the_judging_line_names_judges_band_thresholds_and_the_bill() -> None:
                            spend=[Spend(judge="claude-code:x", calls=3, usd=0.01, subscription=True), Spend(judge="c", calls=1, usd=None)])
     assert plain.line() == "jev:reuse-v2 · reports and fails at 0.8 · cost unknown · 3 subscription calls"
     assert JudgingSummary().line() == "no judge · reports and fails at 0.8 · est. $0.000 of $0 budget"
+    failed = summary.model_copy(update={"spend": [Spend(judge="claude-code:dry-v1:claude-opus-5-5", failed=3,
+                                                        error="OAuth session expired")]})
+    assert failed.line().endswith("· claude-code:dry-v1:claude-opus-5-5 failed (OAuth session expired): 3 pairs kept "
+                                  "the first judge's answer, asked again next run")
 
 
 def test_every_view_states_the_judging() -> None:
