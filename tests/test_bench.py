@@ -139,10 +139,27 @@ def test_the_benchmark_measures_the_failing_threshold_and_the_cost_too() -> None
     assert "at fail_at" not in unpriced.as_text(Settings())
 
 
-def test_subscription_calls_are_counted_not_priced() -> None:
+def test_subscription_calls_are_counted_and_priced_at_their_models_list_price() -> None:
     class Subscribed(TableJudge):
         subscription = True
 
-    result = bench_judge([gold("a", "x", "duplicate")], Subscribed({"a": 0.9}), Settings(), PythonExtractor())
-    assert (result.usd_per_pair, result.subscription_calls) == (0.0, 1)
-    assert "1 subscription calls" in result.as_text(Settings())
+    class SubscribedSonnet(Subscribed):
+        model = "claude-sonnet-5-5"
+
+    unknown = bench_judge([gold("a", "x", "duplicate")], Subscribed({"a": 0.9}), Settings(), PythonExtractor())
+    assert (unknown.usd_per_pair, unknown.subscription_calls) == (None, 1)
+    assert "1 subscription calls" in unknown.as_text(Settings())
+    sonnet = bench_judge([gold("a", "x", "duplicate")], SubscribedSonnet({"a": 0.9}), Settings(), PythonExtractor())
+    assert sonnet.usd_per_pair > 0 and sonnet.subscription_calls == 1
+
+
+def test_the_benchmark_holds_unescalated_answers_to_the_first_judges_bar_as_a_report_does() -> None:
+    pairs = [gold("a", "x", "duplicate"), gold("b", "y", "separate")]
+    first, second = TableJudge({"a": 0.7, "b": 0.7}), TableJudge({"a": 0.9, "b": 0.7})
+    second.name = "second"
+    settings = Settings(escalate=Escalation(use="second", between=(0.75, 0.91), first_at=0.8), report_at=0.6)
+    alone = bench_judge(pairs, first, settings, PythonExtractor(), escalation=second)
+    assert (alone.precision, alone.recall) == (0.0, 0.0)  # 0.7 is below the first judge's 0.8, and not escalated
+    lowered = settings.model_copy(update={"escalate": Escalation(use="second", between=(0.6, 0.91), first_at=0.8)})
+    both = bench_judge(pairs, first, lowered, PythonExtractor(), escalation=second)
+    assert (both.precision, both.recall) == (0.5, 1.0)  # the second judge's answers meet report_at

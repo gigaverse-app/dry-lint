@@ -41,9 +41,11 @@ class Escalation(PluginChoice):
     """A second judge for the scores the first judge is least sure about."""
 
     between: tuple[float, float] = Field(default=(0.6, 0.91), description="First-judge scores in [low, high) escalate.")
+    first_at: float | None = Field(default=None, description="The first judge's own threshold, for its answers that got "
+                                                             "no second opinion (outside the band, or past the budget).")
 
     def options(self) -> dict[str, Any]:
-        return {name: value for name, value in super().options().items() if name != "between"}
+        return {name: value for name, value in super().options().items() if name not in ("between", "first_at")}
 
 
 def _named(value: Any) -> Any:
@@ -54,13 +56,14 @@ Choice = Annotated[PluginChoice, BeforeValidator(_named)]
 
 
 class Budget(BaseModel):
-    """What one run may spend on judges."""
+    """What judging may spend on one pull request, across all its pushes (on one run, outside a pull request)."""
 
-    usd: float = Field(default=0.25, description="Most a run spends on judges with a per-token price (estimated). "
-                                                 "The riskiest pairs are judged first; the rest keep the first judge's "
+    usd: float = Field(default=0.04, description="Most judging spends on a pull request, estimated at list price; a "
+                                                 "subscription judge counts at its model's list price too. The "
+                                                 "riskiest pairs are judged first; the rest keep the first judge's "
                                                  "answer, or stay unjudged.")
     subscription_calls: int = Field(default=20, description="Most calls a run makes to subscription judges, which "
-                                                            "are rate-limited rather than billed.")
+                                                            "are rate-limited as well as priced.")
 
 
 class Settings(BaseModel):
@@ -96,6 +99,14 @@ class Settings(BaseModel):
     drift_at: float = Field(default=0.8, description="Behaves-differently scores at or above this mark a finding drifted.")
     reopen_margin: float = Field(default=0.05, description="A 'not a duplicate' verdict reopens only if the pair got this much closer.")
     max_findings: int = Field(default=10, description="Findings listed in a pull request comment; the rest are counted.")
+
+    def bar(self, threshold: float, second_opinion: bool) -> float:
+        """
+        `threshold` (report_at or fail_at) for an answer that got a second opinion, or when there is no `first_at`;
+        otherwise the first judge's own bar, since the thresholds were measured on the second judge's scores.
+        """
+        first_at = self.escalate.first_at if self.escalate else None
+        return threshold if second_opinion or first_at is None else max(threshold, first_at)
 
     @classmethod
     def load(cls, root: Path) -> "Settings":

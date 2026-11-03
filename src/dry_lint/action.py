@@ -77,7 +77,7 @@ JUDGE_KEYS = ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOK
 
 def resolve_judge(requested: str, has_key: bool) -> str:
     """
-    "auto" while some judge's key is present: dry-lint then picks its judging preset itself (jev+sonnet, jev, ...).
+    "auto" while some judge's key is present: dry-lint then picks its judging preset itself (jev+opus, jev, ...).
     "none" without any key. An explicit choice passes through, and makes the preset "custom".
     """
     requested = requested or "auto"

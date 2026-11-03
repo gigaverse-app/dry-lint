@@ -92,11 +92,13 @@ class JudgingSummary(BaseModel):
     budget_usd: float = 0.0
     subscription_calls: int = 0
     spend: list[Spend] = Field(default_factory=list)
+    spent_before: float = Field(default=0.0, description="What earlier runs on the same pull request spent.")
+    pull_request: bool = Field(default=False, description="The budget covered a pull request, not just this run.")
 
     @property
     def usd(self) -> float | None:
-        """Estimated total; None when any judge's price is unknown."""
-        costs = [s.usd for s in self.spend if not s.subscription]
+        """This run's estimated cost at list price, subscriptions included; None when any judge's price is unknown."""
+        costs = [s.usd for s in self.spend]
         return None if any(c is None for c in costs) else sum(costs)
 
     @property
@@ -111,7 +113,10 @@ class JudgingSummary(BaseModel):
         thresholds = (f"reports at {self.report_at:g}, fails at {self.fail_at:g}" if self.fail_at > self.report_at
                       else f"reports and fails at {self.report_at:g}")
         usd = self.usd
-        bill = ("cost unknown" if usd is None else f"est. ${usd:.3f} of ${self.budget_usd:g} budget")
+        scope = "for this pull request" if self.pull_request else "budget"
+        bill = ("cost unknown" if usd is None else
+                f"est. ${usd:.3f}" + (f" (${usd + self.spent_before:.3f} so far)" if self.spent_before else "")
+                + f" of ${self.budget_usd:g} {scope}")
         calls = sum(s.calls for s in self.spend if s.subscription)
         parts = [f"preset {self.preset}" if self.preset else "", judges, thresholds, bill,
                  f"{calls} subscription calls" if calls else "",
@@ -139,7 +144,8 @@ class Report(Versioned):
         for f in findings:
             family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
         def duplicate_at(f: Finding, threshold: float) -> bool:
-            return f.verdict is not None and f.verdict.label != "separate" and f.verdict.score >= threshold
+            return (f.verdict is not None and f.verdict.label != "separate"
+                    and f.verdict.score >= settings.bar(threshold, f.verdict.second_opinion is not None))
 
         marked = [
             f.model_copy(update={"family": family[f.candidate.new.qualname], "reported": duplicate_at(f, settings.report_at),

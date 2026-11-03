@@ -183,3 +183,22 @@ def test_the_s3_store_needs_an_s3_uri_and_accepts_a_bare_bucket() -> None:
 def test_the_s3_store_makes_its_own_client(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
     assert S3Store("s3://bucket/x").client.meta.service_model.service_name == "s3"
+
+
+def test_spending_accumulates_per_pull_request_and_is_not_a_verdict(store: VerdictStore) -> None:
+    pull, other = Run(repository="o/r", pull_request=7), Run(repository="o/r", pull_request=8)
+    store.add_spent(pull, 0.01)
+    store.add_spent(pull, 0.02)
+    store.add_spent(other, 0.005)
+    assert store.spent(pull) == pytest.approx(0.03) and store.spent(other) == pytest.approx(0.005)
+    store.remember(candidate(), verdict("separate"))
+    assert [r.key for r in store.records()] == [candidate().key]  # spending is never read as a verdict
+
+
+def test_spending_outside_a_pull_request_or_of_nothing_is_not_kept(store: VerdictStore) -> None:
+    pull = Run(repository="o/r", pull_request=7)
+    store.add_spent(None, 0.01)
+    store.add_spent(Run(repository="o/r", head="abc"), 0.01)
+    store.add_spent(pull, 0.0)
+    assert store.spent(None) == store.spent(Run(repository="o/r")) == store.spent(pull) == 0.0
+    assert list(store.backend.keys()) == []

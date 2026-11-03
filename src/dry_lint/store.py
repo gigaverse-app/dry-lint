@@ -12,8 +12,12 @@ run reads only the records of the pairs it has. A record is reused when the answ
 A duplicate verdict reopens on any logic change, because that change may be the fix, or more drift. A verdict
 from a different judge is never reused; one from an older version of the same judge is, until a backlog run with
 `--refresh` asks again.
+
+Beside the records, the store keeps what judging has cost each pull request so far (`spent-*` objects), so a
+budget covers all of a pull request's pushes.
 """
 
+import hashlib
 import os
 import tempfile
 from collections.abc import Iterator
@@ -21,7 +25,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from dry_lint.models import Candidate, Run, Verdict, Versioned
 from dry_lint.plugins import StoreBackend
@@ -40,6 +44,22 @@ class Record(Versioned):
     verdict: Verdict
     judged_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
     source: Run | None = Field(default=None, description="The run that asked, for tracing a verdict back.")
+
+
+class Spent(BaseModel):
+    """What judging has cost one pull request so far, across its runs."""
+
+    repository: str
+    pull_request: int
+    usd: float = 0.0
+    runs: int = 0
+
+
+SPENT_PREFIX = "spent-"
+
+
+def spent_key(run: Run) -> str:
+    return f"{SPENT_PREFIX}{hashlib.sha256(f'{run.repository}#{run.pull_request}'.encode()).hexdigest()[:16]}"
 
 
 class Lookup(NamedTuple):
@@ -110,9 +130,27 @@ class VerdictStore:
 
     def records(self) -> Iterator[Record]:
         for key in self.backend.keys():
+            if key.startswith(SPENT_PREFIX):
+                continue
             record = self.record(key)
             if record is not None:
                 yield record
+
+    def spent(self, run: Run | None) -> float:
+        """What earlier runs on this run's pull request spent on judging; 0 outside a pull request."""
+        if run is None or run.pull_request is None:
+            return 0.0
+        data = self.backend.get(spent_key(run))
+        return Spent.model_validate_json(data).usd if data is not None else 0.0
+
+    def add_spent(self, run: Run | None, usd: float) -> None:
+        if run is None or run.pull_request is None or usd <= 0:
+            return
+        data = self.backend.get(spent_key(run))
+        spent = (Spent.model_validate_json(data) if data is not None
+                 else Spent(repository=run.repository, pull_request=run.pull_request))
+        spent = spent.model_copy(update={"usd": spent.usd + usd, "runs": spent.runs + 1})
+        self.backend.put(spent_key(run), spent.model_dump_json().encode())
 
     def lookup(self, candidate: Candidate, judge: str, reopen_margin: float, version: str | None = None) -> Lookup:
         """The stored verdict if it still holds for the pair as it is now, and why it does or does not."""
