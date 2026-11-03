@@ -8,6 +8,7 @@ from dry_lint.models import CandidatesFile
 
 from conftest import claude
 from conftest import coverage_pair as candidate
+from conftest import replay_payload as payload
 
 
 @pytest.fixture
@@ -81,20 +82,6 @@ def test_unmetered_or_unpriced_answer_stops_and_prevents_automatic_resume(api, t
     with pytest.raises(ValueError, match="Unmetered attempt"):
         api["LiveAnswers"](tmp_path, http_client=provider(requests))
     assert len(requests) == 1
-
-
-def payload(api, *sources):
-    return api["ReplayInput"].model_validate(
-        {
-            "steps": [
-                {
-                    "run_id": str(i),
-                    "sources": {name: CandidatesFile(candidates=cs).model_dump() for name, cs in source.items()},
-                }
-                for i, source in enumerate(sources)
-            ]
-        }
-    )
 
 
 def test_expensive_baseline_does_not_donate_its_budget_to_cheaper_exploration(api, tmp_path) -> None:

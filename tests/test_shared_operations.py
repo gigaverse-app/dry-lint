@@ -6,7 +6,7 @@ import pytest
 
 from dry_lint.costs import estimate
 from dry_lint.judges.anthropic import AnthropicJudge
-from dry_lint.judges.command import prompt
+from dry_lint.judges.command import OPERATIONS_VERSION, prompt
 from dry_lint.judging import Judging
 from dry_lint.models import Verdict
 from dry_lint.settings import Settings
@@ -32,10 +32,18 @@ def test_opt_in_operation_policy_reaches_provider_and_invalidates_legacy_cache(t
     body = json.loads(requests[0].content)
     assert body["max_tokens"] == 1024
     assert "shared sub-operation" in body["messages"][0]["content"]
-    assert judge.version.startswith("dry-operations-v1:")
+    assert judge.version.startswith(OPERATIONS_VERSION + ":")
     assert "output=1024" in judge.version
     assert Judging(Settings(escalate=None), judge, None, store).findings([candidate])[0].cached
-    legacy = AnthropicJudge(api_key="test", http_client=claude(reply, []))
+    revised = AnthropicJudge(
+        api_key="test", prompt_policy="shared-operations", max_tokens=2048, http_client=claude(reply, requests)
+    )
+    assert not Judging(Settings(escalate=None), revised, None, store).findings([candidate])[0].cached
+    assert len(requests) == 2
+    legacy_requests = []
+    legacy = AnthropicJudge(api_key="test", http_client=claude(reply, legacy_requests))
+    assert not Judging(Settings(escalate=None), legacy, None, store).findings([candidate])[0].cached
+    assert len(legacy_requests) == 1
     assert estimate(judge, [candidate], Settings()) > estimate(legacy, [candidate], Settings())
 
 

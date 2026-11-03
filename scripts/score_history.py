@@ -53,7 +53,8 @@ def score(payload: ReplayInput, result: dict, labels: dict[str, str], observatio
             raise ValueError("Capture and live result have different revision identities")
         candidates, ranks = pool(step)
         keys = {
-            k: answer_key(c, result["judge"], result.get("prompt_policy", "concept")) for k, c in candidates.items()
+            k: answer_key(c, result["judge"], result.get("prompt_policy", "concept"), template=result.get("prompt_template"))
+            for k, c in candidates.items()
         }
         if any(keys.get(k) != v for k, v in curve["covered"].items()):
             raise ValueError("A verdict was credited against stale or absent evidence")

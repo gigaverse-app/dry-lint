@@ -12,7 +12,7 @@ import pytest
 from dry_lint.bench import GoldFunction, GoldPair
 from dry_lint.functions import behaviour_tokens, function_calls, structure_hash
 from dry_lint.git import git
-from dry_lint.models import Candidate, Function
+from dry_lint.models import Candidate, CandidatesFile, Function
 from dry_lint.store import DirectoryStore, VerdictStore
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -124,6 +124,20 @@ def function(path: str, source: str, name: str | None = None, owner: str | None 
     plain = Function(path=path, name=found, owner=owner, line=1, end_line=len(code.splitlines()), code=code)
     return plain.model_copy(update={"hash": structure_hash(plain), "tokens": behaviour_tokens(plain),
                                     "calls": function_calls(plain)})
+
+
+def replay_payload(api, *sources):
+    return api["ReplayInput"].model_validate(
+        {
+            "steps": [
+                {
+                    "run_id": str(i),
+                    "sources": {name: CandidatesFile(candidates=cs).model_dump() for name, cs in source.items()},
+                }
+                for i, source in enumerate(sources)
+            ]
+        }
+    )
 
 
 def coverage_pair(number: int = 1) -> Candidate:

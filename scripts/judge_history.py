@@ -16,7 +16,7 @@ from replay_coverage import ReplayInput, ReplayState, choose, digest, pool
 
 from dry_lint.costs import PRICES
 from dry_lint.judges.anthropic import AnthropicJudge
-from dry_lint.judges.command import prompt
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
 from dry_lint.models import Candidate, Verdict
 from dry_lint.presets import resolve
 from dry_lint.settings import Settings
@@ -47,9 +47,9 @@ class Observation(BaseModel):
     error: str | None = None
 
 
-def answer_key(candidate: Candidate, version: str, policy: str = "concept") -> str:
+def answer_key(candidate: Candidate, version: str, policy: str = "concept", *, template: str | None = None) -> str:
     # Orientation and the actual judge input matter, even when the unordered pair is identical.
-    return digest([version, prompt(candidate, policy=policy)])
+    return digest([version, prompt(candidate, policy=policy, template=template)])
 
 
 class LiveAnswers:
@@ -271,6 +271,7 @@ def evaluate(
         "total_usd": total_usd,
         "judge": answers.judge.version,
         "prompt_policy": answers.judge.prompt_policy,
+        "prompt_template": PROMPT_POLICIES[answers.judge.prompt_policy][1],
         "protection": protection.model_dump() if protection else None,
         "report_at": answers.settings.report_at,
         "curves": curves,
