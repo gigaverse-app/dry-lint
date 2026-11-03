@@ -1,5 +1,8 @@
 # Benchmark
 
+The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
+Its small diagnostic sample does not inherit the Python precision/recall claims below.
+
 Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded),
 much of it written with coding agents. The gold labels contain that private code and are not published. The method is described here so
 it can be repeated on another codebase.

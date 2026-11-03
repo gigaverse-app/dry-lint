@@ -117,6 +117,7 @@ def test_the_budget_judges_the_closest_look_alikes_first_and_leaves_the_rest_unj
     findings = judging.findings([pair_at("far", 0.3), pair_at("near", 0.9), pair_at("mid", 0.6)])
     assert first.asked == ["near", "mid"]
     assert {f.candidate.new.name: f.verdict is not None for f in findings} == {"far": False, "near": True, "mid": True}
+    assert [f.candidate.new.name for f in findings if f.deferred] == ["far"]  # reported as not cleared
     assert len(list(store.records())) == 2  # an unjudged pair is not stored, so the next run asks again
     summary = judging.summary()
     assert (summary.skipped, summary.spend[0].calls) == (1, 2)

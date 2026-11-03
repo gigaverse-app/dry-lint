@@ -105,6 +105,12 @@ class StoreBackend(Protocol):
 Opaque bytes by key. The record format and the reuse rules stay in core (`store.py`), so a backend never decides
 whether a verdict holds.
 
+## Offline signal experiments
+
+Before changing a comparer, try the [semantic signal trial](semantic-signal-trial.md). Its standalone scripts
+exercise the existing comparer/detector contracts without registering a runtime plugin or changing defaults.
+The report includes fresh judgments from two repositories and regressions that prevented default adoption.
+
 ## Dryer
 
 The optional [Dryer comparer](detectors.md) uses upstream structural normalization and Jaccard similarity.
