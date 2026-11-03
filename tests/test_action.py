@@ -294,7 +294,7 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
                working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     out = capsys.readouterr().out
-    assert "::warning file=src/widgets/caption.py,line=1" in out
+    assert "::error file=src/widgets/caption.py,line=1" in out  # 0.85 >= the default fail_at
     [body] = github.stickies()
     assert "preview_caption_text" in body and "src/text.py::shorten_text" in body
     assert outputs(tmp_path)["findings"] == "1" and outputs(tmp_path)["stored"] == "true"
@@ -340,7 +340,7 @@ def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, githu
     [body] = github.stickies()
     assert "preview_caption_text" in body and f"commit {head[:7]}" in body
     [check] = github.check_runs
-    assert (check["name"], check["head_sha"], check["conclusion"]) == ("dry-lint", head, "neutral")
+    assert (check["name"], check["head_sha"], check["conclusion"]) == ("dry-lint", head, "failure")
     assert check["output"]["annotations"][0]["path"] == "src/widgets/caption.py"
 
 

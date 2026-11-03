@@ -130,9 +130,12 @@ they are reviewed, versioned and visible to the next reader.
 
 A judge returns a verdict per pair: `label` (`duplicate`, `drifted` or `separate`), `score` (0–1, one concept),
 `behaves_differently` (0–1), `owner` and `why`. The thresholds are core: below `drop_below` (0.6) a pair is
-separate, at `report_at` (0.8) it is reported, at `fail_at` (0.91) it blocks, and at `drift_at` (0.8) on
-`behaves_differently` it is drifted. On the gold set nothing scored 0.9 or more was a false positive; the
-highest false positive scored 0.892 and the next true positive 0.910, so `fail_at` sits between them ([benchmark](benchmark.md)).
+separate, at `report_at` (0.8) it is reported, at `fail_at` (0.8 by default, `--fail-at` on the command line) it
+blocks, and at `drift_at` (0.8) on
+`behaves_differently` it is drifted. With the default, every reported duplicate blocks: 75% precise on the
+gold set, so about one failed check in four is a false positive to override. Raising `fail_at` to 0.91 leaves
+the band from 0.8 warning only; at 0.91 nothing on the gold set was a false positive (the highest scored 0.892)
+([benchmark](benchmark.md)).
 
 `escalate = { use = "command", command = "claude -p", between = [0.6, 0.8] }` sends pairs whose first score falls
 in the band to a second judge, and its answer replaces the first. The record stays under the first judge's name

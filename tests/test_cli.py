@@ -39,9 +39,17 @@ def test_check_fails_and_annotates_an_error_for_a_blocking_reimplementation(repo
 
 def test_a_reported_duplicate_below_fail_at_warns_without_failing(repo: Repo, tmp_path: Path, twin_judge: str,
                                                                   capsys) -> None:
-    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--format", "github")
+    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--format", "github",
+               "--fail-at", "0.9")
     assert code == 0
     assert capsys.readouterr().out.startswith("::warning file=src/widgets/caption.py,line=1,")
+    (repo.root / ".dry-lint.toml").write_text("fail_at = 0.9\n")
+    assert run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge) == 0
+    assert run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--fail-at", "0.8") == 1
+
+
+def test_by_default_every_reported_duplicate_fails(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
+    assert run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge) == 1
 
 
 def test_verdicts_are_remembered_so_the_judge_is_asked_once(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:

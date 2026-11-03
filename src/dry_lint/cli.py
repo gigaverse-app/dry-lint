@@ -56,6 +56,8 @@ def run_info(root: Path, base: str | None) -> Run:
 def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     """The repository's settings, with the judge the command line names, if any."""
     settings = Settings.load(root)
+    if args.fail_at is not None:
+        settings = settings.model_copy(update={"fail_at": args.fail_at})
     if args.judge or args.judge_command:
         use = args.judge or settings.judge.use
         options = settings.judge.options() if use == settings.judge.use else {}
@@ -173,6 +175,8 @@ def parser() -> argparse.ArgumentParser:
     common.add_argument("--format", choices=FORMATS, default="text")
     common.add_argument("--output", type=Path, help="Also write the markdown report here, e.g. for a PR comment.")
     common.add_argument("--report", type=Path, help="Also write report.json here.")
+    common.add_argument("--fail-at", type=float, help="Judge score at or above which a duplicate fails the run, "
+                                                      "overriding fail_at in the settings.")
     common.add_argument("--warn-only", action="store_true", help="Report, but always exit 0.")
 
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")

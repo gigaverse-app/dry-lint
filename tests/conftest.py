@@ -115,13 +115,13 @@ def judge_script(tmp_path: Path, score: float) -> str:
 
 @pytest.fixture
 def twin_judge(tmp_path: Path) -> str:
-    """Judges the caption twin a duplicate worth reporting, below `fail_at`: a warning."""
+    """Judges the caption twin a reported duplicate (0.85): blocking by default, a warning when fail_at is raised."""
     return judge_script(tmp_path, 0.85)
 
 
 @pytest.fixture
 def blocking_twin_judge(tmp_path: Path) -> str:
-    """Judges the caption twin a duplicate at or above `fail_at`: it fails the check."""
+    """Judges the caption twin a duplicate (0.95) that blocks even with a raised fail_at."""
     return judge_script(tmp_path, 0.95)
 
 
