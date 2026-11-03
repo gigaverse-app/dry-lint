@@ -50,19 +50,19 @@ extra even if the repository already selects Dryer in its configuration. With pr
 | Query cost | Inverted-index search | Compare eligible fingerprints, pruning impossible set-size ratios |
 | Default | Yes | Opt-in |
 
-A source implements `CandidateSource.similar(function, limit)` and is constructed by `make_source`. It returns
-ranked corpus positions and scores. `Detector` owns cross-file selection, the three-neighbour budget, dunder/call
-rules, declared patterns and inline suppression. `scan` still returns mutual nearest neighbours. As before, the
-ranker first requests `neighbours + 8` results, then applies cross-file filtering; this can discard a match behind
-many same-file neighbours. Equal Dryer scores break ties in canonical corpus order.
+A source implements `CandidateSource.similar(function, limit, exclude)` and is constructed by `make_source`. It returns
+ranked corpus positions and scores, excluding the caller-supplied corpus positions before taking the limit. `Detector` owns cross-file selection, the three-neighbour budget, dunder/call
+rules, declared patterns and inline suppression. `scan` still returns mutual nearest neighbours. Same-file functions are
+excluded before limiting, so local look-alikes cannot hide cross-file matches. Equal Dryer scores break ties in
+canonical corpus order. Both sources omit declaration-only stubs and use AST call nodes for delegation rules.
 
 The adapter calls upstream `entries_in_source` and `jaccard`; it does not copy the normalizer or scoring formula.
 Source spans distinguish overloaded signatures from their implementation. Nested functions stay with the enclosing
 canonical function. The comparison harness verifies every extracted fingerprint against full-file upstream
 extraction before timing. It never invokes the standalone CLI or creates Dryer's `.metrics/dry.edn` in the target.
 
-Dryer source-line minimums include docstrings and multiline signatures, just as upstream does. Small abstract
-methods and boilerplate can therefore pass its size gates. A score of 1 means the fingerprints match, not that two
+Dryer source-line minimums include docstrings and multiline signatures, just as upstream does. Boilerplate can therefore pass its size gates; declaration-only abstract methods are omitted by the shared
+canonical extractor before either source runs. A score of 1 means the fingerprints match, not that two
 functions have the same purpose. Neither source replaces the judge.
 
 JSON candidates and stored records carry `detector`. Existing records default to `tfidf`. Unchanged structure
