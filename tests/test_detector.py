@@ -105,3 +105,43 @@ def test_each_function_gets_at_most_the_configured_number_of_neighbours(repo: Re
     detector = Detector.for_repository(repo.root, Settings(neighbours=1, min_similarity=0.0, min_similarity_small=0.0))
     assert all(len(detector.neighbours(f)) <= 1 for f in detector.functions)
     assert any(len(detector.neighbours(f)) == 1 for f in detector.functions)
+
+
+@pytest.mark.parametrize("declaration", ["def", "async def"])
+def test_same_named_implementations_reach_both_check_and_scan(repo: Repo, declaration: str) -> None:
+    source = f"{declaration} digest_phone_number(phone_number):\n    return hashlib.sha256(phone_number.encode()).hexdigest()\n"
+    repo.write("src/guard.py", source)
+    repo.write("src/forensics.py", source)
+    repo.commit()
+    detector = Detector.for_repository(repo.root, Settings())
+    expected = {"src/guard.py::digest_phone_number", "src/forensics.py::digest_phone_number"}
+    changed = touched(detector.functions, changed_lines(repo.root, base="main"))
+    candidates, _ = detector.candidates(changed)
+    for pairs in (candidates, detector.scan()):
+        assert any({pair.new.qualname, pair.existing.qualname} == expected for pair in pairs)
+
+
+@pytest.mark.parametrize("body", [
+    '# load_user(store, key) is a possible alternative\n    return store.read(key)',
+    '"""Unlike load_user(store, key), this reads an account."""\n    return store.read(key)',
+    'return "load_user(store, key)"',
+])
+def test_mentions_of_another_function_do_not_suppress_a_candidate(body: str) -> None:
+    other = function("b.py", f"def load_account(store, key):\n    {body}\n")
+    assert why_skipped(A, other, Settings()) is None
+
+
+def test_same_file_methods_cannot_hide_cross_file_neighbours(repo: Repo) -> None:
+    repo.write("src/digests.py", "\n".join(
+        f"class Resource{i}:\n"
+        "    def phone_digest(self, phone_number):\n"
+        "        return hashlib.sha256(phone_number.encode()).hexdigest()\n"
+        for i in range(12)
+    ))
+    repo.write("src/forensics.py",
+               "def phone_digest(phone_number):\n"
+               "    return hashlib.sha256(phone_number.strip().encode()).hexdigest()\n")
+    repo.commit()
+    detector = Detector.for_repository(repo.root, Settings())
+    local = next(f for f in detector.functions if f.owner == "Resource0")
+    assert any(other.path == "src/forensics.py" for other, _ in detector.neighbours(local))
