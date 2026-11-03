@@ -141,6 +141,38 @@ def test_historical_reports_keep_the_threshold_at_the_time_of_reporting(api, tmp
     assert scored["unique_true_reports"] == 1
 
 
+def test_unused_exploration_credit_accumulates_only_on_new_revisions(api, tmp_path) -> None:
+    answers = api["LiveAnswers"](
+        tmp_path, model="claude-haiku-5-5", max_tokens=512, http_client=provider([], model="claude-haiku-5-5")
+    )
+    pair = candidate()
+    reserve = answers.reserve(pair)
+    history = payload(api, {"deep": [pair]}, {"deep": [pair]})
+    for index, step in enumerate(history.steps):
+        step.sources["deep"].run.head = f"head-{index}"
+    history.steps.insert(1, history.steps[0].model_copy(update={"run_id": "rerun-same-head"}))
+    history.steps.insert(1, history.steps[0])
+    result = api["evaluate"](
+        history,
+        answers,
+        "protected",
+        total_usd=0.04,
+        protection=api["Protection"](
+            baseline_calls=20,
+            baseline_usd=0.03,
+            exploration_per_run=10,
+            exploration_run_usd=reserve * 0.6,
+            exploration_carry_usd=reserve * 2,
+        ),
+    )
+    assert [len(c["selected"]) for c in result["curves"]] == [0, 0, 0, 1]
+    first, repeated, rerun, second = result["curves"]
+    assert repeated["exploration_credit_usd"] == first["exploration_credit_usd"]
+    assert rerun["exploration_credit_usd"] == first["exploration_credit_usd"]
+    assert second["exploration_credit_usd"] == pytest.approx(reserve * 1.2 - 0.00015)
+    assert second["cumulative_usd"] == pytest.approx(0.00015)
+
+
 def test_failed_paid_replay_answer_consumes_budget_without_becoming_coverage(api, tmp_path, load_script) -> None:
     requests = []
     answers = api["LiveAnswers"](tmp_path, max_tokens=512, http_client=provider(requests, text="invalid"))

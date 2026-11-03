@@ -72,6 +72,7 @@ def main() -> None:
     parser.add_argument("--reserve-calls", type=int)
     parser.add_argument("--exploration-per-run", type=int, default=1)
     parser.add_argument("--exploration-run-usd", type=float)
+    parser.add_argument("--exploration-carry-usd", type=float, help="Bank unused pacing credit across distinct heads")
     parser.add_argument(
         "--prompt-policies",
         nargs="+",
@@ -113,6 +114,7 @@ def main() -> None:
             baseline_usd=args.reserve_usd if args.reserve_usd is not None else args.total_usd / 2,
             exploration_per_run=args.exploration_per_run,
             exploration_run_usd=args.exploration_run_usd,
+            exploration_carry_usd=args.exploration_carry_usd,
         )
         for name, payload in captures.items():
             failures = complete_pool(payload, answers) if args.complete_pool else []

@@ -31,6 +31,7 @@ class Protection(BaseModel):
     baseline_usd: float = Field(ge=0)
     exploration_per_run: int = Field(default=1, ge=0)
     exploration_run_usd: float | None = Field(default=None, ge=0)
+    exploration_carry_usd: float | None = Field(default=None, ge=0)
 
 
 class Observation(BaseModel):
@@ -220,6 +221,8 @@ def evaluate(
         policy != "protected" or protection.baseline_calls > total or protection.baseline_usd > total_usd
     ):
         raise ValueError("Protected capacity must fit the campaign budget and use the protected policy")
+    if protection and protection.exploration_carry_usd is not None and protection.exploration_run_usd is None:
+        raise ValueError("Carried exploration credit requires a per-revision dollar allowance")
     if baseline_answers is not None:
         if (
             baseline_answers.directory.resolve() != answers.directory.resolve()
@@ -233,6 +236,7 @@ def evaluate(
     spent, exploration_spent, exploration_attempts, curves = 0.0, 0.0, 0, []
     baseline_query_attempts = {}
     failed_answers = set()
+    exploration_credit, credited_revisions = 0.0, set()
     for ordinal, step in enumerate(payload.steps):
         raw = step.model_dump(mode="json")
         raw["failed_keys"] = sorted(step.failed_keys)
@@ -240,6 +244,12 @@ def evaluate(
         repeated = step.run_id in state.runs
         if repeated and state.runs[step.run_id] != run_digest:
             raise ValueError("Logical run identity was reused for different evidence")
+        revision = next(iter(step.sources.values())).run.head or step.run_id
+        if protection and protection.exploration_carry_usd is not None and revision not in credited_revisions:
+            exploration_credit = min(
+                protection.exploration_carry_usd, exploration_credit + protection.exploration_run_usd
+            )
+            credited_revisions.add(revision)
         candidates, ranks = pool(step)
         routes = {
             k: baseline_answers if baseline_answers is not None and "baseline" in ranks[k] else answers
@@ -271,7 +281,12 @@ def evaluate(
                     break
                 room = min(room, total_usd - protection.baseline_usd - exploration_spent)
                 if protection.exploration_run_usd is not None:
-                    room = min(room, protection.exploration_run_usd - run_exploration_usd)
+                    pacing_room = (
+                        exploration_credit
+                        if protection.exploration_carry_usd is not None
+                        else protection.exploration_run_usd - run_exploration_usd
+                    )
+                    room = min(room, pacing_room)
             affordable = {k for k in eligible if routes[k].reserve(candidates[k]) <= room}
             if not affordable:
                 stopped_reason = "baseline_request_does_not_fit" if baseline else "exploration_request_does_not_fit"
@@ -300,6 +315,8 @@ def evaluate(
                 run_exploration += 1
                 exploration_spent += observation.usd
                 run_exploration_usd += observation.usd
+                if protection and protection.exploration_carry_usd is not None:
+                    exploration_credit -= observation.usd
             spent += observation.usd
             run_spent += observation.usd
             run_seconds += observation.seconds
@@ -336,6 +353,7 @@ def evaluate(
                 "serial_api_seconds": run_seconds,
                 "exploration_attempts": exploration_attempts,
                 "exploration_usd": exploration_spent,
+                "exploration_credit_usd": exploration_credit,
                 "repeated": repeated,
                 "stopped_reason": stopped_reason,
             }
