@@ -127,7 +127,7 @@ def test_single_mode_comments_and_reports_without_failing_by_default(github_env,
     posted = post.call_args.args[0]
     assert posted[posted.index("--pull-request") + 1] == "7" and posted[posted.index("--findings") + 1] == "1"
     assert "--expect-head" not in posted and posted[posted.index("--run-url") + 1].endswith("/acme/shop/actions/runs/55")
-    assert outputs(tmp_path) == {"mode": "single", "exit-code": "1", "findings": "1"}
+    assert outputs(tmp_path) == {"mode": "single", "exit-code": "1", "findings": "1", "stored": "false"}
     assert "### dry-lint" in (tmp_path / "summary").read_text()
 
 
@@ -271,7 +271,7 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     assert "::warning file=src/widgets/caption.py,line=1" in out
     [body] = github.stickies()
     assert "preview_caption_text" in body and "src/text.py::shorten_text" in body
-    assert outputs(tmp_path)["findings"] == "1"
+    assert outputs(tmp_path)["findings"] == "1" and outputs(tmp_path)["stored"] == "true"
 
     # The next push changes nothing that matters: the verdict comes from the store, the comment is edited.
     first = judge_calls(tmp_path)
