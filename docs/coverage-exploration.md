@@ -2,6 +2,9 @@
 
 Status: experimental design and offline spike, 2026-11-03. Live `check`, `scan`, judge presets and defaults are unchanged.
 
+Follow-up evidence: [shared operations and protected capacity](protected-exploration.md), including fresh
+baseline-positive histories and measured limits at the current default-sized PR allowance.
+
 ## What we want to achieve
 
 Find useful duplication early, then use subsequent runs to cover more of the search space under an explicit
@@ -52,10 +55,11 @@ the backlog. Hard similarity floors and same-file/language filters create other 
 The existing verdict store remains the owner of real judgments and their reuse rules. Main now includes source
 context and a context digest in verdict reuse (PR #21); build on that contract rather than recreating it. A scheduler belongs
 between proposing and judging, outside the detector. It must not relax verdict reuse to obtain attractive savings.
-The judge/model presets and per-run spending ledger merged in PR #22 remain a separate axis. Discovery profiles
+The judge/model presets and spending ledger introduced in PR #22 remain a separate axis. Discovery profiles
 must compose with `presets.py` and `costs.Ledger` rather than implement another model resolver or price table.
-That ledger estimates per-run dollars/subscription calls; repository-wide cumulative reservations and discovery
-progress are additional contracts. The replay's unit-attempt accounting is deliberately an experimental proxy.
+PR #27 now persists an estimated per-PR allowance across pushes. Atomic concurrent reservations, provider-metered
+reconciliation and repository-wide discovery progress remain additional contracts. The offline spike below uses
+unit attempts; the follow-up historical experiment records actual provider usage.
 
 ```text
 BEFORE

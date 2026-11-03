@@ -1,5 +1,8 @@
 # Historical discovery and live judging
 
+The follow-up [shared-operation and protected-budget experiment](protected-exploration.md) adds four fresh PRs
+with independently confirmed baseline positives, and measures the $0.04 allowance across commits.
+
 Status: six-PR historical pilot completed on 2026-11-03. Keep production defaults unchanged; continue with an
 opt-in baseline-first exploration experiment. Retrieval improved, but judging recall and future-budget protection
 do not yet support making this balanced.

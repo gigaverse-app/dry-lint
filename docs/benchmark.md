@@ -1,5 +1,9 @@
 # Benchmark
 
+The opt-in shared-operation judge and protected historical scheduler have separate
+[paired development and fresh-PR measurements](protected-exploration.md). Their prompt and discovery policy
+do not inherit the calibrated precision/recall claims below, and do not change defaults.
+
 The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
 Its small diagnostic sample does not inherit the Python precision/recall claims below.
 
