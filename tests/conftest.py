@@ -1,3 +1,4 @@
+import runpy
 import sys
 import textwrap
 from pathlib import Path
@@ -8,6 +9,15 @@ from dry_lint.functions import behaviour_tokens, function_calls, structure_hash
 from dry_lint.git import git
 from dry_lint.models import Function
 from dry_lint.store import DirectoryStore, VerdictStore
+
+SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+
+
+def run_script(monkeypatch: pytest.MonkeyPatch, name: str) -> dict:
+    """An offline experiment script's globals, loaded with scripts/ importable, as it is when run."""
+    monkeypatch.syspath_prepend(str(SCRIPTS))
+    return runpy.run_path(str(SCRIPTS / name))
+
 
 EXISTING = '''
 def shorten_text(text: str, limit: int) -> str:

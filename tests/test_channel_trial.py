@@ -4,7 +4,6 @@ import json
 import math
 import runpy
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -15,9 +14,8 @@ from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Function, pair_key
 from dry_lint.settings import Settings
 
-from conftest import function
+from conftest import SCRIPTS, function, run_script
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 trial = runpy.run_path(str(SCRIPTS / "channel_trial.py"))
 CslsComparer, Floored, LsiComparer = trial["CslsComparer"], trial["Floored"], trial["LsiComparer"]
 
@@ -37,8 +35,7 @@ def anywhere(_: Function) -> bool:
 
 @pytest.fixture
 def harness(monkeypatch):
-    monkeypatch.syspath_prepend(str(SCRIPTS))
-    return runpy.run_path(str(SCRIPTS / "benchmark_channel_trial.py"))
+    return run_script(monkeypatch, "benchmark_channel_trial.py")
 
 
 @pytest.mark.parametrize("plural,singular", [

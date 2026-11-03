@@ -13,15 +13,12 @@ from dry_lint.bench import GoldFunction, GoldPair
 from dry_lint.models import Candidate, Function, Verdict
 from dry_lint.settings import Settings
 
-from conftest import EXISTING, TWIN, Repo, filler_module
-
-SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+from conftest import EXISTING, SCRIPTS, TWIN, Repo, filler_module, run_script
 
 
 @pytest.fixture
 def replay(monkeypatch):
-    monkeypatch.syspath_prepend(str(SCRIPTS))
-    return runpy.run_path(str(SCRIPTS / "replay_presets.py"))
+    return run_script(monkeypatch, "replay_presets.py")
 
 
 @pytest.fixture
