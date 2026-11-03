@@ -630,7 +630,7 @@ def test_shallow_history_is_bounded_and_uses_the_real_merge_base(repo, tmp_path,
             ensure_history(clone, "origin/main")
         fetch = next(c for c in calls.call_args_list if "fetch" in c.args)
         config = fetch.kwargs["env"]
-        assert config["GIT_CONFIG_COUNT"] == "2" and config["GIT_CONFIG_KEY_0"] == "fetch.prune"
+        assert config["GIT_CONFIG_COUNT"] == "3" and config["GIT_CONFIG_KEY_0"] == "fetch.prune"
         assert config["GIT_CONFIG_KEY_1"] == "http.https://github.com/.extraheader"
         assert "test-token" not in str(fetch.args)
         assert not git(clone, "config", "--local", "--get", "http.https://github.com/.extraheader", check=False)
@@ -653,3 +653,36 @@ def test_an_unreadable_report_counts_as_unjudged(tmp_path: Path) -> None:
     assert action.judged(tmp_path / "missing.json") is False
     (tmp_path / "bad.json").write_text("{")
     assert action.judged(tmp_path / "bad.json") is False
+
+
+def test_fetch_replaces_inherited_auth_headers_without_persisting_token(repo, monkeypatch):
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    headers = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            headers.append(self.headers.get_all("Authorization"))
+            self.send_response(403)
+            self.end_headers()
+
+        def log_message(self, *_args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    url = f"http://127.0.0.1:{server.server_port}"
+    repo.git("remote", "add", "origin", url + "/repo")
+    repo.git("config", f"http.{url}/.extraheader", "Authorization: old-checkout-token")
+    monkeypatch.setenv("GITHUB_SERVER_URL", url)
+    monkeypatch.setenv("GITHUB_TOKEN", "new-token")
+    thread = Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        with pytest.raises(subprocess.CalledProcessError):
+            action.fetch_history(repo.root, "HEAD", depth=2)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+    assert headers == [["basic eC1hY2Nlc3MtdG9rZW46bmV3LXRva2Vu"]]
+    assert repo.git("config", "--get", f"http.{url}/.extraheader") == "Authorization: old-checkout-token"

@@ -85,9 +85,11 @@ def fetch_history(root: Path, *refs: str, depth: int) -> None:
     if token:
         count = int(environment.get("GIT_CONFIG_COUNT", "0"))
         server = env("GITHUB_SERVER_URL", "https://github.com")
-        environment.update({"GIT_CONFIG_COUNT": str(count + 1),
+        environment.update({"GIT_CONFIG_COUNT": str(count + 2),
                             f"GIT_CONFIG_KEY_{count}": f"http.{server}/.extraheader",
-                            f"GIT_CONFIG_VALUE_{count}": "AUTHORIZATION: basic " +
+                            f"GIT_CONFIG_VALUE_{count}": "",
+                            f"GIT_CONFIG_KEY_{count + 1}": f"http.{server}/.extraheader",
+                            f"GIT_CONFIG_VALUE_{count + 1}": "AUTHORIZATION: basic " +
                             base64.b64encode(f"x-access-token:{token}".encode()).decode()})
     git(root, "fetch", "--quiet", "--no-tags", f"--depth={depth}", "origin", *refs, env=environment)
 
