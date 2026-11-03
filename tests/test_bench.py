@@ -120,3 +120,29 @@ def test_a_separate_label_is_never_reported_whatever_its_score() -> None:
 
     result = bench_judge([gold("a", "x", "duplicate")], Contrary({}), Settings(), PythonExtractor())
     assert (result.precision, result.recall) == (0.0, 0.0)
+
+
+def test_the_benchmark_measures_the_failing_threshold_and_the_cost_too() -> None:
+    class PricedTable(TableJudge):
+        model = "claude-sonnet-5-5"
+
+    pairs = [gold("a", "x", "duplicate"), gold("b", "x", "duplicate"), gold("c", "x", "separate")]
+    settings = Settings(report_at=0.6, fail_at=0.8)
+    result = bench_judge(pairs, PricedTable({"a": 0.9, "b": 0.7, "c": 0.65}), settings, PythonExtractor())
+    assert (result.precision, result.recall) == (pytest.approx(2 / 3), 1.0)
+    assert (result.fail_at, result.fail_precision, result.fail_recall) == (0.8, 1.0, 0.5)
+    assert 0.0005 < result.usd_per_pair < 0.01
+    text = result.as_text(settings)
+    assert "at fail_at 0.8: precision 100%" in text and "cost: est. $0.00" in text
+    unpriced = bench_judge(pairs, TableJudge({"a": 0.9, "b": 0.7, "c": 0.65}), Settings(), PythonExtractor())
+    assert unpriced.usd_per_pair is None and "cost: unknown" in unpriced.as_text(Settings())
+    assert "at fail_at" not in unpriced.as_text(Settings())
+
+
+def test_subscription_calls_are_counted_not_priced() -> None:
+    class Subscribed(TableJudge):
+        subscription = True
+
+    result = bench_judge([gold("a", "x", "duplicate")], Subscribed({"a": 0.9}), Settings(), PythonExtractor())
+    assert (result.usd_per_pair, result.subscription_calls) == (0.0, 1)
+    assert "1 subscription calls" in result.as_text(Settings())

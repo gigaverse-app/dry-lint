@@ -61,20 +61,17 @@ action input (or `--fail-at` on the command line) overrides `fail_at` for one wo
 | `report_at` up to `fail_at` | warning annotation, listed in the comment | green |
 | `fail_at` and above | error annotation, listed first as **blocking** | **red** |
 
-By default `fail_at` is 0.8, the same as `report_at`, so **every reported duplicate fails the check**. On the
-250-pair gold set (the shipped `reuse-v2` prompt) that is 94% precision and 73% recall: about one red check in 18 is
-a false positive, which is what the overrides below are for. With Claude Sonnet 5.5 as the second judge
-(`anthropic-api-key`), precision is 98%.
+The thresholds come from the judging preset, which the keys you pass choose ([judges](judges.md)):
 
-To fail only on near-certain duplicates, raise `fail-at`:
+| Keys passed | Preset | Fails at | Precision / recall | Red pull requests |
+| --- | --- | --- | --- | --- |
+| `typesafe-api-key` + `anthropic-api-key` | `jev+sonnet` | 0.7 (warns from 0.6) | 97% / 84% | |
+| `typesafe-api-key` only | `jev` | 0.8 | 94% / 73% | 15% of 600 |
 
-| `fail_at` | Precision | Recall | Red pull requests (of 600) |
-| --- | --- | --- | --- |
-| 0.80 (default) | 94% | 73% | 15% |
-| 0.85 | 99% | 61% | 14% |
-| 0.90 | 100% | 45% | 12% |
-
-Findings between 0.8 and `fail_at` then only warn ([benchmark](benchmark.md)). `warn-only` never fails.
+A red check is a real duplicate about 33 times in 34 with `jev+sonnet`, 17 in 18 with `jev`; the overrides below
+handle the rest. To fail only on near-certain duplicates, raise `fail-at` (with `jev`, 0.9 is 100% precise and
+45% recall); findings between `report_at` and `fail-at` then only warn ([benchmark](benchmark.md)). `warn-only`
+never fails.
 
 **When dry-lint is wrong**, record the decision where it belongs:
 
@@ -126,7 +123,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
 | `sticky-key` | | Cache namespace and legacy marker label; all keys share one PR comment. |
-| `fail-at` | `fail_at` from `[tool.dry-lint]` (0.8) | Judge score at or above which a duplicate fails the check; `0.9` fails only near-certain ones. |
+| `fail-at` | the preset's (0.7 with `jev+sonnet`, 0.8 with `jev`) | Judge score at or above which a duplicate fails the check. |
 | `warn-only` | `false` | Never fail; blocking findings are reported like the rest. |
 | `override-label` | `dry-lint: override` | The pull request label that lets blocking findings through. |
 | `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read` and `checks: write`. |
