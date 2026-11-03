@@ -3,93 +3,134 @@ description: Find functions a pull request re-implements, judge them, and annota
 author: Gigaverse
 branding:
   icon: copy
-  color: green
+  color: purple
 
 inputs:
-  base:
-    description: Ref or SHA to compare with. Defaults to the pull request base, or the previous push.
+  mode:
+    description: >
+      auto (default): judge on workflow_run, detect on a pull request from a fork, single otherwise.
+      single: detect, judge and comment in one job. detect: propose candidates and upload them, for fork PRs
+      (no secrets). judge: in a workflow_run workflow, judge the candidates the triggering run uploaded.
+    required: false
+    default: auto
+  typesafe-api-key:
+    description: TypeSafe API key. With it the Jev judge runs; without it (and no judge-command) dry-lint only lists look-alikes in the log.
     required: false
     default: ""
   judge:
-    description: auto, jev, command or none. auto uses Jev when typesafe-api-key is set.
+    description: auto (Jev when typesafe-api-key is set, otherwise none), jev, command, none, or an installed judge plugin.
     required: false
     default: auto
   judge-command:
     description: For judge "command", a command that reads the prompt on stdin and prints a JSON verdict.
     required: false
     default: ""
-  typesafe-api-key:
-    description: TypeSafe API key for the Jev judge.
+  plugins:
+    description: Extra packages to install, such as judge plugins, one per line. Taken only from here, never from the pull request.
     required: false
     default: ""
+  base:
+    description: Ref or SHA to compare with. Default, the pull request's base commit, or the previous push, or the default branch.
+    required: false
+    default: ""
+  working-directory:
+    description: Where the repository (or the package to check in a monorepo) is.
+    required: false
+    default: "."
   comment:
-    description: Post or update one pull request comment with the findings.
+    description: Keep one pull request comment with the findings up to date. A clean PR gets no comment.
     required: false
     default: "true"
+  check-run:
+    description: In judge mode, post a "dry-lint" check run on the pull request's head (neutral with findings, so it never blocks).
+    required: false
+    default: "true"
+  sticky-key:
+    description: Name for this report's comment, when one repository runs dry-lint more than once per pull request.
+    required: false
+    default: ""
   fail-on-findings:
-    description: Fail the step when a judged duplicate reaches report_at.
+    description: Fail when a judged duplicate reaches report_at. Off by default, so a team can watch it before enforcing it.
     required: false
     default: "false"
   github-token:
-    description: Token for the pull request comment.
+    description: Token for commenting and, in judge mode, for downloading the triggering run's artifact.
     required: false
     default: ${{ github.token }}
 
 outputs:
+  mode:
+    description: The mode that ran.
+    value: ${{ steps.plan.outputs.mode }}
+  findings:
+    description: How many duplicates were reported.
+    value: ${{ steps.run.outputs.findings }}
   exit-code:
-    description: 0 nothing reported, 1 duplicates reported, 2 error.
-    value: ${{ steps.check.outputs.exit-code }}
+    description: 0 nothing reported, 1 duplicates reported, 2 dry-lint could not run.
+    value: ${{ steps.run.outputs.exit-code }}
 
 runs:
   using: composite
   steps:
     - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+    - name: Install dry-lint
+      shell: bash
+      env:
+        PLUGINS: ${{ inputs.plugins }}
+      run: |
+        uv venv --quiet --python ">=3.11" "$RUNNER_TEMP/dry-lint-venv"
+        mapfile -t extra < <(printf '%s\n' "$PLUGINS" | sed '/^[[:space:]]*$/d')
+        uv pip install --quiet --python "$RUNNER_TEMP/dry-lint-venv" "$GITHUB_ACTION_PATH" "${extra[@]}"
+        echo "$RUNNER_TEMP/dry-lint-venv/bin" >> "$GITHUB_PATH"
+    - name: Plan
+      id: plan
+      shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+      run: python -m dry_lint.action plan
+    - name: Download candidates
+      if: steps.plan.outputs.mode == 'judge'
+      continue-on-error: true
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        name: dry-lint-candidates
+        path: ${{ runner.temp }}/dry-lint/in
+        run-id: ${{ steps.plan.outputs.workflow-run-id }}
+        github-token: ${{ inputs.github-token }}
     - name: Restore verdicts
+      if: steps.plan.outputs.mode != 'detect'
       uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
       with:
-        path: ${{ runner.temp }}/dry-lint
-        key: dry-lint-verdicts-${{ github.run_id }}
+        path: ${{ runner.temp }}/dry-lint/verdicts
+        key: dry-lint-verdicts-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: dry-lint-verdicts-
-    - name: Check
-      id: check
+    - name: Run
+      id: run
       shell: bash
       env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_JUDGE: ${{ inputs.judge }}
+        INPUT_JUDGE_COMMAND: ${{ inputs.judge-command }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
+        INPUT_CHECK_RUN: ${{ inputs.check-run }}
+        INPUT_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
-        BASE: ${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}
-        JUDGE: ${{ inputs.judge }}
-        JUDGE_COMMAND: ${{ inputs.judge-command }}
-        FAIL: ${{ inputs.fail-on-findings }}
-        STORE: ${{ runner.temp }}/dry-lint/verdicts.jsonl
-        REPORT: ${{ runner.temp }}/dry-lint-report.md
-      run: |
-        set +e
-        args=(check --base "$BASE" --judge "$JUDGE" --store "$STORE" --format github --output "$REPORT")
-        [ -n "$JUDGE_COMMAND" ] && args+=(--judge-command "$JUDGE_COMMAND")
-        [ "$FAIL" = "true" ] || args+=(--warn-only)
-        uvx --from "${{ github.action_path }}" dry-lint "${args[@]}"
-        code=$?
-        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
-        [ -f "$REPORT" ] && cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
-        exit $code
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: python -m dry_lint.action run
     - name: Save verdicts
-      if: always()
+      if: always() && steps.run.outputs.stored == 'true'
       uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
       with:
-        path: ${{ runner.temp }}/dry-lint
-        key: dry-lint-verdicts-${{ github.run_id }}
-    - name: Comment
-      if: always() && inputs.comment == 'true' && github.event_name == 'pull_request' && steps.check.outputs.exit-code != '2'
-      shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.github-token }}
-        PR: ${{ github.event.pull_request.number }}
-        REPORT: ${{ runner.temp }}/dry-lint-report.md
-      run: |
-        existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
-          --jq '[.[] | select(.body | startswith("<!-- dry-lint -->"))][0].id // empty')
-        if grep -q "No duplicated concepts" "$REPORT" && [ -z "$existing" ]; then exit 0; fi
-        if [ -n "$existing" ]; then
-          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -F body=@"$REPORT" >/dev/null
-        else
-          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@"$REPORT" >/dev/null
-        fi
+        path: ${{ runner.temp }}/dry-lint/verdicts
+        key: dry-lint-verdicts-${{ github.run_id }}-${{ github.run_attempt }}
+    - name: Upload candidates
+      if: steps.plan.outputs.mode == 'detect'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: dry-lint-candidates
+        path: ${{ runner.temp }}/dry-lint/candidates.json
+        retention-days: 3
+        if-no-files-found: ignore

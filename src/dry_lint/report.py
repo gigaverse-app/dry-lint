@@ -145,7 +145,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
     for f in shown[:max_findings]:
         if f.verdict:
             verdict = f"**{f.verdict.label}** {f.verdict.score:.2f}"
-            suggestion = " ".join(part for part in (OWNERS.get(f.verdict.owner, ""), escaped(f.verdict.why)) if part)
+            suggestion = "; ".join(part for part in (OWNERS.get(f.verdict.owner, ""), escaped(f.verdict.why)) if part)
         else:
             verdict, suggestion = f"similarity {f.candidate.similarity:.2f}", "not judged"
         if f.family > 1:

@@ -21,7 +21,6 @@ Exit status: 0 when nothing is reported, 1 when a judged duplicate reaches `repo
 """
 
 import argparse
-import json
 import os
 import subprocess
 import sys
@@ -33,6 +32,7 @@ from dry_lint import __version__
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.git import git
+from dry_lint.github import github_event
 from dry_lint.judges import make_judge
 from dry_lint.judging import Judging, open_store
 from dry_lint.models import Candidate, CandidatesFile, Run
@@ -47,9 +47,7 @@ def repository_root(start: Path) -> Path:
 
 def run_info(root: Path, base: str | None) -> Run:
     """The repository, pull request and head commit, from the GitHub Actions environment when there is one."""
-    event_path = os.environ.get("GITHUB_EVENT_PATH")
-    event = json.loads(Path(event_path).read_text()) if event_path and Path(event_path).exists() else {}
-    pull = event.get("pull_request") or {}
+    pull = github_event().get("pull_request") or {}
     head = (pull.get("head") or {}).get("sha") or git(root, "rev-parse", "HEAD")
     return Run(repository=os.environ.get("GITHUB_REPOSITORY", ""), pull_request=pull.get("number"), head=head,
                base=base_ref(root, base))

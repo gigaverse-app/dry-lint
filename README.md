@@ -68,7 +68,7 @@ uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 3
 Without a judge, dry-lint lists the candidate pairs and never fails. With `TYPESAFE_AI_API_KEY` set, Jev judges
 them. To use another judge, pass `--judge command --judge-command "your-llm-cli"` (see [docs/judges.md](docs/judges.md)).
 
-**GitHub Actions** ([examples/dry-lint.yml](examples/dry-lint.yml)):
+**GitHub Actions** ([examples/dry-lint.yml](examples/dry-lint.yml), [docs/github-action.md](docs/github-action.md)):
 
 ```yaml
 - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -79,10 +79,11 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
     typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
 ```
 
-The action caches verdicts between runs, adds annotations and keeps a single PR comment up to date. It warns by
-default; set `fail-on-findings: "true"` once the team trusts it. To keep the judge's key away from pull request
-code (pull requests from forks), run it as two jobs: `detect` on the pull request and `judge` on `workflow_run`
-([docs/design.md](docs/design.md#two-jobs-in-ci)).
+The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
+runs. A clean pull request gets no comment, and it warns rather than fails until you set
+`fail-on-findings: "true"`. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
+as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
+that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
 
 **pre-commit** ([examples/pre-commit-config.yaml](examples/pre-commit-config.yaml)): hook id `dry-lint` checks the
 staged functions.
