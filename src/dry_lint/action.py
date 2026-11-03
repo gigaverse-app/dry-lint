@@ -40,6 +40,7 @@ from dry_lint.report import Report
 from dry_lint.settings import Settings
 
 ARTIFACT = "dry-lint-candidates"
+COUNTER = "https://dry-lint-counter.gigaverse-oss.workers.dev"
 OVERRIDE_LABEL = "dry-lint: override"
 HISTORY_DEPTHS = (2, 32, 128, 512, 2048)
 
@@ -289,15 +290,42 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
                 found = [pulled for c in sticky.ours(github.comments(repository, number))
                          if (pulled := PullLedger.read(c.get("body", ""))) is not None]
                 if found:
-                    ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs))
+                    ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs), sharing())
                 else:
                     ledger.unaccounted.append(number)
         except httpx.HTTPError as error:
             print(f"::warning title=dry-lint::Could not read merged pull requests for the ledger: {error}")
             outcome = "partial"
+    share(ledger, transport)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(ledger.model_dump_json(indent=2) + "\n")
     return outcome
+
+
+def sharing() -> bool:
+    return env("INPUT_SHARE_TOTALS", "true").lower() not in ("false", "0", "no")
+
+
+def share(ledger: RepositoryLedger, transport: httpx.BaseTransport | None = None) -> int:
+    """
+    Send the global counter what it has not confirmed: one merged pull request's counts each, under the hash of
+    the repository's name. It counts each pull request once, so a resend is harmless, and what fails stays in
+    the outbox for the next push. Never fails the run; `share-totals: "false"` sends nothing and empties it.
+    """
+    if not sharing():
+        ledger.outbox = []
+        return 0
+    sent = []
+    with httpx.Client(timeout=5, transport=transport) as client:
+        for contribution in ledger.outbox:
+            try:
+                client.post(f"{env('DRY_LINT_COUNTER', COUNTER)}/v1/pulls", json=contribution).raise_for_status()
+            except httpx.HTTPError as error:
+                print(f"::notice title=dry-lint::The global counter is unavailable; will retry: {error}")
+                break
+            sent.append(contribution)
+    ledger.outbox = [contribution for contribution in ledger.outbox if contribution not in sent]
+    return len(sent)
 
 
 def pull_labels(repository: str, number: int, transport: httpx.BaseTransport | None = None) -> set[str]:

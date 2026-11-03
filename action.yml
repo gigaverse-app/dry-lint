@@ -90,6 +90,12 @@ inputs:
     description: Comment on a clean pull request too, with what was checked. "false" comments only once there are findings.
     required: false
     default: "true"
+  share-totals:
+    description: >-
+      On the default branch, add each merged pull request's counts (duplicates kept out, pushes, judgments, spend;
+      the repository only as a hash of its name) to dry-lint's public counter. "false" to opt out.
+    required: false
+    default: "true"
   check-run:
     description: In judge mode, post a "dry-lint" check run on the pull request's head (neutral with findings, so it never blocks).
     required: false
@@ -210,6 +216,7 @@ runs:
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         INPUT_COMMENT: ${{ inputs.comment }}
         INPUT_COMMENT_ON_CLEAN: ${{ inputs.comment-on-clean }}
+        INPUT_SHARE_TOTALS: ${{ inputs.share-totals }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
         INPUT_FAIL_AT: ${{ inputs.fail-at }}

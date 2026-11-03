@@ -13,6 +13,7 @@ The ledger: what dry-lint has cost and caught, across a pull request's pushes an
   request can read it, and says since when it counts: losing the cache starts it again, never invents figures.
 """
 
+import hashlib
 import json
 import re
 from collections import Counter
@@ -21,6 +22,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
+from dry_lint import __version__
 from dry_lint.models import Versioned
 from dry_lint.report import BLUE, GRAY, Report, badge, code, plural
 
@@ -148,6 +150,14 @@ class PullLedger(Versioned):
                 pair.state, pair.settled = "kept-out", ledger.pushed
         return ledger
 
+    def contribution(self, repository: str, number: int) -> dict:
+        """What the global counter is sent for this pull request once merged: counts, and the repository's hash."""
+        return {"repository": hashlib.sha256(repository.strip().lower().encode()).hexdigest(), "pull": number,
+                "kept_out": self.count("kept-out"), "caught": len(self.pairs), "dismissed": self.count("dismissed"),
+                "merged_open": self.count("open"), "pushes": self.pushed, "runs": self.tally.runs,
+                "judgments": self.tally.judgments, "functions": self.tally.functions,
+                "usd": round(self.tally.usd, 6), "version": __version__}
+
     def snapshot(self) -> str:
         return f"<!-- dry-lint-ledger {self.model_dump_json()} -->"
 
@@ -234,6 +244,7 @@ class RepositoryLedger(Versioned):
     kept_out: int = 0
     dismissed: int = 0
     merged_open: int = Field(default=0, description="Duplicates still open when their pull request merged.")
+    outbox: list[dict] = Field(default_factory=list, description="Contributions the global counter has not confirmed.")
 
     def add_run(self, tally: Tally, run: str) -> None:
         if run and run in self.runs:
@@ -241,10 +252,12 @@ class RepositoryLedger(Versioned):
         self.tally = self.tally + tally
         self.runs = [*self.runs, run][-RECENT_RUNS:] if run else self.runs
 
-    def add_pull(self, number: int, ledger: PullLedger) -> None:
+    def add_pull(self, number: int, ledger: PullLedger, share: bool = False) -> None:
         if number in self.pulls:
             return
         self.pulls.append(number)
+        if share:
+            self.outbox.append(ledger.contribution(self.repository, number))
         self.tally = self.tally + ledger.tally
         self.pushes += ledger.pushed
         self.kept_out += ledger.count("kept-out")
