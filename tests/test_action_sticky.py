@@ -269,6 +269,10 @@ def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, 
     ledger = ledger_of(fake)
     assert (ledger.pushed, ledger.tally.runs, ledger.count("kept-out")) == (2, 2, 1)
     assert "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes." in fake.stickies()[0]
+    body = fake.stickies()[0]
+    assert body.index("### 🧹 A little less lint") < body.index("### dry-lint")
+    assert "| **1 pair** | **0 pairs** | **0 pairs** |" in body
+    assert "`bbbbbbb` · **+1 pair cleaned up**" in body
 
 
 def test_the_run_defaults_to_the_workflow_run_and_attempt(tmp_path: Path, monkeypatch) -> None:

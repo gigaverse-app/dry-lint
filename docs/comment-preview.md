@@ -1,34 +1,55 @@
 # Sticky comment preview
 
-Illustrative verdicts, not measured findings. Generated from [the example report](../examples/comment-report.json) with the production Markdown renderer. On a pull request, function names link to their exact source revision; this local example has no repository metadata.
+Illustrative verdicts, not measured findings. Generated with the production sticky and ledger renderers: three pairs were reported on the first analyzed commit, one was cleaned up on the second, and another on the third. The remaining pair stays visible below the cleanup totals. See [the report fixture](../examples/comment-report.json) and [how the ledger counts](github-action.md#the-ledger).
 
 <!-- dry-lint -->
-### dry-lint · 2 duplicated concepts
 
-![duplicated concepts: 2](https://img.shields.io/badge/duplicated_concepts-2-CF222E?style=flat-square&labelColor=24292F) ![blocking: 1](https://img.shields.io/badge/blocking-1-CF222E?style=flat-square&labelColor=24292F) ![drifted: 1](https://img.shields.io/badge/drifted-1-EA580C?style=flat-square&labelColor=24292F) ![changed functions: 5](https://img.shields.io/badge/changed_functions-5-6E7781?style=flat-square&labelColor=24292F) ![judge: illustrative](https://img.shields.io/badge/judge-illustrative-6E7781?style=flat-square&labelColor=24292F)
+### 🧹 A little less lint
 
-<!-- dry-lint note -->
+| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |
+| :--: | :--: | :--: |
+| **2 pairs** | **1 pair** | **0 pairs** |
 
-Each row is one concept implemented twice: a function this pull request changed, and code the repository already has. Reuse it, or parameterize the difference.
+Latest analyzed commit `ccccccc` · **+1 pair cleaned up** ✨
+
+**2 duplicates kept out of the codebase** for $0 of judging, across 3 pushes. 1 duplicate still open.
+
+![pushes: 3](https://img.shields.io/badge/pushes-3-6E7781?style=flat-square&labelColor=24292F) ![functions checked: 15](https://img.shields.io/badge/functions_checked-15-6E7781?style=flat-square&labelColor=24292F) ![judgments: 3](https://img.shields.io/badge/judgments-3-6E7781?style=flat-square&labelColor=24292F) ![spent: $0](https://img.shields.io/badge/spent-%240-2563EB?style=flat-square&labelColor=24292F)
+
+<sub>Previously reported pairs no longer reported; dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits.</sub>
+
+<details><summary><strong>Push by push</strong></summary>
+
+| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |
+| --: | :-- | --: | --: | --: | --: | --: | --: |
+| 1 | `aaaaaaa` | 5 | 3 | 2 <sub>+1 reused</sub> | 3 | 0 | $0 |
+| 2 | `bbbbbbb` | 5 | 2 | 1 <sub>+1 reused</sub> | 2 | **+1** | $0 |
+| 3 | `ccccccc` | 5 | 1 | 0 <sub>+1 reused</sub> | 1 | **+1** | $0 |
+| **3** | | **15** | **6** | **3** | | **2** | **$0** |
+
+- ✅ `clip` ≈ `shorten` · found in push 1, kept out in push 2
+- ✅ `clip` ≈ `trim` · found in push 1, kept out in push 3
+- 🟡 `clip` ≈ `preview` · found in push 1, still open
+
+</details>
+
+<!-- dry-lint-ledger {"schema":4,"pushed":3,"tally":{"runs":3,"functions":15,"codebase":0,"pairs":6,"judgments":3,"reused":3,"usd":0.0,"unpriced":false,"subscription_calls":0},"pushes":[{"head":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","tally":{"runs":1,"functions":5,"codebase":0,"pairs":3,"judgments":2,"reused":1,"usd":0.0,"unpriced":false,"subscription_calls":0},"reported":3},{"head":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","tally":{"runs":1,"functions":5,"codebase":0,"pairs":2,"judgments":1,"reused":1,"usd":0.0,"unpriced":false,"subscription_calls":0},"reported":2},{"head":"cccccccccccccccccccccccccccccccccccccccc","tally":{"runs":1,"functions":5,"codebase":0,"pairs":1,"judgments":0,"reused":1,"usd":0.0,"unpriced":false,"subscription_calls":0},"reported":1}],"pairs":{"ae55cb8ebafb5aa3":{"new":"clip","existing":"shorten","found":1,"state":"kept-out","settled":2},"17cdd473c28692c7":{"new":"clip","existing":"preview","found":1,"state":"open","settled":null},"38ffb32ac641392a":{"new":"clip","existing":"trim","found":1,"state":"kept-out","settled":3}},"runs":["1","2","3"]} -->
+
+---
+
+### dry-lint · 1 duplicated concept
+
+![duplicated concepts: 1](https://img.shields.io/badge/duplicated_concepts-1-BF8700?style=flat-square&labelColor=24292F) ![changed functions: 5](https://img.shields.io/badge/changed_functions-5-6E7781?style=flat-square&labelColor=24292F) ![judge: illustrative](https://img.shields.io/badge/judge-illustrative-6E7781?style=flat-square&labelColor=24292F)
+
+Each row is one concept implemented twice: a function this pull request changed, and code the repository already has. Reuse it, or parameterize the difference. The judge's fix for every pair listed: **extract a shared helper**.
 
 | | Concept | Copies | Verdict |
 | :-: | :-- | :-- | :-- |
-| 🔴 | `clip` ≈ `shorten` <sub>· 2 look-alikes</sub> | src/captions.py:8 <sub>changed</sub><br>src/text.py:3 | **drifted**&nbsp;0.95<br><sub>blocks · call the existing one</sub> |
-| 🟡 | `clip` ≈ `preview` <sub>· 2 look-alikes</sub> | src/captions.py:8 <sub>changed</sub><br>src/previews.py:3 | **duplicate**&nbsp;0.86<br><sub>extract a shared helper</sub> |
+| 🟡 | `clip` ≈ `preview` <sub>· 2 look-alikes</sub> | src/captions.py:8 <sub>changed</sub><br>src/previews.py:3 | **duplicate**&nbsp;0.86 |
 
-<sub>🔴 fails the check · 🟡 duplicate</sub>
+<sub>🟡 duplicate</sub>
 
 <details><summary><strong>Reasons, and a one-line dismissal for each</strong></summary>
-
-🔴 **`clip` ≈ `shorten` <sub>· 2 look-alikes</sub>** · drifted 0.95 · similarity 0.71 · new verdict · the copies already behave differently
-
-> Both shorten text, but one cuts through a word while the other preserves whole words.
-
-Different concepts? Add to captions.py:
-
-```python
-# dry-lint: distinct-from src/text.py::shorten
-```
 
 🟡 **`clip` ≈ `preview` <sub>· 2 look-alikes</sub>** · duplicate 0.86 · similarity 0.71 · from the verdict store
 
@@ -53,32 +74,6 @@ Different concepts? Add to captions.py:
 
 </details>
 
-<sub>5 changed functions · 2 pairs compared · 1 from the verdict store · judge `illustrative`</sub>
+<sub>5 changed functions · 1 pair compared · 1 from the verdict store · judge `illustrative`</sub>
 
-## The running account
-
-Every sticky ends with the pull request's ledger, here after four pushes, and the repository's line once its default branch has folded a merged pull request. Illustrative figures, rendered with the production ledger renderer.
-
-#### 🛡️ This pull request so far
-
-**2 duplicates kept out of the codebase** for $0.007 of judging, across 4 pushes.
-
-![kept out: 2](https://img.shields.io/badge/kept_out-2-2EA043?style=flat-square&labelColor=24292F) ![pushes: 4](https://img.shields.io/badge/pushes-4-6E7781?style=flat-square&labelColor=24292F) ![functions checked: 60](https://img.shields.io/badge/functions_checked-60-6E7781?style=flat-square&labelColor=24292F) ![judgments: 3](https://img.shields.io/badge/judgments-3-6E7781?style=flat-square&labelColor=24292F) ![spent: $0.007](https://img.shields.io/badge/spent-%240.007-2563EB?style=flat-square&labelColor=24292F)
-
-<details><summary><strong>Push by push</strong></summary>
-
-| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cost |
-| --: | :-- | --: | --: | --: | --: | --: |
-| 1 | `3f9a1c2` | 14 | 3 | 3 | 3 | $0.004 |
-| 2 | `8be41d0` | 15 | 1 | 0 <sub>+1 reused</sub> | 1 | $0.001 |
-| 3 | `c01d7e9` | 15 | 1 | 0 | 0 | under $0.001 |
-| 4 | `e5a0b37` | 16 | 0 | 0 | 0 | under $0.001 |
-| **4** | | **60** | **5** | **3** | | **$0.007** |
-
-✅ `clip` ≈ `shorten` · found in push 1, kept out in push 2  
-✅ `clip` ≈ `trim` · found in push 1, kept out in push 3  
-⚪ `clip` ≈ `cut` · found in push 1, dismissed by a person's decision in push 3  
-
-</details>
-
-<sub>🏆 `acme/shop` since Oct 6, 2026: **31 duplicates kept out of the codebase** across 58 merged pull requests, for $0.84 of judging.</sub>
+<sub>[dry-lint](https://github.com/gigaverse-app/dry-lint) · commit ccccccc</sub>
