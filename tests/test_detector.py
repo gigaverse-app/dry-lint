@@ -97,7 +97,8 @@ B = function("b.py", "def load_account(store, key):\n    return store.read(key)\
 @pytest.mark.parametrize("a, b, settings, reason", [
     (function("a.py", "def __init__(self, x):\n    self.x = x"), function("b.py", "def __init__(self, y):\n    self.y = y"),
      Settings(), "constructor or dunder pattern"),
-    (A, function("b.py", "def load_account(store, key):\n    return load_user(store, key)\n"), Settings(), "one calls the other"),
+    (function("a.py", "def read(self, key):\n    return self.rows[key]\n", owner="Store"),
+     function("a.py", "def get(self, key):\n    return self.read(key)\n", owner="Store"), Settings(), "one calls the other"),
     (A, B, Settings(patterns=[Pattern(members="*::load_*", reason="one loader per resource")]),
      "declared pattern: one loader per resource"),
     (A, function("b.py", "def load_account(store, key):\n    # dry-lint: distinct-from a.py::load_user\n    return store.read(key)\n"),
@@ -137,14 +138,20 @@ def test_a_call_on_another_receiver_is_left_to_the_judge_not_taken_as_delegation
     assert why_skipped(strip, normalize, Settings()) is None
 
 
-def test_a_bare_call_or_a_call_on_the_class_itself_is_delegation() -> None:
-    module_level = function("b.py", "def load_account(store, key):\n    return load_user(store, key)\n")
-    assert why_skipped(module_level, A, Settings()) == why_skipped(A, module_level, Settings()) == "one calls the other"
+def test_only_a_call_on_the_class_itself_is_proven_delegation() -> None:
+    """
+    INVARIANT: "one calls the other" needs the call to resolve to the other function. Names are not resolved to
+    symbols, so a bare call proves nothing: it may reach an imported function or a parameter of the same name.
+    """
     read = function("a.py", "def read(self, key):\n    return self.rows[key]\n", owner="Store")
     get = function("a.py", "def get(self, key):\n    return self.read(key)\n", owner="Store")
     assert why_skipped(get, read, Settings()) == "one calls the other"
     other_class = function("b.py", "def read(self, key):\n    return self.rows[key]\n", owner="Cache")
     assert why_skipped(get, other_class, Settings()) is None
+    imported = function("b.py", "def load_account(store, key):\n    from vendor import load_user\n    return load_user(store, key)\n")
+    assert why_skipped(imported, A, Settings()) is None
+    shadowing = function("c.py", "def load_account(load_user, key):\n    return load_user(key)\n")
+    assert why_skipped(shadowing, A, Settings()) is None
     method_by_bare_name = function("c.py", "def read(key):\n    return ROWS[key]\n", owner="Rows")
     assert why_skipped(function("d.py", "def get(key):\n    return read(key)\n"), method_by_bare_name, Settings()) is None
 
@@ -154,7 +161,9 @@ def test_without_calls_from_the_extractor_the_defining_line_does_not_count_as_a_
     b = function("b.ts", "function load(id) {\n  return store.read(id)\n}", name="load").model_copy(update={"calls": None})
     assert why_skipped(a, b, Settings()) is None
     wrapper = function("c.ts", "function fetch(key) {\n  return load(key)\n}", name="fetch").model_copy(update={"calls": None})
-    assert why_skipped(wrapper, a, Settings()) == "one calls the other"
+    assert why_skipped(wrapper, a, Settings()) is None  # a bare `load` may be any `load` in scope
+    method = function("a.ts", "fetch(key) {\n  return this.load(key)\n}", name="fetch", owner="Cache").model_copy(update={"calls": None})
+    assert why_skipped(method, a.model_copy(update={"owner": "Cache"}), Settings()) == "one calls the other"
     method_call = function("d.ts", "function fetch(key) {\n  return cache.load(key)\n}", name="fetch").model_copy(update={"calls": None})
     assert why_skipped(method_call, a, Settings()) is None
 

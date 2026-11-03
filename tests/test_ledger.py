@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from test_report import finding, pair
 
@@ -88,10 +90,28 @@ def test_only_the_scope_that_found_a_duplicate_can_keep_it_out() -> None:
                                               scope="cross-repository")
 
 
-def test_a_duplicate_from_an_older_ledger_without_a_scope_settles_as_before() -> None:
-    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")
-    ledger.pairs[pair().key].scope = None
-    assert ledger.advance([push("b" * 40)], run="2", scopes=["local"]).count("kept-out") == 1
+def test_a_duplicate_from_a_ledger_saved_before_scopes_stays_open_until_there_is_evidence() -> None:
+    """
+    INVARIANT: a pair whose scope is unknown is never counted as kept out by its absence: the run may not have
+    included the check that found it. It settles only once a push reports it again (naming its scope) or a person
+    dismisses it.
+    """
+    saved = json.loads(PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1").model_dump_json())
+    for stored in saved["pairs"].values():
+        del stored["scope"]
+    legacy = PullLedger.read(f"<!-- dry-lint-ledger {json.dumps(saved)} -->")
+    assert legacy.pairs[pair().key].scope is None
+    partial = legacy.advance([push("b" * 40)], run="2", scopes=["local"])
+    assert (partial.count("open"), partial.count("kept-out")) == (1, 0)
+    assert headline(partial).startswith("**1 duplicate caught**")
+    assert partial.advance([push("c" * 40)], run="3").count("kept-out") == 0
+    reported = partial.advance([push("d" * 40), push("d" * 40, finding("duplicate"))], run="4",
+                               scopes=["local", "cross-repository"])
+    assert reported.pairs[pair().key].scope == "cross-repository"
+    settled = reported.advance([push("e" * 40), push("e" * 40)], run="5", scopes=["local", "cross-repository"])
+    assert settled.pairs[pair().key].state == "kept-out"
+    dismissed = partial.advance([push("f" * 40, filtered=[pair(filtered="inline distinct-from")])], run="6")
+    assert dismissed.pairs[pair().key].state == "dismissed"
 
 
 def test_a_duplicate_that_comes_back_is_open_again() -> None:

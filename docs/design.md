@@ -29,9 +29,9 @@ Every run goes through the same six steps, whatever plugins it uses:
 3. **Propose.** The comparer indexes every function and returns each changed one's `neighbours` (3) nearest in
    other files handled by the same extractor, above its own floor. Functions in the same file are excluded before the list is cut, so a file
    full of similar methods cannot crowd out neighbours elsewhere.
-4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other (call names come
-   from the extractor's syntax tree, never from declarations, comments or strings; receivers and imports are not
-   resolved), both match a
+4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other through `self`,
+   `cls` or `this` within the same class (call names come from the extractor's syntax tree; names are not resolved
+   to symbols, so a bare or imported call is left to the judge), both match a
    declared `pattern`, one carries `# dry-lint: distinct-from <qualified name suffix>`, or either carries
    `# dry-lint: ignore`. Settled pairs stay
    in the output with their rule, so "why wasn't this flagged?" has an answer. The extractor hashes both
