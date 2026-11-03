@@ -24,8 +24,11 @@ Documentation = "https://github.com/gigaverse-app/dry-lint/tree/main/docs"
 Repository = "https://github.com/gigaverse-app/dry-lint"
 Issues = "https://github.com/gigaverse-app/dry-lint/issues"
 
+[project.optional-dependencies]
+s3 = ["boto3>=1.35"]
+
 [dependency-groups]
-dev = ["pytest>=8", "pytest-cov>=6", "ruff>=0.14", "build>=1.2"]
+dev = ["pytest>=8", "pytest-cov>=6", "ruff>=0.14", "build>=1.2", "boto3>=1.35"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dry_lint"]

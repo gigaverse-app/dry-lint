@@ -1,38 +1,23 @@
-"""Python functions as the unit dry-lint compares: where they are, their code, and two fingerprints of it."""
+"""
+Python functions, the built-in extractor's unit: where they are, their code, and two fingerprints of it.
+
+Also the language-neutral part: which tracked files are read, and by which extractor.
+"""
 
 import ast
-import copy
 import fnmatch
 import hashlib
 import re
 import subprocess
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from dry_lint.models import Function
+from dry_lint.plugins import Extractor
 
 STOP_WORDS = {
     "self", "cls", "return", "none", "true", "false", "args", "kwargs", "value", "result", "data", "item", "items",
     "get", "list", "dict", "str", "int", "len", "isinstance", "await", "async", "error",
 }  # fmt: skip
-
-
-class Function(BaseModel):
-    """One top-level function or method, by the qualified name dry-lint keys everything on."""
-
-    path: str = Field(description="Path relative to the repository root.")
-    name: str = Field(description="The function's own name.")
-    owner: str | None = Field(default=None, description="Enclosing class, for methods.")
-    line: int
-    end_line: int
-    code: str
-
-    @property
-    def qualname(self) -> str:
-        return f"{self.path}::{self.owner + '.' if self.owner else ''}{self.name}"
-
-    @property
-    def lines(self) -> int:
-        return self.end_line - self.line + 1
 
 
 def words(identifier: str) -> list[str]:
@@ -50,36 +35,49 @@ def _parse(code: str) -> ast.Module | None:
         return None
 
 
-def behaviour_tokens(function: Function) -> list[str]:
+FunctionNode = ast.FunctionDef | ast.AsyncFunctionDef
+
+
+def _function_node(code: str) -> FunctionNode | None:
+    tree = _parse(code)
+    first = tree.body[0] if tree and tree.body else None
+    return first if isinstance(first, (ast.FunctionDef, ast.AsyncFunctionDef)) else None
+
+
+def node_tokens(node: FunctionNode) -> list[str]:
     """
     What the function does, as a bag of tokens: the names it calls, the attributes it touches, the words in its
     identifiers, and its control flow. Two functions that solve the same problem share many of these even when
     their structure and names differ, which is what lets dry-lint find re-implementations, not only copies.
     """
-    tree = _parse(function.code)
-    tokens = [f"fn:{word}" for word in words(function.name)] * 2
-    if tree is None:
-        return tokens
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            target = node.func
-            leaf = target.attr if isinstance(target, ast.Attribute) else target.id if isinstance(target, ast.Name) else None
-            if leaf:
-                tokens.append(f"call:{leaf.lower()}")
-                tokens += [f"w:{word}" for word in words(leaf)]
-        elif isinstance(node, ast.Attribute):
-            tokens.append(f"attr:{node.attr.lower()}")
-        elif isinstance(node, ast.Name):
-            tokens += [f"w:{word}" for word in words(node.id)]
-        elif isinstance(node, ast.arg):
-            tokens += [f"w:{word}" for word in words(node.arg)]
-        elif isinstance(node, (ast.For, ast.While)):
-            tokens.append("ctl:loop")
-        elif isinstance(node, ast.Try):
-            tokens.append("ctl:try")
-        elif isinstance(node, ast.Await):
-            tokens.append("ctl:await")
+    tokens = [f"fn:{word}" for word in words(node.name)] * 2
+    for part in (node.args, *([node.returns] if node.returns else []), *node.body):  # not its decorators
+        for child in ast.walk(part):
+            if isinstance(child, ast.Call):
+                target = child.func
+                leaf = target.attr if isinstance(target, ast.Attribute) else target.id if isinstance(target, ast.Name) else None
+                if leaf:
+                    tokens.append(f"call:{leaf.lower()}")
+                    tokens += [f"w:{word}" for word in words(leaf)]
+            elif isinstance(child, ast.Attribute):
+                tokens.append(f"attr:{child.attr.lower()}")
+            elif isinstance(child, ast.Name):
+                tokens += [f"w:{word}" for word in words(child.id)]
+            elif isinstance(child, ast.arg):
+                tokens += [f"w:{word}" for word in words(child.arg)]
+            elif isinstance(child, (ast.For, ast.While)):
+                tokens.append("ctl:loop")
+            elif isinstance(child, ast.Try):
+                tokens.append("ctl:try")
+            elif isinstance(child, ast.Await):
+                tokens.append("ctl:await")
     return tokens
+
+
+def behaviour_tokens(function: Function) -> list[str]:
+    """`node_tokens` of a function's code; only its name's words when the code does not parse."""
+    node = _function_node(function.code)
+    return node_tokens(node) if node else [f"fn:{word}" for word in words(function.name)] * 2
 
 
 class _Canonical(ast.NodeTransformer):
@@ -100,6 +98,7 @@ class _Canonical(ast.NodeTransformer):
     def _function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> ast.AST:
         node.name = "_"
         node.returns = None
+        node.decorator_list = []
         body = node.body
         if body and isinstance(body[0], ast.Expr) and isinstance(getattr(body[0], "value", None), ast.Constant):
             if isinstance(body[0].value.value, str):
@@ -121,24 +120,23 @@ class _Canonical(ast.NodeTransformer):
 
 def structure_hash(function: Function) -> str:
     """
-    A hash that changes when the logic changes, and not for comments, docstrings, formatting, renamed local
-    variables or a renamed function. Verdicts are keyed on it, so cosmetic edits never cost a new judgement.
+    A hash that changes when the logic changes, and not for comments, docstrings, formatting, decorators, renamed
+    local variables or a renamed function. Verdicts are keyed on it, so cosmetic edits never cost a new judgement.
     """
-    tree = _parse(function.code)
-    if tree is None:
+    node = _function_node(function.code)
+    if node is None:
         return hashlib.sha256(function.code.encode()).hexdigest()[:16]
-    canonical = _Canonical().visit(copy.deepcopy(tree))
-    return hashlib.sha256(ast.dump(canonical, annotate_fields=False).encode()).hexdigest()[:16]
+    return hashlib.sha256(ast.dump(_Canonical().visit(node), annotate_fields=False).encode()).hexdigest()[:16]
 
 
-def functions_in(source: str, path: str, min_lines: int = 2) -> list[Function]:
-    """Top-level functions and methods (nested functions stay part of their parent)."""
+def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Function, FunctionNode]]:
+    """Top-level functions and methods, with their syntax trees (nested functions stay part of their parent)."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
     lines = source.splitlines()
-    found: list[Function] = []
+    found: list[tuple[Function, FunctionNode]] = []
 
     def visit(node: ast.AST, owner: str | None) -> None:
         for child in ast.iter_child_nodes(node):
@@ -147,27 +145,40 @@ def functions_in(source: str, path: str, min_lines: int = 2) -> list[Function]:
             elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 end = child.end_lineno or child.lineno
                 if end - child.lineno + 1 >= min_lines:
-                    found.append(Function(path=path, name=child.name, owner=owner, line=child.lineno, end_line=end,
-                                          code="\n".join(lines[child.lineno - 1 : end])))
+                    found.append((Function(path=path, name=child.name, owner=owner, line=child.lineno, end_line=end,
+                                           code="\n".join(lines[child.lineno - 1 : end])), child))
 
     visit(tree, None)
     return found
 
 
-def tracked_python_files(root: Path, include: list[str], exclude: list[str]) -> list[str]:
-    listed = subprocess.run(["git", "ls-files", "*.py"], cwd=root, capture_output=True, text=True, check=True).stdout
+def functions_in(source: str, path: str, min_lines: int = 2) -> list[Function]:
+    return [function for function, _ in function_nodes(source, path, min_lines)]
+
+
+def tracked_files(root: Path, include: list[str], exclude: list[str]) -> list[str]:
+    listed = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, text=True, check=True).stdout
     return [
-        path for path in listed.split()
-        if any(fnmatch.fnmatch(path, pattern) for pattern in include)
+        path for path in listed.split("\0")
+        if path and any(fnmatch.fnmatch(path, pattern) for pattern in include)
         and not any(fnmatch.fnmatch(path, pattern) for pattern in exclude)
     ]  # fmt: skip
 
 
-def repository_functions(root: Path, include: list[str], exclude: list[str]) -> list[Function]:
+def extractor_for(path: str, extractors: list[Extractor]) -> Extractor | None:
+    """The first extractor whose globs match the path."""
+    return next((e for e in extractors if any(fnmatch.fnmatch(path, glob) for glob in e.files)), None)
+
+
+def repository_functions(root: Path, include: list[str], exclude: list[str], extractors: list[Extractor]) -> list[Function]:
+    """Every function in the tracked files, each file read by its extractor."""
     found: list[Function] = []
-    for path in tracked_python_files(root, include, exclude):
+    for path in tracked_files(root, include, exclude):
+        extractor = extractor_for(path, extractors)
+        if extractor is None:
+            continue
         try:
-            found += functions_in((root / path).read_text(), path)
+            found += extractor.functions(path, (root / path).read_text())
         except (OSError, UnicodeDecodeError):
             continue
     return found

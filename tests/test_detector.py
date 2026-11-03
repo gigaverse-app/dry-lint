@@ -1,7 +1,7 @@
 import pytest
 
-from dry_lint.detector import Detector, changed_lines, touched, why_skipped
-from dry_lint.settings import Pattern, Settings
+from dry_lint.detector import Detector, base_ref, changed_lines, default_base, touched, why_skipped
+from dry_lint.settings import Pattern, PluginChoice, Settings
 
 from conftest import Repo, function
 
@@ -33,34 +33,40 @@ def test_only_functions_overlapping_changed_lines_count_as_changed(repo: Repo) -
 def test_a_reimplementation_of_an_existing_helper_becomes_a_candidate(repo: Repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
     changed = touched(detector.functions, changed_lines(repo.root, base="main"))
-    candidates, skipped = detector.candidates(changed)
+    candidates = detector.candidates(changed)
     pairs = {(c.new.qualname, c.existing.qualname) for c in candidates}
     assert ("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text") in pairs
     assert not any(new.endswith("register_widget") for new, _ in pairs)
-    assert skipped == []
+    assert all(c.filtered is None and c.comparer == "tfidf:1" for c in candidates)
+
+
+def test_candidates_carry_both_structure_hashes_for_the_store(repo: Repo) -> None:
+    detector = Detector.for_repository(repo.root, Settings())
+    [twin] = [c for c in detector.candidates(touched(detector.functions, changed_lines(repo.root, base="main")))
+              if c.existing.name == "shorten_text"]
+    extractor = detector.extractors[0]
+    assert twin.new.hash == extractor.structure_hash(twin.new) and twin.existing.hash == extractor.structure_hash(twin.existing)
+    assert all(f.hash == "" for f in detector.functions)  # only paired functions are hashed
+
+
+def tfidf(**options) -> Settings:
+    return Settings(comparer=PluginChoice(use="tfidf", **options))
 
 
 def test_neighbours_come_from_other_files_and_respect_the_floor(repo: Repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
     for f in detector.functions:
-        floor = detector.floor(f)
+        floor = detector.comparer.floor(f)
         for other, similarity in detector.neighbours(f):
             assert other.path != f.path and similarity >= floor
-    strict = Detector.for_repository(repo.root, Settings(min_similarity=1.01, min_similarity_small=1.01))
+    strict = Detector.for_repository(repo.root, tfidf(min_similarity=1.01, min_similarity_small=1.01))
     assert all(strict.neighbours(f) == [] for f in strict.functions)
-
-
-def test_small_functions_use_the_small_function_floor(repo: Repo) -> None:
-    detector = Detector.for_repository(repo.root, Settings(min_similarity=0.9, min_similarity_small=0.2))
-    small = next(f for f in detector.functions if f.name == "sync_invoice")
-    large = function("a.py", "def big(x):\n" + "    x += 1\n" * 8 + "    return x\n")
-    assert detector.floor(small) == 0.2 and detector.floor(large) == 0.9
 
 
 def test_a_pair_is_proposed_once_even_when_both_sides_changed(repo: Repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
     both = [f for f in detector.functions if f.name in {"shorten_text", "preview_caption_text"}]
-    candidates, _ = detector.candidates(both)
+    candidates = detector.candidates(both)
     keys = [frozenset((c.new.qualname, c.existing.qualname)) for c in candidates]
     assert len(keys) == len(set(keys))
 
@@ -96,12 +102,40 @@ def test_skipped_pairs_are_listed_with_their_reason(repo: Repo) -> None:
         "    if len(caption_text)", "    # dry-lint: distinct-from src/text.py::shorten_text\n    if len(caption_text)"))
     repo.commit("suppress")
     detector = Detector.for_repository(repo.root, Settings())
-    candidates, skipped = detector.candidates(touched(detector.functions, changed_lines(repo.root, base="main")))
-    assert not any(c.existing.name == "shorten_text" for c in candidates)
-    assert skipped == ["src/widgets/caption.py::preview_caption_text ~ src/text.py::shorten_text: inline distinct-from"]
+    candidates = detector.candidates(touched(detector.functions, changed_lines(repo.root, base="main")))
+    [settled] = [c for c in candidates if c.existing.name == "shorten_text"]
+    assert settled.filtered == "inline distinct-from"
+    assert frozenset(("preview_caption_text", "shorten_text")) not in {frozenset((c.new.name, c.existing.name))
+                                                                       for c in detector.scan()}
 
 
 def test_each_function_gets_at_most_the_configured_number_of_neighbours(repo: Repo) -> None:
-    detector = Detector.for_repository(repo.root, Settings(neighbours=1, min_similarity=0.0, min_similarity_small=0.0))
+    detector = Detector.for_repository(repo.root, tfidf(min_similarity=0.0, min_similarity_small=0.0).model_copy(
+        update={"neighbours": 1}))
     assert all(len(detector.neighbours(f)) <= 1 for f in detector.functions)
     assert any(len(detector.neighbours(f)) == 1 for f in detector.functions)
+
+
+def test_the_base_defaults_to_the_remote_default_branch(repo: Repo, tmp_path) -> None:
+    assert default_base(repo.root) == "origin/main"  # no remote recorded
+    remote = tmp_path / "remote.git"
+    repo.git("init", "-q", "--bare", "-b", "trunk", str(remote))
+    repo.git("push", "-q", str(remote), "main:trunk")
+    clone = tmp_path / "clone"
+    repo.git("clone", "-q", str(remote), str(clone))
+    assert default_base(clone) == "origin/trunk"
+
+
+def test_an_empty_or_all_zero_base_means_the_default_branch(repo: Repo) -> None:
+    assert base_ref(repo.root, "abc123") == "abc123"
+    assert base_ref(repo.root, None) == base_ref(repo.root, "") == base_ref(repo.root, "0" * 40) == "origin/main"
+
+
+def test_find_resolves_a_unique_suffix_and_refuses_ambiguity(repo: Repo) -> None:
+    detector = Detector.for_repository(repo.root, Settings())
+    assert detector.find("text.py::shorten_text").qualname == "src/text.py::shorten_text"
+    assert detector.find("src/text.py::shorten_text").name == "shorten_text"
+    with pytest.raises(ValueError, match="functions match"):
+        detector.find("::sync_")
+    with pytest.raises(ValueError, match="0 functions"):
+        detector.find("nowhere")
