@@ -115,7 +115,12 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | Input | Default | |
 | --- | --- | --- |
 | `typesafe-api-key` | | Enables the Jev judge. |
-| `judge` | `auto` | `jev` when the key is set, otherwise `none`. Can be `jev`, `command`, `none` or an installed judge plugin. |
+| `anthropic-api-key` | | Enables escalation: Claude Sonnet re-judges first-judge scores in the escalation band, for about one call every three PRs ([judges](judges.md)). Empty: no escalation. |
+| `claude-code-oauth-token` | | A Claude subscription token (`claude setup-token`): the `claude-code` judge runs on the subscription. The `claude` CLI is installed only when this is set. |
+| `claude-code-version` | `2.1.311` | The `@anthropic-ai/claude-code` version installed for it. |
+| `preset` | | Judging preset; `dry-lint config` lists them. Empty: dry-lint picks one from the keys it has (jev+sonnet, jev+claude-code, jev, ...). |
+| `budget-usd` | | Spending cap per run for paid judges; pairs past it are left unjudged and say so. |
+| `judge` | `auto` | `auto` leaves the choice to the preset. An explicit `jev`, `command`, `none` or installed plugin replaces it (preset `custom`). |
 | `judge-command` | | For `judge: command`: reads the prompt on stdin, prints a JSON verdict ([judges](judges.md)). |
 | `plugins` | | Extra packages to install, one per line. |
 | `mode` | `auto` | See above. |
