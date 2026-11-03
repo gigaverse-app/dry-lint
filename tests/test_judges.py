@@ -99,7 +99,8 @@ def test_jev_errors_surface_instead_of_becoming_verdicts() -> None:
 def script(tmp_path: Path, body: str) -> str:
     path = tmp_path / "judge.py"
     path.write_text(body)
-    return f'"{sys.executable}" "{path}"'
+    # Invoke Python explicitly: Windows neither executes shebangs nor preserves unquoted backslashes in shlex.
+    return shlex.join([sys.executable, str(path)])
 
 
 def test_command_judge_sends_both_functions_and_reads_the_json_verdict(tmp_path: Path) -> None:
@@ -263,17 +264,10 @@ def test_an_http_judge_must_say_how_to_ask_and_how_to_read_an_answer() -> None:
         bare.answer({})
 
 
-def fake_cli(tmp_path: Path, name: str, body: str) -> str:
-    path = tmp_path / name
-    path.write_text(body)
-    # Invoke Python explicitly: Windows neither executes shebangs nor preserves unquoted backslashes in shlex.
-    return shlex.join([sys.executable, str(path)])
-
-
 def test_the_claude_code_judge_runs_the_cli_without_tools_and_without_an_api_key(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "would-bill-the-api")
     monkeypatch.setenv("KEEP_ME", "yes")
-    cli = fake_cli(tmp_path, "claude", (
+    cli = script(tmp_path, (
         "import json, os, sys\nprompt = sys.stdin.read()\n"
         "ok = 'ANTHROPIC_API_KEY' not in os.environ and os.environ.get('KEEP_ME') == 'yes'\n"
         "print(json.dumps({'label': 'duplicate', 'score': 0.9 if ok else 0.0, 'why': ' '.join(sys.argv[1:])}))\n"
@@ -287,7 +281,7 @@ def test_the_claude_code_judge_runs_the_cli_without_tools_and_without_an_api_key
 
 
 def test_the_codex_judge_reads_the_last_message_codex_writes(tmp_path: Path) -> None:
-    cli = fake_cli(tmp_path, "codex", (
+    cli = script(tmp_path, (
         "import json, os, sys\nargs = sys.argv[1:]\nprompt = sys.stdin.read()\n"
         "out = args[args.index('-o') + 1]\n"
         "ok = '# NEW: src/widgets/caption.py::clip' in prompt and '--sandbox' in args and os.listdir('.') == []\n"
