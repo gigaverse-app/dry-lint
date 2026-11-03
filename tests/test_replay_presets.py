@@ -207,27 +207,35 @@ def test_judging_records_each_judge_once_per_pair_and_resumes_after_failures(rep
     out = sampled(replay, history, tmp_path)
     rows = json.loads((out / "sample.json").read_text())
     replay["judge"](out, {"jev": lambda: Fixed("jev", 0.7), "sonnet": lambda: Fixed("sonnet", 0.95, fail_first=True)})
-    verdicts = replay["read"](out / "verdicts.jsonl")
-    assert sum(v["judge"] == "jev" for v in verdicts) == len(rows)
-    assert sum(v["judge"] == "sonnet" for v in verdicts) == max(len(rows) - 8, 0)
+    recorded = replay["read"](out / "verdicts.jsonl")
+    assert sum(v["judge"] == "jev" for v in recorded) == len(rows)
+    assert sum(v["judge"] == "sonnet" for v in recorded) == max(len(rows) - 8, 0)
     replay["judge"](out, {"jev": lambda: Fixed("jev", 0.1), "sonnet": lambda: Fixed("sonnet", 0.95)})
-    verdicts = replay["read"](out / "verdicts.jsonl")
-    assert sum(v["judge"] == "sonnet" for v in verdicts) == len(rows)
-    assert all(v["score"] == 0.7 for v in verdicts if v["judge"] == "jev")  # never re-judged
+    recorded = replay["read"](out / "verdicts.jsonl")
+    assert sum(v["judge"] == "sonnet" for v in recorded) == len(rows)
+    assert all(v["score"] == 0.7 and v["label"] == "duplicate" for v in recorded if v["judge"] == "jev")  # never re-judged
 
 
-@pytest.mark.parametrize("scores,preset,expected", [
-    ({"jev": 0.85}, "jev", (True, True)),
-    ({"jev": 0.75}, "jev", (False, False)),
-    ({"jev": 0.75, "sonnet": 0.65}, "jev+sonnet", (True, False)),  # in the band: Sonnet decides
-    ({"jev": 0.75, "sonnet": 0.9}, "jev+sonnet", (True, True)),
-    ({"jev": 0.95, "sonnet": 0.1}, "jev+sonnet", (True, True)),  # above the band: Jev's answer stands
-    ({"jev": 0.3, "sonnet": 0.9}, "jev+sonnet", (False, False)),  # below the band: never escalated
-    ({"jev": 0.75}, "jev+sonnet", (True, True)),  # no second opinion: Jev's answer stands
+def verdicts(**scores) -> dict[str, dict]:
+    """Verdicts by judge: a float is a duplicate at that score; a (label, score) pair sets the label too."""
+    return {judge: {"label": value[0], "score": value[1]} if isinstance(value, tuple) else {"score": value}
+            for judge, value in scores.items()}
+
+
+@pytest.mark.parametrize("given,preset,expected", [
+    (verdicts(jev=0.85), "jev", (True, True)),
+    (verdicts(jev=0.75), "jev", (False, False)),
+    (verdicts(jev=0.75, sonnet=0.95), "jev", (False, False)),  # Jev alone never asks Sonnet
+    (verdicts(jev=0.75, sonnet=0.65), "jev+sonnet", (True, False)),  # in the band: Sonnet decides
+    (verdicts(jev=0.75, sonnet=0.9), "jev+sonnet", (True, True)),
+    (verdicts(jev=0.75, sonnet=("separate", 0.9)), "jev+sonnet", (False, False)),  # labelled separate: never counted
+    (verdicts(jev=0.95, sonnet=0.1), "jev+sonnet", (True, True)),  # above the band: Jev's answer stands
+    (verdicts(jev=0.3, sonnet=0.9), "jev+sonnet", (False, False)),  # below the band: never escalated
+    (verdicts(jev=0.75), "jev+sonnet", (True, True)),  # no second opinion: Jev's answer stands
     ({}, "jev+sonnet", (False, False)),
 ])
-def test_presets_report_and_fail_at_their_measured_thresholds(replay, scores, preset, expected) -> None:
-    assert replay["reported"](scores, preset) == expected
+def test_presets_report_and_fail_as_the_report_would(replay, given, preset, expected) -> None:
+    assert replay["reported"](given, preset) == expected
 
 
 def label_all(replay, out: Path, rows: list[dict]) -> None:

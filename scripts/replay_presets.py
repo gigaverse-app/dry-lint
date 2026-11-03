@@ -321,18 +321,22 @@ def judge(out: Path, judges: dict[str, Callable[[], Judge]]) -> None:
                 verdicts = instance.judge([candidate(row) for row in batch], Settings())
             except (httpx.HTTPError, ValueError):
                 continue
-            append(path, [{"id": row["id"], "judge": name, "score": v.score, "behaves_differently": v.behaves_differently}
-                          for row, v in zip(batch, verdicts)])
+            append(path, [{"id": row["id"], "judge": name, "label": v.label, "score": v.score,
+                           "behaves_differently": v.behaves_differently} for row, v in zip(batch, verdicts)])
 
 
-def reported(scores: dict[str, float], preset: str) -> tuple[bool, bool]:
-    """(reported, fails) for a pair under a judging preset, from each judge's score (docs/judges.md thresholds)."""
-    if preset == "jev":
-        score = scores.get("jev")
-        return (score is not None and score >= 0.8,) * 2
-    jev, sonnet = scores.get("jev"), scores.get("sonnet")
-    score = sonnet if jev is not None and 0.5 <= jev < 0.91 and sonnet is not None else jev
-    return score is not None and score >= 0.6, score is not None and score >= 0.7
+def reported(verdicts: dict[str, dict], preset: str) -> tuple[bool, bool]:
+    """
+    (reported, fails) under a judging preset (presets.py thresholds), as the report decides: a verdict counts when
+    its label is not "separate" and its score reaches the threshold. Sonnet answers for Jev scores in [0.5, 0.91).
+    """
+    jev, sonnet = verdicts.get("jev"), verdicts.get("sonnet")
+    chosen = jev
+    if preset == "jev+sonnet" and jev is not None and 0.5 <= jev["score"] < 0.91 and sonnet is not None:
+        chosen = sonnet
+    report_at, fail_at = (0.8, 0.8) if preset == "jev" else (0.6, 0.7)
+    counts = chosen is not None and chosen.get("label", "duplicate") != "separate"
+    return counts and chosen["score"] >= report_at, counts and chosen["score"] >= fail_at
 
 
 OPTIONS = ("baseline", "k5", "floor", "behaviour", "aggressive", "rank1", "rank2")
@@ -349,7 +353,7 @@ def proposes(row: dict, option: str) -> bool:
     return option in found if option == "baseline" else (option in found and "baseline" not in found)
 
 
-def totals(rows: list[dict], labels: dict[int, dict], scores: dict[int, dict[str, float]], option: str) -> dict[str, float]:
+def totals(rows: list[dict], labels: dict[int, dict], scores: dict[int, dict[str, dict]], option: str) -> dict[str, float]:
     """Weighted totals over labelled rows: pairs, real duplicates, and what each preset reports or fails on."""
     found: dict[str, float] = defaultdict(float)
     for row in rows:
@@ -400,9 +404,9 @@ def report(outs: list[Path], rounds: int = 1000, seed: int = 20261107) -> dict:
         population = json.loads((out / "population.json").read_text())
         labels = consensus(out)
         rows = [row for row in json.loads((out / "sample.json").read_text()) if row["id"] in labels]
-        scores: dict[int, dict[str, float]] = defaultdict(dict)
+        scores: dict[int, dict[str, dict]] = defaultdict(dict)
         for verdict in read(out / "verdicts.jsonl"):
-            scores[verdict["id"]][verdict["judge"]] = verdict["score"]
+            scores[verdict["id"]][verdict["judge"]] = verdict
         draws = resamples(rows, random.Random(seed), rounds)
         options = {}
         for option in OPTIONS:
