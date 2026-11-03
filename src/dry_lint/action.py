@@ -29,6 +29,7 @@ import httpx
 
 from dry_lint import sticky
 from dry_lint.git import git
+from dry_lint.github import github_event
 
 ARTIFACT = "dry-lint-candidates"
 
@@ -39,11 +40,6 @@ def env(name: str, default: str = "") -> str:
 
 def flag(name: str) -> bool:
     return env(name).lower() in ("true", "1", "yes")
-
-
-def load_event() -> dict:
-    path = env("GITHUB_EVENT_PATH")
-    return json.loads(Path(path).read_text()) if path and Path(path).exists() else {}
 
 
 def is_fork(event: dict) -> bool:
@@ -159,7 +155,7 @@ def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTr
 
 
 def plan() -> int:
-    event_name, event = env("GITHUB_EVENT_NAME"), load_event()
+    event_name, event = env("GITHUB_EVENT_NAME"), github_event()
     write_outputs(mode=resolve_mode(env("INPUT_MODE", "auto"), event_name, event),
                   workflow_run_id=(event.get("workflow_run") or {}).get("id", ""))
     return 0
@@ -170,7 +166,7 @@ def workdir() -> Path:
 
 
 def run(transport: httpx.BaseTransport | None = None) -> int:
-    event_name, event = env("GITHUB_EVENT_NAME"), load_event()
+    event_name, event = env("GITHUB_EVENT_NAME"), github_event()
     mode = resolve_mode(env("INPUT_MODE", "auto"), event_name, event)
     work = workdir()
     work.mkdir(parents=True, exist_ok=True)
