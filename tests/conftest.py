@@ -190,7 +190,7 @@ def judge_script(tmp_path: Path, score: float) -> str:
     path.write_text(
         "import json, pathlib, sys\n"
         f"calls = pathlib.Path({str(calls)!r})\n"
-        "calls.write_text(str(int(calls.read_text()) + 1) if calls.exists() else '1')\n"
+        "with calls.open('a') as count:\n    count.write('.')\n"  # an append, so concurrent calls never lose a count
         "prompt = sys.stdin.read()\n"
         "twin = 'preview_caption_text' in prompt and 'shorten_text' in prompt\n"
         f"print(json.dumps({{'label': 'duplicate' if twin else 'separate', 'score': {score} if twin else 0.1, "
@@ -219,7 +219,7 @@ def run_cli(repo: Repo, tmp_path: Path, *args: str, command: str = "check") -> i
 def judge_calls(tmp_path: Path) -> int:
     """How many pairs the `twin_judge` command has been asked about."""
     path = tmp_path / "judge-calls"
-    return int(path.read_text()) if path.exists() else 0
+    return len(path.read_text()) if path.exists() else 0
 
 
 @pytest.fixture

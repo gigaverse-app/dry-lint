@@ -78,7 +78,8 @@ replaces the judge. Dryer's identity includes the upstream revision and language
 ## Cache compatibility
 
 Schema 2 adds `similarity_reusable` to candidates and stored records. Comparers opt into that policy with an
-optional attribute of the same name; absence means false. TF-IDF opts in to retain its existing heuristic.
+optional attribute of the same name; absence means false. TF-IDF no longer opts in: its tokens leave out
+literals, so the score can stay put while the logic converges.
 Dryer leaves it false because normalization erases literals and fields: a flat Jaccard score does not justify
 reusing a verdict about changed logic. Exact structure-hash reuse still works, including across comparers.
 

@@ -2,7 +2,7 @@
 The sticky pull request comment: one comment per pull request, edited in place on every run.
 
     python -m dry_lint.sticky --body comment.md --repository owner/repo --pull-request 12 --findings 2 \
-        [--report report.json] [--repository-ledger ledger.json] [--key api] [--expect-head SHA] [--run-url URL] \
+        [--report [SCOPE=]report.json] [--repository-ledger ledger.json] [--key api] [--expect-head SHA] [--run-url URL] \
         [--skip-clean]
 
 - **Found by its marker.** The comment's first line is `<!-- dry-lint -->`, or `<!-- dry-lint:KEY -->` when one
@@ -14,7 +14,9 @@ The sticky pull request comment: one comment per pull request, edited in place o
   to a newer commit: that commit's own run will post.
 - **Keeps a running account.** With `--report`, the comment carries the pull request's ledger (ledger.py): what
   every push cost, and every duplicate it caught and kept out of the codebase. The previous comment is the only
-  state, so a run counts once however often it posts.
+  state, so a run counts once however often it posts. Name each report's scope (`--report local=local.json
+  --report cross-repository=peers.json`) when one run posts several: a scope missing from a run then leaves the
+  duplicates it found open, rather than counting them as kept out.
 - **Never fails the build for lack of permission.** A pull request from a fork gets a read-only token: the
   comment is skipped with a warning, and the annotations and job summary still carry the findings.
 
@@ -158,7 +160,7 @@ def run_id() -> str:
 def upsert(github: GitHub, repository: str, number: int, markdown: str, findings: int, key: str = "",
            expect_head: str = "", banner: bool = False, run_url: str = "", note: str = "",
            skip_clean: bool = False, reports: list[Report] = (), run: str = "",
-           repository_ledger: RepositoryLedger | None = None) -> str:
+           repository_ledger: RepositoryLedger | None = None, scopes: list[str] = ()) -> str:
     """
     Create, update or leave the sticky comment, and say which: created, updated, resolved (it had findings and has
     none now), skipped (clean, `skip_clean`, never commented), stale (the pull request moved on) or forbidden (the
@@ -175,7 +177,7 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
         if resolving:
             note = "\n\n".join(part for part in (RESOLVED, note) if part)
         body = compose(markdown, key, banner, run_url, expect_head, note,
-                       account(mine, list(reports), run, repository_ledger))
+                       account(mine, list(reports), run, repository_ledger, list(scopes)))
         if not mine:
             github.create(repository, number, body)
             return "created"
@@ -189,15 +191,22 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
         raise
 
 
-def account(mine: list[dict], reports: list[Report], run: str, repository: RepositoryLedger | None) -> str:
+def account(mine: list[dict], reports: list[Report], run: str, repository: RepositoryLedger | None,
+            scopes: list[str] = ()) -> str:
     """
     The ledger section: the previous comment's ledger with this run added. With copies left by racing runs, the
     one that counted the most runs wins. Nothing before the first run with a report.
     """
     previous = [found for c in mine if (found := PullLedger.read(c.get("body", ""))) is not None]
     start = max(previous, key=lambda found: found.tally.runs, default=PullLedger())
-    ledger = start.advance(reports, run)
+    ledger = start.advance(reports, run, scopes)
     return ledger_render(ledger, repository) if ledger.tally.runs else ""
+
+
+def scoped(argument: str) -> tuple[str, Path]:
+    """`SCOPE=PATH` or a bare `PATH`, whose scope is then ""."""
+    scope, separator, path = argument.partition("=")
+    return (scope, Path(path)) if separator and re.fullmatch(r"[\w-]+", scope) else ("", Path(argument))
 
 
 def combine(paths: list[Path]) -> str:
@@ -226,8 +235,9 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
     parser.add_argument("--run-url", default="")
     parser.add_argument("--note", default="", help="A line before the report, e.g. whether the findings block.")
     parser.add_argument("--skip-clean", action="store_true", help="Post nothing for a clean report never commented on.")
-    parser.add_argument("--report", type=Path, action="append", default=[],
-                        help="report.json of this run, to add to the pull request's ledger; repeat with --body.")
+    parser.add_argument("--report", type=scoped, action="append", default=[], metavar="[SCOPE=]PATH",
+                        help="report.json of this run, to add to the pull request's ledger; repeat with --body. "
+                             "SCOPE names the check it came from, so a scope that did not run settles nothing.")
     parser.add_argument("--repository-ledger", type=Path, help="The repository's ledger, to show its totals.")
     parser.add_argument("--run", default=run_id(), help="This run's id, so posting it again does not count it twice.")
     args = parser.parse_args(argv)
@@ -236,13 +246,13 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
         print("::warning title=dry-lint::No GITHUB_TOKEN, so no pull request comment.")
         return 0
     github = GitHub(token, os.environ.get("GITHUB_API_URL", "https://api.github.com"), transport)
-    reports = [Report.model_validate_json(path.read_text(encoding="utf-8")) for path in args.report]
+    reports = [Report.model_validate_json(path.read_text(encoding="utf-8")) for _, path in args.report]
     repository = args.repository_ledger
     totals = (RepositoryLedger.load(repository.read_text(encoding="utf-8"), args.repository)
               if repository and repository.exists() else None)
     outcome = upsert(github, args.repository, args.pull_request, combine(args.body), args.findings, args.key,
                      args.expect_head, banner_available(transport), args.run_url, args.note, args.skip_clean,
-                     reports, args.run, totals)
+                     reports, args.run, totals, [scope for scope, _ in args.report])
     if outcome == "forbidden":
         print("::warning title=dry-lint::This token may not comment on the pull request (a fork?). "
               "The findings are in the annotations and the job summary.")

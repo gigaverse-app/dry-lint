@@ -51,9 +51,21 @@ def test_tokens_describe_runtime_behavior_not_types_or_comments(extractor, path)
       catch (error) { return client.cachedInvoice; }
     };'''
     function = extractor.functions(path, source)[0]
-    assert function.calls == ["fetchInvoice"]
+    assert function.calls == []  # client.fetchInvoice is another object's method: a token, not a direct call
     assert {"call:fetchinvoice", "attr:cachedinvoice", "key:invoiceId", "ctl:await", "ctl:try"} <= set(function.tokens)
     assert not any("secret" in token or "fictional" in token or "othercall" in token for token in function.tokens)
+
+
+def test_functions_that_both_call_a_builtin_method_are_judged_not_taken_as_delegating(extractor):
+    """INVARIANT: two functions are "one calls the other" only when one provably calls the other, not a shared method."""
+    [trim] = extractor.functions("src/a.ts", "export function trim(value: string) {\n  return value.trim().toLowerCase();\n}")
+    [normalize] = extractor.functions("src/b.ts", "export function normalize(value: string) {\n  return value.trim().toLowerCase();\n}")
+    assert trim.calls == normalize.calls == []
+    assert why_skipped(trim, normalize, Settings()) is None
+    [wrapper] = extractor.functions("src/c.ts", "export function clean(value: string) {\n  return trim(value);\n}")
+    assert why_skipped(wrapper, trim, Settings()) == "one calls the other"
+    [method] = extractor.functions("src/d.ts", "class Text {\n  clean(value: string) {\n    return this.trim(value);\n  }\n}")
+    assert method.calls == ["this.trim"]
 
 
 def test_tsx_wrapped_components_keep_their_exported_identity(extractor):

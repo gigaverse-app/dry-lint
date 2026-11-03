@@ -1,6 +1,6 @@
 import pytest
 
-from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, Ledger, estimate, price
+from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, Ledger, Spend, combined, estimate, price
 from dry_lint.judges.command import prompt
 from dry_lint.models import Candidate
 from dry_lint.settings import Budget, Settings
@@ -83,3 +83,12 @@ def test_a_subscription_is_bounded_by_both_its_calls_and_its_list_price() -> Non
     one = estimate(SubscribedSonnet(), [PAIR], Settings())
     assert Ledger(Settings(budget=Budget(usd=one * 10, subscription_calls=2))).affordable(SubscribedSonnet(), [PAIR] * 5) == 2
     assert Ledger(Settings(budget=Budget(usd=one * 1.5, subscription_calls=20))).affordable(SubscribedSonnet(), [PAIR] * 5) == 1
+
+
+def test_combined_spending_adds_up_per_judge_and_keeps_unknown_costs_unknown() -> None:
+    spends = [Spend(judge="a", calls=2, skipped=1, usd=0.5), Spend(judge="b", calls=1, usd=None),
+              Spend(judge="a", calls=3, failed=1, usd=0.25, error="login expired"), Spend(judge="b", calls=4, usd=1.0)]
+    total = {s.judge: s for s in combined(spends)}
+    assert (total["a"].calls, total["a"].skipped, total["a"].failed, total["a"].usd) == (5, 1, 1, 0.75)
+    assert total["a"].error == "login expired"
+    assert total["b"].calls == 5 and total["b"].usd is None

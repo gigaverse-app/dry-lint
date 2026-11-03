@@ -37,6 +37,17 @@ jobs:
           "from importlib.util import find_spec; from dry_lint.plugins import load;
           from dry_lint.settings import Settings; load('comparers', Settings().comparer).index([]); assert find_spec('dryer') is None"
 
+  counter:
+    name: Test the global counter
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: counter
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The counter's rules have no dependencies; Node's own test runner checks them.
+      - run: node --test
+
   lint-ci:
     name: Lint the action and workflows
     runs-on: ubuntu-latest
@@ -53,7 +64,8 @@ jobs:
 
   dogfood:
     name: dry-lint on itself
-    if: github.event_name == 'pull_request'
+    # On main too: that run judges merged code and folds merged pull requests into the repository's ledger.
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,12 +73,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
       - uses: ./
         id: dry-lint
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
+          # Merged code was reviewed already, overrides included: on main, report but never fail.
+          warn-only: ${{ github.event_name == 'push' }}
       - name: The action reports its mode and result
         env:
           MODE: ${{ steps.dry-lint.outputs.mode }}
@@ -78,7 +92,7 @@ jobs:
   gate:
     name: CI gate
     if: always()
-    needs: [test, lint-ci, dogfood]
+    needs: [test, counter, lint-ci, dogfood]
     runs-on: ubuntu-latest
     steps:
       # The one check to require: fails on any missing, failed, cancelled or unexpectedly skipped prerequisite.
@@ -86,4 +100,4 @@ jobs:
         with:
           needs: ${{ toJSON(needs) }}
           required: >-
-            {"test": true, "lint-ci": true, "dogfood": ${{ github.event_name == 'pull_request' }}}
+            {"test": true, "counter": true, "lint-ci": true, "dogfood": ${{ github.event_name != 'workflow_dispatch' }}}

@@ -60,6 +60,19 @@ class Spend(BaseModel):
     error: str = Field(default="", description="Why this judge failed, when it did.")
 
 
+def combined(spends: list[Spend]) -> list[Spend]:
+    """Several runs' spending, one entry per judge: calls, skips and failures add up; an unknown cost stays unknown."""
+    total: dict[str, Spend] = {}
+    for spend in spends:
+        into = total.setdefault(spend.judge, Spend(judge=spend.judge, subscription=spend.subscription))
+        into.calls += spend.calls
+        into.skipped += spend.skipped
+        into.failed += spend.failed
+        into.usd = None if into.usd is None or spend.usd is None else into.usd + spend.usd
+        into.error = spend.error or into.error
+    return list(total.values())
+
+
 class Ledger:
     """One run's spending, on top of what earlier runs on the same pull request `spent`: how many of the pairs each
     judge may still be asked about."""

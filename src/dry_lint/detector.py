@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 from dry_lint.function_index import FunctionIndex, extraction_contract
-from dry_lint.functions import extractor_for, repository_functions
+from dry_lint.functions import extractor_for, repository_functions, selected_path
 from dry_lint.git import git
 from dry_lint.models import Candidate, Function, Run
 from dry_lint.plugins import Comparer, Extractor, identity, load
@@ -60,11 +60,44 @@ def touched(functions: list[Function], lines: dict[str, set[int]]) -> list[Funct
     return [f for f in functions if lines.get(f.path, set()) & set(range(f.line, f.end_line + 1))]
 
 
+def changed_functions(root: Path, settings: Settings, base: str | None) -> list[Function]:
+    """The functions a change touched, as `check` finds them, reading only the changed files."""
+    extractors = [load("extractors", choice) for choice in settings.extractors]
+    found: list[Function] = []
+    for path, lines in changed_lines(root, base).items():
+        extractor = extractor_for(path, extractors)
+        if extractor is None or not selected_path(path, settings.include, settings.exclude):
+            continue
+        try:
+            found += touched(extractor.functions(path, (root / path).read_text(encoding="utf-8")), {path: lines})
+        except (OSError, UnicodeDecodeError):
+            continue
+    return found
+
+
 def calls(function: Function) -> set[str]:
-    """The names the function calls: from its extractor, else from its code after the line that defines it."""
+    """
+    The function's direct calls (`name`, or `self.name`, `cls.name`, `this.name`): from its extractor, else from
+    its code after the line that defines it.
+    """
     if function.calls is not None:
         return set(function.calls)
-    return set(re.findall(r"\b(\w+)\(", function.code.partition("\n")[2]))
+    body = function.code.partition("\n")[2]
+    return {*re.findall(r"(?<![\w.])(\w+)\s*\(", body),
+            *(f"{receiver}.{name}" for receiver, name in re.findall(r"\b(self|cls|this)\.(\w+)\s*\(", body))}
+
+
+def delegates(caller: Function, callee: Function) -> bool:
+    """
+    Whether `caller` provably calls `callee`: a bare call of a module-level function, or a call through `self`,
+    `cls` or `this` of a method of the same class. A call on any other receiver proves nothing: `value.trim()` in
+    two functions named `trim` and `normalize` calls String.trim, not either of them.
+    """
+    called = calls(caller)
+    if callee.owner is None:
+        return callee.name in called
+    return (callee.owner == caller.owner and callee.path == caller.path
+            and any(f"{receiver}.{callee.name}" in called for receiver in ("self", "cls", "this")))
 
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
@@ -73,7 +106,7 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
         return "inline ignore"
     if a.name.startswith("__") and b.name.startswith("__"):
         return "constructor or dunder pattern"
-    if a.origin == b.origin and (b.name in calls(a) or a.name in calls(b)):
+    if a.origin == b.origin and (delegates(a, b) or delegates(b, a)):
         return "one calls the other"
     for pattern in settings.patterns:
         if fnmatch.fnmatch(a.qualname, pattern.members) and fnmatch.fnmatch(b.qualname, pattern.members):

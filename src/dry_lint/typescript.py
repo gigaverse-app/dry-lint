@@ -39,15 +39,29 @@ def call_name(node: Node) -> str | None:
     return text(target) if target is not None and target.type in {"identifier", "property_identifier"} else None
 
 
+def direct_call(node: Node) -> str | None:
+    """`name` for a bare call, `this.name` for one on the object itself; None for any other receiver."""
+    target = node.child_by_field_name("function") or node.child_by_field_name("constructor")
+    assert target is not None
+    if target.type == "identifier":
+        return text(target)
+    receiver, prop = target.child_by_field_name("object"), target.child_by_field_name("property")
+    if target.type == "member_expression" and receiver is not None and receiver.type == "this" and prop is not None:
+        return f"this.{text(prop)}"
+    return None
+
+
 def fingerprint(node: Node, name: str) -> tuple[list[str], list[str]]:
+    """Behaviour tokens, and the direct calls (see `direct_call`): a call on another receiver proves no delegation."""
     # dry-lint: distinct-from src/dry_lint/functions.py::node_tokens
     tokens = [f"fn:{word}" for word in words(name)] * 2
     calls = []
     for child in behavior(node):
         if child.type in {"call_expression", "new_expression"}:
+            if direct := direct_call(child):
+                calls.append(direct)
             leaf = call_name(child)
             if leaf:
-                calls.append(leaf)
                 tokens.append(f"call:{leaf.lower()}")
                 tokens.extend(f"w:{word}" for word in words(leaf))
         elif child.type == "member_expression":

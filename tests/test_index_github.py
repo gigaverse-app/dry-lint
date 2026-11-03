@@ -150,8 +150,9 @@ def test_truncated_tree_cannot_be_reported_as_a_complete_index(index_server):
 
 @pytest.mark.parametrize("mode", ["single", "fetch-indexes"])
 def test_action_consumes_indexes_through_the_real_cli(index_server, github_env, repo, tmp_path, twin_judge, mode):
-    github_env("workflow_dispatch", {}, mode=mode, working_directory=str(repo.root), base="HEAD",
-               repository_indexes="\norg/app@main\n", comment="false", judge="command", judge_command=twin_judge)
+    github_env("workflow_dispatch", {}, mode=mode, working_directory=str(repo.root), base="main",
+               repository_indexes="\norg/app@main\n", comment="false", judge="command", judge_command=twin_judge,
+               warn_only="true")
     assert action.main(["run"], transport=index_server[3]) == 0
     manifest = json.loads((action.workdir() / "index-arguments.json").read_text())
     assert manifest[0] == "--repo-index"
@@ -161,6 +162,20 @@ def test_action_consumes_indexes_through_the_real_cli(index_server, github_env, 
     if mode == "single":
         report = json.loads((action.workdir() / "report.json").read_text())
         assert report["functions"] == len(index_server[0].functions) * 2
+        # The published artifact met real changed functions, and found the peer's twin among them.
+        assert report["changed"] > 0
+        assert any(f["reported"] and f["candidate"]["existing"]["origin"]["repository"] == "org/app"
+                   for f in report["findings"])
+
+
+def test_a_change_that_touches_no_function_downloads_no_peer_index(index_server, github_env, repo, tmp_path):
+    """INVARIANT: peer indexes are fetched only when some changed function could be compared with them."""
+    github_env("workflow_dispatch", {}, working_directory=str(repo.root), base="HEAD",
+               repository_indexes="org/app@main", comment="false", judge="none")
+    assert action.main(["run"], transport=index_server[3]) == 0
+    assert index_server[2] == []
+    assert "Not downloaded: this change touches no function in scope" in (tmp_path / "summary").read_text()
+    assert json.loads((action.workdir() / "report.json").read_text())["changed"] == 0
 
 
 def test_action_publishes_functions_without_judging_or_commenting(github_env, repo, tmp_path):
@@ -173,7 +188,7 @@ def test_action_publishes_functions_without_judging_or_commenting(github_env, re
 
 
 def test_repeated_peer_indexes_cannot_double_count_functions(index_server, github_env, repo):
-    github_env("workflow_dispatch", {}, working_directory=str(repo.root), base="HEAD",
+    github_env("workflow_dispatch", {}, working_directory=str(repo.root), base="main",
                repository_indexes="org/app@main\n\norg/app@main", comment="false", judge="none")
     assert action.main(["run"], transport=index_server[3]) == 2
 

@@ -8,6 +8,11 @@
   <img alt="dry-lint" src="docs/assets/sticky-banner-light.svg" width="640">
 </picture>
 
+<a href="#the-counter"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark">
+  <img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg" width="640">
+</picture></a>
+
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
 (pylint's `duplicate-code`, jscpd) look for repeated lines, so they miss this. Every rewrite is also a chance to
@@ -109,6 +114,29 @@ label lets one through. Pull requests from forks get no secrets, so the default 
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
 
+Every sticky also keeps a running account: what each push cost, and each duplicate kept out of the codebase
+([the ledger](docs/github-action.md#the-ledger)).
+
+### The counter
+
+The sign above counts every duplicate dry-lint has kept out of a codebase: a duplicate a pull request introduced,
+dry-lint reported, and a later push removed before merging. When a pull request merges, the action's run on the
+default branch sends its counts (duplicates kept out, caught and dismissed, pushes, judgments, functions checked,
+judging spend and the dry-lint version) to a [Cloudflare Worker](counter). The repository is sent only as the
+SHA-256 of its name; no code, names, paths or people. Each pull request is counted once. Opt out with
+`share-totals: "false"`.
+
+Put your own repository's sign in its README:
+
+```html
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&repository=OWNER/NAME">
+  <img alt="Duplicates dry-lint kept out of OWNER/NAME" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?repository=OWNER/NAME" width="640">
+</picture>
+```
+
+or a badge: `![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Frepository%3DOWNER%2FNAME)`.
+
 **pre-commit** ([examples/pre-commit-config.yaml](examples/pre-commit-config.yaml)): hook id `dry-lint` checks the
 staged functions.
 
@@ -164,7 +192,7 @@ thresholds come from the preset ([docs/judges.md](docs/judges.md)); anything set
 | `drift_at` | 0.8 | a duplicate whose `behaves_differently` reaches this is drifted |
 | `budget` | `{ usd = 0.04, subscription_calls = 20 }` | most judging spends on a pull request across all its pushes, at list price, subscriptions included (`--budget-usd`); and calls per run to subscription judges |
 | `prices` | built-in table | USD per million input and output tokens, by model |
-| `reopen_margin` | 0.05 | how much closer a "separate" pair must get before it is judged again |
+| `reopen_margin` | 0.05 | for a comparer that permits similarity reuse (no built-in one does), how much closer a "separate" pair must get before it is judged again |
 | `max_findings` | 10 | rows in the PR comment |
 | `extractors` | `["python", "typescript"]` | `.py`, `.ts`, `.tsx`, `.mts`, `.cts` |
 | `comparer` | `"tfidf"` | options `min_similarity` (0.5), `min_similarity_small` (0.3) under `small_function_lines` (6) |

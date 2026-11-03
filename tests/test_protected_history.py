@@ -28,6 +28,7 @@ def test_exploration_leaves_capacity_for_later_baseline(experiment) -> None:
     early, late = coverage_pair(1), coverage_pair(2)
     result = api["evaluate"](history(api, [early], [late]), answers, "protected", total=1)
     assert result["curves"][0]["selected"] == []
+    assert result["curves"][0]["stopped_reason"] == "exploration_call_reserve"
     assert late.key in result["curves"][1]["covered"]
     assert early.key not in result["curves"][1]["covered"]
 
@@ -41,9 +42,11 @@ def test_dollar_reserve_and_pacing_are_independent_of_the_call_ceiling(experimen
     )
     # The next exploration request's worst-case price cannot fit outside the reserved $0.10.
     assert result["curves"][0]["selected"] == []
+    assert result["curves"][0]["stopped_reason"] == "exploration_request_does_not_fit"
     assert late.key in result["curves"][1]["covered"]
     paced = api["evaluate"](history(api, early, [late]), answers, "protected", total=20, protection=reserve)
     assert len(paced["curves"][0]["selected"]) == 1
+    assert paced["curves"][0]["stopped_reason"] == "exploration_pacing"
     assert paced["curves"][1]["selected"][0]["key"] == late.key
 
 
@@ -54,6 +57,7 @@ def test_duplicate_logical_run_does_not_buy_another_exploration_opportunity(expe
     result = api["evaluate"](payload, answers, "protected", total=10)
     assert result["curves"][0]["cumulative_attempts"] == 1
     assert result["curves"][1]["selected"] == []
+    assert result["curves"][1]["stopped_reason"] == "repeated_run"
     assert result["curves"][1]["cumulative_attempts"] == 1
 
 

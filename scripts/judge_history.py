@@ -45,6 +45,8 @@ class Observation(BaseModel):
     seconds: float
     verdict: Verdict | None = None
     error: str | None = None
+    error_detail: str = ""
+    stop_reason: str = ""
 
 
 def answer_key(candidate: Candidate, version: str, policy: str = "concept", *, template: str | None = None) -> str:
@@ -110,11 +112,12 @@ class LiveAnswers:
         # A crash after sending must not turn unknown provider usage into a free retry on resume.
         pending_path.write_text("Request started; usage not yet persisted", encoding="utf-8")
         self.response = None
-        start, verdict, failure = time.perf_counter(), None, None
+        start, verdict, failure, error_detail = time.perf_counter(), None, None, ""
         try:
             [verdict] = self.judge.judge([candidate], self.settings)
         except Exception as error:
             failure = type(error).__name__
+            error_detail = str(error)
         seconds = time.perf_counter() - start
         if self.response is None:
             # Unknown provider usage is not zero cost; stop instead of making additional unmetered calls.
@@ -148,6 +151,8 @@ class LiveAnswers:
             seconds=seconds,
             verdict=verdict,
             error=failure,
+            error_detail=error_detail,
+            stop_reason=str(data.get("stop_reason", "")),
         )
         self.observations[key] = observation
         (self.directory / f"{key}.json").write_text(observation.model_dump_json(indent=2), encoding="utf-8")
@@ -191,22 +196,28 @@ def evaluate(
         for key in candidates:
             state.first_seen.setdefault(key, ordinal)
         selected, run_spent, run_seconds, run_exploration = [], 0.0, 0.0, 0
+        stopped_reason = "repeated_run" if repeated else "campaign_calls" if state.attempts >= total else "run_calls"
         for _ in range(0 if repeated else min(per_run, total - state.attempts)):
             baseline = {k for k in pending if "baseline" in ranks[k]}
             # Protect the current baseline before cost filtering. An expensive baseline item must not
             # silently donate its slot to cheaper exploration. Future revisions need a separate reserve.
             eligible = baseline or (pending if policy != "fixed" else set())
+            if not eligible:
+                stopped_reason = "pool_complete" if not pending else "fixed_pool_complete"
+                break
             room = min(run_usd - run_spent, total_usd - spent)
             if not baseline and protection:
                 # Never borrow baseline capacity for exploration, even on an empty early baseline.
-                if (
-                    exploration_attempts >= total - protection.baseline_calls
-                    or run_exploration >= protection.exploration_per_run
-                ):
+                if exploration_attempts >= total - protection.baseline_calls:
+                    stopped_reason = "exploration_call_reserve"
+                    break
+                if run_exploration >= protection.exploration_per_run:
+                    stopped_reason = "exploration_pacing"
                     break
                 room = min(room, total_usd - protection.baseline_usd - exploration_spent)
             affordable = {k for k in eligible if answers.reserve(candidates[k]) <= room}
             if not affordable:
+                stopped_reason = "baseline_request_does_not_fit" if baseline else "exploration_request_does_not_fit"
                 break
             chooser = (
                 state.model_copy(update={"query_attempts": baseline_query_attempts})
@@ -260,6 +271,7 @@ def evaluate(
                 "exploration_attempts": exploration_attempts,
                 "exploration_usd": exploration_spent,
                 "repeated": repeated,
+                "stopped_reason": stopped_reason,
             }
         )
         print(policy, step.run_id.split("/")[-1][:8], len(selected), "new answers", f"${spent:.5f}", flush=True)

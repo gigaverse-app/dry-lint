@@ -30,7 +30,7 @@ from pathlib import Path
 import httpx
 
 from dry_lint import sticky
-from dry_lint.detector import base_ref, given
+from dry_lint.detector import base_ref, changed_functions, given
 from dry_lint.function_index import export_index
 from dry_lint.git import git
 from dry_lint.github import github_event
@@ -40,6 +40,7 @@ from dry_lint.report import Report
 from dry_lint.settings import Settings
 
 ARTIFACT = "dry-lint-candidates"
+COUNTER = "https://dry-lint-counter.gigaverse-oss.workers.dev"
 OVERRIDE_LABEL = "dry-lint: override"
 HISTORY_DEPTHS = (2, 32, 128, 512, 2048)
 
@@ -289,15 +290,42 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
                 found = [pulled for c in sticky.ours(github.comments(repository, number))
                          if (pulled := PullLedger.read(c.get("body", ""))) is not None]
                 if found:
-                    ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs))
+                    ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs), sharing())
                 else:
                     ledger.unaccounted.append(number)
         except httpx.HTTPError as error:
             print(f"::warning title=dry-lint::Could not read merged pull requests for the ledger: {error}")
             outcome = "partial"
+    share(ledger, transport)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(ledger.model_dump_json(indent=2) + "\n")
     return outcome
+
+
+def sharing() -> bool:
+    return env("INPUT_SHARE_TOTALS", "true").lower() not in ("false", "0", "no")
+
+
+def share(ledger: RepositoryLedger, transport: httpx.BaseTransport | None = None) -> int:
+    """
+    Send the global counter what it has not confirmed: one merged pull request's counts each, under the hash of
+    the repository's name. It counts each pull request once, so a resend is harmless, and what fails stays in
+    the outbox for the next push. Never fails the run; `share-totals: "false"` sends nothing and empties it.
+    """
+    if not sharing():
+        ledger.outbox = []
+        return 0
+    sent = []
+    with httpx.Client(timeout=5, transport=transport) as client:
+        for contribution in ledger.outbox:
+            try:
+                client.post(f"{env('DRY_LINT_COUNTER', COUNTER)}/v1/pulls", json=contribution).raise_for_status()
+            except httpx.HTTPError as error:
+                print(f"::notice title=dry-lint::The global counter is unavailable; will retry: {error}")
+                break
+            sent.append(contribution)
+    ledger.outbox = [contribution for contribution in ledger.outbox if contribution not in sent]
+    return len(sent)
 
 
 def pull_labels(repository: str, number: int, transport: httpx.BaseTransport | None = None) -> set[str]:
@@ -323,16 +351,24 @@ def workdir() -> Path:
     return Path(env("RUNNER_TEMP", "/tmp")) / "dry-lint"
 
 
+def index_specs() -> list[tuple[str, str]]:
+    """The repository-indexes input as (OWNER/NAME, REF) pairs."""
+    specs = []
+    for spec in env("INPUT_REPOSITORY_INDEXES").splitlines():
+        if not spec.strip():
+            continue
+        repository, separator, ref = spec.strip().partition("@")
+        if not separator:
+            raise ValueError("repository-indexes expects OWNER/NAME@REF, one per line")
+        specs.append((repository, ref))
+    return specs
+
+
 def peer_indexes(root: Path, work: Path, transport: httpx.BaseTransport | None = None) -> tuple[list[str], str]:
     arguments, receipts = [], []
     client = IndexClient(env("INPUT_INDEX_TOKEN") or env("GITHUB_TOKEN"), env("GITHUB_API_URL", "https://api.github.com"), transport)
     try:
-        for spec in env("INPUT_REPOSITORY_INDEXES").splitlines():
-            if not spec.strip():
-                continue
-            repository, separator, ref = spec.strip().partition("@")
-            if not separator:
-                raise ValueError("repository-indexes expects OWNER/NAME@REF, one per line")
+        for repository, ref in index_specs():
             fetched = client.fetch(repository, ref, Settings.load(root))
             index = fetched.index
             path = work / f"{repository.replace('/', '--')}-{index.commit}.json.gz"
@@ -347,6 +383,16 @@ def peer_indexes(root: Path, work: Path, transport: httpx.BaseTransport | None =
     receipt = ("\n\n### Peer function indexes\n\n| Repository | Source commit | Functions | Source | Bytes downloaded |\n"
                "| --- | --- | ---: | --- | ---: |\n" + "\n".join(receipts) + "\n") if receipts else ""
     return arguments, receipt
+
+
+UNTOUCHED = ("\n\n### Peer function indexes\n\nNot downloaded: this change touches no function in scope, so there "
+             "is nothing to compare with peer repositories.\n")
+
+
+def changes_functions(root: Path, base: str) -> bool:
+    """Whether the change touches any function in scope: without one, peer indexes have nothing to be compared with."""
+    ensure_history(root, base)
+    return bool(changed_functions(root, Settings.load(root), base or None))
 
 
 def run(transport: httpx.BaseTransport | None = None) -> int:
@@ -366,7 +412,11 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     if env("INPUT_REPOSITORY_INDEXES"):
         if mode in {"detect", "judge"}:
             raise ValueError("Peer indexes are consumed only in trusted single or fetch-indexes mode")
-        index_arguments, receipt = peer_indexes(root, work, transport)
+        index_specs()  # a malformed input fails even when there is nothing to compare
+        if mode == "single" and not changes_functions(root, resolve_base(env("INPUT_BASE"), event_name, event)):
+            receipt = UNTOUCHED
+        else:
+            index_arguments, receipt = peer_indexes(root, work, transport)
     if mode == "fetch-indexes":
         (work / "indexes.md").write_text(receipt)
         write_summary(work / "indexes.md")

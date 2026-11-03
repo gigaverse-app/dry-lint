@@ -5,12 +5,15 @@ The ledger: what dry-lint has cost and caught, across a pull request's pushes an
   the way CI-esta carries its snapshot. It needs no cache, so losing one loses nothing. Each run adds its figures
   once: runs are counted by id and attempt, so posting the same run again changes nothing.
 - **A duplicate is kept out of the codebase** when a push reported it and a later push no longer does, without a
-  person's decision (`distinct-from`, `ignore`, a pattern) settling it. A pair left unjudged is still open.
+  person's decision (`distinct-from`, `ignore`, a pattern) settling it. A pair left unjudged is still open, and so
+  is one whose scope (the local check, or the check against peer repositories) did not report on that push: a
+  check that did not run cannot say the duplicate is gone.
 - **A repository's ledger** is folded on the default branch: each push there adds its own run, and the final ledger
   of every pull request merged since, once. It lives beside the verdicts in the Actions cache, where every pull
   request can read it, and says since when it counts: losing the cache starts it again, never invents figures.
 """
 
+import hashlib
 import json
 import re
 from collections import Counter
@@ -19,6 +22,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
+from dry_lint import __version__
 from dry_lint.models import Versioned
 from dry_lint.report import BLUE, GRAY, Report, badge, code, plural
 
@@ -89,6 +93,7 @@ class Pair(BaseModel):
     found: int = Field(description="The push that first reported it.")
     state: Literal["open", "kept-out", "dismissed"] = "open"
     settled: int | None = Field(default=None, description="The push that kept it out or dismissed it.")
+    scope: str | None = Field(default=None, description="The report scope that found it; None in older ledgers.")
 
     def concept(self) -> str:
         return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
@@ -106,14 +111,20 @@ class PullLedger(Versioned):
     def count(self, state: str) -> int:
         return sum(pair.state == state for pair in self.pairs.values())
 
-    def advance(self, reports: list[Report], run: str = "") -> "PullLedger":
-        """This ledger with one more run added; the same ledger if that run was counted already."""
+    def advance(self, reports: list[Report], run: str = "", scopes: list[str] = ()) -> "PullLedger":
+        """
+        This ledger with one more run added; the same ledger if that run was counted already. `scopes` names each
+        report's scope ("" when not given); only the scopes that reported can settle the pairs they found.
+        """
         if not reports or (run and run in self.runs):
             return self
+        named = [*scopes, *[""] * (len(reports) - len(scopes))]
+        completed = set(named)
         ledger = self.model_copy(deep=True)
         tally = sum((Tally.of(report) for report in reports), Tally())
         findings = [f for report in reports for f in report.findings]
-        reported = {f.candidate.key: f for f in findings if f.reported}
+        reported = {f.candidate.key: (f, scope) for report, scope in zip(reports, named) for f in report.findings
+                    if f.reported}
         head = reports[0].run.head
         if ledger.pushes and ledger.pushes[-1].head == head:
             tally = tally.again()
@@ -126,18 +137,26 @@ class PullLedger(Versioned):
         ledger.runs = [*ledger.runs, run][-RECENT_RUNS:] if run else ledger.runs
         unjudged = {f.candidate.key for f in findings if f.deferred or f.verdict is None}
         settled_by_rule = {c.key for report in reports for c in report.filtered}
-        for key, finding in reported.items():
+        for key, (finding, scope) in reported.items():
             names = [side.qualname.split("::", 1)[1] for side in (finding.candidate.new, finding.candidate.existing)]
             pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
-            pair.state, pair.settled = "open", None
+            pair.state, pair.settled, pair.scope = "open", None, scope
         for key, pair in ledger.pairs.items():
-            if key in reported or key in unjudged:
+            if key in reported or key in unjudged or (pair.scope is not None and pair.scope not in completed):
                 continue
             if key in settled_by_rule and pair.state != "dismissed":  # a person's decision, even after the fact
                 pair.state, pair.settled = "dismissed", ledger.pushed
             elif pair.state == "open":
                 pair.state, pair.settled = "kept-out", ledger.pushed
         return ledger
+
+    def contribution(self, repository: str, number: int) -> dict:
+        """What the global counter is sent for this pull request once merged: counts, and the repository's hash."""
+        return {"repository": hashlib.sha256(repository.strip().lower().encode()).hexdigest(), "pull": number,
+                "kept_out": self.count("kept-out"), "caught": len(self.pairs), "dismissed": self.count("dismissed"),
+                "merged_open": self.count("open"), "pushes": self.pushed, "runs": self.tally.runs,
+                "judgments": self.tally.judgments, "functions": self.tally.functions,
+                "usd": round(self.tally.usd, 6), "version": __version__}
 
     def snapshot(self) -> str:
         return f"<!-- dry-lint-ledger {self.model_dump_json()} -->"
@@ -226,6 +245,7 @@ class RepositoryLedger(Versioned):
     kept_out: int = 0
     dismissed: int = 0
     merged_open: int = Field(default=0, description="Duplicates still open when their pull request merged.")
+    outbox: list[dict] = Field(default_factory=list, description="Contributions the global counter has not confirmed.")
 
     def add_run(self, tally: Tally, run: str) -> None:
         if run and run in self.runs:
@@ -233,10 +253,12 @@ class RepositoryLedger(Versioned):
         self.tally = self.tally + tally
         self.runs = [*self.runs, run][-RECENT_RUNS:] if run else self.runs
 
-    def add_pull(self, number: int, ledger: PullLedger) -> None:
+    def add_pull(self, number: int, ledger: PullLedger, share: bool = False) -> None:
         if number in self.pulls:
             return
         self.pulls.append(number)
+        if share:
+            self.outbox.append(ledger.contribution(self.repository, number))
         self.tally = self.tally + ledger.tally
         self.pushes += ledger.pushed
         self.kept_out += ledger.count("kept-out")
