@@ -15,13 +15,14 @@ The ledger: what dry-lint has cost and caught, across a pull request's pushes an
 
 import json
 import re
+from collections import Counter
 from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
 from dry_lint.models import Versioned
-from dry_lint.report import AMBER, BLUE, GRAY, GREEN, Report, badge, code, plural
+from dry_lint.report import BLUE, GRAY, Report, badge, code, plural
 
 SNAPSHOT = re.compile(r"<!-- dry-lint-ledger (?P<ledger>\{.*?\}) -->")
 RECENT_RUNS = 20
@@ -186,25 +187,35 @@ def pair_line(pair: Pair) -> str:
 
 
 def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> str:
-    """The sticky's running account: a headline, the figures as badges, and push by push in a fold."""
+    """Cleanup progress first, with the current outcomes and the commits that cleared them."""
     tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
-    badges = [badge("kept out", kept, GREEN if kept else GRAY), *([badge("still open", still, AMBER)] if still else []),
-              badge("pushes", ledger.pushed, GRAY), badge("functions checked", f"{tally.functions:,}", GRAY),
+    cleaned = Counter(pair.settled for pair in ledger.pairs.values() if pair.state == "kept-out")
+    badges = [badge("pushes", ledger.pushed, GRAY), badge("functions checked", f"{tally.functions:,}", GRAY),
               badge("judgments", f"{tally.judgments:,}", GRAY), badge("spent", tally.cost(), BLUE)]
-    lines = ["#### 🛡️ This pull request so far", "", headline(ledger), "", " ".join(badges), ""]
+    title = "### 🧹 A little less lint" if kept else "### 🧺 This PR's cleanup basket"
+    lines = [title, "", "| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |", "| :--: | :--: | :--: |",
+             f"| **{plural(kept, 'pair')}** | **{plural(still, 'pair')}** | "
+             f"**{plural(ledger.count('dismissed'), 'pair')}** |", ""]
+    if cleaned[ledger.pushed] and ledger.pushes:
+        lines += [f"Latest analyzed commit `{ledger.pushes[-1].head[:7]}` · "
+                  f"**+{plural(cleaned[ledger.pushed], 'pair')} cleaned up** ✨", ""]
+    lines += [headline(ledger), "", " ".join(badges), "",
+              "<sub>Previously reported pairs no longer reported; dismissals do not count as cleanup. "
+              "Counts reflect current outcomes across analyzed commits.</sub>", ""]
     if ledger.pushed > 1 or ledger.pairs:
         first = ledger.pushed - len(ledger.pushes) + 1
-        rows = ["| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cost |",
-                "| --: | :-- | --: | --: | --: | --: | --: |"]
+        rows = ["| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |",
+                "| --: | :-- | --: | --: | --: | --: | --: | --: |"]
         for n, push in enumerate(ledger.pushes, first):
             reused = f" <sub>+{push.tally.reused:,} reused</sub>" if push.tally.reused else ""
+            cleared = f"**+{cleaned[n]}**" if cleaned[n] else "0"
             rows.append(f"| {n} | `{push.head[:7]}` | {push.tally.functions:,} | {push.tally.pairs:,} | "
-                        f"{push.tally.judgments:,}{reused} | {push.reported:,} | {push.tally.cost()} |")
+                        f"{push.tally.judgments:,}{reused} | {push.reported:,} | {cleared} | {push.tally.cost()} |")
         rows.append(f"| **{ledger.pushed}** | | **{tally.functions:,}** | **{tally.pairs:,}** | "
-                    f"**{tally.judgments:,}** | | **{tally.cost()}** |")
+                    f"**{tally.judgments:,}** | | **{kept:,}** | **{tally.cost()}** |")
         pairs = sorted(ledger.pairs.values(), key=lambda p: (list(ICONS).index(p.state), p.found))
         lines += ["<details><summary><strong>Push by push</strong></summary>", "", *rows, "",
-                  *(f"{pair_line(pair)}  " for pair in pairs), *([""] if pairs else []), "</details>", ""]
+                  *(f"- {pair_line(pair)}" for pair in pairs), *([""] if pairs else []), "</details>", ""]
     if repository and repository.pulls:
         lines += [f"<sub>{repository.line()}</sub>", ""]
     return "\n".join([*lines, ledger.snapshot()])

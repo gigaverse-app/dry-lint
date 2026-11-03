@@ -7,22 +7,26 @@ stratified sample back to its population (each stratum's size over its sample si
 Borderline pairs are kept in the file and left out of the numbers.
 """
 
+import math
 import random
 import textwrap
 import tomllib
+from collections.abc import Callable
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
 from dry_lint.costs import Ledger
 from dry_lint.detector import Detector
 from dry_lint.judging import decide, judges_name
-from dry_lint.models import Candidate, Function
+from dry_lint.models import Candidate, Function, Verdict
 from dry_lint.plugins import Extractor, Judge
 from dry_lint.settings import Budget, Settings
 
 BANDS = (0.0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01)
+Row = TypeVar("Row")
+Statistic = TypeVar("Statistic")
 
 
 class GoldFunction(BaseModel):
@@ -78,24 +82,30 @@ def precision_recall(rows: list[tuple[str, bool, float, bool]]) -> tuple[float, 
     return (hits / flagged if flagged else 0.0), (hits / duplicates if duplicates else 0.0)
 
 
+def resampled(rows: list[Row], stratum: Callable[[Row], str], statistic: Callable[[list[Row]], Statistic],
+              resamples: int = 1000, seed: int = 7) -> list[Statistic]:
+    """
+    `statistic` over a stratified bootstrap: each stratum is resampled with replacement and keeps its weights, so the
+    spread shows how much a handful of heavily weighted pairs can move the numbers.
+    """
+    strata: dict[str, list[Row]] = {}
+    for row in rows:
+        strata.setdefault(stratum(row), []).append(row)
+    rng = random.Random(seed)
+    return [statistic([rng.choice(members) for members in strata.values() for _ in members]) for _ in range(resamples)]
+
+
+def spread(values: list[float]) -> tuple[float, float]:
+    """The 90% interval of bootstrap values."""
+    ordered = sorted(values)
+    return ordered[int(0.05 * (len(ordered) - 1))], ordered[int(0.95 * (len(ordered) - 1))]
+
+
 def intervals(rows: list[tuple[str, bool, float, bool]], resamples: int = 1000,
               seed: int = 7) -> tuple[tuple[float, float], tuple[float, float]]:
-    """
-    90% intervals for precision and recall: each stratum is resampled with replacement and keeps its weight, so the
-    interval shows how much a handful of heavily weighted pairs can move the numbers.
-    """
-    strata: dict[str, list] = {}
-    for row in rows:
-        strata.setdefault(row[0], []).append(row)
-    rng = random.Random(seed)
-    draws = [precision_recall([rng.choice(members) for members in strata.values() for _ in members])
-             for _ in range(resamples)] if rows else [(0.0, 0.0)]
-
-    def interval(values: list[float]) -> tuple[float, float]:
-        ordered = sorted(values)
-        return ordered[int(0.05 * (len(ordered) - 1))], ordered[int(0.95 * (len(ordered) - 1))]
-
-    return interval([p for p, _ in draws]), interval([r for _, r in draws])
+    """90% intervals for precision and recall."""
+    draws = resampled(rows, lambda row: row[0], precision_recall, resamples, seed) if rows else [(0.0, 0.0)]
+    return spread([p for p, _ in draws]), spread([r for _, r in draws])
 
 
 class Band(BaseModel):
@@ -109,7 +119,7 @@ class JudgeBench(BaseModel):
     judge: str
     pairs: int
     duplicates: int
-    auc: float
+    auc: float | None = Field(description="None when the pairs hold no duplicate, or nothing else.")
     precision: float = Field(description="At report_at.")
     recall: float = Field(description="At report_at.")
     precision_interval: tuple[float, float] = Field(description="90% interval, stratified bootstrap.")
@@ -128,7 +138,7 @@ class JudgeBench(BaseModel):
         p_low, p_high = self.precision_interval
         r_low, r_high = self.recall_interval
         lines = [f"judge {self.judge}: {self.pairs} labelled pairs, {self.duplicates} duplicates",
-                 f"  AUC {self.auc:.2f}",
+                 "  AUC " + ("n/a" if self.auc is None else f"{self.auc:.2f}"),
                  f"  at report_at {settings.report_at}: precision {self.precision:.0%} ({p_low:.0%}-{p_high:.0%}), "
                  f"recall {self.recall:.0%} ({r_low:.0%}-{r_high:.0%}); 90% intervals",
                  *([f"  at fail_at {self.fail_at}: precision {self.fail_precision:.0%} "
@@ -155,6 +165,12 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
     for spend in ledger.spend.values():
         if spend.error:
             raise ValueError(f"The judge {spend.judge} failed, so nothing was measured: {spend.error}")
+    return judge_bench(labelled, verdicts, settings, judges_name(judge, escalation), ledger)
+
+
+def judge_bench(labelled: list[GoldPair], verdicts: list[Verdict], settings: Settings, judge: str,
+                ledger: Ledger | None = None) -> JudgeBench:
+    """The numbers for verdicts already given on labelled pairs, in the same order; `ledger` holds what they cost."""
     scored = [(v.score, g.label == "duplicate", g.weight) for g, v in zip(labelled, verdicts)]
 
     def flags(threshold: float) -> list[bool]:
@@ -177,19 +193,20 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
     fail_rows = [(s, d, w, f) for (s, d, w, _), f in zip(rows, flags(fail_at))]
     fail_precision, fail_recall = precision_recall(fail_rows)
     fail_precision_interval, fail_recall_interval = intervals(fail_rows)
-    usd = None if any(s.usd is None for s in ledger.spend.values()) else ledger.usd
+    spend = list(ledger.spend.values()) if ledger else []
+    usd = None if not ledger or any(s.usd is None for s in spend) else ledger.usd
     bands = [Band(low=low, high=high,
                   duplicates=weight(lambda s, d, lo=low, hi=high: d and lo <= s < hi),
                   separate=weight(lambda s, d, lo=low, hi=high: not d and lo <= s < hi))
              for low, high in zip(BANDS, BANDS[1:])]  # fmt: skip
-    return JudgeBench(judge=judges_name(judge, escalation), pairs=len(labelled), duplicates=sum(1 for g in labelled if g.label == "duplicate"),
-                      auc=auc(scored), precision=hits / flagged if flagged else 0.0,
+    return JudgeBench(judge=judge, pairs=len(labelled), duplicates=sum(1 for g in labelled if g.label == "duplicate"),
+                      auc=None if math.isnan(area := auc(scored)) else area, precision=hits / flagged if flagged else 0.0,
                       precision_interval=precision_interval, recall_interval=recall_interval,
                       recall=hits / duplicates if duplicates else 0.0, recall_at_drop=kept / duplicates if duplicates else 0.0,
                       fail_at=fail_at, fail_precision=fail_precision, fail_recall=fail_recall,
                       fail_precision_interval=fail_precision_interval, fail_recall_interval=fail_recall_interval,
                       usd_per_pair=usd / len(labelled) if usd is not None and labelled else None,
-                      subscription_calls=sum(s.calls for s in ledger.spend.values() if s.subscription),
+                      subscription_calls=sum(s.calls for s in spend if s.subscription),
                       bands=[b for b in bands if b.duplicates or b.separate])
 
 

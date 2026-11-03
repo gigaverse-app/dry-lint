@@ -153,7 +153,8 @@ def test_the_headline_of_a_clean_pull_request_says_how_much_was_checked() -> Non
 
 def test_a_first_clean_push_shows_figures_without_a_push_table() -> None:
     shown = render(PullLedger().advance([push("a" * 40)], run="1"))
-    assert "This pull request so far" in shown and "kept_out-0-6E7781" in shown and "spent-%240.002" in shown
+    assert "This PR's cleanup basket" in shown and "| **0 pairs** | **0 pairs** | **0 pairs** |" in shown
+    assert "spent-%240.002" in shown
     assert "Push by push" not in shown and "still_open" not in shown
 
 
@@ -162,9 +163,9 @@ def test_the_push_table_lists_every_push_and_every_pair_by_outcome() -> None:
                                   run="1")
     ledger = ledger.advance([push("b" * 40, finding("duplicate", existing="trim"), filtered=[pair("cut", filtered="inline ignore")])], run="2")
     shown = render(ledger)
-    assert "kept_out-1-2EA043" in shown and "still_open-1-BF8700" in shown
-    assert "| 1 | `aaaaaaa` | 3 | 3 | 2 <sub>+1 reused</sub> | 3 | $0.002 |" in shown
-    assert "| **2** | | **6** | **5** | **3** | | **$0.004** |" in shown
+    assert "| **1 pair** | **1 pair** | **1 pair** |" in shown
+    assert "| 1 | `aaaaaaa` | 3 | 3 | 2 <sub>+1 reused</sub> | 3 | 0 | $0.002 |" in shown
+    assert "| **2** | | **6** | **5** | **3** | | **1** | **$0.004** |" in shown
     kept, still, dismissed = (shown.index(f"{icon} `clip`") for icon in ("✅", "🟡", "⚪"))
     assert kept < still < dismissed
     assert "found in push 1, kept out in push 2" in shown and "dismissed by a person's decision in push 2" in shown
@@ -172,6 +173,34 @@ def test_the_push_table_lists_every_push_and_every_pair_by_outcome() -> None:
 
 def test_a_concept_with_one_name_on_both_sides_is_named_once() -> None:
     assert Pair(new="clip", existing="clip", found=1).concept() == "`clip`"
+
+
+def test_cleanup_progress_counts_pairs_across_commits_and_separates_dismissals() -> None:
+    remaining = finding("duplicate", existing="trim")
+    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"), remaining,
+                                        finding("duplicate", existing="cut"))], run="1")
+    ledger = ledger.advance([push("b" * 40, remaining, filtered=[pair("cut", filtered="inline ignore")])], run="2")
+    shown = render(ledger)
+    assert "### 🧹 A little less lint" in shown
+    assert "| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |" in shown
+    assert "| **1 pair** | **1 pair** | **1 pair** |" in shown
+    assert "`bbbbbbb` · **+1 pair cleaned up**" in shown
+    assert "Previously reported pairs no longer reported; dismissals do not count as cleanup." in shown
+    assert "| 2 | `bbbbbbb` | 3 | 2 | 1 | 1 | **+1** | $0.002 |" in shown
+    ledger = ledger.advance([push("c" * 40)], run="3")
+    assert "| **2 pairs** | **0 pairs** | **1 pair** |" in render(ledger)
+    assert "`ccccccc` · **+1 pair cleaned up**" in render(ledger)
+    assert render(ledger.advance([push("c" * 40)], run="3")) == render(ledger)
+
+
+def test_returning_and_unjudged_pairs_do_not_receive_cleanup_credit() -> None:
+    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")
+    ledger = ledger.advance([push("b" * 40)], run="2")
+    ledger = ledger.advance([push("c" * 40, finding("duplicate"))], run="3")
+    ledger = ledger.advance([push("d" * 40, Finding(candidate=pair(), deferred=True))], run="4")
+    shown = render(ledger)
+    assert "| **0 pairs** | **1 pair** | **0 pairs** |" in shown
+    assert "pair cleaned up**" not in shown
 
 
 def test_the_repository_line_appears_once_a_merged_pull_request_is_counted() -> None:

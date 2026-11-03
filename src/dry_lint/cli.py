@@ -37,6 +37,7 @@ from dry_lint.git import git
 from dry_lint.github import github_event
 from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, open_store
+from dry_lint.labelling import label, labeller, sample, summarise
 from dry_lint.models import Candidate, CandidatesFile, Run
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
@@ -256,6 +257,8 @@ def config(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if args.replay is not None:
         return bench_replay(root, settings, args)
+    if args.label is not None:
+        raise ValueError("--label labels a replay's pairs: use it with --replay")
     gold = load_gold(args.gold)
     if args.comparer:
         result = bench_comparer(gold, Detector.for_repository(root, settings))
@@ -268,6 +271,11 @@ def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     result = bench_judge(gold, chosen, settings, load("extractors", settings.extractors[0]), escalation)
     print(result.model_dump_json(indent=2) if args.format == "json" else result.as_text(settings))
     return 0
+
+
+def default_gold(root: Path) -> Path:
+    """Inside the git directory, beside the verdict store: gold sets hold code and are never committed by accident."""
+    return (root / git(root, "rev-parse", "--git-common-dir")).resolve() / "dry-lint" / "gold" / "replay.jsonl"
 
 
 def index(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -285,8 +293,21 @@ def bench_replay(root: Path, settings: Settings, args: argparse.Namespace) -> in
         raise ValueError("--replay prints text or json")
     if args.replay < 1:
         raise ValueError("--replay needs a number of commits, at least 1")
+    if args.label is not None and args.label < 1:
+        raise ValueError("--label needs a number of pairs, at least 1")
+    specs = args.labeller or settings.labellers
+    labellers = [labeller(spec) for spec in specs] if args.label else []
+    progress = lambda line: print(line, file=sys.stderr)  # noqa: E731
     result = replay(root, settings, open_store(settings, root, args.store), args.replay, base_ref(root, args.ref),
-                    progress=lambda line: print(line, file=sys.stderr))
+                    progress=progress)
+    if labellers:
+        gold_path = args.gold_out or default_gold(root)
+        pairs = sample([f for _, f in result.findings()], args.label)
+        answers = label(pairs, labellers, gold_path.with_suffix(".answers.jsonl"), args.label_budget_usd,
+                        progress=progress)
+        judge = result.commits[0].report.judge if result.commits else None
+        result.labels = summarise(pairs, answers, [who.name for who in labellers], settings, gold_path,
+                                  len(result.commits), judge)
     print(result.model_dump_json(indent=1) if args.format == "json" else result.as_text())
     if args.report:
         args.report.write_text(result.model_dump_json(indent=1) + "\n")
@@ -351,6 +372,17 @@ def parser() -> argparse.ArgumentParser:
                              "settings: what would have failed, warned and cost.")
     measuring.add_argument("--comparer", action="store_true", help="Measure the comparer's recall instead.")
     measuring.add_argument("--ref", help="With --replay: the branch to replay (default: origin/HEAD).")
+    measuring.add_argument("--label", type=int, metavar="K",
+                           help="With --replay: label about K of its pairs, sampled by judge score, into a gold set, "
+                                "and report what the judging caught, missed and blocked wrongly.")
+    measuring.add_argument("--gold-out", type=Path,
+                           help="With --label: the gold file (default: inside the git directory). Answers are kept "
+                                "beside it, so a second run only asks about new pairs.")
+    measuring.add_argument("--labeller", action="append", default=[],
+                           help="With --label: an OpenRouter model id, or command:<cli>; repeat for a panel "
+                                "(default: the `labellers` setting, three vendors' models).")
+    measuring.add_argument("--label-budget-usd", type=float, default=5.0,
+                           help="With --label: most this run spends on labellers that report their cost.")
     commands.add_parser("config", parents=[common], help="The judging setup this repository would run, and its cost.")
     return main
 

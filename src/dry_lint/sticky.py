@@ -55,7 +55,7 @@ def banner_available(transport: httpx.BaseTransport | None = None) -> bool:
 
 def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "", head: str = "", note: str = "",
             ledger: str = "") -> str:
-    """The comment body: the marker, the banner if it can render, the report, the ledger, and where it came from."""
+    """The comment body: marker, banner, cleanup progress, current findings, and source."""
     lines = markdown.strip().splitlines()
     if lines and re.fullmatch(r"<!-- dry-lint(?::[^\n]*?)? -->", lines[0].strip()):
         lines = lines[1:]
@@ -72,9 +72,9 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
         report = report.replace(NOTE_SLOT, note).replace("\n\n\n\n", "\n\n")
     elif note:
         report = f"{note}\n\n{report}"
-    parts.append(report)
     if ledger:
-        parts.append(f"\n{ledger}")
+        parts.append(f"\n{ledger}\n\n---\n")
+    parts.append(report)
     source = ["[dry-lint](https://github.com/gigaverse-app/dry-lint)", f"commit {head[:7]}" if head else "",
               f"[run]({run_url})" if run_url else ""]
     if head or run_url:

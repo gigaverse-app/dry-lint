@@ -22,6 +22,7 @@ from dry_lint.detector import Detector, changed_lines, touched
 from dry_lint.functions import extractor_for, repository_functions, tracked_files
 from dry_lint.git import git
 from dry_lint.judging import Judging
+from dry_lint.labelling import Labels
 from dry_lint.models import Function, Run, Versioned
 from dry_lint.plugins import load
 from dry_lint.report import Finding, JudgingSummary, Report
@@ -52,6 +53,7 @@ class Replay(Versioned):
     head: str = Field(description="The commit it pointed at.")
     commits: list[ReplayedCommit] = Field(default_factory=list, description="Oldest first, in the order replayed.")
     judging: JudgingSummary | None = Field(default=None, description="Judges, thresholds, budget and cost, for all commits.")
+    labels: Labels | None = Field(default=None, description="With --label: the gold set and what it says.")
 
     def findings(self) -> list[tuple[ReplayedCommit, Finding]]:
         return [(c, f) for c in self.commits for f in c.report.findings]
@@ -88,6 +90,8 @@ class Replay(Versioned):
                 lines.append(f"  {commit.commit[:9]} {where.path}:{where.line}: {finding.headline()}"
                              + (" [blocks]" if finding.blocking else ""))
                 lines.append(f"    {finding.advice()}")
+        if self.labels:
+            lines.append(self.labels.as_text())
         return "\n".join(lines)
 
 
