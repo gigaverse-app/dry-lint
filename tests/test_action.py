@@ -87,10 +87,11 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                   "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"), "RUNNER_TEMP": str(tmp_path / "runner"),
                   "INPUT_COMMENT": "true", "INPUT_CHECK_RUN": "true", "INPUT_WORKING_DIRECTORY": str(tmp_path)}
         values.update({f"INPUT_{k.upper()}": v for k, v in inputs.items() if k != "key"})
+        # Hermetic: a developer's or Claude Code's own keys must never reach a judge from a test.
+        for name_ in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"):
+            monkeypatch.delenv(name_, raising=False)
         if "key" in inputs:
             values["TYPESAFE_AI_API_KEY"] = inputs["key"]
-        else:
-            monkeypatch.delenv("TYPESAFE_AI_API_KEY", raising=False)
         for name_, value in values.items():
             monkeypatch.setenv(name_, value)
         return tmp_path
