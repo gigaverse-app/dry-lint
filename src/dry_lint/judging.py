@@ -122,7 +122,8 @@ class Judging:
         proposed = [c for c in candidates if c.filtered is None]
         if self.judge is None:
             return [Finding(candidate=c) for c in proposed]
-        version = self.judge.version if refresh or getattr(self.judge, "context", False) else None
+        strict = getattr(self.judge, "context", False) or getattr(self.judge, "strict_version", False)
+        version = self.judge.version if refresh or strict else None
         known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict for c in proposed]
         pending = [i for i, verdict in enumerate(known) if verdict is None]
         deferred = set(pending[self.settings.max_judgements:]) if self.settings.max_judgements is not None else set()

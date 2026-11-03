@@ -43,7 +43,8 @@ def estimate(judge: Judge, candidates: list[Candidate], settings: Settings) -> f
     rates = price(judge, settings)
     if rates is None:
         return None
-    tokens = sum(len(prompt(c)) for c in candidates) / CHARS_PER_TOKEN
+    policy = getattr(judge, "prompt_policy", "concept")  # Optional plugin contract for the rendered prompt.
+    tokens = sum(len(prompt(c, policy=policy)) for c in candidates) / CHARS_PER_TOKEN
     answer = ANSWERS.get(getattr(judge, "model", "") or "", ANSWER_TOKENS)
     return (tokens * rates[0] + len(candidates) * answer * rates[1]) / 1_000_000
 
