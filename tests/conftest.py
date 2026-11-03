@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from dry_lint.bench import GoldFunction, GoldPair
 from dry_lint.functions import behaviour_tokens, function_calls, structure_hash
 from dry_lint.git import git
 from dry_lint.models import Function
@@ -17,6 +18,12 @@ def run_script(monkeypatch: pytest.MonkeyPatch, name: str) -> dict:
     """An offline experiment script's globals, loaded with scripts/ importable, as it is when run."""
     monkeypatch.syspath_prepend(str(SCRIPTS))
     return runpy.run_path(str(SCRIPTS / name))
+
+
+def gold_line(new: str, existing: str, label: str) -> str:
+    """One labelled pair, as a line of a `dry-lint bench` gold file."""
+    pair = GoldPair(new=GoldFunction(id=new, code=""), existing=GoldFunction(id=existing, code=""), label=label)
+    return pair.model_dump_json() + "\n"
 
 
 EXISTING = '''

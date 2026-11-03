@@ -3,13 +3,14 @@
 import json
 import runpy
 import sys
-from pathlib import Path
 
 import pytest
 
+from conftest import SCRIPTS, gold_line, run_script
+
 
 def trial(sources: dict[str, str]):
-    script = Path(__file__).resolve().parents[1] / "scripts" / "semantic_signals.py"
+    script = SCRIPTS / "semantic_signals.py"
     return runpy.run_path(str(script))["Signals"](sources)
 
 
@@ -123,16 +124,12 @@ def test_mapping_reads_and_computed_callees_do_not_invent_relationships() -> Non
 
 
 def test_trial_cli_runs_each_variant_with_real_repository_and_gold(repo, tmp_path, monkeypatch) -> None:
-    scripts = Path(__file__).resolve().parents[1] / "scripts"
-    monkeypatch.syspath_prepend(str(scripts))
+    runner = run_script(monkeypatch, "benchmark_semantic_signals.py")["run"]
     gold = tmp_path / "gold.jsonl"
-    gold.write_text(json.dumps({
-        "new": {"id": "src/widgets/caption.py::preview_caption_text", "code": ""},
-        "existing": {"id": "src/text.py::shorten_text", "code": ""}, "label": "duplicate",
-    }) + "\n")
+    gold.write_text(gold_line("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text", "duplicate"))
     out = tmp_path / "trial"
     monkeypatch.setattr(sys, "argv", ["trial", "--root", str(repo.root), "--out", str(out), "--gold", str(gold)])
-    runpy.run_path(str(scripts / "benchmark_semantic_signals.py"), run_name="__main__")
+    runpy.run_path(str(SCRIPTS / "benchmark_semantic_signals.py"), run_name="__main__")
     results = json.loads((out / "results.json").read_text())
     assert results["schema"] == 1
     assert results["head"] == repo.git("rev-parse", "HEAD").strip() and not results["dirty"]
@@ -147,6 +144,5 @@ def test_trial_cli_runs_each_variant_with_real_repository_and_gold(repo, tmp_pat
         assert all(pair["similarity_reusable"] == (variant == "baseline") for pair in pairs)
 
     gold.write_text(gold.read_text().replace("src/text.py::shorten_text", "missing.py::gone"))
-    runner = runpy.run_path(str(scripts / "benchmark_semantic_signals.py"))["run"]
     with pytest.raises(ValueError, match="missing from corpus"):
         runner(repo.root, out, gold)

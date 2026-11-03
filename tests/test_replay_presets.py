@@ -9,11 +9,11 @@ from unittest.mock import patch
 import httpx
 import pytest
 
-from dry_lint.bench import GoldFunction, GoldPair
+from dry_lint.bench import GoldPair
 from dry_lint.models import Candidate, Function, Verdict
 from dry_lint.settings import Settings
 
-from conftest import EXISTING, SCRIPTS, TWIN, Repo, filler_module, run_script
+from conftest import EXISTING, SCRIPTS, TWIN, Repo, filler_module, gold_line, run_script
 
 
 @pytest.fixture
@@ -97,10 +97,8 @@ def test_replay_refuses_a_worktree_with_tracked_changes(replay, history, tmp_pat
 
 def gold_file(path: Path, rows: list[dict]) -> Path:
     first = rows[0]
-    pair = GoldPair(new=GoldFunction(id=Function.model_validate(first["new"]).qualname, code=""),
-                    existing=GoldFunction(id=Function.model_validate(first["existing"]).qualname, code=""),
-                    label="duplicate")
-    path.write_text(pair.model_dump_json() + "\n")
+    path.write_text(gold_line(Function.model_validate(first["new"]).qualname,
+                              Function.model_validate(first["existing"]).qualname, "duplicate"))
     return path
 
 

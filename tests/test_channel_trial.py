@@ -7,14 +7,13 @@ import sys
 
 import pytest
 
-from dry_lint.bench import GoldFunction, GoldPair
 from dry_lint.comparers import TfidfComparer
 from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Function, pair_key
 from dry_lint.settings import Settings
 
-from conftest import SCRIPTS, function, run_script
+from conftest import SCRIPTS, function, gold_line, run_script
 
 trial = runpy.run_path(str(SCRIPTS / "channel_trial.py"))
 CslsComparer, Floored, LsiComparer = trial["CslsComparer"], trial["Floored"], trial["LsiComparer"]
@@ -170,11 +169,6 @@ def test_calibrated_floor_keeps_the_requested_share_of_functions() -> None:
     assert trial["calibrated_floor"](top, 0.0) == math.inf
     assert trial["calibrated_floor"](top, 1.0) == 0.3  # cannot keep more than have a neighbour at all
     assert trial["share_with_neighbour"]({}) == 0.0
-
-
-def gold_line(new: str, existing: str, label: str) -> str:
-    pair = GoldPair(new=GoldFunction(id=new, code=""), existing=GoldFunction(id=existing, code=""), label=label)
-    return pair.model_dump_json() + "\n"
 
 
 def test_trial_cli_scores_every_variant_on_a_real_repository(repo, tmp_path, monkeypatch, harness) -> None:
