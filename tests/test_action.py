@@ -1,9 +1,12 @@
 import json
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import httpx
 import pytest
+from test_action_sticky import FakeGitHub
 
 from dry_lint import action, sticky
 from dry_lint.action import ZERO_SHA, count_findings, ensure_history, resolve_base, resolve_judge, resolve_mode
@@ -225,3 +228,88 @@ def test_dry_lint_runs_the_installed_cli_and_echoes_its_output(capsys) -> None:
     code, lines = action.dry_lint("--version")
     assert code == 0 and lines[0].startswith("dry-lint ")
     assert capsys.readouterr().out.startswith("dry-lint ")
+
+
+# End to end: the real CLI on a throwaway repository, a real judge command, and an in-memory GitHub.
+
+
+@pytest.fixture
+def twin_judge(tmp_path: Path) -> str:
+    """A judge command that calls the caption twin a duplicate, everything else separate, and counts its calls."""
+    path, calls = tmp_path / "judge.py", tmp_path / "judge-calls"
+    path.write_text(
+        "import json, pathlib, sys\n"
+        f"calls = pathlib.Path({str(calls)!r})\n"
+        "calls.write_text(str(int(calls.read_text()) + 1) if calls.exists() else '1')\n"
+        "prompt = sys.stdin.read()\n"
+        "twin = 'preview_caption_text' in prompt and 'shorten_text' in prompt\n"
+        "print(json.dumps({'label': 'duplicate' if twin else 'separate', 'score': 0.9 if twin else 0.1, "
+        "'owner': 'existing', 'why': 'both shorten text with an ellipsis'}))\n"
+    )
+    return f'"{sys.executable}" "{path}"'
+
+
+def judge_calls(tmp_path: Path) -> int:
+    path = tmp_path / "judge-calls"
+    return int(path.read_text()) if path.exists() else 0
+
+
+def pr_event(repo: Repo, fork: bool = False) -> dict:
+    event = pull_request(fork)
+    event["pull_request"]["head"]["sha"] = repo.git("rev-parse", "HEAD").strip()
+    event["pull_request"]["base"]["sha"] = repo.git("rev-parse", "main").strip()
+    return event
+
+
+def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_the_fix(
+        repo: Repo, github_env, tmp_path, twin_judge, capsys) -> None:
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root))
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    out = capsys.readouterr().out
+    assert "::warning file=src/widgets/caption.py,line=1" in out
+    [body] = github.stickies()
+    assert "preview_caption_text" in body and "src/text.py::shorten_text" in body
+    assert outputs(tmp_path)["findings"] == "1"
+
+    # The next push changes nothing that matters: the verdict comes from the store, the comment is edited.
+    first = judge_calls(tmp_path)
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    assert judge_calls(tmp_path) == first and len(github.stickies()) == 1
+
+    # The author reuses the existing helper: the comment says so instead of going stale.
+    repo.write("src/widgets/caption.py", "from src.text import shorten_text\n\n\ndef register_widget(registry, widget):\n"
+               "    registry.add(widget)\n    return widget\n")
+    repo.commit("reuse shorten_text")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "Resolved" in body and "preview_caption_text" not in body
+
+
+def test_without_a_judge_the_real_cli_lists_look_alikes_and_comments_nothing(repo: Repo, github_env, tmp_path, capsys):
+    github = FakeGitHub()
+    github_env("pull_request", pr_event(repo), working_directory=str(repo.root))
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    out = capsys.readouterr().out
+    assert "preview_caption_text" in out and "::warning file=" not in out
+    assert github.stickies() == [] and github.writes == []
+
+
+def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, github_env, tmp_path, twin_judge) -> None:
+    head = repo.git("rev-parse", "HEAD").strip()
+    github_env("pull_request", pr_event(repo, fork=True), working_directory=str(repo.root))
+    assert action.main(["run"]) == 0
+    candidates = tmp_path / "runner" / "dry-lint" / "candidates.json"
+    assert candidates.exists()
+
+    # The judge workflow downloads the artifact, then runs with secrets from the default branch.
+    downloaded = tmp_path / "runner" / "dry-lint" / "in" / "candidates.json"
+    downloaded.parent.mkdir(parents=True)
+    downloaded.write_text(candidates.read_text())
+    github = FakeGitHub(head=head)
+    github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head, "event": "pull_request"}},
+               judge="command", judge_command=twin_judge, working_directory=str(repo.root))
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "preview_caption_text" in body and f"commit {head[:7]}" in body

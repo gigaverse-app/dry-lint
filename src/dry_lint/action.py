@@ -25,6 +25,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import httpx
+
 from dry_lint import sticky
 
 ZERO_SHA = "0" * 40
@@ -118,14 +120,15 @@ def run_url() -> str:
     return f"{server}/{repository}/actions/runs/{run}" if repository and run else ""
 
 
-def comment(repository: str, number: int, body: Path, findings: int, expect_head: str) -> str:
+def comment(repository: str, number: int, body: Path, findings: int, expect_head: str,
+            transport: httpx.BaseTransport | None = None) -> str:
     if not flag("INPUT_COMMENT") or not number or not body.exists():
         return "off"
     args = ["--body", str(body), "--repository", repository, "--pull-request", str(number),
             "--findings", str(findings), "--key", env("INPUT_STICKY_KEY"), "--run-url", run_url()]
     if expect_head:
         args += ["--expect-head", expect_head]
-    sticky.main(args)
+    sticky.main(args, transport=transport)
     return "posted"
 
 
@@ -136,7 +139,7 @@ def plan() -> int:
     return 0
 
 
-def run() -> int:
+def run(transport: httpx.BaseTransport | None = None) -> int:
     event_name, event = env("GITHUB_EVENT_NAME"), load_event()
     mode = resolve_mode(env("INPUT_MODE", "auto"), event_name, event)
     work = Path(env("RUNNER_TEMP", "/tmp")) / "dry-lint"
@@ -190,16 +193,16 @@ def run() -> int:
               "judge-command) to judge them; until then dry-lint does not comment or fail.")
         write_outputs(mode=mode, exit_code=0, findings=0)
         return 0
-    comment(repository, number, body, findings, head)
+    comment(repository, number, body, findings, head, transport)
     failed = findings > 0 and flag("INPUT_FAIL_ON_FINDINGS")
     write_outputs(mode=mode, exit_code=1 if findings else 0, findings=findings)
     return 1 if failed else 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = None) -> int:
     command = (argv if argv is not None else sys.argv[1:])[:1]
     try:
-        return plan() if command == ["plan"] else run()
+        return plan() if command == ["plan"] else run(transport)
     except ValueError as error:
         print(f"::error title=dry-lint::{error}")
         return 2
