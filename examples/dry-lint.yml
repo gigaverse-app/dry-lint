@@ -29,7 +29,7 @@ jobs:
       - uses: gigaverse-app/dry-lint@main
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
-          # gemini-api-key: ${{ secrets.GEMINI_API_KEY }}   # a second opinion on borderline scores
+          # anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # Claude Sonnet's second opinion on borderline scores
           # Every reported duplicate fails the check; the `dry-lint: override` label lets one through.
           # fail-at: "0.91"     # fail only on near-certain duplicates; the rest warn
           # warn-only: "true"   # never fail

@@ -17,11 +17,11 @@ inputs:
     description: TypeSafe API key. With it the Jev judge runs; without it (and no judge-command) dry-lint only lists look-alikes in the log.
     required: false
     default: ""
-  gemini-api-key:
+  anthropic-api-key:
     description: >
-      Gemini API key. With it, first-judge scores in the escalation band ([0.6, 0.91) by default) get a second opinion
-      from Gemini (escalate = "auto"): higher recall at about the same precision, about one call every three PRs.
-      Empty means no escalation.
+      Anthropic API key. With it, first-judge scores in the escalation band get a second opinion from Claude Sonnet
+      (escalate = "auto"): higher recall at about the same precision, about one call every three PRs. Empty means no
+      escalation. (Gemini needs escalate = "gemini" in [tool.dry-lint] and GEMINI_API_KEY in the environment.)
     required: false
     default: ""
   judge:
@@ -144,7 +144,7 @@ runs:
         INPUT_WARN_ONLY: ${{ inputs.warn-only }}
         INPUT_OVERRIDE_LABEL: ${{ inputs.override-label }}
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
-        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: python -m dry_lint.action run
     - name: Save verdicts

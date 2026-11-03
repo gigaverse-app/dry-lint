@@ -97,7 +97,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | Input | Default | |
 | --- | --- | --- |
 | `typesafe-api-key` | | Enables the Jev judge. |
-| `gemini-api-key` | | Enables escalation: Gemini re-judges first scores in the escalation band ([0.6, 0.91)). Recall at 0.8 went from 54% to about 76% at similar precision, for about one Gemini call every three PRs. |
+| `anthropic-api-key` | | Enables escalation: Claude Sonnet re-judges first-judge scores in the escalation band, for about one call every three PRs ([judges](judges.md)). Empty: no escalation. |
 | `judge` | `auto` | `jev` when the key is set, otherwise `none`. Can be `jev`, `command`, `none` or an installed judge plugin. |
 | `judge-command` | | For `judge: command`: reads the prompt on stdin, prints a JSON verdict ([judges](judges.md)). |
 | `plugins` | | Extra packages to install, one per line. |
