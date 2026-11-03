@@ -406,12 +406,12 @@ def clean(report: Report, audit: bool, scope: list[str], judge: str, report_at: 
     elif not report.changed:
         lead = "**Nothing to compare.** This pull request changes no functions."
     elif report.findings or report.filtered:
-        lead = (f"**Every changed function is the only implementation of its concept.** "
+        lead = (f"**No duplicate among the closest look-alikes.** "
                 f"{plural(stats['candidates'], 'look-alike pair')} came up; the judge or a rule cleared every one.")
     else:
-        against = f" any of the {report.functions:,} functions in the repository" if report.functions else " anything"
-        lead = (f"**Every changed function is the only implementation of its concept.** None of the "
-                f"{plural(report.changed, 'changed function')} looks like{against}.")
+        against = f" any of the {report.functions:,} functions it was compared with" if report.functions else " anything"
+        lead = (f"**No look-alikes found.** None of the {plural(report.changed, 'changed function')} came close "
+                f"enough to{against} to need judging.")
     rows = ["| Check | Result |", "| :-- | --: |",
             *([] if audit else [f"| Changed functions | {report.changed:,} |"]),
             *([f"| {'Functions in the repository' if audit else 'Compared with'} | {plural(report.functions, 'function')} |"]

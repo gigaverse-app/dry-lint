@@ -147,7 +147,7 @@ def test_the_python_extractor_gives_tokens_and_leaves_hashing_to_whoever_needs_i
 def test_the_extractor_lists_calls_from_the_body_not_the_name_or_decorators() -> None:
     source = "@retry(times=3)\ndef connect(self, timeout=default_timeout()):\n    return self.client.connect(timeout)\n"
     [found] = PythonExtractor().functions("a.py", source)
-    assert sorted(found.calls) == ["connect", "default_timeout"]
+    assert sorted(found.calls) == ["default_timeout"]  # self.client.connect is another object's method
     assert PythonExtractor().functions("a.py", "def connect(self):\n    return 1\n")[0].calls == []
     assert function_calls(function("a.py", "def broken(:", name="broken")) is None
 
@@ -167,9 +167,9 @@ def test_structure_hash_treats_async_functions_like_functions() -> None:
     assert structure_hash(a) == structure_hash(b) != structure_hash(c)
 
 
-def test_calls_preserve_real_invocations_and_ignore_unresolvable_targets() -> None:
-    source = "def wrapper(client):\n    return client.load_user (factory()(), callbacks[0]())\n"
-    assert set(function_calls(function("a.py", source))) == {"load_user", "factory"}
+def test_calls_preserve_direct_invocations_and_ignore_unresolvable_targets() -> None:
+    source = "def wrapper(self, client):\n    return client.load_user (factory()(), callbacks[0](), self.save(), cls.make())\n"
+    assert set(function_calls(function("a.py", source))) == {"factory", "self.save", "cls.make"}
 
 
 @pytest.mark.parametrize("body", [

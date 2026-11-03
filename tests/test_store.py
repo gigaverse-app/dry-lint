@@ -7,7 +7,11 @@ import pytest
 from botocore.response import StreamingBody
 from botocore.stub import Stubber
 
+from dry_lint.comparers import TfidfComparer
+from dry_lint.detector import Detector
+from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Candidate, Run, Verdict, pair_key
+from dry_lint.settings import Settings
 from dry_lint.store import DirectoryStore, Record, S3Store, VerdictStore
 
 from conftest import function
@@ -54,6 +58,25 @@ def test_a_separate_verdict_survives_logic_changes_that_do_not_bring_the_pair_cl
     assert lookup(store, candidate(old=changed, similarity=0.74)) == verdict("separate", 0.2)
     closer = store.lookup(candidate(old=changed, similarity=0.76), "jev", reopen_margin=0.05)
     assert closer.verdict is None and "now 0.76" in closer.why
+
+
+def test_a_separate_verdict_reopens_when_a_literal_makes_the_pair_one_concept(store: VerdictStore) -> None:
+    """
+    INVARIANT: a "separate" verdict is reused after a logic change only when the comparer can see that change. TF-IDF
+    tokens leave out literals, so an edit that makes two functions identical can leave their similarity unchanged.
+    """
+    extractor = PythonExtractor()
+    [peer] = extractor.functions("users.py", "def is_active(user):\n    return user.status == 'active'\n")
+    [before] = extractor.functions("admin.py", "def is_enabled(user):\n    return user.status == 'disabled'\n")
+    [after] = extractor.functions("admin.py", "def is_enabled(user):\n    return user.status == 'active'\n")
+
+    def pair(new):
+        detector = Detector([peer, new], Settings(), TfidfComparer(), [extractor])
+        return detector.pair(detector.hashed(new), peer, detector.comparer.similarity(new, peer))
+
+    store.remember(pair(before), verdict("separate", 0.2))
+    assert pair(after).similarity == pair(before).similarity  # the comparer cannot see the edit
+    assert lookup(store, pair(after)) is None
 
 
 @pytest.mark.parametrize("comparer", ["embedding:1", "tfidf:2"])

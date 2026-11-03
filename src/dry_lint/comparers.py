@@ -15,7 +15,9 @@ from dry_lint.models import Function
 class TfidfComparer:
     name = "tfidf"
     version = "2"
-    similarity_reusable = True
+    # Behaviour tokens leave out literals, so `status == 'disabled'` becoming `status == 'active'` can turn a separate
+    # pair into one concept without moving the score: lexical distance cannot vouch for a verdict on changed logic.
+    similarity_reusable = False
 
     def __init__(self, min_similarity: float = 0.5, min_similarity_small: float = 0.3, small_function_lines: int = 6,
                  max_df: float = 0.3) -> None:

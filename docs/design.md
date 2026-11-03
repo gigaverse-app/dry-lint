@@ -121,8 +121,9 @@ cannot have changed. Context and destination hashes must match before either rul
   `reopen_margin` (0.05) closer than when it was judged.** Changes that move two concepts apart cannot make them
   one.
 
-The optional comparer attribute `similarity_reusable` defaults to false; TF-IDF opts in to its existing heuristic.
-Dryer stays false because structural normalization erases literals and fields. Schema 1 records still load, but
+The optional comparer attribute `similarity_reusable` defaults to false, and no built-in comparer sets it: TF-IDF
+tokens and Dryer's normalization both leave out literals, so an edit such as `status == 'disabled'` to
+`status == 'active'` can make two functions one concept without moving their score. Schema 1 records still load, but
 only exact hashes reuse a verdict until a new record declares the policy. See [Dryer setup](detectors.md).
 
 A `duplicate` or `drifted` verdict reopens on any logic change, because that change might be the fix, or more

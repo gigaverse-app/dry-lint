@@ -134,7 +134,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment` | `true` | Keep the sticky comment. |
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
-| `sticky-key` | | Cache namespace and legacy marker label; all keys share one PR comment. |
+| `sticky-key` | | Legacy marker label, and the suffix that tells apart the verdict saves of several steps in one job; all keys share one PR comment. |
 | `fail-at` | the preset's (0.55 with `jev+opus`, 0.8 with `jev`) | Judge score at or above which a duplicate fails the check. |
 | `warn-only` | `false` | Never fail; blocking findings are reported like the rest. |
 | `override-label` | `dry-lint: override` | The pull request label that lets blocking findings through. |
@@ -150,8 +150,10 @@ and the command line all agree ([README](../README.md#settings)).
 ## Verdict cache
 
 Verdicts are kept in the Actions cache:
-- Caches are partitioned by job and `sticky-key`, so concurrent local and cross-repository jobs do not race to
-  save different verdict sets under the same key. Use a distinct `sticky-key` for multiple steps in one job.
+- Caches are partitioned by job, so concurrent jobs never race to save different verdict sets under one key.
+- Several dry-lint steps in one job share one store, and so one pull request budget: the first step restores it,
+  later steps add to it rather than restoring over it, and each step saves under its own `sticky-key` suffix. The
+  newest save holds all of them, and it is what the next run restores.
 - A pull request's run restores the newest verdicts it can see, so a later push only judges pairs whose logic
   changed.
 - Runs on the default branch, that is pushes to `main` and judge-mode runs, save their verdicts where every pull
@@ -174,7 +176,8 @@ dismissals do not earn cleanup credit. Commits before the first recorded report 
   commit adds what it cost but no new checks.
 - **A duplicate is kept out of the codebase** when a push reported it and a later push no longer does. A pair a
   person settles with `distinct-from`, `ignore` or a pattern counts as dismissed instead, even after it went away,
-  and a pair left unjudged (the budget ran out) stays open.
+  and a pair left unjudged (the budget ran out) stays open. So does a pair whose scope did not report on the
+  later push: name the scopes (`--report local=...`) and a failed cross-repository check settles nothing.
 - **The repository's ledger** is folded by the run on each push to the default branch: it adds that run, and the
   final ledger of each pull request merged since the ledger began, once each. It looks back over the latest 100
   merged pull requests, so a cancelled run is caught up by the next. It lives beside the verdicts in the cache
@@ -190,22 +193,24 @@ does, and a token that can read pull requests.
 ## Running it in a monorepo, or more than once
 
 Run local and cross-repository checks in one job, with `comment: "false"` on both steps.
-Use distinct `sticky-key` values for their verdict caches. After each step, preserve both
-`$RUNNER_TEMP/dry-lint/comment.md` and `$RUNNER_TEMP/dry-lint/report.json` as `local.md` / `local-report.json`
-and `cross-repository.md` / `cross-repository-report.json`. When both scopes completed, publish once:
+Give the second step a distinct `sticky-key`; both use the same verdict store and budget. Copy
+`$RUNNER_TEMP/dry-lint/comment.md` and `report.json` after each step to `$RUNNER_TEMP/local.{md,json}` and
+`$RUNNER_TEMP/cross-repository.{md,json}`. Then publish once, passing only the reports that exist:
 
 ```bash
 python -I -m dry_lint.sticky \
+  --report "local=$RUNNER_TEMP/local.json" --report "cross-repository=$RUNNER_TEMP/cross-repository.json" \
   --body "$RUNNER_TEMP/local.md" --body "$RUNNER_TEMP/cross-repository.md" \
-  --report "$RUNNER_TEMP/local-report.json" --report "$RUNNER_TEMP/cross-repository-report.json" \
   --pull-request "$PR_NUMBER" --expect-head "$HEAD_SHA" --findings "$TOTAL_FINDINGS"
 ```
 
-Repeated `--body` arguments combine the scopes under headings derived from their filenames. Sum findings
-from both step outputs. If either scope fails, include an explicit incomplete-scope warning; do not call it
-clean. Keep repository/backlog audits in job summaries and artifacts, with no separate comment publisher.
-Pass no `--report` arguments on an incomplete run: the existing ledger stays intact instead of treating a missing
-scope's findings as cleaned up. Markdown alone does not start a ledger, because it cannot identify pairs reliably.
+Repeated `--body` arguments combine the scopes under headings derived from their filenames. Name each
+`--report` by its scope: the ledger then leaves a scope's earlier duplicates open on a run where that scope did
+not report, instead of counting them as kept out. Sum findings from both step outputs. If either scope fails,
+include an explicit incomplete-scope warning; do not call it clean. Keep repository/backlog audits in job summaries
+and artifacts, with no separate comment publisher. On an incomplete run, pass the named reports of the scopes that
+completed: the missing scope's findings stay open instead of counting as cleaned up. Markdown alone does not start
+a ledger, because it cannot identify pairs reliably.
 A single publisher per PR, workflow concurrency, and `--expect-head` prevent concurrent or stale reports.
 GitHub has no atomic comment upsert, so several independent jobs must not each publish. Legacy keyed comments
 are reconciled into the one current report. A key no longer creates an independent comment.

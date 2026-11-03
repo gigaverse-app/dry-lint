@@ -140,7 +140,7 @@ def test_trial_cli_runs_each_variant_with_real_repository_and_gold(repo, tmp_pat
         assert results["variants"][variant]["comparer"] == expected
         pairs = json.loads((out / f"{variant}-scan.json").read_text())
         assert all(pair["comparer"] == expected for pair in pairs)
-        assert all(pair["similarity_reusable"] == (variant == "baseline") for pair in pairs)
+        assert not any(pair["similarity_reusable"] for pair in pairs)
 
     gold.write_text(gold.read_text().replace("src/text.py::shorten_text", "missing.py::gone"))
     with pytest.raises(ValueError, match="missing from corpus"):

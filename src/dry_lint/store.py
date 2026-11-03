@@ -6,8 +6,9 @@ re-judging. Each record is its own object, named by the pair's key, so concurren
 run reads only the records of the pairs it has. A record is reused when the answer cannot have changed:
 
 - both structure hashes match (comments, formatting and renames do not change them); or
-- the verdict was "separate", the similarity comes from the same comparer version, and the pair is not more than
-  `reopen_margin` closer than when it was judged: changes that move two concepts apart cannot make them one.
+- the verdict was "separate", the comparer permits similarity reuse (`similarity_reusable`; no built-in one does,
+  since their scores do not see literals), the similarity comes from the same comparer version, and the pair is
+  not more than `reopen_margin` closer than when it was judged.
 
 A duplicate verdict reopens on any logic change, because that change may be the fix, or more drift. A verdict
 from a different judge is never reused; one from an older version of the same judge is, until a backlog run with

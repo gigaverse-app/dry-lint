@@ -49,7 +49,7 @@ def test_a_duplicate_reported_then_gone_is_kept_out_of_the_codebase() -> None:
     assert ledger.count("open") == 1 and ledger.pushed == 1
     ledger = ledger.advance([push("b" * 40)], run="2")
     assert ledger.count("kept-out") == 1 and ledger.count("open") == 0
-    assert ledger.pairs[pair().key] == Pair(new="clip", existing="shorten", found=1, state="kept-out", settled=2)
+    assert ledger.pairs[pair().key] == Pair(new="clip", existing="shorten", found=1, state="kept-out", settled=2, scope="")
 
 
 def test_a_duplicate_a_person_dismissed_is_not_counted_as_kept_out() -> None:
@@ -70,6 +70,28 @@ def test_a_duplicate_left_unjudged_stays_open() -> None:
     deferred = Finding(candidate=pair(), deferred=True)
     ledger = ledger.advance([push("b" * 40, deferred)], run="2")
     assert ledger.count("open") == 1
+
+
+def test_only_the_scope_that_found_a_duplicate_can_keep_it_out() -> None:
+    """
+    INVARIANT: a duplicate counts as kept out only when the scope that found it reported again without it. A run in
+    which that scope did not complete (only the local check reported) is no evidence the duplicate is gone.
+    """
+    ledger = PullLedger().advance([push("a" * 40), push("a" * 40, finding("duplicate"))], run="1",
+                                  scopes=["local", "cross-repository"])
+    assert ledger.pairs[pair().key].scope == "cross-repository"
+    partial = ledger.advance([push("b" * 40)], run="2", scopes=["local"])
+    assert partial.count("open") == 1 and partial.count("kept-out") == 0
+    assert headline(partial).startswith("**1 duplicate caught**")
+    complete = partial.advance([push("c" * 40), push("c" * 40)], run="3", scopes=["local", "cross-repository"])
+    assert complete.pairs[pair().key] == Pair(new="clip", existing="shorten", found=1, state="kept-out", settled=3,
+                                              scope="cross-repository")
+
+
+def test_a_duplicate_from_an_older_ledger_without_a_scope_settles_as_before() -> None:
+    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")
+    ledger.pairs[pair().key].scope = None
+    assert ledger.advance([push("b" * 40)], run="2", scopes=["local"]).count("kept-out") == 1
 
 
 def test_a_duplicate_that_comes_back_is_open_again() -> None:

@@ -156,7 +156,7 @@ def test_a_clean_report_says_so_and_shows_what_was_checked_to_earn_it() -> None:
     assert body.startswith(f"{MARKER}\n{CLEAN}\n### dry-lint · ✨ No duplicated concepts")
     assert "![duplicated concepts: none ✓](https://img.shields.io/badge/duplicated_concepts-none_%E2%9C%93-2EA043?" in body
     assert "compared_with-1%2C284-2563EB" in body and "| Check | Result |" in body
-    assert "**Every changed function is the only implementation of its concept.** 3 look-alike pairs came up" in body
+    assert "**No duplicate among the closest look-alikes.** 3 look-alike pairs came up" in body
     for row in ("| Changed functions | 2 |", "| Compared with | 1,284 functions |", "| Look-alike pairs | 3 |",
                 "| Settled by a rule | 1 |", "| Cleared by the judge | 2 (1 from the verdict store) |",
                 "| Closest call | `clip` ≈ `trim` · duplicate 0.70 · under the 0.80 bar |"):
@@ -166,9 +166,11 @@ def test_a_clean_report_says_so_and_shows_what_was_checked_to_earn_it() -> None:
 
 def test_a_clean_report_without_look_alikes_names_the_scale_of_the_comparison() -> None:
     body = as_markdown(clean_report())
-    assert "None of the 2 changed functions looks like any of the 1,284 functions in the repository." in body
+    assert ("None of the 2 changed functions came close enough to any of the 1,284 functions it was compared with "
+            "to need judging.") in body
+    assert "only implementation" not in body  # a bounded comparison never proves uniqueness
     assert "Closest call" not in body and "Cleared by the judge" not in body and "Settled by a rule" not in body
-    assert "looks like anything." in as_markdown(clean_report(functions=0))
+    assert "close enough to anything to need judging." in as_markdown(clean_report(functions=0))
     assert "Compared with" not in as_markdown(clean_report(functions=0))
     assert "**Nothing to compare.** This pull request changes no functions." in as_markdown(clean_report(changed=0))
     assert "under the" not in as_markdown(clean_report(finding("separate")))

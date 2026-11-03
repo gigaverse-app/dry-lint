@@ -246,6 +246,37 @@ def test_an_incomplete_scope_cannot_resolve_previous_findings(tmp_path, monkeypa
     assert "Resolved" not in body and "did not complete" in body
 
 
+def test_a_failed_peer_scope_does_not_claim_its_earlier_duplicate_was_kept_out(tmp_path, monkeypatch):
+    """INVARIANT: the ledger's "kept out" counts only duplicates whose own scope reported again without them."""
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    fake = FakeGitHub()
+    local, peers = tmp_path / "local.md", tmp_path / "cross-repository.md"
+    local_json, peers_json = tmp_path / "local.json", tmp_path / "cross-repository.json"
+    local.write_text(CLEAN_REPORT, encoding="utf-8")
+    peers.write_text(REPORT, encoding="utf-8")
+    local_json.write_text(push("a" * 40).model_dump_json())
+    peers_json.write_text(push("a" * 40, finding("duplicate")).model_dump_json())
+    common = ["--body", str(local), "--body", str(peers), "--repository", REPO, "--pull-request", str(PR)]
+    sticky.main([*common, "--findings", "1", "--run", "1", "--report", f"local={local_json}",
+                 "--report", f"cross-repository={peers_json}"], transport=httpx.MockTransport(fake))
+    assert ledger_of(fake).count("open") == 1
+    peers.write_text("> [!WARNING]\n> This scope did not complete.", encoding="utf-8")
+    local_json.write_text(push("b" * 40).model_dump_json())
+    sticky.main([*common, "--findings", "0", "--run", "2", "--report", f"local={local_json}"],
+                transport=httpx.MockTransport(fake))
+    assert (ledger_of(fake).count("open"), ledger_of(fake).count("kept-out")) == (1, 0)
+    assert "kept out of the codebase**" not in fake.stickies()[0]
+
+
+@pytest.mark.parametrize("argument, expected", [
+    ("local=/tmp/local.json", ("local", Path("/tmp/local.json"))),
+    ("/tmp/report.json", ("", Path("/tmp/report.json"))),
+    ("/tmp/odd=name.json", ("", Path("/tmp/odd=name.json"))),
+])  # fmt: skip
+def test_a_report_argument_names_its_scope_or_has_none(argument: str, expected: tuple[str, Path]) -> None:
+    assert sticky.scoped(argument) == expected
+
+
 def post(fake: FakeGitHub, tmp_path: Path, report, run: str, *extra: str) -> None:
     body, saved = tmp_path / "comment.md", tmp_path / f"report-{run}.json"
     body.write_text(REPORT)
