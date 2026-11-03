@@ -37,6 +37,8 @@ See [docs/design.md](docs/design.md) and [docs/plugins.md](docs/plugins.md).
 
 For the experimental work on profiles, judging budgets and discovery across repeated runs, see
 [Discovery over time](docs/coverage-exploration.md), including the offline replay tools and measured tradeoffs.
+The [four-cent discovery trial](docs/four-cent-discovery.md) compares cheaper judges, baseline protection and
+exploration pacing across PR commits.
 
 1. **Detector** (local, no model, about 4.5 s on 10,000 functions). It finds the functions the diff touched. The
    **comparer** proposes each one's nearest look-alikes in other files; the built-in one is a TF-IDF fingerprint

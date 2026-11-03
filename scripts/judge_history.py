@@ -1,4 +1,4 @@
-"""Meter live Sonnet judgments while replaying fixed and baseline-first discovery. Private outputs.
+"""Meter live model judgments while replaying fixed and baseline-first discovery. Private outputs.
 
 Reads captures from capture_history.py. Supply ANTHROPIC_API_KEY in the environment. Uses the canonical judge,
 prompt, preset and price table. Never loads credentials from a repository or executes captured source.
@@ -246,6 +246,7 @@ def evaluate(
             raise ValueError("Logical run identity was reused for different evidence")
         revision = next(iter(step.sources.values())).run.head or step.run_id
         if protection and protection.exploration_carry_usd is not None and revision not in credited_revisions:
+            assert protection.exploration_run_usd is not None, "A carry bank requires a per-revision allowance"
             exploration_credit = min(
                 protection.exploration_carry_usd, exploration_credit + protection.exploration_run_usd
             )
@@ -368,7 +369,6 @@ def evaluate(
         **judge_manifest(answers),
         "baseline_judge": judge_manifest(baseline_answers) if baseline_answers is not None else None,
         "protection": protection.model_dump() if protection else None,
-        "report_at": answers.settings.report_at,
         "curves": curves,
     }
 

@@ -1,6 +1,7 @@
 """Paired live prompt/scheduler experiment. Packets omit judge answers; outputs contain private source.
 
-Use --packets-only for blinded reference review. Both prompt arms use the same output limit and allowances.
+Use --packets-only for blinded reference review. Baseline overrides retain their own prompt and output policy.
+Use a separate output directory per model/budget configuration; result filenames identify prompt and scheduler.
 The answer directory is shared across cohorts so --limit-usd is the whole experiment's physical ceiling.
 """
 

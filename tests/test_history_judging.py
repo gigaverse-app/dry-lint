@@ -182,9 +182,13 @@ def test_failed_paid_replay_answer_consumes_budget_without_becoming_coverage(api
     assert result["curves"][-1]["covered"] == {}
     assert result["curves"][-1]["cumulative_attempts"] == 1
     assert result["curves"][-1]["cumulative_usd"] == pytest.approx(0.003)
-    scored = load_script("score_history")["score"](history, result, {}, answers.observations)
+    scored = load_script("score_history")["score"](
+        history, result, {answers.key(candidate()): "duplicate"}, answers.observations
+    )
     assert scored["unique_failed_evidence"] == 1
     assert scored["unique_judged_evidence"] == 0
+    assert scored["unique_selected_positive_evidence"] == 1
+    assert scored["unique_judged_positive_evidence"] == 0
 
 
 def test_provider_usage_is_counted_once_physically_but_each_policy_pays_its_own_cost(

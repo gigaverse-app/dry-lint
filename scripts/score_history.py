@@ -96,6 +96,11 @@ def score(payload: ReplayInput, result: dict, labels: dict[str, str], observatio
         "curves": curves,
         "unique_judged_evidence": len(valid_answers),
         "unique_failed_evidence": len(selected_answers - valid_answers),
+        "unique_selected_positive_evidence": sum(labels.get(k) == "duplicate" for k in selected_answers),
+        "unique_selected_negative_evidence": sum(labels.get(k) == "separate" for k in selected_answers),
+        "unique_selected_unresolved_evidence": sum(
+            labels.get(k) not in ("duplicate", "separate") for k in selected_answers
+        ),
         "unique_judged_positive_evidence": sum(labels.get(k) == "duplicate" for k in valid_answers),
         "unique_true_reports": sum(labels.get(k) == "duplicate" for k in reports),
         "unique_false_reports": sum(labels.get(k) == "separate" for k in reports),
