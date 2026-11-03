@@ -1,40 +1,38 @@
 """
 The detector: which functions changed, and which existing functions elsewhere look like they do the same job.
 
-Stateless and model-free: it reads the working tree, builds the index in memory and proposes candidate pairs.
-Whether a pair really is a duplicate is the judge's question (judges/), asked only when the verdict store has
-no usable answer (store.py).
+Stateless and model-free: it reads the working tree, has the comparer index it in memory and proposes candidate
+pairs. Whether a pair really is a duplicate is the judge's question (judging.py), asked only when the verdict
+store has no usable answer (store.py). The extractors and the comparer are plugins; the rules here are core.
 """
 
 import fnmatch
 import re
-import subprocess
 from pathlib import Path
 
-from pydantic import BaseModel
-
-from dry_lint.functions import Function, behaviour_tokens, repository_functions
-from dry_lint.index import TfidfIndex
+from dry_lint.functions import extractor_for, repository_functions
+from dry_lint.git import git
+from dry_lint.models import Candidate, Function
+from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.settings import Settings
 
-SUPPRESSION = re.compile(r"#\s*dry-lint:\s*distinct-from\s+(\S+)")
+SUPPRESSION = re.compile(r"(?:#|//)\s*dry-lint:\s*distinct-from\s+(\S+)")
 
 
-class Candidate(BaseModel):
-    """A changed function and an existing one elsewhere that looks like it does the same job."""
+def default_base(root: Path) -> str:
+    """The remote's default branch (origin/HEAD), or origin/main when the clone does not record one."""
+    remote_head = git(root, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD", check=False)
+    return remote_head.removeprefix("refs/remotes/") or "origin/main"
 
-    new: Function
-    existing: Function
-    similarity: float
+
+def base_ref(root: Path, base: str | None) -> str:
+    """`base`, unless it is empty or the all-zero sha a branch's first push reports: then the default branch."""
+    return base if base and base.strip("0") else default_base(root)
 
 
 def changed_lines(root: Path, base: str | None = None, staged: bool = False) -> dict[str, set[int]]:
     """Lines added or modified, per file: against `base` (merge base with HEAD), or the staged changes."""
-    if staged:
-        command = ["git", "diff", "--cached", "-U0", "--", "*.py"]
-    else:
-        command = ["git", "diff", "-U0", f"{base or 'origin/main'}...HEAD", "--", "*.py"]
-    diff = subprocess.run(command, cwd=root, capture_output=True, text=True, check=True).stdout
+    diff = git(root, "diff", "--cached", "-U0") if staged else git(root, "diff", "-U0", f"{base_ref(root, base)}...HEAD")
     changed: dict[str, set[int]] = {}
     current = None
     for line in diff.splitlines():
@@ -55,7 +53,10 @@ def touched(functions: list[Function], lines: dict[str, set[int]]) -> list[Funct
 
 
 def calls(function: Function) -> set[str]:
-    return set(re.findall(r"\b(\w+)\(", function.code))
+    """The names the function calls: from its extractor, else from its code after the line that defines it."""
+    if function.calls is not None:
+        return set(function.calls)
+    return set(re.findall(r"\b(\w+)\(", function.code.partition("\n")[2]))
 
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
@@ -75,50 +76,53 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
 
 
 class Detector:
-    def __init__(self, functions: list[Function], settings: Settings) -> None:
+    def __init__(self, functions: list[Function], settings: Settings, comparer: Comparer,
+                 extractors: list[Extractor]) -> None:
         self.functions = functions
         self.settings = settings
-        self.tokens = [behaviour_tokens(f) for f in functions]
-        self.index = TfidfIndex(self.tokens)
+        self.comparer = comparer
+        self.extractors = extractors
+        self.comparer_id = identity(comparer)
         self.position = {f.qualname: i for i, f in enumerate(functions)}
+        comparer.index(functions)
 
     @classmethod
     def for_repository(cls, root: Path, settings: Settings) -> "Detector":
-        return cls(repository_functions(root, settings.include, settings.exclude), settings)
+        extractors = [load("extractors", choice) for choice in settings.extractors]
+        functions = repository_functions(root, settings.include, settings.exclude, extractors)
+        return cls(functions, settings, load("comparers", settings.comparer), extractors)
 
-    def floor(self, function: Function) -> float:
-        small = function.lines < self.settings.small_function_lines
-        return self.settings.min_similarity_small if small else self.settings.min_similarity
+    def find(self, name: str) -> Function:
+        """A function by qualified name, or by a suffix of one that only it has."""
+        matches = [f for f in self.functions if f.qualname == name] or \
+            [f for f in self.functions if f.qualname.endswith(name)]
+        if len(matches) != 1:
+            raise ValueError(f"{len(matches)} functions match {name!r}; give more of the qualified name")
+        return matches[0]
 
     def neighbours(self, function: Function) -> list[tuple[Function, float]]:
-        """The closest functions in other files, above the detector floor, before any filtering."""
-        own = self.position.get(function.qualname)
-        found = self.index.similar(behaviour_tokens(function), limit=self.settings.neighbours + 8,
-                                   exclude={own} if own is not None else set())
-        result = []
-        for position, similarity in found:
-            other = self.functions[position]
-            if other.path == function.path or similarity < self.floor(function):
-                continue
-            result.append((other, similarity))
-            if len(result) == self.settings.neighbours:
-                break
-        return result
+        """The closest functions in other files, above the comparer's floor, before any rule."""
+        return self.comparer.neighbours(function, self.settings.neighbours, allowed=lambda o: o.path != function.path)
 
-    def candidates(self, changed: list[Function]) -> tuple[list[Candidate], list[str]]:
-        """Candidate pairs for the changed functions, and a line per pair skipped with its reason."""
-        found, skipped, seen = [], [], set()
+    def hashed(self, function: Function) -> Function:
+        extractor = extractor_for(function.path, self.extractors)
+        assert extractor is not None, function.path  # it extracted the function
+        return function.model_copy(update={"hash": extractor.structure_hash(function)})
+
+    def pair(self, new: Function, existing: Function, similarity: float) -> Candidate:
+        return Candidate(new=self.hashed(new), existing=self.hashed(existing), similarity=round(similarity, 3),
+                         comparer=self.comparer_id, filtered=why_skipped(new, existing, self.settings))
+
+    def candidates(self, changed: list[Function]) -> list[Candidate]:
+        """Pairs for the changed functions; those a rule settles carry the rule in `filtered`."""
+        found, seen = [], set()
         for function in changed:
             for other, similarity in self.neighbours(function):
-                pair = frozenset((function.qualname, other.qualname))
-                if pair in seen:
-                    continue
-                seen.add(pair)
-                if reason := why_skipped(function, other, self.settings):
-                    skipped.append(f"{function.qualname} ~ {other.qualname}: {reason}")
-                    continue
-                found.append(Candidate(new=function, existing=other, similarity=round(similarity, 3)))
-        return found, skipped
+                key = frozenset((function.qualname, other.qualname))
+                if key not in seen:
+                    seen.add(key)
+                    found.append(self.pair(function, other, similarity))
+        return found
 
     def scan(self) -> list[Candidate]:
         """Every pair in the repository that are each other's nearest neighbour across files: the backlog."""
@@ -130,7 +134,7 @@ class Detector:
         pairs = []
         for name, (other, similarity) in best.items():
             if name < other and best.get(other, ("",))[0] == name:
-                a, b = self.functions[self.position[name]], self.functions[self.position[other]]
-                if not why_skipped(a, b, self.settings):
-                    pairs.append(Candidate(new=a, existing=b, similarity=round(similarity, 3)))
+                pair = self.pair(self.functions[self.position[name]], self.functions[self.position[other]], similarity)
+                if pair.filtered is None:
+                    pairs.append(pair)
         return sorted(pairs, key=lambda c: -c.similarity)

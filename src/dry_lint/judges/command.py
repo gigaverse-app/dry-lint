@@ -1,20 +1,26 @@
 """
-Any LLM as the judge, through a command: the prompt goes to its stdin, a JSON verdict comes back on stdout.
+Any program as the judge, through a command: one candidate in on stdin, one JSON verdict out on stdout.
 
-    dry-lint judge candidates.json --judge-command "claude -p --model haiku"
+    dry-lint check --judge command --judge-command "claude -p --model haiku"
 
-The command must print one JSON object: {"label": "duplicate" | "drifted" | "separate", "score": 0-1,
-"owner": "new" | "existing" | "shared" | "", "why": "one sentence"}. Text around the object is ignored.
+    [tool.dry-lint]
+    judge = { use = "command", command = "claude -p --model haiku", version = "haiku-1" }
+
+With `input = "prompt"` (the default) the command gets the DRY prompt below, so any LLM CLI works as is. With
+`input = "candidate"` it gets the candidate as one line of JSON (the `Candidate` model, as in candidates.json),
+for judges written as programs. Either way it must print one JSON object, and text around it is ignored:
+{"label": "duplicate" | "drifted" | "separate", "score": 0-1, "behaves_differently": 0-1,
+"owner": "new" | "existing" | "shared" | "", "why": "one sentence"}.
 """
 
 import json
 import re
 import shlex
 import subprocess
+from typing import Literal
 
-from dry_lint.detector import Candidate
+from dry_lint.models import Candidate, Verdict
 from dry_lint.settings import Settings
-from dry_lint.store import Verdict
 
 PROMPT = """You review a pull request for duplicated concepts (DRY). Two Python functions from one codebase:
 NEW was written or changed in the pull request; EXISTING already exists elsewhere.
@@ -40,23 +46,31 @@ Use "drifted" when it is one concept and the two already give different results 
 
 
 class CommandJudge:
-    def __init__(self, command: str, timeout: float = 180) -> None:
-        self.command, self.timeout = command, timeout
-        self.name = f"command:{shlex.split(command)[0]}"
+    def __init__(self, command: str = "", input: Literal["prompt", "candidate"] = "prompt", version: str = "1",
+                 name: str | None = None, timeout: float = 180) -> None:
+        if not command:
+            raise ValueError("The command judge needs a command (--judge-command, or `command` in its settings)")
+        self.command, self.input, self.version, self.timeout = command, input, version, timeout
+        self.name = name or f"command:{shlex.split(command)[0].rsplit('/', 1)[-1]}"
 
     def prompt(self, candidate: Candidate) -> str:
         return (PROMPT.replace("<<new_name>>", candidate.new.qualname).replace("<<new_code>>", candidate.new.code)
                 .replace("<<existing_name>>", candidate.existing.qualname).replace("<<existing_code>>", candidate.existing.code))
 
+    def stdin(self, candidate: Candidate) -> str:
+        return candidate.model_dump_json() + "\n" if self.input == "candidate" else self.prompt(candidate)
+
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         verdicts = []
         for candidate in candidates:
-            out = subprocess.run(shlex.split(self.command), input=self.prompt(candidate), capture_output=True,
+            out = subprocess.run(shlex.split(self.command), input=self.stdin(candidate), capture_output=True,
                                  text=True, timeout=self.timeout, check=True).stdout
             match = re.search(r"\{.*\}", out, re.S)
             if match is None:
                 raise ValueError(f"The judge command printed no JSON verdict: {out[:200]!r}")
             answer = json.loads(match.group(0))
             verdicts.append(Verdict(label=answer["label"], score=float(answer.get("score", 1.0)),
-                                    owner=answer.get("owner", ""), why=answer.get("why", ""), judge=self.name))
+                                    behaves_differently=float(answer.get("behaves_differently", 0.0)),
+                                    owner=answer.get("owner", ""), why=answer.get("why", ""), judge=self.name,
+                                    judge_version=self.version))
         return verdicts

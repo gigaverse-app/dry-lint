@@ -1,0 +1,99 @@
+"""
+The records dry-lint passes between its steps, and between its two CI jobs. Their JSON form is the file format:
+
+- `candidates.json`, written by `dry-lint detect`: the run, and every pair the comparer proposed;
+- one verdict record per pair in the store (store.py);
+- `report.json`, written by `dry-lint judge` or `check`: what every reporter renders (report.py).
+
+Each file carries `schema`. Bump it, and keep reading the old one, whenever a field changes meaning.
+"""
+
+import hashlib
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+SCHEMA = 1
+Label = Literal["duplicate", "drifted", "separate"]
+
+
+class Versioned(BaseModel):
+    """A top-level file: serialized with its `schema` number."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    schema_version: int = Field(default=SCHEMA, alias="schema")
+
+
+class Function(BaseModel):
+    """One function or method, by the qualified name dry-lint keys everything on. An extractor fills it in."""
+
+    path: str = Field(description="Path relative to the repository root.")
+    name: str = Field(description="The function's own name.")
+    owner: str | None = Field(default=None, description="Enclosing class, for methods.")
+    line: int
+    end_line: int
+    code: str
+    hash: str = Field(default="", description="Changes when the logic changes; not for comments, formatting or renames.")
+    tokens: list[str] = Field(default_factory=list, exclude=True,
+                              description="Behaviour tokens, for comparers that use them. Not written to files.")
+    calls: list[str] | None = Field(default=None, exclude=True,
+                                    description="Names the function calls, from its extractor; None if it cannot tell.")
+
+    @property
+    def qualname(self) -> str:
+        return f"{self.path}::{self.owner + '.' if self.owner else ''}{self.name}"
+
+    @property
+    def lines(self) -> int:
+        return self.end_line - self.line + 1
+
+
+def pair_key(a: str, b: str) -> str:
+    """A pair's key in the store, the same whichever side changed."""
+    first, second = sorted((a, b))
+    return hashlib.sha256(f"{first}\n{second}".encode()).hexdigest()[:16]
+
+
+class Candidate(BaseModel):
+    """A changed function and an existing one elsewhere that looks like it does the same job."""
+
+    new: Function
+    existing: Function
+    similarity: float
+    comparer: str = Field(default="", description="The comparer and version that measured the similarity, e.g. 'tfidf:1'.")
+    filtered: str | None = Field(default=None, description="Why a rule dropped the pair; None when it goes to the judge.")
+
+    @property
+    def key(self) -> str:
+        return pair_key(self.new.qualname, self.existing.qualname)
+
+
+class Verdict(BaseModel):
+    """A judge's answer for one pair."""
+
+    label: Label
+    score: float = Field(description="0-1: how sure the judge is that this is one concept with two implementations.")
+    behaves_differently: float = Field(default=0.0, description="0-1: whether callers would notice a difference.")
+    owner: str = Field(default="", description="Which side should own the single implementation: new, existing, shared.")
+    why: str = ""
+    judge: str = Field(description="The judge's name, e.g. 'jev' or 'command:claude'.")
+    judge_version: str = Field(default="", description="Its model and prompt version, e.g. 'reuse-v2'.")
+    second_opinion: str | None = Field(default=None, description="The escalation judge whose answer this is, if any.")
+
+
+class Run(BaseModel):
+    """Where a run's candidates came from, so the judge job reports on the right pull request and commit."""
+
+    repository: str = ""
+    pull_request: int | None = None
+    head: str = ""
+    base: str = ""
+
+
+class CandidatesFile(Versioned):
+    """`candidates.json`: what the detect job hands to the judge job."""
+
+    run: Run = Field(default_factory=Run)
+    changed: int = Field(default=0, description="How many functions the change touched.")
+    candidates: list[Candidate] = Field(default_factory=list, description="Proposed pairs, and filtered ones with why.")

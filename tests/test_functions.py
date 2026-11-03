@@ -1,13 +1,16 @@
 import pytest
 
+from dry_lint.extractors import PythonExtractor
 from dry_lint.functions import (
     behaviour_tokens,
-    functions_in,
+    extractor_for,
+    function_calls,
     repository_functions,
     structure_hash,
-    tracked_python_files,
+    tracked_files,
     words,
 )
+from dry_lint.models import Function
 
 from conftest import Repo, function
 
@@ -50,19 +53,19 @@ def test_structure_hash_of_unparsable_code_is_still_stable() -> None:
     assert len(structure_hash(broken)) == 16
 
 
-def test_functions_in_lists_functions_and_methods_by_qualified_name() -> None:
+def test_the_extractor_lists_functions_and_methods_by_qualified_name() -> None:
     source = (
         "def top(a):\n    return a\n\n"
         "class Box:\n    def open(self):\n        def helper():\n            return 1\n        return helper()\n\n"
         "def one_liner(): pass\n"
     )
-    found = functions_in(source, "pkg/box.py")
+    found = PythonExtractor().functions("pkg/box.py", source)
     assert [f.qualname for f in found] == ["pkg/box.py::top", "pkg/box.py::Box.open"]
     assert found[1].lines == 4 and "helper" in found[1].code
 
 
-def test_functions_in_skips_files_that_do_not_parse() -> None:
-    assert functions_in("def broken(:\n", "x.py") == []
+def test_the_extractor_skips_files_that_do_not_parse() -> None:
+    assert PythonExtractor().functions("x.py", "def broken(:\n") == []
 
 
 def test_behaviour_tokens_capture_calls_attributes_names_and_control_flow() -> None:
@@ -90,19 +93,69 @@ def test_words_split_identifiers_and_drop_generic_ones() -> None:
     assert words("get_user_id") == ["user"]
 
 
-def test_tracked_python_files_respect_include_and_exclude(repo: Repo) -> None:
+def test_tracked_files_respect_include_and_exclude(repo: Repo) -> None:
     repo.write("tests/test_text.py", "def test_x():\n    assert True\n")
+    repo.write("docs/notes with space.md", "notes\n")
     repo.commit("tests")
-    files = tracked_python_files(repo.root, ["*.py"], ["tests/*"])
+    files = tracked_files(repo.root, ["*.py"], ["tests/*"])
     assert sorted(files) == ["src/filler.py", "src/text.py", "src/widgets/caption.py"]
-    assert tracked_python_files(repo.root, ["src/widgets/*"], []) == ["src/widgets/caption.py"]
+    assert tracked_files(repo.root, ["src/widgets/*"], []) == ["src/widgets/caption.py"]
+    assert "docs/notes with space.md" in tracked_files(repo.root, ["*"], [])
 
 
 def test_repository_functions_skip_files_that_cannot_be_read(repo: Repo) -> None:
     (repo.root / "src" / "binary.py").write_bytes(b"\xff\xfe\x00def")
     repo.commit("binary")
-    names = {f.name for f in repository_functions(repo.root, ["*.py"], [])}
+    names = {f.name for f in repository_functions(repo.root, ["*"], [], [PythonExtractor()])}
     assert {"shorten_text", "preview_caption_text", "sync_invoice"} <= names
+
+
+class Lines:
+    """A second extractor, for another language: every non-blank line of a .txt file is a function."""
+
+    name, version, files = "lines", "1", ("*.txt",)
+
+    def functions(self, path: str, source: str) -> list[Function]:
+        return [Function(path=path, name=f"line{i}", line=i, end_line=i, code=text)
+                for i, text in enumerate(source.splitlines(), 1) if text.strip()]
+
+    def structure_hash(self, function: Function) -> str:
+        return function.code
+
+
+def test_each_file_is_read_by_the_first_extractor_whose_globs_match_it(repo: Repo) -> None:
+    repo.write("notes/todo.txt", "buy milk\n\ncall home\n")
+    repo.write("README.md", "# not read\n")
+    repo.commit("text")
+    found = repository_functions(repo.root, ["*"], [], [PythonExtractor(), Lines()])
+    assert [f.qualname for f in found if f.path == "notes/todo.txt"] == ["notes/todo.txt::line1", "notes/todo.txt::line3"]
+    assert not any(f.path == "README.md" for f in found)
+    assert extractor_for("a/b.py", [Lines(), PythonExtractor()]).name == "python"
+    assert extractor_for("a/b.md", [Lines(), PythonExtractor()]) is None
+
+
+def test_the_python_extractor_gives_tokens_and_leaves_hashing_to_whoever_needs_it() -> None:
+    source = "@cache\ndef shorten(text, limit):\n    return text[:limit]\n\ndef tiny(): pass\n"
+    [found] = PythonExtractor().functions("a.py", source)
+    assert found.hash == "" and found.tokens == behaviour_tokens(found)
+    assert PythonExtractor().structure_hash(found) == structure_hash(found)
+    assert [f.name for f in PythonExtractor(min_lines=1).functions("a.py", source)] == ["shorten", "tiny"]
+
+
+def test_the_extractor_lists_calls_from_the_body_not_the_name_or_decorators() -> None:
+    source = "@retry(times=3)\ndef connect(self, timeout=default_timeout()):\n    return self.client.connect(timeout)\n"
+    [found] = PythonExtractor().functions("a.py", source)
+    assert sorted(found.calls) == ["connect", "default_timeout"]
+    assert PythonExtractor().functions("a.py", "def connect(self):\n    return 1\n")[0].calls == []
+    assert function_calls(function("a.py", "def broken(:", name="broken")) is None
+
+
+def test_decorators_change_neither_tokens_nor_hash() -> None:
+    plain = "def shorten(text, limit):\n    return text[:limit]\n"
+    [bare] = PythonExtractor().functions("a.py", plain)
+    [decorated] = PythonExtractor().functions("a.py", "@functools.cache\n" + plain)
+    assert bare.tokens == decorated.tokens
+    assert structure_hash(bare) == structure_hash(decorated.model_copy(update={"code": "@functools.cache\n" + plain}))
 
 
 def test_structure_hash_treats_async_functions_like_functions() -> None:
