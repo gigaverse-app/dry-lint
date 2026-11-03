@@ -349,6 +349,9 @@ def test_every_view_states_the_judging() -> None:
                          judging=summary)
     assert as_text(built).endswith("judging: preset jev · jev:reuse-v2 · reports and fails at 0.8 · est. $0.000 of $0.25 budget")
     assert "<sub>preset jev · jev:reuse-v2 · reports and fails at 0.8" in as_markdown(built)
+    clean = Report.build([finding("separate", 0.3)], SETTINGS, judge="jev:reuse-v2", judging=summary)
+    assert as_markdown(clean).endswith("<sub>preset jev · jev:reuse-v2 · reports and fails at 0.8 · est. $0.000 of "
+                                       "$0.25 budget</sub>")  # the bill shows on a clean pull request too
     assert Report.model_validate_json(as_json(built)).judging == summary
 
 

@@ -430,7 +430,8 @@ def clean(report: Report, audit: bool, scope: list[str], judge: str, report_at: 
                 if report.functions else []), judge]
     title = "### dry-lint audit · ✨ No duplicated concepts in existing code" if audit else \
         "### dry-lint · ✨ No duplicated concepts"
-    return "\n".join([MARKER, CLEAN, title, "", " ".join(badges), "", NOTE_SLOT, "", lead, "", *rows])
+    judging = ["", f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else []
+    return "\n".join([MARKER, CLEAN, title, "", " ".join(badges), "", NOTE_SLOT, "", lead, "", *rows, *judging])
 
 
 def overrides(shown: list[Finding], audit: bool) -> list[str]:

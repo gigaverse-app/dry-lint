@@ -82,6 +82,10 @@ run while the pull request has budget left), and one the second could not afford
 held to the first judge's own bar. The report says how many. A judge whose price is unknown, such as a custom
 command or `codex` on the account's default model, is not budgeted, and its cost shows as unknown, never as zero.
 
+Every sticky comment, clean or not, ends with the judging line and its bill, so `scripts/audit_judging.py OWNER/NAME`
+can read what judging really did on recent pull requests: what each spent, how many reached the budget, whether a
+judge failed, and how often the check failed or was let through with the override label.
+
 ## Every judge
 
 | Judge | What it is | Cost |
