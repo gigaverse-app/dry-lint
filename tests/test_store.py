@@ -29,11 +29,6 @@ def edited(f, before: str, after: str):
     return function(f.path, f.code.replace(before, after))
 
 
-@pytest.fixture
-def store(tmp_path: Path) -> VerdictStore:
-    return VerdictStore(DirectoryStore(tmp_path / "verdicts"))
-
-
 def lookup(store: VerdictStore, pair: Candidate, judge: str = "jev", version: str | None = None) -> Verdict | None:
     return store.lookup(pair, judge, reopen_margin=0.05, version=version).verdict
 

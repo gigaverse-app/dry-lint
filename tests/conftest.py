@@ -1,11 +1,13 @@
-import subprocess
+import sys
 import textwrap
 from pathlib import Path
 
 import pytest
 
 from dry_lint.functions import behaviour_tokens, function_calls, structure_hash
+from dry_lint.git import git
 from dry_lint.models import Function
+from dry_lint.store import DirectoryStore, VerdictStore
 
 EXISTING = '''
 def shorten_text(text: str, limit: int) -> str:
@@ -62,7 +64,7 @@ class Repo:
         self.git("config", "user.name", "Test")
 
     def git(self, *args: str) -> str:
-        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True, check=True).stdout
+        return git(self.root, *args)
 
     def write(self, path: str, source: str) -> None:
         target = self.root / path
@@ -94,3 +96,30 @@ def function(path: str, source: str, name: str | None = None, owner: str | None 
     plain = Function(path=path, name=found, owner=owner, line=1, end_line=len(code.splitlines()), code=code)
     return plain.model_copy(update={"hash": structure_hash(plain), "tokens": behaviour_tokens(plain),
                                     "calls": function_calls(plain)})
+
+
+@pytest.fixture
+def twin_judge(tmp_path: Path) -> str:
+    """A judge command that calls the caption twin a duplicate, everything else separate, and counts its calls."""
+    path, calls = tmp_path / "judge.py", tmp_path / "judge-calls"
+    path.write_text(
+        "import json, pathlib, sys\n"
+        f"calls = pathlib.Path({str(calls)!r})\n"
+        "calls.write_text(str(int(calls.read_text()) + 1) if calls.exists() else '1')\n"
+        "prompt = sys.stdin.read()\n"
+        "twin = 'preview_caption_text' in prompt and 'shorten_text' in prompt\n"
+        "print(json.dumps({'label': 'duplicate' if twin else 'separate', 'score': 0.9 if twin else 0.1, "
+        "'owner': 'existing', 'why': 'both shorten text with an ellipsis'}))\n"
+    )
+    return f'"{sys.executable}" "{path}"'
+
+
+def judge_calls(tmp_path: Path) -> int:
+    """How many pairs the `twin_judge` command has been asked about."""
+    path = tmp_path / "judge-calls"
+    return int(path.read_text()) if path.exists() else 0
+
+
+@pytest.fixture
+def store(tmp_path: Path) -> VerdictStore:
+    return VerdictStore(DirectoryStore(tmp_path / "verdicts"))

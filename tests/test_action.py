@@ -1,6 +1,5 @@
 import json
 import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,7 +10,7 @@ from test_action_sticky import FakeGitHub
 from dry_lint import action, sticky
 from dry_lint.action import count_findings, ensure_history, resolve_base, resolve_judge, resolve_mode
 
-from conftest import Repo
+from conftest import Repo, judge_calls
 
 HEAD, BASE = "c" * 40, "b" * 40
 ANNOTATION = "::warning file=src/a.py,line=3,endLine=9,title=dry-lint::clip looks like src/b.py::shorten"
@@ -231,27 +230,6 @@ def test_dry_lint_runs_the_installed_cli_and_echoes_its_output(capsys) -> None:
 
 
 # End to end: the real CLI on a throwaway repository, a real judge command, and an in-memory GitHub.
-
-
-@pytest.fixture
-def twin_judge(tmp_path: Path) -> str:
-    """A judge command that calls the caption twin a duplicate, everything else separate, and counts its calls."""
-    path, calls = tmp_path / "judge.py", tmp_path / "judge-calls"
-    path.write_text(
-        "import json, pathlib, sys\n"
-        f"calls = pathlib.Path({str(calls)!r})\n"
-        "calls.write_text(str(int(calls.read_text()) + 1) if calls.exists() else '1')\n"
-        "prompt = sys.stdin.read()\n"
-        "twin = 'preview_caption_text' in prompt and 'shorten_text' in prompt\n"
-        "print(json.dumps({'label': 'duplicate' if twin else 'separate', 'score': 0.9 if twin else 0.1, "
-        "'owner': 'existing', 'why': 'both shorten text with an ellipsis'}))\n"
-    )
-    return f'"{sys.executable}" "{path}"'
-
-
-def judge_calls(tmp_path: Path) -> int:
-    path = tmp_path / "judge-calls"
-    return int(path.read_text()) if path.exists() else 0
 
 
 def pr_event(repo: Repo, fork: bool = False) -> dict:

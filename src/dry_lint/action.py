@@ -28,6 +28,7 @@ from pathlib import Path
 import httpx
 
 from dry_lint import sticky
+from dry_lint.detector import given
 from dry_lint.git import git
 from dry_lint.github import github_event
 
@@ -79,7 +80,7 @@ def ensure_history(root: Path, base: str) -> None:
     """Comparing with a merge base needs history: deepen a shallow checkout, and fetch a base it does not have."""
     if git(root, "rev-parse", "--is-shallow-repository", check=False) == "true":
         git(root, "fetch", "--quiet", "--no-tags", "--unshallow", "origin", check=False)
-    if base.strip("0") and not git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False):
+    if given(base) and not git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False):
         git(root, "fetch", "--quiet", "--no-tags", "origin", base, check=False)
 
 

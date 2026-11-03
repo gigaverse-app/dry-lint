@@ -56,3 +56,11 @@ select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.ruff.lint.isort]
 known-local-folder = ["conftest"]
+
+[tool.dry-lint]
+# dry-lint checks its own tests too: duplicated fixtures and helpers are the drift it exists to catch.
+exclude = ["examples/*", "scripts/*"]
+
+[[tool.dry-lint.patterns]]
+members = "tests/*::test_*"
+reason = "one test per behaviour: tests repeat the arrange-act-assert shape on purpose"

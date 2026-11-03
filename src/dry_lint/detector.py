@@ -25,9 +25,14 @@ def default_base(root: Path) -> str:
     return remote_head.removeprefix("refs/remotes/") or "origin/main"
 
 
+def given(base: str | None) -> bool:
+    """A real base: not empty, and not the all-zero sha that a branch's first push reports as its `before`."""
+    return bool(base and base.strip("0"))
+
+
 def base_ref(root: Path, base: str | None) -> str:
-    """`base`, unless it is empty or the all-zero sha a branch's first push reports: then the default branch."""
-    return base if base and base.strip("0") else default_base(root)
+    """`base` when one is given, else the default branch."""
+    return base if given(base) else default_base(root)
 
 
 def changed_lines(root: Path, base: str | None = None, staged: bool = False) -> dict[str, set[int]]:
