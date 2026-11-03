@@ -10,6 +10,7 @@ it is shown, and never rendered as markdown or links.
 import json
 import os
 import re
+from typing import Literal
 from urllib.parse import quote
 
 from pydantic import BaseModel, Field
@@ -79,13 +80,16 @@ class Report(Versioned):
 
     run: Run = Field(default_factory=Run)
     changed: int = 0
+    functions: int = Field(default=0, description="How many functions the repository has: what changed ones meet.")
+    scope: Literal["change", "repository"] = Field(default="change", description="`check` or `scan`.")
     judge: str | None = Field(default=None, description="The judge (and escalation judge), or None when unjudged.")
     findings: list[Finding] = Field(default_factory=list)
     filtered: list[Candidate] = Field(default_factory=list, description="Pairs a rule settled, with the rule.")
 
     @classmethod
     def build(cls, findings: list[Finding], settings: Settings, filtered: list[Candidate] = (), run: Run | None = None,
-              changed: int = 0, judge: str | None = None) -> "Report":
+              changed: int = 0, judge: str | None = None, functions: int = 0,
+              scope: Literal["change", "repository"] = "change") -> "Report":
         family: dict[str, int] = {}
         for f in findings:
             family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
@@ -100,7 +104,8 @@ class Report(Versioned):
         order = sorted(marked, key=lambda f: (not f.blocking, not f.reported,
                                               f.verdict is None or f.verdict.label != "drifted",
                                               -(f.verdict.score if f.verdict else f.candidate.similarity)))
-        return cls(run=run or Run(), changed=changed, judge=judge, findings=order, filtered=list(filtered))
+        return cls(run=run or Run(), changed=changed, functions=functions, scope=scope, judge=judge, findings=order,
+                   filtered=list(filtered))
 
     @property
     def visible(self) -> list[Finding]:
@@ -112,11 +117,8 @@ class Report(Versioned):
 
     @property
     def repository_wide(self) -> bool:
-        """
-        A `scan` of the whole repository rather than a `check` of a change: `check` proposes pairs only for the
-        functions it changed, so pairs with no changed function can only come from a scan.
-        """
-        return self.changed == 0 and bool(self.findings or self.filtered)
+        """A `scan` of the whole repository rather than a `check` of a change."""
+        return self.scope == "repository"
 
     @property
     def stats(self) -> dict[str, int]:
@@ -172,8 +174,9 @@ def source_url(function: Function, run: Run) -> str:
 
 
 NOTE_SLOT = "<!-- dry-lint note -->"
+CLEAN = "<!-- dry-lint clean -->"
 BADGES = "https://img.shields.io/badge"
-RED, ORANGE, AMBER, GREEN, GRAY = "CF222E", "EA580C", "BF8700", "2EA043", "6E7781"
+RED, ORANGE, AMBER, GREEN, BLUE, GRAY = "CF222E", "EA580C", "BF8700", "2EA043", "2563EB", "6E7781"
 ACTIONS = {
     "existing": "call the existing one",
     "new": "keep the new one; move callers",
@@ -221,10 +224,10 @@ def dot(finding: Finding) -> str:
 
 
 def plural(count: int, noun: str) -> str:
-    return f"{count} {noun}{'' if count == 1 else 's'}"
+    return f"{count:,} {noun}{'' if count == 1 else 's'}"
 
 
-def as_markdown(report: Report, max_findings: int = 10) -> str:
+def as_markdown(report: Report, max_findings: int = 10, report_at: float | None = None) -> str:
     """
     The pull request comment, the job summary and the check run summary. A headline and badges say how bad it is
     at a glance; one row per pair says where and what to do; the folds hold the reasons and the ways out.
@@ -251,12 +254,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
         ])  # fmt: skip
     judge = badge("judge", report.judge, GRAY)
     if not shown:
-        return "\n".join([
-            MARKER, "### dry-lint · ✅ No duplicated concepts", "",
-            " ".join([badge("duplicated concepts", 0, GREEN), *scope, judge]), "", NOTE_SLOT, "",
-            "No pair reached the report threshold." if report.findings or report.filtered else
-            "No function here looks like another one.", *footer,
-        ])  # fmt: skip
+        return clean(report, audit, scope, judge, report_at)
     blocking = sum(f.blocking for f in shown)
     drifted = sum(f.verdict is not None and f.verdict.label == "drifted" for f in shown)
     headline = (f"### dry-lint audit · {plural(len(shown), 'duplicated concept')} in existing code" if audit else
@@ -325,6 +323,44 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
     ])  # fmt: skip
 
 
+def clean(report: Report, audit: bool, scope: list[str], judge: str, report_at: float | None) -> str:
+    """No findings: say so plainly, and show how much was checked to earn it."""
+    stats = report.stats
+    judged = [f for f in report.findings if f.verdict is not None]
+    closest = max(judged, key=lambda f: f.verdict.score, default=None)
+    if audit:
+        lead = ("**No concept is implemented twice.** The judge or a rule cleared every look-alike pair in this audit."
+                if report.findings or report.filtered else "**No two functions in the repository look alike.**")
+    elif not report.changed:
+        lead = "**Nothing to compare.** This pull request changes no functions."
+    elif report.findings or report.filtered:
+        lead = (f"**Every changed function is the only implementation of its concept.** "
+                f"{plural(stats['candidates'], 'look-alike pair')} came up; the judge or a rule cleared every one.")
+    else:
+        against = f" any of the {report.functions:,} functions in the repository" if report.functions else " anything"
+        lead = (f"**Every changed function is the only implementation of its concept.** None of the "
+                f"{plural(report.changed, 'changed function')} looks like{against}.")
+    rows = ["| Check | Result |", "| :-- | --: |",
+            *([] if audit else [f"| Changed functions | {report.changed:,} |"]),
+            *([f"| {'Functions in the repository' if audit else 'Compared with'} | {plural(report.functions, 'function')} |"]
+              if report.functions else []),
+            f"| Look-alike pairs | {stats['candidates']:,} |",
+            *([f"| Settled by a rule | {stats['filtered']:,} |"] if stats["filtered"] else []),
+            *([f"| Cleared by the judge | {len(judged):,}"
+               + (f" ({stats['cached']:,} from the verdict store)" if stats["cached"] else "") + " |"] if judged else [])]
+    if closest:
+        names = [side.qualname.split("::", 1)[1] for side in (closest.candidate.new, closest.candidate.existing)]
+        pair = code(names[0]) if names[0] == names[1] else f"{code(names[0])} ≈ {code(names[1])}"
+        bar = f" · under the {report_at:.2f} bar" if report_at is not None else ""
+        rows.append(f"| Closest call | {pair} · {closest.verdict.label} {closest.verdict.score:.2f}{bar} |")
+    badges = [badge("duplicated concepts", "none ✓", GREEN), *scope,
+              *([badge("compared with" if not audit else "functions", f"{report.functions:,}", BLUE)]
+                if report.functions else []), judge]
+    title = "### dry-lint audit · ✨ No duplicated concepts in existing code" if audit else \
+        "### dry-lint · ✨ No duplicated concepts"
+    return "\n".join([MARKER, CLEAN, title, "", " ".join(badges), "", NOTE_SLOT, "", lead, "", *rows])
+
+
 def overrides(shown: list[Finding], audit: bool) -> list[str]:
     typescript = [f.suppression().startswith("//") for f in shown]
     prefix = "//" if all(typescript) else "#"
@@ -373,7 +409,7 @@ def as_sarif(report: Report) -> str:
     return json.dumps(sarif, indent=2)
 
 
-def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False) -> str:
+def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False, report_at: float | None = None) -> str:
     """
     The body for `POST /repos/{owner}/{repo}/check-runs`: a failure only for a blocking finding (and not
     `warn_only`), neutral for findings that only warn, success otherwise.
@@ -389,7 +425,7 @@ def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False
     } for f in reported[:50]]  # fmt: skip
     body = {"name": "dry-lint", "head_sha": report.run.head, "status": "completed",
             "conclusion": "failure" if failed else "neutral" if reported else "success",
-            "output": {"title": title, "summary": as_markdown(report, max_findings), "annotations": annotations}}
+            "output": {"title": title, "summary": as_markdown(report, max_findings, report_at), "annotations": annotations}}
     return json.dumps(body, indent=2)
 
 
@@ -402,9 +438,9 @@ def render(report: Report, form: str, settings: Settings, warn_only: bool = Fals
     ):
         raise ValueError("A workspace report supports text, json and markdown; annotations belong to one repository")
     if form == "check-run":
-        return as_check_run(report, settings.max_findings, warn_only)
+        return as_check_run(report, settings.max_findings, warn_only, settings.report_at)
     if warn_only and form != "json":
         report = report.as_warnings()
     if form == "markdown":
-        return as_markdown(report, settings.max_findings)
+        return as_markdown(report, settings.max_findings, settings.report_at)
     return {"text": as_text, "github": as_github, "json": as_json, "sarif": as_sarif}[form](report)

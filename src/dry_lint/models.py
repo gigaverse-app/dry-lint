@@ -99,4 +99,5 @@ class CandidatesFile(Versioned):
 
     run: Run = Field(default_factory=Run)
     changed: int = Field(default=0, description="How many functions the change touched.")
+    functions: int = Field(default=0, description="How many functions the repository has: what changed ones meet.")
     candidates: list[Candidate] = Field(default_factory=list, description="Proposed pairs, and filtered ones with why.")
