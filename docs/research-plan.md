@@ -108,7 +108,7 @@ how much a change moves the output, not whether it improves it.
 | E7 | Docstring channel | H2 | Offline script |
 | E8 | Pattern-family detection: report a dense family once instead of as many pairs | H3 | Offline script |
 | E9 | A softer backlog rule: pairs in each other's top two, not only mutual first neighbours | H1 | Offline script |
-| E10 | `dry-lint bench --replay`: replay a repository's recent commits, label a sample and report settings on its own history | | Product command |
+| E10 | `dry-lint bench --replay`: replay a repository's recent commits, label a sample and report settings on its own history | | Product command; the replay is in, labelling is next |
 
 E1 to E3 ran first, together, as [the channel trial](channel-trial.md), and E4 as [retrieval presets](retrieval-presets.md).
 Dryer, LSI and the behaviour-only channel are dropped as channels: the judge filters what they add, but they add

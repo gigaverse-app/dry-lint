@@ -93,7 +93,12 @@ changing it, measure on your own code:
 ```bash
 dry-lint bench --gold gold.jsonl                    # the configured judges, with 90% intervals
 dry-lint bench --gold gold.jsonl --preset jev       # another preset on the same pairs
+dry-lint bench --replay 50                          # what check would have done on the last 50 commits
+dry-lint bench --replay 50 --fail-at 0.9            # the same verdicts at a stricter threshold, at no cost
 ```
+
+Before turning dry-lint on, or changing a preset or `fail_at`, replay the repository's recent history: it shows
+which pull requests would have failed or warned and what judging cost, from verdicts kept in the store.
 
 A gold set is JSON lines of labelled pairs ([format](../../docs/benchmark.md#running-it)). Label at least 200
 pairs, most from the scores where decisions happen; report every number with its interval, because a handful of

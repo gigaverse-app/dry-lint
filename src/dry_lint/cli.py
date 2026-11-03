@@ -15,6 +15,7 @@ And to look closer:
 
     dry-lint explain src/a.py::shorten src/b.py::clip                      # why a pair is, or is not, reported
     dry-lint bench --gold gold.jsonl [--comparer]                          # measure the judge, or the comparer
+    dry-lint bench --replay 50 [--preset jev+sonnet]                       # what check would have done on history
 
 Exit status: 0 when nothing blocks, 1 when a judged duplicate reaches `fail_at` (unless --warn-only), 2 on errors.
 Duplicates between `report_at` and `fail_at` are reported as warnings and exit 0.
@@ -39,6 +40,7 @@ from dry_lint.judging import Judging, open_store
 from dry_lint.models import Candidate, CandidatesFile, Run
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
+from dry_lint.replay import replay
 from dry_lint.report import FORMATS, Report, as_json, render
 from dry_lint.settings import PluginChoice, Settings
 
@@ -241,6 +243,8 @@ def config(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if args.replay is not None:
+        return bench_replay(root, settings, args)
     gold = load_gold(args.gold)
     if args.comparer:
         result = bench_comparer(gold, Detector.for_repository(root, settings))
@@ -252,6 +256,21 @@ def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     escalation = make_escalation(settings)
     result = bench_judge(gold, chosen, settings, load("extractors", settings.extractors[0]), escalation)
     print(result.model_dump_json(indent=2) if args.format == "json" else result.as_text(settings))
+    return 0
+
+
+def bench_replay(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if args.repo or args.comparer:
+        raise ValueError("--replay replays one repository's checks; it takes neither --repo nor --comparer")
+    if args.format not in ("text", "json"):
+        raise ValueError("--replay prints text or json")
+    if args.replay < 1:
+        raise ValueError("--replay needs a number of commits, at least 1")
+    result = replay(root, settings, open_store(settings, root, args.store), args.replay, base_ref(root, args.ref),
+                    progress=lambda line: print(line, file=sys.stderr))
+    print(result.model_dump_json(indent=1) if args.format == "json" else result.as_text())
+    if args.report:
+        args.report.write_text(result.model_dump_json(indent=1) + "\n")
     return 0
 
 
@@ -299,9 +318,15 @@ def parser() -> argparse.ArgumentParser:
     explaining = commands.add_parser("explain", parents=[common], help="Why a pair is, or is not, reported.")
     explaining.add_argument("first", help="A qualified name, or a suffix only one function has.")
     explaining.add_argument("second")
-    measuring = commands.add_parser("bench", parents=[common], help="Measure the judge, or the comparer, on a gold set.")
-    measuring.add_argument("--gold", type=Path, required=True, help="gold.jsonl (docs/benchmark.md).")
+    measuring = commands.add_parser("bench", parents=[common],
+                                    help="Measure the judge or the comparer on a gold set, or replay recent commits.")
+    source = measuring.add_mutually_exclusive_group(required=True)
+    source.add_argument("--gold", type=Path, help="gold.jsonl (docs/benchmark.md).")
+    source.add_argument("--replay", type=int, metavar="N",
+                        help="Check each of the last N commits of the default branch as `check` would have, with these "
+                             "settings: what would have failed, warned and cost.")
     measuring.add_argument("--comparer", action="store_true", help="Measure the comparer's recall instead.")
+    measuring.add_argument("--ref", help="With --replay: the branch to replay (default: origin/HEAD).")
     commands.add_parser("config", parents=[common], help="The judging setup this repository would run, and its cost.")
     return main
 
