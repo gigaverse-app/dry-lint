@@ -183,7 +183,8 @@ def test_warn_only_never_fails_and_does_not_claim_to_block(github_env, tmp_path)
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [BLOCKING], code=1)), \
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
-    assert post.call_args.args[0][post.call_args.args[0].index("--note") + 1] == ""
+    note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
+    assert note.startswith("**Advisory mode:**") and "does not fail" in note
 
 
 def test_without_a_judge_nothing_is_annotated_commented_or_failed(github_env, tmp_path, capsys) -> None:

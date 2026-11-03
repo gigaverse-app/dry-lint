@@ -55,7 +55,7 @@ For pre-commit, add `additional_dependencies: ['.[dryer]']` and `args: [--detect
 | Similarity | Cosine over TF-IDF vectors | Upstream Jaccard over fingerprint sets |
 | Default floor | 0.5; 0.3 below six source lines | 0.82 |
 | Minimum size | Python extractor: two source lines | Four source lines and 20 normalized nodes |
-| Query cost | Inverted-index search | Compare eligible fingerprints, pruning impossible set-size ratios |
+| Query cost | Inverted-index search | Skip impossible fingerprint-size buckets, then compare eligible fingerprints |
 | Default | Yes | Opt-in |
 
 The comparer implements `index`, `neighbours` and `similarity` from [the plugin protocol](plugins.md#comparer).
@@ -66,6 +66,8 @@ pure declaration stubs. `scan` returns mutual nearest neighbours. Equal Dryer sc
 
 The adapter calls upstream `entries_in_source` and `jaccard`; it does not copy the normalizer or scoring formula.
 Source spans distinguish repeated declarations. Nested functions stay inside their canonical enclosing function.
+Eligible entries are indexed by fingerprint count; Jaccard's exact set-size bound rejects impossible buckets
+before scanning functions. Equal-score results still follow source order, independent of bucket traversal.
 The comparison harness verifies every extracted fingerprint against full-file upstream extraction before timing.
 It never invokes the standalone CLI or writes `.metrics/dry.edn` in the target repository.
 

@@ -142,7 +142,7 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
     parser.add_argument("--key", default="", help="Keeps one comment per key, for several reports per PR.")
     parser.add_argument("--expect-head", default="", help="Post only while this is still the PR's head commit.")
     parser.add_argument("--run-url", default="")
-    parser.add_argument("--note", default="", help="A line after the report, e.g. whether the findings block.")
+    parser.add_argument("--note", default="", help="A line before the report, e.g. whether the findings block.")
     args = parser.parse_args(argv)
     token = os.environ.get("GITHUB_TOKEN", "")
     if not token:

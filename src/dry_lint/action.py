@@ -114,16 +114,16 @@ def labels_of(pull: dict) -> set[str]:
 
 
 def status_note(blocking: int, overridden: bool) -> str:
-    """The comment's last word on whether this pull request is blocked, and how to unblock a false positive."""
+    """Lead the comment with the effective check status, including advisory mode and overrides."""
     if not blocking:
         return ""
     if overridden:
         return (f"**Overridden:** the `{override_label()}` label is set, so the {blocking} blocking finding(s) "
                 "do not fail this pull request.")
     if flag("INPUT_WARN_ONLY"):
-        return ""
+        return "**Advisory mode:** `warn-only` is enabled, so this check does not fail on these findings."
     return (f"**Blocking:** {blocking} finding(s) reach `fail_at`, so this check "
-            f"fails. A false positive? Mark it in the code as above, or add the `{override_label()}` label to this "
+            f"fails. A false positive? Use the scoped decisions below, or add the `{override_label()}` label to this "
             "pull request.")
 
 

@@ -1,10 +1,11 @@
 # Dryer versus native TF-IDF on gigaverse-backend
 
 Keep **TF-IDF as the default** and use Dryer as an optional additional source. At the measured defaults, Dryer
-adds 19 unique backlog pairs but does not return 383 TF-IDF backlog pairs, and takes about 10.3 times as long to scan.
+adds 19 unique backlog pairs but does not return 383 TF-IDF backlog pairs. The size-bucket optimization below
+cuts Dryer's median scan time by 40% while retaining every pair, score and tie order; TF-IDF remains faster.
 These are unjudged candidate counts. They do not measure true-duplicate recall.
 
-## Method and provenance
+## Initial comparison: method and provenance
 
 Measured on 3 November 2026, Windows 11, Python 3.14.7, on one developer machine:
 
@@ -48,7 +49,7 @@ The union would add 4.6% more backlog candidates to TF-IDF, or 0.7% more changed
 These are set unions for analysis; the CLI selects one source per invocation and does not implement an ensemble.
 All three runs returned identical pairs for each detector.
 
-## Time
+## Initial timings
 
 Seconds, lower is better. Median over three repetitions; ranges show observed minimum and maximum.
 A real invocation also pays source extraction and interpreter startup. The scan row excludes index construction.
@@ -62,6 +63,37 @@ A real invocation also pays source extraction and interpreter startup. The scan 
 Dryer compares eligible fingerprint sets per query, with an exact set-size upper-bound filter; TF-IDF uses an
 inverted index. Neither requires a model. The integration intentionally reuses upstream normalization and
 `jaccard` rather than introducing a separately maintained structural algorithm.
+
+## Follow-up: prune size buckets before visiting functions
+
+The initial adapter looked up every function and checked its size for every query. The optimized adapter groups
+eligible functions by fingerprint count during indexing. The same exact Jaccard upper bound now skips entire
+impossible buckets before visiting functions. The upstream scoring function and all thresholds are unchanged;
+source positions explicitly preserve tie order after traversal changes.
+
+Measured again on the same frozen backend, Python and dependency versions on 3 November 2026. The baseline
+adapter is from `6d67e48aa6b7c7ac72eefbc01735abe522fa0f17`; the optimized adapter is from
+`8ca0e0c`. Both ran in the same interpreter over one extracted corpus and the same shared pipeline. Three
+repetitions alternated before/after order, with TF-IDF also measured. The grammar cache was warm and no judge
+was called. This developer machine was not isolated from other work, so treat the ranges as part of the result.
+
+| Operation | Dryer before median (range), seconds | Dryer after median (range), seconds | TF-IDF median (range), seconds |
+| --- | ---: | ---: | ---: |
+| Build index | 2.076 (2.054-3.256) | 2.389 (2.150-2.467) | 0.169 (0.147-0.175) |
+| Query 295 touched functions | 2.654 (2.586-4.029) | 1.608 (1.457-1.816) | 0.568 (0.422-0.653) |
+| Full scan | 42.562 (41.240-45.899) | 25.505 (19.908-29.053) | 6.167 (4.805-6.385) |
+
+Dryer's median scan improved **40.1%** and changed-function query time improved **39.4%**. Median index time
+increased by 0.313 seconds. Source extraction and interpreter startup are excluded from these rows. This is a
+speed improvement, not a change in duplicate detection quality: every repetition asserted identical ordered
+pair keys and scores, including all **48 scan pairs** and **4 changed-function pairs**. TF-IDF still returned
+412 and 139 respectively. An exhaustive upstream-score test also covers four thresholds, filtered neighbours,
+reindexing and tied scores.
+
+For separate-checkout reproductions, run [the comparison harness](detectors.md#reproduce-the-backend-comparison)
+from the baseline and optimized revisions against the same backend snapshot. Preserve both output directories;
+compare ordered pair keys and scores as well as timings. The local alternating-run evidence includes each run's
+timings and full candidate JSON; private source is not checked into this repository.
 
 ## Exploratory source review
 

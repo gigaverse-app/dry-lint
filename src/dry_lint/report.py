@@ -176,14 +176,15 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
             verdict, suggestion = f"similarity {f.candidate.similarity:.2f}", "not judged"
         if f.family > 1:
             suggestion += f" ({f.family} look-alikes)"
-        rows.append(f"| {source_link(f.candidate.new, report.run)} | {source_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
+        rows.append(f"| {source_link(f.candidate.new, report.run)} | "
+                    f"{source_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
         evidence.extend([
             f"**{escaped(f.candidate.new.qualname)}** → **{escaped(f.candidate.existing.qualname)}**", "",
             (f"Judge score: **{f.verdict.score:.2f}** · " if f.verdict else "Not judged · ")
             + f"similarity: **{f.candidate.similarity:.2f}** · "
             + ("cached verdict" if f.cached else "new verdict" if f.verdict else "candidate only"), "",
-            *( ["These functions already behave differently; check callers before consolidating.", ""]
-               if f.verdict and f.verdict.label == "drifted" else [] ),
+            *(["These functions already behave differently; check callers before consolidating.", ""]
+              if f.verdict and f.verdict.label == "drifted" else []),
             "If they represent different concepts, add this pair-specific decision inside the changed function:", "",
             escaped(f"# dry-lint: distinct-from {f.candidate.existing.qualname}"), "",
         ])
