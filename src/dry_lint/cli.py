@@ -109,7 +109,7 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Detector, str]:
-    if args.repo:
+    if args.repo or args.repo_index:
         roots: dict[str, Path] = {}
         for spec in args.repo:
             name, separator, path = spec.partition("=")
@@ -123,7 +123,15 @@ def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tu
         primary = next((name for name, path in roots.items() if repository_root(path).resolve() == root.resolve()), "")
         if args.command in {"check", "detect"} and not primary:
             raise ValueError("--repo must include the primary --root repository")
-        return Detector.for_workspace(roots, settings), primary
+        from dry_lint.function_index import FunctionIndex, extraction_contract
+        indexes = []
+        for spec in args.repo_index:
+            identity, separator, path = spec.partition("=")
+            name, at, commit = identity.partition("@")
+            if not separator or not path or not at:
+                raise ValueError("--repo-index expects OWNER/NAME@COMMIT=PATH")
+            indexes.append(FunctionIndex.decode(Path(path).read_bytes(), name, commit, extraction_contract(settings)))
+        return Detector.for_workspace(roots, settings, indexes=indexes), primary
     return Detector.for_repository(root, settings), ""
 
 
@@ -262,6 +270,14 @@ def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     return 0
 
 
+def index(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    from dry_lint.function_index import export_index
+    snapshot = export_index(root, args.repository, settings)
+    args.out.write_bytes(snapshot.encode())
+    print(snapshot.artifact_name)
+    return 0
+
+
 def bench_replay(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if args.repo or args.comparer:
         raise ValueError("--replay replays one repository's checks; it takes neither --repo nor --comparer")
@@ -282,6 +298,8 @@ def parser() -> argparse.ArgumentParser:
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
     common.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH",
                         help="Repeat for every checkout; compare across repositories. Include --root for checks.")
+    common.add_argument("--repo-index", action="append", default=[], metavar="OWNER/NAME@COMMIT=PATH",
+                        help="A versioned peer function index; no checkout needed. Repeat for each peer.")
     common.add_argument("--detector", help="Comparer plugin, overriding the settings: tfidf, dryer, or installed.")
     common.add_argument("--judge", help="Judge plugin, overriding the settings: auto, jev, command, none, or installed.")
     common.add_argument("--judge-command", help="For the command judge: a command reading the candidate on stdin.")
@@ -299,6 +317,9 @@ def parser() -> argparse.ArgumentParser:
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")
     main.add_argument("--version", action="version", version=f"dry-lint {__version__}")
     commands = main.add_subparsers(dest="command", required=True)
+    exporting = commands.add_parser("index", parents=[common], help="Export committed functions for reuse by peer repositories.")
+    exporting.add_argument("--repository", required=True, help="Source OWNER/NAME.")
+    exporting.add_argument("--out", type=Path, required=True, help="Write the versioned gzip JSON snapshot here.")
 
     def where(command: argparse.ArgumentParser, everything: bool = False) -> None:
         group = command.add_mutually_exclusive_group()
@@ -335,7 +356,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 COMMANDS = {"check": check, "scan": scan, "detect": detect, "judge": judge, "report": report, "explain": explain,
-            "config": config,
+            "config": config, "index": index,
             "bench": bench}
 
 

@@ -64,6 +64,11 @@ class Function(BaseModel):
         return self.end_line - self.line + 1
 
 
+def repository_path(value: str) -> bool:
+    path = PurePosixPath(value)
+    return bool(value) and not path.is_absolute() and ".." not in path.parts and "\\" not in value and ":" not in value
+
+
 class Consolidation(BaseModel):
     """A preferred home for related implementations, not a requirement to merge unrelated concepts."""
 
@@ -75,7 +80,7 @@ class Consolidation(BaseModel):
     @field_validator("path")
     @classmethod
     def relative_path(cls, value: str) -> str:
-        if PurePosixPath(value).is_absolute() or ".." in PurePosixPath(value).parts or "\\" in value or ":" in value:
+        if not repository_path(value):
             raise ValueError("consolidation path must be repository-relative, without '..'")
         return value.rstrip("/") or "."
 

@@ -66,6 +66,10 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Peer extraction snapshots use an independent schema and invalidation contract; see
+[versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
+verdict reuse stay in the consumer's existing pipeline.
+
 New files carry `"schema": 4`; schemas 1, 2 and 3 remain readable with conservative cache defaults. Schema 3 adds
 optional function `origin` using the existing `Run` contract. Workspace function identities include the repository,
 while their paths remain repository-relative and their links use the source commit. Single-repository identities

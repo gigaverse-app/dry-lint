@@ -10,6 +10,7 @@ import httpx
 
 from dry_lint.comparers import TfidfComparer
 from dry_lint.detector import Detector
+from dry_lint.function_index import FunctionIndex, extraction_contract
 from dry_lint.git import git
 from dry_lint.judges.jev import JevJudge
 from dry_lint.models import Run
@@ -41,7 +42,8 @@ class Meter(httpx.BaseTransport):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cases", type=Path, required=True)
-    parser.add_argument("--repo", action="append", required=True, metavar="OWNER/NAME=PATH")
+    parser.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH")
+    parser.add_argument("--index-arguments", type=Path, help="JSON --repo-index arguments from the fetch-indexes action.")
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--prepare-only", action="store_true")
@@ -49,6 +51,15 @@ def main():
     roots = {name: Path(path) for name, path in (spec.split("=", 1) for spec in args.repo)}
     cases = json.loads(args.cases.read_text(encoding="utf-8"))
     extractor, files = TypeScriptExtractor(), {}
+    settings = Settings.load(args.root)
+    if args.index_arguments:
+        arguments = json.loads(args.index_arguments.read_text())
+        for spec in arguments[1::2]:
+            identity, path = spec.split("=", 1)
+            repository, commit = identity.split("@", 1)
+            index = FunctionIndex.decode(Path(path).read_bytes(), repository, commit, extraction_contract(settings))
+            for function_ in index.extracted():
+                files.setdefault((repository, commit, function_.path), []).append(function_)
 
     def function(side):
         key = (side["repository"], side["revision"], side["path"])
@@ -61,7 +72,6 @@ def main():
         return found[0].model_copy(update={"origin": Run(repository=key[0], head=key[1])})
 
     sides = [(function(case["new"]), function(case["existing"])) for case in cases]
-    settings = Settings.load(args.root)
     detector = Detector([f for pair in sides for f in pair], settings, TfidfComparer(), [extractor])
     candidates = [detector.pair(a, b, case["similarity"]) for (a, b), case in zip(sides, cases, strict=True)]
     args.output.mkdir(parents=True, exist_ok=True)
