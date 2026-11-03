@@ -6,7 +6,8 @@ from unittest.mock import patch
 import httpx
 import pytest
 from test_action_sticky import FakeGitHub
-from test_ledger import duplicate, push
+from test_ledger import push
+from test_report import finding
 
 from dry_lint import action, sticky
 from dry_lint.action import count_findings, default_branch, ensure_history, resolve_base, resolve_judge, resolve_mode
@@ -92,6 +93,7 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         # Hermetic: a developer's or Claude Code's own keys must never reach a judge from a test.
         for name_ in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"):
             monkeypatch.delenv(name_, raising=False)
+        monkeypatch.delenv("GITHUB_RUN_ATTEMPT", raising=False)  # set when the tests themselves run in Actions
         if "key" in inputs:
             values["TYPESAFE_AI_API_KEY"] = inputs["key"]
         for name_, value in values.items():
@@ -738,10 +740,10 @@ def test_folding_counts_each_pull_request_merged_since_the_ledger_began_once(git
         {"number": 5, "merged_at": "2026-11-02T00:00:00Z", "merge_commit_sha": "f" * 40},  # never commented
         {"number": 6, "merged_at": "2026-11-02T00:00:00Z", "merge_commit_sha": "f" * 40},  # already counted
         {"number": 8, "merged_at": None},  # closed without merging
-    ], elsewhere={2: [merged_ledger(push("a" * 40, duplicate()), push("b" * 40))],
-                  3: [merged_ledger(push("a" * 40, duplicate()), push("b" * 40))],
-                  4: [merged_ledger(push("a" * 40, duplicate())), "a person's comment"],
-                  6: [merged_ledger(push("a" * 40, duplicate()), push("b" * 40))]})
+    ], elsewhere={2: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))],
+                  3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))],
+                  4: [merged_ledger(push("a" * 40, finding("duplicate"))), "a person's comment"],
+                  6: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]})
     assert action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github)) == "folded"
     ledger = saved_ledger()
     assert ledger.pulls == [6, 3, 4] and ledger.unaccounted == [5]
@@ -756,7 +758,7 @@ def test_folding_counts_each_pull_request_merged_since_the_ledger_began_once(git
 def test_a_new_ledger_counts_the_pull_request_this_push_merged(github_env, tmp_path) -> None:
     github_env("push", MAIN_PUSH)
     github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
-                        elsewhere={3: [merged_ledger(push("a" * 40, duplicate()), push("b" * 40))]})
+                        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]})
     action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
     ledger = saved_ledger()
     assert ledger.pulls == [3] and ledger.kept_out == 1 and ledger.repository == "acme/shop"

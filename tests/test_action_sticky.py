@@ -4,7 +4,8 @@ from pathlib import Path
 
 import httpx
 import pytest
-from test_ledger import duplicate, push
+from test_ledger import push
+from test_report import finding
 
 from dry_lint import sticky
 from dry_lint.ledger import PullLedger, RepositoryLedger
@@ -262,7 +263,7 @@ def ledger_of(fake: FakeGitHub) -> PullLedger:
 def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "token")
     fake = FakeGitHub()
-    post(fake, tmp_path, push("a" * 40, duplicate()), "1")
+    post(fake, tmp_path, push("a" * 40, finding("duplicate")), "1")
     post(fake, tmp_path, push("b" * 40), "2")
     post(fake, tmp_path, push("b" * 40), "2")  # the same run, posting again
     ledger = ledger_of(fake)
@@ -285,7 +286,7 @@ def test_the_run_defaults_to_the_workflow_run_and_attempt(tmp_path: Path, monkey
 
 def test_the_ledger_with_the_most_runs_survives_racing_copies() -> None:
     fewer = PullLedger().advance([push("a" * 40)], run="1")
-    more = fewer.advance([push("b" * 40, duplicate())], run="2")
+    more = fewer.advance([push("b" * 40, finding("duplicate"))], run="2")
     fake = FakeGitHub([f"{MARKER}\nold\n{fewer.snapshot()}", f"{MARKER}\nnew\n{more.snapshot()}"])
     upsert(client(fake), REPO, PR, REPORT, 1, reports=[push("c" * 40)], run="3")
     ledger = ledger_of(fake)
@@ -293,7 +294,7 @@ def test_the_ledger_with_the_most_runs_survives_racing_copies() -> None:
 
 
 def test_a_post_without_a_report_keeps_the_ledger_as_it_was() -> None:
-    before = PullLedger().advance([push("a" * 40, duplicate())], run="1")
+    before = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")
     fake = FakeGitHub([f"{MARKER}\nold\n{before.snapshot()}"])
     upsert(client(fake), REPO, PR, REPORT, 1)
     assert ledger_of(fake) == before
@@ -308,7 +309,7 @@ def test_no_ledger_is_shown_before_a_run_reports() -> None:
 def test_the_repositorys_totals_follow_the_pull_requests_own(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "token")
     totals = RepositoryLedger(repository=REPO, since="2026-10-01T00:00:00+00:00")
-    totals.add_pull(3, PullLedger().advance([push("a" * 40, duplicate())], run="1").advance([push("b" * 40)], run="2"))
+    totals.add_pull(3, PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1").advance([push("b" * 40)], run="2"))
     saved = tmp_path / "repository.json"
     saved.write_text(totals.model_dump_json())
     fake = FakeGitHub()
