@@ -2,10 +2,11 @@ from pathlib import Path
 
 import pytest
 
+from dry_lint.costs import Ledger, estimate
 from dry_lint.judges import label_for
-from dry_lint.judging import Judging, default_store, open_store
+from dry_lint.judging import Judging, decide, default_store, open_store
 from dry_lint.models import Candidate, Run, Verdict
-from dry_lint.settings import Escalation, PluginChoice, Settings
+from dry_lint.settings import Budget, Escalation, PluginChoice, Settings
 from dry_lint.store import S3Store, VerdictStore
 
 from conftest import Repo, function
@@ -96,3 +97,51 @@ def test_other_store_backends_come_from_their_plugin(repo: Repo, monkeypatch: py
     monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
     store = open_store(Settings(store=PluginChoice(use="s3", uri="s3://bucket/prefix")), repo.root)
     assert isinstance(store.backend, S3Store) and store.backend.prefix == "prefix/"
+
+
+class Billed(ScoringJudge):
+    """A ScoringJudge with a per-token price, so the budget applies to it."""
+
+    model = "claude-sonnet-5-5"
+
+
+def pair_at(name: str, similarity: float) -> Candidate:
+    return pair(name).model_copy(update={"similarity": similarity})
+
+
+def test_the_budget_judges_the_closest_look_alikes_first_and_leaves_the_rest_unjudged(store: VerdictStore) -> None:
+    first = Billed("first", {"near": 0.9, "far": 0.9, "mid": 0.9})
+    one = estimate(first, [pair("near")], SETTINGS)
+    settings = SETTINGS.model_copy(update={"budget": Budget(usd=one * 2.5)})
+    judging = Judging(settings, first, None, store)
+    findings = judging.findings([pair_at("far", 0.3), pair_at("near", 0.9), pair_at("mid", 0.6)])
+    assert first.asked == ["near", "mid"]
+    assert {f.candidate.new.name: f.verdict is not None for f in findings} == {"far": False, "near": True, "mid": True}
+    assert len(list(store.records())) == 2  # an unjudged pair is not stored, so the next run asks again
+    summary = judging.summary()
+    assert (summary.skipped, summary.spend[0].calls) == (1, 2)
+    assert summary.usd == pytest.approx(estimate(first, [pair("near"), pair("mid")], SETTINGS))
+
+
+def test_the_second_judge_takes_the_highest_first_scores_and_the_rest_keep_the_first_answer(store: VerdictStore) -> None:
+    second = Billed("second", {"a": 0.95, "b": 0.95, "c": 0.95})
+    one = estimate(second, [pair("a")], SETTINGS)
+    settings = SETTINGS.model_copy(update={"budget": Budget(usd=one * 1.5)})
+    first = ScoringJudge("first", {"a": 0.65, "b": 0.75, "c": 0.62})
+    answers = decide([pair("a"), pair("b"), pair("c")], first, second, settings, Ledger(settings))
+    assert second.asked == ["b"]
+    assert [(v.score, v.second_opinion) for v in answers] == [(0.65, None), (0.95, "second:1"), (0.62, None)]
+
+
+def test_without_a_ledger_nothing_is_limited(store: VerdictStore) -> None:
+    second = Billed("second", {"a": 0.9})
+    decide([pair("a")], ScoringJudge("first", {"a": 0.7}), second, SETTINGS.model_copy(update={"budget": Budget(usd=0)}))
+    assert second.asked == ["a"]
+
+
+def test_the_summary_names_the_preset_judges_band_thresholds_and_budget(store: VerdictStore) -> None:
+    settings = SETTINGS.model_copy(update={"preset": "jev+sonnet", "report_at": 0.6, "fail_at": 0.7})
+    summary = Judging(settings, ScoringJudge("first", {}), ScoringJudge("second", {}), store).summary()
+    assert (summary.preset, summary.judge, summary.escalation, summary.band) == ("jev+sonnet", "first:1", "second:1", (0.6, 0.8))
+    assert (summary.report_at, summary.fail_at, summary.budget_usd, summary.spend) == (0.6, 0.7, 0.25, [])
+    assert Judging(settings, None, None, store).summary().judge is None

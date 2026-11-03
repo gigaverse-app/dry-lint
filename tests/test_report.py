@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from dry_lint.costs import Spend
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.report import (
     CLEAN,
@@ -10,9 +11,11 @@ from dry_lint.report import (
     MARKER,
     NOTE_SLOT,
     Finding,
+    JudgingSummary,
     Report,
     as_check_run,
     as_github,
+    as_json,
     as_markdown,
     as_sarif,
     as_text,
@@ -319,3 +322,25 @@ def test_a_path_that_could_close_a_code_fence_is_shown_escaped_instead() -> None
     built.findings[0].candidate.existing.path = "src/```evil.py"
     body = as_markdown(built)
     assert "```python" not in body and "distinct-from src/\\`\\`\\`evil.py::shorten" in body
+
+
+def test_the_judging_line_names_judges_band_thresholds_and_the_bill() -> None:
+    summary = JudgingSummary(preset="jev+sonnet", judge="jev:reuse-v2", escalation="anthropic:dry-v1:claude-sonnet-5-5",
+                             band=(0.5, 0.91), report_at=0.6, fail_at=0.7, budget_usd=0.25,
+                             spend=[Spend(judge="jev:reuse-v2", calls=4, usd=0.0002),
+                                    Spend(judge="anthropic:dry-v1:claude-sonnet-5-5", calls=1, skipped=2, usd=0.0033)])
+    assert summary.line() == ("preset jev+sonnet · jev:reuse-v2 > anthropic:dry-v1:claude-sonnet-5-5 on [0.5, 0.91) · "
+                              "reports at 0.6, fails at 0.7 · est. $0.004 of $0.25 budget · 2 pairs not judged (budget)")
+    plain = JudgingSummary(judge="jev:reuse-v2", report_at=0.8, fail_at=0.8, budget_usd=0.25,
+                           spend=[Spend(judge="claude-code:x", calls=3, subscription=True), Spend(judge="c", calls=1, usd=None)])
+    assert plain.line() == "jev:reuse-v2 · reports and fails at 0.8 · cost unknown · 3 subscription calls"
+    assert JudgingSummary().line() == "no judge · reports and fails at 0.8 · est. $0.000 of $0 budget"
+
+
+def test_every_view_states_the_judging() -> None:
+    summary = JudgingSummary(preset="jev", judge="jev:reuse-v2", report_at=0.8, fail_at=0.8, budget_usd=0.25)
+    built = Report.build([finding("duplicate")], SETTINGS, run=Run(repository="o/r", head="abc"), judge="jev:reuse-v2",
+                         judging=summary)
+    assert as_text(built).endswith("judging: preset jev · jev:reuse-v2 · reports and fails at 0.8 · est. $0.000 of $0.25 budget")
+    assert "<sub>preset jev · jev:reuse-v2 · reports and fails at 0.8" in as_markdown(built)
+    assert Report.model_validate_json(as_json(built)).judging == summary

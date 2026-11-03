@@ -138,17 +138,19 @@ they are reviewed, versioned and visible to the next reader.
 ## Judging and escalation
 
 A judge returns a verdict per pair: `label` (`duplicate`, `drifted` or `separate`), `score` (0–1, one concept),
-`behaves_differently` (0–1), `owner` and `why`. The thresholds are core: below `drop_below` (0.6) a pair is
-separate, at `report_at` (0.8) it is reported, at `fail_at` (0.8 by default, `--fail-at` on the command line) it
-blocks, and at `drift_at` (0.8) on
-`behaves_differently` it is drifted. With the default, every reported duplicate blocks: on the 250-pair gold set
-that is 94% precise (73% recall), about one false block in 18, and 15% of pull requests fail. Raising `fail_at`
-to 0.85 or 0.9 leaves the band above 0.8 warning only ([benchmark](benchmark.md)).
+`behaves_differently` (0–1), `owner` and `why`. The thresholds are core: below `drop_below` a pair is separate, at
+`report_at` it is reported, at `fail_at` (`--fail-at` on the command line) it fails the run, and at `drift_at`
+(0.8) on `behaves_differently` it is drifted.
 
-`escalate` sends first scores in a band to a second judge, and its answer replaces the first. The default,
-`escalate = "auto"`, is the built-in Anthropic judge with Claude Sonnet 5.5 on `[0.6, 0.91)` when
-`ANTHROPIC_API_KEY` is set: measured live, it raises precision at 0.8 to 98%, about one false block in 50. The record stays under the first judge's
-name with `second_opinion` set, so it is reused like any other. See [judges.md](judges.md).
+A threshold means something only for the judges it was measured with, so the judges and the thresholds are chosen
+together as a **preset** (`presets.py`, [judges.md](judges.md)): `jev+sonnet` (Jev, then Claude Sonnet 5.5 on Jev
+scores in `[0.5, 0.91)`, reporting from 0.6 and failing at 0.7: 97% precision, 84% recall), its subscription twins
+`jev+claude-code` and `jev+codex`, `sonnet`, `claude-code`, `jev` (failing at 0.8: 94%, 73%) and `none`.
+`preset = "auto"` picks by the credentials present; explicit settings win over the preset's. `escalate` sends
+first scores in its band to the second judge, whose answer replaces the first; the record stays under the first
+judge's name with `second_opinion` set, so it is reused like any other. Each run's judging is bounded by a budget
+(`budget.usd` for priced judges, `budget.subscription_calls` for subscriptions; riskiest pairs first) and every
+report states the preset, the judges, the thresholds and the estimated cost (`costs.py`).
 
 ## Reports
 

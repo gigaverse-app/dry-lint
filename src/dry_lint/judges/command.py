@@ -74,6 +74,9 @@ def parse_verdict(text: str, judge: str, version: str) -> Verdict:
 
 
 class CommandJudge:
+    subscription = False
+    environment: dict[str, str] | None = None  # the subprocess's environment; None inherits dry-lint's
+
     def __init__(self, command: str = "", input: Literal["prompt", "candidate"] = "prompt", version: str = "1",
                  name: str | None = None, timeout: float = 180, workers: int = 4) -> None:
         if not command:
@@ -86,7 +89,7 @@ class CommandJudge:
 
     def ask(self, candidate: Candidate) -> Verdict:
         out = subprocess.run(shlex.split(self.command), input=self.stdin(candidate), capture_output=True, text=True,
-                             timeout=self.timeout, check=True).stdout
+                             timeout=self.timeout, check=True, env=self.environment).stdout
         return parse_verdict(out, self.name, self.version)
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:

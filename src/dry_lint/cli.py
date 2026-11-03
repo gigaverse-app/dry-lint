@@ -30,6 +30,7 @@ import httpx
 
 from dry_lint import __version__
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
+from dry_lint.costs import ANSWER_TOKENS, CHARS_PER_TOKEN, PRICES
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.git import git
 from dry_lint.github import github_event
@@ -37,6 +38,7 @@ from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, open_store
 from dry_lint.models import Candidate, CandidatesFile, Run
 from dry_lint.plugins import load
+from dry_lint.presets import LISTED, PRESETS, resolve
 from dry_lint.report import FORMATS, Report, as_json, render
 from dry_lint.settings import PluginChoice, Settings
 
@@ -60,13 +62,17 @@ def settings_for(root: Path, args: argparse.Namespace) -> Settings:
         settings.comparer = PluginChoice(use=args.detector)
     if args.fail_at is not None:
         settings = settings.model_copy(update={"fail_at": args.fail_at})
+    if args.preset:
+        settings = settings.model_copy(update={"preset": args.preset})
+    if args.budget_usd is not None:
+        settings = settings.model_copy(update={"budget": settings.budget.model_copy(update={"usd": args.budget_usd})})
     if args.judge or args.judge_command:
         use = args.judge or settings.judge.use
         options = settings.judge.options() if use == settings.judge.use else {}
         if args.judge_command:
             options["command"] = args.judge_command
         settings = settings.model_copy(update={"judge": PluginChoice(use=use, **options)})
-    return settings
+    return resolve(settings)
 
 
 def judged(candidates: list[Candidate], settings: Settings, root: Path, args: argparse.Namespace, run: Run,
@@ -74,7 +80,7 @@ def judged(candidates: list[Candidate], settings: Settings, root: Path, args: ar
     judging = Judging.configured(settings, open_store(settings, root, args.store))
     findings = judging.findings(candidates, source=run, refresh=refresh)
     return Report.build(findings, settings, filtered=[c for c in candidates if c.filtered], run=run, changed=changed,
-                        judge=judging.name, functions=functions, scope=scope)
+                        judge=judging.name, functions=functions, scope=scope, judging=judging.summary())
 
 
 def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
@@ -172,6 +178,54 @@ def explain(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     return 0
 
 
+TYPICAL_PAIR_CHARS = 2_700  # the DRY prompt for an average gigaverse-ai pair: about 960 Sonnet tokens
+
+
+def pair_usd(choice: PluginChoice | None, settings: Settings) -> str:
+    """The estimated cost of one pair for a judge choice, from the price table, without building the judge."""
+    if choice is None or choice.use == "none":
+        return "-"
+    if choice.use in ("claude-code", "codex"):
+        return "subscription"
+    model = choice.options().get("model") or {"anthropic": "claude-sonnet-5-5", "gemini": "gemini-3.1-pro-preview"}.get(
+        choice.use, choice.use)
+    rates = {**PRICES, **settings.prices}.get(model)
+    if rates is None:
+        return "unknown price"
+    return f"${(TYPICAL_PAIR_CHARS / CHARS_PER_TOKEN * rates[0] + ANSWER_TOKENS * rates[1]) / 1_000_000:.2g} per pair"
+
+
+def config(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    """The resolved judging setup, the credentials that chose it (by name only), every preset, and the cost."""
+    found = [v for v in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "GEMINI_API_KEY")
+             if os.environ.get(v)]
+    preset = PRESETS.get(settings.preset)
+    explicit = sorted(f for f in ("judge", "escalate", "drop_below", "report_at", "fail_at")
+                      if f in Settings.load(root).model_fields_set)
+    lines = [f"preset: {settings.preset}" + (f" - {preset.summary}" if preset else " - your own judge"),
+             f"  credentials found: {', '.join(found) or 'none'}"]
+    if preset and preset.numbers:
+        lines.append(f"  {'measured' if preset.measured else 'expected'}: {preset.numbers}")
+    escalate = settings.escalate
+    lines += [f"judge: {settings.judge.use}{' ' + str(settings.judge.options()) if settings.judge.options() else ''}"
+              f" ({pair_usd(settings.judge, settings)})",
+              "escalate: " + (f"{escalate.use} {escalate.options() or ''} on [{escalate.between[0]:g}, "
+                              f"{escalate.between[1]:g}) ({pair_usd(escalate, settings)})" if escalate else "none"),
+              f"thresholds: drop below {settings.drop_below:g} - report at {settings.report_at:g} - "
+              f"fail at {max(settings.report_at, settings.fail_at):g}"
+              + (f" (set explicitly: {', '.join(explicit)})" if explicit else ""),
+              f"budget: ${settings.budget.usd:g} per run on priced judges, {settings.budget.subscription_calls} "
+              "subscription calls", "", "presets:"]
+    for name in LISTED:
+        p = PRESETS[name]
+        missing = [v for v in p.needs if not os.environ.get(v)]
+        lines.append(f"  {'*' if name == settings.preset else ' '} {name:16} {p.summary}"
+                     + (f"  [needs {', '.join(missing)}]" if missing else "")
+                     + ("  [named only: a CLI login]" if not p.automatic else ""))
+    print("\n".join(lines))
+    return 0
+
+
 def bench(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     gold = load_gold(args.gold)
     if args.comparer:
@@ -199,6 +253,9 @@ def parser() -> argparse.ArgumentParser:
     common.add_argument("--report", type=Path, help="Also write report.json here.")
     common.add_argument("--fail-at", type=float, help="Judge score at or above which a duplicate fails the run, "
                                                       "overriding fail_at in the settings.")
+    common.add_argument("--preset", help="Judging preset (judges and their thresholds), overriding the settings; "
+                                         "`dry-lint config` lists them.")
+    common.add_argument("--budget-usd", type=float, help="Most this run spends on priced judges, overriding budget.usd.")
     common.add_argument("--warn-only", action="store_true", help="Report, but always exit 0.")
 
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")
@@ -231,10 +288,12 @@ def parser() -> argparse.ArgumentParser:
     measuring = commands.add_parser("bench", parents=[common], help="Measure the judge, or the comparer, on a gold set.")
     measuring.add_argument("--gold", type=Path, required=True, help="gold.jsonl (docs/benchmark.md).")
     measuring.add_argument("--comparer", action="store_true", help="Measure the comparer's recall instead.")
+    commands.add_parser("config", parents=[common], help="The judging setup this repository would run, and its cost.")
     return main
 
 
 COMMANDS = {"check": check, "scan": scan, "detect": detect, "judge": judge, "report": report, "explain": explain,
+            "config": config,
             "bench": bench}
 
 

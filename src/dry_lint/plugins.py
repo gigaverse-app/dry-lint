@@ -77,7 +77,9 @@ BUILT_IN = {
                    "typescript": "dry_lint.typescript:TypeScriptExtractor"},
     "comparers": {"tfidf": "dry_lint.comparers:TfidfComparer", "dryer": "dry_lint.dryer:DryerComparer"},
     "judges": {"jev": "dry_lint.judges.jev:JevJudge", "command": "dry_lint.judges.command:CommandJudge",
-               "gemini": "dry_lint.judges.gemini:GeminiJudge", "anthropic": "dry_lint.judges.anthropic:AnthropicJudge"},
+               "gemini": "dry_lint.judges.gemini:GeminiJudge", "anthropic": "dry_lint.judges.anthropic:AnthropicJudge",
+               "claude-code": "dry_lint.judges.subscription:ClaudeCodeJudge",
+               "codex": "dry_lint.judges.subscription:CodexJudge"},
     "stores": {"dir": "dry_lint.store:DirectoryStore", "s3": "dry_lint.store:S3Store"},
 }
 

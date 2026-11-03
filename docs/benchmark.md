@@ -66,6 +66,33 @@ other two vendors' labels keep that from deciding the gold labels on their own.
 
 Sonnet 5.5 was the most consistent and the fastest; Gemini 2.5 Pro was the least consistent and the least precise.
 
+## Thresholds with a second judge
+
+When a stronger judge re-judges the uncertain band, the threshold that fails a pull request can come down. Claude
+Sonnet 5.5 judged all 250 gold pairs twice through the API (7 of 250 block decisions changed between the runs);
+the table combines its answers with Jev's on Jev scores in the band, with 90% intervals:
+
+| Judging | Fails at | Precision | Recall | Second-judge calls per pull request |
+| --- | --- | --- | --- | --- |
+| Jev alone | 0.8 | 94% (91–98) | 73% (68–79) | 0 |
+| Jev, then Sonnet on [0.5, 0.91) | 0.6 | 94% (89–98) | 88% (82–94) | 1.1 |
+| **Jev, then Sonnet on [0.5, 0.91)** (`jev+sonnet`) | **0.7** | **97% (94–99)** | **84% (77–91)** | **1.1** |
+| Jev, then Sonnet on [0.5, 0.91) | 0.8 | 98% (96–100) | 77% (70–84) | 1.1 |
+| Jev, then Sonnet on [0.3, 0.91) | 0.7 | 97% (94–99) | 84% (77–91) | 1.7 |
+| Sonnet alone (`sonnet`) | 0.7 | 97% (94–99) | 84% (77–91) | 3.4 |
+| Jev, then `codex` (ChatGPT subscription) on [0.5, 0.91) (`jev+codex`) | 0.7 | 96% (93–99) | 85% (79–91) | 1.1 |
+
+Escalating below 0.5 found nothing more; failing at 0.7 rather than 0.8 trades a point of precision for seven of
+recall. `codex` used the account's default model, its scores barely moved between 0.6 and 0.8, and it agreed with
+Sonnet on 138 of the 158 band pairs. Live `dry-lint bench` runs of the shipped `jev+sonnet` preset gave 96–98%
+precision and 85% recall at 0.7 (two runs).
+
+**Cost, measured.** A Sonnet 5.5 call on a gigaverse-ai pair used 959 input tokens and about 126 output tokens
+(thinking included; p90 150), 2.8 characters per token: about $0.0032 at $2 and $10 per million. With 3.35
+candidate pairs per pull request and a third of them in the band, `jev+sonnet` costs about $0.004 per pull request
+(Jev's share is about $0.0001), and the largest pull request in the sample (103 candidates) about $0.12. A Sonnet
+call took a median of 2.1 s through the API; a `codex` call took 14 s.
+
 ## Earlier gold set (superseded)
 
 The first gold set had 96 pairs from the 120 most recent pull requests, with 23 duplicates. It put Jev at 75%

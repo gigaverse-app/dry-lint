@@ -6,11 +6,12 @@ Every new answer goes to the store. Filtered pairs never reach a judge.
 
 from pathlib import Path
 
+from dry_lint.costs import Ledger
 from dry_lint.git import git
 from dry_lint.judges import make_escalation, make_judge
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.plugins import Judge, identity, load
-from dry_lint.report import Finding
+from dry_lint.report import Finding, JudgingSummary
 from dry_lint.settings import Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
@@ -30,18 +31,33 @@ def open_store(settings: Settings, root: Path, path: Path | None = None) -> Verd
     return VerdictStore(load("stores", settings.store))
 
 
-def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, settings: Settings) -> list[Verdict]:
+def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, settings: Settings,
+           ledger: Ledger | None = None) -> list[Verdict | None]:
     """
     The first judge's answers, with those in the escalation band replaced by the second judge's answers, kept under
     the first judge's name with `second_opinion` set, so they are stored and reused like any other.
+
+    With a `ledger`, each judge is asked only about the pairs the budget covers, riskiest first: the closest look-
+    alikes for the first judge, the highest first scores for the second. A pair the first judge could not afford
+    stays unjudged (None); one the second could not afford keeps the first judge's answer.
     """
-    first = judge.judge(candidates, settings) if candidates else []
+    order = sorted(range(len(candidates)), key=lambda i: -candidates[i].similarity)
+    allowed = ledger.affordable(judge, [candidates[i] for i in order]) if ledger else len(order)
+    asked = order[:allowed]
+    answers: list[Verdict | None] = [None] * len(candidates)
+    for i, verdict in zip(asked, judge.judge([candidates[i] for i in asked], settings) if asked else []):
+        answers[i] = verdict
+    if ledger:
+        ledger.charge(judge, [candidates[i] for i in asked], skipped=len(order) - allowed)
     if escalation is None or settings.escalate is None:
-        return first
+        return answers
     low, high = settings.escalate.between
-    unsure = [i for i, verdict in enumerate(first) if low <= verdict.score < high]
-    second = escalation.judge([candidates[i] for i in unsure], settings) if unsure else []
-    answers = list(first)
+    unsure = sorted((i for i, v in enumerate(answers) if v is not None and low <= v.score < high),
+                    key=lambda i: -answers[i].score)
+    allowed = ledger.affordable(escalation, [candidates[i] for i in unsure]) if ledger else len(unsure)
+    second = escalation.judge([candidates[i] for i in unsure[:allowed]], settings) if allowed else []
+    if ledger:
+        ledger.charge(escalation, [candidates[i] for i in unsure[:allowed]], skipped=len(unsure) - allowed)
     for i, verdict in zip(unsure, second):
         answers[i] = verdict.model_copy(update={"judge": judge.name, "judge_version": judge.version,
                                                 "second_opinion": identity(escalation)})
@@ -55,6 +71,7 @@ def judges_name(judge: Judge, escalation: Judge | None) -> str:
 class Judging:
     def __init__(self, settings: Settings, judge: Judge | None, escalation: Judge | None, store: VerdictStore) -> None:
         self.settings, self.judge, self.escalation, self.store = settings, judge, escalation, store
+        self.ledger = Ledger(settings)
 
     @classmethod
     def configured(cls, settings: Settings, store: VerdictStore) -> "Judging":
@@ -68,6 +85,16 @@ class Judging:
             return None
         return judges_name(self.judge, self.escalation)
 
+    def summary(self) -> JudgingSummary:
+        """What judged this run, on which thresholds, and what it cost: shown on every report."""
+        band = self.settings.escalate.between if self.escalation and self.settings.escalate else None
+        return JudgingSummary(
+            preset=self.settings.preset, judge=identity(self.judge) if self.judge else None,
+            escalation=identity(self.escalation) if self.escalation else None, band=band,
+            report_at=self.settings.report_at, fail_at=max(self.settings.report_at, self.settings.fail_at),
+            budget_usd=self.settings.budget.usd, subscription_calls=self.settings.budget.subscription_calls,
+            spend=list(self.ledger.spend.values()))
+
     def findings(self, candidates: list[Candidate], source: Run | None = None, refresh: bool = False) -> list[Finding]:
         """A finding per proposed candidate: unjudged when there is no judge, else from the store or the judge."""
         proposed = [c for c in candidates if c.filtered is None]
@@ -78,7 +105,8 @@ class Judging:
         pending = [i for i, verdict in enumerate(known) if verdict is None]
         if pending:
             asked = [proposed[i] for i in pending]
-            for i, verdict in zip(pending, decide(asked, self.judge, self.escalation, self.settings)):
-                self.store.remember(proposed[i], verdict, source)
+            for i, verdict in zip(pending, decide(asked, self.judge, self.escalation, self.settings, self.ledger)):
+                if verdict is not None:
+                    self.store.remember(proposed[i], verdict, source)
                 known[i] = verdict
         return [Finding(candidate=c, verdict=known[i], cached=i not in pending) for i, c in enumerate(proposed)]
