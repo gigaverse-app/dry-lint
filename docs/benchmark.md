@@ -139,7 +139,8 @@ from pull requests with 12 or more), so a judge that can fall back on Jev's answ
 Sonnet or Opus on every pair loses a third or more of it to unjudged pairs. Without the first-judge bar, a large
 pull request that ran out of budget failed on Jev's scores from 0.55, and `jev+opus` fell to 82% precision. A
 looser cap buys little: `jev+opus` gets 99% and 88% within $0.10 a pull request (average $0.009), and 99% and 90%
-with no budget at all (average $0.013).
+with no budget at all (average $0.013). A live `dry-lint bench --preset jev+opus` (Jev's API, then Opus through the
+`anthropic` judge, no budget) gave 98% (97–100) precision, 90% (84–95) recall and AUC 0.98.
 
 **Checks.** Opus 5.5 was one of the three labellers, which favours it. On the 219 pairs where the two non-Claude
 labellers (GPT-5.5 and Gemini 3.1 Pro) agree, without the Opus label, `jev+opus` scores 99% precision and 86%
