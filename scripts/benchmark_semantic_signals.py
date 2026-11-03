@@ -8,6 +8,7 @@ The three features are independent, additive, unweighted probes. Production thre
 
 import argparse
 import json
+import platform
 import time
 from pathlib import Path
 
@@ -30,7 +31,8 @@ def run(root: Path, out: Path, gold_path: Path | None = None) -> None:
     features = {f.qualname: {feature: signals.tokens(f.qualname, feature) for feature in ("api", "binding", "flow")}
                 for f in base.functions}
     gold = load_gold(gold_path) if gold_path else []
-    metadata = {"head": git(root, "rev-parse", "HEAD"), "dirty": bool(git(root, "status", "--porcelain")),
+    metadata = {"schema": 1, "python": platform.python_version(),
+                "head": git(root, "rev-parse", "HEAD"), "dirty": bool(git(root, "status", "--porcelain")),
                 "functions": len(base.functions), "coverage": {
                     feature: sum(bool(tokens[feature]) for tokens in features.values()) for feature in ("api", "binding", "flow")}}
     results = {}
@@ -38,7 +40,11 @@ def run(root: Path, out: Path, gold_path: Path | None = None) -> None:
         start = time.perf_counter()
         functions = [f.model_copy(update={"tokens": f.tokens + [t for s in selected for t in features[f.qualname][s]]})
                      for f in base.functions]
-        detector = Detector(functions, Settings(), TfidfComparer(), base.extractors)
+        comparer = TfidfComparer()
+        if selected:
+            # Experimental similarities must never masquerade as the production scale in a verdict cache.
+            comparer.name, comparer.version = f"trial-{variant}-tfidf", "1"
+        detector = Detector(functions, Settings(), comparer, base.extractors)
         scan = detector.scan()
         scan_keys = {p.key for p in scan}
         (out / f"{variant}-scan.json").write_text(json.dumps([p.model_dump() for p in scan]), encoding="utf-8")
@@ -52,7 +58,8 @@ def run(root: Path, out: Path, gold_path: Path | None = None) -> None:
             scored.append({"key": target.key, "label": pair.label, "score": round(detector.comparer.similarity(a, b), 12),
                            "check": any(p.key == target.key and p.filtered is None for p in candidates),
                            "scan": target.key in scan_keys})
-        results[variant] = {"seconds": round(time.perf_counter() - start, 2), "scan_pairs": len(scan), "gold": scored}
+        results[variant] = {"comparer": detector.comparer_id, "seconds": round(time.perf_counter() - start, 2),
+                            "scan_pairs": len(scan), "gold": scored}
         print(f"{root.name}: {variant} complete", flush=True)
     (out / "results.json").write_text(json.dumps({**metadata, "variants": results}, indent=2), encoding="utf-8")
 

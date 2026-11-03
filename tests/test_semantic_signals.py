@@ -103,6 +103,16 @@ def test_package_imports_and_class_rebinding_are_distinct() -> None:
     assert signals.tokens("other.py::run", "api") == []
 
 
+def test_imports_above_the_package_root_are_not_resolved() -> None:
+    source = "from ..sdk import read\ndef run():\n    return read()\n"
+    assert trial({"pkg/a.py": source}).tokens("pkg/a.py::run", "api") == []
+
+
+def test_a_module_named_src_is_not_mistaken_for_a_source_directory() -> None:
+    source = "import sdk\ndef run():\n    return sdk.read()\n"
+    assert trial({"src.py": source}).tokens("src.py::run", "api") == ["api:sdk.read"]
+
+
 def test_mapping_reads_and_computed_callees_do_not_invent_relationships() -> None:
     source = 'def run(row):\n    factory()()\n    callback = lambda: row.secret\n    return row.get("public")\n'
     signals = trial({"a.py": source})
@@ -124,10 +134,15 @@ def test_trial_cli_runs_each_variant_with_real_repository_and_gold(repo, tmp_pat
     monkeypatch.setattr(sys, "argv", ["trial", "--root", str(repo.root), "--out", str(out), "--gold", str(gold)])
     runpy.run_path(str(scripts / "benchmark_semantic_signals.py"), run_name="__main__")
     results = json.loads((out / "results.json").read_text())
+    assert results["schema"] == 1
     assert results["head"] == repo.git("rev-parse", "HEAD").strip() and not results["dirty"]
     assert set(results["variants"]) == {"baseline", "api", "binding", "flow", "combined"}
     assert results["variants"]["baseline"]["gold"][0]["check"]
     assert len(list(out.glob("*-scan.json"))) == 5
+    for variant in results["variants"]:
+        expected = "tfidf:2" if variant == "baseline" else f"trial-{variant}-tfidf:1"
+        assert results["variants"][variant]["comparer"] == expected
+        assert all(pair["comparer"] == expected for pair in json.loads((out / f"{variant}-scan.json").read_text()))
 
     gold.write_text(gold.read_text().replace("src/text.py::shorten_text", "missing.py::gone"))
     runner = runpy.run_path(str(scripts / "benchmark_semantic_signals.py"))["run"]

@@ -66,7 +66,7 @@ def bound_names(node: ast.AST) -> set[str]:
 
 def module_name(path: str) -> str:
     parts = list(PurePosixPath(path).with_suffix("").parts)
-    if parts[0] == "src":
+    if len(parts) > 1 and parts[0] == "src":
         parts.pop(0)
     if parts[-1] == "__init__":
         parts.pop()
@@ -138,7 +138,7 @@ class Signals:
                             package = module.split(".") if path.endswith("/__init__.py") else module.split(".")[:-1]
                             prefix = package[:len(package) - node.level + 1] if node.level else []
                             target = ".".join([*prefix, *([node.module] if node.module else []), alias.name])
-                            if node.level <= len(package) + 1:
+                            if node.level <= len(package):
                                 aliases[local] = target
                 elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     counts[node.name] += 1
