@@ -21,7 +21,7 @@ from dry_lint.settings import Settings
 
 from conftest import function
 
-SETTINGS = Settings()
+SETTINGS = Settings(fail_at=0.91)  # raised above report_at, so there is a band that only warns
 NEW = function("src/widgets/caption.py", "def clip(text, n):\n    return text[:n]\n")
 
 
