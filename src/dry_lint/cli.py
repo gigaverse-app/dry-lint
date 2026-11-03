@@ -16,8 +16,8 @@ And to look closer:
     dry-lint explain src/a.py::shorten src/b.py::clip                      # why a pair is, or is not, reported
     dry-lint bench --gold gold.jsonl [--comparer]                          # measure the judge, or the comparer
 
-Exit status: 0 when nothing is reported, 1 when a judged duplicate reaches `report_at` (unless --warn-only),
-2 on errors.
+Exit status: 0 when nothing blocks, 1 when a judged duplicate reaches `fail_at` (unless --warn-only), 2 on errors.
+Duplicates between `report_at` and `fail_at` are reported as warnings and exit 0.
 """
 
 import argparse
@@ -74,14 +74,14 @@ def judged(candidates: list[Candidate], settings: Settings, root: Path, args: ar
 
 
 def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
-    output = render(report, args.format, settings)
+    output = render(report, args.format, settings, args.warn_only)
     if output:
         print(output)
     if args.output:
         args.output.write_text(as_markdown(report, settings.max_findings) + "\n")
     if args.report:
         args.report.write_text(as_json(report) + "\n")
-    return 1 if any(f.reported for f in report.findings) and not args.warn_only else 0
+    return 1 if any(f.blocking for f in report.findings) and not args.warn_only else 0
 
 
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:

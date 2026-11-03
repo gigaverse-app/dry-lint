@@ -21,13 +21,27 @@ jobs:
         python: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      # CI-esta: a validated environment restore; it still runs `uv sync --locked` after a hit.
+      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
         with:
           python-version: ${{ matrix.python }}
-      - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run pytest -q --cov --cov-report=term-missing --cov-fail-under=100
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
       - run: uv build
+
+  lint-ci:
+    name: Lint the action and workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # dry-lint ships a composite action: actionlint, action-validator and ShellCheck check it and the workflows.
+      - uses: gigaverse-app/ci-esta/actions/lint-ci-code@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
+        with:
+          action-files: action.yml
+          workflow-files: |
+            .github/workflows/ci.yml
+            .github/workflows/observe-ci.yml
+          head-sha: ${{ github.event.pull_request.head.sha || github.sha }}
 
   dogfood:
     name: dry-lint on itself
@@ -51,3 +65,16 @@ jobs:
         run: |
           echo "mode=$MODE exit-code=$CODE"
           [ "$MODE" = single ] && [ "$CODE" != 2 ]
+
+  gate:
+    name: CI gate
+    if: always()
+    needs: [test, lint-ci, dogfood]
+    runs-on: ubuntu-latest
+    steps:
+      # The one check to require: fails on any missing, failed, cancelled or unexpectedly skipped prerequisite.
+      - uses: gigaverse-app/ci-esta/actions/validation-gate@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
+        with:
+          needs: ${{ toJSON(needs) }}
+          required: >-
+            {"test": true, "lint-ci": true, "dogfood": ${{ github.event_name == 'pull_request' }}}

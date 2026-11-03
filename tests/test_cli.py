@@ -12,26 +12,10 @@ from dry_lint.cli import main, parser, run_info, settings_for
 from dry_lint.judges.jev import JevJudge
 from dry_lint.models import CandidatesFile
 
-from conftest import EXISTING, Repo
+from conftest import EXISTING, Repo, judge_calls
 from conftest import TWIN as TWIN_SOURCE
 
 TWIN = "src/widgets/caption.py::preview_caption_text"
-
-
-@pytest.fixture
-def judge(tmp_path: Path) -> str:
-    """A judge command that counts its calls and calls the caption twin a duplicate, everything else separate."""
-    path = tmp_path / "judge.py"
-    calls = tmp_path / "calls"
-    path.write_text(
-        "import json, pathlib, sys\n"
-        f"calls = pathlib.Path({str(calls)!r})\n"
-        "calls.write_text(str(int(calls.read_text() or 0) + 1) if calls.exists() else '1')\n"
-        "prompt = sys.stdin.read()\n"
-        "twin = 'preview_caption_text' in prompt and 'shorten_text' in prompt\n"
-        "print(json.dumps({'label': 'duplicate' if twin else 'separate', 'score': 0.9 if twin else 0.1, 'owner': 'existing'}))\n"
-    )
-    return f'"{sys.executable}" "{path}"'
 
 
 @pytest.fixture(autouse=True)
@@ -44,36 +28,40 @@ def run(repo: Repo, tmp_path: Path, *args: str, command: str = "check") -> int:
     return main([command, "--root", str(repo.root), "--store", str(tmp_path / "store"), *args])
 
 
-def calls(tmp_path: Path) -> int:
-    path = tmp_path / "calls"
-    return int(path.read_text()) if path.exists() else 0
-
-
-def test_check_fails_and_annotates_a_judged_reimplementation(repo: Repo, tmp_path: Path, judge: str, capsys) -> None:
-    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", judge, "--format", "github")
+def test_check_fails_and_annotates_an_error_for_a_blocking_reimplementation(repo: Repo, tmp_path: Path,
+                                                                              blocking_twin_judge: str, capsys) -> None:
+    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", blocking_twin_judge,
+               "--format", "github")
     assert code == 1
     out = capsys.readouterr().out
-    assert out.startswith("::warning file=src/widgets/caption.py,line=1,") and "src/text.py::shorten_text" in out
+    assert out.startswith("::error file=src/widgets/caption.py,line=1,") and "src/text.py::shorten_text" in out
 
 
-def test_verdicts_are_remembered_so_the_judge_is_asked_once(repo: Repo, tmp_path: Path, judge: str, capsys) -> None:
-    args = ("--base", "main", "--judge", "command", "--judge-command", judge, "--format", "json")
+def test_a_reported_duplicate_below_fail_at_warns_without_failing(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                                  capsys) -> None:
+    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--format", "github")
+    assert code == 0
+    assert capsys.readouterr().out.startswith("::warning file=src/widgets/caption.py,line=1,")
+
+
+def test_verdicts_are_remembered_so_the_judge_is_asked_once(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
+    args = ("--base", "main", "--judge", "command", "--judge-command", twin_judge, "--format", "json")
     run(repo, tmp_path, *args)
-    first = calls(tmp_path)
+    first = judge_calls(tmp_path)
     assert first >= 1
     capsys.readouterr()
     run(repo, tmp_path, *args)
     report = json.loads(capsys.readouterr().out)
-    assert calls(tmp_path) == first
+    assert judge_calls(tmp_path) == first
     assert all(f["cached"] for f in report["findings"])
     assert any(f["reported"] and f["candidate"]["new"]["path"] + "::" + f["candidate"]["new"]["name"] == TWIN
                for f in report["findings"])
     assert len(list((tmp_path / "store").glob("*.json"))) == first
 
 
-def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(repo: Repo, tmp_path: Path, judge: str) -> None:
+def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
     comment, report = tmp_path / "comment.md", tmp_path / "report.json"
-    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", judge, "--warn-only",
+    code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--warn-only",
                "--output", str(comment), "--report", str(report))
     assert code == 0
     assert comment.read_text().startswith("<!-- dry-lint -->") and TWIN in comment.read_text()
@@ -103,14 +91,14 @@ def test_scan_lists_the_repository_backlog(repo: Repo, tmp_path: Path, capsys) -
     assert "shorten_text" in out and "preview_caption_text" in out
 
 
-def test_scan_refresh_re_judges_answers_from_an_older_judge_version(repo: Repo, tmp_path: Path, judge: str) -> None:
+def test_scan_refresh_re_judges_answers_from_an_older_judge_version(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
     for version in ("v1", "v1", "v2"):
-        (repo.root / ".dry-lint.toml").write_text(f'judge = {{ use = "command", command = {json.dumps(judge)}, version = "{version}" }}\n')
+        (repo.root / ".dry-lint.toml").write_text(f'judge = {{ use = "command", command = {json.dumps(twin_judge)}, version = "{version}" }}\n')
         main(["scan", "--root", str(repo.root), "--store", str(tmp_path / "store"), "--limit", "1", "--refresh", "--warn-only"])
-    assert calls(tmp_path) == 2
+    assert judge_calls(tmp_path) == 2
 
 
-def test_the_two_ci_jobs_hand_over_through_candidates_json(repo: Repo, tmp_path: Path, judge: str,
+def test_the_two_ci_jobs_hand_over_through_candidates_json(repo: Repo, tmp_path: Path, blocking_twin_judge: str,
                                                            monkeypatch: pytest.MonkeyPatch, capsys) -> None:
     event = tmp_path / "event.json"
     event.write_text(json.dumps({"pull_request": {"number": 42, "head": {"sha": "feedbeef"}}}))
@@ -125,13 +113,16 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(repo: Repo, tmp_path:
     assert not (tmp_path / "store").exists()  # detect never touches the store
 
     report = tmp_path / "report.json"
-    code = run(repo, tmp_path, "--candidates", str(candidates), "--judge", "command", "--judge-command", judge,
+    code = run(repo, tmp_path, "--candidates", str(candidates), "--judge", "command", "--judge-command", blocking_twin_judge,
                "--report", str(report), "--warn-only", command="judge")
-    assert code == 0 and calls(tmp_path) >= 1
+    assert code == 0 and judge_calls(tmp_path) >= 1
     capsys.readouterr()
     assert main(["report", "--root", str(repo.root), "--from", str(report), "--format", "check-run"]) == 1
     body = json.loads(capsys.readouterr().out)
-    assert (body["head_sha"], body["conclusion"]) == ("feedbeef", "neutral")
+    assert (body["head_sha"], body["conclusion"]) == ("feedbeef", "failure")
+    assert json.loads(report.read_text())["findings"][0]["blocking"] is True
+    main(["report", "--root", str(repo.root), "--from", str(report), "--format", "check-run", "--warn-only"])
+    assert json.loads(capsys.readouterr().out)["conclusion"] == "neutral"
     assert json.loads(report.read_text())["run"]["pull_request"] == 42
 
 
@@ -144,33 +135,33 @@ def test_detect_prints_candidates_without_out_and_proposes_the_backlog_with_all(
                                            for c in everything.candidates)
 
 
-def test_explain_shows_the_similarity_the_rule_and_the_stored_verdict(repo: Repo, tmp_path: Path, judge: str, capsys) -> None:
+def test_explain_shows_the_similarity_the_rule_and_the_stored_verdict(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
     assert run(repo, tmp_path, "caption.py::preview_caption_text", "text.py::shorten_text", command="explain") == 0
     out = capsys.readouterr().out
     assert out.startswith(f"{TWIN} ~ src/text.py::shorten_text\n  similarity ")
     assert "(tfidf:1)" in out and "shared: " in out and "proposed: #1 of" in out
     assert "rule: none applies" in out and "stored verdict: none" in out
-    run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", judge, "--warn-only")
+    run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--warn-only")
     capsys.readouterr()
     run(repo, tmp_path, "caption.py::preview_caption_text", "text.py::shorten_text", command="explain")
     out = capsys.readouterr().out
-    assert "stored verdict: duplicate 0.90 by command:" in out and "reused: yes, neither function's logic changed" in out
+    assert "stored verdict: duplicate 0.85 by command:" in out and "reused: yes, neither function's logic changed" in out
     run(repo, tmp_path, "caption.py::register_widget", "filler.py::sync_invoice", command="explain")
     assert "proposed: not among" in capsys.readouterr().out
 
 
-def test_bench_measures_the_judge_or_the_comparer(repo: Repo, tmp_path: Path, judge: str, capsys) -> None:
+def test_bench_measures_the_judge_or_the_comparer(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
     gold = tmp_path / "gold.jsonl"
     twin = GoldPair(new=GoldFunction(id=TWIN, code=TWIN_SOURCE), existing=GoldFunction(id="src/text.py::shorten_text", code=EXISTING),
                     label="duplicate")
     gold.write_text(twin.model_dump_json() + "\n")
-    assert run(repo, tmp_path, "--gold", str(gold), "--judge", "command", "--judge-command", judge, command="bench") == 0
+    assert run(repo, tmp_path, "--gold", str(gold), "--judge", "command", "--judge-command", twin_judge, command="bench") == 0
     assert "1 labelled pairs, 1 duplicates" in capsys.readouterr().out
     assert run(repo, tmp_path, "--gold", str(gold), "--comparer", command="bench") == 0
     assert "partner among the top 3 proposed: 100%" in capsys.readouterr().out
     assert run(repo, tmp_path, "--gold", str(gold), "--comparer", "--format", "json", command="bench") == 0
     assert json.loads(capsys.readouterr().out)["recall"] == 1.0
-    assert run(repo, tmp_path, "--gold", str(gold), "--judge", "command", "--judge-command", judge, "--format", "json",
+    assert run(repo, tmp_path, "--gold", str(gold), "--judge", "command", "--judge-command", twin_judge, "--format", "json",
                command="bench") == 0
     assert json.loads(capsys.readouterr().out)["duplicates"] == 1
     assert run(repo, tmp_path, "--gold", str(gold), "--judge", "none", command="bench") == 2

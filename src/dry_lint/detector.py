@@ -17,6 +17,7 @@ from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.settings import Settings
 
 SUPPRESSION = re.compile(r"(?:#|//)\s*dry-lint:\s*distinct-from\s+(\S+)")
+IGNORE = re.compile(r"(?:#|//)\s*dry-lint:\s*ignore\b")
 
 
 def default_base(root: Path) -> str:
@@ -25,9 +26,14 @@ def default_base(root: Path) -> str:
     return remote_head.removeprefix("refs/remotes/") or "origin/main"
 
 
+def given(base: str | None) -> bool:
+    """A real base: not empty, and not the all-zero sha that a branch's first push reports as its `before`."""
+    return bool(base and base.strip("0"))
+
+
 def base_ref(root: Path, base: str | None) -> str:
-    """`base`, unless it is empty or the all-zero sha a branch's first push reports: then the default branch."""
-    return base if base and base.strip("0") else default_base(root)
+    """`base` when one is given, else the default branch."""
+    return base if given(base) else default_base(root)
 
 
 def changed_lines(root: Path, base: str | None = None, staged: bool = False) -> dict[str, set[int]]:
@@ -61,6 +67,8 @@ def calls(function: Function) -> set[str]:
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
     """Look-alikes that are never duplicates, by structure, by rule, or by a person's inline decision."""
+    if IGNORE.search(a.code) or IGNORE.search(b.code):
+        return "inline ignore"
     if a.name.startswith("__") and b.name.startswith("__"):
         return "constructor or dunder pattern"
     if b.name in calls(a) or a.name in calls(b):
