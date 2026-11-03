@@ -141,6 +141,8 @@ and the command line all agree ([README](../README.md#settings)).
 ## Verdict cache
 
 Verdicts are kept in the Actions cache:
+- Caches are partitioned by job and `sticky-key`, so concurrent local and cross-repository jobs do not race to
+  save different verdict sets under the same key. Use a distinct `sticky-key` for multiple steps in one job.
 - A pull request's run restores the newest verdicts it can see, so a later push only judges pairs whose logic
   changed.
 - Runs on the default branch, that is pushes to `main` and judge-mode runs, save their verdicts where every pull
