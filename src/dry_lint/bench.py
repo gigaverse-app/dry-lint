@@ -9,6 +9,7 @@ Borderline pairs are kept in the file and left out of the numbers.
 
 import random
 import textwrap
+import tomllib
 from pathlib import Path
 from typing import Literal
 
@@ -40,6 +41,9 @@ class GoldPair(BaseModel):
 
 
 def load_gold(path: Path) -> list[GoldPair]:
+    """JSON lines, one pair per line; or, for a file ending in .toml, a `[[pair]]` table per pair, easier to read."""
+    if path.suffix == ".toml":
+        return [GoldPair.model_validate(pair) for pair in tomllib.loads(path.read_text()).get("pair", [])]
     return [GoldPair.model_validate_json(line) for line in path.read_text().splitlines() if line.strip()]
 
 

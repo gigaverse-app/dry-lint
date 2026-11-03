@@ -4,8 +4,8 @@ The opt-in cross-repository TypeScript judge has a separate [context calibration
 Its small diagnostic sample does not inherit the Python precision/recall claims below.
 
 Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded),
-much of it written with coding agents. The gold labels contain that private code and are not published. The method is described here so
-it can be repeated on another codebase.
+much of it written with coding agents. The gold labels contain that private code and are not published, apart from
+[30 example pairs](#example-pairs). The method is described here so it can be repeated on another codebase.
 
 ## Gold set
 
@@ -248,6 +248,8 @@ detector agree on about 40% of their top pairs.
 - `label` is `duplicate`, `separate` or `borderline`; borderline pairs are left out of the numbers.
 - Each side carries its code as it was when labelled, so the judge benchmark still runs after the code has moved.
 - `weight` projects a stratified sample back to its population: the stratum's size over its sample size.
+- A file ending in `.toml` holds the same fields as `[[pair]]` tables instead, with the code in `'''` blocks, as
+  in [`examples/gold.toml`](../examples/gold.toml): easier to read and review than JSON lines.
 
 ```bash
 dry-lint bench --gold gold.jsonl                       # the configured judge: AUC, precision and recall, bands
@@ -291,6 +293,31 @@ Use this to build a gold set for your own codebase:
 > - `concept`, in at most six words;
 > - `variation`: identical, parameterizable, drifted or n/a;
 > - `owner`: new, existing or a new shared helper.
+
+## Example pairs
+
+[`examples/gold.toml`](../examples/gold.toml) holds 30 labelled pairs from the four gold sets: 15 duplicates and 15
+separate, in Python and TypeScript. They were chosen by hand among short functions whose paths and code name no
+vendor, customer or credential. Each pair carries its majority label, the three labellers' votes, and the scores
+Jev, Opus and Sonnet gave it (a `separate` answer counts as 0, as in reports; Opus and Sonnet were only asked in
+Jev's band). The file is TOML, so the code reads as written. `dry-lint bench --gold examples/gold.toml` runs on them, with no key at all using
+`--judge command --judge-command "python examples/fake_judge.py"`.
+
+They were picked for being hard: mostly from the decision band, where look-alikes and duplicates are hard to tell
+apart, and including pairs the labellers split on. So they show how judging decides, but no figure measured on them
+says anything about a real repository: Jev scores AUC 0.58 here, against 0.97 on the 250-pair set. Four of them:
+
+- **A duplicate every judge finds** (gigaverse-ai): two stores read optional context from Redis with the same
+  0.25-second timeout and the same comment; only the model they parse differs. Jev 0.71, Opus 0.72, Sonnet 0.80.
+- **Look-alikes that already share the concept** (gigaverse-web-app): `transientRetryDelayMs` and `chatRecoveryDelayMs`
+  both call the shared `backoffDelayMs` with their own policy. Nothing is left to consolidate: two labellers said
+  separate and one pattern, and Opus and Sonnet answered separate, though Jev scored 0.72.
+- **A template, not a duplicate** (gigaverse-mobile): context-selector hooks such as `useAudienceProfileContext` and
+  `useChatMessageContext` repeat one shape per context. All three labellers said PATTERN. Jev scored 0.85, so these
+  fail with Jev alone and pass once Opus re-judges them.
+- **A split decision** (gigaverse-ai): `StatsQuery.retrieval_key` and `ShownKind.of` both normalize the teams of a
+  query (casefold, sorted). GPT-5.5 and Gemini said consolidate and Opus separate, so the label is duplicate; as a
+  judge, Opus answered separate again and Sonnet called it drifted at 0.6. Jev scored 0.78.
 
 ## Speed
 
