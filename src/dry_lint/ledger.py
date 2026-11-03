@@ -5,7 +5,9 @@ The ledger: what dry-lint has cost and caught, across a pull request's pushes an
   the way CI-esta carries its snapshot. It needs no cache, so losing one loses nothing. Each run adds its figures
   once: runs are counted by id and attempt, so posting the same run again changes nothing.
 - **A duplicate is kept out of the codebase** when a push reported it and a later push no longer does, without a
-  person's decision (`distinct-from`, `ignore`, a pattern) settling it. A pair left unjudged is still open.
+  person's decision (`distinct-from`, `ignore`, a pattern) settling it. A pair left unjudged is still open, and so
+  is one whose scope (the local check, or the check against peer repositories) did not report on that push: a
+  check that did not run cannot say the duplicate is gone.
 - **A repository's ledger** is folded on the default branch: each push there adds its own run, and the final ledger
   of every pull request merged since, once. It lives beside the verdicts in the Actions cache, where every pull
   request can read it, and says since when it counts: losing the cache starts it again, never invents figures.
@@ -88,6 +90,7 @@ class Pair(BaseModel):
     found: int = Field(description="The push that first reported it.")
     state: Literal["open", "kept-out", "dismissed"] = "open"
     settled: int | None = Field(default=None, description="The push that kept it out or dismissed it.")
+    scope: str | None = Field(default=None, description="The report scope that found it; None in older ledgers.")
 
     def concept(self) -> str:
         return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
@@ -105,14 +108,20 @@ class PullLedger(Versioned):
     def count(self, state: str) -> int:
         return sum(pair.state == state for pair in self.pairs.values())
 
-    def advance(self, reports: list[Report], run: str = "") -> "PullLedger":
-        """This ledger with one more run added; the same ledger if that run was counted already."""
+    def advance(self, reports: list[Report], run: str = "", scopes: list[str] = ()) -> "PullLedger":
+        """
+        This ledger with one more run added; the same ledger if that run was counted already. `scopes` names each
+        report's scope ("" when not given); only the scopes that reported can settle the pairs they found.
+        """
         if not reports or (run and run in self.runs):
             return self
+        named = [*scopes, *[""] * (len(reports) - len(scopes))]
+        completed = set(named)
         ledger = self.model_copy(deep=True)
         tally = sum((Tally.of(report) for report in reports), Tally())
         findings = [f for report in reports for f in report.findings]
-        reported = {f.candidate.key: f for f in findings if f.reported}
+        reported = {f.candidate.key: (f, scope) for report, scope in zip(reports, named) for f in report.findings
+                    if f.reported}
         head = reports[0].run.head
         if ledger.pushes and ledger.pushes[-1].head == head:
             tally = tally.again()
@@ -125,12 +134,12 @@ class PullLedger(Versioned):
         ledger.runs = [*ledger.runs, run][-RECENT_RUNS:] if run else ledger.runs
         unjudged = {f.candidate.key for f in findings if f.deferred or f.verdict is None}
         settled_by_rule = {c.key for report in reports for c in report.filtered}
-        for key, finding in reported.items():
+        for key, (finding, scope) in reported.items():
             names = [side.qualname.split("::", 1)[1] for side in (finding.candidate.new, finding.candidate.existing)]
             pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
-            pair.state, pair.settled = "open", None
+            pair.state, pair.settled, pair.scope = "open", None, scope
         for key, pair in ledger.pairs.items():
-            if key in reported or key in unjudged:
+            if key in reported or key in unjudged or (pair.scope is not None and pair.scope not in completed):
                 continue
             if key in settled_by_rule and pair.state != "dismissed":  # a person's decision, even after the fact
                 pair.state, pair.settled = "dismissed", ledger.pushed
