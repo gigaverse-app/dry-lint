@@ -111,6 +111,7 @@ class TypeScriptExtractor:
             return []
         root = self.parser(path).parse(source.encode("utf-8")).root_node
         context = SourceContext(root)
+        context_digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
         found = []
 
         def add(node: Node, code: Node, name: str, owner: str | None) -> None:
@@ -127,7 +128,7 @@ class TypeScriptExtractor:
                 snippet = "const " + snippet + ";"
             found.append(Function(path=path, name=name, owner=owner, line=code.start_point.row + 1,
                                   end_line=code.end_point.row + 1, code=snippet, tokens=tokens, calls=calls,
-                                  context=context.for_function(code)))
+                                  context=context.for_function(code), context_digest=context_digest))
 
         def visit(node: Node, owner: str | None = None) -> None:
             if node.type in TYPE_ONLY:

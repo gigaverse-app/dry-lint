@@ -30,8 +30,13 @@ export function useContext(status: string) {
     assert "maybeContext = () => sdkContext()" in function.context
 
 
-@pytest.mark.parametrize("boundary,reported", [(0, True), (.95, False)])
-def test_destinations_work_within_one_repository_and_reach_judge_and_advice(tmp_path, boundary, reported):
+@pytest.mark.parametrize("boundary,reason,probability,reported", [
+    (0, "portable", .9, True), (.95, "platform", .9, False),
+    (.1, "contract", .35, True), (.1, "boilerplate", .8, False),
+])
+def test_destinations_work_within_one_repository_and_reach_judge_and_advice(
+    tmp_path, boundary, reason, probability, reported,
+):
     repo = Repo(tmp_path / "app")
     repo.write("web/normalize.ts", 'export function normalize(x: number) { return x > 0 ? x : 0; }')
     repo.write("native/normalize.ts", 'export function normalize(x: number) { return x > 0 ? x : 0; }')
@@ -48,8 +53,9 @@ def test_destinations_work_within_one_repository_and_reach_judge_and_advice(tmp_
         bodies.append(json.loads(request.content))
         return httpx.Response(200, json={"answers": {
             "same_concept": {"noul": 0.95}, "behaves_differently": {"noul": 0.1},
-            "owner": {"choice": "shared", "probabilities": {"shared": 1}},
-            "separate_boundary": {"noul": boundary}, "reason": {"choice": "portable"},
+            "owner": {"choice": "shared", "probabilities": {"shared": .6, "none": .4}},
+            "separate_boundary": {"noul": boundary},
+            "reason": {"choice": reason, "probabilities": {reason: probability}},
         }})
 
     judge = JevJudge(api_key="test", context=True, transport=httpx.MockTransport(answer))
@@ -119,3 +125,16 @@ def test_context_includes_variable_policy_and_marks_bounded_dependency_text():
     assert "Includes every configured identifier" in function.context
     assert function.context.endswith("[context truncated]")
     assert len(function.context) < 8050
+
+
+def test_changes_beyond_context_limit_invalidate_cached_verdicts(store):
+    extractor = TypeScriptExtractor()
+    source = 'const catalogue = ' + json.dumps(list(range(4000))) + ';\n'
+    source += 'export const lookup = (x: number) => catalogue.includes(x);'
+    before = extractor.functions("src/catalogue.ts", source)[0]
+    after = extractor.functions("src/catalogue.ts", source.replace("3999", "9999"))[0]
+    assert before.context == after.context
+    other = before.model_copy(update={"path": "src/other.ts"})
+    pair = Candidate(new=before, existing=other, similarity=1)
+    store.remember(pair, Verdict(label="separate", score=.1, judge="jev"))
+    assert store.lookup(pair.model_copy(update={"new": after}), "jev", .05).verdict is None

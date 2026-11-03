@@ -66,7 +66,7 @@ QUESTIONS = {
     },
 }
 
-CONTEXT_PROMPT_VERSION = "reuse-context-v2"
+CONTEXT_PROMPT_VERSION = "reuse-context-v3"
 CONTEXT_QUESTIONS = deepcopy(QUESTIONS)
 CONTEXT_QUESTIONS["same_concept"]["instructions"] = (
     QUESTIONS["same_concept"]["instructions"] + " Use source context to resolve what referenced names mean. "
@@ -153,10 +153,16 @@ class JevJudge:
         score = same * (1 - float(owner.get("probabilities", {}).get("none", 0.0)))
         why = ""
         if self.context:
+            score = same
             boundary = float(answers["separate_boundary"]["noul"])
-            if boundary >= 0.8:
-                score = min(score, 1 - boundary)
-            why = REASONS[answers["reason"]["choice"]]
+            reason = answers["reason"]["choice"]
+            rejection = float(answers["reason"].get("probabilities", {}).get(reason, 0)) if reason != "portable" else 0
+            separation = max(boundary, rejection)
+            if separation >= .5:
+                score = min(score, 1 - separation)
+            why = REASONS[reason]
+            if score >= settings.report_at and reason != "portable":
+                why = "One concept may be shared, but dependency contracts need review before consolidation."
         return Verdict(label=label_for(score, differs, settings), score=round(score, 3),
                        behaves_differently=round(differs, 3), owner=owner.get("choice", ""), judge=self.name,
                        judge_version=self.version, why=why)

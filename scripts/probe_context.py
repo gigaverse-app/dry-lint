@@ -27,7 +27,10 @@ class Meter(httpx.BaseTransport):
         response.read()
         if response.is_success:
             data = response.json()
+            state = json.loads(request.content)["state"]
             self.responses.append({"model": data.get("model"), "usage": data.get("usage"),
+                                   "functions": [state[side]["module"] + "::" + state[side]["name"]
+                                                 for side in ["new_function", "existing_function"]],
                                    "request_bytes": len(request.content), "answers": data.get("answers")})
         return response
 

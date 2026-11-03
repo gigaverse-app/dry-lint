@@ -46,6 +46,7 @@ class Function(BaseModel):
     end_line: int
     code: str
     context: str = Field(default="", description="Bounded source dependencies and policy comments; never executed.")
+    context_digest: str = Field(default="", description="Full source-file digest, including context beyond the prompt limit.")
     origin: Run | None = Field(default=None, description="Source checkout for a multi-repository scan.")
     hash: str = Field(default="", description="Changes with runtime logic; the language extractor normalizes safe cosmetic edits.")
     tokens: list[str] = Field(default_factory=list, exclude=True,
@@ -102,9 +103,10 @@ class Candidate(BaseModel):
 
     @property
     def context_hash(self) -> str:
-        if not (self.new.context or self.existing.context or self.consolidation):
+        if not (self.new.context or self.existing.context or self.new.context_digest or self.existing.context_digest
+                or self.consolidation):
             return ""
-        payload = [sorted((f.qualname, f.context) for f in (self.new, self.existing)),
+        payload = [sorted((f.qualname, f.context, f.context_digest) for f in (self.new, self.existing)),
                    [target.model_dump() for target in self.consolidation]]
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
