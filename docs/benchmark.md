@@ -152,6 +152,28 @@ fails at 0.8 with 97% precision and 78% recall for $0.0007 a pull request), but 
 `jev+opus`. The claude-code presets use the same models and prompt through the CLI and were not measured through
 it: the local CLI login had expired.
 
+## Other repositories
+
+The thresholds above were measured on gigaverse-ai. Three more gold sets test them elsewhere, built the same way
+([retrieval presets](retrieval-presets.md#method)): every pair production retrieval proposed for the last 150
+first-parent commits of main, scored by Jev, sampled by Jev band toward the decision band (10/10/10 below 0.5,
+20/25/25/25/25 above), labelled blind by the same three vendors' models. `dry-lint bench` live, 90% intervals:
+
+| Repository | Pairs (duplicates) | `jev` at 0.8: precision / recall | `jev+sonnet` reports from 0.6 | `jev+sonnet` fails at 0.7 |
+| --- | --- | --- | --- | --- |
+| gigaverse-ai (above) | 250 (117) | 94% (91–98) / 73% (68–79) | 94% / 88% | 97% / 84% |
+| gigaverse-backend, Python | 142 (61) | 100% (100–100) / 45% (37–54) | 100% (100–100) / 70% (60–81) | 100% (100–100) / 62% (52–73) |
+| gigaverse-web-app, TypeScript | 145 (52) | 81% (69–92) / 56% (45–67) | 80% (69–91) / 79% (69–89) | 100% (100–100) / 64% (52–76) |
+| gigaverse-mobile, TypeScript | 138 (52) | 80% (69–91) / 56% (48–65) | 89% (82–96) / 78% (69–87) | 91% (83–98) / 72% (62–82) |
+
+- **Failing at 0.7 with a second judge holds.** 91% to 100% precision on all three, as on gigaverse-ai.
+- **Jev alone is less precise on TypeScript:** about 80% at 0.8, against 94% on gigaverse-ai. Its score bands put
+  every TypeScript false positive below 0.9 except one; prefer `jev+sonnet` there, or raise `fail_at` to 0.9.
+- **Recall is lower everywhere than on gigaverse-ai**, at 45% to 72% when failing. More real duplicates go unreported
+  on repositories dry-lint does not yet gate.
+- **Reports from 0.6 are noisier on web-app** (80%): Sonnet's 0.6–0.7 answers there are as often wrong as right. They
+  warn without failing.
+
 ## Earlier gold set (superseded)
 
 The first gold set had 96 pairs from the 120 most recent pull requests, with 23 duplicates. It put Jev at 75%
