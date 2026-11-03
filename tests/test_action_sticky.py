@@ -104,13 +104,15 @@ def test_comments_are_found_beyond_the_first_page(monkeypatch: pytest.MonkeyPatc
     assert fake.writes == ["PATCH"]
 
 
-def test_each_key_keeps_its_own_comment() -> None:
-    fake = FakeGitHub()
-    upsert(client(fake), REPO, PR, REPORT, findings=1, key="api")
-    upsert(client(fake), REPO, PR, REPORT, findings=1, key="web")
+def test_legacy_keys_are_migrated_to_one_comment_without_touching_human_discussion() -> None:
+    fake = FakeGitHub(comments=[compose(REPORT, key="repository-audit"), "human discussion",
+                               compose(REPORT), compose(REPORT, key="cross-repository")])
     upsert(client(fake), REPO, PR, REPORT, findings=1)
-    assert len(fake.stickies("api")) == len(fake.stickies("web")) == len(fake.stickies()) == 1
-    assert fake.stickies("api")[0].startswith("<!-- dry-lint:api -->")
+    assert len(fake.stickies()) == 1
+    assert [c["body"] for c in fake.comments][1:] == ["human discussion"]
+    upsert(client(fake), REPO, PR, REPORT, findings=1, key="web")
+    assert len(fake.comments) == 2
+    assert len(fake.stickies("web")) == 1
 
 
 def test_nothing_is_posted_once_the_pull_request_has_moved_on() -> None:
@@ -199,3 +201,36 @@ def test_the_source_line_names_dry_lint_the_commit_and_the_run() -> None:
     body = compose(REPORT, run_url="https://github.com/acme/shop/actions/runs/9", head=HEAD)
     assert body.rstrip().endswith(f"<sub>[dry-lint](https://github.com/gigaverse-app/dry-lint) · commit {HEAD[:7]} · "
                                   "[run](https://github.com/acme/shop/actions/runs/9)</sub>")
+
+
+def test_combined_report_posts_both_scopes_once_and_does_not_claim_clean(tmp_path, monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    local, peers = tmp_path / "local.md", tmp_path / "cross-repository.md"
+    local.write_text(CLEAN_REPORT, encoding="utf-8")
+    peers.write_text(REPORT, encoding="utf-8")
+    fake = FakeGitHub(comments=[compose(REPORT, key="audit"), compose(REPORT, key="cross-repository")])
+    args = ["--body", str(local), "--body", str(peers), "--repository", REPO,
+            "--pull-request", str(PR), "--findings", "1", "--expect-head", HEAD]
+    sticky.main(args, transport=httpx.MockTransport(fake))
+    [body] = fake.stickies()
+    assert len(fake.comments) == 1
+    assert "## Local" in body and "## Cross repository" in body
+    assert "b.py::shorten" in body and "Look-alike pairs" in body
+    assert CLEAN not in body and body.count(MARKER) == 1
+    peers.write_text(CLEAN_REPORT, encoding="utf-8")
+    args[args.index("--findings") + 1] = "0"
+    sticky.main(args, transport=httpx.MockTransport(fake))
+    [body] = fake.stickies()
+    assert CLEAN in body and "Resolved" in body
+
+
+def test_an_incomplete_scope_cannot_resolve_previous_findings(tmp_path, monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    local, peers = tmp_path / "local.md", tmp_path / "cross-repository.md"
+    local.write_text(CLEAN_REPORT, encoding="utf-8")
+    peers.write_text("> [!WARNING]\n> This scope did not complete.", encoding="utf-8")
+    fake = FakeGitHub(comments=[compose(REPORT)])
+    sticky.main(["--body", str(local), "--body", str(peers), "--repository", REPO,
+                 "--pull-request", str(PR), "--findings", "0"], transport=httpx.MockTransport(fake))
+    [body] = fake.stickies()
+    assert "Resolved" not in body and "did not complete" in body
