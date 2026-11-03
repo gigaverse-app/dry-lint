@@ -24,10 +24,15 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: ${{ matrix.python }}
-      - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run pytest -q --cov --cov-report=term-missing --cov-fail-under=100
+      - run: uv sync --locked --extra dryer
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
       - run: uv build
+      - name: Default install stays lightweight
+        run: >-
+          uv run --isolated --no-project --with . python -c
+          "from importlib.util import find_spec; from dry_lint.sources import make_source;
+          from dry_lint.settings import Settings; make_source([], Settings()); assert find_spec('dryer') is None"
 
   dogfood:
     name: dry-lint on itself

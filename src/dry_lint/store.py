@@ -43,6 +43,7 @@ class Record(BaseModel):
     a_hash: str
     b_hash: str
     similarity_when_judged: float
+    detector: str = "tfidf"
     verdict: Verdict
     judged_at: str = Field(default_factory=lambda: datetime.now(UTC).date().isoformat())
 
@@ -72,7 +73,9 @@ class VerdictStore:
         if hashes == now:
             return record.verdict
         not_closer = candidate.similarity <= record.similarity_when_judged + reopen_margin
-        if record.verdict.label == "separate" and not_closer:
+        # Cosine and Jaccard scores are incomparable. Dryer also erases literals, so a changed function
+        # must reopen even when its structural score stays flat. Exact-hash reuse above is still safe.
+        if record.detector == candidate.detector == "tfidf" and record.verdict.label == "separate" and not_closer:
             return record.verdict
         return None
 
@@ -81,7 +84,8 @@ class VerdictStore:
         hashes = {candidate.new.qualname: structure_hash(candidate.new),
                   candidate.existing.qualname: structure_hash(candidate.existing)}
         self.records[(a, b)] = Record(a=a, b=b, a_hash=hashes[a], b_hash=hashes[b],
-                                      similarity_when_judged=candidate.similarity, verdict=verdict)
+                                      similarity_when_judged=candidate.similarity, detector=candidate.detector,
+                                      verdict=verdict)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)

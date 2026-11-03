@@ -7,6 +7,7 @@ benchmark harness is there to re-measure them on your own code.
 
 import tomllib
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -19,6 +20,10 @@ class Pattern(BaseModel):
 
 
 class Settings(BaseModel):
+    detector: Literal["tfidf", "dryer"] = "tfidf"
+    dryer_threshold: float = Field(default=0.82, gt=0, le=1)
+    dryer_min_lines: int = Field(default=4, ge=1)
+    dryer_min_nodes: int = Field(default=20, ge=1)
     include: list[str] = Field(default_factory=lambda: ["*.py"])
     exclude: list[str] = Field(default_factory=lambda: ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"])
     patterns: list[Pattern] = Field(default_factory=list)

@@ -18,6 +18,12 @@ classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Develope
 [project.scripts]
 dry-lint = "dry_lint.cli:main"
 
+[project.optional-dependencies]
+dryer = ["dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [project.urls]
 Homepage = "https://github.com/gigaverse-app/dry-lint"
 Documentation = "https://github.com/gigaverse-app/dry-lint/tree/main/docs"

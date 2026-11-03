@@ -13,9 +13,9 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from dry_lint.functions import Function, behaviour_tokens, repository_functions
-from dry_lint.index import TfidfIndex
+from dry_lint.functions import Function, repository_functions
 from dry_lint.settings import Settings
+from dry_lint.sources import make_source
 
 SUPPRESSION = re.compile(r"#\s*dry-lint:\s*distinct-from\s+(\S+)")
 
@@ -26,6 +26,7 @@ class Candidate(BaseModel):
     new: Function
     existing: Function
     similarity: float
+    detector: str = "tfidf"
 
 
 def changed_lines(root: Path, base: str | None = None, staged: bool = False) -> dict[str, set[int]]:
@@ -78,8 +79,7 @@ class Detector:
     def __init__(self, functions: list[Function], settings: Settings) -> None:
         self.functions = functions
         self.settings = settings
-        self.tokens = [behaviour_tokens(f) for f in functions]
-        self.index = TfidfIndex(self.tokens)
+        self.source = make_source(functions, settings)
         self.position = {f.qualname: i for i, f in enumerate(functions)}
 
     @classmethod
@@ -87,14 +87,14 @@ class Detector:
         return cls(repository_functions(root, settings.include, settings.exclude), settings)
 
     def floor(self, function: Function) -> float:
+        if self.settings.detector == "dryer":
+            return self.settings.dryer_threshold
         small = function.lines < self.settings.small_function_lines
         return self.settings.min_similarity_small if small else self.settings.min_similarity
 
     def neighbours(self, function: Function) -> list[tuple[Function, float]]:
         """The closest functions in other files, above the detector floor, before any filtering."""
-        own = self.position.get(function.qualname)
-        found = self.index.similar(behaviour_tokens(function), limit=self.settings.neighbours + 8,
-                                   exclude={own} if own is not None else set())
+        found = self.source.similar(function, limit=self.settings.neighbours + 8)
         result = []
         for position, similarity in found:
             other = self.functions[position]
@@ -117,7 +117,7 @@ class Detector:
                 if reason := why_skipped(function, other, self.settings):
                     skipped.append(f"{function.qualname} ~ {other.qualname}: {reason}")
                     continue
-                found.append(Candidate(new=function, existing=other, similarity=round(similarity, 3)))
+                found.append(self._candidate(function, other, similarity))
         return found, skipped
 
     def scan(self) -> list[Candidate]:
@@ -132,5 +132,8 @@ class Detector:
             if name < other and best.get(other, ("",))[0] == name:
                 a, b = self.functions[self.position[name]], self.functions[self.position[other]]
                 if not why_skipped(a, b, self.settings):
-                    pairs.append(Candidate(new=a, existing=b, similarity=round(similarity, 3)))
+                    pairs.append(self._candidate(a, b, similarity))
         return sorted(pairs, key=lambda c: -c.similarity)
+
+    def _candidate(self, new: Function, existing: Function, similarity: float) -> Candidate:
+        return Candidate(new=new, existing=existing, similarity=round(similarity, 3), detector=self.settings.detector)

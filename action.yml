@@ -14,6 +14,10 @@ inputs:
     description: auto, jev, command or none. auto uses Jev when typesafe-api-key is set.
     required: false
     default: auto
+  detector:
+    description: Optional tfidf or dryer override. dryer also installs the optional Dryer dependency.
+    required: false
+    default: ""
   judge-command:
     description: For judge "command", a command that reads the prompt on stdin and prints a JSON verdict.
     required: false
@@ -57,6 +61,7 @@ runs:
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
         BASE: ${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}
         JUDGE: ${{ inputs.judge }}
+        DETECTOR: ${{ inputs.detector }}
         JUDGE_COMMAND: ${{ inputs.judge-command }}
         FAIL: ${{ inputs.fail-on-findings }}
         STORE: ${{ runner.temp }}/dry-lint/verdicts.jsonl
@@ -65,8 +70,11 @@ runs:
         set +e
         args=(check --base "$BASE" --judge "$JUDGE" --store "$STORE" --format github --output "$REPORT")
         [ -n "$JUDGE_COMMAND" ] && args+=(--judge-command "$JUDGE_COMMAND")
+        [ -n "$DETECTOR" ] && args+=(--detector "$DETECTOR")
         [ "$FAIL" = "true" ] || args+=(--warn-only)
-        uvx --from "${{ github.action_path }}" dry-lint "${args[@]}"
+        tool_args=()
+        [ "$DETECTOR" = "dryer" ] && tool_args+=(--with "${{ github.action_path }}[dryer]")
+        uvx --from "${{ github.action_path }}" "${tool_args[@]}" dry-lint "${args[@]}"
         code=$?
         echo "exit-code=$code" >> "$GITHUB_OUTPUT"
         [ -f "$REPORT" ] && cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"

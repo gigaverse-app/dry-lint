@@ -75,3 +75,27 @@ def test_an_empty_store_saves_an_empty_file_and_ignores_blank_lines(store: Verdi
     assert store.path.read_text() == ""
     store.path.write_text("\n\n")
     assert VerdictStore(store.path).records == {}
+
+
+@pytest.mark.parametrize("old_source,new_source", [("tfidf", "dryer"), ("dryer", "tfidf"), ("dryer", "dryer")])
+def test_structural_or_changed_metric_scores_cannot_reuse_a_changed_verdict(store, old_source, new_source) -> None:
+    before = candidate().model_copy(update={"detector": old_source})
+    store.remember(before, verdict("separate"))
+    store.save()
+    store = VerdictStore(store.path)
+    unchanged = before.model_copy(update={"detector": new_source})
+    assert store.lookup(unchanged, 0.05) == verdict("separate")
+    changed = unchanged.model_copy(update={"new": edited(NEW, "n - 1", "n - 2"), "similarity": 0.1})
+    assert store.lookup(changed, 0.05) is None
+
+
+def test_legacy_records_default_to_tfidf(store) -> None:
+    import json
+
+    store.remember(candidate(), verdict("separate"))
+    [record] = store.export()
+    del record["detector"]
+    store.path.parent.mkdir(parents=True)
+    store.path.write_text(json.dumps(record))
+    loaded = VerdictStore(store.path)
+    assert loaded.lookup(candidate(), 0.05) == verdict("separate")

@@ -64,6 +64,7 @@ def render(findings: list[Finding], settings: Settings, skipped: list[str], form
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
+    common.add_argument("--detector", choices=["tfidf", "dryer"], help="Override the configured candidate source.")
     common.add_argument("--judge", choices=["auto", "jev", "command", "none"], default="auto",
                         help="auto: Jev when TYPESAFE_AI_API_KEY is set, otherwise list candidates unjudged.")
     common.add_argument("--judge-command", help="For --judge command: a command reading the prompt on stdin.")
@@ -89,6 +90,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         root = repository_root(args.root)
         settings = Settings.load(root)
+        if args.detector:
+            settings.detector = args.detector
         detector = Detector.for_repository(root, settings)
         if args.command == "check":
             changed = touched(detector.functions, changed_lines(root, args.base, args.staged))
