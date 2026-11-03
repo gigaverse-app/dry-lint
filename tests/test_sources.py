@@ -51,7 +51,7 @@ def test_configuration_selects_source_and_cli_can_override(repo: Repo, capsys) -
     assert main(args) == 0
     assert all(f["candidate"]["comparer"].startswith("dryer:") for f in json.loads(capsys.readouterr().out)["findings"])
     assert main([*args, "--detector", "tfidf"]) == 0
-    assert {f["candidate"]["comparer"] for f in json.loads(capsys.readouterr().out)["findings"]} == {"tfidf:1"}
+    assert {f["candidate"]["comparer"] for f in json.loads(capsys.readouterr().out)["findings"]} == {"tfidf:2"}
 
 
 @pytest.mark.parametrize("overrides", [{"min_lines": 5}, {"min_nodes": 1000}])
