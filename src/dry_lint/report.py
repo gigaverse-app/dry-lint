@@ -16,6 +16,7 @@ from urllib.parse import quote
 from pydantic import BaseModel, Field
 
 from dry_lint import __version__
+from dry_lint.costs import Spend
 from dry_lint.models import Candidate, Function, Run, Verdict, Versioned
 from dry_lint.settings import Settings
 
@@ -79,6 +80,45 @@ class Finding(BaseModel):
         return f"{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}"
 
 
+class JudgingSummary(BaseModel):
+    """Which judges ran, on which thresholds, within which budget, and what they cost: explicit on every report."""
+
+    preset: str = ""
+    judge: str | None = None
+    escalation: str | None = None
+    band: tuple[float, float] | None = None
+    report_at: float = 0.8
+    fail_at: float = 0.8
+    budget_usd: float = 0.0
+    subscription_calls: int = 0
+    spend: list[Spend] = Field(default_factory=list)
+
+    @property
+    def usd(self) -> float | None:
+        """Estimated total; None when any judge's price is unknown."""
+        costs = [s.usd for s in self.spend if not s.subscription]
+        return None if any(c is None for c in costs) else sum(costs)
+
+    @property
+    def skipped(self) -> int:
+        return sum(s.skipped for s in self.spend)
+
+    def line(self) -> str:
+        """One line: judges, thresholds, and the bill."""
+        judges = self.judge or "no judge"
+        if self.escalation and self.band:
+            judges += f" > {self.escalation} on [{self.band[0]:g}, {self.band[1]:g})"
+        thresholds = (f"reports at {self.report_at:g}, fails at {self.fail_at:g}" if self.fail_at > self.report_at
+                      else f"reports and fails at {self.report_at:g}")
+        usd = self.usd
+        bill = ("cost unknown" if usd is None else f"est. ${usd:.3f} of ${self.budget_usd:g} budget")
+        calls = sum(s.calls for s in self.spend if s.subscription)
+        parts = [f"preset {self.preset}" if self.preset else "", judges, thresholds, bill,
+                 f"{calls} subscription calls" if calls else "",
+                 f"{self.skipped} pairs not judged (budget)" if self.skipped else ""]
+        return " · ".join(p for p in parts if p)
+
+
 class Report(Versioned):
     """`report.json`."""
 
@@ -87,13 +127,14 @@ class Report(Versioned):
     functions: int = Field(default=0, description="How many functions the repository has: what changed ones meet.")
     scope: Literal["change", "repository"] = Field(default="change", description="`check` or `scan`.")
     judge: str | None = Field(default=None, description="The judge (and escalation judge), or None when unjudged.")
+    judging: JudgingSummary | None = Field(default=None, description="Judges, thresholds, budget and cost.")
     findings: list[Finding] = Field(default_factory=list)
     filtered: list[Candidate] = Field(default_factory=list, description="Pairs a rule settled, with the rule.")
 
     @classmethod
     def build(cls, findings: list[Finding], settings: Settings, filtered: list[Candidate] = (), run: Run | None = None,
               changed: int = 0, judge: str | None = None, functions: int = 0,
-              scope: Literal["change", "repository"] = "change") -> "Report":
+              scope: Literal["change", "repository"] = "change", judging: JudgingSummary | None = None) -> "Report":
         family: dict[str, int] = {}
         for f in findings:
             family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
@@ -109,7 +150,7 @@ class Report(Versioned):
                                               f.verdict is None or f.verdict.label != "drifted",
                                               -(f.verdict.score if f.verdict else f.candidate.similarity)))
         return cls(run=run or Run(), changed=changed, functions=functions, scope=scope, judge=judge, findings=order,
-                   filtered=list(filtered))
+                   filtered=list(filtered), judging=judging)
 
     @property
     def visible(self) -> list[Finding]:
@@ -144,6 +185,8 @@ def as_text(report: Report) -> str:
                  f"{stats['cached']} from the store, {stats['judged']} judged ({judge}), {stats['reported']} reported")
     if report.deferred:
         lines.append(f"dry-lint: {report.deferred} deferred by the judge budget; these pairs are not cleared")
+    if report.judging:
+        lines.append(f"judging: {report.judging.line()}")
     return "\n".join(lines)
 
 
@@ -253,7 +296,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         f"{report.deferred} deferred by the judge budget" if report.deferred else "",
         f"judge {code(report.judge)}" if report.judge else "no judge",
     ) if part)  # fmt: skip
-    footer = ["", f"<sub>{coverage}</sub>"]
+    footer = ["", f"<sub>{coverage}</sub>", *([f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else [])]
     scope = [] if audit else [badge("changed functions", stats["changed"], GRAY)]
     if report.judge is None:
         return "\n".join([

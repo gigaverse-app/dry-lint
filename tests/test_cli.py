@@ -20,7 +20,8 @@ TWIN = "src/widgets/caption.py::preview_caption_text"
 
 @pytest.fixture(autouse=True)
 def outside_actions(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY"):
+    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY",
+                 "CLAUDE_CODE_OAUTH_TOKEN"):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -211,3 +212,37 @@ def test_judge_failures_exit_2_without_a_traceback(repo: Repo, tmp_path: Path, m
     with patch.object(JevJudge, "judge", side_effect=httpx.ConnectError("api unreachable")):
         assert run(repo, tmp_path, "--base", "main", "--judge", "jev") == 2
     assert capsys.readouterr().err.startswith("dry-lint: ")
+
+
+def test_config_shows_the_resolved_preset_its_numbers_and_what_unlocks_the_others(repo: Repo, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("TYPESAFE_AI_API_KEY", "k")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    assert main(["config", "--root", str(repo.root)]) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("preset: jev+sonnet - Jev on every pair")
+    assert "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out and "measured: fails at 0.7: 97% precision" in out
+    assert "escalate: anthropic {'model': 'claude-sonnet-5-5'} on [0.5, 0.91) ($0.0034 per pair)" in out
+    assert "thresholds: drop below 0.5 - report at 0.6 - fail at 0.7" in out
+    assert "  * jev+sonnet" in out and "jev+claude-code" in out and "[needs CLAUDE_CODE_OAUTH_TOKEN]" in out
+
+
+def test_config_shows_explicit_settings_subscriptions_and_unknown_prices(repo: Repo, capsys) -> None:
+    (repo.root / ".dry-lint.toml").write_text('fail_at = 0.75\njudge = { use = "command", command = "my-llm" }\n'
+                                              'escalate = { use = "codex" }\n')
+    assert main(["config", "--root", str(repo.root)]) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("preset: custom - your own judge") and "credentials found: none" in out
+    assert "judge: command {'command': 'my-llm'} (unknown price)" in out and "codex  on [0.6, 0.91) (subscription)" in out
+    assert "(set explicitly: escalate, fail_at, judge)" in out
+    assert main(["config", "--root", str(repo.root), "--preset", "none", "--judge", "none"]) == 0
+    assert "judge: none (-)" in capsys.readouterr().out
+
+
+def test_preset_and_budget_flags_shape_the_run(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
+    assert run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--budget-usd", "0",
+               "--format", "json") == 1
+    report = json.loads(capsys.readouterr().out)
+    assert report["judging"]["preset"] == "custom" and report["judging"]["budget_usd"] == 0
+    assert report["judging"]["spend"][0]["usd"] is None  # an unpriced command judge is not budgeted, and not $0
+    assert main(["config", "--root", str(repo.root), "--preset", "jev"]) == 0
+    assert capsys.readouterr().out.startswith("preset: jev - Jev on every pair")

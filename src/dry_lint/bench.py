@@ -14,11 +14,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from dry_lint.costs import Ledger
 from dry_lint.detector import Detector
 from dry_lint.judging import decide, judges_name
 from dry_lint.models import Candidate, Function
 from dry_lint.plugins import Extractor, Judge
-from dry_lint.settings import Settings
+from dry_lint.settings import Budget, Settings
 
 BANDS = (0.0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01)
 
@@ -110,6 +111,13 @@ class JudgeBench(BaseModel):
     precision_interval: tuple[float, float] = Field(description="90% interval, stratified bootstrap.")
     recall_interval: tuple[float, float] = Field(description="90% interval, stratified bootstrap.")
     recall_at_drop: float = Field(description="Share of duplicates at or above drop_below.")
+    fail_at: float = Field(default=0.0, description="The threshold that fails a run, when above report_at.")
+    fail_precision: float = 0.0
+    fail_recall: float = 0.0
+    fail_precision_interval: tuple[float, float] = (0.0, 0.0)
+    fail_recall_interval: tuple[float, float] = (0.0, 0.0)
+    usd_per_pair: float | None = Field(default=None, description="Estimated judging cost per pair; None if unknown.")
+    subscription_calls: int = 0
     bands: list[Band]
 
     def as_text(self, settings: Settings) -> str:
@@ -119,6 +127,12 @@ class JudgeBench(BaseModel):
                  f"  AUC {self.auc:.2f}",
                  f"  at report_at {settings.report_at}: precision {self.precision:.0%} ({p_low:.0%}-{p_high:.0%}), "
                  f"recall {self.recall:.0%} ({r_low:.0%}-{r_high:.0%}); 90% intervals",
+                 *([f"  at fail_at {self.fail_at}: precision {self.fail_precision:.0%} "
+                    f"({self.fail_precision_interval[0]:.0%}-{self.fail_precision_interval[1]:.0%}), recall "
+                    f"{self.fail_recall:.0%} ({self.fail_recall_interval[0]:.0%}-{self.fail_recall_interval[1]:.0%})"]
+                   if self.fail_at > settings.report_at else []),
+                 "  cost: " + ("unknown" if self.usd_per_pair is None else f"est. ${self.usd_per_pair:.4f} per pair")
+                 + (f", {self.subscription_calls} subscription calls" if self.subscription_calls else ""),
                  f"  at drop_below {settings.drop_below}: recall {self.recall_at_drop:.0%}",
                  "  score band    duplicates  separate"]
         lines += [f"  {b.low:.1f}-{min(b.high, 1.0):.1f}    {b.duplicates:10.1f}  {b.separate:8.1f}" for b in self.bands]
@@ -131,10 +145,16 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
     labelled = [g for g in gold if g.label != "borderline"]
     candidates = [Candidate(new=as_function(g.new, extractor), existing=as_function(g.existing, extractor), similarity=0.0)
                   for g in labelled]
-    verdicts = decide(candidates, judge, escalation, settings)
+    unlimited = settings.model_copy(update={"budget": Budget(usd=float("inf"), subscription_calls=10**9)})
+    ledger = Ledger(unlimited)
+    verdicts = [v for v in decide(candidates, judge, escalation, unlimited, ledger) if v is not None]
     scored = [(v.score, g.label == "duplicate", g.weight) for g, v in zip(labelled, verdicts)]
-    # Reported exactly as a report decides it: a duplicate label at or above report_at.
-    reported = [v.label != "separate" and v.score >= settings.report_at for v in verdicts]
+
+    def flags(threshold: float) -> list[bool]:
+        """Reported exactly as a report decides it: a duplicate label at or above the threshold."""
+        return [v.label != "separate" and v.score >= threshold for v in verdicts]
+
+    reported = flags(settings.report_at)
 
     def weight(condition) -> float:
         return sum(w for score, duplicate, w in scored if condition(score, duplicate))
@@ -145,6 +165,11 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
     kept = weight(lambda score, duplicate: duplicate and score >= settings.drop_below)
     rows = [(g.stratum or str(g.weight), g.label == "duplicate", g.weight, r) for g, r in zip(labelled, reported)]
     precision_interval, recall_interval = intervals(rows)
+    fail_at = max(settings.report_at, settings.fail_at)
+    fail_rows = [(s, d, w, f) for (s, d, w, _), f in zip(rows, flags(fail_at))]
+    fail_precision, fail_recall = precision_recall(fail_rows)
+    fail_precision_interval, fail_recall_interval = intervals(fail_rows)
+    usd = None if any(s.usd is None for s in ledger.spend.values()) else ledger.usd
     bands = [Band(low=low, high=high,
                   duplicates=weight(lambda s, d, lo=low, hi=high: d and lo <= s < hi),
                   separate=weight(lambda s, d, lo=low, hi=high: not d and lo <= s < hi))
@@ -153,6 +178,10 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
                       auc=auc(scored), precision=hits / flagged if flagged else 0.0,
                       precision_interval=precision_interval, recall_interval=recall_interval,
                       recall=hits / duplicates if duplicates else 0.0, recall_at_drop=kept / duplicates if duplicates else 0.0,
+                      fail_at=fail_at, fail_precision=fail_precision, fail_recall=fail_recall,
+                      fail_precision_interval=fail_precision_interval, fail_recall_interval=fail_recall_interval,
+                      usd_per_pair=usd / len(labelled) if usd is not None and labelled else None,
+                      subscription_calls=sum(s.calls for s in ledger.spend.values() if s.subscription),
                       bands=[b for b in bands if b.duplicates or b.separate])
 
 
