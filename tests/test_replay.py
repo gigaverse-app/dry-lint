@@ -144,4 +144,5 @@ def test_each_commit_has_the_judging_budget_of_its_own_check(history, tmp_path, 
     total = result.judging.spend[0]
     assert total.calls == 2 and total.usd == pytest.approx(2.0)
     assert total.skipped == sum(len(c.report.findings) for c in checked) - 2
-    assert "per check: a $1.5 budget, reached by 2 of 2 checks with candidates; est. $1.0000 each" in result.as_text()
+    # One candidate per check here, so the budget covered each in full: none reached it.
+    assert "per check: a $1.5 budget, reached by 0 of 2 checks with candidates; est. $1.0000 each" in result.as_text()
