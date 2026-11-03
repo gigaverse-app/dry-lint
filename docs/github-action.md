@@ -3,7 +3,7 @@
 ```yaml
 - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
   with:
-    fetch-depth: 0
+    fetch-depth: 1
 - uses: gigaverse-app/dry-lint@main
   with:
     typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
@@ -28,7 +28,7 @@ That is the whole setup for a repository whose pull requests come from its own b
     compared with, look-alike pairs, what the judge cleared and the closest call. Opt out with
     `comment-on-clean: "false"`.
   - When findings are fixed, the comment says so instead of going stale.
-  - Copies left by two runs racing are deleted.
+  - Old keyed comments are removed on the next publish. Serialize publishers to prevent creation races.
   - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never
     shows a broken image.
 - **The job summary**, with the same report.
@@ -128,7 +128,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment` | `true` | Keep the sticky comment. |
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
-| `sticky-key` | | One comment per key, when several dry-lint steps report on one pull request. |
+| `sticky-key` | | Cache namespace and legacy marker label; all keys share one PR comment. |
 | `fail-at` | the preset's (0.55 with `jev+opus`, 0.8 with `jev`) | Judge score at or above which a duplicate fails the check. |
 | `warn-only` | `false` | Never fail; blocking findings are reported like the rest. |
 | `override-label` | `dry-lint: override` | The pull request label that lets blocking findings through. |
@@ -155,11 +155,37 @@ Losing the cache only costs re-judging.
 
 ## Running it in a monorepo, or more than once
 
-Use one step per package, each with its own `working-directory` and `sticky-key`:
+Run local and cross-repository checks in one job, with `comment: "false"` on both steps.
+Use distinct `sticky-key` values for their verdict caches, and copy `$RUNNER_TEMP/dry-lint/comment.md`
+after each step to `$RUNNER_TEMP/local.md` and `$RUNNER_TEMP/cross-repository.md`. Then publish once:
 
-```yaml
-- uses: gigaverse-app/dry-lint@main
-  with: { working-directory: services/api, sticky-key: api, typesafe-api-key: "${{ secrets.TYPESAFE_AI_API_KEY }}" }
-- uses: gigaverse-app/dry-lint@main
-  with: { working-directory: services/web, sticky-key: web, typesafe-api-key: "${{ secrets.TYPESAFE_AI_API_KEY }}" }
+```bash
+python -I -m dry_lint.sticky \
+  --body "$RUNNER_TEMP/local.md" --body "$RUNNER_TEMP/cross-repository.md" \
+  --pull-request "$PR_NUMBER" --expect-head "$HEAD_SHA" --findings "$TOTAL_FINDINGS"
 ```
+
+Repeated `--body` arguments combine the scopes under headings derived from their filenames. Sum findings
+from both step outputs. If either scope fails, include an explicit incomplete-scope warning; do not call it
+clean. Keep repository/backlog audits in job summaries and artifacts, with no separate comment publisher.
+A single publisher per PR, workflow concurrency, and `--expect-head` prevent concurrent or stale reports.
+GitHub has no atomic comment upsert, so several independent jobs must not each publish. Legacy keyed comments
+are reconciled into the one current report. A key no longer creates an independent comment.
+
+## Shallow source checkouts
+
+Use `fetch-depth: 1` and `persist-credentials: false` for every source checkout. Only the primary repository
+needs ancestry to identify changed functions: the action fetches just its base/head refs, starting at depth 2
+and increasing to 32, 128, 512 and at most 2048 until their merge base is available. It never fetches all branches
+or runs `--unshallow`. If ancestry exceeds that bound, it reports an error rather than comparing the wrong
+commits. Supply more history explicitly or rebase that branch. The token is passed only to the fetch process
+through its environment, never persisted in Git configuration or added to the command line.
+
+Peers require only one trusted commit's source tree. Full audits and installation-only action steps can use
+`base: HEAD`, avoiding any ancestry fetch. Frozen probes check out their exact labelled revisions at depth 1.
+
+The semantic judge needs only `candidates.json` and trusted configuration; it does not need source clones.
+Discovery still needs all eligible functions to find new matches. Previously judged pairs cannot stand in
+for that corpus: they omit functions that have never been paired. A future portable function index should
+carry repository/commit, extractor version, include/exclude policy, tokens/calls and source context. Until
+that format and invalidation contract exist, shallow peer snapshots are the simpler correct input.

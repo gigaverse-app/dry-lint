@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: gigaverse-app/dry-lint@main # pin a reviewed commit in production
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}

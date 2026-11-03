@@ -84,7 +84,7 @@ inputs:
     required: false
     default: "true"
   sticky-key:
-    description: Name for this report's comment, when one repository runs dry-lint more than once per pull request.
+    description: Cache namespace and legacy marker label. All reports share one PR comment; use one serialized publisher.
     required: false
     default: ""
   fail-at:
@@ -133,7 +133,7 @@ runs:
       env:
         PLUGINS: ${{ inputs.plugins }}
       run: |
-        uv venv --quiet --python ">=3.11" "$RUNNER_TEMP/dry-lint-venv"
+        uv venv --quiet --allow-existing --python ">=3.11" "$RUNNER_TEMP/dry-lint-venv"
         mapfile -t extra < <(printf '%s\n' "$PLUGINS" | sed '/^[[:space:]]*$/d')
         uv pip install --quiet --python "$RUNNER_TEMP/dry-lint-venv" "$GITHUB_ACTION_PATH" "${extra[@]}"
         echo "$RUNNER_TEMP/dry-lint-venv/bin" >> "$GITHUB_PATH"
