@@ -52,8 +52,10 @@ the backlog. Hard similarity floors and same-file/language filters create other 
 The existing verdict store remains the owner of real judgments and their reuse rules. Main now includes source
 context and a context digest in verdict reuse (PR #21); build on that contract rather than recreating it. A scheduler belongs
 between proposing and judging, outside the detector. It must not relax verdict reuse to obtain attractive savings.
-The existing judge/model presets and their budget work remain a separate axis; discovery profiles must compose
-with them rather than implement a second model resolver or dollar-accounting system.
+The judge/model presets and per-run spending ledger merged in PR #22 remain a separate axis. Discovery profiles
+must compose with `presets.py` and `costs.Ledger` rather than implement another model resolver or price table.
+That ledger estimates per-run dollars/subscription calls; repository-wide cumulative reservations and discovery
+progress are additional contracts. The replay's unit-attempt accounting is deliberately an experimental proxy.
 
 ```text
 BEFORE
