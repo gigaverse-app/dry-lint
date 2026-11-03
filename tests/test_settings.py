@@ -7,8 +7,9 @@ def test_defaults_are_the_measured_thresholds_and_the_built_in_plugins(tmp_path:
     settings = Settings.load(tmp_path)
     assert (settings.drop_below, settings.report_at, settings.drift_at, settings.neighbours) == (0.6, 0.8, 0.8, 3)
     assert settings.fail_at == settings.report_at  # every reported duplicate fails until fail_at is raised
-    assert [c.use for c in settings.extractors] == ["python"]
-    assert (settings.comparer.use, settings.judge.use, settings.store.use, settings.escalate) == ("tfidf", "auto", "dir", None)
+    assert [c.use for c in settings.extractors] == ["python", "typescript"]
+    assert (settings.comparer.use, settings.judge.use, settings.store.use) == ("tfidf", "auto", "dir")
+    assert settings.escalate == Escalation(use="auto", between=(0.6, 0.91))  # the measured band
 
 
 def test_settings_come_from_the_pyproject_tool_table(tmp_path: Path) -> None:
@@ -51,4 +52,5 @@ def test_a_plugin_slot_takes_a_name_or_a_table_whose_other_keys_are_its_options(
 
 
 def test_an_escalation_named_by_a_string_uses_the_default_band() -> None:
-    assert Settings.model_validate({"escalate": "command"}).escalate == Escalation(use="command", between=(0.6, 0.8))
+    assert Settings.model_validate({"escalate": "command"}).escalate == Escalation(use="command", between=(0.6, 0.91))
+    assert Settings.model_validate({"escalate": None}).escalate is None

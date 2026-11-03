@@ -21,3 +21,9 @@ def test_candidates_files_carry_their_schema_and_round_trip_without_tokens() -> 
     loaded = CandidatesFile.model_validate_json(file.model_dump_json())
     assert loaded.candidates[0].key == PAIR.key and loaded.candidates[0].new.tokens == []
     assert CandidatesFile.model_validate({"schema": 1}).schema_version == 1
+
+
+def test_schema_one_candidates_default_to_exact_hash_reuse() -> None:
+    legacy = PAIR.model_dump(exclude={"similarity_reusable"})
+    loaded = CandidatesFile.model_validate({"schema": 1, "candidates": [legacy]})
+    assert loaded.candidates[0].similarity_reusable is False

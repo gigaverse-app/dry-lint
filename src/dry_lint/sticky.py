@@ -2,12 +2,12 @@
 The sticky pull request comment: one comment per pull request (and key), edited in place on every run.
 
     python -m dry_lint.sticky --body comment.md --repository owner/repo --pull-request 12 --findings 2 \
-        [--key api] [--expect-head SHA] [--run-url URL]
+        [--key api] [--expect-head SHA] [--run-url URL] [--skip-clean]
 
 - **Found by its marker.** The comment's first line is `<!-- dry-lint -->`, or `<!-- dry-lint:KEY -->` when one
   repository reports several packages or workflows. Extra copies left by two runs racing are deleted.
-- **Quiet when clean.** A clean pull request gets no comment. A comment from an earlier run is updated to say
-  the findings are resolved, so it never goes stale.
+- **Clean is news too.** A clean pull request gets a clean report with what was checked, unless `--skip-clean`.
+  A comment from an earlier run with findings is updated to say they are resolved, so it never goes stale.
 - **Never about the wrong commit.** With `--expect-head`, nothing is posted once the pull request has moved on
   to a newer commit: that commit's own run will post.
 - **Never fails the build for lack of permission.** A pull request from a fork gets a read-only token: the
@@ -22,6 +22,8 @@ import sys
 from pathlib import Path
 
 import httpx
+
+from dry_lint.report import CLEAN, NOTE_SLOT
 
 MARKER = "<!-- dry-lint -->"
 ASSETS = "https://raw.githubusercontent.com/gigaverse-app/dry-lint/main/docs/assets"
@@ -54,18 +56,20 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
             f'  <img alt="dry-lint" src="{ASSETS}/sticky-banner-light.svg" width="640">\n'
             "</picture>\n"
         )
-    parts.append("\n".join(lines).strip())
-    if note:
-        parts.append(f"\n{note}")
-    source = [f"commit {head[:7]}" if head else "", f"[run]({run_url})" if run_url else ""]
-    if any(source):
-        parts.append(f"\n<sub>dry-lint · {' · '.join(s for s in source if s)}</sub>")
+    report = "\n".join(lines).strip()
+    if NOTE_SLOT in report:
+        report = report.replace(NOTE_SLOT, note).replace("\n\n\n\n", "\n\n")
+    elif note:
+        report = f"{note}\n\n{report}"
+    parts.append(report)
+    source = ["[dry-lint](https://github.com/gigaverse-app/dry-lint)", f"commit {head[:7]}" if head else "",
+              f"[run]({run_url})" if run_url else ""]
+    if head or run_url:
+        parts.append(f"\n<sub>{' · '.join(s for s in source if s)}</sub>")
     return "\n".join(parts) + "\n"
 
 
-def resolved(key: str = "", banner: bool = False, run_url: str = "", head: str = "") -> str:
-    return compose("### dry-lint\n\nResolved: no duplicated concepts in the changed functions any more.", key,
-                   banner, run_url, head)
+RESOLVED = "> [!TIP]\n> **Resolved:** the duplicated concepts reported earlier on this pull request are gone."
 
 
 class GitHub:
@@ -108,25 +112,30 @@ class GitHub:
 
 
 def upsert(github: GitHub, repository: str, number: int, markdown: str, findings: int, key: str = "",
-           expect_head: str = "", banner: bool = False, run_url: str = "", note: str = "") -> str:
+           expect_head: str = "", banner: bool = False, run_url: str = "", note: str = "",
+           skip_clean: bool = False) -> str:
     """
-    Create, update or leave the sticky comment, and say which: created, updated, resolved, skipped (clean and
-    never commented), stale (the pull request moved on) or forbidden (the token may not comment).
+    Create, update or leave the sticky comment, and say which: created, updated, resolved (it had findings and has
+    none now), skipped (clean, `skip_clean`, never commented), stale (the pull request moved on) or forbidden (the
+    token may not comment).
     """
     try:
         if expect_head and github.head_of(repository, number) != expect_head:
             return "stale"
         mine = [c for c in github.comments(repository, number) if c.get("body", "").startswith(marker(key))]
-        if not mine and findings == 0:
+        if not mine and findings == 0 and skip_clean:
             return "skipped"
-        body = compose(markdown, key, banner, run_url, expect_head, note) if findings else resolved(key, banner, run_url, expect_head)
+        resolving = findings == 0 and bool(mine) and CLEAN not in mine[0].get("body", "")
+        if resolving:
+            note = "\n\n".join(part for part in (RESOLVED, note) if part)
+        body = compose(markdown, key, banner, run_url, expect_head, note)
         if not mine:
             github.create(repository, number, body)
             return "created"
         github.update(repository, mine[0]["id"], body)
         for extra in mine[1:]:
             github.delete(repository, extra["id"])
-        return "updated" if findings else "resolved"
+        return "resolved" if resolving else "updated"
     except httpx.HTTPStatusError as error:
         if error.response.status_code in (403, 404):
             return "forbidden"
@@ -142,7 +151,8 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
     parser.add_argument("--key", default="", help="Keeps one comment per key, for several reports per PR.")
     parser.add_argument("--expect-head", default="", help="Post only while this is still the PR's head commit.")
     parser.add_argument("--run-url", default="")
-    parser.add_argument("--note", default="", help="A line after the report, e.g. whether the findings block.")
+    parser.add_argument("--note", default="", help="A line before the report, e.g. whether the findings block.")
+    parser.add_argument("--skip-clean", action="store_true", help="Post nothing for a clean report never commented on.")
     args = parser.parse_args(argv)
     token = os.environ.get("GITHUB_TOKEN", "")
     if not token:
@@ -150,7 +160,7 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
         return 0
     github = GitHub(token, os.environ.get("GITHUB_API_URL", "https://api.github.com"), transport)
     outcome = upsert(github, args.repository, args.pull_request, args.body.read_text(), args.findings, args.key,
-                     args.expect_head, banner_available(transport), args.run_url, args.note)
+                     args.expect_head, banner_available(transport), args.run_url, args.note, args.skip_clean)
     if outcome == "forbidden":
         print("::warning title=dry-lint::This token may not comment on the pull request (a fork?). "
               "The findings are in the annotations and the job summary.")

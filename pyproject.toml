@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Gigaverse"}]
-dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3"]
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "tree-sitter>=0.25,<0.26", "tree-sitter-typescript>=0.23,<0.24"]
 keywords = ["dry", "duplication", "code-duplication", "linter", "code-review", "pre-commit", "github-actions", "llm"]
 classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Developers", "Topic :: Software Development :: Quality Assurance", "Programming Language :: Python :: 3", "Typing :: Typed"]
 
@@ -26,6 +26,10 @@ Issues = "https://github.com/gigaverse-app/dry-lint/issues"
 
 [project.optional-dependencies]
 s3 = ["boto3>=1.35"]
+dryer = ["dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-cov>=6", "ruff>=0.14", "build>=1.2", "boto3>=1.35"]

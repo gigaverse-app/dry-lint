@@ -104,15 +104,20 @@ def outputs(tmp_path: Path) -> dict[str, str]:
     return dict(line.split("=", 1) for line in (tmp_path / "output").read_text().splitlines())
 
 
-def cli_writes_comment(tmp_path: Path, findings: list[str], code: int = 0, run: dict | None = None):
-    """A stand-in for the dry-lint CLI that leaves the files the real one writes."""
+def cli_writes_comment(tmp_path: Path, findings: list[str], code: int = 0, run: dict | None = None,
+                       judge: str | None = "test-judge"):
+    """
+    A stand-in for the dry-lint CLI: judging leaves the files the real one writes (report.json names the judge,
+    or null when nothing was judged), and `report --format github` renders the findings as annotations.
+    """
 
     def fake(*args: str, echo: bool = True):
         work = tmp_path / "runner" / "dry-lint"
+        if args[0] == "report":
+            return code, findings
         (work / "comment.md").write_text("<!-- dry-lint -->\n### dry-lint\n")
-        if run is not None:
-            (work / "report.json").write_text(json.dumps({"run": run}))
-        return code, findings
+        (work / "report.json").write_text(json.dumps({"run": run or {}, "judge": judge}))
+        return code, [f"dry-lint: {len(findings)} finding(s)"]
 
     return fake
 
@@ -122,9 +127,11 @@ def test_single_mode_comments_and_reports_without_failing_by_default(github_env,
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [ANNOTATION])) as cli, \
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[0] == "check" and args[args.index("--base") + 1] == BASE and "--judge" not in args
-    assert args[args.index("--format") + 1] == "github"
+    assert args[args.index("--format") + 1] == "text"
+    rendered = cli.call_args_list[1].args
+    assert rendered[0] == "report" and rendered[rendered.index("--format") + 1] == "github"
     posted = post.call_args.args[0]
     assert posted[posted.index("--pull-request") + 1] == "7" and posted[posted.index("--findings") + 1] == "1"
     assert "--expect-head" not in posted and posted[posted.index("--run-url") + 1].endswith("/acme/shop/actions/runs/55")
@@ -149,7 +156,7 @@ def test_a_near_certain_duplicate_fails_the_check_and_says_how_to_override(githu
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 1
     note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
-    assert note.startswith("**Blocking:** 1 finding(s)") and "`dry-lint: override` label" in note
+    assert note.startswith("> [!CAUTION]\n> **Blocking:** 1 finding(s)") and "`dry-lint: override` label" in note
     assert outputs(tmp_path) | {} == {"mode": "single", "exit-code": "1", "findings": "2", "blocking": "1",
                                       "overridden": "false", "stored": "false"}
 
@@ -167,7 +174,7 @@ def test_the_override_label_turns_a_blocking_finding_into_a_warning(github_env, 
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
     note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
-    assert note.startswith("**Overridden:**")
+    assert note.startswith("> [!NOTE]\n> **Overridden:**")
     assert "overridden by the `dry-lint: override` label" in capsys.readouterr().out
     assert outputs(tmp_path)["overridden"] == "true"
 
@@ -184,7 +191,8 @@ def test_warn_only_never_fails_and_does_not_claim_to_block(github_env, tmp_path)
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [BLOCKING], code=1)), \
             patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
-    assert post.call_args.args[0][post.call_args.args[0].index("--note") + 1] == ""
+    note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
+    assert note.startswith("> [!NOTE]\n> **Advisory mode:**") and "does not fail" in note
 
 
 def test_without_a_judge_nothing_is_annotated_commented_or_failed(github_env, tmp_path, capsys) -> None:
@@ -192,7 +200,7 @@ def test_without_a_judge_nothing_is_annotated_commented_or_failed(github_env, tm
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
             patch.object(sticky, "main") as post:
         assert action.main(["run"]) == 0
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[args.index("--judge") + 1] == "none" and args[args.index("--format") + 1] == "text"
     post.assert_not_called()
     assert "Set typesafe-api-key" in capsys.readouterr().out
@@ -220,7 +228,7 @@ def test_a_fork_pull_request_only_proposes_candidates(github_env, tmp_path, caps
     github_env("pull_request", pull_request(fork=True), key="leaked?")
     with patch.object(action, "dry_lint", return_value=(0, [])) as cli, patch.object(sticky, "main") as post:
         assert action.main(["run"]) == 0
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[0] == "detect" and Path(args[args.index("--out") + 1]).parts[-2:] == ("dry-lint", "candidates.json")
     assert "--judge" not in args
     post.assert_not_called()
@@ -298,7 +306,8 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     out = capsys.readouterr().out
     assert "::error file=src/widgets/caption.py,line=1" in out  # 0.85 >= the default fail_at
     [body] = github.stickies()
-    assert "preview_caption_text" in body and "src/text.py::shorten_text" in body
+    assert "`preview_caption_text` ≈ `shorten_text`" in body and "distinct-from src/text.py::shorten_text" in body
+    assert f"/blob/{github.head}/src/widgets/caption.py#L1-L5" in body
     assert outputs(tmp_path)["findings"] == "1" and outputs(tmp_path)["stored"] == "true"
 
     # The next push changes nothing that matters: the verdict comes from the store, the comment is edited.
@@ -313,6 +322,43 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     [body] = github.stickies()
     assert "Resolved" in body and "preview_caption_text" not in body
+
+
+def test_typescript_pull_request_updates_and_resolves_one_sticky_comment(
+        repo: Repo, github_env, tmp_path, twin_judge, capsys):
+    repo.git("checkout", "-q", "main")
+    repo.write(".dry-lint.toml", 'include = ["*.ts", "src/filler.py"]')
+    repo.write("src/text.ts", '''export function shorten_text(text: string, limit: number) {
+      if (text.length <= limit) return text;
+      return text.slice(0, limit - 1).trimEnd() + "…";
+    }''')
+    repo.write("package.json", '{"scripts":{"test":"bun test"}}')
+    repo.commit()
+    repo.git("checkout", "-q", "-b", "typescript")
+    repo.write("src/caption.ts", '''export const preview_caption_text = (caption: string, limit: number) => {
+      if (caption.length <= limit) return caption;
+      return caption.slice(0, limit - 1).trimEnd() + "…";
+    };''')
+    repo.commit()
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), warn_only="true")
+    for _ in range(2):
+        assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "`preview_caption_text` ≈ `shorten_text`" in body
+    assert "```ts\n// dry-lint: distinct-from src/text.ts::shorten_text\n```" in body
+    assert "`// dry-lint: ignore`" in body and judge_calls(tmp_path) == 1
+    assert "blocking" not in body
+    assert "// dry-lint: distinct-from src/text.ts::shorten_text" in capsys.readouterr().out
+    repo.write("src/caption.ts", 'export { shorten_text as preview_caption_text } from "./text";')
+    repo.commit()
+    github.head = repo.git("rev-parse", "HEAD").strip()
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), warn_only="true")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "Resolved" in body
 
 
 def test_without_a_judge_the_real_cli_lists_look_alikes_and_comments_nothing(repo: Repo, github_env, tmp_path, capsys):
@@ -340,7 +386,8 @@ def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, githu
                judge="command", judge_command=twin_judge, working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
     [body] = github.stickies()
-    assert "preview_caption_text" in body and f"commit {head[:7]}" in body
+    assert "`preview_caption_text`" in body and f"commit {head[:7]}" in body
+    assert f"/blob/{head}/src/widgets/caption.py#L1-L5" in body
     [check] = github.check_runs
     assert (check["name"], check["head_sha"], check["conclusion"]) == ("dry-lint", head, "failure")
     assert check["output"]["annotations"][0]["path"] == "src/widgets/caption.py"
@@ -405,7 +452,7 @@ def judge_run(tmp_path: Path, lines: list[str], code: int):
     judged = cli_writes_comment(tmp_path, lines, code=code, run={"pull_request": PR_NUMBER, "head": HEAD})
 
     def fake(*args: str, echo: bool = True):
-        if args[0] == "report":
+        if args[0] == "report" and "check-run" in args:
             return 1, [json.dumps({"name": "dry-lint", "head_sha": HEAD, "conclusion": "neutral"})]
         return judged(*args)
 
@@ -475,7 +522,14 @@ def test_an_inline_ignore_settles_the_pair_before_any_judge_call(repo: Repo, git
     github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
                working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
-    assert github.stickies() == [] and judge_calls(tmp_path) == 0
+    [body] = github.stickies()
+    assert "✨ No duplicated concepts" in body and "| Settled by a rule | 1 |" in body and judge_calls(tmp_path) == 0
+
+    quiet = FakeGitHub(head=github.head)
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=blocking_twin_judge,
+               working_directory=str(repo.root), comment_on_clean="false")
+    assert action.main(["run"], transport=httpx.MockTransport(quiet)) == 0
+    assert quiet.stickies() == []
 
 
 def test_the_fail_at_input_raises_the_bar_so_lower_findings_only_warn(repo: Repo, github_env, tmp_path,
@@ -495,7 +549,7 @@ def test_the_fail_at_input_reaches_every_dry_lint_command(github_env, tmp_path) 
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
             patch.object(sticky, "main", return_value=0):
         action.main(["run"])
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[args.index("--fail-at") + 1] == "0.95"
 
 
@@ -506,8 +560,9 @@ def test_any_judge_key_turns_judging_on_and_dry_lint_picks_the_preset(github_env
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [ANNOTATION])) as cli, \
             patch.object(sticky, "main", return_value=0) as post:
         action.main(["run"])
-    args = cli.call_args.args
-    assert "--judge" not in args and args[args.index("--format") + 1] == "github"
+    args = cli.call_args_list[0].args
+    assert "--judge" not in args and args[args.index("--format") + 1] == "text"
+    assert cli.call_args_list[1].args[0] == "report"
     post.assert_called_once()
 
 
@@ -516,10 +571,27 @@ def test_preset_and_budget_inputs_pass_through_only_when_set(github_env, tmp_pat
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
             patch.object(sticky, "main", return_value=0):
         action.main(["run"])
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[args.index("--preset") + 1] == "jev" and args[args.index("--budget-usd") + 1] == "0.5"
     github_env("pull_request", pull_request(), key="secret", preset="", budget_usd="")
     with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
             patch.object(sticky, "main", return_value=0):
         action.main(["run"])
-    assert "--preset" not in cli.call_args.args and "--budget-usd" not in cli.call_args.args
+    assert "--preset" not in cli.call_args_list[0].args and "--budget-usd" not in cli.call_args_list[0].args
+
+
+def test_settings_that_turn_judging_off_keep_the_action_quiet_even_with_keys(github_env, tmp_path, capsys) -> None:
+    github_env("pull_request", pull_request(), key="secret")
+    unjudged = cli_writes_comment(tmp_path, [ANNOTATION], code=0, judge=None)
+    with patch.object(action, "dry_lint", side_effect=unjudged) as cli, patch.object(sticky, "main") as post:
+        assert action.main(["run"]) == 0
+    assert [c.args[0] for c in cli.call_args_list] == ["check"]  # no annotations rendered
+    post.assert_not_called()
+    assert "listed unjudged" in capsys.readouterr().out
+    assert outputs(tmp_path)["findings"] == "0"
+
+
+def test_an_unreadable_report_counts_as_unjudged(tmp_path: Path) -> None:
+    assert action.judged(tmp_path / "missing.json") is False
+    (tmp_path / "bad.json").write_text("{")
+    assert action.judged(tmp_path / "bad.json") is False
