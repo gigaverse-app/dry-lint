@@ -21,10 +21,12 @@ jobs:
         python: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      # CI-esta: a validated environment restore; it still runs `uv sync --locked` after a hit.
+      # CI-esta's uv setup; it always runs `uv sync --locked`. Restoring the whole environment measured slower
+      # than installing this small one (5-6 s against 4-5 s), so only uv's package cache is kept.
       - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
         with:
           python-version: ${{ matrix.python }}
+          cache-environment: "false"
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
       - run: uv build
