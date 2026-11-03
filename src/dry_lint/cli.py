@@ -30,7 +30,7 @@ import httpx
 
 from dry_lint import __version__
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
-from dry_lint.costs import ANSWER_TOKENS, CHARS_PER_TOKEN, PRICES
+from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.git import git
 from dry_lint.github import github_event
@@ -206,7 +206,8 @@ def pair_usd(choice: PluginChoice | None, settings: Settings) -> str:
     rates = {**PRICES, **settings.prices}.get(model)
     if rates is None:
         return "unknown price"
-    return f"${(TYPICAL_PAIR_CHARS / CHARS_PER_TOKEN * rates[0] + ANSWER_TOKENS * rates[1]) / 1_000_000:.2g} per pair"
+    answer = ANSWERS.get(model, ANSWER_TOKENS)
+    return f"${(TYPICAL_PAIR_CHARS / CHARS_PER_TOKEN * rates[0] + answer * rates[1]) / 1_000_000:.2g} per pair"
 
 
 def config(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -227,15 +228,17 @@ def config(root: Path, settings: Settings, args: argparse.Namespace) -> int:
                               f"{escalate.between[1]:g}) ({pair_usd(escalate, settings)})" if escalate else "none"),
               f"thresholds: drop below {settings.drop_below:g} - report at {settings.report_at:g} - "
               f"fail at {max(settings.report_at, settings.fail_at):g}"
+              + (f" - first judge alone at {escalate.first_at:g}" if escalate and escalate.first_at is not None else "")
               + (f" (set explicitly: {', '.join(explicit)})" if explicit else ""),
-              f"budget: ${settings.budget.usd:g} per run on priced judges, {settings.budget.subscription_calls} "
+              f"budget: ${settings.budget.usd:g} per pull request at list price, subscriptions included; "
+              f"{settings.budget.subscription_calls} "
               "subscription calls", "", "presets:"]
     for name in LISTED:
         p = PRESETS[name]
         missing = [v for v in p.needs if not os.environ.get(v)]
-        lines.append(f"  {'*' if name == settings.preset else ' '} {name:16} {p.summary}"
+        lines.append(f"  {'*' if name == settings.preset else ' '} {name:22} {p.summary}"
                      + (f"  [needs {', '.join(missing)}]" if missing else "")
-                     + ("  [named only: a CLI login]" if not p.automatic else ""))
+                     + ("  [named only]" if not p.automatic else ""))
     print("\n".join(lines))
     return 0
 
@@ -271,7 +274,7 @@ def parser() -> argparse.ArgumentParser:
                                                       "overriding fail_at in the settings.")
     common.add_argument("--preset", help="Judging preset (judges and their thresholds), overriding the settings; "
                                          "`dry-lint config` lists them.")
-    common.add_argument("--budget-usd", type=float, help="Most this run spends on priced judges, overriding budget.usd.")
+    common.add_argument("--budget-usd", type=float, help="Most judging spends on this pull request (all its runs), overriding budget.usd.")
     common.add_argument("--warn-only", action="store_true", help="Report, but always exit 0.")
 
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")

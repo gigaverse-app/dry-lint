@@ -152,7 +152,8 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
 
     def flags(threshold: float) -> list[bool]:
         """Reported exactly as a report decides it: a duplicate label at or above the threshold."""
-        return [v.label != "separate" and v.score >= threshold for v in verdicts]
+        return [v.label != "separate" and v.score >= settings.bar(threshold, v.second_opinion is not None)
+                for v in verdicts]
 
     reported = flags(settings.report_at)
 

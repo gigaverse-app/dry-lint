@@ -27,7 +27,7 @@ from dry_lint.report import (
     render,
     short_paths,
 )
-from dry_lint.settings import Settings
+from dry_lint.settings import Escalation, Settings
 
 from conftest import function
 
@@ -331,8 +331,10 @@ def test_the_judging_line_names_judges_band_thresholds_and_the_bill() -> None:
                                     Spend(judge="anthropic:dry-v1:claude-sonnet-5-5", calls=1, skipped=2, usd=0.0033)])
     assert summary.line() == ("preset jev+sonnet · jev:reuse-v2 > anthropic:dry-v1:claude-sonnet-5-5 on [0.5, 0.91) · "
                               "reports at 0.6, fails at 0.7 · est. $0.004 of $0.25 budget · 2 pairs not judged (budget)")
+    later = summary.model_copy(update={"budget_usd": 0.04, "spent_before": 0.02, "pull_request": True})
+    assert "est. $0.004 ($0.024 so far) of $0.04 for this pull request" in later.line()
     plain = JudgingSummary(judge="jev:reuse-v2", report_at=0.8, fail_at=0.8, budget_usd=0.25,
-                           spend=[Spend(judge="claude-code:x", calls=3, subscription=True), Spend(judge="c", calls=1, usd=None)])
+                           spend=[Spend(judge="claude-code:x", calls=3, usd=0.01, subscription=True), Spend(judge="c", calls=1, usd=None)])
     assert plain.line() == "jev:reuse-v2 · reports and fails at 0.8 · cost unknown · 3 subscription calls"
     assert JudgingSummary().line() == "no judge · reports and fails at 0.8 · est. $0.000 of $0 budget"
 
@@ -344,3 +346,25 @@ def test_every_view_states_the_judging() -> None:
     assert as_text(built).endswith("judging: preset jev · jev:reuse-v2 · reports and fails at 0.8 · est. $0.000 of $0.25 budget")
     assert "<sub>preset jev · jev:reuse-v2 · reports and fails at 0.8" in as_markdown(built)
     assert Report.model_validate_json(as_json(built)).judging == summary
+
+
+def escalated(score: float, second_opinion: str | None) -> Finding:
+    verdict = Verdict(label="duplicate", score=score, judge="jev", judge_version="v", second_opinion=second_opinion)
+    return Finding(candidate=pair(), verdict=verdict)
+
+
+@pytest.mark.parametrize("score, second_opinion, reported", [
+    (0.6, "opus", True),     # the second judge's answer: its own threshold
+    (0.6, None, False),      # the first judge alone, past the budget: held to its own bar
+    (0.85, None, True),
+])  # fmt: skip
+def test_answers_without_a_second_opinion_are_held_to_the_first_judges_own_bar(score, second_opinion, reported) -> None:
+    settings = Settings(escalate=Escalation(use="opus", between=(0.5, 0.91), first_at=0.8), report_at=0.55, fail_at=0.55)
+    [marked] = Report.build([escalated(score, second_opinion)], settings).findings
+    assert (marked.reported, marked.blocking) == (reported, reported)
+
+
+def test_without_a_first_judge_bar_every_answer_meets_the_same_thresholds() -> None:
+    settings = Settings(escalate=Escalation(use="opus", between=(0.5, 0.91)), report_at=0.55, fail_at=0.55)
+    assert Report.build([escalated(0.6, None)], settings).findings[0].reported
+    assert Report.build([escalated(0.6, None)], Settings(escalate=None, report_at=0.55)).findings[0].reported

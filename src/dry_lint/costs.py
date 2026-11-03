@@ -1,10 +1,15 @@
 """
 What judging costs, and the budget that bounds it.
 
-A judge with a per-token price is estimated from its prompt length and a measured answer length, and counted
-against `budget.usd`; a subscription judge costs nothing per call but is rate-limited, so it is counted against
-`budget.subscription_calls`. A judge whose price is unknown is not budgeted and its cost is reported as unknown,
-never as zero. When the budget runs out, the riskiest pairs have already been judged: callers order them first.
+Every judge with a known model is estimated at its list price, from its prompt length and a measured answer length,
+and counted against `budget.usd`. That includes subscription judges: a call through a Claude subscription uses the
+same model as the API, so its list price is what it takes out of the subscription. Subscriptions are rate-limited
+too, so they are also counted against `budget.subscription_calls`. A judge whose price is unknown is not budgeted
+and its cost is reported as unknown, never as zero. When the budget runs out, the riskiest pairs have already been
+judged: callers order them first.
+
+The budget is for a pull request, across all its pushes: what earlier runs on the same pull request spent comes
+from the verdict store (`VerdictStore.spent`), and a run without a pull request has the whole budget to itself.
 """
 
 from pydantic import BaseModel, Field
@@ -25,6 +30,7 @@ PRICES: dict[str, tuple[float, float]] = {
 }
 CHARS_PER_TOKEN = 2.8  # measured: the DRY prompt over gigaverse-ai pairs, Claude Sonnet 5.5's tokenizer
 ANSWER_TOKENS = 150  # measured: Sonnet 5.5's answers (thinking included) were 126 tokens on average, p90 150
+ANSWERS: dict[str, int] = {"claude-opus-5-5": 220}  # measured: Opus 5.5's were 217 on average, p90 390
 
 
 def price(judge: Judge, settings: Settings) -> tuple[float, float] | None:
@@ -33,41 +39,43 @@ def price(judge: Judge, settings: Settings) -> tuple[float, float] | None:
 
 
 def estimate(judge: Judge, candidates: list[Candidate], settings: Settings) -> float | None:
-    """Estimated USD for asking `judge` about `candidates`: 0 for a subscription, None when the price is unknown."""
-    if getattr(judge, "subscription", False):
-        return 0.0
+    """Estimated USD at list price for asking `judge` about `candidates`, subscriptions included; None if unknown."""
     rates = price(judge, settings)
     if rates is None:
         return None
     tokens = sum(len(prompt(c)) for c in candidates) / CHARS_PER_TOKEN
-    return (tokens * rates[0] + len(candidates) * ANSWER_TOKENS * rates[1]) / 1_000_000
+    answer = ANSWERS.get(getattr(judge, "model", "") or "", ANSWER_TOKENS)
+    return (tokens * rates[0] + len(candidates) * answer * rates[1]) / 1_000_000
 
 
 class Spend(BaseModel):
     judge: str
     calls: int = 0
     skipped: int = Field(default=0, description="Pairs this judge was not asked about because the budget ran out.")
-    usd: float | None = Field(default=0.0, description="Estimated; None when the judge's price is unknown.")
+    usd: float | None = Field(default=0.0, description="Estimated at list price, also for a subscription; None when "
+                                                       "the judge's price is unknown.")
     subscription: bool = False
 
 
 class Ledger:
-    """One run's spending: how many of the pairs each judge may still be asked about."""
+    """One run's spending, on top of what earlier runs on the same pull request `spent`: how many of the pairs each
+    judge may still be asked about."""
 
-    def __init__(self, settings: Settings) -> None:
-        self.settings = settings
+    def __init__(self, settings: Settings, spent: float = 0.0) -> None:
+        self.settings, self.spent = settings, spent
         self.spend: dict[str, Spend] = {}
 
     @property
     def usd(self) -> float:
+        """This run's estimated spending."""
         return sum(s.usd or 0.0 for s in self.spend.values())
 
     def affordable(self, judge: Judge, candidates: list[Candidate]) -> int:
         """How many of `candidates`, in order, the budget still allows `judge` to be asked about."""
         if getattr(judge, "subscription", False):
             used = sum(s.calls for s in self.spend.values() if s.subscription)
-            return max(0, min(len(candidates), self.settings.budget.subscription_calls - used))
-        total, room = 0.0, self.settings.budget.usd - self.usd
+            candidates = candidates[:max(0, self.settings.budget.subscription_calls - used)]
+        total, room = 0.0, self.settings.budget.usd - self.spent - self.usd
         for n, candidate in enumerate(candidates):
             cost = estimate(judge, [candidate], self.settings)
             if cost is None:

@@ -1,6 +1,6 @@
 import pytest
 
-from dry_lint.costs import ANSWER_TOKENS, CHARS_PER_TOKEN, Ledger, estimate, price
+from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, Ledger, estimate, price
 from dry_lint.judges.command import prompt
 from dry_lint.models import Candidate
 from dry_lint.settings import Budget, Settings
@@ -19,6 +19,14 @@ class Subscribed:
     name, version, subscription = "claude-code", "v", True
 
 
+class SubscribedSonnet(Subscribed):
+    model = "claude-sonnet-5-5"
+
+
+class Opus:
+    name, version, model = "anthropic", "v", "claude-opus-5-5"
+
+
 class Unpriced:
     name, version = "command:my-llm", "1"
 
@@ -29,8 +37,9 @@ def test_a_priced_judge_costs_its_prompt_and_a_measured_answer() -> None:
     assert price(Priced(), Settings()) == (2.0, 10.0)
 
 
-def test_subscriptions_cost_nothing_per_call_and_unknown_prices_stay_unknown() -> None:
-    assert estimate(Subscribed(), [PAIR], Settings()) == 0.0
+def test_a_subscription_costs_its_models_list_price_and_unknown_prices_stay_unknown() -> None:
+    assert estimate(SubscribedSonnet(), [PAIR], Settings()) == pytest.approx(estimate(Priced(), [PAIR], Settings()))
+    assert estimate(Subscribed(), [PAIR], Settings()) is None
     assert estimate(Unpriced(), [PAIR], Settings()) is None
     assert estimate(Unpriced(), [PAIR], Settings(prices={"command:my-llm": (1.0, 1.0)})) > 0
 
@@ -55,3 +64,22 @@ def test_subscriptions_are_bounded_by_calls_and_unpriced_judges_are_not_bounded(
     ledger.charge(Unpriced(), [PAIR], skipped=0)
     ledger.charge(Unpriced(), [PAIR], skipped=0)
     assert ledger.spend["command:my-llm:1"].usd is None and ledger.spend["command:my-llm:1"].calls == 2
+
+
+def test_an_opus_answer_is_priced_at_its_measured_length() -> None:
+    expected = (len(prompt(PAIR)) / CHARS_PER_TOKEN * 4.0 + ANSWERS["claude-opus-5-5"] * 20.0) / 1_000_000
+    assert estimate(Opus(), [PAIR], Settings()) == pytest.approx(expected)
+
+
+def test_what_earlier_runs_spent_comes_off_the_budget() -> None:
+    one = estimate(Priced(), [PAIR], Settings())
+    settings = Settings(budget=Budget(usd=one * 3.5))
+    assert Ledger(settings).affordable(Priced(), [PAIR] * 5) == 3
+    assert Ledger(settings, spent=one * 2).affordable(Priced(), [PAIR] * 5) == 1
+    assert Ledger(settings, spent=one * 4).affordable(Priced(), [PAIR] * 5) == 0
+
+
+def test_a_subscription_is_bounded_by_both_its_calls_and_its_list_price() -> None:
+    one = estimate(SubscribedSonnet(), [PAIR], Settings())
+    assert Ledger(Settings(budget=Budget(usd=one * 10, subscription_calls=2))).affordable(SubscribedSonnet(), [PAIR] * 5) == 2
+    assert Ledger(Settings(budget=Budget(usd=one * 1.5, subscription_calls=20))).affordable(SubscribedSonnet(), [PAIR] * 5) == 1

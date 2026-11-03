@@ -219,11 +219,13 @@ def test_config_shows_the_resolved_preset_its_numbers_and_what_unlocks_the_other
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
     assert main(["config", "--root", str(repo.root)]) == 0
     out = capsys.readouterr().out
-    assert out.startswith("preset: jev+sonnet - Jev on every pair")
-    assert "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out and "measured: fails at 0.7: 97% precision" in out
-    assert "escalate: anthropic {'model': 'claude-sonnet-5-5'} on [0.5, 0.91) ($0.0034 per pair)" in out
-    assert "thresholds: drop below 0.5 - report at 0.6 - fail at 0.7" in out
-    assert "  * jev+sonnet" in out and "jev+claude-code" in out and "[needs CLAUDE_CODE_OAUTH_TOKEN]" in out
+    assert out.startswith("preset: jev+opus - Jev on every pair")
+    assert "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out and "measured: 98% precision, 85% recall" in out
+    assert "escalate: anthropic {'model': 'claude-opus-5-5'} on [0.5, 0.91) ($0.0083 per pair)" in out
+    assert "thresholds: drop below 0.5 - report at 0.55 - fail at 0.55 - first judge alone at 0.8" in out
+    assert "budget: $0.04 per pull request at list price" in out
+    assert "  * jev+opus" in out and "jev+claude-code" in out and "[needs CLAUDE_CODE_OAUTH_TOKEN]" in out
+    assert "jev+claude-code-sonnet" in out and "[named only]" in out
 
 
 def test_config_shows_explicit_settings_subscriptions_and_unknown_prices(repo: Repo, capsys) -> None:

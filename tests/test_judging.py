@@ -124,14 +124,14 @@ def test_the_budget_judges_the_closest_look_alikes_first_and_leaves_the_rest_unj
     assert summary.usd == pytest.approx(estimate(first, [pair("near"), pair("mid")], SETTINGS))
 
 
-def test_the_second_judge_takes_the_highest_first_scores_and_the_rest_keep_the_first_answer(store: VerdictStore) -> None:
+def test_the_second_judge_takes_the_least_certain_first_scores_and_the_rest_keep_the_first_answer(store: VerdictStore) -> None:
     second = Billed("second", {"a": 0.95, "b": 0.95, "c": 0.95})
     one = estimate(second, [pair("a")], SETTINGS)
-    settings = SETTINGS.model_copy(update={"budget": Budget(usd=one * 1.5)})
-    first = ScoringJudge("first", {"a": 0.65, "b": 0.75, "c": 0.62})
+    settings = SETTINGS.model_copy(update={"budget": Budget(usd=one * 2.5)})
+    first = ScoringJudge("first", {"a": 0.64, "b": 0.79, "c": 0.69})  # the band is [0.6, 0.8): 0.7 is least certain
     answers = decide([pair("a"), pair("b"), pair("c")], first, second, settings, Ledger(settings))
-    assert second.asked == ["b"]
-    assert [(v.score, v.second_opinion) for v in answers] == [(0.65, None), (0.95, "second:1"), (0.62, None)]
+    assert second.asked == ["c", "a"]
+    assert [(v.score, v.second_opinion) for v in answers] == [(0.95, "second:1"), (0.79, None), (0.95, "second:1")]
 
 
 def test_without_a_ledger_nothing_is_limited(store: VerdictStore) -> None:
@@ -144,5 +144,34 @@ def test_the_summary_names_the_preset_judges_band_thresholds_and_budget(store: V
     settings = SETTINGS.model_copy(update={"preset": "jev+sonnet", "report_at": 0.6, "fail_at": 0.7})
     summary = Judging(settings, ScoringJudge("first", {}), ScoringJudge("second", {}), store).summary()
     assert (summary.preset, summary.judge, summary.escalation, summary.band) == ("jev+sonnet", "first:1", "second:1", (0.6, 0.8))
-    assert (summary.report_at, summary.fail_at, summary.budget_usd, summary.spend) == (0.6, 0.7, 0.25, [])
+    assert (summary.report_at, summary.fail_at, summary.budget_usd, summary.spend) == (0.6, 0.7, 0.04, [])
     assert Judging(settings, None, None, store).summary().judge is None
+
+
+def test_the_budget_covers_every_push_of_a_pull_request(store: VerdictStore) -> None:
+    one = estimate(Billed("first", {}), [pair("a")], SETTINGS)
+    settings = SETTINGS.model_copy(update={"budget": Budget(usd=one * 2.5)})
+    pull = Run(repository="o/r", pull_request=3)
+    first_push = Judging(settings, Billed("first", {"a": 0.9}), None, store)
+    first_push.findings([pair("a")], source=pull)
+    second_push = Judging(settings, Billed("first", {"b": 0.9, "c": 0.9}), None, store)
+    findings = second_push.findings([pair("a"), pair("b"), pair("c")], source=pull)
+    assert second_push.judge.asked == ["b"]  # "a" came from the store; "c" is past the pull request's budget
+    assert [f.candidate.new.name for f in findings if f.deferred] == ["c"]
+    summary = second_push.summary()
+    assert summary.pull_request and summary.spent_before == pytest.approx(one)
+    assert store.spent(pull) == pytest.approx(2 * one)
+    other = Judging(settings, Billed("first", {"c": 0.9}), None, store)
+    other.findings([pair("c")], source=Run(repository="o/r", pull_request=4))
+    assert other.judge.asked == ["c"]  # another pull request has its own budget
+
+
+def test_a_subscription_judge_spends_the_same_budget_at_its_models_list_price(store: VerdictStore) -> None:
+    class Subscribed(Billed):
+        subscription = True
+
+    one = estimate(Subscribed("first", {}), [pair("a")], SETTINGS)
+    settings = SETTINGS.model_copy(update={"budget": Budget(usd=one * 1.5, subscription_calls=5)})
+    judging = Judging(settings, Subscribed("first", {"a": 0.9, "b": 0.9}), None, store)
+    judging.findings([pair("a"), pair("b")], source=Run(repository="o/r", pull_request=3))
+    assert judging.judge.asked == ["a"] and judging.summary().usd == pytest.approx(one)

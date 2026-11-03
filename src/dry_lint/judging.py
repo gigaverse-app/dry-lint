@@ -38,8 +38,9 @@ def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, 
     the first judge's name with `second_opinion` set, so they are stored and reused like any other.
 
     With a `ledger`, each judge is asked only about the pairs the budget covers, riskiest first: the closest look-
-    alikes for the first judge, the highest first scores for the second. A pair the first judge could not afford
-    stays unjudged (None); one the second could not afford keeps the first judge's answer.
+    alikes for the first judge; for the second, the first scores nearest the middle of the band, where the first
+    judge is least sure. A pair the first judge could not afford stays unjudged (None); one the second could not
+    afford keeps the first judge's answer.
     """
     order = sorted(range(len(candidates)), key=lambda i: -candidates[i].similarity)
     allowed = ledger.affordable(judge, [candidates[i] for i in order]) if ledger else len(order)
@@ -52,8 +53,9 @@ def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, 
     if escalation is None or settings.escalate is None:
         return answers
     low, high = settings.escalate.between
+    middle = (low + high) / 2
     unsure = sorted((i for i, v in enumerate(answers) if v is not None and low <= v.score < high),
-                    key=lambda i: -answers[i].score)
+                    key=lambda i: abs(answers[i].score - middle))
     allowed = ledger.affordable(escalation, [candidates[i] for i in unsure]) if ledger else len(unsure)
     second = escalation.judge([candidates[i] for i in unsure[:allowed]], settings) if allowed else []
     if ledger:
@@ -72,6 +74,7 @@ class Judging:
     def __init__(self, settings: Settings, judge: Judge | None, escalation: Judge | None, store: VerdictStore) -> None:
         self.settings, self.judge, self.escalation, self.store = settings, judge, escalation, store
         self.ledger = Ledger(settings)
+        self.pull_request = False
 
     @classmethod
     def configured(cls, settings: Settings, store: VerdictStore) -> "Judging":
@@ -93,7 +96,7 @@ class Judging:
             escalation=identity(self.escalation) if self.escalation else None, band=band,
             report_at=self.settings.report_at, fail_at=max(self.settings.report_at, self.settings.fail_at),
             budget_usd=self.settings.budget.usd, subscription_calls=self.settings.budget.subscription_calls,
-            spend=list(self.ledger.spend.values()))
+            spend=list(self.ledger.spend.values()), spent_before=self.ledger.spent, pull_request=self.pull_request)
 
     def findings(self, candidates: list[Candidate], source: Run | None = None, refresh: bool = False) -> list[Finding]:
         """A finding per proposed candidate: unjudged when there is no judge, else from the store or the judge."""
@@ -106,6 +109,8 @@ class Judging:
         deferred = set(pending[self.settings.max_judgements:]) if self.settings.max_judgements is not None else set()
         pending = [i for i in pending if i not in deferred]
         if pending:
+            self.ledger.spent = self.store.spent(source)  # the budget is for the whole pull request, not this run
+            self.pull_request = source is not None and source.pull_request is not None
             asked = [proposed[i] for i in pending]
             for i, verdict in zip(pending, decide(asked, self.judge, self.escalation, self.settings, self.ledger)):
                 if verdict is None:
@@ -113,5 +118,6 @@ class Judging:
                 else:
                     self.store.remember(proposed[i], verdict, source)
                 known[i] = verdict
+            self.store.add_spent(source, self.ledger.usd)
         return [Finding(candidate=c, verdict=known[i], cached=known[i] is not None and i not in pending,
                         deferred=i in deferred) for i, c in enumerate(proposed)]

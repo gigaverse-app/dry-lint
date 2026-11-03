@@ -146,9 +146,10 @@ A judge returns a verdict per pair: `label` (`duplicate`, `drifted` or `separate
 (0.8) on `behaves_differently` it is drifted.
 
 A threshold means something only for the judges it was measured with, so the judges and the thresholds are chosen
-together as a **preset** (`presets.py`, [judges.md](judges.md)): `jev+sonnet` (Jev, then Claude Sonnet 5.5 on Jev
-scores in `[0.5, 0.91)`, reporting from 0.6 and failing at 0.7: 97% precision, 84% recall), its subscription twins
-`jev+claude-code` and `jev+codex`, `sonnet`, `claude-code`, `jev` (failing at 0.8: 94%, 73%) and `none`.
+together as a **preset** (`presets.py`, [judges.md](judges.md)): `jev+opus` (Jev, then Claude Opus 5.5 on Jev
+scores in `[0.5, 0.91)`, failing at 0.55, and Jev's unescalated answers at its own 0.8: 98% precision, 85% recall
+within $0.04 a pull request), its subscription twin `jev+claude-code`, the cheaper `jev+sonnet` and
+`jev+claude-code-sonnet`, `jev+codex`, `sonnet`, `claude-code`, `jev` (failing at 0.8: 94%, 73%) and `none`.
 `preset = "auto"` picks by the credentials present; explicit settings win over the preset's. `escalate` sends
 first scores in its band to the second judge, whose answer replaces the first; the record stays under the first
 judge's name with `second_opinion` set, so it is reused like any other. Each run's judging is bounded by a budget

@@ -102,7 +102,7 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
 runs. The comment links both functions at the analyzed commit, shows the review workload, and folds evidence and
 pair-specific suppression instructions under each summary. A clean pull request gets a green sticky with what was checked (`comment-on-clean: "false"` to opt out). A reported duplicate fails the check at the preset's threshold
-(97% of them are real duplicates with `jev+sonnet`); `fail-at` raises or lowers it, and the `dry-lint: override`
+(98% of them are real duplicates with `jev+opus`); `fail-at` raises or lowers it, and the `dry-lint: override`
 label lets one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
@@ -141,7 +141,8 @@ On 600 gigaverse-ai pull requests, against a 250-pair gold set labelled blind by
 | Judge calls per PR (uncached) | 2.5 |
 | Findings per PR at the default threshold | about 0.2 |
 | Jev `reuse-v2`: ranking quality | AUC 0.97 |
-| preset `jev+sonnet`, failing at 0.7 | 97% precision, 84% recall; about $0.004 per pull request |
+| preset `jev+opus`, failing at 0.55, within $0.04 a pull request | 98% precision, 85% recall; about $0.005 per pull request on average |
+| preset `jev+sonnet`, failing at 0.7 | 97% precision, 84% recall; about $0.0035 per pull request |
 | preset `jev+codex` (ChatGPT subscription), failing at 0.7 | 96% precision, 85% recall; no per-call cost |
 | preset `jev`, failing at 0.8 | 94% precision, 73% recall; 15% of pull requests fail |
 | Known duplicates found and scored ≥ 0.8 | 11 of 13 |
@@ -156,10 +157,10 @@ thresholds come from the preset ([docs/judges.md](docs/judges.md)); anything set
 | --- | --- | --- |
 | `include` / `exclude` | everything / tests, migrations, scripts | fnmatch over tracked paths |
 | `neighbours` | 3 | candidates per changed function |
-| `preset` | `"auto"` | judges and their measured thresholds together: `jev+sonnet`, `jev+claude-code`, `jev+codex`, `sonnet`, `claude-code`, `jev`, `none`; auto picks by the credentials present |
-| `drop_below` / `report_at` / `fail_at` | from the preset | separate below, reported at, failing at (`--fail-at` overrides it); `jev+sonnet` is 0.5 / 0.6 / 0.7 |
+| `preset` | `"auto"` | judges and their measured thresholds together: `jev+opus`, `jev+claude-code`, `jev+sonnet`, `jev+claude-code-sonnet`, `jev+codex`, `sonnet`, `claude-code`, `jev`, `none`; auto picks by the credentials present |
+| `drop_below` / `report_at` / `fail_at` | from the preset | separate below, reported at, failing at (`--fail-at` overrides it); `jev+opus` is 0.5 / 0.55 / 0.55, with Jev's answers that Opus did not see held to Jev's 0.8 |
 | `drift_at` | 0.8 | a duplicate whose `behaves_differently` reaches this is drifted |
-| `budget` | `{ usd = 0.25, subscription_calls = 20 }` | most a run spends on priced judges (`--budget-usd`), and calls to subscription judges |
+| `budget` | `{ usd = 0.04, subscription_calls = 20 }` | most judging spends on a pull request across all its pushes, at list price, subscriptions included (`--budget-usd`); and calls per run to subscription judges |
 | `prices` | built-in table | USD per million input and output tokens, by model |
 | `reopen_margin` | 0.05 | how much closer a "separate" pair must get before it is judged again |
 | `max_findings` | 10 | rows in the PR comment |

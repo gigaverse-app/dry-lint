@@ -7,7 +7,7 @@ BOTH = {"TYPESAFE_AI_API_KEY": "k", "ANTHROPIC_API_KEY": "k"}
 
 
 @pytest.mark.parametrize("environ, preset", [
-    (BOTH, "jev+sonnet"),
+    (BOTH, "jev+opus"),
     ({"TYPESAFE_AI_API_KEY": "k", "CLAUDE_CODE_OAUTH_TOKEN": "t"}, "jev+claude-code"),
     ({"TYPESAFE_AI_API_KEY": "k"}, "jev"),
     ({"ANTHROPIC_API_KEY": "k"}, "sonnet"),
@@ -27,8 +27,15 @@ def test_every_preset_is_reachable_and_measured_ones_say_what_was_measured() -> 
 
 def test_a_preset_fills_judges_and_thresholds_that_were_not_set() -> None:
     settings = resolve(Settings(), BOTH)
-    assert (settings.judge.use, settings.escalate.use, settings.escalate.options()) == ("jev", "anthropic", {"model": "claude-sonnet-5-5"})
-    assert (settings.escalate.between, settings.drop_below, settings.report_at, settings.fail_at) == ((0.5, 0.91), 0.5, 0.6, 0.7)
+    assert (settings.judge.use, settings.escalate.use, settings.escalate.options()) == ("jev", "anthropic", {"model": "claude-opus-5-5"})
+    assert (settings.escalate.between, settings.drop_below, settings.report_at, settings.fail_at) == ((0.5, 0.91), 0.5, 0.55, 0.55)
+
+
+def test_every_jev_first_preset_holds_unescalated_answers_to_jevs_own_bar() -> None:
+    jev = PRESETS["jev"]
+    for preset in PRESETS.values():
+        if preset.judge.use == "jev" and preset.escalate is not None:
+            assert preset.escalate.first_at == jev.fail_at == jev.report_at
 
 
 def test_explicit_settings_win_over_the_preset() -> None:
@@ -50,7 +57,7 @@ def test_your_own_judge_gets_no_preset_escalation_or_thresholds() -> None:
 
 
 def test_an_unknown_preset_names_the_known_ones() -> None:
-    with pytest.raises(ValueError, match="Unknown preset 'fast'; available: jev\\+sonnet"):
+    with pytest.raises(ValueError, match="Unknown preset 'fast'; available: jev\\+opus"):
         resolve(Settings(preset="fast"), {})
 
 
