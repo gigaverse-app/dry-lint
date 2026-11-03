@@ -156,3 +156,14 @@ def test_changes_beyond_context_limit_invalidate_cached_verdicts(store):
     pair = Candidate(new=before, existing=other, similarity=1)
     store.remember(pair, Verdict(label="separate", score=.1, judge="jev"))
     assert store.lookup(pair.model_copy(update={"new": after}), "jev", .05).verdict is None
+
+
+@pytest.mark.parametrize("homes", [["shared/<unsafe>"], ["shared/<unsafe>", "shared/domain"]])
+def test_destination_text_cannot_inject_markup_into_summary_or_table(homes):
+    from test_judging import pair
+    findings = [Finding(candidate=Candidate.model_validate({**pair(str(i)).model_dump(),
+                        "consolidation": [{"path": home}]}), verdict=Verdict(label="duplicate", score=.9, judge="jev"))
+                for i, home in enumerate(homes)]
+    markdown = as_markdown(Report.build(findings, Settings(), judge="jev"))
+    assert "<unsafe>" not in markdown
+    assert r"\<unsafe\>" in markdown

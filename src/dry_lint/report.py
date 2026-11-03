@@ -292,7 +292,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
     advised = {action(f) for f in listed}
     common = advised.pop() if len(advised) == 1 else ""
     if common:
-        lead += f" The judge's fix for every pair listed: **{common}**."
+        lead += f" The judge's fix for every pair listed: **{escaped(common)}**."
     rows = ["| | Concept | Copies | Verdict |", "| :-: | :-- | :-- | :-- |"]
     details = ["<details><summary><strong>Reasons, and a one-line dismissal for each</strong></summary>", ""]
     for f in listed:
@@ -312,7 +312,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         if not audit:
             copies[0] += " <sub>changed</sub>"
         if f.verdict:
-            hint = [part for part in ("blocks" if f.blocking else "", "" if common else action(f))
+            hint = [part for part in ("blocks" if f.blocking else "", "" if common else escaped(action(f)))
                     if part]
             verdict = f"**{f.verdict.label}**&nbsp;{f.verdict.score:.2f}" + (f"<br><sub>{' · '.join(hint)}</sub>" if hint else "")
         else:
