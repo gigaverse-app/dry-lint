@@ -16,7 +16,7 @@ drift: one version rounds, the other truncates, and callers get different answer
 dry-lint finds functions in a pull request that look like they re-implement something that already exists. A
 judge decides whether each pair really is one concept, and the result goes back as PR annotations and one comment.
 
-<img src="docs/assets/avatar.png" alt="Lint, the dry-lint mascot: a purple ball of dryer lint holding a lint roller covered in code" width="160" align="right">
+<img src="docs/assets/avatar.png" alt="Lint, the dry-lint mascot: a purple ball of dryer lint holding a mint-green hair dryer" width="160" align="right">
 
 ```text
 src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_text (drifted)
