@@ -5,6 +5,9 @@
     uv run python scripts/replay_presets.py label --out DIR --budget 40     # three vendors' models, majority vote
     uv run python scripts/replay_presets.py judge --out DIR                 # Jev and Claude Sonnet 5.5, every sampled pair
     uv run python scripts/replay_presets.py report DIR [DIR ...]
+    uv run python scripts/replay_presets.py score --out DIR                 # Jev on every production pair
+    uv run python scripts/replay_presets.py calibrate --out DIR --into CAL  # a Jev-stratified sample, then label CAL
+    uv run python scripts/replay_presets.py export --out CAL --gold gold.jsonl   # for `dry-lint bench`
 
 Each first-parent commit is replayed against its parent with the repository's own settings, as `dry-lint check`
 would run on that pull request. For every changed function the trial records the production candidates (three
@@ -27,7 +30,7 @@ from pathlib import Path
 import httpx
 from channel_trial import Floored, behaviour_only, calibrated_floor, experimental, nearest, share_with_neighbour
 
-from dry_lint.bench import load_gold
+from dry_lint.bench import GoldFunction, GoldPair, load_gold
 from dry_lint.comparers import TfidfComparer
 from dry_lint.detector import Detector, changed_lines, touched, why_skipped
 from dry_lint.functions import extractor_for, repository_functions
@@ -434,6 +437,89 @@ def report(outs: list[Path], rounds: int = 1000, seed: int = 20261107) -> dict:
     return results
 
 
+BANDS = (0.0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01)
+# Per Jev band, weighted toward where presets decide, as in the gigaverse-ai gold set (docs/benchmark.md).
+CALIBRATION = (10, 10, 10, 20, 25, 25, 25, 25)
+
+
+def score(out: Path, judge: Judge, batch: int = 16) -> None:
+    """Jev's score for every distinct pair production proposed during the replay; resumable."""
+    path = out / "jev-population.jsonl"
+    done = {row["key"] for row in read(path)}
+    pairs: dict[str, dict] = {}
+    for row in read(out / "replay.jsonl"):
+        key = pair_key(Function.model_validate(row["new"]).qualname, Function.model_validate(row["existing"]).qualname)
+        if "baseline" in sources(row) and key not in done:
+            pairs.setdefault(key, row)
+    todo = list(pairs.items())
+    for start in range(0, len(todo), batch):
+        chunk = todo[start:start + batch]
+        try:
+            verdicts = judge.judge([candidate(row) for _, row in chunk], Settings())
+        except (httpx.HTTPError, ValueError):
+            continue
+        append(path, [{"key": key, "score": v.score, "new": row["new"], "existing": row["existing"]}
+                      for (key, row), v in zip(chunk, verdicts)])
+
+
+def calibration_sample(out: Path, into: Path, sizes: tuple[int, ...] = CALIBRATION, seed: int = 20261108) -> list[dict]:
+    """
+    A Jev-stratified sample of production's pairs, for measuring judges and thresholds on this repository the way
+    the gigaverse-ai gold set does. Labels the retrieval sample already holds are carried over, not bought again.
+    """
+    into.mkdir(parents=True, exist_ok=True)
+    bands: dict[int, list[dict]] = defaultdict(list)
+    for row in read(out / "jev-population.jsonl"):
+        bands[next(i for i, high in enumerate(BANDS[1:]) if row["score"] < high)].append(row)
+    rng = random.Random(seed)
+    chosen = []
+    for band, size in enumerate(sizes):
+        pool = sorted(bands[band], key=lambda row: row["key"])
+        picked = rng.sample(pool, min(size, len(pool)))
+        chosen += [{"key": row["key"], "stratum": f"{BANDS[band]:.1f}-{min(BANDS[band + 1], 1.0):.1f}",
+                    "weight": len(pool) / len(picked), "sources": ["baseline"], "rank_min": None, "jev": row["score"],
+                    "new": row["new"], "existing": row["existing"]} for row in picked]
+    rng.shuffle(chosen)
+    for number, row in enumerate(chosen, 1):
+        row["id"] = number
+    (into / "sample.json").write_text(json.dumps(chosen, indent=2), encoding="utf-8")
+    (into / "population.json").write_text(json.dumps(
+        {f"{BANDS[i]:.1f}-{min(BANDS[i + 1], 1.0):.1f}": len(bands[i]) for i in range(len(sizes))}, indent=2))
+    earlier = {row["key"]: row["id"] for row in json.loads((out / "sample.json").read_text())} \
+        if (out / "sample.json").exists() else {}
+    ids = {earlier[row["key"]]: row["id"] for row in chosen if row["key"] in earlier}
+    if not (into / "labels.jsonl").exists():
+        append(into / "labels.jsonl", [{**row, "id": ids[row["id"]]} for row in read(out / "labels.jsonl")
+                                       if row["id"] in ids and row.get("answer")])
+    return chosen
+
+
+def export(out: Path, gold: Path) -> int:
+    """The majority labels as `dry-lint bench` gold: duplicate or separate, drifted and owner by majority, weighted."""
+    labels = consensus(out)
+    answers: dict[int, list[dict]] = defaultdict(list)
+    for row in read(out / "labels.jsonl"):
+        if row.get("answer"):
+            answers[row["id"]].append(row["answer"])
+    lines = []
+    for row in json.loads((out / "sample.json").read_text()):
+        if row["id"] not in labels:
+            continue
+        positive = labels[row["id"]]["positive"]
+        votes = answers[row["id"]]
+        drifted = sum(a.get("variation") == "drifted" for a in votes) * 2 > len(votes)
+        owners = [{"A": "new", "B": "existing"}.get(a.get("owner", ""), a.get("owner", "")) for a in votes]
+        owner = max(set(owners), key=owners.count)
+        pair = GoldPair(new=GoldFunction(id=Function.model_validate(row["new"]).qualname, code=row["new"]["code"]),
+                        existing=GoldFunction(id=Function.model_validate(row["existing"]).qualname, code=row["existing"]["code"]),
+                        label="duplicate" if positive else "separate", drifted=drifted if positive else None,
+                        owner=owner if positive else None, weight=row["weight"])
+        lines.append(pair.model_dump_json())
+    gold.parent.mkdir(parents=True, exist_ok=True)
+    gold.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
+    return len(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -453,6 +539,14 @@ def main() -> None:
     judging.add_argument("--out", type=Path, required=True)
     summary = commands.add_parser("report")
     summary.add_argument("outs", type=Path, nargs="+")
+    scoring = commands.add_parser("score")
+    scoring.add_argument("--out", type=Path, required=True)
+    calibration = commands.add_parser("calibrate")
+    calibration.add_argument("--out", type=Path, required=True)
+    calibration.add_argument("--into", type=Path, required=True)
+    exporting = commands.add_parser("export")
+    exporting.add_argument("--out", type=Path, required=True)
+    exporting.add_argument("--gold", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "replay":
         replay(args.root.resolve(), args.ref, args.commits, args.out, args.exclude)
@@ -462,6 +556,12 @@ def main() -> None:
         print(json.dumps(label(args.out, os.environ["OPENROUTER_API_KEY"], args.budget)))
     elif args.command == "judge":
         judge(args.out, {"jev": JevJudge, "sonnet": OpenRouterJudge})
+    elif args.command == "score":
+        score(args.out, JevJudge())
+    elif args.command == "calibrate":
+        print(len(calibration_sample(args.out, args.into)))
+    elif args.command == "export":
+        print(export(args.out, args.gold))
     else:
         print(json.dumps(report(args.outs), indent=2))
 

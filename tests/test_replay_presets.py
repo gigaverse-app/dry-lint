@@ -297,6 +297,16 @@ def test_cli_dispatches_each_step(replay, history, tmp_path, monkeypatch, capsys
     monkeypatch.setattr(sys, "argv", ["replay", "report", str(out)])
     runpy.run_path(script, run_name="__main__")
     assert json.loads(capsys.readouterr().out)[out.name]["commits"] == 4
+    monkeypatch.setattr(sys, "argv", ["replay", "score", "--out", str(out)])
+    with patch.object(httpx.Client, "post", side_effect=httpx.ConnectError("offline")):
+        runpy.run_path(script, run_name="__main__")
+    assert replay["read"](out / "jev-population.jsonl") == []
+    calibration = tmp_path / "calibration"
+    monkeypatch.setattr(sys, "argv", ["replay", "calibrate", "--out", str(out), "--into", str(calibration)])
+    runpy.run_path(script, run_name="__main__")
+    monkeypatch.setattr(sys, "argv", ["replay", "export", "--out", str(calibration), "--gold", str(tmp_path / "gold.jsonl")])
+    runpy.run_path(script, run_name="__main__")
+    assert capsys.readouterr().out.split() == ["0", "0"]  # nothing scored, so nothing sampled or exported
 
 
 @pytest.mark.parametrize("text,expected", [
@@ -308,3 +318,61 @@ def test_cli_dispatches_each_step(replay, history, tmp_path, monkeypatch, capsys
 def test_a_label_is_the_first_object_with_a_known_label(replay, text, expected) -> None:
     answer = replay["parse_label"](text)
     assert (answer or {}).get("label") == expected
+
+
+def test_calibration_scores_production_pairs_once_and_samples_by_jev_band(replay, history, tmp_path) -> None:
+    out = sampled(replay, history, tmp_path)
+    replay["score"](out, Fixed("jev", 0.65, fail_first=True), batch=1)  # the first batch is lost, the rest recorded
+    first = replay["read"](out / "jev-population.jsonl")
+    replay["score"](out, Fixed("jev", 0.65))  # resumes: only the lost pair is scored
+    scored = replay["read"](out / "jev-population.jsonl")
+    assert len(scored) == len(first) + 1 == len({row["key"] for row in scored})
+    baseline = {row["key"] for row in json.loads((out / "sample.json").read_text()) if "baseline" in row["sources"]}
+    assert baseline <= {row["key"] for row in scored}  # every production pair, and only production's
+    assert all("baseline" in replay["sources"](row) for row in replay["read"](out / "replay.jsonl")
+               if replay["pair_key"](Function.model_validate(row["new"]).qualname,
+                                     Function.model_validate(row["existing"]).qualname) in {r["key"] for r in scored})
+
+
+def test_calibration_sample_weights_bands_and_reuses_bought_labels(replay, history, tmp_path) -> None:
+    out = sampled(replay, history, tmp_path)
+    rows = json.loads((out / "sample.json").read_text())
+    label_all(replay, out, rows)
+    replay["score"](out, Fixed("jev", 0.65))
+    into = tmp_path / "calibration"
+    chosen = replay["calibration_sample"](out, into, sizes=(0, 0, 0, 0, 1, 0, 0, 0))
+    population = json.loads((into / "population.json").read_text())
+    assert [row["stratum"] for row in chosen] == ["0.6-0.7"] * len(chosen)
+    assert all(row["weight"] == population["0.6-0.7"] / len(chosen) for row in chosen)
+    reused = replay["read"](into / "labels.jsonl")
+    earlier = {row["key"] for row in rows}
+    assert {r["id"] for r in reused} == {row["id"] for row in chosen if row["key"] in earlier}
+    replay["calibration_sample"](out, into, sizes=(0, 0, 0, 0, 1, 0, 0, 0))
+    assert replay["read"](into / "labels.jsonl") == reused  # drawing again never duplicates carried labels
+
+
+def test_calibration_without_an_earlier_sample_starts_with_no_labels(replay, history, tmp_path) -> None:
+    out = sampled(replay, history, tmp_path)
+    replay["score"](out, Fixed("jev", 0.95))
+    (out / "sample.json").unlink()
+    into = tmp_path / "calibration"
+    chosen = replay["calibration_sample"](out, into)
+    assert chosen and all(row["stratum"] == "0.9-1.0" for row in chosen) and replay["read"](into / "labels.jsonl") == []
+
+
+def test_export_writes_majority_labels_as_bench_gold(replay, history, tmp_path) -> None:
+    out = sampled(replay, history, tmp_path)
+    rows = json.loads((out / "sample.json").read_text())
+    models = replay["LABELLERS"]
+    answers = [{"id": r["id"], "model": m, "answer": {"label": "CONSOLIDATE" if r["id"] == 1 else "PATTERN",
+                                                       "variation": "drifted", "owner": "B" if m != models[2] else "A"}}
+               for r in rows[:-1] for m in models]  # the last pair has no labels, so no majority
+    replay["append"](out / "labels.jsonl", answers + [{"id": 2, "model": "silent", "answer": None}])
+    gold = tmp_path / "gold" / "gold.jsonl"
+    assert replay["export"](out, gold) == len(rows) - 1
+    pairs = [GoldPair.model_validate_json(line) for line in gold.read_text().splitlines()]
+    weights = {row["id"]: row["weight"] for row in rows}
+    duplicate = [p for p in pairs if p.label == "duplicate"]
+    assert len(duplicate) == 1 and duplicate[0].drifted is True and duplicate[0].owner == "existing"
+    assert duplicate[0].weight == weights[1]
+    assert all(p.drifted is None and p.owner is None for p in pairs if p.label == "separate")
