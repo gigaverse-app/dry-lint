@@ -20,8 +20,8 @@ from dry_lint.plugins import load
 from dry_lint.settings import PluginChoice, Settings
 
 
-def pair_keys(pairs: list[Candidate]) -> set[tuple[str, str]]:
-    return {tuple(sorted((pair.new.qualname, pair.existing.qualname))) for pair in pairs}
+def pair_keys(pairs: list[Candidate]) -> set[str]:
+    return {pair.key for pair in pairs}
 
 
 def verify_upstream(root: Path, functions: list[Function]) -> int:

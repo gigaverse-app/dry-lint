@@ -1,7 +1,7 @@
 # Dryer versus native TF-IDF on gigaverse-backend
 
 Keep **TF-IDF as the default** and use Dryer as an optional additional source. At the measured defaults, Dryer
-adds 17 unique backlog pairs but misses 389 TF-IDF backlog pairs, and takes about 3.8 times as long to scan.
+adds 17 unique backlog pairs but misses 389 TF-IDF backlog pairs, and takes about 7.9 times as long to scan.
 These are unjudged candidate counts. They do not measure true-duplicate recall.
 
 ## Method and provenance
@@ -10,14 +10,14 @@ Measured on 3 November 2026, Windows 11, Python 3.14.7, on one developer machine
 
 - Backend snapshot: `22dfbe180c6704101658a088cc269a25fa9c82dd`, in a clean detached worktree.
 - Recent-change base: `9d5314c54bb3e7e15c825e8eac44e6960ab42d9d` (`HEAD~40`, 40 first-parent steps, not 40 individual PR tests).
-- Native baseline: dry-lint main `9fcc87008a44a5233758833083292c1c4395b6bc`.
-- Plugin implementation: `1fd8e22167e7d7f0432d92313b76b8ce2c07cc86`.
+- Native baseline: dry-lint main `ab54f0baca999fce05448f3555ad422659a92b82`.
+- Plugin implementation: `599d0e9767e32eac42641746613ac9aa5837c638`.
 - Dryer: `66ff6d21a42c04afcad89c78a80066176d1294b0`; tree-sitter 0.26.0; tree-sitter-language-pack 1.23.1.
 - Canonical corpus: **5,057 functions in 501 tracked Python files**. The default dry-lint exclusions remove
-  `*/tests/*`, `tests/*`, `*/migrations/*`, `*/scripts/*`. These are glob rules, not a semantic production-code filter;
+  `*/tests/*`, `tests/*`, `*/migrations/*`, `*/scripts/*`. Include is `*`, with the Python extractor selecting `*.py`. These are glob rules, not a semantic production-code filter;
   for example, top-level `perf/` functions are included. There are 295 touched functions since the base.
 - Corpus SHA-256: `edb5a12c18cd3008ab2c7b6672cef90aa35c3f52efe8028a345b4bd9660a0efb`.
-- Main PR #1 is included: declaration-only stubs are omitted, same-file neighbours are excluded before limiting,
+- Main PRs #1, #3 and #4 are included, including the comparer plugin framework and Action changes: declaration-only stubs are omitted, same-file neighbours are excluded before limiting,
   and delegation rules inspect AST calls. Both sources use these shared fixes.
 - Same extracted functions, cross-file neighbour budget (3), suppressions and mutual-nearest scan policy.
   TF-IDF uses its existing 0.5/0.3 floors; Dryer uses upstream defaults 0.82, four lines, 20 nodes.
@@ -25,7 +25,7 @@ Measured on 3 November 2026, Windows 11, Python 3.14.7, on one developer machine
   comparison; this is not a controlled accuracy comparison at matched recall or a standalone Dryer CLI benchmark.
 - Three repetitions, alternating detector order; no judge, network judgement, source execution or backend deployment.
   Whole-file upstream extraction matched the adapter for every canonical function span. The grammar was already
-  downloaded before timing. Source extraction happened once (0.662 s), outside per-detector timings.
+  downloaded before timing. Source extraction and behavior tokenization happened once (1.611 s), outside per-comparer timings.
 - Independently ran unmodified dry-lint main against the same snapshot: all 420 scan pairs, 149 changed-function
   pairs and their scores exactly match the refactored TF-IDF source.
 
@@ -54,9 +54,9 @@ A real invocation also pays source extraction and interpreter startup. The scan 
 
 | Operation | TF-IDF median (range) | Dryer median (range) |
 | --- | ---: | ---: |
-| Build fingerprints/index | 1.004 (0.996-1.117) | 2.359 (2.135-2.793) |
-| Propose candidates for 295 touched functions | 0.635 (0.506-0.729) | 1.774 (1.755-1.826) |
-| Scan the full backlog | 7.538 (5.798-7.948) | 28.388 (26.786-31.544) |
+| Build comparer index from extracted functions | 0.180 (0.131-0.189) | 2.536 (2.106-2.971) |
+| Propose candidates for 295 touched functions | 0.633 (0.552-0.719) | 3.070 (2.657-4.479) |
+| Scan the full backlog | 6.015 (5.291-8.558) | 47.770 (47.360-48.193) |
 
 Dryer compares eligible fingerprint sets per query, with an exact set-size upper-bound filter; TF-IDF uses an
 inverted index. Neither requires a model. The integration intentionally reuses upstream normalization and
