@@ -8,10 +8,11 @@ import pytest
 
 from conftest import SCRIPTS, gold_line, run_script
 
+Signals = runpy.run_path(str(SCRIPTS / "semantic_signals.py"))["Signals"]
+
 
 def trial(sources: dict[str, str]):
-    script = SCRIPTS / "semantic_signals.py"
-    return runpy.run_path(str(script))["Signals"](sources)
+    return Signals(sources)
 
 
 def test_import_aliases_resolve_to_the_same_api_without_importing_the_module() -> None:
