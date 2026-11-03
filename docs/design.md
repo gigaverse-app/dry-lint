@@ -11,7 +11,7 @@ verdicts are kept are plugins ([plugins.md](plugins.md)).
 | Judging a pair | Which pairs need an answer; the thresholds; escalation | **Judge**: answers whether a pair is one concept. `jev` and `command` are built in |
 | Remembering | The verdict record, its key and when it is reused | **Store backend**: get and put a record by key. `dir` and `s3` are built in |
 | Reporting | One report, rendered as text, annotations, a PR comment, JSON, SARIF and a check run | none |
-| Measuring | The gold-set format and `dry-lint bench` | none |
+| Measuring | The gold-set format, `dry-lint bench` and its replay of recent commits | none |
 
 ## Pipeline
 
@@ -75,7 +75,7 @@ optional function `origin` using the existing `Run` contract. Workspace function
 while their paths remain repository-relative and their links use the source commit. Single-repository identities
 and pair keys stay unchanged. Schema 4 adds bounded function `context`, a full-source `context_digest`, candidate
 `consolidation` destinations, verdict-store `context_hash`, and finding `deferred` state. Old records default to
-empty context, so they cannot satisfy a new contextual request. The models are in `models.py`, `store.py` and `report.py`.
+empty context, so they cannot satisfy a new contextual request. The models are in `models.py`, `store.py`, `report.py` and `ledger.py`.
 
 | File | Written by | Holds |
 | --- | --- | --- |
@@ -84,6 +84,8 @@ empty context, so they cannot satisfy a new contextual request. The models are i
 | `candidates.json` | `detect` | `run`, `changed` (how many functions the change touched), `candidates` |
 | `<key>.json` in the store | the judge step | one verdict record |
 | `report.json` | `judge`, `check` | `run`, `judge`, `findings`, `filtered` |
+| `<!-- dry-lint-ledger {…} -->` in the sticky | `python -m dry_lint.sticky --report` | a pull request's ledger: its tally, its last pushes and every pair a push reported, with what became of it ([ledger](github-action.md#the-ledger)) |
+| `ledger/repository.json` in the store folder | the action, on a push to the default branch | the repository's ledger: its runs and its merged pull requests' ledgers, and since when it counts |
 | `gold.jsonl` | people and labellers | one labelled pair per line ([benchmark.md](benchmark.md)) |
 
 A **candidate** is both functions (name, owner, path, lines, code and structure hash), the `similarity`, the

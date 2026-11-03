@@ -172,6 +172,12 @@ def test_action_publishes_functions_without_judging_or_commenting(github_env, re
     assert not (action.workdir() / "comment.md").exists()
 
 
+def test_repeated_peer_indexes_cannot_double_count_functions(index_server, github_env, repo):
+    github_env("workflow_dispatch", {}, working_directory=str(repo.root), base="HEAD",
+               repository_indexes="org/app@main\n\norg/app@main", comment="false", judge="none")
+    assert action.main(["run"], transport=index_server[3]) == 2
+
+
 @pytest.mark.parametrize("mode,spec", [("detect", "org/app@main"), ("judge", "org/app@main"), ("single", "org/app")])
 def test_action_rejects_peer_indexes_in_untrusted_modes_and_malformed_specs(github_env, repo, mode, spec):
     github_env("workflow_dispatch", {}, mode=mode, working_directory=str(repo.root), repository_indexes=spec)

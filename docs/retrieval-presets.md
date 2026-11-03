@@ -94,8 +94,9 @@ three times the real-duplicate share of the Python ones.
   second-judge preset, and measured with this replay on the repository that wants it. The behaviour slot does not
   belong: 153 extra calls per 100 commits and nothing reported.
 - **The tool belongs in the product.** Repositories differ more than the options do (8% to 25% real candidates).
-  `scripts/replay_presets.py` measures any repository's own history at about $2.50 per 100 labelled pairs; promoting
-  it to `dry-lint bench --replay` would let a team choose its settings on its own data.
+  `dry-lint bench --replay N` now replays a repository's own history with its settings and preset, showing what
+  would have failed, warned and cost ([running it](benchmark.md#running-it)). Labelling a sample of the replayed
+  pairs, as `scripts/replay_presets.py` does, is the next step.
 
 ## Judging presets on three more repositories
 

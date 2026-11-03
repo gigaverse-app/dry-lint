@@ -174,6 +174,36 @@ first-parent commits of main, scored by Jev, sampled by Jev band toward the deci
 - **Reports from 0.6 are noisier on web-app** (80%): Sonnet's 0.6–0.7 answers there are as often wrong as right. They
   warn without failing.
 
+### `jev+opus` and the budget elsewhere
+
+Live, with no budget, `jev+opus` failing at 0.55 scored 100% (100–100) precision and 64% (53–75) recall on
+gigaverse-backend, 90% (81–100) and 75% (63–86) on web-app, and 96% (91–100) and 75% (65–85) on mobile.
+
+The budget binds harder on these repositories than on gigaverse-ai. Opus and Sonnet answers to every gold pair in
+Jev's band were saved, and each preset was simulated commit by commit over the replayed history: the 57, 77 and 59
+first-parent commits of main that had candidate pairs, each standing for a squashed pull request, with 1.27 judge
+calls per pair for re-pushes. Within $0.04 a pull request, Opus could not reach about half of the pairs in its
+band. 13 to 15 of those commits reached the budget with `jev+opus`, and 5 to 7 with `jev+sonnet`:
+
+| Within $0.04 a PR | `jev+opus` fails at 0.55 | `jev+sonnet` fails at 0.7 | Average per commit, Opus / Sonnet |
+| --- | --- | --- | --- |
+| gigaverse-ai (above) | 98% / 85% | 97% / 84% | $0.005 / $0.0035 a pull request |
+| gigaverse-backend | 96% (89–100) / 60% (48–72) | 100% (100–100) / 60% (49–72) | $0.017 / $0.011 |
+| gigaverse-web-app | 83% (73–92) / 75% (62–88) | 86% (76–94) / 70% (58–82) | $0.017 / $0.010 |
+| gigaverse-mobile | 89% (81–96) / 77% (68–87) | 87% (78–95) / 74% (63–85) | $0.017 / $0.011 |
+
+- **The two presets tie off gigaverse-ai.** Opus finds a few more duplicates and Sonnet blocks a little less, all
+  within the intervals. Sonnet costs about two thirds as much, so it reaches more pairs before the budget runs out.
+  `jev+opus` stays the default because it leads on the largest gold set, but on these repositories either is as good.
+- **The budget costs TypeScript precision.** Without a budget, `jev+opus` scored 90% on web-app and 98% on mobile;
+  within $0.04, 83% and 89%. The difference is pairs left on Jev's answer, held to 0.8, where Jev alone is about 80%
+  precise on TypeScript. A larger budget barely helps (web-app gets 84% and 79% within $0.10), because Opus itself
+  scores 90% there. Raising Jev's bar trades too much recall: at `first_at` 0.91, web-app gets 93% precision and
+  46% recall. So a TypeScript repository should keep `warn-only` for now, as gigaverse-web-app does; on Python,
+  either preset can block.
+- One Opus run per pair: on gigaverse-ai, two runs differed on 7 of 250 decisions, which moves a 140-pair set's
+  figures by a few points.
+
 ## Earlier gold set (superseded)
 
 The first gold set had 96 pairs from the 120 most recent pull requests, with 23 duplicates. It put Jev at 75%
@@ -224,6 +254,24 @@ dry-lint bench --gold gold.jsonl                       # the configured judge: A
 dry-lint bench --gold gold.jsonl --judge command --judge-command "claude -p"
 dry-lint bench --gold gold.jsonl --comparer            # is each duplicate's partner proposed, on today's code?
 ```
+
+Without a gold set, `dry-lint bench --replay N` shows what `check` would have done on each of the last N first-parent
+commits of the default branch, with this checkout's settings and preset: which commits would have failed or only
+warned, the findings, how many pairs were judged and the estimated cost. It replays oldest first in a temporary
+worktree, so your checkout is never touched, and it goes through the verdict store like `check`: running it again with
+another `--fail-at` or `report_at` judges nothing new, and later checks reuse its verdicts. The budget applies to the
+whole replay; raise it with `--budget-usd` for a long one.
+
+```bash
+dry-lint bench --replay 50                             # the configured preset on the last 50 commits
+dry-lint bench --replay 50 --fail-at 0.9               # the same verdicts, a stricter threshold: free
+dry-lint bench --replay 50 --preset jev --ref origin/release --format json --report replay.json
+```
+
+On gigaverse-backend, the last 30 commits with `jev+sonnet` took about 70 seconds and $0.18: 19 findings, 5 commits
+that would have failed. At `--fail-at 0.9` the same 19 findings fail 2 commits and warn on 3, with no new judge
+calls. The store keeps one verdict per pair, the latest, so a pair met again at a later commit reuses it whenever
+`check` would.
 
 ## Labelling guideline
 

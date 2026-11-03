@@ -14,6 +14,7 @@ from dry_lint.models import CandidatesFile
 
 from conftest import EXISTING, Repo, judge_calls
 from conftest import TWIN as TWIN_SOURCE
+from conftest import run_cli as run
 
 TWIN = "src/widgets/caption.py::preview_caption_text"
 
@@ -23,10 +24,6 @@ def outside_actions(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY",
                  "CLAUDE_CODE_OAUTH_TOKEN"):
         monkeypatch.delenv(name, raising=False)
-
-
-def run(repo: Repo, tmp_path: Path, *args: str, command: str = "check") -> int:
-    return main([command, "--root", str(repo.root), "--store", str(tmp_path / "store"), *args])
 
 
 def test_check_fails_and_annotates_an_error_for_a_blocking_reimplementation(repo: Repo, tmp_path: Path,
@@ -212,6 +209,9 @@ def test_judge_failures_exit_2_without_a_traceback(repo: Repo, tmp_path: Path, m
     with patch.object(JevJudge, "judge", side_effect=httpx.ConnectError("api unreachable")):
         assert run(repo, tmp_path, "--base", "main", "--judge", "jev") == 2
     assert capsys.readouterr().err.startswith("dry-lint: ")
+    with patch.object(JevJudge, "judge", side_effect=subprocess.TimeoutExpired("judge", 180)):
+        assert run(repo, tmp_path, "--base", "main", "--judge", "jev") == 2
+    assert "timed out" in capsys.readouterr().err
 
 
 def test_config_shows_the_resolved_preset_its_numbers_and_what_unlocks_the_others(repo: Repo, monkeypatch, capsys) -> None:

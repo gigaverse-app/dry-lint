@@ -250,15 +250,33 @@ def extractor_for(path: str, extractors: list[Extractor]) -> Extractor | None:
     return next((e for e in extractors if any(fnmatch.fnmatch(path, glob) for glob in e.files)), None)
 
 
-def repository_functions(root: Path, include: list[str], exclude: list[str], extractors: list[Extractor]) -> list[Function]:
-    """Every function in the tracked files, each file read by its extractor."""
+def blob_ids(root: Path) -> dict[str, str]:
+    """Each tracked path's blob id in the index: the same id at the same path is the same content."""
+    listed = git(root, "ls-files", "-s", "-z")
+    return {entry.split("\t", 1)[1]: entry.split()[1] for entry in listed.split("\0") if entry}
+
+
+def repository_functions(root: Path, include: list[str], exclude: list[str], extractors: list[Extractor],
+                         cache: dict[tuple[str, str], list[Function]] | None = None) -> list[Function]:
+    """
+    Every function in the tracked files, each file read by its extractor. With a `cache`, keyed by path and blob id
+    and shared across checkouts of one repository, a file whose content was already read is not read again.
+    """
+    blobs = blob_ids(root) if cache is not None else {}
     found: list[Function] = []
     for path in tracked_files(root, include, exclude):
         extractor = extractor_for(path, extractors)
         if extractor is None:
             continue
+        key = (path, blobs.get(path, ""))
+        if cache is not None and key in cache:
+            found += cache[key]
+            continue
         try:
-            found += extractor.functions(path, (root / path).read_text(encoding="utf-8"))
+            functions = extractor.functions(path, (root / path).read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError):
             continue
+        if cache is not None:
+            cache[key] = functions
+        found += functions
     return found
