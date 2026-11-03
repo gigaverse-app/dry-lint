@@ -165,10 +165,14 @@ def plan() -> int:
     return 0
 
 
+def workdir() -> Path:
+    return Path(env("RUNNER_TEMP", "/tmp")) / "dry-lint"
+
+
 def run(transport: httpx.BaseTransport | None = None) -> int:
     event_name, event = env("GITHUB_EVENT_NAME"), load_event()
     mode = resolve_mode(env("INPUT_MODE", "auto"), event_name, event)
-    work = Path(env("RUNNER_TEMP", "/tmp")) / "dry-lint"
+    work = workdir()
     work.mkdir(parents=True, exist_ok=True)
     root = Path(env("INPUT_WORKING_DIRECTORY", ".") or ".").resolve()
     store, report, body = work / "verdicts", work / "report.json", work / "comment.md"
@@ -229,11 +233,17 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
 
 def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = None) -> int:
     command = (argv if argv is not None else sys.argv[1:])[:1]
+    if command == ["plan"]:
+        return plan()
     try:
-        return plan() if command == ["plan"] else run(transport)
+        return run(transport)
     except ValueError as error:
         print(f"::error title=dry-lint::{error}")
         return 2
+    finally:
+        # action.yml saves the verdict cache only when there is something to save (hashFiles cannot see RUNNER_TEMP).
+        store = workdir() / "verdicts"
+        write_outputs(stored=str(store.is_dir() and any(store.iterdir())).lower())
 
 
 if __name__ == "__main__":  # pragma: no cover
