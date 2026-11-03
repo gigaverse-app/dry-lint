@@ -10,6 +10,7 @@ import httpx2
 import pytest
 
 from dry_lint.bench import GoldFunction, GoldPair
+from dry_lint.cli import main
 from dry_lint.functions import behaviour_tokens, function_calls, structure_hash
 from dry_lint.git import git
 from dry_lint.models import Candidate, Function
@@ -180,6 +181,11 @@ def twin_judge(tmp_path: Path) -> str:
 def blocking_twin_judge(tmp_path: Path) -> str:
     """Judges the caption twin a duplicate (0.95) that blocks even with a raised fail_at."""
     return judge_script(tmp_path, 0.95)
+
+
+def run_cli(repo: Repo, tmp_path: Path, *args: str, command: str = "check") -> int:
+    """The dry-lint command on `repo`, with a verdict store of its own under `tmp_path`."""
+    return main([command, "--root", str(repo.root), "--store", str(tmp_path / "store"), *args])
 
 
 def judge_calls(tmp_path: Path) -> int:

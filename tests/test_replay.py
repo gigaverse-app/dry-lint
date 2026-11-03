@@ -7,14 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from dry_lint.cli import main
 from dry_lint.functions import repository_functions
 from dry_lint.plugins import load
 from dry_lint.replay import Replay, replay
 from dry_lint.settings import PluginChoice, Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
-from conftest import EXISTING, TWIN, Repo, filler_module, judge_calls
+from conftest import EXISTING, TWIN, Repo, filler_module, judge_calls, run_cli
 
 
 @pytest.fixture
@@ -109,7 +108,7 @@ def test_a_replay_with_nothing_to_report_says_so_plainly() -> None:
 
 
 def run(repo: Repo, tmp_path: Path, *args: str) -> int:
-    return main(["bench", "--root", str(repo.root), "--store", str(tmp_path / "store"), *args])
+    return run_cli(repo, tmp_path, *args, command="bench")
 
 
 def test_bench_replay_prints_text_or_json_and_writes_the_report(history, tmp_path, blocking_twin_judge, capsys) -> None:
