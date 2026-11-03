@@ -10,6 +10,7 @@ import fnmatch
 import re
 from pathlib import Path
 
+from dry_lint.function_index import FunctionIndex, extraction_contract
 from dry_lint.functions import extractor_for, repository_functions
 from dry_lint.git import git
 from dry_lint.models import Candidate, Function, Run
@@ -105,9 +106,10 @@ class Detector:
         return cls(functions, settings, load("comparers", settings.comparer), extractors)
 
     @classmethod
-    def for_workspace(cls, roots: dict[str, Path], settings: Settings) -> "Detector":
+    def for_workspace(cls, roots: dict[str, Path], settings: Settings,
+                      indexes: list[FunctionIndex] = ()) -> "Detector":
         """One index of committed checkouts; only neighbours in another repository are proposed."""
-        if len(roots) < 2:
+        if len(roots) + len(indexes) < 2:
             raise ValueError("A workspace needs at least two repositories")
         extractors = [load("extractors", choice) for choice in settings.extractors]
         functions: list[Function] = []
@@ -125,6 +127,14 @@ class Detector:
             source = Settings.load(root)
             functions.extend(f.model_copy(update={"origin": origin}) for f in
                              repository_functions(root, source.include, source.exclude, extractors))
+        names = set(roots)
+        for index in indexes:
+            if index.repository in names:
+                raise ValueError(f"Duplicate repository: {index.repository}")
+            names.add(index.repository)
+            if index.contract != extraction_contract(settings):
+                raise ValueError(f"Function index contract mismatch for {index.repository}")
+            functions.extend(index.extracted())
         return cls(functions, settings, load("comparers", settings.comparer), extractors, cross_repository=True)
 
     def find(self, name: str) -> Function:

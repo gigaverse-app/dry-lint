@@ -79,6 +79,37 @@ def test_gold_sets_load_from_json_lines(tmp_path: Path) -> None:
     assert [g.label for g in load_gold(path)] == ["duplicate", "separate"]
 
 
+def test_a_toml_gold_set_holds_the_same_pairs_as_json_lines(tmp_path: Path) -> None:
+    lines = tmp_path / "gold.jsonl"
+    lines.write_text(gold("a", "x", "duplicate").model_dump_json() + "\n")
+    readable = tmp_path / "gold.toml"
+    readable.write_text("""[[pair]]
+label = "duplicate"
+weight = 1.0
+note = "extra fields are ignored"
+
+[pair.new]
+id = "a.py::a"
+code = '''
+def a(x):
+    return x
+'''
+
+[pair.existing]
+id = "b.py::x"
+code = '''
+def x(text):
+    return text
+'''
+""")
+    [pair] = load_gold(readable)
+    assert pair.model_dump(exclude={"new", "existing"}) == load_gold(lines)[0].model_dump(exclude={"new", "existing"})
+    assert (pair.new.id, pair.new.code, pair.existing.id) == ("a.py::a", "def a(x):\n    return x\n", "b.py::x")
+    empty = tmp_path / "empty.toml"
+    empty.write_text("# no pairs yet\n")
+    assert load_gold(empty) == []
+
+
 def test_the_comparer_benchmark_checks_each_gold_duplicate_is_proposed(repo: Repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
     twin = GoldPair(new=GoldFunction(id="src/widgets/caption.py::preview_caption_text", code=TWIN),

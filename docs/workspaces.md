@@ -1,5 +1,8 @@
 # Find duplication across repositories
 
+For CI, use [versioned function indexes](function-indexes.md) to share peer extraction without cloning their
+repositories on every PR. The checkout-based commands below remain useful locally.
+
 Index related repositories together when an implementation in one app might already exist in a sibling app or
 shared library. Run from the repository whose judge, comparer, extractor and reporting settings should apply:
 

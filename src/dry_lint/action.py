@@ -31,10 +31,13 @@ import httpx
 
 from dry_lint import sticky
 from dry_lint.detector import base_ref, given
+from dry_lint.function_index import export_index
 from dry_lint.git import git
 from dry_lint.github import github_event
+from dry_lint.index_github import IndexClient
 from dry_lint.ledger import PullLedger, RepositoryLedger, Tally
 from dry_lint.report import Report
+from dry_lint.settings import Settings
 
 ARTIFACT = "dry-lint-candidates"
 OVERRIDE_LABEL = "dry-lint: override"
@@ -57,8 +60,8 @@ def is_fork(event: dict) -> bool:
 
 def resolve_mode(requested: str, event_name: str, event: dict) -> str:
     if requested and requested != "auto":
-        if requested not in ("single", "detect", "judge"):
-            raise ValueError(f"Unknown mode: {requested} (use auto, single, detect or judge)")
+        if requested not in ("single", "detect", "judge", "index", "fetch-indexes"):
+            raise ValueError(f"Unknown mode: {requested} (use auto, single, detect, judge, index or fetch-indexes)")
         return requested
     if event_name == "workflow_run":
         return "judge"
@@ -320,12 +323,55 @@ def workdir() -> Path:
     return Path(env("RUNNER_TEMP", "/tmp")) / "dry-lint"
 
 
+def peer_indexes(root: Path, work: Path, transport: httpx.BaseTransport | None = None) -> tuple[list[str], str]:
+    arguments, receipts = [], []
+    client = IndexClient(env("INPUT_INDEX_TOKEN") or env("GITHUB_TOKEN"), env("GITHUB_API_URL", "https://api.github.com"), transport)
+    try:
+        for spec in env("INPUT_REPOSITORY_INDEXES").splitlines():
+            if not spec.strip():
+                continue
+            repository, separator, ref = spec.strip().partition("@")
+            if not separator:
+                raise ValueError("repository-indexes expects OWNER/NAME@REF, one per line")
+            fetched = client.fetch(repository, ref, Settings.load(root))
+            index = fetched.index
+            path = work / f"{repository.replace('/', '--')}-{index.commit}.json.gz"
+            path.write_bytes(index.encode())
+            arguments.extend(["--repo-index", f"{repository}@{index.commit}={path}"])
+            receipts.append(fetched.receipt())
+    finally:
+        client.close()
+    manifest = work / "index-arguments.json"
+    manifest.write_text(json.dumps(arguments))
+    write_outputs(index_arguments=str(manifest))
+    receipt = ("\n\n### Peer function indexes\n\n| Repository | Source commit | Functions | Source | Bytes downloaded |\n"
+               "| --- | --- | ---: | --- | ---: |\n" + "\n".join(receipts) + "\n") if receipts else ""
+    return arguments, receipt
+
+
 def run(transport: httpx.BaseTransport | None = None) -> int:
     event_name, event = env("GITHUB_EVENT_NAME"), github_event()
     mode = resolve_mode(env("INPUT_MODE", "auto"), event_name, event)
     work = workdir()
     work.mkdir(parents=True, exist_ok=True)
     root = Path(env("INPUT_WORKING_DIRECTORY", ".") or ".").resolve()
+    if mode == "index":
+        snapshot = export_index(root, env("GITHUB_REPOSITORY"), Settings.load(root))
+        path = work / "functions.json.gz"
+        path.write_bytes(snapshot.encode())
+        write_outputs(mode=mode, exit_code=0, index_name=snapshot.artifact_name, index_path=str(path))
+        print(f"Published index: {snapshot.repository}@{snapshot.commit}, {len(snapshot.functions)} functions, {path.stat().st_size} bytes")
+        return 0
+    index_arguments, receipt = [], ""
+    if env("INPUT_REPOSITORY_INDEXES"):
+        if mode in {"detect", "judge"}:
+            raise ValueError("Peer indexes are consumed only in trusted single or fetch-indexes mode")
+        index_arguments, receipt = peer_indexes(root, work, transport)
+    if mode == "fetch-indexes":
+        (work / "indexes.md").write_text(receipt)
+        write_summary(work / "indexes.md")
+        write_outputs(mode=mode, exit_code=0)
+        return 0
     store, report, body = work / "verdicts", work / "report.json", work / "comment.md"
     judge = resolve_judge(env("INPUT_JUDGE"), any(env(key) for key in JUDGE_KEYS))
     # dry-lint logs as text; annotations are rendered from report.json afterwards, and only when a judge ran:
@@ -340,6 +386,9 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         judging += ["--judge-command", env("INPUT_JUDGE_COMMAND")]
     repositories = [argument for line in env("INPUT_REPOSITORIES").splitlines() if line.strip()
                     for argument in ("--repo", line.strip())]
+    if index_arguments and not repositories:
+        repositories = ["--repo", f"{env('GITHUB_REPOSITORY')}={root}"]
+    repositories.extend(index_arguments)
 
     if mode == "detect":
         base = resolve_base(env("INPUT_BASE"), event_name, event)
@@ -379,6 +428,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         else:  # the repository's settings turn judging off (preset or judge "none") although keys are present
             judge, code = "none", 0
     findings, blocking = count_findings(lines)
+    if receipt and body.exists():
+        body.write_text(body.read_text() + receipt)
     write_summary(body)
     if code == 2:
         write_outputs(mode=mode, exit_code=2, findings=findings, blocking=blocking, overridden="false")
@@ -408,7 +459,7 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
         return plan()
     try:
         return run(transport)
-    except ValueError as error:
+    except (ValueError, OSError, httpx.HTTPError, subprocess.CalledProcessError) as error:
         print(f"::error title=dry-lint::{error}")
         return 2
     finally:

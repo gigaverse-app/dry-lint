@@ -66,6 +66,7 @@ Start with a local candidate pass, then add a judge when you want duplication de
 | Try structural matching as well | [Install the optional Dryer comparer](docs/detectors.md) |
 | Put judged findings on pull requests | [GitHub Action setup](docs/github-action.md) |
 | Find copies across related repositories | [Workspace scans and shared ownership](docs/workspaces.md) |
+| Avoid cloning peer repositories in CI | [Versioned function indexes](docs/function-indexes.md) |
 | See the comment before installing | [Example report](docs/comment-preview.md) |
 
 ```bash
