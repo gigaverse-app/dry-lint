@@ -68,6 +68,13 @@ default; set `fail-on-findings: "true"` once the team trusts it.
 **pre-commit** ([examples/pre-commit-config.yaml](examples/pre-commit-config.yaml)): hook id `dry-lint` checks the
 staged functions.
 
+## Optional structural detector
+
+Install the `dryer` extra and pass `--detector dryer` to either `check` or `scan` to use
+[unclebob/dryer](https://github.com/unclebob/dryer)'s structural fingerprints. TF-IDF stays the default; both sources
+share dry-lint's rules, judges and verdict store. See [setup and configuration](docs/detectors.md) and the
+[comparison on gigaverse-backend](docs/dryer-comparison.md).
+
 ## When it is right not to merge them
 
 Some look-alikes are deliberate. Silence them where the decision belongs:
@@ -110,6 +117,8 @@ measured thresholds above:
 | Setting | Default | |
 | --- | --- | --- |
 | `include` / `exclude` | `*.py` / tests, migrations, scripts | fnmatch over tracked paths |
+| `detector` | `tfidf` | `tfidf` or optional `dryer`; CLI `--detector` overrides |
+| `dryer_threshold` / `dryer_min_lines` / `dryer_min_nodes` | 0.82 / 4 / 20 | structural score and size gates; Dryer only |
 | `neighbours` | 3 | candidates per changed function |
 | `min_similarity` / `min_similarity_small` | 0.5 / 0.3 | detector floors; small means under `small_function_lines` (6) |
 | `drop_below` / `report_at` / `drift_at` | 0.6 / 0.8 / 0.8 | judge thresholds |

@@ -42,6 +42,13 @@ takes about 2 ms. That keeps it usable as a pre-commit hook without numpy or a m
 
 `scan` uses the same index for the backlog: pairs that are each other's nearest neighbour across files.
 
+### Optional candidate sources
+
+`Detector` delegates ranking to the `CandidateSource` protocol in `sources/`. The default `TfidfSource` preserves
+the original tokenization and index behavior. `DryerSource` lazily loads the optional upstream package and uses
+its Python normalizer and Jaccard scoring. Both feed the same neighbour policy, rules and `Candidate` model.
+See [detector plugins](detectors.md) for setup, size thresholds, tie behavior and runtime dependencies.
+
 ## Judge
 
 A judge turns a candidate pair into a `Verdict`:
@@ -63,11 +70,14 @@ The store has one JSON line per pair a judge decided. It is keyed on the two qua
 - the detector similarity at the time;
 - the verdict.
 
-A stored verdict is reused when:
+Each candidate and stored record records its detector (legacy records default to `tfidf`). A stored verdict is reused when:
 
 - **both structure hashes match**: nothing that matters changed; or
-- **the verdict was `separate` and the pair is not more than `reopen_margin` (0.05) closer than when it was judged.**
+- **both old and new scores are TF-IDF, the verdict was `separate`, and the pair is not more than `reopen_margin` (0.05) closer than when it was judged.**
   Changes that move two different concepts further apart cannot make them one concept.
+
+Dryer verdicts and cross-detector verdicts reopen on any logic change: structural scoring erases literals and fields,
+and cosine and Jaccard scores are incomparable. Unchanged structure hashes can still reuse a verdict across detectors.
 
 A `duplicate` or `drifted` verdict reopens on any logic change, because that change might be the fix, or more drift.
 
