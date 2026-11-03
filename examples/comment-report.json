@@ -1,0 +1,94 @@
+{
+  "schema": 2,
+  "run": {
+    "repository": "",
+    "pull_request": null,
+    "head": "",
+    "base": ""
+  },
+  "changed": 5,
+  "judge": "illustrative",
+  "findings": [
+    {
+      "candidate": {
+        "new": {
+          "path": "src/captions.py",
+          "name": "clip",
+          "owner": null,
+          "line": 8,
+          "end_line": 12,
+          "code": "def clip(text, limit):\n    return text[:limit]\n",
+          "hash": ""
+        },
+        "existing": {
+          "path": "src/text.py",
+          "name": "shorten",
+          "owner": null,
+          "line": 3,
+          "end_line": 7,
+          "code": "def shorten(text, limit):\n    return text[:limit]\n",
+          "hash": ""
+        },
+        "similarity": 0.71,
+        "comparer": "",
+        "filtered": null,
+        "similarity_reusable": false
+      },
+      "verdict": {
+        "label": "drifted",
+        "score": 0.95,
+        "behaves_differently": 0.0,
+        "owner": "existing",
+        "why": "Both shorten text, but one cuts through a word while the other preserves whole words.",
+        "judge": "illustrative",
+        "judge_version": "",
+        "second_opinion": null
+      },
+      "cached": false,
+      "family": 2,
+      "reported": true,
+      "blocking": true
+    },
+    {
+      "candidate": {
+        "new": {
+          "path": "src/captions.py",
+          "name": "clip",
+          "owner": null,
+          "line": 8,
+          "end_line": 12,
+          "code": "def clip(text, limit):\n    return text[:limit]\n",
+          "hash": ""
+        },
+        "existing": {
+          "path": "src/previews.py",
+          "name": "preview",
+          "owner": null,
+          "line": 3,
+          "end_line": 7,
+          "code": "def preview(text, limit):\n    return text[:limit]\n",
+          "hash": ""
+        },
+        "similarity": 0.71,
+        "comparer": "",
+        "filtered": null,
+        "similarity_reusable": false
+      },
+      "verdict": {
+        "label": "duplicate",
+        "score": 0.86,
+        "behaves_differently": 0.0,
+        "owner": "shared",
+        "why": "Both apply the same length limit; share that policy while keeping presentation separate.",
+        "judge": "illustrative",
+        "judge_version": "",
+        "second_opinion": null
+      },
+      "cached": true,
+      "family": 2,
+      "reported": true,
+      "blocking": false
+    }
+  ],
+  "filtered": []
+}

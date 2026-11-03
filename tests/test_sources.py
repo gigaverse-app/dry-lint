@@ -192,3 +192,31 @@ def test_similarity_is_available_below_size_gates_and_ignores_other_languages() 
     assert comparer.similarity(left, right) == 1
     assert comparer.similarity(left, foreign) == 0
     assert comparer.neighbours(left, 3, allowed=lambda _: True) == []
+
+
+@pytest.mark.parametrize("threshold", [0.01, 0.5, 0.82, 1.0])
+def test_indexed_neighbours_match_exhaustive_upstream_scores_and_tie_order(threshold: float) -> None:
+    from dryer.extract import entries_in_source
+    from dryer.shape import jaccard
+
+    bodies = [
+        SHAPE,
+        SHAPE.replace("* 2", "+ 2"),
+        SHAPE.replace("compute", "renamed"),
+        SHAPE.replace("    return adjusted", "    if adjusted:\n        return adjusted + 1\n    return 0"),
+        "def tiny():\n    return 1\n",
+    ]
+    functions = [function(f"{i}.py", code) for i, code in enumerate(bodies)]
+    entries = [entries_in_source("python", f.code, f.path, f.path)[0][0] for f in functions]
+    comparer = DryerComparer(threshold=threshold, min_lines=1, min_nodes=1)
+    comparer.index(functions)
+    for query, entry in zip(functions, entries, strict=True):
+        expected = [
+            (other, jaccard(entry.fingerprints, target.fingerprints))
+            for other, target in zip(functions, entries, strict=True)
+            if other.path != query.path and other.path != "1.py"
+        ]
+        expected = sorted((p for p in expected if p[1] >= threshold), key=lambda p: -p[1])[:3]
+        assert comparer.neighbours(query, 3, allowed=lambda f: f.path != "1.py") == expected
+    comparer.index([])
+    assert comparer.neighbours(functions[0], 3, allowed=lambda _: True) == []

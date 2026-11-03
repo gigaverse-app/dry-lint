@@ -132,8 +132,9 @@ def test_sticky_source_links_point_to_exact_commit_and_encode_paths(extractor):
     function = extractor.functions("src/price [$id].tsx", "const Price = () => <span />;")[0]
     link = function_link(function, Run(repository="acme/web", head="a" * 40))
     assert f"https://github.com/acme/web/blob/{'a' * 40}/src/price%20%5B%24id%5D.tsx#L1-L1" in link
-    assert function_link(function, Run()) == "`src/price [$id].tsx::Price`"
+    assert function_link(function, Run()) == r"src/price \[$id\].tsx::Price"
     assert "](" not in function_link(function, Run(repository="bad/repo)attack", head="a" * 40))
+    assert "](" not in function_link(function, Run(repository="acme/web", head="main"))
 
 
 def test_typescript_change_finds_existing_helper_without_python_configuration(tmp_path, extractor):

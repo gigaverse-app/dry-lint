@@ -170,7 +170,7 @@ def test_without_a_token_the_command_warns_and_succeeds(tmp_path: Path, monkeypa
     assert "No GITHUB_TOKEN" in capsys.readouterr().out
 
 
-def test_a_note_follows_the_report_and_precedes_the_source_line() -> None:
+def test_effective_status_precedes_findings_so_overrides_are_visible() -> None:
     body = compose(REPORT, note="**Blocking:** 1 finding(s)", head=HEAD)
-    assert body.index("b.py::shorten") < body.index("**Blocking:**") < body.index(f"commit {HEAD[:7]}")
+    assert body.index("**Blocking:**") < body.index("b.py::shorten") < body.index(f"commit {HEAD[:7]}")
     assert "**Blocking:**" not in compose(REPORT)

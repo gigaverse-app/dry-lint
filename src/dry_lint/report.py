@@ -8,6 +8,7 @@ it is shown, and never rendered as markdown or links.
 """
 
 import json
+import os
 import re
 from urllib.parse import quote
 
@@ -65,9 +66,12 @@ class Finding(BaseModel):
         parts.append(f"similarity {self.candidate.similarity:.2f}")
         if self.family > 1:
             parts.append(f"{self.family} look-alikes")
-        prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
-        parts.append(f"if they are different concepts, add `{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}`")
+        parts.append(f"if they are different concepts, add `{self.suppression()}`")
         return "; ".join(parts)
+
+    def suppression(self) -> str:
+        prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
+        return f"{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}"
 
 
 class Report(Versioned):
@@ -150,22 +154,28 @@ def as_github(report: Report) -> str:
 
 
 def function_link(function: Function, run: Run) -> str:
-    label = f"`{function.qualname.replace('`', '')}`"
+    """Link to the measured revision, not a moving branch; local reports keep the full location."""
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", run.repository) or not re.fullmatch(r"[a-fA-F0-9]{40}", run.head):
-        return label
-    path = quote(function.path, safe="/")
-    return f"[{label}](https://github.com/{run.repository}/blob/{run.head}/{path}#L{function.line}-L{function.end_line})"
+        return escaped(function.qualname)
+    server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
+    url = (f"{server}/{quote(run.repository, safe='/')}/blob/{quote(run.head, safe='')}/"
+           f"{quote(function.path, safe='/')}#L{function.line}-L{function.end_line}")
+    return f"[{escaped(function.qualname.split('::', 1)[1])}]({url})"
 
 
 def as_markdown(report: Report, max_findings: int = 10) -> str:
+    stats = report.stats
+    coverage = (f"{stats['changed']} changed functions · {stats['candidates']} candidate pairs · "
+                f"{stats['filtered']} skipped by rule · {stats['cached']} cached · {stats['judged']} newly judged")
     if report.judge is None:
         return (f"{MARKER}\n### dry-lint\n\nNo judge is configured, so the {len(report.findings)} look-alike pair(s) "
-                "found are shown only as annotations. Set `TYPESAFE_AI_API_KEY`, or configure a judge, to have them "
-                "judged and reported here.")
+                "found have not been assessed for duplication. Set `TYPESAFE_AI_API_KEY`, or configure a judge, "
+                f"to have them judged and reported here.\n\n{coverage}")
     shown = report.visible
     if not shown:
-        return f"{MARKER}\n### dry-lint\n\nNo duplicated concepts found in the changed functions."
+        return f"{MARKER}\n### dry-lint · No findings reported\n\nNo pairs reached the report threshold.\n\n{coverage}"
     rows = ["| Function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
+    evidence = ["<details><summary>Evidence and next steps</summary>", ""]
     for f in shown[:max_findings]:
         if f.verdict:
             verdict = f"**{'blocking ' if f.blocking else ''}{f.verdict.label}** {f.verdict.score:.2f}"
@@ -176,19 +186,32 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
             suggestion += f" ({f.family} look-alikes)"
         rows.append(f"| {function_link(f.candidate.new, report.run)} | "
                     f"{function_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
+        evidence.extend([
+            f"**{escaped(f.candidate.new.qualname)}** → **{escaped(f.candidate.existing.qualname)}**", "",
+            (f"Judge score: **{f.verdict.score:.2f}** · " if f.verdict else "Not judged · ")
+            + f"similarity: **{f.candidate.similarity:.2f}** · "
+            + ("cached verdict" if f.cached else "new verdict" if f.verdict else "candidate only"), "",
+            *(["These functions already behave differently; check callers before consolidating.", ""]
+              if f.verdict and f.verdict.label == "drifted" else []),
+            "If they represent different concepts, add this pair-specific decision inside the changed function:", "",
+            escaped(f.suppression()), "",
+        ])
+    evidence.append("</details>")
     more = ["", f"And {len(shown) - max_findings} more; see the full report in the run output."] \
         if len(shown) > max_findings else []
     skipped = [f"<details><summary>Not reported ({len(report.filtered)} settled by a rule)</summary>", "",
                *(f"- `{c.new.qualname}` ~ `{c.existing.qualname}`: {escaped(c.filtered or '')}" for c in report.filtered),
                "", "</details>"] if report.filtered else []
     blocking = sum(f.blocking for f in shown)
-    verdict_line = [f"{blocking} of them are blocking: judged duplicates at or above `fail_at`, which fail the check.", ""] \
+    verdict_line = [f"**{blocking} at the blocking threshold** (`fail_at`).", ""] \
         if blocking else []
+    functions = len({side.qualname for f in shown for side in (f.candidate.new, f.candidate.existing)})
     return "\n".join([
-        MARKER, "### dry-lint", "",
-        f"{len(shown)} implementation pair(s) look like the same concept. One concept should have one "
-        "implementation: reuse it, or parameterize the difference.", "", *verdict_line, *rows, *more, "",
-        OVERRIDES,
+        MARKER, "### dry-lint · Review findings", "",
+        f"**{len(shown)} finding{'s' if len(shown) != 1 else ''} across {functions} "
+        f"function{'s' if functions != 1 else ''}**. Reuse the existing owner or share the common behavior.",
+        "", *verdict_line, coverage, "", *rows, *more, "", *evidence, "",
+        "<details><summary>False positive? Choose the scope of your decision</summary>", "", OVERRIDES, "", "</details>",
         *([""] + skipped if skipped else []),
     ])
 

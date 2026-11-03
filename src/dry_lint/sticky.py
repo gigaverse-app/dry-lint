@@ -54,9 +54,9 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
             f'  <img alt="dry-lint" src="{ASSETS}/sticky-banner-light.svg" width="640">\n'
             "</picture>\n"
         )
-    parts.append("\n".join(lines).strip())
     if note:
-        parts.append(f"\n{note}")
+        parts.append(f"\n{note}\n")
+    parts.append("\n".join(lines).strip())
     source = [f"commit {head[:7]}" if head else "", f"[run]({run_url})" if run_url else ""]
     if any(source):
         parts.append(f"\n<sub>dry-lint · {' · '.join(s for s in source if s)}</sub>")
@@ -64,7 +64,7 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
 
 
 def resolved(key: str = "", banner: bool = False, run_url: str = "", head: str = "") -> str:
-    return compose("### dry-lint\n\nResolved: no duplicated concepts in the changed functions any more.", key,
+    return compose("### dry-lint · Resolved\n\nNo findings remain at the configured report threshold in this run.", key,
                    banner, run_url, head)
 
 
@@ -142,7 +142,7 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
     parser.add_argument("--key", default="", help="Keeps one comment per key, for several reports per PR.")
     parser.add_argument("--expect-head", default="", help="Post only while this is still the PR's head commit.")
     parser.add_argument("--run-url", default="")
-    parser.add_argument("--note", default="", help="A line after the report, e.g. whether the findings block.")
+    parser.add_argument("--note", default="", help="A line before the report, e.g. whether the findings block.")
     args = parser.parse_args(argv)
     token = os.environ.get("GITHUB_TOKEN", "")
     if not token:

@@ -18,6 +18,9 @@ That is the whole setup for a repository whose pull requests come from its own b
 - **Annotations** on the changed functions that re-implement existing code, with the function they duplicate
   and what to do about it.
 - **One sticky comment**, found again by its `<!-- dry-lint -->` marker and edited in place on every push:
+  - Blocking or override status comes first. Findings link to both functions at the analyzed commit, including on GitHub Enterprise.
+  - Counts distinguish findings from changed functions; cached and newly judged pairs show how much work ran.
+  - Expand evidence for judge scores, detector similarity and the exact pair-specific suppression target.
   - A clean pull request gets no comment.
   - When findings are fixed, the comment says so instead of going stale.
   - Copies left by two runs racing are deleted.
@@ -29,6 +32,18 @@ That is the whole setup for a repository whose pull requests come from its own b
 
 Without a judge (no `typesafe-api-key` and no `judge-command`), dry-lint lists look-alikes in the log. It adds no
 annotations, no comment and no failure, so installing it before the secret exists costs nothing.
+
+### Preview without posting
+
+[Open the illustrative report](comment-preview.md), or render it locally without a token or model:
+
+```bash
+uv run dry-lint report --from examples/comment-report.json --format markdown --warn-only
+```
+
+The fixture contains illustrative verdicts, not measured findings. To preview your own run, substitute its
+`report.json`. `report` renders saved results and never posts a comment. Local reports without repository/commit
+metadata show full qualified names instead of source links.
 
 ## When it fails, and false positives
 
