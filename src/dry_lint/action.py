@@ -72,9 +72,25 @@ def resolve_base(explicit: str, event_name: str, event: dict) -> str:
     return event.get("before", "") if event_name == "push" else ""
 
 
+JUDGE_KEYS = ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")
+
+
 def resolve_judge(requested: str, has_key: bool) -> str:
+    """
+    "auto" while some judge's key is present: dry-lint then picks its judging preset itself (jev+sonnet, jev, ...).
+    "none" without any key. An explicit choice passes through, and makes the preset "custom".
+    """
     requested = requested or "auto"
-    return ("jev" if has_key else "none") if requested == "auto" else requested
+    return ("auto" if has_key else "none") if requested == "auto" else requested
+
+
+def judging_options() -> list[str]:
+    """The preset and budget inputs, passed through only when set (older dry-lint versions lack the flags)."""
+    options = []
+    for name, flag_ in (("INPUT_PRESET", "--preset"), ("INPUT_BUDGET_USD", "--budget-usd")):
+        if env(name):
+            options += [flag_, env(name)]
+    return options
 
 
 def ensure_history(root: Path, base: str) -> None:
@@ -219,10 +235,11 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     work.mkdir(parents=True, exist_ok=True)
     root = Path(env("INPUT_WORKING_DIRECTORY", ".") or ".").resolve()
     store, report, body = work / "verdicts", work / "report.json", work / "comment.md"
-    judge = resolve_judge(env("INPUT_JUDGE"), bool(env("TYPESAFE_AI_API_KEY")))
+    judge = resolve_judge(env("INPUT_JUDGE"), any(env(key) for key in JUDGE_KEYS))
     # Unjudged look-alikes go to the log only: as annotations they would be noise on every pull request. With a
     # judge, dry-lint exits 1 when a finding blocks (at or above fail_at); the action decides what that means.
-    judging = ["--judge", judge, "--store", str(store), "--report", str(report), "--output", str(body), *fail_at()]
+    judging = [*([] if judge == "auto" else ["--judge", judge]), "--store", str(store), "--report", str(report),
+               "--output", str(body), *fail_at(), *judging_options()]
     judging += ["--format", "text", "--warn-only"] if judge == "none" else ["--format", "github"]
     if env("INPUT_JUDGE_COMMAND"):
         judging += ["--judge-command", env("INPUT_JUDGE_COMMAND")]

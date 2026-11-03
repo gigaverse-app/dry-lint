@@ -24,6 +24,24 @@ inputs:
       escalation. (Gemini needs escalate = "gemini" in [tool.dry-lint] and GEMINI_API_KEY in the environment.)
     required: false
     default: ""
+  claude-code-oauth-token:
+    description: >
+      Claude subscription token (claude setup-token). With it, the claude-code judge runs on the subscription
+      (preset jev+claude-code, or claude-code alone); the claude CLI is installed only when this is set.
+    required: false
+    default: ""
+  claude-code-version:
+    description: The @anthropic-ai/claude-code version installed for claude-code-oauth-token.
+    required: false
+    default: "2.1.311"
+  preset:
+    description: Judging preset (dry-lint config lists them). Empty lets dry-lint choose from the keys it has.
+    required: false
+    default: ""
+  budget-usd:
+    description: Spending cap per run for paid judges; pairs past it are left unjudged and say so. Empty uses the settings.
+    required: false
+    default: ""
   judge:
     description: auto (Jev when typesafe-api-key is set, otherwise none), jev, command, none, or an installed judge plugin.
     required: false
@@ -106,6 +124,12 @@ runs:
         mapfile -t extra < <(printf '%s\n' "$PLUGINS" | sed '/^[[:space:]]*$/d')
         uv pip install --quiet --python "$RUNNER_TEMP/dry-lint-venv" "$GITHUB_ACTION_PATH" "${extra[@]}"
         echo "$RUNNER_TEMP/dry-lint-venv/bin" >> "$GITHUB_PATH"
+    - name: Install the claude CLI
+      if: inputs.claude-code-oauth-token != ''
+      shell: bash
+      env:
+        VERSION: ${{ inputs.claude-code-version }}
+      run: npm install --global --no-fund --no-audit "@anthropic-ai/claude-code@$VERSION"
     - name: Plan
       id: plan
       shell: bash
@@ -145,6 +169,9 @@ runs:
         INPUT_OVERRIDE_LABEL: ${{ inputs.override-label }}
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.claude-code-oauth-token }}
+        INPUT_PRESET: ${{ inputs.preset }}
+        INPUT_BUDGET_USD: ${{ inputs.budget-usd }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: python -m dry_lint.action run
     - name: Save verdicts
