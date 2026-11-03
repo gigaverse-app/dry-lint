@@ -337,6 +337,7 @@ def test_typescript_pull_request_updates_and_resolves_one_sticky_comment(
     [body] = github.stickies()
     assert "src/caption.ts::preview_caption_text" in body and "src/text.ts::shorten_text" in body
     assert "For TypeScript/TSX" in body and judge_calls(tmp_path) == 1
+    assert "blocking" not in body
     assert "// dry-lint: distinct-from src/text.ts::shorten_text" in capsys.readouterr().out
     repo.write("src/caption.ts", 'export { shorten_text as preview_caption_text } from "./text";')
     repo.commit()

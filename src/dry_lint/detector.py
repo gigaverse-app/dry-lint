@@ -111,12 +111,12 @@ class Detector:
 
     def neighbours(self, function: Function) -> list[tuple[Function, float]]:
         """The closest functions in other files, above the comparer's floor, before any rule."""
-        extractor = self.file_extractors[function.path]
+        extractor = extractor_for(function.path, self.extractors)
         return self.comparer.neighbours(function, self.settings.neighbours,
                                        allowed=lambda o: o.path != function.path and self.file_extractors[o.path] is extractor)
 
     def hashed(self, function: Function) -> Function:
-        extractor = self.file_extractors[function.path]
+        extractor = extractor_for(function.path, self.extractors)
         assert extractor is not None, function.path  # it extracted the function
         return function.model_copy(update={"hash": extractor.structure_hash(function)})
 

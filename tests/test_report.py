@@ -173,7 +173,11 @@ def test_the_check_run_fails_only_for_blocking_findings_unless_warn_only() -> No
     assert (body["name"], body["head_sha"], body["status"], body["conclusion"]) == ("dry-lint", "abc", "completed", "failure")
     assert body["output"]["title"] == "2 duplicated concept(s)" and body["output"]["summary"].startswith(MARKER)
     assert [a["annotation_level"] for a in body["output"]["annotations"]] == ["failure", "warning"]
-    assert json.loads(as_check_run(blocking, warn_only=True))["conclusion"] == "neutral"
+    warnings = json.loads(as_check_run(blocking, warn_only=True))
+    assert warnings["conclusion"] == "neutral"
+    assert [a["annotation_level"] for a in warnings["output"]["annotations"]] == ["warning", "warning"]
+    assert "blocking" not in warnings["output"]["summary"]
+    assert blocking.findings[0].blocking
     assert json.loads(as_check_run(report(finding("duplicate", 0.85))))["conclusion"] == "neutral"
     clean = json.loads(as_check_run(report(finding("separate"))))
     assert (clean["conclusion"], clean["output"]["title"], clean["output"]["annotations"]) == ("success", "No duplicated concepts", [])

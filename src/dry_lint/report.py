@@ -103,6 +103,9 @@ class Report(Versioned):
         """Unjudged candidates, and judged pairs at or above the report threshold."""
         return [f for f in self.findings if f.verdict is None or f.reported]
 
+    def as_warnings(self) -> "Report":
+        return self.model_copy(update={"findings": [f.model_copy(update={"blocking": False}) for f in self.findings]})
+
     @property
     def stats(self) -> dict[str, int]:
         judged = [f for f in self.findings if f.verdict is not None]
@@ -173,7 +176,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
             suggestion += f" ({f.family} look-alikes)"
         rows.append(f"| {function_link(f.candidate.new, report.run)} | "
                     f"{function_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
-    more = ["", f"And {len(shown) - max_findings} more; run `dry-lint check` to see them all."] \
+    more = ["", f"And {len(shown) - max_findings} more; see the full report in the run output."] \
         if len(shown) > max_findings else []
     skipped = [f"<details><summary>Not reported ({len(report.filtered)} settled by a rule)</summary>", "",
                *(f"- `{c.new.qualname}` ~ `{c.existing.qualname}`: {escaped(c.filtered or '')}" for c in report.filtered),
@@ -229,6 +232,8 @@ def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False
     The body for `POST /repos/{owner}/{repo}/check-runs`: a failure only for a blocking finding (and not
     `warn_only`), neutral for findings that only warn, success otherwise.
     """
+    if warn_only:
+        report = report.as_warnings()
     reported = [f for f in report.findings if f.reported]
     failed = any(f.blocking for f in reported) and not warn_only
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
@@ -246,8 +251,10 @@ FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
 
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
-    if form == "markdown":
-        return as_markdown(report, settings.max_findings)
     if form == "check-run":
         return as_check_run(report, settings.max_findings, warn_only)
+    if warn_only and form != "json":
+        report = report.as_warnings()
+    if form == "markdown":
+        return as_markdown(report, settings.max_findings)
     return {"text": as_text, "github": as_github, "json": as_json, "sarif": as_sarif}[form](report)
