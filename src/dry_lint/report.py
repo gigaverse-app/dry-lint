@@ -162,7 +162,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
     shown = report.visible
     if not shown:
         return f"{MARKER}\n### dry-lint\n\nNo duplicated concepts found in the changed functions."
-    rows = ["| Changed function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
+    rows = ["| Function | Looks like | Verdict | Suggestion |", "| --- | --- | --- | --- |"]
     for f in shown[:max_findings]:
         if f.verdict:
             verdict = f"**{'blocking ' if f.blocking else ''}{f.verdict.label}** {f.verdict.score:.2f}"
@@ -183,7 +183,7 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
         if blocking else []
     return "\n".join([
         MARKER, "### dry-lint", "",
-        f"{len(shown)} changed function(s) look like code that already exists. One concept should have one "
+        f"{len(shown)} implementation pair(s) look like the same concept. One concept should have one "
         "implementation: reuse it, or parameterize the difference.", "", *verdict_line, *rows, *more, "",
         OVERRIDES,
         *([""] + skipped if skipped else []),

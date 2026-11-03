@@ -39,6 +39,7 @@ def call_name(node: Node) -> str | None:
 
 
 def fingerprint(node: Node, name: str) -> tuple[list[str], list[str]]:
+    # dry-lint: distinct-from src/dry_lint/functions.py::node_tokens
     tokens = [f"fn:{word}" for word in words(name)] * 2
     calls = []
     for child in behavior(node):
