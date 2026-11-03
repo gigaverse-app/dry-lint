@@ -20,10 +20,12 @@ the same bar. So dry-lint chooses the judges and the thresholds together, as a *
 Measured on the 250-pair gold set and simulated on each pull request's own candidates under the default budget,
 every push included ([benchmark](benchmark.md#within-a-budget)). On gigaverse-backend, -web-app and -mobile,
 `jev+sonnet` failing at 0.7 kept 91–100% precision, while Jev alone fell to about 80% on TypeScript
-([other repositories](benchmark.md#other-repositories)); `jev+opus` has not been measured there yet. The default,
+([other repositories](benchmark.md#other-repositories)). There, within the budget, `jev+opus` and `jev+sonnet`
+tie, and TypeScript precision falls to 83–89% with either, so keep `warn-only` on TypeScript
+([`jev+opus` elsewhere](benchmark.md#jevopus-and-the-budget-elsewhere)). The default,
 `preset = "auto"`, takes the first of `jev+opus`, `jev+claude-code`, `jev`, `sonnet`, `claude-code`, `none` whose
 credentials are in the environment (`TYPESAFE_AI_API_KEY`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`); the
-others must be named. `jev+sonnet` costs a third less than `jev+opus` but blocks about twice as many separate pairs.
+others must be named. On gigaverse-ai, `jev+sonnet` costs a third less than `jev+opus` but blocks about twice as many separate pairs.
 `sonnet` and `claude-code` have no cheap first judge to fall back on, so on the largest pull requests the budget
 runs out and pairs stay unjudged: that is why `jev` comes before them. Any field set explicitly (`judge`,
 `escalate`, `drop_below`, `report_at`, `fail_at`, or `--fail-at`) wins over the preset's; naming your own `judge`
