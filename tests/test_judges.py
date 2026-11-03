@@ -5,11 +5,16 @@ from pathlib import Path
 import httpx
 import pytest
 
-from dry_lint.judges import label_for, make_judge
-from dry_lint.judges.command import CommandJudge
+from dry_lint.judges import label_for, make_escalation, make_judge
+from dry_lint.judges.anthropic import API_URL as ANTHROPIC_URL
+from dry_lint.judges.anthropic import AnthropicJudge
+from dry_lint.judges.command import PROMPT_VERSION, CommandJudge, parse_verdict
+from dry_lint.judges.gemini import API_URL as GEMINI_URL
+from dry_lint.judges.gemini import GeminiJudge
+from dry_lint.judges.http import HttpJudge
 from dry_lint.judges.jev import API_URL, QUESTIONS, JevJudge, state
 from dry_lint.models import Candidate
-from dry_lint.settings import PluginChoice, Settings
+from dry_lint.settings import Escalation, PluginChoice, Settings
 
 from conftest import function
 
@@ -42,7 +47,7 @@ def test_make_judge_builds_a_command_judge_from_its_options_and_rejects_bad_choi
     assert make_judge(PluginChoice(use="command", command="llm", name="house-llm")).name == "house-llm"
     with pytest.raises(ValueError, match="--judge-command"):
         make_judge(PluginChoice(use="command"))
-    with pytest.raises(ValueError, match="Unknown judge 'oracle'; available: command, jev"):
+    with pytest.raises(ValueError, match="Unknown judge 'oracle'; available: anthropic, command, gemini, jev"):
         make_judge(PluginChoice(use="oracle"))
 
 
@@ -119,7 +124,7 @@ def test_command_judge_can_take_the_candidate_as_json(tmp_path: Path) -> None:
 
 
 def test_command_judge_rejects_output_without_a_verdict(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="no JSON verdict"):
+    with pytest.raises(ValueError, match="without a JSON verdict"):
         CommandJudge(script(tmp_path, "print('no idea')\n")).judge([CANDIDATE], Settings())
 
 
@@ -127,3 +132,105 @@ def test_command_judge_prompt_names_both_sides() -> None:
     prompt = CommandJudge("llm").stdin(CANDIDATE)
     assert "# NEW: src/widgets/caption.py::clip" in prompt and "# EXISTING: src/text.py::shorten" in prompt
     assert "<<" not in prompt
+
+
+def test_command_judge_runs_in_parallel_but_answers_in_order(tmp_path: Path) -> None:
+    command = script(tmp_path, (
+        "import json, sys, time\nprompt = sys.stdin.read()\nfirst = 'first_one' in prompt\n"
+        "time.sleep(0.3 if first else 0)\n"
+        "print(json.dumps({'label': 'duplicate', 'score': 0.9 if first else 0.1}))\n"
+    ))
+    slow = CANDIDATE.model_copy(update={"new": CANDIDATE.new.model_copy(update={"name": "first_one"})})
+    assert [v.score for v in CommandJudge(command, workers=2).judge([slow, CANDIDATE], Settings())] == [0.9, 0.1]
+
+
+def test_parse_verdict_takes_the_first_verdict_object_among_other_braces() -> None:
+    text = ('The pair {a, b} is: {"label": "duplicate", "score": 0.9}\n'
+            'Note: {"label": "separate", "score": 0.1} would apply if {x} differed. {not json}')
+    verdict = parse_verdict(text, "g", "v")
+    assert (verdict.label, verdict.score) == ("duplicate", 0.9)
+    with pytest.raises(ValueError, match="without a JSON verdict"):
+        parse_verdict('{"score": 0.9} and {broken', "g", "v")
+
+
+def test_parse_verdict_reads_the_json_inside_any_text() -> None:
+    verdict = parse_verdict('Sure: {"label": "drifted", "score": 0.82, "behaves_differently": 0.7} done', "g", "v")
+    assert (verdict.label, verdict.score, verdict.behaves_differently, verdict.judge, verdict.judge_version) == (
+        "drifted", 0.82, 0.7, "g", "v")
+
+
+def gemini_answer(text: str, requests: list):
+    def answer(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": text[:9]}, {"text": text[9:]}]}}]})
+    return httpx.MockTransport(answer)
+
+
+def test_the_gemini_judge_asks_the_dry_prompt_and_reads_its_verdict() -> None:
+    requests = []
+    reply = '```json\n{"label": "duplicate", "score": 0.93, "owner": "existing", "why": "same truncation"}\n```'
+    judge = GeminiJudge(model="gemini-x", api_key="secret", transport=gemini_answer(reply, requests))
+    [verdict] = judge.judge([CANDIDATE], Settings())
+    assert (verdict.label, verdict.score, verdict.owner, verdict.why) == ("duplicate", 0.93, "existing", "same truncation")
+    assert (verdict.judge, verdict.judge_version) == ("gemini", f"{PROMPT_VERSION}:gemini-x")
+    body = json.loads(requests[0].content)
+    assert str(requests[0].url) == GEMINI_URL.format(model="gemini-x") and requests[0].headers["x-goog-api-key"] == "secret"
+    assert "# NEW: src/widgets/caption.py::clip" in body["contents"][0]["parts"][0]["text"]
+    assert body["generationConfig"] == {"temperature": 0}
+
+
+def test_the_gemini_judge_needs_a_key_and_surfaces_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    with pytest.raises(ValueError, match="GEMINI_API_KEY"):
+        GeminiJudge()
+    failing = GeminiJudge(api_key="k", transport=httpx.MockTransport(lambda request: httpx.Response(429)))
+    with pytest.raises(httpx.HTTPStatusError):
+        failing.judge([CANDIDATE], Settings())
+    with pytest.raises(ValueError, match="without a JSON verdict"):
+        GeminiJudge(api_key="k", transport=gemini_answer("I cannot tell.", [])).judge([CANDIDATE], Settings())
+
+
+def test_escalation_is_claude_sonnet_when_its_key_is_set_and_otherwise_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "key")
+    assert make_escalation(Settings()) is None  # a Gemini key alone does not turn escalation on
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "key")
+    escalation = make_escalation(Settings())
+    assert isinstance(escalation, AnthropicJudge) and escalation.model == "claude-sonnet-5-5"
+    assert make_escalation(Settings(escalate=Escalation(use="gemini", model="gemini-y"))).model == "gemini-y"
+    assert make_escalation(Settings(escalate=Escalation(use="none"))) is None
+    assert make_escalation(Settings(escalate=None)) is None
+
+
+def test_the_anthropic_judge_asks_the_messages_api_and_reads_its_text_blocks() -> None:
+    requests = []
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"content": [
+            {"type": "thinking", "thinking": "{\"label\": \"separate\"}"},
+            {"type": "text", "text": '{"label": "drifted", "score": 0.88, "behaves_differently": 0.9, "owner": "shared"}'},
+        ]})
+
+    judge = AnthropicJudge(api_key="secret", transport=httpx.MockTransport(answer))
+    [verdict] = judge.judge([CANDIDATE], Settings())
+    assert (verdict.label, verdict.score, verdict.owner, verdict.judge) == ("drifted", 0.88, "shared", "anthropic")
+    assert verdict.judge_version == f"{PROMPT_VERSION}:claude-sonnet-5-5"
+    body = json.loads(requests[0].content)
+    assert str(requests[0].url) == ANTHROPIC_URL and requests[0].headers["x-api-key"] == "secret"
+    assert requests[0].headers["anthropic-version"] == "2023-06-01"
+    assert body["model"] == "claude-sonnet-5-5" and "# NEW: src/widgets/caption.py::clip" in body["messages"][0]["content"]
+
+
+def test_the_anthropic_judge_needs_its_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
+        AnthropicJudge()
+
+
+def test_an_http_judge_must_say_how_to_ask_and_how_to_read_an_answer() -> None:
+    bare = HttpJudge(api_key="k")
+    with pytest.raises(NotImplementedError):
+        bare.request("text")
+    with pytest.raises(NotImplementedError):
+        bare.answer({})

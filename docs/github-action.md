@@ -61,22 +61,20 @@ action input (or `--fail-at` on the command line) overrides `fail_at` for one wo
 | `report_at` up to `fail_at` | warning annotation, listed in the comment | green |
 | `fail_at` and above | error annotation, listed first as **blocking** | **red** |
 
-By default `fail_at` is 0.8, the same as `report_at`, so **every reported duplicate fails the check**. On the gold
-set (the shipped `reuse-v2` prompt) that is 75% precision and 59% recall. A quarter of red checks will be false
-positives, which is what the overrides below are for.
+By default `fail_at` is 0.8, the same as `report_at`, so **every reported duplicate fails the check**. On the
+250-pair gold set (the shipped `reuse-v2` prompt) that is 94% precision and 73% recall: about one red check in 18 is
+a false positive, which is what the overrides below are for. With Claude Sonnet 5.5 as the second judge
+(`anthropic-api-key`), precision is 98%.
 
-To fail only on near-certain duplicates, set `fail-at: "0.91"`:
+To fail only on near-certain duplicates, raise `fail-at`:
 
-| `fail_at` | Precision | Recall | Red pull requests |
+| `fail_at` | Precision | Recall | Red pull requests (of 600) |
 | --- | --- | --- | --- |
-| 0.80 (default) | 75% | 59% | about 1 in 6 |
-| 0.85 | 78% | 44% | |
-| 0.88 | 90% | 32% | |
-| 0.91 | 100% | 21% | about 1 in 20 |
+| 0.80 (default) | 94% | 73% | 15% |
+| 0.85 | 99% | 61% | 14% |
+| 0.90 | 100% | 45% | 12% |
 
-At 0.91, the highest-scoring false positive was 0.892 and the lowest true duplicate above it was 0.910, so
-nothing is lost against 0.90 and the margin is wider. Findings between 0.8 and 0.91 then only warn
-([benchmark](benchmark.md)). `warn-only` never fails.
+Findings between 0.8 and `fail_at` then only warn ([benchmark](benchmark.md)). `warn-only` never fails.
 
 **When dry-lint is wrong**, record the decision where it belongs:
 
@@ -127,7 +125,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
 | `sticky-key` | | One comment per key, when several dry-lint steps report on one pull request. |
-| `fail-at` | `fail_at` from `[tool.dry-lint]` (0.8) | Judge score at or above which a duplicate fails the check; `0.91` fails only near-certain ones. |
+| `fail-at` | `fail_at` from `[tool.dry-lint]` (0.8) | Judge score at or above which a duplicate fails the check; `0.9` fails only near-certain ones. |
 | `warn-only` | `false` | Never fail; blocking findings are reported like the rest. |
 | `override-label` | `dry-lint: override` | The pull request label that lets blocking findings through. |
 | `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read` and `checks: write`. |

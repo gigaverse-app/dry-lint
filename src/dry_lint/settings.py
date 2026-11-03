@@ -38,7 +38,7 @@ class PluginChoice(BaseModel):
 class Escalation(PluginChoice):
     """A second judge for the scores the first judge is least sure about."""
 
-    between: tuple[float, float] = Field(default=(0.6, 0.8), description="First-judge scores in [low, high) escalate.")
+    between: tuple[float, float] = Field(default=(0.6, 0.91), description="First-judge scores in [low, high) escalate.")
 
     def options(self) -> dict[str, Any]:
         return {name: value for name, value in super().options().items() if name != "between"}
@@ -62,7 +62,9 @@ class Settings(BaseModel):
     comparer: Choice = Field(default_factory=lambda: PluginChoice(use="tfidf"))
     judge: Choice = Field(default_factory=lambda: PluginChoice(use="auto"),
                           description="auto: Jev when TYPESAFE_AI_API_KEY is set, otherwise none (list candidates).")
-    escalate: Annotated[Escalation | None, BeforeValidator(_named)] = None
+    escalate: Annotated[Escalation | None, BeforeValidator(_named)] = Field(
+        default_factory=lambda: Escalation(use="auto"),
+        description="auto: Claude Sonnet 5.5 when ANTHROPIC_API_KEY is set, otherwise none; \"none\" turns it off.")
     store: Choice = Field(default_factory=lambda: PluginChoice(use="dir"),
                           description="dir: a folder, by default inside the git directory; s3: a bucket prefix.")
 

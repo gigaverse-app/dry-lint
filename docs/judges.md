@@ -7,7 +7,9 @@ command line:
 | --- | --- | --- |
 | `auto` (default) | Jev when `TYPESAFE_AI_API_KEY` is set, otherwise `none` | |
 | `jev` | TypeSafe's System One decision model, prompt `reuse-v2` | about 0.3 s per pair, 8 pairs in parallel |
-| `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout | whatever your model costs |
+| `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout; 4 at once | whatever your model costs |
+| `anthropic` | Claude over the Messages API with the same DRY prompt; needs `ANTHROPIC_API_KEY`, no CLI. Default model `claude-sonnet-5-5`: the default second judge | about 3 s per pair, 4 in parallel |
+| `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 12 s per pair, 4 in parallel |
 | `none` | Lists candidate pairs unjudged; never fails the build | free |
 | anything installed | A package registering `dry_lint.judges` | |
 
@@ -66,16 +68,24 @@ it, so changing the program means judging again.
 
 ## A second opinion
 
-Scores between `drop_below` and `report_at` are where a first judge is least sure. `escalate` sends them to a
-second judge, whose answer replaces the first:
+`escalate` sends the first judge's scores in a band to a second judge, whose answer replaces the first. The
+default is `escalate = "auto"`: Claude Sonnet 5.5 on `[0.6, 0.91)` when `ANTHROPIC_API_KEY` is set, otherwise no
+escalation.
 
 ```toml
 judge = "jev"
-escalate = { use = "command", command = "claude -p --model sonnet", version = "sonnet-1", between = [0.6, 0.8] }
+escalate = { use = "anthropic", model = "claude-sonnet-5-5", between = [0.6, 0.91] }    # the default, spelled out
+escalate = { use = "gemini", model = "gemini-3.1-pro-preview" }                         # another vendor
+escalate = { use = "command", command = "llm -m my-model", version = "my-model-1" }     # any CLI
+escalate = "none"                                                                       # off
 ```
 
-On gigaverse-ai that is about 0.3 pairs per pull request. The stored verdict keeps the first judge's name and
-records the second in `second_opinion`.
+Measured live on the 250-pair gold set ([benchmark](benchmark.md#escalation)): at 0.8, precision from 94-95% to
+98%, so roughly half the false blocks, and recall from 71-73% to 75-76% (within the intervals), for about 0.8
+Sonnet calls per pull request. Among five second judges compared on the same pairs, Sonnet 5.5 changed its mind
+least between runs and was the fastest; avoid Gemini 2.5 Pro. With the key set in a developer's environment, code
+in the pairs goes to Anthropic; set `escalate = "none"` to keep it local. The stored verdict keeps the first
+judge's name and records the second in `second_opinion`, so it is reused like any other.
 
 ## Writing a judge
 
