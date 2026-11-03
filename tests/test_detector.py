@@ -1,5 +1,6 @@
 import pytest
 
+from dry_lint import detector as detection
 from dry_lint.detector import Detector, base_ref, changed_lines, default_base, touched, why_skipped
 from dry_lint.settings import Pattern, PluginChoice, Settings
 
@@ -78,6 +79,17 @@ def test_scan_reports_mutual_nearest_neighbours_closest_first(repo: Repo) -> Non
     assert [c.similarity for c in pairs] == sorted((c.similarity for c in pairs), reverse=True)
 
 
+def test_changed_functions_are_those_check_finds_without_reading_unchanged_files(repo: Repo) -> None:
+    """INVARIANT: the cheap pre-check sees exactly the changed functions a full check would compare."""
+    repo.write("tests/test_caption.py", "def test_caption(text):\n    assert text\n    return text\n")
+    (repo.root / "src/dangling.py").symlink_to("missing.py")
+    repo.git("add", "-A")
+    repo.git("commit", "-qm", "excluded and unreadable files")
+    expected = changed_functions(repo, Detector.for_repository(repo.root, Settings()), base="main")
+    assert [f.qualname for f in detection.changed_functions(repo.root, Settings(), "main")] == expected != []
+    assert detection.changed_functions(repo.root, Settings(), "HEAD") == []
+
+
 A = function("a.py", "def load_user(store, key):\n    return store.read(key)\n")
 B = function("b.py", "def load_account(store, key):\n    return store.read(key)\n")
 
@@ -109,8 +121,32 @@ def test_same_named_functions_that_do_not_call_each_other_are_judged_not_skipped
     connect = "def connect(self):\n    self.session = open_session(BASE_URL)\n    return self.session\n"
     a, b = function("feeds/youredge.py", connect, owner="YourEdge"), function("feeds/polymarket.py", connect, owner="Polymarket")
     assert why_skipped(a, b, Settings()) is None
-    caller = function("feeds/retry.py", "def connect(self):\n    return self.inner.connect()\n", owner="Retrying")
-    assert why_skipped(caller, a, Settings()) == "one calls the other"
+
+
+def test_a_call_on_another_receiver_is_left_to_the_judge_not_taken_as_delegation() -> None:
+    """
+    INVARIANT: "one calls the other" settles a pair only when the call provably reaches the other function. By name
+    alone, `self.inner.connect()` may call any object's `connect`, and `text.strip()` calls str.strip.
+    """
+    a = function("feeds/youredge.py", "def connect(self):\n    self.session = open_session(BASE_URL)\n    return self.session\n",
+                 owner="YourEdge")
+    wrapper = function("feeds/retry.py", "def connect(self):\n    return self.inner.connect()\n", owner="Retrying")
+    assert why_skipped(wrapper, a, Settings()) is None
+    strip = function("a.py", "def strip(text):\n    return text.strip().lower()\n")
+    normalize = function("b.py", "def normalize(text):\n    return text.strip().lower()\n")
+    assert why_skipped(strip, normalize, Settings()) is None
+
+
+def test_a_bare_call_or_a_call_on_the_class_itself_is_delegation() -> None:
+    module_level = function("b.py", "def load_account(store, key):\n    return load_user(store, key)\n")
+    assert why_skipped(module_level, A, Settings()) == why_skipped(A, module_level, Settings()) == "one calls the other"
+    read = function("a.py", "def read(self, key):\n    return self.rows[key]\n", owner="Store")
+    get = function("a.py", "def get(self, key):\n    return self.read(key)\n", owner="Store")
+    assert why_skipped(get, read, Settings()) == "one calls the other"
+    other_class = function("b.py", "def read(self, key):\n    return self.rows[key]\n", owner="Cache")
+    assert why_skipped(get, other_class, Settings()) is None
+    method_by_bare_name = function("c.py", "def read(key):\n    return ROWS[key]\n", owner="Rows")
+    assert why_skipped(function("d.py", "def get(key):\n    return read(key)\n"), method_by_bare_name, Settings()) is None
 
 
 def test_without_calls_from_the_extractor_the_defining_line_does_not_count_as_a_call() -> None:
@@ -119,6 +155,8 @@ def test_without_calls_from_the_extractor_the_defining_line_does_not_count_as_a_
     assert why_skipped(a, b, Settings()) is None
     wrapper = function("c.ts", "function fetch(key) {\n  return load(key)\n}", name="fetch").model_copy(update={"calls": None})
     assert why_skipped(wrapper, a, Settings()) == "one calls the other"
+    method_call = function("d.ts", "function fetch(key) {\n  return cache.load(key)\n}", name="fetch").model_copy(update={"calls": None})
+    assert why_skipped(method_call, a, Settings()) is None
 
 
 def test_skipped_pairs_are_listed_with_their_reason(repo: Repo) -> None:

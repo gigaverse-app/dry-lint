@@ -118,13 +118,25 @@ def node_tokens(node: FunctionNode) -> list[str]:
     return tokens
 
 
+def _direct_call(node: ast.Call) -> str | None:
+    """`name` for a bare call, `self.name` or `cls.name` for one on the class itself; None for any other receiver."""
+    target = node.func
+    if isinstance(target, ast.Name):
+        return target.id
+    if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id in ("self", "cls"):
+        return f"{target.value.id}.{target.attr}"
+    return None
+
+
 def node_calls(node: FunctionNode) -> list[str]:
     """
-    The names the function calls, in its signature defaults and body: real call nodes, so not its own name, its
-    decorators, or mentions in comments and strings. Names only: receivers and imports are not resolved.
+    The functions the function calls directly, in its signature defaults and body: real call nodes, so not its own
+    name, its decorators, or mentions in comments and strings. A bare call is `name`, a call on the class itself
+    `self.name` or `cls.name`. A call on any other receiver (`text.strip()`) is left out: by name alone it could be
+    any object's method, so it cannot show that one function delegates to another.
     """
     return [name for part in (node.args, *node.body) for child in ast.walk(part)
-            if isinstance(child, ast.Call) and (name := _call_name(child))]
+            if isinstance(child, ast.Call) and (name := _direct_call(child))]
 
 
 def behaviour_tokens(function: Function) -> list[str]:

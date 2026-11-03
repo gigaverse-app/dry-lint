@@ -68,7 +68,8 @@ class Comparer(Protocol):
 similar first and above the comparer's own floor. Similarities are only compared with stored ones of the same
 `name:version`, so a new version never reuses the "not closer" rule on old numbers. Comparers can opt into that rule with
 `similarity_reusable = True`; the safe default is false. Both the candidate and the stored record must permit it.
-TF-IDF opts in; Dryer requires unchanged code hashes because its normalization erases literals and field names. An optional
+Neither built-in comparer opts in: TF-IDF tokens and Dryer's normalization both leave out literals, so a changed
+literal can make two functions one concept without moving the score. An optional
 `shared(a, b) -> list[str]` feeds `dry-lint explain`.
 
 Measure it before switching: `dry-lint bench --gold gold.jsonl --comparer` reports how often each gold duplicate's

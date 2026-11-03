@@ -164,7 +164,7 @@ thresholds come from the preset ([docs/judges.md](docs/judges.md)); anything set
 | `drift_at` | 0.8 | a duplicate whose `behaves_differently` reaches this is drifted |
 | `budget` | `{ usd = 0.04, subscription_calls = 20 }` | most judging spends on a pull request across all its pushes, at list price, subscriptions included (`--budget-usd`); and calls per run to subscription judges |
 | `prices` | built-in table | USD per million input and output tokens, by model |
-| `reopen_margin` | 0.05 | how much closer a "separate" pair must get before it is judged again |
+| `reopen_margin` | 0.05 | for a comparer that permits similarity reuse (no built-in one does), how much closer a "separate" pair must get before it is judged again |
 | `max_findings` | 10 | rows in the PR comment |
 | `extractors` | `["python", "typescript"]` | `.py`, `.ts`, `.tsx`, `.mts`, `.cts` |
 | `comparer` | `"tfidf"` | options `min_similarity` (0.5), `min_similarity_small` (0.3) under `small_function_lines` (6) |
