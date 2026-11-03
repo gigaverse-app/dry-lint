@@ -41,5 +41,13 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./
+        id: dry-lint
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
+      - name: The action reports its mode and result
+        env:
+          MODE: ${{ steps.dry-lint.outputs.mode }}
+          CODE: ${{ steps.dry-lint.outputs.exit-code }}
+        run: |
+          echo "mode=$MODE exit-code=$CODE"
+          [ "$MODE" = single ] && [ "$CODE" != 2 ]

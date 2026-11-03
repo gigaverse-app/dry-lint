@@ -1,0 +1,92 @@
+# GitHub Action
+
+```yaml
+- uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+  with:
+    fetch-depth: 0
+- uses: gigaverse-app/dry-lint@main
+  with:
+    typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
+```
+
+That is the whole setup for a repository whose pull requests come from its own branches. Copy
+[examples/dry-lint.yml](../examples/dry-lint.yml). If you also accept pull requests from forks, add
+[examples/dry-lint-judge.yml](../examples/dry-lint-judge.yml).
+
+## What a pull request gets
+
+- **Annotations** on the changed functions that re-implement existing code, with the function they duplicate
+  and what to do about it.
+- **One sticky comment**, found again by its `<!-- dry-lint -->` marker and edited in place on every push:
+  - A clean pull request gets no comment.
+  - When findings are fixed, the comment says so instead of going stale.
+  - Copies left by two runs racing are deleted.
+  - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never
+    shows a broken image.
+- **The job summary**, with the same report.
+- **No red X by default.** Set `fail-on-findings: "true"` once the team trusts the findings.
+
+Without a judge (no `typesafe-api-key` and no `judge-command`), dry-lint lists look-alikes in the log. It adds no
+annotations, no comment and no failure, so installing it before the secret exists costs nothing.
+
+## Modes, and pull requests from forks
+
+GitHub gives a pull request from a fork no secrets and a read-only token, so it cannot be judged or commented on
+in its own run. The default `mode: auto` handles each case:
+
+| Event | Mode | What runs |
+| --- | --- | --- |
+| `pull_request` from the same repository | `single` | detect, judge, annotate, comment |
+| `pull_request` from a fork | `detect` | propose candidates, upload them as the `dry-lint-candidates` artifact |
+| `workflow_run` after the above | `judge` | download the candidates, judge, comment |
+| `push` | `single` | judge what the push changed; no comment |
+
+The judge job runs from the default branch, with secrets. It treats the fork's candidates as untrusted data:
+- it never checks out or runs the fork's code;
+- it installs only the `plugins` named in the workflow;
+- it comments only if the artifact's commit is the triggering run's head commit, and that commit is still the
+  pull request's head.
+
+## Inputs
+
+| Input | Default | |
+| --- | --- | --- |
+| `typesafe-api-key` | | Enables the Jev judge. |
+| `judge` | `auto` | `jev` when the key is set, otherwise `none`. Can be `jev`, `command`, `none` or an installed judge plugin. |
+| `judge-command` | | For `judge: command`: reads the prompt on stdin, prints a JSON verdict ([judges](judges.md)). |
+| `plugins` | | Extra packages to install, one per line. |
+| `mode` | `auto` | See above. |
+| `base` | the PR's base commit, or the previous push, or the default branch | What to compare with. |
+| `working-directory` | `.` | The repository, or the package within a monorepo. |
+| `comment` | `true` | Keep the sticky comment. |
+| `sticky-key` | | One comment per key, when several dry-lint steps report on one pull request. |
+| `fail-on-findings` | `false` | Fail when a judged duplicate reaches `report_at`. |
+| `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read`. |
+
+The outputs are `mode`, `findings` (how many duplicates were reported) and `exit-code`: 0 for clean, 1 for
+duplicates reported, 2 when dry-lint could not run. Exit code 2 always fails the step, so a broken setup is never
+silent.
+
+Thresholds and exclusions live in `[tool.dry-lint]` in `pyproject.toml`, so that the action, the pre-commit hook
+and the command line all agree ([README](../README.md#settings)).
+
+## Verdict cache
+
+Verdicts are kept in the Actions cache:
+- A pull request's run restores the newest verdicts it can see, so a later push only judges pairs whose logic
+  changed.
+- Runs on the default branch, that is pushes to `main` and judge-mode runs, save their verdicts where every pull
+  request can read them.
+
+Losing the cache only costs re-judging.
+
+## Running it in a monorepo, or more than once
+
+Use one step per package, each with its own `working-directory` and `sticky-key`:
+
+```yaml
+- uses: gigaverse-app/dry-lint@main
+  with: { working-directory: services/api, sticky-key: api, typesafe-api-key: "${{ secrets.TYPESAFE_AI_API_KEY }}" }
+- uses: gigaverse-app/dry-lint@main
+  with: { working-directory: services/web, sticky-key: web, typesafe-api-key: "${{ secrets.TYPESAFE_AI_API_KEY }}" }
+```

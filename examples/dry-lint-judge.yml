@@ -1,0 +1,25 @@
+# .github/workflows/dry-lint-judge.yml: judge and comment on pull requests from forks.
+#
+# A fork's pull request runs dry-lint.yml without secrets, so it only uploads candidates. This workflow runs
+# after it from the default branch, with secrets. It never checks out or runs the fork's code: it judges the
+# uploaded candidates and comments only if they belong to the pull request's current head commit.
+name: dry-lint judge
+on:
+  workflow_run:
+    workflows: [dry-lint]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+jobs:
+  judge:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7  (the default branch, for settings)
+      - uses: gigaverse-app/dry-lint@main
+        with:
+          typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
