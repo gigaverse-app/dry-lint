@@ -16,9 +16,9 @@ from dry_lint.function_index import (
     build_index,
     extraction_contract,
     repository_name,
-    source_path,
 )
 from dry_lint.functions import extractor_for
+from dry_lint.models import repository_path
 from dry_lint.plugins import load
 from dry_lint.settings import Settings
 
@@ -124,7 +124,7 @@ class IndexClient:
         expected = {entry["path"]: entry["sha"] for entry in listing["tree"]
                     if entry["type"] == "blob" and entry["mode"] in {"100644", "100755"}
                     and (entry["path"] in {".dry-lint.toml", "pyproject.toml"} or extractor_for(entry["path"], extractors))}
-        if not all(source_path(path) for path in expected):
+        if not all(repository_path(path) for path in expected):
             raise ValueError("Unsafe source tree path")
         sources = {}
         with tarfile.open(fileobj=io.BytesIO(self.download(f"{prefix}/tarball/{sha}")), mode="r:gz") as archive:

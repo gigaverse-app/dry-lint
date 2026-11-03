@@ -10,14 +10,14 @@ import sys
 import tomllib
 from importlib import import_module
 from importlib.metadata import version
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from dry_lint.functions import extractor_for, selected_path
 from dry_lint.git import git
-from dry_lint.models import Function, Run
+from dry_lint.models import Function, Run, repository_path
 from dry_lint.plugins import identity, load
 from dry_lint.settings import Settings
 
@@ -35,11 +35,6 @@ def repository_name(value: str) -> str:
     if not REPOSITORY.fullmatch(value):
         raise ValueError(f"Invalid repository name: {value!r}; use OWNER/NAME")
     return value
-
-
-def source_path(value: str) -> bool:
-    path = PurePosixPath(value)
-    return bool(value) and not path.is_absolute() and ".." not in path.parts and "\\" not in value and ":" not in value
 
 
 def extraction_contract(settings: Settings) -> str:
@@ -102,7 +97,7 @@ class FunctionIndex(BaseModel):
             raise ValueError("Function index requires an exact source commit")
         seen = set()
         for function in index.functions:
-            if (not source_path(function.path) or function.line < 1 or function.end_line < function.line
+            if (not repository_path(function.path) or function.line < 1 or function.end_line < function.line
                     or function.origin != Run(repository=repository, head=commit)):
                 raise ValueError("Invalid function source identity")
             identity = (function.qualname, function.line, function.end_line)
@@ -132,7 +127,7 @@ def build_index(sources: dict[str, bytes], repository: str, commit: str, setting
     extractors = [load("extractors", choice) for choice in settings.extractors]
     functions = []
     for path, data in sorted(sources.items()):
-        if not source_path(path):
+        if not repository_path(path):
             raise ValueError(f"Unsafe source path: {path!r}")
         extractor = extractor_for(path, extractors)
         if not extractor or not selected_path(path, source.include, source.exclude):
