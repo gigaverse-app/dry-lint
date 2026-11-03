@@ -96,9 +96,9 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
 runs. The comment links both functions at the analyzed commit, shows the review workload, and folds evidence and
-pair-specific suppression instructions under each summary. A clean pull request gets a green sticky with what was checked (`comment-on-clean: "false"` to opt out). A reported duplicate fails the check; set `fail-at: "0.91"` to fail only
-on near-certain ones (no false positive at that level in the benchmark), and the `dry-lint: override` label lets
-one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
+pair-specific suppression instructions under each summary. A clean pull request gets a green sticky with what was checked (`comment-on-clean: "false"` to opt out). A reported duplicate fails the check (94% of them are real
+duplicates in the benchmark; 98% with Claude Sonnet 5.5 as the second judge); set `fail-at: "0.9"` to fail only on
+near-certain ones, and the `dry-lint: override` label lets one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
 
@@ -136,9 +136,9 @@ On 120 recent gigaverse-ai pull requests, against a blind two-labeller gold set 
 | Judge calls per PR (uncached) | 2.5 |
 | Findings per PR at the default threshold | about 0.2 |
 | Jev `reuse-v2`: ranking quality | AUC 0.97 |
-| at `report_at = 0.8` | 75% precision, 59% recall |
-| at `drop_below = 0.6` | 100% recall |
-| at `fail_at = 0.91`, if raised | 100% precision, 21% recall; about 1 PR in 20 |
+| at `report_at = 0.8` (blocks by default) | 94% precision, 73% recall; 15% of pull requests fail |
+| with Claude Sonnet 5.5 as the second judge | 98% precision, 75% recall |
+| at `fail_at = 0.9`, if raised | 100% precision, 45% recall; 12% of pull requests fail |
 | Known duplicates found and scored ≥ 0.8 | 11 of 13 |
 | Verdict store for the whole repository | about 1,900 pairs, 0.75 MB |
 
@@ -157,7 +157,7 @@ measured thresholds above:
 | `max_findings` | 10 | rows in the PR comment |
 | `extractors` | `["python", "typescript"]` | `.py`, `.ts`, `.tsx`, `.mts`, `.cts` |
 | `comparer` | `"tfidf"` | options `min_similarity` (0.5), `min_similarity_small` (0.3) under `small_function_lines` (6) |
-| `judge` / `escalate` | `"auto"` / none | `escalate = { use = "command", command = "...", between = [0.6, 0.8] }` |
+| `judge` / `escalate` | `"auto"` / `"auto"` | Jev when `TYPESAFE_AI_API_KEY` is set; Claude Sonnet 5.5 on first scores in `[0.6, 0.91)` when `ANTHROPIC_API_KEY` is set (about half the false blocks); `escalate = "none"` turns it off |
 | `store` | `"dir"` | `.git/dry-lint/verdicts/`, or `{ use = "s3", uri = "s3://bucket/prefix" }` |
 
 A plugin slot takes a name, or a table with `use` and the plugin's options:
