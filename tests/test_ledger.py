@@ -133,6 +133,9 @@ def test_a_first_clean_push_shows_figures_without_a_push_table() -> None:
     shown = render(PullLedger().advance([push("a" * 40)], run="1"))
     assert "This PR's cleanup basket" in shown and "| **0 pairs** | **0 pairs** | **0 pairs** |" in shown
     assert "spent-%240.002" in shown
+    visible, hidden = shown.split("<details>", 1)
+    assert "spent-" not in visible and "Previously reported" not in visible
+    assert "History and check stats" in hidden and "spent-%240.002" in hidden
     assert "Push by push" not in shown and "still_open" not in shown
 
 

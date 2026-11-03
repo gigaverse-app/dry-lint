@@ -18,21 +18,19 @@ That is the whole setup for a repository whose pull requests come from its own b
 - **Annotations** on the changed functions that re-implement existing code, with the function they duplicate
   and what to do about it.
 - **One sticky comment**, found again by its `<!-- dry-lint -->` marker and edited in place on every push:
-  - A headline and badges say how many duplicated concepts there are, how many block and how many have drifted;
-    a blocking, advisory or overridden status follows as a GitHub alert.
-  - One row per pair: a severity dot, the concept, both copies linked at the analyzed commit (short file names,
+  - The cleanup basket and a single blocking, advisory or overridden status stay visible. Each scan has a
+    collapsed summary naming its result; blocking counts and incomplete assessments are visible in that summary.
+  - Expand a scan for one row per pair: a severity dot, the concept, both copies linked at the analyzed commit (short file names,
     the full path on hover, GitHub Enterprise included) and the verdict with the judge's fix.
   - Fold-outs hold each judge reason with a copy-paste `distinct-from` line, and every scope of override.
   - A `dry-lint scan` report reads as an audit of existing code that never blocks, not as a pull request review.
-  - A clean pull request gets a green report of what was checked: changed functions, how many they were
-    compared with, look-alike pairs, what the judge cleared and the closest call. Opt out with
+  - A clean scan shows its counts in one compact horizontal row, with judge decisions and the closest call below.
+    Counts are not repeated in badges and explanatory paragraphs. Opt out with
     `comment-on-clean: "false"`.
   - When findings are fixed, the comment says so instead of going stale.
   - **Cleanup progress above the findings**: a basket of pairs cleaned up, still tangled, and dismissed, with a
-    small celebration when the latest analyzed commit clears a pair. The running account shows what every push cost,
-    how many functions were checked and how
-    many judgments were made, and every duplicate it caught, as one line a reader remembers ("2 duplicates kept
-    out of the codebase for $0.007 of judging, across 4 pushes"), badges, and push by push in a fold.
+    small celebration when the latest analyzed commit clears a pair. **History and check stats** folds the accounting,
+    counting rules, commit history and repository totals together.
     See [the ledger](#the-ledger).
   - Old keyed comments are removed on the next publish. Serialize publishers to prevent creation races.
   - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never

@@ -124,14 +124,13 @@ def test_markdown_comment_lists_findings_under_a_stable_marker() -> None:
     assert "<sub>2 changed functions · 2 pairs compared · judge `jev:v`</sub>" in body
 
 
-def test_markdown_headline_badges_say_how_many_and_how_bad() -> None:
+def test_markdown_headline_keeps_blockers_visible_without_repeating_counts_in_badges() -> None:
     body = as_markdown(report(finding("drifted", 0.95, existing="a"), finding("duplicate", 0.85, existing="b")))
-    assert "![duplicated concepts: 2](https://img.shields.io/badge/duplicated_concepts-2-CF222E?" in body
-    assert "![blocking: 1](https://img.shields.io/badge/blocking-1-CF222E?" in body
-    assert "![drifted: 1](https://img.shields.io/badge/drifted-1-EA580C?" in body
-    assert "![judge: jev:v](https://img.shields.io/badge/judge-jev%3Av-6E7781?" in body
+    assert "### dry-lint · 2 duplicated concepts · 🔴 1 blocking" in body
+    assert "**drifted**" in body and "judge `jev:v`" in body
+    assert "img.shields.io" not in body
     calm = as_markdown(report(finding("duplicate", 0.85)))
-    assert "duplicated_concepts-1-BF8700" in calm and "blocking" not in calm and "drifted" not in calm
+    assert "### dry-lint · 1 duplicated concept" in calm and "blocking" not in calm and "drifted" not in calm
 
 
 def test_badges_escape_shields_separators() -> None:
@@ -140,7 +139,7 @@ def test_badges_escape_shields_separators() -> None:
 
 def test_one_shared_fix_is_said_once_instead_of_on_every_row() -> None:
     body = as_markdown(report(finding("duplicate", 0.9, "shared", existing="a"), finding("duplicate", 0.85, "shared", existing="b")))
-    assert "The judge's fix for every pair listed: **extract a shared helper**." in body
+    assert "**Suggested fix:** extract a shared helper." in body
     assert "<sub>extract a shared helper</sub>" not in body
 
 
@@ -154,10 +153,8 @@ def test_a_clean_report_says_so_and_shows_what_was_checked_to_earn_it() -> None:
     body = as_markdown(clean_report(finding("separate", 0.62), finding("duplicate", 0.7, cached=True, existing="trim"),
                                     filtered=[pair("z", filtered="declared pattern")]), report_at=0.8)
     assert body.startswith(f"{MARKER}\n{CLEAN}\n### dry-lint · ✨ No duplicated concepts")
-    assert "![duplicated concepts: none ✓](https://img.shields.io/badge/duplicated_concepts-none_%E2%9C%93-2EA043?" in body
-    assert "compared_with-1%2C284-2563EB" in body and "| Check | Result |" in body
-    assert "**Every changed function is the only implementation of its concept.** 3 look-alike pairs came up" in body
-    for row in ("| Changed functions | 2 |", "| Compared with | 1,284 functions |", "| Look-alike pairs | 3 |",
+    assert "img.shields.io" not in body and "only implementation" not in body
+    for row in ("| 🔎 Changed functions | 🗂 Compared with | 🧶 Look-alike pairs |", "| 2 | 1,284 functions | 3 |",
                 "| Settled by a rule | 1 |", "| Cleared by the judge | 2 (1 from the verdict store) |",
                 "| Closest call | `clip` ≈ `trim` · duplicate 0.70 · under the 0.80 bar |"):
         assert row in body
@@ -166,9 +163,9 @@ def test_a_clean_report_says_so_and_shows_what_was_checked_to_earn_it() -> None:
 
 def test_a_clean_report_without_look_alikes_names_the_scale_of_the_comparison() -> None:
     body = as_markdown(clean_report())
-    assert "None of the 2 changed functions looks like any of the 1,284 functions in the repository." in body
+    assert "| 2 | 1,284 functions | 0 |" in body and body.count("1,284") == 1
     assert "Closest call" not in body and "Cleared by the judge" not in body and "Settled by a rule" not in body
-    assert "looks like anything." in as_markdown(clean_report(functions=0))
+    assert "| 2 | 0 |" in as_markdown(clean_report(functions=0))
     assert "Compared with" not in as_markdown(clean_report(functions=0))
     assert "**Nothing to compare.** This pull request changes no functions." in as_markdown(clean_report(changed=0))
     assert "under the" not in as_markdown(clean_report(finding("separate")))
@@ -177,10 +174,10 @@ def test_a_clean_report_without_look_alikes_names_the_scale_of_the_comparison() 
 def test_a_clean_audit_speaks_of_the_repository() -> None:
     body = as_markdown(clean_report(finding("separate"), changed=0, scope="repository"))
     assert "### dry-lint audit · ✨ No duplicated concepts in existing code" in body
-    assert "The judge or a rule cleared every look-alike pair in this audit." in body
-    assert "| Functions in the repository | 1,284 functions |" in body and "functions-1%2C284-2563EB" in body
+    assert "| Cleared by the judge | 1 |" in body
+    assert "| 🗂 Functions in the repository | 🧶 Look-alike pairs |" in body and "| 1,284 functions | 1 |" in body
     assert "Changed functions" not in body and "changed_functions" not in body
-    assert "No two functions in the repository look alike." in as_markdown(clean_report(changed=0, scope="repository"))
+    assert "| 1,284 functions | 0 |" in as_markdown(clean_report(changed=0, scope="repository"))
 
 
 def test_without_a_judge_the_comment_lists_nothing_and_says_how_to_get_one() -> None:
@@ -269,13 +266,13 @@ def test_a_repository_scan_reads_as_an_audit_of_existing_code_that_never_blocks(
     body = as_markdown(scan)
     assert "### dry-lint audit · 1 duplicated concept in existing code" in body
     assert "Not introduced by this pull request, and never blocking." in body
-    assert "pairs_judged-1" in body and "changed function" not in body and "<sub>changed</sub>" not in body
+    assert "1 pair judged" in body and "changed function" not in body and "<sub>changed</sub>" not in body
     assert "keep the first copy" in body and "in either function" in body and "dry-lint: override" not in body
 
 
-def test_the_status_note_has_a_slot_below_the_badges() -> None:
+def test_the_status_note_has_a_slot_between_the_result_and_the_evidence() -> None:
     body = as_markdown(report(finding("duplicate")))
-    assert body.index("img.shields.io") < body.index(NOTE_SLOT) < body.index("| :-: |")
+    assert body.index("### dry-lint") < body.index(NOTE_SLOT) < body.index("| :-: |")
 
 
 def test_json_report_round_trips() -> None:

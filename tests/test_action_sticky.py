@@ -203,8 +203,30 @@ def test_effective_status_precedes_findings_so_overrides_are_visible() -> None:
 def test_a_status_note_fills_the_reports_slot_and_an_empty_one_leaves_no_trace() -> None:
     slotted = f"{MARKER}\n### dry-lint\n\nbadges\n\n{NOTE_SLOT}\n\nlead\n\n| a | b |"
     body = compose(slotted, note="> [!CAUTION]\n> **Blocking:** 1 finding(s)")
-    assert body.index("badges") < body.index("> [!CAUTION]") < body.index("lead") and NOTE_SLOT not in body
+    assert body.index("> [!CAUTION]") < body.index("<details>") < body.index("badges") and NOTE_SLOT not in body
     assert "badges\n\nlead" in compose(slotted) and NOTE_SLOT not in compose(slotted)
+
+
+def test_combined_scan_details_are_collapsed_with_one_visible_status_note(tmp_path: Path) -> None:
+    local, peers = tmp_path / "local.md", tmp_path / "cross-repository.md"
+    local.write_text(f"{MARKER}\n### dry-lint · 1 duplicated concept\n\n{NOTE_SLOT}\n\nlong finding explanation")
+    peers.write_text(f"{MARKER}\n{CLEAN}\n### dry-lint · ✨ No duplicated concepts\n\n{NOTE_SLOT}\n\nscan accounting")
+    body = compose(sticky.combine([local, peers]), note="Checks are advisory.")
+    assert body.count("Checks are advisory.") == 1
+    assert body.index("Checks are advisory.") < body.index("<details>")
+    assert "<summary><strong>Local · 1 duplicated concept</strong></summary>" in body
+    assert "<summary><strong>Cross repository · ✨ No duplicated concepts</strong></summary>" in body
+    assert "long finding explanation" in body and "scan accounting" in body
+    assert "## Local" not in body and "### dry-lint" not in body and CLEAN not in body
+
+
+def test_unavailable_scan_and_untrusted_headings_stay_clear_in_collapsed_summaries() -> None:
+    body = compose("## Local\n\n> [!WARNING]\n> Scan did not complete.")
+    assert "Local · Assessment unavailable</strong></summary>" in body
+    assert "Scan did not complete." in body
+    body = compose("### dry-lint · <img src=x>\n\nevidence")
+    assert "<summary><strong>&lt;img src=x&gt;</strong></summary>" in body
+    assert "<img src=x>" not in body
 
 
 def test_the_source_line_names_dry_lint_the_commit_and_the_run() -> None:
@@ -224,7 +246,7 @@ def test_combined_report_posts_both_scopes_once_and_does_not_claim_clean(tmp_pat
     sticky.main(args, transport=httpx.MockTransport(fake))
     [body] = fake.stickies()
     assert len(fake.comments) == 1
-    assert "## Local" in body and "## Cross repository" in body
+    assert "<summary><strong>Local ·" in body and "<summary><strong>Cross repository ·" in body
     assert "b.py::shorten" in body and "Look-alike pairs" in body
     assert CLEAN not in body and body.count(MARKER) == 1
     peers.write_text(CLEAN_REPORT, encoding="utf-8")
@@ -270,7 +292,7 @@ def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, 
     assert (ledger.pushed, ledger.tally.runs, ledger.count("kept-out")) == (2, 2, 1)
     assert "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes." in fake.stickies()[0]
     body = fake.stickies()[0]
-    assert body.index("### 🧹 A little less lint") < body.index("### dry-lint")
+    assert body.index("### 🧹 A little less lint") < body.index("<summary><strong>Scan details")
     assert "| **1 pair** | **0 pairs** | **0 pairs** |" in body
     assert "`bbbbbbb` · **+1 pair cleaned up**" in body
 
