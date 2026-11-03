@@ -18,7 +18,8 @@ verdicts are kept are plugins ([plugins.md](plugins.md)).
 Every run goes through the same six steps, whatever plugins it uses:
 
 1. **Extract.** The extractors turn every tracked file under `include`, and not under `exclude`, into functions:
-   each a qualified name (`path::Class.name`), a line range and its code. A file goes to the first extractor whose
+   each a qualified name (`path::Class.name`), a line range and its code. Python and TypeScript/TSX are enabled
+   by default ([TypeScript behavior and hash guarantees](typescript.md)). A file goes to the first extractor whose
    globs match it. The Python extractor leaves out declaration-only stubs (docstrings, `pass`, `...`, and a bare
    or argument-free `raise NotImplementedError`), so they do not use up neighbour or judge slots; abstract methods
    with an implementation, other exceptions, and methods that do work before raising stay in.

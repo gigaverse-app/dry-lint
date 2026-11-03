@@ -9,11 +9,12 @@ it is shown, and never rendered as markdown or links.
 
 import json
 import re
+from urllib.parse import quote
 
 from pydantic import BaseModel, Field
 
 from dry_lint import __version__
-from dry_lint.models import Candidate, Run, Verdict, Versioned
+from dry_lint.models import Candidate, Function, Run, Verdict, Versioned
 from dry_lint.settings import Settings
 
 MARKER = "<!-- dry-lint -->"
@@ -64,7 +65,8 @@ class Finding(BaseModel):
         parts.append(f"similarity {self.candidate.similarity:.2f}")
         if self.family > 1:
             parts.append(f"{self.family} look-alikes")
-        parts.append(f"if they are different concepts, add `# dry-lint: distinct-from {self.candidate.existing.qualname}`")
+        prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
+        parts.append(f"if they are different concepts, add `{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}`")
         return "; ".join(parts)
 
 
@@ -125,7 +127,8 @@ def level(finding: Finding) -> str:
 OVERRIDES = (
     "False positive? Add `# dry-lint: distinct-from <qualified name>` to the new function (this pair), "
     "`# dry-lint: ignore` to a function (that function), a `patterns` entry under `[tool.dry-lint]` (a family), "
-    "or the `dry-lint: override` label to the pull request (this pull request only)."
+    "or the `dry-lint: override` label to the pull request (this pull request only). "
+    "For TypeScript/TSX, use `//` instead of `#`; configuration can also live in `.dry-lint.toml`."
 )
 
 
@@ -141,6 +144,14 @@ def as_github(report: Report) -> str:
         lines.append(f"::{level(f)} file={new.path},line={new.line},endLine={new.end_line},title=dry-lint::"
                      f"{escape(f.headline() + ': ' + f.advice())}")
     return "\n".join(lines)
+
+
+def function_link(function: Function, run: Run) -> str:
+    label = f"`{function.qualname.replace('`', '')}`"
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", run.repository) or not re.fullmatch(r"[a-fA-F0-9]{40}", run.head):
+        return label
+    path = quote(function.path, safe="/")
+    return f"[{label}](https://github.com/{run.repository}/blob/{run.head}/{path}#L{function.line}-L{function.end_line})"
 
 
 def as_markdown(report: Report, max_findings: int = 10) -> str:
@@ -160,7 +171,8 @@ def as_markdown(report: Report, max_findings: int = 10) -> str:
             verdict, suggestion = f"similarity {f.candidate.similarity:.2f}", "not judged"
         if f.family > 1:
             suggestion += f" ({f.family} look-alikes)"
-        rows.append(f"| `{f.candidate.new.qualname}` | `{f.candidate.existing.qualname}` | {verdict} | {suggestion} |")
+        rows.append(f"| {function_link(f.candidate.new, report.run)} | "
+                    f"{function_link(f.candidate.existing, report.run)} | {verdict} | {suggestion} |")
     more = ["", f"And {len(shown) - max_findings} more; run `dry-lint check` to see them all."] \
         if len(shown) > max_findings else []
     skipped = [f"<details><summary>Not reported ({len(report.filtered)} settled by a rule)</summary>", "",
