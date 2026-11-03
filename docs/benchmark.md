@@ -248,6 +248,8 @@ detector agree on about 40% of their top pairs.
 - `label` is `duplicate`, `separate` or `borderline`; borderline pairs are left out of the numbers.
 - Each side carries its code as it was when labelled, so the judge benchmark still runs after the code has moved.
 - `weight` projects a stratified sample back to its population: the stratum's size over its sample size.
+- A file ending in `.toml` holds the same fields as `[[pair]]` tables instead, with the code in `'''` blocks, as
+  in [`examples/gold.toml`](../examples/gold.toml): easier to read and review than JSON lines.
 
 ```bash
 dry-lint bench --gold gold.jsonl                       # the configured judge: AUC, precision and recall, bands
@@ -294,11 +296,11 @@ Use this to build a gold set for your own codebase:
 
 ## Example pairs
 
-[`examples/gold.jsonl`](../examples/gold.jsonl) holds 30 labelled pairs from the four gold sets: 15 duplicates and 15
+[`examples/gold.toml`](../examples/gold.toml) holds 30 labelled pairs from the four gold sets: 15 duplicates and 15
 separate, in Python and TypeScript. They were chosen by hand among short functions whose paths and code name no
 vendor, customer or credential. Each pair carries its majority label, the three labellers' votes, and the scores
 Jev, Opus and Sonnet gave it (a `separate` answer counts as 0, as in reports; Opus and Sonnet were only asked in
-Jev's band). `dry-lint bench --gold examples/gold.jsonl` runs on them, with no key at all using
+Jev's band). The file is TOML, so the code reads as written. `dry-lint bench --gold examples/gold.toml` runs on them, with no key at all using
 `--judge command --judge-command "python examples/fake_judge.py"`.
 
 They were picked for being hard: mostly from the decision band, where look-alikes and duplicates are hard to tell

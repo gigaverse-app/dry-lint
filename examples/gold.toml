@@ -1,0 +1,891 @@
+# Thirty labelled pairs from dry-lint's private gold sets (docs/benchmark.md#example-pairs), chosen to be hard:
+# 15 duplicates and 15 look-alikes that are not, in Python and TypeScript.
+#
+#   dry-lint bench --gold examples/gold.toml
+#
+# Each pair: the majority `label` of three labellers, each labeller's vote (duplicate, pattern or separate), and the
+# score each judge gave it. A `separate` answer counts as 0, as reports read it; Opus and Sonnet were only asked about
+# Jev scores in [0.5, 0.91), so a pair outside that band has Jev's score only. The code is as it was when labelled.
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-ai"
+language = "python"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.82, opus = 0.85, sonnet = 0.72 }
+
+[pair.new]
+id = "src/gv/ai/transcript_soundbite_service/namedrops/transcript_name_extractor.py::TranscriptNameExtractor.recent_namedrops"
+code = '''
+    def recent_namedrops(self, channel_id: str) -> list[str]:
+        """Names actually extracted and published, oldest to most recently extracted."""
+        cache = self._recent_namedrops.get(channel_id)
+        return list(cache.values()) if cache is not None else []
+'''
+
+[pair.existing]
+id = "src/gv/ai/transcript_soundbite_service/features/namedrop/transcript_name_extractor.py::TranscriptNameExtractor.recent_namedrops"
+code = '''
+    async def recent_namedrops(self, channel_id: str) -> list[str]:
+        """Names actually extracted and published, oldest to most recently extracted."""
+        record = await self._memory.read(channel_id)
+        return record.value.names if record is not None and record.value is not None else []
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-ai"
+language = "python"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.78, opus = 0.0, sonnet = 0.6 }
+
+[pair.new]
+id = "src/gv/ai/transcript_soundbite_service/features/sports/models.py::StatsQuery.retrieval_key"
+code = '''
+    def retrieval_key(self) -> str:
+        """Identify equivalent retrieval constraints, independent of wording or participant order."""
+        ordered = self.model_copy(update={"teams": sorted(team.strip().casefold() for team in self.teams)})
+        return ordered.model_dump_json(exclude={"question"})
+'''
+
+[pair.existing]
+id = "src/gv/ai/transcript_soundbite_service/features/sports/pacing.py::ShownKind.of"
+code = '''
+    def of(cls, query: StatsQuery) -> "ShownKind":
+        return cls(
+            operation=query.operation,
+            player=query.player.casefold() if query.player else None,
+            teams=sorted(team.casefold() for team in query.teams),
+        )
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-ai"
+language = "python"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.71, opus = 0.72, sonnet = 0.8 }
+
+[pair.new]
+id = "src/gv/ai/transcript_soundbite_service/common/references.py::ReferenceStore.read"
+code = '''
+    async def read(self, channel_id: str) -> ConversationReference[T] | None:
+        # Optional context cannot stall or disable the initial shared decision bundle.
+        try:
+            async with asyncio.timeout(0.25):
+                raw = await self.throttle.raw_client.get(self.key(channel_id))
+        except RedisError, TimeoutError:
+            return None
+        return self.model.model_validate_json(raw) if raw else None
+'''
+
+[pair.existing]
+id = "src/gv/ai/transcript_soundbite_service/features/sports/context.py::SportsContextStore.read"
+code = '''
+    async def read(self, channel_id: str, now: datetime) -> SportsMemory | None:
+        # Optional context cannot stall or disable the initial shared decision bundle.
+        try:
+            async with asyncio.timeout(0.25):
+                raw = await self.throttle.raw_client.get(self.key(channel_id))
+        except RedisError, TimeoutError:
+            return None
+        memory = SportsMemory.model_validate_json(raw).live(now) if raw else None
+        return memory if memory and (memory.items or memory.roster) else None
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-ai"
+language = "python"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.69, opus = 0.6, sonnet = 0.0 }
+
+[pair.new]
+id = "src/gv/ai/transcript_soundbite_service/features/sports/derived.py::figure"
+code = '''
+def figure(source: StatsResult, fact: StatFact) -> Figure:
+    label = source.metrics[fact.metric_id].label
+    return Figure(subject_caption(fact), scope_caption(fact.scope), label, shown(source, fact))
+'''
+
+[pair.existing]
+id = "src/gv/ai/transcript_soundbite_service/features/sports/takeaway.py::figure_line"
+code = '''
+def figure_line(source: StatsResult, fact: StatFact) -> str:
+    """One figure as the selection catalog shows it: subject, scope, label, value, direction."""
+    direction = " (fewer is better)" if better(fact.metric_id) == "lower" else ""
+    label = source.metrics[fact.metric_id].label
+    value = shown(source, fact)
+    return f"{subject_caption(fact)} · {scope_caption(fact.scope)}: {label} = {value}{direction}"
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-ai"
+language = "python"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "pattern", "gpt-5.5" = "separate" }
+scores = { jev = 0.77, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "src/gv/ai/transcript_soundbite_service/common/coalescing.py::PendingSpeechStore._key"
+code = '''
+    def _key(self, channel_id: str) -> str:
+        return self.store.build_key(f"pending:{self.feature}:{channel_id}")
+'''
+
+[pair.existing]
+id = "src/gv/ai/transcript_soundbite_service/features/prediction/usage.py::MarketUsage._key"
+code = '''
+    def _key(self, kind: str, channel_id: str) -> str:
+        return self.store.build_key(f"usage:{kind}:{channel_id}")
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-ai"
+language = "python"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "separate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.74, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "src/gv/ai/public_api_service/api/showcase_shelf.py::ShowcaseShelfSerializer.loads"
+code = '''
+    def loads(self, payload: bytes) -> ShowcaseShelf:
+        return ShowcaseShelf.model_validate_json(zlib.decompress(payload))
+'''
+
+[pair.existing]
+id = "src/gv/ai/common/integrations/prefect/pydantic_serializer.py::PydanticJSONSerializer.loads"
+code = '''
+    def loads(self, blob: bytes) -> Optional[BaseModel]:
+        if blob == b"null":
+            return None
+        return self._resolve_model().model_validate_json(blob)
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-ai"
+language = "python"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "separate", "gpt-5.5" = "separate" }
+scores = { jev = 0.7, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "src/gv/ai/common/transcript_utterances.py::ends_utterance"
+code = '''
+def ends_utterance(event: TranscriptEvent) -> bool:
+    """
+    The one utterance-boundary rule: a closing chunk, a provider full form, or a final from a producer without
+    utterance boundaries. Only an event explicitly marked open (is_utterance_complete=False) leaves it open.
+    """
+    return event.is_utterance_complete is not False or event.end_of_speech is True
+'''
+
+[pair.existing]
+id = "src/gv/ai/common/models/common_models.py::TranscriptEvent.is_full_utterance"
+code = '''
+    def is_full_utterance(self) -> bool:
+        """Whether all three wire flags explicitly identify a completed full form [111]."""
+        return self.is_final and self.end_of_speech is True and self.is_utterance_complete is True
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-backend"
+language = "python"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.78, opus = 0.68, sonnet = 0.7 }
+
+[pair.new]
+id = "libraries/due/src/due/django/capabilities/bulk.py::DurableBulkEffect.classify_error"
+code = '''
+    def classify_error(self, error: Exception) -> WorkFailureDisposition:
+        if isinstance(error, EffectNotAppliedError):
+            return error.rejection.disposition
+        return WorkFailureDisposition.RETRYABLE
+'''
+
+[pair.existing]
+id = "libraries/due/src/due/django/capabilities/operations.py::DurableExternalOperation.classify_error"
+code = '''
+    def classify_error(self, error: Exception) -> WorkFailureDisposition:
+        if isinstance(error, EffectOutcomeUnknownError):
+            return WorkFailureDisposition.UNKNOWN
+        if isinstance(error, EffectNotAppliedError):
+            return error.rejection.disposition
+        return WorkFailureDisposition.RETRYABLE
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-backend"
+language = "python"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.76, opus = 0.62, sonnet = 0.6 }
+
+[pair.new]
+id = "libraries/due/src/due/django/capabilities/bulk.py::DurableBulkExternalOperation.evidence_requiring_settlement"
+code = '''
+    def evidence_requiring_settlement(self) -> QuerySet[EffectAttempt]:
+        return self.evidence_store.pending_attempts(self.model._meta.label_lower)
+'''
+
+[pair.existing]
+id = "libraries/due/src/due/django/capabilities/operations.py::DurableExternalOperation.evidence_requiring_settlement"
+code = '''
+    def evidence_requiring_settlement(self) -> QuerySet[EffectAttempt]:
+        """Canonical receipts whose product consequence is not yet committed."""
+        return attempts_for_model(self.model).filter(
+            outcome=EffectAttemptOutcome.APPLIED,
+            repair_pending=True,
+        )
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-backend"
+language = "python"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "separate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.74, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "libraries/pytest-obligation/src/pytest_obligation/gap_probes.py::_derivation_guards"
+code = '''
+def _derivation_guards(derived: StateDerived | FixedEffectDerived) -> None:
+    assert_derived_transitions_are_production_bound(derived)
+    assert_settlement_is_production_bound(derived)
+    assert_outstanding_selection_is_production_bound(derived)
+    assert_derivation_bindings_are_production_bound(derived)
+'''
+
+[pair.existing]
+id = "libraries/pytest-obligation/src/pytest_obligation/profiles/fact_derived_obligations.py::assert_fixed_effect_derived_contract"
+code = '''
+def assert_fixed_effect_derived_contract(derived: FixedEffectDerived) -> None:
+    """Run the fixed-effect binding guard and its applicable derivation proofs."""
+    assert_fixed_effect_bindings_are_production_bound(derived)
+    for proof in FIXED_EFFECT_DERIVED_PROOFS:
+        proof(derived)
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-backend"
+language = "python"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "separate", "gpt-5.5" = "separate" }
+scores = { jev = 0.75, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "gigaverse/core/community/membership/provider_sync.py::CommunityMembershipSyncService._retry_delay"
+code = '''
+    def _retry_delay(attempts: int, *, at_least: timedelta = timedelta(0)) -> timedelta:
+        # The provider's Retry-After is a floor the backoff ceiling does not cut:
+        # retrying inside the window only spends another attempt on a refusal.
+        return max(
+            MEMBERSHIP_SYNC_RETRY_DELAY.at(attempts),
+            at_least,
+        )
+'''
+
+[pair.existing]
+id = "libraries/pytest-obligation/src/pytest_obligation/references/in_memory.py::InMemoryThrottledLifecycle.retry_delay"
+code = '''
+    def retry_delay(self) -> timedelta:
+        return max(REFERENCE_RETRY_DELAY, self.provider_wait)
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-backend"
+language = "python"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "separate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.74, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "libraries/pytest-obligation/src/pytest_obligation/gap_probes.py::_derivation_guards"
+code = '''
+def _derivation_guards(derived: StateDerived | FixedEffectDerived) -> None:
+    assert_derived_transitions_are_production_bound(derived)
+    assert_settlement_is_production_bound(derived)
+    assert_outstanding_selection_is_production_bound(derived)
+    assert_derivation_bindings_are_production_bound(derived)
+'''
+
+[pair.existing]
+id = "libraries/pytest-obligation/src/pytest_obligation/profiles/fact_derived_obligations.py::assert_state_derived_contract"
+code = '''
+def assert_state_derived_contract(derived: StateDerived) -> None:
+    """
+    Run the binding guard and every invariant against one adopter.
+
+    Prefer the individual proofs when an adopter has a known, documented gap:
+    xfail that one invariant with a reason rather than skipping the contract, so
+    the remaining guarantees stay enforced.
+    """
+    assert_derivation_bindings_are_production_bound(derived)
+    for proof in STATE_DERIVED_PROOFS:
+        proof(derived)
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-backend"
+language = "python"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "separate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.7, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "libraries/pytest-obligation/src/pytest_obligation/profiles/acknowledged_effects.py::AcknowledgedEffect.model_post_init"
+code = '''
+    def model_post_init(self, _context: Any) -> None:
+        if self.max_runs_to_discharge < 1:
+            raise ValueError("AcknowledgedEffect.max_runs_to_discharge must be at least one")
+'''
+
+[pair.existing]
+id = "libraries/pytest-obligation/src/pytest_obligation/profiles/job_retry_limits.py::BoundedRetry.model_post_init"
+code = '''
+    def model_post_init(self, _context: Any) -> None:
+        if self.max_executions < 1:
+            raise ValueError("BoundedRetry.max_executions must be at least one")
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-backend"
+language = "python"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "pattern", "gpt-5.5" = "pattern" }
+scores = { jev = 0.68, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "libraries/pytest-obligation/src/pytest_obligation/profiles/acknowledged_effects.py::assert_acknowledged_effect_contract"
+code = '''
+def assert_acknowledged_effect_contract(effect: AcknowledgedEffect) -> None:
+    """Run the production-binding guard and both acknowledgement invariants."""
+    assert_acknowledgement_bindings_are_production_bound(effect)
+    for proof in ACKNOWLEDGED_EFFECT_PROOFS:
+        proof(effect)
+'''
+
+[pair.existing]
+id = "libraries/pytest-obligation/src/pytest_obligation/profiles/crash_ambiguity.py::assert_ambiguity_contract"
+code = '''
+def assert_ambiguity_contract(ambiguity: AmbiguityAware) -> None:
+    assert_ambiguity_bindings_are_production_bound(ambiguity)
+    for proof in AMBIGUITY_PROOFS:
+        proof(ambiguity)
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.84, opus = 0.68, sonnet = 0.6 }
+
+[pair.new]
+id = "packages/features/live/components/showcase-manage-modal/showcaseBulkActivation.ts::toShowcaseBulkActivationBody"
+code = '''
+function toShowcaseBulkActivationBody(
+  ownerId: string,
+  promotions: ReadonlyArray<Pick<AiPublicApiTypes.HostPromotionView, "promotionId">>,
+  enabled: boolean,
+): AiPublicApiTypes.BulkChannelActivationBody {
+  return {
+    enabled,
+    ownerType: "user",
+    ownerId,
+    promotionIds: promotions.map((promotion) => promotion.promotionId),
+  };
+}
+'''
+
+[pair.existing]
+id = "packages/features/showcase/services/pendingActivationsDrain.ts::toBulkActivationBody"
+code = '''
+function toBulkActivationBody(group: BulkActivationGroup): AiPublicApiTypes.BulkChannelActivationBody {
+  return {
+    enabled: group.enabled,
+    ownerType: "user",
+    promotionIds: group.promotionIds,
+    copyDefaultsOnly: false,
+  };
+}
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.83, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "apps/app/src/routes-mobile/community.$communityHandle.showcase.$productId.tsx::ProductPage"
+code = '''
+function ProductPage() {
+  const { communityHandle, productId } = Route.useParams();
+  const { origin } = Route.useSearch();
+  return (
+    <CommunityShowcaseProductView
+      communityHandle={communityHandle}
+      productId={productId}
+      analyticsSurface={communityProductSurface(origin)}
+    />
+  );
+}
+'''
+
+[pair.existing]
+id = "apps/app/src/routes/_app/_community/community.$communityHandle/showcase/$productId.tsx::CommunityShowcaseProductPage"
+code = '''
+function CommunityShowcaseProductPage() {
+  const { communityHandle, productId } = Route.useParams();
+  const { origin } = Route.useSearch();
+
+  return (
+    <CommunityShowcaseProductView
+      communityHandle={communityHandle}
+      productId={productId}
+      analyticsSurface={communityProductSurface(origin)}
+    />
+  );
+}
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.75, opus = 0.8, sonnet = 0.72 }
+
+[pair.new]
+id = "packages/features/showcase/components/manager/catalogPromoteFilter.ts::promoteFilterToEnabledParam"
+code = '''
+function promoteFilterToEnabledParam(value: CatalogPromoteFilterValue): boolean | undefined {
+  if (value === null) return undefined;
+  return value === "on";
+}
+'''
+
+[pair.existing]
+id = "packages/features/showcase/components/manager/ShowcasePromoteFilter.tsx::promoteFilterToEnabledParam"
+code = '''
+function promoteFilterToEnabledParam(value: ShowcasePromoteFilterValue): boolean | undefined {
+  if (value.size !== 1) return undefined;
+  return value.has("on");
+}
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.7, opus = 0.0, sonnet = 0.8 }
+
+[pair.new]
+id = "apps/app/src/routes-mobile/event.$eventActivityId.process.tsx::loader"
+code = '''
+loader: ({ params: { eventActivityId }, deps: { couponCode, ticketId } }) =>
+    processEventRegistration({ eventActivityId, couponCode, ticketId })
+'''
+
+[pair.existing]
+id = "apps/app/src/routes/event/$eventActivityId/process.tsx::loader"
+code = '''
+loader: ({ params: { eventActivityId }, deps: { couponCode, ticketId } }) =>
+    processEventRegistration({ eventActivityId, couponCode, ticketId })
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.66, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "packages/features/showcase/components/manager/CatalogProductRow.tsx::promotionTypeLabel"
+code = '''
+function promotionTypeLabel(type: AiPublicApiTypes.MyPromotionItem["promotionType"]) {
+  if (!type || !(type in PROMOTION_TYPE_BY_VALUE)) return "";
+  return PROMOTION_TYPE_BY_VALUE[type].label;
+}
+'''
+
+[pair.existing]
+id = "packages/features/showcase/components/product-details/helpers.ts::iconForType"
+code = '''
+function iconForType(type: AiPublicApiTypes.PromotionDetail["promotionType"]) {
+  if (!type) return "bag-shopping-solid" as const;
+  return PROMOTION_TYPE_BY_VALUE[type]?.icon ?? ("bag-shopping-solid" as const);
+}
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "separate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.8, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "packages/features/community/services/showcaseProductPost.ts::newestFirst"
+code = '''
+function newestFirst(left: ActivityResponse, right: ActivityResponse) {
+  return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+}
+'''
+
+[pair.existing]
+id = "packages/features/showcase/services/shelfOrder.ts::sortShelfNewestFirst"
+code = '''
+function sortShelfNewestFirst<T extends ShelfEntry>(items: T[]): T[] {
+  return [...items].sort((a, b) => time(b.assignment.assignedAt) - time(a.assignment.assignedAt));
+}
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "separate", "gpt-5.5" = "separate" }
+scores = { jev = 0.72, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "packages/services/ReactQuery/transientRetryDelayMs.ts::transientRetryDelayMs"
+code = '''
+function transientRetryDelayMs(attemptIndex: number, error: unknown): number {
+  return backoffDelayMs(attemptIndex, error, TRANSIENT_BACKOFF);
+}
+'''
+
+[pair.existing]
+id = "packages/features/chat/services/streamChatConnectionRecovery.ts::chatRecoveryDelayMs"
+code = '''
+function chatRecoveryDelayMs(attempt: number, error: unknown): number {
+  return backoffDelayMs(attempt, error, RECOVERY_BACKOFF);
+}
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "separate", "gpt-5.5" = "separate" }
+scores = { jev = 0.7, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "packages/features/live/hooks/useLiveDebuggingToolsEnabled.ts::useLiveDebuggingToolsEnabled"
+code = '''
+function useLiveDebuggingToolsEnabled(): boolean {
+  const { liveSessionDebuggingTools } = useFeatureFlags();
+  return isDebugSurfaceEnabled(liveSessionDebuggingTools);
+}
+'''
+
+[pair.existing]
+id = "packages/features/realtime-inspector/index.tsx::LiveSessionInspector"
+code = '''
+const LiveSessionInspector = (): ReactElement | null => {
+  const { realtimeInspector } = useFeatureFlags();
+
+  if (!isDebugSurfaceEnabled(realtimeInspector, { allowInCapture: true })) {
+    return null;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <LazyLiveSessionInspector />
+    </Suspense>
+  );
+};
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-web-app"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "separate", "gemini-3.1-pro" = "separate", "gpt-5.5" = "separate" }
+scores = { jev = 0.65, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "packages/features/showcase/components/manager/communities/membership.ts::communityPillLabel"
+code = '''
+function communityPillLabel(names: string[]): string {
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+  return `${names[0]} +${names.length - 1}`;
+}
+'''
+
+[pair.existing]
+id = "packages/features/chat/chats/community-chat/CommunityChatTypingIndicator.tsx::getTypingLabel"
+code = '''
+function getTypingLabel(names: string[]) {
+  if (names.length === 1) {
+    return `${names[0]} is typing`;
+  }
+
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]} are typing`;
+  }
+
+  return `${names[0]} and ${names.length - 1} others are typing`;
+}
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-mobile"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.91 }
+
+[pair.new]
+id = "src/services/retryWithBackoff.ts::getRetryDelay"
+code = '''
+const getRetryDelay = (
+  error: unknown,
+  attempt: number,
+  baseDelayMs: number,
+  jitter: boolean,
+  retryAfterMs: RetryWithBackoffOptions['retryAfterMs'],
+) => {
+  const backoffMs = baseDelayMs * 2 ** attempt;
+  return Math.max(
+    jitter ? Math.random() * backoffMs : backoffMs,
+    retryAfterMs?.(error) ?? 0,
+  );
+};
+'''
+
+[pair.existing]
+id = "src/services/backoffDelay.ts::backoffDelay"
+code = '''
+const backoffDelay = (attempt: number) =>
+  Math.min(1_000 * 2 ** attempt, MAX_BACKOFF_MS) + Math.random() * 500;
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-mobile"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "duplicate", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.9, opus = 0.77, sonnet = 0.8 }
+
+[pair.new]
+id = "src/services/retryWithBackoff.ts::getRetryDelay"
+code = '''
+const getRetryDelay = (
+  error: unknown,
+  attempt: number,
+  baseDelayMs: number,
+  jitter: boolean,
+  retryAfterMs: RetryWithBackoffOptions['retryAfterMs'],
+) => {
+  const backoffMs = baseDelayMs * 2 ** attempt;
+  return Math.max(
+    jitter ? Math.random() * backoffMs : backoffMs,
+    retryAfterMs?.(error) ?? 0,
+  );
+};
+'''
+
+[pair.existing]
+id = "src/services/ReactQuery/retryPolicy.ts::retryDelay"
+code = '''
+const retryDelay = (failureCount: number, error: unknown): number => {
+  const exp = Math.min(
+    MAX_RETRY_DELAY_MS,
+    2 ** failureCount * BASE_RETRY_DELAY_MS,
+  );
+  return Math.max(Math.random() * exp, getRetryAfterMs(error));
+};
+'''
+
+[[pair]]
+label = "duplicate"
+repository = "gigaverse-mobile"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "duplicate", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.79, opus = 0.62, sonnet = 0.8 }
+
+[pair.new]
+id = "src/features/live-widgets/groups/insights/InsightsGateway.tsx::InsightsGateway"
+code = '''
+const InsightsGateway = ({ widget }: InsightsGatewayProps) => {
+  return (
+    <WidgetProvider widget={widget}>
+      <WidgetRenderer widget={widget} />
+    </WidgetProvider>
+  );
+};
+'''
+
+[pair.existing]
+id = "src/features/live-widgets/groups/moderation-alerts/ModerationAlertsGateway.tsx::ModerationAlertsGateway"
+code = '''
+const ModerationAlertsGateway = ({
+  widget,
+}: ModerationAlertsGatewayProps) => {
+  return (
+    <WidgetProvider key={widget.id} widget={widget}>
+      <WidgetRenderer widget={widget} />
+    </WidgetProvider>
+  );
+};
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-mobile"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "pattern", "gpt-5.5" = "pattern" }
+scores = { jev = 0.86, opus = 0.0, sonnet = 0.8 }
+
+[pair.new]
+id = "src/features/live-session/views/floating-chat/FloatingChat.provider.tsx::useFloatingChatContext"
+code = '''
+const useFloatingChatContext = <Selected,>(
+  selector: (value: FloatingChatContextType) => Selected,
+): Selected => {
+  return useContextSelector<FloatingChatContextType | null, Selected>(
+    Context,
+    value => {
+      if (value === null) {
+        throw new Error(
+          'useFloatingChatContext must be used within a FloatingChatProvider',
+        );
+      }
+      return selector(value);
+    },
+  );
+};
+'''
+
+[pair.existing]
+id = "src/features/communities/services/live-preview/LivePreview.provider.tsx::useLivePreviewContext"
+code = '''
+const useLivePreviewContext = <Selected,>(
+  selector: (value: LivePreviewContextValue) => Selected,
+): Selected =>
+  useContextSelector(LivePreviewContext, value => {
+    if (value === null) {
+      throw new Error(
+        'Live preview is only available inside LivePreviewProvider',
+      );
+    }
+
+    return selector(value);
+  });
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-mobile"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "pattern", "gpt-5.5" = "pattern" }
+scores = { jev = 0.85, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "src/features/live-session/services/audience/ParticipantAttributes.provider.tsx::useAudienceProfileContext"
+code = '''
+const useAudienceProfileContext = <Selected,>(
+  selector: (value: AudienceProfileContextType) => Selected,
+): Selected => {
+  return useContextSelector<AudienceProfileContextType | null, Selected>(
+    AudienceProfileContext,
+    value => {
+      if (!value) {
+        throw new Error(
+          'useAudienceProfileContext must be used within a AudienceProfileProvider',
+        );
+      }
+      return selector(value);
+    },
+  );
+};
+'''
+
+[pair.existing]
+id = "src/features/chat/ui/message/ChatMessageProvider.tsx::useChatMessageContext"
+code = '''
+const useChatMessageContext = <Selected,>(
+  selector: (value: NonNullable<ChatMessageContextType>) => Selected,
+): Selected => {
+  return useContextSelector<ChatMessageContextType, Selected>(
+    ChatMessageContext,
+    value => {
+      if (value === null) {
+        throw new Error(
+          'useChatMessageContext must be used within a ChatMessageProvider',
+        );
+      }
+      return selector(value);
+    },
+  );
+};
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-mobile"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "pattern", "gpt-5.5" = "duplicate" }
+scores = { jev = 0.73, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "src/features/live-widgets/groups/insights/InsightsGateway.tsx::InsightsGateway"
+code = '''
+const InsightsGateway = ({ widget }: InsightsGatewayProps) => {
+  return (
+    <WidgetProvider widget={widget}>
+      <WidgetRenderer widget={widget} />
+    </WidgetProvider>
+  );
+};
+'''
+
+[pair.existing]
+id = "src/features/live-widgets/groups/stage-overlay/StageOverlayGateway.tsx::StageOverlayGateway"
+code = '''
+const StageOverlayGateway = () => {
+  const { widget } = useStageWidgetsContext();
+
+  if (!widget) {
+    return null;
+  }
+
+  return (
+    <WidgetProvider key={widget.id} widget={widget}>
+      <WidgetRenderer widget={widget} />
+    </WidgetProvider>
+  );
+};
+'''
+
+[[pair]]
+label = "separate"
+repository = "gigaverse-mobile"
+language = "typescript"
+labellers = { "claude-opus-5.5" = "pattern", "gemini-3.1-pro" = "pattern", "gpt-5.5" = "pattern" }
+scores = { jev = 0.7, opus = 0.0, sonnet = 0.0 }
+
+[pair.new]
+id = "src/features/feed/views/activity-details-error/testing/EventBoundaryFixture.tsx::EventBoundaryFixture.static.getDerivedStateFromError"
+code = '''
+static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+'''
+
+[pair.existing]
+id = "src/services/section-error-boundary/SectionErrorBoundary.tsx::SectionErrorBoundaryInner.static.getDerivedStateFromError"
+code = '''
+static getDerivedStateFromError(error: unknown): State {
+    return { hasError: true, error };
+  }
+'''
