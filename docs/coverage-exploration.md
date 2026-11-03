@@ -49,7 +49,8 @@ narrow pool does not imply repository-wide recall. Repeated snapshots are not in
 pairs. `scan()` additionally requires mutual first neighbours, so raising `neighbours` alone does not broaden
 the backlog. Hard similarity floors and same-file/language filters create other boundaries.
 
-The existing verdict store remains the owner of real judgments and their reuse rules. A scheduler belongs
+The existing verdict store remains the owner of real judgments and their reuse rules. Main now includes source
+context and a context digest in verdict reuse (PR #21); build on that contract rather than recreating it. A scheduler belongs
 between proposing and judging, outside the detector. It must not relax verdict reuse to obtain attractive savings.
 The existing judge/model presets and their budget work remain a separate axis; discovery profiles must compose
 with them rather than implement a second model resolver or dollar-accounting system.
@@ -208,4 +209,117 @@ All these policies retained the six fresh backend positives. Raising k did not r
 two lost regression positives; lowering its floors did, at increased candidate volume. That separates ranking
 budget from floor effects. Preserving baseline routes plus a semantic supplement is a promising first policy,
 not yet evidence for changing defaults. See [the semantic trial](semantic-signal-trial.md) for pinned repositories,
-feature definitions and limitations. Replay results and instructions will be added with the spike.
+feature definitions and limitations.
+
+## Built spike and frozen-tree results
+
+`scripts/replay_coverage.py` implements a single-writer, offline scheduler over canonical `CandidatesFile`
+snapshots. It deduplicates pairs across sources, accounts for successful and failed unit-cost attempts,
+resumes a serialized ledger, rejects contradictory snapshots and reuses only identical code/context/policy
+evidence. It does not produce verdicts or integrate with live checks. No function code appears in its output,
+but identities and hashes may still be private. Its format has an independent schema version of 1.
+
+| Experimental policy | Selection schedule across attempts | Empty-lane behavior |
+| --- | --- | --- |
+| `fixed` | Baseline only | Stop when baseline is covered |
+| `refill` | Baseline first | Continue into the larger pool after covering baseline |
+| `high-precision` | 8 baseline, 1 exploration, 1 aging | Lend unused slots |
+| `balanced` | Baseline, baseline, exploration, baseline, aging | Lend unused slots |
+| `high-recall` | Baseline, exploration, aging | Lend unused slots |
+
+The schedule position persists across runs. Query attempt counts provide round-robin preference within a lane;
+aging considers first-seen time before rank. Sources supply ordered lists; no raw score from one source is
+compared with another. Source ranking is not yet a learned yield estimate. `refill` deliberately has no guaranteed
+exploration share under continuously arriving baseline work: it is a useful comparator, not the final policy.
+
+`scripts/probe_coverage.py` builds three pools: baseline top 3 at normal floors, deep baseline top 20 at normal
+floors, and combined semantic top 20 at experimental floors 0.35 / 0.2 for short functions. It then compares
+all five schedules over five discovery opportunities on a frozen tree. The detector's filtering rules still apply.
+
+Measured with Python 3.14.7 and `PYTHONHASHSEED=0`, both tracked trees clean:
+
+| Corpus | Source commit | Functions | Query functions | Admitted pair pool | Reviewed positive / negative pairs |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Backend | `22dfbe180c6704101658a088cc269a25fa9c82dd` | 5,057 | 258 | 2,157 | 33 / 97 |
+| AI | `806bd7ef848b66fb7dd8974384532dc419deb86c` | 10,307 | 40 | 163 | 7 / 13 |
+
+AI advanced since the earlier semantic trial. All 150 labelled function bodies still matched the captured
+trees exactly after indentation/outer-whitespace normalization; no missing, stale or borderline labels were
+used in these counts. That body check does not re-adjudicate changed dependencies or establish held-out truth.
+
+Each cell below is cumulative **known positive pairs examined**, higher is better. Calls are simulated
+unit-cost attempts, not actual LLM calls. All arms have the same configured ceiling within each corpus; fixed
+uses less than that ceiling when its shortlist ends. Unlabelled examined pairs are excluded from positive and
+negative counts, not treated as negatives.
+
+| Policy | Backend after 100 / 200 / 300 / 400 / 500 available attempts | Backend attempts used | AI after 10 / 20 / 30 / 40 / 50 available attempts | AI attempts used |
+| --- | --- | ---: | --- | ---: |
+| fixed | 26 / 32 / 33 / 33 / 33 | 393 | 1 / 5 / 6 / 6 / 6 | 42 |
+| refill | 26 / 32 / 33 / 33 / 33 | 500 | 1 / 5 / 6 / 6 / 7 | 50 |
+| high-precision | 20 / 30 / 31 / 32 / 33 | 500 | 1 / 4 / 6 / 7 / 7 | 50 |
+| balanced | 20 / 29 / 31 / 32 / 33 | 500 | 1 / 4 / 6 / 7 / 7 | 50 |
+| high-recall | 20 / 28 / 30 / 32 / 32 | 500 | 1 / 3 / 6 / 7 / 7 | 50 |
+
+The result rejects an immediate switch to the initial balanced schedule. It delays six known backend positives
+at the first checkpoint (20 versus 26), while getting the seventh AI positive one opportunity sooner than refill.
+Refill preserves the baseline's early sequence and expands to that seventh AI pair by the fifth opportunity.
+Backend refill examines 107 additional pairs without adding a known positive; most additional pairs are unlabelled,
+so this is neither proof of wasted effort nor proof of better recall. Independent labeling is the next evidence gap.
+
+This motivates **protected initial scrutiny followed by continuing exploration**, with a fair aging reserve once
+fresh-code coverage has been delivered. Test that hypothesis on historical revisions before adopting it. Profile
+names alone do not imply quality: the high-recall schedule reaches fewer backend positives at this budget.
+
+These runs establish queue progress and an early-discovery tradeoff. They do not measure historical recall by
+merge, judge precision, token cost, dollars, p95 latency or concurrent budget correctness. No paid judge calls
+were made. The fixed comparator uses the same replay ordering/accounting as other arms; it is a fixed-retrieval
+control, not a claim that the existing live tool already implements these budgets.
+
+## Running the experiments
+
+From a dry-lint checkout, run against a local Python repository. With no `--gold`, the probe queries every
+extracted function. Gold files select query endpoints; keep source-bearing gold and all outputs outside public repos.
+
+```bash
+uv run python scripts/probe_coverage.py --root ../project --gold /private/gold.jsonl \
+  --passes 5 --per-run 100 --total 500 --depth 20 --out /private/coverage-probe
+```
+
+For the backend table, pass the 110-pair regression gold and 20-pair fresh gold together after `--gold`.
+For AI, pass the 20-pair fresh gold and use `--per-run 10 --total 50`. The output contains `summary.json`
+and one replay result per policy. Raw local evidence was retained outside the repository in
+`coverage-trial/backend/` and `coverage-trial/ai/`; only aggregates are published here. The private source and gold
+are required to reproduce those exact counts. Synthetic end-to-end reproduction is in `tests/test_coverage_replay.py`.
+
+To replay your own changing snapshots, create a JSON input with this envelope. Each source value is a complete
+canonical `candidates.json` object from the same tree, including its schema and run provenance. Baseline contains
+the protected shortlist; semantic/deep contain broader candidates. A label is not required to measure coverage.
+
+```python
+import json
+from pathlib import Path
+
+sources = {name: json.loads(Path(f"/private/{name}.json").read_text())
+           for name in ("baseline", "semantic", "deep")}
+payload = {"schema": 1, "steps": [
+    {"run_id": "pr12/head-a/pass1", "sources": sources, "judge_policy": "offline-v1"},
+    {"run_id": "pr12/head-a/pass2", "sources": sources, "judge_policy": "offline-v1"},
+]}
+Path("/private/replay.json").write_text(json.dumps(payload))
+```
+
+```bash
+uv run python scripts/replay_coverage.py --input /private/replay.json --out /private/result.json \
+  --profile balanced --per-run 3 --total 12
+uv run python scripts/replay_coverage.py --input /private/next.json --resume /private/result.json \
+  --out /private/continued.json --profile balanced --per-run 3 --total 12
+```
+
+The resumed `--total` is the whole campaign ceiling, not twelve more calls. Identical run IDs are no-ops;
+reusing an ID with different evidence is rejected. Deliberate new passes need new IDs. The spike stores no
+partial in-flight calls and is not a concurrent production budget store. A failure can be simulated with
+`failed_keys` on a step; it consumes an attempt but leaves the pair uncovered for a later opportunity.
+
+Currently implemented: bounded replay, deduplication, exact-evidence invalidation, persisted progress, deterministic
+lanes and frozen-repository probes. Still proposed: new-function classification and protected initial allowances,
+real historical capture, actual judges, currency/latency budgets, shared reservations and live profile settings.
