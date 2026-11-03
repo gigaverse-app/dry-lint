@@ -5,6 +5,7 @@
 name: dry-lint
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]  # labels: the override label re-runs it
   push:
     branches: [main]  # judges merged code too, and its verdict cache is shared with every pull request
 
@@ -18,6 +19,8 @@ concurrency:
 
 jobs:
   dry-lint:
+    # Only the override label is worth a re-run when labels change.
+    if: "github.event.action != 'labeled' && github.event.action != 'unlabeled' || github.event.label.name == 'dry-lint: override'"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -26,4 +29,6 @@ jobs:
       - uses: gigaverse-app/dry-lint@main
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
-          # fail-on-findings: "true"   # once the team trusts it
+          # Every reported duplicate fails the check; the `dry-lint: override` label lets one through.
+          # fail-at: "0.91"     # fail only on near-certain duplicates; the rest warn
+          # warn-only: "true"   # never fail

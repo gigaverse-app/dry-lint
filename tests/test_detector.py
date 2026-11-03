@@ -37,7 +37,7 @@ def test_a_reimplementation_of_an_existing_helper_becomes_a_candidate(repo: Repo
     pairs = {(c.new.qualname, c.existing.qualname) for c in candidates}
     assert ("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text") in pairs
     assert not any(new.endswith("register_widget") for new, _ in pairs)
-    assert all(c.filtered is None and c.comparer == "tfidf:1" for c in candidates)
+    assert all(c.filtered is None and c.comparer == "tfidf:2" for c in candidates)
 
 
 def test_candidates_carry_both_structure_hashes_for_the_store(repo: Repo) -> None:
@@ -201,3 +201,17 @@ def test_same_file_methods_cannot_hide_cross_file_neighbours(repo: Repo) -> None
     detector = Detector.for_repository(repo.root, Settings())
     local = next(f for f in detector.functions if f.owner == "Resource0")
     assert any(other.path == "src/forensics.py" for other, _ in detector.neighbours(local))
+
+
+def test_schema_identity_ranks_the_real_twin_above_unrelated_serializer_glue(repo: Repo) -> None:
+    # Different schemas used to receive identical fingerprints: only their field keys differ.
+    for name, key in (("a_unrelated", "invoice_id"), ("b_existing", "customer_id"), ("c_new", "customer_id")):
+        repo.write(
+            f"src/{name}.py", f'def create(validated_data):\n    return dict({key}=validated_data.get("{key}"))\n'
+        )
+    repo.commit()
+    detector = Detector.for_repository(repo.root, Settings(neighbours=1))
+    changed = next(f for f in detector.functions if f.path == "src/c_new.py")
+    candidates = detector.candidates([changed])
+    assert [pair.existing.path for pair in candidates] == ["src/b_existing.py"]
+    assert candidates[0].comparer == "tfidf:2"

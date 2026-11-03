@@ -8,7 +8,7 @@ class PythonExtractor:
     """Top-level functions and methods of at least `min_lines` lines; nested functions stay part of their parent."""
 
     name = "python"
-    version = "1"
+    version = "2"
     files = ("*.py",)
 
     def __init__(self, min_lines: int = 2) -> None:

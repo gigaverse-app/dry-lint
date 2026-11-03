@@ -41,7 +41,7 @@ def banner_available(transport: httpx.BaseTransport | None = None) -> bool:
         return False
 
 
-def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "", head: str = "") -> str:
+def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "", head: str = "", note: str = "") -> str:
     """The comment body: the marker, the banner if it can render, the report, and where it came from."""
     lines = markdown.strip().splitlines()
     if lines and lines[0].strip().startswith("<!-- dry-lint"):
@@ -55,6 +55,8 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
             "</picture>\n"
         )
     parts.append("\n".join(lines).strip())
+    if note:
+        parts.append(f"\n{note}")
     source = [f"commit {head[:7]}" if head else "", f"[run]({run_url})" if run_url else ""]
     if any(source):
         parts.append(f"\n<sub>dry-lint · {' · '.join(s for s in source if s)}</sub>")
@@ -72,10 +74,13 @@ class GitHub:
                    "X-GitHub-Api-Version": "2022-11-28"}
         self.client = httpx.Client(base_url=api, headers=headers, timeout=30, transport=transport)
 
-    def head_of(self, repository: str, number: int) -> str:
+    def pull(self, repository: str, number: int) -> dict:
         response = self.client.get(f"/repos/{repository}/pulls/{number}")
         response.raise_for_status()
-        return response.json()["head"]["sha"]
+        return response.json()
+
+    def head_of(self, repository: str, number: int) -> str:
+        return self.pull(repository, number)["head"]["sha"]
 
     def comments(self, repository: str, number: int) -> list[dict]:
         found, page = [], 1
@@ -103,7 +108,7 @@ class GitHub:
 
 
 def upsert(github: GitHub, repository: str, number: int, markdown: str, findings: int, key: str = "",
-           expect_head: str = "", banner: bool = False, run_url: str = "") -> str:
+           expect_head: str = "", banner: bool = False, run_url: str = "", note: str = "") -> str:
     """
     Create, update or leave the sticky comment, and say which: created, updated, resolved, skipped (clean and
     never commented), stale (the pull request moved on) or forbidden (the token may not comment).
@@ -114,7 +119,7 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
         mine = [c for c in github.comments(repository, number) if c.get("body", "").startswith(marker(key))]
         if not mine and findings == 0:
             return "skipped"
-        body = compose(markdown, key, banner, run_url, expect_head) if findings else resolved(key, banner, run_url, expect_head)
+        body = compose(markdown, key, banner, run_url, expect_head, note) if findings else resolved(key, banner, run_url, expect_head)
         if not mine:
             github.create(repository, number, body)
             return "created"
@@ -137,6 +142,7 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
     parser.add_argument("--key", default="", help="Keeps one comment per key, for several reports per PR.")
     parser.add_argument("--expect-head", default="", help="Post only while this is still the PR's head commit.")
     parser.add_argument("--run-url", default="")
+    parser.add_argument("--note", default="", help="A line after the report, e.g. whether the findings block.")
     args = parser.parse_args(argv)
     token = os.environ.get("GITHUB_TOKEN", "")
     if not token:
@@ -144,7 +150,7 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
         return 0
     github = GitHub(token, os.environ.get("GITHUB_API_URL", "https://api.github.com"), transport)
     outcome = upsert(github, args.repository, args.pull_request, args.body.read_text(), args.findings, args.key,
-                     args.expect_head, banner_available(transport), args.run_url)
+                     args.expect_head, banner_available(transport), args.run_url, args.note)
     if outcome == "forbidden":
         print("::warning title=dry-lint::This token may not comment on the pull request (a fork?). "
               "The findings are in the annotations and the job summary.")

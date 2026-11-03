@@ -16,7 +16,7 @@ drift: one version rounds, the other truncates, and callers get different answer
 dry-lint finds functions in a pull request that look like they re-implement something that already exists. A
 judge decides whether each pair really is one concept, and the result goes back as PR annotations and one comment.
 
-<img src="docs/assets/avatar.png" alt="Lint, the dry-lint mascot: a purple ball of dryer lint holding a lint roller covered in code" width="160" align="right">
+<img src="docs/assets/avatar.png" alt="Lint, the dry-lint mascot: a purple ball of dryer lint holding a mint-green hair dryer" width="160" align="right">
 
 ```text
 src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_text (drifted)
@@ -80,8 +80,9 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 ```
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
-runs. A clean pull request gets no comment, and it warns rather than fails until you set
-`fail-on-findings: "true"`. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
+runs. A clean pull request gets no comment. A reported duplicate fails the check; set `fail-at: "0.91"` to fail only
+on near-certain ones (no false positive at that level in the benchmark), and the `dry-lint: override` label lets
+one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
 
@@ -159,3 +160,8 @@ Lint is what is left behind when you dry things. It carries a lint roller for pi
 ## License
 
 Apache 2.0. See [CONTRIBUTING.md](CONTRIBUTING.md) to work on dry-lint itself.
+
+## Optional Dryer comparer
+
+Install the `dryer` extra and select `comparer = "dryer"` or pass `--detector dryer` to use structural fingerprints.
+TF-IDF remains the default. See [setup](docs/detectors.md) and the [gigaverse-backend comparison](docs/dryer-comparison.md).

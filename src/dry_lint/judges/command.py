@@ -18,6 +18,7 @@ import re
 import shlex
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Literal
 
 from dry_lint.models import Candidate, Verdict
@@ -72,7 +73,7 @@ class CommandJudge:
         if not command:
             raise ValueError("The command judge needs a command (--judge-command, or `command` in its settings)")
         self.command, self.input, self.version, self.timeout, self.workers = command, input, version, timeout, workers
-        self.name = name or f"command:{shlex.split(command)[0].rsplit('/', 1)[-1]}"
+        self.name = name or f"command:{Path(shlex.split(command)[0]).name}"
 
     def stdin(self, candidate: Candidate) -> str:
         return candidate.model_dump_json() + "\n" if self.input == "candidate" else prompt(candidate)

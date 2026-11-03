@@ -75,7 +75,7 @@ def test_the_comparer_benchmark_checks_each_gold_duplicate_is_proposed(repo: Rep
                          existing=GoldFunction(id="src/text.py::shorten_text", code=EXISTING), label="duplicate", weight=3)
     gone = gold("a", "x", "duplicate")
     result = bench_comparer([twin, unrelated, gone, gold("b", "x", "separate")], detector)
-    assert (result.comparer, result.neighbours, result.duplicates, result.missing) == ("tfidf:1", 3, 2, 1)
+    assert (result.comparer, result.neighbours, result.duplicates, result.missing) == ("tfidf:2", 3, 2, 1)
     assert result.recall == pytest.approx(0.25)
     assert "partner among the top 3 proposed: 25%" in result.as_text()
     assert bench_comparer([gone], detector).recall == 0.0

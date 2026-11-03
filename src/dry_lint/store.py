@@ -35,6 +35,7 @@ class Record(Versioned):
     hashes: tuple[str, str] = Field(description="Their structure hashes, in the same order.")
     comparer: str = Field(description="The comparer and version that measured `similarity`.")
     similarity: float
+    similarity_reusable: bool = False
     verdict: Verdict
     judged_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
     source: Run | None = Field(default=None, description="The run that asked, for tracing a verdict back.")
@@ -130,6 +131,9 @@ class VerdictStore:
             return Lookup(None, f"judged {verdict.label}, and the logic changed since")
         if record.comparer != candidate.comparer:
             return Lookup(None, f"the logic changed, and the similarity then came from {record.comparer}")
+        # A lossy structural metric cannot establish that changed code still implements separate concepts.
+        if not (record.similarity_reusable and candidate.similarity_reusable):
+            return Lookup(None, "the logic changed, and the comparer requires exact-hash reuse")
         if candidate.similarity > record.similarity + reopen_margin:
             return Lookup(None, f"judged separate at similarity {record.similarity:.2f}; now {candidate.similarity:.2f}")
         return Lookup(verdict, "judged separate, and the pair is no closer")
@@ -137,6 +141,7 @@ class VerdictStore:
     def remember(self, candidate: Candidate, verdict: Verdict, source: Run | None = None) -> Record:
         sides = sorted([(candidate.new.qualname, candidate.new.hash), (candidate.existing.qualname, candidate.existing.hash)])
         record = Record(key=candidate.key, pair=(sides[0][0], sides[1][0]), hashes=(sides[0][1], sides[1][1]),
-                        comparer=candidate.comparer, similarity=candidate.similarity, verdict=verdict, source=source)
+                        comparer=candidate.comparer, similarity=candidate.similarity, verdict=verdict, source=source,
+                        similarity_reusable=candidate.similarity_reusable)
         self.backend.put(record.key, record.model_dump_json().encode())
         return record

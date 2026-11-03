@@ -6,7 +6,7 @@ implements one; nothing needs to inherit from dry-lint.
 | Slot | Settings key | Built in | Entry-point group |
 | --- | --- | --- | --- |
 | Extractor | `extractors` (a list, one per language) | `python` | `dry_lint.extractors` |
-| Comparer | `comparer` | `tfidf` | `dry_lint.comparers` |
+| Comparer | `comparer` | `tfidf`, optional `dryer` | `dry_lint.comparers` |
 | Judge | `judge`, `escalate` | `jev`, `command` (and `auto`, `none`) | `dry_lint.judges` |
 | Store backend | `store` | `dir`, `s3` | `dry_lint.stores` |
 
@@ -65,7 +65,9 @@ class Comparer(Protocol):
 
 `neighbours` returns up to `k` indexed functions for which `allowed` holds (core passes "in another file"), most
 similar first and above the comparer's own floor. Similarities are only compared with stored ones of the same
-`name:version`, so a new version never reuses the "not closer" rule on old numbers. An optional
+`name:version`, so a new version never reuses the "not closer" rule on old numbers. Comparers can opt into that rule with
+`similarity_reusable = True`; the safe default is false. Both the candidate and the stored record must permit it.
+TF-IDF opts in; Dryer requires unchanged code hashes because its normalization erases literals and field names. An optional
 `shared(a, b) -> list[str]` feeds `dry-lint explain`.
 
 Measure it before switching: `dry-lint bench --gold gold.jsonl --comparer` reports how often each gold duplicate's
@@ -101,3 +103,8 @@ class StoreBackend(Protocol):
 
 Opaque bytes by key. The record format and the reuse rules stay in core (`store.py`), so a backend never decides
 whether a verdict holds.
+
+## Dryer
+
+The optional [Dryer comparer](detectors.md) uses upstream structural normalization and Jaccard similarity.
+See its [backend comparison](dryer-comparison.md) before selecting it as a default.

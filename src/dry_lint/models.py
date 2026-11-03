@@ -13,7 +13,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-SCHEMA = 1
+SCHEMA = 2
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -63,6 +63,7 @@ class Candidate(BaseModel):
     similarity: float
     comparer: str = Field(default="", description="The comparer and version that measured the similarity, e.g. 'tfidf:1'.")
     filtered: str | None = Field(default=None, description="Why a rule dropped the pair; None when it goes to the judge.")
+    similarity_reusable: bool = Field(default=False, description="Whether this metric permits reuse after logic changes.")
 
     @property
     def key(self) -> str:

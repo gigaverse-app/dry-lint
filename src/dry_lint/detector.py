@@ -119,7 +119,8 @@ class Detector:
 
     def pair(self, new: Function, existing: Function, similarity: float) -> Candidate:
         return Candidate(new=self.hashed(new), existing=self.hashed(existing), similarity=round(similarity, 3),
-                         comparer=self.comparer_id, filtered=why_skipped(new, existing, self.settings))
+                         comparer=self.comparer_id, filtered=why_skipped(new, existing, self.settings),
+                         similarity_reusable=getattr(self.comparer, "similarity_reusable", False))
 
     def candidates(self, changed: list[Function]) -> list[Candidate]:
         """Pairs for the changed functions; those a rule settles carry the rule in `filtered`."""

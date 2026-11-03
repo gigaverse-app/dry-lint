@@ -74,7 +74,7 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(rep
     assert code == 0
     assert comment.read_text().startswith("<!-- dry-lint -->") and TWIN in comment.read_text()
     written = json.loads(report.read_text())
-    assert written["schema"] == 1 and any(f["reported"] for f in written["findings"])
+    assert written["schema"] == 2 and any(f["reported"] for f in written["findings"])
 
 
 def test_without_a_judge_candidates_are_listed_and_never_fail(repo: Repo, tmp_path: Path, capsys) -> None:
@@ -147,7 +147,7 @@ def test_explain_shows_the_similarity_the_rule_and_the_stored_verdict(repo: Repo
     assert run(repo, tmp_path, "caption.py::preview_caption_text", "text.py::shorten_text", command="explain") == 0
     out = capsys.readouterr().out
     assert out.startswith(f"{TWIN} ~ src/text.py::shorten_text\n  similarity ")
-    assert "(tfidf:1)" in out and "shared: " in out and "proposed: #1 of" in out
+    assert "(tfidf:2)" in out and "shared: " in out and "proposed: #1 of" in out
     assert "rule: none applies" in out and "stored verdict: none" in out
     run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--warn-only")
     capsys.readouterr()

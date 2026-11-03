@@ -23,7 +23,7 @@ def test_built_in_plugins_are_found_by_name() -> None:
 def test_load_passes_the_options_and_lets_settings_override_defaults() -> None:
     comparer = load("comparers", PluginChoice(use="tfidf", min_similarity=0.4), min_similarity=0.9, max_df=0.2)
     assert (comparer.min_similarity, comparer.max_df) == (0.4, 0.2)
-    assert identity(comparer) == "tfidf:1"
+    assert identity(comparer) == "tfidf:2"
 
 
 @pytest.fixture
@@ -51,5 +51,5 @@ def test_installed_plugins_are_found_by_their_entry_point(installed) -> None:
 
 
 def test_an_unknown_plugin_names_what_is_available(installed) -> None:
-    with pytest.raises(ValueError, match="Unknown comparer 'minhash'; available: shingles, tfidf"):
+    with pytest.raises(ValueError, match="Unknown comparer 'minhash'; available: dryer, shingles, tfidf"):
         plugin_class("comparers", "minhash")

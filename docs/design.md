@@ -65,7 +65,7 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
-Each file carries `"schema": 1`. The models are in `models.py`, `store.py` and `report.py`.
+New files carry `"schema": 2`; schema 1 remains readable with conservative cache defaults. The models are in `models.py`, `store.py` and `report.py`.
 
 | File | Written by | Holds |
 | --- | --- | --- |
@@ -77,16 +77,16 @@ Each file carries `"schema": 1`. The models are in `models.py`, `store.py` and `
 | `gold.jsonl` | people and labellers | one labelled pair per line ([benchmark.md](benchmark.md)) |
 
 A **candidate** is both functions (name, owner, path, lines, code and structure hash), the `similarity`, the
-`comparer` that measured it (`tfidf:1`) and `filtered`: the rule that settled it, or null.
+`comparer` that measured it (`tfidf:1`), `similarity_reusable` (the metric's permission to reuse verdicts after a logic change), and `filtered`: the rule that settled it, or null.
 
 A **verdict record** is named by the pair's key, the first 16 hex digits of the SHA-256 of both qualified names,
 sorted, so a pair keeps its key whichever side changes:
 
 ```json
-{"schema": 1, "key": "3c9a51f0d2e84b17",
+{"schema": 2, "key": "3c9a51f0d2e84b17",
  "pair": ["src/text.py::shorten_text", "src/widgets/caption.py::preview_caption_text"],
  "hashes": ["a41f0c2e9b7d1355", "77c0e1d2f3a4b5c6"],
- "comparer": "tfidf:1", "similarity": 0.71,
+ "comparer": "tfidf:1", "similarity": 0.71, "similarity_reusable": true,
  "verdict": {"label": "drifted", "score": 0.91, "behaves_differently": 0.86, "owner": "existing",
              "why": "both truncate at a word boundary; one appends an ellipsis", "judge": "jev",
              "judge_version": "reuse-v2", "second_opinion": null},
@@ -104,9 +104,14 @@ jobs never conflict and a run reads only the records of the pairs it has. A reco
 cannot have changed:
 
 - **both structure hashes match**: nothing that matters changed; or
-- **the verdict was `separate`, the similarity comes from the same comparer version, and the pair is not more than
+- **the verdict was `separate`, both records permit similarity reuse, the similarity comes from the same comparer version,
+  and the pair is not more than
   `reopen_margin` (0.05) closer than when it was judged.** Changes that move two concepts apart cannot make them
   one.
+
+The optional comparer attribute `similarity_reusable` defaults to false; TF-IDF opts in to its existing heuristic.
+Dryer stays false because structural normalization erases literals and fields. Schema 1 records still load, but
+only exact hashes reuse a verdict until a new record declares the policy. See [Dryer setup](detectors.md).
 
 A `duplicate` or `drifted` verdict reopens on any logic change, because that change might be the fix, or more
 drift. A verdict from another judge is never reused. One from an older version of the same judge is, until
@@ -176,9 +181,16 @@ The Python extractor gives each function **behaviour tokens**, a bag of what it 
 
 - `call:` for each name it calls;
 - `attr:` for each attribute it touches;
-- `w:` for each word in its identifiers, split from snake_case and camelCase, with generic words dropped;
+- `w:` for each word in its identifiers, split from snake_case, camelCase and acronym boundaries (`parseHTTPHeader`), with generic words dropped;
+- `key:` for keyword arguments, literal mapping keys and command option names;
 - `fn:` for the words in its own name, counted twice;
 - `ctl:` for loops, `try` blocks and `await`s.
+
+Annotations, arbitrary string prose and enclosing class names do not contribute tokens. Class names used in
+executable code do: `HTTPInvoiceClient()` contributes `http`, `invoice` and `client`. These choices were measured
+against judged backend candidates; adding every available signal lost real duplicates ([results](benchmark.md)).
+The built-in extractor and comparer are version 2 so cached similarities from version 1 are not compared after
+logic changes. Unchanged-logic verdicts remain reusable.
 
 Its **structure hash** is the syntax tree with docstrings, annotations, decorators and the function's own name
 removed, and every name the function binds itself renumbered in order of first use (`v0`, `v1`, …). Comments,
