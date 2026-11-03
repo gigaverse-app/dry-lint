@@ -30,8 +30,9 @@ class TfidfIndex:
         norm = math.sqrt(sum(weight * weight for weight in weights.values())) or 1.0
         return {token: weight / norm for token, weight in weights.items()}
 
-    def similar(self, document: list[str], limit: int, exclude: set[int] = frozenset()) -> list[tuple[int, float]]:
-        """The `limit` most similar indexed documents, as (position, cosine), most similar first."""
+    def similar(self, document: list[str], limit: int | None = None,
+                exclude: set[int] = frozenset()) -> list[tuple[int, float]]:
+        """The `limit` (default all) most similar indexed documents, as (position, cosine), most similar first."""
         scores: dict[int, float] = defaultdict(float)
         for token, weight in self.vector(document).items():
             for index, other in self.postings.get(token, ()):
