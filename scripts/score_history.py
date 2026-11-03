@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from capture_history import History, tree_sources
-from judge_history import Observation, judge_for_result, key_for_result
+from judge_history import Observation, key_for_result
 from replay_coverage import ReplayInput, pool
 
 from dry_lint.comparers import TfidfComparer
@@ -48,15 +48,12 @@ def score(payload: ReplayInput, result: dict, labels: dict[str, str], observatio
     if len(payload.steps) != len(result["curves"]):
         raise ValueError("Capture and live result have different revision counts")
     curves, seen_positive, found_positive, reported_positive, selected_answers = [], set(), set(), set(), set()
-    thresholds = {}
+    reported_answers = set()
     for ordinal, (step, curve) in enumerate(zip(payload.steps, result["curves"], strict=True), 1):
         if step.run_id != curve["run_id"]:
             raise ValueError("Capture and live result have different revision identities")
         candidates, ranks = pool(step)
         keys = {k: key_for_result(c, ranks[k], result) for k, c in candidates.items()}
-        thresholds.update(
-            {v: judge_for_result(ranks[k], result).get("report_at", result["report_at"]) for k, v in keys.items()}
-        )
         if any(keys.get(k) != v for k, v in curve["covered"].items()):
             raise ValueError("A verdict was credited against stale or absent evidence")
         positives = {k for k, v in keys.items() if labels.get(v) == "duplicate"}
@@ -64,6 +61,7 @@ def score(payload: ReplayInput, result: dict, labels: dict[str, str], observatio
         covered, reported = set(curve["covered"]), set(curve["reported"])
         if not reported <= covered:
             raise ValueError("A report has no current judgment")
+        reported_answers.update(curve["covered"][k] for k in reported)
         seen_positive.update(positives)
         found_positive.update(positives & covered)
         reported_positive.update(positives & reported)
@@ -89,13 +87,9 @@ def score(payload: ReplayInput, result: dict, labels: dict[str, str], observatio
                 "serial_api_seconds": curve["serial_api_seconds"],
             }
         )
-    reports = {
-        key
-        for key in selected_answers
-        if observations[key].verdict is not None
-        and observations[key].verdict.label != "separate"
-        and observations[key].verdict.score >= thresholds[key]
-    }
+    # A route can change its reporting threshold while reusing the same model answer. Preserve reports
+    # that actually appeared, rather than applying the final route's threshold retroactively.
+    reports = reported_answers
     valid_answers = {k for k in selected_answers if observations[k].verdict is not None}
     return {
         "policy": result["policy"],

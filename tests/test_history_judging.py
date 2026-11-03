@@ -49,6 +49,39 @@ def test_cheaper_model_uses_its_own_price_reservation_and_cache_identity(api, tm
         api["LiveAnswers"](tmp_path, model="unpriced")
 
 
+def test_cache_tokens_are_priced_for_the_selected_model(api, tmp_path) -> None:
+    client = claude(
+        {
+            "model": "claude-sonnet-5-5",
+            "stop_reason": "end_turn",
+            "usage": {
+                "input_tokens": 1000,
+                "output_tokens": 100,
+                "cache_creation_input_tokens": 200,
+                "cache_read_input_tokens": 300,
+            },
+            "content": [{"type": "text", "text": '{"label":"separate","score":0.9}'}],
+        },
+        [],
+    )
+    answer = api["LiveAnswers"](tmp_path, http_client=client).get(candidate())
+    assert answer.usd == pytest.approx(0.00356)
+    assert answer.cache_creation_tokens == 200
+    assert answer.cache_read_tokens == 300
+
+
+@pytest.mark.parametrize("different", ["directory", "allowance"])
+def test_mixed_judges_cannot_spend_from_separate_physical_ledgers(api, tmp_path, different) -> None:
+    answers = api["LiveAnswers"](tmp_path, http_client=provider([]))
+    baseline = api["LiveAnswers"](
+        tmp_path / "other" if different == "directory" else tmp_path,
+        limit=1 if different == "allowance" else answers.limit,
+        http_client=provider([]),
+    )
+    with pytest.raises(ValueError, match="share one physical"):
+        api["evaluate"](payload(api), answers, "protected", baseline_answers=baseline)
+
+
 def test_mixed_policy_rejudges_exploration_when_it_becomes_baseline(api, tmp_path, load_script) -> None:
     response = '{"label":"duplicate","score":0.65}'
     cheap = api["LiveAnswers"](
@@ -91,6 +124,21 @@ def test_dollar_pacing_leaves_exploration_for_later_revisions(api, tmp_path) -> 
     assert [len(c["selected"]) for c in result["curves"]] == [1, 1]
     assert result["curves"][-1]["exploration_usd"] == pytest.approx(0.0003)
     assert result["curves"][-1]["cumulative_usd"] <= 0.01
+
+
+def test_historical_reports_keep_the_threshold_at_the_time_of_reporting(api, tmp_path, load_script) -> None:
+    response = '{"label":"duplicate","score":0.65}'
+    answers = api["LiveAnswers"](tmp_path, max_tokens=512, http_client=provider([], text=response))
+    answers.settings = answers.settings.model_copy(update={"report_at": 0.7})
+    baseline = api["LiveAnswers"](tmp_path, max_tokens=512, http_client=provider([], text=response))
+    pair = candidate()
+    history = payload(api, {"baseline": [pair]}, {"deep": [pair]})
+    result = api["evaluate"](history, answers, "protected", baseline_answers=baseline)
+    assert [len(c["reported"]) for c in result["curves"]] == [1, 0]
+    scored = load_script("score_history")["score"](
+        history, result, {answers.key(pair): "duplicate"}, answers.observations
+    )
+    assert scored["unique_true_reports"] == 1
 
 
 def test_failed_paid_replay_answer_consumes_budget_without_becoming_coverage(api, tmp_path, load_script) -> None:
