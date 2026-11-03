@@ -10,7 +10,7 @@ import fnmatch
 import re
 from pathlib import Path
 
-from dry_lint.function_index import FunctionIndex, extraction_contract
+from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path
 from dry_lint.git import git
 from dry_lint.models import Candidate, Function, Run
@@ -135,6 +135,16 @@ class Detector:
     def for_repository(cls, root: Path, settings: Settings) -> "Detector":
         extractors = [load("extractors", choice) for choice in settings.extractors]
         functions = repository_functions(root, settings.include, settings.exclude, extractors)
+        return cls(functions, settings, load("comparers", settings.comparer), extractors)
+
+    @classmethod
+    def for_tree(cls, root: Path, revision: str, settings: Settings) -> "Detector":
+        extractors = [load("extractors", choice) for choice in settings.extractors]
+        functions = []
+        for path, source in tree_blobs(root, revision, settings).items():
+            extractor = extractor_for(path, extractors)
+            if extractor and selected_path(path, settings.include, settings.exclude):
+                functions.extend(extractor.functions(path, source.decode("utf-8")))
         return cls(functions, settings, load("comparers", settings.comparer), extractors)
 
     @classmethod

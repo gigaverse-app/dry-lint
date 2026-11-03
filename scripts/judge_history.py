@@ -19,7 +19,7 @@ from dry_lint.judges.anthropic import AnthropicJudge
 from dry_lint.judges.command import PROMPT_POLICIES, prompt
 from dry_lint.models import Candidate, Verdict
 from dry_lint.presets import resolve
-from dry_lint.settings import Settings
+from dry_lint.settings import Escalation, Settings
 
 MODEL = "claude-sonnet-5-5"
 
@@ -212,6 +212,8 @@ def evaluate(
     total_usd: float = 0.50,
     protection: Protection | None = None,
     baseline_answers: LiveAnswers | None = None,
+    escalation_answers: LiveAnswers | None = None,
+    escalation: Escalation | None = None,
 ) -> dict:
     if policy not in ("fixed", "refill", "protected") or min(per_run, total, run_usd, total_usd) < 0:
         raise ValueError("Use fixed/refill/protected and nonnegative budgets")
@@ -223,19 +225,21 @@ def evaluate(
         raise ValueError("Protected capacity must fit the campaign budget and use the protected policy")
     if protection and protection.exploration_carry_usd is not None and protection.exploration_run_usd is None:
         raise ValueError("Carried exploration credit requires a per-revision dollar allowance")
-    if baseline_answers is not None:
-        if (
-            baseline_answers.directory.resolve() != answers.directory.resolve()
-            or baseline_answers.limit != answers.limit
-        ):
+    if (escalation_answers is None) != (escalation is None):
+        raise ValueError("An escalation needs both a judge and its score policy")
+    for other in (baseline_answers, escalation_answers):
+        if other is None:
+            continue
+        if other.directory.resolve() != answers.directory.resolve() or other.limit != answers.limit:
             raise ValueError("Mixed judges must share one physical answer directory and allowance")
         # Both clients spend from one physical ledger; independent snapshots would undercount later calls.
-        answers.observations.update(baseline_answers.observations)
-        baseline_answers.observations = answers.observations
+        answers.observations.update(other.observations)
+        other.observations = answers.observations
     state = ReplayState(policy="fixed" if policy == "fixed" else "refill")
     spent, exploration_spent, exploration_attempts, curves = 0.0, 0.0, 0, []
     baseline_query_attempts = {}
     failed_answers = set()
+    second_completed = set()
     exploration_credit, credited_revisions = 0.0, set()
     for ordinal, step in enumerate(payload.steps):
         raw = step.model_dump(mode="json")
@@ -272,6 +276,21 @@ def evaluate(
                 stopped_reason = "pool_complete" if not pending else "fixed_pool_complete"
                 break
             room = min(run_usd - run_spent, total_usd - spent)
+            if not baseline and escalation is not None:
+                assert escalation_answers is not None
+                if any(
+                    state.completed.get(k) == keys[k]
+                    and escalation.between[0] <= answers.observations[keys[k]].verdict.score < escalation.between[1]
+                    and escalation_answers.key(candidates[k]) not in second_completed | failed_answers
+                    and escalation_answers.reserve(candidates[k])
+                    <= min(
+                        total_usd - spent,
+                        total_usd - protection.baseline_usd - exploration_spent if protection else total_usd - spent,
+                    )
+                    for k in candidates
+                ):
+                    stopped_reason = "pending_second_opinion"
+                    break
             if not baseline and protection:
                 # Never borrow baseline capacity for exploration, even on an empty early baseline.
                 if exploration_attempts >= total - protection.baseline_calls:
@@ -333,11 +352,77 @@ def evaluate(
             pending.remove(key)
         state.runs[step.run_id] = run_digest
         current = {k: state.completed[k] for k in candidates if state.completed.get(k) == keys[k]}
+        decisions = dict(current)
+        if escalation_answers is not None:
+            assert escalation is not None
+            low, high = escalation.between
+            uncertain = [k for k, v in current.items() if low <= answers.observations[v].verdict.score < high]
+            uncertain.sort(
+                key=lambda k: (
+                    "baseline" not in ranks[k],
+                    abs(answers.observations[current[k]].verdict.score - (low + high) / 2),
+                    state.first_seen[k],
+                    k,
+                )
+            )
+            for k in uncertain:
+                second_key = escalation_answers.key(candidates[k])
+                if second_key not in second_completed and second_key not in failed_answers and not repeated:
+                    # Second opinions compete with exploration, never with capacity reserved for later baseline calls.
+                    room = min(run_usd - run_spent, total_usd - spent)
+                    if protection:
+                        room = min(room, total_usd - protection.baseline_usd - exploration_spent)
+                        if protection.exploration_run_usd is not None:
+                            room = min(
+                                room,
+                                exploration_credit
+                                if protection.exploration_carry_usd is not None
+                                else protection.exploration_run_usd - run_exploration_usd,
+                            )
+                    reserved_calls = protection.baseline_calls if protection else 0
+                    if (
+                        any("baseline" in ranks[p] for p in pending)
+                        or len(selected) >= per_run
+                        or state.attempts >= total
+                        or exploration_attempts >= total - reserved_calls
+                        or escalation_answers.reserve(candidates[k]) > room
+                    ):
+                        continue
+                    observation = escalation_answers.observe(candidates[k])
+                    state.attempts += 1
+                    exploration_attempts += 1
+                    spent += observation.usd
+                    run_spent += observation.usd
+                    exploration_spent += observation.usd
+                    run_exploration_usd += observation.usd
+                    run_seconds += observation.seconds
+                    if protection and protection.exploration_carry_usd is not None:
+                        exploration_credit -= observation.usd
+                    (second_completed if observation.verdict is not None else failed_answers).add(second_key)
+                    selected.append(
+                        {
+                            "key": k,
+                            "answer": second_key,
+                            "usd": observation.usd,
+                            "sources": sorted(ranks[k]),
+                            "error": observation.error,
+                            "stage": "escalation",
+                        }
+                    )
+                if second_key in second_completed:
+                    decisions[k] = second_key
         reports = [
             k
             for k, v in current.items()
-            if answers.observations[v].verdict.label != "separate"
-            and answers.observations[v].verdict.score >= routes[k].settings.report_at
+            if answers.observations[decisions[k]].verdict.label != "separate"
+            and answers.observations[decisions[k]].verdict.score
+            >= (
+                escalation_answers.settings.report_at
+                if decisions[k] != v
+                else max(routes[k].settings.report_at, escalation.first_at or 0)
+                if escalation
+                else routes[k].settings.report_at
+            )
         ]
         curves.append(
             {
@@ -345,6 +430,7 @@ def evaluate(
                 "head": next(iter(step.sources.values())).run.head,
                 "pool": len(candidates),
                 "covered": current,
+                "decisions": decisions,
                 "reported": reports,
                 "selected": selected,
                 "deferred": len(candidates) - len(current),
@@ -368,6 +454,8 @@ def evaluate(
         "total_usd": total_usd,
         **judge_manifest(answers),
         "baseline_judge": judge_manifest(baseline_answers) if baseline_answers is not None else None,
+        "escalation_judge": judge_manifest(escalation_answers) if escalation_answers is not None else None,
+        "escalation": escalation.model_dump() if escalation else None,
         "protection": protection.model_dump() if protection else None,
         "curves": curves,
     }

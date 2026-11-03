@@ -140,11 +140,9 @@ def build_index(sources: dict[str, bytes], repository: str, commit: str, setting
                          scope={"include": source.include, "exclude": source.exclude}, functions=functions)
 
 
-def export_index(root: Path, repository: str, settings: Settings) -> FunctionIndex:
-    if git(root, "status", "--porcelain", "--untracked-files=no"):
-        raise ValueError("Commit tracked changes before publishing a function index")
-    commit = git(root, "rev-parse", "HEAD")
-    listing = git(root, "ls-tree", "-rz", "--full-tree", commit)
+def tree_blobs(root: Path, revision: str, settings: Settings) -> dict[str, bytes]:
+    """Read supported source blobs without checking out or executing the tree, including an index tree."""
+    listing = git(root, "ls-tree", "-rz", "--full-tree", revision)
     entries = [entry.split("\t", 1) for entry in listing.split("\0") if entry]
     extractors = [load("extractors", choice) for choice in settings.extractors]
     blobs = [(meta.split()[2], path) for meta, path in entries if meta.startswith("100")
@@ -156,4 +154,11 @@ def export_index(root: Path, repository: str, settings: Settings) -> FunctionInd
         size = int(stream.readline().split()[2])
         sources[path] = stream.read(size)
         stream.read(1)
-    return build_index(sources, repository, commit, settings)
+    return sources
+
+
+def export_index(root: Path, repository: str, settings: Settings) -> FunctionIndex:
+    if git(root, "status", "--porcelain", "--untracked-files=no"):
+        raise ValueError("Commit tracked changes before publishing a function index")
+    commit = git(root, "rev-parse", "HEAD")
+    return build_index(tree_blobs(root, commit, settings), repository, commit, settings)

@@ -139,6 +139,10 @@ Put your own repository's sign in its README:
 
 or a badge: `![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Frepository%3DOWNER%2FNAME)`.
 
+For coding-agent feedback with a cheap judge, use the opt-in
+[`agent-haiku` hook setup](docs/agent-reviewed-discovery.md). Findings reject the commit for review and repair;
+this experimental preset does not change auto-selection or enable the historical exploration scheduler.
+
 **pre-commit** ([examples/pre-commit-config.yaml](examples/pre-commit-config.yaml)): hook id `dry-lint` checks the
 staged functions.
 

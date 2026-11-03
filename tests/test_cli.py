@@ -92,6 +92,36 @@ def test_staged_check_sees_only_the_staged_change(repo: Repo, tmp_path: Path, ca
     assert "src/more.py:1: shorten_label looks like" in out and "caption.py:1:" not in out
 
 
+def test_staged_judging_reads_index_even_when_working_copy_was_repaired(repo, tmp_path, blocking_twin_judge, capsys):
+    repo.write("src/more.py", TWIN_SOURCE)
+    repo.git("add", "src/more.py")
+    repaired = "from src.text import shorten_text as preview_caption_text\n"
+    repo.write("src/more.py", repaired)
+    assert run(repo, tmp_path, "--staged", "--judge", "command", "--judge-command", blocking_twin_judge) == 1
+    assert "preview_caption_text" in capsys.readouterr().out
+    assert (repo.root / "src/more.py").read_text() == repaired
+    repo.git("add", "src/more.py")
+    assert run(repo, tmp_path, "--staged", "--judge", "command", "--judge-command", blocking_twin_judge) == 0
+
+
+def test_optional_env_file_loads_only_credentials_and_preserves_exported_values(repo, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "exported-test-value")
+    monkeypatch.delenv("TYPESAFE_AI_API_KEY", raising=False)
+    repo.write("local.env", 'ANTHROPIC_API_KEY="local-test-value"\nTYPESAFE_AI_API_KEY = "test-value"\nGIT_DIR=wrong\n')
+    import os
+    before = os.environ.get("GIT_DIR")
+    assert main(["config", "--root", str(repo.root), "--env-file", "local.env", "--preset", "none"]) == 0
+    assert os.environ["ANTHROPIC_API_KEY"] == "exported-test-value"
+    assert os.environ["TYPESAFE_AI_API_KEY"] == "test-value"
+    assert os.environ.get("GIT_DIR") == before
+    assert main(["config", "--root", str(repo.root), "--env-file", "absent.env", "--preset", "none"]) == 0
+
+
+def test_staged_workspace_is_rejected_instead_of_reading_unstaged_peers(repo, tmp_path, capsys):
+    assert run(repo, tmp_path, "--staged", "--repo", f"owner/primary={repo.root}") == 2
+    assert "single repository" in capsys.readouterr().err
+
+
 def test_scan_lists_the_repository_backlog(repo: Repo, tmp_path: Path, capsys) -> None:
     assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "5"]) == 0
     out = capsys.readouterr().out

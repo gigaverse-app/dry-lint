@@ -6,6 +6,14 @@ from dry_lint.settings import Escalation, PluginChoice, Settings
 BOTH = {"TYPESAFE_AI_API_KEY": "k", "ANTHROPIC_API_KEY": "k"}
 
 
+def test_agent_feedback_is_explicit_and_keeps_its_own_model_prompt_and_thresholds() -> None:
+    settings = resolve(Settings(preset="agent-haiku"), BOTH)
+    assert settings.judge.options() == {"model": "claude-haiku-5-5", "prompt_policy": "shared-operations", "max_tokens": 2048}
+    assert settings.escalate is None
+    assert settings.report_at == settings.fail_at == 0.5
+    assert "agent-haiku" not in AUTO_ORDER
+
+
 @pytest.mark.parametrize("environ, preset", [
     (BOTH, "jev+opus"),
     ({"TYPESAFE_AI_API_KEY": "k", "CLAUDE_CODE_OAUTH_TOKEN": "t"}, "jev+claude-code"),

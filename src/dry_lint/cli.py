@@ -110,6 +110,11 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Detector, str]:
+    staged = args.command in {"check", "detect"} and args.staged
+    if staged:
+        if args.repo or args.repo_index:
+            raise ValueError("Staged checks currently support a single repository")
+        return Detector.for_tree(root, git(root, "write-tree"), settings), ""
     if args.repo or args.repo_index:
         roots: dict[str, Path] = {}
         for spec in args.repo:
@@ -317,6 +322,7 @@ def bench_replay(root: Path, settings: Settings, args: argparse.Namespace) -> in
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
+    common.add_argument("--env-file", type=Path, help="Optional local dotenv file for judge credentials only; requires dry-lint[hooks].")
     common.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH",
                         help="Repeat for every checkout; compare across repositories. Include --root for checks.")
     common.add_argument("--repo-index", action="append", default=[], metavar="OWNER/NAME@COMMIT=PATH",
@@ -396,6 +402,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         root = repository_root(args.root)
+        if args.env_file:
+            from dotenv import dotenv_values
+            credentials = dotenv_values(root / args.env_file, interpolate=False)
+            for name in ("ANTHROPIC_API_KEY", "TYPESAFE_AI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
+                if credentials.get(name) and not os.environ.get(name):
+                    os.environ[name] = credentials[name]
         return COMMANDS[args.command](root, settings_for(root, args), args)
     except (subprocess.SubprocessError, httpx.HTTPError, ValueError, OSError) as error:
         detail = getattr(error, "stderr", None) or error

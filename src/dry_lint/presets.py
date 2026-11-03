@@ -82,13 +82,18 @@ PRESETS = {preset.name: preset for preset in [
     Preset(name="jev", summary="Jev on every pair",
            judge=PluginChoice(use="jev"), drop_below=0.6, report_at=0.8, fail_at=0.8, needs=("TYPESAFE_AI_API_KEY",),
            numbers="fails at 0.8: 94% precision, 73% recall; about $0.0002 a pull request"),
+    Preset(name="agent-haiku", summary="Experimental local feedback: Haiku shared-operation judge, coding agent reviews findings",
+           judge=PluginChoice(use="anthropic", model="claude-haiku-5-5", prompt_policy="shared-operations", max_tokens=2048),
+           drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=False,
+           numbers="opt-in agent-reviewed experiment; 17 true and 7 false evidence reports on 10 development PRs; "
+                   "local checks use baseline retrieval, not the historical exploration scheduler"),
     Preset(name="none", summary="no judge: candidates are listed, nothing is reported or fails",
            judge=PluginChoice(use="none"), drop_below=0.6, report_at=0.8, fail_at=0.8),
 ]}  # fmt: skip
 
 # "auto" takes the first preset whose credentials are all in the environment; the others must be named.
 AUTO_ORDER = ("jev+opus", "jev+claude-code", "jev", "sonnet", "claude-code", "none")
-LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:])
+LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:], "agent-haiku")
 PRESET_FIELDS = ("judge", "escalate", "drop_below", "report_at", "fail_at")
 
 
