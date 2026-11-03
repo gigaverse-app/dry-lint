@@ -20,7 +20,7 @@ TWIN = "src/widgets/caption.py::preview_caption_text"
 
 @pytest.fixture(autouse=True)
 def outside_actions(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY"):
+    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY"):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -72,9 +72,10 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(rep
     code = run(repo, tmp_path, "--base", "main", "--judge", "command", "--judge-command", twin_judge, "--warn-only",
                "--output", str(comment), "--report", str(report))
     assert code == 0
-    assert comment.read_text().startswith("<!-- dry-lint -->") and TWIN in comment.read_text()
+    assert comment.read_text().startswith("<!-- dry-lint -->") and f"`{TWIN.split('::')[1]}`" in comment.read_text()
+    assert "blocking" not in comment.read_text()
     written = json.loads(report.read_text())
-    assert written["schema"] == 1 and any(f["reported"] for f in written["findings"])
+    assert written["schema"] == 3 and any(f["reported"] for f in written["findings"])
 
 
 def test_without_a_judge_candidates_are_listed_and_never_fail(repo: Repo, tmp_path: Path, capsys) -> None:

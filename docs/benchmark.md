@@ -1,37 +1,77 @@
 # Benchmark
 
-Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded), much of it written with
-coding agents. The gold labels contain that private code and are not published. The method is described here so
+Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded),
+much of it written with coding agents. The gold labels contain that private code and are not published. The method is described here so
 it can be repeated on another codebase.
-
-## Population
-
-The population is the 120 most recent merged pull requests. For each, the detector ran at its merge commit against
-the functions the PR changed, which produced **295 candidate pairs**. Jev `reuse-v2` scored each pair.
-
-Changed functions per commit: median 1, p90 13. Per PR that is 2.46 Jev calls on average before caching, so a
-judge is cheap at PR scale.
 
 ## Gold set
 
-The 295 pairs were split by Jev score into six bands: <0.1, 0.1–0.3, 0.3–0.5, 0.5–0.7, 0.7–0.9 and 0.9+. Sampling
-was stratified across the bands, giving **96 pairs**. Two labellers labelled them blind, without the scores, using
-[the guideline below](#labelling-guideline), and disagreements were reconciled. Precision and recall are projected
-to the whole population with stratum weights (each band's size over its sample size).
+**Population.** dry-lint's own detector ran on the functions changed by the 600 most recent merged gigaverse-ai
+pull requests (10 September to 3 November 2026), against main, and proposed **2,012 candidate pairs** (per PR:
+median 0, p90 10). Jev `reuse-v2` scored every pair; the scores are used only to stratify the sample.
 
-## Results, prompt `reuse-v2`
+**Sample.** 250 pairs, stratified by Jev score and weighted toward where decisions happen: 15, 15 and 20 pairs from
+below 0.1, 0.1–0.3 and 0.3–0.5; 30, 40, 40, 45 and 45 from 0.5–0.6, 0.6–0.7, 0.7–0.8, 0.8–0.9 and 0.9 up. Each
+pair carries its stratum's weight (stratum size over sample size), so the numbers describe all 2,012 pairs.
 
-| | |
-| --- | --- |
-| AUC | 0.97 |
-| `report_at = 0.8` | 75% precision, 59% recall |
-| `drop_below = 0.6` | 100% recall: no true duplicate scored under 0.6 |
-| `fail_at = 0.8` (the default) | the same pairs as `report_at`: 75% precision, 59% recall |
-| `fail_at = 0.91`, if raised | 100% precision, 21% recall; about 6 of the 295 candidates, roughly 1 PR in 20. The highest false positive scored 0.892 and the lowest true positive above it 0.910, so 0.90 and 0.91 flag the same pairs; 0.91 keeps twice the margin |
-| Comments per PR at 0.8 | about 0.18 |
-| Pairs between 0.6 and 0.8 per PR | about 0.3 |
+**Labels.** Three labellers from three vendors (Claude Opus 5.5, GPT-5.5, Gemini 3.1 Pro) labelled every pair blind,
+without scores, with [the guideline below](#labelling-guideline); the label is the majority. They were unanimous on
+211 of 250, and agreed pairwise on 86% to 96%. All 16 pairs shared with the earlier gold set got the same label.
+**117 duplicates.** Labels from one vendor's model would lean toward that vendor's judge; three vendors dilute that,
+but the labels are still LLM opinions, not people's.
 
-The pairs between 0.6 and 0.8 are where a stronger second judge would earn its cost.
+`dry-lint bench` reports every figure with a 90% interval from a stratified bootstrap, because a few heavily
+weighted pairs can move a point estimate a long way.
+
+## Results
+
+Jev `reuse-v2` alone, by threshold (the default `report_at` and `fail_at` are both 0.8):
+
+| Score at or above | Precision | Recall | Pairs flagged, of 2,012 | Pull requests failed, of 600 |
+| --- | --- | --- | --- | --- |
+| 0.6 | 70% (66–74) | 95% (89–99) | 714 | |
+| 0.7 | 82% (78–86) | 85% (80–91) | 550 | |
+| **0.8** | **94% (91–98)** | **73% (68–79)** | **410** | **92 (15%)** |
+| 0.85 | 99% (97–100) | 61% (55–67) | 326 | 84 (14%) |
+| 0.9 | 100% (100–100) | 45% (42–49) | 238 | 69 (12%) |
+| 0.95 | 100% | 19% (14–25) | 100 | |
+
+AUC 0.97. A failed pull request has a median of 2 flagged pairs. These are pull requests before any `patterns` or
+`distinct-from` comments, which a repository adds as it meets its deliberate look-alikes.
+
+## Escalation
+
+`dry-lint bench`, live, Jev first and the second judge on first scores in `[0.6, 0.91)`, at 0.8:
+
+| Judging | Precision | Recall |
+| --- | --- | --- |
+| Jev alone (2 runs) | 94–95% (91–98) | 71–73% (66–79) |
+| **Jev, then Claude Sonnet 5.5** (2 runs) | **98% (96–100)** | **75–76% (69–83)** |
+
+Sonnet 5.5 roughly halves false blocks, from about one in 18 to about one in 50; the recall gain is within the
+intervals. About a quarter of candidates fall in the band, so it is about 0.8 Sonnet calls per pull request at
+about 3 seconds each, 4 at a time. Sonnet is a Claude model and one of the three labellers was Claude Opus; the
+other two vendors' labels keep that from deciding the gold labels on their own.
+
+**Choosing the second judge.** Before the gold set grew, five models judged the same 38 band pairs three times each
+(through OpenRouter, the same prompt). The sample was too small to rank precision and recall, but two things held:
+
+| Second judge | Block decisions that changed between runs | Median seconds per pair |
+| --- | --- | --- |
+| Claude Sonnet 5.5 | 1 of 38 | 3 |
+| Claude Opus 5.5 | 2 of 38 | 7 |
+| Gemini 3.1 Pro (preview) | 4 of 38 | 12 |
+| GPT-5.5 | 5 of 38 | 8 |
+| Gemini 2.5 Pro | 12 of 38 | 17 |
+
+Sonnet 5.5 was the most consistent and the fastest; Gemini 2.5 Pro was the least consistent and the least precise.
+
+## Earlier gold set (superseded)
+
+The first gold set had 96 pairs from the 120 most recent pull requests, with 23 duplicates. It put Jev at 75%
+precision and 59% recall at 0.8, and suggested `fail_at` 0.91. With so few duplicates and heavy stratum weights,
+one pair in a low band moved recall by 8 points: those figures were mostly noise, and the 250-pair set replaces
+them. The lesson is built into `bench`: every figure now comes with its interval.
 
 ## Known duplicates (seeds)
 
@@ -106,6 +146,11 @@ Measured on gigaverse-ai with a warm checkout:
 | The same check again, every verdict from the store | 3.5 s |
 | `scan`, the whole-repository backlog | 22 s |
 | Parse, tokenize and index 9,976 functions | 3.2 s, 1.6 s, 0.2 s |
+
+## Optional Dryer detector on gigaverse-backend
+
+The [backend comparison](dryer-comparison.md) measures the native TF-IDF and optional Dryer plugins on the same
+frozen Python corpus, with shared candidate policy, repeated timings and exploratory source review.
 
 ## Backend follow-up: more signals are not always better
 
@@ -184,3 +229,67 @@ repository-wide recall, or a reason to retune the global judge thresholds. Real 
 notification queries, role-label defaults, phone validation, OAuth refresh requests and batching; intentional
 patterns included unrelated serializers, command options, factories, fake providers and adapters already calling
 the same shared helper. No broad framework-name exclusions were introduced.
+
+## Follow-up: synonyms, stopwords, size and call signatures
+
+A second exploratory pass starts from `tfidf:2` at dry-lint commit `1344627`, using the same backend commit,
+5,057 functions and 110 previously judged pairs above. **These labels have already informed feature selection;
+none of their splits is a fresh holdout for this pass.** Each variant changes one signal, fits the full corpus,
+uses the existing floors and three-neighbour budget, and applies the production filtering and scan rules.
+`PYTHONHASHSEED=0` fixes ordering. No runtime defaults changed as a result.
+
+Higher positive retention and lower negative retention are better. Counts are retained **known pairs**; newly
+proposed neighbours were not judged, so a lower negative count does not establish higher overall precision.
+
+| Variant | Positives in `check` / `scan` (of 27) | Negatives in `check` / `scan` (of 83) |
+| --- | ---: | ---: |
+| Current fingerprint | 27 / 27 | 72 / 59 |
+| Add synonym hints | 27 / 27 | 73 / 59 |
+| Replace word tokens with canonical synonyms | 27 / 27 | 72 / 59 |
+| Remove nine additional English words | 27 / 27 | 72 / 58 |
+| Remove framework word tokens | 27 / 26 | 70 / 57 |
+| Lower `max_df` from 0.30 to 0.15 | 27 / 26 | 72 / 56 |
+| Penalize different AST sizes | 25 / 24 | 61 / 42 |
+| Add call-specific keyword names | 27 / 26 | 71 / 58 |
+| Add call arity and keyword-set shape | 27 / 26 | 70 / 54 |
+| Add attribute read/write roles | 27 / 26 | 73 / 57 |
+
+The variants are deliberately simple probes, not claims that every possible implementation of a signal fails:
+
+- **Synonyms:** use six groups: `fetch/load/retrieve/read`, `remove/delete`, `shorten/truncate/clip`,
+  `validate/check`, `create/build/make`, and `send/emit/publish`. For each existing `w:` or `fn:` token in a
+  group, either add `syn:<first-word>` alongside the original token, or replace its word with the first word
+  while preserving the token family. Leave `call:`, `attr:` and `key:` identities intact. Neither variant
+  improves known-pair retrieval here. These verbs are not universally interchangeable: a load may fetch, cache,
+  validate or mutate; a publish may have different guarantees from a send. Do not add a global natural-language
+  synonym dictionary on this evidence. If a repository needs domain aliases, test a small explicit mapping as
+  an optional comparer, preserving original tokens and versioning its similarity semantics.
+- **Stopwords:** the English probe drops `the/and/with/from/that/this/for/into/then` from `w:` and `fn:` tokens.
+  The framework probe instead drops `create/update/save/object/objects/serializer/client/request/response/validated/default/context`
+  from those two families. The latter and stricter `max_df` filtering both displace the image-replacement
+  duplicate from the scan. The English probe removes just one known negative from scanning; that is too little
+  repeatedly consulted evidence to change the default. Keep the existing code-specific stopwords and frequency
+  filter. Avoid a general English list that might discard meaningful terms such as negation; tokenization and
+  stopword lists must agree ([scikit-learn guidance](https://github.com/scikit-learn/scikit-learn/blob/main/doc/modules/feature_extraction.rst#using-stop-words)).
+- **Size:** count executable AST nodes, excluding annotations, decorators and type parameters. Multiply cosine
+  by `sqrt(min(size_a, size_b) / max(size_a, size_b))`, then rerank and apply the same floors. This loses the
+  rendition-admission and clip-eligibility pairs from PR retrieval, plus a privileged-role policy from scanning.
+  Drift can add guards or side effects to only one implementation, which is precisely a reason to inspect it.
+  Keep the existing lower floor for tiny functions; do not introduce a hard size-ratio rejection or this penalty.
+- **Keywords:** current `key:` tokens already preserve keyword names without making their order significant.
+  The extra keyword probe adds `kw:<callee-leaf>:<keyword-name>` per named keyword. The shape probe instead adds
+  `shape:<callee-leaf>:<positional-count>:<sorted-keywords>` per call, using `**` for an unpacked mapping. Both
+  displace the privileged-role pair from scanning. Positional and keyword calls may be equivalent; resolving that
+  requires a known callable signature. Do not infer argument names for unknown SDK methods or dynamic calls.
+- **Attribute roles:** add `access:<AST-context>:<attribute-name>` for each attribute access, distinguishing
+  `Load`, `Store` and `Del`. This also displaces the privileged-role pair from scanning and admits one extra
+  known negative in PR checking. It does not justify another token family by itself.
+
+The next useful experiments should target information these probes lack: statically resolved API identities
+(import aliases should not change meaning), arguments bound to a known signature, and which domain field feeds
+an output or mutation. Keep these as separate experimental comparers until they improve retrieval on **newly
+judged pairs and a second repository**, with the same judge budget. Another option is reserving a candidate slot
+for a complementary comparer rather than adding every token to one cosine score; test both extra recall and the
+false-positive cost. More features can change which neighbour wins even when a true pair's score remains high.
+
+The [research plan](research-plan.md) collects these results, hypotheses and the experiments queued next.

@@ -7,7 +7,7 @@ Every new answer goes to the store. Filtered pairs never reach a judge.
 from pathlib import Path
 
 from dry_lint.git import git
-from dry_lint.judges import make_judge
+from dry_lint.judges import make_escalation, make_judge
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.plugins import Judge, identity, load
 from dry_lint.report import Finding
@@ -30,6 +30,28 @@ def open_store(settings: Settings, root: Path, path: Path | None = None) -> Verd
     return VerdictStore(load("stores", settings.store))
 
 
+def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, settings: Settings) -> list[Verdict]:
+    """
+    The first judge's answers, with those in the escalation band replaced by the second judge's answers, kept under
+    the first judge's name with `second_opinion` set, so they are stored and reused like any other.
+    """
+    first = judge.judge(candidates, settings) if candidates else []
+    if escalation is None or settings.escalate is None:
+        return first
+    low, high = settings.escalate.between
+    unsure = [i for i, verdict in enumerate(first) if low <= verdict.score < high]
+    second = escalation.judge([candidates[i] for i in unsure], settings) if unsure else []
+    answers = list(first)
+    for i, verdict in zip(unsure, second):
+        answers[i] = verdict.model_copy(update={"judge": judge.name, "judge_version": judge.version,
+                                                "second_opinion": identity(escalation)})
+    return answers
+
+
+def judges_name(judge: Judge, escalation: Judge | None) -> str:
+    return identity(judge) + (f" > {identity(escalation)}" if escalation else "")
+
+
 class Judging:
     def __init__(self, settings: Settings, judge: Judge | None, escalation: Judge | None, store: VerdictStore) -> None:
         self.settings, self.judge, self.escalation, self.store = settings, judge, escalation, store
@@ -37,28 +59,14 @@ class Judging:
     @classmethod
     def configured(cls, settings: Settings, store: VerdictStore) -> "Judging":
         judge = make_judge(settings.judge)
-        escalation = make_judge(settings.escalate) if judge is not None and settings.escalate else None
+        escalation = make_escalation(settings) if judge is not None else None
         return cls(settings, judge, escalation, store)
 
     @property
     def name(self) -> str | None:
         if self.judge is None:
             return None
-        return identity(self.judge) + (f" > {identity(self.escalation)}" if self.escalation else "")
-
-    def escalated(self, candidates: list[Candidate], first: list[Verdict]) -> list[Verdict]:
-        """First answers, with those in the escalation band replaced by the second judge's, under the first's name."""
-        assert self.judge is not None
-        if self.escalation is None or self.settings.escalate is None:
-            return first
-        low, high = self.settings.escalate.between
-        unsure = [i for i, verdict in enumerate(first) if low <= verdict.score < high]
-        second = self.escalation.judge([candidates[i] for i in unsure], self.settings) if unsure else []
-        answers = list(first)
-        for i, verdict in zip(unsure, second):
-            answers[i] = verdict.model_copy(update={"judge": self.judge.name, "judge_version": self.judge.version,
-                                                    "second_opinion": identity(self.escalation)})
-        return answers
+        return judges_name(self.judge, self.escalation)
 
     def findings(self, candidates: list[Candidate], source: Run | None = None, refresh: bool = False) -> list[Finding]:
         """A finding per proposed candidate: unjudged when there is no judge, else from the store or the judge."""
@@ -70,7 +78,7 @@ class Judging:
         pending = [i for i, verdict in enumerate(known) if verdict is None]
         if pending:
             asked = [proposed[i] for i in pending]
-            for i, verdict in zip(pending, self.escalated(asked, self.judge.judge(asked, self.settings))):
+            for i, verdict in zip(pending, decide(asked, self.judge, self.escalation, self.settings)):
                 self.store.remember(proposed[i], verdict, source)
                 known[i] = verdict
         return [Finding(candidate=c, verdict=known[i], cached=i not in pending) for i, c in enumerate(proposed)]
