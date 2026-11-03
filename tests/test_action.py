@@ -361,6 +361,29 @@ def test_without_a_judge_the_real_cli_lists_look_alikes_and_comments_nothing(rep
     assert github.stickies() == [] and github.writes == []
 
 
+@pytest.mark.parametrize("mode", ["single", "detect"])
+def test_workspace_action_keeps_primary_annotations_and_peer_links(repo, github_env, tmp_path, twin_judge, mode):
+    from conftest import EXISTING
+    peer = Repo(tmp_path / "peer checkout")
+    peer.write("src/shared.py", EXISTING)
+    peer.commit()
+    repo.write(".dry-lint.toml", '[[consolidation]]\nrepository = "acme/common"\npath = "src"\n')
+    repo.commit()
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), mode=mode, judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), warn_only="true",
+               repositories=f"acme/shop={repo.root}\n\nacme/common={peer.root}\n")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    folder = tmp_path / "runner" / "dry-lint"
+    data = json.loads((folder / ("report.json" if mode == "single" else "candidates.json")).read_text())
+    pairs = [finding["candidate"] for finding in data["findings"]] if mode == "single" else data["candidates"]
+    assert pairs and all(pair["new"]["origin"]["repository"] == "acme/shop" for pair in pairs)
+    assert all(pair["existing"]["origin"]["repository"] == "acme/common" for pair in pairs)
+    if mode == "single":
+        [body] = github.stickies()
+        assert "/acme/common/blob/" in body and "acme/common/src" in body
+
+
 def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, github_env, tmp_path, twin_judge) -> None:
     head = repo.git("rev-parse", "HEAD").strip()
     github_env("pull_request", pr_event(repo, fork=True), working_directory=str(repo.root))

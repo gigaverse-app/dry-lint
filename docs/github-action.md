@@ -121,6 +121,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `mode` | `auto` | See above. |
 | `base` | the PR's base commit, or the previous push, or the default branch | What to compare with. |
 | `working-directory` | `.` | The repository, or the package within a monorepo. |
+| `repositories` | | One `OWNER/NAME=PATH` per line, including the primary checkout. Enables changed-function checks against committed peers in `single`/`detect` mode. Checkout and credentials remain the workflow's responsibility. See [workspaces](workspaces.md). |
 | `comment` | `true` | Keep the sticky comment. |
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
@@ -140,6 +141,8 @@ and the command line all agree ([README](../README.md#settings)).
 ## Verdict cache
 
 Verdicts are kept in the Actions cache:
+- Caches are partitioned by job and `sticky-key`, so concurrent local and cross-repository jobs do not race to
+  save different verdict sets under the same key. Use a distinct `sticky-key` for multiple steps in one job.
 - A pull request's run restores the newest verdicts it can see, so a later push only judges pairs whose logic
   changed.
 - Runs on the default branch, that is pushes to `main` and judge-mode runs, save their verdicts where every pull

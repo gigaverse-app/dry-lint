@@ -36,6 +36,7 @@ class Record(Versioned):
     comparer: str = Field(description="The comparer and version that measured `similarity`.")
     similarity: float
     similarity_reusable: bool = False
+    context_hash: str = ""
     verdict: Verdict
     judged_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
     source: Run | None = Field(default=None, description="The run that asked, for tracing a verdict back.")
@@ -119,6 +120,8 @@ class VerdictStore:
         if record is None:
             return Lookup(None, "never judged")
         verdict = record.verdict
+        if record.context_hash != candidate.context_hash:
+            return Lookup(None, "source context or consolidation policy changed")
         if verdict.judge != judge:
             return Lookup(None, f"judged by {verdict.judge}, not {judge}")
         if version is not None and verdict.judge_version != version:
@@ -142,6 +145,6 @@ class VerdictStore:
         sides = sorted([(candidate.new.qualname, candidate.new.hash), (candidate.existing.qualname, candidate.existing.hash)])
         record = Record(key=candidate.key, pair=(sides[0][0], sides[1][0]), hashes=(sides[0][1], sides[1][1]),
                         comparer=candidate.comparer, similarity=candidate.similarity, verdict=verdict, source=source,
-                        similarity_reusable=candidate.similarity_reusable)
+                        similarity_reusable=candidate.similarity_reusable, context_hash=candidate.context_hash)
         self.backend.put(record.key, record.model_dump_json().encode())
         return record
