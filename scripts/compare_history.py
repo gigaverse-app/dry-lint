@@ -34,6 +34,22 @@ def packets(payload: ReplayInput) -> list[dict]:
     return list(rows.values())
 
 
+def complete_pool(payload: ReplayInput, answers: LiveAnswers) -> list[str]:
+    """Account invalid paid answers as unresolved and continue independent diagnostic work, without retries."""
+    failed = set()
+    for step in payload.steps:
+        for candidate in pool(step)[0].values():
+            try:
+                answers.get(candidate)
+            except ValueError:
+                key = answers.key(candidate)
+                observation = answers.observations.get(key)
+                if observation is None or observation.error is None:
+                    raise  # Unmetered usage, exhausted allowance or another unaccounted failure still stops the run.
+                failed.add(key)
+    return sorted(failed)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--captures", type=Path, required=True)
@@ -68,12 +84,10 @@ def main() -> None:
     for policy in args.prompt_policies:
         answers = LiveAnswers(args.answers, args.limit_usd, prompt_policy=policy, max_tokens=args.max_tokens)
         for name, payload in captures.items():
-            if args.complete_pool:
-                for step in payload.steps:
-                    for candidate in pool(step)[0].values():
-                        answers.get(candidate)
+            failures = complete_pool(payload, answers) if args.complete_pool else []
             for scheduler in ("fixed", "refill", "protected"):
                 result = evaluate(payload, answers, scheduler, args.per_run, args.total, args.run_usd, args.total_usd)
+                result["diagnostic_failures"] = failures
                 (args.out / f"{name}-{policy}-{scheduler}.json").write_text(
                     json.dumps(result, indent=2), encoding="utf-8"
                 )

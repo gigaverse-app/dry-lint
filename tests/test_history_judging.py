@@ -54,15 +54,18 @@ def test_provider_usage_is_counted_once_physically_but_each_policy_pays_its_own_
     assert len(requests) == 2
 
 
-def test_currency_limit_prevents_a_request_before_it_is_sent(api, tmp_path) -> None:
+def test_currency_limit_prevents_a_request_before_it_is_sent(api, tmp_path, load_script) -> None:
     requests = []
     answers = api["LiveAnswers"](tmp_path, limit=0.001, http_client=provider(requests))
     with pytest.raises(ValueError, match="allowance"):
         answers.get(candidate())
     assert requests == []
+    with pytest.raises(ValueError, match="allowance"):
+        load_script("compare_history")["complete_pool"](payload(api, {"baseline": [candidate()]}), answers)
+    assert requests == []
 
 
-def test_invalid_paid_answer_keeps_usage_without_creating_a_verdict(api, tmp_path) -> None:
+def test_invalid_paid_answer_keeps_usage_without_creating_a_verdict(api, tmp_path, load_script) -> None:
     requests = []
     answers = api["LiveAnswers"](tmp_path, http_client=provider(requests, text="invalid"))
     with pytest.raises(ValueError, match="Paid judgment failed"):
@@ -71,6 +74,11 @@ def test_invalid_paid_answer_keeps_usage_without_creating_a_verdict(api, tmp_pat
     with pytest.raises(ValueError, match="Previous paid attempt failed"):
         answers.get(candidate())
     assert len(requests) == 1
+    complete_pool = load_script("compare_history")["complete_pool"]
+    failed = complete_pool(payload(api, {"baseline": [candidate(), candidate(2)]}), answers)
+    assert len(failed) == 2
+    assert len(requests) == 2  # Continue independent evidence, never retry the failed paid answer.
+    assert all(o.stop_reason == "end_turn" and o.error_detail for o in answers.observations.values())
 
 
 @pytest.mark.parametrize("options", [{"status": 401}, {"model": "unexpected-model"}, {"usage": False}])
