@@ -100,6 +100,14 @@ def count_findings(lines: list[str]) -> tuple[int, int]:
         sum(line.startswith("::error file=") for line in lines)
 
 
+def judged(report: Path) -> bool:
+    """Whether a judge actually ran, by report.json; the repository's settings can turn judging off."""
+    try:
+        return bool(json.loads(report.read_text()).get("judge"))
+    except (OSError, ValueError):
+        return False
+
+
 def fail_at() -> list[str]:
     """The fail-at input, passed through to dry-lint; empty means the repository's `fail_at` setting."""
     return ["--fail-at", env("INPUT_FAIL_AT")] if env("INPUT_FAIL_AT") else []
@@ -221,10 +229,11 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     root = Path(env("INPUT_WORKING_DIRECTORY", ".") or ".").resolve()
     store, report, body = work / "verdicts", work / "report.json", work / "comment.md"
     judge = resolve_judge(env("INPUT_JUDGE"), bool(env("TYPESAFE_AI_API_KEY")))
-    # Unjudged look-alikes go to the log only: as annotations they would be noise on every pull request. With a
-    # judge, dry-lint exits 1 when a finding blocks (at or above fail_at); the action decides what that means.
+    # dry-lint logs as text; annotations are rendered from report.json afterwards, and only when a judge ran:
+    # unjudged look-alikes on every pull request would be noise. dry-lint exits 1 when a finding blocks (at or
+    # above fail_at); the action decides what that means.
     judging = ["--judge", judge, "--store", str(store), "--report", str(report), "--output", str(body), *fail_at()]
-    judging += ["--format", "text", "--warn-only"] if judge == "none" else ["--format", "github"]
+    judging += ["--format", "text", *(["--warn-only"] if judge == "none" else [])]
     if flag("INPUT_WARN_ONLY"):
         judging.append("--warn-only")
     if env("INPUT_JUDGE_COMMAND"):
@@ -264,6 +273,11 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         number, repository, head = pull.get("number") or 0, env("GITHUB_REPOSITORY"), ""
         labels = labels_of(pull)
 
+    if code != 2 and judge != "none":
+        if judged(report):
+            _, lines = dry_lint("report", "--root", str(root), "--from", str(report), "--format", "github", *fail_at())
+        else:  # the repository's settings turn judging off (preset or judge "none") although keys are present
+            judge, code = "none", 0
     findings, blocking = count_findings(lines)
     write_summary(body)
     if code == 2:
