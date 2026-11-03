@@ -84,6 +84,12 @@ class Replay(Versioned):
         ]
         if self.judging:
             lines.append(f"judging: {self.judging.line()}")
+            checked = [c for c in self.commits if c.report.findings]
+            reached = sum(bool(c.report.judging and c.report.judging.skipped) for c in checked)
+            usd = self.judging.usd
+            lines.append(f"  per check: a ${self.judging.budget_usd:g} budget, reached by {reached} of {len(checked)} "
+                         "checks with candidates"
+                         + (f"; est. ${usd / len(checked):.4f} each on average" if usd is not None and checked else ""))
         if reported:
             lines.append("")
             lines.append(f"reported findings ({min(limit, len(reported))} of {len(reported)}, blocking first):")
