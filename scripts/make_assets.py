@@ -4,7 +4,7 @@ Generate dry-lint's brand assets from the mascot art in docs/assets/lint.png.
     uv run --with pillow python scripts/make_assets.py              # avatar.png, the mark, banners, social-preview.svg
     uv run --with playwright==1.58.0 python scripts/render_png.py   # social-preview.png
 
-Lint is a ball of dryer lint with a lint roller, for picking up duplicated code. The SVGs embed a downscaled copy of
+Lint is a purple ball of dryer lint with a mint-green hair dryer. The SVGs embed a downscaled copy of
 the art, so they render anywhere an <img> can show them, including GitHub READMEs.
 """
 
