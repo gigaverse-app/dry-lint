@@ -4,7 +4,8 @@ the settings and judging preset this checkout has now. A team can see, on its ow
 would have failed or warned, which findings they would have read and what the judges would have cost, before it
 turns dry-lint on or changes a preset or a threshold.
 
-Each first-parent commit is checked against its parent, as `check` runs on a pull request, oldest first, so the
+Each first-parent commit is checked against its parent, as `check` runs on a pull request, with a judging budget of
+its own as each check has, oldest first, so the
 verdict store fills as it would have if dry-lint had run on every one of them: it keeps one verdict per pair, the
 latest. The replay checks commits out in a temporary worktree, never in yours, and removes it when it is done.
 Replaying again with another `fail_at` judges nothing new, and a later `check` reuses the verdicts.
@@ -18,6 +19,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from dry_lint.costs import Ledger, combined
 from dry_lint.detector import Detector, changed_lines, touched
 from dry_lint.functions import extractor_for, repository_functions, tracked_files
 from dry_lint.git import git
@@ -82,6 +84,12 @@ class Replay(Versioned):
         ]
         if self.judging:
             lines.append(f"judging: {self.judging.line()}")
+            checked = [c for c in self.commits if c.report.findings]
+            reached = sum(bool(c.report.judging and c.report.judging.skipped) for c in checked)
+            usd = self.judging.usd
+            lines.append(f"  per check: a ${self.judging.budget_usd:g} budget, reached by {reached} of {len(checked)} "
+                         "checks with candidates"
+                         + (f"; est. ${usd / len(checked):.4f} each on average" if usd is not None and checked else ""))
         if reported:
             lines.append("")
             lines.append(f"reported findings ({min(limit, len(reported))} of {len(reported)}, blocking first):")
@@ -125,7 +133,7 @@ def replay(root: Path, settings: Settings, store: VerdictStore, count: int, ref:
     judging = Judging.configured(settings, store)
     extractors = [load("extractors", choice) for choice in settings.extractors]
     cache: dict[tuple[str, str], list[Function]] = {}
-    commits = []
+    commits, spent = [], []
     with worktree(root, head) as tree:
         for number, commit in enumerate(history, 1):
             git(tree, "checkout", "--quiet", "--detach", commit)
@@ -137,12 +145,15 @@ def replay(root: Path, settings: Settings, store: VerdictStore, count: int, ref:
             changed = touched(functions, lines)
             candidates = (Detector(functions, settings, load("comparers", settings.comparer), extractors)
                           .candidates(changed) if changed else [])
+            judging.ledger = Ledger(settings)  # each pull request's check has a budget of its own
             report = Report.build(judging.findings(candidates, source=run), settings,
                                   filtered=[c for c in candidates if c.filtered], run=run, changed=len(changed),
-                                  judge=judging.name, functions=len(functions))
+                                  judge=judging.name, functions=len(functions), judging=judging.summary())
+            spent += judging.ledger.spend.values()
             commits.append(ReplayedCommit(commit=commit, subject=git(root, "log", "-1", "--format=%s", commit),
                                           report=report))
             if progress:
                 progress(f"replay {number}/{len(history)} {commit[:9]}: {len(changed)} changed, "
                          f"{len(report.findings)} candidates, {sum(f.reported for f in report.findings)} reported")
-    return Replay(ref=ref, head=head, commits=commits, judging=judging.summary())
+    summary = judging.summary().model_copy(update={"spend": combined(spent)})
+    return Replay(ref=ref, head=head, commits=commits, judging=summary)
