@@ -57,11 +57,17 @@ def prompt(candidate: Candidate) -> str:
 
 
 def parse_verdict(text: str, judge: str, version: str) -> Verdict:
-    """The one JSON object in a text answer, as a verdict; text around it is ignored."""
-    match = re.search(r"\{.*\}", text, re.S)
-    if match is None:
+    """The first JSON object with a `label` in a text answer, as a verdict; text and other objects around it are ignored."""
+    decoder = json.JSONDecoder()
+    for match in re.finditer(r"\{", text):
+        try:
+            answer, _ = decoder.raw_decode(text, match.start())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(answer, dict) and "label" in answer:
+            break
+    else:
         raise ValueError(f"The judge {judge} answered without a JSON verdict: {text[:200]!r}")
-    answer = json.loads(match.group(0))
     return Verdict(label=answer["label"], score=float(answer.get("score", 1.0)),
                    behaves_differently=float(answer.get("behaves_differently", 0.0)), owner=answer.get("owner", ""),
                    why=answer.get("why", ""), judge=judge, judge_version=version)

@@ -3,7 +3,17 @@ from pathlib import Path
 
 import pytest
 
-from dry_lint.bench import GoldFunction, GoldPair, as_function, auc, bench_comparer, bench_judge, load_gold
+from dry_lint.bench import (
+    GoldFunction,
+    GoldPair,
+    as_function,
+    auc,
+    bench_comparer,
+    bench_judge,
+    intervals,
+    load_gold,
+    precision_recall,
+)
 from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Candidate, Verdict
@@ -46,7 +56,7 @@ def test_the_judge_benchmark_reports_auc_precision_recall_and_bands() -> None:
     assert result.auc == pytest.approx(4 / 6)  # a beats c (weight 2) and d; b beats only d
     assert [(b.low, b.duplicates, b.separate) for b in result.bands] == [(0.0, 0, 1), (0.6, 1, 0), (0.8, 0, 2), (0.9, 1, 0)]
     text = result.as_text(Settings())
-    assert "AUC 0.67" in text and "precision 33%, recall 50%" in text and "recall 100%" in text
+    assert "AUC 0.67" in text and "precision 33% (" in text and "90% intervals" in text and "recall 100%" in text
 
 
 def test_a_judge_benchmark_without_labelled_pairs_is_empty_not_an_error() -> None:
@@ -91,3 +101,22 @@ def test_the_judge_benchmark_measures_escalation_as_it_runs() -> None:
     assert result.judge == "table:1 > second:1"
     assert (result.precision, result.recall, result.auc) == (1.0, 1.0, 1.0)
     assert bench_judge(pairs, first, settings, PythonExtractor()).precision == 0.0
+
+
+def test_intervals_contain_the_estimate_and_widen_with_heavy_rare_pairs() -> None:
+    steady = [("high", True, 1.0, True)] * 9 + [("high", False, 1.0, True)]
+    (p_low, p_high), (r_low, r_high) = intervals(steady)
+    assert p_low <= precision_recall(steady)[0] <= p_high and (r_low, r_high) == (1.0, 1.0)
+    rare = steady + [("low", True, 30.0, False)] + [("low", False, 30.0, False)] * 9
+    (_, _), (r_low, r_high) = intervals(rare)
+    assert r_high - r_low > 0.5  # one heavily weighted duplicate can swing recall
+    assert intervals([]) == ((0.0, 0.0), (0.0, 0.0))
+
+
+def test_a_separate_label_is_never_reported_whatever_its_score() -> None:
+    class Contrary(TableJudge):
+        def judge(self, candidates, settings):
+            return [Verdict(label="separate", score=0.95, judge=self.name) for _ in candidates]
+
+    result = bench_judge([gold("a", "x", "duplicate")], Contrary({}), Settings(), PythonExtractor())
+    assert (result.precision, result.recall) == (0.0, 0.0)

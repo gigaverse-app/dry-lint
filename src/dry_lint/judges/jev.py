@@ -1,8 +1,9 @@
 """
 Jev (TypeSafe's System One decision model) as the judge: three typed questions per pair, about 0.3 s each.
 
-Prompt `reuse-v2`, code only. Measured on 295 real candidates from 120 gigaverse-ai pull requests against a
-two-labeller gold set (docs/benchmark.md): AUC 0.97; at score >= 0.8, 75% precision and 59% recall. Adding call
+Prompt `reuse-v2`, code only. Measured on a 250-pair gold set drawn from 2,012 candidates in 600 gigaverse-ai pull
+requests, labelled by three vendors' models (docs/benchmark.md): AUC 0.97; at score >= 0.8, 94% precision and 73%
+recall. Adding call
 counts and the family of look-alikes to the state did not help, so the state is just the two functions.
 The benchmark numbers belong to this exact wording: change it and re-measure.
 """

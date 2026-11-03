@@ -26,5 +26,5 @@ def make_judge(choice: PluginChoice, auto: tuple[str, str] = ("jev", "TYPESAFE_A
 
 
 def make_escalation(settings: Settings) -> Judge | None:
-    """The second judge: by default ("auto") Gemini when GEMINI_API_KEY is set, otherwise none."""
-    return make_judge(settings.escalate, auto=("gemini", "GEMINI_API_KEY")) if settings.escalate else None
+    """The second judge: by default ("auto") Claude Sonnet 5.5 when ANTHROPIC_API_KEY is set, otherwise none."""
+    return make_judge(settings.escalate, auto=("anthropic", "ANTHROPIC_API_KEY")) if settings.escalate else None

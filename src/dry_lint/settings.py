@@ -64,7 +64,7 @@ class Settings(BaseModel):
                           description="auto: Jev when TYPESAFE_AI_API_KEY is set, otherwise none (list candidates).")
     escalate: Annotated[Escalation | None, BeforeValidator(_named)] = Field(
         default_factory=lambda: Escalation(use="auto"),
-        description="auto: Gemini when GEMINI_API_KEY is set, otherwise none; \"none\" turns it off.")
+        description="auto: Claude Sonnet 5.5 when ANTHROPIC_API_KEY is set, otherwise none; \"none\" turns it off.")
     store: Choice = Field(default_factory=lambda: PluginChoice(use="dir"),
                           description="dir: a folder, by default inside the git directory; s3: a bucket prefix.")
 

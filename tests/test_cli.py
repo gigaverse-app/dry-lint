@@ -20,7 +20,7 @@ TWIN = "src/widgets/caption.py::preview_caption_text"
 
 @pytest.fixture(autouse=True)
 def outside_actions(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY", "GEMINI_API_KEY"):
+    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY"):
         monkeypatch.delenv(name, raising=False)
 
 

@@ -137,14 +137,13 @@ A judge returns a verdict per pair: `label` (`duplicate`, `drifted` or `separate
 `behaves_differently` (0–1), `owner` and `why`. The thresholds are core: below `drop_below` (0.6) a pair is
 separate, at `report_at` (0.8) it is reported, at `fail_at` (0.8 by default, `--fail-at` on the command line) it
 blocks, and at `drift_at` (0.8) on
-`behaves_differently` it is drifted. With the default, every reported duplicate blocks: 75% precise on the
-gold set, so about one failed check in four is a false positive to override. Raising `fail_at` to 0.91 leaves
-the band from 0.8 warning only; at 0.91 nothing on the gold set was a false positive (the highest scored 0.892)
-([benchmark](benchmark.md)).
+`behaves_differently` it is drifted. With the default, every reported duplicate blocks: on the 250-pair gold set
+that is 94% precise (73% recall), about one false block in 18, and 15% of pull requests fail. Raising `fail_at`
+to 0.85 or 0.9 leaves the band above 0.8 warning only ([benchmark](benchmark.md)).
 
 `escalate` sends first scores in a band to a second judge, and its answer replaces the first. The default,
-`escalate = "auto"`, is the built-in Gemini judge on `[0.6, 0.91)` when `GEMINI_API_KEY` is set: measured live, it
-raises recall at 0.8 from 54% to about 76% at about the same precision. The record stays under the first judge's
+`escalate = "auto"`, is the built-in Anthropic judge with Claude Sonnet 5.5 on `[0.6, 0.91)` when
+`ANTHROPIC_API_KEY` is set: measured live, it raises precision at 0.8 to 98%, about one false block in 50. The record stays under the first judge's
 name with `second_opinion` set, so it is reused like any other. See [judges.md](judges.md).
 
 ## Reports

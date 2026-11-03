@@ -7,6 +7,7 @@ stratified sample back to its population (each stratum's size over its sample si
 Borderline pairs are kept in the file and left out of the numbers.
 """
 
+import random
 import textwrap
 from pathlib import Path
 from typing import Literal
@@ -34,6 +35,7 @@ class GoldPair(BaseModel):
     drifted: bool | None = None
     owner: str | None = None
     weight: float = 1.0
+    stratum: str | None = Field(default=None, description="The sampling stratum, for confidence intervals.")
 
 
 def load_gold(path: Path) -> list[GoldPair]:
@@ -64,6 +66,33 @@ def auc(scored: list[tuple[float, bool, float]]) -> float:
     return wins / total if total else float("nan")
 
 
+def precision_recall(rows: list[tuple[str, bool, float, bool]]) -> tuple[float, float]:
+    flagged = sum(w for _, _, w, r in rows if r)
+    hits = sum(w for _, d, w, r in rows if r and d)
+    duplicates = sum(w for _, d, w, _ in rows if d)
+    return (hits / flagged if flagged else 0.0), (hits / duplicates if duplicates else 0.0)
+
+
+def intervals(rows: list[tuple[str, bool, float, bool]], resamples: int = 1000,
+              seed: int = 7) -> tuple[tuple[float, float], tuple[float, float]]:
+    """
+    90% intervals for precision and recall: each stratum is resampled with replacement and keeps its weight, so the
+    interval shows how much a handful of heavily weighted pairs can move the numbers.
+    """
+    strata: dict[str, list] = {}
+    for row in rows:
+        strata.setdefault(row[0], []).append(row)
+    rng = random.Random(seed)
+    draws = [precision_recall([rng.choice(members) for members in strata.values() for _ in members])
+             for _ in range(resamples)] if rows else [(0.0, 0.0)]
+
+    def interval(values: list[float]) -> tuple[float, float]:
+        ordered = sorted(values)
+        return ordered[int(0.05 * (len(ordered) - 1))], ordered[int(0.95 * (len(ordered) - 1))]
+
+    return interval([p for p, _ in draws]), interval([r for _, r in draws])
+
+
 class Band(BaseModel):
     low: float
     high: float
@@ -78,13 +107,18 @@ class JudgeBench(BaseModel):
     auc: float
     precision: float = Field(description="At report_at.")
     recall: float = Field(description="At report_at.")
+    precision_interval: tuple[float, float] = Field(description="90% interval, stratified bootstrap.")
+    recall_interval: tuple[float, float] = Field(description="90% interval, stratified bootstrap.")
     recall_at_drop: float = Field(description="Share of duplicates at or above drop_below.")
     bands: list[Band]
 
     def as_text(self, settings: Settings) -> str:
+        p_low, p_high = self.precision_interval
+        r_low, r_high = self.recall_interval
         lines = [f"judge {self.judge}: {self.pairs} labelled pairs, {self.duplicates} duplicates",
                  f"  AUC {self.auc:.2f}",
-                 f"  at report_at {settings.report_at}: precision {self.precision:.0%}, recall {self.recall:.0%}",
+                 f"  at report_at {settings.report_at}: precision {self.precision:.0%} ({p_low:.0%}-{p_high:.0%}), "
+                 f"recall {self.recall:.0%} ({r_low:.0%}-{r_high:.0%}); 90% intervals",
                  f"  at drop_below {settings.drop_below}: recall {self.recall_at_drop:.0%}",
                  "  score band    duplicates  separate"]
         lines += [f"  {b.low:.1f}-{min(b.high, 1.0):.1f}    {b.duplicates:10.1f}  {b.separate:8.1f}" for b in self.bands]
@@ -99,20 +133,25 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
                   for g in labelled]
     verdicts = decide(candidates, judge, escalation, settings)
     scored = [(v.score, g.label == "duplicate", g.weight) for g, v in zip(labelled, verdicts)]
+    # Reported exactly as a report decides it: a duplicate label at or above report_at.
+    reported = [v.label != "separate" and v.score >= settings.report_at for v in verdicts]
 
     def weight(condition) -> float:
         return sum(w for score, duplicate, w in scored if condition(score, duplicate))
 
     duplicates = weight(lambda score, duplicate: duplicate)
-    flagged = weight(lambda score, duplicate: score >= settings.report_at)
-    hits = weight(lambda score, duplicate: duplicate and score >= settings.report_at)
+    flagged = sum(w for (_, _, w), r in zip(scored, reported) if r)
+    hits = sum(w for (_, d, w), r in zip(scored, reported) if r and d)
     kept = weight(lambda score, duplicate: duplicate and score >= settings.drop_below)
+    rows = [(g.stratum or str(g.weight), g.label == "duplicate", g.weight, r) for g, r in zip(labelled, reported)]
+    precision_interval, recall_interval = intervals(rows)
     bands = [Band(low=low, high=high,
                   duplicates=weight(lambda s, d, lo=low, hi=high: d and lo <= s < hi),
                   separate=weight(lambda s, d, lo=low, hi=high: not d and lo <= s < hi))
              for low, high in zip(BANDS, BANDS[1:])]  # fmt: skip
     return JudgeBench(judge=judges_name(judge, escalation), pairs=len(labelled), duplicates=sum(1 for g in labelled if g.label == "duplicate"),
                       auc=auc(scored), precision=hits / flagged if flagged else 0.0,
+                      precision_interval=precision_interval, recall_interval=recall_interval,
                       recall=hits / duplicates if duplicates else 0.0, recall_at_drop=kept / duplicates if duplicates else 0.0,
                       bands=[b for b in bands if b.duplicates or b.separate])
 

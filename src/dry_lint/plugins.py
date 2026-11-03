@@ -76,7 +76,7 @@ BUILT_IN = {
     "extractors": {"python": "dry_lint.extractors:PythonExtractor"},
     "comparers": {"tfidf": "dry_lint.comparers:TfidfComparer", "dryer": "dry_lint.dryer:DryerComparer"},
     "judges": {"jev": "dry_lint.judges.jev:JevJudge", "command": "dry_lint.judges.command:CommandJudge",
-               "gemini": "dry_lint.judges.gemini:GeminiJudge"},
+               "gemini": "dry_lint.judges.gemini:GeminiJudge", "anthropic": "dry_lint.judges.anthropic:AnthropicJudge"},
     "stores": {"dir": "dry_lint.store:DirectoryStore", "s3": "dry_lint.store:S3Store"},
 }
 

@@ -8,7 +8,8 @@ command line:
 | `auto` (default) | Jev when `TYPESAFE_AI_API_KEY` is set, otherwise `none` | |
 | `jev` | TypeSafe's System One decision model, prompt `reuse-v2` | about 0.3 s per pair, 8 pairs in parallel |
 | `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout; 4 at once | whatever your model costs |
-| `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 6 s per pair, 4 in parallel |
+| `anthropic` | Claude over the Messages API with the same DRY prompt; needs `ANTHROPIC_API_KEY`, no CLI. Default model `claude-sonnet-5-5`: the default second judge | about 3 s per pair, 4 in parallel |
+| `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 12 s per pair, 4 in parallel |
 | `none` | Lists candidate pairs unjudged; never fails the build | free |
 | anything installed | A package registering `dry_lint.judges` | |
 
@@ -68,18 +69,22 @@ it, so changing the program means judging again.
 ## A second opinion
 
 `escalate` sends the first judge's scores in a band to a second judge, whose answer replaces the first. The
-default is `escalate = "auto"`: Gemini on `[0.6, 0.91)` when `GEMINI_API_KEY` is set, otherwise no escalation.
+default is `escalate = "auto"`: Claude Sonnet 5.5 on `[0.6, 0.91)` when `ANTHROPIC_API_KEY` is set, otherwise no
+escalation.
 
 ```toml
 judge = "jev"
-escalate = { use = "gemini", model = "gemini-3.1-pro-preview", between = [0.6, 0.91] }   # the default, spelled out
-escalate = { use = "command", command = "claude -p --model sonnet", version = "sonnet-1" }  # any other judge
-escalate = "none"                                                                          # off
+escalate = { use = "anthropic", model = "claude-sonnet-5-5", between = [0.6, 0.91] }    # the default, spelled out
+escalate = { use = "gemini", model = "gemini-3.1-pro-preview" }                         # another vendor
+escalate = { use = "command", command = "llm -m my-model", version = "my-model-1" }     # any CLI
+escalate = "none"                                                                       # off
 ```
 
-Measured on the gold set ([benchmark](benchmark.md#escalation)), it finds about 40% more of the real duplicates
-(recall at 0.8 from 54% to 76%) at about the same precision (around 75%), for about one Gemini call every three
-pull requests. It does not reduce false blocks; raise `fail_at` for that. The stored verdict keeps the first
+Measured live on the 250-pair gold set ([benchmark](benchmark.md#escalation)): at 0.8, precision from 94-95% to
+98%, so roughly half the false blocks, and recall from 71-73% to 75-76% (within the intervals), for about 0.8
+Sonnet calls per pull request. Among five second judges compared on the same pairs, Sonnet 5.5 changed its mind
+least between runs and was the fastest; avoid Gemini 2.5 Pro. With the key set in a developer's environment, code
+in the pairs goes to Anthropic; set `escalate = "none"` to keep it local. The stored verdict keeps the first
 judge's name and records the second in `second_opinion`, so it is reused like any other.
 
 ## Writing a judge
