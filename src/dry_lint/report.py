@@ -155,12 +155,16 @@ def as_github(report: Report) -> str:
 
 def function_link(function: Function, run: Run) -> str:
     """Link to the measured revision, not a moving branch; local reports keep the full location."""
+    run = function.origin or run
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", run.repository) or not re.fullmatch(r"[a-fA-F0-9]{40}", run.head):
         return escaped(function.qualname)
     server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
     url = (f"{server}/{quote(run.repository, safe='/')}/blob/{quote(run.head, safe='')}/"
            f"{quote(function.path, safe='/')}#L{function.line}-L{function.end_line}")
-    return f"[{escaped(function.qualname.split('::', 1)[1])}]({url})"
+    label = function.qualname.split('::', 1)[1]
+    if function.origin:
+        label = f"{run.repository}: {label}"
+    return f"[{escaped(label)}]({url})"
 
 
 def as_markdown(report: Report, max_findings: int = 10) -> str:

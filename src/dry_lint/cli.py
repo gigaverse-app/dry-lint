@@ -96,7 +96,21 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    candidates = Detector.for_repository(root, settings).scan()[: args.limit]
+    if args.repo:
+        roots: dict[str, Path] = {}
+        for spec in args.repo:
+            name, separator, path = spec.partition("=")
+            if not separator or not path:
+                raise ValueError("--repo expects OWNER/NAME=PATH")
+            if name in roots:
+                raise ValueError(f"Duplicate repository: {name}")
+            roots[name] = Path(path)
+        if args.format not in ("text", "json", "markdown"):
+            raise ValueError("A workspace scan supports text, json and markdown; annotations belong to one repository")
+        detector = Detector.for_workspace(roots, settings)
+    else:
+        detector = Detector.for_repository(root, settings)
+    candidates = detector.scan()[: args.limit]
     report = judged(candidates, settings, root, args, run_info(root, None), 0, refresh=args.refresh)
     return finish(report, settings, args)
 
@@ -197,6 +211,8 @@ def parser() -> argparse.ArgumentParser:
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
     sweep.add_argument("--limit", type=int, default=50, help="Judge and show at most this many pairs, closest first.")
     sweep.add_argument("--refresh", action="store_true", help="Re-judge verdicts from older versions of the judge.")
+    sweep.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH",
+                       help="Repeat for every checkout in a workspace; scan only cross-repository pairs.")
     proposing = commands.add_parser("detect", parents=[common], help="Write candidates.json; no judge, no store.")
     where(proposing, everything=True)
     proposing.add_argument("--out", type=Path, help="Write candidates.json here (default: print it).")

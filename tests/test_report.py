@@ -177,7 +177,7 @@ def test_evidence_separates_judge_scores_from_similarity_and_cache() -> None:
 def test_json_report_round_trips() -> None:
     built = report(finding("duplicate", existing="a"), finding("separate", existing="b"))
     loaded = Report.model_validate_json(render(built, "json", SETTINGS))
-    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 2
+    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 3
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:

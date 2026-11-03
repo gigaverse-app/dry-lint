@@ -66,7 +66,10 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
-New files carry `"schema": 2`; schema 1 remains readable with conservative cache defaults. The models are in `models.py`, `store.py` and `report.py`.
+New files carry `"schema": 3`; schemas 1 and 2 remain readable with conservative cache defaults. Schema 3 adds
+optional function `origin` using the existing `Run` contract. Workspace function identities include the repository,
+while their paths remain repository-relative and their links use the source commit. Single-repository identities
+and cache keys stay unchanged. The models are in `models.py`, `store.py` and `report.py`.
 
 | File | Written by | Holds |
 | --- | --- | --- |
