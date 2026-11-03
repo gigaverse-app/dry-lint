@@ -45,6 +45,8 @@ class Observation(BaseModel):
     seconds: float
     verdict: Verdict | None = None
     error: str | None = None
+    error_detail: str = ""
+    stop_reason: str = ""
 
 
 def answer_key(candidate: Candidate, version: str, policy: str = "concept", *, template: str | None = None) -> str:
@@ -110,11 +112,12 @@ class LiveAnswers:
         # A crash after sending must not turn unknown provider usage into a free retry on resume.
         pending_path.write_text("Request started; usage not yet persisted", encoding="utf-8")
         self.response = None
-        start, verdict, failure = time.perf_counter(), None, None
+        start, verdict, failure, error_detail = time.perf_counter(), None, None, ""
         try:
             [verdict] = self.judge.judge([candidate], self.settings)
         except Exception as error:
             failure = type(error).__name__
+            error_detail = str(error)
         seconds = time.perf_counter() - start
         if self.response is None:
             # Unknown provider usage is not zero cost; stop instead of making additional unmetered calls.
@@ -148,6 +151,8 @@ class LiveAnswers:
             seconds=seconds,
             verdict=verdict,
             error=failure,
+            error_detail=error_detail,
+            stop_reason=str(data.get("stop_reason", "")),
         )
         self.observations[key] = observation
         (self.directory / f"{key}.json").write_text(observation.model_dump_json(indent=2), encoding="utf-8")
