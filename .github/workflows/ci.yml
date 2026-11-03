@@ -43,7 +43,8 @@ jobs:
       - uses: ./
         id: dry-lint
         with:
-          typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
+          judge: command
+          judge-command: python examples/fake_judge.py
       - name: The action reports its mode and result
         env:
           MODE: ${{ steps.dry-lint.outputs.mode }}
