@@ -29,5 +29,6 @@ jobs:
       - uses: gigaverse-app/dry-lint@main
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
-          # Fails only on near-certain duplicates (fail_at, 0.91); the `dry-lint: override` label lets one through.
+          # Every reported duplicate fails the check; the `dry-lint: override` label lets one through.
+          # fail-at: "0.91"     # fail only on near-certain duplicates; the rest warn
           # warn-only: "true"   # never fail

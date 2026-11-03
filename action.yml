@@ -49,10 +49,15 @@ inputs:
     description: Name for this report's comment, when one repository runs dry-lint more than once per pull request.
     required: false
     default: ""
-  warn-only:
+  fail-at:
     description: >
-      Never fail. By default the check fails only on near-certain duplicates (judge score at or above fail_at, 0.91,
-      in [tool.dry-lint]); findings between report_at and fail_at only warn.
+      Judge score at or above which a duplicate fails the check. Empty uses fail_at from [tool.dry-lint] (default 0.8,
+      the same as report_at, so every reported duplicate fails). 0.91 fails only near-certain ones: no false positive
+      at that level in the benchmark; findings between report_at and it only warn.
+    required: false
+    default: ""
+  warn-only:
+    description: Never fail; blocking findings are reported like the rest.
     required: false
     default: "false"
   override-label:
@@ -72,7 +77,7 @@ outputs:
     description: How many duplicates were reported.
     value: ${{ steps.run.outputs.findings }}
   blocking:
-    description: How many of them are near-certain (at or above fail_at).
+    description: How many of them reach fail_at.
     value: ${{ steps.run.outputs.blocking }}
   overridden:
     description: Whether the override label turned blocking findings into warnings.
@@ -128,6 +133,7 @@ runs:
         INPUT_COMMENT: ${{ inputs.comment }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
+        INPUT_FAIL_AT: ${{ inputs.fail-at }}
         INPUT_WARN_ONLY: ${{ inputs.warn-only }}
         INPUT_OVERRIDE_LABEL: ${{ inputs.override-label }}
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}

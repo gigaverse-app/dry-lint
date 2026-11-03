@@ -292,7 +292,7 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
     github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
                working_directory=str(repo.root))
-    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 1  # 0.85 reaches the default fail_at (0.8)
     out = capsys.readouterr().out
     assert "::error file=src/widgets/caption.py,line=1" in out  # 0.85 >= the default fail_at
     [body] = github.stickies()
@@ -301,7 +301,7 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
 
     # The next push changes nothing that matters: the verdict comes from the store, the comment is edited.
     first = judge_calls(tmp_path)
-    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
     assert judge_calls(tmp_path) == first and len(github.stickies()) == 1
 
     # The author reuses the existing helper: the comment says so instead of going stale.
@@ -336,7 +336,7 @@ def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, githu
     github = FakeGitHub(head=head)
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head, "event": "pull_request"}},
                judge="command", judge_command=twin_judge, working_directory=str(repo.root))
-    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
     [body] = github.stickies()
     assert "preview_caption_text" in body and f"commit {head[:7]}" in body
     [check] = github.check_runs
@@ -360,7 +360,7 @@ def test_a_check_run_the_token_may_not_post_is_a_warning(repo, github_env, tmp_p
     report, head = judged_report(tmp_path, repo, twin_judge, github_env)
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, judge="command",
                judge_command=twin_judge, working_directory=str(repo.root), comment="false", check_run="false")
-    assert action.main(["run"]) == 0
+    assert action.main(["run"]) == 1
     github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, check_run="true")
     transport = httpx.MockTransport(lambda request: httpx.Response(status, json={}))
     assert action.check_run(repo.root, "acme/shop", report, transport) == outcome
@@ -474,3 +474,24 @@ def test_an_inline_ignore_settles_the_pair_before_any_judge_call(repo: Repo, git
                working_directory=str(repo.root))
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     assert github.stickies() == [] and judge_calls(tmp_path) == 0
+
+
+def test_the_fail_at_input_raises_the_bar_so_lower_findings_only_warn(repo: Repo, github_env, tmp_path,
+                                                                      twin_judge, capsys) -> None:
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    github_env("pull_request", pr_event(repo), judge="command", judge_command=twin_judge,
+               working_directory=str(repo.root), fail_at="0.91")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    assert "::warning file=src/widgets/caption.py,line=1" in capsys.readouterr().out
+    [body] = github.stickies()
+    assert "**Blocking:**" not in body
+    assert outputs(tmp_path)["blocking"] == "0" and outputs(tmp_path)["findings"] == "1"
+
+
+def test_the_fail_at_input_reaches_every_dry_lint_command(github_env, tmp_path) -> None:
+    github_env("pull_request", pull_request(), key="secret", fail_at="0.95")
+    with patch.object(action, "dry_lint", side_effect=cli_writes_comment(tmp_path, [])) as cli, \
+            patch.object(sticky, "main", return_value=0):
+        action.main(["run"])
+    args = cli.call_args.args
+    assert args[args.index("--fail-at") + 1] == "0.95"

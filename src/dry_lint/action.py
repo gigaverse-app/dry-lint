@@ -100,6 +100,11 @@ def count_findings(lines: list[str]) -> tuple[int, int]:
         sum(line.startswith("::error file=") for line in lines)
 
 
+def fail_at() -> list[str]:
+    """The fail-at input, passed through to dry-lint; empty means the repository's `fail_at` setting."""
+    return ["--fail-at", env("INPUT_FAIL_AT")] if env("INPUT_FAIL_AT") else []
+
+
 def override_label() -> str:
     return env("INPUT_OVERRIDE_LABEL") or OVERRIDE_LABEL
 
@@ -117,7 +122,7 @@ def status_note(blocking: int, overridden: bool) -> str:
                 "do not fail this pull request.")
     if flag("INPUT_WARN_ONLY"):
         return ""
-    return (f"**Blocking:** {blocking} finding(s) are near-certain duplicates (at or above `fail_at`), so this check "
+    return (f"**Blocking:** {blocking} finding(s) reach `fail_at`, so this check "
             f"fails. A false positive? Mark it in the code as above, or add the `{override_label()}` label to this "
             "pull request.")
 
@@ -162,7 +167,8 @@ def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTr
     token = env("GITHUB_TOKEN")
     if not flag("INPUT_CHECK_RUN") or not token or not report.exists():
         return "off"
-    code, lines = dry_lint("report", "--root", str(root), "--from", str(report), "--format", "check-run", echo=False)
+    code, lines = dry_lint("report", "--root", str(root), "--from", str(report), "--format", "check-run", *fail_at(),
+                           echo=False)
     try:
         body = json.loads("\n".join(lines))
     except json.JSONDecodeError:
@@ -216,7 +222,7 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     judge = resolve_judge(env("INPUT_JUDGE"), bool(env("TYPESAFE_AI_API_KEY")))
     # Unjudged look-alikes go to the log only: as annotations they would be noise on every pull request. With a
     # judge, dry-lint exits 1 when a finding blocks (at or above fail_at); the action decides what that means.
-    judging = ["--judge", judge, "--store", str(store), "--report", str(report), "--output", str(body)]
+    judging = ["--judge", judge, "--store", str(store), "--report", str(report), "--output", str(body), *fail_at()]
     judging += ["--format", "text", "--warn-only"] if judge == "none" else ["--format", "github"]
     if env("INPUT_JUDGE_COMMAND"):
         judging += ["--judge-command", env("INPUT_JUDGE_COMMAND")]
