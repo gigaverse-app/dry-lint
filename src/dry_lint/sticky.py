@@ -95,6 +95,9 @@ class GitHub:
     def update(self, repository: str, comment: int, body: str) -> None:
         self.client.patch(f"/repos/{repository}/issues/comments/{comment}", json={"body": body}).raise_for_status()
 
+    def check_run(self, repository: str, body: dict) -> None:
+        self.client.post(f"/repos/{repository}/check-runs", json=body).raise_for_status()
+
     def delete(self, repository: str, comment: int) -> None:
         self.client.delete(f"/repos/{repository}/issues/comments/{comment}").raise_for_status()
 

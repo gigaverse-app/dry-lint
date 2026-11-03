@@ -19,6 +19,7 @@ class FakeGitHub:
         self.comments = [{"id": i + 1, "body": body} for i, body in enumerate(comments)]
         self.head, self.write_status, self.banner = head, write_status, banner
         self.writes: list[str] = []
+        self.check_runs: list[dict] = []
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         path, method = request.url.path, request.method
@@ -32,6 +33,9 @@ class FakeGitHub:
         if self.write_status != 200:
             return httpx.Response(self.write_status, json={"message": "Resource not accessible by integration"})
         self.writes.append(method)
+        if path == f"/repos/{REPO}/check-runs":
+            self.check_runs.append(json.loads(request.content))
+            return httpx.Response(201, json={})
         if method == "POST":
             body = json.loads(request.content)["body"]
             self.comments.append({"id": len(self.comments) + 100, "body": body})

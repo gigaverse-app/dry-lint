@@ -89,10 +89,11 @@ def ensure_history(root: Path, base: str) -> None:
         git(root, "fetch", "--quiet", "--no-tags", "origin", base)
 
 
-def dry_lint(*args: str) -> tuple[int, list[str]]:
+def dry_lint(*args: str, echo: bool = True) -> tuple[int, list[str]]:
     """Run the dry-lint CLI, echo its output (annotations take effect that way) and return the exit code and lines."""
     result = subprocess.run([sys.executable, "-m", "dry_lint", *args], capture_output=True, text=True)
-    sys.stdout.write(result.stdout)
+    if echo:
+        sys.stdout.write(result.stdout)
     sys.stderr.write(result.stderr)
     return result.returncode, result.stdout.splitlines()
 
@@ -129,6 +130,33 @@ def comment(repository: str, number: int, body: Path, findings: int, expect_head
     if expect_head:
         args += ["--expect-head", expect_head]
     sticky.main(args, transport=transport)
+    return "posted"
+
+
+def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTransport | None = None) -> str:
+    """
+    A workflow_run job does not show among a pull request's checks, so judge mode posts a check run on the pull
+    request's head commit. It is neutral with findings and success without: it informs, never blocks.
+    """
+    token = env("GITHUB_TOKEN")
+    if not flag("INPUT_CHECK_RUN") or not token or not report.exists():
+        return "off"
+    code, lines = dry_lint("report", "--root", str(root), "--from", str(report), "--format", "check-run", echo=False)
+    try:
+        body = json.loads("\n".join(lines))
+    except json.JSONDecodeError:
+        code = 2
+    if code == 2:  # 1 only means the report has findings
+        print("::warning title=dry-lint::Could not render the check run.")
+        return "failed"
+    github = sticky.GitHub(token, env("GITHUB_API_URL", "https://api.github.com"), transport)
+    try:
+        github.check_run(repository, body)
+    except httpx.HTTPStatusError as error:
+        if error.response.status_code not in (403, 404):
+            raise
+        print("::warning title=dry-lint::No check run: give the judge job `checks: write`.")
+        return "forbidden"
     return "posted"
 
 
@@ -176,6 +204,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
             write_outputs(mode=mode, exit_code=2, findings=0)
             return 2
         number, repository = run_info.get("pull_request") or 0, env("GITHUB_REPOSITORY")
+        if code != 2 and judge != "none":
+            check_run(root, repository, report, transport)
     else:
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)

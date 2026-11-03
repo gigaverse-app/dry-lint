@@ -84,9 +84,9 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         event = tmp_path / "event.json"
         event.write_text(json.dumps(payload))
         values = {"GITHUB_EVENT_NAME": name, "GITHUB_EVENT_PATH": str(event), "GITHUB_REPOSITORY": "acme/shop",
-                  "GITHUB_RUN_ID": "55", "GITHUB_OUTPUT": str(tmp_path / "output"),
+                  "GITHUB_RUN_ID": "55", "GITHUB_OUTPUT": str(tmp_path / "output"), "GITHUB_TOKEN": "token",
                   "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"), "RUNNER_TEMP": str(tmp_path / "runner"),
-                  "INPUT_COMMENT": "true", "INPUT_WORKING_DIRECTORY": str(tmp_path)}
+                  "INPUT_COMMENT": "true", "INPUT_CHECK_RUN": "true", "INPUT_WORKING_DIRECTORY": str(tmp_path)}
         values.update({f"INPUT_{k.upper()}": v for k, v in inputs.items() if k != "key"})
         if "key" in inputs:
             values["TYPESAFE_AI_API_KEY"] = inputs["key"]
@@ -106,7 +106,7 @@ def outputs(tmp_path: Path) -> dict[str, str]:
 def cli_writes_comment(tmp_path: Path, findings: list[str], code: int = 0, run: dict | None = None):
     """A stand-in for the dry-lint CLI that leaves the files the real one writes."""
 
-    def fake(*args: str):
+    def fake(*args: str, echo: bool = True):
         work = tmp_path / "runner" / "dry-lint"
         (work / "comment.md").write_text("<!-- dry-lint -->\n### dry-lint\n")
         if run is not None:
@@ -186,7 +186,7 @@ def test_judge_mode_comments_on_the_pull_request_of_the_triggering_commit(github
     fake = cli_writes_comment(tmp_path, [ANNOTATION], run={"pull_request": 7, "head": HEAD, "repository": "acme/shop"})
     with patch.object(action, "dry_lint", side_effect=fake) as cli, patch.object(sticky, "main", return_value=0) as post:
         assert action.main(["run"]) == 0
-    args = cli.call_args.args
+    args = cli.call_args_list[0].args
     assert args[0] == "judge" and args[args.index("--candidates") + 1] == str(candidates)
     posted = post.call_args.args[0]
     assert posted[posted.index("--pull-request") + 1] == "7" and posted[posted.index("--expect-head") + 1] == HEAD
@@ -313,3 +313,48 @@ def test_a_fork_pull_request_is_judged_by_the_workflow_run_job(repo: Repo, githu
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     [body] = github.stickies()
     assert "preview_caption_text" in body and f"commit {head[:7]}" in body
+    [check] = github.check_runs
+    assert (check["name"], check["head_sha"], check["conclusion"]) == ("dry-lint", head, "neutral")
+    assert check["output"]["annotations"][0]["path"] == "src/widgets/caption.py"
+
+
+def judged_report(tmp_path: Path, repo: Repo, twin_judge: str, github_env) -> tuple[Path, str]:
+    """Run detect then judge for real, leaving report.json; return it and the head commit."""
+    head = repo.git("rev-parse", "HEAD").strip()
+    github_env("pull_request", pr_event(repo, fork=True), working_directory=str(repo.root))
+    action.main(["run"])
+    work = tmp_path / "runner" / "dry-lint"
+    (work / "in").mkdir()
+    (work / "in" / "candidates.json").write_text((work / "candidates.json").read_text())
+    return work / "report.json", head
+
+
+@pytest.mark.parametrize("status, outcome", [(403, "forbidden"), (201, "posted")])
+def test_a_check_run_the_token_may_not_post_is_a_warning(repo, github_env, tmp_path, twin_judge, capsys, status, outcome):
+    report, head = judged_report(tmp_path, repo, twin_judge, github_env)
+    github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, judge="command",
+               judge_command=twin_judge, working_directory=str(repo.root), comment="false", check_run="false")
+    assert action.main(["run"]) == 0
+    github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, check_run="true")
+    transport = httpx.MockTransport(lambda request: httpx.Response(status, json={}))
+    assert action.check_run(repo.root, "acme/shop", report, transport) == outcome
+    assert ("checks: write" in capsys.readouterr().out) is (status == 403)
+
+
+def test_check_run_errors_other_than_permissions_are_raised(repo, github_env, tmp_path, twin_judge) -> None:
+    report, head = judged_report(tmp_path, repo, twin_judge, github_env)
+    github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, judge="command",
+               judge_command=twin_judge, working_directory=str(repo.root), comment="false", check_run="false")
+    action.main(["run"])
+    github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, check_run="true")
+    with pytest.raises(httpx.HTTPStatusError):
+        action.check_run(repo.root, "acme/shop", report, httpx.MockTransport(lambda request: httpx.Response(500)))
+
+
+def test_no_check_run_when_off_or_when_the_report_cannot_be_rendered(github_env, tmp_path) -> None:
+    github_env("workflow_run", WORKFLOW_RUN, check_run="false")
+    assert action.check_run(tmp_path, "acme/shop", tmp_path / "report.json") == "off"
+    github_env("workflow_run", WORKFLOW_RUN, check_run="true")
+    broken = tmp_path / "report.json"
+    broken.write_text("not json")
+    assert action.check_run(tmp_path, "acme/shop", broken) == "failed"

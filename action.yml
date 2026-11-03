@@ -41,6 +41,10 @@ inputs:
     description: Keep one pull request comment with the findings up to date. A clean PR gets no comment.
     required: false
     default: "true"
+  check-run:
+    description: In judge mode, post a "dry-lint" check run on the pull request's head (neutral with findings, so it never blocks).
+    required: false
+    default: "true"
   sticky-key:
     description: Name for this report's comment, when one repository runs dry-lint more than once per pull request.
     required: false
@@ -111,6 +115,7 @@ runs:
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         INPUT_COMMENT: ${{ inputs.comment }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
+        INPUT_CHECK_RUN: ${{ inputs.check-run }}
         INPUT_FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
         GITHUB_TOKEN: ${{ inputs.github-token }}

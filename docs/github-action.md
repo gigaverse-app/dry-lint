@@ -38,7 +38,7 @@ in its own run. The default `mode: auto` handles each case:
 | --- | --- | --- |
 | `pull_request` from the same repository | `single` | detect, judge, annotate, comment |
 | `pull_request` from a fork | `detect` | propose candidates, upload them as the `dry-lint-candidates` artifact |
-| `workflow_run` after the above | `judge` | download the candidates, judge, comment |
+| `workflow_run` after the above | `judge` | download the candidates, judge, comment, post a check run |
 | `push` | `single` | judge what the push changed; no comment |
 
 The judge job runs from the default branch, with secrets. It treats the fork's candidates as untrusted data:
@@ -59,9 +59,10 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `base` | the PR's base commit, or the previous push, or the default branch | What to compare with. |
 | `working-directory` | `.` | The repository, or the package within a monorepo. |
 | `comment` | `true` | Keep the sticky comment. |
+| `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
 | `sticky-key` | | One comment per key, when several dry-lint steps report on one pull request. |
 | `fail-on-findings` | `false` | Fail when a judged duplicate reaches `report_at`. |
-| `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read`. |
+| `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read` and `checks: write`. |
 
 The outputs are `mode`, `findings` (how many duplicates were reported) and `exit-code`: 0 for clean, 1 for
 duplicates reported, 2 when dry-lint could not run. Exit code 2 always fails the step, so a broken setup is never
