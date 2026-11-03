@@ -3,9 +3,7 @@ import shlex
 import sys
 from pathlib import Path
 
-import anthropic
 import httpx
-import httpx2
 import pytest
 
 from dry_lint.judges import label_for, make_escalation, make_judge
@@ -18,7 +16,7 @@ from dry_lint.judges.jev import API_URL, QUESTIONS, JevJudge, state
 from dry_lint.models import Candidate
 from dry_lint.settings import Escalation, PluginChoice, Settings
 
-from conftest import function
+from conftest import claude, function
 
 CANDIDATE = Candidate(
     new=function("src/widgets/caption.py", "def clip(text, n):\n    return text[:n]\n"),
@@ -203,18 +201,6 @@ def test_escalation_is_claude_sonnet_when_its_key_is_set_and_otherwise_off(monke
     assert make_escalation(Settings(escalate=Escalation(use="gemini", model="gemini-y"))).model == "gemini-y"
     assert make_escalation(Settings(escalate=Escalation(use="none"))) is None
     assert make_escalation(Settings(escalate=None)) is None
-
-
-def claude(reply: dict, requests: list) -> anthropic.DefaultHttpxClient:
-    """A real SDK HTTP client whose transport answers every Messages call with `reply`."""
-
-    def answer(request: httpx2.Request) -> httpx2.Response:
-        requests.append(request)
-        return httpx2.Response(200, json={"id": "msg_1", "type": "message", "role": "assistant",
-                                          "model": "claude-sonnet-5-5", "stop_sequence": None,
-                                          "usage": {"input_tokens": 900, "output_tokens": 120}, **reply})
-
-    return anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(answer))
 
 
 def test_the_anthropic_judge_asks_through_the_sdk_with_refusal_fallbacks_and_reads_its_text() -> None:

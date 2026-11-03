@@ -118,7 +118,7 @@ Check out peers at trusted refs using a token with read access, then pass their 
 
 The action does not fetch peers. Paths are resolved from the runner's working directory, independently of
 `working-directory`, which selects the primary repository. Each checkout must be clean and committed; nested
-peer checkouts may be untracked. Use `fetch-depth: 0` for the primary checkout and
+peer checkouts may be untracked. Use `fetch-depth: 1` for all checkouts and
 `persist-credentials: false` everywhere. Skip private-peer checkout for fork PRs without the read token; retain
 the ordinary secret-free local detect workflow for those PRs. Do not claim cross-repo coverage when that job skips.
 
@@ -140,3 +140,6 @@ For private repositories, run the audit from a trusted workflow with a read-capa
 out of Git credentials after checkout (`persist-credentials: false`), and never run package installation, scripts
 or plugins supplied by the analyzed repositories with those credentials. A manual or scheduled default-branch
 audit is separate from the secret-free PR detect / trusted `workflow_run` judge boundary.
+
+For one combined local/cross-repository PR report and the clone-versus-index tradeoff, see
+[the Action guide](github-action.md#running-it-in-a-monorepo-or-more-than-once).

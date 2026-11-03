@@ -19,6 +19,7 @@ comments when the artifact's commit is the triggering run's head commit and stil
 Inputs arrive as INPUT_* environment variables set by action.yml.
 """
 
+import base64
 import json
 import os
 import subprocess
@@ -28,12 +29,13 @@ from pathlib import Path
 import httpx
 
 from dry_lint import sticky
-from dry_lint.detector import given
+from dry_lint.detector import base_ref, given
 from dry_lint.git import git
 from dry_lint.github import github_event
 
 ARTIFACT = "dry-lint-candidates"
 OVERRIDE_LABEL = "dry-lint: override"
+HISTORY_DEPTHS = (2, 32, 128, 512, 2048)
 
 
 def env(name: str, default: str = "") -> str:
@@ -77,12 +79,39 @@ def resolve_judge(requested: str, has_key: bool) -> str:
     return ("jev" if has_key else "none") if requested == "auto" else requested
 
 
+def fetch_history(root: Path, *refs: str, depth: int) -> None:
+    environment = dict(os.environ)
+    token = env("GITHUB_TOKEN")
+    if token:
+        count = int(environment.get("GIT_CONFIG_COUNT", "0"))
+        server = env("GITHUB_SERVER_URL", "https://github.com")
+        environment.update({"GIT_CONFIG_COUNT": str(count + 2),
+                            f"GIT_CONFIG_KEY_{count}": f"http.{server}/.extraheader",
+                            f"GIT_CONFIG_VALUE_{count}": "",
+                            f"GIT_CONFIG_KEY_{count + 1}": f"http.{server}/.extraheader",
+                            f"GIT_CONFIG_VALUE_{count + 1}": "AUTHORIZATION: basic " +
+                            base64.b64encode(f"x-access-token:{token}".encode()).decode()})
+    git(root, "fetch", "--quiet", "--no-tags", f"--depth={depth}", "origin", *refs, env=environment)
+
+
 def ensure_history(root: Path, base: str) -> None:
-    """Comparing with a merge base needs history: deepen a shallow checkout, and fetch a base it does not have."""
-    if git(root, "rev-parse", "--is-shallow-repository", check=False) == "true":
-        git(root, "fetch", "--quiet", "--no-tags", "--unshallow", "origin", check=False)
-    if given(base) and not git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False):
-        git(root, "fetch", "--quiet", "--no-tags", "origin", base, check=False)
+    """Fetch only the compared refs, bounded to 2048 ancestors; never fetch every branch or unshallow."""
+    shallow = git(root, "rev-parse", "--is-shallow-repository", check=False) == "true"
+    if not shallow:
+        if given(base) and not git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}", check=False):
+            git(root, "fetch", "--quiet", "--no-tags", "origin", base, check=False)
+        return
+    base = base_ref(root, base)
+    head = git(root, "rev-parse", "HEAD")
+    remote_base = base.removeprefix("refs/remotes/origin/").removeprefix("origin/")
+    if remote_base != base:
+        remote_base = f"{remote_base}:refs/remotes/origin/{remote_base}"
+    for depth in HISTORY_DEPTHS:
+        if git(root, "merge-base", base, "HEAD", check=False):
+            return
+        fetch_history(root, remote_base, head, depth=depth)
+    if not git(root, "merge-base", base, "HEAD", check=False):
+        raise ValueError("No merge base within 2048 commits of the compared refs; rebase the branch or provide history.")
 
 
 def dry_lint(*args: str, echo: bool = True) -> tuple[int, list[str]]:
@@ -270,7 +299,7 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         ensure_history(root, base)
         code, lines = dry_lint("check", "--root", str(root), *(["--base", base] if base else []), *repositories, *judging)
         pull = event.get("pull_request") or {}
-        number, repository, head = pull.get("number") or 0, env("GITHUB_REPOSITORY"), ""
+        number, repository, head = pull.get("number") or 0, env("GITHUB_REPOSITORY"), (pull.get("head") or {}).get("sha", "")
         labels = labels_of(pull)
 
     if code != 2 and judge != "none":

@@ -1,0 +1,247 @@
+"""Meter live Sonnet judgments while replaying fixed and baseline-first discovery. Private outputs.
+
+Reads captures from capture_history.py. Supply ANTHROPIC_API_KEY in the environment. Uses the canonical judge,
+prompt, preset and price table. Never loads credentials from a repository or executes captured source.
+"""
+
+import argparse
+import json
+import time
+from pathlib import Path
+
+import anthropic
+import httpx2
+from pydantic import BaseModel
+from replay_coverage import ReplayInput, ReplayState, choose, digest, pool
+
+from dry_lint.costs import PRICES
+from dry_lint.judges.anthropic import AnthropicJudge
+from dry_lint.judges.command import prompt
+from dry_lint.models import Candidate, Verdict
+from dry_lint.presets import resolve
+from dry_lint.settings import Settings
+
+MODEL = "claude-sonnet-5-5"
+
+
+class Observation(BaseModel):
+    key: str
+    pair: str
+    model: str
+    request_id: str
+    input_tokens: int
+    output_tokens: int
+    cache_creation_tokens: int = 0
+    cache_read_tokens: int = 0
+    usd: float
+    seconds: float
+    verdict: Verdict | None = None
+    error: str | None = None
+
+
+def answer_key(candidate: Candidate, version: str) -> str:
+    # Orientation and the actual judge input matter, even when the unordered pair is identical.
+    return digest([version, prompt(candidate)])
+
+
+class LiveAnswers:
+    def __init__(self, directory: Path, limit: float = 10.0, http_client=None) -> None:
+        self.directory, self.limit = directory, limit
+        directory.mkdir(parents=True, exist_ok=True)
+        if list(directory.glob("*.unmetered")):
+            raise ValueError("Unmetered attempt exists; reconcile it before resuming")
+        self.observations = {
+            p.stem: Observation.model_validate_json(p.read_text(encoding="utf-8")) for p in directory.glob("*.json")
+        }
+        self.response = None
+        client = http_client or anthropic.DefaultHttpxClient()
+        client.event_hooks.setdefault("response", []).append(self.capture_response)
+        self.judge = AnthropicJudge(model=MODEL, workers=1, http_client=client)
+        self.judge.client = self.judge.client.with_options(max_retries=0)
+        self.settings = resolve(Settings(preset="sonnet"))
+
+    def capture_response(self, response: httpx2.Response) -> None:
+        response.read()
+        if response.is_success:
+            self.response = response.json()
+
+    def key(self, candidate: Candidate) -> str:
+        return answer_key(candidate, self.judge.version)
+
+    @property
+    def spent(self) -> float:
+        return sum(o.usd for o in self.observations.values())
+
+    def reserve(self, candidate: Candidate) -> float:
+        # Conservative UTF-8 byte bound plus framing, at the maximum price of the selected model.
+        # Reserve max output even when this experiment already has an answer: same admission rule in both arms.
+        tokens = len(prompt(candidate).encode("utf-8")) + 1000
+        return (tokens * 2.5 + 8000 * 10) / 1_000_000
+
+    def get(self, candidate: Candidate) -> Observation:
+        key = self.key(candidate)
+        if key in self.observations:
+            observation = self.observations[key]
+            if observation.error:
+                raise ValueError(f"Previous paid attempt failed: {key}; inspect its record before retrying")
+            return observation
+        if self.spent + self.reserve(candidate) > self.limit:
+            raise ValueError("Physical experiment allowance exhausted")
+        if list(self.directory.glob("*.unmetered")):
+            raise ValueError("Unmetered attempt exists; reconcile it before sending another request")
+        pending_path = self.directory / f"{key}.unmetered"
+        # A crash after sending must not turn unknown provider usage into a free retry on resume.
+        pending_path.write_text("Request started; usage not yet persisted", encoding="utf-8")
+        self.response = None
+        start, verdict, failure = time.perf_counter(), None, None
+        try:
+            [verdict] = self.judge.judge([candidate], self.settings)
+        except Exception as error:
+            failure = type(error).__name__
+        seconds = time.perf_counter() - start
+        if self.response is None:
+            # Unknown provider usage is not zero cost; stop instead of making additional unmetered calls.
+            (self.directory / f"{key}.unmetered").write_text(failure or "missing usage", encoding="utf-8")
+            raise ValueError("Live response has no usage; experiment stopped")
+        data = self.response
+        model, usage = data.get("model"), data.get("usage")
+        if not isinstance(usage, dict) or any(
+            not isinstance(usage.get(field), int) or usage[field] < 0 for field in ("input_tokens", "output_tokens")
+        ):
+            (self.directory / f"{key}.unmetered").write_text("missing or invalid usage", encoding="utf-8")
+            raise ValueError("Live response has invalid usage; experiment stopped")
+        if model != MODEL:
+            (self.directory / f"{key}.unmetered").write_text("unexpected returned model", encoding="utf-8")
+            raise ValueError("Unexpected returned model; do not price it as the requested model")
+        input_rate, output_rate = PRICES[model]
+        creation, read = usage.get("cache_creation_input_tokens", 0), usage.get("cache_read_input_tokens", 0)
+        usd = (
+            usage["input_tokens"] * input_rate + usage["output_tokens"] * output_rate + creation * 2.5 + read * 0.10
+        ) / 1_000_000
+        observation = Observation(
+            key=key,
+            pair=candidate.key,
+            model=model,
+            request_id=data["id"],
+            input_tokens=usage["input_tokens"],
+            output_tokens=usage["output_tokens"],
+            cache_creation_tokens=creation,
+            cache_read_tokens=read,
+            usd=usd,
+            seconds=seconds,
+            verdict=verdict,
+            error=failure,
+        )
+        self.observations[key] = observation
+        (self.directory / f"{key}.json").write_text(observation.model_dump_json(indent=2), encoding="utf-8")
+        pending_path.unlink()
+        if failure:
+            raise ValueError(f"Paid judgment failed: {failure}; usage recorded")
+        return observation
+
+
+def evaluate(
+    payload: ReplayInput,
+    answers: LiveAnswers,
+    policy: str,
+    per_run: int = 10,
+    total: int = 40,
+    run_usd: float = 0.15,
+    total_usd: float = 0.50,
+) -> dict:
+    if policy not in ("fixed", "refill") or min(per_run, total, run_usd, total_usd) < 0:
+        raise ValueError("Use fixed/refill and nonnegative budgets")
+    state, spent, curves = ReplayState(policy=policy), 0.0, []
+    for ordinal, step in enumerate(payload.steps):
+        candidates, ranks = pool(step)
+        keys = {k: answers.key(c) for k, c in candidates.items()}
+        pending = {k for k in candidates if state.completed.get(k) != keys[k]}
+        for key in candidates:
+            state.first_seen.setdefault(key, ordinal)
+        selected, run_spent, run_seconds = [], 0.0, 0.0
+        for _ in range(min(per_run, total - state.attempts)):
+            baseline = {k for k in pending if "baseline" in ranks[k]}
+            # Protect the current baseline before cost filtering. An expensive baseline item must not
+            # silently donate its slot to cheaper exploration. Future revisions need a separate reserve.
+            eligible = baseline or (pending if policy == "refill" else set())
+            affordable = {
+                k for k in eligible if answers.reserve(candidates[k]) <= min(run_usd - run_spent, total_usd - spent)
+            }
+            if not affordable:
+                break
+            key = choose(affordable, candidates, ranks, state, "baseline")
+            if key is None:
+                break
+            c = candidates[key]
+            observation = answers.get(c)
+            assert observation.verdict is not None
+            state.attempts += 1
+            state.completed[key] = keys[key]
+            state.historical_pairs.add(key)
+            state.query_attempts[c.new.qualname] = state.query_attempts.get(c.new.qualname, 0) + 1
+            spent += observation.usd
+            run_spent += observation.usd
+            run_seconds += observation.seconds
+            selected.append(
+                {"key": key, "answer": observation.key, "usd": observation.usd, "sources": sorted(ranks[key])}
+            )
+            pending.remove(key)
+        current = {k: state.completed[k] for k in candidates if state.completed.get(k) == keys[k]}
+        reports = [
+            k
+            for k, v in current.items()
+            if answers.observations[v].verdict.label != "separate"
+            and answers.observations[v].verdict.score >= answers.settings.report_at
+        ]
+        curves.append(
+            {
+                "run_id": step.run_id,
+                "head": next(iter(step.sources.values())).run.head,
+                "pool": len(candidates),
+                "covered": current,
+                "reported": reports,
+                "selected": selected,
+                "deferred": len(candidates) - len(current),
+                "cumulative_attempts": state.attempts,
+                "run_usd": run_spent,
+                "cumulative_usd": spent,
+                "serial_api_seconds": run_seconds,
+            }
+        )
+        print(policy, step.run_id.split("/")[-1][:8], len(selected), "new answers", f"${spent:.5f}", flush=True)
+    return {
+        "policy": policy,
+        "per_run": per_run,
+        "total": total,
+        "run_usd": run_usd,
+        "total_usd": total_usd,
+        "judge": answers.judge.version,
+        "report_at": answers.settings.report_at,
+        "curves": curves,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--captures", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--limit-usd", type=float, default=10.0)
+    parser.add_argument("--per-run", type=int, default=10)
+    parser.add_argument("--total", type=int, default=40)
+    parser.add_argument("--run-usd", type=float, default=0.15)
+    parser.add_argument("--total-usd", type=float, default=0.50)
+    args = parser.parse_args()
+    args.out.mkdir(parents=True, exist_ok=True)
+    if list((args.out / "answers").glob("*.unmetered")):
+        raise ValueError("Unmetered attempt exists; reconcile it before resuming")
+    answers = LiveAnswers(args.out / "answers", args.limit_usd)
+    for path in sorted(args.captures.glob("*/replay.json")):
+        payload = ReplayInput.model_validate_json(path.read_text(encoding="utf-8"))
+        for policy in ("fixed", "refill"):
+            result = evaluate(payload, answers, policy, args.per_run, args.total, args.run_usd, args.total_usd)
+            (args.out / f"{path.parent.name}-{policy}.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    print("Physical live usage-priced cost:", answers.spent, flush=True)
+
+
+if __name__ == "__main__":
+    main()

@@ -323,5 +323,8 @@ partial in-flight calls and is not a concurrent production budget store. A failu
 `failed_keys` on a step; it consumes an attempt but leaves the pair uncovered for a later opportunity.
 
 Currently implemented: bounded replay, deduplication, exact-evidence invalidation, persisted progress, deterministic
-lanes and frozen-repository probes. Still proposed: new-function classification and protected initial allowances,
-real historical capture, actual judges, currency/latency budgets, shared reservations and live profile settings.
+lanes and frozen-repository probes. The [historical live pilot](historical-discovery.md) adds immutable PR capture,
+provider-metered judgments, dollar admission limits, independent reference labels and per-commit recall/cost curves.
+It supports further baseline-first exploration but does not justify changing balanced: judge recall and protection
+of future baseline work remain gaps. Still proposed: new-function classification and protected initial allowances,
+end-to-end latency budgets, shared concurrent reservations and live profile settings.

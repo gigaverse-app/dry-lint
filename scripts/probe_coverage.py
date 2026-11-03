@@ -24,13 +24,10 @@ from dry_lint.models import CandidatesFile, Run, pair_key
 from dry_lint.settings import Settings
 
 
-def capture(root: Path, gold: list[GoldPair], depth: int) -> tuple[ReplayStep, dict]:
-    # This experiment matches the earlier Python semantic trial; it makes no TypeScript signal claim.
-    settings = Settings(extractors=["python"])
-    base = Detector.for_repository(root, settings)
-    names = sorted({f.id for g in gold for f in (g.new, g.existing)}) if gold else sorted(base.position)
+def candidate_sources(base: Detector, names: list[str], sources: dict[str, str], run: Run, depth: int) -> ReplayStep:
+    """One retrieval experiment, reused for working-tree and immutable historical captures."""
     queries = [base.find(name) for name in names if name in base.position]
-    signals = Signals({path: (root / path).read_text(encoding="utf-8") for path in {f.path for f in base.functions}})
+    signals = Signals(sources)
     functions = [
         f.model_copy(
             update={
@@ -40,14 +37,13 @@ def capture(root: Path, gold: list[GoldPair], depth: int) -> tuple[ReplayStep, d
         )
         for f in base.functions
     ]
-    broad = settings.model_copy(update={"neighbours": depth})
+    broad = base.settings.model_copy(update={"neighbours": depth})
     semantic_comparer = TfidfComparer(min_similarity=0.35, min_similarity_small=0.2)
     semantic_comparer.name, semantic_comparer.version = "trial-combined-tfidf", "1"
     semantic_comparer.similarity_reusable = False
     semantic = Detector(functions, broad, semantic_comparer, base.extractors)
     deep = Detector(base.functions, broad, TfidfComparer(), base.extractors)
-    run = Run(repository=root.name, head=git(root, "rev-parse", "HEAD"))
-    sources = {
+    proposed = {
         name: CandidatesFile(
             run=run,
             changed=len(queries),
@@ -56,6 +52,23 @@ def capture(root: Path, gold: list[GoldPair], depth: int) -> tuple[ReplayStep, d
         )
         for name, detector in (("baseline", base), ("semantic", semantic), ("deep", deep))
     }
+    return ReplayStep(run_id=run.head or "capture", sources=proposed)
+
+
+def capture(root: Path, gold: list[GoldPair], depth: int) -> tuple[ReplayStep, dict]:
+    # This experiment matches the earlier Python semantic trial; it makes no TypeScript signal claim.
+    settings = Settings(extractors=["python"])
+    base = Detector.for_repository(root, settings)
+    names = sorted({f.id for g in gold for f in (g.new, g.existing)}) if gold else sorted(base.position)
+    queries = [base.find(name) for name in names if name in base.position]
+    run = Run(repository=root.name, head=git(root, "rev-parse", "HEAD"))
+    step = candidate_sources(
+        base,
+        names,
+        {path: (root / path).read_text(encoding="utf-8") for path in {f.path for f in base.functions}},
+        run,
+        depth,
+    )
     positive, negative, stale, missing, borderline = set(), set(), 0, 0, 0
     for label in gold:
         if label.label == "borderline":
@@ -87,7 +100,7 @@ def capture(root: Path, gold: list[GoldPair], depth: int) -> tuple[ReplayStep, d
         "missing_labels": missing,
         "borderline_labels": borderline,
     }
-    return ReplayStep(run_id="capture", sources=sources), metadata
+    return step, metadata
 
 
 def main() -> None:
