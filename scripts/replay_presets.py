@@ -335,45 +335,96 @@ def reported(scores: dict[str, float], preset: str) -> tuple[bool, bool]:
     return score is not None and score >= 0.6, score is not None and score >= 0.7
 
 
-def report(outs: list[Path]) -> dict:
-    """Weighted estimates per repository: labelled positives, judged findings and cost per option and preset."""
-    results = {}
+OPTIONS = ("baseline", "k5", "floor", "behaviour", "aggressive", "rank1", "rank2")
+PRESETS = ("jev", "jev+sonnet")
+
+
+def proposes(row: dict, option: str) -> bool:
+    """Production's pairs, the pairs a wider option adds to them, all of them, or production's best one or two."""
+    found = set(row["sources"])
+    if option == "aggressive":
+        return bool(found)
+    if option in ("rank1", "rank2"):
+        return "baseline" in found and row["rank_min"] <= int(option[-1])
+    return option in found if option == "baseline" else (option in found and "baseline" not in found)
+
+
+def totals(rows: list[dict], labels: dict[int, dict], scores: dict[int, dict[str, float]], option: str) -> dict[str, float]:
+    """Weighted totals over labelled rows: pairs, real duplicates, and what each preset reports or fails on."""
+    found: dict[str, float] = defaultdict(float)
+    for row in rows:
+        if not proposes(row, option):
+            continue
+        positive = labels[row["id"]]["positive"]
+        kind = "true" if positive else "false"
+        found["pairs"] += row["weight"]
+        found["positives"] += row["weight"] * positive
+        for preset in PRESETS:
+            if "jev" in scores[row["id"]]:
+                shown, fails = reported(scores[row["id"]], preset)
+                found[f"{preset} reported_{kind}"] += row["weight"] * shown
+                found[f"{preset} failing_{kind}"] += row["weight"] * fails
+    return found
+
+
+def resamples(rows: list[dict], rng: random.Random, rounds: int) -> list[list[dict]]:
+    """Stratified bootstrap: each stratum's labelled rows drawn again with replacement, keeping their weights."""
+    strata: dict[str, list[dict]] = defaultdict(list)
+    for row in rows:
+        strata[row["stratum"]].append(row)
+    return [[rng.choice(group) for group in strata.values() for _ in group] for _ in range(rounds)]
+
+
+def summarise(point: dict[str, float], draws: list[dict[str, float]]) -> dict[str, list[float]]:
+    """Each total as [estimate, 5th percentile, 95th percentile], plus each preset's reported precision."""
+    def ratio(values: dict[str, float], preset: str) -> float:
+        shown = values.get(f"{preset} reported_true", 0.0) + values.get(f"{preset} reported_false", 0.0)
+        return values.get(f"{preset} reported_true", 0.0) / shown if shown else float("nan")
+
+    names = sorted({name for values in [point, *draws] for name in values})
+    series = {name: (point.get(name, 0.0), [values.get(name, 0.0) for values in draws]) for name in names}
+    series |= {f"{preset} precision": (ratio(point, preset), [ratio(values, preset) for values in draws]) for preset in PRESETS}
+    summary = {}
+    for name, (estimate, values) in series.items():
+        ordered = sorted(v for v in values if v == v)
+        low, high = (ordered[int(0.05 * len(ordered))], ordered[int(0.95 * len(ordered)) - 1]) if ordered else (estimate,) * 2
+        summary[name] = [round(estimate, 3), round(low, 3), round(high, 3)]
+    return summary
+
+
+def report(outs: list[Path], rounds: int = 1000, seed: int = 20261107) -> dict:
+    """Weighted estimates with 90% intervals per repository and pooled: real duplicates, findings and cost per option."""
+    results, pooled_points, pooled_draws = {}, defaultdict(lambda: defaultdict(float)), defaultdict(list)
     for out in outs:
         commits = read(out / "commits.jsonl")
         population = json.loads((out / "population.json").read_text())
-        rows = json.loads((out / "sample.json").read_text())
         labels = consensus(out)
+        rows = [row for row in json.loads((out / "sample.json").read_text()) if row["id"] in labels]
         scores: dict[int, dict[str, float]] = defaultdict(dict)
         for verdict in read(out / "verdicts.jsonl"):
             scores[verdict["id"]][verdict["judge"]] = verdict["score"]
-        estimates: dict[str, dict] = {}
-        for option in ("baseline", "k5", "floor", "behaviour", "aggressive", "rank1", "rank2"):
-            def proposes(row: dict, option: str = option) -> bool:
-                found = set(row["sources"])
-                if option == "aggressive":
-                    return bool(found)
-                if option in ("rank1", "rank2"):
-                    return "baseline" in found and row["rank_min"] <= int(option[-1])
-                return option in found if option == "baseline" else (option in found and "baseline" not in found)
-
-            chosen = [row for row in rows if proposes(row) and row["id"] in labels]
-            entry = {"labelled": len(chosen), "positive_labels": sum(labels[r["id"]]["positive"] for r in chosen),
-                     "pairs": round(sum(r["weight"] for r in chosen), 1),
-                     "positives": round(sum(r["weight"] for r in chosen if labels[r["id"]]["positive"]), 1)}
-            for preset in ("jev", "jev+sonnet"):
-                judged = [r for r in chosen if "jev" in scores[r["id"]]]
-                flags = {r["id"]: reported(scores[r["id"]], preset) for r in judged}
-                entry[preset] = {
-                    "reported_true": round(sum(r["weight"] for r in judged if flags[r["id"]][0] and labels[r["id"]]["positive"]), 1),
-                    "reported_false": round(sum(r["weight"] for r in judged if flags[r["id"]][0] and not labels[r["id"]]["positive"]), 1),
-                    "failing_true": round(sum(r["weight"] for r in judged if flags[r["id"]][1] and labels[r["id"]]["positive"]), 1),
-                    "failing_false": round(sum(r["weight"] for r in judged if flags[r["id"]][1] and not labels[r["id"]]["positive"]), 1)}
-            estimates[option] = entry
-        unanimous = sum(label["unanimous"] for label in labels.values())
+        draws = resamples(rows, random.Random(seed), rounds)
+        options = {}
+        for option in OPTIONS:
+            point = totals(rows, labels, scores, option)
+            drawn = [totals(draw, labels, scores, option) for draw in draws]
+            options[option] = {"labelled": sum(proposes(r, option) for r in rows),
+                               "positive_labels": sum(proposes(r, option) and labels[r["id"]]["positive"] for r in rows),
+                               **summarise(point, drawn)}
+            for name, value in point.items():
+                pooled_points[option][name] += value
+            if not pooled_draws[option]:
+                pooled_draws[option] = [defaultdict(float) for _ in range(rounds)]
+            for into, values in zip(pooled_draws[option], drawn):
+                for name, value in values.items():
+                    into[name] += value
         results[out.name] = {"commits": len(commits), "with_changes": sum(1 for c in commits if c["changed"]),
                              "changed_functions": sum(c["changed"] for c in commits),
                              "settled_by_rule": sum(c["settled"] for c in commits), "population": population,
-                             "labelled": len(labels), "unanimous": unanimous, "options": estimates}
+                             "labelled": len(labels), "unanimous": sum(label["unanimous"] for label in labels.values()),
+                             "options": options}
+    results["all"] = {"commits": sum(r["commits"] for r in results.values()),
+                      "options": {option: summarise(pooled_points[option], pooled_draws[option]) for option in OPTIONS}}
     return results
 
 

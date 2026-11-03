@@ -230,23 +230,42 @@ def test_presets_report_and_fail_at_their_measured_thresholds(replay, scores, pr
     assert replay["reported"](scores, preset) == expected
 
 
+def label_all(replay, out: Path, rows: list[dict]) -> None:
+    """Odd ids are real duplicates, unanimously."""
+    replay["append"](out / "labels.jsonl", [{"id": r["id"], "model": m, "answer": {"label": "CONSOLIDATE" if r["id"] % 2 else "SEPARATE"}}
+                                            for r in rows for m in replay["LABELLERS"]])
+
+
 def test_report_weights_labelled_and_judged_pairs_back_to_the_population(replay, history, tmp_path) -> None:
     out = sampled(replay, history, tmp_path)
     rows = json.loads((out / "sample.json").read_text())
-    replay["append"](out / "labels.jsonl", [{"id": r["id"], "model": m, "answer": {"label": "CONSOLIDATE" if r["id"] % 2 else "SEPARATE"}}
-                                            for r in rows for m in replay["LABELLERS"]])
+    label_all(replay, out, rows)
     replay["judge"](out, {"jev": lambda: Fixed("jev", 0.85)})
-    result = replay["report"]([out])[out.name]
-    assert result["commits"] == 4 and result["labelled"] == len(rows) and result["unanimous"] == len(rows)
-    aggressive = result["options"]["aggressive"]
+    result = replay["report"]([out], rounds=50)
+    repository = result[out.name]
+    assert repository["commits"] == 4 and repository["labelled"] == len(rows) == repository["unanimous"]
+    options = repository["options"]
+    aggressive = options["aggressive"]
     population = json.loads((out / "population.json").read_text())
-    assert aggressive["pairs"] == pytest.approx(sum(population[s] for s in ("baseline", "k5", "floor", "behaviour")
-                                                    if any(r["stratum"] == s for r in rows)), abs=0.2)
-    jev = aggressive["jev"]
-    assert jev["reported_true"] + jev["reported_false"] == pytest.approx(aggressive["pairs"], abs=0.2)  # 0.85 reports all
-    assert jev["reported_true"] == pytest.approx(aggressive["positives"], abs=0.2)
-    baseline = result["options"]["baseline"]
-    assert result["options"]["rank1"]["pairs"] <= result["options"]["rank2"]["pairs"] <= baseline["pairs"]
+    assert aggressive["pairs"][0] == pytest.approx(sum(population[s] for s in {r["stratum"] for r in rows}))
+    # Jev at 0.85 reports every pair under both presets, so reported truths are exactly the real duplicates.
+    assert aggressive["jev reported_true"][0] + aggressive["jev reported_false"][0] == pytest.approx(aggressive["pairs"][0])
+    assert aggressive["jev+sonnet reported_true"][0] == pytest.approx(aggressive["positives"][0])
+    assert aggressive["jev precision"][0] == pytest.approx(aggressive["positives"][0] / aggressive["pairs"][0])
+    for option in options.values():
+        for name, value in option.items():
+            if isinstance(value, list):
+                assert value[1] <= value[0] + 1e-9 or name.endswith("precision") and value[0] != value[0]
+    assert options["rank1"]["labelled"] <= options["rank2"]["labelled"] <= options["baseline"]["labelled"]
+    assert result["all"]["options"]["aggressive"]["pairs"][0] == pytest.approx(aggressive["pairs"][0])
+
+
+def test_report_precision_is_undefined_when_nothing_is_reported(replay, history, tmp_path) -> None:
+    out = sampled(replay, history, tmp_path)
+    label_all(replay, out, json.loads((out / "sample.json").read_text()))
+    replay["judge"](out, {"jev": lambda: Fixed("jev", 0.1)})
+    precision = replay["report"]([out], rounds=20)[out.name]["options"]["aggressive"]["jev precision"]
+    assert all(value != value for value in precision)  # NaN, not a made-up 0% or 100%
 
 
 def test_cli_dispatches_each_step(replay, history, tmp_path, monkeypatch, capsys) -> None:
