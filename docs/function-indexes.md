@@ -72,7 +72,7 @@ source and downloaded bytes. Missing indexes never become a clean empty corpus; 
 | --- | --- |
 | Source, source config, deletion or rename | Different source commit requires a new complete snapshot |
 | Index schema | Different artifact namespace; unsupported schemas rejected |
-| Built-in extraction implementation, parser versions, Python minor version, extractor order/options/versions | Different extraction contract; regenerate or rebuild |
+| Built-in extraction implementation, parser versions, Python minor version/platform, extractor order/options/versions | Different extraction contract; regenerate or rebuild |
 | Source include/exclude scope | Read from the indexed commit, recorded in the digest-protected snapshot |
 | Judge, model/prompt, thresholds, consolidation destinations or guidance | No re-extraction; existing verdict-policy/context invalidation still applies |
 | Peer corpus changes | Rebuild comparison statistics and rankings from the new combined function corpus |

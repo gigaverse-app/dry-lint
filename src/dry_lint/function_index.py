@@ -1,6 +1,5 @@
 """Portable extraction snapshots. Candidate ranking and judging remain consumer-side decisions."""
 
-import fnmatch
 import gzip
 import hashlib
 import io
@@ -16,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dry_lint.functions import extractor_for
+from dry_lint.functions import extractor_for, selected_path
 from dry_lint.git import git
 from dry_lint.models import Function, Run
 from dry_lint.plugins import identity, load
@@ -50,7 +49,7 @@ def extraction_contract(settings: Settings) -> str:
     plugins = [load("extractors", choice) for choice in settings.extractors]
     return digest({"schema": INDEX_SCHEMA, "implementation": implementation,
                    "default_scope": {"include": Settings().include, "exclude": Settings().exclude},
-                   "python": list(sys.version_info[:2]),
+                   "python": list(sys.version_info[:2]), "platform": sys.platform,
                    "parsers": {name: version(name) for name in ("tree-sitter", "tree-sitter-typescript")},
                    "extractors": [{"choice": choice.model_dump(), "identity": identity(plugin), "files": plugin.files}
                                   for choice, plugin in zip(settings.extractors, plugins, strict=True)]})
@@ -125,11 +124,6 @@ def source_settings(sources: dict[str, bytes]) -> Settings:
     return Settings()
 
 
-def selected(path: str, settings: Settings) -> bool:
-    return (any(fnmatch.fnmatch(path, pattern) for pattern in settings.include)
-            and not any(fnmatch.fnmatch(path, pattern) for pattern in settings.exclude))
-
-
 def build_index(sources: dict[str, bytes], repository: str, commit: str, settings: Settings) -> FunctionIndex:
     repository_name(repository)
     if not COMMIT.fullmatch(commit):
@@ -141,7 +135,7 @@ def build_index(sources: dict[str, bytes], repository: str, commit: str, setting
         if not source_path(path):
             raise ValueError(f"Unsafe source path: {path!r}")
         extractor = extractor_for(path, extractors)
-        if not extractor or not selected(path, source):
+        if not extractor or not selected_path(path, source.include, source.exclude):
             continue
         text = data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
         for function in extractor.functions(path, text):

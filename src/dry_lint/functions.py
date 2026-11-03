@@ -232,12 +232,16 @@ def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Fun
     return found
 
 
+def selected_path(path: str, include: list[str], exclude: list[str]) -> bool:
+    return (any(fnmatch.fnmatch(path, pattern) for pattern in include)
+            and not any(fnmatch.fnmatch(path, pattern) for pattern in exclude))
+
+
 def tracked_files(root: Path, include: list[str], exclude: list[str]) -> list[str]:
     listed = git(root, "ls-files", "-z")
     return [
         path for path in listed.split("\0")
-        if path and any(fnmatch.fnmatch(path, pattern) for pattern in include)
-        and not any(fnmatch.fnmatch(path, pattern) for pattern in exclude)
+        if path and selected_path(path, include, exclude)
     ]  # fmt: skip
 
 
