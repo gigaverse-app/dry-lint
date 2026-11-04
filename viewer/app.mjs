@@ -55,23 +55,33 @@ async function load() {
   document.querySelectorAll('.head').forEach((head, i) => {
     const source = sources[i], anchor = head.querySelector('a');
     if (source) {
-      head.querySelector('strong').textContent = source.name;
-      head.querySelector('small').textContent = `${source.path} · ${source.revision.slice(0, 7)}`;
+      head.querySelector('.filename').textContent = source.path.split('/').at(-1);
+      head.querySelector('.symbol').textContent = source.owner ? `${source.owner}.${source.name}` : source.name;
+      head.querySelector('.path').textContent = `${source.repository} / ${source.path}`;
+      head.querySelector('small').textContent = `${source.revision.slice(0, 7)} · lines ${source.line}–${source.end_line}`;
+      anchor.setAttribute('aria-label', `Open ${source.path}, ${source.name} at ${source.revision.slice(0, 7)} on GitHub`);
       anchor.href = sourceUrl(source); anchor.target = '_blank'; anchor.rel = 'noopener noreferrer';
     } else {
-      head.querySelector('strong').textContent = 'Consolidation not established';
-      head.querySelector('small').textContent = 'No result was inferred'; anchor.hidden = true;
+      head.querySelector('.role').textContent = 'Result unavailable';
+      head.querySelector('.filename').textContent = 'No remaining function identified';
+      head.querySelector('.path').textContent = 'Use the full GitHub diff to follow moves, deletions, or extracted helpers.';
+      anchor.hidden = true;
     }
   });
   const verdict = evidence.verdict;
-  byId('verdict').textContent = verdict ? `${verdict.label} · ${Number(verdict.score).toFixed(2)}` : 'Not judged';
+  byId('verdict').textContent = verdict ? verdict.label : 'Not judged';
+  byId('confidence').textContent = verdict ? Number(verdict.score).toFixed(2) : 'Not recorded';
   byId('reason').textContent = verdict?.why || 'No reason recorded.';
   byId('judge').textContent = verdict ? `${verdict.judge} · ${evidence.cached ? 'reused verdict' : 'recorded verdict'}` : 'None';
   byId('version').textContent = verdict?.judge_version || 'Not recorded';
   byId('similarity').textContent = Number(evidence.similarity).toFixed(2);
   byId('mapping').textContent = data.result
-    ? 'Exactly one original symbol remains at the reviewed commit. The third column shows that implementation. Verify the caller changes and any extracted helpers before concluding that A and B were fully consolidated.'
-    : 'There is no uniquely identified remaining implementation. A pair can stop being reported because of deletion, a move, or a changed judgment. The viewer does not guess a consolidated result.';
+    ? 'One of the original functions remains at the reviewed commit. It is shown on the right. This alone does not prove that both originals were consolidated; review the full GitHub diff to follow the shared implementation.'
+    : 'No single remaining function could be identified. The pair may have been moved, deleted, or judged differently. Review the full GitHub diff to see what happened.';
+  if (!data.result) {
+    byId('title').textContent = 'Compare the original functions';
+    byId('after-caption').textContent = 'No identified result';
+  }
   if (typeof data.diff === 'string' && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/compare\/[a-fA-F0-9]{40}\.\.\.[a-fA-F0-9]{40}$/.test(data.diff)) {
     byId('diff').href = data.diff; byId('diff').hidden = false;
   }
@@ -99,7 +109,9 @@ async function load() {
     return lines.slice(source.line - 1, source.end_line);
   }));
   rows = align(...code); render();
-  byId('status').textContent = data.result ? 'Compare both originals with the remaining implementation.' : 'Compare the original pair and its recorded judgment.';
+  byId('status').textContent = data.result
+    ? 'Read left to right: the two original functions, then the function that remains after the change.'
+    : 'The two original functions are shown below. A resulting implementation could not be identified.';
 }
 
 byId('changes').addEventListener('change', () => {if (rows) render();});
