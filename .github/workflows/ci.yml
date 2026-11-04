@@ -20,10 +20,10 @@ jobs:
       matrix:
         python: ["3.11", "3.13"]
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
       # CI-esta's uv setup; it always runs `uv sync --locked`. Restoring the whole environment measured slower
       # than installing this small one (5-6 s against 4-5 s), so only uv's package cache is kept.
-      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
+      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@v1
         with:
           python-version: ${{ matrix.python }}
           cache-environment: "false"
@@ -44,7 +44,7 @@ jobs:
       run:
         working-directory: counter
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
       # The counter's rules have no dependencies; Node's own test runner checks them.
       - run: node --test
 
@@ -52,15 +52,16 @@ jobs:
     name: Lint the action and workflows
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
       # dry-lint ships a composite action: actionlint, action-validator and ShellCheck check it and the workflows.
-      - uses: gigaverse-app/ci-esta/actions/lint-ci-code@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
+      - uses: gigaverse-app/ci-esta/actions/lint-ci-code@v1
         with:
           action-files: action.yml
           workflow-files: |
             .github/workflows/ci.yml
             .github/workflows/observe-ci.yml
           head-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      - run: shellcheck scripts/install-action.sh
 
   dogfood:
     name: dry-lint on itself
@@ -71,7 +72,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
@@ -89,15 +90,29 @@ jobs:
           echo "mode=$MODE exit-code=$CODE"
           [ "$MODE" = single ] && [ "$CODE" != 2 ]
 
+  consumer-install:
+    name: Install in consumer repos (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
+      - name: Install and run with Python and Node consumer settings
+        shell: bash
+        run: uv run --no-config --no-project --python 3.13 python scripts/test_action_install.py
+
   gate:
     name: CI gate
     if: always()
-    needs: [test, counter, lint-ci, dogfood]
+    needs: [test, counter, lint-ci, dogfood, consumer-install]
     runs-on: ubuntu-latest
     steps:
       # The one check to require: fails on any missing, failed, cancelled or unexpectedly skipped prerequisite.
-      - uses: gigaverse-app/ci-esta/actions/validation-gate@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
+      - uses: gigaverse-app/ci-esta/actions/validation-gate@v1
         with:
           needs: ${{ toJSON(needs) }}
           required: >-
-            {"test": true, "counter": true, "lint-ci": true, "dogfood": ${{ github.event_name != 'workflow_dispatch' }}}
+            {"test": true, "counter": true, "lint-ci": true, "consumer-install": true, "dogfood": ${{ github.event_name != 'workflow_dispatch' }}}
