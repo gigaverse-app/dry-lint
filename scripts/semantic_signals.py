@@ -80,14 +80,14 @@ def signature(node: FunctionNode) -> inspect.Signature | None:
     parameters = []
     positional = [*node.args.posonlyargs, *node.args.args]
     defaults = [inspect.Parameter.empty] * (len(positional) - len(node.args.defaults)) + node.args.defaults
-    for arg, default in zip(positional, defaults):
+    for arg, default in zip(positional, defaults, strict=True):
         kind = (
             inspect.Parameter.POSITIONAL_ONLY
             if arg in node.args.posonlyargs
             else inspect.Parameter.POSITIONAL_OR_KEYWORD
         )
         parameters.append(inspect.Parameter(arg.arg, kind, default=default))
-    for arg, default in zip(node.args.kwonlyargs, node.args.kw_defaults):
+    for arg, default in zip(node.args.kwonlyargs, node.args.kw_defaults, strict=True):
         parameters.append(
             inspect.Parameter(
                 arg.arg,

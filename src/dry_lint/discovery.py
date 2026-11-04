@@ -2,9 +2,9 @@
 
 import hashlib
 import sqlite3
+from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from pathlib import Path
-from typing import Iterator
 
 from pydantic import BaseModel, Field
 

@@ -59,7 +59,7 @@ def decide(
     allowed = ledger.affordable(judge, [candidates[i] for i in order]) if ledger else len(order)
     asked = order[:allowed]
     answers: list[Verdict | None] = [None] * len(candidates)
-    for i, verdict in zip(asked, judge.judge([candidates[i] for i in asked], settings) if asked else []):
+    for i, verdict in zip(asked, judge.judge([candidates[i] for i in asked], settings) if asked else [], strict=True):
         answers[i] = verdict
     if ledger:
         ledger.charge(judge, [candidates[i] for i in asked], skipped=len(order) - allowed)
@@ -82,7 +82,7 @@ def decide(
         return answers
     if ledger:
         ledger.charge(escalation, escalated, skipped=len(unsure) - allowed)
-    for i, verdict in zip(unsure, second):
+    for i, verdict in zip(unsure[:allowed], second, strict=True):
         answers[i] = verdict.model_copy(
             update={"judge": judge.name, "judge_version": judge.version, "second_opinion": identity(escalation)}
         )
@@ -194,7 +194,9 @@ class Judging:
             pending = pending[:affordable]
         if pending:
             asked = [proposed[i] for i in pending]
-            for i, verdict in zip(pending, decide(asked, self.judge, escalation, self.settings, self.ledger)):
+            for i, verdict in zip(
+                pending, decide(asked, self.judge, escalation, self.settings, self.ledger), strict=True
+            ):
                 if verdict is None:
                     deferred.add(i)  # the budget ran out before this pair: not cleared, asked again next run
                 elif not (self.ledger.failed and self.unsure(verdict)):  # else asked again once the judge is back

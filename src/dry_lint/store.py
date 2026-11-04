@@ -191,7 +191,7 @@ class VerdictStore:
             return Lookup(
                 None, f"{escalation} re-judges first scores in [{band[0]:g}, {band[1]:g}), and never saw this one"
             )
-        then = dict(zip(record.pair, record.hashes))
+        then = dict(zip(record.pair, record.hashes, strict=True))
         now = {candidate.new.qualname: candidate.new.hash, candidate.existing.qualname: candidate.existing.hash}
         if then == now:
             return Lookup(verdict, "neither function's logic changed")
