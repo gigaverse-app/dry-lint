@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.1](https://github.com/gigaverse-app/dry-lint/compare/v1.1.0...v1.1.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **detector:** settle a self call between a class and its direct base as one calling the other ([1ab9870](https://github.com/gigaverse-app/dry-lint/commit/1ab9870b3436a78a44883b9fb58605745a1e11e1))
+* name pairs by Owner.method and settle self calls across a subclass by rule ([959738b](https://github.com/gigaverse-app/dry-lint/commit/959738b746a78d86da9e21e7c101346e0f1becce))
+* **report:** name each side of a pair as Owner.method in the sticky table and the fix advice ([e8ad605](https://github.com/gigaverse-app/dry-lint/commit/e8ad605729459b1258a57eedf2c710050c68f14d))
+
 ## [1.1.0](https://github.com/gigaverse-app/dry-lint/compare/v1.0.0...v1.1.0) (2026-11-04)
 
 
