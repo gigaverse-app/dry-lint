@@ -41,7 +41,7 @@ test('versioned links preserve Unicode judgments and reject invalid envelopes', 
   const data = {schema:1,evidence:{a:source,b:source,verdict:{why:'שלום 🌱 <script>text only</script>'}},result:null};
   const link = '#v1=' + Buffer.from(JSON.stringify(data)).toString('base64url');
   assert.deepEqual(decode(link), data);
-  for (const fragment of ['#old=x', '#v1='+'x'.repeat(12000), '#v1='+Buffer.from('{"schema":2}').toString('base64url')]) {
+  for (const fragment of ['#old=x', '#v1='+'x'.repeat(12000), '#v1='+Buffer.from('{"schema":3}').toString('base64url')]) {
     assert.throws(() => decode(fragment));
   }
 });
@@ -68,4 +68,17 @@ test('card headers name a method by its class, so two overrides do not read as o
   assert.equal(qualified({...source, owner: 'DurableBulkExternalOperation', name: '_possible_effect_entries'}),
                'DurableBulkExternalOperation._possible_effect_entries');
   assert.equal(qualified(source), 'render');
+});
+
+test('helper references are bounded to the result file and commit; old links still decode', () => {
+  const data = {schema:2,evidence:{a:source,b:source},result:source,helpers:[{...source,name:'shared'}]};
+  const fragment = data => '#v2=' + Buffer.from(JSON.stringify(data)).toString('base64url');
+  assert.deepEqual(decode(fragment(data)), data);
+  for (const patch of [{revision:'b'.repeat(40)}, {repository:'private/repo'}, {path:'other.ts'}, {end_line:900}]) {
+    assert.throws(() => decode(fragment({...data,helpers:[{...source,...patch}]})));
+  }
+  for (const patch of [{result:null}, {helpers:Array(6).fill(source)}, {helpers:null}]) {
+    assert.throws(() => decode(fragment({...data,...patch})));
+  }
+  assert.throws(() => decode(fragment({...data,schema:1})));
 });

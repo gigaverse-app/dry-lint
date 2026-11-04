@@ -29,6 +29,12 @@ label { cursor: pointer; }
 input { accent-color: var(--link); }
 .scroll { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
 .scroll-hint { display: none; color: var(--muted); font-size: 12px; }
+#after-choice { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 4px 0 16px; }
+select { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; max-width: 100%; }
+#implementation { margin-bottom: 28px; }
+.implementation { border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; margin: 12px 0; overflow-wrap: anywhere; }
+.implementation .head { margin-top: 12px; border-right: 0; }
+.implementation pre { font: 12px/1.8 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 #comparison { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); min-width: 960px; }
 .phase { display: flex; align-items: baseline; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .phase strong { font-size: 16px; }

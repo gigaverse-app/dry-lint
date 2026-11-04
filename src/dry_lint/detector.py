@@ -258,7 +258,30 @@ class Detector:
             keys = {c.key for c in baseline}
             baseline += [c.model_copy(update={"lane": "exploration"}) for c in detector.candidates(changed)
                          if c.key not in keys]
+        if not self.cross_repository:
+            baseline += self.relatives(changed, baseline)
         return baseline
+
+    def relatives(self, changed: list[Function], primaries: list[Candidate]) -> list[Candidate]:
+        """
+        The existing side's own look-alikes, one hop away: fixing a duplicate touches the existing function, and
+        without these its other copies surface one push at a time. Each names its `parent` pair; the judge asks
+        about it only once that pair is reported, and it never blocks (judging.py, report.py).
+        """
+        touched = {f.qualname for f in changed}
+        seen = {c.key for c in primaries}
+        found = []
+        for parent in primaries:
+            existing = parent.existing
+            if parent.filtered or parent.lane != "baseline" or existing.qualname in touched:
+                continue  # a changed function's look-alikes are proposed already
+            for other, similarity in self.neighbours(existing):
+                relative = self.pair(existing, other, similarity)
+                if relative.key in seen or relative.filtered or other.qualname in touched:
+                    continue
+                seen.add(relative.key)
+                found.append(relative.model_copy(update={"lane": "relative", "parent": parent.key}))
+        return found
 
     def scan(self) -> list[Candidate]:
         """Every pair in the repository that are each other's nearest neighbour across files: the backlog."""

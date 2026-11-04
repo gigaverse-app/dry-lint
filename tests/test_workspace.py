@@ -80,7 +80,7 @@ def test_workspace_cli_uses_existing_judge_and_report_pipeline(workspace, tmp_pa
         args.extend(["--repo", f"{name}={root}"])
     assert main(args) == 0
     data = json.loads(output.read_text())
-    assert data["schema"] == 6 and data["findings"][0]["reported"]
+    assert data["schema"] == 7 and data["findings"][0]["reported"]
     assert data["functions"] == 33 and data["scope"] == "repository"
     assert "https://github.com/org/" in capsys.readouterr().out
     assert main(["report", "--root", str(workspace["org/web"]), "--from", str(output), "--format", "sarif"]) == 2

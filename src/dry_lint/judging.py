@@ -122,8 +122,11 @@ class Judging:
         return band is not None and verdict.second_opinion is None and band[0] <= verdict.score < band[1]
 
     def findings(self, candidates: list[Candidate], source: Run | None = None, refresh: bool = False) -> list[Finding]:
-        """A finding per proposed candidate: unjudged when there is no judge, else from the store or the judge."""
-        proposed = [c for c in candidates if c.filtered is None]
+        """
+        A finding per proposed candidate: unjudged when there is no judge, else from the store or the judge. A
+        relative is asked about only once its parent pair is reported, and only within what the budget has left.
+        """
+        proposed = [c for c in candidates if c.filtered is None and c.lane != "relative"]
         if self.judge is None:
             return [Finding(candidate=c) for c in proposed]
         if self.campaign is not None:
@@ -131,9 +134,24 @@ class Judging:
         # The budget is for the whole pull request, not this run; known even when nothing is left to judge.
         self.ledger.spent = self.store.spent(source)
         self.pull_request = source is not None and source.pull_request is not None
+        found = self.assess(proposed, source, refresh)
+        reported = {f.candidate.key for f in found if f.verdict and self.settings.duplicate_at(f.verdict, self.settings.report_at)}
+        relatives = [c for c in candidates if c.filtered is None and c.lane == "relative" and c.parent in reported]
+        found += [f for f in self.assess(relatives, source, refresh, advisory=True) if not f.deferred]
+        self.store.add_spent(source, self.ledger.usd)
+        return found
+
+    def assess(self, proposed: list[Candidate], source: Run | None, refresh: bool, *,
+               advisory: bool = False) -> list[Finding]:
+        """
+        From the store when it still holds, else from the judges. `advisory` pairs (relatives) never block, so one
+        judge answers them, closest first, and those the budget does not cover are deferred rather than skipped.
+        """
+        assert self.judge is not None
+        escalation = None if advisory else self.escalation
         strict = getattr(self.judge, "context", False) or getattr(self.judge, "strict_version", False)
         version = self.judge.version if refresh or strict else None
-        second = identity(self.escalation) if self.escalation and self.settings.escalate else None
+        second = identity(escalation) if escalation and self.settings.escalate else None
         band = self.settings.escalate.between if second and self.settings.escalate else (0.0, 0.0)
         known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version, second, band).verdict
                  for c in proposed]
@@ -144,15 +162,19 @@ class Judging:
         pending = [i for i, verdict in enumerate(known) if verdict is None]
         deferred = set(pending[self.settings.max_judgements:]) if self.settings.max_judgements is not None else set()
         pending = [i for i in pending if i not in deferred]
+        if advisory and pending:
+            pending.sort(key=lambda i: -proposed[i].similarity)
+            affordable = self.ledger.affordable(self.judge, [proposed[i] for i in pending])
+            deferred |= set(pending[affordable:])
+            pending = pending[:affordable]
         if pending:
             asked = [proposed[i] for i in pending]
-            for i, verdict in zip(pending, decide(asked, self.judge, self.escalation, self.settings, self.ledger)):
+            for i, verdict in zip(pending, decide(asked, self.judge, escalation, self.settings, self.ledger)):
                 if verdict is None:
                     deferred.add(i)  # the budget ran out before this pair: not cleared, asked again next run
                 elif not (self.ledger.failed and self.unsure(verdict)):  # else asked again once the judge is back
                     self.store.remember(proposed[i], verdict, source)
                 known[i] = verdict
-            self.store.add_spent(source, self.ledger.usd)
         for i in [i for i in deferred if first.get(i) is not None]:
             known[i], cached = first[i], cached | {i}
             deferred.discard(i)

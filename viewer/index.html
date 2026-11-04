@@ -17,6 +17,7 @@
     <div id="error" role="alert" hidden></div>
     <section id="review" hidden>
       <div class="toolbar"><label><input id="changes" type="checkbox" checked> Changes only</label><label><input id="wrap" type="checkbox" checked> Wrap lines</label><button id="copy" type="button">Copy this view</button><output id="notice" aria-live="polite"></output></div>
+      <label id="after-choice" hidden>Compare originals with <select id="after-select"></select></label>
       <p class="scroll-hint">Scroll sideways to compare all three columns.</p>
       <div class="scroll" tabindex="0" role="region" aria-label="Source comparison"><div id="comparison">
         <div class="phase before"><strong>Before</strong><span>Two functions flagged as a pair</span></div>
@@ -26,11 +27,12 @@
         <div class="head result"><span class="role">Remaining function</span><strong class="filename"></strong><code class="symbol"></code><span class="path"></span><div class="source-meta"><small></small><a>Open source ↗</a></div></div>
         <div id="rows"></div>
       </div></div>
-      <div class="legend"><div><span class="key"><i class="old"></i>Different in the original</span><span class="key"><i class="added"></i>Different in the remaining function</span></div><span id="count"></span></div>
+      <div class="legend"><div><span class="key"><i class="old"></i>Different in the original</span><span class="key"><i class="added"></i>Different in the selected After function</span></div><span id="count"></span></div>
       <p id="mapping" class="mapping"></p>
+      <section id="implementation" hidden><h2>Call site and helper definitions</h2><p class="muted">Direct Python calls to same-file definitions at the reviewed commit. Up to five helpers, one call deep. This shows static references, not proof that both originals now use the helper.</p><div id="implementations"></div></section>
       <section class="evidence">
-        <details open><summary>Why this pair was flagged</summary><p class="muted">Recorded judgment of the two original functions, before this change.</p><h2 id="verdict"></h2><p id="reason"></p><dl><dt>Confidence</dt><dd id="confidence"></dd><dt>Code similarity</dt><dd id="similarity"></dd><dt>Judge</dt><dd id="judge"></dd><dt>Version</dt><dd id="version"></dd></dl></details>
-        <details open><summary>What this comparison shows</summary><p>The two left columns show the original functions. The right column shows the remaining function at the reviewed commit, when it can be identified.</p><p>Lines are aligned mechanically, ignoring outer whitespace. Red and green mark differences, not a judgment of correctness. Check the full GitHub diff for extracted helpers and changes to callers.</p><p class="muted">Fixed commit snapshots · No additional model calls</p></details>
+        <details open><summary>Recorded assessment</summary><p class="muted">Saved classification of the original pair. Its confidence and report outcome are shown separately.</p><h2 id="verdict"></h2><p id="reason"></p><dl><dt>Report outcome</dt><dd id="outcome"></dd><dt>Confidence</dt><dd id="confidence"></dd><dt>Code similarity</dt><dd id="similarity"></dd><dt>Judge</dt><dd id="judge"></dd><dt>Version</dt><dd id="version"></dd></dl></details>
+        <details open><summary>What this comparison shows</summary><p>The two left columns show the original functions. The right column shows the selected remaining function or called helper at the reviewed commit, when identified.</p><p>Lines are aligned mechanically, ignoring outer whitespace. Red and green mark differences, not a judgment of correctness. Check the full GitHub diff for extracted helpers and changes to callers.</p><p class="muted">Fixed commit snapshots · No additional model calls</p></details>
       </section>
     </section>
     <footer>Source loads directly from public GitHub repositories. No credentials, analytics, or model requests.</footer>

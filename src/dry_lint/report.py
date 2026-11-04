@@ -50,13 +50,15 @@ class Finding(BaseModel):
     family: int = Field(default=1, description="How many look-alikes were proposed for the same changed function.")
     reported: bool = Field(default=False, description="Judged a duplicate at or above report_at.")
     blocking: bool = Field(default=False, description="Reported, and at or above fail_at: fails the check.")
+    related: bool = Field(default=False, description="A relative judged a duplicate at or above report_at: shown "
+                                                     "with its parent pair, never on its own, never blocking.")
 
     def headline(self) -> str:
         new, existing = self.candidate.new, self.candidate.existing
         kind = self.verdict.label if self.verdict else "candidate"
         return f"{new.qualname.split('::')[1]} looks like {existing.qualname} ({kind})"
 
-    def advice(self) -> str:
+    def advice(self, relatives: list["Finding"] = ()) -> str:
         parts = []
         if self.verdict:
             parts.append(f"judge {self.verdict.score:.2f}" + (" (cached)" if self.cached else ""))
@@ -73,8 +75,17 @@ class Finding(BaseModel):
         parts.append(f"pair {self.candidate.key}")
         if self.family > 1:
             parts.append(f"{self.family} look-alikes")
+        if relatives:
+            parts.append(self.kin(relatives))
         parts.append(f"if they are different concepts, add `{self.suppression()}`")
         return "; ".join(parts)
+
+    def kin(self, relatives: list["Finding"]) -> str:
+        """What else the fix touches: the existing function's other copies, to consolidate in the same change."""
+        assert all(r.verdict is not None for r in relatives), "a relative is shown only once judged"
+        copies = ", ".join(f"{r.candidate.existing.qualname} (judge {r.verdict.score:.2f})" for r in relatives)
+        return (f"fixing this touches {self.candidate.existing.name}, which also looks like {copies}: "
+                "consolidate them in the same change")
 
     def suppression(self) -> str:
         prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
@@ -151,12 +162,13 @@ class Report(Versioned):
               scope: Literal["change", "repository"] = "change", judging: JudgingSummary | None = None) -> "Report":
         family: dict[str, int] = {}
         for f in findings:
-            family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
+            if f.candidate.lane != "relative":
+                family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
         def duplicate_at(f: Finding, threshold: float) -> bool:
-            return (f.verdict is not None and f.verdict.label != "separate"
-                    and f.verdict.score >= settings.bar(threshold, f.verdict.second_opinion is not None))
+            return f.verdict is not None and settings.duplicate_at(f.verdict, threshold)
 
         marked = [
+            f.model_copy(update={"related": duplicate_at(f, settings.report_at)}) if f.candidate.lane == "relative" else
             f.model_copy(update={"family": family[f.candidate.new.qualname], "reported": duplicate_at(f, settings.report_at),
                                  "blocking": duplicate_at(f, max(settings.report_at, settings.fail_at))})
             for f in findings
@@ -169,8 +181,13 @@ class Report(Versioned):
 
     @property
     def visible(self) -> list[Finding]:
-        """Unjudged candidates, and judged pairs at or above the report threshold."""
-        return [f for f in self.findings if not f.deferred and (f.verdict is None or f.reported)]
+        """Unjudged candidates, and judged pairs at or above the report threshold; relatives show with their parent."""
+        return [f for f in self.findings
+                if not f.deferred and f.candidate.lane != "relative" and (f.verdict is None or f.reported)]
+
+    def relatives(self, finding: Finding) -> list[Finding]:
+        """The reported relatives of `finding`: copies its fix touches, closest first."""
+        return [f for f in self.findings if f.related and f.candidate.parent == finding.candidate.key]
 
     @property
     def deferred(self) -> int:
@@ -193,7 +210,8 @@ class Report(Versioned):
 
 
 def as_text(report: Report) -> str:
-    lines = [f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {f.advice()}" for f in report.visible]
+    lines = [f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {f.advice(report.relatives(f))}"
+             for f in report.visible]
     stats = report.stats
     judge = f"judge {report.judge}" if report.judge else "no judge"
     lines.append(f"dry-lint: {stats['candidates']} candidate pair(s), {stats['filtered']} skipped by rule, "
@@ -219,7 +237,7 @@ def as_github(report: Report) -> str:
     for f in report.visible:
         new = f.candidate.new
         lines.append(f"::{level(f)} file={new.path},line={new.line},endLine={new.end_line},title=dry-lint::"
-                     f"{escape(f.headline() + ': ' + f.advice())}")
+                     f"{escape(f.headline() + ': ' + f.advice(report.relatives(f)))}")
     return "\n".join(lines)
 
 
@@ -353,6 +371,8 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         concept = code(names[0]) if names[0] == names[1] else f"{code(names[0])} ≈ {code(names[1])}"
         if f.family > 1:
             concept += f" <sub>· {f.family} look-alikes</sub>"
+        if kin := report.relatives(f):
+            concept += f" <sub>· {plural(len(kin), 'relative')} to fold in</sub>"
         copies = []
         for side, short in zip((new, existing), short_paths(new.path, existing.path), strict=True):
             url = source_url(side, report.run)
@@ -378,6 +398,10 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
             f"{dot(f)} **{concept}** · {scored}similarity {f.candidate.similarity:.2f} · {source}{drift}", "",
             *([f"> {escaped(f.verdict.why)}", ""] if f.verdict and f.verdict.why else []),
             *([f"Preferred home: {escaped(action(f))}.", ""] if f.candidate.consolidation else []),
+            *([f"Fixing it touches {code(existing.name)}, which also looks like "
+               + ", ".join(f"{function_link(r.candidate.existing, report.run)} ({r.verdict.label} {r.verdict.score:.2f})"
+                           for r in kin) + ": consolidate them in the same change.", ""]
+              if (kin := report.relatives(f)) else []),
             f"Different concepts? Add to {escaped(short_paths(new.path, existing.path)[0])}:", "",
             *([f"```{'ts' if suppression.startswith('//') else 'python'}", suppression, "```"]
               if not re.search(r"[`\n]", suppression) else [escaped(suppression)]), "",
@@ -460,7 +484,7 @@ def as_sarif(report: Report) -> str:
         kind = f.verdict.label if f.verdict else "candidate"
         results.append({
             "ruleId": f"dry-lint/{kind}", "level": level(f) if f.verdict else "note",
-            "message": {"text": f"{f.headline()}: {f.advice()}"},
+            "message": {"text": f"{f.headline()}: {f.advice(report.relatives(f))}"},
             "locations": [location(new.path, new.line, new.end_line)],
             "relatedLocations": [{"id": 1, **location(existing.path, existing.line, existing.end_line),
                                   "message": {"text": existing.qualname}}],
@@ -485,7 +509,8 @@ def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
     annotations = [{
         "path": f.candidate.new.path, "start_line": f.candidate.new.line, "end_line": f.candidate.new.end_line,
-        "annotation_level": "failure" if level(f) == "error" else "warning", "title": f.headline(), "message": f.advice(),
+        "annotation_level": "failure" if level(f) == "error" else "warning", "title": f.headline(),
+        "message": f.advice(report.relatives(f)),
     } for f in reported[:50]]  # fmt: skip
     body = {"name": "dry-lint", "head_sha": report.run.head, "status": "completed",
             "conclusion": "failure" if failed else "neutral" if reported or report.deferred else "success",
