@@ -37,7 +37,7 @@ def test_dryer_cli_reports_real_structural_twins(repo: Repo, command: str, capsy
         args += ["--base", "main"]
     assert main(args) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["schema"] == 5
+    assert payload["schema"] == 6
     candidates = payload["candidates"] if command == "detect" else [f["candidate"] for f in payload["findings"]]
     twins = [c for c in candidates if {c["new"]["name"], c["existing"]["name"]} == {"compute", "calculate"}]
     assert all(c["similarity_reusable"] is False for c in candidates)
@@ -145,7 +145,7 @@ def test_shared_recall_rules_apply_to_dryer_before_ranking() -> None:
     assert len(functions) == 13
     detector = build(functions, source_settings())
     assert [(other.path, score) for other, score in detector.neighbours(functions[0])] == [("b.py", 1.0)]
-    pairs = detector.candidates([functions[0]])
+    pairs = [c for c in detector.candidates([functions[0]]) if c.lane != "relative"]
     assert len(pairs) == 1 and pairs[0].new.name == pairs[0].existing.name == "compute"
     assert len(detector.scan()) == 1
 

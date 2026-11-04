@@ -97,7 +97,7 @@ class Replay(Versioned):
                 where = finding.candidate.new
                 lines.append(f"  {commit.commit[:9]} {where.path}:{where.line}: {finding.headline()}"
                              + (" [blocks]" if finding.blocking else ""))
-                lines.append(f"    {finding.advice()}")
+                lines.append(f"    {finding.advice(commit.report.relatives(finding))}")
         if self.labels:
             lines.append(self.labels.as_text())
         return "\n".join(lines)

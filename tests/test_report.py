@@ -278,7 +278,7 @@ def test_the_status_note_has_a_slot_between_the_result_and_the_evidence() -> Non
 def test_json_report_round_trips() -> None:
     built = report(finding("duplicate", existing="a"), finding("separate", existing="b"))
     loaded = Report.model_validate_json(render(built, "json", SETTINGS))
-    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 5
+    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 6
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:
@@ -372,3 +372,31 @@ def test_without_a_first_judge_bar_every_answer_meets_the_same_thresholds() -> N
     settings = Settings(escalate=Escalation(use="opus", between=(0.5, 0.91)), report_at=0.55, fail_at=0.55)
     assert Report.build([escalated(0.6, None)], settings).findings[0].reported
     assert Report.build([escalated(0.6, None)], Settings(escalate=None, report_at=0.55)).findings[0].reported
+
+
+def relative_of(parent: Finding, score: float) -> Finding:
+    existing = function("src/text.py", "def shorten(text, limit):\n    return text[:limit]\n")
+    cousin = function("src/feed/titles.py", "def trim_title(title, width):\n    return title[:width]\n")
+    candidate = Candidate(new=existing, existing=cousin, similarity=0.55, comparer="tfidf:1", lane="relative",
+                          parent=parent.candidate.key)
+    return Finding(candidate=candidate, verdict=Verdict(label="duplicate", score=score, judge="jev", judge_version="v"))
+
+
+def test_a_relative_is_advice_on_its_parent_never_a_finding_or_a_block_of_its_own() -> None:
+    parent = finding("duplicate", 0.95)
+    built = report(parent, relative_of(parent, 0.95))
+    [shown] = built.visible
+    [kin] = built.relatives(shown)
+    assert shown.blocking and kin.related and not (kin.reported or kin.blocking)
+    assert built.stats["reported"] == 1  # the pull request's ledger counts its parent only
+    assert ("fixing this touches shorten, which also looks like src/feed/titles.py::trim_title (judge 0.95): "
+            "consolidate them in the same change") in as_text(built)
+    markdown = as_markdown(built)
+    assert "1 relative to fold in" in markdown and "Fixing it touches `shorten`, which also looks like" in markdown
+    assert "trim_title" in as_github(built)
+
+
+def test_a_relative_below_the_report_threshold_is_not_shown() -> None:
+    parent = finding("duplicate", 0.95)
+    built = report(parent, relative_of(parent, 0.5))
+    assert built.relatives(built.visible[0]) == [] and "trim_title" not in as_text(built)

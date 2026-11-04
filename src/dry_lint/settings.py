@@ -16,7 +16,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
-from dry_lint.models import Consolidation
+from dry_lint.models import Consolidation, Verdict
 
 
 class Pattern(BaseModel):
@@ -125,6 +125,10 @@ class Settings(BaseModel):
         """
         first_at = self.escalate.first_at if self.escalate else None
         return threshold if second_opinion or first_at is None else max(threshold, first_at)
+
+    def duplicate_at(self, verdict: Verdict, threshold: float) -> bool:
+        """A duplicate label at or above `threshold`, as the judge that answered measures it: what reports decide on."""
+        return verdict.label != "separate" and verdict.score >= self.bar(threshold, verdict.second_opinion is not None)
 
     @classmethod
     def load(cls, root: Path) -> "Settings":
