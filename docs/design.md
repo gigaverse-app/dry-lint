@@ -93,7 +93,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 4`; schemas 1, 2 and 3 remain readable with conservative cache defaults. Schema 3 adds
+New files carry `"schema": 5`; schemas 1, 2, 3 and 4 remain readable with conservative cache defaults. Schema 3 adds
 optional function `origin` using the existing `Run` contract. Workspace function identities include the repository,
 while their paths remain repository-relative and their links use the source commit. Single-repository identities
 and pair keys stay unchanged. Schema 4 adds bounded function `context`, a full-source `context_digest`, candidate
@@ -246,3 +246,11 @@ formatting and renames do not change it; any change to the logic does. Only the 
 smoothed IDF and L2 normalisation, dropping tokens found in more than 30% of all functions. Its floor is 0.5, or
 0.3 for functions shorter than six lines, because tiny helpers share few tokens and their real twins score lower.
 On gigaverse-ai (about 10,000 functions) a whole `check` takes about 4.4 s.
+
+## Production discovery and reviewed feedback
+
+Schema 5 adds candidate lane, run session/tree identity, exact-source record evidence and campaign reporting.
+`balanced` adds a stateless exploration index to the baseline detector and a transactional SQLite admission ledger
+beside verdicts. Model verdicts remain in the existing cache; reviewed fix/dismiss decisions live separately in
+`.dry-lint-feedback.json`. Source changes reopen reviewed dismissals. See [production discovery](production-discovery.md)
+for accounting, failure, local/CI storage and feedback contracts.

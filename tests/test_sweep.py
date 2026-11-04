@@ -214,3 +214,18 @@ def test_strict_scanning_requires_valid_source_and_a_validating_plugin(repo: Rep
 
 def test_strict_mode_rejects_workspace_scopes(repo: Repo, tmp_path: Path) -> None:
     assert run_cli(repo, tmp_path, "--require-complete", "--repo", f"acme/lib={repo.root}") == 2
+
+
+@pytest.mark.parametrize("staged", [False, True])
+def test_balanced_strict_check_validates_the_selected_tree(repo: Repo, tmp_path: Path, capsys, staged: bool) -> None:
+    repo.write("src/text.py", "def broken(\n")
+    repo.commit()
+    if staged:
+        repo.write("src/text.py", "def also_broken(\n")
+        repo.git("add", "src/text.py")
+    # A valid unstaged repair must not hide invalid committed/staged input from the strict check.
+    repo.write("src/text.py", "def repaired():\n    return 1\n")
+    args = ["--staged"] if staged else ["--base", "main"]
+    assert run_cli(repo, tmp_path, "--preset", "balanced", "--judge", "none",
+                   "--require-complete", *args) == 2
+    assert "Cannot completely scan src/text.py" in capsys.readouterr().err

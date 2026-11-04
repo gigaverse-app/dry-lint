@@ -3,6 +3,7 @@
   description: Flag staged functions that re-implement code the repository already has.
   entry: dry-lint check --staged
   language: python
-  types: [python]
+  types_or: [python, javascript, jsx, ts, tsx]
+  stages: [pre-commit]
   pass_filenames: false
   require_serial: true

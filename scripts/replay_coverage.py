@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from dry_lint.models import Candidate, CandidatesFile, Versioned
+from dry_lint.models import Candidate, CandidatesFile, Versioned, evidence
 
 Policy = Literal["fixed", "refill", "high-precision", "balanced", "high-recall"]
 Source = Literal["baseline", "semantic", "deep"]
@@ -83,17 +83,6 @@ class ReplayResult(ReplayFile):
 
 def digest(value: object) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=True).encode()).hexdigest()
-
-
-def evidence(candidate: Candidate, judge_policy: str) -> str:
-    """Conservative exact-input reuse for the spike; not a replacement for production verdict reuse."""
-    return digest(
-        [
-            sorted((f.qualname, f.code) for f in (candidate.new, candidate.existing)),
-            candidate.context_hash,
-            judge_policy,
-        ]
-    )
 
 
 def pool(step: ReplayStep) -> tuple[dict[str, Candidate], dict[str, dict[str, int]]]:

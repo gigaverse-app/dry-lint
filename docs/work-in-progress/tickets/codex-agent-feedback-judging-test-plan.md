@@ -1,0 +1,27 @@
+# Agent-reviewed discovery and uncertain-judge escalation
+
+Use the coding agent as the final reviewer of local findings. Evaluate a 25% confirmed-finding precision floor
+(at least one real finding per three false positives), with false interruptions per commit and recall reported
+separately. Never infer confirmation from a disappeared candidate. Explicit fixes and false-positive decisions
+are feedback; bypasses, unavailable judges and unreviewed disappearances remain unknown.
+
+- [x] Local hooks: real pre-commit integration, staged Python/TypeScript, rejected
+  duplicate then successful repair/specific suppression; keep unstaged work and existing hooks intact.
+- [x] Credentials: explicit environment or optional local dotenv, no secret values in output/config; isolated hook
+  dependencies; verify installations in backend and AI worktrees.
+- [x] Cascade replay: reuse the existing escalation contract; real SDK/fake provider for both paid stages,
+  uncertain first scores, failed/deferred second opinions, identity changes and exact evidence invalidation.
+- [x] Scheduling: reserve future baseline calls/dollars and second-opinion capacity at a cumulative $0.04 per PR;
+  spend each cached observation once per counterfactual; repeated heads do not earn credit or hide paid failures.
+- [x] Development then freeze: evaluate previous histories, freeze thresholds/routing before fresh judgments;
+  independently review fresh PRs with new positive families and negative controls. Physical research cap: $5.
+- [x] Feedback design: controlled threshold changes from confirmed outcomes; retain an unbiased exploration/audit
+  sample and separate agent-loop utility from autonomous blocking quality. No automatic global threshold changes.
+- [x] Full tests, Ruff, build, detector self-check, exact-head CI and Conventional Commits PR titles.
+
+Pre-push snapshot support is deferred: this adoption uses commit hooks. The replay scheduler is experimental;
+local budgets remain estimated per invocation. Results and promotion decision: docs/agent-feedback-experiment.md.
+
+Final implementation validation: CI passed on 618a6b9 (Python 3.11/3.13). Local full suite before the final
+focused regressions: 788 passed, 100% coverage. Consumer validation also fixed isolated uv installation and
+PR-head checkout; final documentation-only CI is checked separately.

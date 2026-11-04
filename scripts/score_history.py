@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from capture_history import History, tree_sources
-from judge_history import Observation, key_for_result
+from judge_history import Observation, answer_key, key_for_result
 from replay_coverage import ReplayInput, pool
 
 from dry_lint.comparers import TfidfComparer
@@ -61,6 +61,19 @@ def score(payload: ReplayInput, result: dict, labels: dict[str, str], observatio
         covered, reported = set(curve["covered"]), set(curve["reported"])
         if not reported <= covered:
             raise ValueError("A report has no current judgment")
+        decisions = curve.get("decisions", curve["covered"])
+        for k, v in decisions.items():
+            config = result.get("escalation_judge")
+            if v != keys.get(k) and (
+                config is None
+                or k not in candidates
+                or v
+                != answer_key(
+                    candidates[k], config["judge"], config["prompt_policy"], template=config["prompt_template"]
+                )
+            ):
+                raise ValueError("A second opinion was credited against stale or absent evidence")
+        # One source-evidence report, even when a later second opinion confirms the same pair.
         reported_answers.update(curve["covered"][k] for k in reported)
         seen_positive.update(positives)
         found_positive.update(positives & covered)

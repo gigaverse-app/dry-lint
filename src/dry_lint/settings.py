@@ -66,6 +66,19 @@ class Budget(BaseModel):
                                                             "are rate-limited as well as priced.")
 
 
+class Discovery(BaseModel):
+    """Baseline first, then paced exploration, sharing a durable campaign allowance."""
+
+    enabled: bool = False
+    depth: int = Field(default=20, ge=3, le=100)
+    min_similarity: float = Field(default=0.35, ge=0, le=1)
+    baseline_fraction: float = Field(default=0.625, ge=0, le=1)
+    exploration_per_revision: float = Field(default=0.006, ge=0)
+    calls_per_revision: int = Field(default=20, ge=1)
+    exploration_calls_per_revision: int = Field(default=10, ge=0)
+    calls: int = Field(default=200, ge=1)
+
+
 class Settings(BaseModel):
     include: list[str] = Field(default_factory=lambda: ["*"], description="fnmatch over tracked paths.")
     exclude: list[str] = Field(default_factory=lambda: ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"])
@@ -86,6 +99,7 @@ class Settings(BaseModel):
                                                     "(presets.py). auto: the best one the credentials allow. Explicit "
                                                     "judge, escalate and threshold settings win over the preset's.")
     budget: Budget = Field(default_factory=Budget)
+    discovery: Discovery = Field(default_factory=Discovery)
     labellers: list[str] = Field(
         default_factory=lambda: ["anthropic/claude-opus-5.5", "openai/gpt-5.5", "google/gemini-3.1-pro-preview"],
         description="For `bench --replay --label`: OpenRouter model ids, or `command:<cli>`; the strict majority labels a "

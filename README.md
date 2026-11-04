@@ -135,6 +135,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
       - uses: gigaverse-app/dry-lint@main
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
@@ -182,6 +185,10 @@ To show your own repository's sign, take its counter key from the log of a dry-l
 ```
 
 or a badge: `![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fkey%3DKEY)`.
+
+For coding-agent feedback with a cheap judge, use the opt-in
+[`agent-haiku` hook setup](docs/agent-reviewed-discovery.md). Findings reject the commit for review and repair;
+this experimental preset does not change auto-selection or enable the historical exploration scheduler.
 
 **pre-commit** ([examples/pre-commit-config.yaml](examples/pre-commit-config.yaml)): hook id `dry-lint` checks the
 staged functions.
@@ -266,3 +273,8 @@ Apache 2.0. See [CONTRIBUTING.md](CONTRIBUTING.md) to work on dry-lint itself.
 
 Install the `dryer` extra and select `comparer = "dryer"` or pass `--detector dryer` to use structural fingerprints.
 TF-IDF remains the default. See [setup](docs/detectors.md) and the [gigaverse-backend comparison](docs/dryer-comparison.md).
+
+For coding-agent hooks, [`balanced`](docs/production-discovery.md) combines cheap shared-operation judging,
+protected baseline retrieval, same-file exploration and a persistent $0.04 campaign allowance. Use
+`dry-lint feedback fix` or `dry-lint feedback dismiss` after reviewing a finding; exact-source dismissals prevent
+repeat interruptions while changed code reopens the pair.
