@@ -55,7 +55,9 @@ Every run goes through the same six steps, whatever plugins it uses:
    A changed existing side brings none: its look-alikes are proposed directly.
 4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other through `self`,
    `cls` or `this` within the same class (call names come from the extractor's syntax tree; names are not resolved
-   to symbols, so a bare or imported call is left to the judge), both match a
+   to symbols, so a bare or imported call is left to the judge), one overrides the other (the same name in a class
+   whose direct base is the other's class, resolved from the file alone: a class it defines or a name its imports
+   bind; a grandparent or an unresolvable base is left to the judge), both match a
    declared `pattern`, one carries `# dry-lint: distinct-from <qualified name suffix>`, or either carries
    `# dry-lint: ignore`. Settled pairs stay
    in the output with their rule, so "why wasn't this flagged?" has an answer. The extractor hashes both

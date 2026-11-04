@@ -3,6 +3,7 @@ import pytest
 from dry_lint import detector as detection
 from dry_lint.detector import Detector, base_ref, changed_lines, default_base, touched, why_skipped
 from dry_lint.extractors import PythonExtractor
+from dry_lint.models import Function
 from dry_lint.settings import Pattern, PluginChoice, Settings
 
 from conftest import Repo, function
@@ -167,6 +168,71 @@ def test_without_calls_from_the_extractor_the_defining_line_does_not_count_as_a_
     assert why_skipped(method, a.model_copy(update={"owner": "Cache"}), Settings()) == "one calls the other"
     method_call = function("d.ts", "function fetch(key) {\n  return cache.load(key)\n}", name="fetch").model_copy(update={"calls": None})
     assert why_skipped(method_call, a, Settings()) is None
+
+
+BASE = "class Operation:\n    def entries(self, work):\n        return attempts_for(work).filter(revision=work.revision)\n"
+OVERRIDE = "class Bulk({base}):\n    def entries(self, work):\n        return work.attempts()\n"
+
+
+def methods(path: str, source: str) -> dict[str, Function]:
+    return {f.qualname.split("::")[1]: f for f in PythonExtractor().functions(path, source)}
+
+
+@pytest.mark.parametrize("path, source", [
+    ("pkg/ops.py", BASE + OVERRIDE.format(base="Operation")),
+    ("pkg/bulk.py", "from pkg.ops import Operation\n" + OVERRIDE.format(base="Operation")),
+    ("src/pkg/bulk.py", "from pkg.ops import Operation\n" + OVERRIDE.format(base="Operation")),
+    ("pkg/bulk.py", "from .ops import Operation as Base\n" + OVERRIDE.format(base="Base[int]")),
+    ("pkg/sub/bulk.py", "from ..ops import Operation\n" + OVERRIDE.format(base="Operation")),
+    ("pkg/bulk.py", "import pkg.ops\n" + OVERRIDE.format(base="pkg.ops.Operation")),
+    ("pkg/bulk.py", "import pkg.ops as o\n" + OVERRIDE.format(base="o.Operation")),
+    ("pkg/bulk.py", "from . import ops\n" + OVERRIDE.format(base="ops.Operation")),
+])  # fmt: skip
+def test_a_method_overriding_its_base_class_method_is_settled_by_rule(path: str, source: str) -> None:
+    """
+    INVARIANT: an override of the same-named method of the class's direct base is the hierarchy's variation point,
+    not a copy. The base resolves from the file alone: a class it defines, or a name its imports bind.
+    """
+    home = "src/pkg/ops.py" if path.startswith("src/") else "pkg/ops.py"
+    base = methods(home, BASE)["Operation.entries"]
+    override = methods(path, source)["Bulk.entries"]
+    assert why_skipped(override, base, Settings()) == why_skipped(base, override, Settings()) == "subclass override"
+
+
+@pytest.mark.parametrize("source", [
+    OVERRIDE.format(base="Operation"),  # neither defined nor imported
+    "from other.ops import Operation\n" + OVERRIDE.format(base="Operation"),
+    "from pkg.ops import Operation\n" + OVERRIDE.format(base="Operation").replace("entries", "attempts"),
+    "from pkg.ops import Operation\n" + OVERRIDE.format(base="mixin(Operation)"),
+    "from pkg.ops import Operation\n" + OVERRIDE.format(base="Other.Operation"),
+    "from .... import ops\n" + OVERRIDE.format(base="ops.Operation"),
+    "from pkg.ops import Operation\nclass Bulk(Operation):\n    class Inner:\n"
+    "        def entries(self, work):\n            return work.attempts()\n",
+])  # fmt: skip
+def test_same_named_methods_without_a_resolved_base_relation_go_to_the_judge(source: str) -> None:
+    """INVARIANT: only a base the file itself names settles a pair; an unresolved or unrelated class does not."""
+    base = methods("pkg/ops.py", BASE)["Operation.entries"]
+    found = methods("pkg/bulk.py", source)
+    assert found and all(why_skipped(method, base, Settings()) is None for method in found.values())
+    override = methods("pkg/bulk.py", "from pkg.ops import Operation\n" + OVERRIDE.format(base="Operation"))
+    unrelated = methods("pkg/other.py", BASE.replace("Operation", "Cache"))["Cache.entries"]
+    assert why_skipped(override["Bulk.entries"], unrelated, Settings()) is None
+
+
+def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(repo: Repo, monkeypatch) -> None:
+    body = "        rows = self.store.read(key)\n        return [row for row in rows if row.revision == key.revision]\n"
+    repo.write("src/ops.py", f"class Operation:\n    def possible_entries(self, key):\n{body}")
+    repo.write("src/bulk.py", "from src.ops import Operation\n\n\nclass Bulk(Operation):\n"
+                              f"    def possible_entries(self, key):\n{body.replace('revision', 'batch')}")
+    repo.commit("override")
+    detector = Detector.for_repository(repo.root, tfidf(min_similarity=0.0, min_similarity_small=0.0))
+    [pair] = [c for c in detector.candidates([detector.find("Bulk.possible_entries")])
+              if c.existing.qualname == "src/ops.py::Operation.possible_entries"]
+    assert pair.filtered == "subclass override"
+    names = {pair.new.qualname, pair.existing.qualname}
+    assert names not in [{c.new.qualname, c.existing.qualname} for c in detector.scan()]
+    monkeypatch.setattr(detection, "overrides", lambda method, base: False)
+    assert names in [{c.new.qualname, c.existing.qualname} for c in detector.scan()]  # only the rule keeps it out
 
 
 def test_skipped_pairs_are_listed_with_their_reason(repo: Repo) -> None:

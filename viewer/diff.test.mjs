@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {align, decode, validSource, sourceUrl, MAX_LINES} from './diff.mjs';
+import {align, decode, layout, qualified, validSource, sourceUrl, MAX_LINES} from './diff.mjs';
 
 test('alignment preserves every line exactly once and in order', () => {
   for (let seed = 0; seed < 80; seed++) {
@@ -44,6 +44,30 @@ test('versioned links preserve Unicode judgments and reject invalid envelopes', 
   for (const fragment of ['#old=x', '#v1='+'x'.repeat(12000), '#v1='+Buffer.from('{"schema":3}').toString('base64url')]) {
     assert.throws(() => decode(fragment));
   }
+});
+
+test('an After column appears only when a cleanup was recorded', () => {
+  for (const state of ['below threshold', 'open', 'dismissed', 'deferred', 'unjudged']) {
+    assert.equal(layout({state, result: null}).after, false);
+  }
+  assert.equal(layout({state: 'kept-out', result: null}).after, true);  // cleaned, survivor not identified
+  assert.equal(layout({state: 'kept-out', result: source}).after, true);
+});
+
+test('the GitHub diff link needs a range with changes to show', () => {
+  const [base, head] = ['a'.repeat(40), 'b'.repeat(40)];
+  const diff = `https://github.com/acme/repo/compare/${base}...${head}`;
+  assert.equal(layout({diff}).diff, diff);
+  for (const empty of [`https://github.com/acme/repo/compare/${head}...${head}`, '', undefined,
+    `https://evil.example/acme/repo/compare/${base}...${head}`, `https://github.com/acme/repo/compare/main...${head}`]) {
+    assert.equal(layout({diff: empty}).diff, null);
+  }
+});
+
+test('card headers name a method by its class, so two overrides do not read as one function', () => {
+  assert.equal(qualified({...source, owner: 'DurableBulkExternalOperation', name: '_possible_effect_entries'}),
+               'DurableBulkExternalOperation._possible_effect_entries');
+  assert.equal(qualified(source), 'render');
 });
 
 test('helper references are bounded to the result file and commit; old links still decode', () => {

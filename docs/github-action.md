@@ -112,7 +112,11 @@ are not followed. Missing helper evidence leaves the remaining function and full
 
 Review the caller diff and any extracted helpers. A moved/renamed result, two surviving originals, unsupported
 language or failed read leaves the result unidentified; the viewer shows A and B with an explicit explanation.
-No model is asked to infer a destination. Dismissals never get a presumed consolidation result.
+No model is asked to infer a destination. Dismissals never get a presumed consolidation result. A pair with no
+recorded cleanup (below threshold, open, dismissed, deferred or unjudged) is shown as A and B only, with no After
+column. Each card is headed by the qualified name (`Owner.method`), since overrides share a method name. The
+viewer's "full GitHub diff" runs from the finding's commit to the head, or, for a pair found at the head, over the
+pull request's own base...head; when neither range has changes, there is no link.
 New links use viewer schema 2 with bounded helper coordinates; schema 1 links remain readable and explicitly say
 that they did not record helper references. No source bodies are included in either link format.
 

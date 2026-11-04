@@ -38,11 +38,25 @@ def viewer_link(url: str, evidence: PairEvidence, result: SourceReference | None
 
 
 class Comparisons:
-    def __init__(self, github: "GitHub", repository: str, head: str, viewer: str):
-        self.github, self.repository, self.head, self.viewer = github, repository, head, viewer
+    def __init__(self, github: "GitHub", repository: str, head: str, viewer: str, number: int | None = None):
+        self.github, self.repository, self.head, self.viewer, self.number = github, repository, head, viewer, number
         self.public: dict[str, bool] = {}
         self.files: dict[tuple[str, str, str], list[Function] | None] = {}
         self.source_text: dict[tuple[str, str, str], str] = {}
+        self.base: str | None = None
+
+    def pull_diff(self, server: str) -> str:
+        """The pull request's own diff, base...head; empty when its base cannot be read or it has no changes."""
+        if self.base is None:
+            self.base = ""
+            if self.number is not None:
+                try:
+                    self.base = str(self.github.pull(self.repository, self.number)["base"]["sha"])
+                except (httpx.HTTPError, ValueError, KeyError, TypeError):
+                    pass
+        if not all(re.fullmatch(r"[a-fA-F0-9]{40}", sha) for sha in (self.base, self.head)) or self.base == self.head:
+            return ""
+        return f"{server}/{self.repository}/compare/{self.base}...{self.head}"
 
     def is_public(self, repository: str) -> bool:
         if repository not in self.public:
@@ -99,10 +113,9 @@ class Comparisons:
         links = [f"[A]({a.url()})", f"[B]({b.url()})"]
         server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
         diff = ""
-        if a.repository == self.repository and re.fullmatch(r"[a-fA-F0-9]{40}", self.head):
+        if a.repository == self.repository and re.fullmatch(r"[a-fA-F0-9]{40}", self.head) and a.revision != self.head:
             diff = f"{server}/{self.repository}/compare/{a.revision}...{self.head}"
-            if a.revision != self.head:
-                links.append(f"[Changes since finding]({diff})")
+            links.append(f"[Changes since finding]({diff})")
         # Every origin must be explicitly public. Internal, private, unknown and Enterprise stay on GitHub.
         if (not self.viewer or server != "https://github.com" or
                 not all(self.is_public(repo) for repo in dict.fromkeys((self.repository, a.repository, b.repository)))):
@@ -113,7 +126,9 @@ class Comparisons:
             survivors = [reference for known, reference in resolved if known and reference]
             if all(known for known, _ in resolved) and len(survivors) == 1:
                 result = survivors[0]
-        if url := viewer_link(self.viewer, evidence, result, state, diff, self.helpers(result) if result else []):
+        # Found at the reviewed commit, the pair has no changes since; the pull request's diff is the context.
+        if url := viewer_link(self.viewer, evidence, result, state, diff or self.pull_diff(server),
+                               self.helpers(result) if result else []):
             links.append(f"[{'Three-way view' if result else 'Compare sources'}]({url})")
         return " · ".join(links)
 

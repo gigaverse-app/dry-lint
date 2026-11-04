@@ -55,6 +55,8 @@ class Function(BaseModel):
                               description="Behaviour tokens, for comparers that use them. Not written to files.")
     calls: list[str] | None = Field(default=None, exclude=True,
                                     description="Names the function calls, from its extractor; None if it cannot tell.")
+    bases: list[str] = Field(default_factory=list, exclude=True,
+                             description="Its class's direct bases, as `module::Class` (see `module_of`); not written to files.")
 
     @property
     def qualname(self) -> str:
@@ -64,6 +66,11 @@ class Function(BaseModel):
     @property
     def lines(self) -> int:
         return self.end_line - self.line + 1
+
+
+def module_of(path: str) -> str:
+    """A file's module as a base-class reference names it: its path without the extension, a package by its folder."""
+    return str(PurePosixPath(path).with_suffix("")).removesuffix("/__init__").removesuffix("/index")
 
 
 def repository_path(value: str) -> bool:

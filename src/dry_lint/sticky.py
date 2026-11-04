@@ -194,7 +194,8 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
         if resolving:
             note = "\n\n".join(part for part in (RESOLVED, note) if part)
         before = outcomes(github.commit_messages(repository, number)) if reports else []
-        comparisons = Comparisons(github, repository, expect_head or (reports[0].run.head if reports else ""), viewer_url)
+        comparisons = Comparisons(github, repository, expect_head or (reports[0].run.head if reports else ""), viewer_url,
+                                  number)
         body = compose(markdown, key, banner, run_url, expect_head, note,
                        account(mine, list(reports), run, repository_ledger, list(scopes), before, comparisons))
         if not mine:

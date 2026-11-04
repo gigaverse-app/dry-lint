@@ -140,6 +140,57 @@ def test_class_members_and_accessors_have_distinct_identity_and_hashes(extractor
     assert len({extractor.structure_hash(f) for f in found}) == len(found)
 
 
+BASE_TS = '''export class Operation {
+  entries(work: Work) { return attemptsFor(work).filter(a => a.revision === work.revision); }
+  static of(work: Work) { return new Operation(work.id); }
+}'''
+
+
+@pytest.mark.parametrize("path, source", [
+    ("src/ops.ts", BASE_TS + "\nclass Bulk extends Operation {\n  entries(work: Work) { return work.attempts(); }\n}"),
+    ("src/bulk.ts", "import { Operation } from './ops';\nclass Bulk extends Operation<Work> {\n"
+                    "  entries(work: Work) { return work.attempts(); }\n}"),
+    ("src/bulk/index.ts", "import { Operation as Base } from '../ops.js';\nexport class Bulk extends Base {\n"
+                          "  entries = (work: Work) => work.attempts();\n}"),
+    ("src/bulk.ts", "import * as ops from './ops';\nconst Bulk = class extends ops.Operation {\n"
+                    "  entries(work: Work) { return work.attempts(); }\n};"),
+    ("src/bulk.ts", "import Operation from './ops';\nexport default class Bulk extends Operation {\n"
+                    "  entries(work: Work) { return work.attempts(); }\n}"),
+])  # fmt: skip
+def test_a_method_overriding_its_extended_class_method_is_settled_by_rule(extractor, path, source):
+    """INVARIANT: `class X extends Y` resolves Y from the file alone, so X's override of Y's method is settled."""
+    [base] = [f for f in extractor.functions("src/ops.ts", BASE_TS) if f.name == "entries"]
+    [override] = [f for f in extractor.functions(path, source) if f.name == "entries" and f.owner != "Operation"]
+    assert why_skipped(override, base, Settings()) == why_skipped(base, override, Settings()) == "subclass override"
+
+
+@pytest.mark.parametrize("source", [
+    "import { Operation } from 'third-party';\nclass Bulk extends Operation {\n  entries(work: Work) { return work.attempts(); }\n}",
+    "import { Operation } from './ops';\nclass Bulk extends mixin(Operation) {\n  entries(work: Work) { return work.attempts(); }\n}",
+    "import { Operation } from './ops';\nclass Bulk extends Operation.Inner {\n  entries(work: Work) { return work.attempts(); }\n}",
+    "import { Operation } from '../../../ops';\nclass Bulk extends Operation {\n  entries(work: Work) { return work.attempts(); }\n}",
+    "import './ops';\nclass Bulk extends Operation {\n  entries(work: Work) { return work.attempts(); }\n}",
+    "import { Operation } from './ops';\nclass Bulk extends Operation {\n  helpers = { entries(work: Work) { return work.attempts(); } };\n}",
+    "import { Operation } from './ops';\nclass Bulk {\n  entries(work: Work) { return work.attempts(); }\n}",
+])  # fmt: skip
+def test_same_named_typescript_methods_without_a_resolved_base_go_to_the_judge(extractor, source):
+    """INVARIANT: a package import, a mixin or an unrelated class leaves the pair to the judge."""
+    [base] = [f for f in extractor.functions("src/ops.ts", BASE_TS) if f.name == "entries"]
+    [method] = [f for f in extractor.functions("src/bulk.ts", source) if f.name == "entries"]
+    assert why_skipped(method, base, Settings()) is None
+
+
+def test_a_static_method_overrides_only_the_extended_class_static_method(extractor):
+    [instance, static] = extractor.functions("src/ops.ts", BASE_TS)
+    found = extractor.functions("src/bulk.ts", "import { Operation } from './ops';\nclass Bulk extends Operation {\n"
+                                               "  static of(work: Work) { return new Bulk(work.id); }\n"
+                                               "  of(work: Work) { return new Bulk(work.id); }\n}")
+    assert [f.qualname for f in found] == ["src/bulk.ts::Bulk.static.of", "src/bulk.ts::Bulk.of"]
+    assert why_skipped(found[0], static, Settings()) == "subclass override"
+    assert why_skipped(found[1], static, Settings()) is None
+    assert instance.name == "entries"
+
+
 def test_minimum_lines_and_invalid_functions_do_not_hide_valid_neighbors():
     extractor = load("extractors", PluginChoice(use="typescript", min_lines=3))
     source = '''const short = () => 1;

@@ -1,4 +1,4 @@
-import {align, decode, sourceUrl} from './diff.mjs';
+import {align, decode, layout, qualified, sourceUrl} from './diff.mjs';
 
 const byId = id => document.getElementById(id);
 const expanded = new Set();
@@ -7,11 +7,11 @@ let sources, code, rows;
 function fillHead(head, source) {
   const anchor = head.querySelector('a');
   if (source) {
-    head.querySelector('.filename').textContent = source.path.split('/').at(-1);
-    head.querySelector('.symbol').textContent = source.owner ? `${source.owner}.${source.name}` : source.name;
+    head.querySelector('.filename').textContent = qualified(source);
+    head.querySelector('.symbol').textContent = source.path.split('/').at(-1);
     head.querySelector('.path').textContent = `${source.repository} / ${source.path}`;
     head.querySelector('small').textContent = `${source.revision.slice(0, 7)} · lines ${source.line}–${source.end_line}`;
-    anchor.setAttribute('aria-label', `Open ${source.path}, ${source.name} at ${source.revision.slice(0, 7)} on GitHub`);
+    anchor.setAttribute('aria-label', `Open ${source.path}, ${qualified(source)} at ${source.revision.slice(0, 7)} on GitHub`);
     anchor.href = sourceUrl(source); anchor.target = '_blank'; anchor.rel = 'noopener noreferrer';
   } else {
     head.querySelector('.role').textContent = 'Result unavailable';
@@ -34,7 +34,7 @@ function setupHelpers(snapshots, bodies) {
   };
   snapshots.slice(2).forEach((source, offset) => {
     const index = offset + 2;
-    const label = `${offset ? 'Called helper' : 'Remaining function'}: ${source.owner ? source.owner + '.' : ''}${source.name}`;
+    const label = `${offset ? 'Called helper' : 'Remaining function'}: ${qualified(source)}`;
     select.add(new Option(label, String(index)));
     const details = document.createElement('details'), summary = document.createElement('summary');
     details.className = 'implementation'; details.open = offset === 0;
@@ -99,10 +99,13 @@ function render() {
 async function load() {
   if (!location.hash) return;
   const data = decode(location.hash), evidence = data.evidence;
+  const view = layout(data);
   sources = [evidence.a, evidence.b, data.result];
   const helpers = data.schema === 2 ? data.helpers : [];
   const snapshots = [...sources, ...helpers];
   byId('review').hidden = false;
+  byId('review').classList.toggle('two-way', !view.after);
+  if (!view.after) document.querySelector('.scroll-hint').textContent = 'Scroll sideways to compare both columns.';
   document.querySelectorAll('#comparison > .head').forEach((head, i) => fillHead(head, sources[i]));
   const verdict = evidence.verdict;
   const outcomes = {'kept-out':'No longer reported',open:'Still tangled',dismissed:'Dismissed',
@@ -117,7 +120,9 @@ async function load() {
   byId('similarity').textContent = Number(evidence.similarity).toFixed(2);
   byId('mapping').textContent = data.result
     ? 'One of the original functions remains at the reviewed commit. It is shown on the right. This alone does not prove that both originals were consolidated; review the full GitHub diff to follow the shared implementation.'
-    : 'No single remaining function could be identified. The pair may have been moved, deleted, or judged differently. Review the full GitHub diff to see what happened.';
+    : view.after
+      ? 'No single remaining function could be identified. The pair may have been moved, deleted, or judged differently. Review the full GitHub diff to see what happened.'
+      : 'No cleanup was recorded for this pair, so there is no After column: the two functions are shown as they were flagged.';
   if (helpers.length) {
     byId('mapping').textContent = 'The After column starts with a helper called by the remaining function. Switch between the helper and its caller using the selector above. The call site is also shown below; this is a static reference, not a new consolidation judgment.';
   } else if (data.result) {
@@ -125,11 +130,11 @@ async function load() {
       : ' No direct same-file Python helper was resolved. Imported, dynamic and other-language calls are not followed.';
   }
   if (!data.result) {
-    byId('title').textContent = 'Compare the original functions';
+    byId('title').textContent = view.after ? 'Compare the original functions' : 'Compare the flagged functions';
     byId('after-caption').textContent = 'No identified result';
   }
-  if (typeof data.diff === 'string' && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/compare\/[a-fA-F0-9]{40}\.\.\.[a-fA-F0-9]{40}$/.test(data.diff)) {
-    byId('diff').href = data.diff; byId('diff').hidden = false;
+  if (view.diff) {
+    byId('diff').href = view.diff; byId('diff').hidden = false;
   }
   byId('status').textContent = 'Checking public source access…';
   for (const repository of new Set(snapshots.filter(Boolean).map(source => source.repository))) {
@@ -160,7 +165,9 @@ async function load() {
   byId('status').textContent = helpers.length
     ? 'Compare the originals with the called helper, then inspect the remaining function and its call below.' : data.result
     ? 'Read left to right: the two original functions, then the function that remains after the change.'
-    : 'The two original functions are shown below. A resulting implementation could not be identified.';
+    : view.after
+      ? 'The two original functions are shown below. A resulting implementation could not be identified.'
+      : 'The two flagged functions are shown below, side by side.';
 }
 
 byId('changes').addEventListener('change', () => {if (rows) render();});
