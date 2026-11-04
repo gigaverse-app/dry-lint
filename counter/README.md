@@ -5,10 +5,14 @@ whose action shares its totals ([what is sent, and how to opt out](../docs/githu
 
 | Request | Answer |
 | --- | --- |
-| `POST /v1/pulls` | Count one merged pull request: `{repository: sha256(owner/name), pull, kept_out, caught, …}`. `{"counted": false}` if it was counted already. |
-| `GET /v1/totals[?repository=OWNER/NAME]` | The totals, as JSON. |
-| `GET /v1/badge[?metric=kept-out\|pulls\|repositories\|spent][&repository=]` | A [shields.io endpoint badge](https://shields.io/badges/endpoint-badge). |
-| `GET /v1/sign.svg[?theme=dark][&repository=]` | The README sign. |
+| `POST /v1/pulls` | Count one merged pull request: `{repository: KEY, pull, kept_out, caught, …}`, where `KEY` is the repository's counter key, `sha256("github-repository:" + numeric repository id)`. `{"counted": false}` if it was counted already. |
+| `GET /v1/totals[?key=KEY]` | The totals, as JSON: everyone's, or one repository's. |
+| `GET /v1/badge[?metric=kept-out\|pulls\|repositories\|spent][&key=KEY]` | A [shields.io endpoint badge](https://shields.io/badges/endpoint-badge). |
+| `GET /v1/sign.svg[?theme=dark][&key=KEY][&name=OWNER/NAME]` | The README sign; `name` only labels it. |
+
+Contributions are pseudonymous: a key ties one repository's pull requests together, but a repository is never
+looked up by name (`?repository=` is refused), and a name does not lead to its key. Contributions sent before keys
+came from repository ids were keyed on the SHA-256 of `owner/name`; they stay in the totals.
 
 One SQLite-backed Durable Object holds the counts. A contribution is inserted once, keyed on the repository hash
 and pull request number, and the running totals move only when the row is new. The rules (what a contribution

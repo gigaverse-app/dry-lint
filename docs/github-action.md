@@ -155,8 +155,10 @@ The outputs are `mode`, `findings` (how many duplicates were reported), `blockin
 `overridden` and `exit-code`: 0 for nothing blocking, 1 for blocking findings, 2 when dry-lint could not run. Exit
 code 2 always fails the step, so a broken setup is never silent.
 
-Thresholds and exclusions live in `[tool.dry-lint]` in `pyproject.toml`, so that the action, the pre-commit hook
-and the command line all agree ([README](../README.md#settings)).
+Thresholds and exclusions live in `[tool.dry-lint]` in `pyproject.toml`, or in a `.dry-lint.toml` at the repository
+root (which wins when both exist), so that the action, the pre-commit hook and the command line all agree
+([README](../README.md#settings)). Prefer `.dry-lint.toml` where editing `pyproject.toml` is expensive, for example
+when CI reruns every test on any change to it.
 
 ## Verdict cache
 
@@ -205,12 +207,18 @@ does, and a token that can read pull requests.
 
 After folding, the run sends each newly merged pull request's counts to dry-lint's public counter, a
 [Cloudflare Worker](../counter) at `https://dry-lint-counter.gigaverse-oss.workers.dev`, so [the sign in the README](../README.md#the-counter) counts every
-repository that shares. A contribution holds the SHA-256 of the lower-cased repository name, the pull request
-number, the counts the ledger keeps (kept out, caught, dismissed, still open at merge, pushes, runs, judgments,
-functions checked, spend) and the dry-lint version: no code, names, paths or people.
+repository that shares. A contribution holds the repository's counter key, the pull request number, the counts
+the ledger keeps (kept out, caught, dismissed, still open at merge, pushes, runs, judgments, functions checked,
+spend) and the dry-lint version: no code, names, paths or people.
 
+- **Pseudonymous, not anonymous.** The counter key is the SHA-256 of the repository's numeric GitHub id
+  (`GITHUB_REPOSITORY_ID`), never of its name. It ties the repository's pull requests together, but a name does not
+  lead to it: a private repository's id is visible only to people who can see the repository, and the counter
+  refuses to look a repository up by name. The key survives renames and transfers. A run without a repository id
+  sends nothing. The run on the default branch prints the key, for a repository that wants
+  [its own sign](../README.md#the-counter).
 - **Opt out** with `share-totals: "false"`. Nothing is sent, and anything waiting is dropped.
-- **Counted once.** The counter keys contributions on the repository hash and pull request number, so a resend
+- **Counted once.** The counter keys contributions on the repository's key and pull request number, so a resend
   changes nothing. A send that fails waits in the repository's ledger (`outbox`) for the next push, and never
   fails the run.
 - **Bounded.** Counts are self-reported; the counter refuses a pull request claiming implausible figures.

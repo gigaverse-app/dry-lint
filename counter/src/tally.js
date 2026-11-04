@@ -2,8 +2,9 @@
  * The counter's rules, free of Cloudflare: what a contribution may say, and how the totals are shown.
  *
  * A contribution is one merged pull request's ledger, sent once by the Action on its repository's default branch.
- * The repository arrives as the SHA-256 of its lower-cased `owner/name`, never its name. Counts are self-reported,
- * so each is bounded: one pull request cannot claim more than a pull request plausibly holds.
+ * The repository arrives as its counter key, the SHA-256 of its numeric GitHub id, never its name: pseudonymous,
+ * since a name alone does not lead to the key. Counts are self-reported, so each is bounded: one pull request
+ * cannot claim more than a pull request plausibly holds.
  */
 
 export const LIMITS = {
@@ -19,7 +20,7 @@ export class Invalid extends Error {}
 export function contribution(body) {
   if (typeof body !== "object" || body === null || Array.isArray(body)) throw new Invalid("expected a JSON object");
   if (typeof body.repository !== "string" || !/^[0-9a-f]{64}$/.test(body.repository)) {
-    throw new Invalid("repository must be the SHA-256 of owner/name, in hex");
+    throw new Invalid("repository must be the repository's counter key: 64 lower-case hex characters");
   }
   if (!Number.isInteger(body.pull) || body.pull < 1 || body.pull > 10_000_000) {
     throw new Invalid("pull must be a pull request number");
@@ -41,10 +42,19 @@ export function contribution(body) {
   return entry;
 }
 
-/** The SHA-256 of a repository's lower-cased `owner/name`: how contributions name it. */
-export async function repositoryKey(name) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(name.trim().toLowerCase()));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+/**
+ * Which totals a read asks for: everyone's, or one repository's by its counter key, which the Action prints on the
+ * repository's default-branch runs. A name never finds a repository: names can be guessed, keys cannot. `name` only
+ * labels the sign, for a repository that chooses to show its own.
+ */
+export function scope(params) {
+  if (params.has("repository")) {
+    throw new Invalid("a repository is found by its counter key (?key=), printed by dry-lint on its default branch");
+  }
+  const key = params.get("key") ?? "";
+  if (!key) return { key: "*", label: "" };
+  if (!/^[0-9a-f]{64}$/.test(key)) throw new Invalid("key must be 64 lower-case hex characters");
+  return { key, label: (params.get("name") ?? "").slice(0, 100) || "this repository" };
 }
 
 export function count(value) {
@@ -83,7 +93,7 @@ const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, s
 
 /**
  * The sign: one number, as large as it gets, and what it counts. For a README, in a <picture> by theme.
- * `scope` is "" for every repository, or a repository's name for its own sign.
+ * `scope` is "" for every repository, or how a repository's own sign names it.
  */
 export function sign(totals, theme = "light", scope = "") {
   const c = THEMES[theme] ?? THEMES.light;
