@@ -219,7 +219,7 @@ def test_same_named_methods_without_a_resolved_base_relation_go_to_the_judge(sou
     assert why_skipped(override["Bulk.entries"], unrelated, Settings()) is None
 
 
-def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(repo: Repo) -> None:
+def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(repo: Repo, monkeypatch) -> None:
     body = "        rows = self.store.read(key)\n        return [row for row in rows if row.revision == key.revision]\n"
     repo.write("src/ops.py", f"class Operation:\n    def possible_entries(self, key):\n{body}")
     repo.write("src/bulk.py", "from src.ops import Operation\n\n\nclass Bulk(Operation):\n"
@@ -229,8 +229,10 @@ def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(re
     [pair] = [c for c in detector.candidates([detector.find("Bulk.possible_entries")])
               if c.existing.qualname == "src/ops.py::Operation.possible_entries"]
     assert pair.filtered == "subclass override"
-    assert {pair.new.qualname, pair.existing.qualname} not in [{c.new.qualname, c.existing.qualname}
-                                                               for c in detector.scan()]
+    names = {pair.new.qualname, pair.existing.qualname}
+    assert names not in [{c.new.qualname, c.existing.qualname} for c in detector.scan()]
+    monkeypatch.setattr(detection, "overrides", lambda method, base: False)
+    assert names in [{c.new.qualname, c.existing.qualname} for c in detector.scan()]  # only the rule keeps it out
 
 
 def test_skipped_pairs_are_listed_with_their_reason(repo: Repo) -> None:
