@@ -208,7 +208,9 @@ def headline(ledger: PullLedger) -> str:
 ICONS = {"kept-out": "✅", "open": "🟡", "dismissed": "⚪"}
 # GitHub sizes a comment's tables to their content. A wide spacer floated into each cell, which GitHub then caps at
 # the comment's width, stretches a table across the comment on any screen while adding only one pixel of height.
-SPREAD = '<img width="2000" height="1" align="left" alt="">'
+# It floats right: GitHub pads a floated image by 20px on the side away from its float, and padding past the left
+# edge never scrolls, where past the right edge it gives the table a scrollbar.
+SPREAD = '<img width="2000" height="1" align="right" alt="">'
 
 
 def pair_line(pair: Pair) -> str:
