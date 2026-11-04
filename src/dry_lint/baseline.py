@@ -4,9 +4,6 @@ The allowance is an exact pair and its logic hashes, never a numeric budget. Rem
 allowances cannot be spent on different pairs or used to reintroduce cleaned code.
 """
 
-import hashlib
-import json
-import re
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote
@@ -14,6 +11,7 @@ from urllib.parse import quote
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from dry_lint.detector import Detector
+from dry_lint.function_index import digest, repository_name
 from dry_lint.models import Candidate, pair_key
 from dry_lint.report import Report
 from dry_lint.settings import Settings
@@ -39,7 +37,7 @@ def contract(settings: Settings) -> str:
             "drift_at",
         }
     )
-    return hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest()
+    return digest(policy)
 
 
 class Entry(BaseModel):
@@ -174,8 +172,7 @@ class Baseline(BaseModel):
         }
 
     def markdown(self, repository: str, branch: str, directory: str) -> str:
-        if not re.fullmatch(r"[\w.-]+/[\w.-]+", repository):
-            raise ValueError("README progress needs --repository OWNER/NAME")
+        repository_name(repository)
         source = f"https://raw.githubusercontent.com/{repository}/{quote(branch, safe='')}/{directory}/progress.json"
         badge = f"https://img.shields.io/endpoint?url={quote(source, safe='')}"
         return (

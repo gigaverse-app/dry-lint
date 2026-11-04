@@ -12,7 +12,7 @@ from dry_lint.cli import main, parser, run_info, settings_for
 from dry_lint.judges.jev import JevJudge
 from dry_lint.models import CandidatesFile
 
-from conftest import EXISTING, Repo, judge_calls
+from conftest import EXISTING, Repo, clear_judge_credentials, judge_calls
 from conftest import TWIN as TWIN_SOURCE
 from conftest import run_cli as run
 
@@ -21,8 +21,8 @@ TWIN = "src/widgets/caption.py::preview_caption_text"
 
 @pytest.fixture(autouse=True)
 def outside_actions(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "TYPESAFE_AI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY",
-                 "CLAUDE_CODE_OAUTH_TOKEN"):
+    clear_judge_credentials(monkeypatch)
+    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY"):
         monkeypatch.delenv(name, raising=False)
 
 

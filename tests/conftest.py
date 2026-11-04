@@ -19,6 +19,12 @@ from dry_lint.store import DirectoryStore, VerdictStore
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 
 
+def clear_judge_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep tests hermetic even when a developer has paid-provider credentials configured."""
+    for name in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def run_script(monkeypatch: pytest.MonkeyPatch, name: str) -> dict:
     """An offline experiment script's globals, loaded with scripts/ importable, as it is when run."""
     monkeypatch.syspath_prepend(str(SCRIPTS))

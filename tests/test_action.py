@@ -14,7 +14,7 @@ from dry_lint import action, sticky
 from dry_lint.action import count_findings, default_branch, ensure_history, resolve_base, resolve_judge, resolve_mode
 from dry_lint.ledger import PullLedger, RepositoryLedger
 
-from conftest import Repo, judge_calls, run_cli
+from conftest import Repo, clear_judge_credentials, judge_calls, run_cli
 
 HEAD, BASE = "c" * 40, "b" * 40
 ANNOTATION = "::warning file=src/a.py,line=3,endLine=9,title=dry-lint::clip looks like src/b.py::shorten"
@@ -135,8 +135,7 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                   "INPUT_COMMENT": "true", "INPUT_CHECK_RUN": "true", "INPUT_WORKING_DIRECTORY": str(tmp_path)}
         values.update({f"INPUT_{k.upper()}": v for k, v in inputs.items() if k != "key"})
         # Hermetic: a developer's or Claude Code's own keys must never reach a judge from a test.
-        for name_ in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
-            monkeypatch.delenv(name_, raising=False)
+        clear_judge_credentials(monkeypatch)
         monkeypatch.delenv("GITHUB_RUN_ATTEMPT", raising=False)  # set when the tests themselves run in Actions
         if "key" in inputs:
             values["TYPESAFE_AI_API_KEY"] = inputs["key"]

@@ -241,7 +241,8 @@ def test_an_incomplete_json_answer_is_retried_once_without_inventing_a_verdict(r
     requests = []
     broken = {"stop_reason": "end_turn", "content": [{"type": "text", "text": '{"label":"separate","why":"cut off'}]}
     complete = {"stop_reason": "end_turn", "content": [{"type": "text", "text": '{"label":"separate","score":0.1}'}]}
-    judge = AnthropicJudge(api_key="k", http_client=claude([broken, complete if recovered else broken], requests))
+    judge = AnthropicJudge(api_key="k", retry_malformed=True,
+                           http_client=claude([broken, complete if recovered else broken], requests))
     if recovered:
         assert judge.judge([CANDIDATE], Settings())[0].label == "separate"
     else:

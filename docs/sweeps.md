@@ -110,5 +110,6 @@ an incomplete run cannot change the baseline. Losing the baseline is an error, n
 
 The CLI and Action tests use temporary Git repositories and real judge subprocesses. They exercise unchanged
 debt, cleanup, reintroduction, policy/allowance tampering, malformed source, incomplete judgments, fork failures,
-read-only audits and idempotent README generation. Malformed Anthropic JSON gets one retry; a second failure
-still fails the scan rather than inventing a verdict.
+read-only audits and idempotent README generation. The Anthropic judge optionally accepts `retry_malformed = true`
+for one retry of malformed JSON; a second failure still fails rather than inventing a verdict. This option can
+make an additional paid request and is off by default, preserving one-attempt replay accounting.

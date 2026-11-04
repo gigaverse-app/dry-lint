@@ -9,13 +9,12 @@ from dry_lint.functions import repository_functions
 from dry_lint.report import Report
 from dry_lint.typescript import TypeScriptExtractor
 
-from conftest import Repo, run_cli
+from conftest import Repo, clear_judge_credentials, run_cli
 
 
 @pytest.fixture(autouse=True)
 def no_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "GEMINI_API_KEY"):
-        monkeypatch.delenv(name, raising=False)
+    clear_judge_credentials(monkeypatch)
 
 
 def sweep(repo: Repo, tmp_path: Path, judge: str, *args: str) -> int:
