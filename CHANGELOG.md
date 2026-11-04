@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2](https://github.com/gigaverse-app/dry-lint/compare/v1.1.1...v1.1.2) (2026-11-04)
+
+
+### Bug Fixes
+
+* **sticky:** group the comparison table by outcome and say who decided each pair ([3b9fe31](https://github.com/gigaverse-app/dry-lint/commit/3b9fe31ed6dceb29611df1e6c1398517e46ac00a))
+* **sticky:** group the comparison table by outcome and say who decided each pair ([3744435](https://github.com/gigaverse-app/dry-lint/commit/3744435a88873db17e6fa326325f5ec20cd32d23))
+
 ## [1.1.1](https://github.com/gigaverse-app/dry-lint/compare/v1.1.0...v1.1.1) (2026-11-04)
 
 
