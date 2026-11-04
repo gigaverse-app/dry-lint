@@ -74,7 +74,7 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(rep
     assert comment.read_text().startswith("<!-- dry-lint -->") and f"`{TWIN.split('::')[1]}`" in comment.read_text()
     assert "blocking" not in comment.read_text()
     written = json.loads(report.read_text())
-    assert written["schema"] == 6 and any(f["reported"] for f in written["findings"])
+    assert written["schema"] == 7 and any(f["reported"] for f in written["findings"])
 
 
 def test_without_a_judge_candidates_are_listed_and_never_fail(repo: Repo, tmp_path: Path, capsys) -> None:
@@ -247,7 +247,7 @@ def test_bad_judge_settings_exit_2(repo: Repo, tmp_path: Path, capsys) -> None:
 
 def test_the_module_runs_as_a_command(repo: Repo) -> None:
     out = subprocess.run([sys.executable, "-m", "dry_lint", "--version"], capture_output=True, text=True, check=True)
-    assert out.stdout == f"dry-lint {__version__}\n"
+    assert out.stdout.strip() == f"dry-lint {__version__}"
 
 
 def test_judge_failures_exit_2_without_a_traceback(repo: Repo, tmp_path: Path, monkeypatch, capsys) -> None:

@@ -48,6 +48,13 @@ jobs:
       # The counter's rules have no dependencies; Node's own test runner checks them.
       - run: node --test
 
+  viewer:
+    name: Test the comparison viewer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: node --test viewer/diff.test.mjs
+
   lint-ci:
     name: Lint the action and workflows
     runs-on: ubuntu-latest
@@ -62,6 +69,7 @@ jobs:
             .github/workflows/observe-ci.yml
             .github/workflows/release.yml
             .github/workflows/counter.yml
+            .github/workflows/viewer.yml
           head-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: shellcheck scripts/install-action.sh
 

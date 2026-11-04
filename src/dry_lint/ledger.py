@@ -28,12 +28,18 @@ from pydantic import BaseModel, Field, ValidationError
 
 from dry_lint import __version__
 from dry_lint.commits import Outcome
-from dry_lint.models import Versioned
+from dry_lint.evidence import PairEvidence
+from dry_lint.models import SCHEMA, Versioned
 from dry_lint.report import BLUE, GRAY, Finding, Report, badge, code, plural
 
 SNAPSHOT = re.compile(r"<!-- dry-lint-ledger (?P<ledger>\{.*?\}) -->")
 RECENT_RUNS = 20
 PUSHES_SHOWN = 30
+EVIDENCE_BYTES = 16_000
+
+
+def comment_json(model: BaseModel) -> str:
+    return model.model_dump_json().replace("<", "\\u003c").replace(">", "\\u003e")
 
 
 class Tally(BaseModel):
@@ -103,6 +109,7 @@ class Pair(BaseModel):
     drifted: bool = Field(default=False, description="Last judged drifted: the two already behaved differently.")
     rewrite: bool = Field(default=False, description="Not a copy: the two functions' structure hashes differ.")
     before_commit: bool = Field(default=False, description="Settled by the pre-commit hook; from a commit's trailer.")
+    evidence: PairEvidence | None = Field(default=None, description="Last reported source coordinates and verdict.")
 
     def concept(self) -> str:
         return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
@@ -142,10 +149,12 @@ class PullLedger(Versioned):
             return self
         named = [*scopes, *[""] * (len(reports) - len(scopes))]
         completed = set(named)
-        ledger = self.model_copy(deep=True)
+        ledger = self.model_copy(deep=True, update={"schema_version": SCHEMA})
         tally = sum((Tally.of(report) for report in reports), Tally())
         findings = [f for report in reports for f in report.findings]
         reported = {f.candidate.key: (f, scope) for report, scope in zip(reports, named) for f in report.findings
+                    if f.reported}
+        evidence = {f.candidate.key: PairEvidence.of(f, report.run) for report in reports for f in report.findings
                     if f.reported}
         head = reports[0].run.head
         if ledger.pushes and ledger.pushes[-1].head == head:
@@ -164,6 +173,7 @@ class PullLedger(Versioned):
             pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
             pair.state, pair.settled, pair.scope, pair.before_commit = "open", None, scope, False  # what CI saw wins
             pair.lines, pair.drifted, pair.rewrite = describe(finding)
+            pair.evidence = evidence[key]
         for outcome in before_commit:
             if outcome.key not in ledger.pairs:
                 ledger.pairs[outcome.key] = Pair(new=outcome.new, existing=outcome.existing, found=ledger.pushed,
@@ -176,6 +186,14 @@ class PullLedger(Versioned):
                 pair.state, pair.settled = "dismissed", ledger.pushed
             elif pair.state == "open" and pair.scope in completed:  # absent only from a check that ran
                 pair.state, pair.settled = "kept-out", ledger.pushed
+        remaining = EVIDENCE_BYTES
+        for pair in reversed(ledger.pairs.values()):
+            if pair.evidence:
+                size = len(comment_json(pair.evidence).encode())
+                if size > remaining:
+                    pair.evidence = None
+                else:
+                    remaining -= size
         return ledger
 
     def contribution(self, key: str, number: int) -> dict:
@@ -190,7 +208,7 @@ class PullLedger(Versioned):
                 "lines_kept_out": sum(pair.lines for pair in self.kept_out()), "version": __version__}
 
     def snapshot(self) -> str:
-        return f"<!-- dry-lint-ledger {self.model_dump_json()} -->"
+        return f"<!-- dry-lint-ledger {comment_json(self)} -->"
 
     @classmethod
     def read(cls, body: str) -> "PullLedger | None":
@@ -237,7 +255,7 @@ def pair_line(pair: Pair) -> str:
     return f"{ICONS[pair.state]} {pair.concept()} · found in push {pair.found}, {where}"
 
 
-def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> str:
+def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, comparisons: str = "") -> str:
     """Cleanup progress first, with the current outcomes and the commits that cleared them."""
     tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
     cleaned = Counter(pair.settled for pair in ledger.pairs.values() if pair.state == "kept-out")
@@ -250,6 +268,8 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> 
     if cleaned[ledger.pushed] and ledger.pushes:
         lines += [f"Latest analyzed commit `{ledger.pushes[-1].head[:7]}` · "
                   f"**+{plural(cleaned[ledger.pushed], 'pair')} cleaned up** ✨", ""]
+    if comparisons:
+        lines += [comparisons, ""]
     lines += ["<details><summary><strong>History and check stats</strong></summary>", "",
               headline(ledger), "", " ".join(badges), "",
               "<sub>Previously reported pairs no longer reported, here or by the pre-commit hook before commit; "

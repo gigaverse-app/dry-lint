@@ -37,4 +37,4 @@ def test_the_trailers_hook_gets_the_commit_message_file_at_the_prepare_commit_ms
     assert (field("stages", "dry-lint-trailers"), field("always_run", "dry-lint-trailers")) == ("[prepare-commit-msg]", "true")
     assert "pass_filenames" not in HOOKS["dry-lint-trailers"]  # pre-commit passes the message file
     args = parser().parse_args([*shlex.split(field("entry", "dry-lint-trailers"))[1:], ".git/COMMIT_EDITMSG"])
-    assert (args.command, str(args.message)) == ("trailers", ".git/COMMIT_EDITMSG")
+    assert (args.command, args.message.as_posix()) == ("trailers", ".git/COMMIT_EDITMSG")
