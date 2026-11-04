@@ -18,7 +18,7 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel
 
-from dry_lint.settings import Escalation, PluginChoice, Settings
+from dry_lint.settings import Discovery, Escalation, PluginChoice, Settings
 
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
@@ -28,6 +28,7 @@ class Preset(BaseModel):
     name: str
     summary: str
     judge: PluginChoice
+    discovery: Discovery = Discovery()
     escalate: Escalation | None = None
     drop_below: float
     report_at: float
@@ -87,14 +88,20 @@ PRESETS = {preset.name: preset for preset in [
            drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=False,
            numbers="opt-in agent-reviewed experiment; 17 true and 7 false evidence reports on 10 development PRs; "
                    "local checks use baseline retrieval, not the historical exploration scheduler"),
+    Preset(name="balanced", summary="Agent-reviewed discovery: protected baseline, paced exploration and persistent budget",
+           judge=PluginChoice(use="anthropic", model="claude-haiku-5-5", prompt_policy="shared-operations", max_tokens=2048,
+                              max_retries=0),
+           discovery=Discovery(enabled=True),
+           drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=False,
+           numbers="production discovery validation in progress; explicit fix/dismiss feedback"),
     Preset(name="none", summary="no judge: candidates are listed, nothing is reported or fails",
            judge=PluginChoice(use="none"), drop_below=0.6, report_at=0.8, fail_at=0.8),
 ]}  # fmt: skip
 
 # "auto" takes the first preset whose credentials are all in the environment; the others must be named.
 AUTO_ORDER = ("jev+opus", "jev+claude-code", "jev", "sonnet", "claude-code", "none")
-LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:], "agent-haiku")
-PRESET_FIELDS = ("judge", "escalate", "drop_below", "report_at", "fail_at")
+LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:], "agent-haiku", "balanced")
+PRESET_FIELDS = ("judge", "escalate", "drop_below", "report_at", "fail_at", "discovery")
 
 
 def auto_preset(environ: Mapping[str, str] | None = None) -> str:

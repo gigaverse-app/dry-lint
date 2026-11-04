@@ -37,7 +37,7 @@ def test_dryer_cli_reports_real_structural_twins(repo: Repo, command: str, capsy
         args += ["--base", "main"]
     assert main(args) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["schema"] == 4
+    assert payload["schema"] == 5
     candidates = payload["candidates"] if command == "detect" else [f["candidate"] for f in payload["findings"]]
     twins = [c for c in candidates if {c["new"]["name"], c["existing"]["name"]} == {"compute", "calculate"}]
     assert all(c["similarity_reusable"] is False for c in candidates)

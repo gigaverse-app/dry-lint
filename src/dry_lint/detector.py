@@ -224,7 +224,21 @@ class Detector:
                 if key not in seen:
                     seen.add(key)
                     found.append(self.pair(function, other, similarity))
-        return rank_candidates(found) if self.cross_repository or self.settings.consolidation else found
+        baseline = rank_candidates(found) if self.cross_repository or self.settings.consolidation else found
+        if self.settings.discovery.enabled and self.settings.comparer.use == "tfidf":
+            # A separate index leaves the baseline's floor, ranks and k unchanged.
+            from dry_lint.comparers import TfidfComparer
+            policy = self.settings.discovery
+            options = self.settings.comparer.options()
+            options.update(min_similarity=policy.min_similarity, min_similarity_small=policy.min_similarity)
+            wider = self.settings.model_copy(update={"neighbours": policy.depth,
+                "discovery": policy.model_copy(update={"enabled": False})})
+            detector = Detector(self.functions, wider, TfidfComparer(**options), self.extractors,
+                                cross_repository=self.cross_repository)
+            keys = {c.key for c in baseline}
+            baseline += [c.model_copy(update={"lane": "exploration"}) for c in detector.candidates(changed)
+                         if c.key not in keys]
+        return baseline
 
     def scan(self) -> list[Candidate]:
         """Every pair in the repository that are each other's nearest neighbour across files: the backlog."""

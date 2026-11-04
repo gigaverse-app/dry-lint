@@ -22,6 +22,7 @@ Duplicates between `report_at` and `fail_at` are reported as warnings and exit 0
 """
 
 import argparse
+import hashlib
 import os
 import subprocess
 import sys
@@ -33,12 +34,14 @@ from dry_lint import __version__
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
+from dry_lint.discovery import CampaignStore
+from dry_lint.feedback import FILENAME, Decision, Feedback
 from dry_lint.git import git
 from dry_lint.github import github_event
 from dry_lint.judges import make_escalation, make_judge
-from dry_lint.judging import Judging, open_store
+from dry_lint.judging import Judging, default_store, open_store
 from dry_lint.labelling import label, labeller, sample, summarise
-from dry_lint.models import Candidate, CandidatesFile, Run
+from dry_lint.models import Candidate, CandidatesFile, Run, evidence
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
 from dry_lint.replay import replay
@@ -81,6 +84,15 @@ def settings_for(root: Path, args: argparse.Namespace) -> Settings:
 def judged(candidates: list[Candidate], settings: Settings, root: Path, args: argparse.Namespace, run: Run,
            changed: int, refresh: bool = False, functions: int = 0, scope: str = "change") -> Report:
     judging = Judging.configured(settings, open_store(settings, root, args.store))
+    if settings.discovery.enabled and scope == "change":
+        if run.pull_request is None:
+            run.session = args.session or run.session or git(root, "symbolic-ref", "--short", "-q", "HEAD", check=False)
+        run.revision = run.revision or run.head
+        path = args.discovery_state or (args.store or default_store(root)) / "discovery.sqlite3"
+        common = (root / git(root, "rev-parse", "--git-common-dir")).resolve()
+        local = hashlib.sha256(str(common).encode()).hexdigest()
+        campaign_run = run.model_copy(update={"repository": run.repository or local})
+        judging.campaign = CampaignStore(path, campaign_run)
     findings = judging.findings(candidates, source=run, refresh=refresh)
     return Report.build(findings, settings, filtered=[c for c in candidates if c.filtered], run=run, changed=changed,
                         judge=judging.name, functions=functions, scope=scope, judging=judging.summary())
@@ -102,11 +114,27 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     changed = touched([f for f in detector.functions if not f.origin or f.origin.repository == primary],
                       changed_lines(root, args.base, args.staged))
     run = run_info(root, args.base)
+    run.revision = git(root, "write-tree") if args.staged else git(root, "rev-parse", "HEAD^{tree}")
     if primary:
         run.repository = primary
-    report = judged(detector.candidates(changed), settings, root, args, run, len(changed),
+    candidates = reviewed(root, detector.candidates(changed), staged=args.staged,
+                          committed=settings.discovery.enabled and not args.staged)
+    report = judged(candidates, settings, root, args, run, len(changed),
                     functions=len(detector.functions))
+    if settings.discovery.enabled and not args.report:
+        target = default_store(root).parent / "last-report.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(as_json(report), encoding="utf-8")
     return finish(report, settings, args)
+
+
+def reviewed(root: Path, candidates: list[Candidate], *, staged: bool = False, committed: bool = False) -> list[Candidate]:
+    if staged or committed:
+        raw = git(root, "show", f"{'' if staged else 'HEAD'}:{FILENAME}", check=False)
+        feedback = Feedback.model_validate_json(raw) if raw else Feedback()
+    else:
+        feedback = Feedback.read(root / FILENAME)
+    return feedback.apply(candidates)
 
 
 def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Detector, str]:
@@ -138,6 +166,8 @@ def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tu
                 raise ValueError("--repo-index expects OWNER/NAME@COMMIT=PATH")
             indexes.append(FunctionIndex.decode(Path(path).read_bytes(), name, commit, extraction_contract(settings)))
         return Detector.for_workspace(roots, settings, indexes=indexes), primary
+    if settings.discovery.enabled and args.command in {"check", "detect"}:
+        return Detector.for_tree(root, "HEAD", settings), ""
     return Detector.for_repository(root, settings), ""
 
 
@@ -158,10 +188,12 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
                           changed_lines(root, args.base, args.staged))
         candidates = detector.candidates(changed)
     run = run_info(root, args.base)
+    run.revision = git(root, "write-tree") if args.staged else git(root, "rev-parse", "HEAD^{tree}")
     if primary:
         run.repository = primary
     found = CandidatesFile(run=run, changed=len(changed), functions=len(detector.functions),
-                           candidates=candidates)
+                           candidates=reviewed(root, candidates, staged=args.staged,
+                                               committed=settings.discovery.enabled and not args.staged))
     text = found.model_dump_json(indent=1)
     if args.out:
         args.out.write_text(text + "\n")
@@ -181,6 +213,31 @@ def judge(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 def report(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     return finish(Report.model_validate_json(args.source.read_text()), settings, args)
+
+
+def feedback(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    source = args.source or default_store(root).parent / "last-report.json"
+    report = Report.model_validate_json(source.read_bytes())
+    matching = [f for f in report.findings if f.candidate.key == args.pair]
+    if len(matching) != 1 or not matching[0].reported:
+        raise ValueError("Choose a reported pair key from this report")
+    candidate = matching[0].candidate
+    revision = git(root, "write-tree")
+    if args.action == "fix":
+        detector = Detector.for_tree(root, revision, settings)
+        functions = {f.qualname: f for f in detector.functions}
+        names = (candidate.new.qualname, candidate.existing.qualname)
+        if all(name in functions for name in names):
+            current = detector.pair(*(functions[name] for name in names), candidate.similarity)
+            if evidence(current) == evidence(candidate):
+                raise ValueError("Stage the repair before recording a fix; the reported source is unchanged")
+    path = root / FILENAME
+    decisions = Feedback.read(path)
+    decisions.decisions.append(Decision(pair=candidate.key, evidence=evidence(candidate), action=args.action,
+        reason=args.reason.strip(), reviewer=args.reviewer.strip(), revision=revision))
+    decisions.write(path)
+    print(f"Recorded {args.action} for {candidate.key} in {FILENAME}; review and stage this file.")
+    return 0
 
 
 def explain(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -331,6 +388,8 @@ def parser() -> argparse.ArgumentParser:
     common.add_argument("--judge", help="Judge plugin, overriding the settings: auto, jev, command, none, or installed.")
     common.add_argument("--judge-command", help="For the command judge: a command reading the candidate on stdin.")
     common.add_argument("--store", type=Path, help="A folder for the verdict store, overriding the settings.")
+    common.add_argument("--session", help="Stable local campaign name; defaults to the branch. Use a new name for a new task.")
+    common.add_argument("--discovery-state", type=Path, help="Persistent SQLite campaign ledger; defaults beside verdicts.")
     common.add_argument("--format", choices=FORMATS, default="text")
     common.add_argument("--output", type=Path, help="Also write the markdown report here, e.g. for a PR comment.")
     common.add_argument("--report", type=Path, help="Also write report.json here.")
@@ -390,11 +449,17 @@ def parser() -> argparse.ArgumentParser:
     measuring.add_argument("--label-budget-usd", type=float, default=5.0,
                            help="With --label: most this run spends on labellers that report their cost.")
     commands.add_parser("config", parents=[common], help="The judging setup this repository would run, and its cost.")
+    reviewing = commands.add_parser("feedback", parents=[common], help="Record a reviewed fix or exact-source dismissal.")
+    reviewing.add_argument("action", choices=("fix", "dismiss"))
+    reviewing.add_argument("pair", help="Pair key shown in the finding.")
+    reviewing.add_argument("--from", dest="source", type=Path, help="Report to review; defaults to the last discovery check.")
+    reviewing.add_argument("--reason", required=True)
+    reviewing.add_argument("--reviewer", required=True, help="Person or coding agent that reviewed the finding.")
     return main
 
 
 COMMANDS = {"check": check, "scan": scan, "detect": detect, "judge": judge, "report": report, "explain": explain,
-            "config": config, "index": index,
+            "config": config, "index": index, "feedback": feedback,
             "bench": bench}
 
 

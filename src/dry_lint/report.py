@@ -70,6 +70,7 @@ class Finding(BaseModel):
                 parts.append("preferred consolidation home: " + "; ".join(
                     target.destination for target in self.candidate.consolidation))
         parts.append(f"similarity {self.candidate.similarity:.2f}")
+        parts.append(f"pair {self.candidate.key}")
         if self.family > 1:
             parts.append(f"{self.family} look-alikes")
         parts.append(f"if they are different concepts, add `{self.suppression()}`")
@@ -94,6 +95,8 @@ class JudgingSummary(BaseModel):
     spend: list[Spend] = Field(default_factory=list)
     spent_before: float = Field(default=0.0, description="What earlier runs on the same pull request spent.")
     pull_request: bool = Field(default=False, description="The budget covered a pull request, not just this run.")
+    campaign: str = ""
+    exploration_credit: float = 0.0
 
     @property
     def usd(self) -> float | None:
@@ -113,10 +116,12 @@ class JudgingSummary(BaseModel):
         thresholds = (f"reports at {self.report_at:g}, fails at {self.fail_at:g}" if self.fail_at > self.report_at
                       else f"reports and fails at {self.report_at:g}")
         usd = self.usd
-        scope = "for this pull request" if self.pull_request else "budget"
+        scope = "for this pull request" if self.pull_request else "for this campaign" if self.campaign else "budget"
         bill = ("cost unknown" if usd is None else
                 f"est. ${usd:.3f}" + (f" (${usd + self.spent_before:.3f} so far)" if self.spent_before else "")
                 + f" of ${self.budget_usd:g} {scope}")
+        if self.campaign:
+            bill = bill.replace("est.", "accounted") + f"; exploration credit ${self.exploration_credit:.4f}"
         calls = sum(s.calls for s in self.spend if s.subscription)
         parts = [f"preset {self.preset}" if self.preset else "", judges, thresholds, bill,
                  f"{calls} subscription calls" if calls else "",

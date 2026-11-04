@@ -9,7 +9,8 @@ from pathlib import Path
 
 import httpx
 
-from dry_lint.costs import Ledger
+from dry_lint.costs import Ledger, Spend, price
+from dry_lint.discovery import CampaignStore, reservation_cost
 from dry_lint.git import git
 from dry_lint.judges import make_escalation, make_judge
 from dry_lint.models import Candidate, Run, Verdict
@@ -89,6 +90,7 @@ class Judging:
         self.settings, self.judge, self.escalation, self.store = settings, judge, escalation, store
         self.ledger = Ledger(settings)
         self.pull_request = False
+        self.campaign: CampaignStore | None = None
 
     @classmethod
     def configured(cls, settings: Settings, store: VerdictStore) -> "Judging":
@@ -110,7 +112,9 @@ class Judging:
             escalation=identity(self.escalation) if self.escalation else None, band=band,
             report_at=self.settings.report_at, fail_at=max(self.settings.report_at, self.settings.fail_at),
             budget_usd=self.settings.budget.usd, subscription_calls=self.settings.budget.subscription_calls,
-            spend=list(self.ledger.spend.values()), spent_before=self.ledger.spent, pull_request=self.pull_request)
+            spend=list(self.ledger.spend.values()), spent_before=self.ledger.spent, pull_request=self.pull_request,
+            campaign=self.campaign.key if self.campaign else "",
+            exploration_credit=self.campaign.snapshot().credit if self.campaign else 0)
 
     def unsure(self, verdict: Verdict) -> bool:
         """A first answer in the escalation band, which the second judge did not replace."""
@@ -122,6 +126,8 @@ class Judging:
         proposed = [c for c in candidates if c.filtered is None]
         if self.judge is None:
             return [Finding(candidate=c) for c in proposed]
+        if self.campaign is not None:
+            return self.discover(proposed, source)
         strict = getattr(self.judge, "context", False) or getattr(self.judge, "strict_version", False)
         version = self.judge.version if refresh or strict else None
         known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict for c in proposed]
@@ -141,3 +147,58 @@ class Judging:
             self.store.add_spent(source, self.ledger.usd)
         return [Finding(candidate=c, verdict=known[i], cached=known[i] is not None and i not in pending,
                         deferred=i in deferred) for i, c in enumerate(proposed)]
+
+    def discover(self, candidates: list[Candidate], source: Run | None) -> list[Finding]:
+        """Production scheduler: exact cached answers, baseline first, then reserved exploration."""
+        assert self.campaign is not None and self.judge is not None
+        if self.escalation is not None:
+            raise ValueError("Scheduled discovery currently uses one judge; disable escalation")
+        judge, campaign = self.judge, self.campaign
+        campaign.advance(self.settings, self.store.spent(source))
+        self.ledger.spent = campaign.snapshot().usd
+        self.pull_request = source is not None and source.pull_request is not None
+        spend = self.ledger.spend.setdefault(identity(judge), Spend(judge=identity(judge)))
+        findings = []
+        baseline_pending = False
+        for candidate in campaign.order(candidates):
+            cached = self.store.lookup(candidate, judge.name, self.settings.reopen_margin,
+                                       judge.version, exact_source=True).verdict
+            if cached is not None:
+                findings.append(Finding(candidate=candidate, verdict=cached, cached=True))
+                continue
+            reservation = None
+            if not (baseline_pending and candidate.lane == "exploration"):
+                reservation = campaign.reserve(candidate, judge, self.settings,
+                                               reservation_cost(judge, candidate, self.settings))
+            if reservation is None:
+                baseline_pending |= candidate.lane == "baseline"
+                spend.skipped += 1
+                findings.append(Finding(candidate=candidate, deferred=True))
+                continue
+            # Reservation is committed before this call. Crashes cannot give its allowance back.
+            tokens = getattr(judge, "tokens", None)
+            before = dict(tokens) if tokens is not None else None
+            verdict, success = None, False
+            try:
+                answers = judge.judge([candidate], self.settings)
+                if len(answers) != 1:
+                    raise ValueError("Judge returned no single verdict")
+                verdict, success = answers[0], True
+            except JUDGE_ERRORS as error:
+                spend.failed += 1
+                spend.error = str(error).splitlines()[0][:200]
+            finally:
+                rates = price(judge, self.settings)
+                actual = None
+                if before is not None and rates is not None and tokens != before:
+                    actual = ((tokens["input"] - before["input"]) * rates[0]
+                              + (tokens["output"] - before["output"]) * rates[1]) / 1_000_000
+                charged = campaign.settle(reservation, actual, success)
+                spend.calls += 1
+                spend.usd += charged
+            if verdict is not None:
+                self.store.remember(candidate, verdict, source)
+            else:
+                baseline_pending |= candidate.lane == "baseline"
+            findings.append(Finding(candidate=candidate, verdict=verdict, deferred=verdict is None))
+        return findings

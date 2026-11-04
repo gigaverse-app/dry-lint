@@ -28,7 +28,7 @@ from typing import Any, NamedTuple
 
 from pydantic import BaseModel, Field
 
-from dry_lint.models import Candidate, Run, Verdict, Versioned
+from dry_lint.models import Candidate, Run, Verdict, Versioned, evidence
 from dry_lint.plugins import StoreBackend
 
 
@@ -42,6 +42,7 @@ class Record(Versioned):
     similarity: float
     similarity_reusable: bool = False
     context_hash: str = ""
+    evidence: str = ""
     verdict: Verdict
     judged_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
     source: Run | None = Field(default=None, description="The run that asked, for tracing a verdict back.")
@@ -153,11 +154,14 @@ class VerdictStore:
         spent = spent.model_copy(update={"usd": spent.usd + usd, "runs": spent.runs + 1})
         self.backend.put(spent_key(run), spent.model_dump_json().encode())
 
-    def lookup(self, candidate: Candidate, judge: str, reopen_margin: float, version: str | None = None) -> Lookup:
+    def lookup(self, candidate: Candidate, judge: str, reopen_margin: float, version: str | None = None,
+               exact_source: bool = False) -> Lookup:
         """The stored verdict if it still holds for the pair as it is now, and why it does or does not."""
         record = self.record(candidate.key)
         if record is None:
             return Lookup(None, "never judged")
+        if exact_source and record.evidence != evidence(candidate):
+            return Lookup(None, "exact source evidence changed")
         verdict = record.verdict
         if record.context_hash != candidate.context_hash:
             return Lookup(None, "source context or consolidation policy changed")
@@ -184,6 +188,7 @@ class VerdictStore:
         sides = sorted([(candidate.new.qualname, candidate.new.hash), (candidate.existing.qualname, candidate.existing.hash)])
         record = Record(key=candidate.key, pair=(sides[0][0], sides[1][0]), hashes=(sides[0][1], sides[1][1]),
                         comparer=candidate.comparer, similarity=candidate.similarity, verdict=verdict, source=source,
-                        similarity_reusable=candidate.similarity_reusable, context_hash=candidate.context_hash)
+                        similarity_reusable=candidate.similarity_reusable, context_hash=candidate.context_hash,
+                        evidence=evidence(candidate))
         self.backend.put(record.key, record.model_dump_json().encode())
         return record
