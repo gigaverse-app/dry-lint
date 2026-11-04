@@ -61,8 +61,8 @@ def is_fork(event: dict) -> bool:
 
 def resolve_mode(requested: str, event_name: str, event: dict) -> str:
     if requested and requested != "auto":
-        if requested not in ("single", "detect", "judge", "index", "fetch-indexes"):
-            raise ValueError(f"Unknown mode: {requested} (use auto, single, detect, judge, index or fetch-indexes)")
+        if requested not in ("single", "detect", "judge", "sweep", "index", "fetch-indexes"):
+            raise ValueError(f"Unknown mode: {requested} (use auto, single, detect, judge, sweep, index or fetch-indexes)")
         return requested
     if event_name == "workflow_run":
         return "judge"
@@ -99,6 +99,10 @@ def judging_options() -> list[str]:
     for name, flag_ in (("INPUT_PRESET", "--preset"), ("INPUT_BUDGET_USD", "--budget-usd")):
         if env(name):
             options += [flag_, env(name)]
+    if flag("INPUT_REQUIRE_COMPLETE"):
+        options.append("--require-complete")
+    if env("INPUT_BASELINE"):
+        options += ["--baseline", env("INPUT_BASELINE")]
     return options
 
 
@@ -173,10 +177,13 @@ def labels_of(pull: dict) -> set[str]:
     return {label.get("name", "") for label in pull.get("labels") or []}
 
 
-def status_note(blocking: int, overridden: bool) -> str:
+def status_note(blocking: int, overridden: bool, baselined: bool = False) -> str:
     """Lead the comment with the effective check status, including advisory mode and overrides."""
     if not blocking:
         return ""
+    if baselined:
+        return (f"> [!CAUTION]\n> **Blocking:** {blocking} new or changed duplicate(s) exceed the baseline. "
+                "Refactor them or document a deliberate distinct concept in code; an override label cannot widen the ratchet.")
     if overridden:
         return (f"> [!NOTE]\n> **Overridden:** the `{override_label()}` label is set, so the {blocking} blocking "
                 "finding(s) do not fail this pull request.")
@@ -445,11 +452,20 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         repositories = ["--repo", f"{env('GITHUB_REPOSITORY')}={root}"]
     repositories.extend(index_arguments)
 
+    if mode == "sweep":
+        code, _ = dry_lint("sweep", "--root", str(root), "--repository", env("GITHUB_REPOSITORY"),
+                          "--branch", (event.get("repository") or {}).get("default_branch", "main"),
+                          "--readme", env("INPUT_SWEEP_README", "README.md"), *repositories, *judging)
+        write_summary(body)
+        write_outputs(mode=mode, exit_code=code)
+        return code
+
     if mode == "detect":
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)
         code, _ = dry_lint("detect", "--root", str(root), "--out", str(work / "candidates.json"),
-                           *(["--base", base] if base else []), *repositories)
+                           *(["--base", base] if base else []), *repositories,
+                           *(["--require-complete"] if flag("INPUT_REQUIRE_COMPLETE") else []))
         write_outputs(mode=mode, exit_code=code, findings=0)
         print(f"::notice title=dry-lint::Candidates saved as the {ARTIFACT} artifact for the judge workflow.")
         return 2 if code == 2 else 0
@@ -457,6 +473,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     if mode == "judge":
         candidates = work / "in" / "candidates.json"
         if not candidates.exists():
+            if flag("INPUT_REQUIRE_COMPLETE"):
+                raise ValueError("Required judging has no candidate artifact; rerun the detection workflow")
             print("::notice title=dry-lint::The triggering run left no candidates; nothing to judge.")
             write_outputs(mode=mode, exit_code=0, findings=0)
             return 0
@@ -472,6 +490,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     else:
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)
+        if env("INPUT_BASELINE") and base:
+            judging += ["--baseline-ref", base]
         code, lines = dry_lint("check", "--root", str(root), *(["--base", base] if base else []), *repositories, *judging)
         pull = event.get("pull_request") or {}
         number, repository, head = pull.get("number") or 0, env("GITHUB_REPOSITORY"), (pull.get("head") or {}).get("sha", "")
@@ -487,6 +507,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         body.write_text(body.read_text() + receipt)
     write_summary(body)
     if code == 2:
+        if mode == "judge":
+            check_run(root, repository, report, transport, blocked=True)
         write_outputs(mode=mode, exit_code=2, findings=findings, blocking=blocking, overridden="false")
         return 2
     if judge == "none":
@@ -495,13 +517,14 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         write_outputs(mode=mode, exit_code=0, findings=0, blocking=0, overridden="false")
         return 0
     blocking = blocking if code == 1 else 0
-    overridden = bool(blocking) and override_label() in labels
+    baselined = bool(env("INPUT_BASELINE"))
+    overridden = bool(blocking) and not baselined and override_label() in labels
     blocked = bool(blocking) and not overridden and not flag("INPUT_WARN_ONLY")
     if overridden:
         print(f"::notice title=dry-lint::{blocking} blocking finding(s) overridden by the `{override_label()}` label.")
     if mode == "judge":
         check_run(root, repository, report, transport, blocked)
-    comment(repository, number, body, findings, head, transport, status_note(blocking, overridden))
+    comment(repository, number, body, findings, head, transport, status_note(blocking, overridden, baselined))
     if branch := default_branch(event_name, event):
         fold(repository, branch, event.get("after", ""), report, transport)
     write_outputs(mode=mode, exit_code=code, findings=findings, blocking=blocking, overridden=str(overridden).lower())

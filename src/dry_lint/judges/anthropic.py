@@ -27,7 +27,7 @@ class AnthropicJudge:
 
     def __init__(self, model: str = "claude-sonnet-5-5", api_key: str | None = None, effort: str | None = None,
                  workers: int = 4, timeout: float = 120, http_client: Any = None,
-                 prompt_policy: str = "concept", max_tokens: int = 8000) -> None:
+                 prompt_policy: str = "concept", max_tokens: int = 8000, retry_malformed: bool = False) -> None:
         if prompt_policy not in PROMPT_POLICIES or max_tokens < 1:
             raise ValueError("Unknown prompt policy or nonpositive output limit")
         try:
@@ -39,6 +39,7 @@ class AnthropicJudge:
             raise ValueError("The anthropic judge needs ANTHROPIC_API_KEY (or use the claude-code judge with a subscription)")
         self.model, self.effort, self.workers = model, effort, workers
         self.prompt_policy, self.max_tokens = prompt_policy, max_tokens
+        self.retry_malformed = retry_malformed
         # An opt-in policy cannot inherit legacy answers, nor contaminate a rollback to the legacy judge.
         self.name = "anthropic" if prompt_policy == "concept" else "anthropic-operations"
         self.strict_version = prompt_policy != "concept" or max_tokens != 8000
@@ -48,7 +49,7 @@ class AnthropicJudge:
         self.client = anthropic.Anthropic(api_key=key, timeout=timeout, http_client=http_client)
         self.tokens = {"input": 0, "output": 0}
 
-    def _ask(self, candidate: Candidate) -> Verdict:
+    def _ask(self, candidate: Candidate, retry: bool = True) -> Verdict:
         options: dict[str, Any] = {"output_config": {"effort": self.effort}} if self.effort else {}
         if self.model in FALLBACK_MODELS:
             options |= {"betas": ["server-side-fallback-2026-07-01"], "fallbacks": "default"}
@@ -60,7 +61,13 @@ class AnthropicJudge:
         if response.stop_reason == "refusal":
             category = getattr(response.stop_details, "category", None)
             raise ValueError(f"{self.model} declined to judge {candidate.new.qualname} ({category})")
-        return parse_verdict("".join(b.text for b in response.content if b.type == "text"), self.name, self.version)
+        try:
+            return parse_verdict("".join(b.text for b in response.content if b.type == "text"), self.name, self.version)
+        except ValueError:
+            if not retry or not self.retry_malformed:
+                raise
+            # Recover one malformed answer without inventing a verdict or discarding a large sweep.
+            return self._ask(candidate, retry=False)
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         with ThreadPoolExecutor(self.workers) as pool:

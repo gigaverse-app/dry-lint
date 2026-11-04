@@ -84,6 +84,11 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Repository adoption baselines use an independent schema 1 and are reviewed policy, not cached verdicts.
+They bind exact pairs and their structure/context hashes to a fixed detection and judging contract. Strict
+checks accept only unchanged remaining entries; sweeps revisit all existing allowances before shrinking them.
+See [sweeps and ratchets](sweeps.md) for the CLI, progress accounting and failure behavior.
+
 Peer extraction snapshots use an independent schema and invalidation contract; see
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.

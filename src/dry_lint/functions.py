@@ -269,7 +269,7 @@ def blob_ids(root: Path) -> dict[str, str]:
 
 
 def repository_functions(root: Path, include: list[str], exclude: list[str], extractors: list[Extractor],
-                         cache: dict[tuple[str, str], list[Function]] | None = None) -> list[Function]:
+                         cache: dict[tuple[str, str], list[Function]] | None = None, *, strict: bool = False) -> list[Function]:
     """
     Every function in the tracked files, each file read by its extractor. With a `cache`, keyed by path and blob id
     and shared across checkouts of one repository, a file whose content was already read is not read again.
@@ -285,8 +285,16 @@ def repository_functions(root: Path, include: list[str], exclude: list[str], ext
             found += cache[key]
             continue
         try:
-            functions = extractor.functions(path, (root / path).read_text(encoding="utf-8"))
+            source = (root / path).read_text(encoding="utf-8")
+            if strict:
+                validate = getattr(extractor, "validate_source", None)
+                if validate is None:
+                    raise ValueError(f"Extractor for {path} does not support strict source validation")
+                validate(path, source)
+            functions = extractor.functions(path, source)
         except (OSError, UnicodeDecodeError):
+            if strict:
+                raise
             continue
         if cache is not None:
             cache[key] = functions

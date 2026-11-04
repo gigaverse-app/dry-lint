@@ -19,6 +19,12 @@ from dry_lint.store import DirectoryStore, VerdictStore
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 
 
+def clear_judge_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep tests hermetic even when a developer has paid-provider credentials configured."""
+    for name in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def run_script(monkeypatch: pytest.MonkeyPatch, name: str) -> dict:
     """An offline experiment script's globals, loaded with scripts/ importable, as it is when run."""
     monkeypatch.syspath_prepend(str(SCRIPTS))
@@ -174,13 +180,14 @@ def load_script(monkeypatch: pytest.MonkeyPatch) -> Callable[[str], dict[str, An
     return load
 
 
-def claude(reply: dict, requests: list, *, status: int = 200) -> anthropic.DefaultHttpxClient:
+def claude(reply: dict | list[dict], requests: list, *, status: int = 200) -> anthropic.DefaultHttpxClient:
     """A real SDK HTTP client whose transport answers every Messages call with `reply`."""
     def answer(request: httpx2.Request) -> httpx2.Response:
         requests.append(request)
+        response = reply[min(len(requests) - 1, len(reply) - 1)] if isinstance(reply, list) else reply
         return httpx2.Response(status, json={"id": "msg_1", "type": "message", "role": "assistant",
                                              "model": "claude-sonnet-5-5", "stop_sequence": None,
-                                             "usage": {"input_tokens": 900, "output_tokens": 120}, **reply})
+                                             "usage": {"input_tokens": 900, "output_tokens": 120}, **response})
     return anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(answer))
 
 

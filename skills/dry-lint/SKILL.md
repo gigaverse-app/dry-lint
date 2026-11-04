@@ -74,6 +74,9 @@ its cost shows as unknown, never as zero. Add prices under `[tool.dry-lint.price
 
 ## 4. Wire it in
 
+Use `gigaverse-app/dry-lint@main` until v1 launches, then `@v1`. Use published major-version tags for
+established Actions (for example, `actions/checkout@v7`); do not substitute commit hashes.
+
 - **GitHub Actions:** [docs/github-action.md](../../docs/github-action.md). Pass the keys as secrets
   (`typesafe-api-key`, `anthropic-api-key`); `fail-at` overrides the threshold per workflow.
 - **pre-commit:** the `dry-lint` hook checks staged functions.
