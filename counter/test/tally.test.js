@@ -9,13 +9,13 @@ const VALID = { repository: REPOSITORY, pull: 12, kept_out: 2, caught: 3, dismis
   judgments: 9, functions: 60, usd: 0.007, version: "0.1.0" };
 const TOTALS = { pulls: 58, repositories: 12, kept_out: 1234, caught: 1400, dismissed: 40, pushes: 300,
   judgments: 5000, functions: 90000, usd: 0.84, pairs: 41000, reused: 15000, drifted_kept_out: 212,
-  rewrites_kept_out: 900, lines_kept_out: 38900 };
+  rewrites_kept_out: 900, lines_kept_out: 38900, measured_pulls: 50, measured_kept_out: 1200, measured_judgments: 5000 };
 
 test("a contribution keeps exactly the counted fields, with missing counts as zero", () => {
   const { version, ...rest } = VALID;
   assert.deepEqual(contribution({ ...rest, unexpected: "dropped" }),
     { ...rest, merged_open: 0, pairs: 0, reused: 0, drifted_kept_out: 0, rewrites_kept_out: 0, lines_kept_out: 0,
-      version: "" });
+      measured_pulls: 0, measured_kept_out: 0, measured_judgments: 0, version: "" });
   assert.equal(contribution(VALID).version, "0.1.0");
 });
 
@@ -79,7 +79,7 @@ test("the sign shows what was kept out, and what was checked to get there, never
   const svg = sign(TOTALS);
   assert.match(svg, />1,200\+</);
   assert.match(svg, />duplicates kept out</);
-  assert.match(svg, />73% rewrites, not copies</);
+  assert.match(svg, />75% rewrites, not copies</);  // of the 1,200 measured, not of all 1,234
   assert.match(svg, />212</);
   assert.match(svg, />drifted copies cleaned up</);
   assert.match(svg, />38,900</);
@@ -88,19 +88,38 @@ test("the sign shows what was kept out, and what was checked to get there, never
     ["41,000", "LOOK-ALIKES COMPARED"], ["75%", "RE-CHECKS SKIPPED"], ["12", "REPOSITORIES TRUST IT"]]) {
     assert.match(svg, new RegExp(`>${value}</text>\\s*<text[^>]*>${label}<`));
   }
-  assert.match(svg, /aria-label="1,234 duplicate functions kept out of codebases, 900 of them rewrites rather than copies, /);
+  assert.match(svg, /aria-label="1,234 duplicate functions kept out of codebases, 900 of those measured rewrites rather than copies, /);
   assert.doesNotMatch(svg, /\$|judging/);
   assert.match(svg, /<image href="data:image\/png;base64,/);
   assert.match(svg, /fill="#FFFFFF"/);
   assert.match(sign(TOTALS, "dark"), /fill="#0D1117"/);
 });
 
-test("a sign from totals counted before drift, lines and rewrites existed shows zeros, not gaps", () => {
-  const { drifted_kept_out, lines_kept_out, rewrites_kept_out, pairs, reused, ...older } = TOTALS;
-  const svg = sign({ ...older, kept_out: 0, judgments: 0 });
-  assert.doesNotMatch(svg, /undefined|NaN/);
+test("a contribution with details is marked measured by the counter, whatever it claims", () => {
+  const detailed = contribution({ ...VALID, pairs: 4, measured_pulls: 9, measured_kept_out: 9 });
+  assert.deepEqual([detailed.measured_pulls, detailed.measured_kept_out, detailed.measured_judgments], [1, 2, 9]);
+  const older = contribution({ ...VALID, measured_pulls: 1, measured_kept_out: 2, measured_judgments: 9 });
+  assert.deepEqual([older.measured_pulls, older.measured_kept_out, older.measured_judgments], [0, 0, 0]);
+});
+
+test("totals from Actions that predate the details read as unknown on the sign, never as zero", () => {
+  const { drifted_kept_out, lines_kept_out, rewrites_kept_out, pairs, reused, measured_pulls, measured_kept_out,
+    measured_judgments, ...older } = TOTALS;
+  const svg = sign(older);
+  assert.doesNotMatch(svg, /undefined|NaN|0%/);
   assert.match(svg, />rewrites, not just copies</);
-  assert.match(svg, />–<\/text>\s*<text[^>]*>RE-CHECKS SKIPPED</);
+  assert.equal(svg.match(/>counted from the next merge</g).length, 2);
+  for (const label of ["LOOK-ALIKES COMPARED", "RE-CHECKS SKIPPED"]) {
+    assert.match(svg, new RegExp(`>–</text>\\s*<text[^>]*>${label}<`));
+  }
+  assert.doesNotMatch(svg, /aria-label="[^"]*(rewrites|drifted|never merged)/);
+  assert.deepEqual(["drifted", "lines", "kept-out"].map((m) => badge(older, m).message), ["–", "–", "1,234"]);
+});
+
+test("a fresh counter shows zeros: nothing has been kept out, so nothing is unknown", () => {
+  const svg = sign({ pulls: 0, repositories: 0, kept_out: 0, judgments: 0, functions: 0 });
+  assert.doesNotMatch(svg, /undefined|NaN|>–<\/text>\s*<text[^>]*>LOOK|counted from the next merge/);
+  assert.match(svg, />0<\/text>\s*<text[^>]*>lines never merged</);
 });
 
 test("a repository's sign names it, escaped, and counts in the singular when it should", () => {

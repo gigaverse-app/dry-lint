@@ -1,0 +1,47 @@
+name: Deploy the global counter
+# The counter runs on Cloudflare (counter/README.md): each push to main that changes it is tested, then deployed, so
+# what is merged is what serves the README sign. Nothing else deploys it.
+on:
+  push:
+    branches: [main]
+    paths: ["counter/**", ".github/workflows/counter.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: counter-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Test and deploy the counter
+    runs-on: ubuntu-latest
+    environment: counter
+    defaults:
+      run:
+        working-directory: counter
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node --test
+      - name: A token to deploy with
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Add a CLOUDFLARE_API_TOKEN secret to the repository or its 'counter' environment (counter/README.md, Where it runs)."
+            exit 1
+          fi
+      - run: npm ci
+      - run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: The deployed counter answers
+        run: |
+          counter=https://dry-lint-counter.gigaverse-oss.workers.dev
+          curl -fsS "$counter/v1/totals?deployed=$GITHUB_SHA" | node -e 'JSON.parse(require("fs").readFileSync(0)).pulls >= 0 || process.exit(1)'
+          curl -fsS -o /dev/null -w '%{content_type}\n' "$counter/v1/sign.svg?deployed=$GITHUB_SHA" | grep -q '^image/svg+xml'

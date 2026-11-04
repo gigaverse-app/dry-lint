@@ -14,7 +14,14 @@ export const LIMITS = {
   judgments: 1_000_000, functions: 1_000_000, usd: 100,
   pairs: 1_000_000, reused: 1_000_000, drifted_kept_out: 1_000, rewrites_kept_out: 1_000, lines_kept_out: 1_000_000,
 };
-export const FIELDS = Object.keys(LIMITS);
+/** What a contribution says about its duplicates beyond counting them: older Actions send none of it. */
+const DETAILS = ["pairs", "reused", "drifted_kept_out", "rewrites_kept_out", "lines_kept_out"];
+/**
+ * Set by the counter, never sent: how much of a contribution was measured in detail. Shares are taken over these,
+ * so totals from Actions that predate the details read as unknown, not as zero.
+ */
+const MEASURED = ["measured_pulls", "measured_kept_out", "measured_judgments"];
+export const FIELDS = [...Object.keys(LIMITS), ...MEASURED];
 /** The fields the totals sum; a pull request's own row keeps the rest. */
 export const TOTALED = FIELDS.filter((field) => !["merged_open", "runs"].includes(field));
 export const PURPLE = "7E4FC9";
@@ -31,7 +38,7 @@ export function contribution(body) {
     throw new Invalid("pull must be a pull request number");
   }
   const entry = { repository: body.repository, pull: body.pull };
-  for (const field of FIELDS) {
+  for (const field of Object.keys(LIMITS)) {
     const value = body[field] ?? 0;
     const whole = field !== "usd";
     if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > LIMITS[field] ||
@@ -46,6 +53,10 @@ export function contribution(body) {
   if (entry.drifted_kept_out > entry.kept_out || entry.rewrites_kept_out > entry.kept_out) {
     throw new Invalid("drifted_kept_out and rewrites_kept_out cannot exceed kept_out");
   }
+  const measured = DETAILS.some((field) => field in body);
+  entry.measured_pulls = measured ? 1 : 0;
+  entry.measured_kept_out = measured ? entry.kept_out : 0;
+  entry.measured_judgments = measured ? entry.judgments : 0;
   entry.version = typeof body.version === "string" ? body.version.slice(0, 32) : "";
   return entry;
 }
@@ -80,10 +91,20 @@ export function dollars(usd) {
   return usd >= 0.1 || usd === 0 ? `$${usd.toFixed(2)}` : usd >= 0.001 ? `$${usd.toFixed(3)}` : "under $0.001";
 }
 
+/** Whether the detailed counts are known: some Action has measured them, or there is nothing to measure yet. */
+function known(totals) {
+  return (totals.measured_pulls ?? 0) > 0 || totals.pulls === 0;
+}
+
+/** A detailed count, or a dash while it is unknown: never a zero that only means "not measured". */
+function measured(totals, value) {
+  return known(totals) ? count(value ?? 0) : "–";
+}
+
 const METRICS = {
   "kept-out": (t) => ["duplicates kept out", count(t.kept_out)],
-  drifted: (t) => ["drifted copies cleaned up", count(t.drifted_kept_out)],
-  lines: (t) => ["duplicate lines never merged", count(t.lines_kept_out)],
+  drifted: (t) => ["drifted copies cleaned up", measured(t, t.drifted_kept_out)],
+  lines: (t) => ["duplicate lines never merged", measured(t, t.lines_kept_out)],
   pulls: (t) => ["pull requests audited", count(t.pulls)],
   functions: (t) => ["functions checked", count(t.functions)],
   repositories: (t) => ["repositories", count(t.repositories)],
@@ -142,13 +163,14 @@ export function sign(totals, theme = "light", scope = "") {
   const kept = totals.kept_out, drifted = totals.drifted_kept_out ?? 0, lines = totals.lines_kept_out ?? 0;
   const rewrites = totals.rewrites_kept_out ?? 0, reused = totals.reused ?? 0, pairs = totals.pairs ?? 0;
   const one = (n, singular, many) => (n === 1 ? singular : many);
+  const detailed = known(totals);
   const [lead, number] = milestone(kept);
   const shown = scope.length > 22 ? `${scope.slice(0, 21)}…` : scope;
   const strip = [
     [count(totals.pulls), one(totals.pulls, "PULL REQUEST AUDITED", "PULL REQUESTS AUDITED")],
     [count(totals.functions), one(totals.functions, "FUNCTION CHECKED", "FUNCTIONS CHECKED")],
-    [count(pairs), one(pairs, "LOOK-ALIKE COMPARED", "LOOK-ALIKES COMPARED")],
-    [percent(reused, reused + totals.judgments), "RE-CHECKS SKIPPED"],
+    [measured(totals, pairs), one(pairs, "LOOK-ALIKE COMPARED", "LOOK-ALIKES COMPARED")],
+    [percent(reused, reused + (totals.measured_judgments ?? 0)), "RE-CHECKS SKIPPED"],
     scope ? [escape(shown), "REPOSITORY"]
       : [count(totals.repositories), one(totals.repositories, "REPOSITORY TRUSTS IT", "REPOSITORIES TRUST IT")],
   ];
@@ -162,11 +184,14 @@ export function sign(totals, theme = "light", scope = "") {
   });
   const label = escape([
     `${count(kept)} ${one(kept, "duplicate function", "duplicate functions")} kept out of ${scope || "codebases"}`,
-    `${count(rewrites)} of them rewrites rather than copies`,
-    `${count(drifted)} drifted ${one(drifted, "copy", "copies")} cleaned up`,
-    `${count(lines)} duplicate ${one(lines, "line", "lines")} never merged`,
+    ...(detailed ? [
+      `${count(rewrites)} of those measured rewrites rather than copies`,
+      `${count(drifted)} drifted ${one(drifted, "copy", "copies")} cleaned up`,
+      `${count(lines)} duplicate ${one(lines, "line", "lines")} never merged`,
+    ] : []),
     `across ${count(totals.pulls)} ${one(totals.pulls, "pull request", "pull requests")}`,
   ].join(", "));
+  const measuredKept = totals.measured_kept_out ?? 0;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="330" viewBox="0 0 1280 330" role="img" aria-label="${label}">
   <title>${label}</title>
   <defs>
@@ -178,10 +203,11 @@ export function sign(totals, theme = "light", scope = "") {
   <circle cx="122" cy="120" r="92" fill="${c.accent}" opacity="0.14"/>
   <image href="${LINT}" x="34" y="32" width="176" height="176"/>
   ${tile(c, 236, c.accent, lead === "OVER" ? `${number}+` : number, one(kept, "duplicate kept out", "duplicates kept out"),
-    kept ? `${percent(rewrites, kept)} rewrites, not copies` : "rewrites, not just copies")}
-  ${tile(c, 580, DRIFT, count(drifted), one(drifted, "drifted copy cleaned up", "drifted copies cleaned up"),
-    "already behaving differently")}
-  ${tile(c, 924, LINES, count(lines), one(lines, "line never merged", "lines never merged"), "of duplicated logic")}
+    measuredKept ? `${percent(rewrites, measuredKept)} rewrites, not copies` : "rewrites, not just copies")}
+  ${tile(c, 580, DRIFT, measured(totals, drifted), one(drifted, "drifted copy cleaned up", "drifted copies cleaned up"),
+    detailed ? "already behaving differently" : "counted from the next merge")}
+  ${tile(c, 924, LINES, measured(totals, lines), one(lines, "line never merged", "lines never merged"),
+    detailed ? "of duplicated logic" : "counted from the next merge")}
   <rect x="1" y="236" width="1278" height="93" fill="${c.strip}" clip-path="url(#card)"/>
   <line x1="1" y1="236" x2="1279" y2="236" stroke="${c.border}" stroke-width="2"/>
   ${cells.join("\n  ")}
