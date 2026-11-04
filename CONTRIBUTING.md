@@ -9,6 +9,10 @@ uv run pytest -q --cov
 uv build
 ```
 
+When changing the action installer, also run `uv run python scripts/test_action_install.py` with Bash and uv
+on PATH. It performs real installs in temporary Python and Node repositories; CI runs it on Linux, macOS and
+Windows. The ordinary pytest suite stays offline.
+
 - **Tests use real objects.** A temporary git repository stands in for a pull request; judges run as real
   subprocesses, or against `httpx.MockTransport`. New code needs full coverage, and a bug fix needs a test of the
   invariant it broke.

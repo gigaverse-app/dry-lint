@@ -16,7 +16,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: gigaverse-app/ci-esta/actions/ci-observability@a3ded1d6b3cf7f555e7cc53050518a93d469e9f2 # v1
+      - uses: gigaverse-app/ci-esta/actions/ci-observability@v1
         with:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
@@ -27,7 +27,7 @@ jobs:
           analyze-critical-path: "true"
           post-sticky: "true"
           sticky-workflow: CI
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ci-report-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
