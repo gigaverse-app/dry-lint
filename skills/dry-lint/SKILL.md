@@ -78,6 +78,10 @@ its cost shows as unknown, never as zero. Add prices under `[tool.dry-lint.price
   (`typesafe-api-key`, `anthropic-api-key`); `fail-at` overrides the threshold per workflow.
 - **pre-commit:** the `dry-lint` hook checks staged functions.
 - **By hand or from an agent:** `dry-lint check` (since the default branch), `dry-lint scan` (the backlog).
+- **For a coding agent's own loop:** a cheap judge with high recall is enough, because the agent judges again:
+  `dry-lint check --staged --preset jev --format json` lists every judged pair with its score; review those from 0.6
+  up. Keep the escalating presets (`jev+opus`) for what people read and what blocks a merge
+  ([who reads the findings](../../docs/judges.md#who-reads-the-findings-people-or-coding-agents)).
 
 ## 5. When it is wrong
 
@@ -87,6 +91,10 @@ A false positive is a decision that belongs next to the code, not in the verdict
 - one function: `# dry-lint: ignore`;
 - a family of deliberate look-alikes: a `[[tool.dry-lint.patterns]]` entry with a `reason`;
 - one pull request: the `dry-lint: override` label.
+
+If you are the coding agent reading a finding, you are its final judge. Open both functions. If they are one
+concept, reuse or extend the existing one rather than keeping the copy. If they are not, add the `distinct-from`
+line with the reason they differ, so no one is asked again.
 
 `dry-lint explain A B` shows why a pair was or was not reported.
 
