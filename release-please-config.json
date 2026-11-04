@@ -7,7 +7,6 @@
       "package-name": "dry-lint",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        "src/dry_lint/__init__.py",
         {"type": "toml", "path": "uv.lock", "jsonpath": "$.package[?(@.name.value=='dry-lint')].version"}
       ]
     }

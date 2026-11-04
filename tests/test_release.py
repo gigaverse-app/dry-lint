@@ -16,9 +16,8 @@ def test_every_written_version_is_the_released_one() -> None:
     assert __version__ == project == locked == released
 
 
-def test_release_please_bumps_each_file_that_writes_the_version() -> None:
+def test_release_please_bumps_the_lock_file_the_python_release_type_does_not_know() -> None:
     package = json.loads((ROOT / "release-please-config.json").read_text())["packages"]["."]
     bumped = {entry if isinstance(entry, str) else entry["path"] for entry in package["extra-files"]}
-    assert package["release-type"] == "python"  # bumps pyproject.toml itself
-    assert bumped == {"src/dry_lint/__init__.py", "uv.lock"}
-    assert "x-release-please-version" in (ROOT / "src/dry_lint/__init__.py").read_text()
+    assert package["release-type"] == "python"  # bumps pyproject.toml and src/dry_lint/__init__.py itself
+    assert bumped == {"uv.lock"}
