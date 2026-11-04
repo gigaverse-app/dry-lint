@@ -2,6 +2,7 @@ import pytest
 
 from dry_lint import detector as detection
 from dry_lint.detector import Detector, base_ref, changed_lines, default_base, touched, why_skipped
+from dry_lint.extractors import PythonExtractor
 from dry_lint.settings import Pattern, PluginChoice, Settings
 
 from conftest import Repo, function
@@ -262,3 +263,56 @@ def test_schema_identity_ranks_the_real_twin_above_unrelated_serializer_glue(rep
     candidates = detector.candidates([changed])
     assert [pair.existing.path for pair in candidates] == ["src/b_existing.py"]
     assert candidates[0].comparer == "tfidf:2"
+
+
+class TableComparer:
+    """Look-alikes from a fixed table of similarities, so a test states its neighbours instead of tuning TF-IDF."""
+
+    name, version = "table", "1"
+
+    def __init__(self, table: dict[tuple[str, str], float]) -> None:
+        self.table = {**table, **{(b, a): score for (a, b), score in table.items()}}
+
+    def index(self, functions) -> None:
+        self.functions = {f.name: f for f in functions}
+
+    def neighbours(self, function, k, allowed):
+        near = [(self.functions[b], score) for (a, b), score in self.table.items()
+                if a == function.name and allowed(self.functions[b])]
+        return sorted(near, key=lambda pair: -pair[1])[:k]
+
+    def similarity(self, a, b) -> float:
+        return self.table.get((a.name, b.name), 0.0)
+
+
+RECOVERY = {("recovered_delivery", "recover_and_deliver"): 0.63, ("recover_and_deliver", "recover_lost_deliveries"): 0.51}
+
+
+def recovery_detector() -> Detector:
+    """due#183: each fix touched the next copy, so the three surfaced one push at a time."""
+    functions = [function(path, f"def {name}(work):\n    return deliver(work)\n") for path, name in (
+        ("suite.py", "recovered_delivery"), ("composition.py", "recover_and_deliver"),
+        ("scenarios.py", "recover_lost_deliveries"))]
+    return Detector(functions, Settings(), TableComparer(RECOVERY), [PythonExtractor()])
+
+
+def test_the_existing_sides_other_copies_are_proposed_as_relatives_of_their_pair() -> None:
+    detector = recovery_detector()
+    candidates = detector.candidates([detector.find("recovered_delivery")])
+    assert [(c.lane, c.new.name, c.existing.name) for c in candidates] == [
+        ("baseline", "recovered_delivery", "recover_and_deliver"),
+        ("relative", "recover_and_deliver", "recover_lost_deliveries")]
+    assert candidates[1].parent == candidates[0].key and candidates[1].similarity == 0.51
+
+
+def test_a_changed_existing_side_has_its_look_alikes_proposed_directly_not_as_relatives() -> None:
+    detector = recovery_detector()
+    candidates = detector.candidates([detector.find("recovered_delivery"), detector.find("recover_and_deliver")])
+    assert {c.lane for c in candidates} == {"baseline"} and len(candidates) == 2
+
+
+def test_a_pair_a_rule_settles_brings_no_relatives() -> None:
+    detector = recovery_detector()
+    detector.settings = Settings(patterns=[Pattern(members="*recover*", reason="one recovery per surface")])
+    candidates = detector.candidates([detector.find("recovered_delivery")])
+    assert [(c.lane, c.filtered is not None) for c in candidates] == [("baseline", True)]
