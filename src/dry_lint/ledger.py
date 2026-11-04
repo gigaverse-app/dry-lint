@@ -123,7 +123,8 @@ class PullLedger(Versioned):
         return sum(pair.state == state for pair in self.pairs.values())
 
     def kept_out(self) -> list[Pair]:
-        return [pair for pair in self.pairs.values() if pair.state == "kept-out"]
+        """The duplicates kept out whose details were recorded: a pair an older version reported has none."""
+        return [pair for pair in self.pairs.values() if pair.state == "kept-out" and pair.lines]
 
     def advance(self, reports: list[Report], run: str = "", scopes: list[str] = ()) -> "PullLedger":
         """
@@ -171,7 +172,7 @@ class PullLedger(Versioned):
                 "kept_out": self.count("kept-out"), "caught": len(self.pairs), "dismissed": self.count("dismissed"),
                 "merged_open": self.count("open"), "pushes": self.pushed, "runs": self.tally.runs,
                 "judgments": self.tally.judgments, "functions": self.tally.functions, "pairs": self.tally.pairs,
-                "reused": self.tally.reused, "usd": round(self.tally.usd, 6),
+                "reused": self.tally.reused, "usd": round(self.tally.usd, 6), "measured_kept_out": len(self.kept_out()),
                 "drifted_kept_out": sum(pair.drifted for pair in self.kept_out()),
                 "rewrites_kept_out": sum(pair.rewrite for pair in self.kept_out()),
                 "lines_kept_out": sum(pair.lines for pair in self.kept_out()), "version": __version__}

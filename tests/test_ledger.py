@@ -280,6 +280,15 @@ def test_the_counter_hears_how_large_drifted_and_rewritten_the_duplicates_kept_o
     assert ledger.count("kept-out") == 2 and ledger.count("open") == 1
     assert (sent["drifted_kept_out"], sent["rewrites_kept_out"], sent["lines_kept_out"]) == (1, 1, 2 + 2)
     assert (sent["pairs"], sent["reused"]) == (ledger.tally.pairs, ledger.tally.reused) == (4, 0)
+    assert sent["measured_kept_out"] == 2
+
+
+def test_a_duplicate_reported_before_an_upgrade_is_kept_out_but_never_claimed_as_measured() -> None:
+    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")
+    ledger.pairs[pair().key].lines = 0  # what a version without details recorded
+    ledger = ledger.advance([push("b" * 40)], run="2")
+    sent = ledger.contribution("o/r", 7)
+    assert (sent["kept_out"], sent["measured_kept_out"], sent["lines_kept_out"], sent["rewrites_kept_out"]) == (1, 0, 0, 0)
 
 
 def test_a_renamed_copy_is_not_a_rewrite_and_a_pair_without_hashes_is_not_counted_as_one() -> None:
