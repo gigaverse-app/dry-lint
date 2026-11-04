@@ -3,6 +3,7 @@
 ```yaml
 - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
   with:
+    ref: ${{ github.event.pull_request.head.sha || github.sha }}
     fetch-depth: 1
 - uses: gigaverse-app/dry-lint@main
   with:
@@ -12,6 +13,11 @@
 That is the whole setup for a repository whose pull requests come from its own branches. Copy
 [examples/dry-lint.yml](../examples/dry-lint.yml). If you also accept pull requests from forks, add
 [examples/dry-lint-judge.yml](../examples/dry-lint-judge.yml).
+
+Check out the PR head from the event. GitHub can refresh its synthetic merge ref with newer base-branch commits
+after the event was created. Comparing that merged checkout with the event's older base SHA can report functions
+the PR never changed. The head ref above keeps detection and source links on the same commit; push events use
+their event SHA. The separate trusted judge workflow still checks out the default branch for its settings.
 
 ## What a pull request gets
 

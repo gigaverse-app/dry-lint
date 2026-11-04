@@ -17,7 +17,11 @@ are feedback; bypasses, unavailable judges and unreviewed disappearances remain 
   independently review fresh PRs with new positive families and negative controls. Physical research cap: $5.
 - [x] Feedback design: controlled threshold changes from confirmed outcomes; retain an unbiased exploration/audit
   sample and separate agent-loop utility from autonomous blocking quality. No automatic global threshold changes.
-- [ ] Full tests, Ruff, build, detector self-check, exact-head CI and Conventional Commits PR titles.
+- [x] Full tests, Ruff, build, detector self-check, exact-head CI and Conventional Commits PR titles.
 
 Pre-push snapshot support is deferred: this adoption uses commit hooks. The replay scheduler is experimental;
 local budgets remain estimated per invocation. Results and promotion decision: docs/agent-feedback-experiment.md.
+
+Final implementation validation: CI passed on 618a6b9 (Python 3.11/3.13). Local full suite before the final
+focused regressions: 788 passed, 100% coverage. Consumer validation also fixed isolated uv installation and
+PR-head checkout; final documentation-only CI is checked separately.

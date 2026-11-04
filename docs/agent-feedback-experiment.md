@@ -89,7 +89,9 @@ duplicate with live Haiku, preserved an unstaged repair, and accepted the next c
 Python and TypeScript staged-source regressions cover the snapshot behavior. The hook runs at commit time;
 pre-push snapshot support is not implemented. Local budget is estimated per invocation, unlike the cumulative,
 usage-priced research budget. Consumer adoption exposed and fixed an action installer bug where application uv
-constraints leaked into the tool's isolated environment.
+constraints leaked into the tool's isolated environment. It also exposed synthetic merge-ref drift: a refreshed
+merge checkout contained newer main functions absent from the event base. The consumer and example workflows
+now check out the event's PR head explicitly so unrelated main changes cannot become this PR's findings.
 
 Before making this `balanced`: implement the scheduler through the production ledger, bound repeated interruptions
 without permanently hiding candidates, validate a feedback loop where repairs and explicit dismissals change future

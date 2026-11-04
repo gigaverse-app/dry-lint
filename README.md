@@ -102,6 +102,7 @@ them. To use another judge, pass `--judge command --judge-command "your-llm-cli"
 ```yaml
 - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
   with:
+    ref: ${{ github.event.pull_request.head.sha || github.sha }}
     fetch-depth: 1
 - uses: gigaverse-app/dry-lint@main
   with:
