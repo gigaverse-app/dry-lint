@@ -159,12 +159,15 @@ runs:
         PLUGINS: ${{ inputs.plugins }}
       # One Python and the locked parser versions: a function index is reusable only between runs whose
       # extraction contract (dry-lint, Python, tree-sitter) matches, so publishers and consumers must agree.
+      # --no-config: these commands run in the consumer's checkout, and its uv settings (such as a
+      # `[tool.uv] constraint-dependencies` cap) would otherwise apply to dry-lint's locked install and can conflict.
       run: |
-        uv venv --quiet --allow-existing --python 3.13 "$RUNNER_TEMP/dry-lint-venv"
+        uv venv --quiet --no-config --allow-existing --python 3.13 "$RUNNER_TEMP/dry-lint-venv"
         locked="$RUNNER_TEMP/dry-lint-requirements.txt"
-        uv export --quiet --project "$GITHUB_ACTION_PATH" --frozen --no-dev --no-emit-project --no-hashes -o "$locked"
+        uv export --quiet --no-config --project "$GITHUB_ACTION_PATH" --frozen --no-dev --no-emit-project --no-hashes \
+          -o "$locked"
         mapfile -t extra < <(printf '%s\n' "$PLUGINS" | sed '/^[[:space:]]*$/d')
-        uv pip install --quiet --python "$RUNNER_TEMP/dry-lint-venv" -r "$locked" --constraint "$locked" \
+        uv pip install --quiet --no-config --python "$RUNNER_TEMP/dry-lint-venv" -r "$locked" --constraint "$locked" \
           "$GITHUB_ACTION_PATH" "${extra[@]}"
         echo "$RUNNER_TEMP/dry-lint-venv/bin" >> "$GITHUB_PATH"
     - name: Install the claude CLI
