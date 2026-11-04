@@ -4,7 +4,9 @@ Install Python 3.11+ and [uv](https://docs.astral.sh/uv/), then:
 
 ```bash
 uv sync --locked
+uvx pre-commit install
 uv run ruff check .
+uv run ruff format .
 uv run pytest -q --cov
 uv build
 ```
