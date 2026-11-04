@@ -56,12 +56,16 @@ export function validSource(source) {
 }
 
 export function decode(fragment) {
-  if (!fragment.startsWith('#v1=') || fragment.length > 12000) throw new Error('Invalid or oversized comparison link. Use the GitHub source links.');
+  if (!/^#v[12]=/.test(fragment) || fragment.length > 12000) throw new Error('Invalid or oversized comparison link. Use the GitHub source links.');
   const encoded = fragment.slice(4).replaceAll('-', '+').replaceAll('_', '/');
   const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
   const data = JSON.parse(new TextDecoder().decode(bytes));
-  if (data.schema !== 1 || !validSource(data.evidence?.a) || !validSource(data.evidence?.b) || (data.result != null && !validSource(data.result))) {
+  if (data.schema !== Number(fragment[2]) || !validSource(data.evidence?.a) || !validSource(data.evidence?.b) || (data.result != null && !validSource(data.result))) {
     throw new Error('Unsupported comparison evidence. Use the GitHub source links.');
+  }
+  if (data.schema === 2 && (!Array.isArray(data.helpers) || data.helpers.length > 5 || data.helpers.some(helper =>
+    !validSource(helper) || !data.result || ['repository', 'revision', 'path'].some(key => helper[key] !== data.result[key])))) {
+    throw new Error('Invalid helper references. Use the GitHub source links.');
   }
   return data;
 }
