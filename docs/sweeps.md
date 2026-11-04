@@ -57,7 +57,7 @@ Budget changes and human pattern decisions do not change that detection contract
 ## Make the CI check required
 
 ```yaml
-- uses: gigaverse-app/dry-lint@main # pin the reviewed release/commit when adopting
+- uses: gigaverse-app/dry-lint@main
   with:
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
     plugins: anthropic==2.4.0

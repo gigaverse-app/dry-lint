@@ -8,7 +8,8 @@ execution. A cache of previously judged pairs alone cannot discover a new functi
 
 Put this workflow at **`.github/workflows/dry-lint-index.yml`** in every participating repository. Consumers verify
 this path and the producing run, so another workflow cannot supply an index merely by choosing its artifact name.
-Pin the same reviewed dry-lint commit and extraction options in publishers and consumers.
+Use `gigaverse-app/dry-lint@main` in publishers and consumers until v1 launches, then use `@v1`.
+Keep their extraction options compatible; the index contract checks and rebuilds incompatible snapshots.
 
 ```yaml
 name: dry-lint function index
@@ -29,7 +30,7 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
-      - uses: gigaverse-app/dry-lint@main # pin a reviewed commit in production
+      - uses: gigaverse-app/dry-lint@main
         with:
           mode: index
 ```
@@ -41,7 +42,7 @@ and Contents read** access to all peers. Artifact access follows GitHub reposito
 ## Consume
 
 ```yaml
-- uses: gigaverse-app/dry-lint@main # pin the publisher's reviewed commit
+- uses: gigaverse-app/dry-lint@main
   with:
     repository-indexes: |
       acme/mobile@main

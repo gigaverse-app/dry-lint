@@ -1,5 +1,8 @@
 # GitHub Action
 
+Use `gigaverse-app/dry-lint@main` until v1 launches, then use `@v1`. Use published major-version tags
+for established Actions, such as `actions/checkout@v7`.
+
 Create `.github/workflows/dry-lint.yml` using the [complete quick start](../README.md#add-it-to-github-actions)
 or copy [the extended workflow](../examples/dry-lint.yml), which also handles default-branch pushes and
 override-label changes. To add dry-lint to an existing job, these are the only steps needed:
