@@ -35,7 +35,7 @@ from dry_lint.function_index import export_index
 from dry_lint.git import git
 from dry_lint.github import github_event
 from dry_lint.index_github import IndexClient
-from dry_lint.ledger import PullLedger, RepositoryLedger, Tally
+from dry_lint.ledger import PullLedger, RepositoryLedger, Tally, counter_key
 from dry_lint.report import Report
 from dry_lint.settings import Settings
 
@@ -277,6 +277,8 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
     if report.exists():
         ledger.add_run(Tally.of(Report.model_validate_json(report.read_text())), sticky.run_id())
     outcome = "folded"
+    repository_id = env("GITHUB_REPOSITORY_ID")
+    key = counter_key(repository_id) if sharing() and repository_id else ""
     token = env("GITHUB_TOKEN")
     if token:
         github = sticky.GitHub(token, env("GITHUB_API_URL", "https://api.github.com"), transport)
@@ -290,13 +292,16 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
                 found = [pulled for c in sticky.ours(github.comments(repository, number))
                          if (pulled := PullLedger.read(c.get("body", ""))) is not None]
                 if found:
-                    ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs), sharing())
+                    ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs), key)
                 else:
                     ledger.unaccounted.append(number)
         except httpx.HTTPError as error:
             print(f"::warning title=dry-lint::Could not read merged pull requests for the ledger: {error}")
             outcome = "partial"
     share(ledger, transport)
+    if key:
+        print(f"dry-lint: this repository's counter key is {key}; its sign is "
+              f"{env('DRY_LINT_COUNTER', COUNTER)}/v1/sign.svg?key={key}")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(ledger.model_dump_json(indent=2) + "\n")
     return outcome
@@ -308,8 +313,8 @@ def sharing() -> bool:
 
 def share(ledger: RepositoryLedger, transport: httpx.BaseTransport | None = None) -> int:
     """
-    Send the global counter what it has not confirmed: one merged pull request's counts each, under the hash of
-    the repository's name. It counts each pull request once, so a resend is harmless, and what fails stays in
+    Send the global counter what it has not confirmed: one merged pull request's counts each, under the
+    repository's counter key (ledger.counter_key). It counts each pull request once, so a resend is harmless, and what fails stays in
     the outbox for the next push. Never fails the run; `share-totals: "false"` sends nothing and empties it.
     """
     if not sharing():

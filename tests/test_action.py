@@ -12,7 +12,7 @@ from test_report import finding
 
 from dry_lint import action, sticky
 from dry_lint.action import count_findings, default_branch, ensure_history, resolve_base, resolve_judge, resolve_mode
-from dry_lint.ledger import PullLedger, RepositoryLedger
+from dry_lint.ledger import PullLedger, RepositoryLedger, counter_key
 
 from conftest import Repo, judge_calls
 
@@ -88,7 +88,7 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         event = tmp_path / "event.json"
         event.write_text(json.dumps(payload))
         values = {"GITHUB_EVENT_NAME": name, "GITHUB_EVENT_PATH": str(event), "GITHUB_REPOSITORY": "acme/shop",
-                  "GITHUB_RUN_ID": "55", "GITHUB_OUTPUT": str(tmp_path / "output"), "GITHUB_TOKEN": "token",
+                  "GITHUB_REPOSITORY_ID": "4242", "GITHUB_RUN_ID": "55", "GITHUB_OUTPUT": str(tmp_path / "output"), "GITHUB_TOKEN": "token",
                   "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"), "RUNNER_TEMP": str(tmp_path / "runner"),
                   "INPUT_COMMENT": "true", "INPUT_CHECK_RUN": "true", "INPUT_WORKING_DIRECTORY": str(tmp_path)}
         values.update({f"INPUT_{k.upper()}": v for k, v in inputs.items() if k != "key"})
@@ -837,14 +837,17 @@ def test_a_merged_pull_requests_ledger_reaches_the_next_pull_requests_comment(
 # The global counter: each merged pull request's counts, once, unless the repository opts out.
 
 
-def test_merged_pull_requests_are_shared_with_the_counter_by_hash_once(github_env, tmp_path) -> None:
+def test_merged_pull_requests_are_shared_with_the_counter_under_a_key_the_name_does_not_give(
+        github_env, tmp_path, capsys) -> None:
     github_env("push", MAIN_PUSH)
     github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
                         elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]})
     action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
     action.fold("acme/shop", "main", "d" * 40, tmp_path / "no-report.json", httpx.MockTransport(github))
     [sent] = github.counted
-    assert sent["repository"] == hashlib.sha256(b"acme/shop").hexdigest() and "acme" not in json.dumps(sent)
+    assert sent["repository"] == counter_key("4242") and "acme" not in json.dumps(sent)
+    assert hashlib.sha256(b"acme/shop").hexdigest() not in json.dumps(sent)  # the name, even hashed, is not sent
+    assert f"counter key is {sent['repository']}; its sign is " in capsys.readouterr().out
     assert {k: sent[k] for k in ("pull", "kept_out", "caught", "dismissed", "merged_open", "pushes", "runs")} == {
         "pull": 3, "kept_out": 1, "caught": 1, "dismissed": 0, "merged_open": 0, "pushes": 2, "runs": 2}
     assert sent["usd"] == 0.004 and sent["version"] and saved_ledger().outbox == []
@@ -859,6 +862,17 @@ def test_an_unavailable_counter_is_retried_on_the_next_push(github_env, tmp_path
     github.counter_status = 200
     action.fold("acme/shop", "main", "d" * 40, tmp_path / "no-report.json", httpx.MockTransport(github))
     assert [sent["pull"] for sent in github.counted] == [3] and saved_ledger().outbox == []
+
+
+def test_without_a_repository_id_nothing_is_shared_but_the_ledger_still_counts(
+        github_env, tmp_path, monkeypatch, capsys) -> None:
+    github_env("push", MAIN_PUSH)
+    monkeypatch.delenv("GITHUB_REPOSITORY_ID")
+    github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
+                        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")))]})
+    action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
+    assert github.counted == [] and saved_ledger().pulls == [3] and saved_ledger().outbox == []
+    assert "counter key" not in capsys.readouterr().out
 
 
 def test_a_repository_that_opts_out_shares_nothing(github_env, tmp_path) -> None:
