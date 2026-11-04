@@ -206,6 +206,7 @@ def test_provider_failure_is_accounted_without_sdk_retry(setup, tmp_path):
     assert report.deferred == 1 and len(calls) == 1
     assert state.usd == reservation_cost(judge, coverage_pair(1), settings)
     assert report.judging.spend[0].failed == 1
+    assert "deferred; accounted attempts can retry on a later tree" in report.judging.line()
 
 
 def test_broken_plugin_response_cannot_clear_a_pair_or_refund_the_attempt(setup, tmp_path):
