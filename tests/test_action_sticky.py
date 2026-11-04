@@ -21,8 +21,9 @@ class FakeGitHub:
 
     def __init__(self, comments: list[str] = (), head: str = HEAD, write_status: int = 200, banner: int = 404,
                  labels: list[str] = (), merged: list[dict] = (), elsewhere: dict[int, list[str]] | None = None,
-                 pulls_status: int = 200, counter_status: int = 200):
+                 pulls_status: int = 200, counter_status: int = 200, commits: list[str] = (), commits_status: int = 200):
         self.comments = [{"id": i + 1, "body": body} for i, body in enumerate(comments)]
+        self.commits, self.commits_status = [{"commit": {"message": m}} for m in commits], commits_status
         self.merged, self.elsewhere, self.pulls_status = list(merged), elsewhere or {}, pulls_status
         self.counter_status, self.counted = counter_status, []
         self.labels = [{"name": name} for name in labels]
@@ -40,6 +41,9 @@ class FakeGitHub:
             return httpx.Response(self.counter_status, json={"counted": True})
         if method == "GET" and path == f"/repos/{REPO}/pulls/{PR}":
             return httpx.Response(200, json={"head": {"sha": self.head}, "labels": self.labels})
+        if method == "GET" and path == f"/repos/{REPO}/pulls/{PR}/commits":
+            page, size = int(request.url.params["page"]), int(request.url.params["per_page"])
+            return httpx.Response(self.commits_status, json=self.commits[(page - 1) * size: page * size])
         if method == "GET" and path == f"/repos/{REPO}/pulls":
             return httpx.Response(self.pulls_status, json=self.merged)
         if method == "GET" and (other := re.fullmatch(rf"/repos/{REPO}/issues/(\d+)/comments", path)) and \
@@ -381,3 +385,23 @@ def test_the_repositorys_totals_follow_the_pull_requests_own(tmp_path: Path, mon
     fake = FakeGitHub()
     post(fake, tmp_path, push("c" * 40), "5", "--repository-ledger", str(saved))
     assert "<sub>🏆 `acme/shop` since Oct 1, 2026: **1 duplicate kept out of the codebase**" in fake.stickies()[0]
+
+
+def test_the_sticky_counts_what_the_commits_say_the_pre_commit_hook_kept_out() -> None:
+    trailer = "Dry-Lint-Kept-Out: ab7719f1ec3f9b70 format_price ≈ money (6 lines)"
+    fake = FakeGitHub(commits=["feat: prices", f"fix: reuse money\n\n{trailer}"])
+    upsert(client(fake), REPO, PR, REPORT, 1, reports=[push("a" * 40)], run="1")
+    assert ledger_of(fake).pairs["ab7719f1ec3f9b70"].before_commit
+    assert "kept out before commit, by the pre-commit hook" in fake.stickies()[0]
+
+
+def test_the_sticky_still_posts_when_the_token_cannot_read_the_commits() -> None:
+    fake = FakeGitHub(commits=["fix: x\n\nDry-Lint-Kept-Out: ab7719f1ec3f9b70 a ≈ b"], commits_status=403)
+    assert upsert(client(fake), REPO, PR, REPORT, 1, reports=[push("a" * 40)], run="1") == "created"
+    assert ledger_of(fake).pairs == {}
+
+
+def test_the_sticky_reads_every_page_of_a_long_pull_request_s_commits() -> None:
+    trailer = "Dry-Lint-Kept-Out: ab7719f1ec3f9b70 format_price ≈ money"
+    fake = FakeGitHub(commits=[*(["chore: x"] * sticky.PAGE), f"fix: last\n\n{trailer}"])
+    assert client(fake).commit_messages(REPO, PR)[-1].endswith(trailer)

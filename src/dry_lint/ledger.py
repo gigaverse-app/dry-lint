@@ -9,6 +9,9 @@ The ledger: what dry-lint has cost and caught, across a pull request's pushes an
   is one whose scope (the local check, or the check against peer repositories) did not report on that push: a
   check that did not run cannot say the duplicate is gone. A pair from an older ledger, which never recorded its
   scope, stays open until a push reports it again (and so names its scope) or a person settles it.
+- **A duplicate the pre-commit hook blocked** and saw fixed, or dismissed, before any push arrives in the commits'
+  trailers (`dry-lint.commits`). It joins the pull request's pairs as settled before commit, unless a push has
+  reported the pair itself: what CI saw wins.
 - **A repository's ledger** is folded on the default branch: each push there adds its own run, and the final ledger
   of every pull request merged since, once. It lives beside the verdicts in the Actions cache, where every pull
   request can read it, and says since when it counts: losing the cache starts it again, never invents figures.
@@ -24,6 +27,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, ValidationError
 
 from dry_lint import __version__
+from dry_lint.commits import Outcome
 from dry_lint.models import Versioned
 from dry_lint.report import BLUE, GRAY, Finding, Report, badge, code, plural
 
@@ -98,6 +102,7 @@ class Pair(BaseModel):
     lines: int = Field(default=0, description="Lines in the new function when last reported.")
     drifted: bool = Field(default=False, description="Last judged drifted: the two already behaved differently.")
     rewrite: bool = Field(default=False, description="Not a copy: the two functions' structure hashes differ.")
+    before_commit: bool = Field(default=False, description="Settled by the pre-commit hook; from a commit's trailer.")
 
     def concept(self) -> str:
         return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
@@ -125,10 +130,12 @@ class PullLedger(Versioned):
     def kept_out(self) -> list[Pair]:
         return [pair for pair in self.pairs.values() if pair.state == "kept-out"]
 
-    def advance(self, reports: list[Report], run: str = "", scopes: list[str] = ()) -> "PullLedger":
+    def advance(self, reports: list[Report], run: str = "", scopes: list[str] = (),
+                before_commit: list[Outcome] = ()) -> "PullLedger":
         """
         This ledger with one more run added; the same ledger if that run was counted already. `scopes` names each
         report's scope ("" when not given); only the scopes that reported can settle the pairs they found.
+        `before_commit` is what the pull request's commit trailers say the pre-commit hook settled.
         """
         if not reports or (run and run in self.runs):
             return self
@@ -154,8 +161,13 @@ class PullLedger(Versioned):
         for key, (finding, scope) in reported.items():
             names = [side.qualname.split("::", 1)[1] for side in (finding.candidate.new, finding.candidate.existing)]
             pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
-            pair.state, pair.settled, pair.scope = "open", None, scope
+            pair.state, pair.settled, pair.scope, pair.before_commit = "open", None, scope, False  # what CI saw wins
             pair.lines, pair.drifted, pair.rewrite = describe(finding)
+        for outcome in before_commit:
+            if outcome.key not in ledger.pairs:
+                ledger.pairs[outcome.key] = Pair(new=outcome.new, existing=outcome.existing, found=ledger.pushed,
+                                                 state=outcome.state, settled=ledger.pushed, lines=outcome.lines,
+                                                 before_commit=True)
         for key, pair in ledger.pairs.items():
             if key in reported or key in unjudged:
                 continue
@@ -196,7 +208,9 @@ def headline(ledger: PullLedger) -> str:
     across = f"across {ledger.pushed:,} pushes" if ledger.pushed > 1 else "on its first push"
     if kept:
         tail = f" {plural(still, 'duplicate')} still open." if still else ""
-        return f"**{plural(kept, 'duplicate')} kept out of the codebase** {tally.spent()}, {across}.{tail}"
+        hooked = sum(pair.before_commit for pair in ledger.kept_out())
+        early = f" ({hooked:,} by the pre-commit hook, before commit)" if hooked else ""
+        return f"**{plural(kept, 'duplicate')} kept out of the codebase**{early} {tally.spent()}, {across}.{tail}"
     if still:
         return (f"**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
                 "Each one fixed here is kept out of the codebase.")
@@ -214,6 +228,9 @@ SPREAD = '<img width="2000" height="1" align="right" alt="">'
 
 
 def pair_line(pair: Pair) -> str:
+    if pair.before_commit:
+        done = "kept out" if pair.state == "kept-out" else "dismissed by a person's decision"
+        return f"{ICONS[pair.state]} {pair.concept()} · {done} before commit, by the pre-commit hook"
     where = {"kept-out": f"kept out in push {pair.settled}", "open": "still open",
              "dismissed": f"dismissed by a person's decision in push {pair.settled}"}[pair.state]
     return f"{ICONS[pair.state]} {pair.concept()} · found in push {pair.found}, {where}"
@@ -234,8 +251,8 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> 
                   f"**+{plural(cleaned[ledger.pushed], 'pair')} cleaned up** ✨", ""]
     lines += ["<details><summary><strong>History and check stats</strong></summary>", "",
               headline(ledger), "", " ".join(badges), "",
-              "<sub>Previously reported pairs no longer reported; dismissals do not count as cleanup. "
-              "Counts reflect current outcomes across analyzed commits.</sub>", ""]
+              "<sub>Previously reported pairs no longer reported, here or by the pre-commit hook before commit; "
+              "dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits.</sub>", ""]
     if ledger.pushed > 1 or ledger.pairs:
         first = ledger.pushed - len(ledger.pushes) + 1
         rows = ["| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |",

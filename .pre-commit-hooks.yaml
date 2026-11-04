@@ -10,3 +10,13 @@
   stages: [pre-commit]
   pass_filenames: false
   require_serial: true
+# What the hook above saw fixed or dismissed before the commit, written into the commit's message as trailers so
+# the pull request's comment counts it. Install its stage once: `pre-commit install -t prepare-commit-msg`.
+- id: dry-lint-trailers
+  name: dry-lint trailers
+  description: Record in the commit message the duplicates dry-lint's hook kept out before the commit.
+  entry: dry-lint trailers
+  language: python
+  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # the same environment as the hook above
+  stages: [prepare-commit-msg]
+  always_run: true

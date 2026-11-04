@@ -4,6 +4,7 @@ import json
 import pytest
 from test_report import NEW, finding, pair
 
+from dry_lint.commits import Outcome
 from dry_lint.costs import Spend
 from dry_lint.ledger import SPREAD, Pair, PullLedger, RepositoryLedger, Tally, counter_key, headline, render
 from dry_lint.models import Candidate, Run, Verdict
@@ -223,7 +224,7 @@ def test_cleanup_progress_counts_pairs_across_commits_and_separates_dismissals()
     assert "| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |" in shown
     assert "| **1 pair** | **1 pair** | **1 pair** |" in unspread(shown)
     assert "`bbbbbbb` · **+1 pair cleaned up**" in shown
-    assert "Previously reported pairs no longer reported; dismissals do not count as cleanup." in shown
+    assert "dismissals do not count as cleanup." in shown and "by the pre-commit hook before commit" in shown
     assert "| 2 | `bbbbbbb` | 3 | 2 | 1 | 1 | **+1** | $0.002 |" in shown
     ledger = ledger.advance([push("c" * 40)], run="3")
     assert "| **2 pairs** | **0 pairs** | **1 pair** |" in unspread(render(ledger))
@@ -306,3 +307,28 @@ def test_the_counter_key_comes_from_the_repository_id_alone() -> None:
     key = counter_key("4242")
     assert key == counter_key(" 4242 ") and len(key) == 64 and key != counter_key("4243")
     assert key != hashlib.sha256(b"acme/shop").hexdigest()  # a guessable name never leads to it
+
+
+HOOKED = Outcome(key="ab7719f1ec3f9b70", new="format_price", existing="money", lines=6, state="kept-out")
+
+
+def test_what_the_pre_commit_hook_kept_out_counts_as_kept_out_of_the_codebase() -> None:
+    dismissed = HOOKED.model_copy(update={"key": "5c0e2f6a91d3b7e4", "state": "dismissed"})
+    ledger = PullLedger().advance([push("a" * 40)], run="1", before_commit=[HOOKED, dismissed])
+    assert ledger.pairs[HOOKED.key] == Pair(new="format_price", existing="money", found=1, state="kept-out", settled=1,
+                                            lines=6, before_commit=True)
+    assert (ledger.count("kept-out"), ledger.count("dismissed")) == (1, 1)
+    sent = ledger.contribution("o/r", 7)
+    assert (sent["kept_out"], sent["caught"], sent["dismissed"], sent["lines_kept_out"]) == (1, 2, 1, 6)
+    assert "(1 by the pre-commit hook, before commit)" in headline(ledger)
+    assert "✅ `format_price` ≈ `money` · kept out before commit, by the pre-commit hook" in render(ledger)
+    assert "⚪ `format_price` ≈ `money` · dismissed by a person's decision before commit" in render(ledger)
+
+
+def test_what_ci_saw_of_a_pair_wins_over_a_commit_trailer() -> None:
+    claimed = Outcome(key=pair().key, new="clip", existing="shorten", state="kept-out")
+    still = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1", before_commit=[claimed])
+    assert still.pairs[pair().key].state == "open" and not still.pairs[pair().key].before_commit
+    hooked = PullLedger().advance([push("a" * 40)], run="1", before_commit=[claimed])
+    back = hooked.advance([push("b" * 40, finding("duplicate"))], run="2", before_commit=[claimed])
+    assert back.pairs[pair().key].state == "open" and not back.pairs[pair().key].before_commit

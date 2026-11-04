@@ -32,6 +32,7 @@ from pathlib import Path
 
 import httpx
 
+from dry_lint.commits import Outcome, outcomes
 from dry_lint.ledger import PullLedger, RepositoryLedger
 from dry_lint.ledger import render as ledger_render
 from dry_lint.report import CLEAN, NOTE_SLOT, Report
@@ -116,6 +117,21 @@ class GitHub:
     def head_of(self, repository: str, number: int) -> str:
         return self.pull(repository, number)["head"]["sha"]
 
+    def commit_messages(self, repository: str, number: int) -> list[str]:
+        """The pull request's commit messages, oldest first (GitHub lists at most 250)."""
+        found, page = [], 1
+        while True:
+            response = self.client.get(f"/repos/{repository}/pulls/{number}/commits",
+                                       params={"per_page": PAGE, "page": page})
+            if response.status_code in (403, 404):  # the comment still goes out, without the hook's outcomes
+                return found
+            response.raise_for_status()
+            batch = response.json()
+            found += [(entry.get("commit") or {}).get("message", "") for entry in batch]
+            if len(batch) < PAGE:
+                return found
+            page += 1
+
     def comments(self, repository: str, number: int) -> list[dict]:
         found, page = [], 1
         while True:
@@ -176,8 +192,9 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
                      and mine[0].get("body", "").startswith(marker(key)) and CLEAN not in mine[0].get("body", ""))
         if resolving:
             note = "\n\n".join(part for part in (RESOLVED, note) if part)
+        before = outcomes(github.commit_messages(repository, number)) if reports else []
         body = compose(markdown, key, banner, run_url, expect_head, note,
-                       account(mine, list(reports), run, repository_ledger, list(scopes)))
+                       account(mine, list(reports), run, repository_ledger, list(scopes), before))
         if not mine:
             github.create(repository, number, body)
             return "created"
@@ -192,14 +209,15 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
 
 
 def account(mine: list[dict], reports: list[Report], run: str, repository: RepositoryLedger | None,
-            scopes: list[str] = ()) -> str:
+            scopes: list[str] = (), before_commit: list[Outcome] = ()) -> str:
     """
-    The ledger section: the previous comment's ledger with this run added. With copies left by racing runs, the
-    one that counted the most runs wins. Nothing before the first run with a report.
+    The ledger section: the previous comment's ledger with this run added, and what the commits' trailers say the
+    pre-commit hook settled. With copies left by racing runs, the one that counted the most runs wins. Nothing
+    before the first run with a report.
     """
     previous = [found for c in mine if (found := PullLedger.read(c.get("body", ""))) is not None]
     start = max(previous, key=lambda found: found.tally.runs, default=PullLedger())
-    ledger = start.advance(reports, run, scopes)
+    ledger = start.advance(reports, run, scopes, before_commit)
     return ledger_render(ledger, repository) if ledger.tally.runs else ""
 
 

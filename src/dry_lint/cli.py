@@ -3,6 +3,7 @@ The dry-lint command.
 
     dry-lint check                     # functions changed since the default branch: detect, judge, report
     dry-lint check --staged            # the staged changes (the pre-commit hook)
+    dry-lint trailers .git/COMMIT_EDITMSG  # what that hook kept out, into the commit's trailers
     dry-lint scan --limit 50           # the whole repository's backlog of look-alikes
 
 In CI the two halves run as separate jobs, with files between them (docs/design.md):
@@ -34,6 +35,7 @@ import httpx
 from dry_lint import __version__
 from dry_lint.baseline import Baseline, require_complete, update_readme
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
+from dry_lint.commits import Journal, append_trailers, staged_files, summary
 from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.discovery import CampaignStore
@@ -146,11 +148,22 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
                           committed=settings.discovery.enabled and not args.staged)
     report = judged(candidates, settings, root, args, run, len(changed),
                     functions=len(detector.functions))
-    if settings.discovery.enabled and not args.report:
+    if (settings.discovery.enabled or args.staged) and not args.report:  # `dry-lint feedback` reviews this report
         target = last_report(root)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(as_json(report), encoding="utf-8")
-    return finish(report, settings, args)
+    if args.staged:
+        Journal.load(root).observe(report, staged_files(root)).save(root)
+    status = finish(report, settings, args)
+    if args.staged and args.format == "text" and (line := summary(root, run.base)):
+        print(line)
+    return status
+
+
+def trailers(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    """The prepare-commit-msg hook: the duplicates the pre-commit hook saw settled go into the commit's trailers."""
+    append_trailers(root, args.message)
+    return 0
 
 
 def reviewed(root: Path, candidates: list[Candidate], *, staged: bool = False, committed: bool = False) -> list[Candidate]:
@@ -525,6 +538,10 @@ def parser() -> argparse.ArgumentParser:
     measuring.add_argument("--label-budget-usd", type=float, default=5.0,
                            help="With --label: most this run spends on labellers that report their cost.")
     commands.add_parser("config", parents=[common], help="The judging setup this repository would run, and its cost.")
+    trailing = commands.add_parser("trailers", parents=[common],
+                                   help="Write what the hook kept out before this commit into its message (prepare-commit-msg).")
+    trailing.add_argument("message", type=Path, help="The commit message file git passes the hook.")
+    trailing.add_argument("source", nargs="*", help="The message's source and commit, as git passes them; unused.")
     reviewing = commands.add_parser("feedback", parents=[common], help="Record a reviewed fix or exact-source dismissal.")
     reviewing.add_argument("action", choices=("fix", "dismiss"))
     reviewing.add_argument("pair", help="Pair key shown in the finding.")
@@ -535,7 +552,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 COMMANDS = {"check": check, "scan": scan, "sweep": sweep, "detect": detect, "judge": judge, "report": report, "explain": explain,
-            "config": config, "index": index, "feedback": feedback,
+            "config": config, "index": index, "feedback": feedback, "trailers": trailers,
             "bench": bench}
 
 
