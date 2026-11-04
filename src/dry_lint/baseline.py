@@ -155,12 +155,15 @@ class Baseline(BaseModel):
         the functions present at its merge base and gone now) or a `separate` verdict on the pair as it is now.
         """
         findings = {f.candidate.key: f for f in report.findings}
+        # A survivor still reported as a duplicate moved the duplication (a renamed copy) rather than removing it.
+        duplicated = {side.qualname for f in self.apply(report).findings if f.reported
+                      for side in (f.candidate.new, f.candidate.existing)}
         found = []
         for entry in self.entries:
             if entry.state != "remaining":
                 continue
             finding = findings.get(entry.key)
-            if removed & entry.hashes.keys():
+            if removed & entry.hashes.keys() and not (entry.hashes.keys() - removed) & duplicated:
                 how = "removed"
             elif finding is not None and finding.verdict is not None and finding.verdict.label == "separate":
                 how = "separate"

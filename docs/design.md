@@ -97,7 +97,8 @@ verdict reuse stay in the consumer's existing pipeline.
 
 New files carry `"schema": 7`; schemas 1 through 6 remain readable with conservative cache defaults. Schema 7 adds
 the report's optional `backlog`, the accepted baseline pairs a baselined check saw the change clean up, and the
-sticky ledger's matching `backlog`; both are absent (no claim) when no baseline was checked. Schema 6 adds
+sticky ledger's matching `backlog`. The report's is `null` when no baseline was checked, which makes no claim and
+leaves the ledger's as it was; older ledgers read it as empty. Schema 6 adds
 optional pair evidence to the sticky ledger: immutable source coordinates and the last reported judgment, never
 function bodies. Old ledgers keep their counts but have no historical comparison until a pair is reported again.
 The static viewer has its own schema 1 URL envelope. It consumes source references and existing verdicts only;

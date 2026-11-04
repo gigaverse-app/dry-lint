@@ -310,3 +310,12 @@ def test_a_check_without_a_baseline_claims_nothing_about_the_backlog(repo: Repo,
             "--report", str(tmp_path / "report.json"))
     assert run_cli(repo, tmp_path, *args) == 0
     assert backlog(tmp_path) is None
+
+
+def test_a_renamed_copy_is_not_credited_as_removed_debt(repo: Repo, tmp_path: Path) -> None:
+    args = adopt(repo, tmp_path, copy_judge(tmp_path))
+    path = repo.root / "src/widgets/caption.py"
+    path.write_text(path.read_text().replace("preview_caption_text", "caption_preview_text"))
+    repo.commit()
+    assert run_cli(repo, tmp_path, *args) == 1  # the duplication moved, so it is new debt
+    assert backlog(tmp_path) == []

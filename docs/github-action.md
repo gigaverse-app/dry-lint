@@ -244,7 +244,8 @@ dismissals do not earn cleanup credit. Commits before the first recorded report 
 With a [baseline](sweeps.md), the basket also credits accepted debt the pull request cleans up, labelled
 **from the accepted backlog** apart from the duplicates its own pushes reported and fixed. The check never sees
 accepted pairs as findings, so it collects the same evidence the audit accepts instead: a side of the pair that
-existed at the merge base and is gone now (removed or renamed), or a `separate` verdict on the pair as it is now.
+existed at the merge base and is gone now, or a `separate` verdict on the pair as it is now. A side renamed or
+moved while its partner is still reported as a duplicate is not credited: the duplication moved.
 The check revisits every accepted pair whose functions the pull request touched, even one that fell out of the
 nearest-neighbour ranking, so a rerouted side gets a verdict; this costs a judgment per touched pair, and a touched
 pair that is still a duplicate blocks here rather than failing the next audit. A side removed on the default branch
