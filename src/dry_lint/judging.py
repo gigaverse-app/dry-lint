@@ -122,6 +122,9 @@ class Judging:
         proposed = [c for c in candidates if c.filtered is None]
         if self.judge is None:
             return [Finding(candidate=c) for c in proposed]
+        # The budget is for the whole pull request, not this run; known even when nothing is left to judge.
+        self.ledger.spent = self.store.spent(source)
+        self.pull_request = source is not None and source.pull_request is not None
         strict = getattr(self.judge, "context", False) or getattr(self.judge, "strict_version", False)
         version = self.judge.version if refresh or strict else None
         second = identity(self.escalation) if self.escalation and self.settings.escalate else None
@@ -136,8 +139,6 @@ class Judging:
         deferred = set(pending[self.settings.max_judgements:]) if self.settings.max_judgements is not None else set()
         pending = [i for i in pending if i not in deferred]
         if pending:
-            self.ledger.spent = self.store.spent(source)  # the budget is for the whole pull request, not this run
-            self.pull_request = source is not None and source.pull_request is not None
             asked = [proposed[i] for i in pending]
             for i, verdict in zip(pending, decide(asked, self.judge, self.escalation, self.settings, self.ledger)):
                 if verdict is None:

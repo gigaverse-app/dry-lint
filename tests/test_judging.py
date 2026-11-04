@@ -206,6 +206,10 @@ def test_the_budget_covers_every_push_of_a_pull_request(store: VerdictStore) -> 
     summary = second_push.summary()
     assert summary.pull_request and summary.spent_before == pytest.approx(one)
     assert store.spent(pull) == pytest.approx(2 * one)
+    cached = Judging(settings, Billed("first", {}), None, store)
+    cached.findings([pair("a"), pair("b")], source=pull)
+    assert cached.judge.asked == [] and cached.summary().pull_request  # nothing new to judge, still this PR's bill
+    assert cached.summary().spent_before == pytest.approx(2 * one)
     other = Judging(settings, Billed("first", {"c": 0.9}), None, store)
     other.findings([pair("c")], source=Run(repository="o/r", pull_request=4))
     assert other.judge.asked == ["c"]  # another pull request has its own budget
