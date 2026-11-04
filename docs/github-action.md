@@ -99,7 +99,11 @@ original symbol still exists and both reads completed, the viewer offers all thr
 B, and the remaining implementation. **This is evidence of a surviving symbol, not proof of consolidation.**
 Review the caller diff and any extracted helpers. A moved/renamed helper, two surviving originals, unsupported
 language or failed read leaves the result unidentified; the viewer shows A and B with an explicit explanation.
-No model is asked to infer a destination. Dismissals never get a presumed consolidation result.
+No model is asked to infer a destination. Dismissals never get a presumed consolidation result. A pair with no
+recorded cleanup (below threshold, open, dismissed, deferred or unjudged) is shown as A and B only, with no After
+column. Each card is headed by the qualified name (`Owner.method`), since overrides share a method name. The
+viewer's "full GitHub diff" runs from the finding's commit to the head, or, for a pair found at the head, over the
+pull request's own base...head; when neither range has changes, there is no link.
 
 Comparison links are bounded to 12,000 characters, the comparison section limits viewer links to a 20,000-character
 budget, and the viewer accepts up to 600 lines per function. Oversized links keep their GitHub source links;
