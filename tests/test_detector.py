@@ -219,6 +219,50 @@ def test_same_named_methods_without_a_resolved_base_relation_go_to_the_judge(sou
     assert why_skipped(override["Bulk.entries"], unrelated, Settings()) is None
 
 
+CALLER = ("class Operation:\n    def attempt(self, work):\n        found = self.entries(work).exclude(outcome=NOT_APPLIED)\n"
+          "        return found.first()\n\n    def entries(self, work):\n        return attempts_for(work)\n")
+
+
+@pytest.mark.parametrize("subclass, a, b", [
+    # The base method calls the subclass's override through self (due#190: possible_effect_attempt calls
+    # self._possible_effect_entries, which DurableBulkExternalOperation overrides).
+    ("class Bulk({base}):\n    def entries(self, work):\n        return work.attempts()\n", "Bulk.entries", "Operation.attempt"),
+    # The subclass method calls an inherited base method through self, or through cls.
+    ("class Bulk({base}):\n    def latest(self, work):\n        return self.entries(work).last()\n",
+     "Bulk.latest", "Operation.entries"),
+    ("class Bulk({base}):\n    @classmethod\n    def latest(cls, work):\n        return cls.entries(work).last()\n",
+     "Bulk.latest", "Operation.entries"),
+])  # fmt: skip
+@pytest.mark.parametrize("imports, base", [("from pkg.ops import Operation\n", "Operation"), ("from . import ops\n", "ops.Operation")])
+def test_a_self_call_between_a_class_and_its_direct_base_is_settled_by_rule(subclass, a, b, imports, base) -> None:
+    """
+    INVARIANT: a call through `self` or `cls` reaches the same-named method of the class's direct base, or a direct
+    subclass's override of it, so "one calls the other" holds across that one inheritance step as within a class.
+    """
+    found = {**methods("pkg/ops.py", CALLER), **methods("pkg/bulk.py", imports + subclass.format(base=base))}
+    assert why_skipped(found[a], found[b], Settings()) == why_skipped(found[b], found[a], Settings()) == "one calls the other"
+
+
+@pytest.mark.parametrize("source", [
+    "class Bulk(Operation):\n    def entries(self, work):\n        return work.attempts()\n",  # neither defined nor imported
+    "from other.ops import Operation\nclass Bulk(Operation):\n    def entries(self, work):\n        return work.attempts()\n",
+    "from pkg.ops import Operation\nclass Middle(Operation):\n    def other(self):\n        return 1\n\n"
+    "class Bulk(Middle):\n    def entries(self, work):\n        return work.attempts()\n",  # the caller is a grandparent's
+])  # fmt: skip
+def test_a_self_call_without_a_resolved_direct_base_goes_to_the_judge(source: str) -> None:
+    """INVARIANT: only a direct base the file itself names relates the two classes; anything else is judged."""
+    caller = methods("pkg/ops.py", CALLER)["Operation.attempt"]
+    [entries] = [f for f in methods("pkg/bulk.py", source).values() if f.name == "entries"]
+    assert why_skipped(entries, caller, Settings()) is None
+    override = methods("pkg/bulk.py", "from pkg.ops import Operation\nclass Bulk(Operation):\n"
+                                      "    def entries(self, work):\n        return work.attempts()\n")["Bulk.entries"]
+    unrelated = methods("pkg/other.py", CALLER.replace("Operation", "Cache"))["Cache.attempt"]
+    assert why_skipped(override, unrelated, Settings()) is None
+    other_receiver = methods("pkg/bulk.py", "from pkg.ops import Operation\nclass Bulk(Operation):\n"
+                                            "    def latest(self, work):\n        return self.inner.entries(work)\n")
+    assert why_skipped(other_receiver["Bulk.latest"], methods("pkg/ops.py", CALLER)["Operation.entries"], Settings()) is None
+
+
 def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(repo: Repo, monkeypatch) -> None:
     body = "        rows = self.store.read(key)\n        return [row for row in rows if row.revision == key.revision]\n"
     repo.write("src/ops.py", f"class Operation:\n    def possible_entries(self, key):\n{body}")

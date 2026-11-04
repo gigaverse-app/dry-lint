@@ -191,6 +191,46 @@ def test_a_static_method_overrides_only_the_extended_class_static_method(extract
     assert instance.name == "entries"
 
 
+CALLER_TS = '''export class Operation {
+  attempt(work: Work) { return this.entries(work).find(a => a.outcome !== NOT_APPLIED); }
+  entries(work: Work) { return attemptsFor(work); }
+  static load(id: string) { return this.create(id).fetch(); }
+  static create(id: string) { return new Operation(id); }
+}'''
+
+
+@pytest.mark.parametrize("subclass, a, b", [
+    ("class Bulk extends Operation {\n  entries(work: Work) { return work.attempts(); }\n}",
+     "Bulk.entries", "Operation.attempt"),  # the base method calls the subclass's override through this
+    ("class Bulk extends Operation {\n  latest(work: Work) { return this.entries(work).at(-1); }\n}",
+     "Bulk.latest", "Operation.entries"),  # the subclass method calls an inherited one through this
+    ("class Bulk extends Operation {\n  static create(id: string) { return new Bulk(id); }\n}",
+     "Bulk.static.create", "Operation.static.load"),
+    ("class Bulk extends Operation {\n  static reload(id: string) { return this.create(id).refresh(); }\n}",
+     "Bulk.static.reload", "Operation.static.create"),
+])  # fmt: skip
+def test_a_this_call_between_a_class_and_its_extended_class_is_settled_by_rule(extractor, subclass, a, b):
+    """INVARIANT: `this.name()` reaches the extended class's method, or a direct subclass's override of it."""
+    found = {f.qualname.split("::")[1]: f for path, source in (
+        ("src/ops.ts", CALLER_TS), ("src/bulk.ts", "import { Operation } from './ops';\n" + subclass))
+        for f in extractor.functions(path, source)}  # fmt: skip
+    assert why_skipped(found[a], found[b], Settings()) == why_skipped(found[b], found[a], Settings()) == "one calls the other"
+
+
+@pytest.mark.parametrize("source", [
+    "import { Operation } from 'third-party';\nclass Bulk extends Operation {\n  entries(work: Work) { return work.attempts(); }\n}",
+    "import { Operation } from './ops';\nclass Bulk extends mixin(Operation) {\n  entries(work: Work) { return work.attempts(); }\n}",
+    "import { Operation } from './ops';\nclass Middle extends Operation {}\n"
+    "class Bulk extends Middle {\n  entries(work: Work) { return work.attempts(); }\n}",
+    "import { Operation } from './ops';\nclass Bulk extends Operation {\n  static entries(work: Work) { return work.attempts(); }\n}",
+])  # fmt: skip
+def test_a_this_call_without_a_resolved_extended_class_goes_to_the_judge(extractor, source):
+    """INVARIANT: a package import, a mixin, a grandparent's caller, or a static method of the name is left to the judge."""
+    [caller] = [f for f in extractor.functions("src/ops.ts", CALLER_TS) if f.name == "attempt"]
+    [entries] = [f for f in extractor.functions("src/bulk.ts", source) if f.name == "entries"]
+    assert why_skipped(entries, caller, Settings()) is None
+
+
 def test_minimum_lines_and_invalid_functions_do_not_hide_valid_neighbors():
     extractor = load("extractors", PluginChoice(use="typescript", min_lines=3))
     source = '''const short = () => 1;

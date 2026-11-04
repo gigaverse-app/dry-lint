@@ -89,27 +89,41 @@ def calls(function: Function) -> set[str]:
 
 def delegates(caller: Function, callee: Function) -> bool:
     """
-    Whether `caller` provably calls `callee`: a call through `self`, `cls` or `this` of a method of the same class in
-    the same file. Names are not resolved to symbols, so nothing else proves it: a bare `normalize(value)` may call an
-    imported `normalize` or a parameter of that name, and `value.trim()` calls String.trim. Those pairs go to the
-    judge, which reads the code.
+    Whether `caller` provably calls `callee`: a call through `self`, `cls` or `this` of `callee`'s name, where
+    `callee` is a method of the same class in the same file, of a class whose direct base is the caller's (a base
+    method calling the subclass's override), or of the caller's class's direct base (a subclass method calling an
+    inherited one; if the subclass overrides it again, the call reaches that override, which `overrides` relates to
+    `callee` in turn). Names are not resolved to symbols, so nothing else proves it: a bare `normalize(value)` may
+    call an imported `normalize` or a parameter of that name, and `value.trim()` calls String.trim. Those pairs go to
+    the judge, which reads the code.
     """
     called = calls(caller)
-    return (callee.owner is not None and callee.owner == caller.owner and callee.path == caller.path
+    related = (callee.owner == caller.owner and callee.path == caller.path
+               or inherits_from(callee, caller) or inherits_from(caller, callee))
+    return (callee.owner is not None and related
             and any(f"{receiver}.{callee.name}" in called for receiver in ("self", "cls", "this")))
+
+
+def inherits_from(method: Function, base: Function) -> bool:
+    """
+    Whether `method`'s class has `base`'s class as a direct base. The extractor resolves bases only from the class's
+    own file (a class it defines, or a name its imports bind), so a grandparent, or a base the file cannot name, is
+    not a match.
+    """
+    module = module_of(base.path)
+    return base.owner is not None and any(
+        name == base.owner and (module == home or module.endswith(f"/{home}"))
+        for home, _, name in (reference.rpartition("::") for reference in method.bases))
 
 
 def overrides(method: Function, base: Function) -> bool:
     """
-    Whether `method` overrides `base`: the same name, in a class whose direct base is `base`'s class. The extractor
-    resolves bases only from the class's own file (a class it defines, or a name its imports bind), so an override of
-    a grandparent's method, or of a base the file cannot name, stays with the judge. An override is the class
-    hierarchy's own variation point: its likeness to the base method is the contract, not a copy.
+    Whether `method` overrides `base`: the same name, in a class whose direct base is `base`'s class (see
+    `inherits_from`), so an override of a grandparent's method, or of a base the file cannot name, stays with the
+    judge. An override is the class hierarchy's own variation point: its likeness to the base method is the contract,
+    not a copy.
     """
-    module = module_of(base.path)
-    return method.name == base.name and base.owner is not None and any(
-        name == base.owner and (module == home or module.endswith(f"/{home}"))
-        for home, _, name in (reference.rpartition("::") for reference in method.bases))
+    return method.name == base.name and inherits_from(method, base)
 
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
