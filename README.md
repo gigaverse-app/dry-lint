@@ -24,8 +24,9 @@ judge decides whether each pair really is one concept, and the result goes back 
 
 ```text
 src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_text (drifted)
-    judge 0.91; the two already behave differently; call the existing function; similarity 0.71;
-    if they are different concepts, add `# dry-lint: distinct-from src/text.py::shorten_text`
+    judge 0.91; the two already behave differently; call the existing function;
+    similarity 0.71; if they are different concepts, add
+    `# dry-lint: distinct-from src/text.py::shorten_text`
 ```
 
 **You bring your own keys.** dry-lint never provides API keys, models or judge execution: judges run on the
@@ -244,16 +245,18 @@ A plugin slot takes a name, or a table with `use` and the plugin's options:
 ## The counter
 
 The sign at the top counts every duplicate dry-lint has kept out of a codebase: a duplicate a pull request
-introduced, dry-lint reported, and a later push removed before merging. A rewrite is a duplicate whose structure
-differs from the original, so a copy-paste checker would not see it; a re-check skipped is a verdict the store
-already held. When a pull request merges, the action's
-run on the default branch sends its counts to a [Cloudflare Worker](counter): duplicates kept out (how many had
-drifted, how many were rewrites rather than copies, and their lines), caught and dismissed, pushes, functions
-checked, look-alikes compared, verdicts reused, judgments, judging spend and the dry-lint version. No code, names,
-paths or people are sent. The repository is **pseudonymous**: it is sent as its counter key, the SHA-256 of its
-numeric GitHub id, which ties its pull requests together but which its name does not lead to; a private
-repository's id is visible only to people who can see the repository. Each pull request is counted once. Opt out
-with `share-totals: "false"`.
+introduced, dry-lint reported, and a later push removed before merging. A *rewrite* is one whose structure differs
+from the function it duplicates, so a copy-paste checker would not see it; a *drifted* copy already behaved
+differently; a *re-check skipped* is a verdict the store already held. Actions from November 2026 on measure these;
+until a pull request they measured has merged, the sign shows them as "–", never as zero.
+
+When a pull request merges, the action's run on the default branch sends its counts to a
+[Cloudflare Worker](counter): duplicates kept out (how many had drifted, how many were rewrites, and their lines),
+caught and dismissed, pushes, functions checked, look-alikes compared, verdicts reused, judgments, judging spend
+and the dry-lint version. No code, names, paths or people are sent. The repository is **pseudonymous**: it is sent
+as its counter key, the SHA-256 of its numeric GitHub id, which ties its pull requests together but which its name
+does not lead to; a private repository's id is visible only to people who can see the repository. Each pull
+request is counted once. Opt out with `share-totals: "false"`.
 
 To show your own repository's sign, take its counter key from the log of a dry-lint run on your default branch
 (`dry-lint: this repository's counter key is ...`). `name` only labels the sign; the counter never looks a name up:
