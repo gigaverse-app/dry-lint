@@ -48,7 +48,7 @@ def post(fake, built, run):
 
 
 def payload(body):
-    encoded = body.split("#v1=", 1)[1].split(")", 1)[0]
+    encoded = body.split("#v2=", 1)[1].split(")", 1)[0]
     return json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
 
 
@@ -62,7 +62,7 @@ def test_nonpublic_or_unverifiable_repositories_only_get_github_links(visibility
     assert f"https://github.com/{REPO}/blob/{HEAD}/src/widgets/caption.py#L1-L2" in body
     assert f"https://github.com/{REPO}/compare/{HEAD}...{AFTER}" in body
     assert "existing judgment" in body
-    assert "#v1=" not in body and VIEWER not in body and fake.reads == []
+    assert "#v2=" not in body and VIEWER not in body and fake.reads == []
 
 
 def test_public_cleanup_links_both_originals_to_the_uniquely_remaining_symbol():
@@ -105,15 +105,37 @@ def test_a_private_peer_prevents_a_public_repository_from_linking_the_viewer():
     fake.metadata[PEER] = {"visibility": "private", "private": True}
     post(fake, report(HEAD, candidate), "1")
     body = fake.stickies()[0]
-    assert f"https://github.com/{PEER}/blob/{HEAD}" in body and "#v1=" not in body
+    assert f"https://github.com/{PEER}/blob/{HEAD}" in body and "#v2=" not in body
 
 
-def test_below_threshold_candidates_keep_their_existing_judgments_and_links():
+@pytest.mark.parametrize("label,score,outcome", [
+    ("drifted", .76, "Not reported: low confidence"),
+    ("duplicate", .71, "Not reported: low confidence"),
+    ("separate", .51, "Not reported: judged separate"),
+    ("separate", .95, "Not reported: judged separate"),
+])
+def test_unreported_candidates_distinguish_low_confidence_from_separate(label, score, outcome):
     fake = SourceGitHub("private")
-    post(fake, report(HEAD, finding("drifted", score=.76, why="different boundaries")), "1")
+    post(fake, report(HEAD, finding(label, score=score, why="different boundaries")), "1")
     body = fake.stickies()[0]
-    assert "below threshold" in body and "drifted 0.76" in body and "different boundaries" in body
+    assert outcome in body and f"{label}; confidence {score:.2f}" in body and "different boundaries" in body
+    assert "not counted as tangled" in body
     assert "[A](https://github.com/" in body
+
+
+def test_cleanup_includes_direct_helper_coordinates_without_extra_reads_or_judgments():
+    fake = SourceGitHub()
+    fake.sources["src/text.py"] = (200, "def shared(text):\n    return text.strip()\n\n"
+                                       "def shorten(text, limit):\n    return shared(text)[:limit]\n")
+    post(fake, report(HEAD, finding("drifted")), "1")
+    post(fake, report(AFTER), "2")
+    data = payload(fake.stickies()[0])
+    assert data["schema"] == 2
+    assert data["helpers"] == [{"repository": REPO, "revision": AFTER, "path": "src/text.py",
+                                "name": "shared", "owner": None, "line": 1, "end_line": 2}]
+    assert len(fake.reads) == 2
+    assert "return text" not in json.dumps(data)
+    assert PullLedger.read(fake.stickies()[0]).tally.judgments == 1
 
 
 def test_old_ledgers_still_load_without_inventing_historical_evidence():
@@ -129,7 +151,7 @@ def test_invalid_viewer_configuration_keeps_useful_github_links(viewer):
     built = report(HEAD, finding("duplicate"))
     upsert(client(fake), REPO, PR, REPORT, 1, reports=[built], viewer_url=viewer)
     body = fake.stickies()[0]
-    assert "[A](https://github.com/" in body and "#v1=" not in body
+    assert "[A](https://github.com/" in body and "#v2=" not in body
 
 
 def test_oversized_links_fall_back_without_discarding_the_github_evidence():
@@ -137,7 +159,7 @@ def test_oversized_links_fall_back_without_discarding_the_github_evidence():
     built = report(HEAD, finding("duplicate", why="x" * 15000))
     post(fake, built, "1")
     body = fake.stickies()[0]
-    assert "#v1=" not in body and "[A](https://github.com/" in body
+    assert "#v2=" not in body and "[A](https://github.com/" in body
 
 
 def test_enterprise_sources_stay_on_their_github_host(monkeypatch):
@@ -145,7 +167,7 @@ def test_enterprise_sources_stay_on_their_github_host(monkeypatch):
     fake = SourceGitHub()
     post(fake, report(HEAD, finding("duplicate")), "1")
     assert "[A](https://github.example.com/" in fake.stickies()[0]
-    assert "#v1=" not in fake.stickies()[0]
+    assert "#v2=" not in fake.stickies()[0]
 
 
 def test_invalid_coordinates_are_not_persisted_as_evidence():
@@ -191,6 +213,7 @@ def test_typescript_resolution_uses_the_parser_and_caches_source_reads():
     known, result = comparisons.current(reference)
     assert known and result.name == 'View' and result.revision == AFTER
     assert comparisons.current(reference) == (known, result)
+    assert comparisons.helpers(result) == []
     assert len(fake.reads) == 1
 
 
@@ -201,7 +224,7 @@ def test_large_pair_sets_have_bounded_links_and_keep_the_scan_report():
     body = fake.stickies()[0]
     table = body.split("<details><summary><strong>Compare")[1].split("</details>")[0]
     assert 'Showing 5 of 7 pairs' in table and len(table) < 24000
-    assert table.count('#v1=') < 5 and table.count('[A](') == 5
+    assert table.count('#v2=') < 5 and table.count('[A](') == 5
 
 
 def test_updating_an_old_ledger_emits_the_new_schema():
