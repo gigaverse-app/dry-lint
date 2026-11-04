@@ -32,9 +32,17 @@ npx wrangler dev   # the Worker and its Durable Object, locally
   it to Workers Paid or add a payment method. Sign in with GitHub.
 - **Address:** `https://dry-lint-counter.gigaverse-oss.workers.dev`, the account's `gigaverse-oss` workers.dev
   subdomain. `COUNTER` in `src/dry_lint/action.py` and the README's sign point there.
-- **Deploys:** Workers Builds, connected to `gigaverse-app/dry-lint` with root directory `counter` and watch path
-  `counter/*`. A push to `main` that changes the counter deploys it; nothing is deployed by hand.
+- **Deploys:** [`.github/workflows/counter.yml`](../.github/workflows/counter.yml). A push to `main` that changes
+  `counter/` runs the tests, then `wrangler deploy` with the `CLOUDFLARE_API_TOKEN` secret, then checks the Worker
+  answers. A failed deploy fails that run on `main`, where it is seen; nothing else deploys the counter. (This page
+  once named Workers Builds, which never deployed: until November 4, 2026 the only deployment was a manual upload
+  of the first commit, so later merges never reached the sign.)
+- **The token:** a Cloudflare API token from the `Edit Cloudflare Workers` template, limited to the `Gigaverse OSS`
+  account, stored as `CLOUDFLARE_API_TOKEN` on the repository's `counter` environment. To check what is live:
+  `npx wrangler deployments list` lists each deployment and its source.
 
-To set it up again: in the `Gigaverse OSS` account, Workers & Pages → Create → Import a repository →
-`gigaverse-app/dry-lint`, root directory `counter`, deploy command `npx wrangler deploy`. The Durable Object's
-data stays with the Worker named `dry-lint-counter`; deleting that Worker deletes the counts.
+The Durable Object's data stays with the Worker named `dry-lint-counter`; deleting that Worker deletes the counts.
+Columns are only ever added (`worker.js` adds any missing one at zero when the Durable Object starts), and every
+insert names its columns, so a rollback to an earlier version still writes to the wider tables. The exception is
+the first version, `310dfc9`, which inserted by position: it cannot write once a column has been added, so never
+roll back to it.
