@@ -164,7 +164,8 @@ runs:
         locked="$RUNNER_TEMP/dry-lint-requirements.txt"
         uv export --quiet --project "$GITHUB_ACTION_PATH" --frozen --no-dev --no-emit-project --no-hashes -o "$locked"
         mapfile -t extra < <(printf '%s\n' "$PLUGINS" | sed '/^[[:space:]]*$/d')
-        uv pip install --quiet --python "$RUNNER_TEMP/dry-lint-venv" -r "$locked" --constraint "$locked" \
+        # The caller's tool.uv constraints belong to its application, not this isolated tool environment.
+        uv pip install --no-config --quiet --python "$RUNNER_TEMP/dry-lint-venv" -r "$locked" --constraint "$locked" \
           "$GITHUB_ACTION_PATH" "${extra[@]}"
         echo "$RUNNER_TEMP/dry-lint-venv/bin" >> "$GITHUB_PATH"
     - name: Install the claude CLI
