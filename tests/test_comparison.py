@@ -167,13 +167,16 @@ def test_a_reason_names_both_functions_instead_of_new_and_existing():
     assert f"{new} clips while {existing} strips first" in row and "NEW" not in row and "EXISTING" not in row
 
 
-def test_pairs_settled_by_a_rule_are_listed_with_the_rule():
+@pytest.mark.parametrize("count", [1, 7])
+def test_pairs_settled_by_a_rule_are_listed_with_the_rule(count):
     fake = SourceGitHub("private")
-    settled = push(HEAD, finding("separate", score=.2), filtered=[pair("trim", filtered="subclass override")])
+    rules = [pair(f"trim{i}", filtered="subclass override") for i in range(count)]
+    settled = push(HEAD, finding("separate", score=.2), filtered=rules)
     post(fake, settled.model_copy(update={"run": Run(repository=REPO, pull_request=PR, head=HEAD)}), "1")
     body = fake.stickies()[0]
-    assert "**🔗 Settled by a rule, not judged (1)**" in body
-    assert "≈ trim: subclass override" in body
+    assert f"**🔗 Settled by a rule, not judged ({count})**" in body
+    assert body.count(": subclass override") == min(count, 5)
+    assert ("- and 2 more" in body) == (count == 7)
 
 
 @pytest.mark.parametrize("judge,version,second,name", [
