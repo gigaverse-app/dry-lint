@@ -1,8 +1,11 @@
+# For the coding agent committing the change: it checks each finding itself, so the hook reports at the agent preset's
+# low threshold. `args: [--preset, auto]` puts a person's precision-first judging back.
 - id: dry-lint
   name: dry-lint
   description: Flag staged functions that re-implement code the repository already has.
-  entry: dry-lint check --staged
+  entry: dry-lint check --staged --preset agent --env-file .env
   language: python
+  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # the `hooks` extra: Claude judges, and .env
   types_or: [python, javascript, jsx, ts, tsx]
   stages: [pre-commit]
   pass_filenames: false

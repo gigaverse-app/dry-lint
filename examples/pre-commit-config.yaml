@@ -1,7 +1,9 @@
-# .pre-commit-config.yaml: check staged functions before each commit.
-# Judged when TYPESAFE_AI_API_KEY is set in your shell; otherwise the look-alikes are listed unjudged.
+# .pre-commit-config.yaml: check staged functions before each commit, for the coding agent making it.
+# Needs TYPESAFE_AI_API_KEY in your shell or in an untracked .env.
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
     rev: main
     hooks:
       - id: dry-lint
+        # args: [--preset, agent+haiku]   # Haiku re-judges Jev's uncertain scores; needs ANTHROPIC_API_KEY too
+        # args: [--preset, auto]          # precision first, as in CI, for people committing by hand

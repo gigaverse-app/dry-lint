@@ -543,7 +543,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         root = repository_root(args.root)
-        if args.env_file:
+        if args.env_file and (root / args.env_file).is_file():  # optional: the hook names .env whether or not it exists
             from dotenv import dotenv_values
             credentials = dotenv_values(root / args.env_file, interpolate=False)
             for name in ("ANTHROPIC_API_KEY", "TYPESAFE_AI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):

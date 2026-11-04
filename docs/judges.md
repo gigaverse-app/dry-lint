@@ -55,20 +55,32 @@ Choose the judging for whoever reads the findings, not for the best score on a b
 | Reader | Recall | Precision | Judging |
 | --- | --- | --- | --- |
 | Person: PR comment, required check | as high as precision allows | about 95% or more of what blocks; reports may warn below it | `jev+opus` or `jev+sonnet` |
-| Coding agent: hook, agent loop, `--format json` | about 90% or more | about one in two or better: below that, agents start ignoring findings as people do | Jev, or another cheap judge, at a low threshold |
+| Coding agent: hook, agent loop, `--format json` | about 90% or more | about one in two or better: below that, agents start ignoring findings as people do | `agent` (Jev at 0.6), or `agent+haiku` |
 
-The measurements support the split. Jev alone, at 0.6, keeps 95% recall at 70% precision on gigaverse-ai
-([benchmark](benchmark.md#results)), for about $0.0002 a pull request against about $0.005 for `jev+opus`. On the
-gigaverse-backend, -web-app and -mobile gold sets, it keeps 90% to 100% recall at 0.6, with about one finding in two
-real. That is plenty for an agent to check, and too noisy to block a person's merge.
+The measurements support the split. Each cell is precision / recall at the preset's report threshold, on the
+labelled gold sets of four gigaverse repositories (two Python, two TypeScript, 675 pairs in all):
 
-One repository can serve both readers. CI keeps a precision preset for the comment and the check. A coding agent runs
-`dry-lint check --staged --preset jev --format json`: the JSON lists every judged pair with its score, not only
-the ones the preset reports, so it can review everything from 0.6 up. A local run keeps its verdicts in the git
-directory and CI keeps its own in the Actions cache. Even in one store, a verdict is reused only by judging that
-would have given it: a second opinion only for the same second judge, and Jev's own answer in the escalation band
-never for a run that escalates. So a `jev` run and a `jev+opus` run can share a store, and adding a second judge
-re-judges the cached first answers it would have seen.
+| Judging | gigaverse-ai | -backend | -web-app | -mobile | Cost a pair |
+| --- | --- | --- | --- | --- | --- |
+| `agent`: Jev, from 0.6 | 69% / 92% | 53% / 97% | 43% / 100% | 55% / 93% | under $0.0001 |
+| `agent+haiku`: Haiku on Jev's [0.5, 0.91), from 0.5 | 85% / 94% | 61% / 94% | 58% / 70% | 81% / 80% | about $0.0002 |
+| Sonnet on Jev's [0.5, 0.91), from 0.5 | 95% / 88% | 100% / 71% | 80% / 78% | 91% / 78% | about $0.0025 |
+
+Only Jev alone keeps recall at 90% or more everywhere. Every second judge buys precision with recall, because it
+also turns down real duplicates Jev was right about, and Sonnet, the strictest, turns down the most. Lowering its
+threshold does not win them back: they score below 0.5. So a person's preset escalates and an agent's preset
+mostly does not. `agent+haiku` is the middle ground: on Python it keeps about Jev's recall at higher precision; on
+TypeScript it loses a fifth to a third of the duplicates. A shared-operations prompt for Haiku (the one `balanced`
+uses), tried as the second judge, kept only 49% to 75% of the duplicates.
+
+One repository can serve both readers. CI keeps a precision preset for the comment and the check, and the
+[pre-commit hook](../README.md#pre-commit) runs `agent` on what the coding agent stages.
+`dry-lint check --staged --preset agent --format json` lists every judged pair with its score, not only the ones
+the preset reports. A local run keeps its verdicts in the git directory and CI keeps its own in the Actions cache.
+Even in one store, a verdict is reused only by judging that would have given it: a second opinion only for the
+same second judge, and Jev's own answer in the escalation band never for a run that escalates. So an `agent` run
+and a `jev+opus` run can share a store, and adding a second judge re-judges the cached first answers it would have
+seen.
 
 ## Paying with a subscription instead of an API key
 
