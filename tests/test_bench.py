@@ -25,9 +25,12 @@ from conftest import EXISTING, TWIN, Repo
 
 
 def gold(new: str, existing: str, label: str, weight: float = 1.0) -> GoldPair:
-    return GoldPair(new=GoldFunction(id=f"new.py::{new}", code=f"def {new}(x):\n    return x\n"),
-                    existing=GoldFunction(id=f"old.py::{existing}", code=f"def {existing}(y):\n    return y\n"),
-                    label=label, weight=weight)
+    return GoldPair(
+        new=GoldFunction(id=f"new.py::{new}", code=f"def {new}(x):\n    return x\n"),
+        existing=GoldFunction(id=f"old.py::{existing}", code=f"def {existing}(y):\n    return y\n"),
+        label=label,
+        weight=weight,
+    )
 
 
 class TableJudge:
@@ -50,13 +53,23 @@ def test_auc_is_the_chance_a_duplicate_outscores_a_separate_pair() -> None:
 
 
 def test_the_judge_benchmark_reports_auc_precision_recall_and_bands() -> None:
-    pairs = [gold("a", "x", "duplicate"), gold("b", "x", "duplicate"), gold("c", "x", "separate", weight=2),
-             gold("d", "x", "separate"), gold("e", "x", "borderline")]
+    pairs = [
+        gold("a", "x", "duplicate"),
+        gold("b", "x", "duplicate"),
+        gold("c", "x", "separate", weight=2),
+        gold("d", "x", "separate"),
+        gold("e", "x", "borderline"),
+    ]
     result = bench_judge(pairs, TableJudge({"a": 0.95, "b": 0.65, "c": 0.85, "d": 0.05}), Settings(), PythonExtractor())
     assert (result.judge, result.pairs, result.duplicates) == ("table:1", 4, 2)
     assert result.precision == pytest.approx(1 / 3) and result.recall == 0.5 and result.recall_at_drop == 1.0
     assert result.auc == pytest.approx(4 / 6)  # a beats c (weight 2) and d; b beats only d
-    assert [(b.low, b.duplicates, b.separate) for b in result.bands] == [(0.0, 0, 1), (0.6, 1, 0), (0.8, 0, 2), (0.9, 1, 0)]
+    assert [(b.low, b.duplicates, b.separate) for b in result.bands] == [
+        (0.0, 0, 1),
+        (0.6, 1, 0),
+        (0.8, 0, 2),
+        (0.9, 1, 0),
+    ]
     text = result.as_text(Settings())
     assert "AUC 0.67" in text and "precision 33% (" in text and "90% intervals" in text and "recall 100%" in text
 
@@ -67,7 +80,9 @@ def test_a_judge_benchmark_without_labelled_pairs_is_empty_not_an_error() -> Non
 
 
 def test_gold_code_becomes_the_named_function() -> None:
-    method = as_function(GoldFunction(id="pkg/box.py::Box.open", code="    def open(self):\n        return 1\n"), PythonExtractor())
+    method = as_function(
+        GoldFunction(id="pkg/box.py::Box.open", code="    def open(self):\n        return 1\n"), PythonExtractor()
+    )
     assert (method.qualname, method.tokens != []) == ("pkg/box.py::Box.open", True)
     truncated = as_function(GoldFunction(id="a.py::Box.f", code="    def f(self, x=[\n        1,"), PythonExtractor())
     assert (truncated.qualname, truncated.code, truncated.lines) == ("a.py::Box.f", "def f(self, x=[\n    1,", 2)
@@ -75,7 +90,9 @@ def test_gold_code_becomes_the_named_function() -> None:
 
 def test_gold_sets_load_from_json_lines(tmp_path: Path) -> None:
     path = tmp_path / "gold.jsonl"
-    path.write_text(gold("a", "x", "duplicate").model_dump_json() + "\n\n" + gold("b", "x", "separate").model_dump_json() + "\n")
+    path.write_text(
+        gold("a", "x", "duplicate").model_dump_json() + "\n\n" + gold("b", "x", "separate").model_dump_json() + "\n"
+    )
     assert [g.label for g in load_gold(path)] == ["duplicate", "separate"]
 
 
@@ -112,10 +129,17 @@ def x(text):
 
 def test_the_comparer_benchmark_checks_each_gold_duplicate_is_proposed(repo: Repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
-    twin = GoldPair(new=GoldFunction(id="src/widgets/caption.py::preview_caption_text", code=TWIN),
-                    existing=GoldFunction(id="src/text.py::shorten_text", code=EXISTING), label="duplicate")
-    unrelated = GoldPair(new=GoldFunction(id="src/widgets/caption.py::register_widget", code=TWIN),
-                         existing=GoldFunction(id="src/text.py::shorten_text", code=EXISTING), label="duplicate", weight=3)
+    twin = GoldPair(
+        new=GoldFunction(id="src/widgets/caption.py::preview_caption_text", code=TWIN),
+        existing=GoldFunction(id="src/text.py::shorten_text", code=EXISTING),
+        label="duplicate",
+    )
+    unrelated = GoldPair(
+        new=GoldFunction(id="src/widgets/caption.py::register_widget", code=TWIN),
+        existing=GoldFunction(id="src/text.py::shorten_text", code=EXISTING),
+        label="duplicate",
+        weight=3,
+    )
     gone = gold("a", "x", "duplicate")
     result = bench_comparer([twin, unrelated, gone, gold("b", "x", "separate")], detector)
     assert (result.comparer, result.neighbours, result.duplicates, result.missing) == ("tfidf:2", 3, 2, 1)
@@ -209,8 +233,13 @@ def test_the_benchmark_holds_unescalated_answers_to_the_first_judges_bar_as_a_re
 
 
 def test_a_gold_set_without_both_kinds_of_pair_has_no_auc_and_still_round_trips(tmp_path) -> None:
-    only = [GoldPair(new=GoldFunction(id="a.py::f", code="def f():\n    return 1"),
-                     existing=GoldFunction(id="b.py::g", code="def g():\n    return 1"), label="duplicate")]
+    only = [
+        GoldPair(
+            new=GoldFunction(id="a.py::f", code="def f():\n    return 1"),
+            existing=GoldFunction(id="b.py::g", code="def g():\n    return 1"),
+            label="duplicate",
+        )
+    ]
     result = judge_bench(only, [Verdict(label="duplicate", score=0.9, judge="j")], Settings(), "j")
     assert result.auc is None and "AUC n/a" in result.as_text(Settings())
     assert JudgeBench.model_validate_json(result.model_dump_json()) == result

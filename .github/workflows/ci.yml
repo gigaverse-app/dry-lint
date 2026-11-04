@@ -29,6 +29,7 @@ jobs:
           cache-environment: "false"
           sync-args: --extra dryer
       - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync ruff format --check .
       - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
       - run: uv build
       - name: Default install stays lightweight

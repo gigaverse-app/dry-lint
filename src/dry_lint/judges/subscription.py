@@ -30,11 +30,16 @@ class ClaudeCodeJudge(CommandJudge):
 
     subscription = True
 
-    def __init__(self, model: str = "claude-sonnet-5-5", cli: str = "claude", timeout: float = 300, workers: int = 2) -> None:
-        command = (f"{cli} -p --model {model} --tools '' --no-session-persistence --disable-slash-commands "
-                   f"--strict-mcp-config --output-format text --system-prompt {shlex.quote(SYSTEM_PROMPT)}")
-        super().__init__(command=command, version=f"{PROMPT_VERSION}:{model}", name="claude-code", timeout=timeout,
-                         workers=workers)
+    def __init__(
+        self, model: str = "claude-sonnet-5-5", cli: str = "claude", timeout: float = 300, workers: int = 2
+    ) -> None:
+        command = (
+            f"{cli} -p --model {model} --tools '' --no-session-persistence --disable-slash-commands "
+            f"--strict-mcp-config --output-format text --system-prompt {shlex.quote(SYSTEM_PROMPT)}"
+        )
+        super().__init__(
+            command=command, version=f"{PROMPT_VERSION}:{model}", name="claude-code", timeout=timeout, workers=workers
+        )
         self.model = model
         # An API key in the environment would bill the API instead of the subscription.
         self.environment = {name: value for name, value in os.environ.items() if name not in API_KEY_VARIABLES}
@@ -47,14 +52,25 @@ class CodexJudge(CommandJudge):
 
     def __init__(self, model: str = "", cli: str = "codex", timeout: float = 300, workers: int = 2) -> None:
         flags = f" -m {model}" if model else ""
-        super().__init__(command=f"{cli} exec{flags} --sandbox read-only --skip-git-repo-check --ephemeral",
-                         version=f"{PROMPT_VERSION}:{model or 'account-default'}", name="codex", timeout=timeout,
-                         workers=workers)
+        super().__init__(
+            command=f"{cli} exec{flags} --sandbox read-only --skip-git-repo-check --ephemeral",
+            version=f"{PROMPT_VERSION}:{model or 'account-default'}",
+            name="codex",
+            timeout=timeout,
+            workers=workers,
+        )
         self.model = model
 
     def ask(self, candidate: Candidate) -> Verdict:
         with tempfile.TemporaryDirectory() as folder:
             answer = Path(folder) / "answer.txt"
-            subprocess.run([*shlex.split(self.command), "-o", str(answer), "-"], input=prompt(candidate), cwd=folder,
-                           capture_output=True, text=True, timeout=self.timeout, check=True)
+            subprocess.run(
+                [*shlex.split(self.command), "-o", str(answer), "-"],
+                input=prompt(candidate),
+                cwd=folder,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                check=True,
+            )
             return parse_verdict(answer.read_text(), self.name, self.version)

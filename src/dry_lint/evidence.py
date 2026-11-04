@@ -23,17 +23,25 @@ class SourceReference(BaseModel):
     @classmethod
     def of(cls, function: Function, run: Run) -> "SourceReference":
         origin = function.origin or run
-        return cls(repository=origin.repository, revision=origin.head, path=function.path, name=function.name,
-                   owner=function.owner, line=function.line, end_line=function.end_line)
+        return cls(
+            repository=origin.repository,
+            revision=origin.head,
+            path=function.path,
+            name=function.name,
+            owner=function.owner,
+            line=function.line,
+            end_line=function.end_line,
+        )
 
     @property
     def qualified(self) -> str:
         return qualified(self.owner, self.name)
 
     def url(self) -> str:
-        return source_url(Function(path=self.path, name=self.name, owner=self.owner, line=self.line,
-                                   end_line=self.end_line, code=""),
-                          Run(repository=self.repository, head=self.revision))
+        return source_url(
+            Function(path=self.path, name=self.name, owner=self.owner, line=self.line, end_line=self.end_line, code=""),
+            Run(repository=self.repository, head=self.revision),
+        )
 
 
 class PairEvidence(BaseModel):
@@ -46,8 +54,12 @@ class PairEvidence(BaseModel):
     @classmethod
     def of(cls, finding: Finding, run: Run) -> "PairEvidence | None":
         try:
-            return cls(a=SourceReference.of(finding.candidate.new, run),
-                       b=SourceReference.of(finding.candidate.existing, run),
-                       similarity=finding.candidate.similarity, verdict=finding.verdict, cached=finding.cached)
+            return cls(
+                a=SourceReference.of(finding.candidate.new, run),
+                b=SourceReference.of(finding.candidate.existing, run),
+                similarity=finding.candidate.similarity,
+                verdict=finding.verdict,
+                cached=finding.cached,
+            )
         except ValidationError:
             return None

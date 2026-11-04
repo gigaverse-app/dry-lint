@@ -56,8 +56,15 @@ def banner_available(transport: httpx.BaseTransport | None = None) -> bool:
         return False
 
 
-def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "", head: str = "", note: str = "",
-            ledger: str = "") -> str:
+def compose(
+    markdown: str,
+    key: str = "",
+    banner: bool = False,
+    run_url: str = "",
+    head: str = "",
+    note: str = "",
+    ledger: str = "",
+) -> str:
     """The comment body: marker, banner, cleanup progress, current findings, and source."""
     lines = markdown.strip().splitlines()
     if lines and re.fullmatch(r"<!-- dry-lint(?::[^\n]*?)? -->", lines[0].strip()):
@@ -77,8 +84,11 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
     if note:
         parts.append(f"{note}\n")
     parts.append(collapse_reports(report))
-    source = ["[dry-lint](https://github.com/gigaverse-app/dry-lint)", f"commit {head[:7]}" if head else "",
-              f"[run]({run_url})" if run_url else ""]
+    source = [
+        "[dry-lint](https://github.com/gigaverse-app/dry-lint)",
+        f"commit {head[:7]}" if head else "",
+        f"[run]({run_url})" if run_url else "",
+    ]
     if head or run_url:
         parts.append(f"\n<sub>{' · '.join(s for s in source if s)}</sub>")
     return "\n".join(parts) + "\n"
@@ -94,10 +104,16 @@ def collapse_reports(markdown: str) -> str:
         result = "Assessment unavailable" if "[!WARNING]" in body else "Scan details"
         if heading:
             result = heading[1].removeprefix("dry-lint · ") if heading[1] != "dry-lint" else result
-            body = body[:heading.start()] + body[heading.end():]
+            body = body[: heading.start()] + body[heading.end() :]
         title = f"{scope} · {result}" if scope else result
-        folded += [f"<details><summary><strong>{html.escape(title)}</strong></summary>", "",
-                   body.strip(), "", "</details>", ""]
+        folded += [
+            f"<details><summary><strong>{html.escape(title)}</strong></summary>",
+            "",
+            body.strip(),
+            "",
+            "</details>",
+            "",
+        ]
     return "\n".join(folded)
 
 
@@ -106,8 +122,11 @@ RESOLVED = "> [!TIP]\n> **Resolved:** the duplicated concepts reported earlier o
 
 class GitHub:
     def __init__(self, token: str, api: str = "https://api.github.com", transport: httpx.BaseTransport | None = None):
-        headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
-                   "X-GitHub-Api-Version": "2022-11-28"}
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
         self.client = httpx.Client(base_url=api, headers=headers, timeout=30, transport=transport)
 
     def pull(self, repository: str, number: int) -> dict:
@@ -122,8 +141,9 @@ class GitHub:
         """The pull request's commit messages, oldest first (GitHub lists at most 250)."""
         found, page = [], 1
         while True:
-            response = self.client.get(f"/repos/{repository}/pulls/{number}/commits",
-                                       params={"per_page": PAGE, "page": page})
+            response = self.client.get(
+                f"/repos/{repository}/pulls/{number}/commits", params={"per_page": PAGE, "page": page}
+            )
             if response.status_code in (403, 404):  # the comment still goes out, without the hook's outcomes
                 return found
             response.raise_for_status()
@@ -136,8 +156,9 @@ class GitHub:
     def comments(self, repository: str, number: int) -> list[dict]:
         found, page = [], 1
         while True:
-            response = self.client.get(f"/repos/{repository}/issues/{number}/comments",
-                                       params={"per_page": PAGE, "page": page})
+            response = self.client.get(
+                f"/repos/{repository}/issues/{number}/comments", params={"per_page": PAGE, "page": page}
+            )
             response.raise_for_status()
             batch = response.json()
             found += batch
@@ -153,8 +174,10 @@ class GitHub:
 
     def merged_pulls(self, repository: str, base: str) -> list[dict]:
         """The most recently updated pull requests merged into `base`."""
-        response = self.client.get(f"/repos/{repository}/pulls", params={
-            "state": "closed", "base": base, "sort": "updated", "direction": "desc", "per_page": PAGE})
+        response = self.client.get(
+            f"/repos/{repository}/pulls",
+            params={"state": "closed", "base": base, "sort": "updated", "direction": "desc", "per_page": PAGE},
+        )
         response.raise_for_status()
         return [pull for pull in response.json() if pull.get("merged_at")]
 
@@ -174,10 +197,24 @@ def run_id() -> str:
     return "-".join(filter(None, (os.environ.get("GITHUB_RUN_ID", ""), os.environ.get("GITHUB_RUN_ATTEMPT", ""))))
 
 
-def upsert(github: GitHub, repository: str, number: int, markdown: str, findings: int, key: str = "",
-           expect_head: str = "", banner: bool = False, run_url: str = "", note: str = "",
-           skip_clean: bool = False, reports: list[Report] = (), run: str = "",
-           repository_ledger: RepositoryLedger | None = None, scopes: list[str] = (), viewer_url: str = VIEWER) -> str:
+def upsert(
+    github: GitHub,
+    repository: str,
+    number: int,
+    markdown: str,
+    findings: int,
+    key: str = "",
+    expect_head: str = "",
+    banner: bool = False,
+    run_url: str = "",
+    note: str = "",
+    skip_clean: bool = False,
+    reports: list[Report] = (),
+    run: str = "",
+    repository_ledger: RepositoryLedger | None = None,
+    scopes: list[str] = (),
+    viewer_url: str = VIEWER,
+) -> str:
     """
     Create, update or leave the sticky comment, and say which: created, updated, resolved (it had findings and has
     none now), skipped (clean, `skip_clean`, never commented), stale (the pull request moved on) or forbidden (the
@@ -189,15 +226,28 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
         mine = ours(github.comments(repository, number))
         if not mine and findings == 0 and skip_clean:
             return "skipped"
-        resolving = (findings == 0 and CLEAN in markdown and len(mine) == 1
-                     and mine[0].get("body", "").startswith(marker(key)) and CLEAN not in mine[0].get("body", ""))
+        resolving = (
+            findings == 0
+            and CLEAN in markdown
+            and len(mine) == 1
+            and mine[0].get("body", "").startswith(marker(key))
+            and CLEAN not in mine[0].get("body", "")
+        )
         if resolving:
             note = "\n\n".join(part for part in (RESOLVED, note) if part)
         before = outcomes(github.commit_messages(repository, number)) if reports else []
-        comparisons = Comparisons(github, repository, expect_head or (reports[0].run.head if reports else ""), viewer_url,
-                                  number)
-        body = compose(markdown, key, banner, run_url, expect_head, note,
-                       account(mine, list(reports), run, repository_ledger, list(scopes), before, comparisons))
+        comparisons = Comparisons(
+            github, repository, expect_head or (reports[0].run.head if reports else ""), viewer_url, number
+        )
+        body = compose(
+            markdown,
+            key,
+            banner,
+            run_url,
+            expect_head,
+            note,
+            account(mine, list(reports), run, repository_ledger, list(scopes), before, comparisons),
+        )
         if not mine:
             github.create(repository, number, body)
             return "created"
@@ -211,8 +261,15 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
         raise
 
 
-def account(mine: list[dict], reports: list[Report], run: str, repository: RepositoryLedger | None,
-            scopes: list[str] = (), before_commit: list[Outcome] = (), comparisons: Comparisons | None = None) -> str:
+def account(
+    mine: list[dict],
+    reports: list[Report],
+    run: str,
+    repository: RepositoryLedger | None,
+    scopes: list[str] = (),
+    before_commit: list[Outcome] = (),
+    comparisons: Comparisons | None = None,
+) -> str:
     """
     The ledger section: the previous comment's ledger with this run added, and what the commits' trailers say the
     pre-commit hook settled. With copies left by racing runs, the one that counted the most runs wins. Nothing
@@ -246,22 +303,39 @@ def combine(paths: list[Path]) -> str:
 
 def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dry_lint.sticky", description="Upsert dry-lint's PR comment.")
-    parser.add_argument("--body", type=Path, action="append", required=True,
-                        help="Markdown report; repeat to combine scopes under headings from file names.")
+    parser.add_argument(
+        "--body",
+        type=Path,
+        action="append",
+        required=True,
+        help="Markdown report; repeat to combine scopes under headings from file names.",
+    )
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""))
     parser.add_argument("--pull-request", type=int, required=True)
     parser.add_argument("--findings", type=int, required=True, help="How many findings the report has.")
-    parser.add_argument("--key", default="",
-                        help="Legacy marker label; all dry-lint markers share one comment. Serialize publishers per PR.")
+    parser.add_argument(
+        "--key",
+        default="",
+        help="Legacy marker label; all dry-lint markers share one comment. Serialize publishers per PR.",
+    )
     parser.add_argument("--expect-head", default="", help="Post only while this is still the PR's head commit.")
     parser.add_argument("--run-url", default="")
     parser.add_argument("--note", default="", help="A line before the report, e.g. whether the findings block.")
-    parser.add_argument("--viewer-url", default=os.environ.get("INPUT_VIEWER_URL", VIEWER),
-                        help="Static public-source viewer URL; empty disables it. Private repos always use GitHub links.")
+    parser.add_argument(
+        "--viewer-url",
+        default=os.environ.get("INPUT_VIEWER_URL", VIEWER),
+        help="Static public-source viewer URL; empty disables it. Private repos always use GitHub links.",
+    )
     parser.add_argument("--skip-clean", action="store_true", help="Post nothing for a clean report never commented on.")
-    parser.add_argument("--report", type=scoped, action="append", default=[], metavar="[SCOPE=]PATH",
-                        help="report.json of this run, to add to the pull request's ledger; repeat with --body. "
-                             "SCOPE names the check it came from, so a scope that did not run settles nothing.")
+    parser.add_argument(
+        "--report",
+        type=scoped,
+        action="append",
+        default=[],
+        metavar="[SCOPE=]PATH",
+        help="report.json of this run, to add to the pull request's ledger; repeat with --body. "
+        "SCOPE names the check it came from, so a scope that did not run settles nothing.",
+    )
     parser.add_argument("--repository-ledger", type=Path, help="The repository's ledger, to show its totals.")
     parser.add_argument("--run", default=run_id(), help="This run's id, so posting it again does not count it twice.")
     args = parser.parse_args(argv)
@@ -272,14 +346,34 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
     github = GitHub(token, os.environ.get("GITHUB_API_URL", "https://api.github.com"), transport)
     reports = [Report.model_validate_json(path.read_text(encoding="utf-8")) for _, path in args.report]
     repository = args.repository_ledger
-    totals = (RepositoryLedger.load(repository.read_text(encoding="utf-8"), args.repository)
-              if repository and repository.exists() else None)
-    outcome = upsert(github, args.repository, args.pull_request, combine(args.body), args.findings, args.key,
-                     args.expect_head, banner_available(transport), args.run_url, args.note, args.skip_clean,
-                     reports, args.run, totals, [scope for scope, _ in args.report], args.viewer_url)
+    totals = (
+        RepositoryLedger.load(repository.read_text(encoding="utf-8"), args.repository)
+        if repository and repository.exists()
+        else None
+    )
+    outcome = upsert(
+        github,
+        args.repository,
+        args.pull_request,
+        combine(args.body),
+        args.findings,
+        args.key,
+        args.expect_head,
+        banner_available(transport),
+        args.run_url,
+        args.note,
+        args.skip_clean,
+        reports,
+        args.run,
+        totals,
+        [scope for scope, _ in args.report],
+        args.viewer_url,
+    )
     if outcome == "forbidden":
-        print("::warning title=dry-lint::This token may not comment on the pull request (a fork?). "
-              "The findings are in the annotations and the job summary.")
+        print(
+            "::warning title=dry-lint::This token may not comment on the pull request (a fork?). "
+            "The findings are in the annotations and the job summary."
+        )
     elif outcome == "stale":
         print("::notice title=dry-lint::The pull request has a newer commit; its own run will comment.")
     print(f"dry-lint sticky comment: {outcome}")

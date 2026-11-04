@@ -14,14 +14,29 @@ def audit(load_script):
 
 
 def comment(summary: JudgingSummary) -> str:
-    return "\n".join(["<!-- dry-lint -->", "### dry-lint · ✨ No duplicated concepts", "",
-                      "<sub>[dry-lint](https://github.com/gigaverse-app/dry-lint) · [run](https://x)</sub>",
-                      f"<sub>{escaped(summary.line())}</sub>"])
+    return "\n".join(
+        [
+            "<!-- dry-lint -->",
+            "### dry-lint · ✨ No duplicated concepts",
+            "",
+            "<sub>[dry-lint](https://github.com/gigaverse-app/dry-lint) · [run](https://x)</sub>",
+            f"<sub>{escaped(summary.line())}</sub>",
+        ]
+    )
 
 
 def summary(**fields) -> JudgingSummary:
-    return JudgingSummary(preset="jev+claude-code", judge="jev:reuse-v2", escalation=OPUS, band=(0.5, 0.91),
-                          report_at=0.55, fail_at=0.55, budget_usd=0.04, pull_request=True, **fields)
+    return JudgingSummary(
+        preset="jev+claude-code",
+        judge="jev:reuse-v2",
+        escalation=OPUS,
+        band=(0.5, 0.91),
+        report_at=0.55,
+        fail_at=0.55,
+        budget_usd=0.04,
+        pull_request=True,
+        **fields,
+    )
 
 
 def test_each_pull_request_reports_its_preset_spend_budget_and_outcome(audit) -> None:
@@ -30,9 +45,16 @@ def test_each_pull_request_reports_its_preset_spend_budget_and_outcome(audit) ->
     failed = comment(summary(spend=[Spend(judge=OPUS, failed=2, error="OAuth session expired (401)")]))
     replies = {
         ("pr", "list"): [
-            {"number": 1, "labels": [], "statusCheckRollup": [{"name": "Duplicated concepts", "conclusion": "SUCCESS"}]},
-            {"number": 2, "labels": [{"name": "dry-lint: override"}],
-             "statusCheckRollup": [{"name": "Duplicated concepts", "conclusion": "FAILURE"}]},
+            {
+                "number": 1,
+                "labels": [],
+                "statusCheckRollup": [{"name": "Duplicated concepts", "conclusion": "SUCCESS"}],
+            },
+            {
+                "number": 2,
+                "labels": [{"name": "dry-lint: override"}],
+                "statusCheckRollup": [{"name": "Duplicated concepts", "conclusion": "FAILURE"}],
+            },
             {"number": 3, "labels": [], "statusCheckRollup": None},
             {"number": 4, "labels": [], "statusCheckRollup": []},
         ],
@@ -47,9 +69,15 @@ def test_each_pull_request_reports_its_preset_spend_budget_and_outcome(audit) ->
 
     rows = audit["audit"]("o/r", 4, fetch=fetch)
     assert [(r.number, r.preset, r.spent, r.budget) for r in rows] == [
-        (1, "jev+claude-code", 0.042, 0.04), (2, "jev+claude-code", 0.039, 0.04), (3, "jev+claude-code", 0.0, 0.04)]
-    assert [(r.capped, r.check_failed, r.overridden) for r in rows] == [(False, False, False), (True, True, True),
-                                                                          (False, False, False)]
+        (1, "jev+claude-code", 0.042, 0.04),
+        (2, "jev+claude-code", 0.039, 0.04),
+        (3, "jev+claude-code", 0.0, 0.04),
+    ]
+    assert [(r.capped, r.check_failed, r.overridden) for r in rows] == [
+        (False, False, False),
+        (True, True, True),
+        (False, False, False),
+    ]
     assert rows[2].judge_failed == f"{OPUS}: OAuth session expired (401)"
     text = audit["summary"](rows)
     assert "3 pull requests with a dry-lint comment; 3 show what judging spent" in text
@@ -61,5 +89,7 @@ def test_each_pull_request_reports_its_preset_spend_budget_and_outcome(audit) ->
 def test_a_comment_without_a_judging_line_counts_but_shows_no_spending(audit) -> None:
     [row] = [audit["judged"](5, "<!-- dry-lint -->\n### dry-lint · 1 look-alike pair, not judged", [], [])]
     assert (row.preset, row.spent, row.capped) == ("", None, False)
-    assert audit["summary"]([row]).splitlines()[:2] == ["1 pull requests with a dry-lint comment; 0 show what judging spent",
-                                                        "presets: none shown"]
+    assert audit["summary"]([row]).splitlines()[:2] == [
+        "1 pull requests with a dry-lint comment; 0 show what judging spent",
+        "presets: none shown",
+    ]

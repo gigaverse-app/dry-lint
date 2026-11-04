@@ -38,8 +38,13 @@ def open_store(settings: Settings, root: Path, path: Path | None = None) -> Verd
     return VerdictStore(load("stores", settings.store))
 
 
-def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, settings: Settings,
-           ledger: Ledger | None = None) -> list[Verdict | None]:
+def decide(
+    candidates: list[Candidate],
+    judge: Judge,
+    escalation: Judge | None,
+    settings: Settings,
+    ledger: Ledger | None = None,
+) -> list[Verdict | None]:
     """
     The first judge's answers, with those in the escalation band replaced by the second judge's answers, kept under
     the first judge's name with `second_opinion` set, so they are stored and reused like any other.
@@ -62,8 +67,10 @@ def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, 
         return answers
     low, high = settings.escalate.between
     middle = (low + high) / 2
-    unsure = sorted((i for i, v in enumerate(answers) if v is not None and low <= v.score < high),
-                    key=lambda i: abs(answers[i].score - middle))
+    unsure = sorted(
+        (i for i, v in enumerate(answers) if v is not None and low <= v.score < high),
+        key=lambda i: abs(answers[i].score - middle),
+    )
     allowed = ledger.affordable(escalation, [candidates[i] for i in unsure]) if ledger else len(unsure)
     escalated = [candidates[i] for i in unsure[:allowed]]
     try:
@@ -76,8 +83,9 @@ def decide(candidates: list[Candidate], judge: Judge, escalation: Judge | None, 
     if ledger:
         ledger.charge(escalation, escalated, skipped=len(unsure) - allowed)
     for i, verdict in zip(unsure, second):
-        answers[i] = verdict.model_copy(update={"judge": judge.name, "judge_version": judge.version,
-                                                "second_opinion": identity(escalation)})
+        answers[i] = verdict.model_copy(
+            update={"judge": judge.name, "judge_version": judge.version, "second_opinion": identity(escalation)}
+        )
     return answers
 
 
@@ -108,13 +116,20 @@ class Judging:
         """What judged this run, on which thresholds, and what it cost: shown on every report."""
         band = self.settings.escalate.between if self.escalation and self.settings.escalate else None
         return JudgingSummary(
-            preset=self.settings.preset, judge=identity(self.judge) if self.judge else None,
-            escalation=identity(self.escalation) if self.escalation else None, band=band,
-            report_at=self.settings.report_at, fail_at=max(self.settings.report_at, self.settings.fail_at),
-            budget_usd=self.settings.budget.usd, subscription_calls=self.settings.budget.subscription_calls,
-            spend=list(self.ledger.spend.values()), spent_before=self.ledger.spent, pull_request=self.pull_request,
+            preset=self.settings.preset,
+            judge=identity(self.judge) if self.judge else None,
+            escalation=identity(self.escalation) if self.escalation else None,
+            band=band,
+            report_at=self.settings.report_at,
+            fail_at=max(self.settings.report_at, self.settings.fail_at),
+            budget_usd=self.settings.budget.usd,
+            subscription_calls=self.settings.budget.subscription_calls,
+            spend=list(self.ledger.spend.values()),
+            spent_before=self.ledger.spent,
+            pull_request=self.pull_request,
             campaign=self.campaign.key if self.campaign else "",
-            exploration_credit=self.campaign.snapshot().credit if self.campaign else 0)
+            exploration_credit=self.campaign.snapshot().credit if self.campaign else 0,
+        )
 
     def unsure(self, verdict: Verdict) -> bool:
         """A first answer in the escalation band, which the second judge did not replace."""
@@ -135,14 +150,19 @@ class Judging:
         self.ledger.spent = self.store.spent(source)
         self.pull_request = source is not None and source.pull_request is not None
         found = self.assess(proposed, source, refresh)
-        reported = {f.candidate.key for f in found if f.verdict and self.settings.duplicate_at(f.verdict, self.settings.report_at)}
+        reported = {
+            f.candidate.key
+            for f in found
+            if f.verdict and self.settings.duplicate_at(f.verdict, self.settings.report_at)
+        }
         relatives = [c for c in candidates if c.filtered is None and c.lane == "relative" and c.parent in reported]
         found += [f for f in self.assess(relatives, source, refresh, advisory=True) if not f.deferred]
         self.store.add_spent(source, self.ledger.usd)
         return found
 
-    def assess(self, proposed: list[Candidate], source: Run | None, refresh: bool, *,
-               advisory: bool = False) -> list[Finding]:
+    def assess(
+        self, proposed: list[Candidate], source: Run | None, refresh: bool, *, advisory: bool = False
+    ) -> list[Finding]:
         """
         From the store when it still holds, else from the judges. `advisory` pairs (relatives) never block, so one
         judge answers them, closest first, and those the budget does not cover are deferred rather than skipped.
@@ -153,14 +173,19 @@ class Judging:
         version = self.judge.version if refresh or strict else None
         second = identity(escalation) if escalation and self.settings.escalate else None
         band = self.settings.escalate.between if second and self.settings.escalate else (0.0, 0.0)
-        known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version, second, band).verdict
-                 for c in proposed]
+        known = [
+            self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version, second, band).verdict
+            for c in proposed
+        ]
         # A cached first answer the second judge has not seen yet: it stands whenever this run cannot ask again.
-        first = {i: self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict
-                 for i, c in enumerate(proposed) if second and known[i] is None}
+        first = {
+            i: self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict
+            for i, c in enumerate(proposed)
+            if second and known[i] is None
+        }
         cached = {i for i, verdict in enumerate(known) if verdict is not None}
         pending = [i for i, verdict in enumerate(known) if verdict is None]
-        deferred = set(pending[self.settings.max_judgements:]) if self.settings.max_judgements is not None else set()
+        deferred = set(pending[self.settings.max_judgements :]) if self.settings.max_judgements is not None else set()
         pending = [i for i in pending if i not in deferred]
         if advisory and pending:
             pending.sort(key=lambda i: -proposed[i].similarity)
@@ -178,8 +203,10 @@ class Judging:
         for i in [i for i in deferred if first.get(i) is not None]:
             known[i], cached = first[i], cached | {i}
             deferred.discard(i)
-        return [Finding(candidate=c, verdict=known[i], cached=i in cached, deferred=i in deferred)
-                for i, c in enumerate(proposed)]
+        return [
+            Finding(candidate=c, verdict=known[i], cached=i in cached, deferred=i in deferred)
+            for i, c in enumerate(proposed)
+        ]
 
     def discover(self, candidates: list[Candidate], source: Run | None) -> list[Finding]:
         """Production scheduler: exact cached answers, baseline first, then reserved exploration."""
@@ -194,15 +221,17 @@ class Judging:
         findings = []
         baseline_pending = False
         for candidate in campaign.order(candidates):
-            cached = self.store.lookup(candidate, judge.name, self.settings.reopen_margin,
-                                       judge.version, exact_source=True).verdict
+            cached = self.store.lookup(
+                candidate, judge.name, self.settings.reopen_margin, judge.version, exact_source=True
+            ).verdict
             if cached is not None:
                 findings.append(Finding(candidate=candidate, verdict=cached, cached=True))
                 continue
             reservation = None
             if not (baseline_pending and candidate.lane == "exploration"):
-                reservation = campaign.reserve(candidate, judge, self.settings,
-                                               reservation_cost(judge, candidate, self.settings))
+                reservation = campaign.reserve(
+                    candidate, judge, self.settings, reservation_cost(judge, candidate, self.settings)
+                )
             if reservation is None:
                 baseline_pending |= candidate.lane == "baseline"
                 spend.skipped += 1

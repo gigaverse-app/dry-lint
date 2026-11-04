@@ -29,13 +29,15 @@ def test_load_passes_the_options_and_lets_settings_override_defaults() -> None:
 @pytest.fixture
 def installed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A real installed distribution that registers a comparer under the dry_lint.comparers entry point."""
-    (tmp_path / "shingles.py").write_text(textwrap.dedent('''
+    (tmp_path / "shingles.py").write_text(
+        textwrap.dedent("""
         class ShingleComparer:
             name, version = "shingles", "3"
 
             def __init__(self, size=2):
                 self.size = size
-    '''))
+    """)
+    )
     info = tmp_path / "shingles-0.1.dist-info"
     info.mkdir()
     (info / "METADATA").write_text("Metadata-Version: 2.1\nName: shingles\nVersion: 0.1\n")

@@ -17,8 +17,14 @@ class HttpJudge:
     key_variable = ""
     default_model = ""
 
-    def __init__(self, model: str = "", api_key: str | None = None, workers: int = 4, timeout: float = 120,
-                 transport: httpx.BaseTransport | None = None) -> None:
+    def __init__(
+        self,
+        model: str = "",
+        api_key: str | None = None,
+        workers: int = 4,
+        timeout: float = 120,
+        transport: httpx.BaseTransport | None = None,
+    ) -> None:
         self.api_key = api_key or os.environ.get(self.key_variable, "")
         if not self.api_key:
             raise ValueError(f"The {self.name} judge needs {self.key_variable}")
@@ -41,5 +47,8 @@ class HttpJudge:
         return parse_verdict(self.answer(response.json()), self.name, self.version)
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
-        with httpx.Client(timeout=self.timeout, transport=self.transport) as client, ThreadPoolExecutor(self.workers) as pool:
+        with (
+            httpx.Client(timeout=self.timeout, transport=self.transport) as client,
+            ThreadPoolExecutor(self.workers) as pool,
+        ):
             return list(pool.map(lambda c: self._ask(client, c), candidates))

@@ -48,15 +48,26 @@ class Function(BaseModel):
     end_line: int
     code: str
     context: str = Field(default="", description="Bounded source dependencies and policy comments; never executed.")
-    context_digest: str = Field(default="", description="Full source-file digest, including context beyond the prompt limit.")
+    context_digest: str = Field(
+        default="", description="Full source-file digest, including context beyond the prompt limit."
+    )
     origin: Run | None = Field(default=None, description="Source checkout for a multi-repository scan.")
-    hash: str = Field(default="", description="Changes with runtime logic; the language extractor normalizes safe cosmetic edits.")
-    tokens: list[str] = Field(default_factory=list, exclude=True,
-                              description="Behaviour tokens, for comparers that use them. Not written to files.")
-    calls: list[str] | None = Field(default=None, exclude=True,
-                                    description="Names the function calls, from its extractor; None if it cannot tell.")
-    bases: list[str] = Field(default_factory=list, exclude=True,
-                             description="Its class's direct bases, as `module::Class` (see `module_of`); not written to files.")
+    hash: str = Field(
+        default="", description="Changes with runtime logic; the language extractor normalizes safe cosmetic edits."
+    )
+    tokens: list[str] = Field(
+        default_factory=list,
+        exclude=True,
+        description="Behaviour tokens, for comparers that use them. Not written to files.",
+    )
+    calls: list[str] | None = Field(
+        default=None, exclude=True, description="Names the function calls, from its extractor; None if it cannot tell."
+    )
+    bases: list[str] = Field(
+        default_factory=list,
+        exclude=True,
+        description="Its class's direct bases, as `module::Class` (see `module_of`); not written to files.",
+    )
 
     @property
     def qualname(self) -> str:
@@ -119,20 +130,33 @@ class Candidate(BaseModel):
     new: Function
     existing: Function
     similarity: float
-    comparer: str = Field(default="", description="The comparer and version that measured the similarity, e.g. 'tfidf:1'.")
-    filtered: str | None = Field(default=None, description="Why a rule dropped the pair; None when it goes to the judge.")
-    similarity_reusable: bool = Field(default=False, description="Whether this metric permits reuse after logic changes.")
+    comparer: str = Field(
+        default="", description="The comparer and version that measured the similarity, e.g. 'tfidf:1'."
+    )
+    filtered: str | None = Field(
+        default=None, description="Why a rule dropped the pair; None when it goes to the judge."
+    )
+    similarity_reusable: bool = Field(
+        default=False, description="Whether this metric permits reuse after logic changes."
+    )
     consolidation: list[Consolidation] = Field(default_factory=list)
     lane: Literal["baseline", "exploration", "relative"] = "baseline"
     parent: str = Field(default="", description="For a relative: the key of the pair whose fix would touch `new`.")
 
     @property
     def context_hash(self) -> str:
-        if not (self.new.context or self.existing.context or self.new.context_digest or self.existing.context_digest
-                or self.consolidation):
+        if not (
+            self.new.context
+            or self.existing.context
+            or self.new.context_digest
+            or self.existing.context_digest
+            or self.consolidation
+        ):
             return ""
-        payload = [sorted((f.qualname, f.context, f.context_digest) for f in (self.new, self.existing)),
-                   [target.model_dump() for target in self.consolidation]]
+        payload = [
+            sorted((f.qualname, f.context, f.context_digest) for f in (self.new, self.existing)),
+            [target.model_dump() for target in self.consolidation],
+        ]
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     @property
@@ -142,8 +166,11 @@ class Candidate(BaseModel):
 
 def evidence(candidate: Candidate, judge_policy: str = "") -> str:
     """Exact source, context and policy identity, independent of which side changed."""
-    payload = [sorted((f.qualname, f.code) for f in (candidate.new, candidate.existing)),
-               candidate.context_hash, judge_policy]
+    payload = [
+        sorted((f.qualname, f.code) for f in (candidate.new, candidate.existing)),
+        candidate.context_hash,
+        judge_policy,
+    ]
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=True).encode()).hexdigest()
 
 
@@ -153,7 +180,9 @@ class Verdict(BaseModel):
     label: Label
     score: float = Field(description="0-1: how sure the judge is that this is one concept with two implementations.")
     behaves_differently: float = Field(default=0.0, description="0-1: whether callers would notice a difference.")
-    owner: str = Field(default="", description="Which side should own the single implementation: new, existing, shared.")
+    owner: str = Field(
+        default="", description="Which side should own the single implementation: new, existing, shared."
+    )
     why: str = ""
     judge: str = Field(description="The judge's name, e.g. 'jev' or 'command:claude'.")
     judge_version: str = Field(default="", description="Its model and prompt version, e.g. 'reuse-v2'.")

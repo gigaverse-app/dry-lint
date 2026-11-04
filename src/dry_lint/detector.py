@@ -38,9 +38,13 @@ def base_ref(root: Path, base: str | None) -> str:
     return base if given(base) else default_base(root)
 
 
-def changed_lines(root: Path, base: str | None = None, staged: bool = False, *, head: str = "HEAD") -> dict[str, set[int]]:
+def changed_lines(
+    root: Path, base: str | None = None, staged: bool = False, *, head: str = "HEAD"
+) -> dict[str, set[int]]:
     """Lines added or modified, per file: from the merge base of base/head to head, or the staged changes."""
-    diff = git(root, "diff", "--cached", "-U0") if staged else git(root, "diff", "-U0", f"{base_ref(root, base)}...{head}")
+    diff = (
+        git(root, "diff", "--cached", "-U0") if staged else git(root, "diff", "-U0", f"{base_ref(root, base)}...{head}")
+    )
     changed: dict[str, set[int]] = {}
     current = None
     for line in diff.splitlines():
@@ -83,8 +87,10 @@ def calls(function: Function) -> set[str]:
     if function.calls is not None:
         return set(function.calls)
     body = function.code.partition("\n")[2]
-    return {*re.findall(r"(?<![\w.])(\w+)\s*\(", body),
-            *(f"{receiver}.{name}" for receiver, name in re.findall(r"\b(self|cls|this)\.(\w+)\s*\(", body))}
+    return {
+        *re.findall(r"(?<![\w.])(\w+)\s*\(", body),
+        *(f"{receiver}.{name}" for receiver, name in re.findall(r"\b(self|cls|this)\.(\w+)\s*\(", body)),
+    }
 
 
 def delegates(caller: Function, callee: Function) -> bool:
@@ -98,10 +104,17 @@ def delegates(caller: Function, callee: Function) -> bool:
     the judge, which reads the code.
     """
     called = calls(caller)
-    related = (callee.owner == caller.owner and callee.path == caller.path
-               or inherits_from(callee, caller) or inherits_from(caller, callee))
-    return (callee.owner is not None and related
-            and any(f"{receiver}.{callee.name}" in called for receiver in ("self", "cls", "this")))
+    related = (
+        callee.owner == caller.owner
+        and callee.path == caller.path
+        or inherits_from(callee, caller)
+        or inherits_from(caller, callee)
+    )
+    return (
+        callee.owner is not None
+        and related
+        and any(f"{receiver}.{callee.name}" in called for receiver in ("self", "cls", "this"))
+    )
 
 
 def inherits_from(method: Function, base: Function) -> bool:
@@ -113,7 +126,8 @@ def inherits_from(method: Function, base: Function) -> bool:
     module = module_of(base.path)
     return base.owner is not None and any(
         name == base.owner and (module == home or module.endswith(f"/{home}"))
-        for home, _, name in (reference.rpartition("::") for reference in method.bases))
+        for home, _, name in (reference.rpartition("::") for reference in method.bases)
+    )
 
 
 def overrides(method: Function, base: Function) -> bool:
@@ -147,8 +161,16 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
 
 
 class Detector:
-    def __init__(self, functions: list[Function], settings: Settings, comparer: Comparer,
-                 extractors: list[Extractor], *, cross_repository: bool = False, same_file: bool = False) -> None:
+    def __init__(
+        self,
+        functions: list[Function],
+        settings: Settings,
+        comparer: Comparer,
+        extractors: list[Extractor],
+        *,
+        cross_repository: bool = False,
+        same_file: bool = False,
+    ) -> None:
         self.functions = functions
         self.settings = settings
         self.comparer = comparer
@@ -181,8 +203,7 @@ class Detector:
         return cls(functions, settings, load("comparers", settings.comparer), extractors)
 
     @classmethod
-    def for_workspace(cls, roots: dict[str, Path], settings: Settings,
-                      indexes: list[FunctionIndex] = ()) -> "Detector":
+    def for_workspace(cls, roots: dict[str, Path], settings: Settings, indexes: list[FunctionIndex] = ()) -> "Detector":
         """One index of committed checkouts; only neighbours in another repository are proposed."""
         if len(roots) + len(indexes) < 2:
             raise ValueError("A workspace needs at least two repositories")
@@ -200,8 +221,10 @@ class Detector:
                 raise ValueError(f"Commit tracked changes before scanning workspace repository {name}")
             origin = Run(repository=name, head=git(root, "rev-parse", "HEAD"))
             source = Settings.load(root)
-            functions.extend(f.model_copy(update={"origin": origin}) for f in
-                             repository_functions(root, source.include, source.exclude, extractors))
+            functions.extend(
+                f.model_copy(update={"origin": origin})
+                for f in repository_functions(root, source.include, source.exclude, extractors)
+            )
         names = set(roots)
         for index in indexes:
             if index.repository in names:
@@ -214,8 +237,9 @@ class Detector:
 
     def find(self, name: str) -> Function:
         """A function by qualified name, or by a suffix of one that only it has."""
-        matches = [f for f in self.functions if f.qualname == name] or \
-            [f for f in self.functions if f.qualname.endswith(name)]
+        matches = [f for f in self.functions if f.qualname == name] or [
+            f for f in self.functions if f.qualname.endswith(name)
+        ]
         if len(matches) != 1:
             raise ValueError(f"{len(matches)} functions match {name!r}; give more of the qualified name")
         return matches[0]
@@ -223,17 +247,31 @@ class Detector:
     def neighbours(self, function: Function) -> list[tuple[Function, float]]:
         """The closest functions in other files, above the comparer's floor, before any rule."""
         extractor = extractor_for(function.path, self.extractors)
+
         def allowed(other: Function) -> bool:
             different_repository = other.origin != function.origin
-            return ((different_repository if self.cross_repository else different_repository or other.path != function.path
-                     or self.same_file and other.qualname != function.qualname)
-                    and self.file_extractors[other.path] is extractor)
+            return (
+                different_repository
+                if self.cross_repository
+                else different_repository
+                or other.path != function.path
+                or self.same_file
+                and other.qualname != function.qualname
+            ) and self.file_extractors[other.path] is extractor
 
         if self.cross_repository:
-            return [pair for repository in self.repositories if not function.origin or repository != function.origin.repository
-                    for pair in self.comparer.neighbours(function, self.settings.neighbours,
-                        allowed=lambda other, repository=repository: allowed(other) and other.origin is not None
-                        and other.origin.repository == repository)]
+            return [
+                pair
+                for repository in self.repositories
+                if not function.origin or repository != function.origin.repository
+                for pair in self.comparer.neighbours(
+                    function,
+                    self.settings.neighbours,
+                    allowed=lambda other, repository=repository: (
+                        allowed(other) and other.origin is not None and other.origin.repository == repository
+                    ),
+                )
+            ]
         return self.comparer.neighbours(function, self.settings.neighbours, allowed=allowed)
 
     def hashed(self, function: Function) -> Function:
@@ -242,12 +280,23 @@ class Detector:
         return function.model_copy(update={"hash": extractor.structure_hash(function)})
 
     def pair(self, new: Function, existing: Function, similarity: float) -> Candidate:
-        targets = [target for target in self.settings.consolidation if all(
-            any(fnmatch.fnmatch(f.qualname.split("::")[0], pattern) for pattern in target.sources)
-            for f in (new, existing))]
-        return Candidate(new=self.hashed(new), existing=self.hashed(existing), similarity=round(similarity, 3),
-                         comparer=self.comparer_id, filtered=why_skipped(new, existing, self.settings),
-                         similarity_reusable=getattr(self.comparer, "similarity_reusable", False), consolidation=targets)
+        targets = [
+            target
+            for target in self.settings.consolidation
+            if all(
+                any(fnmatch.fnmatch(f.qualname.split("::")[0], pattern) for pattern in target.sources)
+                for f in (new, existing)
+            )
+        ]
+        return Candidate(
+            new=self.hashed(new),
+            existing=self.hashed(existing),
+            similarity=round(similarity, 3),
+            comparer=self.comparer_id,
+            filtered=why_skipped(new, existing, self.settings),
+            similarity_reusable=getattr(self.comparer, "similarity_reusable", False),
+            consolidation=targets,
+        )
 
     def candidates(self, changed: list[Function]) -> list[Candidate]:
         """Pairs for the changed functions; those a rule settles carry the rule in `filtered`."""
@@ -262,16 +311,25 @@ class Detector:
         if self.settings.discovery.enabled and self.settings.comparer.use == "tfidf":
             # A separate index leaves the baseline's floor, ranks and k unchanged.
             from dry_lint.comparers import TfidfComparer
+
             policy = self.settings.discovery
             options = self.settings.comparer.options()
             options.update(min_similarity=policy.min_similarity, min_similarity_small=policy.min_similarity)
-            wider = self.settings.model_copy(update={"neighbours": policy.depth,
-                "discovery": policy.model_copy(update={"enabled": False})})
-            detector = Detector(self.functions, wider, TfidfComparer(**options), self.extractors,
-                                cross_repository=self.cross_repository, same_file=True)
+            wider = self.settings.model_copy(
+                update={"neighbours": policy.depth, "discovery": policy.model_copy(update={"enabled": False})}
+            )
+            detector = Detector(
+                self.functions,
+                wider,
+                TfidfComparer(**options),
+                self.extractors,
+                cross_repository=self.cross_repository,
+                same_file=True,
+            )
             keys = {c.key for c in baseline}
-            baseline += [c.model_copy(update={"lane": "exploration"}) for c in detector.candidates(changed)
-                         if c.key not in keys]
+            baseline += [
+                c.model_copy(update={"lane": "exploration"}) for c in detector.candidates(changed) if c.key not in keys
+            ]
         if not self.cross_repository:
             baseline += self.relatives(changed, baseline)
         return baseline

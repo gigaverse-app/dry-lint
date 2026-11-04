@@ -22,7 +22,12 @@ def blocked() -> Journal:
 def test_a_reported_pair_is_blocked_with_its_names_and_file() -> None:
     [pair_] = blocked().blocked.values()
     assert (pair_.key, pair_.new, pair_.existing, pair_.path, pair_.state) == (
-        KEY, "clip", "shorten", "src/widgets/caption.py", "blocked")
+        KEY,
+        "clip",
+        "shorten",
+        "src/widgets/caption.py",
+        "blocked",
+    )
     assert blocked().pending == {}
 
 
@@ -66,7 +71,8 @@ def test_the_latest_commit_s_word_on_a_pair_wins_and_malformed_trailers_are_igno
 
 
 def test_the_hook_carries_a_fixed_duplicate_into_the_commit_and_counts_it_in_its_header(
-        repo: Repo, tmp_path: Path, blocking_twin_judge: str, capsys) -> None:
+    repo: Repo, tmp_path: Path, blocking_twin_judge: str, capsys
+) -> None:
     repo.git("update-ref", "refs/remotes/origin/main", "main")
     judge = ("--judge", "command", "--judge-command", blocking_twin_judge, "--format", "text")
     repo.write("src/more.py", TWIN)
@@ -76,7 +82,10 @@ def test_the_hook_carries_a_fixed_duplicate_into_the_commit_and_counts_it_in_its
     repo.write("src/more.py", REPAIR)
     repo.git("add", "src/more.py")
     assert run_cli(repo, tmp_path, "--staged", *judge) == 0
-    assert "dry-lint before commit on this branch: 1 duplicate kept out, 0 look-alikes dismissed" in capsys.readouterr().out
+    assert (
+        "dry-lint before commit on this branch: 1 duplicate kept out, 0 look-alikes dismissed"
+        in capsys.readouterr().out
+    )
     message = tmp_path / "COMMIT_EDITMSG"
     message.write_text("feat: reuse the shared helper\n")
     assert main(["trailers", "--root", str(repo.root), str(message), "message"]) == 0

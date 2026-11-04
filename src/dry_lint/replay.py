@@ -54,7 +54,9 @@ class Replay(Versioned):
     ref: str = Field(description="The branch replayed, as given.")
     head: str = Field(description="The commit it pointed at.")
     commits: list[ReplayedCommit] = Field(default_factory=list, description="Oldest first, in the order replayed.")
-    judging: JudgingSummary | None = Field(default=None, description="Judges, thresholds, budget and cost, for all commits.")
+    judging: JudgingSummary | None = Field(
+        default=None, description="Judges, thresholds, budget and cost, for all commits."
+    )
     labels: Labels | None = Field(default=None, description="With --label: the gold set and what it says.")
 
     def findings(self) -> list[tuple[ReplayedCommit, Finding]]:
@@ -66,14 +68,18 @@ class Replay(Versioned):
         blocking = sum(f.blocking for _, f in reported)
         changed = [c for c in self.commits if c.report.changed]
         fresh = sum(f.verdict is not None and not f.cached for _, f in found)
-        lines = [f"dry-lint replay: the last {len(self.commits)} commits of {self.ref} ({self.head[:9]}), checked as "
-                 "`check` would have checked them, with these settings"]
+        lines = [
+            f"dry-lint replay: the last {len(self.commits)} commits of {self.ref} ({self.head[:9]}), checked as "
+            "`check` would have checked them, with these settings"
+        ]
         for commit in changed:
             report = commit.report
             shown = sum(f.reported for f in report.findings)
             verdict = "fails" if commit.fails else "warns" if commit.warns else "passes"
-            lines.append(f"  {commit.commit[:9]}  {verdict:6} {report.changed:3} changed, {len(report.findings):2} "
-                         f"candidates, {shown} reported  {commit.subject[:60]}")
+            lines.append(
+                f"  {commit.commit[:9]}  {verdict:6} {report.changed:3} changed, {len(report.findings):2} "
+                f"candidates, {shown} reported  {commit.subject[:60]}"
+            )
         lines += [
             f"commits: {len(self.commits)} replayed, {len(changed)} with changed functions, "
             f"{sum(c.fails for c in self.commits)} would fail, {sum(c.warns for c in self.commits)} would only warn",
@@ -87,16 +93,20 @@ class Replay(Versioned):
             checked = [c for c in self.commits if c.report.findings]
             reached = sum(bool(c.report.judging and c.report.judging.skipped) for c in checked)
             usd = self.judging.usd
-            lines.append(f"  per check: a ${self.judging.budget_usd:g} budget, reached by {reached} of {len(checked)} "
-                         "checks with candidates"
-                         + (f"; est. ${usd / len(checked):.4f} each on average" if usd is not None and checked else ""))
+            lines.append(
+                f"  per check: a ${self.judging.budget_usd:g} budget, reached by {reached} of {len(checked)} "
+                "checks with candidates"
+                + (f"; est. ${usd / len(checked):.4f} each on average" if usd is not None and checked else "")
+            )
         if reported:
             lines.append("")
             lines.append(f"reported findings ({min(limit, len(reported))} of {len(reported)}, blocking first):")
             for commit, finding in sorted(reported, key=lambda cf: (not cf[1].blocking, -cf[1].verdict.score))[:limit]:
                 where = finding.candidate.new
-                lines.append(f"  {commit.commit[:9]} {where.path}:{where.line}: {finding.headline()}"
-                             + (" [blocks]" if finding.blocking else ""))
+                lines.append(
+                    f"  {commit.commit[:9]} {where.path}:{where.line}: {finding.headline()}"
+                    + (" [blocks]" if finding.blocking else "")
+                )
                 lines.append(f"    {finding.advice(commit.report.relatives(finding))}")
         if self.labels:
             lines.append(self.labels.as_text())
@@ -123,8 +133,14 @@ def analysed(tree: Path, lines: dict[str, set[int]], settings: Settings, extract
     return any(extractor_for(path, extractors) for path in set(lines) & read)
 
 
-def replay(root: Path, settings: Settings, store: VerdictStore, count: int, ref: str,
-           progress: Callable[[str], None] | None = None) -> Replay:
+def replay(
+    root: Path,
+    settings: Settings,
+    store: VerdictStore,
+    count: int,
+    ref: str,
+    progress: Callable[[str], None] | None = None,
+) -> Replay:
     """Check each of the last `count` first-parent commits of `ref` against its parent, oldest first."""
     head = git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}", check=False)
     if not head:
@@ -140,20 +156,36 @@ def replay(root: Path, settings: Settings, store: VerdictStore, count: int, ref:
             parents = git(root, "rev-list", "--parents", "-n", "1", commit).split()[1:]
             run = Run(head=commit, base=parents[0] if parents else "")
             lines = changed_lines(tree, parents[0]) if parents else {}
-            functions = (repository_functions(tree, settings.include, settings.exclude, extractors, cache)
-                         if lines and analysed(tree, lines, settings, extractors) else [])
+            functions = (
+                repository_functions(tree, settings.include, settings.exclude, extractors, cache)
+                if lines and analysed(tree, lines, settings, extractors)
+                else []
+            )
             changed = touched(functions, lines)
-            candidates = (Detector(functions, settings, load("comparers", settings.comparer), extractors)
-                          .candidates(changed) if changed else [])
+            candidates = (
+                Detector(functions, settings, load("comparers", settings.comparer), extractors).candidates(changed)
+                if changed
+                else []
+            )
             judging.ledger = Ledger(settings)  # each pull request's check has a budget of its own
-            report = Report.build(judging.findings(candidates, source=run), settings,
-                                  filtered=[c for c in candidates if c.filtered], run=run, changed=len(changed),
-                                  judge=judging.name, functions=len(functions), judging=judging.summary())
+            report = Report.build(
+                judging.findings(candidates, source=run),
+                settings,
+                filtered=[c for c in candidates if c.filtered],
+                run=run,
+                changed=len(changed),
+                judge=judging.name,
+                functions=len(functions),
+                judging=judging.summary(),
+            )
             spent += judging.ledger.spend.values()
-            commits.append(ReplayedCommit(commit=commit, subject=git(root, "log", "-1", "--format=%s", commit),
-                                          report=report))
+            commits.append(
+                ReplayedCommit(commit=commit, subject=git(root, "log", "-1", "--format=%s", commit), report=report)
+            )
             if progress:
-                progress(f"replay {number}/{len(history)} {commit[:9]}: {len(changed)} changed, "
-                         f"{len(report.findings)} candidates, {sum(f.reported for f in report.findings)} reported")
+                progress(
+                    f"replay {number}/{len(history)} {commit[:9]}: {len(changed)} changed, "
+                    f"{len(report.findings)} candidates, {sum(f.reported for f in report.findings)} reported"
+                )
     summary = judging.summary().model_copy(update={"spend": combined(spent)})
     return Replay(ref=ref, head=head, commits=commits, judging=summary)

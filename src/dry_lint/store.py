@@ -111,8 +111,9 @@ class S3Store:
             return None
 
     def put(self, key: str, data: bytes) -> None:
-        self.client.put_object(Bucket=self.bucket, Key=f"{self.prefix}{key}.json", Body=data,
-                               ContentType="application/json")
+        self.client.put_object(
+            Bucket=self.bucket, Key=f"{self.prefix}{key}.json", Body=data, ContentType="application/json"
+        )
 
     def keys(self) -> Iterator[str]:
         for page in self.client.get_paginator("list_objects_v2").paginate(Bucket=self.bucket, Prefix=self.prefix):
@@ -149,14 +150,24 @@ class VerdictStore:
         if run is None or run.pull_request is None or usd <= 0:
             return
         data = self.backend.get(spent_key(run))
-        spent = (Spent.model_validate_json(data) if data is not None
-                 else Spent(repository=run.repository, pull_request=run.pull_request))
+        spent = (
+            Spent.model_validate_json(data)
+            if data is not None
+            else Spent(repository=run.repository, pull_request=run.pull_request)
+        )
         spent = spent.model_copy(update={"usd": spent.usd + usd, "runs": spent.runs + 1})
         self.backend.put(spent_key(run), spent.model_dump_json().encode())
 
-    def lookup(self, candidate: Candidate, judge: str, reopen_margin: float, version: str | None = None,
-               escalation: str | None = None, band: tuple[float, float] = (0.0, 0.0),
-               exact_source: bool = False) -> Lookup:
+    def lookup(
+        self,
+        candidate: Candidate,
+        judge: str,
+        reopen_margin: float,
+        version: str | None = None,
+        escalation: str | None = None,
+        band: tuple[float, float] = (0.0, 0.0),
+        exact_source: bool = False,
+    ) -> Lookup:
         """
         The stored verdict if it still holds for the pair as it is now, and why it does or does not. With a second
         judge (`escalation`, its identity, re-judging first scores in `band`), a verdict holds only if this judging
@@ -177,7 +188,9 @@ class VerdictStore:
         if verdict.second_opinion is not None and verdict.second_opinion != escalation:
             return Lookup(None, f"second opinion from {verdict.second_opinion}, not {escalation or 'no second judge'}")
         if verdict.second_opinion is None and escalation and band[0] <= verdict.score < band[1]:
-            return Lookup(None, f"{escalation} re-judges first scores in [{band[0]:g}, {band[1]:g}), and never saw this one")
+            return Lookup(
+                None, f"{escalation} re-judges first scores in [{band[0]:g}, {band[1]:g}), and never saw this one"
+            )
         then = dict(zip(record.pair, record.hashes))
         now = {candidate.new.qualname: candidate.new.hash, candidate.existing.qualname: candidate.existing.hash}
         if then == now:
@@ -190,14 +203,26 @@ class VerdictStore:
         if not (record.similarity_reusable and candidate.similarity_reusable):
             return Lookup(None, "the logic changed, and the comparer requires exact-hash reuse")
         if candidate.similarity > record.similarity + reopen_margin:
-            return Lookup(None, f"judged separate at similarity {record.similarity:.2f}; now {candidate.similarity:.2f}")
+            return Lookup(
+                None, f"judged separate at similarity {record.similarity:.2f}; now {candidate.similarity:.2f}"
+            )
         return Lookup(verdict, "judged separate, and the pair is no closer")
 
     def remember(self, candidate: Candidate, verdict: Verdict, source: Run | None = None) -> Record:
-        sides = sorted([(candidate.new.qualname, candidate.new.hash), (candidate.existing.qualname, candidate.existing.hash)])
-        record = Record(key=candidate.key, pair=(sides[0][0], sides[1][0]), hashes=(sides[0][1], sides[1][1]),
-                        comparer=candidate.comparer, similarity=candidate.similarity, verdict=verdict, source=source,
-                        similarity_reusable=candidate.similarity_reusable, context_hash=candidate.context_hash,
-                        evidence=evidence(candidate))
+        sides = sorted(
+            [(candidate.new.qualname, candidate.new.hash), (candidate.existing.qualname, candidate.existing.hash)]
+        )
+        record = Record(
+            key=candidate.key,
+            pair=(sides[0][0], sides[1][0]),
+            hashes=(sides[0][1], sides[1][1]),
+            comparer=candidate.comparer,
+            similarity=candidate.similarity,
+            verdict=verdict,
+            source=source,
+            similarity_reusable=candidate.similarity_reusable,
+            context_hash=candidate.context_hash,
+            evidence=evidence(candidate),
+        )
         self.backend.put(record.key, record.model_dump_json().encode())
         return record

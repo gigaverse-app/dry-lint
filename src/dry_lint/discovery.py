@@ -103,8 +103,11 @@ class CampaignStore:
                 room = min(room, exploration_cap - sum(a.usd for a in explored), state.credit)
             if usd > room + 1e-12:
                 return None
-            state.attempts.append(Attempt(revision=self.revision, evidence=version, lane=candidate.lane,
-                                          query=candidate.new.qualname, usd=usd))
+            state.attempts.append(
+                Attempt(
+                    revision=self.revision, evidence=version, lane=candidate.lane, query=candidate.new.qualname, usd=usd
+                )
+            )
             if candidate.lane == "exploration":
                 state.credit -= usd
             return len(state.attempts) - 1
@@ -128,8 +131,10 @@ class CampaignStore:
             counts[key] = counts.get(key, 0) + 1
         ordered, pending = [], list(candidates)
         while pending:
-            candidate = min(pending, key=lambda c: (c.lane != "baseline", counts.get((c.lane, c.new.qualname), 0),
-                                                    -c.similarity, c.key))
+            candidate = min(
+                pending,
+                key=lambda c: (c.lane != "baseline", counts.get((c.lane, c.new.qualname), 0), -c.similarity, c.key),
+            )
             pending.remove(candidate)
             ordered.append(candidate)
             key = (candidate.lane, candidate.new.qualname)

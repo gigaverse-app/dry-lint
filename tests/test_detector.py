@@ -30,7 +30,9 @@ def test_changed_lines_of_staged_changes_ignore_unstaged_ones_and_deleted_files(
 def test_only_functions_overlapping_changed_lines_count_as_changed(repo: Repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
     assert changed_functions(repo, detector, base="main") == [
-        "src/widgets/caption.py::preview_caption_text", "src/widgets/caption.py::register_widget"]
+        "src/widgets/caption.py::preview_caption_text",
+        "src/widgets/caption.py::register_widget",
+    ]
 
 
 def test_a_reimplementation_of_an_existing_helper_becomes_a_candidate(repo: Repo) -> None:
@@ -45,10 +47,15 @@ def test_a_reimplementation_of_an_existing_helper_becomes_a_candidate(repo: Repo
 
 def test_candidates_carry_both_structure_hashes_for_the_store(repo: Repo) -> None:
     detector = Detector.for_repository(repo.root, Settings())
-    [twin] = [c for c in detector.candidates(touched(detector.functions, changed_lines(repo.root, base="main")))
-              if c.existing.name == "shorten_text"]
+    [twin] = [
+        c
+        for c in detector.candidates(touched(detector.functions, changed_lines(repo.root, base="main")))
+        if c.existing.name == "shorten_text"
+    ]
     extractor = detector.extractors[0]
-    assert twin.new.hash == extractor.structure_hash(twin.new) and twin.existing.hash == extractor.structure_hash(twin.existing)
+    assert twin.new.hash == extractor.structure_hash(twin.new) and twin.existing.hash == extractor.structure_hash(
+        twin.existing
+    )
     assert all(f.hash == "" for f in detector.functions)  # only paired functions are hashed
 
 
@@ -76,8 +83,9 @@ def test_a_pair_is_proposed_once_even_when_both_sides_changed(repo: Repo) -> Non
 
 def test_scan_reports_mutual_nearest_neighbours_closest_first(repo: Repo) -> None:
     pairs = Detector.for_repository(repo.root, Settings()).scan()
-    assert {(c.new.name, c.existing.name) for c in pairs} >= {("preview_caption_text", "shorten_text")} or \
-        {(c.existing.name, c.new.name) for c in pairs} >= {("preview_caption_text", "shorten_text")}
+    assert {(c.new.name, c.existing.name) for c in pairs} >= {("preview_caption_text", "shorten_text")} or {
+        (c.existing.name, c.new.name) for c in pairs
+    } >= {("preview_caption_text", "shorten_text")}
     assert [c.similarity for c in pairs] == sorted((c.similarity for c in pairs), reverse=True)
 
 
@@ -116,13 +124,24 @@ def test_why_skipped_names_the_rule_that_makes_look_alikes_not_duplicates(a, b, 
 def test_an_inline_ignore_settles_every_pair_the_function_is_in(marker: str) -> None:
     ignored = function("b.py", f"def load_account(store, key):\n    {marker}\n    return store.read(key)\n")
     assert why_skipped(A, ignored, Settings()) == why_skipped(ignored, A, Settings()) == "inline ignore"
-    assert why_skipped(A, function("b.py", "def load_account(store, key):\n    # dry-lint: ignored? no\n    return store.read(key)\n"),
-                       Settings()) is None
+    assert (
+        why_skipped(
+            A,
+            function(
+                "b.py", "def load_account(store, key):\n    # dry-lint: ignored? no\n    return store.read(key)\n"
+            ),
+            Settings(),
+        )
+        is None
+    )
 
 
 def test_same_named_functions_that_do_not_call_each_other_are_judged_not_skipped() -> None:
     connect = "def connect(self):\n    self.session = open_session(BASE_URL)\n    return self.session\n"
-    a, b = function("feeds/youredge.py", connect, owner="YourEdge"), function("feeds/polymarket.py", connect, owner="Polymarket")
+    a, b = (
+        function("feeds/youredge.py", connect, owner="YourEdge"),
+        function("feeds/polymarket.py", connect, owner="Polymarket"),
+    )
     assert why_skipped(a, b, Settings()) is None
 
 
@@ -131,8 +150,11 @@ def test_a_call_on_another_receiver_is_left_to_the_judge_not_taken_as_delegation
     INVARIANT: "one calls the other" settles a pair only when the call provably reaches the other function. By name
     alone, `self.inner.connect()` may call any object's `connect`, and `text.strip()` calls str.strip.
     """
-    a = function("feeds/youredge.py", "def connect(self):\n    self.session = open_session(BASE_URL)\n    return self.session\n",
-                 owner="YourEdge")
+    a = function(
+        "feeds/youredge.py",
+        "def connect(self):\n    self.session = open_session(BASE_URL)\n    return self.session\n",
+        owner="YourEdge",
+    )
     wrapper = function("feeds/retry.py", "def connect(self):\n    return self.inner.connect()\n", owner="Retrying")
     assert why_skipped(wrapper, a, Settings()) is None
     strip = function("a.py", "def strip(text):\n    return text.strip().lower()\n")
@@ -150,27 +172,43 @@ def test_only_a_call_on_the_class_itself_is_proven_delegation() -> None:
     assert why_skipped(get, read, Settings()) == "one calls the other"
     other_class = function("b.py", "def read(self, key):\n    return self.rows[key]\n", owner="Cache")
     assert why_skipped(get, other_class, Settings()) is None
-    imported = function("b.py", "def load_account(store, key):\n    from vendor import load_user\n    return load_user(store, key)\n")
+    imported = function(
+        "b.py", "def load_account(store, key):\n    from vendor import load_user\n    return load_user(store, key)\n"
+    )
     assert why_skipped(imported, A, Settings()) is None
     shadowing = function("c.py", "def load_account(load_user, key):\n    return load_user(key)\n")
     assert why_skipped(shadowing, A, Settings()) is None
     method_by_bare_name = function("c.py", "def read(key):\n    return ROWS[key]\n", owner="Rows")
-    assert why_skipped(function("d.py", "def get(key):\n    return read(key)\n"), method_by_bare_name, Settings()) is None
+    assert (
+        why_skipped(function("d.py", "def get(key):\n    return read(key)\n"), method_by_bare_name, Settings()) is None
+    )
 
 
 def test_without_calls_from_the_extractor_the_defining_line_does_not_count_as_a_call() -> None:
-    a = function("a.ts", "function load(key) {\n  return cache.get(key)\n}", name="load").model_copy(update={"calls": None})
-    b = function("b.ts", "function load(id) {\n  return store.read(id)\n}", name="load").model_copy(update={"calls": None})
+    a = function("a.ts", "function load(key) {\n  return cache.get(key)\n}", name="load").model_copy(
+        update={"calls": None}
+    )
+    b = function("b.ts", "function load(id) {\n  return store.read(id)\n}", name="load").model_copy(
+        update={"calls": None}
+    )
     assert why_skipped(a, b, Settings()) is None
-    wrapper = function("c.ts", "function fetch(key) {\n  return load(key)\n}", name="fetch").model_copy(update={"calls": None})
+    wrapper = function("c.ts", "function fetch(key) {\n  return load(key)\n}", name="fetch").model_copy(
+        update={"calls": None}
+    )
     assert why_skipped(wrapper, a, Settings()) is None  # a bare `load` may be any `load` in scope
-    method = function("a.ts", "fetch(key) {\n  return this.load(key)\n}", name="fetch", owner="Cache").model_copy(update={"calls": None})
+    method = function("a.ts", "fetch(key) {\n  return this.load(key)\n}", name="fetch", owner="Cache").model_copy(
+        update={"calls": None}
+    )
     assert why_skipped(method, a.model_copy(update={"owner": "Cache"}), Settings()) == "one calls the other"
-    method_call = function("d.ts", "function fetch(key) {\n  return cache.load(key)\n}", name="fetch").model_copy(update={"calls": None})
+    method_call = function("d.ts", "function fetch(key) {\n  return cache.load(key)\n}", name="fetch").model_copy(
+        update={"calls": None}
+    )
     assert why_skipped(method_call, a, Settings()) is None
 
 
-BASE = "class Operation:\n    def entries(self, work):\n        return attempts_for(work).filter(revision=work.revision)\n"
+BASE = (
+    "class Operation:\n    def entries(self, work):\n        return attempts_for(work).filter(revision=work.revision)\n"
+)
 OVERRIDE = "class Bulk({base}):\n    def entries(self, work):\n        return work.attempts()\n"
 
 
@@ -219,8 +257,10 @@ def test_same_named_methods_without_a_resolved_base_relation_go_to_the_judge(sou
     assert why_skipped(override["Bulk.entries"], unrelated, Settings()) is None
 
 
-CALLER = ("class Operation:\n    def attempt(self, work):\n        found = self.entries(work).exclude(outcome=NOT_APPLIED)\n"
-          "        return found.first()\n\n    def entries(self, work):\n        return attempts_for(work)\n")
+CALLER = (
+    "class Operation:\n    def attempt(self, work):\n        found = self.entries(work).exclude(outcome=NOT_APPLIED)\n"
+    "        return found.first()\n\n    def entries(self, work):\n        return attempts_for(work)\n"
+)
 
 
 @pytest.mark.parametrize("subclass, a, b", [
@@ -233,14 +273,20 @@ CALLER = ("class Operation:\n    def attempt(self, work):\n        found = self.
     ("class Bulk({base}):\n    @classmethod\n    def latest(cls, work):\n        return cls.entries(work).last()\n",
      "Bulk.latest", "Operation.entries"),
 ])  # fmt: skip
-@pytest.mark.parametrize("imports, base", [("from pkg.ops import Operation\n", "Operation"), ("from . import ops\n", "ops.Operation")])
+@pytest.mark.parametrize(
+    "imports, base", [("from pkg.ops import Operation\n", "Operation"), ("from . import ops\n", "ops.Operation")]
+)
 def test_a_self_call_between_a_class_and_its_direct_base_is_settled_by_rule(subclass, a, b, imports, base) -> None:
     """
     INVARIANT: a call through `self` or `cls` reaches the same-named method of the class's direct base, or a direct
     subclass's override of it, so "one calls the other" holds across that one inheritance step as within a class.
     """
     found = {**methods("pkg/ops.py", CALLER), **methods("pkg/bulk.py", imports + subclass.format(base=base))}
-    assert why_skipped(found[a], found[b], Settings()) == why_skipped(found[b], found[a], Settings()) == "one calls the other"
+    assert (
+        why_skipped(found[a], found[b], Settings())
+        == why_skipped(found[b], found[a], Settings())
+        == "one calls the other"
+    )
 
 
 @pytest.mark.parametrize("source", [
@@ -254,24 +300,39 @@ def test_a_self_call_without_a_resolved_direct_base_goes_to_the_judge(source: st
     caller = methods("pkg/ops.py", CALLER)["Operation.attempt"]
     [entries] = [f for f in methods("pkg/bulk.py", source).values() if f.name == "entries"]
     assert why_skipped(entries, caller, Settings()) is None
-    override = methods("pkg/bulk.py", "from pkg.ops import Operation\nclass Bulk(Operation):\n"
-                                      "    def entries(self, work):\n        return work.attempts()\n")["Bulk.entries"]
+    override = methods(
+        "pkg/bulk.py",
+        "from pkg.ops import Operation\nclass Bulk(Operation):\n"
+        "    def entries(self, work):\n        return work.attempts()\n",
+    )["Bulk.entries"]
     unrelated = methods("pkg/other.py", CALLER.replace("Operation", "Cache"))["Cache.attempt"]
     assert why_skipped(override, unrelated, Settings()) is None
-    other_receiver = methods("pkg/bulk.py", "from pkg.ops import Operation\nclass Bulk(Operation):\n"
-                                            "    def latest(self, work):\n        return self.inner.entries(work)\n")
-    assert why_skipped(other_receiver["Bulk.latest"], methods("pkg/ops.py", CALLER)["Operation.entries"], Settings()) is None
+    other_receiver = methods(
+        "pkg/bulk.py",
+        "from pkg.ops import Operation\nclass Bulk(Operation):\n"
+        "    def latest(self, work):\n        return self.inner.entries(work)\n",
+    )
+    assert (
+        why_skipped(other_receiver["Bulk.latest"], methods("pkg/ops.py", CALLER)["Operation.entries"], Settings())
+        is None
+    )
 
 
 def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(repo: Repo, monkeypatch) -> None:
     body = "        rows = self.store.read(key)\n        return [row for row in rows if row.revision == key.revision]\n"
     repo.write("src/ops.py", f"class Operation:\n    def possible_entries(self, key):\n{body}")
-    repo.write("src/bulk.py", "from src.ops import Operation\n\n\nclass Bulk(Operation):\n"
-                              f"    def possible_entries(self, key):\n{body.replace('revision', 'batch')}")
+    repo.write(
+        "src/bulk.py",
+        "from src.ops import Operation\n\n\nclass Bulk(Operation):\n"
+        f"    def possible_entries(self, key):\n{body.replace('revision', 'batch')}",
+    )
     repo.commit("override")
     detector = Detector.for_repository(repo.root, tfidf(min_similarity=0.0, min_similarity_small=0.0))
-    [pair] = [c for c in detector.candidates([detector.find("Bulk.possible_entries")])
-              if c.existing.qualname == "src/ops.py::Operation.possible_entries"]
+    [pair] = [
+        c
+        for c in detector.candidates([detector.find("Bulk.possible_entries")])
+        if c.existing.qualname == "src/ops.py::Operation.possible_entries"
+    ]
     assert pair.filtered == "subclass override"
     names = {pair.new.qualname, pair.existing.qualname}
     assert names not in [{c.new.qualname, c.existing.qualname} for c in detector.scan()]
@@ -280,20 +341,29 @@ def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(re
 
 
 def test_skipped_pairs_are_listed_with_their_reason(repo: Repo) -> None:
-    repo.write("src/widgets/caption.py", (repo.root / "src/widgets/caption.py").read_text().replace(
-        "    if len(caption_text)", "    # dry-lint: distinct-from src/text.py::shorten_text\n    if len(caption_text)"))
+    repo.write(
+        "src/widgets/caption.py",
+        (repo.root / "src/widgets/caption.py")
+        .read_text()
+        .replace(
+            "    if len(caption_text)",
+            "    # dry-lint: distinct-from src/text.py::shorten_text\n    if len(caption_text)",
+        ),
+    )
     repo.commit("suppress")
     detector = Detector.for_repository(repo.root, Settings())
     candidates = detector.candidates(touched(detector.functions, changed_lines(repo.root, base="main")))
     [settled] = [c for c in candidates if c.existing.name == "shorten_text"]
     assert settled.filtered == "inline distinct-from"
-    assert frozenset(("preview_caption_text", "shorten_text")) not in {frozenset((c.new.name, c.existing.name))
-                                                                       for c in detector.scan()}
+    assert frozenset(("preview_caption_text", "shorten_text")) not in {
+        frozenset((c.new.name, c.existing.name)) for c in detector.scan()
+    }
 
 
 def test_each_function_gets_at_most_the_configured_number_of_neighbours(repo: Repo) -> None:
-    detector = Detector.for_repository(repo.root, tfidf(min_similarity=0.0, min_similarity_small=0.0).model_copy(
-        update={"neighbours": 1}))
+    detector = Detector.for_repository(
+        repo.root, tfidf(min_similarity=0.0, min_similarity_small=0.0).model_copy(update={"neighbours": 1})
+    )
     assert all(len(detector.neighbours(f)) <= 1 for f in detector.functions)
     assert any(len(detector.neighbours(f)) == 1 for f in detector.functions)
 
@@ -353,8 +423,10 @@ def test_same_file_methods_cannot_hide_cross_file_neighbours(repo: Repo) -> None
         "        return hashlib.sha256(phone_number.encode()).hexdigest()\n"
         for i in range(12)
     ))  # fmt: skip
-    repo.write("src/forensics.py",
-               "def phone_digest(phone_number):\n    return hashlib.sha256(phone_number.strip().encode()).hexdigest()\n")
+    repo.write(
+        "src/forensics.py",
+        "def phone_digest(phone_number):\n    return hashlib.sha256(phone_number.strip().encode()).hexdigest()\n",
+    )
     repo.commit()
     detector = Detector.for_repository(repo.root, Settings())
     local = next(f for f in detector.functions if f.owner == "Resource0")
@@ -387,22 +459,33 @@ class TableComparer:
         self.functions = {f.name: f for f in functions}
 
     def neighbours(self, function, k, allowed):
-        near = [(self.functions[b], score) for (a, b), score in self.table.items()
-                if a == function.name and allowed(self.functions[b])]
+        near = [
+            (self.functions[b], score)
+            for (a, b), score in self.table.items()
+            if a == function.name and allowed(self.functions[b])
+        ]
         return sorted(near, key=lambda pair: -pair[1])[:k]
 
     def similarity(self, a, b) -> float:
         return self.table.get((a.name, b.name), 0.0)
 
 
-RECOVERY = {("recovered_delivery", "recover_and_deliver"): 0.63, ("recover_and_deliver", "recover_lost_deliveries"): 0.51}
+RECOVERY = {
+    ("recovered_delivery", "recover_and_deliver"): 0.63,
+    ("recover_and_deliver", "recover_lost_deliveries"): 0.51,
+}
 
 
 def recovery_detector() -> Detector:
     """due#183: each fix touched the next copy, so the three surfaced one push at a time."""
-    functions = [function(path, f"def {name}(work):\n    return deliver(work)\n") for path, name in (
-        ("suite.py", "recovered_delivery"), ("composition.py", "recover_and_deliver"),
-        ("scenarios.py", "recover_lost_deliveries"))]
+    functions = [
+        function(path, f"def {name}(work):\n    return deliver(work)\n")
+        for path, name in (
+            ("suite.py", "recovered_delivery"),
+            ("composition.py", "recover_and_deliver"),
+            ("scenarios.py", "recover_lost_deliveries"),
+        )
+    ]
     return Detector(functions, Settings(), TableComparer(RECOVERY), [PythonExtractor()])
 
 
@@ -411,7 +494,8 @@ def test_the_existing_sides_other_copies_are_proposed_as_relatives_of_their_pair
     candidates = detector.candidates([detector.find("recovered_delivery")])
     assert [(c.lane, c.new.name, c.existing.name) for c in candidates] == [
         ("baseline", "recovered_delivery", "recover_and_deliver"),
-        ("relative", "recover_and_deliver", "recover_lost_deliveries")]
+        ("relative", "recover_and_deliver", "recover_lost_deliveries"),
+    ]
     assert candidates[1].parent == candidates[0].key and candidates[1].similarity == 0.51
 
 

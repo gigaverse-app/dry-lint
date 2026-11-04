@@ -305,12 +305,14 @@ the protected shortlist; semantic/deep contain broader candidates. A label is no
 import json
 from pathlib import Path
 
-sources = {name: json.loads(Path(f"/private/{name}.json").read_text())
-           for name in ("baseline", "semantic", "deep")}
-payload = {"schema": 1, "steps": [
-    {"run_id": "pr12/head-a/pass1", "sources": sources, "judge_policy": "offline-v1"},
-    {"run_id": "pr12/head-a/pass2", "sources": sources, "judge_policy": "offline-v1"},
-]}
+sources = {name: json.loads(Path(f"/private/{name}.json").read_text()) for name in ("baseline", "semantic", "deep")}
+payload = {
+    "schema": 1,
+    "steps": [
+        {"run_id": "pr12/head-a/pass1", "sources": sources, "judge_policy": "offline-v1"},
+        {"run_id": "pr12/head-a/pass2", "sources": sources, "judge_policy": "offline-v1"},
+    ],
+}
 Path("/private/replay.json").write_text(json.dumps(payload))
 ```
 

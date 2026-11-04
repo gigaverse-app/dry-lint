@@ -7,8 +7,11 @@ from dry_lint.settings import Budget, Settings
 
 from conftest import function
 
-PAIR = Candidate(new=function("a.py", "def f(x):\n    return x + 1\n"), existing=function("b.py", "def g(y):\n    return y + 1\n"),
-                 similarity=0.7)
+PAIR = Candidate(
+    new=function("a.py", "def f(x):\n    return x + 1\n"),
+    existing=function("b.py", "def g(y):\n    return y + 1\n"),
+    similarity=0.7,
+)
 
 
 class Priced:
@@ -81,13 +84,23 @@ def test_what_earlier_runs_spent_comes_off_the_budget() -> None:
 
 def test_a_subscription_is_bounded_by_both_its_calls_and_its_list_price() -> None:
     one = estimate(SubscribedSonnet(), [PAIR], Settings())
-    assert Ledger(Settings(budget=Budget(usd=one * 10, subscription_calls=2))).affordable(SubscribedSonnet(), [PAIR] * 5) == 2
-    assert Ledger(Settings(budget=Budget(usd=one * 1.5, subscription_calls=20))).affordable(SubscribedSonnet(), [PAIR] * 5) == 1
+    assert (
+        Ledger(Settings(budget=Budget(usd=one * 10, subscription_calls=2))).affordable(SubscribedSonnet(), [PAIR] * 5)
+        == 2
+    )
+    assert (
+        Ledger(Settings(budget=Budget(usd=one * 1.5, subscription_calls=20))).affordable(SubscribedSonnet(), [PAIR] * 5)
+        == 1
+    )
 
 
 def test_combined_spending_adds_up_per_judge_and_keeps_unknown_costs_unknown() -> None:
-    spends = [Spend(judge="a", calls=2, skipped=1, usd=0.5), Spend(judge="b", calls=1, usd=None),
-              Spend(judge="a", calls=3, failed=1, usd=0.25, error="login expired"), Spend(judge="b", calls=4, usd=1.0)]
+    spends = [
+        Spend(judge="a", calls=2, skipped=1, usd=0.5),
+        Spend(judge="b", calls=1, usd=None),
+        Spend(judge="a", calls=3, failed=1, usd=0.25, error="login expired"),
+        Spend(judge="b", calls=4, usd=1.0),
+    ]
     total = {s.judge: s for s in combined(spends)}
     assert (total["a"].calls, total["a"].skipped, total["a"].failed, total["a"].usd) == (5, 1, 1, 0.75)
     assert total["a"].error == "login expired"

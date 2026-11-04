@@ -53,7 +53,7 @@ def shorten_text(text: str, limit: int) -> str:
     return cut.rstrip(".,;") + "…"
 '''
 
-TWIN = '''
+TWIN = """
 def preview_caption_text(caption_text, max_len):
     if len(caption_text) <= max_len:
         return caption_text
@@ -65,7 +65,7 @@ def register_widget(registry, widget):
     registry.add(widget)
     registry.notify_listeners(widget.identifier)
     return widget
-'''
+"""
 
 FILLER_WORDS = [
     "invoice", "shipment", "warehouse", "customer", "payment", "refund", "coupon", "basket", "ledger", "tariff",
@@ -143,8 +143,9 @@ def function(path: str, source: str, name: str | None = None, owner: str | None 
     code = textwrap.dedent(source).strip()
     found = name or code.split("def ", 1)[1].split("(", 1)[0]
     plain = Function(path=path, name=found, owner=owner, line=1, end_line=len(code.splitlines()), code=code)
-    return plain.model_copy(update={"hash": structure_hash(plain), "tokens": behaviour_tokens(plain),
-                                    "calls": function_calls(plain)})
+    return plain.model_copy(
+        update={"hash": structure_hash(plain), "tokens": behaviour_tokens(plain), "calls": function_calls(plain)}
+    )
 
 
 def replay_payload(api, *sources):
@@ -163,9 +164,11 @@ def replay_payload(api, *sources):
 
 def coverage_pair(number: int = 1) -> Candidate:
     """Distinct pairs for scheduling and accounting experiments."""
-    return Candidate(new=function("new.py", "def new(value):\n    return value"),
-                     existing=function(f"existing{number}.py", f"def existing(value):\n    return value + {number}"),
-                     similarity=0.9)
+    return Candidate(
+        new=function("new.py", "def new(value):\n    return value"),
+        existing=function(f"existing{number}.py", f"def existing(value):\n    return value + {number}"),
+        similarity=0.9,
+    )
 
 
 @pytest.fixture
@@ -182,12 +185,23 @@ def load_script(monkeypatch: pytest.MonkeyPatch) -> Callable[[str], dict[str, An
 
 def claude(reply: dict | list[dict], requests: list, *, status: int = 200) -> anthropic.DefaultHttpxClient:
     """A real SDK HTTP client whose transport answers every Messages call with `reply`."""
+
     def answer(request: httpx2.Request) -> httpx2.Response:
         requests.append(request)
         response = reply[min(len(requests) - 1, len(reply) - 1)] if isinstance(reply, list) else reply
-        return httpx2.Response(status, json={"id": "msg_1", "type": "message", "role": "assistant",
-                                             "model": "claude-sonnet-5-5", "stop_sequence": None,
-                                             "usage": {"input_tokens": 900, "output_tokens": 120}, **response})
+        return httpx2.Response(
+            status,
+            json={
+                "id": "msg_1",
+                "type": "message",
+                "role": "assistant",
+                "model": "claude-sonnet-5-5",
+                "stop_sequence": None,
+                "usage": {"input_tokens": 900, "output_tokens": 120},
+                **response,
+            },
+        )
+
     return anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(answer))
 
 

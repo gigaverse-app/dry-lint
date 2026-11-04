@@ -13,12 +13,31 @@ from dry_lint.functions import words
 from dry_lint.models import Function, module_of
 from dry_lint.source_context import SourceContext
 
-FUNCTIONS = {"function_declaration", "function_expression", "generator_function_declaration",
-             "generator_function", "arrow_function", "method_definition"}
-TYPE_ONLY = {"type_annotation", "type_parameters", "type_arguments", "interface_declaration",
-             "type_alias_declaration", "ambient_declaration", "implements_clause"}
-CONTROLS = {"for_statement": "loop", "for_in_statement": "loop", "while_statement": "loop",
-            "do_statement": "loop", "try_statement": "try", "await_expression": "await"}
+FUNCTIONS = {
+    "function_declaration",
+    "function_expression",
+    "generator_function_declaration",
+    "generator_function",
+    "arrow_function",
+    "method_definition",
+}
+TYPE_ONLY = {
+    "type_annotation",
+    "type_parameters",
+    "type_arguments",
+    "interface_declaration",
+    "type_alias_declaration",
+    "ambient_declaration",
+    "implements_clause",
+}
+CONTROLS = {
+    "for_statement": "loop",
+    "for_in_statement": "loop",
+    "while_statement": "loop",
+    "do_statement": "loop",
+    "try_statement": "try",
+    "await_expression": "await",
+}
 
 
 def text(node: Node) -> str:
@@ -126,8 +145,10 @@ class Bases:
             if node.type in {"class_declaration", "abstract_class_declaration"} and name is not None:
                 self.classes.add(text(name))
         for statement in root.named_children:
-            source, clause = statement.child_by_field_name("source"), next(
-                (child for child in statement.named_children if child.type == "import_clause"), None)
+            source, clause = (
+                statement.child_by_field_name("source"),
+                next((child for child in statement.named_children if child.type == "import_clause"), None),
+            )
             specifier = text(source).strip("'\"") if statement.type == "import_statement" and source else ""
             module = re.sub(r"\.[cm]?[jt]sx?$", "", posixpath.normpath(posixpath.join(folder, specifier)))
             module = module.removesuffix("/index")
@@ -200,9 +221,21 @@ class TypeScriptExtractor:
             snippet = text(code)
             if code.type == "variable_declarator":
                 snippet = "const " + snippet + ";"
-            found.append(Function(path=path, name=name, owner=owner, line=code.start_point.row + 1,
-                                  end_line=code.end_point.row + 1, code=snippet, tokens=tokens, calls=calls,
-                                  context=context.for_function(code), context_digest=context_digest, bases=list(inherits)))
+            found.append(
+                Function(
+                    path=path,
+                    name=name,
+                    owner=owner,
+                    line=code.start_point.row + 1,
+                    end_line=code.end_point.row + 1,
+                    code=snippet,
+                    tokens=tokens,
+                    calls=calls,
+                    context=context.for_function(code),
+                    context_digest=context_digest,
+                    bases=list(inherits),
+                )
+            )
 
         def visit(node: Node, owner: str | None = None, inherits: tuple[str, ...] = ()) -> None:
             if node.type in TYPE_ONLY:

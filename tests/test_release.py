@@ -12,7 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_every_written_version_is_the_released_one() -> None:
     released = json.loads((ROOT / ".release-please-manifest.json").read_text())["."]
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
-    locked = next(p["version"] for p in tomllib.loads((ROOT / "uv.lock").read_text())["package"] if p["name"] == "dry-lint")
+    locked = next(
+        p["version"] for p in tomllib.loads((ROOT / "uv.lock").read_text())["package"] if p["name"] == "dry-lint"
+    )
     assert __version__ == project == locked == released
 
 

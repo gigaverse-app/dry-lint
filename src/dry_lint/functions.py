@@ -135,8 +135,12 @@ def node_calls(node: FunctionNode) -> list[str]:
     `self.name` or `cls.name`. A call on any other receiver (`text.strip()`) is left out: by name alone it could be
     any object's method, so it cannot show that one function delegates to another.
     """
-    return [name for part in (node.args, *node.body) for child in ast.walk(part)
-            if isinstance(child, ast.Call) and (name := _direct_call(child))]
+    return [
+        name
+        for part in (node.args, *node.body)
+        for child in ast.walk(part)
+        if isinstance(child, ast.Call) and (name := _direct_call(child))
+    ]
 
 
 def behaviour_tokens(function: Function) -> list[str]:
@@ -237,7 +241,7 @@ class _Bases:
                     bound = alias.asname or alias.name.partition(".")[0]
                     self.modules[bound] = (alias.name if alias.asname else bound).replace(".", "/")
             elif isinstance(statement, ast.ImportFrom) and statement.level <= len(package) + 1:
-                parts = [*package[:len(package) - statement.level + 1]] if statement.level else []
+                parts = [*package[: len(package) - statement.level + 1]] if statement.level else []
                 module = "/".join([*parts, *(statement.module or "").split(".")] if statement.module else parts)
                 for alias in statement.names:
                     self.names[alias.asname or alias.name] = (module, alias.name)
@@ -287,16 +291,29 @@ def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Fun
             elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 end = child.end_lineno or child.lineno
                 if end - child.lineno + 1 >= min_lines and not _is_stub(child):
-                    found.append((Function(path=path, name=child.name, owner=owner, line=child.lineno, end_line=end,
-                                           code="\n".join(lines[child.lineno - 1 : end]), bases=inherits), child))
+                    found.append(
+                        (
+                            Function(
+                                path=path,
+                                name=child.name,
+                                owner=owner,
+                                line=child.lineno,
+                                end_line=end,
+                                code="\n".join(lines[child.lineno - 1 : end]),
+                                bases=inherits,
+                            ),
+                            child,
+                        )
+                    )
 
     visit(tree, None, [])
     return found
 
 
 def selected_path(path: str, include: list[str], exclude: list[str]) -> bool:
-    return (any(fnmatch.fnmatch(path, pattern) for pattern in include)
-            and not any(fnmatch.fnmatch(path, pattern) for pattern in exclude))
+    return any(fnmatch.fnmatch(path, pattern) for pattern in include) and not any(
+        fnmatch.fnmatch(path, pattern) for pattern in exclude
+    )
 
 
 def tracked_files(root: Path, include: list[str], exclude: list[str]) -> list[str]:
@@ -325,8 +342,15 @@ def validate_source(extractor: Extractor, path: str, source: str) -> None:
     validate(path, source)
 
 
-def repository_functions(root: Path, include: list[str], exclude: list[str], extractors: list[Extractor],
-                         cache: dict[tuple[str, str], list[Function]] | None = None, *, strict: bool = False) -> list[Function]:
+def repository_functions(
+    root: Path,
+    include: list[str],
+    exclude: list[str],
+    extractors: list[Extractor],
+    cache: dict[tuple[str, str], list[Function]] | None = None,
+    *,
+    strict: bool = False,
+) -> list[Function]:
     """
     Every function in the tracked files, each file read by its extractor. With a `cache`, keyed by path and blob id
     and shared across checkouts of one repository, a file whose content was already read is not read again.

@@ -16,6 +16,10 @@ def test_action_install_does_not_apply_consumer_dependency_constraints(tmp_path:
     # distribution, so the resolver test is offline and cannot modify the test environment.
     install = next(line.strip() for line in action.splitlines() if line.strip().startswith("uv pip install "))
     command = shlex.split(install.partition("--python")[0])
-    result = subprocess.run([*command, "--dry-run", "--no-index", "--python", sys.executable,
-                             f"pydantic=={version('pydantic')}"], cwd=tmp_path, capture_output=True, text=True)
+    result = subprocess.run(
+        [*command, "--dry-run", "--no-index", "--python", sys.executable, f"pydantic=={version('pydantic')}"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
     assert result.returncode == 0, result.stderr

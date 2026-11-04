@@ -43,7 +43,12 @@ def model_name(name: str) -> str:
     """A judge as a reader knows it: `Claude Sonnet 5.5` for `anthropic:dry-v1:claude-sonnet-5-5`, else its plugin."""
     if match := MODEL.search(name):
         family, tier, version, variant = match.groups()
-        words = [family, tier.rstrip("-") if tier else "", version.replace("-", "."), variant.lstrip("-") if variant else ""]
+        words = [
+            family,
+            tier.rstrip("-") if tier else "",
+            version.replace("-", "."),
+            variant.lstrip("-") if variant else "",
+        ]
         return " ".join(word.capitalize() if word[:1].isalpha() else word for word in words if word)
     plugin, _, rest = name.partition(":")
     # A command judge is the program it runs: `command:claude` is `claude`.
@@ -61,13 +66,32 @@ def reason(verdict: Verdict, evidence: PairEvidence) -> str:
     return re.sub(r"\b(NEW|EXISTING)\b", lambda match: names[match.group(1)], verdict.why)
 
 
-def viewer_link(url: str, evidence: PairEvidence, result: SourceReference | None, state: str, diff: str,
-                helpers: list[SourceReference] = ()) -> str:
+def viewer_link(
+    url: str,
+    evidence: PairEvidence,
+    result: SourceReference | None,
+    state: str,
+    diff: str,
+    helpers: list[SourceReference] = (),
+) -> str:
     parsed = urlsplit(url)
-    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+    ):
         return ""
-    payload = {"schema": 2, "evidence": evidence.model_dump(), "result": result.model_dump() if result else None,
-               "helpers": [helper.model_dump() for helper in helpers], "state": state, "diff": diff}
+    payload = {
+        "schema": 2,
+        "evidence": evidence.model_dump(),
+        "result": result.model_dump() if result else None,
+        "helpers": [helper.model_dump() for helper in helpers],
+        "state": state,
+        "diff": diff,
+    }
     encoded = base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode().rstrip("=")
     link = f"{url}#v2={encoded}"
     return link if len(link) <= MAX_LINK else ""
@@ -109,16 +133,23 @@ class Comparisons:
         """Only resolve an unchanged symbol identity; failed reads are not evidence that a symbol was deleted."""
         if source.repository != self.repository or not re.fullmatch(r"[a-fA-F0-9]{40}", self.head):
             return False, None
-        extractor = (PythonExtractor() if source.path.endswith(".py") else TypeScriptExtractor()
-                     if source.path.endswith((".ts", ".tsx", ".mts", ".cts")) else None)
+        extractor = (
+            PythonExtractor()
+            if source.path.endswith(".py")
+            else TypeScriptExtractor()
+            if source.path.endswith((".ts", ".tsx", ".mts", ".cts"))
+            else None
+        )
         if extractor is None:
             return False, None
         key = (source.repository, self.head, source.path)
         if key not in self.files:
             try:
-                response = self.github.client.get(f"/repos/{source.repository}/contents/{quote(source.path, safe='/')}",
-                                                  params={"ref": self.head},
-                                                  headers={"Accept": "application/vnd.github.raw+json"})
+                response = self.github.client.get(
+                    f"/repos/{source.repository}/contents/{quote(source.path, safe='/')}",
+                    params={"ref": self.head},
+                    headers={"Accept": "application/vnd.github.raw+json"},
+                )
                 if response.status_code == 404:
                     self.files[key] = []
                 else:
@@ -141,8 +172,10 @@ class Comparisons:
         if not result.path.endswith(".py") or key not in self.source_text:
             return []
         caller = next(function for function in self.files[key] if function.line == result.line)
-        return [SourceReference.of(function, Run(repository=result.repository, head=result.revision))
-                for function in python_helpers(self.source_text[key], caller)]
+        return [
+            SourceReference.of(function, Run(repository=result.repository, head=result.revision))
+            for function in python_helpers(self.source_text[key], caller)
+        ]
 
     def links(self, evidence: PairEvidence, state: str) -> str:
         a, b = evidence.a, evidence.b
@@ -153,8 +186,11 @@ class Comparisons:
             diff = f"{server}/{self.repository}/compare/{a.revision}...{self.head}"
             links.append(f"[Changes since finding]({diff})")
         # Every origin must be explicitly public. Internal, private, unknown and Enterprise stay on GitHub.
-        if (not self.viewer or server != "https://github.com" or
-                not all(self.is_public(repo) for repo in dict.fromkeys((self.repository, a.repository, b.repository)))):
+        if (
+            not self.viewer
+            or server != "https://github.com"
+            or not all(self.is_public(repo) for repo in dict.fromkeys((self.repository, a.repository, b.repository)))
+        ):
             return " · ".join(links)
         result = None
         if state == "kept-out":
@@ -163,8 +199,9 @@ class Comparisons:
             if all(known for known, _ in resolved) and len(survivors) == 1:
                 result = survivors[0]
         # Found at the reviewed commit, the pair has no changes since; the pull request's diff is the context.
-        if url := viewer_link(self.viewer, evidence, result, state, diff or self.pull_diff(server),
-                               self.helpers(result) if result else []):
+        if url := viewer_link(
+            self.viewer, evidence, result, state, diff or self.pull_diff(server), self.helpers(result) if result else []
+        ):
             links.append(f"[{'Three-way view' if result else 'Compare sources'}]({url})")
         return " · ".join(links)
 
@@ -173,48 +210,79 @@ class Comparisons:
         for report in reports:
             for finding in report.findings:
                 if finding.candidate.key not in entries and (evidence := PairEvidence.of(finding, report.run)):
-                    state = ("deferred" if finding.deferred else "open" if finding.reported
-                             else "unjudged" if finding.verdict is None
-                             else "separate" if finding.verdict.label == "separate" else "below threshold")
+                    state = (
+                        "deferred"
+                        if finding.deferred
+                        else "open"
+                        if finding.reported
+                        else "unjudged"
+                        if finding.verdict is None
+                        else "separate"
+                        if finding.verdict.label == "separate"
+                        else "below threshold"
+                    )
                     entries[finding.candidate.key] = (evidence, state)
         if not entries:
             return ""
         order = list(GROUPS)
-        ordered = sorted(entries.items(), key=lambda entry: order.index(entry[1][1]) if entry[1][1] in GROUPS else len(order))
+        ordered = sorted(
+            entries.items(), key=lambda entry: order.index(entry[1][1]) if entry[1][1] in GROUPS else len(order)
+        )
         judging = next((r.judging for r in reversed(reports) if r.judging), None)
         bar = f"{judging.report_at:.2f}" if judging else "configured"
-        lines = ["<details><summary><strong>Compare the code and recorded judgments</strong></summary>", "",
-                 "Every pair the detector proposed, grouped by the outcome. The **duplicate score** is the judge's "
-                 "estimate, from 0 to 1, that the two are one concept; only pairs at or above the reporting bar count "
-                 "as still duplicated."]
+        lines = [
+            "<details><summary><strong>Compare the code and recorded judgments</strong></summary>",
+            "",
+            "Every pair the detector proposed, grouped by the outcome. The **duplicate score** is the judge's "
+            "estimate, from 0 to 1, that the two are one concept; only pairs at or above the reporting bar count "
+            "as still duplicated.",
+        ]
         shown = ordered[:MAX_PAIRS]
         for state in dict.fromkeys(state for _, (_, state) in shown):
-            group = [(evidence, links) for _, (evidence, s) in shown if s == state
-                     for links in [self.links(evidence, state)]]
+            group = [
+                (evidence, links) for _, (evidence, s) in shown if s == state for links in [self.links(evidence, state)]
+            ]
             heading, meaning = GROUPS.get(state, (state, ""))
             count = sum(s == state for _, (_, s) in entries.items())
-            lines += ["", f"**{heading} ({count})**" + (f": {meaning.format(bar=bar)}." if meaning else ""), "",
-                      "| Pair | Duplicate score | Decided by | Why | Sources |", "| :-- | --: | :-- | :-- | :-- |"]
+            lines += [
+                "",
+                f"**{heading} ({count})**" + (f": {meaning.format(bar=bar)}." if meaning else ""),
+                "",
+                "| Pair | Duplicate score | Decided by | Why | Sources |",
+                "| :-- | --: | :-- | :-- | :-- |",
+            ]
             for evidence, links in group:
                 verdict = evidence.verdict
-                score = (f"{verdict.score:.2f}" + (" · already drifted" if verdict.label == "drifted" else "")
-                         if verdict else "—")
+                score = (
+                    f"{verdict.score:.2f}" + (" · already drifted" if verdict.label == "drifted" else "")
+                    if verdict
+                    else "—"
+                )
                 if sum(map(len, lines)) + len(links) > 20_000:
                     links = f"[A]({evidence.a.url()}) · [B]({evidence.b.url()})"
-                lines.append(f"| {escaped(evidence.a.qualified)} ≈ {escaped(evidence.b.qualified)} | {score} | "
-                             f"{escaped(decided_by(verdict)) if verdict else 'not judged'} | "
-                             f"{escaped(reason(verdict, evidence), WHY_LIMIT) if verdict and verdict.why else '—'} | "
-                             f"{links} |")
+                lines.append(
+                    f"| {escaped(evidence.a.qualified)} ≈ {escaped(evidence.b.qualified)} | {score} | "
+                    f"{escaped(decided_by(verdict)) if verdict else 'not judged'} | "
+                    f"{escaped(reason(verdict, evidence), WHY_LIMIT) if verdict and verdict.why else '—'} | "
+                    f"{links} |"
+                )
         if len(entries) > MAX_PAIRS:
             lines += ["", f"Showing {MAX_PAIRS} of {len(entries)} pairs; the scan reports retain the other findings."]
         settled = {candidate.key: candidate for report in reports for candidate in report.filtered}
         if settled:
             lines += ["", f"**🔗 Settled by a rule, not judged ({len(settled)})**", ""]
-            lines += [f"- {escaped(qualified(c.new.owner, c.new.name))} ≈ {escaped(qualified(c.existing.owner, c.existing.name))}"
-                      f": {escaped(c.filtered or 'rule')}" for c in list(settled.values())[:MAX_RULES]]
+            lines += [
+                f"- {escaped(qualified(c.new.owner, c.new.name))} ≈ {escaped(qualified(c.existing.owner, c.existing.name))}"
+                f": {escaped(c.filtered or 'rule')}"
+                for c in list(settled.values())[:MAX_RULES]
+            ]
             if len(settled) > MAX_RULES:
                 lines.append(f"- and {len(settled) - MAX_RULES} more")
-        lines += ["", "Source links use fixed commits. Comparisons reuse recorded judgments; no extra model calls.",
-                  "A surviving symbol is shown when exactly one original remains; this does not prove caller migration.",
-                  "", "</details>"]
+        lines += [
+            "",
+            "Source links use fixed commits. Comparisons reuse recorded judgments; no extra model calls.",
+            "A surviving symbol is shown when exactly one original remains; this does not prove caller migration.",
+            "",
+            "</details>",
+        ]
         return "\n".join(lines)

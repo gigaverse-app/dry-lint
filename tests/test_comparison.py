@@ -48,8 +48,9 @@ def report(head=HEAD, *findings):
 
 
 def post(fake, built, run):
-    return upsert(client(fake), REPO, PR, REPORT if built.visible else CLEAN_REPORT, len(built.visible),
-                  reports=[built], run=run)
+    return upsert(
+        client(fake), REPO, PR, REPORT if built.visible else CLEAN_REPORT, len(built.visible), reports=[built], run=run
+    )
 
 
 def payload(body):
@@ -57,8 +58,10 @@ def payload(body):
     return json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
 
 
-@pytest.mark.parametrize("visibility,status", [("private", 200), ("internal", 200), (None, 200),
-                                               ("public", 403), ("public", 404), ("public", 500)])
+@pytest.mark.parametrize(
+    "visibility,status",
+    [("private", 200), ("internal", 200), (None, 200), ("public", 403), ("public", 404), ("public", 500)],
+)
 def test_nonpublic_or_unverifiable_repositories_only_get_github_links(visibility, status):
     fake = SourceGitHub(visibility, status)
     post(fake, report(HEAD, finding("drifted", why="existing judgment")), "1")
@@ -100,8 +103,10 @@ def test_a_cleanup_links_the_changes_since_the_finding():
     assert payload(fake.stickies()[0])["diff"] == f"https://github.com/{REPO}/compare/{HEAD}...{AFTER}"
 
 
-@pytest.mark.parametrize("base, diff", [("c" * 40, f"https://github.com/{REPO}/compare/{'c' * 40}...{HEAD}"),
-                                        (HEAD, ""), ("main", ""), (None, "")])
+@pytest.mark.parametrize(
+    "base, diff",
+    [("c" * 40, f"https://github.com/{REPO}/compare/{'c' * 40}...{HEAD}"), (HEAD, ""), ("main", ""), (None, "")],
+)
 def test_a_pair_found_at_the_reviewed_commit_links_the_pull_request_diff_or_nothing(base, diff):
     """
     INVARIANT: the viewer's GitHub diff link never compares a commit with itself. A pair found at the reviewed commit
@@ -109,7 +114,7 @@ def test_a_pair_found_at_the_reviewed_commit_links_the_pull_request_diff_or_noth
     """
     fake = SourceGitHub()
     fake.base = base
-    post(fake, report(HEAD, finding("drifted", score=.4, why="separate concepts")), "1")
+    post(fake, report(HEAD, finding("drifted", score=0.4, why="separate concepts")), "1")
     body = fake.stickies()[0]
     assert payload(body)["diff"] == diff
     assert "Changes since finding" not in body
@@ -118,8 +123,10 @@ def test_a_pair_found_at_the_reviewed_commit_links_the_pull_request_diff_or_noth
 @pytest.mark.parametrize("left,right", [(404, 404), (200, 200), (500, 200)])
 def test_absence_or_failed_reads_do_not_invent_a_consolidated_result(left, right):
     fake = SourceGitHub()
-    fake.sources = {"src/widgets/caption.py": (left, "def clip(text, limit):\n    return text[:limit]\n"),
-                    "src/text.py": (right, "def shorten(text, limit):\n    return text[:limit]\n")}
+    fake.sources = {
+        "src/widgets/caption.py": (left, "def clip(text, limit):\n    return text[:limit]\n"),
+        "src/text.py": (right, "def shorten(text, limit):\n    return text[:limit]\n"),
+    }
     post(fake, report(HEAD, finding("duplicate")), "1")
     post(fake, report(AFTER), "2")
     assert payload(fake.stickies()[0])["result"] is None
@@ -136,12 +143,23 @@ def test_a_private_peer_prevents_a_public_repository_from_linking_the_viewer():
     assert f"https://github.com/{PEER}/blob/{HEAD}" in body and "#v2=" not in body
 
 
-@pytest.mark.parametrize("label,score,group", [
-    ("drifted", .76, "**🟡 Near misses (1)**: judged one concept, but under the 0.80 reporting bar, so not counted."),
-    ("duplicate", .71, "**🟡 Near misses (1)**: judged one concept, but under the 0.80 reporting bar, so not counted."),
-    ("separate", .51, "**⚪ Different concepts (1)**: the judge found two concepts that only look alike."),
-    ("separate", .95, "**⚪ Different concepts (1)**: the judge found two concepts that only look alike."),
-])
+@pytest.mark.parametrize(
+    "label,score,group",
+    [
+        (
+            "drifted",
+            0.76,
+            "**🟡 Near misses (1)**: judged one concept, but under the 0.80 reporting bar, so not counted.",
+        ),
+        (
+            "duplicate",
+            0.71,
+            "**🟡 Near misses (1)**: judged one concept, but under the 0.80 reporting bar, so not counted.",
+        ),
+        ("separate", 0.51, "**⚪ Different concepts (1)**: the judge found two concepts that only look alike."),
+        ("separate", 0.95, "**⚪ Different concepts (1)**: the judge found two concepts that only look alike."),
+    ],
+)
 def test_unreported_candidates_are_grouped_by_outcome_with_score_judge_and_reason_apart(label, score, group):
     """
     INVARIANT: a reader can tell from the heading alone whether a pair counts, and each row gives the duplicate score,
@@ -160,7 +178,7 @@ def test_unreported_candidates_are_grouped_by_outcome_with_score_judge_and_reaso
 
 def test_a_reason_names_both_functions_instead_of_new_and_existing():
     fake = SourceGitHub("private")
-    post(fake, report(HEAD, finding("separate", score=.2, why="NEW clips while EXISTING strips first")), "1")
+    post(fake, report(HEAD, finding("separate", score=0.2, why="NEW clips while EXISTING strips first")), "1")
     row = next(line for line in fake.stickies()[0].splitlines() if "clips while" in line)
     pair = row.split(" | ")[0].lstrip("| ")
     new, existing = pair.split(" ≈ ")
@@ -171,7 +189,7 @@ def test_a_reason_names_both_functions_instead_of_new_and_existing():
 def test_pairs_settled_by_a_rule_are_listed_with_the_rule(count):
     fake = SourceGitHub("private")
     rules = [pair(f"trim{i}", filtered="subclass override") for i in range(count)]
-    settled = push(HEAD, finding("separate", score=.2), filtered=rules)
+    settled = push(HEAD, finding("separate", score=0.2), filtered=rules)
     post(fake, settled.model_copy(update={"run": Run(repository=REPO, pull_request=PR, head=HEAD)}), "1")
     body = fake.stickies()[0]
     assert f"**🔗 Settled by a rule, not judged ({count})**" in body
@@ -179,27 +197,41 @@ def test_pairs_settled_by_a_rule_are_listed_with_the_rule(count):
     assert ("- and 2 more" in body) == (count == 7)
 
 
-@pytest.mark.parametrize("judge,version,second,name", [
-    ("anthropic", "dry-v1:claude-sonnet-5-5", None, "Claude Sonnet 5.5"),
-    ("jev", "reuse-v2", "anthropic:dry-v1:claude-opus-5-5:medium", "Claude Opus 5.5, rechecking Jev"),
-    ("gemini", "dry-v1:gemini-3.1-pro-preview", None, "Gemini 3.1 Pro"),
-    ("command:claude", "dry-v1", None, "claude"),
-])
+@pytest.mark.parametrize(
+    "judge,version,second,name",
+    [
+        ("anthropic", "dry-v1:claude-sonnet-5-5", None, "Claude Sonnet 5.5"),
+        ("jev", "reuse-v2", "anthropic:dry-v1:claude-opus-5-5:medium", "Claude Opus 5.5, rechecking Jev"),
+        ("gemini", "dry-v1:gemini-3.1-pro-preview", None, "Gemini 3.1 Pro"),
+        ("command:claude", "dry-v1", None, "claude"),
+    ],
+)
 def test_the_decider_is_named_as_a_reader_knows_it(judge, version, second, name):
-    verdict = Verdict(label="separate", score=.1, judge=judge, judge_version=version, second_opinion=second)
+    verdict = Verdict(label="separate", score=0.1, judge=judge, judge_version=version, second_opinion=second)
     assert decided_by(verdict) == name
 
 
 def test_cleanup_includes_direct_helper_coordinates_without_extra_reads_or_judgments():
     fake = SourceGitHub()
-    fake.sources["src/text.py"] = (200, "def shared(text):\n    return text.strip()\n\n"
-                                       "def shorten(text, limit):\n    return shared(text)[:limit]\n")
+    fake.sources["src/text.py"] = (
+        200,
+        "def shared(text):\n    return text.strip()\n\ndef shorten(text, limit):\n    return shared(text)[:limit]\n",
+    )
     post(fake, report(HEAD, finding("drifted")), "1")
     post(fake, report(AFTER), "2")
     data = payload(fake.stickies()[0])
     assert data["schema"] == 2
-    assert data["helpers"] == [{"repository": REPO, "revision": AFTER, "path": "src/text.py",
-                                "name": "shared", "owner": None, "line": 1, "end_line": 2}]
+    assert data["helpers"] == [
+        {
+            "repository": REPO,
+            "revision": AFTER,
+            "path": "src/text.py",
+            "name": "shared",
+            "owner": None,
+            "line": 1,
+            "end_line": 2,
+        }
+    ]
     assert len(fake.reads) == 2
     assert "return text" not in json.dumps(data)
     assert PullLedger.read(fake.stickies()[0]).tally.judgments == 1
@@ -211,8 +243,17 @@ def test_old_ledgers_still_load_without_inventing_historical_evidence():
     assert Comparisons(client(SourceGitHub()), REPO, HEAD, VIEWER).render(ledger, []) == ""
 
 
-@pytest.mark.parametrize("viewer", ["", "http://example.com", "https://user:password@example.com", "javascript:alert(1)",
-                                    "https://example.com/?secret=a", "https://example.com/#old"])
+@pytest.mark.parametrize(
+    "viewer",
+    [
+        "",
+        "http://example.com",
+        "https://user:password@example.com",
+        "javascript:alert(1)",
+        "https://example.com/?secret=a",
+        "https://example.com/#old",
+    ],
+)
 def test_invalid_viewer_configuration_keeps_useful_github_links(viewer):
     fake = SourceGitHub()
     built = report(HEAD, finding("duplicate"))
@@ -248,22 +289,25 @@ def test_invalid_coordinates_are_not_persisted_as_evidence():
 
 def test_judge_text_is_escaped_in_the_sticky_and_inert_in_the_viewer_payload():
     fake = SourceGitHub()
-    reason = '--><script>alert(1)</script> [click](https://evil.example) | new row'
+    reason = "--><script>alert(1)</script> [click](https://evil.example) | new row"
     post(fake, report(HEAD, finding("drifted", why=reason)), "1")
     body = fake.stickies()[0]
     visible = body.split("<!-- dry-lint-ledger ")[0]
-    assert '<script>' not in body and '[click](https://evil.example)' not in visible
+    assert "<script>" not in body and "[click](https://evil.example)" not in visible
     assert PullLedger.read(body).pairs[finding("drifted").candidate.key].evidence.verdict.why == reason
     assert payload(body)["evidence"]["verdict"]["why"] == reason
 
 
-@pytest.mark.parametrize("path,repository,head,source", [
-    ("unknown.rs", REPO, AFTER, ""),
-    ("src/text.py", PEER, AFTER, ""),
-    ("src/text.py", REPO, "main", ""),
-    ("src/text.py", REPO, AFTER, "def shorten(:\n"),
-    ("src/text.py", REPO, AFTER, "def shorten(t,n):\n return t\ndef shorten(t,n):\n return n\n"),
-])
+@pytest.mark.parametrize(
+    "path,repository,head,source",
+    [
+        ("unknown.rs", REPO, AFTER, ""),
+        ("src/text.py", PEER, AFTER, ""),
+        ("src/text.py", REPO, "main", ""),
+        ("src/text.py", REPO, AFTER, "def shorten(:\n"),
+        ("src/text.py", REPO, AFTER, "def shorten(t,n):\n return t\ndef shorten(t,n):\n return n\n"),
+    ],
+)
 def test_unresolvable_symbol_identities_never_select_a_result(path, repository, head, source):
     fake = SourceGitHub()
     fake.sources[path] = (200, source)
@@ -274,11 +318,11 @@ def test_unresolvable_symbol_identities_never_select_a_result(path, repository, 
 
 def test_typescript_resolution_uses_the_parser_and_caches_source_reads():
     fake = SourceGitHub()
-    fake.sources['src/view.tsx'] = (200, 'export const View = () => <div>Hello</div>;\n')
-    reference = SourceReference(repository=REPO, revision=HEAD, path='src/view.tsx', name='View', line=1, end_line=1)
+    fake.sources["src/view.tsx"] = (200, "export const View = () => <div>Hello</div>;\n")
+    reference = SourceReference(repository=REPO, revision=HEAD, path="src/view.tsx", name="View", line=1, end_line=1)
     comparisons = Comparisons(client(fake), REPO, AFTER, VIEWER)
     known, result = comparisons.current(reference)
-    assert known and result.name == 'View' and result.revision == AFTER
+    assert known and result.name == "View" and result.revision == AFTER
     assert comparisons.current(reference) == (known, result)
     assert comparisons.helpers(result) == []
     assert len(fake.reads) == 1
@@ -290,8 +334,8 @@ def test_large_pair_sets_have_bounded_links_and_keep_the_scan_report():
     post(fake, built, "1")
     body = fake.stickies()[0]
     table = body.split("<details><summary><strong>Compare")[1].split("</details>")[0]
-    assert 'Showing 5 of 7 pairs' in table and len(table) < 24000
-    assert table.count('#v2=') < 5 and table.count('[A](') == 5
+    assert "Showing 5 of 7 pairs" in table and len(table) < 24000
+    assert table.count("#v2=") < 5 and table.count("[A](") == 5
 
 
 def test_updating_an_old_ledger_emits_the_new_schema():
@@ -307,7 +351,9 @@ def test_large_evidence_does_not_grow_the_sticky_ledger_or_lose_cleanup_counts()
     body = fake.stickies()[0]
     ledger = PullLedger.read(body)
     assert ledger.count("open") == 40
-    assert sum(len(p.evidence.model_dump_json().encode()) for p in ledger.pairs.values() if p.evidence) <= EVIDENCE_BYTES
+    assert (
+        sum(len(p.evidence.model_dump_json().encode()) for p in ledger.pairs.values() if p.evidence) <= EVIDENCE_BYTES
+    )
     assert len(body) < 50000
     post(fake, report(AFTER), "2")
     assert PullLedger.read(fake.stickies()[0]).count("kept-out") == 40
@@ -320,10 +366,17 @@ def test_pairs_of_same_named_methods_on_different_classes_render_as_different_ro
     told apart in the table, as they are in the compare page's card headers.
     """
     caller = function("ops.py", "def attempt(self, work):\n    return work.attempts().first()\n", owner="Operation")
-    sides = [function(path, "def attempts(self):\n    return self.rows.exclude(outcome=NOT_APPLIED)\n", owner=owner)
-             for path, owner in (("models.py", "Work"), ("bulk.py", "BulkWork"))]
-    findings = [Finding(candidate=Candidate(new=caller, existing=side, similarity=0.5, comparer="tfidf:1"),
-                        verdict=Verdict(label="separate", score=0.2, judge="jev", judge_version="v")) for side in sides]
+    sides = [
+        function(path, "def attempts(self):\n    return self.rows.exclude(outcome=NOT_APPLIED)\n", owner=owner)
+        for path, owner in (("models.py", "Work"), ("bulk.py", "BulkWork"))
+    ]
+    findings = [
+        Finding(
+            candidate=Candidate(new=caller, existing=side, similarity=0.5, comparer="tfidf:1"),
+            verdict=Verdict(label="separate", score=0.2, judge="jev", judge_version="v"),
+        )
+        for side in sides
+    ]
     fake = SourceGitHub("private")
     post(fake, report(HEAD, *findings), "1")
     body = fake.stickies()[0]
