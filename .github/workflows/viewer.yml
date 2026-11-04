@@ -1,0 +1,38 @@
+name: Publish comparison viewer
+on:
+  push:
+    branches: [main]
+    paths: [viewer/**, .github/workflows/viewer.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - run: node --test viewer/diff.test.mjs
+      - name: Prepare static viewer
+        run: |
+          mkdir -p _site/compare
+          cp viewer/index.html viewer/style.css viewer/app.mjs viewer/diff.mjs _site/compare/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4
+        id: deployment

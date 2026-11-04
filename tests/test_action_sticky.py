@@ -39,6 +39,8 @@ class FakeGitHub:
             if self.counter_status == 200:
                 self.counted.append(json.loads(request.content))
             return httpx.Response(self.counter_status, json={"counted": True})
+        if method == "GET" and path == f"/repos/{REPO}":
+            return httpx.Response(200, json={"private": True, "visibility": "private"})
         if method == "GET" and path == f"/repos/{REPO}/pulls/{PR}":
             return httpx.Response(200, json={"head": {"sha": self.head}, "labels": self.labels})
         if method == "GET" and path == f"/repos/{REPO}/pulls/{PR}/commits":

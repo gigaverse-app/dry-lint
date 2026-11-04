@@ -39,7 +39,7 @@ For the GitHub Action, select the comparer in repository configuration and insta
 the existing `plugins` input (there is no separate detector input):
 
 ```yaml
-- uses: gigaverse-app/dry-lint@main
+- uses: gigaverse-app/dry-lint@v1
   with:
     plugins: dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0
 ```

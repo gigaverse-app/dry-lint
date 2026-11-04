@@ -21,6 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7  # the default branch, for settings
-      - uses: gigaverse-app/dry-lint@main
+      - uses: gigaverse-app/dry-lint@v1
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}

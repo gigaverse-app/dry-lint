@@ -1,6 +1,6 @@
 # GitHub Action
 
-Use `gigaverse-app/dry-lint@main` until v1 launches, then use `@v1`. Use published major-version tags
+Use `gigaverse-app/dry-lint@v1`. Use published major-version tags
 for established Actions, such as `actions/checkout@v7`.
 
 Create `.github/workflows/dry-lint.yml` using the [complete quick start](../README.md#add-it-to-github-actions)
@@ -12,7 +12,7 @@ override-label changes. To add dry-lint to an existing job, these are the only s
   with:
     ref: ${{ github.event.pull_request.head.sha || github.sha }}
     fetch-depth: 1
-- uses: gigaverse-app/dry-lint@main
+- uses: gigaverse-app/dry-lint@v1
   with:
     typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
 ```
@@ -78,6 +78,49 @@ uv run dry-lint report --from examples/comment-report.json --format markdown --w
 The fixture contains illustrative verdicts, not measured findings. To preview your own run, substitute its
 `report.json`. `report` renders saved results and never posts a comment. Local reports without repository/commit
 metadata show full qualified names instead of source links.
+
+### Comparison links
+
+The cleanup basket includes a collapsed comparison table with immutable **A** and **B** source links, a GitHub
+diff from the last reported commit to the current head, and the recorded judgment. Below-threshold candidates
+also retain their links and judgments. Up to five pairs are shown, with cleaned pairs first.
+
+- **Private, internal, unknown visibility, or GitHub Enterprise Server:** GitHub links only. No external viewer
+  link, source payload or additional source fetch is generated. A public repository with a private or unverifiable
+  peer also stays on GitHub. Visibility is checked through the GitHub API; failed checks preserve the GitHub links.
+- **Public repositories:** the table additionally links to the [static viewer](https://gigaverse-app.github.io/dry-lint/compare/).
+  The viewer reads public source at fixed commit SHAs directly from GitHub, without authentication. It verifies
+  that every source repository is still public before fetching code. It has no backend, analytics, credentials,
+  or model calls. Source coordinates and the existing judgment travel in the link fragment; source code is not
+  embedded in the URL or stored in the sticky ledger.
+
+After a pair stops being reported, dry-lint parses both original paths at the current commit. If exactly one
+original symbol still exists and both reads completed, the viewer offers all three columns: original A, original
+B, and the remaining implementation. **This is evidence of a surviving symbol, not proof of consolidation.**
+Review the caller diff and any extracted helpers. A moved/renamed helper, two surviving originals, unsupported
+language or failed read leaves the result unidentified; the viewer shows A and B with an explicit explanation.
+No model is asked to infer a destination. Dismissals never get a presumed consolidation result.
+
+Comparison links are bounded to 12,000 characters, the comparison section limits viewer links to a 20,000-character
+budget, and the viewer accepts up to 600 lines per function. Oversized links keep their GitHub source links;
+unavailable or oversized source shows an error with usable GitHub links. Historic ledgers without source
+coordinates keep their accounting; dry-lint does not invent past evidence.
+
+Use `viewer-url: ''` to disable interactive links. To host the same static viewer in the repository owner's Pages
+site, copy `viewer/index.html`, `style.css`, `app.mjs`, and `diff.mjs` into that site's `/dry-lint/` directory in its
+existing deployment, then configure:
+
+```yaml
+- uses: gigaverse-app/dry-lint@v1
+  with:
+    typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
+    viewer-url: https://OWNER.github.io/REPOSITORY/dry-lint/
+```
+
+This input cannot enable the viewer for a private repository. For manual sticky publication use
+`python -m dry_lint.sticky ... --viewer-url https://OWNER.github.io/REPOSITORY/dry-lint/`.
+Enable Pages once in the hosting repository's settings; no GitHub App is needed. Preserve an existing site's
+deployment rather than replacing it with the example publisher in `.github/workflows/viewer.yml`.
 
 ## When it fails, and false positives
 

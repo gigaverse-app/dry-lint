@@ -33,6 +33,7 @@ from pathlib import Path
 import httpx
 
 from dry_lint.commits import Outcome, outcomes
+from dry_lint.comparison import VIEWER, Comparisons
 from dry_lint.ledger import PullLedger, RepositoryLedger
 from dry_lint.ledger import render as ledger_render
 from dry_lint.report import CLEAN, NOTE_SLOT, Report
@@ -176,7 +177,7 @@ def run_id() -> str:
 def upsert(github: GitHub, repository: str, number: int, markdown: str, findings: int, key: str = "",
            expect_head: str = "", banner: bool = False, run_url: str = "", note: str = "",
            skip_clean: bool = False, reports: list[Report] = (), run: str = "",
-           repository_ledger: RepositoryLedger | None = None, scopes: list[str] = ()) -> str:
+           repository_ledger: RepositoryLedger | None = None, scopes: list[str] = (), viewer_url: str = VIEWER) -> str:
     """
     Create, update or leave the sticky comment, and say which: created, updated, resolved (it had findings and has
     none now), skipped (clean, `skip_clean`, never commented), stale (the pull request moved on) or forbidden (the
@@ -193,8 +194,9 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
         if resolving:
             note = "\n\n".join(part for part in (RESOLVED, note) if part)
         before = outcomes(github.commit_messages(repository, number)) if reports else []
+        comparisons = Comparisons(github, repository, expect_head or (reports[0].run.head if reports else ""), viewer_url)
         body = compose(markdown, key, banner, run_url, expect_head, note,
-                       account(mine, list(reports), run, repository_ledger, list(scopes), before))
+                       account(mine, list(reports), run, repository_ledger, list(scopes), before, comparisons))
         if not mine:
             github.create(repository, number, body)
             return "created"
@@ -209,7 +211,7 @@ def upsert(github: GitHub, repository: str, number: int, markdown: str, findings
 
 
 def account(mine: list[dict], reports: list[Report], run: str, repository: RepositoryLedger | None,
-            scopes: list[str] = (), before_commit: list[Outcome] = ()) -> str:
+            scopes: list[str] = (), before_commit: list[Outcome] = (), comparisons: Comparisons | None = None) -> str:
     """
     The ledger section: the previous comment's ledger with this run added, and what the commits' trailers say the
     pre-commit hook settled. With copies left by racing runs, the one that counted the most runs wins. Nothing
@@ -218,7 +220,8 @@ def account(mine: list[dict], reports: list[Report], run: str, repository: Repos
     previous = [found for c in mine if (found := PullLedger.read(c.get("body", ""))) is not None]
     start = max(previous, key=lambda found: found.tally.runs, default=PullLedger())
     ledger = start.advance(reports, run, scopes, before_commit)
-    return ledger_render(ledger, repository) if ledger.tally.runs else ""
+    review = comparisons.render(ledger, reports) if comparisons else ""
+    return ledger_render(ledger, repository, review) if ledger.tally.runs else ""
 
 
 def scoped(argument: str) -> tuple[str, Path]:
@@ -252,6 +255,8 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
     parser.add_argument("--expect-head", default="", help="Post only while this is still the PR's head commit.")
     parser.add_argument("--run-url", default="")
     parser.add_argument("--note", default="", help="A line before the report, e.g. whether the findings block.")
+    parser.add_argument("--viewer-url", default=os.environ.get("INPUT_VIEWER_URL", VIEWER),
+                        help="Static public-source viewer URL; empty disables it. Private repos always use GitHub links.")
     parser.add_argument("--skip-clean", action="store_true", help="Post nothing for a clean report never commented on.")
     parser.add_argument("--report", type=scoped, action="append", default=[], metavar="[SCOPE=]PATH",
                         help="report.json of this run, to add to the pull request's ledger; repeat with --body. "
@@ -270,7 +275,7 @@ def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = 
               if repository and repository.exists() else None)
     outcome = upsert(github, args.repository, args.pull_request, combine(args.body), args.findings, args.key,
                      args.expect_head, banner_available(transport), args.run_url, args.note, args.skip_clean,
-                     reports, args.run, totals, [scope for scope, _ in args.report])
+                     reports, args.run, totals, [scope for scope, _ in args.report], args.viewer_url)
     if outcome == "forbidden":
         print("::warning title=dry-lint::This token may not comment on the pull request (a fork?). "
               "The findings are in the annotations and the job summary.")
