@@ -8,9 +8,10 @@ So the judges and the thresholds are chosen together, as a preset, and any of th
     preset = "jev+opus"        # or "auto" (the default): the best preset the environment's credentials allow
     fail_at = 0.8              # an explicit value always wins over the preset's
 
-Each preset's numbers come from the 250-pair gigaverse-ai gold set (docs/benchmark.md), simulated on each pull
+Legacy presets' numbers come from the 250-pair gigaverse-ai gold set (docs/benchmark.md), simulated on each pull
 request's real candidates under the default budget ($0.04 a pull request, every push included); presets marked
-`measured = False` share their thresholds with the API preset for the same model.
+`measured = False` are not independently calibrated. Balanced has separate historical production measurements
+(docs/production-discovery-results.md), including the limitations of its small known-positive panel.
 """
 
 import os
@@ -18,7 +19,7 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel
 
-from dry_lint.settings import Escalation, PluginChoice, Settings
+from dry_lint.settings import Discovery, Escalation, PluginChoice, Settings
 
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
@@ -28,6 +29,7 @@ class Preset(BaseModel):
     name: str
     summary: str
     judge: PluginChoice
+    discovery: Discovery = Discovery()
     escalate: Escalation | None = None
     drop_below: float
     report_at: float
@@ -82,14 +84,25 @@ PRESETS = {preset.name: preset for preset in [
     Preset(name="jev", summary="Jev on every pair",
            judge=PluginChoice(use="jev"), drop_below=0.6, report_at=0.8, fail_at=0.8, needs=("TYPESAFE_AI_API_KEY",),
            numbers="fails at 0.8: 94% precision, 73% recall; about $0.0002 a pull request"),
+    Preset(name="agent-haiku", summary="Experimental local feedback: Haiku shared-operation judge, coding agent reviews findings",
+           judge=PluginChoice(use="anthropic", model="claude-haiku-5-5", prompt_policy="shared-operations", max_tokens=2048),
+           drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=False,
+           numbers="opt-in agent-reviewed experiment; 17 true and 7 false evidence reports on 10 development PRs; "
+                   "local checks use baseline retrieval, not the historical exploration scheduler"),
+    Preset(name="balanced", summary="Agent-reviewed discovery: protected baseline, paced exploration and persistent budget",
+           judge=PluginChoice(use="anthropic", model="claude-haiku-5-5", prompt_policy="shared-operations", max_tokens=2048,
+                              max_retries=0),
+           discovery=Discovery(enabled=True),
+             drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=True,
+             numbers="11 fresh PRs: 3/3 known positives, 44% confirmed evidence; max $0.018/PR; agent-reviewed"),
     Preset(name="none", summary="no judge: candidates are listed, nothing is reported or fails",
            judge=PluginChoice(use="none"), drop_below=0.6, report_at=0.8, fail_at=0.8),
 ]}  # fmt: skip
 
 # "auto" takes the first preset whose credentials are all in the environment; the others must be named.
 AUTO_ORDER = ("jev+opus", "jev+claude-code", "jev", "sonnet", "claude-code", "none")
-LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:])
-PRESET_FIELDS = ("judge", "escalate", "drop_below", "report_at", "fail_at")
+LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:], "agent-haiku", "balanced")
+PRESET_FIELDS = ("judge", "escalate", "drop_below", "report_at", "fail_at", "discovery")
 
 
 def auto_preset(environ: Mapping[str, str] | None = None) -> str:

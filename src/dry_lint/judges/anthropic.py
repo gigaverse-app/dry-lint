@@ -27,7 +27,8 @@ class AnthropicJudge:
 
     def __init__(self, model: str = "claude-sonnet-5-5", api_key: str | None = None, effort: str | None = None,
                  workers: int = 4, timeout: float = 120, http_client: Any = None,
-                 prompt_policy: str = "concept", max_tokens: int = 8000, retry_malformed: bool = False) -> None:
+                 prompt_policy: str = "concept", max_tokens: int = 8000, max_retries: int = 2,
+                 retry_malformed: bool = False) -> None:
         if prompt_policy not in PROMPT_POLICIES or max_tokens < 1:
             raise ValueError("Unknown prompt policy or nonpositive output limit")
         try:
@@ -46,18 +47,26 @@ class AnthropicJudge:
         self.version = f"{PROMPT_POLICIES[prompt_policy][0]}:{model}" + (f":{effort}" if effort else "")
         if max_tokens != 8000:
             self.version += f":output={max_tokens}"
-        self.client = anthropic.Anthropic(api_key=key, timeout=timeout, http_client=http_client)
+        self.client = anthropic.Anthropic(api_key=key, timeout=timeout, http_client=http_client, max_retries=max_retries)
         self.tokens = {"input": 0, "output": 0}
 
     def _ask(self, candidate: Candidate, retry: bool = True) -> Verdict:
+        import anthropic
         options: dict[str, Any] = {"output_config": {"effort": self.effort}} if self.effort else {}
         if self.model in FALLBACK_MODELS:
             options |= {"betas": ["server-side-fallback-2026-07-01"], "fallbacks": "default"}
-        response = self.client.beta.messages.create(
-            model=self.model, max_tokens=self.max_tokens,
-            messages=[{"role": "user", "content": prompt(candidate, policy=self.prompt_policy)}], **options)
+        try:
+            response = self.client.beta.messages.create(
+                model=self.model, max_tokens=self.max_tokens,
+                messages=[{"role": "user", "content": prompt(candidate, policy=self.prompt_policy)}], **options)
+        except anthropic.APIError as error:
+            raise ValueError(f"Anthropic request failed: {type(error).__name__}") from error
         self.tokens["input"] += response.usage.input_tokens
         self.tokens["output"] += response.usage.output_tokens
+        for name in ("cache_creation_input_tokens", "cache_read_input_tokens"):
+            count = getattr(response.usage, name, 0) or 0
+            if count:
+                self.tokens[name] = self.tokens.get(name, 0) + count
         if response.stop_reason == "refusal":
             category = getattr(response.stop_details, "category", None)
             raise ValueError(f"{self.model} declined to judge {candidate.new.qualname} ({category})")

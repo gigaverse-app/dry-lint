@@ -268,6 +268,13 @@ def blob_ids(root: Path) -> dict[str, str]:
     return {entry.split("\t", 1)[1]: entry.split()[1] for entry in listed.split("\0") if entry}
 
 
+def validate_source(extractor: Extractor, path: str, source: str) -> None:
+    validate = getattr(extractor, "validate_source", None)
+    if validate is None:
+        raise ValueError(f"Extractor for {path} does not support strict source validation")
+    validate(path, source)
+
+
 def repository_functions(root: Path, include: list[str], exclude: list[str], extractors: list[Extractor],
                          cache: dict[tuple[str, str], list[Function]] | None = None, *, strict: bool = False) -> list[Function]:
     """
@@ -287,10 +294,7 @@ def repository_functions(root: Path, include: list[str], exclude: list[str], ext
         try:
             source = (root / path).read_text(encoding="utf-8")
             if strict:
-                validate = getattr(extractor, "validate_source", None)
-                if validate is None:
-                    raise ValueError(f"Extractor for {path} does not support strict source validation")
-                validate(path, source)
+                validate_source(extractor, path, source)
             functions = extractor.functions(path, source)
         except (OSError, UnicodeDecodeError):
             if strict:

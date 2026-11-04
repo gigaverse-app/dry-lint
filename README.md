@@ -84,6 +84,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
       - uses: gigaverse-app/dry-lint@main
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
@@ -110,6 +113,15 @@ lists every option.
 ### pre-commit
 
 Hook id `dry-lint` checks the staged functions; see [examples/pre-commit-config.yaml](examples/pre-commit-config.yaml).
+
+For coding-agent feedback with a cheap judge, use the opt-in
+[`agent-haiku` hook setup](docs/agent-reviewed-discovery.md). Findings reject the commit for review and repair;
+this experimental preset does not change auto-selection or enable the historical exploration scheduler.
+
+For coding-agent hooks, [`balanced`](docs/production-discovery.md) combines cheap shared-operation judging,
+protected baseline retrieval, same-file exploration and a persistent $0.04 campaign allowance. Use
+`dry-lint feedback fix` or `dry-lint feedback dismiss` after reviewing a finding; exact-source dismissals prevent
+repeat interruptions while changed code reopens the pair.
 
 ## Commands
 

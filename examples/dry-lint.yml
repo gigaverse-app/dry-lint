@@ -27,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1  # enough: the action fetches just the base and head ancestry it needs
           persist-credentials: false
       - uses: gigaverse-app/dry-lint@main

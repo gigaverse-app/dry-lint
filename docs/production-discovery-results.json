@@ -1,0 +1,2407 @@
+{
+  "frozen": {
+    "baseline": {
+      "prs": [
+        {
+          "pr": "frozen-01",
+          "commits": 1,
+          "usd": 0.0,
+          "calls": 0,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0
+          ],
+          "reports_per_commit": [
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-02",
+          "commits": 6,
+          "usd": 0.0002482,
+          "calls": 1,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 5,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 6,
+              "usd": 0.0002482,
+              "calls": 1,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-03",
+          "commits": 2,
+          "usd": 0.0,
+          "calls": 0,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-04",
+          "commits": 4,
+          "usd": 0.0036645000000000002,
+          "calls": 10,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0005115,
+              "calls": 1,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0022509,
+              "calls": 6,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0032803,
+              "calls": 9,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0036645000000000002,
+              "calls": 10,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-05",
+          "commits": 3,
+          "usd": 0.0036761,
+          "calls": 6,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0006245,
+              "calls": 1,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0024108,
+              "calls": 4,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0036761,
+              "calls": 6,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-06",
+          "commits": 6,
+          "usd": 0.0012533000000000002,
+          "calls": 3,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0012533000000000002,
+              "calls": 3,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0012533000000000002,
+              "calls": 3,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0012533000000000002,
+              "calls": 3,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 5,
+              "usd": 0.0012533000000000002,
+              "calls": 3,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 6,
+              "usd": 0.0012533000000000002,
+              "calls": 3,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-07",
+          "commits": 4,
+          "usd": 0.0038065,
+          "calls": 6,
+          "reports": 3,
+          "unique_reported_evidence": 2,
+          "labels": {
+            "separate": 2
+          },
+          "report_labels": {
+            "separate": 3
+          },
+          "fp_per_commit": [
+            0,
+            1,
+            1,
+            1
+          ],
+          "reports_per_commit": [
+            0,
+            1,
+            1,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0019642,
+              "calls": 3,
+              "reports": 1,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0038065,
+              "calls": 6,
+              "reports": 1,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0038065,
+              "calls": 6,
+              "reports": 1,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-08",
+          "commits": 4,
+          "usd": 0.0012672,
+          "calls": 5,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0012672,
+              "calls": 5,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0012672,
+              "calls": 5,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0012672,
+              "calls": 5,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0012672,
+              "calls": 5,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-09",
+          "commits": 4,
+          "usd": 0.007764200000000001,
+          "calls": 25,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0063705,
+              "calls": 20,
+              "reports": 0,
+              "deferred": 4
+            },
+            {
+              "commit": 3,
+              "usd": 0.007764200000000001,
+              "calls": 25,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.007764200000000001,
+              "calls": 25,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-10",
+          "commits": 7,
+          "usd": 0.0010780000000000002,
+          "calls": 4,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0010780000000000002,
+              "calls": 4,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0010780000000000002,
+              "calls": 4,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0010780000000000002,
+              "calls": 4,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 5,
+              "usd": 0.0010780000000000002,
+              "calls": 4,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 6,
+              "usd": 0.0010780000000000002,
+              "calls": 4,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 7,
+              "usd": 0.0010780000000000002,
+              "calls": 4,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-11",
+          "commits": 1,
+          "usd": 0.0,
+          "calls": 0,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0
+          ],
+          "reports_per_commit": [
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        }
+      ],
+      "usd": 0.022758,
+      "calls": 60,
+      "reports": 3,
+      "unique_labels": {
+        "separate": 2
+      },
+      "interruption_labels": {
+        "separate": 3
+      },
+      "max_usd": 0.007764200000000001,
+      "baseline_coverage_loss": 0,
+      "baseline_reviewed_dismissals": 0,
+      "provider_seconds_per_commit": {
+        "p50": 0.0,
+        "p90": 10.334599499998149,
+        "max": 50.10758979996899,
+        "sum": 177.3579300000274
+      }
+    },
+    "balanced": {
+      "prs": [
+        {
+          "pr": "frozen-01",
+          "commits": 1,
+          "usd": 0.0020617,
+          "calls": 4,
+          "reports": 1,
+          "unique_reported_evidence": 1,
+          "labels": {
+            "duplicate": 1
+          },
+          "report_labels": {
+            "duplicate": 1
+          },
+          "fp_per_commit": [
+            0
+          ],
+          "reports_per_commit": [
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0020617,
+              "calls": 4,
+              "reports": 1,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-02",
+          "commits": 6,
+          "usd": 0.0139409,
+          "calls": 21,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0040256,
+              "calls": 6,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0040256,
+              "calls": 6,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0100973,
+              "calls": 14,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0124287,
+              "calls": 18,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 5,
+              "usd": 0.0133847,
+              "calls": 19,
+              "reports": 0,
+              "deferred": 3
+            },
+            {
+              "commit": 6,
+              "usd": 0.0139409,
+              "calls": 21,
+              "reports": 0,
+              "deferred": 10
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-03",
+          "commits": 2,
+          "usd": 0.0056538,
+          "calls": 6,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0056538,
+              "calls": 6,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-04",
+          "commits": 4,
+          "usd": 0.017249900000000002,
+          "calls": 38,
+          "reports": 1,
+          "unique_reported_evidence": 1,
+          "labels": {
+            "separate": 1
+          },
+          "report_labels": {
+            "separate": 1
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0014024,
+              "calls": 3,
+              "reports": 0,
+              "deferred": 1
+            },
+            {
+              "commit": 2,
+              "usd": 0.008633,
+              "calls": 16,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0126496,
+              "calls": 27,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.017249900000000002,
+              "calls": 38,
+              "reports": 1,
+              "deferred": 20
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-05",
+          "commits": 3,
+          "usd": 0.0171308,
+          "calls": 24,
+          "reports": 13,
+          "unique_reported_evidence": 9,
+          "labels": {
+            "duplicate": 8,
+            "borderline": 1
+          },
+          "report_labels": {
+            "duplicate": 12,
+            "borderline": 1
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            3,
+            4,
+            6
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0052924,
+              "calls": 7,
+              "reports": 3,
+              "deferred": 17
+            },
+            {
+              "commit": 2,
+              "usd": 0.0127026,
+              "calls": 17,
+              "reports": 4,
+              "deferred": 15
+            },
+            {
+              "commit": 3,
+              "usd": 0.0171308,
+              "calls": 24,
+              "reports": 6,
+              "deferred": 17
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-06",
+          "commits": 6,
+          "usd": 0.0149005,
+          "calls": 30,
+          "reports": 32,
+          "unique_reported_evidence": 7,
+          "labels": {
+            "borderline": 4,
+            "duplicate": 2,
+            "separate": 1
+          },
+          "report_labels": {
+            "borderline": 20,
+            "duplicate": 9,
+            "separate": 3
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            1
+          ],
+          "reports_per_commit": [
+            0,
+            5,
+            6,
+            7,
+            7,
+            7
+          ],
+          "known_positives_reported": 2,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.006975100000000001,
+              "calls": 13,
+              "reports": 5,
+              "deferred": 5
+            },
+            {
+              "commit": 3,
+              "usd": 0.010720200000000001,
+              "calls": 20,
+              "reports": 6,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.013291,
+              "calls": 26,
+              "reports": 7,
+              "deferred": 0
+            },
+            {
+              "commit": 5,
+              "usd": 0.0149005,
+              "calls": 30,
+              "reports": 7,
+              "deferred": 2
+            },
+            {
+              "commit": 6,
+              "usd": 0.0149005,
+              "calls": 30,
+              "reports": 7,
+              "deferred": 2
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-07",
+          "commits": 4,
+          "usd": 0.0174937,
+          "calls": 28,
+          "reports": 17,
+          "unique_reported_evidence": 11,
+          "labels": {
+            "separate": 11
+          },
+          "report_labels": {
+            "separate": 17
+          },
+          "fp_per_commit": [
+            0,
+            4,
+            6,
+            7
+          ],
+          "reports_per_commit": [
+            0,
+            4,
+            6,
+            7
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0078228,
+              "calls": 13,
+              "reports": 4,
+              "deferred": 7
+            },
+            {
+              "commit": 3,
+              "usd": 0.0160432,
+              "calls": 26,
+              "reports": 6,
+              "deferred": 7
+            },
+            {
+              "commit": 4,
+              "usd": 0.0174937,
+              "calls": 28,
+              "reports": 7,
+              "deferred": 5
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-08",
+          "commits": 4,
+          "usd": 0.0134356,
+          "calls": 38,
+          "reports": 4,
+          "unique_reported_evidence": 1,
+          "labels": {
+            "duplicate": 1
+          },
+          "report_labels": {
+            "duplicate": 4
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0050698,
+              "calls": 15,
+              "reports": 1,
+              "deferred": 10
+            },
+            {
+              "commit": 2,
+              "usd": 0.0086029,
+              "calls": 25,
+              "reports": 1,
+              "deferred": 5
+            },
+            {
+              "commit": 3,
+              "usd": 0.012280300000000001,
+              "calls": 35,
+              "reports": 1,
+              "deferred": 3
+            },
+            {
+              "commit": 4,
+              "usd": 0.0134356,
+              "calls": 38,
+              "reports": 1,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-09",
+          "commits": 4,
+          "usd": 0.0151304,
+          "calls": 45,
+          "reports": 4,
+          "unique_reported_evidence": 2,
+          "labels": {
+            "borderline": 2
+          },
+          "report_labels": {
+            "borderline": 4
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0063705,
+              "calls": 20,
+              "reports": 0,
+              "deferred": 119
+            },
+            {
+              "commit": 3,
+              "usd": 0.0120372,
+              "calls": 35,
+              "reports": 2,
+              "deferred": 105
+            },
+            {
+              "commit": 4,
+              "usd": 0.0151304,
+              "calls": 45,
+              "reports": 2,
+              "deferred": 95
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-10",
+          "commits": 7,
+          "usd": 0.0150359,
+          "calls": 36,
+          "reports": 21,
+          "unique_reported_evidence": 4,
+          "labels": {
+            "duplicate": 4
+          },
+          "report_labels": {
+            "duplicate": 21
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            2,
+            3,
+            4,
+            4,
+            4,
+            4
+          ],
+          "known_positives_reported": 1,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0057564,
+              "calls": 14,
+              "reports": 2,
+              "deferred": 46
+            },
+            {
+              "commit": 3,
+              "usd": 0.0102512,
+              "calls": 24,
+              "reports": 3,
+              "deferred": 41
+            },
+            {
+              "commit": 4,
+              "usd": 0.0137252,
+              "calls": 34,
+              "reports": 4,
+              "deferred": 31
+            },
+            {
+              "commit": 5,
+              "usd": 0.0150359,
+              "calls": 36,
+              "reports": 4,
+              "deferred": 29
+            },
+            {
+              "commit": 6,
+              "usd": 0.0150359,
+              "calls": 36,
+              "reports": 4,
+              "deferred": 29
+            },
+            {
+              "commit": 7,
+              "usd": 0.0150359,
+              "calls": 36,
+              "reports": 4,
+              "deferred": 29
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-11",
+          "commits": 1,
+          "usd": 0.0,
+          "calls": 0,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0
+          ],
+          "reports_per_commit": [
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        }
+      ],
+      "usd": 0.13203320000000002,
+      "calls": 270,
+      "reports": 93,
+      "unique_labels": {
+        "duplicate": 16,
+        "separate": 13,
+        "borderline": 7
+      },
+      "interruption_labels": {
+        "duplicate": 47,
+        "separate": 21,
+        "borderline": 25
+      },
+      "max_usd": 0.0174937,
+      "baseline_coverage_loss": 0,
+      "baseline_reviewed_dismissals": 0,
+      "provider_seconds_per_commit": {
+        "p50": 22.00790255003085,
+        "p90": 42.99633910000557,
+        "max": 73.78100330001325,
+        "sum": 946.8084805001272
+      }
+    },
+    "feedback": {
+      "prs": [
+        {
+          "pr": "frozen-01",
+          "commits": 1,
+          "usd": 0.0020617,
+          "calls": 4,
+          "reports": 1,
+          "unique_reported_evidence": 1,
+          "labels": {
+            "duplicate": 1
+          },
+          "report_labels": {
+            "duplicate": 1
+          },
+          "fp_per_commit": [
+            0
+          ],
+          "reports_per_commit": [
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0020617,
+              "calls": 4,
+              "reports": 1,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-02",
+          "commits": 6,
+          "usd": 0.0139409,
+          "calls": 21,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0040256,
+              "calls": 6,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0040256,
+              "calls": 6,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0100973,
+              "calls": 14,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0124287,
+              "calls": 18,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 5,
+              "usd": 0.0133847,
+              "calls": 19,
+              "reports": 0,
+              "deferred": 3
+            },
+            {
+              "commit": 6,
+              "usd": 0.0139409,
+              "calls": 21,
+              "reports": 0,
+              "deferred": 10
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-03",
+          "commits": 2,
+          "usd": 0.0056538,
+          "calls": 6,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0056538,
+              "calls": 6,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-04",
+          "commits": 4,
+          "usd": 0.017249900000000002,
+          "calls": 38,
+          "reports": 1,
+          "unique_reported_evidence": 1,
+          "labels": {
+            "separate": 1
+          },
+          "report_labels": {
+            "separate": 1
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0014024,
+              "calls": 3,
+              "reports": 0,
+              "deferred": 1
+            },
+            {
+              "commit": 2,
+              "usd": 0.008633,
+              "calls": 16,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0126496,
+              "calls": 27,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.017249900000000002,
+              "calls": 38,
+              "reports": 1,
+              "deferred": 20
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-05",
+          "commits": 3,
+          "usd": 0.0171308,
+          "calls": 24,
+          "reports": 13,
+          "unique_reported_evidence": 9,
+          "labels": {
+            "duplicate": 8,
+            "borderline": 1
+          },
+          "report_labels": {
+            "duplicate": 12,
+            "borderline": 1
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            3,
+            4,
+            6
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0052924,
+              "calls": 7,
+              "reports": 3,
+              "deferred": 17
+            },
+            {
+              "commit": 2,
+              "usd": 0.0127026,
+              "calls": 17,
+              "reports": 4,
+              "deferred": 15
+            },
+            {
+              "commit": 3,
+              "usd": 0.0171308,
+              "calls": 24,
+              "reports": 6,
+              "deferred": 17
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-06",
+          "commits": 6,
+          "usd": 0.0149005,
+          "calls": 30,
+          "reports": 30,
+          "unique_reported_evidence": 7,
+          "labels": {
+            "borderline": 4,
+            "duplicate": 2,
+            "separate": 1
+          },
+          "report_labels": {
+            "borderline": 20,
+            "duplicate": 9,
+            "separate": 1
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            5,
+            6,
+            7,
+            6,
+            6
+          ],
+          "known_positives_reported": 2,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.006975100000000001,
+              "calls": 13,
+              "reports": 5,
+              "deferred": 5
+            },
+            {
+              "commit": 3,
+              "usd": 0.010720200000000001,
+              "calls": 20,
+              "reports": 6,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.013291,
+              "calls": 26,
+              "reports": 7,
+              "deferred": 0
+            },
+            {
+              "commit": 5,
+              "usd": 0.0149005,
+              "calls": 30,
+              "reports": 6,
+              "deferred": 2
+            },
+            {
+              "commit": 6,
+              "usd": 0.0149005,
+              "calls": 30,
+              "reports": 6,
+              "deferred": 2
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-07",
+          "commits": 4,
+          "usd": 0.0174937,
+          "calls": 28,
+          "reports": 11,
+          "unique_reported_evidence": 11,
+          "labels": {
+            "separate": 11
+          },
+          "report_labels": {
+            "separate": 11
+          },
+          "fp_per_commit": [
+            0,
+            4,
+            6,
+            1
+          ],
+          "reports_per_commit": [
+            0,
+            4,
+            6,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 1,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0078228,
+              "calls": 13,
+              "reports": 4,
+              "deferred": 7
+            },
+            {
+              "commit": 3,
+              "usd": 0.0160432,
+              "calls": 26,
+              "reports": 6,
+              "deferred": 7
+            },
+            {
+              "commit": 4,
+              "usd": 0.0174937,
+              "calls": 28,
+              "reports": 1,
+              "deferred": 5
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-08",
+          "commits": 4,
+          "usd": 0.0134356,
+          "calls": 38,
+          "reports": 4,
+          "unique_reported_evidence": 1,
+          "labels": {
+            "duplicate": 1
+          },
+          "report_labels": {
+            "duplicate": 4
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0050698,
+              "calls": 15,
+              "reports": 1,
+              "deferred": 10
+            },
+            {
+              "commit": 2,
+              "usd": 0.0086029,
+              "calls": 25,
+              "reports": 1,
+              "deferred": 5
+            },
+            {
+              "commit": 3,
+              "usd": 0.012280300000000001,
+              "calls": 35,
+              "reports": 1,
+              "deferred": 3
+            },
+            {
+              "commit": 4,
+              "usd": 0.0134356,
+              "calls": 38,
+              "reports": 1,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-09",
+          "commits": 4,
+          "usd": 0.0151304,
+          "calls": 45,
+          "reports": 4,
+          "unique_reported_evidence": 2,
+          "labels": {
+            "borderline": 2
+          },
+          "report_labels": {
+            "borderline": 4
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0063705,
+              "calls": 20,
+              "reports": 0,
+              "deferred": 119
+            },
+            {
+              "commit": 3,
+              "usd": 0.0120372,
+              "calls": 35,
+              "reports": 2,
+              "deferred": 105
+            },
+            {
+              "commit": 4,
+              "usd": 0.0151304,
+              "calls": 45,
+              "reports": 2,
+              "deferred": 95
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-10",
+          "commits": 7,
+          "usd": 0.0150359,
+          "calls": 36,
+          "reports": 21,
+          "unique_reported_evidence": 4,
+          "labels": {
+            "duplicate": 4
+          },
+          "report_labels": {
+            "duplicate": 21
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            2,
+            3,
+            4,
+            4,
+            4,
+            4
+          ],
+          "known_positives_reported": 1,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0057564,
+              "calls": 14,
+              "reports": 2,
+              "deferred": 46
+            },
+            {
+              "commit": 3,
+              "usd": 0.0102512,
+              "calls": 24,
+              "reports": 3,
+              "deferred": 41
+            },
+            {
+              "commit": 4,
+              "usd": 0.0137252,
+              "calls": 34,
+              "reports": 4,
+              "deferred": 31
+            },
+            {
+              "commit": 5,
+              "usd": 0.0150359,
+              "calls": 36,
+              "reports": 4,
+              "deferred": 29
+            },
+            {
+              "commit": 6,
+              "usd": 0.0150359,
+              "calls": 36,
+              "reports": 4,
+              "deferred": 29
+            },
+            {
+              "commit": 7,
+              "usd": 0.0150359,
+              "calls": 36,
+              "reports": 4,
+              "deferred": 29
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "frozen-11",
+          "commits": 1,
+          "usd": 0.0,
+          "calls": 0,
+          "reports": 0,
+          "unique_reported_evidence": 0,
+          "labels": {},
+          "report_labels": {},
+          "fp_per_commit": [
+            0
+          ],
+          "reports_per_commit": [
+            0
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        }
+      ],
+      "usd": 0.13203320000000002,
+      "calls": 270,
+      "reports": 85,
+      "unique_labels": {
+        "duplicate": 16,
+        "separate": 13,
+        "borderline": 7
+      },
+      "interruption_labels": {
+        "duplicate": 47,
+        "separate": 13,
+        "borderline": 25
+      },
+      "max_usd": 0.0174937,
+      "baseline_coverage_loss": 1,
+      "baseline_reviewed_dismissals": 0,
+      "provider_seconds_per_commit": {
+        "p50": 22.00790255003085,
+        "p90": 42.99633910000557,
+        "max": 73.78100330001325,
+        "sum": 946.8084805001272
+      }
+    },
+    "physical": {
+      "new_requests": 270,
+      "new_usd": 0.1320332,
+      "seeded_observations": 0,
+      "seconds": 946.8084805001272,
+      "input_tokens": 572887,
+      "output_tokens": 149489,
+      "errors": 0
+    }
+  },
+  "regression": {
+    "baseline": {
+      "prs": [
+        {
+          "pr": "regression-01",
+          "commits": 14,
+          "usd": 0.018660700000000002,
+          "calls": 45,
+          "reports": 5,
+          "unique_reported_evidence": 2,
+          "labels": {
+            "unknown": 2
+          },
+          "report_labels": {
+            "unknown": 5
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0044241,
+              "calls": 10,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0044241,
+              "calls": 10,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 3,
+              "usd": 0.0070984,
+              "calls": 18,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 4,
+              "usd": 0.0090981,
+              "calls": 22,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 5,
+              "usd": 0.011526900000000001,
+              "calls": 28,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 6,
+              "usd": 0.0118303,
+              "calls": 29,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 7,
+              "usd": 0.012486800000000001,
+              "calls": 32,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 8,
+              "usd": 0.012486800000000001,
+              "calls": 32,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 9,
+              "usd": 0.0142187,
+              "calls": 35,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 10,
+              "usd": 0.0170444,
+              "calls": 42,
+              "reports": 1,
+              "deferred": 0
+            },
+            {
+              "commit": 11,
+              "usd": 0.0170444,
+              "calls": 42,
+              "reports": 1,
+              "deferred": 0
+            },
+            {
+              "commit": 12,
+              "usd": 0.0180996,
+              "calls": 44,
+              "reports": 1,
+              "deferred": 0
+            },
+            {
+              "commit": 13,
+              "usd": 0.0180996,
+              "calls": 44,
+              "reports": 1,
+              "deferred": 0
+            },
+            {
+              "commit": 14,
+              "usd": 0.018660700000000002,
+              "calls": 45,
+              "reports": 1,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "regression-02",
+          "commits": 2,
+          "usd": 0.0021813,
+          "calls": 5,
+          "reports": 1,
+          "unique_reported_evidence": 1,
+          "labels": {
+            "unknown": 1
+          },
+          "report_labels": {
+            "unknown": 1
+          },
+          "fp_per_commit": [
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0021813,
+              "calls": 5,
+              "reports": 1,
+              "deferred": 0
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        }
+      ],
+      "usd": 0.020842000000000003,
+      "calls": 50,
+      "reports": 6,
+      "unique_labels": {
+        "unknown": 3
+      },
+      "interruption_labels": {
+        "unknown": 6
+      },
+      "max_usd": 0.018660700000000002,
+      "baseline_coverage_loss": 0,
+      "baseline_reviewed_dismissals": 0,
+      "provider_seconds_per_commit": {
+        "p50": 6.667310449993238,
+        "p90": 20.648660800026846,
+        "max": 40.6470342999819,
+        "sum": 168.2172388999752
+      }
+    },
+    "balanced": {
+      "prs": [
+        {
+          "pr": "regression-01",
+          "commits": 14,
+          "usd": 0.0322314,
+          "calls": 71,
+          "reports": 70,
+          "unique_reported_evidence": 11,
+          "labels": {
+            "unknown": 11
+          },
+          "report_labels": {
+            "unknown": 70
+          },
+          "fp_per_commit": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            4,
+            6,
+            6,
+            3,
+            3,
+            6,
+            6,
+            6,
+            5,
+            6,
+            6,
+            6,
+            6,
+            1
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0092549,
+              "calls": 19,
+              "reports": 4,
+              "deferred": 73
+            },
+            {
+              "commit": 2,
+              "usd": 0.0143172,
+              "calls": 29,
+              "reports": 6,
+              "deferred": 63
+            },
+            {
+              "commit": 3,
+              "usd": 0.0206691,
+              "calls": 44,
+              "reports": 6,
+              "deferred": 81
+            },
+            {
+              "commit": 4,
+              "usd": 0.0226688,
+              "calls": 48,
+              "reports": 3,
+              "deferred": 94
+            },
+            {
+              "commit": 5,
+              "usd": 0.0250976,
+              "calls": 54,
+              "reports": 3,
+              "deferred": 122
+            },
+            {
+              "commit": 6,
+              "usd": 0.025401,
+              "calls": 55,
+              "reports": 6,
+              "deferred": 109
+            },
+            {
+              "commit": 7,
+              "usd": 0.0260575,
+              "calls": 58,
+              "reports": 6,
+              "deferred": 109
+            },
+            {
+              "commit": 8,
+              "usd": 0.0260575,
+              "calls": 58,
+              "reports": 6,
+              "deferred": 109
+            },
+            {
+              "commit": 9,
+              "usd": 0.0277894,
+              "calls": 61,
+              "reports": 5,
+              "deferred": 151
+            },
+            {
+              "commit": 10,
+              "usd": 0.0306151,
+              "calls": 68,
+              "reports": 6,
+              "deferred": 170
+            },
+            {
+              "commit": 11,
+              "usd": 0.0306151,
+              "calls": 68,
+              "reports": 6,
+              "deferred": 170
+            },
+            {
+              "commit": 12,
+              "usd": 0.0316703,
+              "calls": 70,
+              "reports": 6,
+              "deferred": 168
+            },
+            {
+              "commit": 13,
+              "usd": 0.0316703,
+              "calls": 70,
+              "reports": 6,
+              "deferred": 168
+            },
+            {
+              "commit": 14,
+              "usd": 0.0322314,
+              "calls": 71,
+              "reports": 1,
+              "deferred": 107
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        },
+        {
+          "pr": "regression-02",
+          "commits": 2,
+          "usd": 0.0066543,
+          "calls": 15,
+          "reports": 2,
+          "unique_reported_evidence": 2,
+          "labels": {
+            "unknown": 2
+          },
+          "report_labels": {
+            "unknown": 2
+          },
+          "fp_per_commit": [
+            0,
+            0
+          ],
+          "reports_per_commit": [
+            0,
+            2
+          ],
+          "known_positives_reported": 0,
+          "baseline_coverage_loss": 0,
+          "curve": [
+            {
+              "commit": 1,
+              "usd": 0.0,
+              "calls": 0,
+              "reports": 0,
+              "deferred": 0
+            },
+            {
+              "commit": 2,
+              "usd": 0.0066543,
+              "calls": 15,
+              "reports": 2,
+              "deferred": 2
+            }
+          ],
+          "baseline_reviewed_dismissals": 0
+        }
+      ],
+      "usd": 0.0388857,
+      "calls": 86,
+      "reports": 72,
+      "unique_labels": {
+        "unknown": 13
+      },
+      "interruption_labels": {
+        "unknown": 72
+      },
+      "max_usd": 0.0322314,
+      "baseline_coverage_loss": 0,
+      "baseline_reviewed_dismissals": 0,
+      "provider_seconds_per_commit": {
+        "p50": 10.306873450004787,
+        "p90": 47.14315579996037,
+        "max": 83.84346460002416,
+        "sum": 309.6871059999248
+      }
+    },
+    "physical": {
+      "new_requests": 33,
+      "new_usd": 0.0160197,
+      "seeded_observations": 91,
+      "seconds": 122.16466799995396,
+      "input_tokens": 61827,
+      "output_tokens": 19674,
+      "errors": 0
+    }
+  },
+  "method": {
+    "fresh_prs": 11,
+    "fresh_commits": 42,
+    "regression_prs": 2,
+    "regression_commits": 16,
+    "frozen_reference": {
+      "duplicate": 3,
+      "separate": 68,
+      "borderline": 2
+    },
+    "runtime_commit": "1f215b215e9588290e4769ca30dc6be1095e1ae2",
+    "reference_sha256": "5e5c87ea26c2e1f7c7a177e2e7ce40823a85977248c1f5c5d109a15137f7e69e",
+    "policy_sha256": "77f76f0ccd97d9af4b7cceed20e5fe21c2842440f0078596f0ca822cb9d39f62",
+    "conditional_recall": {
+      "baseline": {
+        "recovered": 0,
+        "total": 3
+      },
+      "balanced": {
+        "recovered": 3,
+        "total": 3
+      },
+      "feedback": {
+        "recovered": 3,
+        "total": 3
+      }
+    },
+    "regression_positive_pairs": {
+      "baseline": {
+        "recovered": 2,
+        "total": 3
+      },
+      "balanced": {
+        "recovered": 3,
+        "total": 3
+      }
+    },
+    "limitations": [
+      "Conditional recall on independently reviewed positives, not corpus recall.",
+      "Supplementary source reviews are post-verdict and excluded from recall denominator.",
+      "Same model observations reused across arms; campaign costs charged independently.",
+      "Fixes were validated in a synthetic live hook, not invented for historical PRs."
+    ]
+  }
+}

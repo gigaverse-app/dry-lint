@@ -1,5 +1,9 @@
 # Benchmark
 
+The production `balanced` agent-hook profile has separate [58-commit validation](production-discovery-results.md):
+cumulative budgets, preserved baseline coverage, same-file exploration and reviewed feedback. Its small known-positive
+panel does not inherit the corpus precision/recall estimates below. Unattended `auto` remains unchanged.
+
 The opt-in shared-operation judge and protected historical scheduler have separate
 [paired development and fresh-PR measurements](protected-exploration.md). Their prompt and discovery policy
 do not inherit the calibrated precision/recall claims below, and do not change defaults.

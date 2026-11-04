@@ -10,6 +10,7 @@ override-label changes. To add dry-lint to an existing job, these are the only s
 ```yaml
 - uses: actions/checkout@v7
   with:
+    ref: ${{ github.event.pull_request.head.sha || github.sha }}
     fetch-depth: 1
 - uses: gigaverse-app/dry-lint@main
   with:
@@ -27,6 +28,11 @@ Explicit uv environment variables still apply, for example to configure a privat
 
 If you also accept pull requests from forks, add [the judge workflow](../examples/dry-lint-judge.yml) to judge
 their candidates with your secrets. Without it, fork PRs still get the local candidate scan.
+
+Check out the PR head from the event. GitHub can refresh its synthetic merge ref with newer base-branch commits
+after the event was created. Comparing that merged checkout with the event's older base SHA can report functions
+the PR never changed. The head ref above keeps detection and source links on the same commit; push events use
+their event SHA. The separate trusted judge workflow still checks out the default branch for its settings.
 
 ## What a pull request gets
 

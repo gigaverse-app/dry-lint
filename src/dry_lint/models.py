@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 4
+SCHEMA = 5
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -34,6 +34,8 @@ class Run(BaseModel):
     pull_request: int | None = None
     head: str = ""
     base: str = ""
+    session: str = ""
+    revision: str = ""
 
 
 class Function(BaseModel):
@@ -105,6 +107,7 @@ class Candidate(BaseModel):
     filtered: str | None = Field(default=None, description="Why a rule dropped the pair; None when it goes to the judge.")
     similarity_reusable: bool = Field(default=False, description="Whether this metric permits reuse after logic changes.")
     consolidation: list[Consolidation] = Field(default_factory=list)
+    lane: Literal["baseline", "exploration"] = "baseline"
 
     @property
     def context_hash(self) -> str:
@@ -118,6 +121,13 @@ class Candidate(BaseModel):
     @property
     def key(self) -> str:
         return pair_key(self.new.qualname, self.existing.qualname)
+
+
+def evidence(candidate: Candidate, judge_policy: str = "") -> str:
+    """Exact source, context and policy identity, independent of which side changed."""
+    payload = [sorted((f.qualname, f.code) for f in (candidate.new, candidate.existing)),
+               candidate.context_hash, judge_policy]
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=True).encode()).hexdigest()
 
 
 class Verdict(BaseModel):

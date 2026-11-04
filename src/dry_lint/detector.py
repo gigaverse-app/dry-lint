@@ -10,8 +10,8 @@ import fnmatch
 import re
 from pathlib import Path
 
-from dry_lint.function_index import FunctionIndex, extraction_contract
-from dry_lint.functions import extractor_for, repository_functions, selected_path
+from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
+from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
 from dry_lint.models import Candidate, Function, Run
 from dry_lint.plugins import Comparer, Extractor, identity, load
@@ -119,12 +119,13 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
 
 class Detector:
     def __init__(self, functions: list[Function], settings: Settings, comparer: Comparer,
-                 extractors: list[Extractor], *, cross_repository: bool = False) -> None:
+                 extractors: list[Extractor], *, cross_repository: bool = False, same_file: bool = False) -> None:
         self.functions = functions
         self.settings = settings
         self.comparer = comparer
         self.extractors = extractors
         self.cross_repository = cross_repository
+        self.same_file = same_file
         self.repositories = sorted({f.origin.repository for f in functions if f.origin})
         self.comparer_id = identity(comparer)
         self.file_extractors = {path: extractor_for(path, extractors) for path in {f.path for f in functions}}
@@ -135,6 +136,19 @@ class Detector:
     def for_repository(cls, root: Path, settings: Settings, *, strict: bool = False) -> "Detector":
         extractors = [load("extractors", choice) for choice in settings.extractors]
         functions = repository_functions(root, settings.include, settings.exclude, extractors, strict=strict)
+        return cls(functions, settings, load("comparers", settings.comparer), extractors)
+
+    @classmethod
+    def for_tree(cls, root: Path, revision: str, settings: Settings, *, strict: bool = False) -> "Detector":
+        extractors = [load("extractors", choice) for choice in settings.extractors]
+        functions = []
+        for path, source in tree_blobs(root, revision, settings).items():
+            extractor = extractor_for(path, extractors)
+            if extractor and selected_path(path, settings.include, settings.exclude):
+                text = source.decode("utf-8")
+                if strict:
+                    validate_source(extractor, path, text)
+                functions.extend(extractor.functions(path, text))
         return cls(functions, settings, load("comparers", settings.comparer), extractors)
 
     @classmethod
@@ -182,7 +196,8 @@ class Detector:
         extractor = extractor_for(function.path, self.extractors)
         def allowed(other: Function) -> bool:
             different_repository = other.origin != function.origin
-            return ((different_repository if self.cross_repository else different_repository or other.path != function.path)
+            return ((different_repository if self.cross_repository else different_repository or other.path != function.path
+                     or self.same_file and other.qualname != function.qualname)
                     and self.file_extractors[other.path] is extractor)
 
         if self.cross_repository:
@@ -214,7 +229,21 @@ class Detector:
                 if key not in seen:
                     seen.add(key)
                     found.append(self.pair(function, other, similarity))
-        return rank_candidates(found) if self.cross_repository or self.settings.consolidation else found
+        baseline = rank_candidates(found) if self.cross_repository or self.settings.consolidation else found
+        if self.settings.discovery.enabled and self.settings.comparer.use == "tfidf":
+            # A separate index leaves the baseline's floor, ranks and k unchanged.
+            from dry_lint.comparers import TfidfComparer
+            policy = self.settings.discovery
+            options = self.settings.comparer.options()
+            options.update(min_similarity=policy.min_similarity, min_similarity_small=policy.min_similarity)
+            wider = self.settings.model_copy(update={"neighbours": policy.depth,
+                "discovery": policy.model_copy(update={"enabled": False})})
+            detector = Detector(self.functions, wider, TfidfComparer(**options), self.extractors,
+                                cross_repository=self.cross_repository, same_file=True)
+            keys = {c.key for c in baseline}
+            baseline += [c.model_copy(update={"lane": "exploration"}) for c in detector.candidates(changed)
+                         if c.key not in keys]
+        return baseline
 
     def scan(self) -> list[Candidate]:
         """Every pair in the repository that are each other's nearest neighbour across files: the backlog."""

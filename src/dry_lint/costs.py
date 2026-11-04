@@ -33,6 +33,13 @@ ANSWER_TOKENS = 150  # measured: Sonnet 5.5's answers (thinking included) were 1
 ANSWERS: dict[str, int] = {"claude-opus-5-5": 220}  # measured: Opus 5.5's were 217 on average, p90 390
 
 
+def usage_cost(tokens: dict[str, int], rates: tuple[float, float]) -> float:
+    """Provider usage at the configured price, including Anthropic's cache write/read tiers."""
+    return (tokens.get("input", 0) * rates[0] + tokens.get("output", 0) * rates[1]
+            + tokens.get("cache_creation_input_tokens", 0) * rates[0] * 1.25
+            + tokens.get("cache_read_input_tokens", 0) * rates[0] * 0.1) / 1_000_000
+
+
 def price(judge: Judge, settings: Settings) -> tuple[float, float] | None:
     table = {**PRICES, **settings.prices}
     return table.get(getattr(judge, "model", "") or "") or table.get(judge.name)

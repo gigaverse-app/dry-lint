@@ -39,6 +39,16 @@ def score_comparison(captures: Path, results: Path, labels: Path, answers: Path)
                     identity = answer_key(candidate, "reference-v1")
                     if identity in reference:
                         translated[key_for_result(candidate, ranks[candidate.key], result)] = reference[identity]
+                        config = result.get("escalation_judge")
+                        if config is not None:
+                            translated[
+                                answer_key(
+                                    candidate,
+                                    config["judge"],
+                                    config["prompt_policy"],
+                                    template=config["prompt_template"],
+                                )
+                            ] = reference[identity]
             arms[f"{policy}/{result['policy']}"] = score(payload, result, translated, observations)
         cohorts[path.parent.name] = arms
     return {
