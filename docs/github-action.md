@@ -207,7 +207,9 @@ After folding, the run sends each newly merged pull request's counts to dry-lint
 [Cloudflare Worker](../counter) at `https://dry-lint-counter.gigaverse-oss.workers.dev`, so [the sign in the README](../README.md#the-counter) counts every
 repository that shares. A contribution holds the SHA-256 of the lower-cased repository name, the pull request
 number, the counts the ledger keeps (kept out, caught, dismissed, still open at merge, pushes, runs, judgments,
-functions checked, spend) and the dry-lint version: no code, names, paths or people.
+functions checked, look-alikes compared, verdicts reused, spend; and of the duplicates kept out, how many had
+drifted, how many were rewrites rather than copies, and their lines) and the dry-lint version: no code, names,
+paths or people.
 
 - **Opt out** with `share-totals: "false"`. Nothing is sent, and anything waiting is dropped.
 - **Counted once.** The counter keys contributions on the repository hash and pull request number, so a resend

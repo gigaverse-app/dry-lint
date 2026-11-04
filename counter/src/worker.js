@@ -3,7 +3,7 @@
  *
  *   POST /v1/pulls                     one merged pull request's ledger; counted once per repository and number
  *   GET  /v1/totals[?repository=o/n]   the totals, as JSON
- *   GET  /v1/badge[?metric=&repository=]  a shields.io endpoint badge
+ *   GET  /v1/badge[?metric= *   GET  /v1/badge[?metric=&repository=]  a shields.io endpoint badgerepository=]  a shields.io endpoint badge (kept-out, drifted, lines, pulls, ...)
  *   GET  /v1/sign.svg[?theme=dark&repository=]  the README sign
  *
  * One SQLite-backed Durable Object holds the counts: a contribution is inserted once (the repository and pull
@@ -12,10 +12,10 @@
  */
 
 import { DurableObject } from "cloudflare:workers";
-import { Invalid, badge, contribution, repositoryKey, sign } from "./tally.js";
+import { FIELDS, Invalid, TOTALED, badge, contribution, repositoryKey, sign } from "./tally.js";
 
-const EMPTY = { pulls: 0, repositories: 0, kept_out: 0, caught: 0, dismissed: 0, pushes: 0, judgments: 0,
-  functions: 0, usd: 0, since: null };
+const EMPTY = { pulls: 0, ...Object.fromEntries(TOTALED.map((field) => [field, 0])), since: null };
+const KIND = (field) => (field === "usd" ? "REAL" : "INTEGER");
 
 export class Counter extends DurableObject {
   constructor(ctx, env) {
@@ -23,31 +23,34 @@ export class Counter extends DurableObject {
     this.sql = ctx.storage.sql;
     this.sql.exec(`
       CREATE TABLE IF NOT EXISTS pulls (
-        repository TEXT NOT NULL, pull INTEGER NOT NULL, kept_out INTEGER, caught INTEGER, dismissed INTEGER,
-        merged_open INTEGER, pushes INTEGER, runs INTEGER, judgments INTEGER, functions INTEGER, usd REAL,
+        repository TEXT NOT NULL, pull INTEGER NOT NULL, ${FIELDS.map((f) => `${f} ${KIND(f)} DEFAULT 0`).join(", ")},
         version TEXT, at TEXT NOT NULL, PRIMARY KEY (repository, pull));
       CREATE TABLE IF NOT EXISTS totals (
-        scope TEXT PRIMARY KEY, pulls INTEGER, kept_out INTEGER, caught INTEGER, dismissed INTEGER, pushes INTEGER,
-        judgments INTEGER, functions INTEGER, usd REAL, since TEXT);`);
+        scope TEXT PRIMARY KEY, pulls INTEGER, ${TOTALED.map((f) => `${f} ${KIND(f)} DEFAULT 0`).join(", ")},
+        since TEXT);`);
+    // Tables made before a field existed gain it, at zero: the counter counts it from the day it was added.
+    for (const [table, fields] of [["pulls", FIELDS], ["totals", TOTALED]]) {
+      const present = new Set(this.sql.exec(`SELECT name FROM pragma_table_info('${table}')`).toArray().map((c) => c.name));
+      for (const field of fields.filter((f) => !present.has(f))) {
+        this.sql.exec(`ALTER TABLE ${table} ADD COLUMN ${field} ${KIND(field)} DEFAULT 0`);
+      }
+    }
   }
 
   /** Count one merged pull request; false when it was counted already. */
   record(entry) {
     const at = new Date().toISOString();
+    const columns = ["repository", "pull", ...FIELDS, "version", "at"];
     const inserted = this.sql.exec(
-      `INSERT OR IGNORE INTO pulls VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      entry.repository, entry.pull, entry.kept_out, entry.caught, entry.dismissed, entry.merged_open, entry.pushes,
-      entry.runs, entry.judgments, entry.functions, entry.usd, entry.version, at).rowsWritten > 0;
+      `INSERT OR IGNORE INTO pulls (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
+      ...columns.map((column) => (column === "at" ? at : entry[column]))).rowsWritten > 0;
     if (inserted) {
       for (const scope of ["*", entry.repository]) {
         this.sql.exec(
-          `INSERT INTO totals VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT (scope) DO UPDATE SET pulls = pulls + 1, kept_out = kept_out + excluded.kept_out,
-             caught = caught + excluded.caught, dismissed = dismissed + excluded.dismissed,
-             pushes = pushes + excluded.pushes, judgments = judgments + excluded.judgments,
-             functions = functions + excluded.functions, usd = usd + excluded.usd`,
-          scope, entry.kept_out, entry.caught, entry.dismissed, entry.pushes, entry.judgments, entry.functions,
-          entry.usd, at);
+          `INSERT INTO totals (scope, pulls, ${TOTALED.join(", ")}, since) VALUES (?, 1, ${TOTALED.map(() => "?").join(", ")}, ?)
+           ON CONFLICT (scope) DO UPDATE SET pulls = pulls + 1,
+             ${TOTALED.map((f) => `${f} = ${f} + excluded.${f}`).join(", ")}`,
+          scope, ...TOTALED.map((field) => entry[field]), at);
       }
     }
     return inserted;

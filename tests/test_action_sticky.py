@@ -8,7 +8,7 @@ from test_ledger import push
 from test_report import finding
 
 from dry_lint import sticky
-from dry_lint.ledger import PullLedger, RepositoryLedger
+from dry_lint.ledger import SPREAD, PullLedger, RepositoryLedger
 from dry_lint.report import CLEAN, NOTE_SLOT
 from dry_lint.sticky import MARKER, GitHub, compose, marker, upsert
 
@@ -150,7 +150,7 @@ def test_other_api_errors_are_raised() -> None:
 def test_the_comment_carries_one_marker_the_banner_when_it_renders_and_its_source() -> None:
     body = compose(REPORT, key="api", banner=True, run_url="https://github.com/acme/shop/actions/runs/9", head=HEAD)
     assert body.startswith("<!-- dry-lint:api -->\n<picture>") and body.count("<!-- dry-lint") == 1
-    assert "sticky-banner-dark.svg" in body and "sticky-banner-light.svg" in body
+    assert "sticky-banner-dark.svg" in body and "sticky-banner-light.svg\" width=\"100%\"" in body
     assert f"commit {HEAD[:7]}" in body and "[run](https://github.com/acme/shop/actions/runs/9)" in body
     assert "<picture>" not in compose(REPORT) and "<sub>" not in compose(REPORT)
 
@@ -329,7 +329,7 @@ def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, 
     assert "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes." in fake.stickies()[0]
     body = fake.stickies()[0]
     assert body.index("### 🧹 A little less lint") < body.index("<summary><strong>Scan details")
-    assert "| **1 pair** | **0 pairs** | **0 pairs** |" in body
+    assert "| **1 pair** | **0 pairs** | **0 pairs** |" in body.replace(SPREAD, "")
     assert "`bbbbbbb` · **+1 pair cleaned up**" in body
 
 

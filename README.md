@@ -228,11 +228,14 @@ A plugin slot takes a name, or a table with `use` and the plugin's options:
 ## The counter
 
 The sign at the top counts every duplicate dry-lint has kept out of a codebase: a duplicate a pull request
-introduced, dry-lint reported, and a later push removed before merging. When a pull request merges, the action's
-run on the default branch sends its counts (duplicates kept out, caught and dismissed, pushes, judgments,
-functions checked, judging spend and the dry-lint version) to a [Cloudflare Worker](counter). The repository is
-sent only as the SHA-256 of its name; no code, names, paths or people. Each pull request is counted once. Opt out
-with `share-totals: "false"`.
+introduced, dry-lint reported, and a later push removed before merging. A rewrite is a duplicate whose structure
+differs from the original, so a copy-paste checker would not see it; a re-check skipped is a verdict the store
+already held. When a pull request merges, the action's
+run on the default branch sends its counts to a [Cloudflare Worker](counter): duplicates kept out (how many had
+drifted, how many were rewrites rather than copies, and their lines), caught and dismissed, pushes, functions
+checked, look-alikes compared, verdicts reused, judgments, judging spend and the dry-lint version. The repository
+is sent only as the SHA-256 of its name; no code, names, paths or people. Each pull request is counted once. Opt
+out with `share-totals: "false"`.
 
 Put your own repository's sign in its README:
 
@@ -243,7 +246,7 @@ Put your own repository's sign in its README:
 </picture>
 ```
 
-or a badge, with `metric=kept-out`, `pulls`, `repositories` or `spent`:
+or a badge, with `metric=kept-out`, `drifted`, `lines`, `pulls`, `functions` or `repositories`:
 
 ```markdown
 ![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Frepository%3DOWNER%2FNAME)
