@@ -319,3 +319,18 @@ def test_a_renamed_copy_is_not_credited_as_removed_debt(repo: Repo, tmp_path: Pa
     repo.commit()
     assert run_cli(repo, tmp_path, *args) == 1  # the duplication moved, so it is new debt
     assert backlog(tmp_path) == []
+
+
+def test_debt_the_target_already_records_as_cleaned_is_not_credited_again(repo: Repo, tmp_path: Path,
+                                                                         twin_judge: str) -> None:
+    args = adopt(repo, tmp_path, twin_judge)
+    repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    repo.commit("record the cleanup")
+    repo.git("checkout", "-q", "-B", "main")  # the cleanup and its record are merged
+    repo.git("checkout", "-q", "-b", "later")
+    repo.write("src/widgets/later.py", "def later(value):\n    return value\n")
+    repo.commit()
+    assert run_cli(repo, tmp_path, *args) == 0
+    assert backlog(tmp_path) == []
