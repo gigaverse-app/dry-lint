@@ -7,11 +7,16 @@
  * cannot claim more than a pull request plausibly holds.
  */
 
+import { LINT } from "./lint.js";
+
 export const LIMITS = {
   kept_out: 1_000, caught: 1_000, dismissed: 1_000, merged_open: 1_000, pushes: 10_000, runs: 10_000,
   judgments: 1_000_000, functions: 1_000_000, usd: 100,
+  pairs: 1_000_000, reused: 1_000_000, drifted_kept_out: 1_000, rewrites_kept_out: 1_000, lines_kept_out: 1_000_000,
 };
 export const FIELDS = Object.keys(LIMITS);
+/** The fields the totals sum; a pull request's own row keeps the rest. */
+export const TOTALED = FIELDS.filter((field) => !["merged_open", "runs"].includes(field));
 export const PURPLE = "7E4FC9";
 
 export class Invalid extends Error {}
@@ -37,6 +42,9 @@ export function contribution(body) {
   }
   if (entry.kept_out + entry.dismissed + entry.merged_open > entry.caught) {
     throw new Invalid("kept_out, dismissed and merged_open cannot exceed caught");
+  }
+  if (entry.drifted_kept_out > entry.kept_out || entry.rewrites_kept_out > entry.kept_out) {
+    throw new Invalid("drifted_kept_out and rewrites_kept_out cannot exceed kept_out");
   }
   entry.version = typeof body.version === "string" ? body.version.slice(0, 32) : "";
   return entry;
@@ -74,48 +82,110 @@ export function dollars(usd) {
 
 const METRICS = {
   "kept-out": (t) => ["duplicates kept out", count(t.kept_out)],
-  pulls: (t) => ["pull requests checked", count(t.pulls)],
+  drifted: (t) => ["drifted copies cleaned up", count(t.drifted_kept_out)],
+  lines: (t) => ["duplicate lines never merged", count(t.lines_kept_out)],
+  pulls: (t) => ["pull requests audited", count(t.pulls)],
+  functions: (t) => ["functions checked", count(t.functions)],
   repositories: (t) => ["repositories", count(t.repositories)],
   spent: (t) => ["judging spent", dollars(t.usd)],
 };
 
+/** dry-lint's mark for a shields.io badge: two waves, one over the other. */
+const MINT = "#7FD49A";
+const LOGO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9.5c3-3 6-3 9 0s6 3 9 0M3 15.5c3-3 6-3 9 0s6 3 9 0" fill="none" stroke="${MINT}" stroke-width="2.6" stroke-linecap="round"/></svg>`;
+
 /** A shields.io endpoint badge: https://shields.io/badges/endpoint-badge */
 export function badge(totals, metric = "kept-out") {
   const [label, message] = (METRICS[metric] ?? METRICS["kept-out"])(totals);
-  return { schemaVersion: 1, label, message, color: PURPLE, labelColor: "24292F", cacheSeconds: 300 };
+  return { schemaVersion: 1, label, message, color: PURPLE, labelColor: "24292F", logoSvg: LOGO, cacheSeconds: 300 };
+}
+
+/** A whole-number share, or a dash when there is nothing to share. */
+export function percent(part, whole) {
+  return whole ? `${Math.round((100 * part) / whole)}%` : "–";
 }
 
 const THEMES = {
-  light: { background: "#FFFFFF", border: "#D1D9E0", text: "#1F2328", muted: "#59636E", accent: "#7E4FC9", tint: "#F3EFFA" },
-  dark: { background: "#0D1117", border: "#30363D", text: "#F0F6FC", muted: "#9198A1", accent: "#A47BE8", tint: "#1E1530" },
+  light: {
+    background: "#FFFFFF", wash: "#F3ECFD", border: "#D1D9E0", text: "#1F2328", muted: "#59636E", accent: "#7E4FC9",
+    rule: "#E4DAF5", tile: "#FFFFFF", strip: "#FAF7FF",
+  },
+  dark: {
+    background: "#0D1117", wash: "#1A1030", border: "#30363D", text: "#F0F6FC", muted: "#9198A1", accent: "#C9AEF5",
+    rule: "#2D2440", tile: "#161B22", strip: "#120D1F",
+  },
 };
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+const DRIFT = "#F0883E", LINES = "#3FB950";
+
+function text(x, y, size, weight, fill, content, extra = "") {
+  return `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${fill}"${extra}>${content}</text>`;
+}
+
+/** One benefit: a large number, what it counts, and a note. The number shrinks to fit a tile. */
+function tile(c, x, color, value, label, note) {
+  const size = Math.min(60, Math.floor(272 / (0.58 * value.length)));
+  return `<rect x="${x}" y="28" width="330" height="182" rx="16" fill="${c.tile}" stroke="${c.border}"/>
+  <rect x="${x}" y="46" width="6" height="146" rx="3" fill="${color}"/>
+  ${text(x + 28, 110, size, 800, c.text, value, ' letter-spacing="-1"')}
+  ${text(x + 28, 144, 17, 700, c.text, label)}
+  ${text(x + 28, 170, 14, 400, c.muted, note)}`;
+}
 
 /**
- * The sign: one number, as large as it gets, and what it counts. For a README, in a <picture> by theme.
- * `scope` is "" for every repository, or how a repository's own sign names it.
+ * The sign: what dry-lint kept out of codebases, in three tiles, over a strip of what it checked to get there. For
+ * a README, in a <picture> by theme; it scales to any width. `scope` is "" for every repository, or how a
+ * repository's own sign names it, in the strip.
  */
 export function sign(totals, theme = "light", scope = "") {
   const c = THEMES[theme] ?? THEMES.light;
-  const noun = totals.kept_out === 1 ? "duplicate function" : "duplicate functions";
-  const where = scope ? `kept out of ${escape(scope)}` : "kept out of codebases";
-  const across = [
-    `${count(totals.pulls)} pull request${totals.pulls === 1 ? "" : "s"}`,
-    scope ? "" : `${count(totals.repositories)} repositor${totals.repositories === 1 ? "y" : "ies"}`,
-    `${dollars(totals.usd)} of judging`,
-  ].filter(Boolean).join(" · ");
-  const label = `${count(totals.kept_out)} ${noun} ${where}, across ${across}`;
-  const [lead, number] = milestone(totals.kept_out);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120" role="img" aria-label="${label}">
+  const kept = totals.kept_out, drifted = totals.drifted_kept_out ?? 0, lines = totals.lines_kept_out ?? 0;
+  const rewrites = totals.rewrites_kept_out ?? 0, reused = totals.reused ?? 0, pairs = totals.pairs ?? 0;
+  const one = (n, singular, many) => (n === 1 ? singular : many);
+  const [lead, number] = milestone(kept);
+  const shown = scope.length > 22 ? `${scope.slice(0, 21)}…` : scope;
+  const strip = [
+    [count(totals.pulls), one(totals.pulls, "PULL REQUEST AUDITED", "PULL REQUESTS AUDITED")],
+    [count(totals.functions), one(totals.functions, "FUNCTION CHECKED", "FUNCTIONS CHECKED")],
+    [count(pairs), one(pairs, "LOOK-ALIKE COMPARED", "LOOK-ALIKES COMPARED")],
+    [percent(reused, reused + totals.judgments), "RE-CHECKS SKIPPED"],
+    scope ? [escape(shown), "REPOSITORY"]
+      : [count(totals.repositories), one(totals.repositories, "REPOSITORY TRUSTS IT", "REPOSITORIES TRUST IT")],
+  ];
+  const width = 1278 / strip.length;
+  const cells = strip.map(([value, label], i) => {
+    const x = 1 + width * i + width / 2;
+    const size = i === 4 && scope ? 20 : 26;
+    return `${text(x, 278, size, 800, c.text, value, ' text-anchor="middle"')}
+  ${text(x, 302, 12, 700, c.muted, label, ' text-anchor="middle" letter-spacing="1.2"')}${i ? `
+  <line x1="${1 + width * i}" y1="256" x2="${1 + width * i}" y2="312" stroke="${c.rule}" stroke-width="2"/>` : ""}`;
+  });
+  const label = escape([
+    `${count(kept)} ${one(kept, "duplicate function", "duplicate functions")} kept out of ${scope || "codebases"}`,
+    `${count(rewrites)} of them rewrites rather than copies`,
+    `${count(drifted)} drifted ${one(drifted, "copy", "copies")} cleaned up`,
+    `${count(lines)} duplicate ${one(lines, "line", "lines")} never merged`,
+    `across ${count(totals.pulls)} ${one(totals.pulls, "pull request", "pull requests")}`,
+  ].join(", "));
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="330" viewBox="0 0 1280 330" role="img" aria-label="${label}">
   <title>${label}</title>
-  <rect x="0.5" y="0.5" width="639" height="119" rx="12" fill="${c.background}" stroke="${c.border}"/>
-  <rect x="16" y="16" width="88" height="88" rx="10" fill="${c.tint}"/>
-  <text x="60" y="58" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="700" fill="${c.accent}">≈</text>
-  <text x="60" y="84" text-anchor="middle" font-family="${FONT}" font-size="11" font-weight="600" fill="${c.accent}" letter-spacing="0.5">DRY-LINT</text>
-  <text x="124" y="34" font-family="${FONT}" font-size="12" font-weight="600" fill="${c.muted}" letter-spacing="1.5">${lead}</text>
-  <text x="124" y="72" font-family="${FONT}" font-size="40" font-weight="800" fill="${c.text}">${number}</text>
-  <text x="124" y="92" font-family="${FONT}" font-size="14" font-weight="600" fill="${c.accent}">${noun} ${where}</text>
-  <text x="124" y="108" font-family="${FONT}" font-size="11" fill="${c.muted}">across ${across}</text>
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.background}"/><stop offset="1" stop-color="${c.wash}"/></linearGradient>
+    <clipPath id="card"><rect x="1" y="1" width="1278" height="328" rx="22"/></clipPath>
+  </defs>
+  <rect x="1" y="1" width="1278" height="328" rx="22" fill="${c.background}"/>
+  <rect x="1" y="1" width="1278" height="328" rx="22" fill="url(#wash)"/>
+  <circle cx="122" cy="120" r="92" fill="${c.accent}" opacity="0.14"/>
+  <image href="${LINT}" x="34" y="32" width="176" height="176"/>
+  ${tile(c, 236, c.accent, lead === "OVER" ? `${number}+` : number, one(kept, "duplicate kept out", "duplicates kept out"),
+    kept ? `${percent(rewrites, kept)} rewrites, not copies` : "rewrites, not just copies")}
+  ${tile(c, 580, DRIFT, count(drifted), one(drifted, "drifted copy cleaned up", "drifted copies cleaned up"),
+    "already behaving differently")}
+  ${tile(c, 924, LINES, count(lines), one(lines, "line never merged", "lines never merged"), "of duplicated logic")}
+  <rect x="1" y="236" width="1278" height="93" fill="${c.strip}" clip-path="url(#card)"/>
+  <line x1="1" y1="236" x2="1279" y2="236" stroke="${c.border}" stroke-width="2"/>
+  ${cells.join("\n  ")}
+  <rect x="1" y="1" width="1278" height="328" rx="22" fill="none" stroke="${c.border}" stroke-width="2"/>
 </svg>
 `;
 }

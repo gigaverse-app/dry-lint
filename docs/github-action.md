@@ -222,7 +222,8 @@ After folding, the run sends each newly merged pull request's counts to dry-lint
 [Cloudflare Worker](../counter) at `https://dry-lint-counter.gigaverse-oss.workers.dev`, so [the sign in the README](../README.md#the-counter) counts every
 repository that shares. A contribution holds the repository's counter key, the pull request number, the counts
 the ledger keeps (kept out, caught, dismissed, still open at merge, pushes, runs, judgments, functions checked,
-spend) and the dry-lint version: no code, names, paths or people.
+look-alikes compared, verdicts reused, spend; and of the duplicates kept out, how many had drifted, how many were
+rewrites rather than copies, and their lines) and the dry-lint version: no code, names, paths or people.
 
 - **Pseudonymous, not anonymous.** The counter key is the SHA-256 of the repository's numeric GitHub id
   (`GITHUB_REPOSITORY_ID`), never of its name. It ties the repository's pull requests together, but a name does not

@@ -65,7 +65,7 @@ def compose(markdown: str, key: str = "", banner: bool = False, run_url: str = "
         parts.append(
             "<picture>\n"
             f'  <source media="(prefers-color-scheme: dark)" srcset="{ASSETS}/sticky-banner-dark.svg">\n'
-            f'  <img alt="dry-lint" src="{ASSETS}/sticky-banner-light.svg" width="640">\n'
+            f'  <img alt="dry-lint" src="{ASSETS}/sticky-banner-light.svg" width="100%">\n'
             "</picture>\n"
         )
     report = "\n".join(lines).strip()

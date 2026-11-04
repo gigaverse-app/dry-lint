@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from dry_lint import __version__
 from dry_lint.models import Versioned
-from dry_lint.report import BLUE, GRAY, Report, badge, code, plural
+from dry_lint.report import BLUE, GRAY, Finding, Report, badge, code, plural
 
 SNAPSHOT = re.compile(r"<!-- dry-lint-ledger (?P<ledger>\{.*?\}) -->")
 RECENT_RUNS = 20
@@ -95,9 +95,19 @@ class Pair(BaseModel):
     state: Literal["open", "kept-out", "dismissed"] = "open"
     settled: int | None = Field(default=None, description="The push that kept it out or dismissed it.")
     scope: str | None = Field(default=None, description="The report scope that found it; None in older ledgers.")
+    lines: int = Field(default=0, description="Lines in the new function when last reported.")
+    drifted: bool = Field(default=False, description="Last judged drifted: the two already behaved differently.")
+    rewrite: bool = Field(default=False, description="Not a copy: the two functions' structure hashes differ.")
 
     def concept(self) -> str:
         return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
+
+
+def describe(finding: Finding) -> tuple[int, bool, bool]:
+    """A reported pair's size, whether it drifted, and whether it is a rewrite rather than a copy."""
+    new, existing = finding.candidate.new, finding.candidate.existing
+    drifted = finding.verdict is not None and finding.verdict.label == "drifted"
+    return new.lines, drifted, bool(new.hash and existing.hash) and new.hash != existing.hash
 
 
 class PullLedger(Versioned):
@@ -111,6 +121,9 @@ class PullLedger(Versioned):
 
     def count(self, state: str) -> int:
         return sum(pair.state == state for pair in self.pairs.values())
+
+    def kept_out(self) -> list[Pair]:
+        return [pair for pair in self.pairs.values() if pair.state == "kept-out"]
 
     def advance(self, reports: list[Report], run: str = "", scopes: list[str] = ()) -> "PullLedger":
         """
@@ -142,6 +155,7 @@ class PullLedger(Versioned):
             names = [side.qualname.split("::", 1)[1] for side in (finding.candidate.new, finding.candidate.existing)]
             pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
             pair.state, pair.settled, pair.scope = "open", None, scope
+            pair.lines, pair.drifted, pair.rewrite = describe(finding)
         for key, pair in ledger.pairs.items():
             if key in reported or key in unjudged:
                 continue
@@ -156,8 +170,11 @@ class PullLedger(Versioned):
         return {"repository": key, "pull": number,
                 "kept_out": self.count("kept-out"), "caught": len(self.pairs), "dismissed": self.count("dismissed"),
                 "merged_open": self.count("open"), "pushes": self.pushed, "runs": self.tally.runs,
-                "judgments": self.tally.judgments, "functions": self.tally.functions,
-                "usd": round(self.tally.usd, 6), "version": __version__}
+                "judgments": self.tally.judgments, "functions": self.tally.functions, "pairs": self.tally.pairs,
+                "reused": self.tally.reused, "usd": round(self.tally.usd, 6),
+                "drifted_kept_out": sum(pair.drifted for pair in self.kept_out()),
+                "rewrites_kept_out": sum(pair.rewrite for pair in self.kept_out()),
+                "lines_kept_out": sum(pair.lines for pair in self.kept_out()), "version": __version__}
 
     def snapshot(self) -> str:
         return f"<!-- dry-lint-ledger {self.model_dump_json()} -->"
@@ -189,6 +206,11 @@ def headline(ledger: PullLedger) -> str:
 
 
 ICONS = {"kept-out": "✅", "open": "🟡", "dismissed": "⚪"}
+# GitHub sizes a comment's tables to their content. A wide spacer floated into each cell, which GitHub then caps at
+# the comment's width, stretches a table across the comment on any screen while adding only one pixel of height.
+# It floats right: GitHub pads a floated image by 20px on the side away from its float, and padding past the left
+# edge never scrolls, where past the right edge it gives the table a scrollbar.
+SPREAD = '<img width="2000" height="1" align="right" alt="">'
 
 
 def pair_line(pair: Pair) -> str:
@@ -205,8 +227,8 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> 
               badge("judgments", f"{tally.judgments:,}", GRAY), badge("spent", tally.cost(), BLUE)]
     title = "### 🧹 A little less lint" if kept else "### 🧺 This PR's cleanup basket"
     lines = [title, "", "| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |", "| :--: | :--: | :--: |",
-             f"| **{plural(kept, 'pair')}** | **{plural(still, 'pair')}** | "
-             f"**{plural(ledger.count('dismissed'), 'pair')}** |", ""]
+             "| " + " | ".join(f"{SPREAD}**{plural(n, 'pair')}**" for n in (kept, still, ledger.count("dismissed"))) + " |",
+             ""]
     if cleaned[ledger.pushed] and ledger.pushes:
         lines += [f"Latest analyzed commit `{ledger.pushes[-1].head[:7]}` · "
                   f"**+{plural(cleaned[ledger.pushed], 'pair')} cleaned up** ✨", ""]
