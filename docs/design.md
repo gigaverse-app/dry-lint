@@ -49,6 +49,10 @@ Every run goes through the same six steps, whatever plugins it uses:
 3. **Propose.** The comparer indexes every function and returns each changed one's `neighbours` (3) nearest in
    other files handled by the same extractor, above its own floor. Functions in the same file are excluded before the list is cut, so a file
    full of similar methods cannot crowd out neighbours elsewhere.
+   Each pair also brings its **relatives**: the existing side's own neighbours, one hop away, as `lane =
+   "relative"` pairs naming their `parent`. Fixing a duplicate touches the existing function, so without them
+   its other copies surface one push at a time (in due#183, three copies of one recovery helper took three pushes).
+   A changed existing side brings none: its look-alikes are proposed directly.
 4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other through `self`,
    `cls` or `this` within the same class (call names come from the extractor's syntax tree; names are not resolved
    to symbols, so a bare or imported call is left to the judge), both match a
@@ -58,7 +62,9 @@ Every run goes through the same six steps, whatever plugins it uses:
    functions of every pair.
 5. **Look up.** Each remaining pair's record is read from the store and kept if it still holds (below).
 6. **Judge and report.** Pairs without a usable verdict go to the judge; scores in the escalation band go on to
-   a second judge; every new verdict is stored; the report is built and rendered.
+   a second judge; every new verdict is stored; the report is built and rendered. Relatives come last, and only
+   those whose parent was reported: one judge, closest first, within what the budget has left; the rest are left
+   out, not counted as skipped, so a strict run stays complete.
 
 `dry-lint check` runs all six. In CI they split into two jobs: `dry-lint detect` runs steps 1–4 and writes
 `candidates.json`; `dry-lint judge` runs steps 5–6 from that file and writes `report.json`.
@@ -95,13 +101,14 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 7`; schemas 1 through 6 remain readable with conservative cache defaults. Schema 7 adds
+New files carry `"schema": 8`; schemas 1 through 7 remain readable with conservative cache defaults. Schema 8 adds
 the report's optional `backlog`, the accepted baseline pairs a baselined check saw the change clean up, and the
 sticky ledger's matching `backlog`. The report's is `null` when no baseline was checked, which makes no claim and
-leaves the ledger's as it was; older ledgers read it as empty. Schema 6 adds
+leaves the ledger's as it was; older ledgers read it as empty. Schema 7 adds the `relative` lane (below). Schema 6 adds
 optional pair evidence to the sticky ledger: immutable source coordinates and the last reported judgment, never
 function bodies. Old ledgers keep their counts but have no historical comparison until a pair is reported again.
-The static viewer has its own schema 1 URL envelope. It consumes source references and existing verdicts only;
+The static viewer has its own schema 2 URL envelope (schema 1 remains readable). Schema 2 adds bounded same-file
+helper references alongside the surviving function. It consumes source references and existing verdicts only;
 it is not part of detection, judging or verdict reuse. See [comparison links](github-action.md#comparison-links).
 Schema 3 adds
 optional function `origin` using the existing `Run` contract. Workspace function identities include the repository,
@@ -212,6 +219,9 @@ run list the same findings in the same order: drifted first, then by score.
   findings separately from changed functions, and fold score evidence and pair-specific suppression guidance.
   The Action's effective blocking/override note precedes the findings; a clean result means no pair met the
   configured report threshold, not proof that the repository has no duplication.
+- A relative judged a duplicate at `report_at` is shown on its parent ("fixing this touches X, which also looks
+  like Y: consolidate them in the same change"), never as a finding of its own. It never blocks, an accepted
+  baseline does not hide it, and the pull request ledger does not count it.
 - Without a judge, the comment does not list unjudged pairs; it says no judge is configured. Annotations and the
   terminal still show them.
 - A judge's reason is untrusted text: an LLM judge read code from the pull request. It is flattened to one line,
@@ -259,6 +269,7 @@ On gigaverse-ai (about 10,000 functions) a whole `check` takes about 4.4 s.
 
 ## Production discovery and reviewed feedback
 
+Schema 7 adds the `relative` lane and a candidate's `parent`; files from schema 6 read unchanged.
 Schema 5 adds candidate lane, run session/tree identity, exact-source record evidence and campaign reporting.
 `balanced` adds a stateless exploration index to the baseline detector and a transactional SQLite admission ledger
 beside verdicts. Model verdicts remain in the existing cache; reviewed fix/dismiss decisions live separately in

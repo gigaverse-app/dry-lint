@@ -84,6 +84,10 @@ metadata show full qualified names instead of source links.
 The cleanup basket includes a collapsed comparison table with immutable **A** and **B** source links, a GitHub
 diff from the last reported commit to the current head, and the recorded judgment. Below-threshold candidates
 also retain their links and judgments. Up to five pairs are shown, with cleaned pairs first.
+The recorded classification (`duplicate`, `drifted`, or `separate`) and confidence are distinct from the reporting
+outcome. A duplicate/drifted candidate below the applicable reporting bar is **Not reported: low confidence**;
+`separate` is **Not reported: judged separate**, regardless of score. Neither counts as still tangled. The table
+uses the existing report decision, including any first-judge threshold, without rejudging or changing the counts.
 
 - **Private, internal, unknown visibility, or GitHub Enterprise Server:** GitHub links only. No external viewer
   link, source payload or additional source fetch is generated. A public repository with a private or unverifiable
@@ -97,9 +101,20 @@ also retain their links and judgments. Up to five pairs are shown, with cleaned 
 After a pair stops being reported, dry-lint parses both original paths at the current commit. If exactly one
 original symbol still exists and both reads completed, the viewer offers all three columns: original A, original
 B, and the remaining implementation. **This is evidence of a surviving symbol, not proof of consolidation.**
-Review the caller diff and any extracted helpers. A moved/renamed helper, two surviving originals, unsupported
+For a remaining Python function, direct bare-name calls to unique top-level definitions in the same file are
+resolved through the syntax tree and compiler symbol tables. Local shadowing, rebindings and ambiguous names
+are excluded. Up to five helpers, each at most 600 lines, are referenced at the same commit using the already-read
+file. The viewer starts with the first helper in the After column, offers a selector for its caller and other
+helpers, and shows the call site and helper definitions below. No additional judge or source API calls are needed
+to record these references. This is static call evidence; it does not prove both original callers migrated or
+account for runtime monkey-patching. Imports, attributes, nested scopes, other languages and recursive traversal
+are not followed. Missing helper evidence leaves the remaining function and full GitHub diff usable.
+
+Review the caller diff and any extracted helpers. A moved/renamed result, two surviving originals, unsupported
 language or failed read leaves the result unidentified; the viewer shows A and B with an explicit explanation.
 No model is asked to infer a destination. Dismissals never get a presumed consolidation result.
+New links use viewer schema 2 with bounded helper coordinates; schema 1 links remain readable and explicitly say
+that they did not record helper references. No source bodies are included in either link format.
 
 Comparison links are bounded to 12,000 characters, the comparison section limits viewer links to a 20,000-character
 budget, and the viewer accepts up to 600 lines per function. Oversized links keep their GitHub source links;

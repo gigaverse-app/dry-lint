@@ -263,3 +263,33 @@ def test_a_failing_second_judge_leaves_its_pairs_on_the_first_answer_until_it_an
 def test_without_a_ledger_a_failing_second_judge_is_an_error() -> None:
     with pytest.raises(ValueError, match="no verdict"):
         decide([pair("a")], ScoringJudge("first", {"a": 0.7}), Failing(ValueError("no verdict")), SETTINGS)
+
+
+def relative(name: str, parent: Candidate) -> Candidate:
+    return pair(name).model_copy(update={"lane": "relative", "parent": parent.key})
+
+
+def test_a_relative_is_judged_only_once_its_parent_is_reported_and_by_one_judge(store: VerdictStore) -> None:
+    first = ScoringJudge("first", {"kept": 0.9, "cleared": 0.1, "kin": 0.7, "stranger": 0.9})
+    second = ScoringJudge("second", {"kin": 0.95})
+    kept, cleared = pair("kept"), pair("cleared")
+    findings = Judging(SETTINGS, first, second, store).findings(
+        [kept, cleared, relative("kin", kept), relative("stranger", cleared)])
+    assert first.asked == ["kept", "cleared", "kin"] and second.asked == []  # advice needs no second opinion
+    assert [(f.candidate.new.name, f.verdict.score) for f in findings] == [("kept", 0.9), ("cleared", 0.1), ("kin", 0.7)]
+
+
+def test_a_relative_the_budget_cannot_cover_is_left_out_without_making_judging_incomplete(store: VerdictStore) -> None:
+    first = Billed("first", {"kept": 0.9, "kin": 0.9})
+    one = estimate(first, [pair("kept")], SETTINGS)
+    judging = Judging(SETTINGS.model_copy(update={"budget": Budget(usd=one * 1.5)}), first, None, store)
+    kept = pair("kept")
+    findings = judging.findings([kept, relative("kin", kept)])
+    assert first.asked == ["kept"] and [f.candidate.new.name for f in findings] == ["kept"]
+    assert judging.summary().skipped == 0  # require_complete holds: the pairs that block were all judged
+
+
+def test_without_a_judge_relatives_are_not_listed(store: VerdictStore) -> None:
+    kept = pair("kept")
+    findings = Judging(SETTINGS, None, None, store).findings([kept, relative("kin", kept)])
+    assert [f.candidate.new.name for f in findings] == ["kept"]

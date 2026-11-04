@@ -4,6 +4,55 @@ const byId = id => document.getElementById(id);
 const expanded = new Set();
 let sources, code, rows;
 
+function fillHead(head, source) {
+  const anchor = head.querySelector('a');
+  if (source) {
+    head.querySelector('.filename').textContent = source.path.split('/').at(-1);
+    head.querySelector('.symbol').textContent = source.owner ? `${source.owner}.${source.name}` : source.name;
+    head.querySelector('.path').textContent = `${source.repository} / ${source.path}`;
+    head.querySelector('small').textContent = `${source.revision.slice(0, 7)} · lines ${source.line}–${source.end_line}`;
+    anchor.setAttribute('aria-label', `Open ${source.path}, ${source.name} at ${source.revision.slice(0, 7)} on GitHub`);
+    anchor.href = sourceUrl(source); anchor.target = '_blank'; anchor.rel = 'noopener noreferrer';
+  } else {
+    head.querySelector('.role').textContent = 'Result unavailable';
+    head.querySelector('.filename').textContent = 'No remaining function identified';
+    head.querySelector('.path').textContent = 'Use the full GitHub diff to follow moves, deletions, or extracted helpers.';
+    anchor.hidden = true;
+  }
+}
+
+function setupHelpers(snapshots, bodies) {
+  const select = byId('after-select');
+  const choose = index => {
+    sources[2] = snapshots[index]; code[2] = bodies[index];
+    const head = document.querySelector('#comparison > .head.result');
+    fillHead(head, sources[2]);
+    head.querySelector('.role').textContent = index === 2 ? 'Remaining function' : 'Called helper';
+    byId('after-caption').textContent = index === 2 ? 'At the reviewed commit' : 'Called by the remaining function';
+    select.value = String(index);
+    expanded.clear(); rows = align(...code); render();
+  };
+  snapshots.slice(2).forEach((source, offset) => {
+    const index = offset + 2;
+    const label = `${offset ? 'Called helper' : 'Remaining function'}: ${source.owner ? source.owner + '.' : ''}${source.name}`;
+    select.add(new Option(label, String(index)));
+    const details = document.createElement('details'), summary = document.createElement('summary');
+    details.className = 'implementation'; details.open = offset === 0;
+    summary.textContent = `${source.path.split('/').at(-1)} · ${label}`;
+    const head = document.querySelector('#comparison > .head.result').cloneNode(true);
+    fillHead(head, source); head.querySelector('.role').textContent = offset ? 'Called helper' : 'Remaining function';
+    const pre = document.createElement('pre'), text = document.createElement('code');
+    text.textContent = bodies[index].join('\n'); pre.append(text);
+    const button = document.createElement('button'); button.type = 'button';
+    button.textContent = 'Compare this function with the originals';
+    button.addEventListener('click', () => {choose(index); byId('after-choice').scrollIntoView({block:'center'});});
+    details.append(summary, head, pre, button); byId('implementations').append(details);
+  });
+  select.addEventListener('change', () => choose(Number(select.value)));
+  byId('after-choice').hidden = false; byId('implementation').hidden = false;
+  choose(3);
+}
+
 function unchanged(row) {
   const active = sources.map((source, i) => source ? i : null).filter(i => i !== null);
   return active.every(i => row[i] !== null) && new Set(active.map(i => code[i][row[i]].trim())).size === 1;
@@ -51,24 +100,15 @@ async function load() {
   if (!location.hash) return;
   const data = decode(location.hash), evidence = data.evidence;
   sources = [evidence.a, evidence.b, data.result];
+  const helpers = data.schema === 2 ? data.helpers : [];
+  const snapshots = [...sources, ...helpers];
   byId('review').hidden = false;
-  document.querySelectorAll('.head').forEach((head, i) => {
-    const source = sources[i], anchor = head.querySelector('a');
-    if (source) {
-      head.querySelector('.filename').textContent = source.path.split('/').at(-1);
-      head.querySelector('.symbol').textContent = source.owner ? `${source.owner}.${source.name}` : source.name;
-      head.querySelector('.path').textContent = `${source.repository} / ${source.path}`;
-      head.querySelector('small').textContent = `${source.revision.slice(0, 7)} · lines ${source.line}–${source.end_line}`;
-      anchor.setAttribute('aria-label', `Open ${source.path}, ${source.name} at ${source.revision.slice(0, 7)} on GitHub`);
-      anchor.href = sourceUrl(source); anchor.target = '_blank'; anchor.rel = 'noopener noreferrer';
-    } else {
-      head.querySelector('.role').textContent = 'Result unavailable';
-      head.querySelector('.filename').textContent = 'No remaining function identified';
-      head.querySelector('.path').textContent = 'Use the full GitHub diff to follow moves, deletions, or extracted helpers.';
-      anchor.hidden = true;
-    }
-  });
+  document.querySelectorAll('#comparison > .head').forEach((head, i) => fillHead(head, sources[i]));
   const verdict = evidence.verdict;
+  const outcomes = {'kept-out':'No longer reported',open:'Still tangled',dismissed:'Dismissed',
+    'below threshold': verdict?.label === 'separate' ? 'Not reported: judged separate' : 'Not reported: low confidence',
+    separate:'Not reported: judged separate',unjudged:'Not judged',deferred:'Judgment deferred'};
+  byId('outcome').textContent = outcomes[data.state] ?? 'Not recorded';
   byId('verdict').textContent = verdict ? verdict.label : 'Not judged';
   byId('confidence').textContent = verdict ? Number(verdict.score).toFixed(2) : 'Not recorded';
   byId('reason').textContent = verdict?.why || 'No reason recorded.';
@@ -78,6 +118,12 @@ async function load() {
   byId('mapping').textContent = data.result
     ? 'One of the original functions remains at the reviewed commit. It is shown on the right. This alone does not prove that both originals were consolidated; review the full GitHub diff to follow the shared implementation.'
     : 'No single remaining function could be identified. The pair may have been moved, deleted, or judged differently. Review the full GitHub diff to see what happened.';
+  if (helpers.length) {
+    byId('mapping').textContent = 'The After column starts with a helper called by the remaining function. Switch between the helper and its caller using the selector above. The call site is also shown below; this is a static reference, not a new consolidation judgment.';
+  } else if (data.result) {
+    byId('mapping').textContent += data.schema === 1 ? ' This older link has no recorded helper references.'
+      : ' No direct same-file Python helper was resolved. Imported, dynamic and other-language calls are not followed.';
+  }
   if (!data.result) {
     byId('title').textContent = 'Compare the original functions';
     byId('after-caption').textContent = 'No identified result';
@@ -86,14 +132,14 @@ async function load() {
     byId('diff').href = data.diff; byId('diff').hidden = false;
   }
   byId('status').textContent = 'Checking public source access…';
-  for (const repository of new Set(sources.filter(Boolean).map(source => source.repository))) {
+  for (const repository of new Set(snapshots.filter(Boolean).map(source => source.repository))) {
     const response = await fetch(`https://api.github.com/repos/${repository}`, {credentials: 'omit'});
     if (!response.ok) throw new Error('Public repository access could not be verified. Use the GitHub links above.');
     const metadata = await response.json();
     if (metadata.visibility !== 'public' || metadata.private !== false) throw new Error('This viewer only loads public repositories. Use the GitHub links above.');
   }
   const files = new Map();
-  code = await Promise.all(sources.map(async source => {
+  const bodies = await Promise.all(snapshots.map(async source => {
     if (!source) return null;
     const url = sourceUrl(source, true);
     if (!files.has(url)) files.set(url, fetch(url, {credentials: 'omit'}).then(async response => {
@@ -108,8 +154,11 @@ async function load() {
     if (source.end_line > lines.length) throw new Error('Source coordinates do not match the snapshot. Use the GitHub links above.');
     return lines.slice(source.line - 1, source.end_line);
   }));
-  rows = align(...code); render();
-  byId('status').textContent = data.result
+  code = bodies.slice(0, 3);
+  if (helpers.length) setupHelpers(snapshots, bodies);
+  else {rows = align(...code); render();}
+  byId('status').textContent = helpers.length
+    ? 'Compare the originals with the called helper, then inspect the remaining function and its call below.' : data.result
     ? 'Read left to right: the two original functions, then the function that remains after the change.'
     : 'The two original functions are shown below. A resulting implementation could not be identified.';
 }

@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 7
+SCHEMA = 8
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -111,7 +111,8 @@ class Candidate(BaseModel):
     filtered: str | None = Field(default=None, description="Why a rule dropped the pair; None when it goes to the judge.")
     similarity_reusable: bool = Field(default=False, description="Whether this metric permits reuse after logic changes.")
     consolidation: list[Consolidation] = Field(default_factory=list)
-    lane: Literal["baseline", "exploration"] = "baseline"
+    lane: Literal["baseline", "exploration", "relative"] = "baseline"
+    parent: str = Field(default="", description="For a relative: the key of the pair whose fix would touch `new`.")
 
     @property
     def context_hash(self) -> str:
