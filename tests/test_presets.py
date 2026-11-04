@@ -39,11 +39,22 @@ def test_a_preset_fills_judges_and_thresholds_that_were_not_set() -> None:
     assert (settings.escalate.between, settings.drop_below, settings.report_at, settings.fail_at) == ((0.5, 0.91), 0.5, 0.55, 0.55)
 
 
-def test_every_jev_first_preset_holds_unescalated_answers_to_jevs_own_bar() -> None:
-    jev = PRESETS["jev"]
+def test_every_jev_first_preset_holds_unescalated_answers_to_jevs_own_bar_for_the_same_reader() -> None:
     for preset in PRESETS.values():
         if preset.judge.use == "jev" and preset.escalate is not None:
-            assert preset.escalate.first_at == jev.fail_at == jev.report_at
+            alone = PRESETS["agent" if preset.name.startswith("agent") else "jev"]
+            assert preset.escalate.first_at == alone.fail_at == alone.report_at
+
+
+def test_agent_presets_trade_precision_for_recall_and_are_only_chosen_by_name() -> None:
+    # A coding agent checks every finding itself, so its presets report below the bar a person's merge is held to.
+    for name in ("agent", "agent+haiku"):
+        agent = PRESETS[name]
+        assert agent.judge.use == "jev" and not agent.automatic
+        assert agent.report_at == agent.fail_at < PRESETS["jev"].report_at
+    haiku = resolve(Settings(preset="agent+haiku"), {})
+    assert (haiku.escalate.use, haiku.escalate.options(), haiku.escalate.between) == (
+        "anthropic", {"model": "claude-haiku-5-5"}, (0.5, 0.91))
 
 
 def test_explicit_settings_win_over_the_preset() -> None:

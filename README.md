@@ -112,16 +112,26 @@ lists every option.
 
 ### pre-commit
 
-Hook id `dry-lint` checks the staged functions; see [examples/pre-commit-config.yaml](examples/pre-commit-config.yaml).
+```yaml
+repos:
+  - repo: https://github.com/gigaverse-app/dry-lint
+    rev: main
+    hooks:
+      - id: dry-lint
+```
 
-For coding-agent feedback with a cheap judge, use the opt-in
-[`agent-haiku` hook setup](docs/agent-reviewed-discovery.md). Findings reject the commit for review and repair;
-this experimental preset does not change auto-selection or enable the historical exploration scheduler.
+The hook checks the staged Python, JavaScript and TypeScript for the coding agent making the commit. An agent checks
+each finding itself, then reuses the existing function or records why the two differ, so the hook judges for
+recall: preset `agent`, Jev on every pair, blocking from 0.6. That keeps 92% to 100% recall on four gold sets, with
+about one finding in two real, for about $0.0002 a commit. Set `TYPESAFE_AI_API_KEY` in the environment or in an
+untracked `.env`; nothing else is needed. `args: [--preset, agent+haiku]` adds Claude Haiku on Jev's uncertain
+scores, for higher precision and some lost recall on TypeScript; `args: [--preset, auto]` gives a person committing
+by hand the same precision-first judging as CI
+([who reads the findings](docs/judges.md#who-reads-the-findings-people-or-coding-agents)).
 
-For coding-agent hooks, [`balanced`](docs/production-discovery.md) combines cheap shared-operation judging,
-protected baseline retrieval, same-file exploration and a persistent $0.04 campaign allowance. Use
-`dry-lint feedback fix` or `dry-lint feedback dismiss` after reviewing a finding; exact-source dismissals prevent
-repeat interruptions while changed code reopens the pair.
+A blocked commit names the pair. Fix it by reusing the existing function, or record an intentional difference with
+`# dry-lint: distinct-from path::name` or `dry-lint feedback dismiss PAIR --reason ...`. For wider exploration with a
+persistent campaign budget, see [`balanced`](docs/production-discovery.md).
 
 ## Commands
 

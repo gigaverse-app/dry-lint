@@ -12,6 +12,8 @@ Legacy presets' numbers come from the 250-pair gigaverse-ai gold set (docs/bench
 request's real candidates under the default budget ($0.04 a pull request, every push included); presets marked
 `measured = False` are not independently calibrated. Balanced has separate historical production measurements
 (docs/production-discovery-results.md), including the limitations of its small known-positive panel.
+The agent presets' numbers come from four gigaverse gold sets, Python and TypeScript, at their report threshold
+(docs/judges.md#who-reads-the-findings-people-or-coding-agents).
 """
 
 import os
@@ -23,6 +25,7 @@ from dry_lint.settings import Discovery, Escalation, PluginChoice, Settings
 
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
+HAIKU = "claude-haiku-5-5"
 
 
 class Preset(BaseModel):
@@ -84,6 +87,18 @@ PRESETS = {preset.name: preset for preset in [
     Preset(name="jev", summary="Jev on every pair",
            judge=PluginChoice(use="jev"), drop_below=0.6, report_at=0.8, fail_at=0.8, needs=("TYPESAFE_AI_API_KEY",),
            numbers="fails at 0.8: 94% precision, 73% recall; about $0.0002 a pull request"),
+    # For a coding agent, which checks every finding itself: recall first, so a low threshold and a cheap judge.
+    Preset(name="agent", summary="For coding agents: Jev on every pair, reported from 0.6",
+           judge=PluginChoice(use="jev"), drop_below=0.5, report_at=0.6, fail_at=0.6, needs=("TYPESAFE_AI_API_KEY",),
+           automatic=False,
+           numbers="92% to 100% recall at 43% to 69% precision on the gigaverse-ai, -backend, -web-app and -mobile gold "
+                   "sets; about $0.0002 a pull request"),
+    Preset(name="agent+haiku", summary="For coding agents: Jev on every pair, Claude Haiku 5.5 on Jev scores in [0.5, 0.91)",
+           judge=PluginChoice(use="jev"),
+           escalate=Escalation(use="anthropic", model=HAIKU, between=(0.5, 0.91), first_at=0.6),
+           drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY"), automatic=False,
+           numbers="Python: 94% recall at 61% to 85% precision; TypeScript: 70% to 80% recall at 58% to 81%; Haiku "
+                   "costs about a fifteenth of Sonnet a pair"),
     Preset(name="agent-haiku", summary="Experimental local feedback: Haiku shared-operation judge, coding agent reviews findings",
            judge=PluginChoice(use="anthropic", model="claude-haiku-5-5", prompt_policy="shared-operations", max_tokens=2048),
            drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=False,
@@ -101,7 +116,7 @@ PRESETS = {preset.name: preset for preset in [
 
 # "auto" takes the first preset whose credentials are all in the environment; the others must be named.
 AUTO_ORDER = ("jev+opus", "jev+claude-code", "jev", "sonnet", "claude-code", "none")
-LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:], "agent-haiku", "balanced")
+LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:], "agent", "agent+haiku", "agent-haiku", "balanced")
 PRESET_FIELDS = ("judge", "escalate", "drop_below", "report_at", "fail_at", "discovery")
 
 
