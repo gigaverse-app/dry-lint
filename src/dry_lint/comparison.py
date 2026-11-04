@@ -9,6 +9,7 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 
+from dry_lint.comparison_helpers import python_helpers
 from dry_lint.evidence import PairEvidence, SourceReference
 from dry_lint.extractors import PythonExtractor
 from dry_lint.ledger import PullLedger
@@ -24,14 +25,15 @@ MAX_PAIRS = 5
 MAX_LINK = 12_000
 
 
-def viewer_link(url: str, evidence: PairEvidence, result: SourceReference | None, state: str, diff: str) -> str:
+def viewer_link(url: str, evidence: PairEvidence, result: SourceReference | None, state: str, diff: str,
+                helpers: list[SourceReference] = ()) -> str:
     parsed = urlsplit(url)
     if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:
         return ""
-    payload = {"schema": 1, "evidence": evidence.model_dump(), "result": result.model_dump() if result else None,
-               "state": state, "diff": diff}
+    payload = {"schema": 2, "evidence": evidence.model_dump(), "result": result.model_dump() if result else None,
+               "helpers": [helper.model_dump() for helper in helpers], "state": state, "diff": diff}
     encoded = base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode().rstrip("=")
-    link = f"{url}#v1={encoded}"
+    link = f"{url}#v2={encoded}"
     return link if len(link) <= MAX_LINK else ""
 
 
@@ -40,6 +42,7 @@ class Comparisons:
         self.github, self.repository, self.head, self.viewer = github, repository, head, viewer
         self.public: dict[str, bool] = {}
         self.files: dict[tuple[str, str, str], list[Function] | None] = {}
+        self.source_text: dict[tuple[str, str, str], str] = {}
 
     def is_public(self, repository: str) -> bool:
         if repository not in self.public:
@@ -72,6 +75,7 @@ class Comparisons:
                     response.raise_for_status()
                     extractor.validate_source(source.path, response.text)
                     self.files[key] = extractor.functions(source.path, response.text)
+                    self.source_text[key] = response.text
             except (httpx.HTTPError, ValueError, SyntaxError):
                 self.files[key] = None
         functions = self.files[key]
@@ -81,6 +85,14 @@ class Comparisons:
         if len(found) > 1:
             return False, None
         return True, SourceReference.of(found[0], Run(repository=self.repository, head=self.head)) if found else None
+
+    def helpers(self, result: SourceReference) -> list[SourceReference]:
+        key = (result.repository, result.revision, result.path)
+        if not result.path.endswith(".py") or key not in self.source_text:
+            return []
+        caller = next(function for function in self.files[key] if function.line == result.line)
+        return [SourceReference.of(function, Run(repository=result.repository, head=result.revision))
+                for function in python_helpers(self.source_text[key], caller)]
 
     def links(self, evidence: PairEvidence, state: str) -> str:
         a, b = evidence.a, evidence.b
@@ -101,7 +113,7 @@ class Comparisons:
             survivors = [reference for known, reference in resolved if known and reference]
             if all(known for known, _ in resolved) and len(survivors) == 1:
                 result = survivors[0]
-        if url := viewer_link(self.viewer, evidence, result, state, diff):
+        if url := viewer_link(self.viewer, evidence, result, state, diff, self.helpers(result) if result else []):
             links.append(f"[{'Three-way view' if result else 'Compare sources'}]({url})")
         return " · ".join(links)
 
@@ -111,18 +123,25 @@ class Comparisons:
             for finding in report.findings:
                 if finding.candidate.key not in entries and (evidence := PairEvidence.of(finding, report.run)):
                     state = ("deferred" if finding.deferred else "open" if finding.reported
-                             else "below threshold" if finding.verdict else "unjudged")
+                             else "unjudged" if finding.verdict is None
+                             else "separate" if finding.verdict.label == "separate" else "below threshold")
                     entries[finding.candidate.key] = (evidence, state)
         if not entries:
             return ""
         ordered = sorted(entries.items(), key=lambda entry: entry[1][1] != "kept-out")
         lines = ["<details><summary><strong>Compare the code and recorded judgments</strong></summary>", "",
-                 "| Pair | Outcome | Sources | Recorded judgment |", "| :-- | :-- | :-- | :-- |"]
-        states = {"kept-out": "No longer reported", "open": "Still tangled", "dismissed": "Dismissed"}
+                 "The recorded label is the judge's classification; confidence determines whether a duplicate or "
+                 "drifted pair meets the reporting bar. Low-confidence candidates and pairs judged separate are "
+                 "not counted as tangled.", "",
+                 "| Pair | Report outcome | Sources | Recorded classification and confidence |",
+                 "| :-- | :-- | :-- | :-- |"]
+        states = {"kept-out": "No longer reported", "open": "Still tangled", "dismissed": "Dismissed",
+                  "below threshold": "Not reported: low confidence", "separate": "Not reported: judged separate"}
         for key, (evidence, state) in ordered[:MAX_PAIRS]:
             verdict = evidence.verdict
-            judgment = (f"{verdict.label} {verdict.score:.2f}; {verdict.judge}; "
-                        f"{'reused' if evidence.cached else 'recorded'}: {verdict.why}" if verdict else "Not judged")
+            judgment = (f"{verdict.label}; confidence {verdict.score:.2f}; {verdict.judge}; "
+                        f"{'reused' if evidence.cached else 'recorded'}"
+                        + (f": {verdict.why}" if verdict.why else "") if verdict else "Not judged")
             concept = f"{evidence.a.name} ≈ {evidence.b.name}"
             links = self.links(evidence, state)
             if sum(map(len, lines)) + len(links) > 20_000:

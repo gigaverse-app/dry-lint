@@ -98,7 +98,8 @@ verdict reuse stay in the consumer's existing pipeline.
 New files carry `"schema": 6`; schemas 1 through 5 remain readable with conservative cache defaults. Schema 6 adds
 optional pair evidence to the sticky ledger: immutable source coordinates and the last reported judgment, never
 function bodies. Old ledgers keep their counts but have no historical comparison until a pair is reported again.
-The static viewer has its own schema 1 URL envelope. It consumes source references and existing verdicts only;
+The static viewer has its own schema 2 URL envelope (schema 1 remains readable). Schema 2 adds bounded same-file
+helper references alongside the surviving function. It consumes source references and existing verdicts only;
 it is not part of detection, judging or verdict reuse. See [comparison links](github-action.md#comparison-links).
 Schema 3 adds
 optional function `origin` using the existing `Run` contract. Workspace function identities include the repository,
