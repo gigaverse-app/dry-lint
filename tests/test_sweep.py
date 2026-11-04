@@ -55,6 +55,7 @@ def test_baseline_allows_only_unchanged_debt(repo: Repo, tmp_path: Path, twin_ju
         "--require-complete",
     )
     assert run_cli(repo, tmp_path, *args) == 0
+    assert run_cli(repo, tmp_path, *args, "--warn-only") == 2
     path = repo.root / "src/widgets/caption.py"
     path.write_text(path.read_text().replace("max_len - 1", "max_len - 2"))
     repo.commit()

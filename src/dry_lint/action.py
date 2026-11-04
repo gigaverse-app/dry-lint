@@ -177,10 +177,13 @@ def labels_of(pull: dict) -> set[str]:
     return {label.get("name", "") for label in pull.get("labels") or []}
 
 
-def status_note(blocking: int, overridden: bool) -> str:
+def status_note(blocking: int, overridden: bool, baselined: bool = False) -> str:
     """Lead the comment with the effective check status, including advisory mode and overrides."""
     if not blocking:
         return ""
+    if baselined:
+        return (f"> [!CAUTION]\n> **Blocking:** {blocking} new or changed duplicate(s) exceed the baseline. "
+                "Refactor them or document a deliberate distinct concept in code; an override label cannot widen the ratchet.")
     if overridden:
         return (f"> [!NOTE]\n> **Overridden:** the `{override_label()}` label is set, so the {blocking} blocking "
                 "finding(s) do not fail this pull request.")
@@ -509,13 +512,14 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         write_outputs(mode=mode, exit_code=0, findings=0, blocking=0, overridden="false")
         return 0
     blocking = blocking if code == 1 else 0
-    overridden = bool(blocking) and override_label() in labels
+    baselined = bool(env("INPUT_BASELINE"))
+    overridden = bool(blocking) and not baselined and override_label() in labels
     blocked = bool(blocking) and not overridden and not flag("INPUT_WARN_ONLY")
     if overridden:
         print(f"::notice title=dry-lint::{blocking} blocking finding(s) overridden by the `{override_label()}` label.")
     if mode == "judge":
         check_run(root, repository, report, transport, blocked)
-    comment(repository, number, body, findings, head, transport, status_note(blocking, overridden))
+    comment(repository, number, body, findings, head, transport, status_note(blocking, overridden, baselined))
     if branch := default_branch(event_name, event):
         fold(repository, branch, event.get("after", ""), report, transport)
     write_outputs(mode=mode, exit_code=code, findings=findings, blocking=blocking, overridden=str(overridden).lower())

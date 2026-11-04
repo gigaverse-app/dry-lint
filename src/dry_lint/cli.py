@@ -95,6 +95,8 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
     if args.require_complete or args.baseline:
         require_complete(report)
     if args.baseline:
+        if args.warn_only:
+            raise ValueError("Baseline enforcement cannot be combined with --warn-only")
         root = repository_root(args.root)
         baseline = Baseline.read(root / args.baseline, settings)
         if args.baseline_ref:

@@ -69,6 +69,9 @@ Budget changes and human pattern decisions do not change that detection contract
 fail with exit 2. New blocking duplicates exit 1. Accepted unchanged debt exits 0. The normal unbaselined,
 non-strict candidate-only mode retains its existing behavior.
 
+Baseline enforcement rejects `--warn-only` and ignores the override label. Deliberate distinct concepts must
+be documented using the existing inline/pattern decisions, rather than widening an allowance.
+
 For a local equivalent, use:
 
 ```bash

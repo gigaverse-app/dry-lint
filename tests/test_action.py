@@ -96,6 +96,17 @@ def test_baselined_action_checks_target_branch_allowances(repo: Repo, tmp_path: 
                judge_command=twin_judge, baseline=".dry-lint/baseline.json", require_complete="true")
     head = repo.git("rev-parse", "HEAD").strip()
     assert action.main(["run"], transport=httpx.MockTransport(FakeGitHub(head=head))) == 0
+    path = repo.root / "src/widgets/caption.py"
+    path.write_text(path.read_text().replace("max_len - 1", "max_len - 2"))
+    repo.commit()
+    event = pr_event(repo)
+    event["pull_request"]["labels"] = [{"name": "dry-lint: override"}]
+    github_env("pull_request", event, working_directory=str(repo.root), judge="command",
+               judge_command=twin_judge, baseline=".dry-lint/baseline.json", require_complete="true")
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
+    assert outputs(tmp_path)["overridden"] == "false"
+    assert "cannot widen the ratchet" in github.stickies()[0]
 
 
 def test_incomplete_fork_judging_publishes_a_failing_check(repo: Repo, tmp_path: Path, twin_judge: str,
