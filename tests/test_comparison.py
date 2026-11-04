@@ -11,7 +11,7 @@ from test_report import finding
 from dry_lint.comparison import VIEWER, Comparisons
 from dry_lint.evidence import PairEvidence, SourceReference
 from dry_lint.ledger import EVIDENCE_BYTES, PullLedger
-from dry_lint.models import Run
+from dry_lint.models import SCHEMA, Run
 from dry_lint.sticky import upsert
 
 AFTER = "b" * 40
@@ -207,7 +207,7 @@ def test_large_pair_sets_have_bounded_links_and_keep_the_scan_report():
 def test_updating_an_old_ledger_emits_the_new_schema():
     old = PullLedger(schema=5)
     updated = old.advance([report(HEAD, finding("duplicate"))])
-    assert updated.schema_version == 6 and PullLedger.read(updated.snapshot()).schema_version == 6
+    assert updated.schema_version == SCHEMA and PullLedger.read(updated.snapshot()).schema_version == SCHEMA
 
 
 def test_large_evidence_does_not_grow_the_sticky_ledger_or_lose_cleanup_counts():

@@ -9,6 +9,10 @@ The ledger: what dry-lint has cost and caught, across a pull request's pushes an
   is one whose scope (the local check, or the check against peer repositories) did not report on that push: a
   check that did not run cannot say the duplicate is gone. A pair from an older ledger, which never recorded its
   scope, stays open until a push reports it again (and so names its scope) or a person settles it.
+- **An accepted baseline pair this pull request cleaned up** (`report.backlog`: a side removed, or judged `separate`
+  now) is backlog, kept apart from the duplicates it kept out: that debt was already in the codebase. Each baseline
+  check restates the whole list, so a pair that comes back drops out. The baseline and its badge move only with the
+  repository's sweep.
 - **A duplicate the pre-commit hook blocked** and saw fixed, or dismissed, before any push arrives in the commits'
   trailers (`dry-lint.commits`). It joins the pull request's pairs as settled before commit, unless a push has
   reported the pair itself: what CI saw wins.
@@ -29,7 +33,7 @@ from pydantic import BaseModel, Field, ValidationError
 from dry_lint import __version__
 from dry_lint.commits import Outcome
 from dry_lint.evidence import PairEvidence
-from dry_lint.models import SCHEMA, Versioned
+from dry_lint.models import SCHEMA, Versioned, pair_key
 from dry_lint.report import BLUE, GRAY, Finding, Report, badge, code, plural
 
 SNAPSHOT = re.compile(r"<!-- dry-lint-ledger (?P<ledger>\{.*?\}) -->")
@@ -115,6 +119,20 @@ class Pair(BaseModel):
         return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
 
 
+class Backlog(BaseModel):
+    """An accepted baseline pair the pull request cleaned up, and how: remediation, never counted as kept out."""
+
+    new: str
+    existing: str
+    how: Literal["removed", "separate"] = Field(description="A side removed, or judged separate as it is now.")
+    settled: int = Field(description="The push that first cleaned it up.")
+
+
+def local(qualname: str) -> str:
+    """A function's name without its path: `Class.name`."""
+    return qualname.split("::", 1)[1]
+
+
 def describe(finding: Finding) -> tuple[int, bool, bool]:
     """A reported pair's size, whether it drifted, and whether it is a rewrite rather than a copy."""
     new, existing = finding.candidate.new, finding.candidate.existing
@@ -129,14 +147,17 @@ class PullLedger(Versioned):
     tally: Tally = Field(default_factory=Tally)
     pushes: list[Push] = Field(default_factory=list, description=f"The last {PUSHES_SHOWN} pushes.")
     pairs: dict[str, Pair] = Field(default_factory=dict)
+    backlog: dict[str, Backlog] = Field(default_factory=dict, description="What the latest baseline check credits.")
     runs: list[str] = Field(default_factory=list, description=f"The last {RECENT_RUNS} runs counted.")
 
     def count(self, state: str) -> int:
-        return sum(pair.state == state for pair in self.pairs.values())
+        """The pairs in `state`, apart from the backlog: a cleaned-up accepted pair was never kept out."""
+        return sum(pair.state == state and key not in self.backlog for key, pair in self.pairs.items())
 
     def kept_out(self) -> list[Pair]:
         """The duplicates kept out whose details were recorded: a pair an older version reported has none."""
-        return [pair for pair in self.pairs.values() if pair.state == "kept-out" and pair.lines]
+        return [pair for key, pair in self.pairs.items()
+                if pair.state == "kept-out" and pair.lines and key not in self.backlog]
 
     def advance(self, reports: list[Report], run: str = "", scopes: list[str] = (),
                 before_commit: list[Outcome] = ()) -> "PullLedger":
@@ -169,7 +190,7 @@ class PullLedger(Versioned):
         unjudged = {f.candidate.key for f in findings if f.deferred or f.verdict is None}
         settled_by_rule = {c.key for report in reports for c in report.filtered}
         for key, (finding, scope) in reported.items():
-            names = [side.qualname.split("::", 1)[1] for side in (finding.candidate.new, finding.candidate.existing)]
+            names = [local(side.qualname) for side in (finding.candidate.new, finding.candidate.existing)]
             pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
             pair.state, pair.settled, pair.scope, pair.before_commit = "open", None, scope, False  # what CI saw wins
             pair.lines, pair.drifted, pair.rewrite = describe(finding)
@@ -186,6 +207,12 @@ class PullLedger(Versioned):
                 pair.state, pair.settled = "dismissed", ledger.pushed
             elif pair.state == "open" and pair.scope in completed:  # absent only from a check that ran
                 pair.state, pair.settled = "kept-out", ledger.pushed
+        if any(report.backlog is not None for report in reports):  # each baseline check restates the whole backlog
+            cleaned = {pair_key(item.new, item.existing): item for report in reports for item in report.backlog or ()}
+            ledger.backlog = {
+                key: ledger.backlog[key].model_copy(update={"how": item.how}) if key in ledger.backlog
+                else Backlog(new=local(item.new), existing=local(item.existing), how=item.how, settled=ledger.pushed)
+                for key, item in cleaned.items()}
         remaining = EVIDENCE_BYTES
         for pair in reversed(ledger.pairs.values()):
             if pair.evidence:
@@ -225,17 +252,18 @@ def headline(ledger: PullLedger) -> str:
     """The sentence a reader remembers: what this pull request's checks cost, and what they caught."""
     tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
     across = f"across {ledger.pushed:,} pushes" if ledger.pushed > 1 else "on its first push"
+    backlog = f"**{plural(len(ledger.backlog), 'accepted backlog pair')} cleaned up.** " if ledger.backlog else ""
     if kept:
         tail = f" {plural(still, 'duplicate')} still open." if still else ""
         hooked = sum(pair.before_commit for pair in ledger.kept_out())
         early = f" ({hooked:,} by the pre-commit hook, before commit)" if hooked else ""
-        return f"**{plural(kept, 'duplicate')} kept out of the codebase**{early} {tally.spent()}, {across}.{tail}"
+        return f"{backlog}**{plural(kept, 'duplicate')} kept out of the codebase**{early} {tally.spent()}, {across}.{tail}"
     if still:
-        return (f"**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
+        return (f"{backlog}**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
                 "Each one fixed here is kept out of the codebase.")
     if not tally.functions:
-        return f"**No changed functions to check yet**, {across}."
-    return f"**{plural(tally.functions, 'function')} checked, nothing duplicated**, {tally.spent()}, {across}."
+        return f"{backlog}**No changed functions to check yet**, {across}."
+    return f"{backlog}**{plural(tally.functions, 'function')} checked, nothing duplicated**, {tally.spent()}, {across}."
 
 
 ICONS = {"kept-out": "✅", "open": "🟡", "dismissed": "⚪"}
@@ -255,16 +283,28 @@ def pair_line(pair: Pair) -> str:
     return f"{ICONS[pair.state]} {pair.concept()} · found in push {pair.found}, {where}"
 
 
+def backlog_line(key: str, item: Backlog, ledger: PullLedger) -> str:
+    how = "one side removed" if item.how == "removed" else "the judge now finds them separate"
+    found = f"found in push {ledger.pairs[key].found}, " if key in ledger.pairs else ""
+    concept = Pair(new=item.new, existing=item.existing, found=item.settled).concept()
+    return f"{ICONS['kept-out']} {concept} · accepted backlog, {found}cleaned up in push {item.settled}: {how}"
+
+
 def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, comparisons: str = "") -> str:
     """Cleanup progress first, with the current outcomes and the commits that cleared them."""
-    tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
-    cleaned = Counter(pair.settled for pair in ledger.pairs.values() if pair.state == "kept-out")
+    tally, kept, still, backlog = ledger.tally, ledger.count("kept-out"), ledger.count("open"), len(ledger.backlog)
+    cleaned = Counter([*(pair.settled for key, pair in ledger.pairs.items()
+                         if pair.state == "kept-out" and key not in ledger.backlog),
+                       *(item.settled for item in ledger.backlog.values())])
+    split = " · ".join(part for part in (f"{backlog:,} from the accepted backlog" if backlog else "",
+                                         f"{kept:,} found here" if kept and backlog else "") if part)
     badges = [badge("pushes", ledger.pushed, GRAY), badge("functions checked", f"{tally.functions:,}", GRAY),
               badge("judgments", f"{tally.judgments:,}", GRAY), badge("spent", tally.cost(), BLUE)]
-    title = "### 🧹 A little less lint" if kept else "### 🧺 This PR's cleanup basket"
+    title = "### 🧹 A little less lint" if kept or backlog else "### 🧺 This PR's cleanup basket"
+    cells = [f"{SPREAD}**{plural(n, 'pair')}**" for n in (kept + backlog, still, ledger.count("dismissed"))]
+    cells[0] += f"<br><sub>{split}</sub>" if split else ""
     lines = [title, "", "| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |", "| :--: | :--: | :--: |",
-             "| " + " | ".join(f"{SPREAD}**{plural(n, 'pair')}**" for n in (kept, still, ledger.count("dismissed"))) + " |",
-             ""]
+             "| " + " | ".join(cells) + " |", ""]
     if cleaned[ledger.pushed] and ledger.pushes:
         lines += [f"Latest analyzed commit `{ledger.pushes[-1].head[:7]}` · "
                   f"**+{plural(cleaned[ledger.pushed], 'pair')} cleaned up** ✨", ""]
@@ -273,8 +313,11 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
     lines += ["<details><summary><strong>History and check stats</strong></summary>", "",
               headline(ledger), "", " ".join(badges), "",
               "<sub>Previously reported pairs no longer reported, here or by the pre-commit hook before commit; "
-              "dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits.</sub>", ""]
-    if ledger.pushed > 1 or ledger.pairs:
+              "dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits."
+              + (" Accepted backlog pairs count when this pull request removes a side or the judge now finds them "
+                 "separate; the baseline and its badge change only with the repository's audit." if backlog else "")
+              + "</sub>", ""]
+    if ledger.pushed > 1 or ledger.pairs or ledger.backlog:
         first = ledger.pushed - len(ledger.pushes) + 1
         rows = ["| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |",
                 "| --: | :-- | --: | --: | --: | --: | --: | --: |"]
@@ -284,9 +327,12 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
             rows.append(f"| {n} | `{push.head[:7]}` | {push.tally.functions:,} | {push.tally.pairs:,} | "
                         f"{push.tally.judgments:,}{reused} | {push.reported:,} | {cleared} | {push.tally.cost()} |")
         rows.append(f"| **{ledger.pushed}** | | **{tally.functions:,}** | **{tally.pairs:,}** | "
-                    f"**{tally.judgments:,}** | | **{kept:,}** | **{tally.cost()}** |")
-        pairs = sorted(ledger.pairs.values(), key=lambda p: (list(ICONS).index(p.state), p.found))
-        lines += [*rows, "", *(f"- {pair_line(pair)}" for pair in pairs), *([""] if pairs else [])]
+                    f"**{tally.judgments:,}** | | **{kept + backlog:,}** | **{tally.cost()}** |")
+        pairs = sorted((pair for key, pair in ledger.pairs.items() if key not in ledger.backlog),
+                       key=lambda p: (list(ICONS).index(p.state), p.found))
+        backlogged = sorted(ledger.backlog.items(), key=lambda entry: entry[1].settled)
+        items = [*(backlog_line(key, item, ledger) for key, item in backlogged), *(pair_line(pair) for pair in pairs)]
+        lines += [*rows, "", *(f"- {item}" for item in items), *([""] if items else [])]
     if repository and repository.pulls:
         lines += [f"<sub>{repository.line()}</sub>", ""]
     lines += ["</details>", ""]

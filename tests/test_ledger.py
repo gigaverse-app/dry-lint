@@ -6,9 +6,9 @@ from test_report import NEW, finding, pair
 
 from dry_lint.commits import Outcome
 from dry_lint.costs import Spend
-from dry_lint.ledger import SPREAD, Pair, PullLedger, RepositoryLedger, Tally, counter_key, headline, render
-from dry_lint.models import Candidate, Run, Verdict
-from dry_lint.report import Finding, JudgingSummary, Report
+from dry_lint.ledger import SPREAD, Backlog, Pair, PullLedger, RepositoryLedger, Tally, counter_key, headline, render
+from dry_lint.models import Candidate, Run, Verdict, pair_key
+from dry_lint.report import BacklogCleanup, Finding, JudgingSummary, Report
 from dry_lint.settings import Settings
 
 from conftest import function
@@ -341,3 +341,52 @@ def test_what_ci_saw_of_a_pair_wins_over_a_commit_trailer() -> None:
     hooked = PullLedger().advance([push("a" * 40)], run="1", before_commit=[claimed])
     back = hooked.advance([push("b" * 40, finding("duplicate"))], run="2", before_commit=[claimed])
     assert back.pairs[pair().key].state == "open" and not back.pairs[pair().key].before_commit
+
+
+def cleaned(report: Report, *items: BacklogCleanup) -> Report:
+    """The report of a baselined check that saw `items` cleaned up."""
+    return report.model_copy(update={"backlog": list(items)})
+
+
+TRIM = BacklogCleanup(new="src/a.py::trim", existing="src/b.py::strip", how="removed")
+CLIP = BacklogCleanup(new="src/widgets/caption.py::clip", existing="src/text.py::shorten", how="separate")
+
+
+def test_accepted_debt_cleaned_up_is_backlog_and_never_kept_out() -> None:
+    ledger = PullLedger().advance([cleaned(push("a" * 40), TRIM)], run="1")
+    assert ledger.count("kept-out") == 0 and list(ledger.backlog.values()) == [
+        Backlog(new="trim", existing="strip", how="removed", settled=1)]
+    assert ledger.contribution("k", 5)["kept_out"] == 0  # remediation is not prevention
+    shown = unspread(render(ledger))
+    assert "### 🧹 A little less lint" in shown
+    assert "| **1 pair**<br><sub>1 from the accepted backlog</sub> | **0 pairs** | **0 pairs** |" in shown
+    assert "- ✅ `trim` ≈ `strip` · accepted backlog, cleaned up in push 1: one side removed" in shown
+    assert headline(ledger).startswith("**1 accepted backlog pair cleaned up.** ")
+
+
+def test_each_baseline_check_restates_the_backlog() -> None:
+    ledger = PullLedger().advance([cleaned(push("a" * 40), TRIM)], run="1")
+    ledger = ledger.advance([push("b" * 40)], run="2")  # no baseline checked: no claim either way
+    assert list(ledger.backlog) == [pair_key(TRIM.new, TRIM.existing)]
+    ledger = ledger.advance([cleaned(push("c" * 40), TRIM, CLIP)], run="3")
+    assert {item.new: item.settled for item in ledger.backlog.values()} == {"trim": 1, "clip": 3}
+    ledger = ledger.advance([cleaned(push("d" * 40), CLIP)], run="4")  # the removed side came back
+    assert [item.new for item in ledger.backlog.values()] == ["clip"]
+
+
+def test_accepted_debt_a_push_reported_is_counted_once_as_backlog() -> None:
+    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")  # an edit voided its allowance
+    ledger = ledger.advance([cleaned(push("b" * 40, finding("separate")), CLIP)], run="2")
+    assert ledger.count("kept-out") == 0 and ledger.count("open") == 0 and len(ledger.backlog) == 1
+    shown = unspread(render(ledger))
+    assert "| **1 pair**<br><sub>1 from the accepted backlog</sub> |" in shown
+    assert "accepted backlog, found in push 1, cleaned up in push 2: the judge now finds them separate" in shown
+    assert "| 2 | `bbbbbbb` | 3 | 1 | 1 | 0 | **+1** |" in shown
+
+
+def test_the_basket_splits_backlog_from_duplicates_found_here() -> None:
+    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")
+    ledger = ledger.advance([cleaned(push("b" * 40), TRIM)], run="2")
+    shown = unspread(render(ledger))
+    assert "| **2 pairs**<br><sub>1 from the accepted backlog · 1 found here</sub> |" in shown
+    assert "| **2** | | **6** | **1** | **1** | | **2** |" in shown

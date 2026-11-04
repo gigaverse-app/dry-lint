@@ -40,6 +40,7 @@ from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.discovery import CampaignStore
 from dry_lint.feedback import FILENAME, Decision, Feedback
+from dry_lint.functions import extractor_for
 from dry_lint.git import git
 from dry_lint.github import github_event
 from dry_lint.judges import make_escalation, make_judge
@@ -116,15 +117,7 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
     if args.baseline:
         if args.warn_only:
             raise ValueError("Baseline enforcement cannot be combined with --warn-only")
-        root = repository_root(args.root)
-        baseline = Baseline.read(root / args.baseline, settings)
-        if args.baseline_ref:
-            path = (root / args.baseline).resolve().relative_to(root.resolve()).as_posix()
-            # The target branch owns allowances. PRs may shrink them, never broaden or replace them.
-            git(root, "rev-parse", "--verify", f"{args.baseline_ref}^{{commit}}")
-            if git(root, "ls-tree", "--name-only", args.baseline_ref, "--", path):
-                previous = git(root, "show", f"{args.baseline_ref}:{path}")
-                baseline.validate_successor(Baseline.model_validate_json(previous))
+        baseline, _ = baselines(repository_root(args.root), settings, args)
         report = baseline.apply(report)
     output = render(report, args.format, settings, args.warn_only)
     if output:
@@ -136,6 +129,32 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
     return 1 if any(f.blocking for f in report.findings) and not args.warn_only else 0
 
 
+def baselines(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Baseline, Baseline | None]:
+    """The proposed baseline, and the target branch's at `--baseline-ref` when it has one."""
+    baseline, previous = Baseline.read(root / args.baseline, settings), None
+    if args.baseline_ref:
+        path = (root / args.baseline).resolve().relative_to(root.resolve()).as_posix()
+        # The target branch owns allowances. PRs may shrink them, never broaden or replace them.
+        git(root, "rev-parse", "--verify", f"{args.baseline_ref}^{{commit}}")
+        if git(root, "ls-tree", "--name-only", args.baseline_ref, "--", path):
+            previous = Baseline.model_validate_json(git(root, "show", f"{args.baseline_ref}:{path}"))
+            baseline.validate_successor(previous)
+    return baseline, previous
+
+
+def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[str]:
+    """The debt's functions this change removed: present at its merge base `base`, gone now."""
+    present = {f.qualname for f in detector.functions}
+    missing = {name for e in debt.entries if e.state == "remaining" for name in e.hashes if name not in present}
+    found = set()
+    for path in {name.split("::", 1)[0] for name in missing}:
+        extractor = extractor_for(path, detector.extractors)
+        source = subprocess.run(["git", "show", f"{base}:{path}"], cwd=root, capture_output=True)
+        if extractor and source.returncode == 0:
+            found |= missing & {f.qualname for f in extractor.functions(path, source.stdout.decode("utf-8"))}
+    return found
+
+
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     detector, primary = detector_for(root, settings, args)
     changed = touched([f for f in detector.functions if not f.origin or f.origin.repository == primary],
@@ -144,10 +163,17 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     run.revision = git(root, "write-tree") if args.staged else git(root, "rev-parse", "HEAD^{tree}")
     if primary:
         run.repository = primary
-    candidates = reviewed(root, detector.candidates(changed), staged=args.staged,
-                          committed=settings.discovery.enabled and not args.staged)
+    debt = None
+    if args.baseline:  # The target branch's debt: a pull request that also records its cleanup still earns it.
+        proposed, target = baselines(root, settings, args)
+        debt = target or proposed
+    candidates = reviewed(root, debt.candidates(detector, changed) if debt else detector.candidates(changed),
+                          staged=args.staged, committed=settings.discovery.enabled and not args.staged)
     report = judged(candidates, settings, root, args, run, len(changed),
                     functions=len(detector.functions))
+    if debt:
+        base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
+        report.backlog = debt.cleared(report, removed(root, detector, debt, base))
     if (settings.discovery.enabled or args.staged) and not args.report:  # `dry-lint feedback` reviews this report
         target = last_report(root)
         target.parent.mkdir(parents=True, exist_ok=True)

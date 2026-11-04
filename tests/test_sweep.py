@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,7 @@ import pytest
 from dry_lint.baseline import Baseline
 from dry_lint.extractors import PythonExtractor
 from dry_lint.functions import repository_functions
+from dry_lint.models import pair_key
 from dry_lint.report import Report
 from dry_lint.typescript import TypeScriptExtractor
 
@@ -229,3 +231,82 @@ def test_balanced_strict_check_validates_the_selected_tree(repo: Repo, tmp_path:
     assert run_cli(repo, tmp_path, "--preset", "balanced", "--judge", "none",
                    "--require-complete", *args) == 2
     assert "Cannot completely scan src/text.py" in capsys.readouterr().err
+
+
+def adopt(repo: Repo, tmp_path: Path, judge: str) -> tuple[str, ...]:
+    """main accepts the caption twin as debt; a `cleanup` branch starts from it. Returns the required check's args."""
+    assert sweep(repo, tmp_path, judge, "--init") == 0
+    repo.commit("adopt")
+    repo.git("checkout", "-q", "-B", "main")
+    repo.git("checkout", "-q", "-b", "cleanup")
+    return ("--base", "main", "--baseline", ".dry-lint/baseline.json", "--baseline-ref", "main", "--require-complete",
+            "--judge", "command", "--judge-command", judge, "--report", str(tmp_path / "report.json"))
+
+
+def backlog(tmp_path: Path) -> list[dict] | None:
+    return json.loads((tmp_path / "report.json").read_text())["backlog"]
+
+
+TWIN_PAIR = {"new": "src/text.py::shorten_text", "existing": "src/widgets/caption.py::preview_caption_text"}
+
+
+@pytest.mark.parametrize("recorded", [False, True], ids=["cleanup", "cleanup-and-sweep"])
+def test_a_check_credits_accepted_debt_its_change_removed(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                          recorded: bool) -> None:
+    args = adopt(repo, tmp_path, twin_judge)
+    repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
+    repo.commit()
+    if recorded:  # the pull request also records its cleanup; the target branch's debt still names the pair
+        assert sweep(repo, tmp_path, twin_judge) == 0
+        repo.commit()
+    metadata = [(repo.root / ".dry-lint" / name).read_bytes() for name in ("baseline.json", "progress.json")]
+    assert run_cli(repo, tmp_path, *args) == 0
+    assert backlog(tmp_path) == [{**TWIN_PAIR, "how": "removed"}]
+    # The baseline and its badge belong to the sweep: a check never moves them.
+    assert [(repo.root / ".dry-lint" / name).read_bytes() for name in ("baseline.json", "progress.json")] == metadata
+
+
+def copy_judge(tmp_path: Path) -> str:
+    """A judge that reads the code: the twin is a duplicate only while the caption keeps its copied body."""
+    path = tmp_path / "copy_judge.py"
+    path.write_text(
+        "import json, sys\n"
+        "prompt = sys.stdin.read()\n"
+        "copy = 'clipped' in prompt and 'cut = text' in prompt\n"
+        "print(json.dumps({'label': 'duplicate' if copy else 'separate', 'score': 0.85 if copy else 0.1, "
+        "'owner': 'existing', 'why': 'the caption copies the helper'}))\n"
+    )
+    return f'"{sys.executable}" "{path}"'
+
+
+def test_a_rerouted_side_is_revisited_and_credited_on_a_separate_verdict(repo: Repo, tmp_path: Path) -> None:
+    args = adopt(repo, tmp_path, copy_judge(tmp_path))
+    source = (repo.root / "src/widgets/caption.py").read_text()
+    body = source[source.index("    if len"): source.index("\n\n\ndef register_widget")]
+    rerouted = source.replace(body, "    return shorten_text(caption_text, max_len)")
+    repo.write("src/widgets/caption.py", "from src.text import shorten_text\n\n\n" + rerouted)
+    repo.commit()
+    assert run_cli(repo, tmp_path, *args) == 0
+    report = Report.model_validate_json((tmp_path / "report.json").read_text())
+    assert any(f.candidate.key == pair_key(*TWIN_PAIR.values()) for f in report.findings)  # judged, proposed or not
+    assert backlog(tmp_path) == [{**TWIN_PAIR, "how": "separate"}]
+
+
+def test_debt_removed_before_the_branch_is_not_credited_to_it(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
+    args = adopt(repo, tmp_path, twin_judge)
+    repo.git("checkout", "-q", "main")
+    repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
+    repo.commit("cleaned on main before the next sweep recorded it")
+    repo.git("checkout", "-q", "-B", "cleanup")
+    repo.write("src/widgets/later.py", "def later(value):\n    return value\n")
+    repo.commit()
+    assert run_cli(repo, tmp_path, *args) == 0
+    assert backlog(tmp_path) == []
+
+
+def test_a_check_without_a_baseline_claims_nothing_about_the_backlog(repo: Repo, tmp_path: Path,
+                                                                    twin_judge: str) -> None:
+    args = ("--base", "main", "--judge", "command", "--judge-command", twin_judge, "--warn-only",
+            "--report", str(tmp_path / "report.json"))
+    assert run_cli(repo, tmp_path, *args) == 0
+    assert backlog(tmp_path) is None

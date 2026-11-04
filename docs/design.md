@@ -95,7 +95,9 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 6`; schemas 1 through 5 remain readable with conservative cache defaults. Schema 6 adds
+New files carry `"schema": 7`; schemas 1 through 6 remain readable with conservative cache defaults. Schema 7 adds
+the report's optional `backlog`, the accepted baseline pairs a baselined check saw the change clean up, and the
+sticky ledger's matching `backlog`; both are absent (no claim) when no baseline was checked. Schema 6 adds
 optional pair evidence to the sticky ledger: immutable source coordinates and the last reported judgment, never
 function bodies. Old ledgers keep their counts but have no historical comparison until a pair is reported again.
 The static viewer has its own schema 1 URL envelope. It consumes source references and existing verdicts only;

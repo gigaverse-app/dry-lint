@@ -936,3 +936,22 @@ def test_a_repository_that_opts_out_shares_nothing(github_env, tmp_path) -> None
                         elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")))]})
     action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
     assert github.counted == [] and saved_ledger().outbox == [] and saved_ledger().pulls == [3]
+
+
+def test_a_baselined_pull_request_that_removes_accepted_debt_is_credited_in_its_sticky(
+        repo: Repo, tmp_path: Path, twin_judge: str, github_env) -> None:
+    assert run_cli(repo, tmp_path, "--init", "--judge", "command", "--judge-command", twin_judge, command="sweep") == 0
+    repo.commit("adopt")
+    repo.git("checkout", "-q", "-B", "main")
+    repo.git("checkout", "-q", "-b", "cleanup")
+    repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
+    repo.commit()
+    github_env("pull_request", pr_event(repo), working_directory=str(repo.root), judge="command",
+               judge_command=twin_judge, baseline=".dry-lint/baseline.json", require_complete="true")
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [body] = github.stickies()
+    assert "**1 pair**<br><sub>1 from the accepted backlog</sub>" in body
+    assert "`shorten_text` ≈ `preview_caption_text` · accepted backlog, cleaned up in push 1: one side removed" in body
+    ledger = PullLedger.read(body)
+    assert ledger is not None and ledger.count("kept-out") == 0 and len(ledger.backlog) == 1
