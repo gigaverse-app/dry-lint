@@ -1,0 +1,39 @@
+name: Release
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # Keeps a release pull request open with the next version and changelog, from the Conventional Commit titles
+      # merged since the last release. Merging it tags vX.Y.Z and publishes the GitHub release.
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+      # Workflows use the major tag (`gigaverse-app/dry-lint@v1`), so it follows each release. It only ever moves
+      # forward along main: the update is refused unless it is a fast-forward.
+      - name: Point the major tag at the release
+        if: steps.release.outputs.release_created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: v${{ steps.release.outputs.major }}
+          SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          if gh api "repos/$REPOSITORY/git/ref/tags/$TAG" > /dev/null 2>&1; then
+            gh api --method PATCH "repos/$REPOSITORY/git/refs/tags/$TAG" -f sha="$SHA" -F force=false
+          else
+            gh api --method POST "repos/$REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$SHA"
+          fi
