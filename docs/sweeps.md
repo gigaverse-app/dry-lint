@@ -84,6 +84,10 @@ Keep a fork's detection job named `dry-lint detect`; require the separate judged
 detection-only job. Install the [fork judge workflow](../examples/dry-lint-judge.yml) with the same baseline and
 strict inputs. Branch rules must require `dry-lint` from GitHub Actions.
 
+Set the Action's `python-version: '3.14'` when the repository uses Python 3.14 syntax. The default parser is
+3.13, independent of the application's installed dependencies. Index publishers and consumers must use the
+same parser version; an incompatible index is rebuilt under the existing contract validation rules.
+
 ## Periodic audits
 
 Use `mode: sweep`, the same judging inputs, and an explicit audit budget in a scheduled or manually dispatched

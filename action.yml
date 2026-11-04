@@ -6,6 +6,10 @@ branding:
   color: purple
 
 inputs:
+  python-version:
+    description: Python parser/runtime version. Match newer source syntax; index publishers and consumers must agree.
+    required: false
+    default: '3.13'
   mode:
     description: >
       auto (default): judge on workflow_run, detect on a pull request from a fork, single otherwise.
@@ -170,6 +174,7 @@ runs:
       shell: bash
       env:
         PLUGINS: ${{ inputs.plugins }}
+        DRY_LINT_PYTHON_VERSION: ${{ inputs.python-version }}
       run: bash "$GITHUB_ACTION_PATH/scripts/install-action.sh"
     - name: Install the claude CLI
       if: inputs.claude-code-oauth-token != ''

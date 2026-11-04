@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # Ignore the caller's uv configuration; publishers and consumers share our locked extraction versions.
-uv venv --quiet --no-config --allow-existing --python 3.13 "$RUNNER_TEMP/dry-lint-venv"
+uv venv --quiet --no-config --allow-existing --python "${DRY_LINT_PYTHON_VERSION:-3.13}" "$RUNNER_TEMP/dry-lint-venv"
 locked="$RUNNER_TEMP/dry-lint-requirements.txt"
 uv export --quiet --no-config --project "$GITHUB_ACTION_PATH" --frozen --no-dev --no-emit-project --no-hashes \
   -o "$locked"
