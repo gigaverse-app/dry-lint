@@ -144,6 +144,14 @@ class JudgingSummary(BaseModel):
         return " · ".join(p for p in parts if p)
 
 
+class BacklogCleanup(BaseModel):
+    """An accepted baseline pair the change cleaned up, and the evidence: a side it removed, or a `separate` verdict."""
+
+    new: str = Field(description="Qualified names, as the baseline records them.")
+    existing: str
+    how: Literal["removed", "separate"]
+
+
 class Report(Versioned):
     """`report.json`."""
 
@@ -155,6 +163,8 @@ class Report(Versioned):
     judging: JudgingSummary | None = Field(default=None, description="Judges, thresholds, budget and cost.")
     findings: list[Finding] = Field(default_factory=list)
     filtered: list[Candidate] = Field(default_factory=list, description="Pairs a rule settled, with the rule.")
+    backlog: list[BacklogCleanup] | None = Field(
+        default=None, description="Accepted baseline pairs this change cleaned up; None when no baseline was checked.")
 
     @classmethod
     def build(cls, findings: list[Finding], settings: Settings, filtered: list[Candidate] = (), run: Run | None = None,

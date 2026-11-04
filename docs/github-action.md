@@ -260,6 +260,19 @@ can participate in several pairs. The latest analyzed commit shows its cleanup c
 **Cleaned here** column attributes currently resolved pairs to earlier commits. A pair that returns is open again;
 dismissals do not earn cleanup credit. Commits before the first recorded report are not backfilled.
 
+With a [baseline](sweeps.md), the basket also credits accepted debt the pull request cleans up, labelled
+**from the accepted backlog** apart from the duplicates its own pushes reported and fixed. The check never sees
+accepted pairs as findings, so it collects the same evidence the audit accepts instead: a side of the pair that
+existed at the merge base and is gone now, or a `separate` verdict on the pair as it is now. A side renamed or
+moved while its partner is still reported as a duplicate is not credited: the duplication moved.
+The check revisits every accepted pair whose functions the pull request touched, even one that fell out of the
+nearest-neighbour ranking, so a rerouted side gets a verdict; this costs a judgment per touched pair, and a touched
+pair that is still a duplicate blocks here rather than failing the next audit. A side removed on the default branch
+before the pull request is not credited to it. Each baselined run restates the whole list, so a pair that comes back
+drops out. Backlog cleanup is remediation, not prevention: it is left out of **kept out of the codebase**, the
+repository's 🏆 line and the global counter, and the baseline and its badge still change only with `sweep --update`.
+A fork's judge-mode run has no pull request tree, so it claims nothing about the backlog.
+
 - **The pull request's ledger lives in its comment**, as one hidden `<!-- dry-lint-ledger {...} -->` line. Each
   run adds its cost, checks and judgments once: a run is counted by its id and attempt, and a re-run of the same
   commit adds what it cost but no new checks.

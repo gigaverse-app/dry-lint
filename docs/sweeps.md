@@ -107,7 +107,9 @@ or deployment is needed. Private repositories need their own public aggregate en
 
 Counts mean **judged duplicate pairs**, not deleted lines or guaranteed repository-wide duplication totals.
 They start at zero cleaned. They change only when reviewed metadata is published to the badge's branch.
-Existing [PR prevention totals](github-action.md#the-ledger) retain their separate meaning.
+Existing [PR prevention totals](github-action.md#the-ledger) retain their separate meaning. A baselined pull
+request's sticky credits the accepted pairs it cleans up as **from the accepted backlog**, on the same evidence
+the audit accepts; that is a preview for reviewers, and the audit stays the authority for the badge.
 
 ## State and validation
 

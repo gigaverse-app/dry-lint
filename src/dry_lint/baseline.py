@@ -12,8 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from dry_lint.detector import Detector
 from dry_lint.function_index import digest, repository_name
-from dry_lint.models import Candidate, pair_key
-from dry_lint.report import Report
+from dry_lint.models import Candidate, Function, pair_key
+from dry_lint.report import BacklogCleanup, Report
 from dry_lint.settings import Settings
 
 State = Literal["remaining", "cleaned", "dismissed"]
@@ -131,16 +131,47 @@ class Baseline(BaseModel):
         ]
         return report.model_copy(update={"findings": findings})
 
-    def candidates(self, detector: Detector) -> list[Candidate]:
-        found = {c.key: c for c in detector.candidates(detector.functions)}
+    def candidates(self, detector: Detector, changed: list[Function] | None = None) -> list[Candidate]:
+        """
+        The detector's pairs and the remaining debt. A sweep revisits all of it; a check (`changed`) revisits the debt
+        whose functions the change touched and keeps its own pairs, so a rerouted side still gets a verdict.
+        """
+        found = {c.key: c for c in detector.candidates(detector.functions if changed is None else changed)}
         functions = {f.qualname: f for f in detector.functions}
+        touched = None if changed is None else {f.qualname for f in changed}
         for entry in self.entries:
             if entry.state != "remaining" or not all(name in functions for name in entry.hashes):
+                continue
+            if touched is not None and (touched.isdisjoint(entry.hashes) or entry.key in found):
                 continue
             a, b = (functions[name] for name in sorted(entry.hashes))
             pair = detector.pair(a, b, detector.comparer.similarity(a, b))
             found[pair.key] = pair  # Always revisit debt, even if it fell out of the nearest-neighbour ranking.
         return list(found.values())
+
+    def cleared(self, report: Report, removed: set[str]) -> list[BacklogCleanup]:
+        """
+        The remaining debt a change cleaned up, on the evidence `advance` accepts: a side it removed (`removed` holds
+        the functions present at its merge base and gone now) or a `separate` verdict on the pair as it is now.
+        """
+        findings = {f.candidate.key: f for f in report.findings}
+        # A survivor still reported as a duplicate moved the duplication (a renamed copy) rather than removing it.
+        duplicated = {side.qualname for f in self.apply(report).findings if f.reported
+                      for side in (f.candidate.new, f.candidate.existing)}
+        found = []
+        for entry in self.entries:
+            if entry.state != "remaining":
+                continue
+            finding = findings.get(entry.key)
+            if removed & entry.hashes.keys() and not (entry.hashes.keys() - removed) & duplicated:
+                how = "removed"
+            elif finding is not None and finding.verdict is not None and finding.verdict.label == "separate":
+                how = "separate"
+            else:
+                continue
+            new, existing = sorted(entry.hashes)
+            found.append(BacklogCleanup(new=new, existing=existing, how=how))
+        return found
 
     def advance(self, report: Report) -> "Baseline":
         require_complete(report)
