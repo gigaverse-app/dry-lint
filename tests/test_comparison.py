@@ -11,8 +11,11 @@ from test_report import finding
 from dry_lint.comparison import VIEWER, Comparisons
 from dry_lint.evidence import PairEvidence, SourceReference
 from dry_lint.ledger import EVIDENCE_BYTES, PullLedger
-from dry_lint.models import SCHEMA, Run
+from dry_lint.models import SCHEMA, Candidate, Run, Verdict
+from dry_lint.report import Finding
 from dry_lint.sticky import upsert
+
+from conftest import function
 
 AFTER = "b" * 40
 PEER = "acme/peer"
@@ -269,3 +272,23 @@ def test_large_evidence_does_not_grow_the_sticky_ledger_or_lose_cleanup_counts()
     assert len(body) < 50000
     post(fake, report(AFTER), "2")
     assert PullLedger.read(fake.stickies()[0]).count("kept-out") == 40
+
+
+def test_pairs_of_same_named_methods_on_different_classes_render_as_different_rows():
+    """
+    INVARIANT: the Pair column names each side as `Owner.method`, so two pairs that differ only in a side's class
+    (due#190: `DurableWork._possible_effect_attempts` and `BulkExternalOperationWork._possible_effect_attempts`) are
+    told apart in the table, as they are in the compare page's card headers.
+    """
+    caller = function("ops.py", "def attempt(self, work):\n    return work.attempts().first()\n", owner="Operation")
+    sides = [function(path, "def attempts(self):\n    return self.rows.exclude(outcome=NOT_APPLIED)\n", owner=owner)
+             for path, owner in (("models.py", "Work"), ("bulk.py", "BulkWork"))]
+    findings = [Finding(candidate=Candidate(new=caller, existing=side, similarity=0.5, comparer="tfidf:1"),
+                        verdict=Verdict(label="separate", score=0.2, judge="jev", judge_version="v")) for side in sides]
+    fake = SourceGitHub("private")
+    post(fake, report(HEAD, *findings), "1")
+    body = fake.stickies()[0]
+    assert "| Operation.attempt ≈ Work.attempts |" in body and "| Operation.attempt ≈ BulkWork.attempts |" in body
+    function_row = finding("separate", score=0.2)
+    post(fake, report(HEAD, function_row), "2")
+    assert "| clip ≈ shorten |" in fake.stickies()[0]  # a function outside a class keeps its bare name

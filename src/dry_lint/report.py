@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from dry_lint import __version__
 from dry_lint.costs import Spend
-from dry_lint.models import Candidate, Function, Run, Verdict, Versioned
+from dry_lint.models import Candidate, Function, Run, Verdict, Versioned, qualified
 from dry_lint.settings import Settings
 
 MARKER = "<!-- dry-lint -->"
@@ -84,7 +84,8 @@ class Finding(BaseModel):
         """What else the fix touches: the existing function's other copies, to consolidate in the same change."""
         assert all(r.verdict is not None for r in relatives), "a relative is shown only once judged"
         copies = ", ".join(f"{r.candidate.existing.qualname} (judge {r.verdict.score:.2f})" for r in relatives)
-        return (f"fixing this touches {self.candidate.existing.name}, which also looks like {copies}: "
+        existing = self.candidate.existing
+        return (f"fixing this touches {qualified(existing.owner, existing.name)}, which also looks like {copies}: "
                 "consolidate them in the same change")
 
     def suppression(self) -> str:
@@ -408,7 +409,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
             f"{dot(f)} **{concept}** · {scored}similarity {f.candidate.similarity:.2f} · {source}{drift}", "",
             *([f"> {escaped(f.verdict.why)}", ""] if f.verdict and f.verdict.why else []),
             *([f"Preferred home: {escaped(action(f))}.", ""] if f.candidate.consolidation else []),
-            *([f"Fixing it touches {code(existing.name)}, which also looks like "
+            *([f"Fixing it touches {code(qualified(existing.owner, existing.name))}, which also looks like "
                + ", ".join(f"{function_link(r.candidate.existing, report.run)} ({r.verdict.label} {r.verdict.score:.2f})"
                            for r in kin) + ": consolidate them in the same change.", ""]
               if (kin := report.relatives(f)) else []),

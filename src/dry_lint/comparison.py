@@ -157,7 +157,7 @@ class Comparisons:
             judgment = (f"{verdict.label}; confidence {verdict.score:.2f}; {verdict.judge}; "
                         f"{'reused' if evidence.cached else 'recorded'}"
                         + (f": {verdict.why}" if verdict.why else "") if verdict else "Not judged")
-            concept = f"{evidence.a.name} ≈ {evidence.b.name}"
+            concept = f"{evidence.a.qualified} ≈ {evidence.b.qualified}"
             links = self.links(evidence, state)
             if sum(map(len, lines)) + len(links) > 20_000:
                 links = f"[A]({evidence.a.url()}) · [B]({evidence.b.url()})"
