@@ -206,7 +206,12 @@ class Judging:
             known[i], cached = first[i], cached | {i}
             deferred.discard(i)
         return [
-            Finding(candidate=c, verdict=known[i], cached=i in cached, deferred=i in deferred)
+            Finding(
+                candidate=c,
+                verdict=known[i],
+                cached=i in cached,
+                deferred=i in deferred or (not advisory and known[i] is not None and self.unsure(known[i])),
+            )
             for i, c in enumerate(proposed)
         ]
 

@@ -545,3 +545,18 @@ def test_a_relative_below_the_report_threshold_is_not_shown() -> None:
     parent = finding("duplicate", 0.95)
     built = report(parent, relative_of(parent, 0.5))
     assert built.relatives(built.visible[0]) == [] and "trim_title" not in as_text(built)
+
+
+@pytest.mark.parametrize("provisional", [None, "duplicate"])
+def test_budget_deferred_pairs_are_actionable_review_tasks_not_clean_or_confirmed_duplicates(provisional) -> None:
+    built = report(finding(provisional, 0.6).model_copy(update={"deferred": True}))
+    assert built.visible == built.findings
+    assert built.findings[0].blocking and not built.findings[0].reported
+    text = as_text(built)
+    assert "coding agent" in text and "distinct-from" in text and "review required" in text
+    markdown = as_markdown(built)
+    assert "review required" in markdown and "No duplicated concepts" not in markdown
+    check = json.loads(as_check_run(built))
+    assert check["conclusion"] == "failure"
+    assert "review required" in check["output"]["title"]
+    assert check["output"]["annotations"][0]["path"] == NEW.path

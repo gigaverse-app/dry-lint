@@ -174,7 +174,8 @@ drift. A verdict from another judge is never reused, and neither is one that thi
 second opinion from another second judge (or another version of it), or a first answer in the escalation band of a
 run that escalates. Adding a second judge therefore re-judges the cached answers it would have seen, and pairs whose
 escalation the budget could not afford are asked again on a later run. Until a run can afford to ask, the cached first
-answer stands, held to the first judge's own bar, rather than leaving the pair unjudged. One from an older version of the same judge is, until
+answer stays visible as provisional evidence in a coding-agent review task. The agent can repair the
+duplication or record a source-bound dismissal without spending more judge budget. One from an older version of the same judge is, until
 `dry-lint scan --refresh` asks again. Contextual judges always require the exact model/prompt version, even without
 `--refresh`. Renaming or moving a function changes its key, so its pairs are judged again.
 
