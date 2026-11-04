@@ -13,7 +13,7 @@ jobs:
   duplication:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
       - uses: gigaverse-app/dry-lint@main # pin a reviewed commit in production
