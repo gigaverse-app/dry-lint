@@ -10,10 +10,10 @@ import hashlib
 import re
 from collections import deque
 from collections.abc import Iterator
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from dry_lint.git import git
-from dry_lint.models import Function
+from dry_lint.models import Function, module_of
 from dry_lint.plugins import Extractor
 
 STOP_WORDS = {
@@ -218,6 +218,55 @@ def _is_stub(node: FunctionNode) -> bool:
     return True
 
 
+class _Bases:
+    """
+    A class's direct bases as `module::Class` references, resolved from the file alone: a class defined in it, or a
+    name its module-level imports bind. A relative import resolves against the file's path; an absolute one is a
+    dotted module, matched later as a path suffix. Anything else (a call, a star import, a rebinding) is left out.
+    """
+
+    def __init__(self, tree: ast.Module, path: str) -> None:
+        self.module = module_of(path)
+        self.classes = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
+        self.modules: dict[str, str] = {}  # import a.b as m -> m: a/b
+        self.names: dict[str, tuple[str, str]] = {}  # from a import B as C -> C: (a, B)
+        package = PurePosixPath(path).parent.parts
+        for statement in tree.body:
+            if isinstance(statement, ast.Import):
+                for alias in statement.names:
+                    bound = alias.asname or alias.name.partition(".")[0]
+                    self.modules[bound] = (alias.name if alias.asname else bound).replace(".", "/")
+            elif isinstance(statement, ast.ImportFrom) and statement.level <= len(package) + 1:
+                parts = [*package[:len(package) - statement.level + 1]] if statement.level else []
+                module = "/".join([*parts, *(statement.module or "").split(".")] if statement.module else parts)
+                for alias in statement.names:
+                    self.names[alias.asname or alias.name] = (module, alias.name)
+
+    def of(self, node: ast.ClassDef) -> list[str]:
+        return [reference for base in node.bases if (reference := self.reference(base))]
+
+    def reference(self, node: ast.expr) -> str | None:
+        while isinstance(node, ast.Subscript):  # Base[T]
+            node = node.value
+        chain = []
+        while isinstance(node, ast.Attribute):
+            chain.insert(0, node.attr)
+            node = node.value
+        if not isinstance(node, ast.Name):
+            return None
+        if not chain:
+            if node.id in self.classes:
+                return f"{self.module}::{node.id}"
+            return "::".join(self.names[node.id]) if node.id in self.names else None
+        if node.id in self.modules:
+            root = self.modules[node.id]
+        elif node.id in self.names:
+            root = "/".join(part for part in self.names[node.id] if part)
+        else:
+            return None
+        return f"{'/'.join([root, *chain[:-1]])}::{chain[-1]}"
+
+
 def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Function, FunctionNode]]:
     """
     Top-level functions and methods, with their syntax trees (nested functions stay part of their parent).
@@ -228,19 +277,20 @@ def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Fun
     except SyntaxError:
         return []
     lines = source.splitlines()
+    bases = _Bases(tree, path)
     found: list[tuple[Function, FunctionNode]] = []
 
-    def visit(node: ast.AST, owner: str | None) -> None:
+    def visit(node: ast.AST, owner: str | None, inherits: list[str]) -> None:
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.ClassDef):
-                visit(child, child.name)
+                visit(child, child.name, bases.of(child))
             elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 end = child.end_lineno or child.lineno
                 if end - child.lineno + 1 >= min_lines and not _is_stub(child):
                     found.append((Function(path=path, name=child.name, owner=owner, line=child.lineno, end_line=end,
-                                           code="\n".join(lines[child.lineno - 1 : end])), child))
+                                           code="\n".join(lines[child.lineno - 1 : end]), bases=inherits), child))
 
-    visit(tree, None)
+    visit(tree, None, [])
     return found
 
 

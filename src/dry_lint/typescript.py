@@ -2,13 +2,15 @@
 
 import hashlib
 import json
+import posixpath
+import re
 from collections.abc import Iterator
 
 import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
 from dry_lint.functions import words
-from dry_lint.models import Function
+from dry_lint.models import Function, module_of
 from dry_lint.source_context import SourceContext
 
 FUNCTIONS = {"function_declaration", "function_expression", "generator_function_declaration",
@@ -105,6 +107,59 @@ def canonical(node: Node):
     return (node.type, [value for child in node.children if (value := canonical(child)) is not None])
 
 
+class Bases:
+    """
+    A class's `extends` base as a `module::Class` reference, resolved from the file alone: a class declared in it, or
+    a name or namespace a relative import binds. A package import, a mixin call or any other expression is left out.
+    """
+
+    def __init__(self, root: Node, path: str) -> None:
+        self.module = module_of(path)
+        self.classes: set[str] = set()
+        self.names: dict[str, str] = {}  # import {B as C} from './a' -> C: a::B; import * as m from './a' -> m: a
+        folder = posixpath.dirname(path)
+        pending = [root]
+        while pending:
+            node = pending.pop()
+            pending.extend(node.named_children)
+            name = node.child_by_field_name("name")
+            if node.type in {"class_declaration", "abstract_class_declaration"} and name is not None:
+                self.classes.add(text(name))
+        for statement in root.named_children:
+            source, clause = statement.child_by_field_name("source"), next(
+                (child for child in statement.named_children if child.type == "import_clause"), None)
+            specifier = text(source).strip("'\"") if statement.type == "import_statement" and source else ""
+            module = re.sub(r"\.[cm]?[jt]sx?$", "", posixpath.normpath(posixpath.join(folder, specifier)))
+            module = module.removesuffix("/index")
+            if not specifier.startswith(".") or module.startswith("..") or clause is None:
+                continue
+            for child in clause.named_children:
+                if child.type == "identifier":  # import Base from './a': the default export, by its local name
+                    self.names[text(child)] = f"{module}::{text(child)}"
+                elif child.type == "namespace_import":
+                    self.names[text(child.named_children[0])] = module
+                else:
+                    for imported in child.named_children:
+                        name, alias = imported.child_by_field_name("name"), imported.child_by_field_name("alias")
+                        self.names[text(alias or name)] = f"{module}::{text(name)}"
+
+    def of(self, node: Node) -> list[str]:
+        heritage = next((child for child in node.named_children if child.type == "class_heritage"), None)
+        clause = heritage and next((child for child in heritage.named_children if child.type == "extends_clause"), None)
+        value = clause and clause.child_by_field_name("value")
+        if value is None:
+            return []
+        if value.type == "identifier":
+            name = text(value)
+            reference = f"{self.module}::{name}" if name in self.classes else self.names.get(name, "")
+            return [reference] if "::" in reference else []
+        receiver, prop = value.child_by_field_name("object"), value.child_by_field_name("property")
+        if value.type == "member_expression" and receiver is not None and receiver.type == "identifier":
+            module = self.names.get(text(receiver), "")
+            return [f"{module}::{text(prop)}"] if module and "::" not in module else []
+        return []
+
+
 class TypeScriptExtractor:
     name = "typescript"
     version = "1"
@@ -130,9 +185,10 @@ class TypeScriptExtractor:
         root = self.parser(path).parse(source.encode("utf-8")).root_node
         context = SourceContext(root)
         context_digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+        bases = Bases(root, path)
         found = []
 
-        def add(node: Node, code: Node, name: str, owner: str | None) -> None:
+        def add(node: Node, code: Node, name: str, owner: str | None, inherits: tuple[str, ...]) -> None:
             body = node.child_by_field_name("body")
             if node.has_error or body is None:
                 return
@@ -146,12 +202,16 @@ class TypeScriptExtractor:
                 snippet = "const " + snippet + ";"
             found.append(Function(path=path, name=name, owner=owner, line=code.start_point.row + 1,
                                   end_line=code.end_point.row + 1, code=snippet, tokens=tokens, calls=calls,
-                                  context=context.for_function(code), context_digest=context_digest))
+                                  context=context.for_function(code), context_digest=context_digest, bases=list(inherits)))
 
-        def visit(node: Node, owner: str | None = None) -> None:
+        def visit(node: Node, owner: str | None = None, inherits: tuple[str, ...] = ()) -> None:
             if node.type in TYPE_ONLY:
                 return
             name_node = node.child_by_field_name("name")
+            if node.type in {"class_declaration", "abstract_class_declaration", "class"}:
+                inherits = tuple(bases.of(node))
+            elif node.type in {"internal_module", "object"}:
+                inherits = ()
             if node.type in FUNCTIONS:
                 name = text(name_node) if name_node is not None else "default"
                 if node.type == "method_definition":
@@ -160,8 +220,9 @@ class TypeScriptExtractor:
                         name = ("get " if "get" in modifiers else "set ") + name
                     if "static" in modifiers:
                         owner = f"{owner}.static" if owner else "static"
+                        inherits = tuple(f"{reference}.static" for reference in inherits)
                 if name_node is not None or (node.parent is not None and node.parent.type == "export_statement"):
-                    add(node, node, name, owner)
+                    add(node, node, name, owner, inherits)
                 return
             if node.type in {"variable_declarator", "public_field_definition", "pair"}:
                 name_node = name_node or node.child_by_field_name("key")
@@ -170,16 +231,16 @@ class TypeScriptExtractor:
                     name = text(name_node).strip("\"'")
                     function = callable_value(value)
                     if function is not None:
-                        add(function, node, name, owner)
+                        add(function, node, name, owner, inherits)
                         return
                     if value.type in {"object", "class"}:
-                        visit(value, ".".join(part for part in (owner, name) if part))
+                        visit(value, ".".join(part for part in (owner, name) if part), inherits)
                         return
             if node.type in {"class_declaration", "abstract_class_declaration", "internal_module"}:
                 if name_node is not None:
                     owner = ".".join(part for part in (owner, text(name_node)) if part)
             for child in node.named_children:
-                visit(child, owner)
+                visit(child, owner, inherits)
 
         visit(root)
         return found

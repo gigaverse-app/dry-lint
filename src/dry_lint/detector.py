@@ -13,7 +13,7 @@ from pathlib import Path
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
-from dry_lint.models import Candidate, Function, Run
+from dry_lint.models import Candidate, Function, Run, module_of
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
 from dry_lint.settings import Settings
@@ -99,6 +99,19 @@ def delegates(caller: Function, callee: Function) -> bool:
             and any(f"{receiver}.{callee.name}" in called for receiver in ("self", "cls", "this")))
 
 
+def overrides(method: Function, base: Function) -> bool:
+    """
+    Whether `method` overrides `base`: the same name, in a class whose direct base is `base`'s class. The extractor
+    resolves bases only from the class's own file (a class it defines, or a name its imports bind), so an override of
+    a grandparent's method, or of a base the file cannot name, stays with the judge. An override is the class
+    hierarchy's own variation point: its likeness to the base method is the contract, not a copy.
+    """
+    module = module_of(base.path)
+    return method.name == base.name and base.owner is not None and any(
+        name == base.owner and (module == home or module.endswith(f"/{home}"))
+        for home, _, name in (reference.rpartition("::") for reference in method.bases))
+
+
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
     """Look-alikes that are never duplicates, by structure, by rule, or by a person's inline decision."""
     if IGNORE.search(a.code) or IGNORE.search(b.code):
@@ -107,6 +120,8 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
         return "constructor or dunder pattern"
     if a.origin == b.origin and (delegates(a, b) or delegates(b, a)):
         return "one calls the other"
+    if a.origin == b.origin and (overrides(a, b) or overrides(b, a)):
+        return "subclass override"
     for pattern in settings.patterns:
         if fnmatch.fnmatch(a.qualname, pattern.members) and fnmatch.fnmatch(b.qualname, pattern.members):
             return f"declared pattern: {pattern.reason}"
