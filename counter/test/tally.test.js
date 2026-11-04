@@ -45,9 +45,11 @@ test("dollars never round a small spend down to nothing", () => {
   assert.deepEqual([0, 0.0004, 0.0123, 0.84, 12].map(dollars), ["$0.00", "under $0.001", "$0.012", "$0.84", "$12.00"]);
 });
 
-test("the badge is a shields.io endpoint, in dry-lint's purple", () => {
-  assert.deepEqual(badge(TOTALS), { schemaVersion: 1, label: "duplicates kept out", message: "1,234",
+test("the badge is a shields.io endpoint, in dry-lint's purple, with dry-lint's mark", () => {
+  const { logoSvg, ...rest } = badge(TOTALS);
+  assert.deepEqual(rest, { schemaVersion: 1, label: "duplicates kept out", message: "1,234",
     color: "7E4FC9", labelColor: "24292F", cacheSeconds: 300 });
+  assert.match(logoSvg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^]*<\/svg>$/);
   assert.equal(badge(TOTALS, "pulls").message, "58");
   assert.equal(badge(TOTALS, "repositories").label, "repositories");
   assert.equal(badge(TOTALS, "spent").message, "$0.84");
@@ -76,4 +78,11 @@ test("a repository's sign names it, escaped, and counts in the singular when it 
   assert.match(svg, /1 duplicate function kept out of acme\/&lt;shop&gt;/);
   assert.match(svg, /across 1 pull request · \$0\.84 of judging/);
   assert.doesNotMatch(svg, /repositor/);
+});
+
+test("a repository's sign shows a long name shortened, and keeps it whole in its label", () => {
+  const name = `acme/${"x".repeat(60)}`;
+  const svg = sign(TOTALS, "light", name);
+  assert.match(svg, new RegExp(`OVER · acme/x{34}…<`));
+  assert.match(svg, new RegExp(`aria-label="[^"]*kept out of ${name},`));
 });

@@ -72,40 +72,66 @@ const METRICS = {
 /** A shields.io endpoint badge: https://shields.io/badges/endpoint-badge */
 export function badge(totals, metric = "kept-out") {
   const [label, message] = (METRICS[metric] ?? METRICS["kept-out"])(totals);
-  return { schemaVersion: 1, label, message, color: PURPLE, labelColor: "24292F", cacheSeconds: 300 };
+  return { schemaVersion: 1, label, message, color: PURPLE, labelColor: "24292F", logoSvg: LOGO, cacheSeconds: 300 };
 }
 
 const THEMES = {
-  light: { background: "#FFFFFF", border: "#D1D9E0", text: "#1F2328", muted: "#59636E", accent: "#7E4FC9", tint: "#F3EFFA" },
-  dark: { background: "#0D1117", border: "#30363D", text: "#F0F6FC", muted: "#9198A1", accent: "#A47BE8", tint: "#1E1530" },
+  light: {
+    background: "#FFFFFF", wash: "#F3ECFD", border: "#D1D9E0", text: "#1F2328", muted: "#59636E", accent: "#7E4FC9",
+    rule: "#E4DAF5",
+  },
+  dark: {
+    background: "#0D1117", wash: "#1A1030", border: "#30363D", text: "#F0F6FC", muted: "#9198A1", accent: "#C9AEF5",
+    rule: "#2D2440",
+  },
 };
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+const MINT = "#7FD49A";
+
+/** dry-lint's mark for a shields.io badge: two waves, one over the other. */
+const LOGO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9.5c3-3 6-3 9 0s6 3 9 0M3 15.5c3-3 6-3 9 0s6 3 9 0" fill="none" stroke="${MINT}" stroke-width="2.6" stroke-linecap="round"/></svg>`;
 
 /**
- * The sign: one number, as large as it gets, and what it counts. For a README, in a <picture> by theme.
- * `scope` is "" for every repository, or a repository's name for its own sign.
+ * The sign: one number, as large as it gets, what it counts, and what it took. For a README, in a <picture> by
+ * theme; it scales to any width. `scope` is "" for every repository, or a repository's name for its own sign.
  */
 export function sign(totals, theme = "light", scope = "") {
   const c = THEMES[theme] ?? THEMES.light;
   const noun = totals.kept_out === 1 ? "duplicate function" : "duplicate functions";
-  const where = scope ? `kept out of ${escape(scope)}` : "kept out of codebases";
-  const across = [
-    `${count(totals.pulls)} pull request${totals.pulls === 1 ? "" : "s"}`,
-    scope ? "" : `${count(totals.repositories)} repositor${totals.repositories === 1 ? "y" : "ies"}`,
-    `${dollars(totals.usd)} of judging`,
-  ].filter(Boolean).join(" · ");
-  const label = `${count(totals.kept_out)} ${noun} ${where}, across ${across}`;
+  const where = scope ? `kept out of ${scope}` : "kept out of codebases";
+  const stats = [
+    [count(totals.pulls), `pull request${totals.pulls === 1 ? "" : "s"}`],
+    ...(scope ? [] : [[count(totals.repositories), `repositor${totals.repositories === 1 ? "y" : "ies"}`]]),
+    [dollars(totals.usd), "of judging"],
+  ];
+  const across = stats.map(([value, what]) => `${value} ${what}`).join(" · ");
+  const label = escape(`${count(totals.kept_out)} ${noun} ${where}, across ${across}`);
   const [lead, number] = milestone(totals.kept_out);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120" role="img" aria-label="${label}">
+  const shown = scope.length > 40 ? `${scope.slice(0, 39)}…` : scope;
+  const heading = shown ? `${lead} · ${shown}` : lead;
+  const caption = scope ? `${noun} kept out` : `${noun} ${where}`;
+  const column = 448 / stats.length;
+  const columns = stats.map(([value, what], i) => {
+    const x = 808 + column * i + column / 2;
+    return `<text x="${x}" y="104" text-anchor="middle" font-family="${FONT}" font-size="34" font-weight="800" fill="${c.text}">${value}</text>
+  <text x="${x}" y="134" text-anchor="middle" font-family="${FONT}" font-size="15" font-weight="600" letter-spacing="1" fill="${c.muted}">${what.toUpperCase()}</text>`;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="200" viewBox="0 0 1280 200" role="img" aria-label="${label}">
   <title>${label}</title>
-  <rect x="0.5" y="0.5" width="639" height="119" rx="12" fill="${c.background}" stroke="${c.border}"/>
-  <rect x="16" y="16" width="88" height="88" rx="10" fill="${c.tint}"/>
-  <text x="60" y="58" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="700" fill="${c.accent}">≈</text>
-  <text x="60" y="84" text-anchor="middle" font-family="${FONT}" font-size="11" font-weight="600" fill="${c.accent}" letter-spacing="0.5">DRY-LINT</text>
-  <text x="124" y="34" font-family="${FONT}" font-size="12" font-weight="600" fill="${c.muted}" letter-spacing="1.5">${lead}</text>
-  <text x="124" y="72" font-family="${FONT}" font-size="40" font-weight="800" fill="${c.text}">${number}</text>
-  <text x="124" y="92" font-family="${FONT}" font-size="14" font-weight="600" fill="${c.accent}">${noun} ${where}</text>
-  <text x="124" y="108" font-family="${FONT}" font-size="11" fill="${c.muted}">across ${across}</text>
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.background}"/><stop offset="1" stop-color="${c.wash}"/></linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9D6FE6"/><stop offset="1" stop-color="#5B32A8"/></linearGradient>
+  </defs>
+  <rect x="1" y="1" width="1278" height="198" rx="22" fill="${c.background}"/>
+  <rect x="1" y="1" width="1278" height="198" rx="22" fill="url(#wash)" stroke="${c.border}" stroke-width="2"/>
+  <rect x="28" y="28" width="144" height="144" rx="26" fill="url(#tile)"/>
+  <path d="M58 86c14-14 28-14 42 0s28 14 42 0M58 116c14-14 28-14 42 0s28 14 42 0" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="156" cy="44" r="7" fill="${MINT}"/>
+  <text x="204" y="62" font-family="${FONT}" font-size="15" font-weight="700" letter-spacing="3" fill="${c.accent}">${escape(heading)}</text>
+  <text x="200" y="134" font-family="${FONT}" font-size="80" font-weight="800" letter-spacing="-2" fill="${c.text}">${number}</text>
+  <text x="204" y="170" font-family="${FONT}" font-size="24" font-weight="600" fill="${c.accent}">${escape(caption)}</text>
+  <line x1="784" y1="44" x2="784" y2="156" stroke="${c.rule}" stroke-width="2"/>
+  ${columns.join("\n  ")}
 </svg>
 `;
 }

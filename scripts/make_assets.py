@@ -1,7 +1,7 @@
 """
 Generate dry-lint's brand assets from the mascot art in docs/assets/lint.png.
 
-    uv run --with pillow python scripts/make_assets.py              # avatar.png, the mark, banners, social-preview.svg
+    uv run --with pillow python scripts/make_assets.py              # avatar.png, the mark, banners, README hero, social-preview.svg
     uv run --with playwright==1.58.0 python scripts/render_png.py   # social-preview.png
 
 Lint is a purple ball of dryer lint with a mint-green hair dryer. The SVGs embed a downscaled copy of
@@ -80,6 +80,53 @@ def banner(dark: bool) -> str:
 """
 
 
+def hero(dark: bool) -> str:
+    """The README's full-width banner: Lint, the name, and two look-alike functions judged one concept."""
+    top, bottom, stroke, ink, sub, card, glow = (
+        ("#0D1117", "#1A1030", "#30363D", "#F0F6FC", "#9198A1", "#161B22", 0.22)
+        if dark
+        else ("#FFFFFF", "#F3ECFD", "#D1D9E0", "#1F2328", "#59636E", "#FFFFFF", 0.55)
+    )
+    accent = PURPLE_LIGHT if dark else PURPLE
+    halo = PURPLE if dark else PURPLE_LIGHT
+    mono = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    uri, width = art(560)
+    shown = 272 * width / 560
+
+    def code(x: int, name: str, rows: list[int]) -> str:
+        lines = "".join(
+            f'<rect x="{x + 18}" y="{132 + i * 20}" width="{w}" height="7" rx="3.5" fill="{accent if i in (1, 2) else sub}" '
+            f'opacity="{0.95 if i in (1, 2) else 0.35}"/>'
+            for i, w in enumerate(rows)
+        )
+        return (
+            f'<rect x="{x}" y="96" width="160" height="150" rx="14" fill="{card}" stroke="{stroke}"/>'
+            f'<text x="{x + 18}" y="120" font-family="{mono}" font-size="14" font-weight="600" fill="{ink}">{name}</text>{lines}'
+        )
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="dry-lint: one concept, one implementation">
+  <title>dry-lint: one concept, one implementation</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{top}"/><stop offset="1" stop-color="{bottom}"/></linearGradient>
+    <radialGradient id="halo"><stop offset="0" stop-color="{halo}" stop-opacity="{glow}"/><stop offset="1" stop-color="{halo}" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect x="1" y="1" width="1278" height="318" rx="22" fill="url(#bg)" stroke="{stroke}" stroke-width="2"/>
+  <circle cx="176" cy="164" r="170" fill="url(#halo)"/>
+  <image href="{uri}" x="{176 - shown / 2:.1f}" y="26" width="{shown:.1f}" height="272"/>
+  <text x="340" y="150" font-family="{FONT}" font-size="92" font-weight="800" letter-spacing="-2" fill="{ink}">dry<tspan fill="{accent}">-lint</tspan></text>
+  <text x="344" y="204" font-family="{FONT}" font-size="30" font-weight="600" fill="{ink}">One concept, one implementation.</text>
+  <text x="344" y="244" font-family="{FONT}" font-size="20" fill="{sub}">Catches new code that re-solves what already exists.</text>
+  {code(904, "preview_text()", [92, 120, 104, 70, 50])}
+  {code(1094, "shorten_text()", [80, 112, 120, 58, 86])}
+  <path d="M984 94 C 1010 40, 1148 40, 1174 94" fill="none" stroke="{accent}" stroke-width="2.5" stroke-dasharray="6 6"/>
+  <circle cx="1079" cy="53" r="17" fill="{top}" stroke="{MINT}" stroke-width="2.5"/>
+  <text x="1079" y="61" text-anchor="middle" font-family="{FONT}" font-size="22" font-weight="800" fill="{accent}">≈</text>
+  <rect x="984" y="262" width="190" height="32" rx="16" fill="{MINT}" fill-opacity="{0.16 if dark else 0.28}" stroke="{MINT}"/>
+  <text x="1079" y="283" text-anchor="middle" font-family="{FONT}" font-size="14" font-weight="700" fill="{ink}">one concept · judge 0.91</text>
+</svg>
+"""
+
+
 def social_preview() -> str:
     uri, width = art(440)
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="dry-lint">
@@ -102,6 +149,8 @@ def main() -> None:
         "dry-lint-mark.svg": mark(),
         "sticky-banner-light.svg": banner(dark=False),
         "sticky-banner-dark.svg": banner(dark=True),
+        "readme-hero-light.svg": hero(dark=False),
+        "readme-hero-dark.svg": hero(dark=True),
         "social-preview.svg": social_preview(),
     }
     for name, content in files.items():
