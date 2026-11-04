@@ -8,10 +8,7 @@
   <img alt="dry-lint" src="docs/assets/sticky-banner-light.svg" width="640">
 </picture>
 
-<a href="#the-counter"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark">
-  <img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg" width="640">
-</picture></a>
+<a href="#the-counter"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg#gh-light-mode-only" width="640"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark#gh-dark-mode-only" width="640"></a>
 
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
@@ -117,23 +114,29 @@ Every sticky also keeps a running account: what each push cost, and each duplica
 
 ### The counter
 
-The sign above counts every duplicate dry-lint has kept out of a codebase: a duplicate a pull request introduced,
+<img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg#gh-light-mode-only" width="640"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark#gh-dark-mode-only" width="640">
+
+![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dkept-out) ![pull requests checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dpulls) ![repositories](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Drepositories) ![judging spent](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dspent)
+
+The sign counts every duplicate dry-lint has kept out of a codebase, live: a duplicate a pull request introduced,
 dry-lint reported, and a later push removed before merging. When a pull request merges, the action's run on the
 default branch sends its counts (duplicates kept out, caught and dismissed, pushes, judgments, functions checked,
 judging spend and the dry-lint version) to a [Cloudflare Worker](counter). The repository is sent only as the
 SHA-256 of its name; no code, names, paths or people. Each pull request is counted once. Opt out with
 `share-totals: "false"`.
 
-Put your own repository's sign in its README:
+Put your own repository's sign in its README. GitHub shows the one that matches the reader's theme:
 
-```html
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&repository=OWNER/NAME">
-  <img alt="Duplicates dry-lint kept out of OWNER/NAME" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?repository=OWNER/NAME" width="640">
-</picture>
+```markdown
+![Duplicates dry-lint kept out](https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?repository=OWNER/NAME#gh-light-mode-only)
+![Duplicates dry-lint kept out](https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&repository=OWNER/NAME#gh-dark-mode-only)
 ```
 
-or a badge: `![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Frepository%3DOWNER%2FNAME)`.
+or a badge:
+
+```markdown
+![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Frepository%3DOWNER%2FNAME)
+```
 
 **pre-commit** ([examples/pre-commit-config.yaml](examples/pre-commit-config.yaml)): hook id `dry-lint` checks the
 staged functions.
