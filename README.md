@@ -8,10 +8,7 @@
   <img alt="dry-lint" src="docs/assets/sticky-banner-light.svg" width="640">
 </picture>
 
-<a href="#the-counter"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark">
-  <img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg" width="640">
-</picture></a>
+<a href="#the-counter"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg#gh-light-mode-only" width="640"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark#gh-dark-mode-only" width="640"></a>
 
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
@@ -158,6 +155,10 @@ Every sticky also keeps a running account: what each push cost, and each duplica
 ([the ledger](docs/github-action.md#the-ledger)).
 
 ### The counter
+
+<img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg#gh-light-mode-only" width="640"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark#gh-dark-mode-only" width="640">
+
+![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dkept-out) ![pull requests checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dpulls) ![repositories](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Drepositories) ![judging spent](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dspent)
 
 The sign above counts every duplicate dry-lint has kept out of a codebase: a duplicate a pull request introduced,
 dry-lint reported, and a later push removed before merging. When a pull request merges, the action's run on the
