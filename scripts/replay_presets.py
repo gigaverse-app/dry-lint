@@ -393,7 +393,7 @@ def judge(out: Path, judges: dict[str, Callable[[], Judge]]) -> None:
                         "score": v.score,
                         "behaves_differently": v.behaves_differently,
                     }
-                    for row, v in zip(batch, verdicts)
+                    for row, v in zip(batch, verdicts, strict=True)
                 ],
             )
 
@@ -503,7 +503,7 @@ def report(outs: list[Path], rounds: int = 1000, seed: int = 20261107) -> dict:
                 pooled_points[option][name] += value
             if not pooled_draws[option]:
                 pooled_draws[option] = [defaultdict(float) for _ in range(rounds)]
-            for into, values in zip(pooled_draws[option], drawn):
+            for into, values in zip(pooled_draws[option], drawn, strict=True):
                 for name, value in values.items():
                     into[name] += value
         results[out.name] = {
@@ -548,7 +548,7 @@ def score(out: Path, judge: Judge, batch: int = 16) -> None:
             path,
             [
                 {"key": key, "score": v.score, "new": row["new"], "existing": row["existing"]}
-                for (key, row), v in zip(chunk, verdicts)
+                for (key, row), v in zip(chunk, verdicts, strict=True)
             ],
         )
 

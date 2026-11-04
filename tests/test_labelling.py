@@ -220,7 +220,7 @@ def labelled_rows() -> tuple[list[Sampled], list[Answer]]:
     ]
     answers = [
         Answer(key=p.finding.candidate.key, labeller=f"l{i}", label=v, variation="drifted" if i else "", owner="B")
-        for p, given in zip(pairs, votes)
+        for p, given in zip(pairs, votes, strict=True)
         for i, v in enumerate(given)
     ]
     return pairs, answers
@@ -286,6 +286,7 @@ def test_figures_round_to_whole_numbers_from_ten_up() -> None:
             for n, v in zip(
                 ("real", "reported_real", "reported_false", "blocking_real", "blocking_false", "missed"),
                 (25.4, 3.25, 0, 0, 0, 22.0),
+                strict=True,
             )
         },
         intervals=dict.fromkeys(

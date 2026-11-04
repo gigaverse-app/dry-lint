@@ -197,7 +197,10 @@ class PullLedger(Versioned):
         tally = sum((Tally.of(report) for report in reports), Tally())
         findings = [f for report in reports for f in report.findings]
         reported = {
-            f.candidate.key: (f, scope) for report, scope in zip(reports, named) for f in report.findings if f.reported
+            f.candidate.key: (f, scope)
+            for report, scope in zip(reports, named, strict=True)
+            for f in report.findings
+            if f.reported
         }
         evidence = {
             f.candidate.key: PairEvidence.of(f, report.run) for report in reports for f in report.findings if f.reported

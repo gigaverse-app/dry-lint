@@ -201,7 +201,7 @@ class Comparisons:
             "below threshold": "Not reported: low confidence",
             "separate": "Not reported: judged separate",
         }
-        for key, (evidence, state) in ordered[:MAX_PAIRS]:
+        for _, (evidence, state) in ordered[:MAX_PAIRS]:
             verdict = evidence.verdict
             judgment = (
                 f"{verdict.label}; confidence {verdict.score:.2f}; {verdict.judge}; "

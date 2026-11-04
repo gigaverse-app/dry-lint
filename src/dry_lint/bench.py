@@ -12,6 +12,7 @@ import random
 import textwrap
 import tomllib
 from collections.abc import Callable
+from itertools import pairwise
 from pathlib import Path
 from typing import Literal, TypeVar
 
@@ -190,7 +191,7 @@ def judge_bench(
     labelled: list[GoldPair], verdicts: list[Verdict], settings: Settings, judge: str, ledger: Ledger | None = None
 ) -> JudgeBench:
     """The numbers for verdicts already given on labelled pairs, in the same order; `ledger` holds what they cost."""
-    scored = [(v.score, g.label == "duplicate", g.weight) for g, v in zip(labelled, verdicts)]
+    scored = [(v.score, g.label == "duplicate", g.weight) for g, v in zip(labelled, verdicts, strict=True)]
 
     def flags(threshold: float) -> list[bool]:
         """Reported exactly as a report decides it: a duplicate label at or above the threshold."""
@@ -202,13 +203,16 @@ def judge_bench(
         return sum(w for score, duplicate, w in scored if condition(score, duplicate))
 
     duplicates = weight(lambda score, duplicate: duplicate)
-    flagged = sum(w for (_, _, w), r in zip(scored, reported) if r)
-    hits = sum(w for (_, d, w), r in zip(scored, reported) if r and d)
+    flagged = sum(w for (_, _, w), r in zip(scored, reported, strict=True) if r)
+    hits = sum(w for (_, d, w), r in zip(scored, reported, strict=True) if r and d)
     kept = weight(lambda score, duplicate: duplicate and score >= settings.drop_below)
-    rows = [(g.stratum or str(g.weight), g.label == "duplicate", g.weight, r) for g, r in zip(labelled, reported)]
+    rows = [
+        (g.stratum or str(g.weight), g.label == "duplicate", g.weight, r)
+        for g, r in zip(labelled, reported, strict=True)
+    ]
     precision_interval, recall_interval = intervals(rows)
     fail_at = max(settings.report_at, settings.fail_at)
-    fail_rows = [(s, d, w, f) for (s, d, w, _), f in zip(rows, flags(fail_at))]
+    fail_rows = [(s, d, w, f) for (s, d, w, _), f in zip(rows, flags(fail_at), strict=True)]
     fail_precision, fail_recall = precision_recall(fail_rows)
     fail_precision_interval, fail_recall_interval = intervals(fail_rows)
     spend = list(ledger.spend.values()) if ledger else []
@@ -216,7 +220,7 @@ def judge_bench(
     bands = [Band(low=low, high=high,
                   duplicates=weight(lambda s, d, lo=low, hi=high: d and lo <= s < hi),
                   separate=weight(lambda s, d, lo=low, hi=high: not d and lo <= s < hi))
-             for low, high in zip(BANDS, BANDS[1:])]  # fmt: skip
+             for low, high in pairwise(BANDS)]  # fmt: skip
     return JudgeBench(
         judge=judge,
         pairs=len(labelled),
