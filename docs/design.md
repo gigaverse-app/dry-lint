@@ -13,6 +13,24 @@ verdicts are kept are plugins ([plugins.md](plugins.md)).
 | Reporting | One report, rendered as text, annotations, a PR comment, JSON, SARIF and a check run | none |
 | Measuring | The gold-set format, `dry-lint bench` and its replay of recent commits | none |
 
+## Adopters bring their own keys
+
+This is a core invariant, and it is never traded for a feature. dry-lint is open source: it never ships, holds,
+proxies or pays for an API key, a model, or judge execution.
+
+- **Every judge runs on the adopter's credentials and at the adopter's cost.** A judge gets its key from an action
+  input or from the adopting repository's environment, never from a default, a bundled value or a dry-lint
+  account. With no key, dry-lint judges nothing: it lists look-alikes in the log and does not comment or fail.
+- **No input defaults to a credential** except `github-token`, which is the run's own `github.token`, scoped to the
+  adopting repository's own workflow run.
+- **No code path calls a model on an account or endpoint dry-lint operates.** Judges call the provider the adopter
+  chose (TypeSafe, Anthropic, Gemini, the adopter's own `claude` subscription or command) directly.
+- **The only service dry-lint operates is the opt-out counter**, which receives anonymous counts (the repository
+  as a hash of its name) without authentication: never credentials, code, names or paths.
+
+Organizations that keep these keys as organization secrets are still the adopter: the secrets are theirs, passed
+in by their own workflows. `tests/test_adopter_keys.py` guards the invariant.
+
 ## Pipeline
 
 Every run goes through the same six steps, whatever plugins it uses:
