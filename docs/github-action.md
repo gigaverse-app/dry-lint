@@ -1,5 +1,8 @@
 # GitHub Action
 
+Use `gigaverse-app/dry-lint@main` until v1 launches, then use `@v1`. Use published major-version tags
+for established Actions, such as `actions/checkout@v7`.
+
 Create `.github/workflows/dry-lint.yml` using the [complete quick start](../README.md#add-it-to-github-actions)
 or copy [the extended workflow](../examples/dry-lint.yml), which also handles default-branch pushes and
 override-label changes. To add dry-lint to an existing job, these are the only steps needed:
@@ -26,6 +29,10 @@ If you also accept pull requests from forks, add [the judge workflow](../example
 their candidates with your secrets. Without it, fork PRs still get the local candidate scan.
 
 ## What a pull request gets
+
+For existing repositories, [sweeps and ratchets](sweeps.md) add a shrinking duplication baseline and README badge.
+Set `baseline: .dry-lint/baseline.json` and `require-complete: 'true'` for enforcement. `mode: sweep` runs a read-only
+repository audit for a scheduled/manual workflow.
 
 - **Annotations** on the changed functions that re-implement existing code, with the function they duplicate
   and what to do about it.
