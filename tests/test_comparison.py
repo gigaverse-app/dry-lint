@@ -10,7 +10,7 @@ from test_report import finding
 
 from dry_lint.comparison import VIEWER, Comparisons
 from dry_lint.evidence import PairEvidence, SourceReference
-from dry_lint.ledger import PullLedger
+from dry_lint.ledger import EVIDENCE_BYTES, PullLedger
 from dry_lint.models import Run
 from dry_lint.sticky import upsert
 
@@ -208,3 +208,16 @@ def test_updating_an_old_ledger_emits_the_new_schema():
     old = PullLedger(schema=5)
     updated = old.advance([report(HEAD, finding("duplicate"))])
     assert updated.schema_version == 6 and PullLedger.read(updated.snapshot()).schema_version == 6
+
+
+def test_large_evidence_does_not_grow_the_sticky_ledger_or_lose_cleanup_counts():
+    fake = SourceGitHub("private")
+    built = report(HEAD, *(finding("drifted", existing=f"copy_{i}", why="<>" * 1000) for i in range(40)))
+    post(fake, built, "1")
+    body = fake.stickies()[0]
+    ledger = PullLedger.read(body)
+    assert ledger.count("open") == 40
+    assert sum(len(p.evidence.model_dump_json().encode()) for p in ledger.pairs.values() if p.evidence) <= EVIDENCE_BYTES
+    assert len(body) < 50000
+    post(fake, report(AFTER), "2")
+    assert PullLedger.read(fake.stickies()[0]).count("kept-out") == 40

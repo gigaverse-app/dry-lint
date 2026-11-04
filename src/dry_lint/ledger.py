@@ -35,6 +35,11 @@ from dry_lint.report import BLUE, GRAY, Finding, Report, badge, code, plural
 SNAPSHOT = re.compile(r"<!-- dry-lint-ledger (?P<ledger>\{.*?\}) -->")
 RECENT_RUNS = 20
 PUSHES_SHOWN = 30
+EVIDENCE_BYTES = 16_000
+
+
+def comment_json(model: BaseModel) -> str:
+    return model.model_dump_json().replace("<", "\\u003c").replace(">", "\\u003e")
 
 
 class Tally(BaseModel):
@@ -181,6 +186,14 @@ class PullLedger(Versioned):
                 pair.state, pair.settled = "dismissed", ledger.pushed
             elif pair.state == "open" and pair.scope in completed:  # absent only from a check that ran
                 pair.state, pair.settled = "kept-out", ledger.pushed
+        remaining = EVIDENCE_BYTES
+        for pair in reversed(ledger.pairs.values()):
+            if pair.evidence:
+                size = len(comment_json(pair.evidence).encode())
+                if size > remaining:
+                    pair.evidence = None
+                else:
+                    remaining -= size
         return ledger
 
     def contribution(self, key: str, number: int) -> dict:
@@ -195,8 +208,7 @@ class PullLedger(Versioned):
                 "lines_kept_out": sum(pair.lines for pair in self.kept_out()), "version": __version__}
 
     def snapshot(self) -> str:
-        payload = self.model_dump_json().replace("<", "\\u003c").replace(">", "\\u003e")
-        return f"<!-- dry-lint-ledger {payload} -->"
+        return f"<!-- dry-lint-ledger {comment_json(self)} -->"
 
     @classmethod
     def read(cls, body: str) -> "PullLedger | None":

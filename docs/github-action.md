@@ -104,7 +104,8 @@ No model is asked to infer a destination. Dismissals never get a presumed consol
 Comparison links are bounded to 12,000 characters, the comparison section limits viewer links to a 20,000-character
 budget, and the viewer accepts up to 600 lines per function. Oversized links keep their GitHub source links;
 unavailable or oversized source shows an error with usable GitHub links. Historic ledgers without source
-coordinates keep their accounting; dry-lint does not invent past evidence.
+coordinates keep their accounting; dry-lint does not invent past evidence. Retained evidence has a 16,000-byte
+budget: older source/judgment details can be dropped while every pair's cleanup counts and state remain intact.
 
 Use `viewer-url: ''` to disable interactive links. To host the same static viewer in the repository owner's Pages
 site, copy `viewer/index.html`, `style.css`, `app.mjs`, and `diff.mjs` into that site's `/dry-lint/` directory in its

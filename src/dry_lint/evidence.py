@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from dry_lint.function_index import repository_name
-from dry_lint.models import Function, Run, Verdict, repository_path
+from dry_lint.models import Function, Run, Verdict, validated_repository_path
 from dry_lint.report import Finding, source_url
 
 
@@ -18,12 +18,7 @@ class SourceReference(BaseModel):
 
     _repository = field_validator("repository")(repository_name)
 
-    @field_validator("path")
-    @classmethod
-    def valid_path(cls, value: str) -> str:
-        if not repository_path(value):
-            raise ValueError("Expected a repository-relative path")
-        return value
+    _path = field_validator("path")(validated_repository_path)
 
     @classmethod
     def of(cls, function: Function, run: Run) -> "SourceReference":

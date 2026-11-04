@@ -110,7 +110,8 @@ class Comparisons:
         for report in reports:
             for finding in report.findings:
                 if finding.candidate.key not in entries and (evidence := PairEvidence.of(finding, report.run)):
-                    state = "deferred" if finding.deferred else "below threshold" if finding.verdict else "unjudged"
+                    state = ("deferred" if finding.deferred else "open" if finding.reported
+                             else "below threshold" if finding.verdict else "unjudged")
                     entries[finding.candidate.key] = (evidence, state)
         if not entries:
             return ""
