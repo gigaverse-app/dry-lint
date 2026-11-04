@@ -35,9 +35,9 @@ def plain(text: str, limit: int = REASON_LIMIT) -> str:
     return flat if len(flat) <= limit else flat[: limit - 1].rstrip() + "…"
 
 
-def escaped(text: str) -> str:
+def escaped(text: str, limit: int = REASON_LIMIT) -> str:
     """Plain text that markdown shows as typed: no links, emphasis, HTML or table breaks."""
-    return re.sub(r"([\\`*_{}\[\]()<>#!|~])", r"\\\1", plain(text))
+    return re.sub(r"([\\`*_{}\[\]()<>#!|~])", r"\\\1", plain(text, limit))
 
 
 class Finding(BaseModel):
