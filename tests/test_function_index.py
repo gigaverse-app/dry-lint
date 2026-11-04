@@ -34,8 +34,22 @@ def test_index_roundtrip_preserves_workspace_detection_without_peer_checkouts(tm
     output = tmp_path / "mobile.json.gz"
     assert main(["index", "--root", str(roots["org/mobile"]), "--repository", "org/mobile", "--out", str(output)]) == 0
     assert output.read_bytes() == indexes[0].encode()
-    assert main(["scan", "--root", str(roots["org/web"]), "--repo", f"org/web={roots['org/web']}",
-                 "--repo-index", f"org/mobile@{indexes[0].commit}={output}", "--judge", "none"]) == 0
+    assert (
+        main(
+            [
+                "scan",
+                "--root",
+                str(roots["org/web"]),
+                "--repo",
+                f"org/web={roots['org/web']}",
+                "--repo-index",
+                f"org/mobile@{indexes[0].commit}={output}",
+                "--judge",
+                "none",
+            ]
+        )
+        == 0
+    )
 
 
 def test_source_commit_scope_and_deletions_invalidate_index(repo):
@@ -51,8 +65,10 @@ def test_source_commit_scope_and_deletions_invalidate_index(repo):
         FunctionIndex.decode(first.encode(), "org/app", second.commit, first.contract)
 
 
-@pytest.mark.parametrize("field,value", [("schema", 99), ("repository", "org/other"), ("commit", "b" * 40),
-                                        ("contract", "bad"), ("digest", "bad")])
+@pytest.mark.parametrize(
+    "field,value",
+    [("schema", 99), ("repository", "org/other"), ("commit", "b" * 40), ("contract", "bad"), ("digest", "bad")],
+)
 def test_incompatible_or_corrupt_index_is_rejected(repo, field, value):
     snapshot = export_index(repo.root, "org/app", Settings())
     data = json.loads(gzip.decompress(snapshot.encode()))
@@ -67,11 +83,15 @@ def test_judge_policy_does_not_invalidate_extraction_but_extractor_options_do():
     original = Settings()
     policy = Settings(judge="none", fail_at=0.99, patterns=[{"members": "*", "reason": "reviewed"}])
     assert extraction_contract(original) == extraction_contract(policy)
-    assert extraction_contract(original) != extraction_contract(Settings(extractors=[{"use": "python", "min_lines": 4}]))
+    assert extraction_contract(original) != extraction_contract(
+        Settings(extractors=[{"use": "python", "min_lines": 4}])
+    )
 
 
 def test_repeated_callback_names_in_distinct_scopes_roundtrip(repo):
-    repo.write("src/callbacks.ts", '''
+    repo.write(
+        "src/callbacks.ts",
+        """
 {
   const invoke = () => {
     return service.first();
@@ -82,7 +102,8 @@ def test_repeated_callback_names_in_distinct_scopes_roundtrip(repo):
     return service.second();
   };
 }
-''')
+""",
+    )
     repo.commit()
     index = export_index(repo.root, "org/app", Settings())
     assert len([f for f in index.functions if f.name == "invoke"]) == 2
@@ -94,7 +115,7 @@ def test_index_rejects_invalid_source_identity(repo, problem):
     index = export_index(repo.root, "org/app", Settings())
     if problem == "missing-digest":
         with pytest.raises(ValueError, match="digest"):
-            FunctionIndex.decode(gzip.compress(b'{}'), index.repository, index.commit, index.contract)
+            FunctionIndex.decode(gzip.compress(b"{}"), index.repository, index.commit, index.contract)
         return
     if problem == "invalid-commit":
         index.commit = "main"
@@ -130,8 +151,10 @@ def test_empty_corpus_is_valid_and_committed_scope_wins_over_untracked_settings(
     assert FunctionIndex.decode(index.encode(), index.repository, index.commit, index.contract) == index
 
 
-@pytest.mark.parametrize("repository,commit,path", [("../bad", "a" * 40, "a.py"), ("org/app", "main", "a.py"),
-                                                  ("org/app", "a" * 40, "../a.py")])
+@pytest.mark.parametrize(
+    "repository,commit,path",
+    [("../bad", "a" * 40, "a.py"), ("org/app", "main", "a.py"), ("org/app", "a" * 40, "../a.py")],
+)
 def test_build_rejects_ambiguous_source(repository, commit, path):
     with pytest.raises(ValueError):
         build_index({path: b""}, repository, commit, Settings())

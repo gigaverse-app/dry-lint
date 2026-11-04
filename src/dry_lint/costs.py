@@ -35,9 +35,12 @@ ANSWERS: dict[str, int] = {"claude-opus-5-5": 220}  # measured: Opus 5.5's were 
 
 def usage_cost(tokens: dict[str, int], rates: tuple[float, float]) -> float:
     """Provider usage at the configured price, including Anthropic's cache write/read tiers."""
-    return (tokens.get("input", 0) * rates[0] + tokens.get("output", 0) * rates[1]
-            + tokens.get("cache_creation_input_tokens", 0) * rates[0] * 1.25
-            + tokens.get("cache_read_input_tokens", 0) * rates[0] * 0.1) / 1_000_000
+    return (
+        tokens.get("input", 0) * rates[0]
+        + tokens.get("output", 0) * rates[1]
+        + tokens.get("cache_creation_input_tokens", 0) * rates[0] * 1.25
+        + tokens.get("cache_read_input_tokens", 0) * rates[0] * 0.1
+    ) / 1_000_000
 
 
 def price(judge: Judge, settings: Settings) -> tuple[float, float] | None:
@@ -60,8 +63,10 @@ class Spend(BaseModel):
     judge: str
     calls: int = 0
     skipped: int = Field(default=0, description="Pairs this judge was not asked about because the budget ran out.")
-    usd: float | None = Field(default=0.0, description="Estimated at list price, also for a subscription; None when "
-                                                       "the judge's price is unknown.")
+    usd: float | None = Field(
+        default=0.0,
+        description="Estimated at list price, also for a subscription; None when the judge's price is unknown.",
+    )
     subscription: bool = False
     failed: int = Field(default=0, description="Pairs left on the first judge's answer because this judge failed.")
     error: str = Field(default="", description="Why this judge failed, when it did.")
@@ -97,7 +102,7 @@ class Ledger:
         """How many of `candidates`, in order, the budget still allows `judge` to be asked about."""
         if getattr(judge, "subscription", False):
             used = sum(s.calls for s in self.spend.values() if s.subscription)
-            candidates = candidates[:max(0, self.settings.budget.subscription_calls - used)]
+            candidates = candidates[: max(0, self.settings.budget.subscription_calls - used)]
         total, room = 0.0, self.settings.budget.usd - self.spent - self.usd
         for n, candidate in enumerate(candidates):
             cost = estimate(judge, [candidate], self.settings)

@@ -13,15 +13,28 @@ from dry_lint.report import CLEAN, NOTE_SLOT
 from dry_lint.sticky import MARKER, GitHub, compose, marker, upsert
 
 REPO, PR, HEAD = "acme/shop", 7, "a" * 40
-REPORT = f"{MARKER}\n### dry-lint\n\n| Changed function | Looks like |\n| --- | --- |\n| `a.py::clip` | `b.py::shorten` |"
+REPORT = (
+    f"{MARKER}\n### dry-lint\n\n| Changed function | Looks like |\n| --- | --- |\n| `a.py::clip` | `b.py::shorten` |"
+)
 
 
 class FakeGitHub:
     """The slice of the GitHub REST API the sticky uses, in memory: comments of one pull request, and its head."""
 
-    def __init__(self, comments: list[str] = (), head: str = HEAD, write_status: int = 200, banner: int = 404,
-                 labels: list[str] = (), merged: list[dict] = (), elsewhere: dict[int, list[str]] | None = None,
-                 pulls_status: int = 200, counter_status: int = 200, commits: list[str] = (), commits_status: int = 200):
+    def __init__(
+        self,
+        comments: list[str] = (),
+        head: str = HEAD,
+        write_status: int = 200,
+        banner: int = 404,
+        labels: list[str] = (),
+        merged: list[dict] = (),
+        elsewhere: dict[int, list[str]] | None = None,
+        pulls_status: int = 200,
+        counter_status: int = 200,
+        commits: list[str] = (),
+        commits_status: int = 200,
+    ):
         self.comments = [{"id": i + 1, "body": body} for i, body in enumerate(comments)]
         self.commits, self.commits_status = [{"commit": {"message": m}} for m in commits], commits_status
         self.merged, self.elsewhere, self.pulls_status = list(merged), elsewhere or {}, pulls_status
@@ -45,15 +58,20 @@ class FakeGitHub:
             return httpx.Response(200, json={"head": {"sha": self.head}, "labels": self.labels})
         if method == "GET" and path == f"/repos/{REPO}/pulls/{PR}/commits":
             page, size = int(request.url.params["page"]), int(request.url.params["per_page"])
-            return httpx.Response(self.commits_status, json=self.commits[(page - 1) * size: page * size])
+            return httpx.Response(self.commits_status, json=self.commits[(page - 1) * size : page * size])
         if method == "GET" and path == f"/repos/{REPO}/pulls":
             return httpx.Response(self.pulls_status, json=self.merged)
-        if method == "GET" and (other := re.fullmatch(rf"/repos/{REPO}/issues/(\d+)/comments", path)) and \
-                int(other[1]) != PR:
-            return httpx.Response(200, json=[{"id": 900, "body": body} for body in self.elsewhere.get(int(other[1]), [])])
+        if (
+            method == "GET"
+            and (other := re.fullmatch(rf"/repos/{REPO}/issues/(\d+)/comments", path))
+            and int(other[1]) != PR
+        ):
+            return httpx.Response(
+                200, json=[{"id": 900, "body": body} for body in self.elsewhere.get(int(other[1]), [])]
+            )
         if method == "GET" and path == f"/repos/{REPO}/issues/{PR}/comments":
             page, size = int(request.url.params["page"]), int(request.url.params["per_page"])
-            return httpx.Response(200, json=self.comments[(page - 1) * size: page * size])
+            return httpx.Response(200, json=self.comments[(page - 1) * size : page * size])
         if self.write_status != 200:
             return httpx.Response(self.write_status, json={"message": "Resource not accessible by integration"})
         self.writes.append(method)
@@ -126,8 +144,14 @@ def test_comments_are_found_beyond_the_first_page(monkeypatch: pytest.MonkeyPatc
 
 
 def test_legacy_keys_are_migrated_to_one_comment_without_touching_human_discussion() -> None:
-    fake = FakeGitHub(comments=[compose(REPORT, key="repository-audit"), "human discussion",
-                               compose(REPORT), compose(REPORT, key="cross-repository")])
+    fake = FakeGitHub(
+        comments=[
+            compose(REPORT, key="repository-audit"),
+            "human discussion",
+            compose(REPORT),
+            compose(REPORT, key="cross-repository"),
+        ]
+    )
     upsert(client(fake), REPO, PR, REPORT, findings=1)
     assert len(fake.stickies()) == 1
     assert [c["body"] for c in fake.comments][1:] == ["human discussion"]
@@ -156,7 +180,7 @@ def test_other_api_errors_are_raised() -> None:
 def test_the_comment_carries_one_marker_the_banner_when_it_renders_and_its_source() -> None:
     body = compose(REPORT, key="api", banner=True, run_url="https://github.com/acme/shop/actions/runs/9", head=HEAD)
     assert body.startswith("<!-- dry-lint:api -->\n<picture>") and body.count("<!-- dry-lint") == 1
-    assert "sticky-banner-dark.svg" in body and "sticky-banner-light.svg\" width=\"100%\"" in body
+    assert "sticky-banner-dark.svg" in body and 'sticky-banner-light.svg" width="100%"' in body
     assert f"commit {HEAD[:7]}" in body and "[run](https://github.com/acme/shop/actions/runs/9)" in body
     assert "<picture>" not in compose(REPORT) and "<sub>" not in compose(REPORT)
 
@@ -242,8 +266,10 @@ def test_unavailable_scan_and_untrusted_headings_stay_clear_in_collapsed_summari
 
 def test_the_source_line_names_dry_lint_the_commit_and_the_run() -> None:
     body = compose(REPORT, run_url="https://github.com/acme/shop/actions/runs/9", head=HEAD)
-    assert body.rstrip().endswith(f"<sub>[dry-lint](https://github.com/gigaverse-app/dry-lint) · commit {HEAD[:7]} · "
-                                  "[run](https://github.com/acme/shop/actions/runs/9)</sub>")
+    assert body.rstrip().endswith(
+        f"<sub>[dry-lint](https://github.com/gigaverse-app/dry-lint) · commit {HEAD[:7]} · "
+        "[run](https://github.com/acme/shop/actions/runs/9)</sub>"
+    )
 
 
 def test_combined_report_posts_both_scopes_once_and_does_not_claim_clean(tmp_path, monkeypatch):
@@ -252,8 +278,20 @@ def test_combined_report_posts_both_scopes_once_and_does_not_claim_clean(tmp_pat
     local.write_text(CLEAN_REPORT, encoding="utf-8")
     peers.write_text(REPORT, encoding="utf-8")
     fake = FakeGitHub(comments=[compose(REPORT, key="audit"), compose(REPORT, key="cross-repository")])
-    args = ["--body", str(local), "--body", str(peers), "--repository", REPO,
-            "--pull-request", str(PR), "--findings", "1", "--expect-head", HEAD]
+    args = [
+        "--body",
+        str(local),
+        "--body",
+        str(peers),
+        "--repository",
+        REPO,
+        "--pull-request",
+        str(PR),
+        "--findings",
+        "1",
+        "--expect-head",
+        HEAD,
+    ]
     sticky.main(args, transport=httpx.MockTransport(fake))
     [body] = fake.stickies()
     assert len(fake.comments) == 1
@@ -273,8 +311,21 @@ def test_an_incomplete_scope_cannot_resolve_previous_findings(tmp_path, monkeypa
     local.write_text(CLEAN_REPORT, encoding="utf-8")
     peers.write_text("> [!WARNING]\n> This scope did not complete.", encoding="utf-8")
     fake = FakeGitHub(comments=[compose(REPORT)])
-    sticky.main(["--body", str(local), "--body", str(peers), "--repository", REPO,
-                 "--pull-request", str(PR), "--findings", "0"], transport=httpx.MockTransport(fake))
+    sticky.main(
+        [
+            "--body",
+            str(local),
+            "--body",
+            str(peers),
+            "--repository",
+            REPO,
+            "--pull-request",
+            str(PR),
+            "--findings",
+            "0",
+        ],
+        transport=httpx.MockTransport(fake),
+    )
     [body] = fake.stickies()
     assert "Resolved" not in body and "did not complete" in body
 
@@ -290,13 +341,27 @@ def test_a_failed_peer_scope_does_not_claim_its_earlier_duplicate_was_kept_out(t
     local_json.write_text(push("a" * 40).model_dump_json())
     peers_json.write_text(push("a" * 40, finding("duplicate")).model_dump_json())
     common = ["--body", str(local), "--body", str(peers), "--repository", REPO, "--pull-request", str(PR)]
-    sticky.main([*common, "--findings", "1", "--run", "1", "--report", f"local={local_json}",
-                 "--report", f"cross-repository={peers_json}"], transport=httpx.MockTransport(fake))
+    sticky.main(
+        [
+            *common,
+            "--findings",
+            "1",
+            "--run",
+            "1",
+            "--report",
+            f"local={local_json}",
+            "--report",
+            f"cross-repository={peers_json}",
+        ],
+        transport=httpx.MockTransport(fake),
+    )
     assert ledger_of(fake).count("open") == 1
     peers.write_text("> [!WARNING]\n> This scope did not complete.", encoding="utf-8")
     local_json.write_text(push("b" * 40).model_dump_json())
-    sticky.main([*common, "--findings", "0", "--run", "2", "--report", f"local={local_json}"],
-                transport=httpx.MockTransport(fake))
+    sticky.main(
+        [*common, "--findings", "0", "--run", "2", "--report", f"local={local_json}"],
+        transport=httpx.MockTransport(fake),
+    )
     assert (ledger_of(fake).count("open"), ledger_of(fake).count("kept-out")) == (1, 0)
     assert "kept out of the codebase**" not in fake.stickies()[0]
 
@@ -314,8 +379,21 @@ def post(fake: FakeGitHub, tmp_path: Path, report, run: str, *extra: str) -> Non
     body, saved = tmp_path / "comment.md", tmp_path / f"report-{run}.json"
     body.write_text(REPORT)
     saved.write_text(report.model_dump_json())
-    args = ["--body", str(body), "--repository", REPO, "--pull-request", str(PR), "--findings", "0",
-            "--report", str(saved), "--run", run, *extra]
+    args = [
+        "--body",
+        str(body),
+        "--repository",
+        REPO,
+        "--pull-request",
+        str(PR),
+        "--findings",
+        "0",
+        "--report",
+        str(saved),
+        "--run",
+        run,
+        *extra,
+    ]
     assert sticky.main(args, transport=httpx.MockTransport(fake)) == 0
 
 
@@ -347,8 +425,21 @@ def test_the_run_defaults_to_the_workflow_run_and_attempt(tmp_path: Path, monkey
     body, saved = tmp_path / "comment.md", tmp_path / "report.json"
     body.write_text(REPORT)
     saved.write_text(push("a" * 40).model_dump_json())
-    sticky.main(["--body", str(body), "--repository", REPO, "--pull-request", str(PR), "--findings", "0",
-                 "--report", str(saved)], transport=httpx.MockTransport(fake))
+    sticky.main(
+        [
+            "--body",
+            str(body),
+            "--repository",
+            REPO,
+            "--pull-request",
+            str(PR),
+            "--findings",
+            "0",
+            "--report",
+            str(saved),
+        ],
+        transport=httpx.MockTransport(fake),
+    )
     assert ledger_of(fake).runs == ["41-2"]
 
 
@@ -377,7 +468,9 @@ def test_no_ledger_is_shown_before_a_run_reports() -> None:
 def test_the_repositorys_totals_follow_the_pull_requests_own(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "token")
     totals = RepositoryLedger(repository=REPO, since="2026-10-01T00:00:00+00:00")
-    totals.add_pull(3, PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1").advance([push("b" * 40)], run="2"))
+    totals.add_pull(
+        3, PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1").advance([push("b" * 40)], run="2")
+    )
     saved = tmp_path / "repository.json"
     saved.write_text(totals.model_dump_json())
     fake = FakeGitHub()

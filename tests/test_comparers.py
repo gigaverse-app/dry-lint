@@ -4,11 +4,19 @@ from dry_lint.comparers import TfidfComparer
 
 from conftest import function
 
-SHORTEN = function("a.py", "def shorten(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[:limit]\n")
-CLIP = function("b.py", "def clip(text, size):\n    if len(text) <= size:\n        return text\n    return text[:size]\n")
-SAME_FILE = function("a.py", "def trim(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[:limit]\n")
-OTHER = [function(f"o{i}.py", f"def job_{word}(queue):\n    queue.push_{word}()\n    return queue.flush_{word}()\n")
-         for i, word in enumerate(["alpha", "beta", "gamma", "delta", "omega", "sigma", "kappa"])]
+SHORTEN = function(
+    "a.py", "def shorten(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[:limit]\n"
+)
+CLIP = function(
+    "b.py", "def clip(text, size):\n    if len(text) <= size:\n        return text\n    return text[:size]\n"
+)
+SAME_FILE = function(
+    "a.py", "def trim(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[:limit]\n"
+)
+OTHER = [
+    function(f"o{i}.py", f"def job_{word}(queue):\n    queue.push_{word}()\n    return queue.flush_{word}()\n")
+    for i, word in enumerate(["alpha", "beta", "gamma", "delta", "omega", "sigma", "kappa"])
+]
 
 
 @pytest.fixture
@@ -32,7 +40,9 @@ def test_a_function_is_never_its_own_neighbour_and_k_caps_the_list(comparer: Tfi
 
 
 def test_an_unindexed_function_can_still_be_queried(comparer: TfidfComparer) -> None:
-    fresh = function("c.py", "def cut(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[:limit]\n")
+    fresh = function(
+        "c.py", "def cut(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[:limit]\n"
+    )
     assert comparer.neighbours(fresh, 1, allowed=lambda f: True)[0][1] > 0.5
 
 

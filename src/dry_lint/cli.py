@@ -67,8 +67,12 @@ def run_info(root: Path, base: str | None) -> Run:
     """The repository, pull request and head commit, from the GitHub Actions environment when there is one."""
     pull = github_event().get("pull_request") or {}
     head = (pull.get("head") or {}).get("sha") or git(root, "rev-parse", "HEAD")
-    return Run(repository=os.environ.get("GITHUB_REPOSITORY", ""), pull_request=pull.get("number"), head=head,
-               base=base_ref(root, base))
+    return Run(
+        repository=os.environ.get("GITHUB_REPOSITORY", ""),
+        pull_request=pull.get("number"),
+        head=head,
+        base=base_ref(root, base),
+    )
 
 
 def settings_for(root: Path, args: argparse.Namespace) -> Settings:
@@ -91,8 +95,17 @@ def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     return resolve(settings)
 
 
-def judged(candidates: list[Candidate], settings: Settings, root: Path, args: argparse.Namespace, run: Run,
-           changed: int, refresh: bool = False, functions: int = 0, scope: str = "change") -> Report:
+def judged(
+    candidates: list[Candidate],
+    settings: Settings,
+    root: Path,
+    args: argparse.Namespace,
+    run: Run,
+    changed: int,
+    refresh: bool = False,
+    functions: int = 0,
+    scope: str = "change",
+) -> Report:
     judging = Judging.configured(settings, open_store(settings, root, args.store))
     if settings.discovery.enabled and scope == "change":
         if run.pull_request is None:
@@ -104,8 +117,17 @@ def judged(candidates: list[Candidate], settings: Settings, root: Path, args: ar
         campaign_run = run.model_copy(update={"repository": run.repository or local})
         judging.campaign = CampaignStore(path, campaign_run)
     findings = judging.findings(candidates, source=run, refresh=refresh)
-    return Report.build(findings, settings, filtered=[c for c in candidates if c.filtered], run=run, changed=changed,
-                        judge=judging.name, functions=functions, scope=scope, judging=judging.summary())
+    return Report.build(
+        findings,
+        settings,
+        filtered=[c for c in candidates if c.filtered],
+        run=run,
+        changed=changed,
+        judge=judging.name,
+        functions=functions,
+        scope=scope,
+        judging=judging.summary(),
+    )
 
 
 def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
@@ -157,8 +179,10 @@ def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[st
 
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     detector, primary = detector_for(root, settings, args)
-    changed = touched([f for f in detector.functions if not f.origin or f.origin.repository == primary],
-                      changed_lines(root, args.base, args.staged))
+    changed = touched(
+        [f for f in detector.functions if not f.origin or f.origin.repository == primary],
+        changed_lines(root, args.base, args.staged),
+    )
     run = run_info(root, args.base)
     run.revision = git(root, "write-tree") if args.staged else git(root, "rev-parse", "HEAD^{tree}")
     if primary:
@@ -167,10 +191,13 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if args.baseline:  # The target branch's debt: a pull request that also records its cleanup still earns it.
         proposed, target = baselines(root, settings, args)
         debt = target or proposed
-    candidates = reviewed(root, debt.candidates(detector, changed) if debt else detector.candidates(changed),
-                          staged=args.staged, committed=settings.discovery.enabled and not args.staged)
-    report = judged(candidates, settings, root, args, run, len(changed),
-                    functions=len(detector.functions))
+    candidates = reviewed(
+        root,
+        debt.candidates(detector, changed) if debt else detector.candidates(changed),
+        staged=args.staged,
+        committed=settings.discovery.enabled and not args.staged,
+    )
+    report = judged(candidates, settings, root, args, run, len(changed), functions=len(detector.functions))
     if debt:
         base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
         report.backlog = debt.cleared(report, removed(root, detector, debt, base))
@@ -192,7 +219,9 @@ def trailers(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     return 0
 
 
-def reviewed(root: Path, candidates: list[Candidate], *, staged: bool = False, committed: bool = False) -> list[Candidate]:
+def reviewed(
+    root: Path, candidates: list[Candidate], *, staged: bool = False, committed: bool = False
+) -> list[Candidate]:
     if staged or committed:
         raw = git(root, "show", f"{'' if staged else 'HEAD'}:{FILENAME}", check=False)
         feedback = Feedback.model_validate_json(raw) if raw else Feedback()
@@ -225,6 +254,7 @@ def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tu
         if args.command in {"check", "detect"} and not primary:
             raise ValueError("--repo must include the primary --root repository")
         from dry_lint.function_index import FunctionIndex, extraction_contract
+
         indexes = []
         for spec in args.repo_index:
             identity, separator, path = spec.partition("=")
@@ -245,8 +275,9 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     baseline = None if args.init else Baseline.read(path, settings)
     detector, _ = detector_for(root, settings, args)
     candidates = baseline.candidates(detector) if baseline else detector.candidates(detector.functions)
-    report = judged(candidates, settings, root, args, run_info(root, None), 0,
-                    functions=len(detector.functions), scope="repository")
+    report = judged(
+        candidates, settings, root, args, run_info(root, None), 0, functions=len(detector.functions), scope="repository"
+    )
     require_complete(report)
     # Render the full backlog, while enforcing only duplicates outside the immutable accepted set.
     output_args = argparse.Namespace(**{**vars(args), "baseline": None, "warn_only": True})
@@ -256,32 +287,45 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         return 1
     updated = baseline.advance(report) if baseline else Baseline.start(report, settings)
     if not args.init and not args.update:
-        print(f"dry-lint: audit found {updated.count('remaining')} remaining pairs; "
-              f"{updated.count('cleaned') - baseline.count('cleaned')} newly cleaned. "
-              "Use sweep --update to record the ratchet after reviewing the audit.")
+        print(
+            f"dry-lint: audit found {updated.count('remaining')} remaining pairs; "
+            f"{updated.count('cleaned') - baseline.count('cleaned')} newly cleaned. "
+            "Use sweep --update to record the ratchet after reviewing the audit."
+        )
         return 0
     readme = root / args.readme if args.readme else None
     content = None
     if readme:
         directory = path.parent.relative_to(root).as_posix()
-        content = update_readme(readme.read_text(encoding="utf-8"),
-                                updated.markdown(args.repository, args.branch, directory))
+        content = update_readme(
+            readme.read_text(encoding="utf-8"), updated.markdown(args.repository, args.branch, directory)
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
-    (path.parent / "progress.json").write_text(json.dumps(updated.badge(), indent=2) + "\n",
-                                             encoding="utf-8")
+    (path.parent / "progress.json").write_text(json.dumps(updated.badge(), indent=2) + "\n", encoding="utf-8")
     if readme and content is not None:
         readme.write_text(content, encoding="utf-8")
-    print(f"dry-lint: {updated.count('cleaned')} pairs cleaned, {updated.count('remaining')} remaining, "
-          f"{updated.count('dismissed')} dismissed; wrote {path}")
+    print(
+        f"dry-lint: {updated.count('cleaned')} pairs cleaned, {updated.count('remaining')} remaining, "
+        f"{updated.count('dismissed')} dismissed; wrote {path}"
+    )
     return 0
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     detector, _ = detector_for(root, settings, args)
     candidates = detector.scan()[: args.limit]
-    report = judged(candidates, settings, root, args, run_info(root, None), 0, refresh=args.refresh,
-                    functions=len(detector.functions), scope="repository")
+    report = judged(
+        candidates,
+        settings,
+        root,
+        args,
+        run_info(root, None),
+        0,
+        refresh=args.refresh,
+        functions=len(detector.functions),
+        scope="repository",
+    )
     return finish(report, settings, args)
 
 
@@ -290,22 +334,31 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if args.all:
         changed, candidates = detector.functions, detector.scan()
     else:
-        changed = touched([f for f in detector.functions if not f.origin or f.origin.repository == primary],
-                          changed_lines(root, args.base, args.staged))
+        changed = touched(
+            [f for f in detector.functions if not f.origin or f.origin.repository == primary],
+            changed_lines(root, args.base, args.staged),
+        )
         candidates = detector.candidates(changed)
     run = run_info(root, args.base)
     run.revision = git(root, "write-tree") if args.staged else git(root, "rev-parse", "HEAD^{tree}")
     if primary:
         run.repository = primary
-    found = CandidatesFile(run=run, changed=len(changed), functions=len(detector.functions),
-                           candidates=reviewed(root, candidates, staged=args.staged,
-                                               committed=settings.discovery.enabled and not args.staged))
+    found = CandidatesFile(
+        run=run,
+        changed=len(changed),
+        functions=len(detector.functions),
+        candidates=reviewed(
+            root, candidates, staged=args.staged, committed=settings.discovery.enabled and not args.staged
+        ),
+    )
     text = found.model_dump_json(indent=1)
     if args.out:
         args.out.write_text(text + "\n")
         proposed = sum(c.filtered is None for c in candidates)
-        print(f"dry-lint: {len(changed)} changed function(s), {proposed} candidate pair(s) to judge, "
-              f"{len(candidates) - proposed} settled by a rule; wrote {args.out}")
+        print(
+            f"dry-lint: {len(changed)} changed function(s), {proposed} candidate pair(s) to judge, "
+            f"{len(candidates) - proposed} settled by a rule; wrote {args.out}"
+        )
     else:
         print(text)
     return 0
@@ -313,8 +366,11 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 def judge(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     found = CandidatesFile.model_validate_json(args.candidates.read_text())
-    return finish(judged(found.candidates, settings, root, args, found.run, found.changed, functions=found.functions),
-                  settings, args)
+    return finish(
+        judged(found.candidates, settings, root, args, found.run, found.changed, functions=found.functions),
+        settings,
+        args,
+    )
 
 
 def report(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -339,8 +395,16 @@ def feedback(root: Path, settings: Settings, args: argparse.Namespace) -> int:
                 raise ValueError("Stage the repair before recording a fix; the reported source is unchanged")
     path = root / FILENAME
     decisions = Feedback.read(path)
-    decisions.decisions.append(Decision(pair=candidate.key, evidence=evidence(candidate), action=args.action,
-        reason=args.reason.strip(), reviewer=args.reviewer.strip(), revision=revision))
+    decisions.decisions.append(
+        Decision(
+            pair=candidate.key,
+            evidence=evidence(candidate),
+            action=args.action,
+            reason=args.reason.strip(),
+            reviewer=args.reviewer.strip(),
+            revision=revision,
+        )
+    )
     decisions.write(path)
     print(f"Recorded {args.action} for {candidate.key} in {FILENAME}; review and stage this file.")
     return 0
@@ -381,7 +445,8 @@ def pair_usd(choice: PluginChoice | None, settings: Settings) -> str:
     if choice.use in ("claude-code", "codex"):
         return "subscription"
     model = choice.options().get("model") or {"anthropic": "claude-sonnet-5-5", "gemini": "gemini-3.1-pro-preview"}.get(
-        choice.use, choice.use)
+        choice.use, choice.use
+    )
     rates = {**PRICES, **settings.prices}.get(model)
     if rates is None:
         return "unknown price"
@@ -391,33 +456,52 @@ def pair_usd(choice: PluginChoice | None, settings: Settings) -> str:
 
 def config(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     """The resolved judging setup, the credentials that chose it (by name only), every preset, and the cost."""
-    found = [v for v in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "GEMINI_API_KEY")
-             if os.environ.get(v)]
+    found = [
+        v
+        for v in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "GEMINI_API_KEY")
+        if os.environ.get(v)
+    ]
     preset = PRESETS.get(settings.preset)
-    explicit = sorted(f for f in ("judge", "escalate", "drop_below", "report_at", "fail_at")
-                      if f in Settings.load(root).model_fields_set)
-    lines = [f"preset: {settings.preset}" + (f" - {preset.summary}" if preset else " - your own judge"),
-             f"  credentials found: {', '.join(found) or 'none'}"]
+    explicit = sorted(
+        f
+        for f in ("judge", "escalate", "drop_below", "report_at", "fail_at")
+        if f in Settings.load(root).model_fields_set
+    )
+    lines = [
+        f"preset: {settings.preset}" + (f" - {preset.summary}" if preset else " - your own judge"),
+        f"  credentials found: {', '.join(found) or 'none'}",
+    ]
     if preset and preset.numbers:
         lines.append(f"  {'measured' if preset.measured else 'expected'}: {preset.numbers}")
     escalate = settings.escalate
-    lines += [f"judge: {settings.judge.use}{' ' + str(settings.judge.options()) if settings.judge.options() else ''}"
-              f" ({pair_usd(settings.judge, settings)})",
-              "escalate: " + (f"{escalate.use} {escalate.options() or ''} on [{escalate.between[0]:g}, "
-                              f"{escalate.between[1]:g}) ({pair_usd(escalate, settings)})" if escalate else "none"),
-              f"thresholds: drop below {settings.drop_below:g} - report at {settings.report_at:g} - "
-              f"fail at {max(settings.report_at, settings.fail_at):g}"
-              + (f" - first judge alone at {escalate.first_at:g}" if escalate and escalate.first_at is not None else "")
-              + (f" (set explicitly: {', '.join(explicit)})" if explicit else ""),
-              f"budget: ${settings.budget.usd:g} per pull request at list price, subscriptions included; "
-              f"{settings.budget.subscription_calls} "
-              "subscription calls", "", "presets:"]
+    lines += [
+        f"judge: {settings.judge.use}{' ' + str(settings.judge.options()) if settings.judge.options() else ''}"
+        f" ({pair_usd(settings.judge, settings)})",
+        "escalate: "
+        + (
+            f"{escalate.use} {escalate.options() or ''} on [{escalate.between[0]:g}, "
+            f"{escalate.between[1]:g}) ({pair_usd(escalate, settings)})"
+            if escalate
+            else "none"
+        ),
+        f"thresholds: drop below {settings.drop_below:g} - report at {settings.report_at:g} - "
+        f"fail at {max(settings.report_at, settings.fail_at):g}"
+        + (f" - first judge alone at {escalate.first_at:g}" if escalate and escalate.first_at is not None else "")
+        + (f" (set explicitly: {', '.join(explicit)})" if explicit else ""),
+        f"budget: ${settings.budget.usd:g} per pull request at list price, subscriptions included; "
+        f"{settings.budget.subscription_calls} "
+        "subscription calls",
+        "",
+        "presets:",
+    ]
     for name in LISTED:
         p = PRESETS[name]
         missing = [v for v in p.needs if not os.environ.get(v)]
-        lines.append(f"  {'*' if name == settings.preset else ' '} {name:22} {p.summary}"
-                     + (f"  [needs {', '.join(missing)}]" if missing else "")
-                     + ("  [named only]" if not p.automatic else ""))
+        lines.append(
+            f"  {'*' if name == settings.preset else ' '} {name:22} {p.summary}"
+            + (f"  [needs {', '.join(missing)}]" if missing else "")
+            + ("  [named only]" if not p.automatic else "")
+        )
     print("\n".join(lines))
     return 0
 
@@ -448,6 +532,7 @@ def default_gold(root: Path) -> Path:
 
 def index(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     from dry_lint.function_index import export_index
+
     snapshot = export_index(root, args.repository, settings)
     args.out.write_bytes(snapshot.encode())
     print(snapshot.artifact_name)
@@ -466,16 +551,19 @@ def bench_replay(root: Path, settings: Settings, args: argparse.Namespace) -> in
     specs = args.labeller or settings.labellers
     labellers = [labeller(spec) for spec in specs] if args.label else []
     progress = lambda line: print(line, file=sys.stderr)  # noqa: E731
-    result = replay(root, settings, open_store(settings, root, args.store), args.replay, base_ref(root, args.ref),
-                    progress=progress)
+    result = replay(
+        root, settings, open_store(settings, root, args.store), args.replay, base_ref(root, args.ref), progress=progress
+    )
     if labellers:
         gold_path = args.gold_out or default_gold(root)
         pairs = sample([f for _, f in result.findings()], args.label)
-        answers = label(pairs, labellers, gold_path.with_suffix(".answers.jsonl"), args.label_budget_usd,
-                        progress=progress)
+        answers = label(
+            pairs, labellers, gold_path.with_suffix(".answers.jsonl"), args.label_budget_usd, progress=progress
+        )
         judge = result.commits[0].report.judge if result.commits else None
-        result.labels = summarise(pairs, answers, [who.name for who in labellers], settings, gold_path,
-                                  len(result.commits), judge)
+        result.labels = summarise(
+            pairs, answers, [who.name for who in labellers], settings, gold_path, len(result.commits), judge
+        )
     print(result.model_dump_json(indent=1) if args.format == "json" else result.as_text())
     if args.report:
         args.report.write_text(result.model_dump_json(indent=1) + "\n")
@@ -485,25 +573,52 @@ def bench_replay(root: Path, settings: Settings, args: argparse.Namespace) -> in
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
-    common.add_argument("--env-file", type=Path, help="Optional local dotenv file for judge credentials only; requires dry-lint[hooks].")
-    common.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH",
-                        help="Repeat for every checkout; compare across repositories. Include --root for checks.")
-    common.add_argument("--repo-index", action="append", default=[], metavar="OWNER/NAME@COMMIT=PATH",
-                        help="A versioned peer function index; no checkout needed. Repeat for each peer.")
+    common.add_argument(
+        "--env-file", type=Path, help="Optional local dotenv file for judge credentials only; requires dry-lint[hooks]."
+    )
+    common.add_argument(
+        "--repo",
+        action="append",
+        default=[],
+        metavar="OWNER/NAME=PATH",
+        help="Repeat for every checkout; compare across repositories. Include --root for checks.",
+    )
+    common.add_argument(
+        "--repo-index",
+        action="append",
+        default=[],
+        metavar="OWNER/NAME@COMMIT=PATH",
+        help="A versioned peer function index; no checkout needed. Repeat for each peer.",
+    )
     common.add_argument("--detector", help="Comparer plugin, overriding the settings: tfidf, dryer, or installed.")
-    common.add_argument("--judge", help="Judge plugin, overriding the settings: auto, jev, command, none, or installed.")
+    common.add_argument(
+        "--judge", help="Judge plugin, overriding the settings: auto, jev, command, none, or installed."
+    )
     common.add_argument("--judge-command", help="For the command judge: a command reading the candidate on stdin.")
     common.add_argument("--store", type=Path, help="A folder for the verdict store, overriding the settings.")
-    common.add_argument("--session", help="Stable local campaign name; defaults to the branch. Use a new name for a new task.")
-    common.add_argument("--discovery-state", type=Path, help="Persistent SQLite campaign ledger; defaults beside verdicts.")
+    common.add_argument(
+        "--session", help="Stable local campaign name; defaults to the branch. Use a new name for a new task."
+    )
+    common.add_argument(
+        "--discovery-state", type=Path, help="Persistent SQLite campaign ledger; defaults beside verdicts."
+    )
     common.add_argument("--format", choices=FORMATS, default="text")
     common.add_argument("--output", type=Path, help="Also write the markdown report here, e.g. for a PR comment.")
     common.add_argument("--report", type=Path, help="Also write report.json here.")
-    common.add_argument("--fail-at", type=float, help="Judge score at or above which a duplicate fails the run, "
-                                                      "overriding fail_at in the settings.")
-    common.add_argument("--preset", help="Judging preset (judges and their thresholds), overriding the settings; "
-                                         "`dry-lint config` lists them.")
-    common.add_argument("--budget-usd", type=float, help="Most judging spends on this pull request (all its runs), overriding budget.usd.")
+    common.add_argument(
+        "--fail-at",
+        type=float,
+        help="Judge score at or above which a duplicate fails the run, overriding fail_at in the settings.",
+    )
+    common.add_argument(
+        "--preset",
+        help="Judging preset (judges and their thresholds), overriding the settings; `dry-lint config` lists them.",
+    )
+    common.add_argument(
+        "--budget-usd",
+        type=float,
+        help="Most judging spends on this pull request (all its runs), overriding budget.usd.",
+    )
     common.add_argument("--warn-only", action="store_true", help="Report, but always exit 0.")
     common.add_argument("--require-complete", action="store_true", help="Fail on missing or incomplete judging.")
     common.add_argument("--baseline", type=Path, help="Accepted duplication baseline, relative to --root.")
@@ -512,7 +627,9 @@ def parser() -> argparse.ArgumentParser:
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")
     main.add_argument("--version", action="version", version=f"dry-lint {__version__}")
     commands = main.add_subparsers(dest="command", required=True)
-    exporting = commands.add_parser("index", parents=[common], help="Export committed functions for reuse by peer repositories.")
+    exporting = commands.add_parser(
+        "index", parents=[common], help="Export committed functions for reuse by peer repositories."
+    )
     exporting.add_argument("--repository", required=True, help="Source OWNER/NAME.")
     exporting.add_argument("--out", type=Path, required=True, help="Write the versioned gzip JSON snapshot here.")
 
@@ -523,15 +640,23 @@ def parser() -> argparse.ArgumentParser:
         if everything:
             group.add_argument("--all", action="store_true", help="Propose the whole repository's backlog instead.")
 
-    where(commands.add_parser("check", parents=[common], help="Detect, judge and report the functions a change touched."))
+    where(
+        commands.add_parser("check", parents=[common], help="Detect, judge and report the functions a change touched.")
+    )
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
     sweep.add_argument("--limit", type=int, default=50, help="Judge and show at most this many pairs, closest first.")
     sweep.add_argument("--refresh", action="store_true", help="Re-judge verdicts from older versions of the judge.")
-    ratcheting = commands.add_parser("sweep", parents=[common], help="Scan all functions and shrink the accepted backlog.")
+    ratcheting = commands.add_parser(
+        "sweep", parents=[common], help="Scan all functions and shrink the accepted backlog."
+    )
     ratcheting.add_argument("--init", action="store_true", help="Initialize once from a fully judged repository sweep.")
-    ratcheting.add_argument("--update", action="store_true", help="Write the shrinking baseline and progress after review.")
+    ratcheting.add_argument(
+        "--update", action="store_true", help="Write the shrinking baseline and progress after review."
+    )
     ratcheting.add_argument("--readme", type=Path, help="Maintain the cleanup progress block in this README.")
-    ratcheting.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""), help="README badge OWNER/NAME.")
+    ratcheting.add_argument(
+        "--repository", default=os.environ.get("GITHUB_REPOSITORY", ""), help="README badge OWNER/NAME."
+    )
     ratcheting.add_argument("--branch", default="main", help="README badge's published branch (default: main).")
     proposing = commands.add_parser("detect", parents=[common], help="Write candidates.json; no judge, no store.")
     where(proposing, everything=True)
@@ -543,43 +668,81 @@ def parser() -> argparse.ArgumentParser:
     explaining = commands.add_parser("explain", parents=[common], help="Why a pair is, or is not, reported.")
     explaining.add_argument("first", help="A qualified name, or a suffix only one function has.")
     explaining.add_argument("second")
-    measuring = commands.add_parser("bench", parents=[common],
-                                    help="Measure the judge or the comparer on a gold set, or replay recent commits.")
+    measuring = commands.add_parser(
+        "bench", parents=[common], help="Measure the judge or the comparer on a gold set, or replay recent commits."
+    )
     source = measuring.add_mutually_exclusive_group(required=True)
     source.add_argument("--gold", type=Path, help="gold.jsonl (docs/benchmark.md).")
-    source.add_argument("--replay", type=int, metavar="N",
-                        help="Check each of the last N commits of the default branch as `check` would have, with these "
-                             "settings: what would have failed, warned and cost.")
+    source.add_argument(
+        "--replay",
+        type=int,
+        metavar="N",
+        help="Check each of the last N commits of the default branch as `check` would have, with these "
+        "settings: what would have failed, warned and cost.",
+    )
     measuring.add_argument("--comparer", action="store_true", help="Measure the comparer's recall instead.")
     measuring.add_argument("--ref", help="With --replay: the branch to replay (default: origin/HEAD).")
-    measuring.add_argument("--label", type=int, metavar="K",
-                           help="With --replay: label about K of its pairs, sampled by judge score, into a gold set, "
-                                "and report what the judging caught, missed and blocked wrongly.")
-    measuring.add_argument("--gold-out", type=Path,
-                           help="With --label: the gold file (default: inside the git directory). Answers are kept "
-                                "beside it, so a second run only asks about new pairs.")
-    measuring.add_argument("--labeller", action="append", default=[],
-                           help="With --label: an OpenRouter model id, or command:<cli>; repeat for a panel "
-                                "(default: the `labellers` setting, three vendors' models).")
-    measuring.add_argument("--label-budget-usd", type=float, default=5.0,
-                           help="With --label: most this run spends on labellers that report their cost.")
+    measuring.add_argument(
+        "--label",
+        type=int,
+        metavar="K",
+        help="With --replay: label about K of its pairs, sampled by judge score, into a gold set, "
+        "and report what the judging caught, missed and blocked wrongly.",
+    )
+    measuring.add_argument(
+        "--gold-out",
+        type=Path,
+        help="With --label: the gold file (default: inside the git directory). Answers are kept "
+        "beside it, so a second run only asks about new pairs.",
+    )
+    measuring.add_argument(
+        "--labeller",
+        action="append",
+        default=[],
+        help="With --label: an OpenRouter model id, or command:<cli>; repeat for a panel "
+        "(default: the `labellers` setting, three vendors' models).",
+    )
+    measuring.add_argument(
+        "--label-budget-usd",
+        type=float,
+        default=5.0,
+        help="With --label: most this run spends on labellers that report their cost.",
+    )
     commands.add_parser("config", parents=[common], help="The judging setup this repository would run, and its cost.")
-    trailing = commands.add_parser("trailers", parents=[common],
-                                   help="Write what the hook kept out before this commit into its message (prepare-commit-msg).")
+    trailing = commands.add_parser(
+        "trailers",
+        parents=[common],
+        help="Write what the hook kept out before this commit into its message (prepare-commit-msg).",
+    )
     trailing.add_argument("message", type=Path, help="The commit message file git passes the hook.")
     trailing.add_argument("source", nargs="*", help="The message's source and commit, as git passes them; unused.")
-    reviewing = commands.add_parser("feedback", parents=[common], help="Record a reviewed fix or exact-source dismissal.")
+    reviewing = commands.add_parser(
+        "feedback", parents=[common], help="Record a reviewed fix or exact-source dismissal."
+    )
     reviewing.add_argument("action", choices=("fix", "dismiss"))
     reviewing.add_argument("pair", help="Pair key shown in the finding.")
-    reviewing.add_argument("--from", dest="source", type=Path, help="Report to review; defaults to the last discovery check.")
+    reviewing.add_argument(
+        "--from", dest="source", type=Path, help="Report to review; defaults to the last discovery check."
+    )
     reviewing.add_argument("--reason", required=True)
     reviewing.add_argument("--reviewer", required=True, help="Person or coding agent that reviewed the finding.")
     return main
 
 
-COMMANDS = {"check": check, "scan": scan, "sweep": sweep, "detect": detect, "judge": judge, "report": report, "explain": explain,
-            "config": config, "index": index, "feedback": feedback, "trailers": trailers,
-            "bench": bench}
+COMMANDS = {
+    "check": check,
+    "scan": scan,
+    "sweep": sweep,
+    "detect": detect,
+    "judge": judge,
+    "report": report,
+    "explain": explain,
+    "config": config,
+    "index": index,
+    "feedback": feedback,
+    "trailers": trailers,
+    "bench": bench,
+}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -588,6 +751,7 @@ def main(argv: list[str] | None = None) -> int:
         root = repository_root(args.root)
         if args.env_file and (root / args.env_file).is_file():  # optional: the hook names .env whether or not it exists
             from dotenv import dotenv_values
+
             credentials = dotenv_values(root / args.env_file, interpolate=False)
             for name in ("ANTHROPIC_API_KEY", "TYPESAFE_AI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
                 if credentials.get(name) and not os.environ.get(name):

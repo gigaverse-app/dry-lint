@@ -64,15 +64,31 @@ def gh(*args: str) -> object:
 
 
 def audit(repository: str, limit: int, state: str = "merged", fetch: Callable[..., object] = gh) -> list[Judged]:
-    pulls = fetch("pr", "list", "--repo", repository, "--state", state, "--limit", str(limit),
-                  "--json", "number,labels,statusCheckRollup")
+    pulls = fetch(
+        "pr",
+        "list",
+        "--repo",
+        repository,
+        "--state",
+        state,
+        "--limit",
+        str(limit),
+        "--json",
+        "number,labels,statusCheckRollup",
+    )
     found = []
     for pull in pulls:
         comments = fetch("api", "--paginate", f"repos/{repository}/issues/{pull['number']}/comments")
         bodies = [c["body"] for c in comments if MARKER in c["body"]]
         if bodies:
-            found.append(judged(pull["number"], bodies[-1], [label["name"] for label in pull["labels"]],
-                                pull["statusCheckRollup"] or []))
+            found.append(
+                judged(
+                    pull["number"],
+                    bodies[-1],
+                    [label["name"] for label in pull["labels"]],
+                    pull["statusCheckRollup"] or [],
+                )
+            )
     return found
 
 
@@ -81,14 +97,18 @@ def summary(rows: list[Judged]) -> str:
     lines = [f"{len(rows)} pull requests with a dry-lint comment; {len(billed)} show what judging spent"]
     if billed:
         spent = sorted(r.spent for r in billed)
-        lines.append(f"spent a pull request: average ${sum(spent) / len(spent):.4f}, median ${spent[len(spent) // 2]:.4f}, "
-                     f"most ${spent[-1]:.4f}")
+        lines.append(
+            f"spent a pull request: average ${sum(spent) / len(spent):.4f}, median ${spent[len(spent) // 2]:.4f}, "
+            f"most ${spent[-1]:.4f}"
+        )
     presets = sorted({r.preset for r in rows if r.preset})
-    lines += [f"presets: {', '.join(presets) or 'none shown'}",
-              f"budget ran out: {sum(r.capped for r in rows)}",
-              f"a judge failed: {sum(bool(r.judge_failed) for r in rows)}",
-              f"check failed: {sum(r.check_failed for r in rows)}; let through with '{OVERRIDE}': "
-              f"{sum(r.overridden for r in rows)}"]
+    lines += [
+        f"presets: {', '.join(presets) or 'none shown'}",
+        f"budget ran out: {sum(r.capped for r in rows)}",
+        f"a judge failed: {sum(bool(r.judge_failed) for r in rows)}",
+        f"check failed: {sum(r.check_failed for r in rows)}; let through with '{OVERRIDE}': "
+        f"{sum(r.overridden for r in rows)}",
+    ]
     lines += [f"  #{r.number}: {r.judge_failed}" for r in rows if r.judge_failed]
     return "\n".join(lines)
 

@@ -24,8 +24,14 @@ from conftest import TWIN, claude, coverage_pair
 def setup(tmp_path):
     settings = resolve(Settings(preset="balanced"))
     requests = []
-    judge = AnthropicJudge(api_key="test", http_client=claude({"stop_reason": "end_turn", "content": [
-        {"type": "text", "text": '{"label":"duplicate","score":0.8}'}]}, requests), **settings.judge.options())
+    judge = AnthropicJudge(
+        api_key="test",
+        http_client=claude(
+            {"stop_reason": "end_turn", "content": [{"type": "text", "text": '{"label":"duplicate","score":0.8}'}]},
+            requests,
+        ),
+        **settings.judge.options(),
+    )
     store = VerdictStore(DirectoryStore(tmp_path / "verdicts"))
     return settings, judge, store, requests
 
@@ -73,8 +79,10 @@ def test_atomic_reservations_and_abandoned_calls_stay_charged(setup, tmp_path):
     path = tmp_path / "ledger.sqlite3"
     run = Run(session="feature", revision="tree")
     CampaignStore(path, run)
+
     def reserve(n):
         return CampaignStore(path, run).reserve(coverage_pair(n), judge, settings, 0.003)
+
     with ThreadPoolExecutor(4) as pool:
         reservations = list(pool.map(reserve, range(4)))
     assert sum(r is not None for r in reservations) == 1
@@ -85,8 +93,10 @@ def test_atomic_reservations_and_abandoned_calls_stay_charged(setup, tmp_path):
 
 def test_failed_answers_remain_unresolved_and_do_not_get_free_retries(setup, tmp_path):
     settings, judge, store, requests = setup
-    judge.client = AnthropicJudge(api_key="test", http_client=claude({"stop_reason": "end_turn", "content": [
-        {"type": "text", "text": 'not json'}]}, requests)).client
+    judge.client = AnthropicJudge(
+        api_key="test",
+        http_client=claude({"stop_reason": "end_turn", "content": [{"type": "text", "text": "not json"}]}, requests),
+    ).client
     pair = coverage_pair(1)
     report, state = check(setup, tmp_path, [pair])
     assert report.deferred == 1 and state.usd > 0
@@ -108,8 +118,10 @@ def test_wider_retrieval_keeps_every_baseline_pair_and_its_order(repo):
 
 
 def test_same_file_duplicates_are_exploration_and_never_replace_baseline(repo):
-    repo.write("src/widgets/caption.py", TWIN + TWIN.replace("preview_caption_text", "preview_title_text")
-               .replace("register_widget", "register_title"))
+    repo.write(
+        "src/widgets/caption.py",
+        TWIN + TWIN.replace("preview_caption_text", "preview_title_text").replace("register_widget", "register_title"),
+    )
     settings = resolve(Settings(preset="balanced"))
     detector = Detector.for_repository(repo.root, settings)
     pairs = detector.candidates(touched(detector.functions, changed_lines(repo.root, "main")))
@@ -129,8 +141,17 @@ def test_cli_feedback_must_be_staged_and_changes_reopen_dismissals(repo, setup, 
         report = Report.model_validate_json(report_path.read_bytes())
         assert report.run.pull_request is None and report.run.session
         pair = report.findings[0].candidate.key
-        feedback_args = ["feedback", "--root", str(repo.root), "--from", str(report_path),
-                         "--reason", "Reviewed separate lifetime contracts", "--reviewer", "test-agent"]
+        feedback_args = [
+            "feedback",
+            "--root",
+            str(repo.root),
+            "--from",
+            str(report_path),
+            "--reason",
+            "Reviewed separate lifetime contracts",
+            "--reviewer",
+            "test-agent",
+        ]
         assert main([*feedback_args, "fix", pair]) == 2  # unchanged code is not a fix
         assert main([*feedback_args, "dismiss", pair]) == 0
         assert main(args) == 1  # an unstaged dismissal cannot clear staged source
@@ -202,8 +223,11 @@ def test_old_pr_spending_is_carried_into_the_campaign(setup, tmp_path):
 
 def test_provider_failure_is_accounted_without_sdk_retry(setup, tmp_path):
     settings, _, store, calls = setup
-    judge = AnthropicJudge(api_key="test", http_client=claude({"error": {"type": "overloaded_error",
-        "message": "unavailable"}}, calls, status=529), **settings.judge.options())
+    judge = AnthropicJudge(
+        api_key="test",
+        http_client=claude({"error": {"type": "overloaded_error", "message": "unavailable"}}, calls, status=529),
+        **settings.judge.options(),
+    )
     report, state = check((settings, judge, store, calls), tmp_path, [coverage_pair(1)])
     assert report.deferred == 1 and len(calls) == 1
     assert state.usd == reservation_cost(judge, coverage_pair(1), settings)
@@ -221,10 +245,23 @@ def test_broken_plugin_response_cannot_clear_a_pair_or_refund_the_attempt(setup,
 
 def test_cache_usage_is_included_in_the_settled_bill(setup, tmp_path):
     settings, _, store, calls = setup
-    judge = AnthropicJudge(api_key="test", http_client=claude({"stop_reason": "end_turn", "usage": {
-        "input_tokens": 1000, "output_tokens": 100, "cache_creation_input_tokens": 200,
-        "cache_read_input_tokens": 300}, "content": [{"type": "text", "text": '{"label":"separate","score":0.1}'}]},
-        calls), **settings.judge.options())
+    judge = AnthropicJudge(
+        api_key="test",
+        http_client=claude(
+            {
+                "stop_reason": "end_turn",
+                "usage": {
+                    "input_tokens": 1000,
+                    "output_tokens": 100,
+                    "cache_creation_input_tokens": 200,
+                    "cache_read_input_tokens": 300,
+                },
+                "content": [{"type": "text", "text": '{"label":"separate","score":0.1}'}],
+            },
+            calls,
+        ),
+        **settings.judge.options(),
+    )
     _, state = check((settings, judge, store, calls), tmp_path, [coverage_pair(1)])
     assert state.usd == pytest.approx(0.000178)
 
@@ -254,10 +291,38 @@ def test_split_cli_carries_baseline_lanes_and_reuses_campaign(repo, setup, tmp_p
         last = repo.root / ".git/dry-lint/last-report.json"
         assert last.exists()
         pair = Report.model_validate_json(last.read_bytes()).findings[0].candidate.key
-        assert main(["feedback", "dismiss", pair, "--root", str(repo.root), "--reason", "Reviewed distinct contracts",
-                     "--reviewer", "test-agent"]) == 0
+        assert (
+            main(
+                [
+                    "feedback",
+                    "dismiss",
+                    pair,
+                    "--root",
+                    str(repo.root),
+                    "--reason",
+                    "Reviewed distinct contracts",
+                    "--reviewer",
+                    "test-agent",
+                ]
+            )
+            == 0
+        )
         assert main(["check", *common, "--base", "main"]) == 1  # unstaged decision is absent from HEAD
         repo.commit("reviewed distinction")
         assert main(["check", *common, "--base", "main"]) == 0
-        assert main(["feedback", "dismiss", "missing", "--root", str(repo.root),
-                     "--reason", "not a report", "--reviewer", "test-agent"]) == 2
+        assert (
+            main(
+                [
+                    "feedback",
+                    "dismiss",
+                    "missing",
+                    "--root",
+                    str(repo.root),
+                    "--reason",
+                    "not a report",
+                    "--reviewer",
+                    "test-agent",
+                ]
+            )
+            == 2
+        )

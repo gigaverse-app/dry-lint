@@ -45,7 +45,7 @@ In CI, install plugins in the judge job from the workflow, not from settings a p
 class Extractor(Protocol):
     name: str
     version: str
-    files: tuple[str, ...]          # fnmatch globs over paths, e.g. ("*.ts", "*.tsx")
+    files: tuple[str, ...]  # fnmatch globs over paths, e.g. ("*.ts", "*.tsx")
 
     def functions(self, path: str, source: str) -> list[Function]: ...
     def structure_hash(self, function: Function) -> str: ...
@@ -65,11 +65,12 @@ capability; ordinary candidate-only scans retain their previous plugin behavior.
 ```python
 class Comparer(Protocol):
     name: str
-    version: str                    # bump when similarities change meaning
+    version: str  # bump when similarities change meaning
 
     def index(self, functions: list[Function]) -> None: ...
-    def neighbours(self, function: Function, k: int,
-                   allowed: Callable[[Function], bool]) -> list[tuple[Function, float]]: ...
+    def neighbours(
+        self, function: Function, k: int, allowed: Callable[[Function], bool]
+    ) -> list[tuple[Function, float]]: ...
     def similarity(self, a: Function, b: Function) -> float: ...
 ```
 
@@ -88,8 +89,8 @@ partner is among the proposed neighbours.
 
 ```python
 class Judge(Protocol):
-    name: str                       # e.g. "jev", "command:claude"
-    version: str                    # model and prompt version
+    name: str  # e.g. "jev", "command:claude"
+    version: str  # model and prompt version
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]: ...
 ```

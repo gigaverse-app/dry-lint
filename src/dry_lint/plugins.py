@@ -47,8 +47,9 @@ class Comparer(Protocol):
 
     def index(self, functions: list[Function]) -> None: ...
 
-    def neighbours(self, function: Function, k: int,
-                   allowed: Callable[[Function], bool]) -> list[tuple[Function, float]]:
+    def neighbours(
+        self, function: Function, k: int, allowed: Callable[[Function], bool]
+    ) -> list[tuple[Function, float]]:
         """Up to `k` indexed functions for which `allowed` holds, most similar first, above the comparer's floor."""
         ...
 
@@ -73,13 +74,19 @@ class StoreBackend(Protocol):
 
 
 BUILT_IN = {
-    "extractors": {"python": "dry_lint.extractors:PythonExtractor",
-                   "typescript": "dry_lint.typescript:TypeScriptExtractor"},
+    "extractors": {
+        "python": "dry_lint.extractors:PythonExtractor",
+        "typescript": "dry_lint.typescript:TypeScriptExtractor",
+    },
     "comparers": {"tfidf": "dry_lint.comparers:TfidfComparer", "dryer": "dry_lint.dryer:DryerComparer"},
-    "judges": {"jev": "dry_lint.judges.jev:JevJudge", "command": "dry_lint.judges.command:CommandJudge",
-               "gemini": "dry_lint.judges.gemini:GeminiJudge", "anthropic": "dry_lint.judges.anthropic:AnthropicJudge",
-               "claude-code": "dry_lint.judges.subscription:ClaudeCodeJudge",
-               "codex": "dry_lint.judges.subscription:CodexJudge"},
+    "judges": {
+        "jev": "dry_lint.judges.jev:JevJudge",
+        "command": "dry_lint.judges.command:CommandJudge",
+        "gemini": "dry_lint.judges.gemini:GeminiJudge",
+        "anthropic": "dry_lint.judges.anthropic:AnthropicJudge",
+        "claude-code": "dry_lint.judges.subscription:ClaudeCodeJudge",
+        "codex": "dry_lint.judges.subscription:CodexJudge",
+    },
     "stores": {"dir": "dry_lint.store:DirectoryStore", "s3": "dry_lint.store:S3Store"},
 }
 

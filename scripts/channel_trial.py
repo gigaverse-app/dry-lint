@@ -70,12 +70,15 @@ class CslsComparer:
         if function.qualname not in self.radii:
             own = self.inner.position.get(function.qualname)
             ranked = self.inner.tfidf.similar(function.tokens, exclude={own} if own is not None else set())
-            near = [score for position, score in ranked if self.inner.functions[position].path != function.path][: self.pool]
+            near = [score for position, score in ranked if self.inner.functions[position].path != function.path][
+                : self.pool
+            ]
             self.radii[function.qualname] = sum(near) / len(near) if near else 0.0
         return self.radii[function.qualname]
 
-    def neighbours(self, function: Function, k: int,
-                   allowed: Callable[[Function], bool]) -> list[tuple[Function, float]]:
+    def neighbours(
+        self, function: Function, k: int, allowed: Callable[[Function], bool]
+    ) -> list[tuple[Function, float]]:
         near = self.inner.neighbours(function, max(k, self.pool), allowed)
         return sorted(near, key=lambda pair: self.radius(pair[0]) - 2 * pair[1])[:k]
 
@@ -95,8 +98,9 @@ class Floored:
     def index(self, functions: list[Function]) -> None:
         self.inner.index(functions)
 
-    def neighbours(self, function: Function, k: int,
-                   allowed: Callable[[Function], bool]) -> list[tuple[Function, float]]:
+    def neighbours(
+        self, function: Function, k: int, allowed: Callable[[Function], bool]
+    ) -> list[tuple[Function, float]]:
         return [(other, score) for other, score in self.inner.neighbours(function, k, allowed) if score >= self.floor]
 
     def similarity(self, a: Function, b: Function) -> float:
@@ -131,6 +135,7 @@ class LsiComparer:
         rank = min(self.rank, len(functions), len(self.vocabulary))
         self.basis = np.zeros((len(self.vocabulary), rank))
         if rank:
+
             def times(x: np.ndarray) -> np.ndarray:  # A x
                 out = np.zeros((len(functions), x.shape[1]))
                 np.add.at(out, rows, values[:, None] * x[columns])
@@ -160,8 +165,9 @@ class LsiComparer:
         scores = self.embedding @ self.embed(function)
         return [(int(i), float(scores[i])) for i in np.argsort(-scores, kind="stable") if i != own]
 
-    def neighbours(self, function: Function, k: int,
-                   allowed: Callable[[Function], bool]) -> list[tuple[Function, float]]:
+    def neighbours(
+        self, function: Function, k: int, allowed: Callable[[Function], bool]
+    ) -> list[tuple[Function, float]]:
         found = []
         for position, similarity in self.ranked(function):
             if len(found) == k:
@@ -183,9 +189,13 @@ def mutual_nearest(detector: Detector, near: dict[str, list[tuple[str, float]]])
     """`Detector.scan`'s backlog from precomputed neighbours: mutual first neighbours that no rule settles."""
     best = {name: found[0] for name, found in near.items() if found}
     by_name = {f.qualname: f for f in detector.functions}
-    return {frozenset((name, other)) for name, (other, _) in best.items()
-            if name < other and best.get(other, ("",))[0] == name
-            and why_skipped(by_name[name], by_name[other], detector.settings) is None}
+    return {
+        frozenset((name, other))
+        for name, (other, _) in best.items()
+        if name < other
+        and best.get(other, ("",))[0] == name
+        and why_skipped(by_name[name], by_name[other], detector.settings) is None
+    }
 
 
 def share_with_neighbour(near: dict[str, list[tuple[str, float]]]) -> float:

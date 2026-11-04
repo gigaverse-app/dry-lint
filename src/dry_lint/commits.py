@@ -73,8 +73,9 @@ class Journal(BaseModel):
         for key, finding in reported.items():
             new, existing = finding.candidate.new, finding.candidate.existing
             path, _, name = new.qualname.partition("::")
-            journal.blocked[key] = Outcome(key=key, new=name, existing=existing.qualname.split("::", 1)[-1],
-                                           path=path, lines=new.lines)
+            journal.blocked[key] = Outcome(
+                key=key, new=name, existing=existing.qualname.split("::", 1)[-1], path=path, lines=new.lines
+            )
             journal.pending.pop(key, None)  # back again: the commit that carries it must not say it was kept out
         for key, pair in list(journal.blocked.items()):
             if key in reported or key in unjudged or pair.path not in staged:
@@ -98,8 +99,13 @@ def outcomes(messages: list[str]) -> list[Outcome]:
         name, _, value = line.partition(":")
         match = VALUE.fullmatch(value.strip())
         if name.strip().lower() in names and match:
-            found[match["key"]] = Outcome(key=match["key"], new=match["new"], existing=match["existing"],
-                                          lines=int(match["lines"] or 0), state=names[name.strip().lower()])
+            found[match["key"]] = Outcome(
+                key=match["key"],
+                new=match["new"],
+                existing=match["existing"],
+                lines=int(match["lines"] or 0),
+                state=names[name.strip().lower()],
+            )
     return list(found.values())
 
 
@@ -129,5 +135,7 @@ def summary(root: Path, base: str) -> str:
     dismissed = sum(o.state == "dismissed" for o in outcomes.values())
     if not kept and not dismissed:
         return ""
-    return (f"dry-lint before commit on this branch: {plural(kept, 'duplicate')} kept out, "
-            f"{plural(dismissed, 'look-alike')} dismissed; the pull request's comment counts them")
+    return (
+        f"dry-lint before commit on this branch: {plural(kept, 'duplicate')} kept out, "
+        f"{plural(dismissed, 'look-alike')} dismissed; the pull request's comment counts them"
+    )

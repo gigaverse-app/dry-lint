@@ -17,7 +17,7 @@ def extractor():
 
 
 def test_extracts_named_implementations_and_preserves_locations(extractor):
-    source = textwrap.dedent('''\
+    source = textwrap.dedent("""\
         interface Shape { render(): string }
         declare function external(): void;
         export function truncate(text: string) {
@@ -31,11 +31,15 @@ def test_extracts_named_implementations_and_preserves_locations(extractor):
         }
         const tools = { clean(text: string) { return text.trim(); } };
         export default function(text: string) { return text.trim(); }
-    ''')
+    """)
     found = extractor.functions("src/text.ts", source)
     assert [f.qualname for f in found] == [
-        "src/text.ts::truncate", "src/text.ts::shorten", "src/text.ts::Formatter.format",
-        "src/text.ts::Formatter.clean", "src/text.ts::tools.clean", "src/text.ts::default",
+        "src/text.ts::truncate",
+        "src/text.ts::shorten",
+        "src/text.ts::Formatter.format",
+        "src/text.ts::Formatter.clean",
+        "src/text.ts::tools.clean",
+        "src/text.ts::default",
     ]
     assert (found[0].line, found[0].end_line) == (3, 6)
     assert "function nested" in found[0].code
@@ -44,12 +48,12 @@ def test_extracts_named_implementations_and_preserves_locations(extractor):
 
 @pytest.mark.parametrize("path", ["src/text.ts", "src/text.mts", "src/text.cts"])
 def test_tokens_describe_runtime_behavior_not_types_or_comments(extractor, path):
-    source = '''export const loadInvoice = async (client: SecretClient): Promise<SecretInvoice> => {
+    source = """export const loadInvoice = async (client: SecretClient): Promise<SecretInvoice> => {
       // fictionalCall() and SecretAnnotation are not behavior
       const message = "otherCall() SecretProse";
       try { return await client.fetchInvoice({ invoiceId: client.invoiceId }); }
       catch (error) { return client.cachedInvoice; }
-    };'''
+    };"""
     function = extractor.functions(path, source)[0]
     assert function.calls == []  # client.fetchInvoice is another object's method: a token, not a direct call
     assert {"call:fetchinvoice", "attr:cachedinvoice", "key:invoiceId", "ctl:await", "ctl:try"} <= set(function.tokens)
@@ -58,30 +62,44 @@ def test_tokens_describe_runtime_behavior_not_types_or_comments(extractor, path)
 
 def test_functions_that_both_call_a_builtin_method_are_judged_not_taken_as_delegating(extractor):
     """INVARIANT: two functions are "one calls the other" only when one provably calls the other, not a shared method."""
-    [trim] = extractor.functions("src/a.ts", "export function trim(value: string) {\n  return value.trim().toLowerCase();\n}")
-    [normalize] = extractor.functions("src/b.ts", "export function normalize(value: string) {\n  return value.trim().toLowerCase();\n}")
+    [trim] = extractor.functions(
+        "src/a.ts", "export function trim(value: string) {\n  return value.trim().toLowerCase();\n}"
+    )
+    [normalize] = extractor.functions(
+        "src/b.ts", "export function normalize(value: string) {\n  return value.trim().toLowerCase();\n}"
+    )
     assert trim.calls == normalize.calls == []
     assert why_skipped(trim, normalize, Settings()) is None
-    [method] = extractor.functions("src/d.ts", "class Text {\n  clean(value: string) {\n    return this.trim(value);\n  }\n}")
+    [method] = extractor.functions(
+        "src/d.ts", "class Text {\n  clean(value: string) {\n    return this.trim(value);\n  }\n}"
+    )
     assert method.calls == ["this.trim"]
 
 
 def test_an_imported_function_of_the_same_name_is_judged_not_taken_as_delegation(extractor):
     """INVARIANT: a bare call is not resolved to a symbol, so calling an imported `normalize` proves nothing."""
-    [normalize] = extractor.functions("src/a.ts", "export function normalize(value: string) {\n  return value.trim().toLowerCase();\n}")
-    [clean] = extractor.functions("src/b.ts", 'import { normalize } from "third-party";\n'
-                                  "export function clean(value: string) {\n  return normalize(value).trim().toLowerCase();\n}")
+    [normalize] = extractor.functions(
+        "src/a.ts", "export function normalize(value: string) {\n  return value.trim().toLowerCase();\n}"
+    )
+    [clean] = extractor.functions(
+        "src/b.ts",
+        'import { normalize } from "third-party";\n'
+        "export function clean(value: string) {\n  return normalize(value).trim().toLowerCase();\n}",
+    )
     assert clean.calls == ["normalize"]
     assert why_skipped(clean, normalize, Settings()) is None
-    [shadowing] = extractor.functions("src/c.ts", "export function clean(value: string, normalize: (v: string) => string) {\n"
-                                      "  return normalize(value).trim();\n}")
+    [shadowing] = extractor.functions(
+        "src/c.ts",
+        "export function clean(value: string, normalize: (v: string) => string) {\n"
+        "  return normalize(value).trim();\n}",
+    )
     assert why_skipped(shadowing, normalize, Settings()) is None
 
 
 def test_tsx_wrapped_components_keep_their_exported_identity(extractor):
-    source = '''export const InvoiceCard = memo(({ invoice }: Props) => {
+    source = """export const InvoiceCard = memo(({ invoice }: Props) => {
       return <article title={invoice.title}><Price cents={invoice.cents} /></article>;
-    });'''
+    });"""
     function = extractor.functions("src/card.tsx", source)[0]
     assert function.name == "InvoiceCard"
     assert {"attr:title", "attr:cents", "jsx:article", "jsx:Price"} <= set(function.tokens)
@@ -105,45 +123,49 @@ def test_structure_hash_ignores_cosmetics_but_preserves_runtime_meaning(extracto
 
 
 def test_declarations_are_skipped_and_valid_siblings_survive_syntax_errors(extractor):
-    source = '''declare const clean: (text: string) => string;
+    source = """declare const clean: (text: string) => string;
     function broken( {
     }
     function valid(text: string) { return text.trim(); }
-    '''
+    """
     assert [f.name for f in extractor.functions("text.ts", source)] == ["valid"]
     assert extractor.functions("types.d.ts", "declare function clean(): void;") == []
 
 
 def test_callbacks_and_empty_bodies_do_not_masquerade_as_helpers(extractor):
-    source = '''const schema = z.string().refine(value => value.length > 0);
+    source = """const schema = z.string().refine(value => value.length > 0);
     const records = clients.map(client => client.fetch());
     const noop = () => { /* deliberately empty */ };
     function empty() {}
     const actual = debounce((value: string) => value.trim(), 100);
     const cast = ((value: string) => value.trim()) as Formatter;
-    '''
+    """
     assert [f.name for f in extractor.functions("source.ts", source)] == ["actual", "cast"]
 
 
 def test_class_members_and_accessors_have_distinct_identity_and_hashes(extractor):
-    source = '''class Invoice {
+    source = """class Invoice {
       static format(value: string) { return value.trim(); }
       format(value: string) { return value.trim(); }
       get title() { return this.name; }
       set title(value: string) { this.name = value; }
       calculate() { return this.factory()(); }
-    }'''
+    }"""
     found = extractor.functions("invoice.ts", source)
-    assert [f.qualname for f in found] == ["invoice.ts::Invoice.static.format", "invoice.ts::Invoice.format",
-                                          "invoice.ts::Invoice.get title", "invoice.ts::Invoice.set title",
-                                          "invoice.ts::Invoice.calculate"]
+    assert [f.qualname for f in found] == [
+        "invoice.ts::Invoice.static.format",
+        "invoice.ts::Invoice.format",
+        "invoice.ts::Invoice.get title",
+        "invoice.ts::Invoice.set title",
+        "invoice.ts::Invoice.calculate",
+    ]
     assert len({extractor.structure_hash(f) for f in found}) == len(found)
 
 
-BASE_TS = '''export class Operation {
+BASE_TS = """export class Operation {
   entries(work: Work) { return attemptsFor(work).filter(a => a.revision === work.revision); }
   static of(work: Work) { return new Operation(work.id); }
-}'''
+}"""
 
 
 @pytest.mark.parametrize("path, source", [
@@ -182,21 +204,24 @@ def test_same_named_typescript_methods_without_a_resolved_base_go_to_the_judge(e
 
 def test_a_static_method_overrides_only_the_extended_class_static_method(extractor):
     [instance, static] = extractor.functions("src/ops.ts", BASE_TS)
-    found = extractor.functions("src/bulk.ts", "import { Operation } from './ops';\nclass Bulk extends Operation {\n"
-                                               "  static of(work: Work) { return new Bulk(work.id); }\n"
-                                               "  of(work: Work) { return new Bulk(work.id); }\n}")
+    found = extractor.functions(
+        "src/bulk.ts",
+        "import { Operation } from './ops';\nclass Bulk extends Operation {\n"
+        "  static of(work: Work) { return new Bulk(work.id); }\n"
+        "  of(work: Work) { return new Bulk(work.id); }\n}",
+    )
     assert [f.qualname for f in found] == ["src/bulk.ts::Bulk.static.of", "src/bulk.ts::Bulk.of"]
     assert why_skipped(found[0], static, Settings()) == "subclass override"
     assert why_skipped(found[1], static, Settings()) is None
     assert instance.name == "entries"
 
 
-CALLER_TS = '''export class Operation {
+CALLER_TS = """export class Operation {
   attempt(work: Work) { return this.entries(work).find(a => a.outcome !== NOT_APPLIED); }
   entries(work: Work) { return attemptsFor(work); }
   static load(id: string) { return this.create(id).fetch(); }
   static create(id: string) { return new Operation(id); }
-}'''
+}"""
 
 
 @pytest.mark.parametrize("subclass, a, b", [
@@ -214,7 +239,11 @@ def test_a_this_call_between_a_class_and_its_extended_class_is_settled_by_rule(e
     found = {f.qualname.split("::")[1]: f for path, source in (
         ("src/ops.ts", CALLER_TS), ("src/bulk.ts", "import { Operation } from './ops';\n" + subclass))
         for f in extractor.functions(path, source)}  # fmt: skip
-    assert why_skipped(found[a], found[b], Settings()) == why_skipped(found[b], found[a], Settings()) == "one calls the other"
+    assert (
+        why_skipped(found[a], found[b], Settings())
+        == why_skipped(found[b], found[a], Settings())
+        == "one calls the other"
+    )
 
 
 @pytest.mark.parametrize("source", [
@@ -233,11 +262,11 @@ def test_a_this_call_without_a_resolved_extended_class_goes_to_the_judge(extract
 
 def test_minimum_lines_and_invalid_functions_do_not_hide_valid_neighbors():
     extractor = load("extractors", PluginChoice(use="typescript", min_lines=3))
-    source = '''const short = () => 1;
+    source = """const short = () => 1;
     function broken() { const x = ; }
     function long() {
       return 2;
-    }'''
+    }"""
     assert [f.name for f in extractor.functions("source.ts", source)] == ["long"]
 
 
@@ -253,18 +282,24 @@ def test_sticky_source_links_point_to_exact_commit_and_encode_paths(extractor):
 def test_typescript_change_finds_existing_helper_without_python_configuration(tmp_path, extractor):
     repo = Repo(tmp_path / "bun-project")
     repo.write("package.json", '{"scripts":{"test":"bun test"}}')
-    repo.write("src/original.ts", '''export function shortenText(text: string, limit: number) {
+    repo.write(
+        "src/original.ts",
+        """export function shortenText(text: string, limit: number) {
       if (text.length <= limit) return text;
       return text.slice(0, limit - 1).trimEnd() + "…";
-    }''')
+    }""",
+    )
     for index in range(10):
         repo.write(f"src/filler{index}.ts", f"export const helper{index} = () => service.operation{index}();")
     repo.commit("main")
     repo.git("checkout", "-q", "-b", "feature")
-    repo.write("src/preview.ts", '''export const previewText = (caption: string, limit: number) => {
+    repo.write(
+        "src/preview.ts",
+        """export const previewText = (caption: string, limit: number) => {
       if (caption.length <= limit) return caption;
       return caption.slice(0, limit - 1).trimEnd() + "…";
-    };''')
+    };""",
+    )
     repo.commit("feature")
     detector = Detector.for_repository(repo.root, Settings.load(repo.root))
     changed = touched(detector.functions, changed_lines(repo.root, "main"))
@@ -274,8 +309,10 @@ def test_typescript_change_finds_existing_helper_without_python_configuration(tm
     pair = pairs[0]
     assert pair.existing.name == "shortenText"
     assert pair.new.hash and pair.existing.hash and pair.filtered is None
-    suppressed = extractor.functions("src/preview.ts", pair.new.code.replace(
-        "if (", "// dry-lint: distinct-from src/original.ts::shortenText\nif (", 1))[0]
+    suppressed = extractor.functions(
+        "src/preview.ts",
+        pair.new.code.replace("if (", "// dry-lint: distinct-from src/original.ts::shortenText\nif (", 1),
+    )[0]
     assert why_skipped(suppressed, pair.existing, Settings()) == "inline distinct-from"
 
 

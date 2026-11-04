@@ -228,8 +228,7 @@ def test_balanced_strict_check_validates_the_selected_tree(repo: Repo, tmp_path:
     # A valid unstaged repair must not hide invalid committed/staged input from the strict check.
     repo.write("src/text.py", "def repaired():\n    return 1\n")
     args = ["--staged"] if staged else ["--base", "main"]
-    assert run_cli(repo, tmp_path, "--preset", "balanced", "--judge", "none",
-                   "--require-complete", *args) == 2
+    assert run_cli(repo, tmp_path, "--preset", "balanced", "--judge", "none", "--require-complete", *args) == 2
     assert "Cannot completely scan src/text.py" in capsys.readouterr().err
 
 
@@ -239,8 +238,21 @@ def adopt(repo: Repo, tmp_path: Path, judge: str) -> tuple[str, ...]:
     repo.commit("adopt")
     repo.git("checkout", "-q", "-B", "main")
     repo.git("checkout", "-q", "-b", "cleanup")
-    return ("--base", "main", "--baseline", ".dry-lint/baseline.json", "--baseline-ref", "main", "--require-complete",
-            "--judge", "command", "--judge-command", judge, "--report", str(tmp_path / "report.json"))
+    return (
+        "--base",
+        "main",
+        "--baseline",
+        ".dry-lint/baseline.json",
+        "--baseline-ref",
+        "main",
+        "--require-complete",
+        "--judge",
+        "command",
+        "--judge-command",
+        judge,
+        "--report",
+        str(tmp_path / "report.json"),
+    )
 
 
 def backlog(tmp_path: Path) -> list[dict] | None:
@@ -251,8 +263,9 @@ TWIN_PAIR = {"new": "src/text.py::shorten_text", "existing": "src/widgets/captio
 
 
 @pytest.mark.parametrize("recorded", [False, True], ids=["cleanup", "cleanup-and-sweep"])
-def test_a_check_credits_accepted_debt_its_change_removed(repo: Repo, tmp_path: Path, twin_judge: str,
-                                                          recorded: bool) -> None:
+def test_a_check_credits_accepted_debt_its_change_removed(
+    repo: Repo, tmp_path: Path, twin_judge: str, recorded: bool
+) -> None:
     args = adopt(repo, tmp_path, twin_judge)
     repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
     repo.commit()
@@ -282,7 +295,7 @@ def copy_judge(tmp_path: Path) -> str:
 def test_a_rerouted_side_is_revisited_and_credited_on_a_separate_verdict(repo: Repo, tmp_path: Path) -> None:
     args = adopt(repo, tmp_path, copy_judge(tmp_path))
     source = (repo.root / "src/widgets/caption.py").read_text()
-    body = source[source.index("    if len"): source.index("\n\n\ndef register_widget")]
+    body = source[source.index("    if len") : source.index("\n\n\ndef register_widget")]
     rerouted = source.replace(body, "    return shorten_text(caption_text, max_len)")
     repo.write("src/widgets/caption.py", "from src.text import shorten_text\n\n\n" + rerouted)
     repo.commit()
@@ -304,10 +317,20 @@ def test_debt_removed_before_the_branch_is_not_credited_to_it(repo: Repo, tmp_pa
     assert backlog(tmp_path) == []
 
 
-def test_a_check_without_a_baseline_claims_nothing_about_the_backlog(repo: Repo, tmp_path: Path,
-                                                                    twin_judge: str) -> None:
-    args = ("--base", "main", "--judge", "command", "--judge-command", twin_judge, "--warn-only",
-            "--report", str(tmp_path / "report.json"))
+def test_a_check_without_a_baseline_claims_nothing_about_the_backlog(
+    repo: Repo, tmp_path: Path, twin_judge: str
+) -> None:
+    args = (
+        "--base",
+        "main",
+        "--judge",
+        "command",
+        "--judge-command",
+        twin_judge,
+        "--warn-only",
+        "--report",
+        str(tmp_path / "report.json"),
+    )
     assert run_cli(repo, tmp_path, *args) == 0
     assert backlog(tmp_path) is None
 
@@ -321,8 +344,9 @@ def test_a_renamed_copy_is_not_credited_as_removed_debt(repo: Repo, tmp_path: Pa
     assert backlog(tmp_path) == []
 
 
-def test_debt_the_target_already_records_as_cleaned_is_not_credited_again(repo: Repo, tmp_path: Path,
-                                                                         twin_judge: str) -> None:
+def test_debt_the_target_already_records_as_cleaned_is_not_credited_again(
+    repo: Repo, tmp_path: Path, twin_judge: str
+) -> None:
     args = adopt(repo, tmp_path, twin_judge)
     repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
     repo.commit()

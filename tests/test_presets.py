@@ -8,7 +8,11 @@ BOTH = {"TYPESAFE_AI_API_KEY": "k", "ANTHROPIC_API_KEY": "k"}
 
 def test_agent_feedback_is_explicit_and_keeps_its_own_model_prompt_and_thresholds() -> None:
     settings = resolve(Settings(preset="agent-haiku"), BOTH)
-    assert settings.judge.options() == {"model": "claude-haiku-5-5", "prompt_policy": "shared-operations", "max_tokens": 2048}
+    assert settings.judge.options() == {
+        "model": "claude-haiku-5-5",
+        "prompt_policy": "shared-operations",
+        "max_tokens": 2048,
+    }
     assert settings.escalate is None
     assert settings.report_at == settings.fail_at == 0.5
     assert "agent-haiku" not in AUTO_ORDER
@@ -35,8 +39,17 @@ def test_every_preset_is_reachable_and_measured_ones_say_what_was_measured() -> 
 
 def test_a_preset_fills_judges_and_thresholds_that_were_not_set() -> None:
     settings = resolve(Settings(), BOTH)
-    assert (settings.judge.use, settings.escalate.use, settings.escalate.options()) == ("jev", "anthropic", {"model": "claude-opus-5-5"})
-    assert (settings.escalate.between, settings.drop_below, settings.report_at, settings.fail_at) == ((0.5, 0.91), 0.5, 0.55, 0.55)
+    assert (settings.judge.use, settings.escalate.use, settings.escalate.options()) == (
+        "jev",
+        "anthropic",
+        {"model": "claude-opus-5-5"},
+    )
+    assert (settings.escalate.between, settings.drop_below, settings.report_at, settings.fail_at) == (
+        (0.5, 0.91),
+        0.5,
+        0.55,
+        0.55,
+    )
 
 
 def test_every_jev_first_preset_holds_unescalated_answers_to_jevs_own_bar_for_the_same_reader() -> None:
@@ -54,7 +67,10 @@ def test_agent_presets_trade_precision_for_recall_and_are_only_chosen_by_name() 
         assert agent.report_at == agent.fail_at < PRESETS["jev"].report_at
     haiku = resolve(Settings(preset="agent+haiku"), {})
     assert (haiku.escalate.use, haiku.escalate.options(), haiku.escalate.between) == (
-        "anthropic", {"model": "claude-haiku-5-5"}, (0.5, 0.91))
+        "anthropic",
+        {"model": "claude-haiku-5-5"},
+        (0.5, 0.91),
+    )
 
 
 def test_explicit_settings_win_over_the_preset() -> None:

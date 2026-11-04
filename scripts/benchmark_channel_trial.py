@@ -74,8 +74,13 @@ VARIANTS = {
 SAMPLE = {"tfidf": 8, "plural": 4, "csls": 4, "behaviour": 4, "lsi": 4, "dryer": 4}
 
 
-def run(root: Path, out: Path, gold_paths: list[Path] = (), seed: int = 20261106,
-        channels: dict[str, tuple[Transform | None, Callable[[], Comparer], int]] = CHANNELS) -> dict:
+def run(
+    root: Path,
+    out: Path,
+    gold_paths: list[Path] = (),
+    seed: int = 20261106,
+    channels: dict[str, tuple[Transform | None, Callable[[], Comparer], int]] = CHANNELS,
+) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     base = Detector.for_repository(root, Settings())
     by_name = {f.qualname: f for f in base.functions}
@@ -86,7 +91,11 @@ def run(root: Path, out: Path, gold_paths: list[Path] = (), seed: int = 20261106
         except ValueError as error:
             unavailable[name] = str(error)
             continue
-        functions = [f.model_copy(update={"tokens": transform(f.tokens)}) for f in base.functions] if transform else base.functions
+        functions = (
+            [f.model_copy(update={"tokens": transform(f.tokens)}) for f in base.functions]
+            if transform
+            else base.functions
+        )
         start = time.perf_counter()
         detector = Detector(functions, Settings(neighbours=slots), comparer, base.extractors)
         indexed = time.perf_counter() - start
@@ -97,16 +106,31 @@ def run(root: Path, out: Path, gold_paths: list[Path] = (), seed: int = 20261106
         near[name] = nearest(detector)
         queried = time.perf_counter() - start
         scans[name] = mutual_nearest(detector, near[name])
-        if name == "tfidf" and scans[name] != {frozenset((c.new.qualname, c.existing.qualname)) for c in detector.scan()}:
+        if name == "tfidf" and scans[name] != {
+            frozenset((c.new.qualname, c.existing.qualname)) for c in detector.scan()
+        }:
             raise AssertionError("The trial's scan must reproduce Detector.scan for production TF-IDF")
         pairs = sorted(scans[name], key=sorted)
-        (out / f"{name}-scan.json").write_text(json.dumps([
-            detector.pair(by_name[a], by_name[b], detector.comparer.similarity(by_name[a], by_name[b])).model_dump()
-            for a, b in map(sorted, pairs)]), encoding="utf-8")
-        report[name] = {"comparer": identity(comparer), "slots": slots, "index_seconds": round(indexed, 3),
-                        "query_ms": round(1000 * queried / max(len(functions), 1), 3), "scan_pairs": len(pairs),
-                        "floor": comparer.floor if isinstance(comparer, Floored) else None,
-                        "share_with_neighbour": round(share_with_neighbour(near[name]), 4)}
+        (out / f"{name}-scan.json").write_text(
+            json.dumps(
+                [
+                    detector.pair(
+                        by_name[a], by_name[b], detector.comparer.similarity(by_name[a], by_name[b])
+                    ).model_dump()
+                    for a, b in map(sorted, pairs)
+                ]
+            ),
+            encoding="utf-8",
+        )
+        report[name] = {
+            "comparer": identity(comparer),
+            "slots": slots,
+            "index_seconds": round(indexed, 3),
+            "query_ms": round(1000 * queried / max(len(functions), 1), 3),
+            "scan_pairs": len(pairs),
+            "floor": comparer.floor if isinstance(comparer, Floored) else None,
+            "share_with_neighbour": round(share_with_neighbour(near[name]), 4),
+        }
     gold = [(path.stem, pair) for path in gold_paths for pair in load_gold(path) if pair.label != "borderline"]
     for _, pair in gold:
         if pair.new.id not in by_name or pair.existing.id not in by_name:
@@ -123,30 +147,58 @@ def run(root: Path, out: Path, gold_paths: list[Path] = (), seed: int = 20261106
         for group, pair in gold:
             a, b = by_name[pair.new.id], by_name[pair.existing.id]
             settled = why_skipped(a, b, base.settings)
-            scored.append({"group": group, "key": pair_key(a.qualname, b.qualname), "positive": pair.label == "duplicate",
-                           "check": settled is None and (b.qualname in proposed[a.qualname] or a.qualname in proposed[b.qualname]),
-                           "scan": frozenset((a.qualname, b.qualname)) in scan})
+            scored.append(
+                {
+                    "group": group,
+                    "key": pair_key(a.qualname, b.qualname),
+                    "positive": pair.label == "duplicate",
+                    "check": settled is None
+                    and (b.qualname in proposed[a.qualname] or a.qualname in proposed[b.qualname]),
+                    "scan": frozenset((a.qualname, b.qualname)) in scan,
+                }
+            )
         total = sum(len(found) for found in proposed.values())
-        variants[variant] = {"channels": list(members), "scan_pairs": len(scan),
-                             "novel_scan_pairs": len(scan - scans["tfidf"]),
-                             "candidates_per_function": round(total / len(by_name), 3),
-                             "extra_candidates_per_function": round((total - baseline_candidates) / len(by_name), 3),
-                             "scan_keys": sorted(pair_key(*p) for p in scan), "gold": scored}
+        variants[variant] = {
+            "channels": list(members),
+            "scan_pairs": len(scan),
+            "novel_scan_pairs": len(scan - scans["tfidf"]),
+            "candidates_per_function": round(total / len(by_name), 3),
+            "extra_candidates_per_function": round((total - baseline_candidates) / len(by_name), 3),
+            "scan_keys": sorted(pair_key(*p) for p in scan),
+            "gold": scored,
+        }
     sample = draw(scans, {pair_key(p.new.id, p.existing.id) for _, p in gold}, random.Random(seed))
     rows = []
     for number, (stratum, pair) in enumerate(sample, 1):
         a, b = sorted(pair)
-        rows.append({"id": number, "stratum": stratum, "key": pair_key(a, b),
-                     "new": {"id": a, "code": by_name[a].code}, "existing": {"id": b, "code": by_name[b].code}})
+        rows.append(
+            {
+                "id": number,
+                "stratum": stratum,
+                "key": pair_key(a, b),
+                "new": {"id": a, "code": by_name[a].code},
+                "existing": {"id": b, "code": by_name[b].code},
+            }
+        )
     (out / "sample.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
-    results = {"schema": 1, "python": platform.python_version(), "head": git(root, "rev-parse", "HEAD"),
-               "dirty": bool(git(root, "status", "--porcelain")), "functions": len(base.functions), "seed": seed,
-               "channels": report, "unavailable": unavailable, "variants": variants}
+    results = {
+        "schema": 1,
+        "python": platform.python_version(),
+        "head": git(root, "rev-parse", "HEAD"),
+        "dirty": bool(git(root, "status", "--porcelain")),
+        "functions": len(base.functions),
+        "seed": seed,
+        "channels": report,
+        "unavailable": unavailable,
+        "variants": variants,
+    }
     (out / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     return results
 
 
-def draw(scans: dict[str, set[frozenset[str]]], labelled: set[str], rng: random.Random) -> list[tuple[str, frozenset[str]]]:
+def draw(
+    scans: dict[str, set[frozenset[str]]], labelled: set[str], rng: random.Random
+) -> list[tuple[str, frozenset[str]]]:
     """A fixed number per stratum, sorted then sampled with one RNG so the draw reproduces; no pair twice."""
     chosen: list[tuple[str, frozenset[str]]] = []
     taken = set(labelled)

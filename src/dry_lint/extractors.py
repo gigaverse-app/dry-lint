@@ -17,8 +17,10 @@ class PythonExtractor:
         self.min_lines = min_lines
 
     def functions(self, path: str, source: str) -> list[Function]:
-        return [function.model_copy(update={"tokens": node_tokens(node), "calls": node_calls(node)})
-                for function, node in function_nodes(source, path, self.min_lines)]
+        return [
+            function.model_copy(update={"tokens": node_tokens(node), "calls": node_calls(node)})
+            for function, node in function_nodes(source, path, self.min_lines)
+        ]
 
     def validate_source(self, path: str, source: str) -> None:
         try:

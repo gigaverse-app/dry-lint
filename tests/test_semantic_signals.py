@@ -15,31 +15,38 @@ def trial(sources: dict[str, str]):
 
 
 def test_import_aliases_resolve_to_the_same_api_without_importing_the_module() -> None:
-    signals = trial({
-        "a.py": "import nonexistent_sdk as sdk\ndef load(x):\n    return sdk.read(x)\n",
-        "b.py": "from nonexistent_sdk import read as fetch\ndef load(x):\n    return fetch(x)\n",
-    })
+    signals = trial(
+        {
+            "a.py": "import nonexistent_sdk as sdk\ndef load(x):\n    return sdk.read(x)\n",
+            "b.py": "from nonexistent_sdk import read as fetch\ndef load(x):\n    return fetch(x)\n",
+        }
+    )
     assert signals.tokens("a.py::load", "api") == signals.tokens("b.py::load", "api") == ["api:nonexistent_sdk.read"]
 
 
-@pytest.mark.parametrize("source", [
-    "import sdk\ndef load(sdk):\n    return sdk.read()\n",
-    "import sdk\ndef load():\n    sdk = factory()\n    return sdk.read()\n",
-    "import sdk\nsdk = factory()\ndef load():\n    return sdk.read()\n",
-    "import sdk\nfrom other import *\ndef load():\n    return sdk.read()\n",
-    "import sdk\ndef load():\n    import other as sdk\n    return sdk.read()\n",
-    "import sdk\nif enabled:\n    from other import *\ndef load():\n    return sdk.read()\n",
-])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import sdk\ndef load(sdk):\n    return sdk.read()\n",
+        "import sdk\ndef load():\n    sdk = factory()\n    return sdk.read()\n",
+        "import sdk\nsdk = factory()\ndef load():\n    return sdk.read()\n",
+        "import sdk\nfrom other import *\ndef load():\n    return sdk.read()\n",
+        "import sdk\ndef load():\n    import other as sdk\n    return sdk.read()\n",
+        "import sdk\nif enabled:\n    from other import *\ndef load():\n    return sdk.read()\n",
+    ],
+)
 def test_uncertain_or_shadowed_imports_produce_no_resolved_api(source: str) -> None:
     assert trial({"a.py": source}).tokens("a.py::load", "api") == []
 
 
 def test_relative_imports_and_src_layout_resolve_known_signatures() -> None:
-    signals = trial({
-        "src/pkg/helpers.py": "def persist(user, *, active=True):\n    return user\n",
-        "src/pkg/a.py": "from .helpers import persist as save\ndef run(record):\n    return save(record.id, active=True)\n",
-        "src/pkg/b.py": "from pkg.helpers import persist\ndef run(record):\n    return persist(user=record.id, active=True)\n",
-    })
+    signals = trial(
+        {
+            "src/pkg/helpers.py": "def persist(user, *, active=True):\n    return user\n",
+            "src/pkg/a.py": "from .helpers import persist as save\ndef run(record):\n    return save(record.id, active=True)\n",
+            "src/pkg/b.py": "from pkg.helpers import persist\ndef run(record):\n    return persist(user=record.id, active=True)\n",
+        }
+    )
     assert signals.tokens("src/pkg/a.py::run", "binding") == signals.tokens("src/pkg/b.py::run", "binding")
     assert "bind:pkg.helpers.persist:user<-id" in signals.tokens("src/pkg/a.py::run", "binding")
 
@@ -66,7 +73,9 @@ def test_field_relationships_preserve_direction_and_ignore_call_method_names() -
 
 
 def test_nested_functions_do_not_leak_returns_or_bindings_into_the_parent() -> None:
-    source = "import sdk\ndef outer(row):\n    def inner():\n        return sdk.read(row.secret)\n    return row.public\n"
+    source = (
+        "import sdk\ndef outer(row):\n    def inner():\n        return sdk.read(row.secret)\n    return row.public\n"
+    )
     signals = trial({"a.py": source})
     assert signals.tokens("a.py::outer", "api") == []
     assert signals.tokens("a.py::outer", "flow") == ["flow:public->return"]
@@ -82,24 +91,29 @@ def test_duplicate_keyword_arguments_are_not_silently_collapsed() -> None:
     assert trial({"a.py": source}).tokens("a.py::run", "binding") == []
 
 
-@pytest.mark.parametrize("body", [
-    "try:\n        work()\n    except Exception as sdk:\n        sdk.read()",
-    "global sdk\n    sdk.read()",
-    "match value:\n        case {'sdk': sdk}:\n            sdk.read()",
-    "match value:\n        case {**sdk}:\n            sdk.read()",
-    "sdk.read = replacement\n    sdk.read()",
-    "def sdk():\n        return value\n    sdk.read()",
-])
+@pytest.mark.parametrize(
+    "body",
+    [
+        "try:\n        work()\n    except Exception as sdk:\n        sdk.read()",
+        "global sdk\n    sdk.read()",
+        "match value:\n        case {'sdk': sdk}:\n            sdk.read()",
+        "match value:\n        case {**sdk}:\n            sdk.read()",
+        "sdk.read = replacement\n    sdk.read()",
+        "def sdk():\n        return value\n    sdk.read()",
+    ],
+)
 def test_other_lexical_bindings_also_invalidate_aliases(body: str) -> None:
     source = f"import sdk\ndef run(value):\n    {body}\n"
     assert trial({"a.py": source}).tokens("a.py::run", "api") == []
 
 
 def test_package_imports_and_class_rebinding_are_distinct() -> None:
-    signals = trial({
-        "pkg/__init__.py": "from . import helper\ndef run():\n    return helper.load()\n",
-        "other.py": "import sdk\nclass sdk:\n    pass\ndef run():\n    return sdk.read()\n",
-    })
+    signals = trial(
+        {
+            "pkg/__init__.py": "from . import helper\ndef run():\n    return helper.load()\n",
+            "other.py": "import sdk\nclass sdk:\n    pass\ndef run():\n    return sdk.read()\n",
+        }
+    )
     assert signals.tokens("pkg/__init__.py::run", "api") == ["api:pkg.helper.load"]
     assert signals.tokens("other.py::run", "api") == []
 
@@ -128,7 +142,9 @@ def test_trial_cli_runs_each_variant_with_real_repository_and_gold(repo, tmp_pat
     gold = tmp_path / "gold.jsonl"
     gold.write_text(gold_line("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text", "duplicate"))
     out = tmp_path / "trial"
-    run_main(monkeypatch, "benchmark_semantic_signals.py", "--root", str(repo.root), "--out", str(out), "--gold", str(gold))
+    run_main(
+        monkeypatch, "benchmark_semantic_signals.py", "--root", str(repo.root), "--out", str(out), "--gold", str(gold)
+    )
     results = json.loads((out / "results.json").read_text())
     assert results["schema"] == 1
     assert results["head"] == repo.git("rev-parse", "HEAD").strip() and not results["dirty"]

@@ -15,8 +15,10 @@ from dry_lint.ledger import RepositoryLedger
 ROOT = Path(__file__).resolve().parent.parent
 ADOPTER_KEYS = ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN")
 # Shapes of real credentials: Anthropic, Google, GitHub (classic and fine-grained), Slack, AWS, OpenAI.
-CREDENTIAL = re.compile(r"sk-ant-[\w-]{10,}|AIza[\w-]{30,}|gh[pousr]_\w{30,}|github_pat_\w{20,}|xox[abpr]-[\w-]{10,}"
-                        r"|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{32,}")
+CREDENTIAL = re.compile(
+    r"sk-ant-[\w-]{10,}|AIza[\w-]{30,}|gh[pousr]_\w{30,}|github_pat_\w{20,}|xox[abpr]-[\w-]{10,}"
+    r"|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{32,}"
+)
 
 
 def action_inputs() -> dict[str, str]:
@@ -36,9 +38,12 @@ def action_inputs() -> dict[str, str]:
 def test_no_action_input_defaults_to_a_credential_but_the_runs_own_github_token() -> None:
     inputs = action_inputs()
     credentials = {name: value for name, value in inputs.items() if re.search(r"key|token", name)}
-    assert {"typesafe-api-key", "anthropic-api-key", "claude-code-oauth-token", "index-token", "github-token"} <= set(credentials)
+    assert {"typesafe-api-key", "anthropic-api-key", "claude-code-oauth-token", "index-token", "github-token"} <= set(
+        credentials
+    )
     assert {name: value for name, value in credentials.items() if name != "github-token"} == dict.fromkeys(
-        set(credentials) - {"github-token"}, "")
+        set(credentials) - {"github-token"}, ""
+    )
     assert credentials["github-token"] == "${{ github.token }}"
 
 

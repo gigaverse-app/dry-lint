@@ -81,11 +81,20 @@ def signature(node: FunctionNode) -> inspect.Signature | None:
     positional = [*node.args.posonlyargs, *node.args.args]
     defaults = [inspect.Parameter.empty] * (len(positional) - len(node.args.defaults)) + node.args.defaults
     for arg, default in zip(positional, defaults):
-        kind = inspect.Parameter.POSITIONAL_ONLY if arg in node.args.posonlyargs else inspect.Parameter.POSITIONAL_OR_KEYWORD
+        kind = (
+            inspect.Parameter.POSITIONAL_ONLY
+            if arg in node.args.posonlyargs
+            else inspect.Parameter.POSITIONAL_OR_KEYWORD
+        )
         parameters.append(inspect.Parameter(arg.arg, kind, default=default))
     for arg, default in zip(node.args.kwonlyargs, node.args.kw_defaults):
-        parameters.append(inspect.Parameter(arg.arg, inspect.Parameter.KEYWORD_ONLY,
-                                            default=default if default is not None else inspect.Parameter.empty))
+        parameters.append(
+            inspect.Parameter(
+                arg.arg,
+                inspect.Parameter.KEYWORD_ONLY,
+                default=default if default is not None else inspect.Parameter.empty,
+            )
+        )
     return inspect.Signature(parameters)
 
 
@@ -136,7 +145,7 @@ class Signals:
                             aliases[local] = alias.name if alias.asname else local
                         else:
                             package = module.split(".") if path.endswith("/__init__.py") else module.split(".")[:-1]
-                            prefix = package[:len(package) - node.level + 1] if node.level else []
+                            prefix = package[: len(package) - node.level + 1] if node.level else []
                             target = ".".join([*prefix, *([node.module] if node.module else []), alias.name])
                             if node.level <= len(package):
                                 aliases[local] = target
@@ -150,9 +159,11 @@ class Signals:
                 else:
                     blocked.update(bound_names(node))
             # A star import or any rebind invalidates resolution rather than guessing which value won.
-            self.aliases[path] = {} if "*" in counts or "*" in blocked else {
-                name: target for name, target in aliases.items() if counts[name] == 1 and name not in blocked
-            }
+            self.aliases[path] = (
+                {}
+                if "*" in counts or "*" in blocked
+                else {name: target for name, target in aliases.items() if counts[name] == 1 and name not in blocked}
+            )
             for name, found in definitions.items():
                 if name in self.aliases[path]:
                     self.signatures[self.aliases[path][name]] = found
@@ -176,8 +187,11 @@ class Signals:
                         result.append(f"api:{target}")
                     elif feature == "binding" and target in self.signatures:
                         keywords = [k.arg for k in node.keywords]
-                        if (any(isinstance(arg, ast.Starred) for arg in node.args) or None in keywords
-                                or len(keywords) != len(set(keywords))):
+                        if (
+                            any(isinstance(arg, ast.Starred) for arg in node.args)
+                            or None in keywords
+                            or len(keywords) != len(set(keywords))
+                        ):
                             continue
                         try:
                             bound = self.signatures[target].bind(*node.args, **{k.arg: k.value for k in node.keywords})

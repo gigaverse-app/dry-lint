@@ -71,7 +71,7 @@ def test_the_extractor_skips_files_that_do_not_parse() -> None:
 
 
 def test_behaviour_tokens_capture_calls_attributes_names_and_control_flow() -> None:
-    source = '''
+    source = """
     async def fetch_rows(client, query):
         rows = []
         for page in client.pages(query):
@@ -80,14 +80,18 @@ def test_behaviour_tokens_capture_calls_attributes_names_and_control_flow() -> N
             except KeyError:
                 pass
         return rows
-    '''
+    """
     tokens = behaviour_tokens(function("a.py", source))
     assert tokens.count("fn:fetch") == 2 and tokens.count("fn:rows") == 2
-    assert {"call:pages", "call:load", "attr:pages", "w:client", "w:query", "ctl:loop", "ctl:try", "ctl:await"} <= set(tokens)
+    assert {"call:pages", "call:load", "attr:pages", "w:client", "w:query", "ctl:loop", "ctl:try", "ctl:await"} <= set(
+        tokens
+    )
 
 
 def test_behaviour_tokens_of_unparsable_code_fall_back_to_the_name() -> None:
-    assert behaviour_tokens(function("a.py", "def parse_header(:", name="parse_header")) == ["fn:parse", "fn:header"] * 2
+    assert (
+        behaviour_tokens(function("a.py", "def parse_header(:", name="parse_header")) == ["fn:parse", "fn:header"] * 2
+    )
 
 
 def test_words_split_identifiers_and_drop_generic_ones() -> None:
@@ -118,8 +122,11 @@ class Lines:
     name, version, files = "lines", "1", ("*.txt",)
 
     def functions(self, path: str, source: str) -> list[Function]:
-        return [Function(path=path, name=f"line{i}", line=i, end_line=i, code=text)
-                for i, text in enumerate(source.splitlines(), 1) if text.strip()]
+        return [
+            Function(path=path, name=f"line{i}", line=i, end_line=i, code=text)
+            for i, text in enumerate(source.splitlines(), 1)
+            if text.strip()
+        ]
 
     def structure_hash(self, function: Function) -> str:
         return function.code
@@ -130,7 +137,10 @@ def test_each_file_is_read_by_the_first_extractor_whose_globs_match_it(repo: Rep
     repo.write("README.md", "# not read\n")
     repo.commit("text")
     found = repository_functions(repo.root, ["*"], [], [PythonExtractor(), Lines()])
-    assert [f.qualname for f in found if f.path == "notes/todo.txt"] == ["notes/todo.txt::line1", "notes/todo.txt::line3"]
+    assert [f.qualname for f in found if f.path == "notes/todo.txt"] == [
+        "notes/todo.txt::line1",
+        "notes/todo.txt::line3",
+    ]
     assert not any(f.path == "README.md" for f in found)
     assert extractor_for("a/b.py", [Lines(), PythonExtractor()]).name == "python"
     assert extractor_for("a/b.md", [Lines(), PythonExtractor()]) is None

@@ -19,8 +19,13 @@ class TfidfComparer:
     # pair into one concept without moving the score: lexical distance cannot vouch for a verdict on changed logic.
     similarity_reusable = False
 
-    def __init__(self, min_similarity: float = 0.5, min_similarity_small: float = 0.3, small_function_lines: int = 6,
-                 max_df: float = 0.3) -> None:
+    def __init__(
+        self,
+        min_similarity: float = 0.5,
+        min_similarity_small: float = 0.3,
+        small_function_lines: int = 6,
+        max_df: float = 0.3,
+    ) -> None:
         self.min_similarity, self.min_similarity_small = min_similarity, min_similarity_small
         self.small_function_lines, self.max_df = small_function_lines, max_df
         self.functions: list[Function] = []
@@ -34,8 +39,9 @@ class TfidfComparer:
     def floor(self, function: Function) -> float:
         return self.min_similarity_small if function.lines < self.small_function_lines else self.min_similarity
 
-    def neighbours(self, function: Function, k: int,
-                   allowed: Callable[[Function], bool]) -> list[tuple[Function, float]]:
+    def neighbours(
+        self, function: Function, k: int, allowed: Callable[[Function], bool]
+    ) -> list[tuple[Function, float]]:
         own = self.position.get(function.qualname)
         found = []
         for position, similarity in self.tfidf.similar(function.tokens, exclude={own} if own is not None else set()):

@@ -20,7 +20,7 @@ def with_comments(node: Node) -> str:
         start = start.prev_named_sibling
     parent = node.parent
     assert parent is not None
-    return parent.text[start.start_byte - parent.start_byte:node.end_byte - parent.start_byte].decode("utf-8")
+    return parent.text[start.start_byte - parent.start_byte : node.end_byte - parent.start_byte].decode("utf-8")
 
 
 class SourceContext:
@@ -34,7 +34,9 @@ class SourceContext:
                 if declaration is None:
                     continue
                 node = declaration
-            declarations = node.named_children if node.type in {"lexical_declaration", "variable_declaration"} else [node]
+            declarations = (
+                node.named_children if node.type in {"lexical_declaration", "variable_declaration"} else [node]
+            )
             for declaration in declarations:
                 name = declaration.child_by_field_name("name")
                 if name is not None:
@@ -55,7 +57,11 @@ class SourceContext:
                 picked[statement.start_byte] = statement
         context = "\n".join(with_comments(statement) for _, statement in sorted(picked.items()))
         own = node
-        while own.parent is not None and own.parent.type in {"export_statement", "lexical_declaration", "variable_declaration"}:
+        while own.parent is not None and own.parent.type in {
+            "export_statement",
+            "lexical_declaration",
+            "variable_declaration",
+        }:
             own = own.parent
         comments = with_comments(own).removesuffix(own.text.decode("utf-8")).strip()
         if comments:

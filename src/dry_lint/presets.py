@@ -116,7 +116,17 @@ PRESETS = {preset.name: preset for preset in [
 
 # "auto" takes the first preset whose credentials are all in the environment; the others must be named.
 AUTO_ORDER = ("jev+opus", "jev+claude-code", "jev", "sonnet", "claude-code", "none")
-LISTED = (*AUTO_ORDER[:2], "jev+sonnet", "jev+claude-code-sonnet", "jev+codex", *AUTO_ORDER[2:], "agent", "agent+haiku", "agent-haiku", "balanced")
+LISTED = (
+    *AUTO_ORDER[:2],
+    "jev+sonnet",
+    "jev+claude-code-sonnet",
+    "jev+codex",
+    *AUTO_ORDER[2:],
+    "agent",
+    "agent+haiku",
+    "agent-haiku",
+    "balanced",
+)
 PRESET_FIELDS = ("judge", "escalate", "drop_below", "report_at", "fail_at", "discovery")
 
 

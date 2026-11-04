@@ -93,14 +93,20 @@ def read(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line] if path.exists() else []
 
 
-def replay(root: Path, ref: str, commits: int, out: Path, exclude: list[str] = (), behaviour_floor: float | None = None) -> dict:
+def replay(
+    root: Path, ref: str, commits: int, out: Path, exclude: list[str] = (), behaviour_floor: float | None = None
+) -> dict:
     """Candidates per changed function for the last `commits` first-parent commits; resumable."""
     out.mkdir(parents=True, exist_ok=True)
     if git(root, "status", "--porcelain", "--untracked-files=no"):
         raise ValueError(f"{root} has tracked changes; replay checks out each commit")
     done = {row["commit"] for row in read(out / "commits.jsonl")}
     meta_path = out / "replay.json"
-    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {"ref": git(root, "rev-parse", ref), "exclude": list(exclude)}
+    meta = (
+        json.loads(meta_path.read_text())
+        if meta_path.exists()
+        else {"ref": git(root, "rev-parse", ref), "exclude": list(exclude)}
+    )
     history = git(root, "rev-list", "--first-parent", f"--max-count={commits}", meta["ref"]).split()
     for commit in history:
         if commit in done:
@@ -121,8 +127,9 @@ def replay(root: Path, ref: str, commits: int, out: Path, exclude: list[str] = (
             record["changed"] = len(changed)
             if changed:
                 if "behaviour_floor" not in meta:
-                    meta["behaviour_floor"] = behaviour_floor if behaviour_floor is not None else calibrate(
-                        functions, settings, extractors)
+                    meta["behaviour_floor"] = (
+                        behaviour_floor if behaviour_floor is not None else calibrate(functions, settings, extractors)
+                    )
                     meta_path.write_text(json.dumps(meta, indent=2))
                 rows = candidates(functions, changed, settings, extractors, meta["behaviour_floor"], record)
                 for row in rows:
@@ -135,9 +142,11 @@ def replay(root: Path, ref: str, commits: int, out: Path, exclude: list[str] = (
 
 def analysed(path: str, settings: Settings, extractors: list) -> bool:
     """Whether `check` would read this file: included, not excluded, and some extractor's language."""
-    return (any(fnmatch.fnmatch(path, glob) for glob in settings.include)
-            and not any(fnmatch.fnmatch(path, glob) for glob in settings.exclude)
-            and extractor_for(path, extractors) is not None)
+    return (
+        any(fnmatch.fnmatch(path, glob) for glob in settings.include)
+        and not any(fnmatch.fnmatch(path, glob) for glob in settings.exclude)
+        and extractor_for(path, extractors) is not None
+    )
 
 
 def production(settings: Settings) -> TfidfComparer:
@@ -147,33 +156,55 @@ def production(settings: Settings) -> TfidfComparer:
 def calibrate(functions: list[Function], settings: Settings, extractors: list) -> float:
     """The behaviour channel's floor: as many functions keep a neighbour as with production TF-IDF (label-free)."""
     tfidf = Detector(functions, settings.model_copy(update={"neighbours": 1}), production(settings), extractors)
-    behaviour = Detector([f.model_copy(update={"tokens": behaviour_only(f.tokens)}) for f in functions],
-                         settings.model_copy(update={"neighbours": 1}), Floored(TfidfComparer(0.0, 0.0)), extractors)
+    behaviour = Detector(
+        [f.model_copy(update={"tokens": behaviour_only(f.tokens)}) for f in functions],
+        settings.model_copy(update={"neighbours": 1}),
+        Floored(TfidfComparer(0.0, 0.0)),
+        extractors,
+    )
     return calibrated_floor(nearest(behaviour), share_with_neighbour(nearest(tfidf)))
 
 
-def candidates(functions: list[Function], changed: list[Function], settings: Settings, extractors: list,
-               behaviour_floor: float, record: dict) -> list[dict]:
+def candidates(
+    functions: list[Function],
+    changed: list[Function],
+    settings: Settings,
+    extractors: list,
+    behaviour_floor: float,
+    record: dict,
+) -> list[dict]:
     floors = production(settings)
     options = settings.comparer.options()
-    wide = Detector(functions, settings.model_copy(update={"neighbours": WIDE}),
-                    TfidfComparer(**{**options, "min_similarity": LOW_FLOOR, "min_similarity_small": LOW_FLOOR_SMALL}),
-                    extractors)
-    behaviour = Detector([f.model_copy(update={"tokens": behaviour_only(f.tokens)}) for f in functions],
-                         settings.model_copy(update={"neighbours": 1}),
-                         Floored(experimental(TfidfComparer(0.0, 0.0), "behaviour"), behaviour_floor), extractors)
+    wide = Detector(
+        functions,
+        settings.model_copy(update={"neighbours": WIDE}),
+        TfidfComparer(**{**options, "min_similarity": LOW_FLOOR, "min_similarity_small": LOW_FLOOR_SMALL}),
+        extractors,
+    )
+    behaviour = Detector(
+        [f.model_copy(update={"tokens": behaviour_only(f.tokens)}) for f in functions],
+        settings.model_copy(update={"neighbours": 1}),
+        Floored(experimental(TfidfComparer(0.0, 0.0), "behaviour"), behaviour_floor),
+        extractors,
+    )
     by_name = {f.qualname: f for f in behaviour.functions}
     found: dict[tuple[str, str], dict] = {}
     for function in changed:
-        proposals = [(other, similarity, rank, False) for rank, (other, similarity) in enumerate(wide.neighbours(function), 1)]
-        proposals += [(other, similarity, None, True) for other, similarity in behaviour.neighbours(by_name[function.qualname])]
+        proposals = [
+            (other, similarity, rank, False) for rank, (other, similarity) in enumerate(wide.neighbours(function), 1)
+        ]
+        proposals += [
+            (other, similarity, None, True) for other, similarity in behaviour.neighbours(by_name[function.qualname])
+        ]
         for other, similarity, rank, from_behaviour in proposals:
             existing = wide.functions[wide.position[other.qualname]]
             if why_skipped(function, existing, settings) is not None:
                 record["settled"] += 1
                 continue
-            row = found.setdefault((function.qualname, existing.qualname), {
-                "new": function.model_dump(), "existing": existing.model_dump(), "floor": floors.floor(function)})
+            row = found.setdefault(
+                (function.qualname, existing.qualname),
+                {"new": function.model_dump(), "existing": existing.model_dump(), "floor": floors.floor(function)},
+            )
             if from_behaviour:
                 row["behaviour"], row["behaviour_similarity"] = True, round(similarity, 4)
             else:
@@ -204,15 +235,26 @@ def sample(out: Path, gold_paths: list[Path] = (), seed: int = 20261107, sizes: 
         pool = sorted((e for e in strata[name] if e["key"] not in labelled), key=lambda e: e["key"])
         picked = rng.sample(pool, min(sizes.get(name, 0), len(pool)))
         weight = len(strata[name]) / len(picked) if picked else 0.0
-        chosen += [{"key": e["key"], "stratum": name, "weight": weight, "sources": sorted(e["sources"]), "rank_min": e["rank_min"],
-                    "occurrences": len(e["commits"]), "new": e["row"]["new"], "existing": e["row"]["existing"]}
-                   for e in picked]
+        chosen += [
+            {
+                "key": e["key"],
+                "stratum": name,
+                "weight": weight,
+                "sources": sorted(e["sources"]),
+                "rank_min": e["rank_min"],
+                "occurrences": len(e["commits"]),
+                "new": e["row"]["new"],
+                "existing": e["row"]["existing"],
+            }
+            for e in picked
+        ]
     rng.shuffle(chosen)
     for number, row in enumerate(chosen, 1):
         row["id"] = number
     (out / "sample.json").write_text(json.dumps(chosen, indent=2), encoding="utf-8")
-    (out / "population.json").write_text(json.dumps(
-        {name: len(strata[name]) for name in SOURCES} | {"pairs": len(pairs)}, indent=2), encoding="utf-8")
+    (out / "population.json").write_text(
+        json.dumps({name: len(strata[name]) for name in SOURCES} | {"pairs": len(pairs)}, indent=2), encoding="utf-8"
+    )
     return chosen
 
 
@@ -221,8 +263,10 @@ def qualified(side: dict) -> str:
 
 
 def label_prompt(row: dict) -> str:
-    sides = [f"Function {letter}: {side['path']}::{qualified(side)}\n```\n{side['code']}\n```"
-             for letter, side in (("A", row["new"]), ("B", row["existing"]))]
+    sides = [
+        f"Function {letter}: {side['path']}::{qualified(side)}\n```\n{side['code']}\n```"
+        for letter, side in (("A", row["new"]), ("B", row["existing"]))
+    ]
     return GUIDELINE + "\n" + "\n\n".join(sides)
 
 
@@ -238,8 +282,14 @@ def parse_label(text: str) -> dict | None:
     return None
 
 
-def label(out: Path, api_key: str, budget: float, models: tuple[str, ...] = LABELLERS, workers: int = 6,
-          transport: httpx.BaseTransport | None = None) -> dict:
+def label(
+    out: Path,
+    api_key: str,
+    budget: float,
+    models: tuple[str, ...] = LABELLERS,
+    workers: int = 6,
+    transport: httpx.BaseTransport | None = None,
+) -> dict:
     """Every sampled pair from every labeller, blind to source and score; resumable, stops at `budget` USD."""
     rows = json.loads((out / "sample.json").read_text())
     path = out / "labels.jsonl"
@@ -248,8 +298,12 @@ def label(out: Path, api_key: str, budget: float, models: tuple[str, ...] = LABE
     todo = [(row, model) for row in rows for model in models if (row["id"], model) not in done]
 
     def ask(client: httpx.Client, row: dict, model: str) -> dict:
-        body = {"model": model, "messages": [{"role": "user", "content": label_prompt(row)}], "max_tokens": 6000,
-                "usage": {"include": True}}
+        body = {
+            "model": model,
+            "messages": [{"role": "user", "content": label_prompt(row)}],
+            "max_tokens": 6000,
+            "usage": {"include": True},
+        }
         for _ in range(3):
             try:
                 response = client.post(OPENROUTER, json=body, headers={"Authorization": f"Bearer {api_key}"})
@@ -268,7 +322,7 @@ def label(out: Path, api_key: str, budget: float, models: tuple[str, ...] = LABE
         for start in range(0, len(todo), workers):
             if spent >= budget:
                 break
-            batch = list(pool.map(lambda job: ask(client, *job), todo[start:start + workers]))
+            batch = list(pool.map(lambda job: ask(client, *job), todo[start : start + workers]))
             spent += sum(r["cost"] for r in batch)
             append(path, batch)
     answered = {(r["id"], r["model"]) for r in read(path) if r.get("answer")}
@@ -299,15 +353,20 @@ class OpenRouterJudge(HttpJudge):
     default_model = "anthropic/claude-sonnet-5.5"
 
     def request(self, text: str) -> tuple[str, dict, dict]:
-        return OPENROUTER, {"Authorization": f"Bearer {self.api_key}"}, {
-            "model": self.model, "messages": [{"role": "user", "content": text}], "max_tokens": 8000}
+        return (
+            OPENROUTER,
+            {"Authorization": f"Bearer {self.api_key}"},
+            {"model": self.model, "messages": [{"role": "user", "content": text}], "max_tokens": 8000},
+        )
 
     def answer(self, body: dict) -> str:
         return body["choices"][0]["message"].get("content") or ""
 
 
 def candidate(row: dict) -> Candidate:
-    return Candidate(new=Function.model_validate(row["new"]), existing=Function.model_validate(row["existing"]), similarity=0.0)
+    return Candidate(
+        new=Function.model_validate(row["new"]), existing=Function.model_validate(row["existing"]), similarity=0.0
+    )
 
 
 def judge(out: Path, judges: dict[str, Callable[[], Judge]]) -> None:
@@ -319,13 +378,24 @@ def judge(out: Path, judges: dict[str, Callable[[], Judge]]) -> None:
         instance = factory()
         todo = [row for row in rows if (row["id"], name) not in done]
         for start in range(0, len(todo), 8):
-            batch = todo[start:start + 8]
+            batch = todo[start : start + 8]
             try:
                 verdicts = instance.judge([candidate(row) for row in batch], Settings())
             except (httpx.HTTPError, ValueError):
                 continue
-            append(path, [{"id": row["id"], "judge": name, "label": v.label, "score": v.score,
-                           "behaves_differently": v.behaves_differently} for row, v in zip(batch, verdicts)])
+            append(
+                path,
+                [
+                    {
+                        "id": row["id"],
+                        "judge": name,
+                        "label": v.label,
+                        "score": v.score,
+                        "behaves_differently": v.behaves_differently,
+                    }
+                    for row, v in zip(batch, verdicts)
+                ],
+            )
 
 
 def reported(verdicts: dict[str, dict], preset: str) -> tuple[bool, bool]:
@@ -358,7 +428,9 @@ def proposes(row: dict, option: str) -> bool:
     return option in found if option == "baseline" else (option in found and "baseline" not in found)
 
 
-def totals(rows: list[dict], labels: dict[int, dict], scores: dict[int, dict[str, dict]], option: str) -> dict[str, float]:
+def totals(
+    rows: list[dict], labels: dict[int, dict], scores: dict[int, dict[str, dict]], option: str
+) -> dict[str, float]:
     """Weighted totals over labelled rows: pairs, real duplicates, and what each preset reports or fails on."""
     found: dict[str, float] = defaultdict(float, pairs=0.0, positives=0.0)
     for row in rows:
@@ -386,17 +458,22 @@ def resamples(rows: list[dict], rng: random.Random, rounds: int) -> list[list[di
 
 def summarise(point: dict[str, float], draws: list[dict[str, float]]) -> dict[str, list[float]]:
     """Each total as [estimate, 5th percentile, 95th percentile], plus each preset's reported precision."""
+
     def ratio(values: dict[str, float], preset: str) -> float:
         shown = values.get(f"{preset} reported_true", 0.0) + values.get(f"{preset} reported_false", 0.0)
         return values.get(f"{preset} reported_true", 0.0) / shown if shown else float("nan")
 
     names = sorted({name for values in [point, *draws] for name in values})
     series = {name: (point.get(name, 0.0), [values.get(name, 0.0) for values in draws]) for name in names}
-    series |= {f"{preset} precision": (ratio(point, preset), [ratio(values, preset) for values in draws]) for preset in PRESETS}
+    series |= {
+        f"{preset} precision": (ratio(point, preset), [ratio(values, preset) for values in draws]) for preset in PRESETS
+    }
     summary = {}
     for name, (estimate, values) in series.items():
         ordered = sorted(v for v in values if v == v)
-        low, high = (ordered[int(0.05 * len(ordered))], ordered[int(0.95 * len(ordered)) - 1]) if ordered else (estimate,) * 2
+        low, high = (
+            (ordered[int(0.05 * len(ordered))], ordered[int(0.95 * len(ordered)) - 1]) if ordered else (estimate,) * 2
+        )
         summary[name] = [round(estimate, 3), round(low, 3), round(high, 3)]
     return summary
 
@@ -417,9 +494,11 @@ def report(outs: list[Path], rounds: int = 1000, seed: int = 20261107) -> dict:
         for option in OPTIONS:
             point = totals(rows, labels, scores, option)
             drawn = [totals(draw, labels, scores, option) for draw in draws]
-            options[option] = {"labelled": sum(proposes(r, option) for r in rows),
-                               "positive_labels": sum(proposes(r, option) and labels[r["id"]]["positive"] for r in rows),
-                               **summarise(point, drawn)}
+            options[option] = {
+                "labelled": sum(proposes(r, option) for r in rows),
+                "positive_labels": sum(proposes(r, option) and labels[r["id"]]["positive"] for r in rows),
+                **summarise(point, drawn),
+            }
             for name, value in point.items():
                 pooled_points[option][name] += value
             if not pooled_draws[option]:
@@ -427,13 +506,20 @@ def report(outs: list[Path], rounds: int = 1000, seed: int = 20261107) -> dict:
             for into, values in zip(pooled_draws[option], drawn):
                 for name, value in values.items():
                     into[name] += value
-        results[out.name] = {"commits": len(commits), "with_changes": sum(1 for c in commits if c["changed"]),
-                             "changed_functions": sum(c["changed"] for c in commits),
-                             "settled_by_rule": sum(c["settled"] for c in commits), "population": population,
-                             "labelled": len(labels), "unanimous": sum(label["unanimous"] for label in labels.values()),
-                             "options": options}
-    results["all"] = {"commits": sum(r["commits"] for r in results.values()),
-                      "options": {option: summarise(pooled_points[option], pooled_draws[option]) for option in OPTIONS}}
+        results[out.name] = {
+            "commits": len(commits),
+            "with_changes": sum(1 for c in commits if c["changed"]),
+            "changed_functions": sum(c["changed"] for c in commits),
+            "settled_by_rule": sum(c["settled"] for c in commits),
+            "population": population,
+            "labelled": len(labels),
+            "unanimous": sum(label["unanimous"] for label in labels.values()),
+            "options": options,
+        }
+    results["all"] = {
+        "commits": sum(r["commits"] for r in results.values()),
+        "options": {option: summarise(pooled_points[option], pooled_draws[option]) for option in OPTIONS},
+    }
     return results
 
 
@@ -453,13 +539,18 @@ def score(out: Path, judge: Judge, batch: int = 16) -> None:
             pairs.setdefault(key, row)
     todo = list(pairs.items())
     for start in range(0, len(todo), batch):
-        chunk = todo[start:start + batch]
+        chunk = todo[start : start + batch]
         try:
             verdicts = judge.judge([candidate(row) for _, row in chunk], Settings())
         except (httpx.HTTPError, ValueError):
             continue
-        append(path, [{"key": key, "score": v.score, "new": row["new"], "existing": row["existing"]}
-                      for (key, row), v in zip(chunk, verdicts)])
+        append(
+            path,
+            [
+                {"key": key, "score": v.score, "new": row["new"], "existing": row["existing"]}
+                for (key, row), v in zip(chunk, verdicts)
+            ],
+        )
 
 
 def calibration_sample(out: Path, into: Path, sizes: tuple[int, ...] = CALIBRATION, seed: int = 20261108) -> list[dict]:
@@ -476,21 +567,41 @@ def calibration_sample(out: Path, into: Path, sizes: tuple[int, ...] = CALIBRATI
     for band, size in enumerate(sizes):
         pool = sorted(bands[band], key=lambda row: row["key"])
         picked = rng.sample(pool, min(size, len(pool)))
-        chosen += [{"key": row["key"], "stratum": f"{BANDS[band]:.1f}-{min(BANDS[band + 1], 1.0):.1f}",
-                    "weight": len(pool) / len(picked), "sources": ["baseline"], "rank_min": None, "jev": row["score"],
-                    "new": row["new"], "existing": row["existing"]} for row in picked]
+        chosen += [
+            {
+                "key": row["key"],
+                "stratum": f"{BANDS[band]:.1f}-{min(BANDS[band + 1], 1.0):.1f}",
+                "weight": len(pool) / len(picked),
+                "sources": ["baseline"],
+                "rank_min": None,
+                "jev": row["score"],
+                "new": row["new"],
+                "existing": row["existing"],
+            }
+            for row in picked
+        ]
     rng.shuffle(chosen)
     for number, row in enumerate(chosen, 1):
         row["id"] = number
     (into / "sample.json").write_text(json.dumps(chosen, indent=2), encoding="utf-8")
-    (into / "population.json").write_text(json.dumps(
-        {f"{BANDS[i]:.1f}-{min(BANDS[i + 1], 1.0):.1f}": len(bands[i]) for i in range(len(sizes))}, indent=2))
-    earlier = {row["key"]: row["id"] for row in json.loads((out / "sample.json").read_text())} \
-        if (out / "sample.json").exists() else {}
+    (into / "population.json").write_text(
+        json.dumps({f"{BANDS[i]:.1f}-{min(BANDS[i + 1], 1.0):.1f}": len(bands[i]) for i in range(len(sizes))}, indent=2)
+    )
+    earlier = (
+        {row["key"]: row["id"] for row in json.loads((out / "sample.json").read_text())}
+        if (out / "sample.json").exists()
+        else {}
+    )
     ids = {earlier[row["key"]]: row["id"] for row in chosen if row["key"] in earlier}
     if not (into / "labels.jsonl").exists():
-        append(into / "labels.jsonl", [{**row, "id": ids[row["id"]]} for row in read(out / "labels.jsonl")
-                                       if row["id"] in ids and row.get("answer")])
+        append(
+            into / "labels.jsonl",
+            [
+                {**row, "id": ids[row["id"]]}
+                for row in read(out / "labels.jsonl")
+                if row["id"] in ids and row.get("answer")
+            ],
+        )
     return chosen
 
 
@@ -510,10 +621,14 @@ def export(out: Path, gold: Path) -> int:
         drifted = sum(a.get("variation") == "drifted" for a in votes) * 2 > len(votes)
         owners = [{"A": "new", "B": "existing"}.get(a.get("owner", ""), a.get("owner", "")) for a in votes]
         owner = max(set(owners), key=owners.count)
-        pair = GoldPair(new=GoldFunction(id=Function.model_validate(row["new"]).qualname, code=row["new"]["code"]),
-                        existing=GoldFunction(id=Function.model_validate(row["existing"]).qualname, code=row["existing"]["code"]),
-                        label="duplicate" if positive else "separate", drifted=drifted if positive else None,
-                        owner=owner if positive else None, weight=row["weight"])
+        pair = GoldPair(
+            new=GoldFunction(id=Function.model_validate(row["new"]).qualname, code=row["new"]["code"]),
+            existing=GoldFunction(id=Function.model_validate(row["existing"]).qualname, code=row["existing"]["code"]),
+            label="duplicate" if positive else "separate",
+            drifted=drifted if positive else None,
+            owner=owner if positive else None,
+            weight=row["weight"],
+        )
         lines.append(pair.model_dump_json())
     gold.parent.mkdir(parents=True, exist_ok=True)
     gold.write_text("".join(line + "\n" for line in lines), encoding="utf-8")

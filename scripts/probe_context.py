@@ -29,10 +29,18 @@ class Meter(httpx.BaseTransport):
         if response.is_success:
             data = response.json()
             state = json.loads(request.content)["state"]
-            self.responses.append({"model": data.get("model"), "usage": data.get("usage"),
-                                   "functions": [state[side]["module"] + "::" + state[side]["name"]
-                                                 for side in ["new_function", "existing_function"]],
-                                   "request_bytes": len(request.content), "answers": data.get("answers")})
+            self.responses.append(
+                {
+                    "model": data.get("model"),
+                    "usage": data.get("usage"),
+                    "functions": [
+                        state[side]["module"] + "::" + state[side]["name"]
+                        for side in ["new_function", "existing_function"]
+                    ],
+                    "request_bytes": len(request.content),
+                    "answers": data.get("answers"),
+                }
+            )
         return response
 
     def close(self):
@@ -43,7 +51,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cases", type=Path, required=True)
     parser.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH")
-    parser.add_argument("--index-arguments", type=Path, help="JSON --repo-index arguments from the fetch-indexes action.")
+    parser.add_argument(
+        "--index-arguments", type=Path, help="JSON --repo-index arguments from the fetch-indexes action."
+    )
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--prepare-only", action="store_true")
@@ -75,7 +85,9 @@ def main():
     detector = Detector([f for pair in sides for f in pair], settings, TfidfComparer(), [extractor])
     candidates = [detector.pair(a, b, case["similarity"]) for (a, b), case in zip(sides, cases, strict=True)]
     args.output.mkdir(parents=True, exist_ok=True)
-    (args.output / "candidates.json").write_text(json.dumps([p.model_dump() for p in candidates], indent=2), encoding="utf-8")
+    (args.output / "candidates.json").write_text(
+        json.dumps([p.model_dump() for p in candidates], indent=2), encoding="utf-8"
+    )
     if args.prepare_only:
         print(f"Prepared {len(candidates)} unchanged labelled pairs with source context")
         return
@@ -86,14 +98,25 @@ def main():
         judge = JevJudge(model="jev-1.14.0", context=arm == "context", guidance=guidance, workers=4, transport=meter)
         start = time.perf_counter()
         verdicts = judge.judge(candidates, settings)
-        rows = [{"id": case["id"], "label": case["label"], "regression": case["regression"],
-                 "reported": verdict.label != "separate" and verdict.score >= settings.report_at,
-                 "verdict": verdict.model_dump()} for case, verdict in zip(cases, verdicts, strict=True)]
-        results[arm] = {"seconds": time.perf_counter() - start, "version": judge.version, "rows": rows,
-                        "responses": meter.responses,
-                        "true_positives": sum(r["reported"] and r["label"] == "duplicate" for r in rows),
-                        "false_positives": sum(r["reported"] and r["label"] == "separate" for r in rows),
-                        "regression_false_positives": sum(r["reported"] and r["regression"] for r in rows)}
+        rows = [
+            {
+                "id": case["id"],
+                "label": case["label"],
+                "regression": case["regression"],
+                "reported": verdict.label != "separate" and verdict.score >= settings.report_at,
+                "verdict": verdict.model_dump(),
+            }
+            for case, verdict in zip(cases, verdicts, strict=True)
+        ]
+        results[arm] = {
+            "seconds": time.perf_counter() - start,
+            "version": judge.version,
+            "rows": rows,
+            "responses": meter.responses,
+            "true_positives": sum(r["reported"] and r["label"] == "duplicate" for r in rows),
+            "false_positives": sum(r["reported"] and r["label"] == "separate" for r in rows),
+            "regression_false_positives": sum(r["reported"] and r["regression"] for r in rows),
+        }
         (args.output / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
         print(arm, json.dumps({k: v for k, v in results[arm].items() if k not in {"rows", "responses"}}), flush=True)
     improved = results["context"]

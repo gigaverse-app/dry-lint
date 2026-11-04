@@ -50,8 +50,11 @@ class Finding(BaseModel):
     family: int = Field(default=1, description="How many look-alikes were proposed for the same changed function.")
     reported: bool = Field(default=False, description="Judged a duplicate at or above report_at.")
     blocking: bool = Field(default=False, description="Reported, and at or above fail_at: fails the check.")
-    related: bool = Field(default=False, description="A relative judged a duplicate at or above report_at: shown "
-                                                     "with its parent pair, never on its own, never blocking.")
+    related: bool = Field(
+        default=False,
+        description="A relative judged a duplicate at or above report_at: shown "
+        "with its parent pair, never on its own, never blocking.",
+    )
 
     def headline(self) -> str:
         new, existing = self.candidate.new, self.candidate.existing
@@ -69,8 +72,10 @@ class Finding(BaseModel):
             if self.verdict.why:
                 parts.append(plain(self.verdict.why))
             if self.verdict.label != "separate" and self.candidate.consolidation:
-                parts.append("preferred consolidation home: " + "; ".join(
-                    target.destination for target in self.candidate.consolidation))
+                parts.append(
+                    "preferred consolidation home: "
+                    + "; ".join(target.destination for target in self.candidate.consolidation)
+                )
         parts.append(f"similarity {self.candidate.similarity:.2f}")
         parts.append(f"pair {self.candidate.key}")
         if self.family > 1:
@@ -85,8 +90,10 @@ class Finding(BaseModel):
         assert all(r.verdict is not None for r in relatives), "a relative is shown only once judged"
         copies = ", ".join(f"{r.candidate.existing.qualname} (judge {r.verdict.score:.2f})" for r in relatives)
         existing = self.candidate.existing
-        return (f"fixing this touches {qualified(existing.owner, existing.name)}, which also looks like {copies}: "
-                "consolidate them in the same change")
+        return (
+            f"fixing this touches {qualified(existing.owner, existing.name)}, which also looks like {copies}: "
+            "consolidate them in the same change"
+        )
 
     def suppression(self) -> str:
         prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
@@ -125,23 +132,41 @@ class JudgingSummary(BaseModel):
         judges = self.judge or "no judge"
         if self.escalation and self.band:
             judges += f" > {self.escalation} on [{self.band[0]:g}, {self.band[1]:g})"
-        thresholds = (f"reports at {self.report_at:g}, fails at {self.fail_at:g}" if self.fail_at > self.report_at
-                      else f"reports and fails at {self.report_at:g}")
+        thresholds = (
+            f"reports at {self.report_at:g}, fails at {self.fail_at:g}"
+            if self.fail_at > self.report_at
+            else f"reports and fails at {self.report_at:g}"
+        )
         usd = self.usd
         scope = "for this pull request" if self.pull_request else "for this campaign" if self.campaign else "budget"
-        bill = ("cost unknown" if usd is None else
-                f"est. ${usd:.3f}" + (f" (${usd + self.spent_before:.3f} so far)" if self.spent_before else "")
-                + f" of ${self.budget_usd:g} {scope}")
+        bill = (
+            "cost unknown"
+            if usd is None
+            else f"est. ${usd:.3f}"
+            + (f" (${usd + self.spent_before:.3f} so far)" if self.spent_before else "")
+            + f" of ${self.budget_usd:g} {scope}"
+        )
         if self.campaign:
             bill = bill.replace("est.", "accounted") + f"; exploration credit ${self.exploration_credit:.4f}"
         calls = sum(s.calls for s in self.spend if s.subscription)
-        parts = [f"preset {self.preset}" if self.preset else "", judges, thresholds, bill,
-                 f"{calls} subscription calls" if calls else "",
-                 f"{self.skipped} pairs not judged (budget)" if self.skipped else "",
-                 *(f"{s.judge} failed ({s.error}): {s.failed} pairs "
-                   + ("deferred; accounted attempts can retry on a later tree" if self.campaign
-                      else "kept the first judge's answer, asked again next run")
-                   for s in self.spend if s.error)]
+        parts = [
+            f"preset {self.preset}" if self.preset else "",
+            judges,
+            thresholds,
+            bill,
+            f"{calls} subscription calls" if calls else "",
+            f"{self.skipped} pairs not judged (budget)" if self.skipped else "",
+            *(
+                f"{s.judge} failed ({s.error}): {s.failed} pairs "
+                + (
+                    "deferred; accounted attempts can retry on a later tree"
+                    if self.campaign
+                    else "kept the first judge's answer, asked again next run"
+                )
+                for s in self.spend
+                if s.error
+            ),
+        ]
         return " · ".join(p for p in parts if p)
 
 
@@ -165,16 +190,27 @@ class Report(Versioned):
     findings: list[Finding] = Field(default_factory=list)
     filtered: list[Candidate] = Field(default_factory=list, description="Pairs a rule settled, with the rule.")
     backlog: list[BacklogCleanup] | None = Field(
-        default=None, description="Accepted baseline pairs this change cleaned up; None when no baseline was checked.")
+        default=None, description="Accepted baseline pairs this change cleaned up; None when no baseline was checked."
+    )
 
     @classmethod
-    def build(cls, findings: list[Finding], settings: Settings, filtered: list[Candidate] = (), run: Run | None = None,
-              changed: int = 0, judge: str | None = None, functions: int = 0,
-              scope: Literal["change", "repository"] = "change", judging: JudgingSummary | None = None) -> "Report":
+    def build(
+        cls,
+        findings: list[Finding],
+        settings: Settings,
+        filtered: list[Candidate] = (),
+        run: Run | None = None,
+        changed: int = 0,
+        judge: str | None = None,
+        functions: int = 0,
+        scope: Literal["change", "repository"] = "change",
+        judging: JudgingSummary | None = None,
+    ) -> "Report":
         family: dict[str, int] = {}
         for f in findings:
             if f.candidate.lane != "relative":
                 family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
+
         def duplicate_at(f: Finding, threshold: float) -> bool:
             return f.verdict is not None and settings.duplicate_at(f.verdict, threshold)
 
@@ -184,17 +220,34 @@ class Report(Versioned):
                                  "blocking": duplicate_at(f, max(settings.report_at, settings.fail_at))})
             for f in findings
         ]  # fmt: skip
-        order = sorted(marked, key=lambda f: (not f.blocking, not f.reported,
-                                              f.verdict is None or f.verdict.label != "drifted",
-                                              -(f.verdict.score if f.verdict else f.candidate.similarity)))
-        return cls(run=run or Run(), changed=changed, functions=functions, scope=scope, judge=judge, findings=order,
-                   filtered=list(filtered), judging=judging)
+        order = sorted(
+            marked,
+            key=lambda f: (
+                not f.blocking,
+                not f.reported,
+                f.verdict is None or f.verdict.label != "drifted",
+                -(f.verdict.score if f.verdict else f.candidate.similarity),
+            ),
+        )
+        return cls(
+            run=run or Run(),
+            changed=changed,
+            functions=functions,
+            scope=scope,
+            judge=judge,
+            findings=order,
+            filtered=list(filtered),
+            judging=judging,
+        )
 
     @property
     def visible(self) -> list[Finding]:
         """Unjudged candidates, and judged pairs at or above the report threshold; relatives show with their parent."""
-        return [f for f in self.findings
-                if not f.deferred and f.candidate.lane != "relative" and (f.verdict is None or f.reported)]
+        return [
+            f
+            for f in self.findings
+            if not f.deferred and f.candidate.lane != "relative" and (f.verdict is None or f.reported)
+        ]
 
     def relatives(self, finding: Finding) -> list[Finding]:
         """The reported relatives of `finding`: copies its fix touches, closest first."""
@@ -215,18 +268,27 @@ class Report(Versioned):
     @property
     def stats(self) -> dict[str, int]:
         judged = [f for f in self.findings if f.verdict is not None]
-        return {"changed": self.changed, "candidates": len(self.findings) + len(self.filtered),
-                "filtered": len(self.filtered), "cached": sum(f.cached for f in judged),
-                "judged": sum(not f.cached for f in judged), "reported": sum(f.reported for f in self.findings)}
+        return {
+            "changed": self.changed,
+            "candidates": len(self.findings) + len(self.filtered),
+            "filtered": len(self.filtered),
+            "cached": sum(f.cached for f in judged),
+            "judged": sum(not f.cached for f in judged),
+            "reported": sum(f.reported for f in self.findings),
+        }
 
 
 def as_text(report: Report) -> str:
-    lines = [f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {f.advice(report.relatives(f))}"
-             for f in report.visible]
+    lines = [
+        f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {f.advice(report.relatives(f))}"
+        for f in report.visible
+    ]
     stats = report.stats
     judge = f"judge {report.judge}" if report.judge else "no judge"
-    lines.append(f"dry-lint: {stats['candidates']} candidate pair(s), {stats['filtered']} skipped by rule, "
-                 f"{stats['cached']} from the store, {stats['judged']} judged ({judge}), {stats['reported']} reported")
+    lines.append(
+        f"dry-lint: {stats['candidates']} candidate pair(s), {stats['filtered']} skipped by rule, "
+        f"{stats['cached']} from the store, {stats['judged']} judged ({judge}), {stats['reported']} reported"
+    )
     if report.deferred:
         lines.append(f"dry-lint: {report.deferred} deferred by the judge budget; these pairs are not cleared")
     if report.judging:
@@ -247,15 +309,17 @@ def as_github(report: Report) -> str:
     lines = []
     for f in report.visible:
         new = f.candidate.new
-        lines.append(f"::{level(f)} file={new.path},line={new.line},endLine={new.end_line},title=dry-lint::"
-                     f"{escape(f.headline() + ': ' + f.advice(report.relatives(f)))}")
+        lines.append(
+            f"::{level(f)} file={new.path},line={new.line},endLine={new.end_line},title=dry-lint::"
+            f"{escape(f.headline() + ': ' + f.advice(report.relatives(f)))}"
+        )
     return "\n".join(lines)
 
 
 def function_link(function: Function, run: Run) -> str:
     """Link to the measured revision, not a moving branch; local reports keep the full location."""
     url = source_url(function, run)
-    label = function.qualname.split('::', 1)[1]
+    label = function.qualname.split("::", 1)[1]
     if function.origin:
         label = f"{function.origin.repository}: {label}"
     return f"[{escaped(label)}]({url})" if url else escaped(function.qualname)
@@ -266,8 +330,10 @@ def source_url(function: Function, run: Run) -> str:
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", run.repository) or not re.fullmatch(r"[a-fA-F0-9]{40}", run.head):
         return ""
     server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
-    return (f"{server}/{quote(run.repository, safe='/')}/blob/{quote(run.head, safe='')}/"
-            f"{quote(function.path, safe='/')}#L{function.line}-L{function.end_line}")
+    return (
+        f"{server}/{quote(run.repository, safe='/')}/blob/{quote(run.head, safe='')}/"
+        f"{quote(function.path, safe='/')}#L{function.line}-L{function.end_line}"
+    )
 
 
 NOTE_SLOT = "<!-- dry-lint note -->"
@@ -294,8 +360,10 @@ def badge(label: str, message: object, color: str) -> str:
     def part(text: str) -> str:
         return quote(text.replace("-", "--").replace("_", "__").replace(" ", "_"), safe="")
 
-    return (f"![{escaped(f'{label}: {message}')}]({BADGES}/{part(label)}-{part(str(message))}-{color}"
-            "?style=flat-square&labelColor=24292F)")
+    return (
+        f"![{escaped(f'{label}: {message}')}]({BADGES}/{part(label)}-{part(str(message))}-{color}"
+        "?style=flat-square&labelColor=24292F)"
+    )
 
 
 def code(text: str) -> str:
@@ -341,7 +409,11 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         f"{report.deferred} deferred by the judge budget" if report.deferred else "",
         (f"judge {code(report.judge)}" if report.judge else "no judge") if not report.judging else "",
     ) if part)  # fmt: skip
-    footer = ["", f"<sub>{coverage}</sub>", *([f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else [])]
+    footer = [
+        "",
+        f"<sub>{coverage}</sub>",
+        *([f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else []),
+    ]
     if report.judge is None:
         return "\n".join([
             MARKER, f"### dry-lint · {plural(len(report.findings), 'look-alike pair')}, not judged", "",
@@ -351,20 +423,36 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         ])  # fmt: skip
     if not shown:
         if report.deferred:
-            return "\n".join([MARKER, "### dry-lint · Partial assessment", "", NOTE_SLOT, "",
-                              f"No judged pair reached the threshold; {report.deferred} pairs were deferred by the "
-                              "judge budget and have not been cleared.", *footer])
+            return "\n".join(
+                [
+                    MARKER,
+                    "### dry-lint · Partial assessment",
+                    "",
+                    NOTE_SLOT,
+                    "",
+                    f"No judged pair reached the threshold; {report.deferred} pairs were deferred by the "
+                    "judge budget and have not been cleared.",
+                    *footer,
+                ]
+            )
         return clean(report, audit, report_at)
     blocking = sum(f.blocking for f in shown)
-    headline = (f"### dry-lint audit · {plural(len(shown), 'duplicated concept')} in existing code" if audit else
-                f"### dry-lint · {plural(len(shown), 'duplicated concept')}")
+    headline = (
+        f"### dry-lint audit · {plural(len(shown), 'duplicated concept')} in existing code"
+        if audit
+        else f"### dry-lint · {plural(len(shown), 'duplicated concept')}"
+    )
     if blocking:
         headline += f" · 🔴 {blocking} blocking"
-    lead = ("A repository-wide audit of code that already exists: each row is one concept implemented twice. "
-            "Not introduced by this pull request, and never blocking." if audit else
-            "")
+    lead = (
+        "A repository-wide audit of code that already exists: each row is one concept implemented twice. "
+        "Not introduced by this pull request, and never blocking."
+        if audit
+        else ""
+    )
     actions = AUDIT_ACTIONS if audit else ACTIONS
     listed = shown[:max_findings]
+
     def action(f: Finding) -> str:
         if f.candidate.consolidation:
             return "consider consolidation in " + "; ".join(t.destination for t in f.candidate.consolidation)
@@ -390,14 +478,18 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
             title = side.path.replace('"', "'")
             if side.origin:
                 short = f"{side.origin.repository}/{short}"
-            copies.append(f'[{escaped(f"{short}:{side.line}")}]({url} "{escaped(title)}")' if url
-                          else escaped(f"{side.path}:{side.line}"))
+            copies.append(
+                f'[{escaped(f"{short}:{side.line}")}]({url} "{escaped(title)}")'
+                if url
+                else escaped(f"{side.path}:{side.line}")
+            )
         if not audit:
             copies[0] += " <sub>changed</sub>"
         if f.verdict:
-            hint = [part for part in ("blocks" if f.blocking else "", "" if common else escaped(action(f)))
-                    if part]
-            verdict = f"**{f.verdict.label}**&nbsp;{f.verdict.score:.2f}" + (f"<br><sub>{' · '.join(hint)}</sub>" if hint else "")
+            hint = [part for part in ("blocks" if f.blocking else "", "" if common else escaped(action(f))) if part]
+            verdict = f"**{f.verdict.label}**&nbsp;{f.verdict.score:.2f}" + (
+                f"<br><sub>{' · '.join(hint)}</sub>" if hint else ""
+            )
         else:
             verdict = f"similarity&nbsp;{f.candidate.similarity:.2f}<br><sub>not judged</sub>"
         rows.append(f"| {dot(f)} | {concept} | {'<br>'.join(copies)} | {verdict} |")
@@ -419,11 +511,29 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         ])  # fmt: skip
     legend = " · ".join(f"{icon} {text}" for icon, text in LEGEND.items() if any(dot(f) == icon for f in listed))
     details += [f"<sub>{legend}</sub>", "", "</details>"]
-    more = [f"<sub>+ {plural(len(shown) - max_findings, 'more pair')} not listed here; the run log lists every one.</sub>",
-            ""] if len(shown) > max_findings else []
-    skipped = ["", f"<details><summary><strong>Settled by a rule ({len(report.filtered)})</strong></summary>", "",
-               *(f"- {code(c.new.qualname)} ~ {code(c.existing.qualname)}: {escaped(c.filtered or '')}"
-                 for c in report.filtered), "", "</details>"] if report.filtered else []
+    more = (
+        [
+            f"<sub>+ {plural(len(shown) - max_findings, 'more pair')} not listed here; the run log lists every one.</sub>",
+            "",
+        ]
+        if len(shown) > max_findings
+        else []
+    )
+    skipped = (
+        [
+            "",
+            f"<details><summary><strong>Settled by a rule ({len(report.filtered)})</strong></summary>",
+            "",
+            *(
+                f"- {code(c.new.qualname)} ~ {code(c.existing.qualname)}: {escaped(c.filtered or '')}"
+                for c in report.filtered
+            ),
+            "",
+            "</details>",
+        ]
+        if report.filtered
+        else []
+    )
     return "\n".join([
         MARKER, headline, "", NOTE_SLOT, "", lead.strip(), "", *rows, "", *more,
         "", *details, "", "<details><summary><strong>False positive? Choose the scope of your decision</strong></summary>",
@@ -436,16 +546,32 @@ def clean(report: Report, audit: bool, report_at: float | None) -> str:
     stats = report.stats
     judged = [f for f in report.findings if f.verdict is not None]
     closest = max(judged, key=lambda f: f.verdict.score, default=None)
-    counts = [*([] if audit else [("🔎 Changed functions", f"{report.changed:,}")]),
-              *([("🗂 Functions in the repository" if audit else "🗂 Compared with", plural(report.functions, "function"))]
-                if report.functions else []), ("🧶 Look-alike pairs", f"{stats['candidates']:,}")]
-    rows = ["| " + " | ".join(label for label, _ in counts) + " |",
-            "| " + " | ".join("--:" for _ in counts) + " |",
-            "| " + " | ".join(value for _, value in counts) + " |"]
+    counts = [
+        *([] if audit else [("🔎 Changed functions", f"{report.changed:,}")]),
+        *(
+            [("🗂 Functions in the repository" if audit else "🗂 Compared with", plural(report.functions, "function"))]
+            if report.functions
+            else []
+        ),
+        ("🧶 Look-alike pairs", f"{stats['candidates']:,}"),
+    ]
+    rows = [
+        "| " + " | ".join(label for label, _ in counts) + " |",
+        "| " + " | ".join("--:" for _ in counts) + " |",
+        "| " + " | ".join(value for _, value in counts) + " |",
+    ]
     extra = [
-            *([f"| Settled by a rule | {stats['filtered']:,} |"] if stats["filtered"] else []),
-            *([f"| Cleared by the judge | {len(judged):,}"
-               + (f" ({stats['cached']:,} from the verdict store)" if stats["cached"] else "") + " |"] if judged else [])]
+        *([f"| Settled by a rule | {stats['filtered']:,} |"] if stats["filtered"] else []),
+        *(
+            [
+                f"| Cleared by the judge | {len(judged):,}"
+                + (f" ({stats['cached']:,} from the verdict store)" if stats["cached"] else "")
+                + " |"
+            ]
+            if judged
+            else []
+        ),
+    ]
     if closest:
         names = [side.qualname.split("::", 1)[1] for side in (closest.candidate.new, closest.candidate.existing)]
         pair = code(names[0]) if names[0] == names[1] else f"{code(names[0])} ≈ {code(names[1])}"
@@ -453,9 +579,16 @@ def clean(report: Report, audit: bool, report_at: float | None) -> str:
         extra.append(f"| Closest call | {pair} · {closest.verdict.label} {closest.verdict.score:.2f}{bar} |")
     if extra:
         rows += ["", "| Review | Result |", "| :-- | --: |", *extra]
-    title = "### dry-lint audit · ✨ No duplicated concepts in existing code" if audit else \
-        "### dry-lint · ✨ No duplicated concepts"
-    empty = ["**Nothing to compare.** This pull request changes no functions.", ""] if not audit and not report.changed else []
+    title = (
+        "### dry-lint audit · ✨ No duplicated concepts in existing code"
+        if audit
+        else "### dry-lint · ✨ No duplicated concepts"
+    )
+    empty = (
+        ["**Nothing to compare.** This pull request changes no functions.", ""]
+        if not audit and not report.changed
+        else []
+    )
     judging = report.judging.line() if report.judging else f"judge {report.judge}"
     return "\n".join([MARKER, CLEAN, title, "", NOTE_SLOT, "", *empty, *rows, "", f"<sub>{escaped(judging)}</sub>"])
 
@@ -501,14 +634,23 @@ def as_sarif(report: Report) -> str:
                                   "message": {"text": existing.qualname}}],
             "partialFingerprints": {"dryLintPair/v1": f.candidate.key},
         })  # fmt: skip
-    driver = {"name": "dry-lint", "version": __version__, "informationUri": "https://github.com/gigaverse-app/dry-lint",
-              "rules": rules}
-    sarif = {"$schema": "https://json.schemastore.org/sarif-2.1.0.json", "version": "2.1.0",
-             "runs": [{"tool": {"driver": driver}, "results": results}]}
+    driver = {
+        "name": "dry-lint",
+        "version": __version__,
+        "informationUri": "https://github.com/gigaverse-app/dry-lint",
+        "rules": rules,
+    }
+    sarif = {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{"tool": {"driver": driver}, "results": results}],
+    }
     return json.dumps(sarif, indent=2)
 
 
-def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False, report_at: float | None = None) -> str:
+def as_check_run(
+    report: Report, max_findings: int = 10, warn_only: bool = False, report_at: float | None = None
+) -> str:
     """
     The body for `POST /repos/{owner}/{repo}/check-runs`: a failure only for a blocking finding (and not
     `warn_only`), neutral for findings that only warn, success otherwise.
@@ -523,9 +665,13 @@ def as_check_run(report: Report, max_findings: int = 10, warn_only: bool = False
         "annotation_level": "failure" if level(f) == "error" else "warning", "title": f.headline(),
         "message": f.advice(report.relatives(f)),
     } for f in reported[:50]]  # fmt: skip
-    body = {"name": "dry-lint", "head_sha": report.run.head, "status": "completed",
-            "conclusion": "failure" if failed else "neutral" if reported or report.deferred else "success",
-            "output": {"title": title, "summary": as_markdown(report, max_findings, report_at), "annotations": annotations}}
+    body = {
+        "name": "dry-lint",
+        "head_sha": report.run.head,
+        "status": "completed",
+        "conclusion": "failure" if failed else "neutral" if reported or report.deferred else "success",
+        "output": {"title": title, "summary": as_markdown(report, max_findings, report_at), "annotations": annotations},
+    }
     return json.dumps(body, indent=2)
 
 
@@ -534,8 +680,9 @@ FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
     if form not in ("text", "json", "markdown") and any(
-        finding.candidate.new.origin and (report.repository_wide or
-            finding.candidate.new.origin.repository != report.run.repository) for finding in report.findings
+        finding.candidate.new.origin
+        and (report.repository_wide or finding.candidate.new.origin.repository != report.run.repository)
+        for finding in report.findings
     ):
         raise ValueError("A workspace report supports text, json and markdown; annotations belong to one repository")
     if form == "check-run":

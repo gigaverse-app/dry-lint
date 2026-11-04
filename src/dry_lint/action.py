@@ -62,7 +62,9 @@ def is_fork(event: dict) -> bool:
 def resolve_mode(requested: str, event_name: str, event: dict) -> str:
     if requested and requested != "auto":
         if requested not in ("single", "detect", "judge", "sweep", "index", "fetch-indexes"):
-            raise ValueError(f"Unknown mode: {requested} (use auto, single, detect, judge, sweep, index or fetch-indexes)")
+            raise ValueError(
+                f"Unknown mode: {requested} (use auto, single, detect, judge, sweep, index or fetch-indexes)"
+            )
         return requested
     if event_name == "workflow_run":
         return "judge"
@@ -112,12 +114,16 @@ def fetch_history(root: Path, *refs: str, depth: int) -> None:
     if token:
         count = int(environment.get("GIT_CONFIG_COUNT", "0"))
         server = env("GITHUB_SERVER_URL", "https://github.com")
-        environment.update({"GIT_CONFIG_COUNT": str(count + 2),
-                            f"GIT_CONFIG_KEY_{count}": f"http.{server}/.extraheader",
-                            f"GIT_CONFIG_VALUE_{count}": "",
-                            f"GIT_CONFIG_KEY_{count + 1}": f"http.{server}/.extraheader",
-                            f"GIT_CONFIG_VALUE_{count + 1}": "AUTHORIZATION: basic " +
-                            base64.b64encode(f"x-access-token:{token}".encode()).decode()})
+        environment.update(
+            {
+                "GIT_CONFIG_COUNT": str(count + 2),
+                f"GIT_CONFIG_KEY_{count}": f"http.{server}/.extraheader",
+                f"GIT_CONFIG_VALUE_{count}": "",
+                f"GIT_CONFIG_KEY_{count + 1}": f"http.{server}/.extraheader",
+                f"GIT_CONFIG_VALUE_{count + 1}": "AUTHORIZATION: basic "
+                + base64.b64encode(f"x-access-token:{token}".encode()).decode(),
+            }
+        )
     git(root, "fetch", "--quiet", "--no-tags", f"--depth={depth}", "origin", *refs, env=environment)
 
 
@@ -138,7 +144,9 @@ def ensure_history(root: Path, base: str) -> None:
             return
         fetch_history(root, remote_base, head, depth=depth)
     if not git(root, "merge-base", base, "HEAD", check=False):
-        raise ValueError("No merge base within 2048 commits of the compared refs; rebase the branch or provide history.")
+        raise ValueError(
+            "No merge base within 2048 commits of the compared refs; rebase the branch or provide history."
+        )
 
 
 def dry_lint(*args: str, echo: bool = True) -> tuple[int, list[str]]:
@@ -152,8 +160,9 @@ def dry_lint(*args: str, echo: bool = True) -> tuple[int, list[str]]:
 
 def count_findings(lines: list[str]) -> tuple[int, int]:
     """All findings, and the blocking ones (dry-lint marks a finding at or above `fail_at` as an error)."""
-    return sum(line.startswith(("::warning file=", "::error file=")) for line in lines), \
-        sum(line.startswith("::error file=") for line in lines)
+    return sum(line.startswith(("::warning file=", "::error file=")) for line in lines), sum(
+        line.startswith("::error file=") for line in lines
+    )
 
 
 def judged(report: Path) -> bool:
@@ -182,15 +191,21 @@ def status_note(blocking: int, overridden: bool, baselined: bool = False) -> str
     if not blocking:
         return ""
     if baselined:
-        return (f"> [!CAUTION]\n> **Blocking:** {blocking} new or changed duplicate(s) exceed the baseline. "
-                "Refactor them or document a deliberate distinct concept in code; an override label cannot widen the ratchet.")
+        return (
+            f"> [!CAUTION]\n> **Blocking:** {blocking} new or changed duplicate(s) exceed the baseline. "
+            "Refactor them or document a deliberate distinct concept in code; an override label cannot widen the ratchet."
+        )
     if overridden:
-        return (f"> [!NOTE]\n> **Overridden:** the `{override_label()}` label is set, so the {blocking} blocking "
-                "finding(s) do not fail this pull request.")
+        return (
+            f"> [!NOTE]\n> **Overridden:** the `{override_label()}` label is set, so the {blocking} blocking "
+            "finding(s) do not fail this pull request."
+        )
     if flag("INPUT_WARN_ONLY"):
         return "> [!NOTE]\n> **Advisory mode:** `warn-only` is enabled, so this check does not fail on these findings."
-    return (f"> [!CAUTION]\n> **Blocking:** {blocking} finding(s) reach `fail_at`, so this check fails. A false "
-            f"positive? Use the scoped decisions below, or add the `{override_label()}` label to this pull request.")
+    return (
+        f"> [!CAUTION]\n> **Blocking:** {blocking} finding(s) reach `fail_at`, so this check fails. A false "
+        f"positive? Use the scoped decisions below, or add the `{override_label()}` label to this pull request."
+    )
 
 
 def write_outputs(**outputs: object) -> None:
@@ -208,16 +223,41 @@ def write_summary(comment: Path) -> None:
 
 
 def run_url() -> str:
-    server, repository, run = env("GITHUB_SERVER_URL", "https://github.com"), env("GITHUB_REPOSITORY"), env("GITHUB_RUN_ID")
+    server, repository, run = (
+        env("GITHUB_SERVER_URL", "https://github.com"),
+        env("GITHUB_REPOSITORY"),
+        env("GITHUB_RUN_ID"),
+    )
     return f"{server}/{repository}/actions/runs/{run}" if repository and run else ""
 
 
-def comment(repository: str, number: int, body: Path, findings: int, expect_head: str,
-            transport: httpx.BaseTransport | None = None, note: str = "") -> str:
+def comment(
+    repository: str,
+    number: int,
+    body: Path,
+    findings: int,
+    expect_head: str,
+    transport: httpx.BaseTransport | None = None,
+    note: str = "",
+) -> str:
     if not flag("INPUT_COMMENT") or not number or not body.exists():
         return "off"
-    args = ["--body", str(body), "--repository", repository, "--pull-request", str(number),
-            "--findings", str(findings), "--key", env("INPUT_STICKY_KEY"), "--run-url", run_url(), "--note", note]
+    args = [
+        "--body",
+        str(body),
+        "--repository",
+        repository,
+        "--pull-request",
+        str(number),
+        "--findings",
+        str(findings),
+        "--key",
+        env("INPUT_STICKY_KEY"),
+        "--run-url",
+        run_url(),
+        "--note",
+        note,
+    ]
     if expect_head:
         args += ["--expect-head", expect_head]
     if (report := body.parent / "report.json").exists():
@@ -230,8 +270,9 @@ def comment(repository: str, number: int, body: Path, findings: int, expect_head
     return "posted"
 
 
-def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTransport | None = None,
-              blocked: bool = False) -> str:
+def check_run(
+    root: Path, repository: str, report: Path, transport: httpx.BaseTransport | None = None, blocked: bool = False
+) -> str:
     """
     A workflow_run job does not show among a pull request's checks, so judge mode posts a check run on the pull
     request's head commit: a failure when a finding blocks, otherwise neutral with findings and success without.
@@ -239,8 +280,9 @@ def check_run(root: Path, repository: str, report: Path, transport: httpx.BaseTr
     token = env("GITHUB_TOKEN")
     if not flag("INPUT_CHECK_RUN") or not token or not report.exists():
         return "off"
-    code, lines = dry_lint("report", "--root", str(root), "--from", str(report), "--format", "check-run", *fail_at(),
-                           echo=False)
+    code, lines = dry_lint(
+        "report", "--root", str(root), "--from", str(report), "--format", "check-run", *fail_at(), echo=False
+    )
     try:
         body = json.loads("\n".join(lines))
     except json.JSONDecodeError:
@@ -293,11 +335,17 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
         try:
             for pull in github.merged_pulls(repository, branch):
                 number = pull["number"]
-                if number in ledger.pulls or number in ledger.unaccounted or not (
-                        pull.get("merge_commit_sha") == head or datetime.fromisoformat(pull["merged_at"]) >= since):
+                if (
+                    number in ledger.pulls
+                    or number in ledger.unaccounted
+                    or not (pull.get("merge_commit_sha") == head or datetime.fromisoformat(pull["merged_at"]) >= since)
+                ):
                     continue
-                found = [pulled for c in sticky.ours(github.comments(repository, number))
-                         if (pulled := PullLedger.read(c.get("body", ""))) is not None]
+                found = [
+                    pulled
+                    for c in sticky.ours(github.comments(repository, number))
+                    if (pulled := PullLedger.read(c.get("body", ""))) is not None
+                ]
                 if found:
                     ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs), key)
                 else:
@@ -307,8 +355,10 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
             outcome = "partial"
     share(ledger, transport)
     if key:
-        print(f"dry-lint: this repository's counter key is {key}; its sign is "
-              f"{env('DRY_LINT_COUNTER', COUNTER)}/v1/sign.svg?key={key}")
+        print(
+            f"dry-lint: this repository's counter key is {key}; its sign is "
+            f"{env('DRY_LINT_COUNTER', COUNTER)}/v1/sign.svg?key={key}"
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(ledger.model_dump_json(indent=2) + "\n")
     return outcome
@@ -354,8 +404,10 @@ def pull_labels(repository: str, number: int, transport: httpx.BaseTransport | N
 
 def plan() -> int:
     event_name, event = env("GITHUB_EVENT_NAME"), github_event()
-    write_outputs(mode=resolve_mode(env("INPUT_MODE", "auto"), event_name, event),
-                  workflow_run_id=(event.get("workflow_run") or {}).get("id", ""))
+    write_outputs(
+        mode=resolve_mode(env("INPUT_MODE", "auto"), event_name, event),
+        workflow_run_id=(event.get("workflow_run") or {}).get("id", ""),
+    )
     return 0
 
 
@@ -378,7 +430,9 @@ def index_specs() -> list[tuple[str, str]]:
 
 def peer_indexes(root: Path, work: Path, transport: httpx.BaseTransport | None = None) -> tuple[list[str], str]:
     arguments, receipts = [], []
-    client = IndexClient(env("INPUT_INDEX_TOKEN") or env("GITHUB_TOKEN"), env("GITHUB_API_URL", "https://api.github.com"), transport)
+    client = IndexClient(
+        env("INPUT_INDEX_TOKEN") or env("GITHUB_TOKEN"), env("GITHUB_API_URL", "https://api.github.com"), transport
+    )
     try:
         for repository, ref in index_specs():
             fetched = client.fetch(repository, ref, Settings.load(root))
@@ -392,13 +446,21 @@ def peer_indexes(root: Path, work: Path, transport: httpx.BaseTransport | None =
     manifest = work / "index-arguments.json"
     manifest.write_text(json.dumps(arguments))
     write_outputs(index_arguments=str(manifest))
-    receipt = ("\n\n### Peer function indexes\n\n| Repository | Source commit | Functions | Source | Bytes downloaded |\n"
-               "| --- | --- | ---: | --- | ---: |\n" + "\n".join(receipts) + "\n") if receipts else ""
+    receipt = (
+        (
+            "\n\n### Peer function indexes\n\n| Repository | Source commit | Functions | Source | Bytes downloaded |\n"
+            "| --- | --- | ---: | --- | ---: |\n" + "\n".join(receipts) + "\n"
+        )
+        if receipts
+        else ""
+    )
     return arguments, receipt
 
 
-UNTOUCHED = ("\n\n### Peer function indexes\n\nNot downloaded: this change touches no function in scope, so there "
-             "is nothing to compare with peer repositories.\n")
+UNTOUCHED = (
+    "\n\n### Peer function indexes\n\nNot downloaded: this change touches no function in scope, so there "
+    "is nothing to compare with peer repositories.\n"
+)
 
 
 def changes_functions(root: Path, base: str) -> bool:
@@ -418,7 +480,9 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         path = work / "functions.json.gz"
         path.write_bytes(snapshot.encode())
         write_outputs(mode=mode, exit_code=0, index_name=snapshot.artifact_name, index_path=str(path))
-        print(f"Published index: {snapshot.repository}@{snapshot.commit}, {len(snapshot.functions)} functions, {path.stat().st_size} bytes")
+        print(
+            f"Published index: {snapshot.repository}@{snapshot.commit}, {len(snapshot.functions)} functions, {path.stat().st_size} bytes"
+        )
         return 0
     index_arguments, receipt = [], ""
     if env("INPUT_REPOSITORY_INDEXES"):
@@ -439,23 +503,46 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     # dry-lint logs as text; annotations are rendered from report.json afterwards, and only when a judge ran:
     # unjudged look-alikes on every pull request would be noise. dry-lint exits 1 when a finding blocks (at or
     # above fail_at); the action decides what that means. "auto" leaves the judging preset to dry-lint.
-    judging = [*([] if judge == "auto" else ["--judge", judge]), "--store", str(store), "--report", str(report),
-               "--output", str(body), *fail_at(), *judging_options()]
+    judging = [
+        *([] if judge == "auto" else ["--judge", judge]),
+        "--store",
+        str(store),
+        "--report",
+        str(report),
+        "--output",
+        str(body),
+        *fail_at(),
+        *judging_options(),
+    ]
     judging += ["--format", "text", *(["--warn-only"] if judge == "none" else [])]
     if flag("INPUT_WARN_ONLY"):
         judging.append("--warn-only")
     if env("INPUT_JUDGE_COMMAND"):
         judging += ["--judge-command", env("INPUT_JUDGE_COMMAND")]
-    repositories = [argument for line in env("INPUT_REPOSITORIES").splitlines() if line.strip()
-                    for argument in ("--repo", line.strip())]
+    repositories = [
+        argument
+        for line in env("INPUT_REPOSITORIES").splitlines()
+        if line.strip()
+        for argument in ("--repo", line.strip())
+    ]
     if index_arguments and not repositories:
         repositories = ["--repo", f"{env('GITHUB_REPOSITORY')}={root}"]
     repositories.extend(index_arguments)
 
     if mode == "sweep":
-        code, _ = dry_lint("sweep", "--root", str(root), "--repository", env("GITHUB_REPOSITORY"),
-                          "--branch", (event.get("repository") or {}).get("default_branch", "main"),
-                          "--readme", env("INPUT_SWEEP_README", "README.md"), *repositories, *judging)
+        code, _ = dry_lint(
+            "sweep",
+            "--root",
+            str(root),
+            "--repository",
+            env("GITHUB_REPOSITORY"),
+            "--branch",
+            (event.get("repository") or {}).get("default_branch", "main"),
+            "--readme",
+            env("INPUT_SWEEP_README", "README.md"),
+            *repositories,
+            *judging,
+        )
         write_summary(body)
         write_outputs(mode=mode, exit_code=code)
         return code
@@ -463,9 +550,16 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     if mode == "detect":
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)
-        code, _ = dry_lint("detect", "--root", str(root), "--out", str(work / "candidates.json"),
-                           *(["--base", base] if base else []), *repositories,
-                           *(["--require-complete"] if flag("INPUT_REQUIRE_COMPLETE") else []))
+        code, _ = dry_lint(
+            "detect",
+            "--root",
+            str(root),
+            "--out",
+            str(work / "candidates.json"),
+            *(["--base", base] if base else []),
+            *repositories,
+            *(["--require-complete"] if flag("INPUT_REQUIRE_COMPLETE") else []),
+        )
         write_outputs(mode=mode, exit_code=code, findings=0)
         print(f"::notice title=dry-lint::Candidates saved as the {ARTIFACT} artifact for the judge workflow.")
         return 2 if code == 2 else 0
@@ -492,9 +586,15 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         ensure_history(root, base)
         if env("INPUT_BASELINE") and base:
             judging += ["--baseline-ref", base]
-        code, lines = dry_lint("check", "--root", str(root), *(["--base", base] if base else []), *repositories, *judging)
+        code, lines = dry_lint(
+            "check", "--root", str(root), *(["--base", base] if base else []), *repositories, *judging
+        )
         pull = event.get("pull_request") or {}
-        number, repository, head = pull.get("number") or 0, env("GITHUB_REPOSITORY"), (pull.get("head") or {}).get("sha", "")
+        number, repository, head = (
+            pull.get("number") or 0,
+            env("GITHUB_REPOSITORY"),
+            (pull.get("head") or {}).get("sha", ""),
+        )
         labels = labels_of(pull)
 
     if code != 2 and judge != "none":
@@ -512,8 +612,10 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         write_outputs(mode=mode, exit_code=2, findings=findings, blocking=blocking, overridden="false")
         return 2
     if judge == "none":
-        print("::notice title=dry-lint::Look-alikes are listed unjudged in the log. Set typesafe-api-key (or "
-              "judge-command) to judge them; until then dry-lint does not comment or fail.")
+        print(
+            "::notice title=dry-lint::Look-alikes are listed unjudged in the log. Set typesafe-api-key (or "
+            "judge-command) to judge them; until then dry-lint does not comment or fail."
+        )
         write_outputs(mode=mode, exit_code=0, findings=0, blocking=0, overridden="false")
         return 0
     blocking = blocking if code == 1 else 0

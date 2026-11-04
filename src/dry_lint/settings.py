@@ -41,8 +41,11 @@ class Escalation(PluginChoice):
     """A second judge for the scores the first judge is least sure about."""
 
     between: tuple[float, float] = Field(default=(0.6, 0.91), description="First-judge scores in [low, high) escalate.")
-    first_at: float | None = Field(default=None, description="The first judge's own threshold, for its answers that got "
-                                                             "no second opinion (outside the band, or past the budget).")
+    first_at: float | None = Field(
+        default=None,
+        description="The first judge's own threshold, for its answers that got "
+        "no second opinion (outside the band, or past the budget).",
+    )
 
     def options(self) -> dict[str, Any]:
         return {name: value for name, value in super().options().items() if name not in ("between", "first_at")}
@@ -58,12 +61,17 @@ Choice = Annotated[PluginChoice, BeforeValidator(_named)]
 class Budget(BaseModel):
     """What judging may spend on one pull request, across all its pushes (on one run, outside a pull request)."""
 
-    usd: float = Field(default=0.04, description="Most judging spends on a pull request, estimated at list price; a "
-                                                 "subscription judge counts at its model's list price too. The "
-                                                 "riskiest pairs are judged first; the rest keep the first judge's "
-                                                 "answer, or stay unjudged.")
-    subscription_calls: int = Field(default=20, description="Most calls a run makes to subscription judges, which "
-                                                            "are rate-limited as well as priced.")
+    usd: float = Field(
+        default=0.04,
+        description="Most judging spends on a pull request, estimated at list price; a "
+        "subscription judge counts at its model's list price too. The "
+        "riskiest pairs are judged first; the rest keep the first judge's "
+        "answer, or stay unjudged.",
+    )
+    subscription_calls: int = Field(
+        default=20,
+        description="Most calls a run makes to subscription judges, which are rate-limited as well as priced.",
+    )
 
 
 class Discovery(BaseModel):
@@ -87,36 +95,56 @@ class Settings(BaseModel):
     consolidation: list[Consolidation] = Field(default_factory=list)
     max_judgements: int | None = Field(default=None, ge=1, description="Maximum uncached pairs judged per run.")
 
-    extractors: list[Choice] = Field(default_factory=lambda: [PluginChoice(use="python"), PluginChoice(use="typescript")],
-                                     description="One per language; the first whose file globs match a file reads it.")
+    extractors: list[Choice] = Field(
+        default_factory=lambda: [PluginChoice(use="python"), PluginChoice(use="typescript")],
+        description="One per language; the first whose file globs match a file reads it.",
+    )
     comparer: Choice = Field(default_factory=lambda: PluginChoice(use="tfidf"))
-    judge: Choice = Field(default_factory=lambda: PluginChoice(use="auto"),
-                          description="auto: Jev when TYPESAFE_AI_API_KEY is set, otherwise none (list candidates).")
+    judge: Choice = Field(
+        default_factory=lambda: PluginChoice(use="auto"),
+        description="auto: Jev when TYPESAFE_AI_API_KEY is set, otherwise none (list candidates).",
+    )
     escalate: Annotated[Escalation | None, BeforeValidator(_named)] = Field(
         default_factory=lambda: Escalation(use="auto"),
-        description="auto: Claude Sonnet 5.5 when ANTHROPIC_API_KEY is set, otherwise none; \"none\" turns it off.")
-    preset: str = Field(default="auto", description="The judging setup: judges and the thresholds measured for them "
-                                                    "(presets.py). auto: the best one the credentials allow. Explicit "
-                                                    "judge, escalate and threshold settings win over the preset's.")
+        description='auto: Claude Sonnet 5.5 when ANTHROPIC_API_KEY is set, otherwise none; "none" turns it off.',
+    )
+    preset: str = Field(
+        default="auto",
+        description="The judging setup: judges and the thresholds measured for them "
+        "(presets.py). auto: the best one the credentials allow. Explicit "
+        "judge, escalate and threshold settings win over the preset's.",
+    )
     budget: Budget = Field(default_factory=Budget)
     discovery: Discovery = Field(default_factory=Discovery)
     labellers: list[str] = Field(
         default_factory=lambda: ["anthropic/claude-opus-5.5", "openai/gpt-5.5", "google/gemini-3.1-pro-preview"],
         description="For `bench --replay --label`: OpenRouter model ids, or `command:<cli>`; the strict majority labels a "
-                    "pair. Three vendors, so no judge's own family decides its gold labels.")
-    prices: dict[str, tuple[float, float]] = Field(default_factory=dict,
-                                                   description="USD per million input and output tokens, by model or "
-                                                               "judge name, over the built-in table.")
-    store: Choice = Field(default_factory=lambda: PluginChoice(use="dir"),
-                          description="dir: a folder, by default inside the git directory; s3: a bucket prefix.")
+        "pair. Three vendors, so no judge's own family decides its gold labels.",
+    )
+    prices: dict[str, tuple[float, float]] = Field(
+        default_factory=dict,
+        description="USD per million input and output tokens, by model or judge name, over the built-in table.",
+    )
+    store: Choice = Field(
+        default_factory=lambda: PluginChoice(use="dir"),
+        description="dir: a folder, by default inside the git directory; s3: a bucket prefix.",
+    )
 
     drop_below: float = Field(default=0.6, description="Judge scores below this are not duplicates.")
     report_at: float = Field(default=0.8, description="Judge scores at or above this are reported.")
-    fail_at: float = Field(default=0.8, description="Judged duplicates at or above this fail `check`; between "
-                                                    "report_at and fail_at they only warn.")
-    drift_at: float = Field(default=0.8, description="Behaves-differently scores at or above this mark a finding drifted.")
-    reopen_margin: float = Field(default=0.05, description="A 'not a duplicate' verdict reopens only if the pair got this much closer.")
-    max_findings: int = Field(default=10, description="Findings listed in a pull request comment; the rest are counted.")
+    fail_at: float = Field(
+        default=0.8,
+        description="Judged duplicates at or above this fail `check`; between report_at and fail_at they only warn.",
+    )
+    drift_at: float = Field(
+        default=0.8, description="Behaves-differently scores at or above this mark a finding drifted."
+    )
+    reopen_margin: float = Field(
+        default=0.05, description="A 'not a duplicate' verdict reopens only if the pair got this much closer."
+    )
+    max_findings: int = Field(
+        default=10, description="Findings listed in a pull request comment; the rest are counted."
+    )
 
     def bar(self, threshold: float, second_opinion: bool) -> float:
         """
