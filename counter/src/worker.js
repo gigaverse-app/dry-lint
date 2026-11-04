@@ -35,6 +35,14 @@ export class Counter extends DurableObject {
         this.sql.exec(`ALTER TABLE ${table} ADD COLUMN ${field} ${KIND(field)} DEFAULT 0`);
       }
     }
+    // A duplicate measured in detail has at least one line. Rows that claim measured duplicates without any were
+    // counted before Actions said which they measured, and none of theirs were: they are measured no longer.
+    const repaired = this.sql.exec(
+      "UPDATE pulls SET measured_kept_out = 0 WHERE measured_kept_out > 0 AND lines_kept_out = 0").rowsWritten;
+    if (repaired) {
+      this.sql.exec(`UPDATE totals SET measured_kept_out = (SELECT COALESCE(SUM(measured_kept_out), 0) FROM pulls
+        WHERE totals.scope = '*' OR pulls.repository = totals.scope)`);
+    }
   }
 
   /** Count one merged pull request; false when it was counted already. */

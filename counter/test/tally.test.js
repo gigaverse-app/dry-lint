@@ -32,8 +32,10 @@ for (const [name, change] of [
   ["an implausible spend", { usd: 1000 }],
   ["a count that is not a number", { pushes: "4" }],
   ["more settled than caught", { kept_out: 3, dismissed: 1 }],
-  ["more drifted than kept out", { drifted_kept_out: 3 }],
-  ["more rewrites than kept out", { rewrites_kept_out: 3 }],
+  ["more measured than kept out", { measured_kept_out: 3 }],
+  ["a fractional measured count", { measured_kept_out: 1.5 }],
+  ["more drifted than measured", { measured_kept_out: 1, drifted_kept_out: 2 }],
+  ["more rewrites than measured", { measured_kept_out: 1, rewrites_kept_out: 2 }],
 ]) {
   test(`a contribution with ${name} is refused`, () => {
     assert.throws(() => contribution(change === null || Array.isArray(change) ? change : { ...VALID, ...change }),
@@ -80,6 +82,7 @@ test("the sign shows what was kept out, and what was checked to get there, never
   assert.match(svg, />1,200\+</);
   assert.match(svg, />duplicates kept out</);
   assert.match(svg, />75% rewrites, not copies</);  // of the 1,200 measured, not of all 1,234
+  assert.equal(svg.match(/>in the 1,200 of 1,234 measured</g).length, 2);  // drift and lines count those alone
   assert.match(svg, />212</);
   assert.match(svg, />drifted copies cleaned up</);
   assert.match(svg, />38,900</);
@@ -88,18 +91,43 @@ test("the sign shows what was kept out, and what was checked to get there, never
     ["41,000", "LOOK-ALIKES COMPARED"], ["75%", "RE-CHECKS SKIPPED"], ["12", "REPOSITORIES TRUST IT"]]) {
     assert.match(svg, new RegExp(`>${value}</text>\\s*<text[^>]*>${label}<`));
   }
-  assert.match(svg, /aria-label="1,234 duplicate functions kept out of codebases, 900 of those measured rewrites rather than copies, /);
+  assert.match(svg, /aria-label="1,234 duplicate functions kept out of codebases, 900 of the 1,200 measured rewrites rather than copies, /);
   assert.doesNotMatch(svg, /\$|judging/);
   assert.match(svg, /<image href="data:image\/png;base64,/);
   assert.match(svg, /fill="#FFFFFF"/);
   assert.match(sign(TOTALS, "dark"), /fill="#0D1117"/);
 });
 
-test("a contribution with details is marked measured by the counter, whatever it claims", () => {
-  const detailed = contribution({ ...VALID, pairs: 4, measured_pulls: 9, measured_kept_out: 9 });
-  assert.deepEqual([detailed.measured_pulls, detailed.measured_kept_out, detailed.measured_judgments], [1, 2, 9]);
-  const older = contribution({ ...VALID, measured_pulls: 1, measured_kept_out: 2, measured_judgments: 9 });
+test("the counter marks a contribution measured from what it sent, and trusts only a stated, bounded count", () => {
+  const stated = contribution({ ...VALID, pairs: 4, measured_kept_out: 1, drifted_kept_out: 1, lines_kept_out: 9,
+    measured_pulls: 9, measured_judgments: 1 });
+  assert.deepEqual([stated.measured_pulls, stated.measured_kept_out, stated.measured_judgments], [1, 1, 9]);
+  assert.deepEqual([stated.drifted_kept_out, stated.lines_kept_out], [1, 9]);
+  const older = contribution({ ...VALID, measured_pulls: 1, measured_judgments: 9 });
   assert.deepEqual([older.measured_pulls, older.measured_kept_out, older.measured_judgments], [0, 0, 0]);
+});
+
+test("details from an Action that does not say which duplicates it measured are not counted", () => {
+  const unsaid = contribution({ ...VALID, pairs: 4, reused: 2, drifted_kept_out: 1, rewrites_kept_out: 1,
+    lines_kept_out: 9 });
+  assert.deepEqual([unsaid.measured_pulls, unsaid.measured_judgments, unsaid.pairs, unsaid.reused], [1, 9, 4, 2]);
+  assert.deepEqual([unsaid.measured_kept_out, unsaid.drifted_kept_out, unsaid.rewrites_kept_out,
+    unsaid.lines_kept_out], [0, 0, 0, 0]);
+});
+
+test("a sign whose every duplicate kept out was measured shows plain notes", () => {
+  const svg = sign({ ...TOTALS, measured_kept_out: TOTALS.kept_out });
+  assert.match(svg, />already behaving differently</);
+  assert.match(svg, />of duplicated logic</);
+  assert.doesNotMatch(svg, /measured</);
+});
+
+test("duplicates kept out before any was measured read as unknown, even once runs are measured", () => {
+  const svg = sign({ ...TOTALS, measured_kept_out: 0, drifted_kept_out: 0, rewrites_kept_out: 0, lines_kept_out: 0 });
+  assert.equal(svg.match(/>not measured yet</g).length, 2);
+  assert.match(svg, />rewrites, not just copies</);
+  assert.match(svg, />41,000<\/text>\s*<text[^>]*>LOOK-ALIKES COMPARED</);
+  assert.deepEqual(["drifted", "lines"].map((m) => badge({ ...TOTALS, measured_kept_out: 0 }, m).message), ["–", "–"]);
 });
 
 test("totals from Actions that predate the details read as unknown on the sign, never as zero", () => {
@@ -108,7 +136,7 @@ test("totals from Actions that predate the details read as unknown on the sign, 
   const svg = sign(older);
   assert.doesNotMatch(svg, /undefined|NaN|0%/);
   assert.match(svg, />rewrites, not just copies</);
-  assert.equal(svg.match(/>counted from the next merge</g).length, 2);
+  assert.equal(svg.match(/>not measured yet</g).length, 2);
   for (const label of ["LOOK-ALIKES COMPARED", "RE-CHECKS SKIPPED"]) {
     assert.match(svg, new RegExp(`>–</text>\\s*<text[^>]*>${label}<`));
   }
@@ -118,7 +146,7 @@ test("totals from Actions that predate the details read as unknown on the sign, 
 
 test("a fresh counter shows zeros: nothing has been kept out, so nothing is unknown", () => {
   const svg = sign({ pulls: 0, repositories: 0, kept_out: 0, judgments: 0, functions: 0 });
-  assert.doesNotMatch(svg, /undefined|NaN|>–<\/text>\s*<text[^>]*>LOOK|counted from the next merge/);
+  assert.doesNotMatch(svg, /undefined|NaN|>–<\/text>\s*<text[^>]*>LOOK|not measured yet/);
   assert.match(svg, />0<\/text>\s*<text[^>]*>lines never merged</);
 });
 
