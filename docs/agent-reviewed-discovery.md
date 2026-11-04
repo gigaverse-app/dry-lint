@@ -15,7 +15,7 @@ behavior for comparisons. Existing unattended presets remain available.
 ```yaml
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: <reviewed-release-or-commit>
+    rev: main
     hooks:
       - id: dry-lint
         additional_dependencies: ["dry-lint[hooks]"]
@@ -85,6 +85,10 @@ even the compact Sonnet prompt with a 512-token cap reserves more than one cent 
 exploration allowance can therefore admit no second opinion, even when its eventual actual cost is much lower.
 
 ## Promotion decisions
+
+The [production validation](production-discovery-results.md) now supports selecting `balanced` for coding-agent
+hooks: the frozen policy passed the known-positive, budget, baseline and aggregate precision checks. The noisier
+individual PR and latency limits are recorded there. Automatic threshold adaptation is still future work.
 
 Use a separate profile when the audience or cost of a false positive changes, as with an agent-reviewed local
 hook versus unattended CI. Update `balanced` only when one frozen policy improves recall on independent new

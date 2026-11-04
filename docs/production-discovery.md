@@ -75,7 +75,7 @@ from the index; an unstaged dismissal cannot clear staged source. Committed chec
 ```yaml
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: <reviewed-release-or-commit>
+    rev: main
     hooks:
       - id: dry-lint
         additional_dependencies: ["dry-lint[hooks]"]
@@ -90,5 +90,5 @@ carry lane and tree provenance in schema 5; old candidate files default to the b
 
 The production tests exercise SDK responses, staged/committed feedback, retries, concurrency, inherited spending,
 and baseline preservation. Fresh historical validation uses `scripts/replay_production.py`, with independently
-reviewed evidence before paid judging. Its results and the promotion decision are recorded separately; a fresh
+reviewed evidence before paid judging. [Results and promotion](production-discovery-results.md) support agent hooks; a fresh
 negative-only PR is a precision/control observation, not evidence of positive recall.
