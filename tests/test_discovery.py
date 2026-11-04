@@ -118,7 +118,8 @@ def test_same_file_duplicates_are_exploration_and_never_replace_baseline(repo):
     assert all(c.new.qualname != c.existing.qualname for c in pairs)
 
 
-def test_cli_feedback_must_be_staged_and_changes_reopen_dismissals(repo, setup, tmp_path):
+def test_cli_feedback_must_be_staged_and_changes_reopen_dismissals(repo, setup, tmp_path, monkeypatch):
+    monkeypatch.delenv("GITHUB_EVENT_PATH", raising=False)  # exercise local branch campaigns even inside PR CI
     settings, judge, _, requests = setup
     report_path = tmp_path / "report.json"
     repo.git("reset", "--soft", "main")
@@ -126,6 +127,7 @@ def test_cli_feedback_must_be_staged_and_changes_reopen_dismissals(repo, setup, 
     with patch("dry_lint.judging.make_judge", return_value=judge):
         assert main(args) == 1
         report = Report.model_validate_json(report_path.read_bytes())
+        assert report.run.pull_request is None and report.run.session
         pair = report.findings[0].candidate.key
         feedback_args = ["feedback", "--root", str(repo.root), "--from", str(report_path),
                          "--reason", "Reviewed separate lifetime contracts", "--reviewer", "test-agent"]

@@ -9,9 +9,10 @@ from judge_history import LiveAnswers
 
 from dry_lint.detector import Detector, changed_lines, touched
 from dry_lint.discovery import CampaignStore
+from dry_lint.feedback import Decision, Feedback
 from dry_lint.git import git
 from dry_lint.judging import Judging
-from dry_lint.models import Candidate, CandidatesFile, Run, Verdict
+from dry_lint.models import Candidate, CandidatesFile, Run, Verdict, evidence
 from dry_lint.presets import resolve
 from dry_lint.report import Report
 from dry_lint.settings import Settings
@@ -67,13 +68,16 @@ class ObservedJudge:
         return verdicts
 
 
-def evaluate(captures: Path, output: Path, answers: LiveAnswers, baseline: bool = False) -> None:
+def evaluate(captures: Path, output: Path, answers: LiveAnswers, baseline: bool = False,
+             labels: dict[str, str] | None = None) -> None:
     settings = resolve(Settings(preset="balanced"))
     judge = ObservedJudge(answers)
     store = VerdictStore(DirectoryStore(output / "verdicts"))
     output.mkdir(parents=True, exist_ok=True)
     progress = output / "curves.json"
     curves = json.loads(progress.read_bytes()) if progress.exists() else []
+    feedback_path = output / "feedback.json"
+    feedback = Feedback.read(feedback_path)
     for ordinal, source in enumerate(sorted(captures.glob("[0-9]*.json"))):
         snapshot = CandidatesFile.model_validate_json(source.read_bytes())
         if ordinal < len(curves):
@@ -83,6 +87,7 @@ def evaluate(captures: Path, output: Path, answers: LiveAnswers, baseline: bool 
         judging = Judging(settings, judge, None, store)
         judging.campaign = CampaignStore(output / "ledger.sqlite3", snapshot.run)
         candidates = [c for c in snapshot.candidates if not baseline or c.lane == "baseline"]
+        candidates = feedback.apply(candidates)
         findings = judging.findings(candidates, snapshot.run)
         report = Report.build(findings, settings, run=snapshot.run, judging=judging.summary())
         (output / source.name).write_text(report.model_dump_json(), encoding="utf-8")
@@ -90,7 +95,17 @@ def evaluate(captures: Path, output: Path, answers: LiveAnswers, baseline: bool 
         curves.append({"head": snapshot.run.head, "usd": state.usd, "calls": len(state.attempts),
                        "reported": [f.candidate.key for f in report.findings if f.reported],
                        "covered": [f.candidate.key for f in report.findings if f.verdict is not None],
+                       "dismissed": sum(bool(c.filtered and c.filtered.startswith("reviewed dismissal:"))
+                                        for c in candidates),
                        "deferred": report.deferred})
+        # Simulate reviewed dismissals only after their first interruption. Never infer a fix from disappearance.
+        for finding in report.visible:
+            candidate = finding.candidate
+            if labels and labels.get(evidence(candidate)) == "separate":
+                feedback.decisions.append(Decision(pair=candidate.key, evidence=evidence(candidate), action="dismiss",
+                    reason="Reviewed separate in the supplied reference panel", reviewer="codex-replay",
+                    revision=snapshot.run.revision))
+        feedback.write(feedback_path)
         progress.write_text(json.dumps(curves, indent=2), encoding="utf-8")
         print(output.name, source.stem, len(report.visible), "reports", state.usd, flush=True)
 
@@ -101,7 +116,10 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--judge", action="store_true")
     parser.add_argument("--baseline", action="store_true")
+    parser.add_argument("--feedback", type=Path, help="Exact-evidence reviewed labels; dismiss separate reports once")
     args = parser.parse_args()
+    labels = ({row["evidence"]: row["label"] for row in json.loads(args.feedback.read_bytes())}
+              if args.feedback else None)
     answers = (LiveAnswers(args.out / "answers", model="claude-haiku-5-5", prompt_policy="shared-operations",
                            max_tokens=2048, limit=2.0) if args.judge else None)
     for raw in json.loads(args.manifest.read_bytes()):
@@ -110,8 +128,8 @@ def main() -> None:
         destination = args.out / "captures" / name
         capture(history, destination)
         if answers:
-            evaluate(destination, args.out / ("baseline" if args.baseline else "balanced") / name,
-                     answers, args.baseline)
+            arm = "feedback" if args.feedback else "baseline" if args.baseline else "balanced"
+            evaluate(destination, args.out / arm / name, answers, args.baseline, labels)
 
 
 if __name__ == "__main__":
