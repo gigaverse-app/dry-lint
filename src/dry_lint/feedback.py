@@ -32,8 +32,12 @@ class Feedback(BaseModel):
 
     def apply(self, candidates: list[Candidate]) -> list[Candidate]:
         dismissed = {d.evidence: d for d in self.decisions if d.action == "dismiss"}
-        return [c.model_copy(update={"filtered": f"reviewed dismissal: {dismissed[evidence(c)].reason}"})
-                if not c.filtered and evidence(c) in dismissed else c for c in candidates]
+        return [
+            c.model_copy(update={"filtered": f"reviewed dismissal: {dismissed[evidence(c)].reason}"})
+            if not c.filtered and evidence(c) in dismissed
+            else c
+            for c in candidates
+        ]
 
     def write(self, path: Path) -> None:
         DirectoryStore(path.parent).put(path.stem, (self.model_dump_json(indent=2, by_alias=True) + "\n").encode())

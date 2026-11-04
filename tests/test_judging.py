@@ -17,9 +17,13 @@ SETTINGS = Settings(escalate=Escalation(use="second", between=(0.6, 0.8)))
 
 
 def pair(name: str, filtered: str | None = None) -> Candidate:
-    return Candidate(new=function("new.py", f"def {name}(text):\n    return text.strip()\n"),
-                     existing=function("old.py", f"def old_{name}(text):\n    return text.strip()\n"),
-                     similarity=0.7, comparer="tfidf:1", filtered=filtered)
+    return Candidate(
+        new=function("new.py", f"def {name}(text):\n    return text.strip()\n"),
+        existing=function("old.py", f"def old_{name}(text):\n    return text.strip()\n"),
+        similarity=0.7,
+        comparer="tfidf:1",
+        filtered=filtered,
+    )
 
 
 class ScoringJudge:
@@ -30,8 +34,16 @@ class ScoringJudge:
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         self.asked += [c.new.name for c in candidates]
-        return [Verdict(label=label_for(self.scores[c.new.name], 0.0, settings), score=self.scores[c.new.name],
-                        why=f"{self.name} says so", judge=self.name, judge_version=self.version) for c in candidates]
+        return [
+            Verdict(
+                label=label_for(self.scores[c.new.name], 0.0, settings),
+                score=self.scores[c.new.name],
+                why=f"{self.name} says so",
+                judge=self.name,
+                judge_version=self.version,
+            )
+            for c in candidates
+        ]
 
 
 def test_without_a_judge_every_proposed_pair_is_an_unjudged_finding(store: VerdictStore) -> None:
@@ -56,14 +68,19 @@ def test_only_first_scores_in_the_escalation_band_go_to_the_second_judge(store: 
     findings = Judging(SETTINGS, first, second, store).findings([pair("low"), pair("unsure"), pair("sure")])
     assert second.asked == ["unsure"]
     by_name = {f.candidate.new.name: f.verdict for f in findings}
-    assert (by_name["unsure"].score, by_name["unsure"].why, by_name["unsure"].second_opinion) == (0.95, "second says so", "second:1")
+    assert (by_name["unsure"].score, by_name["unsure"].why, by_name["unsure"].second_opinion) == (
+        0.95,
+        "second says so",
+        "second:1",
+    )
     assert (by_name["unsure"].judge, by_name["unsure"].judge_version) == ("first", "v2")  # stored under the first judge
     assert by_name["sure"].second_opinion is None and by_name["low"].score == 0.3
 
 
 def test_an_escalated_answer_is_reused_like_any_other(store: VerdictStore) -> None:
-    Judging(SETTINGS, ScoringJudge("first", {"unsure": 0.7}), ScoringJudge("second", {"unsure": 0.2}), store) \
-        .findings([pair("unsure")])
+    Judging(SETTINGS, ScoringJudge("first", {"unsure": 0.7}), ScoringJudge("second", {"unsure": 0.2}), store).findings(
+        [pair("unsure")]
+    )
     second = ScoringJudge("second", {"unsure": 0.9})
     [finding] = Judging(SETTINGS, ScoringJudge("first", {}), second, store).findings([pair("unsure")])
     assert finding.cached and finding.verdict.score == 0.2 and second.asked == []
@@ -71,7 +88,9 @@ def test_an_escalated_answer_is_reused_like_any_other(store: VerdictStore) -> No
 
 def test_adding_a_second_judge_re_judges_only_the_cached_first_answers_it_would_have_seen(store: VerdictStore) -> None:
     alone = Settings()  # no second judge
-    Judging(alone, ScoringJudge("first", {"unsure": 0.7, "sure": 0.9}), None, store).findings([pair("unsure"), pair("sure")])
+    Judging(alone, ScoringJudge("first", {"unsure": 0.7, "sure": 0.9}), None, store).findings(
+        [pair("unsure"), pair("sure")]
+    )
     second = ScoringJudge("second", {"unsure": 0.95})
     first = ScoringJudge("first", {"unsure": 0.7, "sure": 0.9})
     findings = Judging(SETTINGS, first, second, store).findings([pair("unsure"), pair("sure")])
@@ -97,16 +116,20 @@ def test_a_cached_first_answer_stands_for_pairs_past_the_judgement_limit(store: 
     Judging(Settings(), ScoringJudge("first", {"a": 0.7, "b": 0.7}), None, store).findings([pair("a"), pair("b")])
     limited = SETTINGS.model_copy(update={"max_judgements": 1})
     second = ScoringJudge("second", {"a": 0.95, "b": 0.95})
-    findings = Judging(limited, ScoringJudge("first", {"a": 0.7, "b": 0.7}), second, store) \
-        .findings([pair("a"), pair("b")])
+    findings = Judging(limited, ScoringJudge("first", {"a": 0.7, "b": 0.7}), second, store).findings(
+        [pair("a"), pair("b")]
+    )
     assert second.asked == ["a"]
-    assert [(f.verdict.second_opinion, f.cached, f.deferred) for f in findings] == [("second:1", False, False),
-                                                                                 (None, True, False)]
+    assert [(f.verdict.second_opinion, f.cached, f.deferred) for f in findings] == [
+        ("second:1", False, False),
+        (None, True, False),
+    ]
 
 
 def test_a_different_second_judge_does_not_reuse_anothers_second_opinion(store: VerdictStore) -> None:
-    Judging(SETTINGS, ScoringJudge("first", {"unsure": 0.7}), ScoringJudge("second", {"unsure": 0.2}), store) \
-        .findings([pair("unsure")])
+    Judging(SETTINGS, ScoringJudge("first", {"unsure": 0.7}), ScoringJudge("second", {"unsure": 0.2}), store).findings(
+        [pair("unsure")]
+    )
     other = ScoringJudge("other", {"unsure": 0.9})
     [finding] = Judging(SETTINGS, ScoringJudge("first", {"unsure": 0.7}), other, store).findings([pair("unsure")])
     assert other.asked == ["unsure"] and finding.verdict.second_opinion == "other:1" and not finding.cached
@@ -120,11 +143,15 @@ def test_refresh_re_judges_verdicts_from_an_older_version_of_the_judge(store: Ve
     assert newer.asked == ["a"] and refreshed.verdict.judge_version == "v2"
 
 
-def test_configured_judging_names_its_judges(store: VerdictStore, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_configured_judging_names_its_judges(
+    store: VerdictStore, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.delenv("TYPESAFE_AI_API_KEY", raising=False)
     assert Judging.configured(SETTINGS, store).name is None
-    settings = Settings(judge=PluginChoice(use="command", command="llm-a"),
-                        escalate=Escalation(use="command", command="llm-b", version="big"))
+    settings = Settings(
+        judge=PluginChoice(use="command", command="llm-a"),
+        escalate=Escalation(use="command", command="llm-b", version="big"),
+    )
     judging = Judging.configured(settings, store)
     assert judging.name == "command:llm-a:1 > command:llm-b:big"
     assert Judging.configured(settings.model_copy(update={"escalate": None}), store).name == "command:llm-a:1"
@@ -169,7 +196,9 @@ def test_the_budget_judges_the_closest_look_alikes_first_and_leaves_the_rest_unj
     assert summary.usd == pytest.approx(estimate(first, [pair("near"), pair("mid")], SETTINGS))
 
 
-def test_the_second_judge_takes_the_least_certain_first_scores_and_the_rest_keep_the_first_answer(store: VerdictStore) -> None:
+def test_the_second_judge_takes_the_least_certain_first_scores_and_the_rest_keep_the_first_answer(
+    store: VerdictStore,
+) -> None:
     second = Billed("second", {"a": 0.95, "b": 0.95, "c": 0.95})
     one = estimate(second, [pair("a")], SETTINGS)
     settings = SETTINGS.model_copy(update={"budget": Budget(usd=one * 2.5)})
@@ -181,14 +210,21 @@ def test_the_second_judge_takes_the_least_certain_first_scores_and_the_rest_keep
 
 def test_without_a_ledger_nothing_is_limited(store: VerdictStore) -> None:
     second = Billed("second", {"a": 0.9})
-    decide([pair("a")], ScoringJudge("first", {"a": 0.7}), second, SETTINGS.model_copy(update={"budget": Budget(usd=0)}))
+    decide(
+        [pair("a")], ScoringJudge("first", {"a": 0.7}), second, SETTINGS.model_copy(update={"budget": Budget(usd=0)})
+    )
     assert second.asked == ["a"]
 
 
 def test_the_summary_names_the_preset_judges_band_thresholds_and_budget(store: VerdictStore) -> None:
     settings = SETTINGS.model_copy(update={"preset": "jev+sonnet", "report_at": 0.6, "fail_at": 0.7})
     summary = Judging(settings, ScoringJudge("first", {}), ScoringJudge("second", {}), store).summary()
-    assert (summary.preset, summary.judge, summary.escalation, summary.band) == ("jev+sonnet", "first:1", "second:1", (0.6, 0.8))
+    assert (summary.preset, summary.judge, summary.escalation, summary.band) == (
+        "jev+sonnet",
+        "first:1",
+        "second:1",
+        (0.6, 0.8),
+    )
     assert (summary.report_at, summary.fail_at, summary.budget_usd, summary.spend) == (0.6, 0.7, 0.04, [])
     assert Judging(settings, None, None, store).summary().judge is None
 
@@ -238,19 +274,26 @@ class Failing(ScoringJudge):
         raise self.error
 
 
-@pytest.mark.parametrize("error", [
-    subprocess.CalledProcessError(1, "claude", stderr="OAuth session expired"),
-    subprocess.TimeoutExpired("claude", 300),
-    httpx.ConnectError("api unreachable"),
-    ValueError("The judge answered without a JSON verdict"),
-    OSError("claude: not found"),
-])
+@pytest.mark.parametrize(
+    "error",
+    [
+        subprocess.CalledProcessError(1, "claude", stderr="OAuth session expired"),
+        subprocess.TimeoutExpired("claude", 300),
+        httpx.ConnectError("api unreachable"),
+        ValueError("The judge answered without a JSON verdict"),
+        OSError("claude: not found"),
+    ],
+)
 def test_a_failing_second_judge_leaves_its_pairs_on_the_first_answer_until_it_answers_again(
-        store: VerdictStore, error: Exception) -> None:
+    store: VerdictStore, error: Exception
+) -> None:
     first = ScoringJudge("first", {"unsure": 0.7, "sure": 0.9})
     judging = Judging(SETTINGS, first, Failing(error), store)
     findings = judging.findings([pair("unsure"), pair("sure")], source=Run(repository="o/r", pull_request=3))
-    assert [(f.verdict.score, f.verdict.second_opinion, f.deferred) for f in findings] == [(0.7, None, False), (0.9, None, False)]
+    assert [(f.verdict.score, f.verdict.second_opinion, f.deferred) for f in findings] == [
+        (0.7, None, False),
+        (0.9, None, False),
+    ]
     assert [r.verdict.score for r in store.records()] == [0.9]  # only the answer no second judge was owed is kept
     [failed] = [s for s in judging.summary().spend if s.error]
     assert (failed.judge, failed.failed, failed.calls, failed.usd) == ("second:1", 1, 0, 0.0)
@@ -274,9 +317,14 @@ def test_a_relative_is_judged_only_once_its_parent_is_reported_and_by_one_judge(
     second = ScoringJudge("second", {"kin": 0.95})
     kept, cleared = pair("kept"), pair("cleared")
     findings = Judging(SETTINGS, first, second, store).findings(
-        [kept, cleared, relative("kin", kept), relative("stranger", cleared)])
+        [kept, cleared, relative("kin", kept), relative("stranger", cleared)]
+    )
     assert first.asked == ["kept", "cleared", "kin"] and second.asked == []  # advice needs no second opinion
-    assert [(f.candidate.new.name, f.verdict.score) for f in findings] == [("kept", 0.9), ("cleared", 0.1), ("kin", 0.7)]
+    assert [(f.candidate.new.name, f.verdict.score) for f in findings] == [
+        ("kept", 0.9),
+        ("cleared", 0.1),
+        ("kin", 0.7),
+    ]
 
 
 def test_a_relative_the_budget_cannot_cover_is_left_out_without_making_judging_incomplete(store: VerdictStore) -> None:

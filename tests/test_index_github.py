@@ -19,15 +19,31 @@ pytest_plugins = ["test_action"]
 @pytest.fixture
 def index_server(repo):
     snapshot = export_index(repo.root, "org/app", Settings())
-    archive = subprocess.run(["git", "-C", str(repo.root), "archive", "--format=tar.gz", "--prefix=app/", "HEAD"],
-                             capture_output=True, check=True).stdout
-    files = {p: subprocess.run(["git", "-C", str(repo.root), "show", f"HEAD:{p}"], capture_output=True, check=True).stdout
-             for p in repo.git("ls-files").splitlines()}
+    archive = subprocess.run(
+        ["git", "-C", str(repo.root), "archive", "--format=tar.gz", "--prefix=app/", "HEAD"],
+        capture_output=True,
+        check=True,
+    ).stdout
+    files = {
+        p: subprocess.run(["git", "-C", str(repo.root), "show", f"HEAD:{p}"], capture_output=True, check=True).stdout
+        for p in repo.git("ls-files").splitlines()
+    }
     tree = [{"path": p, "sha": blob_hash(data), "mode": "100644", "type": "blob"} for p, data in files.items()]
-    artifact = {"id": 7, "name": snapshot.artifact_name, "expired": False,
-                "workflow_run": {"id": 8, "head_sha": snapshot.commit, "repository_id": 1, "head_repository_id": 1}}
-    run = {"path": PUBLISHER, "head_sha": snapshot.commit, "head_branch": "main", "event": "push",
-           "status": "completed", "conclusion": "success", "head_repository": {"full_name": "org/app"}}
+    artifact = {
+        "id": 7,
+        "name": snapshot.artifact_name,
+        "expired": False,
+        "workflow_run": {"id": 8, "head_sha": snapshot.commit, "repository_id": 1, "head_repository_id": 1},
+    }
+    run = {
+        "path": PUBLISHER,
+        "head_sha": snapshot.commit,
+        "head_branch": "main",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "head_repository": {"full_name": "org/app"},
+    }
     zipped = io.BytesIO()
     with zipfile.ZipFile(zipped, "w") as output:
         output.writestr("functions.json.gz", snapshot.encode())
@@ -40,7 +56,10 @@ def index_server(repo):
         f"/repos/org/app/tarball/{snapshot.commit}": archive,
     }
     for data in files.values():
-        responses[f"/repos/org/app/git/blobs/{blob_hash(data)}"] = {"encoding": "base64", "content": base64.b64encode(data).decode()}
+        responses[f"/repos/org/app/git/blobs/{blob_hash(data)}"] = {
+            "encoding": "base64",
+            "content": base64.b64encode(data).decode(),
+        }
     calls = []
 
     def handle(request):
@@ -74,9 +93,18 @@ def test_artifact_hit_never_fetches_peer_source_and_retains_full_identity(index_
     assert all("tarball" not in str(call.url) and "/git/" not in str(call.url) for call in calls)
 
 
-@pytest.mark.parametrize("field,value", [("path", "evil.yml"), ("head_branch", "feature"), ("event", "pull_request"),
-                                        ("head_sha", "wrong"), ("status", "in_progress"), ("conclusion", "failure"),
-                                        ("head_repository", {"full_name": "fork/app"})])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("path", "evil.yml"),
+        ("head_branch", "feature"),
+        ("event", "pull_request"),
+        ("head_sha", "wrong"),
+        ("status", "in_progress"),
+        ("conclusion", "failure"),
+        ("head_repository", {"full_name": "fork/app"}),
+    ],
+)
 def test_untrusted_producer_rebuilds_requested_commit(index_server, field, value):
     index_server[1]["/repos/org/app/actions/runs/8"][field] = value
     result = fetch(index_server)
@@ -84,7 +112,9 @@ def test_untrusted_producer_rebuilds_requested_commit(index_server, field, value
     assert "fallback" in result.source
 
 
-@pytest.mark.parametrize("problem", ["expired", "wrong-name", "fork", "old-head", "missing", "corrupt", "403", "404", "410"])
+@pytest.mark.parametrize(
+    "problem", ["expired", "wrong-name", "fork", "old-head", "missing", "corrupt", "403", "404", "410"]
+)
 def test_missing_expired_incompatible_or_corrupt_artifact_is_recovered(index_server, problem):
     responses = index_server[1]
     listing = responses["/repos/org/app/actions/artifacts"]
@@ -102,7 +132,11 @@ def test_missing_expired_incompatible_or_corrupt_artifact_is_recovered(index_ser
     elif problem == "corrupt":
         responses["/repos/org/app/actions/artifacts/7/zip"] = b"broken"
     else:
-        path = "/repos/org/app/actions/artifacts" if problem in {"403", "404"} else "/repos/org/app/actions/artifacts/7/zip"
+        path = (
+            "/repos/org/app/actions/artifacts"
+            if problem in {"403", "404"}
+            else "/repos/org/app/actions/artifacts/7/zip"
+        )
         responses[path] = lambda _: httpx.Response(int(problem))
     assert fetch(index_server).index == index_server[0]
 
@@ -110,6 +144,7 @@ def test_missing_expired_incompatible_or_corrupt_artifact_is_recovered(index_ser
 def test_export_ignore_and_export_subst_cannot_remove_or_change_indexed_source(index_server):
     snapshot, responses, _, _ = index_server
     import tarfile
+
     empty = io.BytesIO()
     with tarfile.open(fileobj=empty, mode="w:gz"):
         pass
@@ -122,15 +157,18 @@ def test_export_ignore_and_export_subst_cannot_remove_or_change_indexed_source(i
 def test_artifact_lookup_follows_pagination(index_server):
     responses = index_server[1]
     listing = responses["/repos/org/app/actions/artifacts"]
-    responses["/repos/org/app/actions/artifacts"] = lambda request: httpx.Response(200, json=(
-        {"total_count": 101, "artifacts": []} if request.url.params["page"] == "1" else listing))
+    responses["/repos/org/app/actions/artifacts"] = lambda request: httpx.Response(
+        200, json=({"total_count": 101, "artifacts": []} if request.url.params["page"] == "1" else listing)
+    )
     assert fetch(index_server).source == "published artifact"
 
 
 def test_download_redirect_does_not_forward_token_to_storage(index_server):
     _, responses, _, transport = index_server
     zipped = responses["/repos/org/app/actions/artifacts/7/zip"]
-    responses["/repos/org/app/actions/artifacts/7/zip"] = lambda _: httpx.Response(302, headers={"location": "https://storage.example/archive"})
+    responses["/repos/org/app/actions/artifacts/7/zip"] = lambda _: httpx.Response(
+        302, headers={"location": "https://storage.example/archive"}
+    )
 
     def storage(request):
         assert "authorization" not in request.headers
@@ -150,9 +188,18 @@ def test_truncated_tree_cannot_be_reported_as_a_complete_index(index_server):
 
 @pytest.mark.parametrize("mode", ["single", "fetch-indexes"])
 def test_action_consumes_indexes_through_the_real_cli(index_server, github_env, repo, tmp_path, twin_judge, mode):
-    github_env("workflow_dispatch", {}, mode=mode, working_directory=str(repo.root), base="main",
-               repository_indexes="\norg/app@main\n", comment="false", judge="command", judge_command=twin_judge,
-               warn_only="true")
+    github_env(
+        "workflow_dispatch",
+        {},
+        mode=mode,
+        working_directory=str(repo.root),
+        base="main",
+        repository_indexes="\norg/app@main\n",
+        comment="false",
+        judge="command",
+        judge_command=twin_judge,
+        warn_only="true",
+    )
     assert action.main(["run"], transport=index_server[3]) == 0
     manifest = json.loads((action.workdir() / "index-arguments.json").read_text())
     assert manifest[0] == "--repo-index"
@@ -164,14 +211,23 @@ def test_action_consumes_indexes_through_the_real_cli(index_server, github_env, 
         assert report["functions"] == len(index_server[0].functions) * 2
         # The published artifact met real changed functions, and found the peer's twin among them.
         assert report["changed"] > 0
-        assert any(f["reported"] and f["candidate"]["existing"]["origin"]["repository"] == "org/app"
-                   for f in report["findings"])
+        assert any(
+            f["reported"] and f["candidate"]["existing"]["origin"]["repository"] == "org/app"
+            for f in report["findings"]
+        )
 
 
 def test_a_change_that_touches_no_function_downloads_no_peer_index(index_server, github_env, repo, tmp_path):
     """INVARIANT: peer indexes are fetched only when some changed function could be compared with them."""
-    github_env("workflow_dispatch", {}, working_directory=str(repo.root), base="HEAD",
-               repository_indexes="org/app@main", comment="false", judge="none")
+    github_env(
+        "workflow_dispatch",
+        {},
+        working_directory=str(repo.root),
+        base="HEAD",
+        repository_indexes="org/app@main",
+        comment="false",
+        judge="none",
+    )
     assert action.main(["run"], transport=index_server[3]) == 0
     assert index_server[2] == []
     assert "Not downloaded: this change touches no function in scope" in (tmp_path / "summary").read_text()
@@ -188,8 +244,15 @@ def test_action_publishes_functions_without_judging_or_commenting(github_env, re
 
 
 def test_repeated_peer_indexes_cannot_double_count_functions(index_server, github_env, repo):
-    github_env("workflow_dispatch", {}, working_directory=str(repo.root), base="main",
-               repository_indexes="org/app@main\n\norg/app@main", comment="false", judge="none")
+    github_env(
+        "workflow_dispatch",
+        {},
+        working_directory=str(repo.root),
+        base="main",
+        repository_indexes="org/app@main\n\norg/app@main",
+        comment="false",
+        judge="none",
+    )
     assert action.main(["run"], transport=index_server[3]) == 2
 
 
@@ -242,6 +305,7 @@ def test_unsafe_tree_paths_are_rejected(index_server):
 @pytest.mark.parametrize("problem", ["oversized", "encoding", "digest"])
 def test_archive_and_blob_recovery_are_bounded_and_verified(index_server, monkeypatch, problem):
     import tarfile
+
     snapshot, responses, _, _ = index_server
     responses["/repos/org/app/actions/artifacts"]["artifacts"] = []
     expected = responses["/repos/org/app/git/trees/tree"]["tree"][0]

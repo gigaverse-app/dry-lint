@@ -16,14 +16,29 @@ from conftest import function
 SETTINGS = Settings()
 
 
-def push(head: str, *findings: Finding, filtered: list[Candidate] = (), usd: float | None = 0.002,
-         calls: int = 0, changed: int = 3, cached: int = 0) -> Report:
+def push(
+    head: str,
+    *findings: Finding,
+    filtered: list[Candidate] = (),
+    usd: float | None = 0.002,
+    calls: int = 0,
+    changed: int = 3,
+    cached: int = 0,
+) -> Report:
     spend = [Spend(judge="jev", calls=len(findings), usd=usd)]
     if calls:
         spend.append(Spend(judge="claude-code", calls=calls, subscription=True))
     found = [f.model_copy(update={"cached": i < cached}) for i, f in enumerate(findings)]
-    return Report.build(found, SETTINGS, filtered=filtered, run=Run(repository="o/r", pull_request=5, head=head),
-                        changed=changed, judge="jev", functions=656, judging=JudgingSummary(spend=spend))
+    return Report.build(
+        found,
+        SETTINGS,
+        filtered=filtered,
+        run=Run(repository="o/r", pull_request=5, head=head),
+        changed=changed,
+        judge="jev",
+        functions=656,
+        judging=JudgingSummary(spend=spend),
+    )
 
 
 def test_a_run_adds_its_checks_judgments_and_cost_to_the_tally() -> None:
@@ -58,7 +73,10 @@ def test_the_cleanup_basket_spans_the_comment_with_one_spacer_per_count() -> Non
     shown = render(PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1"))
     [row] = [line for line in shown.splitlines() if SPREAD in line]
     assert row.count(SPREAD) == 3 and [cell.strip() for cell in row.strip("| ").split(" | ")] == [
-        f"{SPREAD}**0 pairs**", f"{SPREAD}**1 pair**", f"{SPREAD}**0 pairs**"]
+        f"{SPREAD}**0 pairs**",
+        f"{SPREAD}**1 pair**",
+        f"{SPREAD}**0 pairs**",
+    ]
 
 
 def test_a_duplicate_reported_then_gone_is_kept_out_of_the_codebase() -> None:
@@ -66,8 +84,16 @@ def test_a_duplicate_reported_then_gone_is_kept_out_of_the_codebase() -> None:
     assert ledger.count("open") == 1 and ledger.pushed == 1
     ledger = ledger.advance([push("b" * 40)], run="2")
     assert ledger.count("kept-out") == 1 and ledger.count("open") == 0
-    assert ledger.pairs[pair().key] == Pair(new="clip", existing="shorten", found=1, state="kept-out", settled=2, scope="",
-                                            lines=2, evidence=ledger.pairs[pair().key].evidence)
+    assert ledger.pairs[pair().key] == Pair(
+        new="clip",
+        existing="shorten",
+        found=1,
+        state="kept-out",
+        settled=2,
+        scope="",
+        lines=2,
+        evidence=ledger.pairs[pair().key].evidence,
+    )
 
 
 def test_a_duplicate_a_person_dismissed_is_not_counted_as_kept_out() -> None:
@@ -95,15 +121,24 @@ def test_only_the_scope_that_found_a_duplicate_can_keep_it_out() -> None:
     INVARIANT: a duplicate counts as kept out only when the scope that found it reported again without it. A run in
     which that scope did not complete (only the local check reported) is no evidence the duplicate is gone.
     """
-    ledger = PullLedger().advance([push("a" * 40), push("a" * 40, finding("duplicate"))], run="1",
-                                  scopes=["local", "cross-repository"])
+    ledger = PullLedger().advance(
+        [push("a" * 40), push("a" * 40, finding("duplicate"))], run="1", scopes=["local", "cross-repository"]
+    )
     assert ledger.pairs[pair().key].scope == "cross-repository"
     partial = ledger.advance([push("b" * 40)], run="2", scopes=["local"])
     assert partial.count("open") == 1 and partial.count("kept-out") == 0
     assert headline(partial).startswith("**1 duplicate caught**")
     complete = partial.advance([push("c" * 40), push("c" * 40)], run="3", scopes=["local", "cross-repository"])
-    assert complete.pairs[pair().key] == Pair(new="clip", existing="shorten", found=1, state="kept-out", settled=3,
-                                              scope="cross-repository", lines=2, evidence=ledger.pairs[pair().key].evidence)
+    assert complete.pairs[pair().key] == Pair(
+        new="clip",
+        existing="shorten",
+        found=1,
+        state="kept-out",
+        settled=3,
+        scope="cross-repository",
+        lines=2,
+        evidence=ledger.pairs[pair().key].evidence,
+    )
 
 
 def test_a_duplicate_from_a_ledger_saved_before_scopes_stays_open_until_there_is_evidence() -> None:
@@ -121,8 +156,9 @@ def test_a_duplicate_from_a_ledger_saved_before_scopes_stays_open_until_there_is
     assert (partial.count("open"), partial.count("kept-out")) == (1, 0)
     assert headline(partial).startswith("**1 duplicate caught**")
     assert partial.advance([push("c" * 40)], run="3").count("kept-out") == 0
-    reported = partial.advance([push("d" * 40), push("d" * 40, finding("duplicate"))], run="4",
-                               scopes=["local", "cross-repository"])
+    reported = partial.advance(
+        [push("d" * 40), push("d" * 40, finding("duplicate"))], run="4", scopes=["local", "cross-repository"]
+    )
     assert reported.pairs[pair().key].scope == "cross-repository"
     settled = reported.advance([push("e" * 40), push("e" * 40)], run="5", scopes=["local", "cross-repository"])
     assert settled.pairs[pair().key].state == "kept-out"
@@ -143,8 +179,11 @@ def test_a_run_counts_once_however_often_it_posts() -> None:
 
 
 def test_a_rerun_of_the_same_commit_costs_again_but_checks_nothing_new() -> None:
-    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1-1").advance([push("a" * 40, finding("duplicate"))],
-                                                                                      run="1-2")
+    ledger = (
+        PullLedger()
+        .advance([push("a" * 40, finding("duplicate"))], run="1-1")
+        .advance([push("a" * 40, finding("duplicate"))], run="1-2")
+    )
     assert ledger.pushed == 1 and len(ledger.pushes) == 1
     assert (ledger.tally.runs, ledger.tally.functions, ledger.tally.usd) == (2, 3, 0.004)
     assert ledger.pushes[0].tally == ledger.tally
@@ -170,21 +209,28 @@ def test_a_missing_or_unreadable_ledger_is_none(body: str) -> None:
 
 
 def test_the_headline_leads_with_what_was_kept_out_and_what_it_cost() -> None:
-    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"), finding("duplicate", existing="trim"))], run="1")
-    assert headline(ledger) == ("**2 duplicates caught** for $0.002 of judging, on its first push. "
-                                "Each one fixed here is kept out of the codebase.")
+    ledger = PullLedger().advance(
+        [push("a" * 40, finding("duplicate"), finding("duplicate", existing="trim"))], run="1"
+    )
+    assert headline(ledger) == (
+        "**2 duplicates caught** for $0.002 of judging, on its first push. "
+        "Each one fixed here is kept out of the codebase."
+    )
     ledger = ledger.advance([push("b" * 40, finding("duplicate", existing="trim"))], run="2")
-    assert headline(ledger) == ("**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes. "
-                                "1 duplicate still open.")
+    assert headline(ledger) == (
+        "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes. 1 duplicate still open."
+    )
     ledger = ledger.advance([push("c" * 40)], run="3")
     assert headline(ledger) == "**2 duplicates kept out of the codebase** for $0.006 of judging, across 3 pushes."
 
 
 def test_the_headline_of_a_clean_pull_request_says_how_much_was_checked() -> None:
     assert headline(PullLedger().advance([push("a" * 40)], run="1")) == (
-        "**3 functions checked, nothing duplicated**, for $0.002 of judging, on its first push.")
+        "**3 functions checked, nothing duplicated**, for $0.002 of judging, on its first push."
+    )
     assert headline(PullLedger().advance([push("a" * 40, changed=0, usd=0.0)], run="1")) == (
-        "**No changed functions to check yet**, on its first push.")
+        "**No changed functions to check yet**, on its first push."
+    )
 
 
 def test_a_first_clean_push_shows_figures_without_a_push_table() -> None:
@@ -198,9 +244,22 @@ def test_a_first_clean_push_shows_figures_without_a_push_table() -> None:
 
 
 def test_the_push_table_lists_every_push_and_every_pair_by_outcome() -> None:
-    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"), finding("duplicate", existing="trim"), finding("duplicate", existing="cut"), cached=1)],
-                                  run="1")
-    ledger = ledger.advance([push("b" * 40, finding("duplicate", existing="trim"), filtered=[pair("cut", filtered="inline ignore")])], run="2")
+    ledger = PullLedger().advance(
+        [
+            push(
+                "a" * 40,
+                finding("duplicate"),
+                finding("duplicate", existing="trim"),
+                finding("duplicate", existing="cut"),
+                cached=1,
+            )
+        ],
+        run="1",
+    )
+    ledger = ledger.advance(
+        [push("b" * 40, finding("duplicate", existing="trim"), filtered=[pair("cut", filtered="inline ignore")])],
+        run="2",
+    )
     shown = render(ledger)
     assert "| **1 pair** | **1 pair** | **1 pair** |" in unspread(shown)
     assert "| 1 | `aaaaaaa` | 3 | 3 | 2 <sub>+1 reused</sub> | 3 | 0 | $0.002 |" in shown
@@ -216,8 +275,9 @@ def test_a_concept_with_one_name_on_both_sides_is_named_once() -> None:
 
 def test_cleanup_progress_counts_pairs_across_commits_and_separates_dismissals() -> None:
     remaining = finding("duplicate", existing="trim")
-    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"), remaining,
-                                        finding("duplicate", existing="cut"))], run="1")
+    ledger = PullLedger().advance(
+        [push("a" * 40, finding("duplicate"), remaining, finding("duplicate", existing="cut"))], run="1"
+    )
     ledger = ledger.advance([push("b" * 40, remaining, filtered=[pair("cut", filtered="inline ignore")])], run="2")
     shown = render(ledger)
     assert "### 🧹 A little less lint" in shown
@@ -246,10 +306,13 @@ def test_the_repository_line_appears_once_a_merged_pull_request_is_counted() -> 
     ledger = PullLedger().advance([push("a" * 40)], run="1")
     repository = RepositoryLedger(repository="o/r", since="2026-11-03T10:00:00+00:00")
     assert "🏆" not in render(ledger, repository)
-    repository.add_pull(4, PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1").advance([push("b" * 40)],
-                                                                                                run="2"))
-    assert repository.line() == ("🏆 `o/r` since Nov 3, 2026: **1 duplicate kept out of the codebase** across "
-                                 "1 merged pull request, for $0.004 of judging.")
+    repository.add_pull(
+        4, PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1").advance([push("b" * 40)], run="2")
+    )
+    assert repository.line() == (
+        "🏆 `o/r` since Nov 3, 2026: **1 duplicate kept out of the codebase** across "
+        "1 merged pull request, for $0.004 of judging."
+    )
     assert f"<sub>{repository.line()}</sub>" in render(ledger, repository)
 
 
@@ -270,12 +333,16 @@ def test_the_repository_ledger_counts_each_pull_request_and_run_once() -> None:
 def rewrite(label: str, existing: str) -> Finding:
     """A pair whose existing side was written differently, not copied: its structure hash differs."""
     source = f"def {existing}(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[:limit]\n"
-    return Finding(candidate=Candidate(new=NEW, existing=function("src/text.py", source), similarity=0.6, comparer="tfidf:1"),
-                   verdict=Verdict(label=label, score=0.9, owner="existing", judge="jev", judge_version="v"))
+    return Finding(
+        candidate=Candidate(new=NEW, existing=function("src/text.py", source), similarity=0.6, comparer="tfidf:1"),
+        verdict=Verdict(label=label, score=0.9, owner="existing", judge="jev", judge_version="v"),
+    )
 
 
 def test_the_counter_hears_how_large_drifted_and_rewritten_the_duplicates_kept_out_were() -> None:
-    first = push("a" * 40, finding("duplicate", existing="copy"), rewrite("drifted", "drift"), rewrite("duplicate", "kept"))
+    first = push(
+        "a" * 40, finding("duplicate", existing="copy"), rewrite("drifted", "drift"), rewrite("duplicate", "kept")
+    )
     ledger = PullLedger().advance([first], run="1").advance([push("b" * 40, rewrite("duplicate", "kept"))], run="2")
     sent = ledger.contribution("o/r", 7)
     assert ledger.count("kept-out") == 2 and ledger.count("open") == 1
@@ -289,13 +356,19 @@ def test_a_duplicate_reported_before_an_upgrade_is_kept_out_but_never_claimed_as
     ledger.pairs[pair().key].lines = 0  # what a version without details recorded
     ledger = ledger.advance([push("b" * 40)], run="2")
     sent = ledger.contribution("o/r", 7)
-    assert (sent["kept_out"], sent["measured_kept_out"], sent["lines_kept_out"], sent["rewrites_kept_out"]) == (1, 0, 0, 0)
+    assert (sent["kept_out"], sent["measured_kept_out"], sent["lines_kept_out"], sent["rewrites_kept_out"]) == (
+        1,
+        0,
+        0,
+        0,
+    )
 
 
 def test_a_renamed_copy_is_not_a_rewrite_and_a_pair_without_hashes_is_not_counted_as_one() -> None:
     copied = finding("duplicate")
-    unhashed = copied.model_copy(update={"candidate": copied.candidate.model_copy(
-        update={"new": NEW.model_copy(update={"hash": ""})})})
+    unhashed = copied.model_copy(
+        update={"candidate": copied.candidate.model_copy(update={"new": NEW.model_copy(update={"hash": ""})})}
+    )
     for reported in (copied, unhashed):
         ledger = PullLedger().advance([push("a" * 40, reported)], run="1")
         assert not ledger.pairs[reported.candidate.key].rewrite
@@ -324,8 +397,9 @@ HOOKED = Outcome(key="ab7719f1ec3f9b70", new="format_price", existing="money", l
 def test_what_the_pre_commit_hook_kept_out_counts_as_kept_out_of_the_codebase() -> None:
     dismissed = HOOKED.model_copy(update={"key": "5c0e2f6a91d3b7e4", "state": "dismissed"})
     ledger = PullLedger().advance([push("a" * 40)], run="1", before_commit=[HOOKED, dismissed])
-    assert ledger.pairs[HOOKED.key] == Pair(new="format_price", existing="money", found=1, state="kept-out", settled=1,
-                                            lines=6, before_commit=True)
+    assert ledger.pairs[HOOKED.key] == Pair(
+        new="format_price", existing="money", found=1, state="kept-out", settled=1, lines=6, before_commit=True
+    )
     assert (ledger.count("kept-out"), ledger.count("dismissed")) == (1, 1)
     sent = ledger.contribution("o/r", 7)
     assert (sent["kept_out"], sent["caught"], sent["dismissed"], sent["lines_kept_out"]) == (1, 2, 1, 6)
@@ -355,7 +429,8 @@ CLIP = BacklogCleanup(new="src/widgets/caption.py::clip", existing="src/text.py:
 def test_accepted_debt_cleaned_up_is_backlog_and_never_kept_out() -> None:
     ledger = PullLedger().advance([cleaned(push("a" * 40), TRIM)], run="1")
     assert ledger.count("kept-out") == 0 and list(ledger.backlog.values()) == [
-        Backlog(new="trim", existing="strip", how="removed", settled=1)]
+        Backlog(new="trim", existing="strip", how="removed", settled=1)
+    ]
     assert ledger.contribution("k", 5)["kept_out"] == 0  # remediation is not prevention
     shown = unspread(render(ledger))
     assert "### 🧹 A little less lint" in shown

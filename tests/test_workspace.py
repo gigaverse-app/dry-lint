@@ -50,6 +50,7 @@ def test_workspace_applies_each_repository_file_exclusions(workspace) -> None:
 def test_workspace_filters_same_repository_before_selecting_nearest(workspace) -> None:
     mobile = workspace["org/mobile"]
     from dry_lint.git import git
+
     (mobile / "src/copy.py").write_text(TWIN)
     git(mobile, "add", ".")
     git(mobile, "commit", "-qm", "copy")
@@ -74,8 +75,20 @@ def test_workspace_rejects_ambiguous_or_uncommitted_sources(workspace, problem: 
 
 def test_workspace_cli_uses_existing_judge_and_report_pipeline(workspace, tmp_path, twin_judge, capsys) -> None:
     output = tmp_path / "report.json"
-    args = ["scan", "--root", str(workspace["org/web"]), "--judge", "command", "--judge-command", twin_judge,
-            "--warn-only", "--format", "markdown", "--report", str(output)]
+    args = [
+        "scan",
+        "--root",
+        str(workspace["org/web"]),
+        "--judge",
+        "command",
+        "--judge-command",
+        twin_judge,
+        "--warn-only",
+        "--format",
+        "markdown",
+        "--report",
+        str(output),
+    ]
     for name, root in workspace.items():
         args.extend(["--repo", f"{name}={root}"])
     assert main(args) == 0
@@ -101,14 +114,27 @@ def test_schema_two_functions_still_have_local_identity() -> None:
 
 def test_workspace_check_queries_only_changed_primary_functions(workspace, tmp_path, twin_judge, capsys):
     from dry_lint.git import git
+
     web = workspace["org/web"]
     base = git(web, "rev-parse", "HEAD")
     (web / "src/text.py").write_text(EXISTING.replace('rstrip(".,;")', 'rstrip(".,;!")'), encoding="utf-8")
     git(web, "add", ".")
     git(web, "commit", "-qm", "fix(text): adjust punctuation")
     output = tmp_path / "change.json"
-    args = ["check", "--root", str(web), "--base", base, "--judge", "command", "--judge-command", twin_judge,
-            "--warn-only", "--report", str(output)]
+    args = [
+        "check",
+        "--root",
+        str(web),
+        "--base",
+        base,
+        "--judge",
+        "command",
+        "--judge-command",
+        twin_judge,
+        "--warn-only",
+        "--report",
+        str(output),
+    ]
     for name, root in workspace.items():
         args.extend(["--repo", f"{name}={root}"])
     assert main(args) == 0
@@ -120,7 +146,7 @@ def test_workspace_check_queries_only_changed_primary_functions(workspace, tmp_p
     detected = tmp_path / "candidates.json"
     assert main(["detect", *args[1:], "--out", str(detected)]) == 0
     assert json.loads(detected.read_text())["run"]["repository"] == "org/web"
-    without_primary = args[:args.index("--repo")]
+    without_primary = args[: args.index("--repo")]
     for name in ["org/mobile", "org/common"]:
         without_primary.extend(["--repo", f"{name}={workspace[name]}"])
     assert main(without_primary) == 2

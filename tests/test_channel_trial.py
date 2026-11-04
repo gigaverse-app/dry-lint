@@ -19,7 +19,9 @@ CslsComparer, Floored, LsiComparer = trial["CslsComparer"], trial["Floored"], tr
 
 
 def doc(path: str, *tokens: str, name: str = "run") -> Function:
-    return Function(path=path, name=name, line=1, end_line=3, code=f"def {name}():\n    pass\n    pass", tokens=list(tokens))
+    return Function(
+        path=path, name=name, line=1, end_line=3, code=f"def {name}():\n    pass\n    pass", tokens=list(tokens)
+    )
 
 
 def fillers(count: int = 30) -> list[Function]:
@@ -36,10 +38,19 @@ def harness(monkeypatch):
     return run_script(monkeypatch, "benchmark_channel_trial.py")
 
 
-@pytest.mark.parametrize("plural,singular", [
-    ("users", "user"), ("settings", "setting"), ("entries", "entry"), ("classes", "class"), ("boxes", "box"),
-    ("matches", "match"), ("dishes", "dish"), ("quizzes", "quizz"),
-])
+@pytest.mark.parametrize(
+    "plural,singular",
+    [
+        ("users", "user"),
+        ("settings", "setting"),
+        ("entries", "entry"),
+        ("classes", "class"),
+        ("boxes", "box"),
+        ("matches", "match"),
+        ("dishes", "dish"),
+        ("quizzes", "quizz"),
+    ],
+)
 def test_regular_plurals_fold_to_their_singular(plural: str, singular: str) -> None:
     assert trial["singular"](plural) == singular
 
@@ -51,7 +62,14 @@ def test_words_that_only_end_in_s_are_left_alone(word: str) -> None:
 
 def test_plural_folding_changes_identifier_words_but_never_code_identities() -> None:
     tokens = ["w:users", "fn:entries", "call:users", "attr:settings", "key:items", "ctl:loop"]
-    assert trial["fold_plurals"](tokens) == ["w:user", "fn:entry", "call:users", "attr:settings", "key:items", "ctl:loop"]
+    assert trial["fold_plurals"](tokens) == [
+        "w:user",
+        "fn:entry",
+        "call:users",
+        "attr:settings",
+        "key:items",
+        "ctl:loop",
+    ]
 
 
 def test_behaviour_channel_keeps_what_the_function_does_and_drops_its_words() -> None:
@@ -59,9 +77,14 @@ def test_behaviour_channel_keeps_what_the_function_does_and_drops_its_words() ->
     assert trial["behaviour_only"](tokens) == ["call:save", "attr:name", "key:email", "ctl:try"]
 
 
-@pytest.mark.parametrize("comparer", [
-    trial["experimental"](TfidfComparer(), "plural"), CslsComparer(TfidfComparer()), Floored(LsiComparer()),
-])
+@pytest.mark.parametrize(
+    "comparer",
+    [
+        trial["experimental"](TfidfComparer(), "plural"),
+        CslsComparer(TfidfComparer()),
+        Floored(LsiComparer()),
+    ],
+)
 def test_trial_comparers_never_claim_the_production_identity_or_verdict_reuse(comparer) -> None:
     assert comparer.name.startswith("trial-") and comparer.version == "1"
     assert comparer.similarity_reusable is False
@@ -122,7 +145,12 @@ def test_lsi_connects_functions_whose_words_keep_the_same_company() -> None:
 
 
 def test_lsi_neighbours_respect_k_and_allowed_and_exclude_the_function_itself() -> None:
-    corpus = [doc("a.py", "call:x", "call:y"), doc("b.py", "call:x", "call:y"), doc("c.py", "call:x", "call:y"), *fillers()]
+    corpus = [
+        doc("a.py", "call:x", "call:y"),
+        doc("b.py", "call:x", "call:y"),
+        doc("c.py", "call:x", "call:y"),
+        *fillers(),
+    ]
     lsi = LsiComparer(rank=8)
     lsi.index(corpus)
     found = lsi.neighbours(corpus[0], 1, lambda o: o.path != "b.py")
@@ -154,8 +182,10 @@ def test_mutual_nearest_reproduces_the_detector_scan(repo) -> None:
 
 
 def test_mutual_nearest_applies_the_production_rules() -> None:
-    functions = [function("a.py", "def helper(text):\n    return text.strip().lower()"),
-                 function("b.py", "def caller(text):\n    return helper(text.strip().lower())")]
+    functions = [
+        function("a.py", "def helper(text):\n    return text.strip().lower()"),
+        function("b.py", "def caller(text):\n    return helper(text.strip().lower())"),
+    ]
     detector = Detector(functions, Settings(), TfidfComparer(), [PythonExtractor()])
     assert trial["mutual_nearest"](detector, trial["nearest"](detector)) == set()
 
@@ -172,10 +202,14 @@ def test_calibrated_floor_keeps_the_requested_share_of_functions() -> None:
 
 def test_trial_cli_scores_every_variant_on_a_real_repository(repo, tmp_path, monkeypatch, harness) -> None:
     gold = tmp_path / "gold.jsonl"
-    gold.write_text(gold_line("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text", "duplicate")
-                    + gold_line("src/widgets/caption.py::register_widget", "src/text.py::shorten_text", "borderline"))
+    gold.write_text(
+        gold_line("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text", "duplicate")
+        + gold_line("src/widgets/caption.py::register_widget", "src/text.py::shorten_text", "borderline")
+    )
     out = tmp_path / "trial"
-    run_main(monkeypatch, "benchmark_channel_trial.py", "--root", str(repo.root), "--out", str(out), "--gold", str(gold))
+    run_main(
+        monkeypatch, "benchmark_channel_trial.py", "--root", str(repo.root), "--out", str(out), "--gold", str(gold)
+    )
     results = json.loads((out / "results.json").read_text())
     assert results["head"] == repo.git("rev-parse", "HEAD").strip() and not results["dirty"]
     assert set(results["variants"]) == set(harness["VARIANTS"]) and results["unavailable"] == {}
@@ -183,13 +217,18 @@ def test_trial_cli_scores_every_variant_on_a_real_repository(repo, tmp_path, mon
     assert all(c["comparer"].startswith(("trial-", "dryer:")) for n, c in results["channels"].items() if n != "tfidf")
     for name, channel in results["channels"].items():
         if channel["floor"] is not None:  # calibrated channels keep a neighbour as often as production TF-IDF
-            assert channel["share_with_neighbour"] == pytest.approx(results["channels"]["tfidf"]["share_with_neighbour"], abs=0.02)
+            assert channel["share_with_neighbour"] == pytest.approx(
+                results["channels"]["tfidf"]["share_with_neighbour"], abs=0.02
+            )
         pairs = json.loads((out / f"{name}-scan.json").read_text())
-        assert all(pair["comparer"] == channel["comparer"] and not pair["similarity_reusable"] or name == "tfidf"
-                   for pair in pairs)
+        assert all(
+            pair["comparer"] == channel["comparer"] and not pair["similarity_reusable"] or name == "tfidf"
+            for pair in pairs
+        )
     baseline = results["variants"]["baseline"]
-    assert baseline["gold"] == [{"group": "gold", "key": baseline["gold"][0]["key"], "positive": True,
-                                 "check": True, "scan": True}]  # borderline pairs are not scored
+    assert baseline["gold"] == [
+        {"group": "gold", "key": baseline["gold"][0]["key"], "positive": True, "check": True, "scan": True}
+    ]  # borderline pairs are not scored
     for variant in results["variants"].values():
         # A reserved slot only adds candidates: every variant built on production TF-IDF keeps its pairs.
         if variant["channels"][0] == "tfidf":

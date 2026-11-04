@@ -85,11 +85,11 @@ CONTEXT_QUESTIONS["separate_boundary"] = {
     ),
     "criteria": {
         "true": "An accessor gets context from different web/native SDK providers; a form wrapper closes over "
-                "different schema definitions; independent named provider contexts; documented intentional policy "
-                "narrowing; one implementation calls the other shared implementation; platform logging transports.",
+        "different schema definitions; independent named provider contexts; documented intentional policy "
+        "narrowing; one implementation calls the other shared implementation; platform logging transports.",
         "false": "No such concrete boundary. Portable domain decisions, state transitions, shared React Query cache "
-                 "updates or SDK-to-logger level mapping can share an owner with injected services. Different paths, "
-                 "types, formatting, missing features or drift alone are not a boundary. Tiny domain rules count.",
+        "updates or SDK-to-logger level mapping can share an owner with injected services. Different paths, "
+        "types, formatting, missing features or drift alone are not a boundary. Tiny domain rules count.",
     },
 }
 CONTEXT_QUESTIONS["owner"]["instructions"] = (
@@ -109,7 +109,9 @@ REASONS = {
     "uncertain": "More dependency or caller context is needed before recommending consolidation.",
 }
 CONTEXT_QUESTIONS["reason"] = {
-    "type": "choice", "instructions": "Which reason best explains the consolidation decision?", "criteria": REASONS,
+    "type": "choice",
+    "instructions": "Which reason best explains the consolidation decision?",
+    "criteria": REASONS,
 }
 
 
@@ -118,9 +120,12 @@ def state(candidate: Candidate, context: bool = False) -> dict:
         module = function.path.removesuffix(".py").replace("/", ".")
         side = {"name": function.qualname.split("::")[1], "module": module, "code": function.code[:CODE_LIMIT]}
         if context:
-            side.update(repository=function.origin.repository if function.origin else "",
-                        code=function.code[:8000], code_truncated=len(function.code) > 8000,
-                        source_context=function.context)
+            side.update(
+                repository=function.origin.repository if function.origin else "",
+                code=function.code[:8000],
+                code_truncated=len(function.code) > 8000,
+                source_context=function.context,
+            )
         return side
 
     result = {"new_function": side(candidate.new), "existing_function": side(candidate.existing)}
@@ -133,8 +138,16 @@ class JevJudge:
     name = "jev"
     version = PROMPT_VERSION
 
-    def __init__(self, api_key: str | None = None, model: str | None = None, url: str = API_URL, workers: int = 8,
-                 transport: httpx.BaseTransport | None = None, context: bool = False, guidance: str = ""):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str | None = None,
+        url: str = API_URL,
+        workers: int = 8,
+        transport: httpx.BaseTransport | None = None,
+        context: bool = False,
+        guidance: str = "",
+    ):
         self.api_key = api_key or os.environ.get("TYPESAFE_AI_API_KEY", "")
         if not self.api_key:
             raise ValueError("The Jev judge needs TYPESAFE_AI_API_KEY")
@@ -147,8 +160,11 @@ class JevJudge:
             self.version += ":" + hashlib.sha256(guidance.encode()).hexdigest()[:16]
 
     def _ask(self, client: httpx.Client, candidate: Candidate, settings: Settings) -> Verdict:
-        body = {"model": self.model, "state": state(candidate, self.context),
-                "questions": CONTEXT_QUESTIONS if self.context else QUESTIONS}
+        body = {
+            "model": self.model,
+            "state": state(candidate, self.context),
+            "questions": CONTEXT_QUESTIONS if self.context else QUESTIONS,
+        }
         if self.context and self.guidance:
             body["state"]["guidance"] = self.guidance
         response = client.post(self.url, json=body, headers={"Authorization": f"Bearer {self.api_key}"})
@@ -165,14 +181,20 @@ class JevJudge:
             reason = answers["reason"]["choice"]
             rejection = float(answers["reason"].get("probabilities", {}).get(reason, 0)) if reason != "portable" else 0
             separation = max(boundary, rejection)
-            if separation >= .5:
+            if separation >= 0.5:
                 score = min(score, 1 - separation)
             why = REASONS[reason]
             if score >= settings.report_at and reason != "portable":
                 why = "One concept may be shared, but dependency contracts need review before consolidation."
-        return Verdict(label=label_for(score, differs, settings), score=round(score, 3),
-                       behaves_differently=round(differs, 3), owner=owner.get("choice", ""), judge=self.name,
-                       judge_version=self.version, why=why)
+        return Verdict(
+            label=label_for(score, differs, settings),
+            score=round(score, 3),
+            behaves_differently=round(differs, 3),
+            owner=owner.get("choice", ""),
+            judge=self.name,
+            judge_version=self.version,
+            why=why,
+        )
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         with httpx.Client(timeout=30, transport=self.transport) as client, ThreadPoolExecutor(self.workers) as pool:

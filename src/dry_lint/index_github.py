@@ -33,15 +33,25 @@ class FetchedIndex:
 
     def receipt(self) -> str:
         index = self.index
-        return (f"| `{index.repository}` | `{index.commit}` | {len(index.functions):,} | "
-                f"{self.source} | {self.transferred:,} |")
+        return (
+            f"| `{index.repository}` | `{index.commit}` | {len(index.functions):,} | "
+            f"{self.source} | {self.transferred:,} |"
+        )
 
 
 class IndexClient:
     def __init__(self, token: str, api: str = "https://api.github.com", transport: httpx.BaseTransport | None = None):
-        self.client = httpx.Client(base_url=api.rstrip("/") + "/", headers={
-            "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28"}, transport=transport, timeout=120, follow_redirects=True)
+        self.client = httpx.Client(
+            base_url=api.rstrip("/") + "/",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            transport=transport,
+            timeout=120,
+            follow_redirects=True,
+        )
         self.transferred = 0
 
     def close(self) -> None:
@@ -60,6 +70,7 @@ class IndexClient:
 
     def json(self, path: str) -> dict:
         import json
+
         return json.loads(self.download(path))
 
     def fetch(self, repository: str, ref: str, settings: Settings) -> FetchedIndex:
@@ -79,7 +90,9 @@ class IndexClient:
             index = self.rebuild(prefix, repository, sha, tree, settings)
         return FetchedIndex(index, source, self.transferred - start)
 
-    def artifact(self, prefix: str, repository: str, ref: str, sha: str, contract: str, name: str) -> FunctionIndex | None:
+    def artifact(
+        self, prefix: str, repository: str, ref: str, sha: str, contract: str, name: str
+    ) -> FunctionIndex | None:
         page = 1
         while True:
             try:
@@ -90,14 +103,24 @@ class IndexClient:
                 raise
             for artifact in listing["artifacts"]:
                 run = artifact.get("workflow_run") or {}
-                if (artifact["expired"] or artifact["name"] != name or run.get("head_sha") != sha
-                        or not run.get("repository_id") or run.get("repository_id") != run.get("head_repository_id")):
+                if (
+                    artifact["expired"]
+                    or artifact["name"] != name
+                    or run.get("head_sha") != sha
+                    or not run.get("repository_id")
+                    or run.get("repository_id") != run.get("head_repository_id")
+                ):
                     continue
                 provenance = self.json(f"{prefix}/actions/runs/{int(run['id'])}")
-                if (provenance.get("path") != PUBLISHER or provenance.get("head_sha") != sha
-                        or provenance.get("head_branch") != ref or provenance.get("event") not in {"push", "schedule", "workflow_dispatch"}
-                        or provenance.get("status") != "completed" or provenance.get("conclusion") != "success"
-                        or (provenance.get("head_repository") or {}).get("full_name") != repository):
+                if (
+                    provenance.get("path") != PUBLISHER
+                    or provenance.get("head_sha") != sha
+                    or provenance.get("head_branch") != ref
+                    or provenance.get("event") not in {"push", "schedule", "workflow_dispatch"}
+                    or provenance.get("status") != "completed"
+                    or provenance.get("conclusion") != "success"
+                    or (provenance.get("head_repository") or {}).get("full_name") != repository
+                ):
                     continue
                 try:
                     raw = self.download(f"{prefix}/actions/artifacts/{int(artifact['id'])}/zip")
@@ -121,9 +144,13 @@ class IndexClient:
         if listing.get("truncated"):
             raise ValueError(f"Cannot rebuild {repository}: GitHub returned an incomplete source tree")
         extractors = [load("extractors", choice) for choice in settings.extractors]
-        expected = {entry["path"]: entry["sha"] for entry in listing["tree"]
-                    if entry["type"] == "blob" and entry["mode"] in {"100644", "100755"}
-                    and (entry["path"] in {".dry-lint.toml", "pyproject.toml"} or extractor_for(entry["path"], extractors))}
+        expected = {
+            entry["path"]: entry["sha"]
+            for entry in listing["tree"]
+            if entry["type"] == "blob"
+            and entry["mode"] in {"100644", "100755"}
+            and (entry["path"] in {".dry-lint.toml", "pyproject.toml"} or extractor_for(entry["path"], extractors))
+        }
         if not all(repository_path(path) for path in expected):
             raise ValueError("Unsafe source tree path")
         sources = {}

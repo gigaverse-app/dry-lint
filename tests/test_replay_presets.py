@@ -30,20 +30,28 @@ def history(tmp_path: Path) -> Repo:
     repo.commit("twin")
     repo.write("README.md", "docs\n")
     repo.commit("docs")
-    repo.write("src/other/ignored.py", TWIN.replace("def preview_caption_text(caption_text, max_len):",
-                                                    "def label_text(caption_text, max_len):  # dry-lint: ignore"))
+    repo.write(
+        "src/other/ignored.py",
+        TWIN.replace(
+            "def preview_caption_text(caption_text, max_len):",
+            "def label_text(caption_text, max_len):  # dry-lint: ignore",
+        ),
+    )
     repo.write("tests/test_text.py", "def test_x():\n    assert True\n    assert True\n")
     repo.commit("ignored twin")
     return repo
 
 
-@pytest.mark.parametrize("row,expected", [
-    ({"rank": 1, "similarity": 0.9, "floor": 0.5}, {"baseline", "k5", "floor"}),
-    ({"rank": 4, "similarity": 0.6, "floor": 0.5}, {"k5"}),
-    ({"rank": 2, "similarity": 0.45, "floor": 0.5}, {"floor"}),
-    ({"rank": 5, "similarity": 0.45, "floor": 0.5}, set()),
-    ({"behaviour": True, "behaviour_similarity": 0.8, "floor": 0.5}, {"behaviour"}),
-])
+@pytest.mark.parametrize(
+    "row,expected",
+    [
+        ({"rank": 1, "similarity": 0.9, "floor": 0.5}, {"baseline", "k5", "floor"}),
+        ({"rank": 4, "similarity": 0.6, "floor": 0.5}, {"k5"}),
+        ({"rank": 2, "similarity": 0.45, "floor": 0.5}, {"floor"}),
+        ({"rank": 5, "similarity": 0.45, "floor": 0.5}, set()),
+        ({"behaviour": True, "behaviour_similarity": 0.8, "floor": 0.5}, {"behaviour"}),
+    ],
+)
 def test_each_option_proposes_exactly_what_its_retrieval_would(replay, row, expected) -> None:
     assert replay["sources"](row) == expected
 
@@ -61,7 +69,9 @@ def test_a_pair_belongs_to_the_first_option_that_proposes_it(replay) -> None:
     assert replay["stratum"]({"behaviour", "floor"}) == "floor"
 
 
-def test_replay_proposes_the_helper_for_the_twin_commit_and_skips_what_check_would_skip(replay, history, tmp_path) -> None:
+def test_replay_proposes_the_helper_for_the_twin_commit_and_skips_what_check_would_skip(
+    replay, history, tmp_path
+) -> None:
     out = tmp_path / "out"
     meta = replay["replay"](history.root, "HEAD", 10, out)
     commits = replay["read"](out / "commits.jsonl")
@@ -95,8 +105,13 @@ def test_replay_refuses_a_worktree_with_tracked_changes(replay, history, tmp_pat
 
 def gold_file(path: Path, rows: list[dict]) -> Path:
     first = rows[0]
-    path.write_text(gold_line(Function.model_validate(first["new"]).qualname,
-                              Function.model_validate(first["existing"]).qualname, "duplicate"))
+    path.write_text(
+        gold_line(
+            Function.model_validate(first["new"]).qualname,
+            Function.model_validate(first["existing"]).qualname,
+            "duplicate",
+        )
+    )
     return path
 
 
@@ -105,8 +120,9 @@ def test_sample_weights_each_stratum_back_to_its_population_and_skips_labelled_p
     replay["replay"](history.root, "HEAD", 10, out)
     rows = replay["read"](out / "replay.jsonl")
     gold = gold_file(tmp_path / "gold.jsonl", rows)
-    labelled = replay["pair_key"](Function.model_validate(rows[0]["new"]).qualname,
-                                  Function.model_validate(rows[0]["existing"]).qualname)
+    labelled = replay["pair_key"](
+        Function.model_validate(rows[0]["new"]).qualname, Function.model_validate(rows[0]["existing"]).qualname
+    )
     sizes = {"baseline": 1, "k5": 1, "floor": 1, "behaviour": 1}
     first = replay["sample"](out, [gold], sizes=sizes)
     population = json.loads((out / "population.json").read_text())
@@ -120,6 +136,7 @@ def test_sample_weights_each_stratum_back_to_its_population_and_skips_labelled_p
 
 def openrouter(answers: dict[str, list[object]], seen: list[dict]) -> httpx.MockTransport:
     """A stand-in OpenRouter: each model answers from its list in turn; an int is an HTTP status."""
+
     def handle(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)
         seen.append(body)
@@ -128,6 +145,7 @@ def openrouter(answers: dict[str, list[object]], seen: list[dict]) -> httpx.Mock
         if isinstance(answer, int):
             return httpx.Response(answer)
         return httpx.Response(200, json={"choices": [{"message": {"content": answer}}], "usage": {"cost": 0.01}})
+
     return httpx.MockTransport(handle)
 
 
@@ -144,12 +162,15 @@ def test_labelling_is_blind_majority_voted_resumable_and_stops_at_the_budget(rep
     consolidate = 'Reasoning first. {"label": "consolidate", "concept": "shorten text"}'
     seen: list[dict] = []
     answers = {"a": [consolidate], "b": [500, '{"label": "SEPARATE"}'], "c": ["no json here"]}
-    result = replay["label"](out, "key", budget=0.001, models=("a", "b", "c"), workers=2,
-                             transport=openrouter(answers, seen))
+    result = replay["label"](
+        out, "key", budget=0.001, models=("a", "b", "c"), workers=2, transport=openrouter(answers, seen)
+    )
     assert result["spent"] >= 0.001 and result["unanswered"] > 0  # stopped after the first batch
     prompts = [m["content"] for body in seen for m in body["messages"]]
     assert all("stratum" not in text and "similarity" not in text and "Function A:" in text for text in prompts)
-    result = replay["label"](out, "key", budget=100, models=("a", "b", "c"), workers=2, transport=openrouter(answers, seen))
+    result = replay["label"](
+        out, "key", budget=100, models=("a", "b", "c"), workers=2, transport=openrouter(answers, seen)
+    )
     assert result["unanswered"] == len(rows)  # model c never gives a usable answer; nothing else is left
     decided = replay["consensus"](out, ("a", "b", "c"))
     assert decided == {}  # a and b split, c is silent: no majority
@@ -161,12 +182,18 @@ def test_labelling_is_blind_majority_voted_resumable_and_stops_at_the_budget(rep
 
 def test_consensus_needs_a_strict_majority(replay, tmp_path) -> None:
     out = tmp_path
-    lines = [{"id": 1, "model": m, "answer": {"label": label}} for m, label in
-             (("a", "CONSOLIDATE"), ("b", "CONSOLIDATE"), ("c", "PATTERN"))]
+    lines = [
+        {"id": 1, "model": m, "answer": {"label": label}}
+        for m, label in (("a", "CONSOLIDATE"), ("b", "CONSOLIDATE"), ("c", "PATTERN"))
+    ]
     lines += [{"id": 2, "model": m, "answer": {"label": label}} for m, label in (("a", "SEPARATE"), ("b", "PATTERN"))]
     replay["append"](out / "labels.jsonl", lines)
     decided = replay["consensus"](out, ("a", "b", "c"))
-    assert decided[1] == {"positive": True, "unanimous": False, "votes": {"a": "CONSOLIDATE", "b": "CONSOLIDATE", "c": "PATTERN"}}
+    assert decided[1] == {
+        "positive": True,
+        "unanimous": False,
+        "votes": {"a": "CONSOLIDATE", "b": "CONSOLIDATE", "c": "PATTERN"},
+    }
     assert decided[2]["positive"] is False and decided[2]["unanimous"]
 
 
@@ -174,9 +201,11 @@ def test_openrouter_judge_asks_with_the_product_prompt(replay) -> None:
     seen: list[dict] = []
     transport = openrouter({"anthropic/claude-sonnet-5.5": ['{"label": "duplicate", "score": 0.9}']}, seen)
     judge = replay["OpenRouterJudge"](api_key="key", transport=transport)
-    pair = Candidate(new=Function(path="a.py", name="f", line=1, end_line=2, code="def f():\n    return 1"),
-                     existing=Function(path="b.py", name="g", line=1, end_line=2, code="def g():\n    return 1"),
-                     similarity=0.0)
+    pair = Candidate(
+        new=Function(path="a.py", name="f", line=1, end_line=2, code="def f():\n    return 1"),
+        existing=Function(path="b.py", name="g", line=1, end_line=2, code="def g():\n    return 1"),
+        similarity=0.0,
+    )
     verdict = judge.judge([pair], Settings())[0]
     assert verdict.score == 0.9 and "a.py::f" in seen[0]["messages"][0]["content"]
 
@@ -206,35 +235,52 @@ def test_judging_records_each_judge_once_per_pair_and_resumes_after_failures(rep
     replay["judge"](out, {"jev": lambda: Fixed("jev", 0.1), "sonnet": lambda: Fixed("sonnet", 0.95)})
     recorded = replay["read"](out / "verdicts.jsonl")
     assert sum(v["judge"] == "sonnet" for v in recorded) == len(rows)
-    assert all(v["score"] == 0.7 and v["label"] == "duplicate" for v in recorded if v["judge"] == "jev")  # never re-judged
+    assert all(
+        v["score"] == 0.7 and v["label"] == "duplicate" for v in recorded if v["judge"] == "jev"
+    )  # never re-judged
 
 
 def verdicts(**scores) -> dict[str, dict]:
     """Verdicts by judge: a float is a duplicate at that score; a (label, score) pair sets the label too."""
-    return {judge: {"label": value[0], "score": value[1]} if isinstance(value, tuple) else {"score": value}
-            for judge, value in scores.items()}
+    return {
+        judge: {"label": value[0], "score": value[1]} if isinstance(value, tuple) else {"score": value}
+        for judge, value in scores.items()
+    }
 
 
-@pytest.mark.parametrize("given,preset,expected", [
-    (verdicts(jev=0.85), "jev", (True, True)),
-    (verdicts(jev=0.75), "jev", (False, False)),
-    (verdicts(jev=0.75, sonnet=0.95), "jev", (False, False)),  # Jev alone never asks Sonnet
-    (verdicts(jev=0.75, sonnet=0.65), "jev+sonnet", (True, False)),  # in the band: Sonnet decides
-    (verdicts(jev=0.75, sonnet=0.9), "jev+sonnet", (True, True)),
-    (verdicts(jev=0.75, sonnet=("separate", 0.9)), "jev+sonnet", (False, False)),  # labelled separate: never counted
-    (verdicts(jev=0.95, sonnet=0.1), "jev+sonnet", (True, True)),  # above the band: Jev's answer stands
-    (verdicts(jev=0.3, sonnet=0.9), "jev+sonnet", (False, False)),  # below the band: never escalated
-    (verdicts(jev=0.75), "jev+sonnet", (True, True)),  # no second opinion: Jev's answer stands
-    ({}, "jev+sonnet", (False, False)),
-])
+@pytest.mark.parametrize(
+    "given,preset,expected",
+    [
+        (verdicts(jev=0.85), "jev", (True, True)),
+        (verdicts(jev=0.75), "jev", (False, False)),
+        (verdicts(jev=0.75, sonnet=0.95), "jev", (False, False)),  # Jev alone never asks Sonnet
+        (verdicts(jev=0.75, sonnet=0.65), "jev+sonnet", (True, False)),  # in the band: Sonnet decides
+        (verdicts(jev=0.75, sonnet=0.9), "jev+sonnet", (True, True)),
+        (
+            verdicts(jev=0.75, sonnet=("separate", 0.9)),
+            "jev+sonnet",
+            (False, False),
+        ),  # labelled separate: never counted
+        (verdicts(jev=0.95, sonnet=0.1), "jev+sonnet", (True, True)),  # above the band: Jev's answer stands
+        (verdicts(jev=0.3, sonnet=0.9), "jev+sonnet", (False, False)),  # below the band: never escalated
+        (verdicts(jev=0.75), "jev+sonnet", (True, True)),  # no second opinion: Jev's answer stands
+        ({}, "jev+sonnet", (False, False)),
+    ],
+)
 def test_presets_report_and_fail_as_the_report_would(replay, given, preset, expected) -> None:
     assert replay["reported"](given, preset) == expected
 
 
 def label_all(replay, out: Path, rows: list[dict]) -> None:
     """Odd ids are real duplicates, unanimously."""
-    replay["append"](out / "labels.jsonl", [{"id": r["id"], "model": m, "answer": {"label": "CONSOLIDATE" if r["id"] % 2 else "SEPARATE"}}
-                                            for r in rows for m in replay["LABELLERS"]])
+    replay["append"](
+        out / "labels.jsonl",
+        [
+            {"id": r["id"], "model": m, "answer": {"label": "CONSOLIDATE" if r["id"] % 2 else "SEPARATE"}}
+            for r in rows
+            for m in replay["LABELLERS"]
+        ],
+    )
 
 
 def test_report_weights_labelled_and_judged_pairs_back_to_the_population(replay, history, tmp_path) -> None:
@@ -250,7 +296,9 @@ def test_report_weights_labelled_and_judged_pairs_back_to_the_population(replay,
     population = json.loads((out / "population.json").read_text())
     assert aggressive["pairs"][0] == pytest.approx(sum(population[s] for s in {r["stratum"] for r in rows}))
     # Jev at 0.85 reports every pair under both presets, so reported truths are exactly the real duplicates.
-    assert aggressive["jev reported_true"][0] + aggressive["jev reported_false"][0] == pytest.approx(aggressive["pairs"][0])
+    assert aggressive["jev reported_true"][0] + aggressive["jev reported_false"][0] == pytest.approx(
+        aggressive["pairs"][0]
+    )
     assert aggressive["jev+sonnet reported_true"][0] == pytest.approx(aggressive["positives"][0])
     assert aggressive["jev precision"][0] == pytest.approx(aggressive["positives"][0] / aggressive["pairs"][0])
     for option in options.values():
@@ -272,7 +320,9 @@ def test_report_precision_is_undefined_when_nothing_is_reported(replay, history,
 
 def test_cli_dispatches_each_step(replay, history, tmp_path, monkeypatch, capsys) -> None:
     out = tmp_path / "out"
-    run_main(monkeypatch, "replay_presets.py", "replay", "--root", str(history.root), "--ref", "HEAD", "--out", str(out))
+    run_main(
+        monkeypatch, "replay_presets.py", "replay", "--root", str(history.root), "--ref", "HEAD", "--out", str(out)
+    )
     run_main(monkeypatch, "replay_presets.py", "sample", "--out", str(out))
     assert (out / "sample.json").exists()
     monkeypatch.setenv("OPENROUTER_API_KEY", "key")
@@ -289,16 +339,21 @@ def test_cli_dispatches_each_step(replay, history, tmp_path, monkeypatch, capsys
     assert replay["read"](out / "jev-population.jsonl") == []
     calibration = tmp_path / "calibration"
     run_main(monkeypatch, "replay_presets.py", "calibrate", "--out", str(out), "--into", str(calibration))
-    run_main(monkeypatch, "replay_presets.py", "export", "--out", str(calibration), "--gold", str(tmp_path / "gold.jsonl"))
+    run_main(
+        monkeypatch, "replay_presets.py", "export", "--out", str(calibration), "--gold", str(tmp_path / "gold.jsonl")
+    )
     assert capsys.readouterr().out.split() == ["0", "0"]  # nothing scored, so nothing sampled or exported
 
 
-@pytest.mark.parametrize("text,expected", [
-    ('{"label": "pattern"}', "PATTERN"),
-    ('Thinking {not json} then {"note": 1} then {"label": "Consolidate", "concept": "x"}', "CONSOLIDATE"),
-    ('{"label": "maybe"}', None),
-    ("no answer", None),
-])
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ('{"label": "pattern"}', "PATTERN"),
+        ('Thinking {not json} then {"note": 1} then {"label": "Consolidate", "concept": "x"}', "CONSOLIDATE"),
+        ('{"label": "maybe"}', None),
+        ("no answer", None),
+    ],
+)
 def test_a_label_is_the_first_object_with_a_known_label(replay, text, expected) -> None:
     answer = replay["parse_label"](text)
     assert (answer or {}).get("label") == expected
@@ -313,9 +368,14 @@ def test_calibration_scores_production_pairs_once_and_samples_by_jev_band(replay
     assert len(scored) == len(first) + 1 == len({row["key"] for row in scored})
     baseline = {row["key"] for row in json.loads((out / "sample.json").read_text()) if "baseline" in row["sources"]}
     assert baseline <= {row["key"] for row in scored}  # every production pair, and only production's
-    assert all("baseline" in replay["sources"](row) for row in replay["read"](out / "replay.jsonl")
-               if replay["pair_key"](Function.model_validate(row["new"]).qualname,
-                                     Function.model_validate(row["existing"]).qualname) in {r["key"] for r in scored})
+    assert all(
+        "baseline" in replay["sources"](row)
+        for row in replay["read"](out / "replay.jsonl")
+        if replay["pair_key"](
+            Function.model_validate(row["new"]).qualname, Function.model_validate(row["existing"]).qualname
+        )
+        in {r["key"] for r in scored}
+    )
 
 
 def test_calibration_sample_weights_bands_and_reuses_bought_labels(replay, history, tmp_path) -> None:
@@ -348,9 +408,19 @@ def test_export_writes_majority_labels_as_bench_gold(replay, history, tmp_path) 
     out = sampled(replay, history, tmp_path)
     rows = json.loads((out / "sample.json").read_text())
     models = replay["LABELLERS"]
-    answers = [{"id": r["id"], "model": m, "answer": {"label": "CONSOLIDATE" if r["id"] == 1 else "PATTERN",
-                                                       "variation": "drifted", "owner": "B" if m != models[2] else "A"}}
-               for r in rows[:-1] for m in models]  # the last pair has no labels, so no majority
+    answers = [
+        {
+            "id": r["id"],
+            "model": m,
+            "answer": {
+                "label": "CONSOLIDATE" if r["id"] == 1 else "PATTERN",
+                "variation": "drifted",
+                "owner": "B" if m != models[2] else "A",
+            },
+        }
+        for r in rows[:-1]
+        for m in models
+    ]  # the last pair has no labels, so no majority
     replay["append"](out / "labels.jsonl", answers + [{"id": 2, "model": "silent", "answer": None}])
     gold = tmp_path / "gold" / "gold.jsonl"
     assert replay["export"](out, gold) == len(rows) - 1

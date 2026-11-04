@@ -4,8 +4,12 @@ from dry_lint.models import SCHEMA, Candidate, CandidatesFile, Run, pair_key
 
 from conftest import function
 
-PAIR = Candidate(new=function("a.py", "def f(x):\n    return x\n"), existing=function("b.py", "def g(y):\n    return y\n"),
-                 similarity=0.6, comparer="tfidf:1")
+PAIR = Candidate(
+    new=function("a.py", "def f(x):\n    return x\n"),
+    existing=function("b.py", "def g(y):\n    return y\n"),
+    similarity=0.6,
+    comparer="tfidf:1",
+)
 
 
 def test_a_pair_key_is_short_stable_and_ignores_order() -> None:
@@ -14,7 +18,9 @@ def test_a_pair_key_is_short_stable_and_ignores_order() -> None:
 
 
 def test_candidates_files_carry_their_schema_and_round_trip_without_tokens() -> None:
-    file = CandidatesFile(run=Run(repository="o/r", pull_request=4, head="abc", base="main"), changed=2, candidates=[PAIR])
+    file = CandidatesFile(
+        run=Run(repository="o/r", pull_request=4, head="abc", base="main"), changed=2, candidates=[PAIR]
+    )
     data = json.loads(file.model_dump_json())
     assert data["schema"] == SCHEMA and data["run"]["pull_request"] == 4
     assert "tokens" not in data["candidates"][0]["new"] and data["candidates"][0]["new"]["hash"] == PAIR.new.hash

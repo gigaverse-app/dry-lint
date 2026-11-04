@@ -16,8 +16,13 @@ from dry_lint.store import DirectoryStore, Record, S3Store, VerdictStore
 
 from conftest import function
 
-NEW = function("new.py", "def clip(text, n):\n    if len(text) <= n:\n        return text\n    return text[: n - 1] + '…'\n")
-OLD = function("old.py", "def shorten(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[: limit - 1] + '…'\n")
+NEW = function(
+    "new.py", "def clip(text, n):\n    if len(text) <= n:\n        return text\n    return text[: n - 1] + '…'\n"
+)
+OLD = function(
+    "old.py",
+    "def shorten(text, limit):\n    if len(text) <= limit:\n        return text\n    return text[: limit - 1] + '…'\n",
+)
 
 
 def verdict(label: str, score: float = 0.9, judge: str = "jev", version: str = "reuse-v2") -> Verdict:
@@ -104,24 +109,34 @@ def test_an_older_version_of_the_same_judge_is_reused_unless_a_version_is_requir
 OPUS, BAND = "anthropic:dry-v1:claude-opus-5-5", (0.5, 0.91)
 
 
-@pytest.mark.parametrize("stored,escalation,reused", [
-    (0.7, None, True),  # Jev's own answer, for Jev alone
-    (0.7, OPUS, False),  # an in-band answer the second judge never saw: jev, then jev+opus
-    (0.95, OPUS, True),  # above the band, the second judge would not have been asked
-    (0.2, OPUS, True),  # below it, neither
-])
+@pytest.mark.parametrize(
+    "stored,escalation,reused",
+    [
+        (0.7, None, True),  # Jev's own answer, for Jev alone
+        (0.7, OPUS, False),  # an in-band answer the second judge never saw: jev, then jev+opus
+        (0.95, OPUS, True),  # above the band, the second judge would not have been asked
+        (0.2, OPUS, True),  # below it, neither
+    ],
+)
 def test_a_first_answer_holds_only_where_this_judging_would_not_have_asked_a_second_judge(
-        store: VerdictStore, stored: float, escalation: str | None, reused: bool) -> None:
+    store: VerdictStore, stored: float, escalation: str | None, reused: bool
+) -> None:
     store.remember(candidate(), verdict("duplicate", score=stored))
     assert (store.lookup(candidate(), "jev", 0.05, escalation=escalation, band=BAND).verdict is not None) is reused
 
 
-@pytest.mark.parametrize("escalation,reused", [
-    (OPUS, True), ("anthropic:dry-v1:claude-sonnet-5-5", False), ("anthropic:dry-v2:claude-opus-5-5", False),
-    (None, False),  # Jev alone measures its thresholds on its own scores, not Opus's
-])
+@pytest.mark.parametrize(
+    "escalation,reused",
+    [
+        (OPUS, True),
+        ("anthropic:dry-v1:claude-sonnet-5-5", False),
+        ("anthropic:dry-v2:claude-opus-5-5", False),
+        (None, False),  # Jev alone measures its thresholds on its own scores, not Opus's
+    ],
+)
 def test_a_second_opinion_holds_only_for_the_same_second_judge(
-        store: VerdictStore, escalation: str | None, reused: bool) -> None:
+    store: VerdictStore, escalation: str | None, reused: bool
+) -> None:
     store.remember(candidate(), verdict("duplicate", score=0.9).model_copy(update={"second_opinion": OPUS}))
     result = store.lookup(candidate(), "jev", 0.05, escalation=escalation, band=BAND)
     assert (result.verdict is not None) is reused
@@ -204,16 +219,42 @@ def body(data: bytes) -> StreamingBody:
 
 def test_the_s3_store_reads_writes_and_lists_objects_under_its_prefix(s3) -> None:
     store, stub = s3
-    record = Record(key="k1", pair=("a", "b"), hashes=("1", "2"), comparer="tfidf:1", similarity=0.5,
-                    verdict=verdict("duplicate")).model_dump_json().encode()
-    stub.add_response("put_object", {}, {"Bucket": "bucket", "Key": "dry-lint/repo/k1.json", "Body": record,
-                                         "ContentType": "application/json"})
+    record = (
+        Record(
+            key="k1",
+            pair=("a", "b"),
+            hashes=("1", "2"),
+            comparer="tfidf:1",
+            similarity=0.5,
+            verdict=verdict("duplicate"),
+        )
+        .model_dump_json()
+        .encode()
+    )
+    stub.add_response(
+        "put_object",
+        {},
+        {"Bucket": "bucket", "Key": "dry-lint/repo/k1.json", "Body": record, "ContentType": "application/json"},
+    )
     stub.add_response("get_object", {"Body": body(record)}, {"Bucket": "bucket", "Key": "dry-lint/repo/k1.json"})
-    stub.add_client_error("get_object", service_error_code="NoSuchKey", http_status_code=404,
-                          expected_params={"Bucket": "bucket", "Key": "dry-lint/repo/k2.json"})
-    stub.add_response("list_objects_v2", {"Contents": [{"Key": "dry-lint/repo/k1.json"}, {"Key": "dry-lint/repo/old/x.json"},
-                                                       {"Key": "dry-lint/repo/notes.txt"}], "IsTruncated": False},
-                      {"Bucket": "bucket", "Prefix": "dry-lint/repo/"})
+    stub.add_client_error(
+        "get_object",
+        service_error_code="NoSuchKey",
+        http_status_code=404,
+        expected_params={"Bucket": "bucket", "Key": "dry-lint/repo/k2.json"},
+    )
+    stub.add_response(
+        "list_objects_v2",
+        {
+            "Contents": [
+                {"Key": "dry-lint/repo/k1.json"},
+                {"Key": "dry-lint/repo/old/x.json"},
+                {"Key": "dry-lint/repo/notes.txt"},
+            ],
+            "IsTruncated": False,
+        },
+        {"Bucket": "bucket", "Prefix": "dry-lint/repo/"},
+    )
     with stub:
         store.put("k1", record)
         assert store.get("k1") == record

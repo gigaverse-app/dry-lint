@@ -64,16 +64,30 @@ class Tally(BaseModel):
         stats, judging = report.stats, report.judging
         usd = judging.usd if judging else 0.0
         calls = sum(s.calls for s in judging.spend if s.subscription) if judging else 0
-        return cls(runs=1, functions=report.changed, codebase=report.functions, pairs=stats["candidates"],
-                   judgments=stats["judged"], reused=stats["cached"], usd=usd or 0.0, unpriced=usd is None,
-                   subscription_calls=calls)
+        return cls(
+            runs=1,
+            functions=report.changed,
+            codebase=report.functions,
+            pairs=stats["candidates"],
+            judgments=stats["judged"],
+            reused=stats["cached"],
+            usd=usd or 0.0,
+            unpriced=usd is None,
+            subscription_calls=calls,
+        )
 
     def __add__(self, other: "Tally") -> "Tally":
-        return Tally(runs=self.runs + other.runs, functions=self.functions + other.functions,
-                     codebase=max(self.codebase, other.codebase), pairs=self.pairs + other.pairs,
-                     judgments=self.judgments + other.judgments, reused=self.reused + other.reused,
-                     usd=self.usd + other.usd, unpriced=self.unpriced or other.unpriced,
-                     subscription_calls=self.subscription_calls + other.subscription_calls)
+        return Tally(
+            runs=self.runs + other.runs,
+            functions=self.functions + other.functions,
+            codebase=max(self.codebase, other.codebase),
+            pairs=self.pairs + other.pairs,
+            judgments=self.judgments + other.judgments,
+            reused=self.reused + other.reused,
+            usd=self.usd + other.usd,
+            unpriced=self.unpriced or other.unpriced,
+            subscription_calls=self.subscription_calls + other.subscription_calls,
+        )
 
     def again(self) -> "Tally":
         """A re-run of a commit already counted: its judging costs again, but it checks nothing new."""
@@ -81,8 +95,13 @@ class Tally(BaseModel):
 
     def cost(self) -> str:
         """What priced judging cost, with subscription calls; "unknown" when no judge had a price."""
-        usd = f"${self.usd:.2f}" if self.usd >= 0.1 else f"${self.usd:.3f}" if self.usd >= 0.001 else (
-            "under $0.001" if self.usd else "")
+        usd = (
+            f"${self.usd:.2f}"
+            if self.usd >= 0.1
+            else f"${self.usd:.3f}"
+            if self.usd >= 0.001
+            else ("under $0.001" if self.usd else "")
+        )
         calls = plural(self.subscription_calls, "subscription call") if self.subscription_calls else ""
         bill = " + ".join(part for part in (usd, calls) if part)
         return bill or ("unknown" if self.unpriced else "$0")
@@ -156,11 +175,15 @@ class PullLedger(Versioned):
 
     def kept_out(self) -> list[Pair]:
         """The duplicates kept out whose details were recorded: a pair an older version reported has none."""
-        return [pair for key, pair in self.pairs.items()
-                if pair.state == "kept-out" and pair.lines and key not in self.backlog]
+        return [
+            pair
+            for key, pair in self.pairs.items()
+            if pair.state == "kept-out" and pair.lines and key not in self.backlog
+        ]
 
-    def advance(self, reports: list[Report], run: str = "", scopes: list[str] = (),
-                before_commit: list[Outcome] = ()) -> "PullLedger":
+    def advance(
+        self, reports: list[Report], run: str = "", scopes: list[str] = (), before_commit: list[Outcome] = ()
+    ) -> "PullLedger":
         """
         This ledger with one more run added; the same ledger if that run was counted already. `scopes` names each
         report's scope ("" when not given); only the scopes that reported can settle the pairs they found.
@@ -173,10 +196,12 @@ class PullLedger(Versioned):
         ledger = self.model_copy(deep=True, update={"schema_version": SCHEMA})
         tally = sum((Tally.of(report) for report in reports), Tally())
         findings = [f for report in reports for f in report.findings]
-        reported = {f.candidate.key: (f, scope) for report, scope in zip(reports, named) for f in report.findings
-                    if f.reported}
-        evidence = {f.candidate.key: PairEvidence.of(f, report.run) for report in reports for f in report.findings
-                    if f.reported}
+        reported = {
+            f.candidate.key: (f, scope) for report, scope in zip(reports, named) for f in report.findings if f.reported
+        }
+        evidence = {
+            f.candidate.key: PairEvidence.of(f, report.run) for report in reports for f in report.findings if f.reported
+        }
         head = reports[0].run.head
         if ledger.pushes and ledger.pushes[-1].head == head:
             tally = tally.again()
@@ -197,9 +222,15 @@ class PullLedger(Versioned):
             pair.evidence = evidence[key]
         for outcome in before_commit:
             if outcome.key not in ledger.pairs:
-                ledger.pairs[outcome.key] = Pair(new=outcome.new, existing=outcome.existing, found=ledger.pushed,
-                                                 state=outcome.state, settled=ledger.pushed, lines=outcome.lines,
-                                                 before_commit=True)
+                ledger.pairs[outcome.key] = Pair(
+                    new=outcome.new,
+                    existing=outcome.existing,
+                    found=ledger.pushed,
+                    state=outcome.state,
+                    settled=ledger.pushed,
+                    lines=outcome.lines,
+                    before_commit=True,
+                )
         for key, pair in ledger.pairs.items():
             if key in reported or key in unjudged:
                 continue
@@ -210,12 +241,20 @@ class PullLedger(Versioned):
         if any(report.backlog is not None for report in reports):  # each baseline check restates the whole backlog
             cleaned = {pair_key(item.new, item.existing): item for report in reports for item in report.backlog or ()}
             # A pair a push reported and a later one cleared keeps that push; anything else is cleaned up now.
-            since = {key: pair.settled for key, pair in ledger.pairs.items() if pair.state == "kept-out" and pair.settled}
+            since = {
+                key: pair.settled for key, pair in ledger.pairs.items() if pair.state == "kept-out" and pair.settled
+            }
             ledger.backlog = {
-                key: ledger.backlog[key].model_copy(update={"how": item.how}) if key in ledger.backlog
-                else Backlog(new=local(item.new), existing=local(item.existing), how=item.how,
-                             settled=since.get(key, ledger.pushed))
-                for key, item in cleaned.items()}
+                key: ledger.backlog[key].model_copy(update={"how": item.how})
+                if key in ledger.backlog
+                else Backlog(
+                    new=local(item.new),
+                    existing=local(item.existing),
+                    how=item.how,
+                    settled=since.get(key, ledger.pushed),
+                )
+                for key, item in cleaned.items()
+            }
         remaining = EVIDENCE_BYTES
         for pair in reversed(ledger.pairs.values()):
             if pair.evidence:
@@ -228,14 +267,26 @@ class PullLedger(Versioned):
 
     def contribution(self, key: str, number: int) -> dict:
         """What the global counter is sent for this pull request once merged: counts, and the repository's key."""
-        return {"repository": key, "pull": number,
-                "kept_out": self.count("kept-out"), "caught": len(self.pairs), "dismissed": self.count("dismissed"),
-                "merged_open": self.count("open"), "pushes": self.pushed, "runs": self.tally.runs,
-                "judgments": self.tally.judgments, "functions": self.tally.functions, "pairs": self.tally.pairs,
-                "reused": self.tally.reused, "usd": round(self.tally.usd, 6), "measured_kept_out": len(self.kept_out()),
-                "drifted_kept_out": sum(pair.drifted for pair in self.kept_out()),
-                "rewrites_kept_out": sum(pair.rewrite for pair in self.kept_out()),
-                "lines_kept_out": sum(pair.lines for pair in self.kept_out()), "version": __version__}
+        return {
+            "repository": key,
+            "pull": number,
+            "kept_out": self.count("kept-out"),
+            "caught": len(self.pairs),
+            "dismissed": self.count("dismissed"),
+            "merged_open": self.count("open"),
+            "pushes": self.pushed,
+            "runs": self.tally.runs,
+            "judgments": self.tally.judgments,
+            "functions": self.tally.functions,
+            "pairs": self.tally.pairs,
+            "reused": self.tally.reused,
+            "usd": round(self.tally.usd, 6),
+            "measured_kept_out": len(self.kept_out()),
+            "drifted_kept_out": sum(pair.drifted for pair in self.kept_out()),
+            "rewrites_kept_out": sum(pair.rewrite for pair in self.kept_out()),
+            "lines_kept_out": sum(pair.lines for pair in self.kept_out()),
+            "version": __version__,
+        }
 
     def snapshot(self) -> str:
         return f"<!-- dry-lint-ledger {comment_json(self)} -->"
@@ -260,10 +311,14 @@ def headline(ledger: PullLedger) -> str:
         tail = f" {plural(still, 'duplicate')} still open." if still else ""
         hooked = sum(pair.before_commit for pair in ledger.kept_out())
         early = f" ({hooked:,} by the pre-commit hook, before commit)" if hooked else ""
-        return f"{backlog}**{plural(kept, 'duplicate')} kept out of the codebase**{early} {tally.spent()}, {across}.{tail}"
+        return (
+            f"{backlog}**{plural(kept, 'duplicate')} kept out of the codebase**{early} {tally.spent()}, {across}.{tail}"
+        )
     if still:
-        return (f"{backlog}**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
-                "Each one fixed here is kept out of the codebase.")
+        return (
+            f"{backlog}**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
+            "Each one fixed here is kept out of the codebase."
+        )
     if ledger.backlog:  # what pushes reported here is all accepted debt, now counted as backlog
         return f"**{plural(len(ledger.backlog), 'accepted backlog pair')} cleaned up** {tally.spent()}, {across}."
     if not tally.functions:
@@ -283,8 +338,11 @@ def pair_line(pair: Pair) -> str:
     if pair.before_commit:
         done = "kept out" if pair.state == "kept-out" else "dismissed by a person's decision"
         return f"{ICONS[pair.state]} {pair.concept()} · {done} before commit, by the pre-commit hook"
-    where = {"kept-out": f"kept out in push {pair.settled}", "open": "still open",
-             "dismissed": f"dismissed by a person's decision in push {pair.settled}"}[pair.state]
+    where = {
+        "kept-out": f"kept out in push {pair.settled}",
+        "open": "still open",
+        "dismissed": f"dismissed by a person's decision in push {pair.settled}",
+    }[pair.state]
     return f"{ICONS[pair.state]} {pair.concept()} · found in push {pair.found}, {where}"
 
 
@@ -298,43 +356,88 @@ def backlog_line(key: str, item: Backlog, ledger: PullLedger) -> str:
 def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, comparisons: str = "") -> str:
     """Cleanup progress first, with the current outcomes and the commits that cleared them."""
     tally, kept, still, backlog = ledger.tally, ledger.count("kept-out"), ledger.count("open"), len(ledger.backlog)
-    cleaned = Counter([*(pair.settled for key, pair in ledger.pairs.items()
-                         if pair.state == "kept-out" and key not in ledger.backlog),
-                       *(item.settled for item in ledger.backlog.values())])
-    split = " · ".join(part for part in (f"{backlog:,} from the accepted backlog" if backlog else "",
-                                         f"{kept:,} found here" if kept and backlog else "") if part)
-    badges = [badge("pushes", ledger.pushed, GRAY), badge("functions checked", f"{tally.functions:,}", GRAY),
-              badge("judgments", f"{tally.judgments:,}", GRAY), badge("spent", tally.cost(), BLUE)]
+    cleaned = Counter(
+        [
+            *(
+                pair.settled
+                for key, pair in ledger.pairs.items()
+                if pair.state == "kept-out" and key not in ledger.backlog
+            ),
+            *(item.settled for item in ledger.backlog.values()),
+        ]
+    )
+    split = " · ".join(
+        part
+        for part in (
+            f"{backlog:,} from the accepted backlog" if backlog else "",
+            f"{kept:,} found here" if kept and backlog else "",
+        )
+        if part
+    )
+    badges = [
+        badge("pushes", ledger.pushed, GRAY),
+        badge("functions checked", f"{tally.functions:,}", GRAY),
+        badge("judgments", f"{tally.judgments:,}", GRAY),
+        badge("spent", tally.cost(), BLUE),
+    ]
     title = "### 🧹 A little less lint" if kept or backlog else "### 🧺 This PR's cleanup basket"
     cells = [f"{SPREAD}**{plural(n, 'pair')}**" for n in (kept + backlog, still, ledger.count("dismissed"))]
     cells[0] += f"<br><sub>{split}</sub>" if split else ""
-    lines = [title, "", "| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |", "| :--: | :--: | :--: |",
-             "| " + " | ".join(cells) + " |", ""]
+    lines = [
+        title,
+        "",
+        "| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |",
+        "| :--: | :--: | :--: |",
+        "| " + " | ".join(cells) + " |",
+        "",
+    ]
     if cleaned[ledger.pushed] and ledger.pushes:
-        lines += [f"Latest analyzed commit `{ledger.pushes[-1].head[:7]}` · "
-                  f"**+{plural(cleaned[ledger.pushed], 'pair')} cleaned up** ✨", ""]
+        lines += [
+            f"Latest analyzed commit `{ledger.pushes[-1].head[:7]}` · "
+            f"**+{plural(cleaned[ledger.pushed], 'pair')} cleaned up** ✨",
+            "",
+        ]
     if comparisons:
         lines += [comparisons, ""]
-    lines += ["<details><summary><strong>History and check stats</strong></summary>", "",
-              headline(ledger), "", " ".join(badges), "",
-              "<sub>Previously reported pairs no longer reported, here or by the pre-commit hook before commit; "
-              "dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits."
-              + (" Accepted backlog pairs count when this pull request removes a side or the judge now finds them "
-                 "separate; the baseline and its badge change only with the repository's audit." if backlog else "")
-              + "</sub>", ""]
+    lines += [
+        "<details><summary><strong>History and check stats</strong></summary>",
+        "",
+        headline(ledger),
+        "",
+        " ".join(badges),
+        "",
+        "<sub>Previously reported pairs no longer reported, here or by the pre-commit hook before commit; "
+        "dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits."
+        + (
+            " Accepted backlog pairs count when this pull request removes a side or the judge now finds them "
+            "separate; the baseline and its badge change only with the repository's audit."
+            if backlog
+            else ""
+        )
+        + "</sub>",
+        "",
+    ]
     if ledger.pushed > 1 or ledger.pairs or ledger.backlog:
         first = ledger.pushed - len(ledger.pushes) + 1
-        rows = ["| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |",
-                "| --: | :-- | --: | --: | --: | --: | --: | --: |"]
+        rows = [
+            "| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |",
+            "| --: | :-- | --: | --: | --: | --: | --: | --: |",
+        ]
         for n, push in enumerate(ledger.pushes, first):
             reused = f" <sub>+{push.tally.reused:,} reused</sub>" if push.tally.reused else ""
             cleared = f"**+{cleaned[n]}**" if cleaned[n] else "0"
-            rows.append(f"| {n} | `{push.head[:7]}` | {push.tally.functions:,} | {push.tally.pairs:,} | "
-                        f"{push.tally.judgments:,}{reused} | {push.reported:,} | {cleared} | {push.tally.cost()} |")
-        rows.append(f"| **{ledger.pushed}** | | **{tally.functions:,}** | **{tally.pairs:,}** | "
-                    f"**{tally.judgments:,}** | | **{kept + backlog:,}** | **{tally.cost()}** |")
-        pairs = sorted((pair for key, pair in ledger.pairs.items() if key not in ledger.backlog),
-                       key=lambda p: (list(ICONS).index(p.state), p.found))
+            rows.append(
+                f"| {n} | `{push.head[:7]}` | {push.tally.functions:,} | {push.tally.pairs:,} | "
+                f"{push.tally.judgments:,}{reused} | {push.reported:,} | {cleared} | {push.tally.cost()} |"
+            )
+        rows.append(
+            f"| **{ledger.pushed}** | | **{tally.functions:,}** | **{tally.pairs:,}** | "
+            f"**{tally.judgments:,}** | | **{kept + backlog:,}** | **{tally.cost()}** |"
+        )
+        pairs = sorted(
+            (pair for key, pair in ledger.pairs.items() if key not in ledger.backlog),
+            key=lambda p: (list(ICONS).index(p.state), p.found),
+        )
         backlogged = sorted(ledger.backlog.items(), key=lambda entry: entry[1].settled)
         items = [*(backlog_line(key, item, ledger) for key, item in backlogged), *(pair_line(pair) for pair in pairs)]
         lines += [*rows, "", *(f"- {item}" for item in items), *([""] if items else [])]
@@ -389,10 +492,15 @@ class RepositoryLedger(Versioned):
         self.merged_open += ledger.count("open")
 
     def line(self) -> str:
-        since, name = datetime.fromisoformat(self.since), code(self.repository) if self.repository else "This repository"
-        return (f"🏆 {name} since {since:%b} {since.day}, {since.year}: "
-                f"**{plural(self.kept_out, 'duplicate')} kept out of the codebase** across "
-                f"{plural(len(self.pulls), 'merged pull request')}, {self.tally.spent()}.")
+        since, name = (
+            datetime.fromisoformat(self.since),
+            code(self.repository) if self.repository else "This repository",
+        )
+        return (
+            f"🏆 {name} since {since:%b} {since.day}, {since.year}: "
+            f"**{plural(self.kept_out, 'duplicate')} kept out of the codebase** across "
+            f"{plural(len(self.pulls), 'merged pull request')}, {self.tally.spent()}."
+        )
 
     @classmethod
     def load(cls, text: str, repository: str) -> "RepositoryLedger":

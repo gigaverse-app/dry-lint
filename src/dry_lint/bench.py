@@ -70,8 +70,7 @@ def auc(scored: list[tuple[float, bool, float]]) -> float:
     positives = [(s, w) for s, dup, w in scored if dup]
     negatives = [(s, w) for s, dup, w in scored if not dup]
     total = sum(wp * wn for _, wp in positives for _, wn in negatives)
-    wins = sum(wp * wn * (1.0 if sp > sn else 0.5 if sp == sn else 0.0)
-               for sp, wp in positives for sn, wn in negatives)
+    wins = sum(wp * wn * (1.0 if sp > sn else 0.5 if sp == sn else 0.0) for sp, wp in positives for sn, wn in negatives)
     return wins / total if total else float("nan")
 
 
@@ -82,8 +81,13 @@ def precision_recall(rows: list[tuple[str, bool, float, bool]]) -> tuple[float, 
     return (hits / flagged if flagged else 0.0), (hits / duplicates if duplicates else 0.0)
 
 
-def resampled(rows: list[Row], stratum: Callable[[Row], str], statistic: Callable[[list[Row]], Statistic],
-              resamples: int = 1000, seed: int = 7) -> list[Statistic]:
+def resampled(
+    rows: list[Row],
+    stratum: Callable[[Row], str],
+    statistic: Callable[[list[Row]], Statistic],
+    resamples: int = 1000,
+    seed: int = 7,
+) -> list[Statistic]:
     """
     `statistic` over a stratified bootstrap: each stratum is resampled with replacement and keeps its weights, so the
     spread shows how much a handful of heavily weighted pairs can move the numbers.
@@ -101,8 +105,9 @@ def spread(values: list[float]) -> tuple[float, float]:
     return ordered[int(0.05 * (len(ordered) - 1))], ordered[int(0.95 * (len(ordered) - 1))]
 
 
-def intervals(rows: list[tuple[str, bool, float, bool]], resamples: int = 1000,
-              seed: int = 7) -> tuple[tuple[float, float], tuple[float, float]]:
+def intervals(
+    rows: list[tuple[str, bool, float, bool]], resamples: int = 1000, seed: int = 7
+) -> tuple[tuple[float, float], tuple[float, float]]:
     """90% intervals for precision and recall."""
     draws = resampled(rows, lambda row: row[0], precision_recall, resamples, seed) if rows else [(0.0, 0.0)]
     return spread([p for p, _ in draws]), spread([r for _, r in draws])
@@ -137,28 +142,41 @@ class JudgeBench(BaseModel):
     def as_text(self, settings: Settings) -> str:
         p_low, p_high = self.precision_interval
         r_low, r_high = self.recall_interval
-        lines = [f"judge {self.judge}: {self.pairs} labelled pairs, {self.duplicates} duplicates",
-                 "  AUC " + ("n/a" if self.auc is None else f"{self.auc:.2f}"),
-                 f"  at report_at {settings.report_at}: precision {self.precision:.0%} ({p_low:.0%}-{p_high:.0%}), "
-                 f"recall {self.recall:.0%} ({r_low:.0%}-{r_high:.0%}); 90% intervals",
-                 *([f"  at fail_at {self.fail_at}: precision {self.fail_precision:.0%} "
+        lines = [
+            f"judge {self.judge}: {self.pairs} labelled pairs, {self.duplicates} duplicates",
+            "  AUC " + ("n/a" if self.auc is None else f"{self.auc:.2f}"),
+            f"  at report_at {settings.report_at}: precision {self.precision:.0%} ({p_low:.0%}-{p_high:.0%}), "
+            f"recall {self.recall:.0%} ({r_low:.0%}-{r_high:.0%}); 90% intervals",
+            *(
+                [
+                    f"  at fail_at {self.fail_at}: precision {self.fail_precision:.0%} "
                     f"({self.fail_precision_interval[0]:.0%}-{self.fail_precision_interval[1]:.0%}), recall "
-                    f"{self.fail_recall:.0%} ({self.fail_recall_interval[0]:.0%}-{self.fail_recall_interval[1]:.0%})"]
-                   if self.fail_at > settings.report_at else []),
-                 "  cost: " + ("unknown" if self.usd_per_pair is None else f"est. ${self.usd_per_pair:.4f} per pair")
-                 + (f", {self.subscription_calls} subscription calls" if self.subscription_calls else ""),
-                 f"  at drop_below {settings.drop_below}: recall {self.recall_at_drop:.0%}",
-                 "  score band    duplicates  separate"]
-        lines += [f"  {b.low:.1f}-{min(b.high, 1.0):.1f}    {b.duplicates:10.1f}  {b.separate:8.1f}" for b in self.bands]
+                    f"{self.fail_recall:.0%} ({self.fail_recall_interval[0]:.0%}-{self.fail_recall_interval[1]:.0%})"
+                ]
+                if self.fail_at > settings.report_at
+                else []
+            ),
+            "  cost: "
+            + ("unknown" if self.usd_per_pair is None else f"est. ${self.usd_per_pair:.4f} per pair")
+            + (f", {self.subscription_calls} subscription calls" if self.subscription_calls else ""),
+            f"  at drop_below {settings.drop_below}: recall {self.recall_at_drop:.0%}",
+            "  score band    duplicates  separate",
+        ]
+        lines += [
+            f"  {b.low:.1f}-{min(b.high, 1.0):.1f}    {b.duplicates:10.1f}  {b.separate:8.1f}" for b in self.bands
+        ]
         return "\n".join(lines)
 
 
-def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extractor: Extractor,
-                escalation: Judge | None = None) -> JudgeBench:
+def bench_judge(
+    gold: list[GoldPair], judge: Judge, settings: Settings, extractor: Extractor, escalation: Judge | None = None
+) -> JudgeBench:
     """The judging that runs in CI, measured: the judge, and the escalation judge on its band when one is set."""
     labelled = [g for g in gold if g.label != "borderline"]
-    candidates = [Candidate(new=as_function(g.new, extractor), existing=as_function(g.existing, extractor), similarity=0.0)
-                  for g in labelled]
+    candidates = [
+        Candidate(new=as_function(g.new, extractor), existing=as_function(g.existing, extractor), similarity=0.0)
+        for g in labelled
+    ]
     unlimited = settings.model_copy(update={"budget": Budget(usd=float("inf"), subscription_calls=10**9)})
     ledger = Ledger(unlimited)
     verdicts = [v for v in decide(candidates, judge, escalation, unlimited, ledger) if v is not None]
@@ -168,8 +186,9 @@ def bench_judge(gold: list[GoldPair], judge: Judge, settings: Settings, extracto
     return judge_bench(labelled, verdicts, settings, judges_name(judge, escalation), ledger)
 
 
-def judge_bench(labelled: list[GoldPair], verdicts: list[Verdict], settings: Settings, judge: str,
-                ledger: Ledger | None = None) -> JudgeBench:
+def judge_bench(
+    labelled: list[GoldPair], verdicts: list[Verdict], settings: Settings, judge: str, ledger: Ledger | None = None
+) -> JudgeBench:
     """The numbers for verdicts already given on labelled pairs, in the same order; `ledger` holds what they cost."""
     scored = [(v.score, g.label == "duplicate", g.weight) for g, v in zip(labelled, verdicts)]
 
@@ -198,15 +217,25 @@ def judge_bench(labelled: list[GoldPair], verdicts: list[Verdict], settings: Set
                   duplicates=weight(lambda s, d, lo=low, hi=high: d and lo <= s < hi),
                   separate=weight(lambda s, d, lo=low, hi=high: not d and lo <= s < hi))
              for low, high in zip(BANDS, BANDS[1:])]  # fmt: skip
-    return JudgeBench(judge=judge, pairs=len(labelled), duplicates=sum(1 for g in labelled if g.label == "duplicate"),
-                      auc=None if math.isnan(area := auc(scored)) else area, precision=hits / flagged if flagged else 0.0,
-                      precision_interval=precision_interval, recall_interval=recall_interval,
-                      recall=hits / duplicates if duplicates else 0.0, recall_at_drop=kept / duplicates if duplicates else 0.0,
-                      fail_at=fail_at, fail_precision=fail_precision, fail_recall=fail_recall,
-                      fail_precision_interval=fail_precision_interval, fail_recall_interval=fail_recall_interval,
-                      usd_per_pair=usd / len(labelled) if usd is not None and labelled else None,
-                      subscription_calls=sum(s.calls for s in spend if s.subscription),
-                      bands=[b for b in bands if b.duplicates or b.separate])
+    return JudgeBench(
+        judge=judge,
+        pairs=len(labelled),
+        duplicates=sum(1 for g in labelled if g.label == "duplicate"),
+        auc=None if math.isnan(area := auc(scored)) else area,
+        precision=hits / flagged if flagged else 0.0,
+        precision_interval=precision_interval,
+        recall_interval=recall_interval,
+        recall=hits / duplicates if duplicates else 0.0,
+        recall_at_drop=kept / duplicates if duplicates else 0.0,
+        fail_at=fail_at,
+        fail_precision=fail_precision,
+        fail_recall=fail_recall,
+        fail_precision_interval=fail_precision_interval,
+        fail_recall_interval=fail_recall_interval,
+        usd_per_pair=usd / len(labelled) if usd is not None and labelled else None,
+        subscription_calls=sum(s.calls for s in spend if s.subscription),
+        bands=[b for b in bands if b.duplicates or b.separate],
+    )
 
 
 class ComparerBench(BaseModel):
@@ -217,8 +246,10 @@ class ComparerBench(BaseModel):
     recall: float = Field(description="Weighted share of duplicates whose partner is among the proposed neighbours.")
 
     def as_text(self) -> str:
-        return (f"comparer {self.comparer}: {self.duplicates} gold duplicates in the repository ({self.missing} gone)\n"
-                f"  partner among the top {self.neighbours} proposed: {self.recall:.0%}")
+        return (
+            f"comparer {self.comparer}: {self.duplicates} gold duplicates in the repository ({self.missing} gone)\n"
+            f"  partner among the top {self.neighbours} proposed: {self.recall:.0%}"
+        )
 
 
 def bench_comparer(gold: list[GoldPair], detector: Detector) -> ComparerBench:
@@ -230,6 +261,10 @@ def bench_comparer(gold: list[GoldPair], detector: Detector) -> ComparerBench:
         proposed = {other.qualname for other, _ in detector.neighbours(by_name[g.new.id])}
         found += g.weight if g.existing.id in proposed else 0.0
     total = sum(g.weight for g in present)
-    return ComparerBench(comparer=detector.comparer_id, neighbours=detector.settings.neighbours, duplicates=len(present),
-                         missing=sum(1 for g in gold if g.label == "duplicate") - len(present),
-                         recall=found / total if total else 0.0)
+    return ComparerBench(
+        comparer=detector.comparer_id,
+        neighbours=detector.settings.neighbours,
+        duplicates=len(present),
+        missing=sum(1 for g in gold if g.label == "duplicate") - len(present),
+        recall=found / total if total else 0.0,
+    )

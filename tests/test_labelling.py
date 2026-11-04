@@ -35,20 +35,28 @@ from dry_lint.settings import Settings
 from conftest import function, run_cli
 
 
-def finding(n: int, score: float | None, reported: bool = False, blocking: bool = False, new: str = "",
-            existing: str = "") -> Finding:
-    candidate = Candidate(new=function("a.py", f"def {new or f'f{n}'}():\n    return 1"),
-                          existing=function("b.py", f"def {existing or f'g{n}'}():\n    return 1"), similarity=0.5)
-    verdict = None if score is None else Verdict(label="duplicate" if score >= 0.6 else "separate", score=score, judge="j")
+def finding(
+    n: int, score: float | None, reported: bool = False, blocking: bool = False, new: str = "", existing: str = ""
+) -> Finding:
+    candidate = Candidate(
+        new=function("a.py", f"def {new or f'f{n}'}():\n    return 1"),
+        existing=function("b.py", f"def {existing or f'g{n}'}():\n    return 1"),
+        similarity=0.5,
+    )
+    verdict = (
+        None if score is None else Verdict(label="duplicate" if score >= 0.6 else "separate", score=score, judge="j")
+    )
     return Finding(candidate=candidate, verdict=verdict, reported=reported, blocking=blocking)
 
 
 def script(tmp_path: Path, name: str, body: str) -> str:
     """A labeller command: records each prompt it is asked, then answers from `body` (Python using `text`)."""
     path, log = tmp_path / f"{name}.py", tmp_path / f"{name}.log"
-    path.write_text("import json, pathlib, sys\n"
-                    "text = sys.stdin.read()\n"
-                    f"pathlib.Path({str(log)!r}).open('a').write(json.dumps(text) + '\\n')\n" + body)
+    path.write_text(
+        "import json, pathlib, sys\n"
+        "text = sys.stdin.read()\n"
+        f"pathlib.Path({str(log)!r}).open('a').write(json.dumps(text) + '\\n')\n" + body
+    )
     return f'command:"{sys.executable}" "{path}"'
 
 
@@ -57,9 +65,11 @@ def asked(tmp_path: Path, name: str) -> list[str]:
     return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
 
 
-TWIN_AWARE = ("twin = 'preview_caption_text' in text and 'shorten_text' in text\n"
-              "print('Thinking. ' + json.dumps({'label': 'CONSOLIDATE' if twin else 'SEPARATE', 'variation': 'drifted',"
-              " 'owner': 'B', 'concept': 'shorten text'}))\n")
+TWIN_AWARE = (
+    "twin = 'preview_caption_text' in text and 'shorten_text' in text\n"
+    "print('Thinking. ' + json.dumps({'label': 'CONSOLIDATE' if twin else 'SEPARATE', 'variation': 'drifted',"
+    " 'owner': 'B', 'concept': 'shorten text'}))\n"
+)
 
 
 def test_the_prompt_shows_the_guideline_and_both_functions_and_nothing_about_scores() -> None:
@@ -68,24 +78,30 @@ def test_the_prompt_shows_the_guideline_and_both_functions_and_nothing_about_sco
     assert "score" not in text.lower() and "judge" not in text.lower() and "similarity" not in text.lower()
 
 
-@pytest.mark.parametrize("text,expected", [
-    ('{"label": "pattern"}', "PATTERN"),
-    ('So {not json} and {"x": 1} then {"label": "Consolidate"}', "CONSOLIDATE"),
-    ('{"label": "maybe"}', None),
-    ("nothing", None),
-])
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ('{"label": "pattern"}', "PATTERN"),
+        ('So {not json} and {"x": 1} then {"label": "Consolidate"}', "CONSOLIDATE"),
+        ('{"label": "maybe"}', None),
+        ("nothing", None),
+    ],
+)
 def test_an_answer_is_the_first_object_with_a_known_label(text, expected) -> None:
     assert (parse(text) or {}).get("label") == expected
 
 
-@pytest.mark.parametrize("given,expected", [
-    (["CONSOLIDATE", "CONSOLIDATE", "PATTERN"], "duplicate"),
-    (["SEPARATE", "PATTERN", "CONSOLIDATE"], "separate"),
-    (["CONSOLIDATE", "SEPARATE"], "borderline"),
-    (["CONSOLIDATE", None, None], "duplicate"),  # only usable answers vote
-    ([None], None),
-    ([], None),
-])
+@pytest.mark.parametrize(
+    "given,expected",
+    [
+        (["CONSOLIDATE", "CONSOLIDATE", "PATTERN"], "duplicate"),
+        (["SEPARATE", "PATTERN", "CONSOLIDATE"], "separate"),
+        (["CONSOLIDATE", "SEPARATE"], "borderline"),
+        (["CONSOLIDATE", None, None], "duplicate"),  # only usable answers vote
+        ([None], None),
+        ([], None),
+    ],
+)
 def test_the_label_is_a_strict_majority_of_usable_answers(given, expected) -> None:
     assert majority([Answer(key="k", labeller=str(i), label=g) for i, g in enumerate(given)]) == expected
 
@@ -95,9 +111,15 @@ def test_scores_fall_into_bench_bands_and_unjudged_pairs_have_their_own() -> Non
     assert stratum(finding(3, None)) == "unjudged"
 
 
-@pytest.mark.parametrize("available,size", [
-    ({"a": 50, "b": 50, "c": 50}, 30), ({"a": 2, "b": 100}, 40), ({"a": 3, "b": 4}, 100), ({"a": 9, "b": 9}, 1),
-])
+@pytest.mark.parametrize(
+    "available,size",
+    [
+        ({"a": 50, "b": 50, "c": 50}, 30),
+        ({"a": 2, "b": 100}, 40),
+        ({"a": 3, "b": 4}, 100),
+        ({"a": 9, "b": 9}, 1),
+    ],
+)
 def test_allocation_reaches_the_size_it_can_and_never_exceeds_a_stratum(available, size) -> None:
     taken = allocate(available, {"a": 5, "b": 2, "c": 2}, size)
     assert sum(taken.values()) == min(max(size, len(available)), sum(available.values()))
@@ -152,7 +174,10 @@ def openrouter(seen: list[dict], cost: float | None = 0.5) -> httpx.MockTranspor
     def handle(request: httpx.Request) -> httpx.Response:
         seen.append({"body": json.loads(request.content), "auth": request.headers["Authorization"]})
         usage = {} if cost is None else {"cost": cost}
-        return httpx.Response(200, json={"choices": [{"message": {"content": '{"label": "SEPARATE"}'}}], "usage": usage})
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": '{"label": "SEPARATE"}'}}], "usage": usage}
+        )
+
     return httpx.MockTransport(handle)
 
 
@@ -179,15 +204,25 @@ def test_labelling_stops_when_this_run_reaches_its_budget(tmp_path) -> None:
 
 
 def labelled_rows() -> tuple[list[Sampled], list[Answer]]:
-    pairs = [Sampled(finding=finding(1, 0.95, reported=True, blocking=True), stratum="0.9-1.0", weight=1.0),
-             Sampled(finding=finding(2, 0.65, reported=True), stratum="0.6-0.7", weight=2.0),
-             Sampled(finding=finding(3, 0.2), stratum="0.1-0.3", weight=10.0),
-             Sampled(finding=finding(4, 0.2), stratum="0.1-0.3", weight=10.0),
-             Sampled(finding=finding(5, 0.7), stratum="0.7-0.8", weight=1.0)]
-    votes = [["CONSOLIDATE"] * 3, ["PATTERN", "SEPARATE", "CONSOLIDATE"], ["CONSOLIDATE", "CONSOLIDATE", "SEPARATE"],
-             ["SEPARATE"] * 3, ["CONSOLIDATE", "SEPARATE"]]
-    answers = [Answer(key=p.finding.candidate.key, labeller=f"l{i}", label=v, variation="drifted" if i else "",
-                      owner="B") for p, given in zip(pairs, votes) for i, v in enumerate(given)]
+    pairs = [
+        Sampled(finding=finding(1, 0.95, reported=True, blocking=True), stratum="0.9-1.0", weight=1.0),
+        Sampled(finding=finding(2, 0.65, reported=True), stratum="0.6-0.7", weight=2.0),
+        Sampled(finding=finding(3, 0.2), stratum="0.1-0.3", weight=10.0),
+        Sampled(finding=finding(4, 0.2), stratum="0.1-0.3", weight=10.0),
+        Sampled(finding=finding(5, 0.7), stratum="0.7-0.8", weight=1.0),
+    ]
+    votes = [
+        ["CONSOLIDATE"] * 3,
+        ["PATTERN", "SEPARATE", "CONSOLIDATE"],
+        ["CONSOLIDATE", "CONSOLIDATE", "SEPARATE"],
+        ["SEPARATE"] * 3,
+        ["CONSOLIDATE", "SEPARATE"],
+    ]
+    answers = [
+        Answer(key=p.finding.candidate.key, labeller=f"l{i}", label=v, variation="drifted" if i else "", owner="B")
+        for p, given in zip(pairs, votes)
+        for i, v in enumerate(given)
+    ]
     return pairs, answers
 
 
@@ -196,8 +231,14 @@ def test_outcomes_count_what_the_judging_caught_missed_and_got_wrong() -> None:
     rows = gold(pairs, answers)
     assert [g.label for _, g in rows] == ["duplicate", "separate", "duplicate", "separate", "borderline"]
     totals = outcomes(rows)
-    assert totals == {"real": 11.0, "reported_real": 1.0, "reported_false": 2.0, "blocking_real": 1.0,
-                      "blocking_false": 0.0, "missed": 10.0}  # the borderline pair counts for nothing
+    assert totals == {
+        "real": 11.0,
+        "reported_real": 1.0,
+        "reported_false": 2.0,
+        "blocking_real": 1.0,
+        "blocking_false": 0.0,
+        "missed": 10.0,
+    }  # the borderline pair counts for nothing
     first = rows[0][1]
     assert first.drifted is True and first.owner == "existing" and first.stratum == "0.9-1.0"
     assert rows[1][1].drifted is None and rows[1][1].owner is None
@@ -230,22 +271,51 @@ def test_the_summary_writes_bench_gold_and_measures_the_judging_on_it(tmp_path) 
 
 
 def test_figures_round_to_whole_numbers_from_ten_up() -> None:
-    labels = Labels(gold="g", labellers=["l"], sampled=1, labelled=1, unanimous=1, duplicates=1, borderline=0,
-                    usd=0.0, commits=100, outcomes={n: v for n, v in zip(("real", "reported_real", "reported_false",
-                                                                           "blocking_real", "blocking_false", "missed"),
-                                                                          (25.4, 3.25, 0, 0, 0, 22.0))},
-                    intervals=dict.fromkeys(("real", "reported_real", "reported_false", "blocking_real",
-                                             "blocking_false", "missed"), (1.0, 30.0)))
+    labels = Labels(
+        gold="g",
+        labellers=["l"],
+        sampled=1,
+        labelled=1,
+        unanimous=1,
+        duplicates=1,
+        borderline=0,
+        usd=0.0,
+        commits=100,
+        outcomes={
+            n: v
+            for n, v in zip(
+                ("real", "reported_real", "reported_false", "blocking_real", "blocking_false", "missed"),
+                (25.4, 3.25, 0, 0, 0, 22.0),
+            )
+        },
+        intervals=dict.fromkeys(
+            ("real", "reported_real", "reported_false", "blocking_real", "blocking_false", "missed"), (1.0, 30.0)
+        ),
+    )
     text = labels.as_text()
     assert "real duplicates proposed  25 (1.0-30)" in text and "reported                  3.2" in text
 
 
-def test_bench_replay_labels_a_sample_writes_gold_and_reports_outcomes(history, tmp_path, blocking_twin_judge,
-                                                                      capsys) -> None:
+def test_bench_replay_labels_a_sample_writes_gold_and_reports_outcomes(
+    history, tmp_path, blocking_twin_judge, capsys
+) -> None:
     panel = [arg for n in ("one", "two", "three") for arg in ("--labeller", script(tmp_path, n, TWIN_AWARE))]
     gold_path = tmp_path / "labels" / "gold.jsonl"
-    args = ("--replay", "5", "--ref", "main", "--judge", "command", "--judge-command", blocking_twin_judge,
-            "--label", "10", "--gold-out", str(gold_path), *panel)
+    args = (
+        "--replay",
+        "5",
+        "--ref",
+        "main",
+        "--judge",
+        "command",
+        "--judge-command",
+        blocking_twin_judge,
+        "--label",
+        "10",
+        "--gold-out",
+        str(gold_path),
+        *panel,
+    )
     assert run_cli(history, tmp_path, *args, command="bench") == 0
     out = capsys.readouterr().out
     assert "labels: " in out and "3 labellers" in out and "real duplicates proposed" in out
@@ -261,16 +331,34 @@ def test_bench_replay_labels_a_sample_writes_gold_and_reports_outcomes(history, 
 
 def test_labels_go_inside_the_git_directory_by_default(history, tmp_path, capsys) -> None:
     panel = ("--labeller", script(tmp_path, "one", TWIN_AWARE))
-    assert run_cli(history, tmp_path, "--replay", "2", "--ref", "main", "--judge", "none", "--label", "3", *panel,
-                   command="bench") == 0
+    assert (
+        run_cli(
+            history,
+            tmp_path,
+            "--replay",
+            "2",
+            "--ref",
+            "main",
+            "--judge",
+            "none",
+            "--label",
+            "3",
+            *panel,
+            command="bench",
+        )
+        == 0
+    )
     assert (history.root / ".git" / "dry-lint" / "gold" / "replay.jsonl").exists()
     assert "labels: " in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("args,message", [
-    (("--gold", "gold.jsonl", "--label", "5"), "use it with --replay"),
-    (("--replay", "2", "--ref", "main", "--label", "0"), "at least 1"),
-])
+@pytest.mark.parametrize(
+    "args,message",
+    [
+        (("--gold", "gold.jsonl", "--label", "5"), "use it with --replay"),
+        (("--replay", "2", "--ref", "main", "--label", "0"), "at least 1"),
+    ],
+)
 def test_label_refuses_what_it_cannot_do(history, tmp_path, capsys, args, message) -> None:
     assert run_cli(history, tmp_path, "--judge", "none", *args, command="bench") == 2
     assert message in capsys.readouterr().err
@@ -278,8 +366,10 @@ def test_label_refuses_what_it_cannot_do(history, tmp_path, capsys, args, messag
 
 def test_a_missing_openrouter_key_stops_before_the_replay_starts(history, tmp_path, capsys, monkeypatch) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    assert run_cli(history, tmp_path, "--replay", "2", "--ref", "main", "--judge", "none", "--label", "3",
-                   command="bench") == 2
+    assert (
+        run_cli(history, tmp_path, "--replay", "2", "--ref", "main", "--judge", "none", "--label", "3", command="bench")
+        == 2
+    )
     captured = capsys.readouterr()
     assert "OPENROUTER_API_KEY" in captured.err and "replay 1/" not in captured.err
 
@@ -287,5 +377,7 @@ def test_a_missing_openrouter_key_stops_before_the_replay_starts(history, tmp_pa
 def test_a_pair_no_labeller_answered_is_left_out_of_the_gold() -> None:
     pairs, answers = labelled_rows()
     unanswered = Sampled(finding=finding(9, 0.5), stratum="0.5-0.6", weight=3.0)
-    rows = gold([*pairs, unanswered], answers + [Answer(key=unanswered.finding.candidate.key, labeller="l0", label=None)])
+    rows = gold(
+        [*pairs, unanswered], answers + [Answer(key=unanswered.finding.candidate.key, labeller="l0", label=None)]
+    )
     assert unanswered.finding.candidate.key not in {p.finding.candidate.key for p, _ in rows} and len(rows) == 5

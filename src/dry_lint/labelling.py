@@ -81,8 +81,12 @@ class OpenRouterLabeller:
             raise ValueError(f"The labeller {model} needs OPENROUTER_API_KEY, or use `command:<cli>` labellers")
 
     def ask(self, prompt: str) -> tuple[str, float | None]:
-        body = {"model": self.name, "messages": [{"role": "user", "content": prompt}], "max_tokens": 6000,
-                "usage": {"include": True}}
+        body = {
+            "model": self.name,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 6000,
+            "usage": {"include": True},
+        }
         with httpx.Client(timeout=300, transport=self.transport) as client:
             response = client.post(OPENROUTER, json=body, headers={"Authorization": f"Bearer {self.api_key}"})
         response.raise_for_status()
@@ -96,20 +100,26 @@ class CommandLabeller:
         self.name, self.command, self.timeout = f"command:{command}", command, timeout
 
     def ask(self, prompt: str) -> tuple[str, float | None]:
-        done = subprocess.run(shlex.split(self.command), input=prompt, capture_output=True, text=True,
-                              timeout=self.timeout, check=True)
+        done = subprocess.run(
+            shlex.split(self.command), input=prompt, capture_output=True, text=True, timeout=self.timeout, check=True
+        )
         return done.stdout, None
 
 
 def labeller(spec: str, transport: httpx.BaseTransport | None = None) -> Labeller:
-    return CommandLabeller(spec.removeprefix("command:")) if spec.startswith("command:") else \
-        OpenRouterLabeller(spec, transport=transport)
+    return (
+        CommandLabeller(spec.removeprefix("command:"))
+        if spec.startswith("command:")
+        else OpenRouterLabeller(spec, transport=transport)
+    )
 
 
 def prompt(candidate: Candidate) -> str:
     """The guideline and the two functions: no score, no verdict, nothing about how the pair was found."""
-    sides = [f"Function {letter}: {side.qualname}\n```\n{side.code}\n```"
-             for letter, side in (("A", candidate.new), ("B", candidate.existing))]
+    sides = [
+        f"Function {letter}: {side.qualname}\n```\n{side.code}\n```"
+        for letter, side in (("A", candidate.new), ("B", candidate.existing))
+    ]
     return GUIDELINE + "\n" + "\n\n".join(sides)
 
 
@@ -164,8 +174,9 @@ def allocate(available: dict[str, int], shapes: dict[str, int], size: int) -> di
             break
         total = sum(shapes[n] for n in open_)
         for name in open_:
-            extra = min(available[name] - taken[name], max(1, round(left * shapes[name] / total)),
-                        size - sum(taken.values()))
+            extra = min(
+                available[name] - taken[name], max(1, round(left * shapes[name] / total)), size - sum(taken.values())
+            )
             taken[name] += max(extra, 0)
     return taken
 
@@ -174,8 +185,14 @@ def read_answers(path: Path) -> list[Answer]:
     return [Answer.model_validate_json(line) for line in path.read_text().splitlines() if line] if path.exists() else []
 
 
-def label(pairs: list[Sampled], labellers: list[Labeller], answers: Path, budget_usd: float, workers: int = 9,
-          progress: Callable[[str], None] | None = None) -> list[Answer]:
+def label(
+    pairs: list[Sampled],
+    labellers: list[Labeller],
+    answers: Path,
+    budget_usd: float,
+    workers: int = 9,
+    progress: Callable[[str], None] | None = None,
+) -> list[Answer]:
     """Ask every labeller about every pair it has not answered, until this run's known cost reaches the budget."""
     answers.parent.mkdir(parents=True, exist_ok=True)
     known = read_answers(answers)
@@ -193,15 +210,20 @@ def label(pairs: list[Sampled], labellers: list[Labeller], answers: Path, budget
                 continue
             found = parse(text)
             if found:
-                return Answer(key=key, labeller=who.name, label=found["label"], usd=usd,
-                              **{k: str(found.get(k, "")) for k in ("variation", "owner", "concept")})
+                return Answer(
+                    key=key,
+                    labeller=who.name,
+                    label=found["label"],
+                    usd=usd,
+                    **{k: str(found.get(k, "")) for k in ("variation", "owner", "concept")},
+                )
         return Answer(key=key, labeller=who.name, label=None)
 
     with ThreadPoolExecutor(workers) as pool:
         for start in range(0, len(jobs), workers):
             if spent >= budget_usd:
                 break
-            batch = list(pool.map(ask, jobs[start:start + workers]))
+            batch = list(pool.map(ask, jobs[start : start + workers]))
             spent += sum(a.usd or 0.0 for a in batch)
             with answers.open("a") as file:
                 file.writelines(a.model_dump_json() + "\n" for a in batch)
@@ -236,11 +258,22 @@ def gold(pairs: list[Sampled], answers: list[Answer]) -> list[tuple[Sampled, Gol
         agreeing = [a for a in given if a.label == "CONSOLIDATE"]
         owner = Counter({"A": "new", "B": "existing"}.get(a.owner, "shared") for a in agreeing).most_common(1)
         candidate = pair.finding.candidate
-        labelled.append((pair, GoldPair(
-            new=GoldFunction(id=candidate.new.qualname, code=candidate.new.code),
-            existing=GoldFunction(id=candidate.existing.qualname, code=candidate.existing.code), label=verdict,
-            drifted=(sum(a.variation == "drifted" for a in agreeing) * 2 > len(agreeing)) if verdict == "duplicate" else None,
-            owner=owner[0][0] if verdict == "duplicate" and owner else None, weight=pair.weight, stratum=pair.stratum)))
+        labelled.append(
+            (
+                pair,
+                GoldPair(
+                    new=GoldFunction(id=candidate.new.qualname, code=candidate.new.code),
+                    existing=GoldFunction(id=candidate.existing.qualname, code=candidate.existing.code),
+                    label=verdict,
+                    drifted=(sum(a.variation == "drifted" for a in agreeing) * 2 > len(agreeing))
+                    if verdict == "duplicate"
+                    else None,
+                    owner=owner[0][0] if verdict == "duplicate" and owner else None,
+                    weight=pair.weight,
+                    stratum=pair.stratum,
+                ),
+            )
+        )
     return labelled
 
 
@@ -254,15 +287,21 @@ def outcomes(rows: list[tuple[Sampled, GoldPair]]) -> dict[str, float]:
         if labelled.label == "borderline":
             continue
         real, shown, blocks = labelled.label == "duplicate", pair.finding.reported, pair.finding.blocking
-        for name, counts in (("real", real), ("reported_real", real and shown), ("reported_false", shown and not real),
-                             ("blocking_real", real and blocks), ("blocking_false", blocks and not real),
-                             ("missed", real and not shown)):
+        for name, counts in (
+            ("real", real),
+            ("reported_real", real and shown),
+            ("reported_false", shown and not real),
+            ("blocking_real", real and blocks),
+            ("blocking_false", blocks and not real),
+            ("missed", real and not shown),
+        ):
             found[name] += pair.weight * counts
     return found
 
 
-def outcome_intervals(rows: list[tuple[Sampled, GoldPair]], resamples: int = 1000,
-                      seed: int = 7) -> dict[str, tuple[float, float]]:
+def outcome_intervals(
+    rows: list[tuple[Sampled, GoldPair]], resamples: int = 1000, seed: int = 7
+) -> dict[str, tuple[float, float]]:
     """90% intervals for each outcome total, from a stratified bootstrap of the labelled pairs."""
     if not rows:
         return dict.fromkeys(OUTCOMES, (0.0, 0.0))
@@ -299,26 +338,39 @@ class Labels(BaseModel):
             return f"{number(value)} ({spread})"
 
         cost = "cost unknown" if self.usd is None else f"est. ${self.usd:.2f} for all their answers"
-        lines = ["", f"labels: {self.labelled} of {self.sampled} sampled pairs labelled by {len(self.labellers)} "
-                     f"labellers ({self.unanimous} unanimous, {self.borderline} split); {self.duplicates} duplicates; "
-                     f"{cost}", f"  gold: {self.gold} (measure another preset with `dry-lint bench --gold` on it)",
-                 "per 100 commits, as labelled (90% intervals; bands labelled in full have none):",
-                 f"  real duplicates proposed  {show('real')}",
-                 f"  reported                  {show('reported_real')} real, {show('reported_false')} not",
-                 f"  blocking                  {show('blocking_real')} real, {show('blocking_false')} not",
-                 f"  real but not reported     {show('missed')}"]
+        lines = [
+            "",
+            f"labels: {self.labelled} of {self.sampled} sampled pairs labelled by {len(self.labellers)} "
+            f"labellers ({self.unanimous} unanimous, {self.borderline} split); {self.duplicates} duplicates; "
+            f"{cost}",
+            f"  gold: {self.gold} (measure another preset with `dry-lint bench --gold` on it)",
+            "per 100 commits, as labelled (90% intervals; bands labelled in full have none):",
+            f"  real duplicates proposed  {show('real')}",
+            f"  reported                  {show('reported_real')} real, {show('reported_false')} not",
+            f"  blocking                  {show('blocking_real')} real, {show('blocking_false')} not",
+            f"  real but not reported     {show('missed')}",
+        ]
         if self.judge:
             j = self.judge
-            lines.append(f"judging on the labelled pairs: precision {j.precision:.0%} "
-                         f"({j.precision_interval[0]:.0%}-{j.precision_interval[1]:.0%}), recall {j.recall:.0%} "
-                         f"({j.recall_interval[0]:.0%}-{j.recall_interval[1]:.0%}) when reported; precision "
-                         f"{j.fail_precision:.0%}, recall {j.fail_recall:.0%} when blocking; AUC "
-                         + ("n/a" if j.auc is None else f"{j.auc:.2f}"))
+            lines.append(
+                f"judging on the labelled pairs: precision {j.precision:.0%} "
+                f"({j.precision_interval[0]:.0%}-{j.precision_interval[1]:.0%}), recall {j.recall:.0%} "
+                f"({j.recall_interval[0]:.0%}-{j.recall_interval[1]:.0%}) when reported; precision "
+                f"{j.fail_precision:.0%}, recall {j.fail_recall:.0%} when blocking; AUC "
+                + ("n/a" if j.auc is None else f"{j.auc:.2f}")
+            )
         return "\n".join(lines)
 
 
-def summarise(pairs: list[Sampled], answers: list[Answer], labellers: list[str], settings: Settings, gold_path: Path,
-              commits: int, judge: str | None) -> Labels:
+def summarise(
+    pairs: list[Sampled],
+    answers: list[Answer],
+    labellers: list[str],
+    settings: Settings,
+    gold_path: Path,
+    commits: int,
+    judge: str | None,
+) -> Labels:
     """Write the gold file and the numbers it gives."""
     rows = gold(pairs, answers)
     gold_path.parent.mkdir(parents=True, exist_ok=True)
@@ -328,11 +380,23 @@ def summarise(pairs: list[Sampled], answers: list[Answer], labellers: list[str],
     by_key = Counter(a.key for a in asked)
     agreed = Counter((a.key, a.label == "CONSOLIDATE") for a in asked)
     judged = [(p, g) for p, g in rows if g.label != "borderline" and p.finding.verdict is not None]
-    bench = judge_bench([g for _, g in judged], [p.finding.verdict for p, _ in judged], settings, judge) \
-        if judge and judged else None
+    bench = (
+        judge_bench([g for _, g in judged], [p.finding.verdict for p, _ in judged], settings, judge)
+        if judge and judged
+        else None
+    )
     usd = None if any(a.usd is None for a in asked) else sum(a.usd or 0.0 for a in asked)
-    return Labels(gold=str(gold_path), labellers=labellers, sampled=len(pairs), labelled=len(rows),
-                  unanimous=sum(1 for key, n in by_key.items() if max(agreed[(key, True)], agreed[(key, False)]) == n),
-                  duplicates=sum(g.label == "duplicate" for _, g in rows),
-                  borderline=sum(g.label == "borderline" for _, g in rows), usd=usd, commits=commits,
-                  outcomes=outcomes(rows), intervals=outcome_intervals(rows), judge=bench)
+    return Labels(
+        gold=str(gold_path),
+        labellers=labellers,
+        sampled=len(pairs),
+        labelled=len(rows),
+        unanimous=sum(1 for key, n in by_key.items() if max(agreed[(key, True)], agreed[(key, False)]) == n),
+        duplicates=sum(g.label == "duplicate" for _, g in rows),
+        borderline=sum(g.label == "borderline" for _, g in rows),
+        usd=usd,
+        commits=commits,
+        outcomes=outcomes(rows),
+        intervals=outcome_intervals(rows),
+        judge=bench,
+    )

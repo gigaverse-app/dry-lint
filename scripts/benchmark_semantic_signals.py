@@ -20,26 +20,42 @@ from dry_lint.detector import Detector
 from dry_lint.git import git
 from dry_lint.settings import Settings
 
-VARIANTS = {"baseline": (), "api": ("api",), "binding": ("binding",), "flow": ("flow",),
-            "combined": ("api", "binding", "flow")}
+VARIANTS = {
+    "baseline": (),
+    "api": ("api",),
+    "binding": ("binding",),
+    "flow": ("flow",),
+    "combined": ("api", "binding", "flow"),
+}
 
 
 def run(root: Path, out: Path, gold_path: Path | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     base = Detector.for_repository(root, Settings())
     signals = Signals({path: (root / path).read_text(encoding="utf-8") for path in {f.path for f in base.functions}})
-    features = {f.qualname: {feature: signals.tokens(f.qualname, feature) for feature in ("api", "binding", "flow")}
-                for f in base.functions}
+    features = {
+        f.qualname: {feature: signals.tokens(f.qualname, feature) for feature in ("api", "binding", "flow")}
+        for f in base.functions
+    }
     gold = load_gold(gold_path) if gold_path else []
-    metadata = {"schema": 1, "python": platform.python_version(),
-                "head": git(root, "rev-parse", "HEAD"), "dirty": bool(git(root, "status", "--porcelain")),
-                "functions": len(base.functions), "coverage": {
-                    feature: sum(bool(tokens[feature]) for tokens in features.values()) for feature in ("api", "binding", "flow")}}
+    metadata = {
+        "schema": 1,
+        "python": platform.python_version(),
+        "head": git(root, "rev-parse", "HEAD"),
+        "dirty": bool(git(root, "status", "--porcelain")),
+        "functions": len(base.functions),
+        "coverage": {
+            feature: sum(bool(tokens[feature]) for tokens in features.values())
+            for feature in ("api", "binding", "flow")
+        },
+    }
     results = {}
     for variant, selected in VARIANTS.items():
         start = time.perf_counter()
-        functions = [f.model_copy(update={"tokens": f.tokens + [t for s in selected for t in features[f.qualname][s]]})
-                     for f in base.functions]
+        functions = [
+            f.model_copy(update={"tokens": f.tokens + [t for s in selected for t in features[f.qualname][s]]})
+            for f in base.functions
+        ]
         comparer = TfidfComparer()
         if selected:
             # Experimental similarities must never masquerade as the production scale in a verdict cache.
@@ -56,11 +72,21 @@ def run(root: Path, out: Path, gold_path: Path | None = None) -> None:
             a, b = detector.find(pair.new.id), detector.find(pair.existing.id)
             target = detector.pair(a, b, detector.comparer.similarity(a, b))
             candidates = detector.candidates([a, b])
-            scored.append({"key": target.key, "label": pair.label, "score": round(detector.comparer.similarity(a, b), 12),
-                           "check": any(p.key == target.key and p.filtered is None for p in candidates),
-                           "scan": target.key in scan_keys})
-        results[variant] = {"comparer": detector.comparer_id, "seconds": round(time.perf_counter() - start, 2),
-                            "scan_pairs": len(scan), "gold": scored}
+            scored.append(
+                {
+                    "key": target.key,
+                    "label": pair.label,
+                    "score": round(detector.comparer.similarity(a, b), 12),
+                    "check": any(p.key == target.key and p.filtered is None for p in candidates),
+                    "scan": target.key in scan_keys,
+                }
+            )
+        results[variant] = {
+            "comparer": detector.comparer_id,
+            "seconds": round(time.perf_counter() - start, 2),
+            "scan_pairs": len(scan),
+            "gold": scored,
+        }
         print(f"{root.name}: {variant} complete", flush=True)
     (out / "results.json").write_text(json.dumps({**metadata, "variants": results}, indent=2), encoding="utf-8")
 

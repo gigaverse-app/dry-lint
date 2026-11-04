@@ -26,11 +26,16 @@ def test_each_label_is_the_majority_of_three_labellers() -> None:
 
 def test_both_languages_have_duplicates_and_look_alikes_that_are_not() -> None:
     assert set(Counter((r["language"], r["label"]) for r in ROWS)) == {
-        ("python", "duplicate"), ("python", "separate"), ("typescript", "duplicate"), ("typescript", "separate")}
+        ("python", "duplicate"),
+        ("python", "separate"),
+        ("typescript", "duplicate"),
+        ("typescript", "separate"),
+    }
     assert all("jev" in r["scores"] and set(r["scores"]) <= {"jev", "opus", "sonnet"} for r in ROWS)
 
 
 def test_no_example_carries_an_address_or_a_credential() -> None:
-    risky = re.compile(r"https?://|www\.|@[a-z0-9-]+\.[a-z]|secret|password|token|api[_-]?key|bearer|BEGIN [A-Z]+ KEY",
-                       re.IGNORECASE)
+    risky = re.compile(
+        r"https?://|www\.|@[a-z0-9-]+\.[a-z]|secret|password|token|api[_-]?key|bearer|BEGIN [A-Z]+ KEY", re.IGNORECASE
+    )
     assert [r["new"]["id"] for r in ROWS if risky.search(r["new"]["code"] + r["existing"]["code"])] == []

@@ -28,7 +28,9 @@ COMMIT = re.compile(r"[0-9a-f]{40}")
 
 
 def digest(value: object) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+    ).hexdigest()
 
 
 def repository_name(value: str) -> str:
@@ -39,15 +41,24 @@ def repository_name(value: str) -> str:
 
 def extraction_contract(settings: Settings) -> str:
     modules = ("function_index", "functions", "extractors", "typescript", "source_context", "models")
-    implementation = {name: Path(import_module(f"dry_lint.{name}").__file__).read_text(encoding="utf-8")
-                      for name in modules}
+    implementation = {
+        name: Path(import_module(f"dry_lint.{name}").__file__).read_text(encoding="utf-8") for name in modules
+    }
     plugins = [load("extractors", choice) for choice in settings.extractors]
-    return digest({"schema": INDEX_SCHEMA, "implementation": implementation,
-                   "default_scope": {"include": Settings().include, "exclude": Settings().exclude},
-                   "python": list(sys.version_info[:2]), "platform": sys.platform,
-                   "parsers": {name: version(name) for name in ("tree-sitter", "tree-sitter-typescript")},
-                   "extractors": [{"choice": choice.model_dump(), "identity": identity(plugin), "files": plugin.files}
-                                  for choice, plugin in zip(settings.extractors, plugins, strict=True)]})
+    return digest(
+        {
+            "schema": INDEX_SCHEMA,
+            "implementation": implementation,
+            "default_scope": {"include": Settings().include, "exclude": Settings().exclude},
+            "python": list(sys.version_info[:2]),
+            "platform": sys.platform,
+            "parsers": {name: version(name) for name in ("tree-sitter", "tree-sitter-typescript")},
+            "extractors": [
+                {"choice": choice.model_dump(), "identity": identity(plugin), "files": plugin.files}
+                for choice, plugin in zip(settings.extractors, plugins, strict=True)
+            ],
+        }
+    )
 
 
 class IndexedFunction(Function):
@@ -71,8 +82,9 @@ class FunctionIndex(BaseModel):
 
     def encode(self) -> bytes:
         data = self.model_dump(mode="json", by_alias=True)
-        return gzip.compress(json.dumps({**data, "digest": digest(data)}, sort_keys=True,
-                                        separators=(",", ":")).encode(), mtime=0)
+        return gzip.compress(
+            json.dumps({**data, "digest": digest(data)}, sort_keys=True, separators=(",", ":")).encode(), mtime=0
+        )
 
     @classmethod
     def decode(cls, data: bytes, repository: str, commit: str, contract: str) -> "FunctionIndex":
@@ -90,15 +102,23 @@ class FunctionIndex(BaseModel):
         if checksum != digest(payload):
             raise ValueError("Function index content digest mismatch")
         index = cls.model_validate(payload)
-        for field, expected in (("repository", repository_name(repository)), ("commit", commit), ("contract", contract)):
+        for field, expected in (
+            ("repository", repository_name(repository)),
+            ("commit", commit),
+            ("contract", contract),
+        ):
             if getattr(index, field) != expected:
                 raise ValueError(f"Function index {field} mismatch for {repository}")
         if not COMMIT.fullmatch(index.commit):
             raise ValueError("Function index requires an exact source commit")
         seen = set()
         for function in index.functions:
-            if (not repository_path(function.path) or function.line < 1 or function.end_line < function.line
-                    or function.origin != Run(repository=repository, head=commit)):
+            if (
+                not repository_path(function.path)
+                or function.line < 1
+                or function.end_line < function.line
+                or function.origin != Run(repository=repository, head=commit)
+            ):
                 raise ValueError("Invalid function source identity")
             identity = (function.qualname, function.line, function.end_line)
             if identity in seen:
@@ -136,8 +156,13 @@ def build_index(sources: dict[str, bytes], repository: str, commit: str, setting
         for function in extractor.functions(path, text):
             functions.append(IndexedFunction(**function.model_dump(), tokens=function.tokens, calls=function.calls))
             functions[-1].origin = Run(repository=repository, head=commit)
-    return FunctionIndex(repository=repository, commit=commit, contract=extraction_contract(settings),
-                         scope={"include": source.include, "exclude": source.exclude}, functions=functions)
+    return FunctionIndex(
+        repository=repository,
+        commit=commit,
+        contract=extraction_contract(settings),
+        scope={"include": source.include, "exclude": source.exclude},
+        functions=functions,
+    )
 
 
 def tree_blobs(root: Path, revision: str, settings: Settings) -> dict[str, bytes]:
@@ -145,10 +170,15 @@ def tree_blobs(root: Path, revision: str, settings: Settings) -> dict[str, bytes
     listing = git(root, "ls-tree", "-rz", "--full-tree", revision)
     entries = [entry.split("\t", 1) for entry in listing.split("\0") if entry]
     extractors = [load("extractors", choice) for choice in settings.extractors]
-    blobs = [(meta.split()[2], path) for meta, path in entries if meta.startswith("100")
-             and (path in (".dry-lint.toml", "pyproject.toml") or extractor_for(path, extractors))]
+    blobs = [
+        (meta.split()[2], path)
+        for meta, path in entries
+        if meta.startswith("100") and (path in (".dry-lint.toml", "pyproject.toml") or extractor_for(path, extractors))
+    ]
     request = "".join(f"{sha}\n" for sha, _ in blobs).encode()
-    result = subprocess.run(["git", "-C", str(root), "cat-file", "--batch"], input=request, capture_output=True, check=True)
+    result = subprocess.run(
+        ["git", "-C", str(root), "cat-file", "--batch"], input=request, capture_output=True, check=True
+    )
     stream, sources = io.BytesIO(result.stdout), {}
     for _, path in blobs:
         size = int(stream.readline().split()[2])
