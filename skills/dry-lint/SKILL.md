@@ -80,7 +80,9 @@ established Actions (for example, `actions/checkout@v7`); do not substitute comm
 - **GitHub Actions:** [docs/github-action.md](../../docs/github-action.md). Pass the keys as secrets
   (`typesafe-api-key`, `anthropic-api-key`); `fail-at` overrides the threshold per workflow.
 - **pre-commit:** the `dry-lint` hook checks staged functions for the coding agent committing them: preset `agent`
-  (Jev, reporting and blocking from 0.6), with credentials from the environment or an untracked `.env`.
+  (Jev, reporting and blocking from 0.6), with credentials from the environment or an untracked `.env`. Add
+  `dry-lint-trailers` (and `default_install_hook_types: [pre-commit, prepare-commit-msg]`) so the commits carry
+  what the hook kept out and the pull request's comment counts it.
 - **By hand or from an agent:** `dry-lint check` (since the default branch), `dry-lint scan` (the backlog).
 - **For a coding agent:** a cheap judge with high recall is enough, because the agent judges again. `agent` keeps
   92% to 100% recall at about one finding in two real; `agent+haiku` adds Haiku on the uncertain scores for more
