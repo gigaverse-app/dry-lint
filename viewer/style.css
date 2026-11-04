@@ -45,6 +45,10 @@ input { accent-color: var(--link); }
 .source-meta small { color: var(--muted); font: 12px/1.6 ui-monospace, monospace; }
 .source-meta a { white-space: nowrap; font-size: 12px; }
 #rows { grid-column: 1 / -1; }
+.two-way #comparison { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 640px; }
+.two-way .row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.two-way .phase, .two-way .head.result, .two-way .cell:nth-child(3), .two-way .key:has(.added) { display: none; }
+.two-way .head + .head, .two-way .cell:nth-child(2) { border-right: 0; }
 .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cell { display: flex; min-width: 0; border-right: 1px solid var(--line); font: 12px/1.8 ui-monospace, Consolas, monospace; }
 .cell:last-child { border-right: 0; }

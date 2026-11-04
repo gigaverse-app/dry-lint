@@ -55,6 +55,18 @@ export function validSource(source) {
     && Number.isInteger(source.end_line) && source.end_line >= source.line && source.end_line - source.line < MAX_LINES;
 }
 
+const COMPARE = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/compare\/([a-fA-F0-9]{40})\.\.\.([a-fA-F0-9]{40})$/;
+
+export function layout(data) {
+  // An After column only when a cleanup was recorded; a diff link only when its range has changes to show.
+  const range = typeof data.diff === 'string' ? COMPARE.exec(data.diff) : null;
+  return {after: data.result != null || data.state === 'kept-out', diff: range && range[1] !== range[2] ? data.diff : null};
+}
+
+export function qualified(source) {
+  return source.owner ? `${source.owner}.${source.name}` : source.name;
+}
+
 export function decode(fragment) {
   if (!fragment.startsWith('#v1=') || fragment.length > 12000) throw new Error('Invalid or oversized comparison link. Use the GitHub source links.');
   const encoded = fragment.slice(4).replaceAll('-', '+').replaceAll('_', '/');
