@@ -17,6 +17,15 @@ test('unchanged lines align across all three sources', () => {
   assert.throws(() => align(Array(MAX_LINES + 1).fill('a'), [], []), /too large/);
 });
 
+test('shared original code stays aligned when consolidation replaces it with a helper call', () => {
+  const a = ['def a(value):', '  if invalid(value):', '    raise Error()', '  return value'];
+  const b = ['def b(value):', '  if invalid(value):', '    raise Error()', '  return value.strip()'];
+  const result = ['def b(value):', '  return validated(value).strip()'];
+  const rows = align(a, b, result);
+  assert.ok(rows.some(row => row[0] === 1 && row[1] === 1));
+  assert.ok(rows.some(row => row[0] === 2 && row[1] === 2));
+});
+
 const source = {repository:'acme/repo',revision:'a'.repeat(40),path:'src/my file.ts',name:'render',line:2,end_line:3};
 
 test('source URLs only address validated immutable repository paths', () => {

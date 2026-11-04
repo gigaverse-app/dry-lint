@@ -1,17 +1,17 @@
 export const MAX_LINES = 600;
 
-function match(old, result) {
+function match(old, result, equal = (a, b) => a.trim() === b.trim()) {
   const n = old.length, m = result.length;
   const table = Array.from({length: n + 1}, () => new Uint16Array(m + 1));
   for (let i = n - 1; i >= 0; i--) {
     for (let j = m - 1; j >= 0; j--) {
-      table[i][j] = old[i].trim() === result[j].trim() ? 1 + table[i + 1][j + 1] : Math.max(table[i + 1][j], table[i][j + 1]);
+      table[i][j] = equal(old[i], result[j]) ? 1 + table[i + 1][j + 1] : Math.max(table[i + 1][j], table[i][j + 1]);
     }
   }
   const mapped = new Map(), gaps = new Map();
   let i = 0, j = 0;
   while (i < n || j < m) {
-    if (i < n && j < m && old[i].trim() === result[j].trim()) {
+    if (i < n && j < m && equal(old[i], result[j])) {
       mapped.set(j++, i++);
     } else if (i < n && (j === m || table[i + 1][j] >= table[i][j + 1])) {
       if (!gaps.has(j)) gaps.set(j, []);
@@ -25,16 +25,19 @@ function match(old, result) {
 
 export function align(a, b, result) {
   if ([a, b, result].some(lines => lines && lines.length > MAX_LINES)) throw new Error('This function is too large for the viewer. Use the GitHub source links.');
-  const pivot = result ?? b;
-  const left = match(a, pivot), right = match(b, pivot), rows = [];
-  for (let index = 0; index <= pivot.length; index++) {
-    const ag = left.gaps.get(index) ?? [], bg = right.gaps.get(index) ?? [];
-    const gaps = match(ag.map(i => a[i]), bg.map(i => b[i]));
-    for (let j = 0; j <= bg.length; j++) {
-      for (const ai of gaps.gaps.get(j) ?? []) rows.push([ag[ai], null, null]);
-      if (j < bg.length) rows.push([gaps.mapped.get(j) == null ? null : ag[gaps.mapped.get(j)], bg[j], null]);
+  const originals = match(a, b), paired = [], rows = [];
+  for (let index = 0; index <= b.length; index++) {
+    for (const ai of originals.gaps.get(index) ?? []) paired.push([ai, null]);
+    if (index < b.length) paired.push([originals.mapped.get(index) ?? null, index]);
+  }
+  if (result === null) return paired.map(row => [...row, null]);
+  const merged = match(paired, result, (row, line) => row.some((index, side) => index !== null && [a, b][side][index].trim() === line.trim()));
+  for (let index = 0; index <= result.length; index++) {
+    for (const original of merged.gaps.get(index) ?? []) rows.push([...paired[original], null]);
+    if (index < result.length) {
+      const original = merged.mapped.get(index);
+      rows.push([...(original === null ? [null, null] : paired[original]), index]);
     }
-    if (index < pivot.length) rows.push([left.mapped.get(index) ?? null, right.mapped.get(index) ?? null, result ? index : null]);
   }
   return rows;
 }
