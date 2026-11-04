@@ -89,3 +89,37 @@ def test_deferred_second_opinion_waits_for_credit_without_spending_future_baseli
     assert last["exploration_usd"] <= 0.015
     assert last["cumulative_usd"] <= 0.04
     assert len(requests) == last["cumulative_attempts"]
+
+
+def test_changed_source_reopens_both_stages_without_crediting_old_second_opinion(load_script, monkeypatch, tmp_path):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    api = load_script("judge_history")
+    first, second, requests = clients(api, tmp_path)
+    pair = coverage_pair()
+    revised = pair.model_copy(
+        update={
+            "new": pair.new.model_copy(
+                update={
+                    "code": pair.new.code.replace("value", "text"),
+                }
+            )
+        }
+    )
+    history = replay_payload(api, {"baseline": [pair]}, {"baseline": [revised]})
+    result = api["evaluate"](
+        history,
+        first,
+        "protected",
+        per_run=10,
+        total=200,
+        total_usd=0.04,
+        protection=api["Protection"](baseline_calls=100, baseline_usd=0.025),
+        escalation_answers=second,
+        escalation=Escalation(use="anthropic", between=(0.4, 0.7)),
+    )
+    early, late = result["curves"]
+    assert pair.key == revised.key
+    assert early["covered"][pair.key] != late["covered"][pair.key]
+    assert early["decisions"][pair.key] == second.key(pair)
+    assert late["decisions"][pair.key] == second.key(revised)
+    assert len(requests) == late["cumulative_attempts"] == 4

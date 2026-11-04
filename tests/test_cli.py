@@ -122,6 +122,21 @@ def test_staged_workspace_is_rejected_instead_of_reading_unstaged_peers(repo, tm
     assert "single repository" in capsys.readouterr().err
 
 
+def test_staged_typescript_reads_the_index_and_excludes_unstaged_sources(repo, tmp_path, blocking_twin_judge, capsys):
+    source = ('export function shorten_text(text: string, limit: number): string {\n'
+              '  if (text.length <= limit) return text;\n'
+              '  return text.slice(0, limit - 1).trimEnd() + "…";\n}\n')
+    repo.write("src/text.ts", source)
+    repo.commit("feat: add TypeScript helper")
+    repo.write("src/caption.ts", source.replace("shorten_text", "preview_caption_text"))
+    repo.git("add", "src/caption.ts")
+    repo.write("src/caption.ts", 'export { shorten_text as preview_caption_text } from "./text";\n')
+    assert run(repo, tmp_path, "--staged", "--judge", "command", "--judge-command", blocking_twin_judge) == 1
+    assert "src/caption.ts" in capsys.readouterr().out
+    repo.git("reset", "HEAD", "--", "src/caption.ts")
+    assert run(repo, tmp_path, "--staged", "--judge", "command", "--judge-command", blocking_twin_judge) == 0
+
+
 def test_scan_lists_the_repository_backlog(repo: Repo, tmp_path: Path, capsys) -> None:
     assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "5"]) == 0
     out = capsys.readouterr().out
