@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 5
+SCHEMA = 6
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -71,6 +71,12 @@ def repository_path(value: str) -> bool:
     return bool(value) and not path.is_absolute() and ".." not in path.parts and "\\" not in value and ":" not in value
 
 
+def validated_repository_path(value: str) -> str:
+    if not repository_path(value):
+        raise ValueError("path must be repository-relative, without '..'")
+    return value
+
+
 class Consolidation(BaseModel):
     """A preferred home for related implementations, not a requirement to merge unrelated concepts."""
 
@@ -82,9 +88,7 @@ class Consolidation(BaseModel):
     @field_validator("path")
     @classmethod
     def relative_path(cls, value: str) -> str:
-        if not repository_path(value):
-            raise ValueError("consolidation path must be repository-relative, without '..'")
-        return value.rstrip("/") or "."
+        return validated_repository_path(value).rstrip("/") or "."
 
     @property
     def destination(self) -> str:

@@ -30,7 +30,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1  # enough: the action fetches just the base and head ancestry it needs
           persist-credentials: false
-      - uses: gigaverse-app/dry-lint@main
+      - uses: gigaverse-app/dry-lint@v1
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
           # anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # preset jev+opus: Claude Opus re-judges uncertain scores

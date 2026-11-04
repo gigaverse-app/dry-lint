@@ -88,7 +88,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-      - uses: gigaverse-app/dry-lint@main
+      - uses: gigaverse-app/dry-lint@v1
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
 ```

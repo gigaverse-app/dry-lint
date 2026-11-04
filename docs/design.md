@@ -25,8 +25,10 @@ proxies or pays for an API key, a model, or judge execution.
   adopting repository's own workflow run.
 - **No code path calls a model on an account or endpoint dry-lint operates.** Judges call the provider the adopter
   chose (TypeSafe, Anthropic, Gemini, the adopter's own `claude` subscription or command) directly.
-- **The only service dry-lint operates is the opt-out counter**, which receives anonymous counts (the repository
+- **The only backend service dry-lint operates is the opt-out counter**, which receives anonymous counts (the repository
   as a hash of its name) without authentication: never credentials, code, names or paths.
+- The static comparison viewer reads public GitHub source directly in the reader's browser. It has no backend,
+  credential, model call or source upload. Private repositories receive GitHub links only.
 
 Organizations that keep these keys as organization secrets are still the adopter: the secrets are theirs, passed
 in by their own workflows. `tests/test_adopter_keys.py` guards the invariant.
@@ -93,7 +95,12 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 5`; schemas 1, 2, 3 and 4 remain readable with conservative cache defaults. Schema 3 adds
+New files carry `"schema": 6`; schemas 1 through 5 remain readable with conservative cache defaults. Schema 6 adds
+optional pair evidence to the sticky ledger: immutable source coordinates and the last reported judgment, never
+function bodies. Old ledgers keep their counts but have no historical comparison until a pair is reported again.
+The static viewer has its own schema 1 URL envelope. It consumes source references and existing verdicts only;
+it is not part of detection, judging or verdict reuse. See [comparison links](github-action.md#comparison-links).
+Schema 3 adds
 optional function `origin` using the existing `Run` contract. Workspace function identities include the repository,
 while their paths remain repository-relative and their links use the source commit. Single-repository identities
 and pair keys stay unchanged. Schema 4 adds bounded function `context`, a full-source `context_digest`, candidate

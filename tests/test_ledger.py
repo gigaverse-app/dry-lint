@@ -67,7 +67,7 @@ def test_a_duplicate_reported_then_gone_is_kept_out_of_the_codebase() -> None:
     ledger = ledger.advance([push("b" * 40)], run="2")
     assert ledger.count("kept-out") == 1 and ledger.count("open") == 0
     assert ledger.pairs[pair().key] == Pair(new="clip", existing="shorten", found=1, state="kept-out", settled=2, scope="",
-                                            lines=2)
+                                            lines=2, evidence=ledger.pairs[pair().key].evidence)
 
 
 def test_a_duplicate_a_person_dismissed_is_not_counted_as_kept_out() -> None:
@@ -103,7 +103,7 @@ def test_only_the_scope_that_found_a_duplicate_can_keep_it_out() -> None:
     assert headline(partial).startswith("**1 duplicate caught**")
     complete = partial.advance([push("c" * 40), push("c" * 40)], run="3", scopes=["local", "cross-repository"])
     assert complete.pairs[pair().key] == Pair(new="clip", existing="shorten", found=1, state="kept-out", settled=3,
-                                              scope="cross-repository", lines=2)
+                                              scope="cross-repository", lines=2, evidence=ledger.pairs[pair().key].evidence)
 
 
 def test_a_duplicate_from_a_ledger_saved_before_scopes_stays_open_until_there_is_evidence() -> None:

@@ -111,6 +111,12 @@ inputs:
       store, so one pull request budget). All reports share one PR comment; use one serialized publisher.
     required: false
     default: ""
+  viewer-url:
+    description: >-
+      Static comparison viewer for public repositories only. Private, internal and unknown repositories always
+      use GitHub source links. Set to your own hosted viewer or empty to disable interactive links.
+    required: false
+    default: https://gigaverse-app.github.io/dry-lint/compare/
   fail-at:
     description: >
       Judge score at or above which a duplicate fails the check. Empty uses the preset's (0.55 with jev+opus, 0.8
@@ -227,6 +233,7 @@ runs:
         INPUT_COMMENT_ON_CLEAN: ${{ inputs.comment-on-clean }}
         INPUT_SHARE_TOTALS: ${{ inputs.share-totals }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
+        INPUT_VIEWER_URL: ${{ inputs.viewer-url }}
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
         INPUT_FAIL_AT: ${{ inputs.fail-at }}
         INPUT_WARN_ONLY: ${{ inputs.warn-only }}

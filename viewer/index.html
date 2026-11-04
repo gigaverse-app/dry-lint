@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://raw.githubusercontent.com https://api.github.com; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>dry-lint · Compare the cleanup</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <header><a href="https://github.com/gigaverse-app/dry-lint">dry-lint</a><span> / source comparison</span><span class="public">Public source only</span></header>
+  <main>
+    <section class="intro"><div><p class="eyebrow">CODE COMPARISON</p><h1 id="title">Compare the code before and after</h1><p id="status" role="status">Open a comparison link from a dry-lint pull request comment.</p></div><a id="diff" hidden>Review the full GitHub diff ↗</a></section>
+    <div id="error" role="alert" hidden></div>
+    <section id="review" hidden>
+      <div class="toolbar"><label><input id="changes" type="checkbox" checked> Changes only</label><label><input id="wrap" type="checkbox" checked> Wrap lines</label><button id="copy" type="button">Copy this view</button><output id="notice" aria-live="polite"></output></div>
+      <p class="scroll-hint">Scroll sideways to compare all three columns.</p>
+      <div class="scroll" tabindex="0" role="region" aria-label="Source comparison"><div id="comparison">
+        <div class="phase before"><strong>Before</strong><span>Two functions flagged as a pair</span></div>
+        <div class="phase after"><strong>After</strong><span id="after-caption">At the reviewed commit</span></div>
+        <div class="head"><span class="role">Original function</span><strong class="filename"></strong><code class="symbol"></code><span class="path"></span><div class="source-meta"><small></small><a>Open source ↗</a></div></div>
+        <div class="head"><span class="role">Original function</span><strong class="filename"></strong><code class="symbol"></code><span class="path"></span><div class="source-meta"><small></small><a>Open source ↗</a></div></div>
+        <div class="head result"><span class="role">Remaining function</span><strong class="filename"></strong><code class="symbol"></code><span class="path"></span><div class="source-meta"><small></small><a>Open source ↗</a></div></div>
+        <div id="rows"></div>
+      </div></div>
+      <div class="legend"><div><span class="key"><i class="old"></i>Different in the original</span><span class="key"><i class="added"></i>Different in the remaining function</span></div><span id="count"></span></div>
+      <p id="mapping" class="mapping"></p>
+      <section class="evidence">
+        <details open><summary>Why this pair was flagged</summary><p class="muted">Recorded judgment of the two original functions, before this change.</p><h2 id="verdict"></h2><p id="reason"></p><dl><dt>Confidence</dt><dd id="confidence"></dd><dt>Code similarity</dt><dd id="similarity"></dd><dt>Judge</dt><dd id="judge"></dd><dt>Version</dt><dd id="version"></dd></dl></details>
+        <details open><summary>What this comparison shows</summary><p>The two left columns show the original functions. The right column shows the remaining function at the reviewed commit, when it can be identified.</p><p>Lines are aligned mechanically, ignoring outer whitespace. Red and green mark differences, not a judgment of correctness. Check the full GitHub diff for extracted helpers and changes to callers.</p><p class="muted">Fixed commit snapshots · No additional model calls</p></details>
+      </section>
+    </section>
+    <footer>Source loads directly from public GitHub repositories. No credentials, analytics, or model requests.</footer>
+  </main>
+</body>
+</html>
