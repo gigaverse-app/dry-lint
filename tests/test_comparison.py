@@ -6,9 +6,9 @@ import httpx
 import pytest
 from test_action_sticky import CLEAN_REPORT, HEAD, PR, REPO, REPORT, FakeGitHub, client
 from test_ledger import push
-from test_report import finding
+from test_report import finding, pair
 
-from dry_lint.comparison import VIEWER, Comparisons
+from dry_lint.comparison import VIEWER, Comparisons, decided_by
 from dry_lint.evidence import PairEvidence, SourceReference
 from dry_lint.ledger import EVIDENCE_BYTES, PullLedger
 from dry_lint.models import SCHEMA, Candidate, Run, Verdict
@@ -136,19 +136,55 @@ def test_a_private_peer_prevents_a_public_repository_from_linking_the_viewer():
     assert f"https://github.com/{PEER}/blob/{HEAD}" in body and "#v2=" not in body
 
 
-@pytest.mark.parametrize("label,score,outcome", [
-    ("drifted", .76, "Not reported: low confidence"),
-    ("duplicate", .71, "Not reported: low confidence"),
-    ("separate", .51, "Not reported: judged separate"),
-    ("separate", .95, "Not reported: judged separate"),
+@pytest.mark.parametrize("label,score,group", [
+    ("drifted", .76, "**🟡 Near misses (1)**: judged one concept, but under the 0.80 reporting bar, so not counted."),
+    ("duplicate", .71, "**🟡 Near misses (1)**: judged one concept, but under the 0.80 reporting bar, so not counted."),
+    ("separate", .51, "**⚪ Different concepts (1)**: the judge found two concepts that only look alike."),
+    ("separate", .95, "**⚪ Different concepts (1)**: the judge found two concepts that only look alike."),
 ])
-def test_unreported_candidates_distinguish_low_confidence_from_separate(label, score, outcome):
+def test_unreported_candidates_are_grouped_by_outcome_with_score_judge_and_reason_apart(label, score, group):
+    """
+    INVARIANT: a reader can tell from the heading alone whether a pair counts, and each row gives the duplicate score,
+    who decided and why in separate columns, never one cell mixing the label, a "confidence" and plugin names.
+    """
     fake = SourceGitHub("private")
     post(fake, report(HEAD, finding(label, score=score, why="different boundaries")), "1")
     body = fake.stickies()[0]
-    assert outcome in body and f"{label}; confidence {score:.2f}" in body and "different boundaries" in body
-    assert "not counted as tangled" in body
-    assert "[A](https://github.com/" in body
+    assert group in body
+    assert "| Pair | Duplicate score | Decided by | Why | Sources |" in body
+    row = next(line for line in body.splitlines() if "different boundaries" in line)
+    drifted = " · already drifted" if label == "drifted" else ""
+    assert f"| {score:.2f}{drifted} | Jev | different boundaries |" in row and "[A](https://github.com/" in row
+    assert "confidence" not in body and "reused" not in row
+
+
+def test_a_reason_names_both_functions_instead_of_new_and_existing():
+    fake = SourceGitHub("private")
+    post(fake, report(HEAD, finding("separate", score=.2, why="NEW clips while EXISTING strips first")), "1")
+    row = next(line for line in fake.stickies()[0].splitlines() if "clips while" in line)
+    pair = row.split(" | ")[0].lstrip("| ")
+    new, existing = pair.split(" ≈ ")
+    assert f"{new} clips while {existing} strips first" in row and "NEW" not in row and "EXISTING" not in row
+
+
+def test_pairs_settled_by_a_rule_are_listed_with_the_rule():
+    fake = SourceGitHub("private")
+    settled = push(HEAD, finding("separate", score=.2), filtered=[pair("trim", filtered="subclass override")])
+    post(fake, settled.model_copy(update={"run": Run(repository=REPO, pull_request=PR, head=HEAD)}), "1")
+    body = fake.stickies()[0]
+    assert "**🔗 Settled by a rule, not judged (1)**" in body
+    assert "≈ trim: subclass override" in body
+
+
+@pytest.mark.parametrize("judge,version,second,name", [
+    ("anthropic", "dry-v1:claude-sonnet-5-5", None, "Claude Sonnet 5.5"),
+    ("jev", "reuse-v2", "anthropic:dry-v1:claude-opus-5-5:medium", "Claude Opus 5.5, rechecking Jev"),
+    ("gemini", "dry-v1:gemini-3.1-pro-preview", None, "Gemini 3.1 Pro"),
+    ("command:claude", "dry-v1", None, "claude"),
+])
+def test_the_decider_is_named_as_a_reader_knows_it(judge, version, second, name):
+    verdict = Verdict(label="separate", score=.1, judge=judge, judge_version=version, second_opinion=second)
+    assert decided_by(verdict) == name
 
 
 def test_cleanup_includes_direct_helper_coordinates_without_extra_reads_or_judgments():
