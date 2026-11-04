@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.1.0](https://github.com/gigaverse-app/dry-lint/compare/v1.0.0...v1.1.0) (2026-11-04)
+
+
+### Features
+
+* **detector:** judge a reported pair's relatives so one change consolidates every copy ([7a2be3a](https://github.com/gigaverse-app/dry-lint/commit/7a2be3a673456ce44655b6fb46ec392ad477c12e))
+* **detector:** propose the existing side's other copies as relatives of a reported pair ([396de2b](https://github.com/gigaverse-app/dry-lint/commit/396de2bb51ab96999b987ca48999967b0a2206dd))
+* **report:** add public comparisons and private github links ([#59](https://github.com/gigaverse-app/dry-lint/issues/59)) ([2a47163](https://github.com/gigaverse-app/dry-lint/commit/2a471637d9570af24105045a071f243ecd08fcd4))
+* **sticky:** credit accepted baseline pairs a pull request cleans up ([fad53f1](https://github.com/gigaverse-app/dry-lint/commit/fad53f14affb157c0f91c14615505a1bce1d25b8))
+* **sticky:** credit accepted baseline pairs a pull request cleans up ([a5f31bb](https://github.com/gigaverse-app/dry-lint/commit/a5f31bb4d083e83476d3604774a34dcf763cc7bf))
+* **sticky:** keep a cleared pair's push and document backlog credit ([61be8e9](https://github.com/gigaverse-app/dry-lint/commit/61be8e9f07fd1eccc1c0a49e7a0a31f655a17c6f))
+* **viewer:** show called helpers and clarify reporting outcomes ([#62](https://github.com/gigaverse-app/dry-lint/issues/62)) ([59a535b](https://github.com/gigaverse-app/dry-lint/commit/59a535b97681f58bd08038c36bcf98aa54214a13))
+
+
+### Bug Fixes
+
+* **detector:** settle a subclass method's pair with the base method it overrides ([e61374b](https://github.com/gigaverse-app/dry-lint/commit/e61374b9e7d40a957078b89fc95a09faca78c39e))
+* **report:** link the pull request's diff, never a commit compared with itself ([dbfbbde](https://github.com/gigaverse-app/dry-lint/commit/dbfbbde611d21fdf0df5464d8bbdecee3034537c))
+* settle subclass overrides by rule, and show qualified names and a real diff range in the compare viewer ([9f35bcf](https://github.com/gigaverse-app/dry-lint/commit/9f35bcf6e881503df510e1fc7852a9af344c5420))
+* **sticky:** do not credit a renamed copy as removed baseline debt ([9a1b4ea](https://github.com/gigaverse-app/dry-lint/commit/9a1b4ea0b488a84d53066b235dffa5a262302043))
+* **viewer:** head each card with Owner.method, and show After only after a cleanup ([6e02f39](https://github.com/gigaverse-app/dry-lint/commit/6e02f39464875518b12c8f3ec4d80b7235611f80))
+
+
+### Documentation
+
+* **action:** describe the two-column view, qualified headers and the diff range ([3252a78](https://github.com/gigaverse-app/dry-lint/commit/3252a78a7d96cfdd30d3d1237b2e6fa766b18b64))
+
 ## [1.0.0](https://github.com/gigaverse-app/dry-lint/compare/v0.1.0...v1.0.0) (2026-11-04)
 
 
