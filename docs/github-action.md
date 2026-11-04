@@ -1,7 +1,11 @@
 # GitHub Action
 
+Create `.github/workflows/dry-lint.yml` using the [complete quick start](../README.md#add-it-to-github-actions)
+or copy [the extended workflow](../examples/dry-lint.yml), which also handles default-branch pushes and
+override-label changes. To add dry-lint to an existing job, these are the only steps needed:
+
 ```yaml
-- uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+- uses: actions/checkout@v7
   with:
     fetch-depth: 1
 - uses: gigaverse-app/dry-lint@main
@@ -9,9 +13,17 @@
     typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
 ```
 
-That is the whole setup for a repository whose pull requests come from its own branches. Copy
-[examples/dry-lint.yml](../examples/dry-lint.yml). If you also accept pull requests from forks, add
-[examples/dry-lint-judge.yml](../examples/dry-lint-judge.yml).
+Give that job `contents: read` and `pull-requests: write` permissions. You can run it before creating any
+secrets: it lists look-alikes without model calls, PR comments, or failures on findings. Add your own
+`TYPESAFE_AI_API_KEY` repository secret to enable judging. To start with advisory findings, set `warn-only: "true"`.
+
+The action manages Python 3.13 and its dependencies in a separate environment, ignoring project uv settings
+in `pyproject.toml` and `uv.toml`. It does not install your application or change its virtual environment.
+Python, TypeScript and TSX projects use the same setup; no Python project file or application build is needed.
+Explicit uv environment variables still apply, for example to configure a private package index or proxy.
+
+If you also accept pull requests from forks, add [the judge workflow](../examples/dry-lint-judge.yml) to judge
+their candidates with your secrets. Without it, fork PRs still get the local candidate scan.
 
 ## What a pull request gets
 

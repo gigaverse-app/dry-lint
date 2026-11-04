@@ -66,7 +66,28 @@ Python, TypeScript, and TSX are supported out of the box. TypeScript repositorie
 project, `bun install`, Node, or a build step. The GitHub Action installs its own tools and parses source
 without executing your code. See [TypeScript and Bun](docs/typescript.md) for monorepo configuration.
 
-Start with a local candidate pass, then add a judge when you want duplication decisions and failing checks:
+### Try it locally, without an API key
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), open a terminal in your Git repository,
+and run:
+
+```bash
+uvx --no-config --python 3.13 --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --judge none --limit 30
+```
+
+uv downloads Python and runs dry-lint in its own environment. You do not need to add it to your application's
+dependencies or create a Python project. This lists look-alikes from your repository without calling a model
+or failing on findings. To inspect just your branch, replace `scan --judge none --limit 30` with
+`check --judge none --base origin/main` (use your default branch's name).
+
+For a permanent `dry-lint` command:
+
+```bash
+uv tool install --no-config --python 3.13 git+https://github.com/gigaverse-app/dry-lint
+uv tool update-shell
+```
+
+Open a new terminal after updating the shell, then use these commands:
 
 | Your next step | Run or read |
 | --- | --- |
@@ -80,11 +101,6 @@ Start with a local candidate pass, then add a judge when you want duplication de
 | Avoid cloning peer repositories in CI | [Versioned function indexes](docs/function-indexes.md) |
 | See the comment before installing | [Example report](docs/comment-preview.md) |
 | Audit existing duplication, shrink its baseline and show cleanup in your README | [Repository sweeps and ratchets](docs/sweeps.md) |
-
-```bash
-uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint check            # changes since origin/main
-uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 30  # the whole repo's backlog
-```
 
 | Command | Does |
 | --- | --- |
@@ -103,16 +119,34 @@ uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 3
 Without a judge, dry-lint lists the candidate pairs and never fails. With `TYPESAFE_AI_API_KEY` set, Jev judges
 them. To use another judge, pass `--judge command --judge-command "your-llm-cli"` (see [docs/judges.md](docs/judges.md)).
 
-**GitHub Actions** ([examples/dry-lint.yml](examples/dry-lint.yml), [docs/github-action.md](docs/github-action.md)):
+### Add it to GitHub Actions
+
+Save this as `.github/workflows/dry-lint.yml`. It works without a secret; add your own
+`TYPESAFE_AI_API_KEY` repository secret when you want judged findings and PR comments.
 
 ```yaml
-- uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-  with:
-    fetch-depth: 1
-- uses: gigaverse-app/dry-lint@main
-  with:
-    typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
+name: dry-lint
+on: [pull_request]
+permissions:
+  contents: read
+  pull-requests: write
+concurrency:
+  group: dry-lint-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  dry-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gigaverse-app/dry-lint@main
+        with:
+          typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
 ```
+
+The action installs its own Python and dependencies. Your project's Python version, uv configuration and
+virtual environment do not need to change. No `setup-python`, `pip install`, or application build is required.
+For default-branch runs and automatic rechecks when override labels change, use the
+[extended workflow](examples/dry-lint.yml). See the [action guide](docs/github-action.md) for options.
 
 The action annotates the changed functions, keeps one sticky PR comment up to date and caches verdicts between
 runs. The comment links both functions at the analyzed commit, shows the review workload, and folds evidence and
