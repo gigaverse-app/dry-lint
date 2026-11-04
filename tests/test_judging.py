@@ -112,7 +112,7 @@ def test_a_cached_first_answer_stands_while_the_budget_cannot_pay_for_a_second_o
     assert finding.cached and not finding.deferred  # Jev's answer stands, under Jev's own bar, not "unjudged"
 
 
-def test_a_cached_first_answer_stands_for_pairs_past_the_judgement_limit(store: VerdictStore) -> None:
+def test_a_cached_first_answer_needs_agent_review_past_the_judgement_limit(store: VerdictStore) -> None:
     Judging(Settings(), ScoringJudge("first", {"a": 0.7, "b": 0.7}), None, store).findings([pair("a"), pair("b")])
     limited = SETTINGS.model_copy(update={"max_judgements": 1})
     second = ScoringJudge("second", {"a": 0.95, "b": 0.95})
@@ -122,7 +122,7 @@ def test_a_cached_first_answer_stands_for_pairs_past_the_judgement_limit(store: 
     assert second.asked == ["a"]
     assert [(f.verdict.second_opinion, f.cached, f.deferred) for f in findings] == [
         ("second:1", False, False),
-        (None, True, False),
+        (None, True, True),
     ]
 
 
@@ -284,14 +284,14 @@ class Failing(ScoringJudge):
         OSError("claude: not found"),
     ],
 )
-def test_a_failing_second_judge_leaves_its_pairs_on_the_first_answer_until_it_answers_again(
+def test_a_failing_second_judge_keeps_provisional_evidence_for_agent_review_and_retries(
     store: VerdictStore, error: Exception
 ) -> None:
     first = ScoringJudge("first", {"unsure": 0.7, "sure": 0.9})
     judging = Judging(SETTINGS, first, Failing(error), store)
     findings = judging.findings([pair("unsure"), pair("sure")], source=Run(repository="o/r", pull_request=3))
     assert [(f.verdict.score, f.verdict.second_opinion, f.deferred) for f in findings] == [
-        (0.7, None, False),
+        (0.7, None, True),
         (0.9, None, False),
     ]
     assert [r.verdict.score for r in store.records()] == [0.9]  # only the answer no second judge was owed is kept
@@ -341,3 +341,13 @@ def test_without_a_judge_relatives_are_not_listed(store: VerdictStore) -> None:
     kept = pair("kept")
     findings = Judging(SETTINGS, None, None, store).findings([kept, relative("kin", kept)])
     assert [f.candidate.new.name for f in findings] == ["kept"]
+
+
+def test_budget_exhaustion_keeps_uncertain_first_answer_for_agent_review(store: VerdictStore) -> None:
+    Judging(Settings(), ScoringJudge("first", {"unsure": 0.7}), None, store).findings([pair("unsure")])
+    broke = SETTINGS.model_copy(update={"budget": Budget(usd=0.0)})
+    first, second = Billed("first", {}), Billed("second", {})
+    [finding] = Judging(broke, first, second, store).findings([pair("unsure")], source=Run(pull_request=7))
+    assert finding.verdict.score == 0.7 and finding.cached
+    assert finding.deferred
+    assert not first.asked and not second.asked

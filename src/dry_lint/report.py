@@ -49,20 +49,31 @@ class Finding(BaseModel):
     deferred: bool = False
     family: int = Field(default=1, description="How many look-alikes were proposed for the same changed function.")
     reported: bool = Field(default=False, description="Judged a duplicate at or above report_at.")
-    blocking: bool = Field(default=False, description="Reported, and at or above fail_at: fails the check.")
+    blocking: bool = Field(
+        default=False, description="A confirmed duplicate at fail_at, or an unresolved pair requiring agent review."
+    )
     related: bool = Field(
         default=False,
         description="A relative judged a duplicate at or above report_at: shown "
         "with its parent pair, never on its own, never blocking.",
     )
 
+    @property
+    def review_required(self) -> bool:
+        """An unresolved primary pair is work for the coding agent, never a confirmed duplicate."""
+        return self.deferred and self.candidate.lane != "relative"
+
     def headline(self) -> str:
         new, existing = self.candidate.new, self.candidate.existing
-        kind = self.verdict.label if self.verdict else "candidate"
+        kind = "review required" if self.review_required else self.verdict.label if self.verdict else "candidate"
         return f"{new.qualname.split('::')[1]} looks like {existing.qualname} ({kind})"
 
     def advice(self, relatives: list["Finding"] = ()) -> str:
         parts = []
+        if self.review_required:
+            parts.append(
+                "coding agent: inspect both implementations and callers; refactor duplication or record a reasoned pair-specific dismissal; no extra judge budget is needed"
+            )
         if self.verdict:
             parts.append(f"judge {self.verdict.score:.2f}" + (" (cached)" if self.cached else ""))
             if self.verdict.label == "drifted":
@@ -212,12 +223,12 @@ class Report(Versioned):
                 family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
 
         def duplicate_at(f: Finding, threshold: float) -> bool:
-            return f.verdict is not None and settings.duplicate_at(f.verdict, threshold)
+            return not f.deferred and f.verdict is not None and settings.duplicate_at(f.verdict, threshold)
 
         marked = [
             f.model_copy(update={"related": duplicate_at(f, settings.report_at)}) if f.candidate.lane == "relative" else
             f.model_copy(update={"family": family[f.candidate.new.qualname], "reported": duplicate_at(f, settings.report_at),
-                                 "blocking": duplicate_at(f, max(settings.report_at, settings.fail_at))})
+                                 "blocking": f.review_required or duplicate_at(f, max(settings.report_at, settings.fail_at))})
             for f in findings
         ]  # fmt: skip
         order = sorted(
@@ -242,12 +253,17 @@ class Report(Versioned):
 
     @property
     def visible(self) -> list[Finding]:
-        """Unjudged candidates, and judged pairs at or above the report threshold; relatives show with their parent."""
+        """Review tasks, unjudged candidates and reported duplicates; relatives show with their parent."""
         return [
             f
             for f in self.findings
-            if not f.deferred and f.candidate.lane != "relative" and (f.verdict is None or f.reported)
+            if f.review_required
+            or (not f.deferred and f.candidate.lane != "relative" and (f.verdict is None or f.reported))
         ]
+
+    @property
+    def review_required(self) -> list[Finding]:
+        return [f for f in self.findings if f.review_required]
 
     def relatives(self, finding: Finding) -> list[Finding]:
         """The reported relatives of `finding`: copies its fix touches, closest first."""
@@ -398,7 +414,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
     at a glance; one row per pair says where and what to do; the folds hold the reasons and the ways out.
     """
     audit, stats, shown = report.repository_wide, report.stats, report.visible
-    below = sum(f.verdict is not None and not f.reported for f in report.findings)
+    below = sum(f.verdict is not None and not f.reported and not f.deferred for f in report.findings)
     coverage = " · ".join(part for part in (
         "" if audit else plural(stats["changed"], "changed function"),
         f"{plural(stats['candidates'], 'pair')} compared",
@@ -422,19 +438,6 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
             "Set `TYPESAFE_AI_API_KEY`, or configure a judge, to have them judged and reported here.", *footer,
         ])  # fmt: skip
     if not shown:
-        if report.deferred:
-            return "\n".join(
-                [
-                    MARKER,
-                    "### dry-lint · Partial assessment",
-                    "",
-                    NOTE_SLOT,
-                    "",
-                    f"No judged pair reached the threshold; {report.deferred} pairs were deferred by the "
-                    "judge budget and have not been cleared.",
-                    *footer,
-                ]
-            )
         return clean(report, audit, report_at)
     blocking = sum(f.blocking for f in shown)
     headline = (
@@ -442,6 +445,8 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         if audit
         else f"### dry-lint · {plural(len(shown), 'duplicated concept')}"
     )
+    if report.review_required:
+        headline = f"### dry-lint · {plural(len(report.review_required), 'pair')}: review required"
     if blocking:
         headline += f" · 🔴 {blocking} blocking"
     lead = (
@@ -450,10 +455,14 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         if audit
         else ""
     )
+    if report.review_required:
+        lead += " The coding agent must inspect these pairs, then refactor or record a justified pair-specific dismissal. Budget exhaustion is a review handoff; no extra judge budget is needed."
     actions = AUDIT_ACTIONS if audit else ACTIONS
     listed = shown[:max_findings]
 
     def action(f: Finding) -> str:
+        if f.review_required:
+            return "inspect callers, refactor or record a reasoned pair-specific dismissal"
         if f.candidate.consolidation:
             return "consider consolidation in " + "; ".join(t.destination for t in f.candidate.consolidation)
         return actions.get(f.verdict.owner, "") if f.verdict else ""
@@ -485,7 +494,9 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
             )
         if not audit:
             copies[0] += " <sub>changed</sub>"
-        if f.verdict:
+        if f.review_required:
+            verdict = "**review required**<br><sub>coding agent owns the decision</sub>"
+        elif f.verdict:
             hint = [part for part in ("blocks" if f.blocking else "", "" if common else escaped(action(f))) if part]
             verdict = f"**{f.verdict.label}**&nbsp;{f.verdict.score:.2f}" + (
                 f"<br><sub>{' · '.join(hint)}</sub>" if hint else ""
@@ -657,9 +668,11 @@ def as_check_run(
     """
     if warn_only:
         report = report.as_warnings()
-    reported = [f for f in report.findings if f.reported]
+    reported = [f for f in report.findings if f.reported or f.review_required]
     failed = any(f.blocking for f in reported) and not warn_only
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
+    if report.review_required:
+        title = f"{len(report.review_required)} pair(s): review required"
     annotations = [{
         "path": f.candidate.new.path, "start_line": f.candidate.new.line, "end_line": f.candidate.new.end_line,
         "annotation_level": "failure" if level(f) == "error" else "warning", "title": f.headline(),

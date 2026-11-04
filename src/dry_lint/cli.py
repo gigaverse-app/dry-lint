@@ -134,7 +134,9 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
     # Preserve evidence on strict failures so CI can publish a failing check with the assessed head.
     if args.report:
         args.report.write_text(as_json(report) + "\n", encoding="utf-8")
-    if args.require_complete or args.baseline:
+    # Reviewable budget gaps render as actionable findings (exit 1), not an operational error (exit 2).
+    # Baseline ratchets still require complete assessment before changing accepted debt.
+    if args.baseline or (args.require_complete and not report.review_required):
         require_complete(report)
     if args.baseline:
         if args.warn_only:
@@ -381,8 +383,8 @@ def feedback(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     source = args.source or last_report(root)
     report = Report.model_validate_json(source.read_bytes())
     matching = [f for f in report.findings if f.candidate.key == args.pair]
-    if len(matching) != 1 or not matching[0].reported:
-        raise ValueError("Choose a reported pair key from this report")
+    if len(matching) != 1 or not (matching[0].reported or matching[0].review_required):
+        raise ValueError("Choose a reported or review-required pair key from this report")
     candidate = matching[0].candidate
     revision = git(root, "write-tree")
     if args.action == "fix":

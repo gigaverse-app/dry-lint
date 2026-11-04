@@ -432,3 +432,36 @@ def test_preset_and_budget_flags_shape_the_run(repo: Repo, tmp_path: Path, twin_
     assert report["judging"]["spend"][0]["usd"] is None  # an unpriced command judge is not budgeted, and not $0
     assert main(["config", "--root", str(repo.root), "--preset", "jev"]) == 0
     assert capsys.readouterr().out.startswith("preset: jev - Jev on every pair")
+
+
+def test_exhausted_judging_routes_to_agent_feedback_without_more_paid_calls(
+    repo, tmp_path, monkeypatch, capsys
+) -> None:
+    repo.write(".dry-lint.toml", "[budget]\nusd = 0\n")
+    monkeypatch.setenv("TYPESAFE_AI_API_KEY", "test")
+    report_path = tmp_path / "report.json"
+    args = ["--base", "main", "--judge", "jev", "--require-complete", "--report", str(report_path)]
+    assert run(repo, tmp_path, *args) == 1  # review task, not infrastructure exit 2
+    assert "coding agent" in capsys.readouterr().out
+    from dry_lint.report import Report
+
+    report_data = Report.model_validate_json(report_path.read_text())
+    for finding in report_data.findings:
+        assert (
+            run(
+                repo,
+                tmp_path,
+                "dismiss",
+                finding.candidate.key,
+                "--from",
+                str(report_path),
+                "--reason",
+                "Independent contracts verified against their callers",
+                "--reviewer",
+                "coding-agent",
+                command="feedback",
+            )
+            == 0
+        )
+    assert run(repo, tmp_path, *args) == 0
+    assert all(spend.calls == 0 for spend in report_data.judging.spend)

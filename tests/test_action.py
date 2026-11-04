@@ -1177,3 +1177,20 @@ def test_a_baselined_pull_request_that_removes_accepted_debt_is_credited_in_its_
     assert "`shorten_text` ≈ `preview_caption_text` · accepted backlog, cleaned up in push 1: one side removed" in body
     ledger = PullLedger.read(body)
     assert ledger is not None and ledger.count("kept-out") == 0 and len(ledger.backlog) == 1
+
+
+def test_budget_exhaustion_publishes_an_agent_review_task(repo: Repo, github_env) -> None:
+    github_env(
+        "pull_request",
+        pr_event(repo),
+        working_directory=str(repo.root),
+        key="test",
+        require_complete="true",
+        budget_usd="0",
+    )
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
+    comment = github.stickies()[0]
+    assert "review required" in comment and "coding agent" in comment
+    assert "distinct-from" in comment and "src/widgets/caption.py" in comment
+    assert "Judging is incomplete" not in comment

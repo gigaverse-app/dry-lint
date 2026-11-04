@@ -168,8 +168,9 @@ def test_judge_budget_defers_uncached_pairs_without_claiming_they_are_clear(stor
     first = judging.findings([pair("a"), pair("b")])
     assert first[1].deferred and first[1].verdict is None and judge.asked == ["a"]
     report = Report.build(first, settings, judge="test", changed=2)
-    assert not report.visible
-    assert "deferred" in as_markdown(report)
+    assert [f.candidate.new.name for f in report.visible] == ["b"]
+    assert report.visible[0].blocking and not report.visible[0].reported
+    assert "review required" in as_markdown(report)
     assert "Every changed function is the only" not in as_markdown(report)
     assert "1 deferred" in as_text(report)
     second = judging.findings([pair("a"), pair("b")])
