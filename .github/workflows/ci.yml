@@ -89,10 +89,35 @@ jobs:
           echo "mode=$MODE exit-code=$CODE"
           [ "$MODE" = single ] && [ "$CODE" != 2 ]
 
+  consumer-install:
+    name: Install inside a consumer with its own uv settings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: dry-lint
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      # A consumer's own uv settings must not reach the action's locked install: this cap conflicts with the lock.
+      - name: A consumer whose uv settings conflict with dry-lint's lock
+        run: |
+          mkdir consumer
+          printf '%s\n' '[project]' 'name = "consumer"' 'version = "0"' '' '[tool.uv]' \
+            'constraint-dependencies = ["pydantic<2.14"]' > consumer/pyproject.toml
+      - name: The action's install step succeeds there
+        working-directory: consumer
+        env:
+          GITHUB_ACTION_PATH: ${{ github.workspace }}/dry-lint
+          PLUGINS: ""
+        run: |
+          yq '.runs.steps[] | select(.name == "Install dry-lint") | .run' "$GITHUB_ACTION_PATH/action.yml" \
+            > "$RUNNER_TEMP/install.sh"
+          bash -e -o pipefail "$RUNNER_TEMP/install.sh"
+          "$RUNNER_TEMP/dry-lint-venv/bin/python" -c "import dry_lint, pydantic; print('pydantic', pydantic.VERSION)"
+
   gate:
     name: CI gate
     if: always()
-    needs: [test, counter, lint-ci, dogfood]
+    needs: [test, counter, lint-ci, dogfood, consumer-install]
     runs-on: ubuntu-latest
     steps:
       # The one check to require: fails on any missing, failed, cancelled or unexpectedly skipped prerequisite.
@@ -100,4 +125,4 @@ jobs:
         with:
           needs: ${{ toJSON(needs) }}
           required: >-
-            {"test": true, "counter": true, "lint-ci": true, "dogfood": ${{ github.event_name != 'workflow_dispatch' }}}
+            {"test": true, "counter": true, "lint-ci": true, "consumer-install": true, "dogfood": ${{ github.event_name != 'workflow_dispatch' }}}
