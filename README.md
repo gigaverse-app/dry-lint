@@ -79,6 +79,7 @@ Start with a local candidate pass, then add a judge when you want duplication de
 | Find copies across related repositories | [Workspace scans and shared ownership](docs/workspaces.md) |
 | Avoid cloning peer repositories in CI | [Versioned function indexes](docs/function-indexes.md) |
 | See the comment before installing | [Example report](docs/comment-preview.md) |
+| Audit existing duplication, shrink its baseline and show cleanup in your README | [Repository sweeps and ratchets](docs/sweeps.md) |
 
 ```bash
 uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint check            # changes since origin/main
@@ -89,6 +90,7 @@ uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 3
 | --- | --- |
 | `check [--base REF \| --staged]` | detect, judge and report the functions a change touched (base: `origin/HEAD`) |
 | `scan [--limit N] [--refresh] [--repo OWNER/NAME=PATH ...]` | the repository's backlog, or cross-repository pairs from a combined workspace |
+| `sweep [--init \| --update]` | audit the configured repository; explicitly initialize or shrink its accepted backlog and README progress |
 | `detect --out candidates.json` | CI job 1: propose pairs; no judge, no secrets, no store |
 | `judge --candidates candidates.json` | CI job 2: judge them, store the verdicts, report |
 | `report --from report.json --format F` | render a report as `text`, `github`, `markdown`, `json`, `sarif` or `check-run` |

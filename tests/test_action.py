@@ -14,7 +14,7 @@ from dry_lint import action, sticky
 from dry_lint.action import count_findings, default_branch, ensure_history, resolve_base, resolve_judge, resolve_mode
 from dry_lint.ledger import PullLedger, RepositoryLedger
 
-from conftest import Repo, judge_calls
+from conftest import Repo, judge_calls, run_cli
 
 HEAD, BASE = "c" * 40, "b" * 40
 ANNOTATION = "::warning file=src/a.py,line=3,endLine=9,title=dry-lint::clip looks like src/b.py::shorten"
@@ -64,6 +64,48 @@ def test_the_base_is_the_pull_requests_base_or_the_previous_push(explicit, event
 ])  # fmt: skip
 def test_auto_leaves_the_preset_to_dry_lint_while_any_judge_key_is_present(requested, has_key, judge) -> None:
     assert resolve_judge(requested, has_key) == judge
+
+
+def test_strict_action_fails_without_credentials(repo: Repo, github_env, tmp_path: Path) -> None:
+    github_env("pull_request", pr_event(repo), working_directory=str(repo.root), require_complete="true")
+    assert action.main(["run"]) == 2
+    assert outputs(tmp_path)["exit-code"] == "2"
+
+
+def test_strict_fork_without_artifact_cannot_pass(github_env) -> None:
+    github_env("workflow_run", WORKFLOW_RUN, require_complete="true")
+    assert action.main(["run"]) == 2
+
+
+def test_a_sweep_action_audits_without_mutating_the_baseline(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                           github_env) -> None:
+    assert run_cli(repo, tmp_path, "--init", "--judge", "command", "--judge-command", twin_judge, command="sweep") == 0
+    baseline = repo.root / ".dry-lint/baseline.json"
+    before = baseline.read_bytes()
+    github_env("workflow_dispatch", {}, mode="sweep", working_directory=str(repo.root), judge="command",
+               judge_command=twin_judge, require_complete="true", baseline=".dry-lint/baseline.json")
+    assert action.main(["run"]) == 0
+    assert outputs(tmp_path)["mode"] == "sweep"
+    assert baseline.read_bytes() == before
+
+
+def test_baselined_action_checks_target_branch_allowances(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                        github_env) -> None:
+    assert run_cli(repo, tmp_path, "--init", "--judge", "command", "--judge-command", twin_judge, command="sweep") == 0
+    github_env("pull_request", pr_event(repo), working_directory=str(repo.root), judge="command",
+               judge_command=twin_judge, baseline=".dry-lint/baseline.json", require_complete="true")
+    head = repo.git("rev-parse", "HEAD").strip()
+    assert action.main(["run"], transport=httpx.MockTransport(FakeGitHub(head=head))) == 0
+
+
+def test_incomplete_fork_judging_publishes_a_failing_check(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                        github_env) -> None:
+    report, head = judged_report(tmp_path, repo, twin_judge, github_env)
+    github = FakeGitHub(head=head)
+    github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, working_directory=str(repo.root),
+               require_complete="true")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 2
+    assert github.check_runs[-1]["conclusion"] == "failure"
 
 
 def test_findings_are_counted_from_file_annotations_only() -> None:

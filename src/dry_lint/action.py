@@ -61,8 +61,8 @@ def is_fork(event: dict) -> bool:
 
 def resolve_mode(requested: str, event_name: str, event: dict) -> str:
     if requested and requested != "auto":
-        if requested not in ("single", "detect", "judge", "index", "fetch-indexes"):
-            raise ValueError(f"Unknown mode: {requested} (use auto, single, detect, judge, index or fetch-indexes)")
+        if requested not in ("single", "detect", "judge", "sweep", "index", "fetch-indexes"):
+            raise ValueError(f"Unknown mode: {requested} (use auto, single, detect, judge, sweep, index or fetch-indexes)")
         return requested
     if event_name == "workflow_run":
         return "judge"
@@ -443,6 +443,14 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     if index_arguments and not repositories:
         repositories = ["--repo", f"{env('GITHUB_REPOSITORY')}={root}"]
     repositories.extend(index_arguments)
+
+    if mode == "sweep":
+        code, _ = dry_lint("sweep", "--root", str(root), "--repository", env("GITHUB_REPOSITORY"),
+                          "--branch", (event.get("repository") or {}).get("default_branch", "main"),
+                          "--readme", env("INPUT_SWEEP_README", "README.md"), *repositories, *judging)
+        write_summary(body)
+        write_outputs(mode=mode, exit_code=code)
+        return code
 
     if mode == "detect":
         base = resolve_base(env("INPUT_BASE"), event_name, event)

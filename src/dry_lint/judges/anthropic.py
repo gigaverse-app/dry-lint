@@ -48,7 +48,7 @@ class AnthropicJudge:
         self.client = anthropic.Anthropic(api_key=key, timeout=timeout, http_client=http_client)
         self.tokens = {"input": 0, "output": 0}
 
-    def _ask(self, candidate: Candidate) -> Verdict:
+    def _ask(self, candidate: Candidate, retry: bool = True) -> Verdict:
         options: dict[str, Any] = {"output_config": {"effort": self.effort}} if self.effort else {}
         if self.model in FALLBACK_MODELS:
             options |= {"betas": ["server-side-fallback-2026-07-01"], "fallbacks": "default"}
@@ -60,7 +60,13 @@ class AnthropicJudge:
         if response.stop_reason == "refusal":
             category = getattr(response.stop_details, "category", None)
             raise ValueError(f"{self.model} declined to judge {candidate.new.qualname} ({category})")
-        return parse_verdict("".join(b.text for b in response.content if b.type == "text"), self.name, self.version)
+        try:
+            return parse_verdict("".join(b.text for b in response.content if b.type == "text"), self.name, self.version)
+        except ValueError:
+            if not retry:
+                raise
+            # Recover one malformed answer without inventing a verdict or discarding a large sweep.
+            return self._ask(candidate, retry=False)
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         with ThreadPoolExecutor(self.workers) as pool:

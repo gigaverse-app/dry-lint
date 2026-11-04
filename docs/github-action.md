@@ -15,6 +15,10 @@ That is the whole setup for a repository whose pull requests come from its own b
 
 ## What a pull request gets
 
+For existing repositories, [sweeps and ratchets](sweeps.md) add a shrinking duplication baseline and README badge.
+Set `baseline: .dry-lint/baseline.json` and `require-complete: 'true'` for enforcement. `mode: sweep` runs a read-only
+repository audit for a scheduled/manual workflow.
+
 - **Annotations** on the changed functions that re-implement existing code, with the function they duplicate
   and what to do about it.
 - **One sticky comment**, found again by its `<!-- dry-lint -->` marker and edited in place on every push:

@@ -100,8 +100,9 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
         if args.baseline_ref:
             path = (root / args.baseline).resolve().relative_to(root.resolve()).as_posix()
             # The target branch owns allowances. PRs may shrink them, never broaden or replace them.
-            previous = git(root, "show", f"{args.baseline_ref}:{path}", check=False)
-            if previous:
+            git(root, "rev-parse", "--verify", f"{args.baseline_ref}^{{commit}}")
+            if git(root, "ls-tree", "--name-only", args.baseline_ref, "--", path):
+                previous = git(root, "show", f"{args.baseline_ref}:{path}")
                 baseline.validate_successor(Baseline.model_validate_json(previous))
         report = baseline.apply(report)
     output = render(report, args.format, settings, args.warn_only)
@@ -173,6 +174,11 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         print("dry-lint: new or changed duplicates found; baseline and cleanup totals were not updated")
         return 1
     updated = baseline.advance(report) if baseline else Baseline.start(report, settings)
+    if not args.init and not args.update:
+        print(f"dry-lint: audit found {updated.count('remaining')} remaining pairs; "
+              f"{updated.count('cleaned') - baseline.count('cleaned')} newly cleaned. "
+              "Use sweep --update to record the ratchet after reviewing the audit.")
+        return 0
     readme = root / args.readme if args.readme else None
     content = None
     if readme:
@@ -412,6 +418,7 @@ def parser() -> argparse.ArgumentParser:
     sweep.add_argument("--refresh", action="store_true", help="Re-judge verdicts from older versions of the judge.")
     ratcheting = commands.add_parser("sweep", parents=[common], help="Scan all functions and shrink the accepted backlog.")
     ratcheting.add_argument("--init", action="store_true", help="Initialize once from a fully judged repository sweep.")
+    ratcheting.add_argument("--update", action="store_true", help="Write the shrinking baseline and progress after review.")
     ratcheting.add_argument("--readme", type=Path, help="Maintain the cleanup progress block in this README.")
     ratcheting.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""), help="README badge OWNER/NAME.")
     ratcheting.add_argument("--branch", default="main", help="README badge's published branch (default: main).")

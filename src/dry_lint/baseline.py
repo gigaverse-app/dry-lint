@@ -24,8 +24,21 @@ START, END = "<!-- dry-lint-progress:start -->", "<!-- dry-lint-progress:end -->
 
 def contract(settings: Settings) -> str:
     """Keep detection scope and judging policy fixed; human dismissals may change."""
-    policy = settings.model_dump(include={"include", "exclude", "extractors", "comparer", "neighbours",
-                                          "judge", "escalate", "drop_below", "report_at", "fail_at", "drift_at"})
+    policy = settings.model_dump(
+        include={
+            "include",
+            "exclude",
+            "extractors",
+            "comparer",
+            "neighbours",
+            "judge",
+            "escalate",
+            "drop_below",
+            "report_at",
+            "fail_at",
+            "drift_at",
+        }
+    )
     return hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest()
 
 
@@ -49,8 +62,10 @@ class Entry(BaseModel):
 
     @classmethod
     def of(cls, candidate: Candidate) -> "Entry":
-        return cls(hashes={f.qualname: f.hash for f in (candidate.new, candidate.existing)},
-                   context_hash=candidate.context_hash)
+        return cls(
+            hashes={f.qualname: f.hash for f in (candidate.new, candidate.existing)},
+            context_hash=candidate.context_hash,
+        )
 
     def accepts(self, candidate: Candidate) -> bool:
         other = Entry.of(candidate)
@@ -83,8 +98,12 @@ class Baseline(BaseModel):
     @classmethod
     def start(cls, report: Report, settings: Settings) -> "Baseline":
         require_complete(report)
-        return cls(contract=contract(settings), started_at=report.run.head, checked_at=report.run.head,
-                   entries=[Entry.of(f.candidate) for f in report.findings if f.blocking])
+        return cls(
+            contract=contract(settings),
+            started_at=report.run.head,
+            checked_at=report.run.head,
+            entries=[Entry.of(f.candidate) for f in report.findings if f.blocking],
+        )
 
     def count(self, state: State) -> int:
         return sum(e.state == state for e in self.entries)
@@ -95,16 +114,23 @@ class Baseline(BaseModel):
             raise ValueError("A baseline update cannot change its original scope or accepted pair set")
         for key, entry in new.items():
             before = old[key]
-            if (entry.hashes != before.hashes or entry.context_hash != before.context_hash
-                    or before.state != "remaining" and entry.state != before.state):
+            if (
+                entry.hashes != before.hashes
+                or entry.context_hash != before.context_hash
+                or before.state != "remaining"
+                and entry.state != before.state
+            ):
                 raise ValueError("A baseline update cannot widen an allowance or reopen settled debt")
 
     def apply(self, report: Report) -> Report:
         accepted = {e.key: e for e in self.entries if e.state == "remaining"}
         # INVARIANT: an old duplicate never grants permission for new or changed duplicate logic.
-        findings = [f.model_copy(update={"blocking": False, "reported": False})
-                    if f.candidate.key in accepted and accepted[f.candidate.key].accepts(f.candidate) else f
-                    for f in report.findings]
+        findings = [
+            f.model_copy(update={"blocking": False, "reported": False})
+            if f.candidate.key in accepted and accepted[f.candidate.key].accepts(f.candidate)
+            else f
+            for f in report.findings
+        ]
         return report.model_copy(update={"findings": findings})
 
     def candidates(self, detector: Detector) -> list[Candidate]:
@@ -134,24 +160,35 @@ class Baseline(BaseModel):
                 elif finding is None or (finding.verdict is not None and finding.verdict.label == "separate"):
                     state = "cleaned"
             entries.append(entry.model_copy(update={"state": state}))
+        if entries == self.entries:
+            return self  # Keep no-change audits idempotent, without timestamp-only baseline edits.
         return self.model_copy(update={"entries": entries, "checked_at": report.run.head})
 
     def badge(self) -> dict[str, str | int]:
-        return {"schemaVersion": 1, "label": "dry-lint", "color": "7E4FC9", "labelColor": "24292F",
-                "message": f"{self.count('cleaned')} cleaned · {self.count('remaining')} remaining"}
+        return {
+            "schemaVersion": 1,
+            "label": "dry-lint",
+            "color": "7E4FC9",
+            "labelColor": "24292F",
+            "message": f"{self.count('cleaned')} cleaned · {self.count('remaining')} remaining",
+        }
 
     def markdown(self, repository: str, branch: str, directory: str) -> str:
         if not re.fullmatch(r"[\w.-]+/[\w.-]+", repository):
             raise ValueError("README progress needs --repository OWNER/NAME")
         source = f"https://raw.githubusercontent.com/{repository}/{quote(branch, safe='')}/{directory}/progress.json"
         badge = f"https://img.shields.io/endpoint?url={quote(source, safe='')}"
-        return (f"{START}\n[![dry-lint cleanup progress]({badge})](https://github.com/gigaverse-app/dry-lint)\n\n"
-                "**Cleaning up duplication with dry-lint.** CI checks new changes against the accepted backlog.\n\n"
-                "| Duplicate pairs cleaned | Remaining | Dismissed |\n| ---: | ---: | ---: |\n"
-                f"| {self.count('cleaned')} | {self.count('remaining')} | {self.count('dismissed')} |\n\n"
-                f"[Accepted backlog]({directory}/baseline.json). Counts cover judged pairs in the configured scope, "
-                "not lines of code; dismissals do not count as cleanup.\n"
-                f"{END}")
+        return (
+            f"{START}\n[![dry-lint cleanup progress]({badge})](https://github.com/gigaverse-app/dry-lint)\n\n"
+            "**Cleaning up duplication with dry-lint.** CI checks new changes against the accepted backlog.\n\n"
+            "| Duplicate pairs cleaned | Remaining | Dismissed |\n| ---: | ---: | ---: |\n"
+            f"| {self.count('cleaned')} | {self.count('remaining')} | {self.count('dismissed')} |\n\n"
+            f"[Accepted backlog]({directory}/baseline.json). Counts cover judged pairs in the configured scope, "
+            "not lines of code; dismissals do not count as cleanup.\n"
+            f"[Read the audit](https://github.com/{repository}/actions/workflows/dry-lint-audit.yml) "
+            "to choose the next refactor.\n"
+            f"{END}"
+        )
 
 
 def require_complete(report: Report) -> None:
@@ -167,5 +204,5 @@ def require_complete(report: Report) -> None:
 def update_readme(text: str, block: str) -> str:
     """Replace only our block; preserve malformed/unrelated content by appending a fresh block."""
     if START in text and END in text and text.index(START) < text.index(END):
-        return text[:text.index(START)] + block + text[text.index(END) + len(END):]
+        return text[: text.index(START)] + block + text[text.index(END) + len(END) :]
     return text.rstrip() + "\n\n" + block + "\n"
