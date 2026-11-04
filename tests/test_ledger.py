@@ -1,10 +1,11 @@
+import hashlib
 import json
 
 import pytest
 from test_report import NEW, finding, pair
 
 from dry_lint.costs import Spend
-from dry_lint.ledger import SPREAD, Pair, PullLedger, RepositoryLedger, Tally, headline, render
+from dry_lint.ledger import SPREAD, Pair, PullLedger, RepositoryLedger, Tally, counter_key, headline, render
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.report import Finding, JudgingSummary, Report
 from dry_lint.settings import Settings
@@ -299,3 +300,9 @@ def test_an_unreadable_repository_ledger_starts_again_today(text: str) -> None:
 def test_a_saved_repository_ledger_loads_as_it_was() -> None:
     saved = RepositoryLedger(repository="o/r", pulls=[3], kept_out=2)
     assert RepositoryLedger.load(saved.model_dump_json(), "other/name") == saved
+
+
+def test_the_counter_key_comes_from_the_repository_id_alone() -> None:
+    key = counter_key("4242")
+    assert key == counter_key(" 4242 ") and len(key) == 64 and key != counter_key("4243")
+    assert key != hashlib.sha256(b"acme/shop").hexdigest()  # a guessable name never leads to it

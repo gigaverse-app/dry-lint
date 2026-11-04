@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 
-import { Invalid, badge, contribution, dollars, milestone, percent, repositoryKey, sign } from "../src/tally.js";
+import { Invalid, badge, contribution, dollars, milestone, percent, scope, sign } from "../src/tally.js";
 
-const REPOSITORY = createHash("sha256").update("acme/shop").digest("hex");
+const REPOSITORY = createHash("sha256").update("github-repository:4242").digest("hex");
 const VALID = { repository: REPOSITORY, pull: 12, kept_out: 2, caught: 3, dismissed: 1, pushes: 4, runs: 5,
   judgments: 9, functions: 60, usd: 0.007, version: "0.1.0" };
 const TOTALS = { pulls: 58, repositories: 12, kept_out: 1234, caught: 1400, dismissed: 40, pushes: 300,
@@ -19,7 +19,7 @@ test("a contribution keeps exactly the counted fields, with missing counts as ze
   assert.equal(contribution(VALID).version, "0.1.0");
 });
 
-test("a contribution names its repository by hash, never by name", () => {
+test("a contribution names its repository by key, never by name", () => {
   assert.throws(() => contribution({ ...VALID, repository: "acme/shop" }), Invalid);
 });
 
@@ -41,8 +41,14 @@ for (const [name, change] of [
   });
 }
 
-test("the repository key is the SHA-256 of the lower-cased name", async () => {
-  assert.equal(await repositoryKey(" Acme/Shop "), REPOSITORY);
+test("a read finds one repository by its key, and never by its name", () => {
+  assert.deepEqual(scope(new URLSearchParams("")), { key: "*", label: "" });
+  assert.deepEqual(scope(new URLSearchParams(`key=${REPOSITORY}`)), { key: REPOSITORY, label: "this repository" });
+  assert.deepEqual(scope(new URLSearchParams(`key=${REPOSITORY}&name=acme/shop`)), { key: REPOSITORY, label: "acme/shop" });
+  assert.throws(() => scope(new URLSearchParams("repository=acme/shop")), Invalid);
+  assert.throws(() => scope(new URLSearchParams(`repository=acme/shop&key=${REPOSITORY}`)), Invalid);
+  assert.throws(() => scope(new URLSearchParams("key=acme/shop")), Invalid);
+  assert.equal(scope(new URLSearchParams(`key=${REPOSITORY}&name=${"x".repeat(300)}`)).label.length, 100);
 });
 
 test("dollars never round a small spend down to nothing", () => {

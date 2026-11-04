@@ -132,9 +132,9 @@ class Detector:
         comparer.index(functions)
 
     @classmethod
-    def for_repository(cls, root: Path, settings: Settings) -> "Detector":
+    def for_repository(cls, root: Path, settings: Settings, *, strict: bool = False) -> "Detector":
         extractors = [load("extractors", choice) for choice in settings.extractors]
-        functions = repository_functions(root, settings.include, settings.exclude, extractors)
+        functions = repository_functions(root, settings.include, settings.exclude, extractors, strict=strict)
         return cls(functions, settings, load("comparers", settings.comparer), extractors)
 
     @classmethod

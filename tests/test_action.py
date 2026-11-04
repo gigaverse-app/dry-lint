@@ -12,9 +12,9 @@ from test_report import finding
 
 from dry_lint import action, sticky
 from dry_lint.action import count_findings, default_branch, ensure_history, resolve_base, resolve_judge, resolve_mode
-from dry_lint.ledger import PullLedger, RepositoryLedger
+from dry_lint.ledger import PullLedger, RepositoryLedger, counter_key
 
-from conftest import Repo, judge_calls
+from conftest import Repo, clear_judge_credentials, judge_calls, run_cli
 
 HEAD, BASE = "c" * 40, "b" * 40
 ANNOTATION = "::warning file=src/a.py,line=3,endLine=9,title=dry-lint::clip looks like src/b.py::shorten"
@@ -66,6 +66,59 @@ def test_auto_leaves_the_preset_to_dry_lint_while_any_judge_key_is_present(reque
     assert resolve_judge(requested, has_key) == judge
 
 
+def test_strict_action_fails_without_credentials(repo: Repo, github_env, tmp_path: Path) -> None:
+    github_env("pull_request", pr_event(repo), working_directory=str(repo.root), require_complete="true")
+    assert action.main(["run"]) == 2
+    assert outputs(tmp_path)["exit-code"] == "2"
+
+
+def test_strict_fork_without_artifact_cannot_pass(github_env) -> None:
+    github_env("workflow_run", WORKFLOW_RUN, require_complete="true")
+    assert action.main(["run"]) == 2
+
+
+def test_a_sweep_action_audits_without_mutating_the_baseline(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                           github_env) -> None:
+    assert run_cli(repo, tmp_path, "--init", "--judge", "command", "--judge-command", twin_judge, command="sweep") == 0
+    baseline = repo.root / ".dry-lint/baseline.json"
+    before = baseline.read_bytes()
+    github_env("workflow_dispatch", {}, mode="sweep", working_directory=str(repo.root), judge="command",
+               judge_command=twin_judge, require_complete="true", baseline=".dry-lint/baseline.json")
+    assert action.main(["run"]) == 0
+    assert outputs(tmp_path)["mode"] == "sweep"
+    assert baseline.read_bytes() == before
+
+
+def test_baselined_action_checks_target_branch_allowances(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                        github_env) -> None:
+    assert run_cli(repo, tmp_path, "--init", "--judge", "command", "--judge-command", twin_judge, command="sweep") == 0
+    github_env("pull_request", pr_event(repo), working_directory=str(repo.root), judge="command",
+               judge_command=twin_judge, baseline=".dry-lint/baseline.json", require_complete="true")
+    head = repo.git("rev-parse", "HEAD").strip()
+    assert action.main(["run"], transport=httpx.MockTransport(FakeGitHub(head=head))) == 0
+    path = repo.root / "src/widgets/caption.py"
+    path.write_text(path.read_text().replace("max_len - 1", "max_len - 2"))
+    repo.commit()
+    event = pr_event(repo)
+    event["pull_request"]["labels"] = [{"name": "dry-lint: override"}]
+    github_env("pull_request", event, working_directory=str(repo.root), judge="command",
+               judge_command=twin_judge, baseline=".dry-lint/baseline.json", require_complete="true")
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
+    assert outputs(tmp_path)["overridden"] == "false"
+    assert "cannot widen the ratchet" in github.stickies()[0]
+
+
+def test_incomplete_fork_judging_publishes_a_failing_check(repo: Repo, tmp_path: Path, twin_judge: str,
+                                                        github_env) -> None:
+    report, head = judged_report(tmp_path, repo, twin_judge, github_env)
+    github = FakeGitHub(head=head)
+    github_env("workflow_run", {"workflow_run": {"id": 3, "head_sha": head}}, working_directory=str(repo.root),
+               require_complete="true")
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 2
+    assert github.check_runs[-1]["conclusion"] == "failure"
+
+
 def test_findings_are_counted_from_file_annotations_only() -> None:
     lines = [ANNOTATION, ANNOTATION.replace("::warning", "::error"), "::notice title=dry-lint::hi", "dry-lint: 3 pairs"]
     assert count_findings(lines) == (2, 1)
@@ -88,13 +141,12 @@ def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         event = tmp_path / "event.json"
         event.write_text(json.dumps(payload))
         values = {"GITHUB_EVENT_NAME": name, "GITHUB_EVENT_PATH": str(event), "GITHUB_REPOSITORY": "acme/shop",
-                  "GITHUB_RUN_ID": "55", "GITHUB_OUTPUT": str(tmp_path / "output"), "GITHUB_TOKEN": "token",
+                  "GITHUB_REPOSITORY_ID": "4242", "GITHUB_RUN_ID": "55", "GITHUB_OUTPUT": str(tmp_path / "output"), "GITHUB_TOKEN": "token",
                   "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"), "RUNNER_TEMP": str(tmp_path / "runner"),
                   "INPUT_COMMENT": "true", "INPUT_CHECK_RUN": "true", "INPUT_WORKING_DIRECTORY": str(tmp_path)}
         values.update({f"INPUT_{k.upper()}": v for k, v in inputs.items() if k != "key"})
         # Hermetic: a developer's or Claude Code's own keys must never reach a judge from a test.
-        for name_ in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
-            monkeypatch.delenv(name_, raising=False)
+        clear_judge_credentials(monkeypatch)
         monkeypatch.delenv("GITHUB_RUN_ATTEMPT", raising=False)  # set when the tests themselves run in Actions
         if "key" in inputs:
             values["TYPESAFE_AI_API_KEY"] = inputs["key"]
@@ -837,14 +889,17 @@ def test_a_merged_pull_requests_ledger_reaches_the_next_pull_requests_comment(
 # The global counter: each merged pull request's counts, once, unless the repository opts out.
 
 
-def test_merged_pull_requests_are_shared_with_the_counter_by_hash_once(github_env, tmp_path) -> None:
+def test_merged_pull_requests_are_shared_with_the_counter_under_a_key_the_name_does_not_give(
+        github_env, tmp_path, capsys) -> None:
     github_env("push", MAIN_PUSH)
     github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
                         elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]})
     action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
     action.fold("acme/shop", "main", "d" * 40, tmp_path / "no-report.json", httpx.MockTransport(github))
     [sent] = github.counted
-    assert sent["repository"] == hashlib.sha256(b"acme/shop").hexdigest() and "acme" not in json.dumps(sent)
+    assert sent["repository"] == counter_key("4242") and "acme" not in json.dumps(sent)
+    assert hashlib.sha256(b"acme/shop").hexdigest() not in json.dumps(sent)  # the name, even hashed, is not sent
+    assert f"counter key is {sent['repository']}; its sign is " in capsys.readouterr().out
     assert {k: sent[k] for k in ("pull", "kept_out", "caught", "dismissed", "merged_open", "pushes", "runs")} == {
         "pull": 3, "kept_out": 1, "caught": 1, "dismissed": 0, "merged_open": 0, "pushes": 2, "runs": 2}
     assert sent["usd"] == 0.004 and sent["version"] and saved_ledger().outbox == []
@@ -859,6 +914,17 @@ def test_an_unavailable_counter_is_retried_on_the_next_push(github_env, tmp_path
     github.counter_status = 200
     action.fold("acme/shop", "main", "d" * 40, tmp_path / "no-report.json", httpx.MockTransport(github))
     assert [sent["pull"] for sent in github.counted] == [3] and saved_ledger().outbox == []
+
+
+def test_without_a_repository_id_nothing_is_shared_but_the_ledger_still_counts(
+        github_env, tmp_path, monkeypatch, capsys) -> None:
+    github_env("push", MAIN_PUSH)
+    monkeypatch.delenv("GITHUB_REPOSITORY_ID")
+    github = FakeGitHub(merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
+                        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")))]})
+    action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
+    assert github.counted == [] and saved_ledger().pulls == [3] and saved_ledger().outbox == []
+    assert "counter key" not in capsys.readouterr().out
 
 
 def test_a_repository_that_opts_out_shares_nothing(github_env, tmp_path) -> None:

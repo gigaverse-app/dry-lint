@@ -98,8 +98,10 @@ suppression instructions under each summary. A clean pull request gets a green s
 each duplicate kept out ([the ledger](docs/github-action.md#the-ledger)).
 
 A reported duplicate fails the check at the preset's threshold (98% of them are real duplicates with
-`jev+opus`); `fail-at` raises or lowers it, and the `dry-lint: override` label lets one through. Pull requests
-from forks get no secrets, so the default `mode: auto` runs dry-lint as two jobs for them: `detect` on the pull
+`jev+opus`); `fail-at` raises or lowers it, and the `dry-lint: override` label lets one through. That precision
+is for people. A coding agent can check findings itself, so for agents a cheap judge at a lower threshold catches
+more for less ([who reads the findings](docs/judges.md#who-reads-the-findings-people-or-coding-agents)). Pull
+requests from forks get no secrets, so the default `mode: auto` runs dry-lint as two jobs for them: `detect` on the pull
 request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml) that keeps the key away from pull
 request code ([design](docs/design.md#two-jobs-in-ci)). For default-branch runs and rechecks when override
 labels change, use the [extended workflow](examples/dry-lint.yml); the [action guide](docs/github-action.md)
@@ -115,6 +117,7 @@ Hook id `dry-lint` checks the staged functions; see [examples/pre-commit-config.
 | --- | --- |
 | `check [--base REF \| --staged]` | detect, judge and report the functions a change touched (base: `origin/HEAD`) |
 | `scan [--limit N] [--refresh] [--repo OWNER/NAME=PATH ...]` | the repository's backlog, or cross-repository pairs from a combined workspace |
+| `sweep [--init \| --update]` | audit the configured repository; explicitly initialize or shrink its accepted backlog and README progress |
 | `config` | which judges, thresholds and budget would run, and what they cost |
 | `explain A B` | why a pair is, or is not, reported |
 | `detect --out candidates.json` | CI job 1: propose pairs; no judge, no secrets, no store |
@@ -136,6 +139,7 @@ judges them; to use another judge, pass `--judge command --judge-command "your-l
 | Add structural matching | [The optional Dryer comparer](docs/detectors.md) ([compared on gigaverse-backend](docs/dryer-comparison.md)) |
 | Find copies across related repositories | [Workspace scans and shared ownership](docs/workspaces.md) |
 | Avoid cloning peer repositories in CI | [Versioned function indexes](docs/function-indexes.md) |
+| Audit existing duplication, shrink its baseline and show cleanup in your README | [Repository sweeps and ratchets](docs/sweeps.md) |
 
 ## How it works
 
@@ -233,23 +237,26 @@ differs from the original, so a copy-paste checker would not see it; a re-check 
 already held. When a pull request merges, the action's
 run on the default branch sends its counts to a [Cloudflare Worker](counter): duplicates kept out (how many had
 drifted, how many were rewrites rather than copies, and their lines), caught and dismissed, pushes, functions
-checked, look-alikes compared, verdicts reused, judgments, judging spend and the dry-lint version. The repository
-is sent only as the SHA-256 of its name; no code, names, paths or people. Each pull request is counted once. Opt
-out with `share-totals: "false"`.
+checked, look-alikes compared, verdicts reused, judgments, judging spend and the dry-lint version. No code, names,
+paths or people are sent. The repository is **pseudonymous**: it is sent as its counter key, the SHA-256 of its
+numeric GitHub id, which ties its pull requests together but which its name does not lead to; a private
+repository's id is visible only to people who can see the repository. Each pull request is counted once. Opt out
+with `share-totals: "false"`.
 
-Put your own repository's sign in its README:
+To show your own repository's sign, take its counter key from the log of a dry-lint run on your default branch
+(`dry-lint: this repository's counter key is ...`). `name` only labels the sign; the counter never looks a name up:
 
 ```html
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&repository=OWNER/NAME">
-  <img alt="Duplicates dry-lint kept out of OWNER/NAME" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?repository=OWNER/NAME" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&key=KEY&name=OWNER/NAME">
+  <img alt="Duplicates dry-lint kept out of OWNER/NAME" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=KEY&name=OWNER/NAME" width="100%">
 </picture>
 ```
 
 or a badge, with `metric=kept-out`, `drifted`, `lines`, `pulls`, `functions` or `repositories`:
 
 ```markdown
-![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Frepository%3DOWNER%2FNAME)
+![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fkey%3DKEY%26metric%3Dkept-out)
 ```
 
 ## Lint

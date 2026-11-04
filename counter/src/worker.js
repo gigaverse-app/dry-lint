@@ -2,9 +2,9 @@
  * dry-lint's global counter: every duplicate kept out of every codebase that shares its totals.
  *
  *   POST /v1/pulls                     one merged pull request's ledger; counted once per repository and number
- *   GET  /v1/totals[?repository=o/n]   the totals, as JSON
- *   GET  /v1/badge[?metric= *   GET  /v1/badge[?metric=&repository=]  a shields.io endpoint badgerepository=]  a shields.io endpoint badge (kept-out, drifted, lines, pulls, ...)
- *   GET  /v1/sign.svg[?theme=dark&repository=]  the README sign
+ *   GET  /v1/totals[?key=]             the totals, as JSON: everyone's, or one repository's by its counter key
+ *   GET  /v1/badge[?metric=&key=]      a shields.io endpoint badge: kept-out, drifted, lines, pulls, ...
+ *   GET  /v1/sign.svg[?theme=dark&key=&name=]  the README sign; `name` only labels it
  *
  * One SQLite-backed Durable Object holds the counts: a contribution is inserted once (the repository and pull
  * request number are its key) and the running totals move only when a row is new, so a retried or repeated
@@ -12,7 +12,7 @@
  */
 
 import { DurableObject } from "cloudflare:workers";
-import { FIELDS, Invalid, TOTALED, badge, contribution, repositoryKey, sign } from "./tally.js";
+import { FIELDS, Invalid, TOTALED, badge, contribution, scope, sign } from "./tally.js";
 
 const EMPTY = { pulls: 0, ...Object.fromEntries(TOTALED.map((field) => [field, 0])), since: null };
 const KIND = (field) => (field === "usd" ? "REAL" : "INTEGER");
@@ -77,9 +77,15 @@ async function read(request, env, ctx) {
   const cached = await cache.match(request);
   if (cached) return cached;
   const url = new URL(request.url);
-  const name = url.searchParams.get("repository") ?? "";
+  let asked;
+  try {
+    asked = scope(url.searchParams);
+  } catch (error) {
+    if (error instanceof Invalid) return json({ error: error.message }, 400);
+    throw error;
+  }
   const counter = env.COUNTER.get(env.COUNTER.idFromName("global"));
-  const totals = await counter.totals(name ? await repositoryKey(name) : "*");
+  const totals = await counter.totals(asked.key);
   const caching = { "cache-control": "public, max-age=60" };
   let response;
   if (url.pathname === "/v1/totals") {
@@ -87,7 +93,7 @@ async function read(request, env, ctx) {
   } else if (url.pathname === "/v1/badge") {
     response = json(badge(totals, url.searchParams.get("metric") ?? "kept-out"), 200, caching);
   } else {
-    response = new Response(sign(totals, url.searchParams.get("theme") ?? "light", name), {
+    response = new Response(sign(totals, url.searchParams.get("theme") ?? "light", asked.label), {
       headers: { "content-type": "image/svg+xml; charset=utf-8", ...caching },
     });
   }

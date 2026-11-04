@@ -56,6 +56,10 @@ empty. `structure_hash` must change when the logic changes and not for comments 
 renames only when the language's binding rules make that safe; conservative re-judging is preferable. Core
 calls it only for the functions in a candidate pair. `owner` is the enclosing class, if any.
 
+To support strict checks and repository sweeps, also implement `validate_source(path: str, source: str) -> None`.
+Raise `ValueError` on invalid or incompletely parsed source. Strict scans reject extractors without this optional
+capability; ordinary candidate-only scans retain their previous plugin behavior. Both built-in extractors support it.
+
 ## Comparer
 
 ```python

@@ -165,9 +165,9 @@ class PullLedger(Versioned):
                 pair.state, pair.settled = "kept-out", ledger.pushed
         return ledger
 
-    def contribution(self, repository: str, number: int) -> dict:
-        """What the global counter is sent for this pull request once merged: counts, and the repository's hash."""
-        return {"repository": hashlib.sha256(repository.strip().lower().encode()).hexdigest(), "pull": number,
+    def contribution(self, key: str, number: int) -> dict:
+        """What the global counter is sent for this pull request once merged: counts, and the repository's key."""
+        return {"repository": key, "pull": number,
                 "kept_out": self.count("kept-out"), "caught": len(self.pairs), "dismissed": self.count("dismissed"),
                 "merged_open": self.count("open"), "pushes": self.pushed, "runs": self.tally.runs,
                 "judgments": self.tally.judgments, "functions": self.tally.functions, "pairs": self.tally.pairs,
@@ -253,6 +253,16 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None) -> 
     return "\n".join([*lines, ledger.snapshot()])
 
 
+def counter_key(repository_id: str) -> str:
+    """
+    The global counter's name for a repository: the SHA-256 of its numeric GitHub id, never of its name. It is
+    pseudonymous, not anonymous: it ties one repository's pull requests together. But a name alone does not lead
+    to it, since a private repository's id is visible only to people who can see the repository, and the key
+    survives renames and transfers.
+    """
+    return hashlib.sha256(f"github-repository:{repository_id.strip()}".encode()).hexdigest()
+
+
 class RepositoryLedger(Versioned):
     """A repository's ledger: its default-branch runs and the final ledgers of its merged pull requests."""
 
@@ -274,12 +284,13 @@ class RepositoryLedger(Versioned):
         self.tally = self.tally + tally
         self.runs = [*self.runs, run][-RECENT_RUNS:] if run else self.runs
 
-    def add_pull(self, number: int, ledger: PullLedger, share: bool = False) -> None:
+    def add_pull(self, number: int, ledger: PullLedger, key: str = "") -> None:
+        """Count a merged pull request once; with the repository's counter `key`, queue its counts for the counter."""
         if number in self.pulls:
             return
         self.pulls.append(number)
-        if share:
-            self.outbox.append(ledger.contribution(self.repository, number))
+        if key:
+            self.outbox.append(ledger.contribution(key, number))
         self.tally = self.tally + ledger.tally
         self.pushes += ledger.pushed
         self.kept_out += ledger.count("kept-out")
