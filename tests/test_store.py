@@ -101,6 +101,33 @@ def test_an_older_version_of_the_same_judge_is_reused_unless_a_version_is_requir
     assert lookup(store, candidate(), version="reuse-v1") == verdict("duplicate", version="reuse-v1")
 
 
+OPUS, BAND = "anthropic:dry-v1:claude-opus-5-5", (0.5, 0.91)
+
+
+@pytest.mark.parametrize("stored,escalation,reused", [
+    (0.7, None, True),  # Jev's own answer, for Jev alone
+    (0.7, OPUS, False),  # an in-band answer the second judge never saw: jev, then jev+opus
+    (0.95, OPUS, True),  # above the band, the second judge would not have been asked
+    (0.2, OPUS, True),  # below it, neither
+])
+def test_a_first_answer_holds_only_where_this_judging_would_not_have_asked_a_second_judge(
+        store: VerdictStore, stored: float, escalation: str | None, reused: bool) -> None:
+    store.remember(candidate(), verdict("duplicate", score=stored))
+    assert (store.lookup(candidate(), "jev", 0.05, escalation=escalation, band=BAND).verdict is not None) is reused
+
+
+@pytest.mark.parametrize("escalation,reused", [
+    (OPUS, True), ("anthropic:dry-v1:claude-sonnet-5-5", False), ("anthropic:dry-v2:claude-opus-5-5", False),
+    (None, False),  # Jev alone measures its thresholds on its own scores, not Opus's
+])
+def test_a_second_opinion_holds_only_for_the_same_second_judge(
+        store: VerdictStore, escalation: str | None, reused: bool) -> None:
+    store.remember(candidate(), verdict("duplicate", score=0.9).model_copy(update={"second_opinion": OPUS}))
+    result = store.lookup(candidate(), "jev", 0.05, escalation=escalation, band=BAND)
+    assert (result.verdict is not None) is reused
+    assert reused or result.why.startswith(f"second opinion from {OPUS}")
+
+
 def test_the_store_is_keyed_on_the_unordered_pair(store: VerdictStore) -> None:
     store.remember(candidate(), verdict("duplicate"))
     swapped = Candidate(new=OLD, existing=NEW, similarity=0.7, comparer="tfidf:1")

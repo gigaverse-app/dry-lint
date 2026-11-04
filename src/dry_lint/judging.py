@@ -124,7 +124,10 @@ class Judging:
             return [Finding(candidate=c) for c in proposed]
         strict = getattr(self.judge, "context", False) or getattr(self.judge, "strict_version", False)
         version = self.judge.version if refresh or strict else None
-        known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict for c in proposed]
+        second = identity(self.escalation) if self.escalation and self.settings.escalate else None
+        band = self.settings.escalate.between if second and self.settings.escalate else (0.0, 0.0)
+        known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version, second, band).verdict
+                 for c in proposed]
         pending = [i for i, verdict in enumerate(known) if verdict is None]
         deferred = set(pending[self.settings.max_judgements:]) if self.settings.max_judgements is not None else set()
         pending = [i for i in pending if i not in deferred]
