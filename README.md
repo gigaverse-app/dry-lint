@@ -29,6 +29,10 @@ src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_t
     if they are different concepts, add `# dry-lint: distinct-from src/text.py::shorten_text`
 ```
 
+**You bring your own keys.** dry-lint never provides API keys, models or judge execution: judges run on the
+credentials your repository passes in, at your cost, and without any it only lists look-alikes
+([design](docs/design.md#adopters-bring-their-own-keys)).
+
 ## How it works
 
 dry-lint is a fixed core (the pipeline, the file formats, the verdict store's rules and the reports) with four
