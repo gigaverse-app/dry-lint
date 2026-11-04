@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 
-from dry_lint.costs import Ledger, Spend, price
+from dry_lint.costs import Ledger, Spend, price, usage_cost
 from dry_lint.discovery import CampaignStore, reservation_cost
 from dry_lint.git import git
 from dry_lint.judges import make_escalation, make_judge
@@ -186,13 +186,12 @@ class Judging:
                 verdict, success = answers[0], True
             except JUDGE_ERRORS as error:
                 spend.failed += 1
-                spend.error = str(error).splitlines()[0][:200]
+                spend.error = " ".join(str(error).split())[:200] or type(error).__name__
             finally:
                 rates = price(judge, self.settings)
                 actual = None
                 if before is not None and rates is not None and tokens != before:
-                    actual = ((tokens["input"] - before["input"]) * rates[0]
-                              + (tokens["output"] - before["output"]) * rates[1]) / 1_000_000
+                    actual = usage_cost({key: value - before.get(key, 0) for key, value in tokens.items()}, rates)
                 charged = campaign.settle(reservation, actual, success)
                 spend.calls += 1
                 spend.usd += charged

@@ -5,9 +5,10 @@ operation, or explain why the functions have different contracts. A cheap judge 
 reporting threshold than an unattended blocking check. The initial target is at least one confirmed real finding
 per three false positives (25% precision), while improving recall and bounding false reports per commit.
 
-This is an opt-in workflow, not a new `balanced` default. `agent-haiku` uses Haiku's shared-operation prompt and a
-0.5 reporting/blocking threshold. It keeps ordinary baseline retrieval. The historical exploration scheduler and
-its reserved capacity are experimental scripts, not part of this preset or the local hook.
+`balanced` now brings this workflow into production: cheap shared-operation judging, a persistent campaign
+budget, protected baseline retrieval and paced exploration, including same-file candidates. See the
+[production setup and feedback contract](production-discovery.md). `agent-haiku` retains its original baseline-only
+behavior for comparisons. Existing unattended presets remain available.
 
 ## Local feedback
 
@@ -18,7 +19,7 @@ repos:
     hooks:
       - id: dry-lint
         additional_dependencies: ["dry-lint[hooks]"]
-        args: [--preset, agent-haiku, --env-file, .env, --budget-usd, '0.04']
+        args: [--preset, balanced, --env-file, .env, --budget-usd, '0.04']
 ```
 
 Run `pre-commit install`. Python, JavaScript and TypeScript changes trigger the hook. It reads source from the
@@ -33,10 +34,9 @@ ordering contracts when extracting it. Stage the repair and retry. For an intent
 `# dry-lint: distinct-from path::qualified_name` with the reason beside the function. Avoid blanket ignores as
 an automatic response. The hook runs at commit time; it is not a server-side push gate.
 
-Local runs use the existing estimated $0.04 **per invocation** budget and reuse exact cached verdicts. They do
-not know the PR identity and do not enforce the replay experiment's cumulative $0.04 per PR. Provider failures,
-deferred candidates and model-free runs are unresolved, not evidence of absence. Do not interpret a successful
-exit as an exhaustive duplication audit. CI remains a separate check with its configured preset.
+Local balanced runs share a $0.04 campaign allowance across revisions, keyed by branch or explicit `--session`.
+Reservations survive failures and process restarts. Hosted CI and local hooks use separate storage; a strict CI cap
+requires persistent state. See [budget scope](production-discovery.md#cumulative-allowance).
 
 ## Feedback and adaptation
 
@@ -63,7 +63,7 @@ a different kind of change, or a broken detector. Compare versioned policies on 
 sample, stratified by repository, function size, new versus edited code, and shared-operation family. Change one
 knob at a time; use hysteresis and a minimum sample before switching. Roll back when the 25% precision floor or
 the interruption bound fails. Initial trials use at most three false reports per commit, not as a claim that all
-developers will tolerate that load. The automatic controller and durable feedback-event store are future work.
+developers will tolerate that load. Explicit fix/dismiss decisions now live in `.dry-lint-feedback.json`; automatic threshold control remains future work.
 
 ## Budget and eventual discovery
 

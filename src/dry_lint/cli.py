@@ -53,6 +53,11 @@ def repository_root(start: Path) -> Path:
     return Path(git(start, "rev-parse", "--show-toplevel"))
 
 
+def last_report(root: Path) -> Path:
+    """Feedback follows this checkout's last check; worktrees share budget, not the review cursor."""
+    return (root / git(root, "rev-parse", "--git-path", "dry-lint/last-report.json")).resolve()
+
+
 def run_info(root: Path, base: str | None) -> Run:
     """The repository, pull request and head commit, from the GitHub Actions environment when there is one."""
     pull = github_event().get("pull_request") or {}
@@ -122,7 +127,7 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     report = judged(candidates, settings, root, args, run, len(changed),
                     functions=len(detector.functions))
     if settings.discovery.enabled and not args.report:
-        target = default_store(root).parent / "last-report.json"
+        target = last_report(root)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(as_json(report), encoding="utf-8")
     return finish(report, settings, args)
@@ -216,7 +221,7 @@ def report(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def feedback(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    source = args.source or default_store(root).parent / "last-report.json"
+    source = args.source or last_report(root)
     report = Report.model_validate_json(source.read_bytes())
     matching = [f for f in report.findings if f.candidate.key == args.pair]
     if len(matching) != 1 or not matching[0].reported:

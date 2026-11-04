@@ -61,6 +61,10 @@ class AnthropicJudge:
             raise ValueError(f"Anthropic request failed: {type(error).__name__}") from error
         self.tokens["input"] += response.usage.input_tokens
         self.tokens["output"] += response.usage.output_tokens
+        for name in ("cache_creation_input_tokens", "cache_read_input_tokens"):
+            count = getattr(response.usage, name, 0) or 0
+            if count:
+                self.tokens[name] = self.tokens.get(name, 0) + count
         if response.stop_reason == "refusal":
             category = getattr(response.stop_details, "category", None)
             raise ValueError(f"{self.model} declined to judge {candidate.new.qualname} ({category})")

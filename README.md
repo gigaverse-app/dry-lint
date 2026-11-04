@@ -227,3 +227,8 @@ Apache 2.0. See [CONTRIBUTING.md](CONTRIBUTING.md) to work on dry-lint itself.
 
 Install the `dryer` extra and select `comparer = "dryer"` or pass `--detector dryer` to use structural fingerprints.
 TF-IDF remains the default. See [setup](docs/detectors.md) and the [gigaverse-backend comparison](docs/dryer-comparison.md).
+
+For coding-agent hooks, [`balanced`](docs/production-discovery.md) combines cheap shared-operation judging,
+protected baseline retrieval, same-file exploration and a persistent $0.04 campaign allowance. Use
+`dry-lint feedback fix` or `dry-lint feedback dismiss` after reviewing a finding; exact-source dismissals prevent
+repeat interruptions while changed code reopens the pair.

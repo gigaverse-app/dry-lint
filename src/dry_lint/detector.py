@@ -119,12 +119,13 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
 
 class Detector:
     def __init__(self, functions: list[Function], settings: Settings, comparer: Comparer,
-                 extractors: list[Extractor], *, cross_repository: bool = False) -> None:
+                 extractors: list[Extractor], *, cross_repository: bool = False, same_file: bool = False) -> None:
         self.functions = functions
         self.settings = settings
         self.comparer = comparer
         self.extractors = extractors
         self.cross_repository = cross_repository
+        self.same_file = same_file
         self.repositories = sorted({f.origin.repository for f in functions if f.origin})
         self.comparer_id = identity(comparer)
         self.file_extractors = {path: extractor_for(path, extractors) for path in {f.path for f in functions}}
@@ -192,7 +193,8 @@ class Detector:
         extractor = extractor_for(function.path, self.extractors)
         def allowed(other: Function) -> bool:
             different_repository = other.origin != function.origin
-            return ((different_repository if self.cross_repository else different_repository or other.path != function.path)
+            return ((different_repository if self.cross_repository else different_repository or other.path != function.path
+                     or self.same_file and other.qualname != function.qualname)
                     and self.file_extractors[other.path] is extractor)
 
         if self.cross_repository:
@@ -234,7 +236,7 @@ class Detector:
             wider = self.settings.model_copy(update={"neighbours": policy.depth,
                 "discovery": policy.model_copy(update={"enabled": False})})
             detector = Detector(self.functions, wider, TfidfComparer(**options), self.extractors,
-                                cross_repository=self.cross_repository)
+                                cross_repository=self.cross_repository, same_file=True)
             keys = {c.key for c in baseline}
             baseline += [c.model_copy(update={"lane": "exploration"}) for c in detector.candidates(changed)
                          if c.key not in keys]

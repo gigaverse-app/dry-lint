@@ -21,6 +21,12 @@ from dry_lint.store import DirectoryStore, VerdictStore
 def capture(history: History, destination: Path) -> None:
     settings = resolve(Settings(preset="balanced", extractors=["python"]))
     destination.mkdir(parents=True, exist_ok=True)
+    provenance = {"history": history.model_dump(mode="json"), "settings": settings.model_dump(mode="json"),
+                  "retrieval": "baseline-plus-same-file-v1"}
+    manifest = destination / "manifest.json"
+    if manifest.exists() and json.loads(manifest.read_bytes()) != provenance:
+        raise ValueError("Capture inputs changed; use a new output directory")
+    manifest.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
     for ordinal, head in enumerate(history.commits):
         target = destination / f"{ordinal:03d}.json"
         if target.exists():
@@ -51,6 +57,10 @@ class ObservedJudge:
             observation = self.answers.observe(candidate)
             self.tokens["input"] += observation.input_tokens
             self.tokens["output"] += observation.output_tokens
+            self.tokens["cache_creation_input_tokens"] = (
+                self.tokens.get("cache_creation_input_tokens", 0) + observation.cache_creation_tokens)
+            self.tokens["cache_read_input_tokens"] = (
+                self.tokens.get("cache_read_input_tokens", 0) + observation.cache_read_tokens)
             if observation.verdict is None:
                 raise ValueError(observation.error or "Provider did not return a verdict")
             verdicts.append(observation.verdict)
@@ -62,9 +72,14 @@ def evaluate(captures: Path, output: Path, answers: LiveAnswers, baseline: bool 
     judge = ObservedJudge(answers)
     store = VerdictStore(DirectoryStore(output / "verdicts"))
     output.mkdir(parents=True, exist_ok=True)
-    curves = []
-    for source in sorted(captures.glob("*.json")):
+    progress = output / "curves.json"
+    curves = json.loads(progress.read_bytes()) if progress.exists() else []
+    for ordinal, source in enumerate(sorted(captures.glob("[0-9]*.json"))):
         snapshot = CandidatesFile.model_validate_json(source.read_bytes())
+        if ordinal < len(curves):
+            if curves[ordinal]["head"] != snapshot.run.head:
+                raise ValueError("Replay history changed; use a new output directory")
+            continue
         judging = Judging(settings, judge, None, store)
         judging.campaign = CampaignStore(output / "ledger.sqlite3", snapshot.run)
         candidates = [c for c in snapshot.candidates if not baseline or c.lane == "baseline"]
@@ -76,8 +91,8 @@ def evaluate(captures: Path, output: Path, answers: LiveAnswers, baseline: bool 
                        "reported": [f.candidate.key for f in report.findings if f.reported],
                        "covered": [f.candidate.key for f in report.findings if f.verdict is not None],
                        "deferred": report.deferred})
+        progress.write_text(json.dumps(curves, indent=2), encoding="utf-8")
         print(output.name, source.stem, len(report.visible), "reports", state.usd, flush=True)
-    (output / "curves.json").write_text(json.dumps(curves, indent=2), encoding="utf-8")
 
 
 def main() -> None:
@@ -88,7 +103,7 @@ def main() -> None:
     parser.add_argument("--baseline", action="store_true")
     args = parser.parse_args()
     answers = (LiveAnswers(args.out / "answers", model="claude-haiku-5-5", prompt_policy="shared-operations",
-                           max_tokens=2048, report_at=0.5, limit=2.0) if args.judge else None)
+                           max_tokens=2048, limit=2.0) if args.judge else None)
     for raw in json.loads(args.manifest.read_bytes()):
         history = History.model_validate(raw)
         name = f"{history.repository.split('/')[-1]}-{history.number}"

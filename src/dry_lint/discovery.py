@@ -47,7 +47,7 @@ class CampaignStore:
         if not run.session and run.pull_request is None:
             raise ValueError("Discovery requires a session or pull request identity")
         self.path = path
-        scope = str(run.pull_request) if run.pull_request is not None else run.session
+        scope = f"pr:{run.pull_request}" if run.pull_request is not None else f"session:{run.session}"
         self.key = hashlib.sha256(f"{run.repository}|{scope}".encode()).hexdigest()
         self.revision = run.revision or run.head
         if not self.revision:
