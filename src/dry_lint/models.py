@@ -61,11 +61,16 @@ class Function(BaseModel):
     @property
     def qualname(self) -> str:
         prefix = f"{self.origin.repository}/" if self.origin and self.origin.repository else ""
-        return f"{prefix}{self.path}::{self.owner + '.' if self.owner else ''}{self.name}"
+        return f"{prefix}{self.path}::{qualified(self.owner, self.name)}"
 
     @property
     def lines(self) -> int:
         return self.end_line - self.line + 1
+
+
+def qualified(owner: str | None, name: str) -> str:
+    """A function's name as reports show it, without its path: `Owner.name`, or `name` outside a class."""
+    return f"{owner}.{name}" if owner else name
 
 
 def module_of(path: str) -> str:

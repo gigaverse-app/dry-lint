@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from dry_lint.function_index import repository_name
-from dry_lint.models import Function, Run, Verdict, validated_repository_path
+from dry_lint.models import Function, Run, Verdict, qualified, validated_repository_path
 from dry_lint.report import Finding, source_url
 
 
@@ -25,6 +25,10 @@ class SourceReference(BaseModel):
         origin = function.origin or run
         return cls(repository=origin.repository, revision=origin.head, path=function.path, name=function.name,
                    owner=function.owner, line=function.line, end_line=function.end_line)
+
+    @property
+    def qualified(self) -> str:
+        return qualified(self.owner, self.name)
 
     def url(self) -> str:
         return source_url(Function(path=self.path, name=self.name, owner=self.owner, line=self.line,

@@ -396,6 +396,16 @@ def test_a_relative_is_advice_on_its_parent_never_a_finding_or_a_block_of_its_ow
     assert "trim_title" in as_github(built)
 
 
+def test_the_fix_names_the_existing_method_with_its_class() -> None:
+    parent = finding("duplicate", 0.95)
+    method = parent.candidate.existing.model_copy(update={"owner": "Text"})
+    parent = parent.model_copy(update={"candidate": parent.candidate.model_copy(update={"existing": method})})
+    built = report(parent, relative_of(parent, 0.95))
+    assert "fixing this touches Text.shorten, which also looks like" in as_text(built)
+    assert "Fixing it touches `Text.shorten`, which also looks like" in as_markdown(built)
+    assert "fixing this touches Text.shorten" in as_github(built)
+
+
 def test_a_relative_below_the_report_threshold_is_not_shown() -> None:
     parent = finding("duplicate", 0.95)
     built = report(parent, relative_of(parent, 0.5))
