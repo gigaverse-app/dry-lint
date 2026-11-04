@@ -8,11 +8,11 @@ from pathlib import Path
 from dry_lint.cli import parser
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = (ROOT / ".pre-commit-hooks.yaml").read_text()
+HOOKS = {block.split("\n", 1)[0]: block for block in (ROOT / ".pre-commit-hooks.yaml").read_text().split("- id: ")[1:]}
 
 
-def field(name: str) -> str:
-    return re.search(rf"^\s+{name}: (.*?)(\s+#.*)?$", MANIFEST, re.MULTILINE).group(1)
+def field(name: str, hook: str = "dry-lint") -> str:
+    return re.search(rf"^\s+{name}: (.*?)(\s+#.*)?$", HOOKS[hook], re.MULTILINE).group(1)
 
 
 def test_the_hook_checks_staged_code_with_the_agent_preset_and_the_local_env_file() -> None:
@@ -26,6 +26,15 @@ def test_a_repository_s_args_override_the_hook_s_preset() -> None:
     assert args.preset == "agent+haiku"
 
 
-def test_the_hook_installs_what_its_judges_and_env_file_need() -> None:
+def test_both_hooks_install_what_the_judges_and_env_file_need_into_one_shared_environment() -> None:
     hooks = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["optional-dependencies"]["hooks"]
-    assert sorted(re.findall(r'"([^"]+)"', field("additional_dependencies"))) == sorted(hooks)
+    for hook in HOOKS:
+        assert sorted(re.findall(r'"([^"]+)"', field("additional_dependencies", hook))) == sorted(hooks)
+
+
+def test_the_trailers_hook_gets_the_commit_message_file_at_the_prepare_commit_msg_stage() -> None:
+    assert set(HOOKS) == {"dry-lint", "dry-lint-trailers"}
+    assert (field("stages", "dry-lint-trailers"), field("always_run", "dry-lint-trailers")) == ("[prepare-commit-msg]", "true")
+    assert "pass_filenames" not in HOOKS["dry-lint-trailers"]  # pre-commit passes the message file
+    args = parser().parse_args([*shlex.split(field("entry", "dry-lint-trailers"))[1:], ".git/COMMIT_EDITMSG"])
+    assert (args.command, str(args.message)) == ("trailers", ".git/COMMIT_EDITMSG")

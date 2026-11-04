@@ -204,6 +204,13 @@ dismissals do not earn cleanup credit. Commits before the first recorded report 
   person settles with `distinct-from`, `ignore` or a pattern counts as dismissed instead, even after it went away,
   and a pair left unjudged (the budget ran out) stays open. So does a pair whose scope did not report on the
   later push: name the scopes (`--report local=...`) and a failed cross-repository check settles nothing.
+- **What the pre-commit hook kept out counts too.** A duplicate the [hook](../README.md#pre-commit) blocks and the
+  agent fixes before committing never reaches a push. With the `dry-lint-trailers` hook, the commit carries it as a
+  trailer (`Dry-Lint-Kept-Out: KEY new ≈ existing (N lines)`, or `Dry-Lint-Dismissed:`), and the sticky reads the
+  pull request's commit messages through the API, so it works in the two-job layout too. Those pairs show as
+  "kept out before commit, by the pre-commit hook". The hook settles a pair by the same rule as pushes: only a
+  check that staged the pair's file and judged it can settle it. What a push reports of a pair wins over a trailer.
+  A trailer is what the committer's hook said, counted like any dismissal, not verified.
 - **The repository's ledger** is folded by the run on each push to the default branch: it adds that run, and the
   final ledger of each pull request merged since the ledger began, once each. It looks back over the latest 100
   merged pull requests, so a cancelled run is caught up by the next. It lives beside the verdicts in the cache

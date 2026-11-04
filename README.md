@@ -114,11 +114,13 @@ lists every option.
 ### pre-commit
 
 ```yaml
+default_install_hook_types: [pre-commit, prepare-commit-msg]
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
     rev: main
     hooks:
       - id: dry-lint
+      - id: dry-lint-trailers  # optional: the pull request's comment counts what the hook kept out
 ```
 
 The hook checks the staged Python, JavaScript and TypeScript for the coding agent making the commit. An agent checks
@@ -133,6 +135,12 @@ by hand the same precision-first judging as CI
 A blocked commit names the pair. Fix it by reusing the existing function, or record an intentional difference with
 `# dry-lint: distinct-from path::name` or `dry-lint feedback dismiss PAIR --reason ...`. For wider exploration with a
 persistent campaign budget, see [`balanced`](docs/production-discovery.md).
+
+A duplicate the hook blocks and the agent fixes never reaches a push, so CI alone would never count it. The hook
+remembers what it blocked; `dry-lint-trailers` writes what was then fixed or dismissed into the commit message,
+`Dry-Lint-Kept-Out: ab7719f1ec3f9b70 repository_counter_name ≈ counter_key (3 lines)`, and the pull request's
+sticky, the repository's ledger and the [global counter](#the-counter) count it
+([the ledger](docs/github-action.md#the-ledger)). Run `pre-commit install` once more after adding it.
 
 ## Commands
 

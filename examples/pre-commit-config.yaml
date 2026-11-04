@@ -1,5 +1,6 @@
 # .pre-commit-config.yaml: check staged functions before each commit, for the coding agent making it.
 # Needs TYPESAFE_AI_API_KEY in your shell or in an untracked .env.
+default_install_hook_types: [pre-commit, prepare-commit-msg]
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
     rev: main
@@ -7,3 +8,6 @@ repos:
       - id: dry-lint
         # args: [--preset, agent+haiku]   # Haiku re-judges Jev's uncertain scores; needs ANTHROPIC_API_KEY too
         # args: [--preset, auto]          # precision first, as in CI, for people committing by hand
+        # verbose: true                   # show the hook's tally of what it kept out on every commit
+      # What the hook kept out goes into the commit's trailers, so the pull request's comment counts it.
+      - id: dry-lint-trailers
