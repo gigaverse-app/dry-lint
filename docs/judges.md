@@ -65,9 +65,10 @@ real. That is plenty for an agent to check, and too noisy to block a person's me
 One repository can serve both readers. CI keeps a precision preset for the comment and the check. A coding agent runs
 `dry-lint check --staged --preset jev --format json`: the JSON lists every judged pair with its score, not only
 the ones the preset reports, so it can review everything from 0.6 up. A local run keeps its verdicts in the git
-directory and CI keeps its own in the Actions cache, so neither run's answers stand in for the other's. Within one
-store, though, verdicts are matched by the first judge's name alone, so do not point a `jev` run and a `jev+opus`
-run at the same `--store`.
+directory and CI keeps its own in the Actions cache. Even in one store, a verdict is reused only by judging that
+would have given it: a second opinion only for the same second judge, and Jev's own answer in the escalation band
+never for a run that escalates. So a `jev` run and a `jev+opus` run can share a store, and adding a second judge
+re-judges the cached first answers it would have seen.
 
 ## Paying with a subscription instead of an API key
 

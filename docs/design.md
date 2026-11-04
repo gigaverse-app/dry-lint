@@ -150,7 +150,11 @@ tokens and Dryer's normalization both leave out literals, so an edit such as `st
 only exact hashes reuse a verdict until a new record declares the policy. See [Dryer setup](detectors.md).
 
 A `duplicate` or `drifted` verdict reopens on any logic change, because that change might be the fix, or more
-drift. A verdict from another judge is never reused. One from an older version of the same judge is, until
+drift. A verdict from another judge is never reused, and neither is one that this judging would not have given: a
+second opinion from another second judge (or another version of it), or a first answer in the escalation band of a
+run that escalates. Adding a second judge therefore re-judges the cached answers it would have seen, and pairs whose
+escalation the budget could not afford are asked again on a later run. Until a run can afford to ask, the cached first
+answer stands, held to the first judge's own bar, rather than leaving the pair unjudged. One from an older version of the same judge is, until
 `dry-lint scan --refresh` asks again. Contextual judges always require the exact model/prompt version, even without
 `--refresh`. Renaming or moving a function changes its key, so its pairs are judged again.
 
@@ -182,7 +186,7 @@ within $0.04 a pull request), its subscription twin `jev+claude-code`, the cheap
 `jev+claude-code-sonnet`, `jev+codex`, `sonnet`, `claude-code`, `jev` (failing at 0.8: 94%, 73%) and `none`.
 `preset = "auto"` picks by the credentials present; explicit settings win over the preset's. `escalate` sends
 first scores in its band to the second judge, whose answer replaces the first; the record stays under the first
-judge's name with `second_opinion` set, so it is reused like any other. Each run's judging is bounded by a budget
+judge's name with `second_opinion` set, and is reused only by runs with that same second judge. Each run's judging is bounded by a budget
 (`budget.usd` for priced judges, `budget.subscription_calls` for subscriptions; riskiest pairs first) and every
 report states the preset, the judges, the thresholds and the estimated cost (`costs.py`).
 

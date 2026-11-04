@@ -124,7 +124,14 @@ class Judging:
             return [Finding(candidate=c) for c in proposed]
         strict = getattr(self.judge, "context", False) or getattr(self.judge, "strict_version", False)
         version = self.judge.version if refresh or strict else None
-        known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict for c in proposed]
+        second = identity(self.escalation) if self.escalation and self.settings.escalate else None
+        band = self.settings.escalate.between if second and self.settings.escalate else (0.0, 0.0)
+        known = [self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version, second, band).verdict
+                 for c in proposed]
+        # A cached first answer the second judge has not seen yet: it stands whenever this run cannot ask again.
+        first = {i: self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict
+                 for i, c in enumerate(proposed) if second and known[i] is None}
+        cached = {i for i, verdict in enumerate(known) if verdict is not None}
         pending = [i for i, verdict in enumerate(known) if verdict is None]
         deferred = set(pending[self.settings.max_judgements:]) if self.settings.max_judgements is not None else set()
         pending = [i for i in pending if i not in deferred]
@@ -139,5 +146,8 @@ class Judging:
                     self.store.remember(proposed[i], verdict, source)
                 known[i] = verdict
             self.store.add_spent(source, self.ledger.usd)
-        return [Finding(candidate=c, verdict=known[i], cached=known[i] is not None and i not in pending,
-                        deferred=i in deferred) for i, c in enumerate(proposed)]
+        for i in [i for i in deferred if first.get(i) is not None]:
+            known[i], cached = first[i], cached | {i}
+            deferred.discard(i)
+        return [Finding(candidate=c, verdict=known[i], cached=i in cached, deferred=i in deferred)
+                for i, c in enumerate(proposed)]

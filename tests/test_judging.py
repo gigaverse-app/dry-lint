@@ -69,6 +69,49 @@ def test_an_escalated_answer_is_reused_like_any_other(store: VerdictStore) -> No
     assert finding.cached and finding.verdict.score == 0.2 and second.asked == []
 
 
+def test_adding_a_second_judge_re_judges_only_the_cached_first_answers_it_would_have_seen(store: VerdictStore) -> None:
+    alone = Settings()  # no second judge
+    Judging(alone, ScoringJudge("first", {"unsure": 0.7, "sure": 0.9}), None, store).findings([pair("unsure"), pair("sure")])
+    second = ScoringJudge("second", {"unsure": 0.95})
+    first = ScoringJudge("first", {"unsure": 0.7, "sure": 0.9})
+    findings = Judging(SETTINGS, first, second, store).findings([pair("unsure"), pair("sure")])
+    assert second.asked == ["unsure"] and first.asked == ["unsure"]  # "sure" is outside the band, its answer stands
+    assert {f.candidate.new.name: f.verdict.second_opinion for f in findings} == {"unsure": "second:1", "sure": None}
+    again = ScoringJudge("second", {})
+    Judging(SETTINGS, ScoringJudge("first", {}), again, store).findings([pair("unsure"), pair("sure")])
+    assert again.asked == []  # from now on the second opinion is the cached answer
+
+
+def test_a_cached_first_answer_stands_while_the_budget_cannot_pay_for_a_second_opinion(store: VerdictStore) -> None:
+    Judging(Settings(), ScoringJudge("first", {"unsure": 0.85}), None, store).findings([pair("unsure")])
+    broke = SETTINGS.model_copy(update={"budget": Budget(usd=0.0)})
+    second = Billed("second", {"unsure": 0.95})
+    first = Billed("first", {"unsure": 0.85})
+    [finding] = Judging(broke, first, second, store).findings([pair("unsure")], source=Run(pull_request=7))
+    assert first.asked == [] and second.asked == []  # nothing is affordable
+    assert finding.verdict.score == 0.85 and finding.verdict.second_opinion is None
+    assert finding.cached and not finding.deferred  # Jev's answer stands, under Jev's own bar, not "unjudged"
+
+
+def test_a_cached_first_answer_stands_for_pairs_past_the_judgement_limit(store: VerdictStore) -> None:
+    Judging(Settings(), ScoringJudge("first", {"a": 0.7, "b": 0.7}), None, store).findings([pair("a"), pair("b")])
+    limited = SETTINGS.model_copy(update={"max_judgements": 1})
+    second = ScoringJudge("second", {"a": 0.95, "b": 0.95})
+    findings = Judging(limited, ScoringJudge("first", {"a": 0.7, "b": 0.7}), second, store) \
+        .findings([pair("a"), pair("b")])
+    assert second.asked == ["a"]
+    assert [(f.verdict.second_opinion, f.cached, f.deferred) for f in findings] == [("second:1", False, False),
+                                                                                 (None, True, False)]
+
+
+def test_a_different_second_judge_does_not_reuse_anothers_second_opinion(store: VerdictStore) -> None:
+    Judging(SETTINGS, ScoringJudge("first", {"unsure": 0.7}), ScoringJudge("second", {"unsure": 0.2}), store) \
+        .findings([pair("unsure")])
+    other = ScoringJudge("other", {"unsure": 0.9})
+    [finding] = Judging(SETTINGS, ScoringJudge("first", {"unsure": 0.7}), other, store).findings([pair("unsure")])
+    assert other.asked == ["unsure"] and finding.verdict.second_opinion == "other:1" and not finding.cached
+
+
 def test_refresh_re_judges_verdicts_from_an_older_version_of_the_judge(store: VerdictStore) -> None:
     Judging(SETTINGS, ScoringJudge("first", {"a": 0.9}, version="v1"), None, store).findings([pair("a")])
     newer = ScoringJudge("first", {"a": 0.2}, version="v2")
