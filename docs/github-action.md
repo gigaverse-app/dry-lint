@@ -185,6 +185,19 @@ pull request only, and the comment records that it did. Adding or removing the l
 workflow listens for `labeled` and `unlabeled`), and the verdicts come from the cache, so that re-run costs no
 judge calls.
 
+## When the judge budget runs out
+
+An unresolved candidate is a review task for the coding agent, not a confirmed duplicate or an infrastructure
+failure. The check stays red and lists the exact pairs, source locations and any provisional first judgment.
+The coding agent inspects both implementations and their callers, then either consolidates the duplicated
+behavior or records a reasoned, pair-specific dismissal using the existing `distinct-from` comment or
+`dry-lint feedback dismiss <pair> --from report.json --reason "..." --reviewer "..."` command. Commit that
+review alongside the code; a rerun verifies it against the current source. Do not raise the budget or bypass
+the whole check merely to clear an unresolved pair.
+
+No new judge credentials or automated model calls are needed for that fallback. A missing extractor/runtime,
+unreadable input or an unavailable judge with no reviewable evidence remains a separate operational failure.
+
 ## Modes, and pull requests from forks
 
 GitHub gives a pull request from a fork no secrets and a read-only token, so it cannot be judged or commented on
