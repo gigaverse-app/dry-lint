@@ -361,7 +361,7 @@ def test_accepted_debt_cleaned_up_is_backlog_and_never_kept_out() -> None:
     assert "### 🧹 A little less lint" in shown
     assert "| **1 pair**<br><sub>1 from the accepted backlog</sub> | **0 pairs** | **0 pairs** |" in shown
     assert "- ✅ `trim` ≈ `strip` · accepted backlog, cleaned up in push 1: one side removed" in shown
-    assert headline(ledger).startswith("**1 accepted backlog pair cleaned up.** ")
+    assert headline(ledger) == "**1 accepted backlog pair cleaned up** for $0.002 of judging, on its first push."
 
 
 def test_each_baseline_check_restates_the_backlog() -> None:
@@ -382,6 +382,13 @@ def test_accepted_debt_a_push_reported_is_counted_once_as_backlog() -> None:
     assert "| **1 pair**<br><sub>1 from the accepted backlog</sub> |" in shown
     assert "accepted backlog, found in push 1, cleaned up in push 2: the judge now finds them separate" in shown
     assert "| 2 | `bbbbbbb` | 3 | 1 | 1 | 0 | **+1** |" in shown
+
+
+def test_accepted_debt_a_push_already_cleared_keeps_that_push() -> None:
+    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")
+    ledger = ledger.advance([push("b" * 40)], run="2")  # cleared before any baseline check credited it
+    ledger = ledger.advance([cleaned(push("c" * 40), CLIP)], run="3")
+    assert [item.settled for item in ledger.backlog.values()] == [2]
 
 
 def test_the_basket_splits_backlog_from_duplicates_found_here() -> None:

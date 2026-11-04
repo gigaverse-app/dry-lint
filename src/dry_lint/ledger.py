@@ -209,9 +209,12 @@ class PullLedger(Versioned):
                 pair.state, pair.settled = "kept-out", ledger.pushed
         if any(report.backlog is not None for report in reports):  # each baseline check restates the whole backlog
             cleaned = {pair_key(item.new, item.existing): item for report in reports for item in report.backlog or ()}
+            # A pair a push reported and a later one cleared keeps that push; anything else is cleaned up now.
+            since = {key: pair.settled for key, pair in ledger.pairs.items() if pair.state == "kept-out" and pair.settled}
             ledger.backlog = {
                 key: ledger.backlog[key].model_copy(update={"how": item.how}) if key in ledger.backlog
-                else Backlog(new=local(item.new), existing=local(item.existing), how=item.how, settled=ledger.pushed)
+                else Backlog(new=local(item.new), existing=local(item.existing), how=item.how,
+                             settled=since.get(key, ledger.pushed))
                 for key, item in cleaned.items()}
         remaining = EVIDENCE_BYTES
         for pair in reversed(ledger.pairs.values()):
@@ -261,9 +264,11 @@ def headline(ledger: PullLedger) -> str:
     if still:
         return (f"{backlog}**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
                 "Each one fixed here is kept out of the codebase.")
+    if ledger.backlog:  # what pushes reported here is all accepted debt, now counted as backlog
+        return f"**{plural(len(ledger.backlog), 'accepted backlog pair')} cleaned up** {tally.spent()}, {across}."
     if not tally.functions:
-        return f"{backlog}**No changed functions to check yet**, {across}."
-    return f"{backlog}**{plural(tally.functions, 'function')} checked, nothing duplicated**, {tally.spent()}, {across}."
+        return f"**No changed functions to check yet**, {across}."
+    return f"**{plural(tally.functions, 'function')} checked, nothing duplicated**, {tally.spent()}, {across}."
 
 
 ICONS = {"kept-out": "✅", "open": "🟡", "dismissed": "⚪"}
