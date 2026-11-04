@@ -117,6 +117,14 @@ inputs:
     description: Never fail; blocking findings are reported like the rest.
     required: false
     default: "false"
+  require-complete:
+    description: Fail if no judge is configured, any candidate is unjudged, or judging is incomplete.
+    required: false
+    default: "false"
+  baseline:
+    description: Accepted duplication baseline relative to working-directory. Implies complete judging.
+    required: false
+    default: ""
   override-label:
     description: A pull request label that turns blocking findings into warnings, for a false positive or an urgent merge.
     required: false
@@ -221,6 +229,8 @@ runs:
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
         INPUT_FAIL_AT: ${{ inputs.fail-at }}
         INPUT_WARN_ONLY: ${{ inputs.warn-only }}
+        INPUT_REQUIRE_COMPLETE: ${{ inputs.require-complete }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
         INPUT_OVERRIDE_LABEL: ${{ inputs.override-label }}
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}

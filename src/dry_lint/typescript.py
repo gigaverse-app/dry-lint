@@ -120,6 +120,10 @@ class TypeScriptExtractor:
     def parser(self, path: str) -> Parser:
         return self.parsers["tsx" if path.endswith(".tsx") else "ts"]
 
+    def validate_source(self, path: str, source: str) -> None:
+        if self.parser(path).parse(source.encode("utf-8")).root_node.has_error:
+            raise ValueError(f"Cannot completely scan {path}: TypeScript parse error")
+
     def functions(self, path: str, source: str) -> list[Function]:
         if path.endswith((".d.ts", ".d.mts", ".d.cts")):
             return []

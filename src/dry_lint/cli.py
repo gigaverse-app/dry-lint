@@ -22,6 +22,7 @@ Duplicates between `report_at` and `fail_at` are reported as warnings and exit 0
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -30,6 +31,7 @@ from pathlib import Path
 import httpx
 
 from dry_lint import __version__
+from dry_lint.baseline import Baseline, require_complete, update_readme
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
@@ -87,6 +89,21 @@ def judged(candidates: list[Candidate], settings: Settings, root: Path, args: ar
 
 
 def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
+    # Preserve evidence on strict failures so CI can publish a failing check with the assessed head.
+    if args.report:
+        args.report.write_text(as_json(report) + "\n", encoding="utf-8")
+    if args.require_complete or args.baseline:
+        require_complete(report)
+    if args.baseline:
+        root = repository_root(args.root)
+        baseline = Baseline.read(root / args.baseline, settings)
+        if args.baseline_ref:
+            path = (root / args.baseline).resolve().relative_to(root.resolve()).as_posix()
+            # The target branch owns allowances. PRs may shrink them, never broaden or replace them.
+            previous = git(root, "show", f"{args.baseline_ref}:{path}", check=False)
+            if previous:
+                baseline.validate_successor(Baseline.model_validate_json(previous))
+        report = baseline.apply(report)
     output = render(report, args.format, settings, args.warn_only)
     if output:
         print(output)
@@ -111,6 +128,8 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Detector, str]:
     if args.repo or args.repo_index:
+        if args.require_complete or args.baseline or args.command == "sweep":
+            raise ValueError("Strict baselines currently cover one repository; run a separate check for peers")
         roots: dict[str, Path] = {}
         for spec in args.repo:
             name, separator, path = spec.partition("=")
@@ -133,7 +152,42 @@ def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tu
                 raise ValueError("--repo-index expects OWNER/NAME@COMMIT=PATH")
             indexes.append(FunctionIndex.decode(Path(path).read_bytes(), name, commit, extraction_contract(settings)))
         return Detector.for_workspace(roots, settings, indexes=indexes), primary
-    return Detector.for_repository(root, settings), ""
+    return Detector.for_repository(root, settings, strict=bool(args.require_complete or args.baseline
+                                                              or args.command == "sweep")), ""
+
+
+def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    path = root / (args.baseline or Path(".dry-lint/baseline.json"))
+    if args.init and path.exists():
+        raise ValueError("Baseline already exists; rerun sweep without --init to ratchet it")
+    baseline = None if args.init else Baseline.read(path, settings)
+    detector, _ = detector_for(root, settings, args)
+    candidates = baseline.candidates(detector) if baseline else detector.candidates(detector.functions)
+    report = judged(candidates, settings, root, args, run_info(root, None), 0,
+                    functions=len(detector.functions), scope="repository")
+    require_complete(report)
+    # Render the full backlog, while enforcing only duplicates outside the immutable accepted set.
+    output_args = argparse.Namespace(**{**vars(args), "baseline": None, "warn_only": True})
+    finish(report, settings, output_args)
+    if baseline and any(f.blocking for f in baseline.apply(report).findings):
+        print("dry-lint: new or changed duplicates found; baseline and cleanup totals were not updated")
+        return 1
+    updated = baseline.advance(report) if baseline else Baseline.start(report, settings)
+    readme = root / args.readme if args.readme else None
+    content = None
+    if readme:
+        directory = path.parent.relative_to(root).as_posix()
+        content = update_readme(readme.read_text(encoding="utf-8"),
+                                updated.markdown(args.repository, args.branch, directory))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    (path.parent / "progress.json").write_text(json.dumps(updated.badge(), indent=2) + "\n",
+                                             encoding="utf-8")
+    if readme and content is not None:
+        readme.write_text(content, encoding="utf-8")
+    print(f"dry-lint: {updated.count('cleaned')} pairs cleaned, {updated.count('remaining')} remaining, "
+          f"{updated.count('dismissed')} dismissed; wrote {path}")
+    return 0
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -334,6 +388,9 @@ def parser() -> argparse.ArgumentParser:
                                          "`dry-lint config` lists them.")
     common.add_argument("--budget-usd", type=float, help="Most judging spends on this pull request (all its runs), overriding budget.usd.")
     common.add_argument("--warn-only", action="store_true", help="Report, but always exit 0.")
+    common.add_argument("--require-complete", action="store_true", help="Fail on missing or incomplete judging.")
+    common.add_argument("--baseline", type=Path, help="Accepted duplication baseline, relative to --root.")
+    common.add_argument("--baseline-ref", help="Reject widening compared to the baseline at this trusted Git ref.")
 
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")
     main.add_argument("--version", action="version", version=f"dry-lint {__version__}")
@@ -353,6 +410,11 @@ def parser() -> argparse.ArgumentParser:
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
     sweep.add_argument("--limit", type=int, default=50, help="Judge and show at most this many pairs, closest first.")
     sweep.add_argument("--refresh", action="store_true", help="Re-judge verdicts from older versions of the judge.")
+    ratcheting = commands.add_parser("sweep", parents=[common], help="Scan all functions and shrink the accepted backlog.")
+    ratcheting.add_argument("--init", action="store_true", help="Initialize once from a fully judged repository sweep.")
+    ratcheting.add_argument("--readme", type=Path, help="Maintain the cleanup progress block in this README.")
+    ratcheting.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""), help="README badge OWNER/NAME.")
+    ratcheting.add_argument("--branch", default="main", help="README badge's published branch (default: main).")
     proposing = commands.add_parser("detect", parents=[common], help="Write candidates.json; no judge, no store.")
     where(proposing, everything=True)
     proposing.add_argument("--out", type=Path, help="Write candidates.json here (default: print it).")
@@ -387,7 +449,7 @@ def parser() -> argparse.ArgumentParser:
     return main
 
 
-COMMANDS = {"check": check, "scan": scan, "detect": detect, "judge": judge, "report": report, "explain": explain,
+COMMANDS = {"check": check, "scan": scan, "sweep": sweep, "detect": detect, "judge": judge, "report": report, "explain": explain,
             "config": config, "index": index,
             "bench": bench}
 

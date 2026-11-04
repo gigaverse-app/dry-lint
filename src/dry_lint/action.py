@@ -99,6 +99,10 @@ def judging_options() -> list[str]:
     for name, flag_ in (("INPUT_PRESET", "--preset"), ("INPUT_BUDGET_USD", "--budget-usd")):
         if env(name):
             options += [flag_, env(name)]
+    if flag("INPUT_REQUIRE_COMPLETE"):
+        options.append("--require-complete")
+    if env("INPUT_BASELINE"):
+        options += ["--baseline", env("INPUT_BASELINE")]
     return options
 
 
@@ -444,7 +448,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)
         code, _ = dry_lint("detect", "--root", str(root), "--out", str(work / "candidates.json"),
-                           *(["--base", base] if base else []), *repositories)
+                           *(["--base", base] if base else []), *repositories,
+                           *(["--require-complete"] if flag("INPUT_REQUIRE_COMPLETE") else []))
         write_outputs(mode=mode, exit_code=code, findings=0)
         print(f"::notice title=dry-lint::Candidates saved as the {ARTIFACT} artifact for the judge workflow.")
         return 2 if code == 2 else 0
@@ -452,6 +457,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     if mode == "judge":
         candidates = work / "in" / "candidates.json"
         if not candidates.exists():
+            if flag("INPUT_REQUIRE_COMPLETE"):
+                raise ValueError("Required judging has no candidate artifact; rerun the detection workflow")
             print("::notice title=dry-lint::The triggering run left no candidates; nothing to judge.")
             write_outputs(mode=mode, exit_code=0, findings=0)
             return 0
@@ -467,6 +474,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     else:
         base = resolve_base(env("INPUT_BASE"), event_name, event)
         ensure_history(root, base)
+        if env("INPUT_BASELINE") and base:
+            judging += ["--baseline-ref", base]
         code, lines = dry_lint("check", "--root", str(root), *(["--base", base] if base else []), *repositories, *judging)
         pull = event.get("pull_request") or {}
         number, repository, head = pull.get("number") or 0, env("GITHUB_REPOSITORY"), (pull.get("head") or {}).get("sha", "")
@@ -482,6 +491,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         body.write_text(body.read_text() + receipt)
     write_summary(body)
     if code == 2:
+        if mode == "judge":
+            check_run(root, repository, report, transport, blocked=True)
         write_outputs(mode=mode, exit_code=2, findings=findings, blocking=blocking, overridden="false")
         return 2
     if judge == "none":
