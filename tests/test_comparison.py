@@ -22,10 +22,12 @@ class SourceGitHub(FakeGitHub):
     def __init__(self, visibility="public", status=200):
         super().__init__()
         self.metadata = {REPO: {"visibility": visibility, "private": visibility != "public"}}
-        self.status, self.sources, self.reads = status, {}, []
+        self.status, self.sources, self.reads, self.base = status, {}, [], None
 
     def __call__(self, request):
         path = unquote(request.url.path)
+        if request.method == "GET" and path == f"/repos/{REPO}/pulls/{PR}" and self.base:
+            return httpx.Response(200, json={"head": {"sha": self.head}, "base": {"sha": self.base}})
         if request.method == "GET" and path.startswith("/repos/"):
             repository = "/".join(path.split("/")[2:4])
             if path == f"/repos/{repository}":
@@ -85,6 +87,29 @@ def test_public_cleanup_links_both_originals_to_the_uniquely_remaining_symbol():
     ledger = PullLedger.read(body)
     assert ledger.count("kept-out") == 1 and ledger.tally.judgments == 1
     assert body.index("Compare the code") < body.index("History and check stats")
+
+
+def test_a_cleanup_links_the_changes_since_the_finding():
+    fake = SourceGitHub()
+    fake.base = "c" * 40
+    post(fake, report(HEAD, finding("drifted")), "1")
+    post(fake, report(AFTER), "2")
+    assert payload(fake.stickies()[0])["diff"] == f"https://github.com/{REPO}/compare/{HEAD}...{AFTER}"
+
+
+@pytest.mark.parametrize("base, diff", [("c" * 40, f"https://github.com/{REPO}/compare/{'c' * 40}...{HEAD}"),
+                                        (HEAD, ""), ("main", ""), (None, "")])
+def test_a_pair_found_at_the_reviewed_commit_links_the_pull_request_diff_or_nothing(base, diff):
+    """
+    INVARIANT: the viewer's GitHub diff link never compares a commit with itself. A pair found at the reviewed commit
+    has no changes since; it gets the pull request's base...head, or no link when that base cannot be read.
+    """
+    fake = SourceGitHub()
+    fake.base = base
+    post(fake, report(HEAD, finding("drifted", score=.4, why="separate concepts")), "1")
+    body = fake.stickies()[0]
+    assert payload(body)["diff"] == diff
+    assert "Changes since finding" not in body
 
 
 @pytest.mark.parametrize("left,right", [(404, 404), (200, 200), (500, 200)])
