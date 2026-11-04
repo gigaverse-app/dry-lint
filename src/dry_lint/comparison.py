@@ -13,7 +13,7 @@ from dry_lint.comparison_helpers import python_helpers
 from dry_lint.evidence import PairEvidence, SourceReference
 from dry_lint.extractors import PythonExtractor
 from dry_lint.ledger import PullLedger
-from dry_lint.models import Function, Run
+from dry_lint.models import Function, Run, Verdict, qualified
 from dry_lint.report import Report, escaped
 from dry_lint.typescript import TypeScriptExtractor
 
@@ -23,6 +23,47 @@ if TYPE_CHECKING:
 VIEWER = "https://gigaverse-app.github.io/dry-lint/compare/"
 MAX_PAIRS = 5
 MAX_LINK = 12_000
+MAX_RULES = 5
+WHY_LIMIT = 600
+
+# Each state's heading, in the order the table shows them, and what it means for the reader.
+GROUPS = {
+    "open": ("🔴 Still duplicated", "the judge found one concept at or above the reporting bar"),
+    "kept-out": ("✅ Cleaned up", "reported on an earlier push, and no longer"),
+    "below threshold": ("🟡 Near misses", "judged one concept, but under the {bar} reporting bar, so not counted"),
+    "deferred": ("⏳ Not judged yet", "the budget ran out before the judge reached them"),
+    "unjudged": ("⏳ Not judged yet", "no judge answered"),
+    "separate": ("⚪ Different concepts", "the judge found two concepts that only look alike"),
+    "dismissed": ("🏷️ Dismissed", "marked as different concepts in the code"),
+}
+MODEL = re.compile(r"(claude|gemini)-([a-z]+-)?(\d+(?:[.-]\d+)*)(-[a-z]+)?")
+
+
+def model_name(name: str) -> str:
+    """A judge as a reader knows it: `Claude Sonnet 5.5` for `anthropic:dry-v1:claude-sonnet-5-5`, else its plugin."""
+    if match := MODEL.search(name):
+        family, tier, version, variant = match.groups()
+        words = [
+            family,
+            tier.rstrip("-") if tier else "",
+            version.replace("-", "."),
+            variant.lstrip("-") if variant else "",
+        ]
+        return " ".join(word.capitalize() if word[:1].isalpha() else word for word in words if word)
+    plugin, _, rest = name.partition(":")
+    # A command judge is the program it runs: `command:claude` is `claude`.
+    return rest.split(":", 1)[0] if plugin == "command" and rest else plugin.capitalize()
+
+
+def decided_by(verdict: Verdict) -> str:
+    first = model_name(f"{verdict.judge}:{verdict.judge_version}")
+    return f"{model_name(verdict.second_opinion)}, rechecking {first}" if verdict.second_opinion else first
+
+
+def reason(verdict: Verdict, evidence: PairEvidence) -> str:
+    """The judge's reason with its NEW and EXISTING placeholders replaced by the two functions' names."""
+    names = {"NEW": evidence.a.qualified, "EXISTING": evidence.b.qualified}
+    return re.sub(r"\b(NEW|EXISTING)\b", lambda match: names[match.group(1)], verdict.why)
 
 
 def viewer_link(
@@ -183,39 +224,60 @@ class Comparisons:
                     entries[finding.candidate.key] = (evidence, state)
         if not entries:
             return ""
-        ordered = sorted(entries.items(), key=lambda entry: entry[1][1] != "kept-out")
+        order = list(GROUPS)
+        ordered = sorted(
+            entries.items(), key=lambda entry: order.index(entry[1][1]) if entry[1][1] in GROUPS else len(order)
+        )
+        judging = next((r.judging for r in reversed(reports) if r.judging), None)
+        bar = f"{judging.report_at:.2f}" if judging else "configured"
         lines = [
             "<details><summary><strong>Compare the code and recorded judgments</strong></summary>",
             "",
-            "The recorded label is the judge's classification; confidence determines whether a duplicate or "
-            "drifted pair meets the reporting bar. Low-confidence candidates and pairs judged separate are "
-            "not counted as tangled.",
-            "",
-            "| Pair | Report outcome | Sources | Recorded classification and confidence |",
-            "| :-- | :-- | :-- | :-- |",
+            "Every pair the detector proposed, grouped by the outcome. The **duplicate score** is the judge's "
+            "estimate, from 0 to 1, that the two are one concept; only pairs at or above the reporting bar count "
+            "as still duplicated.",
         ]
-        states = {
-            "kept-out": "No longer reported",
-            "open": "Still tangled",
-            "dismissed": "Dismissed",
-            "below threshold": "Not reported: low confidence",
-            "separate": "Not reported: judged separate",
-        }
-        for _, (evidence, state) in ordered[:MAX_PAIRS]:
-            verdict = evidence.verdict
-            judgment = (
-                f"{verdict.label}; confidence {verdict.score:.2f}; {verdict.judge}; "
-                f"{'reused' if evidence.cached else 'recorded'}" + (f": {verdict.why}" if verdict.why else "")
-                if verdict
-                else "Not judged"
-            )
-            concept = f"{evidence.a.qualified} ≈ {evidence.b.qualified}"
-            links = self.links(evidence, state)
-            if sum(map(len, lines)) + len(links) > 20_000:
-                links = f"[A]({evidence.a.url()}) · [B]({evidence.b.url()})"
-            lines.append(f"| {escaped(concept)} | {states.get(state, state)} | {links} | {escaped(judgment)} |")
+        shown = ordered[:MAX_PAIRS]
+        for state in dict.fromkeys(state for _, (_, state) in shown):
+            group = [
+                (evidence, links) for _, (evidence, s) in shown if s == state for links in [self.links(evidence, state)]
+            ]
+            heading, meaning = GROUPS.get(state, (state, ""))
+            count = sum(s == state for _, (_, s) in entries.items())
+            lines += [
+                "",
+                f"**{heading} ({count})**" + (f": {meaning.format(bar=bar)}." if meaning else ""),
+                "",
+                "| Pair | Duplicate score | Decided by | Why | Sources |",
+                "| :-- | --: | :-- | :-- | :-- |",
+            ]
+            for evidence, links in group:
+                verdict = evidence.verdict
+                score = (
+                    f"{verdict.score:.2f}" + (" · already drifted" if verdict.label == "drifted" else "")
+                    if verdict
+                    else "—"
+                )
+                if sum(map(len, lines)) + len(links) > 20_000:
+                    links = f"[A]({evidence.a.url()}) · [B]({evidence.b.url()})"
+                lines.append(
+                    f"| {escaped(evidence.a.qualified)} ≈ {escaped(evidence.b.qualified)} | {score} | "
+                    f"{escaped(decided_by(verdict)) if verdict else 'not judged'} | "
+                    f"{escaped(reason(verdict, evidence), WHY_LIMIT) if verdict and verdict.why else '—'} | "
+                    f"{links} |"
+                )
         if len(entries) > MAX_PAIRS:
             lines += ["", f"Showing {MAX_PAIRS} of {len(entries)} pairs; the scan reports retain the other findings."]
+        settled = {candidate.key: candidate for report in reports for candidate in report.filtered}
+        if settled:
+            lines += ["", f"**🔗 Settled by a rule, not judged ({len(settled)})**", ""]
+            lines += [
+                f"- {escaped(qualified(c.new.owner, c.new.name))} ≈ {escaped(qualified(c.existing.owner, c.existing.name))}"
+                f": {escaped(c.filtered or 'rule')}"
+                for c in list(settled.values())[:MAX_RULES]
+            ]
+            if len(settled) > MAX_RULES:
+                lines.append(f"- and {len(settled) - MAX_RULES} more")
         lines += [
             "",
             "Source links use fixed commits. Comparisons reuse recorded judgments; no extra model calls.",

@@ -82,12 +82,15 @@ metadata show full qualified names instead of source links.
 ### Comparison links
 
 The cleanup basket includes a collapsed comparison table with immutable **A** and **B** source links, a GitHub
-diff from the last reported commit to the current head, and the recorded judgment. Below-threshold candidates
-also retain their links and judgments. Up to five pairs are shown, with cleaned pairs first.
-The recorded classification (`duplicate`, `drifted`, or `separate`) and confidence are distinct from the reporting
-outcome. A duplicate/drifted candidate below the applicable reporting bar is **Not reported: low confidence**;
-`separate` is **Not reported: judged separate**, regardless of score. Neither counts as still tangled. The table
-uses the existing report decision, including any first-judge threshold, without rejudging or changing the counts.
+diff from the last reported commit to the current head, and the recorded judgment. Pairs are grouped by outcome,
+each group headed by what it means: **Still duplicated**, **Cleaned up**, **Near misses** (judged one concept but
+under the reporting bar, named in the heading), **Not judged yet**, **Different concepts** (judged separate,
+whatever the score) and **Dismissed**. Only the first counts as still tangled. Each row gives the **duplicate
+score** (the judge's 0 to 1 estimate that the two are one concept, marked when the copies already drifted), the
+model that **decided** it (with the first judge it rechecked, for an escalation), and its reason with both
+functions named. Up to five judged pairs are shown, the groups in that order; pairs a rule settled without a
+judge are listed after them with the rule. The table uses the existing report decision, including any first-judge
+threshold, without rejudging or changing the counts.
 
 - **Private, internal, unknown visibility, or GitHub Enterprise Server:** GitHub links only. No external viewer
   link, source payload or additional source fetch is generated. A public repository with a private or unverifiable
