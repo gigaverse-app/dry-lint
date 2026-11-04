@@ -108,7 +108,7 @@ only and is not a cost control.
 Check out peers at trusted refs using a token with read access, then pass their paths to the action:
 
 ```yaml
-- uses: gigaverse-app/dry-lint@main # Pin a reviewed commit in production.
+- uses: gigaverse-app/dry-lint@main
   with:
     typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
     warn-only: "true"

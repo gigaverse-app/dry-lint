@@ -2,6 +2,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dry-lint-counter",
+  // "Gigaverse OSS (Free)": a Workers Free account, so the counter can never be billed. Pinned so no login,
+  // whichever accounts it can see, deploys it anywhere else.
+  "account_id": "d74f5208a821387bdf6da11efda724da",
   "main": "src/worker.js",
   "compatibility_date": "2026-10-01",
   "workers_dev": true,

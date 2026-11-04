@@ -19,3 +19,8 @@ changing the pipeline, a file format or the store, and [docs/plugins.md](docs/pl
 - Decisions made by people go in code (`# dry-lint: distinct-from`) or in configuration (`patterns`), never in the
   verdict store.
 - dry-lint should pass on its own code: run `uv run dry-lint check` before you push.
+
+## GitHub Actions versions
+
+- ALWAYS use published major-version tags for established GitHub Actions, for example `actions/checkout@v7` and `actions/upload-artifact@v7`, so compatible fixes arrive without per-commit maintenance. NEVER replace those tags with commit hashes unless the user explicitly requests that exact exception. If a publisher has no major-version tag, use its published release tag rather than inventing a ref or substituting a hash.
+- ALWAYS use `gigaverse-app/dry-lint@main` until its v1 launch, then use `@v1`. Apply the same ref in workflow examples and adoption instructions.

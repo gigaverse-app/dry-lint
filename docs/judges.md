@@ -38,6 +38,38 @@ preset's thresholds, and the first judge's answers that it did not see (outside 
 run out) meet the first judge's own bar, `escalate.first_at`: 0.8 for Jev. Without that, a large pull request that
 ran out of budget would fail on Jev scores of 0.55, where Jev alone is right about two times in three.
 
+## Who reads the findings: people, or coding agents
+
+Choose the judging for whoever reads the findings, not for the best score on a benchmark.
+
+- **A person** reading a pull request comment pays for each false positive with attention, and a red check holds up a
+  merge. Every wrong finding also teaches them to skim the next one. Put precision first: an escalating preset such
+  as `jev+opus` (98% precision), and a `fail_at` that blocks only what is nearly certain.
+- **A coding agent** pays seconds. It opens both functions, decides, and either reuses the existing one or records
+  why they differ (`# dry-lint: distinct-from ...`), which settles the pair for good. A missed duplicate costs a copy
+  that drifts. Put recall first, with a fast, cheap judge and a low threshold: the agent is the second judge, so
+  paying Claude Opus to judge a finding that an agent will check anyway buys little.
+
+**High enough** is a range, not a maximum, for both:
+
+| Reader | Recall | Precision | Judging |
+| --- | --- | --- | --- |
+| Person: PR comment, required check | as high as precision allows | about 95% or more of what blocks; reports may warn below it | `jev+opus` or `jev+sonnet` |
+| Coding agent: hook, agent loop, `--format json` | about 90% or more | about one in two or better: below that, agents start ignoring findings as people do | Jev, or another cheap judge, at a low threshold |
+
+The measurements support the split. Jev alone, at 0.6, keeps 95% recall at 70% precision on gigaverse-ai
+([benchmark](benchmark.md#results)), for about $0.0002 a pull request against about $0.005 for `jev+opus`. On the
+gigaverse-backend, -web-app and -mobile gold sets, it keeps 90% to 100% recall at 0.6, with about one finding in two
+real. That is plenty for an agent to check, and too noisy to block a person's merge.
+
+One repository can serve both readers. CI keeps a precision preset for the comment and the check. A coding agent runs
+`dry-lint check --staged --preset jev --format json`: the JSON lists every judged pair with its score, not only
+the ones the preset reports, so it can review everything from 0.6 up. A local run keeps its verdicts in the git
+directory and CI keeps its own in the Actions cache. Even in one store, a verdict is reused only by judging that
+would have given it: a second opinion only for the same second judge, and Jev's own answer in the escalation band
+never for a run that escalates. So a `jev` run and a `jev+opus` run can share a store, and adding a second judge
+re-judges the cached first answers it would have seen.
+
 ## Paying with a subscription instead of an API key
 
 - **Claude (Pro, Max, Team):** the `claude-code` judge runs `claude -p` with every tool off and a neutral system

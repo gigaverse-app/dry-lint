@@ -8,10 +8,7 @@
   <img alt="dry-lint" src="docs/assets/sticky-banner-light.svg" width="640">
 </picture>
 
-<a href="#the-counter"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark">
-  <img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg" width="640">
-</picture></a>
+<a href="#the-counter"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg#gh-light-mode-only" width="640"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark#gh-dark-mode-only" width="640"></a>
 
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
@@ -100,11 +97,13 @@ Open a new terminal after updating the shell, then use these commands:
 | Find copies across related repositories | [Workspace scans and shared ownership](docs/workspaces.md) |
 | Avoid cloning peer repositories in CI | [Versioned function indexes](docs/function-indexes.md) |
 | See the comment before installing | [Example report](docs/comment-preview.md) |
+| Audit existing duplication, shrink its baseline and show cleanup in your README | [Repository sweeps and ratchets](docs/sweeps.md) |
 
 | Command | Does |
 | --- | --- |
 | `check [--base REF \| --staged]` | detect, judge and report the functions a change touched (base: `origin/HEAD`) |
 | `scan [--limit N] [--refresh] [--repo OWNER/NAME=PATH ...]` | the repository's backlog, or cross-repository pairs from a combined workspace |
+| `sweep [--init \| --update]` | audit the configured repository; explicitly initialize or shrink its accepted backlog and README progress |
 | `detect --out candidates.json` | CI job 1: propose pairs; no judge, no secrets, no store |
 | `judge --candidates candidates.json` | CI job 2: judge them, store the verdicts, report |
 | `report --from report.json --format F` | render a report as `text`, `github`, `markdown`, `json`, `sarif` or `check-run` |
@@ -153,7 +152,8 @@ The action annotates the changed functions, keeps one sticky PR comment up to da
 runs. The comment links both functions at the analyzed commit, shows the review workload, and folds evidence and
 pair-specific suppression instructions under each summary. A clean pull request gets a green sticky with what was checked (`comment-on-clean: "false"` to opt out). A reported duplicate fails the check at the preset's threshold
 (98% of them are real duplicates with `jev+opus`); `fail-at` raises or lowers it, and the `dry-lint: override`
-label lets one through. Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
+label lets one through. That precision is for people. A coding agent can check findings itself, so for agents a cheap
+judge at a lower threshold catches more for less ([who reads the findings](docs/judges.md#who-reads-the-findings-people-or-coding-agents)). Pull requests from forks get no secrets, so the default `mode: auto` runs dry-lint
 as two jobs for them: `detect` on the pull request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml)
 that keeps the key away from pull request code ([docs/design.md](docs/design.md#two-jobs-in-ci)).
 
@@ -162,23 +162,29 @@ Every sticky also keeps a running account: what each push cost, and each duplica
 
 ### The counter
 
+<img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg#gh-light-mode-only" width="640"><img alt="Duplicate functions dry-lint has kept out of codebases" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark#gh-dark-mode-only" width="640">
+
+![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dkept-out) ![pull requests checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dpulls) ![repositories](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Drepositories) ![judging spent](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dspent)
+
 The sign above counts every duplicate dry-lint has kept out of a codebase: a duplicate a pull request introduced,
 dry-lint reported, and a later push removed before merging. When a pull request merges, the action's run on the
 default branch sends its counts (duplicates kept out, caught and dismissed, pushes, judgments, functions checked,
-judging spend and the dry-lint version) to a [Cloudflare Worker](counter). The repository is sent only as the
-SHA-256 of its name; no code, names, paths or people. Each pull request is counted once. Opt out with
-`share-totals: "false"`.
+judging spend and the dry-lint version) to a [Cloudflare Worker](counter). No code, names, paths or people are
+sent. The repository is **pseudonymous**: it is sent as its counter key, the SHA-256 of its numeric GitHub id, which
+ties its pull requests together but which its name does not lead to; a private repository's id is visible only to
+people who can see the repository. Each pull request is counted once. Opt out with `share-totals: "false"`.
 
-Put your own repository's sign in its README:
+To show your own repository's sign, take its counter key from the log of a dry-lint run on your default branch
+(`dry-lint: this repository's counter key is ...`). `name` only labels the sign; the counter never looks a name up:
 
 ```html
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&repository=OWNER/NAME">
-  <img alt="Duplicates dry-lint kept out of OWNER/NAME" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?repository=OWNER/NAME" width="640">
+  <source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&key=KEY&name=OWNER/NAME">
+  <img alt="Duplicates dry-lint kept out of OWNER/NAME" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=KEY&name=OWNER/NAME" width="640">
 </picture>
 ```
 
-or a badge: `![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Frepository%3DOWNER%2FNAME)`.
+or a badge: `![duplicates kept out](https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fkey%3DKEY)`.
 
 For coding-agent feedback with a cheap judge, use the opt-in
 [`agent-haiku` hook setup](docs/agent-reviewed-discovery.md). Findings reject the commit for review and repair;

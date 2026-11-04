@@ -43,6 +43,9 @@ class ConsumerInstallTests(unittest.TestCase):
                 )
                 env = dict(os.environ, GITHUB_ACTION_PATH=ROOT.as_posix(), RUNNER_TEMP=runner.as_posix(),
                            GITHUB_PATH=github_path.as_posix(), PLUGINS=f"\r\n{plugin.as_posix()}\r\n  \r\n" if configuration == "uv.toml" else "")
+                requested_python = "3.14" if configuration == "package.json" else "3.13"
+                if requested_python == "3.14":
+                    env["DRY_LINT_PYTHON_VERSION"] = requested_python
                 subprocess.run([shutil.which("bash"), (ROOT / "scripts/install-action.sh").as_posix()], cwd=consumer, env=env, check=True)
                 installed_bin = Path(github_path.read_text().strip())
                 python = installed_bin / ("python.exe" if os.name == "nt" else "python")
@@ -53,7 +56,7 @@ class ConsumerInstallTests(unittest.TestCase):
                             if p["name"] in {"pydantic", "tree-sitter", "tree-sitter-typescript"}}
                 subprocess.run([str(python), "-c",
                                 "import sys, dry_lint; from importlib.metadata import version; "
-                                "assert sys.version_info[:2] == (3, 13); "
+                                f"assert sys.version_info[:2] == {tuple(map(int, requested_python.split('.')))!r}; "
                                 f"assert all(version(k) == v for k, v in {versions!r}.items()); "
                                 + ("import sample_plugin; assert sample_plugin.NAME == 'installed'"
                                  if configuration == "uv.toml" else "")], check=True, cwd=consumer)

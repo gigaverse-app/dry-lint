@@ -6,12 +6,17 @@ branding:
   color: purple
 
 inputs:
+  python-version:
+    description: Python parser/runtime version. Match newer source syntax; index publishers and consumers must agree.
+    required: false
+    default: '3.13'
   mode:
     description: >
       auto (default): judge on workflow_run, detect on a pull request from a fork, single otherwise.
       single: detect, judge and comment in one job. detect: propose candidates and upload them, for fork PRs
       (no secrets). judge: in a workflow_run workflow, judge the candidates the triggering run uploaded.
       index: publish committed functions as an artifact. fetch-indexes: download peer indexes for a later CLI scan.
+      sweep: scan the repository and shrink its existing baseline and README progress files.
     required: false
     default: auto
   typesafe-api-key:
@@ -117,6 +122,18 @@ inputs:
     description: Never fail; blocking findings are reported like the rest.
     required: false
     default: "false"
+  require-complete:
+    description: Fail if no judge is configured, any candidate is unjudged, or judging is incomplete.
+    required: false
+    default: "false"
+  baseline:
+    description: Accepted duplication baseline relative to working-directory. Implies complete judging.
+    required: false
+    default: ""
+  sweep-readme:
+    description: README path for sweep mode's cleanup progress block.
+    required: false
+    default: README.md
   override-label:
     description: A pull request label that turns blocking findings into warnings, for a false positive or an urgent merge.
     required: false
@@ -157,6 +174,7 @@ runs:
       shell: bash
       env:
         PLUGINS: ${{ inputs.plugins }}
+        DRY_LINT_PYTHON_VERSION: ${{ inputs.python-version }}
       run: bash "$GITHUB_ACTION_PATH/scripts/install-action.sh"
     - name: Install the claude CLI
       if: inputs.claude-code-oauth-token != ''
@@ -183,14 +201,14 @@ runs:
     # once, so a later invocation never rolls back what an earlier one recorded. Each invocation saves under its own
     # key; the newest save holds them all, and the next run restores that one by the shared prefix.
     - name: Restore verdicts
-      if: (steps.plan.outputs.mode == 'single' || steps.plan.outputs.mode == 'judge') && env.DRY_LINT_VERDICTS_RESTORED != 'true'
+      if: (steps.plan.outputs.mode == 'single' || steps.plan.outputs.mode == 'judge' || steps.plan.outputs.mode == 'sweep') && env.DRY_LINT_VERDICTS_RESTORED != 'true'
       uses: actions/cache/restore@v5
       with:
         path: ${{ runner.temp }}/dry-lint/verdicts
         key: dry-lint-verdicts-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}-
         restore-keys: dry-lint-verdicts-${{ github.job }}-
     - name: Share the verdicts with later invocations in this job
-      if: steps.plan.outputs.mode == 'single' || steps.plan.outputs.mode == 'judge'
+      if: steps.plan.outputs.mode == 'single' || steps.plan.outputs.mode == 'judge' || steps.plan.outputs.mode == 'sweep'
       shell: bash
       run: echo "DRY_LINT_VERDICTS_RESTORED=true" >> "$GITHUB_ENV"
     - name: Run
@@ -212,6 +230,9 @@ runs:
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
         INPUT_FAIL_AT: ${{ inputs.fail-at }}
         INPUT_WARN_ONLY: ${{ inputs.warn-only }}
+        INPUT_REQUIRE_COMPLETE: ${{ inputs.require-complete }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
+        INPUT_SWEEP_README: ${{ inputs.sweep-readme }}
         INPUT_OVERRIDE_LABEL: ${{ inputs.override-label }}
         TYPESAFE_AI_API_KEY: ${{ inputs.typesafe-api-key }}
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}

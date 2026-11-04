@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
-from dry_lint.functions import extractor_for, repository_functions, selected_path
+from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
 from dry_lint.models import Candidate, Function, Run
 from dry_lint.plugins import Comparer, Extractor, identity, load
@@ -133,19 +133,22 @@ class Detector:
         comparer.index(functions)
 
     @classmethod
-    def for_repository(cls, root: Path, settings: Settings) -> "Detector":
+    def for_repository(cls, root: Path, settings: Settings, *, strict: bool = False) -> "Detector":
         extractors = [load("extractors", choice) for choice in settings.extractors]
-        functions = repository_functions(root, settings.include, settings.exclude, extractors)
+        functions = repository_functions(root, settings.include, settings.exclude, extractors, strict=strict)
         return cls(functions, settings, load("comparers", settings.comparer), extractors)
 
     @classmethod
-    def for_tree(cls, root: Path, revision: str, settings: Settings) -> "Detector":
+    def for_tree(cls, root: Path, revision: str, settings: Settings, *, strict: bool = False) -> "Detector":
         extractors = [load("extractors", choice) for choice in settings.extractors]
         functions = []
         for path, source in tree_blobs(root, revision, settings).items():
             extractor = extractor_for(path, extractors)
             if extractor and selected_path(path, settings.include, settings.exclude):
-                functions.extend(extractor.functions(path, source.decode("utf-8")))
+                text = source.decode("utf-8")
+                if strict:
+                    validate_source(extractor, path, text)
+                functions.extend(extractor.functions(path, text))
         return cls(functions, settings, load("comparers", settings.comparer), extractors)
 
     @classmethod

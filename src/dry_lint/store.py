@@ -155,8 +155,13 @@ class VerdictStore:
         self.backend.put(spent_key(run), spent.model_dump_json().encode())
 
     def lookup(self, candidate: Candidate, judge: str, reopen_margin: float, version: str | None = None,
+               escalation: str | None = None, band: tuple[float, float] = (0.0, 0.0),
                exact_source: bool = False) -> Lookup:
-        """The stored verdict if it still holds for the pair as it is now, and why it does or does not."""
+        """
+        The stored verdict if it still holds for the pair as it is now, and why it does or does not. With a second
+        judge (`escalation`, its identity, re-judging first scores in `band`), a verdict holds only if this judging
+        would have given it: a second opinion from that same judge, or a first answer it would not have re-judged.
+        """
         record = self.record(candidate.key)
         if record is None:
             return Lookup(None, "never judged")
@@ -169,6 +174,10 @@ class VerdictStore:
             return Lookup(None, f"judged by {verdict.judge}, not {judge}")
         if version is not None and verdict.judge_version != version:
             return Lookup(None, f"judged by {judge} {verdict.judge_version}, not {version}")
+        if verdict.second_opinion is not None and verdict.second_opinion != escalation:
+            return Lookup(None, f"second opinion from {verdict.second_opinion}, not {escalation or 'no second judge'}")
+        if verdict.second_opinion is None and escalation and band[0] <= verdict.score < band[1]:
+            return Lookup(None, f"{escalation} re-judges first scores in [{band[0]:g}, {band[1]:g}), and never saw this one")
         then = dict(zip(record.pair, record.hashes))
         now = {candidate.new.qualname: candidate.new.hash, candidate.existing.qualname: candidate.existing.hash}
         if then == now:

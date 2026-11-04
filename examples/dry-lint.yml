@@ -5,7 +5,9 @@
 name: dry-lint
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]  # labels: the override label re-runs it
+    # Every label change runs it, with no `if` to skip one: a job skipped by `if` reports success, so a skipped run
+    # would turn a red required check green. Verdicts come from the cache, so a re-run costs no judge calls.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main]  # judges merged code too, and its verdict cache is shared with every pull request
 
@@ -14,23 +16,24 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: dry-lint-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # A new push replaces a pull request's run. A run on main is never cancelled: it folds merged pull requests into
+  # the repository's ledger and saves the verdicts every pull request restores.
+  group: dry-lint-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   dry-lint:
-    # Only the override label is worth a re-run when labels change.
-    if: "github.event.action != 'labeled' && github.event.action != 'unlabeled' || github.event.label.name == 'dry-lint: override'"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 1
+          fetch-depth: 1  # enough: the action fetches just the base and head ancestry it needs
+          persist-credentials: false
       - uses: gigaverse-app/dry-lint@main
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
-          # anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # Claude Sonnet's second opinion on borderline scores
+          # anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # preset jev+opus: Claude Opus re-judges uncertain scores
           # Every reported duplicate fails the check; the `dry-lint: override` label lets one through.
           # fail-at: "0.91"     # fail only on near-certain duplicates; the rest warn
           # warn-only: "true"   # never fail
