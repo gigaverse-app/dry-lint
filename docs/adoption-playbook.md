@@ -169,9 +169,18 @@ as `DRY_LINT_RATCHET_TOKEN` (Gigaverse consumers use the inherited `GV_CI_CROSS_
 ordinary `GITHUB_TOKEN` generally does not trigger ordinary PR workflows; the ratchet must receive the same required
 checks as other PRs. Keep the token out of source-checkout credentials. A missing token should fail visibly.
 
-Retain JSON/Markdown reports as artifacts even when the audit fails. New debt, incomplete judging or changed
+Upload any emitted JSON/Markdown reports with `if: always()`, including on a new-debt failure.
+An operational failure before report generation may leave no report; retain and link the failed workflow logs,
+restore credentials/budget/parser compatibility and retry. Missing artifacts are not a clean audit. New debt, incomplete judging or changed
 detection policy must prevent the update step. No-change runs must produce no metadata diff and no new PR. Use a
 Conventional Commits title for both bot commit and PR. Do not auto-merge the ratchet or widen its allowed paths.
+
+A cold full audit can expose blocking pairs outside the original baseline even when the adoption PR changes no
+functions. Classify those findings before enabling the ratchet: reuse an existing owner for shared policy, and
+record narrow exclusions only where the source and tests establish distinct contracts. For example, a Django
+commit counter can reuse a framework-free counter while retaining its connection cleanup; real-database and
+in-memory crash controls can deliberately keep different failure sites. Different filenames or backends alone
+do not justify a dismissal. Rerun with the saved verdicts; do not reinitialize the baseline or raise thresholds.
 
 To clean debt, select a pair from the audit, inspect both contracts, consolidate, run the affected tests, then run:
 
@@ -202,5 +211,6 @@ Repeat the inventory before making changes. pytest-obligation already had a stri
 but lacked hooks and automated ratchet PRs. Its README had backlog counts without a repository counter sign.
 That comparison adds four requirements to the Due recipe: preserve partial adoption, check inherited secrets and
 rulesets, pass the numeric repository ID for a local README render, and protect main-push accounting from cancellation.
+It also removes a second CLI install from the audit workflow so judgment and update use the same runtime.
 Keep consumer-specific paths, parser versions, token names and CI selection rules in the consumer; keep this lifecycle
 and the reusable workflow here.
