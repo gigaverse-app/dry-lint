@@ -187,10 +187,13 @@ def test_truncated_tree_cannot_be_reported_as_a_complete_index(index_server):
 
 
 @pytest.mark.parametrize("mode", ["single", "fetch-indexes"])
-def test_action_consumes_indexes_through_the_real_cli(index_server, github_env, repo, tmp_path, twin_judge, mode):
+@pytest.mark.parametrize("advisory", ["warn-only", "override"])
+def test_action_consumes_indexes_through_the_real_cli(
+    index_server, github_env, repo, tmp_path, twin_judge, mode, advisory
+):
     github_env(
-        "workflow_dispatch",
-        {},
+        "pull_request",
+        {"pull_request": {"labels": [{"name": "dry-lint: override"}] if advisory == "override" else []}},
         mode=mode,
         working_directory=str(repo.root),
         base="main",
@@ -198,7 +201,7 @@ def test_action_consumes_indexes_through_the_real_cli(index_server, github_env, 
         comment="false",
         judge="command",
         judge_command=twin_judge,
-        warn_only="true",
+        warn_only=str(advisory == "warn-only").lower(),
     )
     assert action.main(["run"], transport=index_server[3]) == 0
     manifest = json.loads((action.workdir() / "index-arguments.json").read_text())

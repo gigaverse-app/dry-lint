@@ -330,6 +330,7 @@ def as_text(report: Report) -> str:
     lines.append(
         f"dry-lint: {stats['candidates']} candidate pair(s), {stats['filtered']} skipped by rule, "
         f"{stats['cached']} from the store, {stats['judged']} judged ({judge}), {stats['reported']} reported"
+        + (f", {len(report.review_required)} review required" if report.review_required else "")
     )
     if report.deferred:
         lines.append(f"dry-lint: {report.deferred} deferred by the judge budget; these pairs are not cleared")
@@ -360,7 +361,11 @@ def as_github(report: Report) -> str:
     def escape(text: str) -> str:
         return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
-    lines = []
+    lines = [
+        f"::warning title=dry-lint::{escape('Judging degraded: ' + summary.line())}"
+        for summary in (report.judging, report.model_judging)
+        if summary and any(spend.failed or spend.error for spend in summary.spend)
+    ]
     for f in report.visible:
         new = f.candidate.new
         lines.append(
