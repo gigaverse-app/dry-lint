@@ -77,8 +77,14 @@ BUILT_IN = {
     "extractors": {
         "python": "dry_lint.extractors:PythonExtractor",
         "typescript": "dry_lint.typescript:TypeScriptExtractor",
+        "python-models": "dry_lint.model_shapes:PythonModelExtractor",
+        "typescript-models": "dry_lint.model_shapes:TypeScriptModelExtractor",
     },
-    "comparers": {"tfidf": "dry_lint.comparers:TfidfComparer", "dryer": "dry_lint.dryer:DryerComparer"},
+    "comparers": {
+        "tfidf": "dry_lint.comparers:TfidfComparer",
+        "dryer": "dry_lint.dryer:DryerComparer",
+        "model-shape": "dry_lint.model_shapes:ModelComparer",
+    },
     "judges": {
         "jev": "dry_lint.judges.jev:JevJudge",
         "command": "dry_lint.judges.command:CommandJudge",

@@ -255,7 +255,7 @@ class Detector:
                 if self.cross_repository
                 else different_repository
                 or other.path != function.path
-                or self.same_file
+                or (self.same_file or function.declaration is not None and other.declaration is not None)
                 and other.qualname != function.qualname
             ) and self.file_extractors[other.path] is extractor
 
