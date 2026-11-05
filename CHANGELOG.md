@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.4.0](https://github.com/gigaverse-app/dry-lint/compare/v1.3.1...v1.4.0) (2026-11-05)
+
+
+### Features
+
+* enable model review in PRs and staged checks ([a67d980](https://github.com/gigaverse-app/dry-lint/commit/a67d980cd9ce9c850ab0b052699a67b197d12b72))
+* enforce adopter schema families and retire resolved model debt ([993c675](https://github.com/gigaverse-app/dry-lint/commit/993c675405a86ac108aaeccf6cf9238d61270b01))
+* **models:** explore candidates with adopter ownership policies ([#81](https://github.com/gigaverse-app/dry-lint/issues/81)) ([acd6c69](https://github.com/gigaverse-app/dry-lint/commit/acd6c691daf600b409e4e4cfa1a205c82c23831c))
+* run default model review with source-reviewed debt ratchets ([76d602a](https://github.com/gigaverse-app/dry-lint/commit/76d602a62ecb34443c358db5131b0347cd062285))
+
+
+### Bug Fixes
+
+* **github:** analyze the event head when merge refs advance ([b2f3b05](https://github.com/gigaverse-app/dry-lint/commit/b2f3b059efb976ceea29bad06d5096ed22940de5))
+* **github:** analyze the event head when merge refs advance ([fb8d691](https://github.com/gigaverse-app/dry-lint/commit/fb8d69182d2ed0294f86381eed2492fa6bf1daf5))
+* **github:** preserve configured storage across source snapshots ([b82b82e](https://github.com/gigaverse-app/dry-lint/commit/b82b82ec558400b1526f7e9c0d3db5b489b5acca))
+* share ratchet validation and bind hook policies to staged source ([ffd94f1](https://github.com/gigaverse-app/dry-lint/commit/ffd94f1f0b4c58a3c075aa44a9eb0b018fcc008e))
+
+
+### Documentation
+
+* add full dry-lint adoption playbook ([aeb46e6](https://github.com/gigaverse-app/dry-lint/commit/aeb46e6af99a57c2f423a35236b45fe24c2370e1))
+* clarify ratchet credit and shared worktree installation ([9a0e1fa](https://github.com/gigaverse-app/dry-lint/commit/9a0e1faf23ecb77e6f501f668259aa4d3ab93f86))
+* define default model review adoption invariants ([aadadb7](https://github.com/gigaverse-app/dry-lint/commit/aadadb736f84d220b8cb5e9f20294982f4a11918))
+* document and validate the full adoption playbook ([e9b3385](https://github.com/gigaverse-app/dry-lint/commit/e9b338598eed4e2cced1519142f86a8e363dc219))
+* explain audit recovery and source-reviewed findings ([0e63ca3](https://github.com/gigaverse-app/dry-lint/commit/0e63ca3fef9b0048a721bf9277d6c4216fb694f8))
+
 ## [1.3.1](https://github.com/gigaverse-app/dry-lint/compare/v1.3.0...v1.3.1) (2026-11-05)
 
 
