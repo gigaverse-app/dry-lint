@@ -101,23 +101,39 @@ outside the accepted baseline fails the audit so a maintainer can investigate it
 ## README sticky and Shields.io badge
 
 `--readme README.md --repository OWNER/NAME` maintains a block between `dry-lint-progress` markers. It preserves
-the surrounding README, lists cleaned/remaining/dismissed pairs and links to the audit workflow. Use `--branch`
+the surrounding README, lists remaining/retired/dismissed pairs separately for functions and models, and links to
+both baselines and the audit workflow. Use `--branch`
 when the published default branch differs from `main`.
 
-With the repository's counter key the block is the repository's own sign, and links to the baseline and the audit.
-The sign shows three counts of duplicate pairs: new duplicates kept out of its pull requests, read live from the
-[global counter](../README.md#the-counter), and old duplicates from this backlog cleaned up and remaining, under the
-pull requests and functions checked. The backlog counts travel in the sign's address, so they change only when a
-sweep rewrites the block. In GitHub Actions the sweep takes the key from the repository's own id
+With the repository's counter key and a configured model baseline, the sign shows three independent counts:
+confirmed function duplicates kept out of pull requests, read live from the
+[global counter](../README.md#the-counter), accepted function pairs remaining, and reviewed model pairs remaining.
+The latter two tiles also show retired and dismissed pairs. The table below the image keeps these counts
+readable without the counter service. Without a model baseline it says **Not initialized**, not zero.
+The backlog counts travel in the sign's address, so they change only when the block is refreshed.
+In GitHub Actions the sweep takes the key from the repository's own id
 (`GITHUB_REPOSITORY_ID`); elsewhere pass `--repository-id`, or the sweep keeps the key of the sign already in the
 block. `--no-counter-card` leaves the sign out, for example when the repository opts out of sharing its totals with
 `share-totals: "false"`; the block then shows a progress badge and a table instead.
+
+Refresh both inventories after model retirement, or upgrade an existing README without another judge run:
+
+```bash
+dry-lint progress --readme README.md --repository OWNER/NAME
+```
+
+This command validates and renders existing baseline files without changing them or calling a judge. It reads
+the model path from `models.baseline`; `--baseline` selects a custom function baseline. A missing configured file
+is an error. `model-baseline --update --readme README.md --repository OWNER/NAME` can refresh the block directly.
+Scheduled audits should run `progress` after both ratchets succeed, before staging the metadata PR.
 
 The generated `.dry-lint/progress.json` follows the [Shields.io endpoint schema](https://shields.io/badges/endpoint-badge).
 Its badge URL is ready to copy from the README block. It reads the committed public JSON file, so no new service
 or deployment is needed. Private repositories need their own public aggregate endpoint to expose a badge.
 
-Counts mean **judged duplicate pairs**, not deleted lines or guaranteed repository-wide duplication totals.
+Counts mean accepted pairs within the configured inventories, not deleted lines or guaranteed repository-wide totals.
+**Retired** means a side was removed, or, for functions only, a judge now finds the pair separate. It does not
+prove a refactor. Model retirement still requires source evidence; a low atomic score cannot retire it.
 They start at zero cleaned. They change only when reviewed metadata is published to the badge's branch.
 Existing [PR prevention totals](github-action.md#the-ledger) retain their separate meaning. A baselined pull
 request's sticky credits the accepted pairs it cleans up as **from the accepted backlog**, on the same evidence

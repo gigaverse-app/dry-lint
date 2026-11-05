@@ -71,8 +71,8 @@ def combine(functions: Report, models: Report, debt: Baseline | None) -> Report:
             "model_debt": {state: debt.count(state) for state in ("remaining", "cleaned", "dismissed")}
             if debt
             else None,
-            "backlog": [*(functions.backlog or []), *(models.backlog or [])]
-            if functions.backlog is not None or models.backlog is not None
+            "model_backlog": [item.model_copy(update={"kind": "model"}) for item in models.backlog]
+            if models.backlog is not None
             else None,
         }
     )

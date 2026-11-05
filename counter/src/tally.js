@@ -97,7 +97,13 @@ export function backlog(params) {
     if (!/^\d{1,7}$/.test(value)) throw new Invalid(`${name} must be a whole number of pairs`);
     return Number(value);
   };
-  return { cleaned: read("cleaned"), remaining: read("remaining"), dismissed: read("dismissed") };
+  const accepted = { cleaned: read("cleaned"), remaining: read("remaining"), dismissed: read("dismissed") };
+  const names = ["cleaned", "remaining", "dismissed"];
+  if (names.some((name) => params.has(`models_${name}`))) {
+    if (!names.every((name) => params.has(`models_${name}`))) throw new Invalid("supply all three model debt counts");
+    accepted.models = Object.fromEntries(names.map((name) => [name, read(`models_${name}`)]));
+  }
+  return accepted;
 }
 
 export function count(value) {
@@ -187,7 +193,7 @@ function tile(c, x, color, value, label, note) {
  * and old ones cleaned up or remaining, over what was checked. Every number counts all of what it names; figures
  * that only some runs measured are left to the global sign.
  */
-function backlogSign(c, totals, scope, { cleaned, remaining }) {
+function backlogSign(c, totals, scope, { cleaned, remaining, dismissed, models }) {
   const one = (n, singular, many) => (n === 1 ? singular : many);
   const kept = totals.kept_out;
   const strip = [
@@ -198,8 +204,16 @@ function backlogSign(c, totals, scope, { cleaned, remaining }) {
   const label = escape(
     `${scope}: ${count(kept)} new ${one(kept, "duplicate", "duplicates")} kept out of ${count(totals.pulls)} `
       + `${one(totals.pulls, "pull request", "pull requests")}, ${count(cleaned)} old `
-      + `${one(cleaned, "duplicate", "duplicates")} cleaned up, ${count(remaining)} remaining`,
+      + `${one(cleaned, "duplicate", "duplicates")} ${models ? "retired function pairs" : "cleaned up"}, ${count(remaining)} remaining`
+      + (models ? `; reviewed model pairs: ${models.remaining} remaining, ${models.cleaned} retired, ${models.dismissed} dismissed` : ""),
   );
+  if (models) {
+    const note = (retired, excluded) => `${count(retired)} retired · ${count(excluded)} dismissed`;
+    return frame(c, label, `${tile(c, 236, c.accent, count(kept), "new duplicates kept out", "confirmed function findings")}
+      ${tile(c, 580, LINES, count(remaining), "function pairs remaining", note(cleaned, dismissed))}
+      ${tile(c, 924, DRIFT, count(models.remaining), "model pairs remaining", note(models.cleaned, models.dismissed))}`,
+    strip, (i) => (i === 2 ? 20 : 26));
+  }
   return frame(c, label, `${tile(c, 236, c.accent, count(kept), one(kept, "new duplicate kept out", "new duplicates kept out"), "")}
   ${tile(c, 580, LINES, count(cleaned), one(cleaned, "old duplicate cleaned up", "old duplicates cleaned up"), "")}
   ${tile(c, 924, DRIFT, count(remaining), one(remaining, "old duplicate remaining", "old duplicates remaining"), "")}`,

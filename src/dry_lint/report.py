@@ -60,6 +60,15 @@ class Finding(BaseModel):
     )
 
     @property
+    def kind(self) -> Literal["function", "model"]:
+        return "model" if self.candidate.new.declaration or self.candidate.existing.declaration else "function"
+
+    @property
+    def tracked(self) -> bool:
+        """Model ownership tasks belong in history, but never in confirmed-duplicate counters."""
+        return self.reported or self.kind == "model" and self.review_required
+
+    @property
     def review_required(self) -> bool:
         """An unresolved primary pair is work for the coding agent, never a confirmed duplicate."""
         return self.candidate.lane != "relative" and (
@@ -200,6 +209,7 @@ class BacklogCleanup(BaseModel):
     """An accepted baseline pair the change cleaned up, and the evidence: a side it removed, or a `separate` verdict."""
 
     new: str = Field(description="Qualified names, as the baseline records them.")
+    kind: Literal["function", "model"] = "function"
     existing: str
     how: Literal["removed", "separate"]
 
@@ -222,6 +232,7 @@ class Report(Versioned):
     backlog: list[BacklogCleanup] | None = Field(
         default=None, description="Accepted baseline pairs this change cleaned up; None when no baseline was checked."
     )
+    model_backlog: list[BacklogCleanup] | None = None
 
     @classmethod
     def build(
@@ -319,8 +330,41 @@ class Report(Versioned):
             "reported": sum(f.reported for f in self.findings),
         }
 
+    def lane(self, kind: Literal["function", "model"]) -> "Report":
+        """A rendering view of one pass; counts and judging retain that pass's meaning."""
+        model = kind == "model"
+        return self.model_copy(
+            update={
+                "findings": [f for f in self.findings if f.kind == kind],
+                "filtered": [c for c in self.filtered if bool(c.new.declaration or c.existing.declaration) == model],
+                "changed": self.changed_models if model else self.changed,
+                "functions": self.models if model else self.functions,
+                "judging": self.model_judging if model else self.judging,
+                "judge": (
+                    self.model_judging.judge
+                    or ("source-review" if any(f.review_required for f in self.findings if f.kind == "model") else None)
+                )
+                if model and self.model_judging
+                else self.judge,
+                "model_judging": None,
+                "model_debt": None,
+            }
+        )
+
 
 def as_text(report: Report) -> str:
+    if report.model_judging is not None:
+        return "\n\n".join(
+            [
+                "Functions\n" + text_lane(report.lane("function")),
+                "Models\n" + text_lane(report.lane("model")),
+                *model_summary(report),
+            ]
+        )
+    return text_lane(report) + "\nModels: not checked in this run."
+
+
+def text_lane(report: Report) -> str:
     lines = [
         f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {f.advice(report.relatives(f))}"
         for f in report.visible
@@ -452,6 +496,31 @@ def plural(count: int, noun: str) -> str:
 
 
 def as_markdown(report: Report, max_findings: int = 10, report_at: float | None = None) -> str:
+    if report.model_judging is None:
+        return markdown_lane(report, max_findings, report_at) + "\n\n<sub>Models: not checked in this run.</sub>"
+    parts = [MARKER, "### dry-lint · Functions & models", "", NOTE_SLOT, ""]
+    if not report.visible:
+        parts.append(CLEAN)
+    for kind, title in (("function", "Functions"), ("model", "Models")):
+        lane = report.lane(kind)
+        body = markdown_lane(lane, max_findings, report_at, kind)
+        # The sticky has one marker, one ledger insertion point and one overall clean status.
+        body = "\n".join(line for line in body.splitlines() if line not in (MARKER, NOTE_SLOT, CLEAN))
+        heading, _, content = body.partition("\n")
+        status = heading.split(" · ", 1)[-1]
+        parts += [f"#### {title} · {status}", content]
+        if kind == "model":
+            parts += [
+                "Model similarity proposes ownership work. Inspect nested types, producers and consumers, and "
+                "repository policies before consolidating. Independently evolving contracts may need to stay separate.",
+                *model_summary(report),
+            ]
+    return "\n\n".join(parts)
+
+
+def markdown_lane(
+    report: Report, max_findings: int = 10, report_at: float | None = None, kind: str = "function"
+) -> str:
     """
     The pull request comment, the job summary and the check run summary. A headline says how bad it is
     at a glance; one row per pair says where and what to do; the folds hold the reasons and the ways out.
@@ -459,7 +528,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
     audit, stats, shown = report.repository_wide, report.stats, report.visible
     below = sum(f.verdict is not None and not f.reported and not f.review_required for f in report.findings)
     coverage = " · ".join(part for part in (
-        "" if audit else plural(stats["changed"], "changed function"),
+        "" if audit else plural(stats["changed"], f"changed {kind}"),
         f"{plural(stats['candidates'], 'pair')} compared",
         f"{plural(stats['judged'] + stats['cached'], 'pair')} judged" if audit else "",
         f"{below} below the report threshold" if below else "",
@@ -482,7 +551,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
             "Set `TYPESAFE_AI_API_KEY`, or configure a judge, to have them judged and reported here.", *footer,
         ])  # fmt: skip
     if not shown:
-        return clean(report, audit, report_at)
+        return clean(report, audit, report_at, kind)
     blocking = sum(f.blocking for f in shown)
     headline = (
         f"### dry-lint audit · {plural(len(shown), 'duplicated concept')} in existing code"
@@ -598,15 +667,15 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
     ])  # fmt: skip
 
 
-def clean(report: Report, audit: bool, report_at: float | None) -> str:
+def clean(report: Report, audit: bool, report_at: float | None, kind: str = "function") -> str:
     """No findings: say so plainly, and show how much was checked to earn it."""
     stats = report.stats
     judged = [f for f in report.findings if f.verdict is not None]
     closest = max(judged, key=lambda f: f.verdict.score, default=None)
     counts = [
-        *([] if audit else [("🔎 Changed functions", f"{report.changed:,}")]),
+        *([] if audit else [(f"🔎 Changed {kind}s", f"{report.changed:,}")]),
         *(
-            [("🗂 Functions in the repository" if audit else "🗂 Compared with", plural(report.functions, "function"))]
+            [(f"🗂 {kind.title()}s in the repository" if audit else "🗂 Compared with", plural(report.functions, kind))]
             if report.functions
             else []
         ),
@@ -641,8 +710,10 @@ def clean(report: Report, audit: bool, report_at: float | None) -> str:
         if audit
         else "### dry-lint · ✨ No duplicated concepts"
     )
+    if kind == "model":
+        title = "### dry-lint · No unresolved model candidates"
     empty = (
-        ["**Nothing to compare.** This pull request changes no functions.", ""]
+        [f"**Nothing to compare.** This pull request changes no {kind}s.", ""]
         if not audit and not report.changed and not report.changed_models
         else []
     )

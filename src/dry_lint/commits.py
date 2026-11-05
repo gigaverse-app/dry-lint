@@ -23,16 +23,20 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from dry_lint.git import git
+from dry_lint.models import Versioned
 from dry_lint.report import Report, plural
 
 TRAILERS = {"kept-out": "Dry-Lint-Kept-Out", "dismissed": "Dry-Lint-Dismissed"}
-VALUE = re.compile(r"(?P<key>[0-9a-f]{8,64}) (?P<new>\S+) ≈ (?P<existing>\S+)(?: \((?P<lines>\d+) lines?\))?")
+VALUE = re.compile(
+    r"(?P<key>[0-9a-f]{8,64}) (?P<new>\S+) ≈ (?P<existing>\S+)(?: \((?P<lines>\d+) lines?\))?(?P<model> \[model review\])?"
+)
 
 
 class Outcome(BaseModel):
     """A pair the hook blocked, and how it was settled before the commit."""
 
     key: str
+    kind: Literal["function", "model"] = "function"
     new: str
     existing: str
     path: str = Field(default="", description="The new function's file: only a check that stages it settles it.")
@@ -41,10 +45,11 @@ class Outcome(BaseModel):
 
     def trailer(self) -> str:
         size = f" ({plural(self.lines, 'line')})" if self.lines else ""
-        return f"{TRAILERS[self.state]}: {self.key} {self.new} ≈ {self.existing}{size}"
+        lane = " [model review]" if self.kind == "model" else ""
+        return f"{TRAILERS[self.state]}: {self.key} {self.new} ≈ {self.existing}{size}{lane}"
 
 
-class Journal(BaseModel):
+class Journal(Versioned):
     """The hook's memory in the git directory: pairs it blocked, and outcomes the next commit will carry."""
 
     blocked: dict[str, Outcome] = Field(default_factory=dict)
@@ -67,18 +72,25 @@ class Journal(BaseModel):
     def observe(self, report: Report, staged: set[str]) -> "Journal":
         """This journal after one staged check: what it reports is blocked; what it no longer reports is settled."""
         journal = self.model_copy(deep=True)
-        reported = {f.candidate.key: f for f in report.findings if f.reported}
+        reported = {f.candidate.key: f for f in report.findings if f.tracked}
         unjudged = {f.candidate.key for f in report.findings if f.deferred or f.verdict is None}
         by_rule = {c.key for c in report.filtered}
         for key, finding in reported.items():
             new, existing = finding.candidate.new, finding.candidate.existing
             path, _, name = new.qualname.partition("::")
             journal.blocked[key] = Outcome(
-                key=key, new=name, existing=existing.qualname.split("::", 1)[-1], path=path, lines=new.lines
+                key=key,
+                kind=finding.kind,
+                new=name,
+                existing=existing.qualname.split("::", 1)[-1],
+                path=path,
+                lines=new.lines,
             )
             journal.pending.pop(key, None)  # back again: the commit that carries it must not say it was kept out
         for key, pair in list(journal.blocked.items()):
             if key in reported or key in unjudged or pair.path not in staged:
+                continue
+            if pair.kind == "model" and report.model_judging is None:
                 continue
             state = "dismissed" if key in by_rule else "kept-out"
             journal.pending[key] = pair.model_copy(update={"state": state})
@@ -101,6 +113,7 @@ def outcomes(messages: list[str]) -> list[Outcome]:
         if name.strip().lower() in names and match:
             found[match["key"]] = Outcome(
                 key=match["key"],
+                kind="model" if match["model"] else "function",
                 new=match["new"],
                 existing=match["existing"],
                 lines=int(match["lines"] or 0),
@@ -131,11 +144,18 @@ def append_trailers(root: Path, message: Path) -> int:
 def summary(root: Path, base: str) -> str:
     """The hook's header: what it has kept out and dismissed on this branch, committed and still to commit."""
     outcomes = {o.key: o for o in [*trailed(root, base), *Journal.load(root).pending.values()]}
-    kept = sum(o.state == "kept-out" for o in outcomes.values())
-    dismissed = sum(o.state == "dismissed" for o in outcomes.values())
-    if not kept and not dismissed:
+    kept = sum(o.state == "kept-out" and o.kind == "function" for o in outcomes.values())
+    dismissed = sum(o.state == "dismissed" and o.kind == "function" for o in outcomes.values())
+    model_resolved = sum(o.state == "kept-out" and o.kind == "model" for o in outcomes.values())
+    model_dismissed = sum(o.state == "dismissed" and o.kind == "model" for o in outcomes.values())
+    if not outcomes:
         return ""
     return (
         f"dry-lint before commit on this branch: {plural(kept, 'duplicate')} kept out, "
         f"{plural(dismissed, 'look-alike')} dismissed; the pull request's comment counts them"
+        + (
+            f"; model reviews: {model_resolved} resolved, {model_dismissed} dismissed (not confirmed consolidations)"
+            if model_resolved or model_dismissed
+            else ""
+        )
     )

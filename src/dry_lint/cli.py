@@ -353,9 +353,7 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     readme = root / args.readme if args.readme else None
     content = None
     if readme:
-        directory = path.parent.relative_to(root).as_posix()
-        text = readme.read_text(encoding="utf-8")
-        content = update_readme(text, updated.markdown(args.repository, args.branch, directory, card_key(args, text)))
+        content = progress_content(root, settings, args, updated)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
     (path.parent / "progress.json").write_text(json.dumps(updated.badge(), indent=2) + "\n", encoding="utf-8")
@@ -365,6 +363,45 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         f"dry-lint: {updated.count('cleaned')} pairs cleaned, {updated.count('remaining')} remaining, "
         f"{updated.count('dismissed')} dismissed; wrote {path}"
     )
+    return 0
+
+
+def progress_content(
+    root: Path,
+    settings: Settings,
+    args: argparse.Namespace,
+    functions: Baseline | None = None,
+    models: Baseline | None = None,
+) -> str:
+    """Render existing reviewed inventories without running a judge or changing either baseline."""
+    function_path = Path(
+        (args.function_baseline if args.command == "model-baseline" else args.baseline) or ".dry-lint/baseline.json"
+    )
+    functions = functions or Baseline.model_validate_json((root / function_path).read_text(encoding="utf-8"))
+    model_path = settings.models.baseline
+    if models is None and model_path:
+        models = Baseline.model_validate_json((root / model_path).read_text(encoding="utf-8"))
+    text = (root / args.readme).read_text(encoding="utf-8")
+    return update_readme(
+        text,
+        functions.markdown(
+            args.repository,
+            args.branch,
+            function_path.parent.as_posix(),
+            card_key(args, text),
+            models=models,
+            models_path=model_path or ".dry-lint/models.json",
+            filename=function_path.name,
+        ),
+    )
+
+
+def progress(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if not args.readme:
+        raise ValueError("progress requires --readme, for example --readme README.md")
+    content = progress_content(root, settings, args)
+    (root / args.readme).write_text(content, encoding="utf-8")
+    print(f"dry-lint: refreshed function and model debt in {args.readme}; baselines unchanged")
     return 0
 
 
@@ -538,8 +575,11 @@ def model_baseline(root: Path, settings: Settings, args: argparse.Namespace) -> 
         root, settings, read_feedback(root, staged=args.staged), previous, staged=args.staged
     )
     if args.init or args.update:
+        content = progress_content(root, settings, args, models=updated) if args.readme else None
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
+        if content is not None:
+            (root / args.readme).write_text(content, encoding="utf-8")
     print(
         f"dry-lint models: {updated.count('remaining')} reviewed pairs remaining, {updated.count('cleaned')} cleaned, {updated.count('dismissed')} dismissed"
     )
@@ -706,6 +746,16 @@ def bench_replay(root: Path, settings: Settings, args: argparse.Namespace) -> in
     return 0
 
 
+def progress_options(command: argparse.ArgumentParser) -> None:
+    command.add_argument("--readme", type=Path, help="Maintain function and model debt in this README.")
+    command.add_argument(
+        "--repository", default=os.environ.get("GITHUB_REPOSITORY", ""), help="README badge OWNER/NAME."
+    )
+    command.add_argument("--branch", default="main", help="README badge's published branch (default: main).")
+    command.add_argument("--repository-id", default="", help="Numeric GitHub repository id for the counter sign.")
+    command.add_argument("--no-counter-card", action="store_true", help="Leave the counter sign out of the README.")
+
+
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
@@ -795,18 +845,11 @@ def parser() -> argparse.ArgumentParser:
     ratcheting.add_argument(
         "--update", action="store_true", help="Write the shrinking baseline and progress after review."
     )
-    ratcheting.add_argument("--readme", type=Path, help="Maintain the cleanup progress block in this README.")
-    ratcheting.add_argument(
-        "--repository", default=os.environ.get("GITHUB_REPOSITORY", ""), help="README badge OWNER/NAME."
-    )
-    ratcheting.add_argument("--branch", default="main", help="README badge's published branch (default: main).")
-    ratcheting.add_argument(
-        "--repository-id",
-        default="",
-        help="The repository's numeric GitHub id, for its counter sign; GitHub Actions supplies it for its own repository.",
-    )
-    ratcheting.add_argument(
-        "--no-counter-card", action="store_true", help="Leave the repository's counter sign out of the README block."
+    progress_options(ratcheting)
+    progress_options(
+        commands.add_parser(
+            "progress", parents=[common], help="Refresh README debt from existing baselines; no judging."
+        )
     )
     proposing = commands.add_parser("detect", parents=[common], help="Write candidates.json; no judge, no store.")
     where(proposing, everything=True)
@@ -883,6 +926,10 @@ def parser() -> argparse.ArgumentParser:
     )
     model_debt.add_argument("--init", action="store_true")
     model_debt.add_argument("--update", action="store_true")
+    progress_options(model_debt)
+    model_debt.add_argument(
+        "--function-baseline", default=".dry-lint/baseline.json", help="Function debt for --readme."
+    )
     model_debt.add_argument(
         "--staged", action="store_true", help="Audit the Git index, for retiring debt before committing a repair."
     )
@@ -911,6 +958,7 @@ COMMANDS = {
     "index": index,
     "feedback": feedback,
     "model-baseline": model_baseline,
+    "progress": progress,
     "schema-check": schema_policy.check,
     "trailers": trailers,
     "bench": bench,

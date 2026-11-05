@@ -52,6 +52,8 @@ class Tally(BaseModel):
     runs: int = 0
     functions: int = Field(default=0, description="Changed functions checked, summed over runs.")
     codebase: int = Field(default=0, description="The most functions any run compared them with.")
+    models: int = Field(default=0, description="Changed models checked, summed over distinct commits.")
+    model_codebase: int = Field(default=0, description="The most models any run compared them with.")
     pairs: int = Field(default=0, description="Look-alike pairs compared.")
     judgments: int = Field(default=0, description="New verdicts: a judge was asked.")
     reused: int = Field(default=0, description="Verdicts reused from the store.")
@@ -61,19 +63,20 @@ class Tally(BaseModel):
 
     @classmethod
     def of(cls, report: Report) -> "Tally":
-        stats, judging = report.stats, report.judging
-        usd = judging.usd if judging else 0.0
-        calls = sum(s.calls for s in judging.spend if s.subscription) if judging else 0
+        stats = report.stats
+        spend = [s for judging in (report.judging, report.model_judging) if judging for s in judging.spend]
         return cls(
             runs=1,
             functions=report.changed,
             codebase=report.functions,
+            models=report.changed_models,
+            model_codebase=report.models,
             pairs=stats["candidates"],
             judgments=stats["judged"],
             reused=stats["cached"],
-            usd=usd or 0.0,
-            unpriced=usd is None,
-            subscription_calls=calls,
+            usd=sum(s.usd or 0.0 for s in spend),
+            unpriced=any(s.usd is None for s in spend),
+            subscription_calls=sum(s.calls for s in spend if s.subscription),
         )
 
     def __add__(self, other: "Tally") -> "Tally":
@@ -81,6 +84,8 @@ class Tally(BaseModel):
             runs=self.runs + other.runs,
             functions=self.functions + other.functions,
             codebase=max(self.codebase, other.codebase),
+            models=self.models + other.models,
+            model_codebase=max(self.model_codebase, other.model_codebase),
             pairs=self.pairs + other.pairs,
             judgments=self.judgments + other.judgments,
             reused=self.reused + other.reused,
@@ -91,7 +96,7 @@ class Tally(BaseModel):
 
     def again(self) -> "Tally":
         """A re-run of a commit already counted: its judging costs again, but it checks nothing new."""
-        return self.model_copy(update={"functions": 0, "pairs": 0})
+        return self.model_copy(update={"functions": 0, "models": 0, "pairs": 0})
 
     def cost(self) -> str:
         """What priced judging cost, with subscription calls; "unknown" when no judge had a price."""
@@ -123,6 +128,7 @@ class Pair(BaseModel):
     """A pair some push reported, and where it stands now."""
 
     new: str
+    kind: Literal["function", "model"] = "function"
     existing: str
     found: int = Field(description="The push that first reported it.")
     state: Literal["open", "kept-out", "dismissed"] = "open"
@@ -142,6 +148,7 @@ class Backlog(BaseModel):
     """An accepted baseline pair the pull request cleaned up, and how: remediation, never counted as kept out."""
 
     new: str
+    kind: Literal["function", "model"] = "function"
     existing: str
     how: Literal["removed", "separate"] = Field(description="A side removed, or judged separate as it is now.")
     settled: int = Field(description="The push that first cleaned it up.")
@@ -169,17 +176,22 @@ class PullLedger(Versioned):
     backlog: dict[str, Backlog] = Field(default_factory=dict, description="What the latest baseline check credits.")
     runs: list[str] = Field(default_factory=list, description=f"The last {RECENT_RUNS} runs counted.")
 
-    def count(self, state: str) -> int:
+    def count(self, state: str, kind: str = "function") -> int:
         """The pairs in `state`, apart from the backlog: a cleaned-up accepted pair was never kept out."""
-        return sum(pair.state == state and key not in self.backlog for key, pair in self.pairs.items())
+        return sum(
+            pair.state == state and pair.kind == kind and key not in self.backlog for key, pair in self.pairs.items()
+        )
 
     def kept_out(self) -> list[Pair]:
         """The duplicates kept out whose details were recorded: a pair an older version reported has none."""
         return [
             pair
             for key, pair in self.pairs.items()
-            if pair.state == "kept-out" and pair.lines and key not in self.backlog
+            if pair.kind == "function" and pair.state == "kept-out" and pair.lines and key not in self.backlog
         ]
+
+    def backlog_count(self, kind: str = "function") -> int:
+        return sum(item.kind == kind for item in self.backlog.values())
 
     def advance(
         self, reports: list[Report], run: str = "", scopes: list[str] = (), before_commit: list[Outcome] = ()
@@ -193,6 +205,9 @@ class PullLedger(Versioned):
             return self
         named = [*scopes, *[""] * (len(reports) - len(scopes))]
         completed = set(named)
+        models_completed = {
+            scope for report, scope in zip(reports, named, strict=True) if report.model_judging is not None
+        }
         ledger = self.model_copy(deep=True, update={"schema_version": SCHEMA})
         tally = sum((Tally.of(report) for report in reports), Tally())
         findings = [f for report in reports for f in report.findings]
@@ -200,19 +215,21 @@ class PullLedger(Versioned):
             f.candidate.key: (f, scope)
             for report, scope in zip(reports, named, strict=True)
             for f in report.findings
-            if f.reported
+            if f.tracked
         }
         evidence = {
-            f.candidate.key: PairEvidence.of(f, report.run) for report in reports for f in report.findings if f.reported
+            f.candidate.key: PairEvidence.of(f, report.run) for report in reports for f in report.findings if f.tracked
         }
         head = reports[0].run.head
         if ledger.pushes and ledger.pushes[-1].head == head:
             tally = tally.again()
             last = ledger.pushes[-1]
-            last.tally, last.reported = last.tally + tally, len(reported)
+            last.tally, last.reported = last.tally + tally, sum(f.reported for f in findings)
         else:
             ledger.pushed += 1
-            ledger.pushes = [*ledger.pushes, Push(head=head, tally=tally, reported=len(reported))][-PUSHES_SHOWN:]
+            ledger.pushes = [*ledger.pushes, Push(head=head, tally=tally, reported=sum(f.reported for f in findings))][
+                -PUSHES_SHOWN:
+            ]
         ledger.tally = ledger.tally + tally
         ledger.runs = [*ledger.runs, run][-RECENT_RUNS:] if run else ledger.runs
         unjudged = {f.candidate.key for f in findings if f.deferred or f.verdict is None}
@@ -221,12 +238,14 @@ class PullLedger(Versioned):
             names = [local(side.qualname) for side in (finding.candidate.new, finding.candidate.existing)]
             pair = ledger.pairs.setdefault(key, Pair(new=names[0], existing=names[1], found=ledger.pushed))
             pair.state, pair.settled, pair.scope, pair.before_commit = "open", None, scope, False  # what CI saw wins
+            pair.kind = finding.kind
             pair.lines, pair.drifted, pair.rewrite = describe(finding)
             pair.evidence = evidence[key]
         for outcome in before_commit:
             if outcome.key not in ledger.pairs:
                 ledger.pairs[outcome.key] = Pair(
                     new=outcome.new,
+                    kind=outcome.kind,
                     existing=outcome.existing,
                     found=ledger.pushed,
                     state=outcome.state,
@@ -239,24 +258,39 @@ class PullLedger(Versioned):
                 continue
             if key in settled_by_rule and pair.state != "dismissed":  # a person's decision, even after the fact
                 pair.state, pair.settled = "dismissed", ledger.pushed
-            elif pair.state == "open" and pair.scope in completed:  # absent only from a check that ran
+            elif pair.state == "open" and pair.scope in (models_completed if pair.kind == "model" else completed):
                 pair.state, pair.settled = "kept-out", ledger.pushed
-        if any(report.backlog is not None for report in reports):  # each baseline check restates the whole backlog
-            cleaned = {pair_key(item.new, item.existing): item for report in reports for item in report.backlog or ()}
+        checked_backlogs = {
+            kind
+            for report in reports
+            for kind, items in (("function", report.backlog), ("model", report.model_backlog))
+            if items is not None
+        }
+        if checked_backlogs:
+            cleaned = {
+                pair_key(item.new, item.existing): item
+                for report in reports
+                for item in [*(report.backlog or []), *(report.model_backlog or [])]
+            }
             # A pair a push reported and a later one cleared keeps that push; anything else is cleaned up now.
             since = {
                 key: pair.settled for key, pair in ledger.pairs.items() if pair.state == "kept-out" and pair.settled
             }
+            retained = {key: item for key, item in ledger.backlog.items() if item.kind not in checked_backlogs}
             ledger.backlog = {
-                key: ledger.backlog[key].model_copy(update={"how": item.how})
-                if key in ledger.backlog
-                else Backlog(
-                    new=local(item.new),
-                    existing=local(item.existing),
-                    how=item.how,
-                    settled=since.get(key, ledger.pushed),
-                )
-                for key, item in cleaned.items()
+                **retained,
+                **{
+                    key: ledger.backlog[key].model_copy(update={"how": item.how})
+                    if key in ledger.backlog
+                    else Backlog(
+                        new=local(item.new),
+                        kind=item.kind,
+                        existing=local(item.existing),
+                        how=item.how,
+                        settled=since.get(key, ledger.pushed),
+                    )
+                    for key, item in cleaned.items()
+                },
             }
         remaining = EVIDENCE_BYTES
         for pair in reversed(ledger.pairs.values()):
@@ -274,7 +308,7 @@ class PullLedger(Versioned):
             "repository": key,
             "pull": number,
             "kept_out": self.count("kept-out"),
-            "caught": len(self.pairs),
+            "caught": sum(pair.kind == "function" for pair in self.pairs.values()),
             "dismissed": self.count("dismissed"),
             "merged_open": self.count("open"),
             "pushes": self.pushed,
@@ -309,7 +343,9 @@ def headline(ledger: PullLedger) -> str:
     """The sentence a reader remembers: what this pull request's checks cost, and what they caught."""
     tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
     across = f"across {ledger.pushed:,} pushes" if ledger.pushed > 1 else "on its first push"
-    backlog = f"**{plural(len(ledger.backlog), 'accepted backlog pair')} cleaned up.** " if ledger.backlog else ""
+    backlog = (
+        f"**{plural(ledger.backlog_count(), 'accepted backlog pair')} cleaned up.** " if ledger.backlog_count() else ""
+    )
     if kept:
         tail = f" {plural(still, 'duplicate')} still open." if still else ""
         hooked = sum(pair.before_commit for pair in ledger.kept_out())
@@ -322,8 +358,10 @@ def headline(ledger: PullLedger) -> str:
             f"{backlog}**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
             "Each one fixed here is kept out of the codebase."
         )
-    if ledger.backlog:  # what pushes reported here is all accepted debt, now counted as backlog
-        return f"**{plural(len(ledger.backlog), 'accepted backlog pair')} cleaned up** {tally.spent()}, {across}."
+    if ledger.backlog_count():
+        return f"**{plural(ledger.backlog_count(), 'accepted backlog pair')} cleaned up** {tally.spent()}, {across}."
+    if tally.models:
+        return f"**{plural(tally.functions, 'function')} and {plural(tally.models, 'model')} checked**, {tally.spent()}, {across}. Model reviews are counted separately."
     if not tally.functions:
         return f"**No changed functions to check yet**, {across}."
     return f"**{plural(tally.functions, 'function')} checked, nothing duplicated**, {tally.spent()}, {across}."
@@ -338,6 +376,12 @@ SPREAD = '<img width="2000" height="1" align="right" alt="">'
 
 
 def pair_line(pair: Pair) -> str:
+    if pair.kind == "model":
+        outcome = {"open": "review required", "kept-out": "review resolved", "dismissed": "dismissed by policy"}[
+            pair.state
+        ]
+        where = "before commit" if pair.before_commit else f"found in push {pair.found}"
+        return f"{ICONS[pair.state]} {pair.concept()} · model {outcome}, {where}"
     if pair.before_commit:
         done = "kept out" if pair.state == "kept-out" else "dismissed by a person's decision"
         return f"{ICONS[pair.state]} {pair.concept()} · {done} before commit, by the pre-commit hook"
@@ -358,15 +402,15 @@ def backlog_line(key: str, item: Backlog, ledger: PullLedger) -> str:
 
 def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, comparisons: str = "") -> str:
     """Cleanup progress first, with the current outcomes and the commits that cleared them."""
-    tally, kept, still, backlog = ledger.tally, ledger.count("kept-out"), ledger.count("open"), len(ledger.backlog)
+    tally, kept, still, backlog = ledger.tally, ledger.count("kept-out"), ledger.count("open"), ledger.backlog_count()
     cleaned = Counter(
         [
             *(
                 pair.settled
                 for key, pair in ledger.pairs.items()
-                if pair.state == "kept-out" and key not in ledger.backlog
+                if pair.kind == "function" and pair.state == "kept-out" and key not in ledger.backlog
             ),
-            *(item.settled for item in ledger.backlog.values()),
+            *(item.settled for item in ledger.backlog.values() if item.kind == "function"),
         ]
     )
     split = " · ".join(
@@ -380,6 +424,7 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
     badges = [
         badge("pushes", ledger.pushed, GRAY),
         badge("functions checked", f"{tally.functions:,}", GRAY),
+        *([badge("models checked", f"{tally.models:,}", GRAY)] if tally.model_codebase else []),
         badge("judgments", f"{tally.judgments:,}", GRAY),
         badge("spent", tally.cost(), BLUE),
     ]
@@ -394,6 +439,23 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
         "| " + " | ".join(cells) + " |",
         "",
     ]
+    if tally.model_codebase or any(pair.kind == "model" for pair in ledger.pairs.values()):
+        lines += [
+            "| Model ownership reviews | Still open | Resolved | Dismissed |",
+            "| :-- | --: | --: | --: |",
+            f"| This PR and its hooks | {ledger.count('open', 'model')} | {ledger.count('kept-out', 'model')} | {ledger.count('dismissed', 'model')} |",
+            "",
+            "<sub>Resolved means the completed model pass no longer raises the pair. It does not prove consolidation and is excluded from duplicates kept out.</sub>",
+            "",
+            *(
+                [
+                    f"**{ledger.backlog_count('model')} reviewed model debt pairs retired by this PR** (one side removed).",
+                    "",
+                ]
+                if ledger.backlog_count("model")
+                else []
+            ),
+        ]
     if cleaned[ledger.pushed] and ledger.pushes:
         lines += [
             f"Latest analyzed commit `{ledger.pushes[-1].head[:7]}` · "
