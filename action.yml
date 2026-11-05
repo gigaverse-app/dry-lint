@@ -91,6 +91,10 @@ inputs:
     description: Keep one pull request comment with the findings up to date.
     required: false
     default: "true"
+  models:
+    description: Include model review in checks and the sticky comment. Set false to opt out; repository models.sticky also applies.
+    required: false
+    default: "true"
   comment-on-clean:
     description: Comment on a clean pull request too, with what was checked. "false" comments only once there are findings.
     required: false
@@ -150,6 +154,9 @@ inputs:
     default: ${{ github.token }}
 
 outputs:
+  models-checked:
+    description: Whether this run completed the model review pass (including an empty inventory).
+    value: ${{ steps.run.outputs.models-checked }}
   index-name:
     description: Published function index artifact name, including schema, extraction contract and source commit.
     value: ${{ steps.run.outputs.index-name }}
@@ -230,6 +237,7 @@ runs:
         INPUT_BASE: ${{ inputs.base }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_MODELS: ${{ inputs.models }}
         INPUT_COMMENT_ON_CLEAN: ${{ inputs.comment-on-clean }}
         INPUT_SHARE_TOTALS: ${{ inputs.share-totals }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}

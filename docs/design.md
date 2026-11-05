@@ -94,6 +94,12 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 11 adds the independent model inventory to split detect/judge artifacts and model coverage, judging,
+reviewed-debt counts and explicit source-review tasks to reports. Old artifacts remain readable; an action
+requesting models rejects an artifact without a model inventory instead of silently claiming coverage.
+Reviewed feedback writes independent schema 2, adding `accept` for source-reviewed model debt; schema 1
+dismissals remain readable. Baselines retain schema 1 and the existing immutable exact-pair contract.
+
 Schema 10 adds optional `Candidate.policies` and `Verdict.model_assessment`. Matched adopter rules carry
 their definition digest, reason, priority, action and declared roles. They participate in `context_hash`;
 changing a matched rule invalidates cached verdicts and source-bound dismissals. Empty policy lists preserve
@@ -116,7 +122,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 10`; schemas 1 through 9 remain readable with conservative cache defaults. Schema 9 adds
+New files carry `"schema": 11`; schemas 1 through 10 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds

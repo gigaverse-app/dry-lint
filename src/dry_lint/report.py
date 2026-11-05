@@ -47,6 +47,7 @@ class Finding(BaseModel):
     verdict: Verdict | None = None
     cached: bool = False
     deferred: bool = False
+    source_review: bool = False
     family: int = Field(default=1, description="How many look-alikes were proposed for the same changed function.")
     reported: bool = Field(default=False, description="Judged a duplicate at or above report_at.")
     blocking: bool = Field(
@@ -62,7 +63,10 @@ class Finding(BaseModel):
     def review_required(self) -> bool:
         """An unresolved primary pair is work for the coding agent, never a confirmed duplicate."""
         return self.candidate.lane != "relative" and (
-            self.deferred or self.verdict is not None and self.verdict.model_assessment is not None
+            self.source_review
+            or self.deferred
+            or self.verdict is not None
+            and self.verdict.model_assessment is not None
         )
 
     def headline(self) -> str:
@@ -206,6 +210,10 @@ class Report(Versioned):
     run: Run = Field(default_factory=Run)
     changed: int = 0
     functions: int = Field(default=0, description="How many functions the repository has: what changed ones meet.")
+    models: int = 0
+    changed_models: int = 0
+    model_judging: JudgingSummary | None = None
+    model_debt: dict[str, int] | None = None
     scope: Literal["change", "repository"] = Field(default="change", description="`check` or `scan`.")
     judge: str | None = Field(default=None, description="The judge (and escalation judge), or None when unjudged.")
     judging: JudgingSummary | None = Field(default=None, description="Judges, thresholds, budget and cost.")
@@ -327,7 +335,19 @@ def as_text(report: Report) -> str:
         lines.append(f"dry-lint: {report.deferred} deferred by the judge budget; these pairs are not cleared")
     if report.judging:
         lines.append(f"judging: {report.judging.line()}")
+    lines.extend(model_summary(report))
     return "\n".join(lines)
+
+
+def model_summary(report: Report) -> list[str]:
+    if report.model_judging is None:
+        return []
+    lines = [f"models: {report.changed_models} changed, {report.models} in scope; {report.model_judging.line()}"]
+    if report.model_debt is not None:
+        lines.append(
+            "reviewed model debt: " + ", ".join(f"{count} {state}" for state, count in report.model_debt.items())
+        )
+    return lines
 
 
 def level(finding: Finding) -> str:
@@ -447,6 +467,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         "",
         f"<sub>{coverage}</sub>",
         *([f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else []),
+        *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
     ]
     if report.judge is None:
         return "\n".join([
@@ -617,11 +638,25 @@ def clean(report: Report, audit: bool, report_at: float | None) -> str:
     )
     empty = (
         ["**Nothing to compare.** This pull request changes no functions.", ""]
-        if not audit and not report.changed
+        if not audit and not report.changed and not report.changed_models
         else []
     )
     judging = report.judging.line() if report.judging else f"judge {report.judge}"
-    return "\n".join([MARKER, CLEAN, title, "", NOTE_SLOT, "", *empty, *rows, "", f"<sub>{escaped(judging)}</sub>"])
+    return "\n".join(
+        [
+            MARKER,
+            CLEAN,
+            title,
+            "",
+            NOTE_SLOT,
+            "",
+            *empty,
+            *rows,
+            "",
+            f"<sub>{escaped(judging)}</sub>",
+            *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
+        ]
+    )
 
 
 def overrides(shown: list[Finding], audit: bool) -> list[str]:

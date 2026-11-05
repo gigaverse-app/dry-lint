@@ -93,11 +93,25 @@ class Discovery(BaseModel):
     calls: int = Field(default=200, ge=1)
 
 
+class ModelReview(BaseModel):
+    """Independent model retrieval; ownership policies are explicitly supplied by the adopter."""
+
+    enabled: bool = True
+    hook: bool = True
+    sticky: bool = True
+    baseline: str | None = None
+    policies: list[PairPolicy] = Field(default_factory=list)
+    comparer: Choice = Field(default_factory=lambda: PluginChoice(use="model-shape"))
+    neighbours: int = Field(default=3, ge=1)
+    budget: Budget = Field(default_factory=lambda: Budget(usd=0.01, subscription_calls=0))
+
+
 class Settings(BaseModel):
     include: list[str] = Field(default_factory=lambda: ["*"], description="fnmatch over tracked paths.")
     exclude: list[str] = Field(default_factory=lambda: ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"])
     patterns: list[Pattern] = Field(default_factory=list)
     policies: list[PairPolicy] = Field(default_factory=list)
+    models: ModelReview = Field(default_factory=ModelReview)
     neighbours: int = Field(default=3, description="Nearest functions in other files considered per changed function.")
     consolidation: list[Consolidation] = Field(default_factory=list)
     max_judgements: int | None = Field(default=None, ge=1, description="Maximum uncached pairs judged per run.")

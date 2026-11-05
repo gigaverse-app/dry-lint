@@ -474,6 +474,12 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     work = workdir()
     work.mkdir(parents=True, exist_ok=True)
     root = Path(env("INPUT_WORKING_DIRECTORY", ".") or ".").resolve()
+    models = Settings.load(root).models
+    model_arguments = [
+        "--models"
+        if env("INPUT_MODELS", "true").lower() in ("true", "1", "yes") and models.enabled and models.sticky
+        else "--no-models"
+    ]
     if mode == "index":
         snapshot = export_index(root, env("GITHUB_REPOSITORY"), Settings.load(root))
         path = work / "functions.json.gz"
@@ -512,6 +518,7 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         str(body),
         *fail_at(),
         *judging_options(),
+        *model_arguments,
     ]
     judging += ["--format", "text", *(["--warn-only"] if judge == "none" else [])]
     if flag("INPUT_WARN_ONLY"):
@@ -558,6 +565,7 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
             *(["--base", base] if base else []),
             *repositories,
             *(["--require-complete"] if flag("INPUT_REQUIRE_COMPLETE") else []),
+            *model_arguments,
         )
         write_outputs(mode=mode, exit_code=code, findings=0)
         print(f"::notice title=dry-lint::Candidates saved as the {ARTIFACT} artifact for the judge workflow.")
@@ -602,6 +610,11 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         else:  # the repository's settings turn judging off (preset or judge "none") although keys are present
             judge, code = "none", 0
     findings, blocking = count_findings(lines)
+    write_outputs(
+        models_checked=str(
+            code != 2 and report.exists() and json.loads(report.read_text()).get("model_judging") is not None
+        ).lower()
+    )
     if receipt and body.exists():
         body.write_text(body.read_text() + receipt)
     write_summary(body)
