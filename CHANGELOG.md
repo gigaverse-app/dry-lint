@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.1](https://github.com/gigaverse-app/dry-lint/compare/v1.2.0...v1.2.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **detector:** share language-aware relationship policy ([#73](https://github.com/gigaverse-app/dry-lint/issues/73)) ([b6b8db3](https://github.com/gigaverse-app/dry-lint/commit/b6b8db3aecbf0ea9bccaef5eced516415ccbfd83))
+* **sign:** a repository's backlog sign shows only exact counts ([50faa6e](https://github.com/gigaverse-app/dry-lint/commit/50faa6e749595b265f07377cc1678f2113aa38f4))
+* **sign:** a repository's backlog sign shows only exact counts ([1f770c7](https://github.com/gigaverse-app/dry-lint/commit/1f770c75da56721f6783db45ddde55eee213137f))
+
 ## [1.2.0](https://github.com/gigaverse-app/dry-lint/compare/v1.1.2...v1.2.0) (2026-11-05)
 
 
