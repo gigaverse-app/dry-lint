@@ -8,7 +8,7 @@ whose action shares its totals ([what is sent, and how to opt out](../docs/githu
 | `POST /v1/pulls` | Count one merged pull request: `{repository: KEY, pull, kept_out, caught, …}`, where `KEY` is the repository's counter key, `sha256("github-repository:" + numeric repository id)`. `{"counted": false}` if it was counted already. |
 | `GET /v1/totals[?key=KEY]` | The totals, as JSON: everyone's, or one repository's. |
 | `GET /v1/badge[?metric=kept-out\|drifted\|lines\|pulls\|functions\|repositories\|spent][&key=KEY]` | A [shields.io endpoint badge](https://shields.io/badges/endpoint-badge). |
-| `GET /v1/sign.svg[?theme=dark][&key=KEY][&name=OWNER/NAME]` | The README sign; `name` only labels it. |
+| `GET /v1/sign.svg[?theme=dark][&key=KEY][&name=OWNER/NAME][&cleaned=N&remaining=N&dismissed=N]` | The README sign; `name` only labels it. A repository's backlog counts add a band of how much of its accepted duplication was cleaned up; dry-lint's sweep writes them into its README block. Like `name`, they are the README's statement and never reach the totals. |
 
 Contributions are pseudonymous: a key ties one repository's pull requests together, but a repository is never
 looked up by name (`?repository=` is refused), and a name does not lead to its key. Contributions sent before keys

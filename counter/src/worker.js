@@ -4,7 +4,8 @@
  *   POST /v1/pulls                     one merged pull request's ledger; counted once per repository and number
  *   GET  /v1/totals[?key=]             the totals, as JSON: everyone's, or one repository's by its counter key
  *   GET  /v1/badge[?metric=&key=]      a shields.io endpoint badge: kept-out, drifted, lines, pulls, ...
- *   GET  /v1/sign.svg[?theme=dark&key=&name=]  the README sign; `name` only labels it
+ *   GET  /v1/sign.svg[?theme=dark&key=&name=&cleaned=&remaining=&dismissed=]  the README sign; `name` labels it,
+ *        and a repository's own backlog counts, which dry-lint's sweep writes into its README, add a band
  *
  * One SQLite-backed Durable Object holds the counts: a contribution is inserted once (the repository and pull
  * request number are its key) and the running totals move only when a row is new, so a retried or repeated
@@ -12,7 +13,7 @@
  */
 
 import { DurableObject } from "cloudflare:workers";
-import { FIELDS, Invalid, TOTALED, badge, contribution, scope, sign } from "./tally.js";
+import { FIELDS, Invalid, TOTALED, backlog, badge, contribution, scope, sign } from "./tally.js";
 
 const EMPTY = { pulls: 0, ...Object.fromEntries(TOTALED.map((field) => [field, 0])), since: null };
 const KIND = (field) => (field === "usd" ? "REAL" : "INTEGER");
@@ -85,9 +86,10 @@ async function read(request, env, ctx) {
   const cached = await cache.match(request);
   if (cached) return cached;
   const url = new URL(request.url);
-  let asked;
+  let asked, accepted;
   try {
     asked = scope(url.searchParams);
+    accepted = backlog(url.searchParams);
   } catch (error) {
     if (error instanceof Invalid) return json({ error: error.message }, 400);
     throw error;
@@ -101,7 +103,7 @@ async function read(request, env, ctx) {
   } else if (url.pathname === "/v1/badge") {
     response = json(badge(totals, url.searchParams.get("metric") ?? "kept-out"), 200, caching);
   } else {
-    response = new Response(sign(totals, url.searchParams.get("theme") ?? "light", asked.label), {
+    response = new Response(sign(totals, url.searchParams.get("theme") ?? "light", asked.label, accepted), {
       headers: { "content-type": "image/svg+xml; charset=utf-8", ...caching },
     });
   }

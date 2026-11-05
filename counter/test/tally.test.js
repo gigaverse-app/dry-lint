@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 
-import { Invalid, badge, contribution, dollars, milestone, percent, scope, sign } from "../src/tally.js";
+import { Invalid, backlog, badge, contribution, dollars, milestone, percent, scope, sign } from "../src/tally.js";
 
 const REPOSITORY = createHash("sha256").update("github-repository:4242").digest("hex");
 const VALID = { repository: REPOSITORY, pull: 12, kept_out: 2, caught: 3, dismissed: 1, pushes: 4, runs: 5,
@@ -168,3 +168,40 @@ test("a repository's sign shows a long name shortened, and keeps it whole in its
   assert.match(svg, new RegExp(`>acme/x{16}…<`));
   assert.match(svg, new RegExp(`aria-label="[^"]*kept out of ${name},`));
 });
+
+test("a sign without backlog counts keeps its size and has no backlog band", () => {
+  const svg = sign(TOTALS, "light", "acme/shop");
+  assert.match(svg, /viewBox="0 0 1280 330"/);
+  assert.doesNotMatch(svg, /BACKLOG/);
+  assert.equal(backlog(new URLSearchParams("key=x&name=acme/shop")), null);
+});
+
+test("a repository's backlog grows its sign by a band of what was cleaned up out of everything accepted", () => {
+  const accepted = backlog(new URLSearchParams("cleaned=8&remaining=21&dismissed=1"));
+  assert.deepEqual(accepted, { cleaned: 8, remaining: 21, dismissed: 1 });
+  const svg = sign(TOTALS, "dark", "acme/shop", accepted);
+  assert.match(svg, /viewBox="0 0 1280 420"/);
+  assert.match(svg, />8 of 30</);
+  assert.match(svg, />BACKLOG CLEANED</);
+  assert.match(svg, /27% of the 30 duplicate pairs accepted at adoption cleaned up · 21 remaining · 1 dismissed/);
+  // The filled bar is the cleaned share of the 1040-wide track.
+  assert.match(svg, /<rect x="200" y="356" width="277" height="16"/);
+  assert.match(svg, /aria-label="[^"]*8 of 30 accepted duplicate pairs cleaned up, 21 remaining"/);
+});
+
+test("a backlog with nothing cleaned yet shows an empty bar, and a missing count reads as zero", () => {
+  const accepted = backlog(new URLSearchParams("remaining=29"));
+  assert.deepEqual(accepted, { cleaned: 0, remaining: 29, dismissed: 0 });
+  const svg = sign(TOTALS, "light", "acme/shop", accepted);
+  assert.match(svg, />0 of 29</);
+  // Green fills only the lines tile's stripe: the bar has no filled part.
+  assert.equal(svg.match(/fill="#3FB950"/g).length, 1);
+  assert.equal(sign(TOTALS, "light", "acme/shop", { cleaned: 1, remaining: 28, dismissed: 0 })
+    .match(/fill="#3FB950"/g).length, 2);
+});
+
+for (const query of ["cleaned=-1", "remaining=1.5", "dismissed=lots", "cleaned=12345678"]) {
+  test(`a backlog count must be a whole number of pairs: ${query}`, () => {
+    assert.throws(() => backlog(new URLSearchParams(query)), Invalid);
+  });
+}
