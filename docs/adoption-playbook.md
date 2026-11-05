@@ -252,8 +252,11 @@ must leave the metadata unchanged. A dismissed false positive belongs in code/co
 
 ## 7. Verify the actual installation
 
-For model adopters, the scheduled audit also exports the full model inventory for source review and runs
-`model-baseline --update` when a reviewed model baseline exists. Add only `.dry-lint/models.json` to the
+For model adopters, the scheduled audit also exports the full model inventory for source review. Fetch the
+default-branch ref as well as the audited head (`fetch-depth: 0` in the template), because detection verifies
+model allowances against that branch. When a reviewed model baseline exists, run `model-baseline --update`
+before inventory export: detection refuses stale allowances that should already be retired. These working-tree
+retirements are published only if the entire audit succeeds. Add only `.dry-lint/models.json` to the
 ratchet's metadata paths. Automated audits must never accept models or generate dismissals. Retain the
 model report as an artifact, including unresolved lower-ranked candidates. Run model export with
 `if: ${{ !cancelled() }}` so a failed function sweep still leaves model review evidence; keep metadata

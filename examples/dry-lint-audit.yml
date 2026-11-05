@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: gigaverse-app/dry-lint@v1
         with:
           mode: sweep
@@ -37,6 +38,12 @@ jobs:
           budget-usd: '5'
       # The function sweep does not audit models. Preserve the complete candidate inventory for source review;
       # an atomic score must never accept or dismiss a model pair on the adopter's behalf.
+      - name: Retire resolved reviewed model debt
+        if: ${{ !cancelled() }}
+        run: |
+          if [[ -f .dry-lint/models.json ]]; then
+            dry-lint model-baseline --update
+          fi
       - name: Export model candidates for ownership review
         if: ${{ !cancelled() }}
         run: |
@@ -72,11 +79,6 @@ jobs:
         run: |
           dry-lint sweep --update --store "$RUNNER_TEMP/dry-lint/verdicts" --budget-usd 5 \
             --readme README.md --repository "$GITHUB_REPOSITORY" --branch main
-      - name: Retire resolved reviewed model debt
-        run: |
-          if [[ -f .dry-lint/models.json ]]; then
-            dry-lint model-baseline --update
-          fi
       # One standing branch: a later run updates the open ratchet PR instead of stacking another. The adopter-owned
       # credential makes the PR run ordinary CI, including the required dry-lint check that refuses any widening.
       - uses: peter-evans/create-pull-request@v8
