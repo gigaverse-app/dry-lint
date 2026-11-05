@@ -167,6 +167,24 @@ class RootPromptSchema(BaseModel):
     assert module.family("RootPromptSchema") == {"RootPromptSchema", "Branch", "Leaf"}
 
 
+def test_annotation_metadata_and_class_variables_do_not_claim_application_types():
+    from dry_lint.python_schemas import SchemaModule
+
+    module = SchemaModule(
+        "prompt.py",
+        """from pydantic import BaseModel
+from typing import Annotated as Hint, Literal as Choices, ClassVar as Shared
+class Application(BaseModel):
+    title: str
+class RootPromptSchema(BaseModel):
+    title: Hint[str, "Application"]
+    kind: Choices["Application"]
+    cache: Shared[Application]
+""",
+    )
+    assert module.family("RootPromptSchema") == {"RootPromptSchema"}
+
+
 def test_module_imports_and_external_roots_violate_privacy_without_claiming_application_types(tmp_path, capsys):
     repo = Repo(tmp_path / "repo")
     repo.write(".dry-lint.toml", CONFIG)
