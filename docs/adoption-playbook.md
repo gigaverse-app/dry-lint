@@ -52,7 +52,7 @@ candidate detector, not every possible semantic duplicate. Keep the initial/week
 the per-PR budget. Reuse the verdict store between audit and update to avoid paying twice.
 
 Use `gigaverse-app/dry-lint@v1` now that v1 has launched; before v1 the Action used `@main`. Use published major
-tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.3.1`, so its
+tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.4.0`, so its
 cached hook environment changes explicitly on upgrade. Confirm the release and required capabilities exist.
 
 ## 2. Accept the existing backlog once
@@ -118,7 +118,7 @@ default_install_hook_types: [pre-commit, prepare-commit-msg]
 default_stages: [pre-commit]
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: v1.3.1
+    rev: v1.4.0
     hooks:
       - id: dry-lint
         args: [--preset, sonnet, --baseline, .dry-lint/baseline.json]
