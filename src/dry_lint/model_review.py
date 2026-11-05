@@ -42,24 +42,18 @@ def enabled(settings: Settings, override: bool | None, *, staged: bool = False) 
 def baseline(root: Path, settings: Settings, *, staged: bool = False, base: str | None = None) -> Baseline | None:
     if not settings.models.baseline:
         return None
-    path = (root / settings.models.baseline).resolve().relative_to(root.resolve()).as_posix()
-    raw = git(root, "show", f":{path}") if staged else (root / path).read_text(encoding="utf-8")
-    proposed = Baseline.model_validate_json(raw)
-    if proposed.contract != contract(profile(settings)):
-        raise ValueError("Model baseline detection policy differs; restore the adoption settings before checking")
-    previous_ref = "HEAD" if staged else base
-    if previous_ref and git(root, "ls-tree", "--name-only", previous_ref, "--", path):
-        previous = Baseline.model_validate_json(git(root, "show", f"{previous_ref}:{path}"))
-        proposed.validate_successor(previous)
+    proposed, _ = Baseline.for_repository(
+        root, Path(settings.models.baseline), profile(settings), base=base, staged=staged
+    )
     return proposed
 
 
 def allowances(candidates: list[Candidate], debt: Baseline | None) -> list[Candidate]:
     """Exact reviewed debt is a source policy, never a reusable atomic verdict."""
-    accepted = {entry.key: entry for entry in debt.entries} if debt else {}
+    accepted = debt.matching(candidates) if debt else set()
     return [
         c.model_copy(update={"filtered": "accepted model debt: consolidate this reviewed pair"})
-        if not c.filtered and c.key in accepted and accepted[c.key].accepts(c)
+        if not c.filtered and c.key in accepted
         else c
         for c in candidates
     ]

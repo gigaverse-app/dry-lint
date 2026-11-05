@@ -16,6 +16,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
+from dry_lint.git import git
 from dry_lint.models import Consolidation, Verdict
 from dry_lint.policies import PairPolicy
 
@@ -180,11 +181,23 @@ class Settings(BaseModel):
         return verdict.label != "separate" and verdict.score >= self.bar(threshold, verdict.second_opinion is not None)
 
     @classmethod
-    def load(cls, root: Path) -> "Settings":
-        dedicated = root / ".dry-lint.toml"
-        if dedicated.exists():
-            return cls.model_validate(tomllib.loads(dedicated.read_text()))
-        pyproject = root / "pyproject.toml"
-        if pyproject.exists():
-            return cls.model_validate(tomllib.loads(pyproject.read_text()).get("tool", {}).get("dry-lint", {}))
+    def load(cls, root: Path, *, staged: bool = False) -> "Settings":
+        tracked = (
+            set(git(root, "ls-files", "--cached", "--", ".dry-lint.toml", "pyproject.toml").splitlines())
+            if staged
+            else set()
+        )
+
+        def source(name: str) -> str | None:
+            if staged:
+                return git(root, "show", f":{name}") if name in tracked else None
+            path = root / name
+            return path.read_text(encoding="utf-8") if path.exists() else None
+
+        dedicated = source(".dry-lint.toml")
+        if dedicated is not None:
+            return cls.model_validate(tomllib.loads(dedicated))
+        pyproject = source("pyproject.toml")
+        if pyproject is not None:
+            return cls.model_validate(tomllib.loads(pyproject).get("tool", {}).get("dry-lint", {}))
         return cls()

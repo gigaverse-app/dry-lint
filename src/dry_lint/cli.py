@@ -78,7 +78,7 @@ def run_info(root: Path, base: str | None) -> Run:
 
 def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     """The repository's settings, with the judge the command line names, if any."""
-    settings = Settings.load(root)
+    settings = Settings.load(root, staged=args.command in {"check", "detect"} and args.staged)
     if args.detector:
         settings.comparer = PluginChoice(use=args.detector)
     if args.fail_at is not None:
@@ -162,15 +162,7 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace, *, prep
 
 def baselines(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Baseline, Baseline | None]:
     """The proposed baseline, and the target branch's at `--baseline-ref` when it has one."""
-    baseline, previous = Baseline.read(root / args.baseline, settings), None
-    if args.baseline_ref:
-        path = (root / args.baseline).resolve().relative_to(root.resolve()).as_posix()
-        # The target branch owns allowances. PRs may shrink them, never broaden or replace them.
-        git(root, "rev-parse", "--verify", f"{args.baseline_ref}^{{commit}}")
-        if git(root, "ls-tree", "--name-only", args.baseline_ref, "--", path):
-            previous = Baseline.model_validate_json(git(root, "show", f"{args.baseline_ref}:{path}"))
-            baseline.validate_successor(previous)
-    return baseline, previous
+    return Baseline.for_repository(root, args.baseline, settings, base=args.baseline_ref)
 
 
 def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[str]:
@@ -436,8 +428,6 @@ def judge_models(
             if finding.candidate.lane != "relative":
                 finding.source_review = finding.blocking = True
                 finding.reported = False
-    elif args.require_complete and result.findings:
-        require_complete(result)
     return result
 
 

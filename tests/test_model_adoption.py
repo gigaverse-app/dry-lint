@@ -101,6 +101,7 @@ def test_reviewed_model_debt_ratchets_and_never_accepts_changed_or_new_pairs(tmp
         == 0
     )
     assert main([*baseline_args, "--init"]) == 0
+    assert main([*baseline_args, "--init"]) == 2
     repo.write(".dry-lint.toml", '[models]\nbaseline = ".dry-lint/models.json"\n')
     repo.commit()
     assert main(args) == 0
@@ -197,6 +198,67 @@ def test_split_check_rejects_missing_model_inventory_when_requested(tmp_path, mo
     candidates = tmp_path / "missing.json"
     candidates.write_text(CandidatesFile().model_dump_json())
     assert main(["judge", "--root", str(repo.root), "--candidates", str(candidates), "--models"]) == 2
+
+
+def test_source_acceptance_rejects_stale_models_and_function_findings(repo, tmp_path, monkeypatch, twin_judge):
+    clear_judge_credentials(monkeypatch)
+    report = tmp_path / "report.json"
+    assert (
+        main(
+            [
+                "check",
+                "--root",
+                str(repo.root),
+                "--base",
+                "main",
+                "--judge",
+                "command",
+                "--judge-command",
+                twin_judge,
+                "--report",
+                str(report),
+            ]
+        )
+        == 1
+    )
+    pair = Report.model_validate_json(report.read_text()).visible[0].candidate.key
+
+    def accept(root, key):
+        return main(
+            [
+                "feedback",
+                "accept",
+                key,
+                "--root",
+                str(root),
+                "--from",
+                str(report),
+                "--reason",
+                "reviewed",
+                "--reviewer",
+                "source reviewer",
+            ]
+        )
+
+    assert accept(repo.root, pair) == 2
+    models = model_repo(tmp_path)
+    assert main(["check", "--root", str(models.root), "--base", "main", "--report", str(report)]) == 0
+    pair = Report.model_validate_json(report.read_text()).visible[0].candidate.key
+    models.write("new.py", (models.root / "new.py").read_text() + "    etag: str\n")
+    models.git("add", "new.py")
+    assert accept(models.root, pair) == 2
+
+
+def test_unstaged_policy_cannot_hide_staged_model_review(tmp_path, monkeypatch, twin_judge):
+    clear_judge_credentials(monkeypatch)
+    repo = model_repo(tmp_path)
+    repo.write("new.py", (repo.root / "new.py").read_text() + "    etag: str\n")
+    repo.git("add", "new.py")
+    repo.write(".dry-lint.toml", "[models]\nhook = false\n")
+    args = ["check", "--root", str(repo.root), "--staged", "--judge", "command", "--judge-command", twin_judge]
+    assert main(args) == 1
+    repo.git("add", ".dry-lint.toml")
+    assert main(args) == 0
 
 
 def test_model_allowances_cannot_be_widened_and_use_the_staged_baseline(tmp_path):
