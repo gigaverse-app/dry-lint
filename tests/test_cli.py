@@ -13,18 +13,11 @@ from dry_lint.cli import main, parser, run_info, settings_for
 from dry_lint.judges.jev import JevJudge
 from dry_lint.models import CandidatesFile
 
-from conftest import EXISTING, Repo, clear_judge_credentials, judge_calls
+from conftest import EXISTING, Repo, judge_calls
 from conftest import TWIN as TWIN_SOURCE
 from conftest import run_cli as run
 
 TWIN = "src/widgets/caption.py::preview_caption_text"
-
-
-@pytest.fixture(autouse=True)
-def outside_actions(monkeypatch: pytest.MonkeyPatch) -> None:
-    clear_judge_credentials(monkeypatch)
-    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY"):
-        monkeypatch.delenv(name, raising=False)
 
 
 def test_check_fails_and_annotates_an_error_for_a_blocking_reimplementation(
@@ -223,7 +216,8 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(
     repo: Repo, tmp_path: Path, blocking_twin_judge: str, monkeypatch: pytest.MonkeyPatch, capsys
 ) -> None:
     event = tmp_path / "event.json"
-    event.write_text(json.dumps({"pull_request": {"number": 42, "head": {"sha": "feedbeef"}}}))
+    head = repo.git("rev-parse", "HEAD").strip()
+    event.write_text(json.dumps({"pull_request": {"number": 42, "head": {"sha": head}}}))
     monkeypatch.setenv("GITHUB_EVENT_PATH", str(event))
     monkeypatch.setenv("GITHUB_REPOSITORY", "octo/repo")
     candidates = tmp_path / "candidates.json"
@@ -233,7 +227,7 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(
     assert (handed.run.repository, handed.run.pull_request, handed.run.head, handed.run.base) == (
         "octo/repo",
         42,
-        "feedbeef",
+        head,
         "main",
     )
     assert handed.changed == 2 and all(c.new.hash and c.existing.hash for c in handed.candidates)
@@ -258,11 +252,65 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(
     capsys.readouterr()
     assert main(["report", "--root", str(repo.root), "--from", str(report), "--format", "check-run"]) == 1
     body = json.loads(capsys.readouterr().out)
-    assert (body["head_sha"], body["conclusion"]) == ("feedbeef", "failure")
+    assert (body["head_sha"], body["conclusion"]) == (head, "failure")
     assert json.loads(report.read_text())["findings"][0]["blocking"] is True
     main(["report", "--root", str(repo.root), "--from", str(report), "--format", "check-run", "--warn-only"])
     assert json.loads(capsys.readouterr().out)["conclusion"] == "neutral"
     assert json.loads(report.read_text())["run"]["pull_request"] == 42
+
+
+@pytest.mark.parametrize("command", ["check", "detect"])
+def test_pr_snapshot_preserves_dirty_checkout_and_primary_repo_identity(
+    repo: Repo, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, command: str, twin_judge: str
+) -> None:
+    peer = Repo(tmp_path / "peer")
+    peer.write("src/shared.py", EXISTING)
+    peer.commit()
+    repo.write(".dry-lint.toml", 'store = {use = "dir", path = ".verdicts"}\n')
+    repo.commit()
+    head = repo.git("rev-parse", "HEAD").strip()
+    base = repo.git("rev-parse", "main").strip()
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps({"pull_request": {"head": {"sha": head}}}))
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event))
+    repo.git("checkout", "main")
+    repo.write("README.md", "main advanced\n")
+    repo.commit()
+    repo.git("merge", "--no-ff", "feature", "-m", "synthetic merge")
+    repo.write("src/widgets/caption.py", "# staged deletion of the two feature functions\n")
+    repo.git("add", "src/widgets/caption.py")
+    repo.write("src/widgets/caption.py", "# additional unstaged change\n")
+    before = [repo.git(*args) for args in (("diff",), ("diff", "--cached"), ("worktree", "list", "--porcelain"))]
+    report = tmp_path / "snapshot.json"
+    assert (
+        main(
+            [
+                command,
+                "--root",
+                str(repo.root),
+                "--base",
+                base,
+                "--judge",
+                "command",
+                "--judge-command",
+                twin_judge,
+                "--warn-only",
+                "--repo",
+                f"owner/primary={repo.root}",
+                "--repo",
+                f"owner/peer={peer.root}",
+                "--report" if command == "check" else "--out",
+                str(report),
+            ]
+        )
+        == 0
+    )
+    assert json.loads(report.read_text())["changed"] == 2
+    if command == "check":
+        assert list((repo.root / ".verdicts").rglob("*.json"))
+    assert [
+        repo.git(*args) for args in (("diff",), ("diff", "--cached"), ("worktree", "list", "--porcelain"))
+    ] == before
 
 
 def test_detect_prints_candidates_without_out_and_proposes_the_backlog_with_all(

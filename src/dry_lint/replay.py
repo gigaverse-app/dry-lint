@@ -11,10 +11,7 @@ latest. The replay checks commits out in a temporary worktree, never in yours, a
 Replaying again with another `fail_at` judges nothing new, and a later `check` reuses the verdicts.
 """
 
-import shutil
-import tempfile
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -22,7 +19,7 @@ from pydantic import BaseModel, Field
 from dry_lint.costs import Ledger, combined
 from dry_lint.detector import Detector, changed_lines, touched
 from dry_lint.functions import extractor_for, repository_functions, tracked_files
-from dry_lint.git import git
+from dry_lint.git import git, worktree
 from dry_lint.judging import Judging
 from dry_lint.labelling import Labels
 from dry_lint.models import Function, Run, Versioned
@@ -111,20 +108,6 @@ class Replay(Versioned):
         if self.labels:
             lines.append(self.labels.as_text())
         return "\n".join(lines)
-
-
-@contextmanager
-def worktree(root: Path, commit: str) -> Iterator[Path]:
-    """A temporary detached checkout of the repository, removed afterwards whatever happens."""
-    folder = Path(tempfile.mkdtemp(prefix="dry-lint-replay-"))
-    tree = folder / "tree"
-    git(root, "worktree", "add", "--detach", "--quiet", str(tree), commit)
-    try:
-        yield tree
-    finally:
-        git(root, "worktree", "remove", "--force", str(tree), check=False)
-        shutil.rmtree(folder, ignore_errors=True)
-        git(root, "worktree", "prune", check=False)
 
 
 def analysed(tree: Path, lines: dict[str, set[int]], settings: Settings, extractors: list) -> bool:
