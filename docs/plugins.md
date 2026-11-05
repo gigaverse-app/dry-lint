@@ -71,8 +71,9 @@ judging, budgets, caching and reports; adapters own syntax and binding conventio
 | `Function.bases` | Syntactically named direct base references; unresolved imports may be absent | Evidence, never an automatic exclusion |
 
 `forward_target = None` means unestablished, not proof that no call exists. The built-ins conservatively recognize
-single receiver calls with unchanged parameter arguments, including awaited calls and TypeScript class arrow
-fields. Computed arguments, nested callbacks, decorators and parameter initializers do not qualify. Bare/imported
+single receiver calls with unchanged parameter arguments, including awaited calls and direct TypeScript class arrow
+fields. Computed arguments, nested callbacks, decorators, parameter initializers, constructors and wrapped arrows
+(such as debounced fields) do not qualify. Bare/imported
 calls, inherited dispatch and TypeScript package/path aliases are not resolved. Function-valued object fields
 are not assumed to bind `this` like class arrow fields. No project dependencies are installed or executed.
 

@@ -17,7 +17,7 @@ Adopter patterns inspected: chat search-source subclasses in web/mobile (getters
 additional work); web logger inheritance; mobile React error boundary (static methods, arrow field, render method).
 Use reduced synthetic examples in public regression tests; keep private adopter source out of this repository.
 
-Validation: 53 new regression cases pass; CI on Python 3.11/3.13 passes the full suite at 100% coverage.
+Validation: 55 new regression cases pass; CI on Python 3.11/3.13 passes the full suite at 100% coverage.
 Both adopter snapshots retain all extracted functions and candidate pairs. Strict validation still finds the
 same pre-existing parser gaps (four web files, one mobile file); these runs make no accuracy claim.
 Detailed measured counts and source revisions are in PR #73.

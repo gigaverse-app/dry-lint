@@ -196,6 +196,11 @@ def forwarding_method(node: Node, code: Node, body: Node) -> str | None:
         return None
     if node.type not in {"method_definition", "arrow_function"}:
         return None  # object methods and function-valued fields have different receiver binding
+    name = node.child_by_field_name("name")
+    if name is not None and text(name) == "constructor":
+        return None  # parameter properties and construction can add behavior outside the body
+    if code.type == "public_field_definition" and code.child_by_field_name("value") != node:
+        return None  # debounce/memo/etc. wrap the arrow with additional executable behavior
     if body.type == "statement_block":
         statements = [child for child in body.named_children if child.type != "comment"]
         if len(statements) != 1 or statements[0].type not in {"return_statement", "expression_statement"}:

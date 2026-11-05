@@ -240,6 +240,8 @@ def test_forwarder_variants_have_an_exact_local_target(language: Extractor, pyth
     [
         "class Store { @decorate /* binding may change */ read(key: string) { return this.normalize(key); } }",
         "class Store { read = function(key: string) { return this.normalize(key); }; }",
+        "class Store { read = debounce((key: string) => this.normalize(key), 200); }",
+        "class Store { constructor(private key: string) { this.normalize(key); } }",
         "class Store { read() { return; } }",
         "class Store { read(key: string) { return this.normalize?.(key); } }",
         "class Store { read(key: string) { return this?.normalize(key); } }",
