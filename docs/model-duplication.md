@@ -87,6 +87,9 @@ runs, including git reads, extraction and candidates. Default exclusions plus te
 | gigaverse-backend / `22dfbe180c6704101658a088cc269a25fa9c82dd` | 335 | 27 | 2.02 |
 | gigaverse-web-app / `03477c910588f88a0d93e10fc7618bfa3e41efee` | 1,978 | 603 | 2.04 |
 
+A verification run after consolidating the shared parser code reproduced every count at the same commits in
+6.65 / 1.64 / 1.54 seconds respectively. Both are individual observations, not a speedup claim.
+
 Development labels cover 74 initial pairs (30 AI, all 14 backend, 30 web) plus 20 broader challenge pairs.
 They are agent source reviews, not human ground truth. Three initial labels were corrected after investigating
 context/disagreements; original labels and reasons were retained. Borderlines are excluded from precision/recall.

@@ -49,8 +49,8 @@ def resolved_name(node: ast.expr, bindings: dict[str, str]) -> str:
 
 
 class PythonModelExtractor(PythonExtractor):
-    name = "python-models"
-    version = "1"
+    name: str = "python-models"
+    version: str = "1"
 
     def functions(self, path: str, source: str) -> list[Function]:
         try:
@@ -68,14 +68,16 @@ class PythonModelExtractor(PythonExtractor):
             "ninja.schema.Schema": "pydantic",
             "ninja.ModelSchema": "pydantic",
         }
-        found = []
+        found: list[Function] = []
         inherited: dict[str, set[str]] = {}
         lines = source.splitlines()
         # Only direct fields contribute: inheritance is already reuse, not copied declarations.
         for node in tree.body:
             if not isinstance(node, ast.ClassDef):
                 continue
-            kind = next((kinds[base] for b in node.bases if (base := resolved_name(b, bindings)) in kinds), None)
+            kind: Literal["pydantic", "dataclass"] | None = next(
+                (kinds[base] for b in node.bases if (base := resolved_name(b, bindings)) in kinds), None
+            )
             if any(
                 resolved_name(d, bindings) in {"dataclasses.dataclass", "pydantic.dataclasses.dataclass"}
                 for d in node.decorator_list
@@ -84,8 +86,10 @@ class PythonModelExtractor(PythonExtractor):
             if kind is None:
                 continue
             kinds[node.name] = kind
-            base_fields = set().union(*(inherited.get(resolved_name(base, bindings), set()) for base in node.bases))
-            fields = {}
+            base_fields = set[str]().union(
+                *(inherited.get(resolved_name(base, bindings), set()) for base in node.bases)
+            )
+            fields: dict[str, str] = {}
             for field in node.body:
                 if not isinstance(field, ast.AnnAssign) or not isinstance(field.target, ast.Name):
                     continue
@@ -157,14 +161,14 @@ def zod_object(node: Node, namespaces: set[str]) -> Node | None:
 
 
 class TypeScriptModelExtractor(TypeScriptExtractor):
-    name = "typescript-models"
-    version = "1"
-    preserve_types = True
+    name: str = "typescript-models"
+    version: str = "1"
+    preserve_types: bool = True
 
     def functions(self, path: str, source: str) -> list[Function]:
         root = self.parser(path).parse(source.encode()).root_node
         context = SourceContext(root)
-        namespaces = set()
+        namespaces: set[str] = set()
         for node in root.named_children:
             module = node.child_by_field_name("source")
             if (
@@ -185,7 +189,7 @@ class TypeScriptModelExtractor(TypeScriptExtractor):
                 elif child.type == "import_clause":
                     namespaces.update(text(c) for c in child.named_children if c.type == "identifier")
                 pending.extend(child.named_children)
-        found = []
+        found: list[Function] = []
         for statement in root.named_children:
             declaration = (
                 statement.child_by_field_name("declaration") if statement.type == "export_statement" else statement
@@ -213,7 +217,7 @@ class TypeScriptModelExtractor(TypeScriptExtractor):
                     kind = "zod"
                 if shape is None:
                     continue
-                fields = {}
+                fields: dict[str, str] = {}
                 for field in ts_shape(shape):
                     if field.type not in {"property_signature", "pair", "shorthand_property_identifier"}:
                         continue
@@ -249,14 +253,15 @@ class TypeScriptModelExtractor(TypeScriptExtractor):
 class ModelComparer:
     """Field Dice overlap with an inverted index. A score is likeness, never consolidation confidence."""
 
-    name = "model-shape"
-    version = "1"
-    similarity_reusable = False
+    name: str = "model-shape"
+    version: str = "1"
+    similarity_reusable: bool = False
 
     def __init__(self, min_similarity: float = 0.65, min_fields: int = 2) -> None:
         if not 0 <= min_similarity <= 1 or min_fields < 1:
             raise ValueError("model-shape needs 0 <= min_similarity <= 1 and min_fields >= 1")
-        self.min_similarity, self.min_fields = min_similarity, min_fields
+        self.min_similarity: float = min_similarity
+        self.min_fields: int = min_fields
         self.functions: list[Function] = []
         self.postings: dict[str, set[int]] = defaultdict(set)
 
@@ -282,7 +287,7 @@ class ModelComparer:
     ) -> list[tuple[Function, float]]:
         if not function.declaration:
             return []
-        positions = set().union(*(self.postings.get(field, set()) for field in function.declaration.fields))
+        positions = set[int]().union(*(self.postings.get(field, set()) for field in function.declaration.fields))
         found = [
             (self.functions[i], self.similarity(function, self.functions[i]))
             for i in positions
