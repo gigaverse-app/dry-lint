@@ -308,3 +308,119 @@ preserve baseline code weights/IDF, represent description evidence separately, a
 matching and ranking. That is a next experiment, not an implemented fix or a promise of improvement. A candidate
 union would still need to prove that useful extra pairs reach the judge without displacing baseline findings
 within $0.04. Learned contextual concepts and Markdown associations remain untested by this probe.
+
+## Mining merged consolidations and continuing the loop
+
+### Evidence from actual changes
+
+Recent consolidation PRs provide before implementations, the new shared owner, and surviving after callers.
+They are a better source of realistic challenges than constructing more toy synonyms. A shared call is a
+discovery lead, however, not a duplicate label: some changes centralize a convention or move an existing owner
+without removing two implementations. Review the operation and its contracts before accepting the example.
+
+This iteration inspected 21 merged PRs across nine repositories: backend-common, ci-esta, dry-lint, Due,
+frontend-common, gigaverse-ai, gigaverse-backend, gigaverse-mobile and gigaverse-web-app. The mining pass used each merge
+commit's first parent as the before revision and the merge result as after. PR descriptions helped discovery;
+the source diff determined attribution. In particular, Due's recovery consolidation belongs to #183, not #190.
+
+| Repository | Merged PRs inspected |
+| --- | --- |
+| backend-common | #251, #293 |
+| ci-esta | #98, #106 |
+| dry-lint | #73 |
+| Due | #180, #183, #190 |
+| frontend-common | #915, #925, #1084 |
+| gigaverse-ai | #2997, #3317, #3325 |
+| gigaverse-backend | #5358, #5359, #5361, #5522 |
+| gigaverse-mobile | #3935 |
+| gigaverse-web-app | #4328, #4346 |
+
+Mining shared new callees, retained owners and removed helpers produced 300 leads. A spanning forest per
+proposed owner, plus explicitly inspected deleted-helper cases, reduced these to 136 review packets. This
+avoids treating every edge in one large consolidation as independent evidence. Two model reviews received
+before/after source and proposed-owner code, without retrieval scores or variant identities. Agreement at
+confidence at least 0.85 in both reviews forms the strict tier; lower-confidence agreement remains provisional.
+These are model-assisted labels, not independent human gold, and the models share a provider family.
+
+| New evidence tier | Before duplicates | Before separate | After separate |
+| --- | ---: | ---: | ---: |
+| Strict | 14 | 33 | 41 |
+| All consensus, including strict | 60 | 70 | 112 |
+
+The 60 new positives expand the earlier 48-positive challenge to **108**, with 46 of the additions explicitly
+provisional. The 242 new rows span 70 proposed-owner families. Disagreements and uncertainty are quarantined.
+Some reviewed leads expose duplication that remains after the PR; a merged consolidation is not proof that
+every nearby operation was consolidated. Deleted functions have no invented after-state negative. Surviving
+after callers are negative controls only when both reviews find the meaningful duplication removed.
+
+[The public Due panel](../examples/due-consolidation-gold.toml) contributes seven source-reviewed before
+positives and three after controls from [#180](https://github.com/gigaverse-app/due/pull/180),
+[#183](https://github.com/gigaverse-app/due/pull/183) and
+[#190](https://github.com/gigaverse-app/due/pull/190). Each excerpt has an immutable revision, source identity,
+source URL, SHA-256 and rationale. These seven are a subset of the 60, not additional positives. They cover raw
+row locking, clock transport, recovery/delivery, subprocess orchestration, effect-attempt setup and retry
+fixtures. One same-file positive documents a retrieval-policy exclusion. Private source and review packets
+remain outside this public repository. Exact Due syntax requires Python 3.12+ for extraction; older supported
+Python versions still validate the fixture format and provenance.
+
+### Frozen development split and budget accounting
+
+Reserve whole PR families backend-common #293, frontend-common #925, gigaverse-mobile #3935 and
+gigaverse-web-app #4346 as holdout. Keep Due and its vendored backend lineage together in development.
+Previously inspected panels are development evidence. Do not randomly split related pairs or let after code
+teach a before-time index. The holdout remains unscored because no variant passed the development gate.
+
+The new development panel contains 176 rows: 48 positives and 128 separate controls across 26 PR/phase
+batches and 48 proposed-owner families. These 48 positives are from the newly mined panel, not the original
+48. Full tracked Python and TypeScript source, excluding migrations, supplies each revision's corpus. This
+diagnostic scope intentionally includes tests and scripts. Of the 48 positives, 41 pass cross-file and other
+pair filters, and only 26 also fall within default file scope. Report these exclusions separately from ranking
+failures; broader retrieval cannot fix a pair that policy excludes.
+
+For each PR/phase batch, query both sides of its labeled pairs against the full repository. Use the production
+Ledger and unchanged Sonnet concept-judge cost estimate to select candidates within $0.04. This is a cold,
+PR-sized diagnostic batch, not a reconstruction of the original CI diff, cache or provider bill. A funded
+positive means its pair receives a judge slot, not that a live judge confirms it. No live classifier evaluation
+was run for these variants. Unknown candidates are neither credited as duplicates nor counted as false reports.
+
+### Separate fields and protected retrieval
+
+The second iteration preserves the original code TF-IDF and creates an independently normalized description
+index with the same 32-term cap. Score `code + alpha * (1 - code) * description` for fixed weights 0.1 and 0.2.
+Python ownership rules remain as in the first probe. TypeScript uses comment nodes inside the extracted
+function, excluding nested function comments and directives; leading JSDoc outside that span is unavailable.
+
+The third iteration preserves baseline neighbors and appends at most one description neighbor, requiring
+description similarity at least 0.65 and code similarity at least 0.15. Place all baseline candidates before
+extras during budget selection so extras cannot displace baseline funded findings.
+
+The fourth iteration replaces that extra channel with exact normalized Python AST statement fragments:
+windows of one to three statements, 25 to 200 AST nodes, at most 64 fragments per function, with consistent
+local-name normalization while preserving callees, attributes and literals. Ignore fragments appearing in more
+than `max(2, 0.005 * corpus_size)` functions. Append at most one neighbor with code similarity at least 0.1,
+ranked by the largest shared fragment; protect the baseline batch as above. TypeScript uses baseline retrieval.
+This is an exploratory structural signal, not learned synonymy or a production plugin.
+
+| Variant | Retrieved positives / 48 | Funded positives / 48 | Funded known separate / 128 | All funded candidates |
+| --- | ---: | ---: | ---: | ---: |
+| Baseline | 15 | 15 | 7 | 88 |
+| Separate descriptions, weight 0.1 | 15 | 15 | 7 | 89 |
+| Separate descriptions, weight 0.2 | 15 | 14 | 7 | 90 |
+| Protected description neighbor | 15 | 15 | 7 | 90 |
+| Protected exact fragment neighbor | 15 | 15 | 7 | 95 |
+
+All variants retrieve six strict-tier positives. The 0.2 bonus loses funding for a previously funded backend
+policy-assembly positive despite retaining it in retrieval. No tested variant gains a fixed-panel positive.
+The fragment channel funds seven additional candidate occurrences; preliminary source inspection suggests
+fixture-loading and sport-selection operations worth reviewing, but also repeated assertions and shared-call
+controls. These post-selection leads are not retroactively added to the frozen panel or claimed as validated
+recall gains. They need separate adjudication and future held-out confirmation.
+
+**Decision: retain production retrieval and the existing budget contract.** Raw documentation, separated
+documentation and this bounded exact-fragment probe have not passed the promotion gate. The larger challenge
+shows why the earlier near-saturated panel was insufficient: useful consolidations often extract a small
+operation from otherwise different functions, and some misses are deliberate scope exclusions. Next, review
+the newly surfaced fragment candidates and diagnose missed operation boundaries before changing thresholds
+or learning a vocabulary. A block-level representation may be more useful than adding prose to a whole-function
+vector, but these results do not yet establish that claim. Markdown-derived and learned synonym expansion
+remain untested.

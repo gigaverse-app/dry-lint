@@ -11,7 +11,6 @@ import pytest
 
 from dry_lint.bench import as_function, bench_comparer, load_gold
 from dry_lint.detector import Detector
-from dry_lint.extractors import PythonExtractor
 from dry_lint.plugins import load
 from dry_lint.settings import Settings
 
@@ -56,7 +55,7 @@ def test_due_consolidations_preserve_pinned_source_and_real_after_controls() -> 
 
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="Pinned Due source uses Python 3.12 generic syntax")
 def test_due_gold_extracts_implementations_instead_of_unparsed_fallbacks() -> None:
-    extractor = PythonExtractor()
+    extractor = load("extractors", Settings().extractors[0])
     for pair in load_gold(DUE):
         for side in (pair.new, pair.existing):
             function = as_function(side, extractor)
@@ -67,7 +66,7 @@ def test_due_gold_extracts_implementations_instead_of_unparsed_fallbacks() -> No
 def test_cleanup_gold_extracts_real_functions_and_keeps_known_positive_retrieval() -> None:
     """The panel must exercise extraction/retrieval, never silently fall back to unparsed text."""
     pairs = load_gold(CLEANUP)
-    extractor = PythonExtractor()
+    extractor = load("extractors", Settings().extractors[0])
     functions = {}
     for pair in pairs:
         for side in (pair.new, pair.existing):
