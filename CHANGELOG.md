@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/gigaverse-app/dry-lint/compare/v1.2.1...v1.3.0) (2026-11-05)
+
+
+### Features
+
+* **models:** detect duplicated model ownership ([#75](https://github.com/gigaverse-app/dry-lint/issues/75)) ([0176fb5](https://github.com/gigaverse-app/dry-lint/commit/0176fb5a8f1e5d08a0a63745d9925a53b77b9eb3))
+
 ## [1.2.1](https://github.com/gigaverse-app/dry-lint/compare/v1.2.0...v1.2.1) (2026-11-05)
 
 
