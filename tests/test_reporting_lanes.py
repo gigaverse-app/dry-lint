@@ -96,13 +96,24 @@ def test_progress_refresh_reads_both_baselines_without_rejudging_or_mutating_deb
     repo.write(".dry-lint/baseline.json", functions.model_dump_json())
     repo.write(".dry-lint/custom-models.json", models.model_dump_json())
     before = {p: p.read_bytes() for p in (repo.root / ".dry-lint").glob("*.json")}
-    args = ["progress", "--root", str(repo.root), "--readme", "README.md", "--repository", "acme/widgets"]
+    args = [
+        "progress",
+        "--root",
+        str(repo.root),
+        "--readme",
+        "README.md",
+        "--repository",
+        "acme/widgets",
+        "--repository-id",
+        "4242",
+    ]
     assert main(args) == 0
     text = (repo.root / "README.md").read_text()
     assert "# Keep this introduction" in text
     assert "| Functions | 1 | 0 | 0 |" in text
     assert "| Models | 1 | 0 | 0 |" in text
     assert "](.dry-lint/custom-models.json)" in text
+    assert "models_remaining=1" in text and "models_cleaned=0" in text
     assert main(args) == 0 and (repo.root / "README.md").read_text() == text
     assert all(p.read_bytes() == data for p, data in before.items())
 
@@ -154,3 +165,28 @@ def test_model_policy_dismissal_is_distinct_from_resolved_review():
     assert ledger.count("dismissed", "model") == 1
     assert ledger.count("kept-out", "model") == 0
     assert ledger.contribution("a" * 64, 1)["dismissed"] == 0
+
+
+def test_clean_model_pass_says_review_complete_and_keeps_one_sticky_marker():
+    shown = as_markdown(combined(models=[]))
+    assert "No unresolved model candidates" in shown
+    assert shown.count("<!-- dry-lint clean -->") == 1
+    assert "9 models" in shown
+    assert "ranking only" in shown
+
+
+def test_model_ratchet_refreshes_readme_and_missing_readme_option_is_actionable(tmp_path, capsys):
+    repo = Repo(tmp_path / "empty")
+    repo.write("README.md", "# Library\n")
+    repo.write(".dry-lint.toml", '[models]\nbaseline = ".dry-lint/models.json"\n')
+    settings = Settings.load(repo.root)
+    repo.write(".dry-lint/baseline.json", Baseline.start(report(), settings).model_dump_json())
+    repo.write(".dry-lint/models.json", Baseline.start(report(), profile(settings)).model_dump_json())
+    repo.commit()
+    assert (
+        main(["model-baseline", "--root", str(repo.root), "--update", "--readme", "README.md", "--repository", "a/b"])
+        == 0
+    )
+    assert "| Models | 0 | 0 | 0 |" in (repo.root / "README.md").read_text()
+    assert main(["progress", "--root", str(repo.root)]) == 2
+    assert "progress requires --readme" in capsys.readouterr().err

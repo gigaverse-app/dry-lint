@@ -34,7 +34,7 @@ from dry_lint import __version__
 from dry_lint.commits import Outcome
 from dry_lint.evidence import PairEvidence
 from dry_lint.models import SCHEMA, Versioned, pair_key
-from dry_lint.report import BLUE, GRAY, Finding, Report, badge, code, plural
+from dry_lint.report import BLUE, GRAY, BacklogCleanup, Finding, Report, badge, code, plural
 
 SNAPSHOT = re.compile(r"<!-- dry-lint-ledger (?P<ledger>\{.*?\}) -->")
 RECENT_RUNS = 20
@@ -144,13 +144,9 @@ class Pair(BaseModel):
         return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
 
 
-class Backlog(BaseModel):
+class Backlog(BacklogCleanup):
     """An accepted baseline pair the pull request cleaned up, and how: remediation, never counted as kept out."""
 
-    new: str
-    kind: Literal["function", "model"] = "function"
-    existing: str
-    how: Literal["removed", "separate"] = Field(description="A side removed, or judged separate as it is now.")
     settled: int = Field(description="The push that first cleaned it up.")
 
 
@@ -283,10 +279,7 @@ class PullLedger(Versioned):
                     key: ledger.backlog[key].model_copy(update={"how": item.how})
                     if key in ledger.backlog
                     else Backlog(
-                        new=local(item.new),
-                        kind=item.kind,
-                        existing=local(item.existing),
-                        how=item.how,
+                        **item.model_dump(),
                         settled=since.get(key, ledger.pushed),
                     )
                     for key, item in cleaned.items()
@@ -396,7 +389,7 @@ def pair_line(pair: Pair) -> str:
 def backlog_line(key: str, item: Backlog, ledger: PullLedger) -> str:
     how = "one side removed" if item.how == "removed" else "the judge now finds them separate"
     found = f"found in push {ledger.pairs[key].found}, " if key in ledger.pairs else ""
-    concept = Pair(new=item.new, existing=item.existing, found=item.settled).concept()
+    concept = Pair(new=item.new.split("::")[-1], existing=item.existing.split("::")[-1], found=item.settled).concept()
     return f"{ICONS['kept-out']} {concept} · accepted backlog, {found}cleaned up in push {item.settled}: {how}"
 
 

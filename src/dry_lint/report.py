@@ -162,7 +162,7 @@ class JudgingSummary(BaseModel):
     def skipped(self) -> int:
         return sum(s.skipped for s in self.spend)
 
-    def line(self) -> str:
+    def line(self, *, ranking: bool = False) -> str:
         """One line: judges, thresholds, and the bill."""
         judges = self.judge or "no judge"
         if self.escalation and self.band:
@@ -172,6 +172,8 @@ class JudgingSummary(BaseModel):
             if self.fail_at > self.report_at
             else f"reports and fails at {self.report_at:g}"
         )
+        if ranking:
+            thresholds = "ranking only; coding agent owns consolidation and dismissal"
         usd = self.usd
         scope = "for this pull request" if self.pull_request else "for this campaign" if self.campaign else "budget"
         bill = (
@@ -357,14 +359,14 @@ def as_text(report: Report) -> str:
         return "\n\n".join(
             [
                 "Functions\n" + text_lane(report.lane("function")),
-                "Models\n" + text_lane(report.lane("model")),
+                "Models\n" + text_lane(report.lane("model"), kind="model"),
                 *model_summary(report),
             ]
         )
     return text_lane(report) + "\nModels: not checked in this run."
 
 
-def text_lane(report: Report) -> str:
+def text_lane(report: Report, *, kind: str = "function") -> str:
     lines = [
         f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {f.advice(report.relatives(f))}"
         for f in report.visible
@@ -379,7 +381,7 @@ def text_lane(report: Report) -> str:
     if report.deferred:
         lines.append(f"dry-lint: {report.deferred} deferred by the judge budget; these pairs are not cleared")
     if report.judging:
-        lines.append(f"judging: {report.judging.line()}")
+        lines.append(f"judging: {report.judging.line(ranking=kind == 'model')}")
     lines.extend(model_summary(report))
     return "\n".join(lines)
 
@@ -387,7 +389,9 @@ def text_lane(report: Report) -> str:
 def model_summary(report: Report) -> list[str]:
     if report.model_judging is None:
         return []
-    lines = [f"models: {report.changed_models} changed, {report.models} in scope; {report.model_judging.line()}"]
+    lines = [
+        f"models: {report.changed_models} changed, {report.models} in scope; {report.model_judging.line(ranking=True)}"
+    ]
     if report.model_debt is not None:
         lines.append(
             "reviewed model debt: " + ", ".join(f"{count} {state}" for state, count in report.model_debt.items())
@@ -540,7 +544,7 @@ def markdown_lane(
     footer = [
         "",
         f"<sub>{coverage}</sub>",
-        *([f"<sub>{escaped(report.judging.line())}</sub>"] if report.judging else []),
+        *([f"<sub>{escaped(report.judging.line(ranking=kind == 'model'))}</sub>"] if report.judging else []),
         *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
     ]
     if report.judge is None:
@@ -717,7 +721,7 @@ def clean(report: Report, audit: bool, report_at: float | None, kind: str = "fun
         if not audit and not report.changed and not report.changed_models
         else []
     )
-    judging = report.judging.line() if report.judging else f"judge {report.judge}"
+    judging = report.judging.line(ranking=kind == "model") if report.judging else f"judge {report.judge}"
     return "\n".join(
         [
             MARKER,

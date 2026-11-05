@@ -429,7 +429,7 @@ CLIP = BacklogCleanup(new="src/widgets/caption.py::clip", existing="src/text.py:
 def test_accepted_debt_cleaned_up_is_backlog_and_never_kept_out() -> None:
     ledger = PullLedger().advance([cleaned(push("a" * 40), TRIM)], run="1")
     assert ledger.count("kept-out") == 0 and list(ledger.backlog.values()) == [
-        Backlog(new="trim", existing="strip", how="removed", settled=1)
+        Backlog(new="src/a.py::trim", existing="src/b.py::strip", how="removed", settled=1)
     ]
     assert ledger.contribution("k", 5)["kept_out"] == 0  # remediation is not prevention
     shown = unspread(render(ledger))
@@ -444,9 +444,9 @@ def test_each_baseline_check_restates_the_backlog() -> None:
     ledger = ledger.advance([push("b" * 40)], run="2")  # no baseline checked: no claim either way
     assert list(ledger.backlog) == [pair_key(TRIM.new, TRIM.existing)]
     ledger = ledger.advance([cleaned(push("c" * 40), TRIM, CLIP)], run="3")
-    assert {item.new: item.settled for item in ledger.backlog.values()} == {"trim": 1, "clip": 3}
+    assert {item.new: item.settled for item in ledger.backlog.values()} == {TRIM.new: 1, CLIP.new: 3}
     ledger = ledger.advance([cleaned(push("d" * 40), CLIP)], run="4")  # the removed side came back
-    assert [item.new for item in ledger.backlog.values()] == ["clip"]
+    assert [item.new for item in ledger.backlog.values()] == [CLIP.new]
 
 
 def test_accepted_debt_a_push_reported_is_counted_once_as_backlog() -> None:
