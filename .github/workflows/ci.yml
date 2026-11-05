@@ -71,6 +71,9 @@ jobs:
             .github/workflows/release.yml
             .github/workflows/counter.yml
             .github/workflows/viewer.yml
+            examples/dry-lint.yml
+            examples/dry-lint-judge.yml
+            examples/dry-lint-audit.yml
           head-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: shellcheck scripts/install-action.sh
 

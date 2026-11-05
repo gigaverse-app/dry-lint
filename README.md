@@ -164,6 +164,7 @@ judges them; to use another judge, pass `--judge command --judge-command "your-l
 
 | To | Read |
 | --- | --- |
+| Fully adopt hooks, PR/README stickies and a shrinking backlog | [Adoption playbook](docs/adoption-playbook.md) |
 | Set it up with an agent | [skills/dry-lint/SKILL.md](skills/dry-lint/SKILL.md) |
 | See the PR comment before installing | [Example report](docs/comment-preview.md) |
 | Put judged findings on pull requests | [GitHub Action setup](docs/github-action.md) |
