@@ -107,7 +107,7 @@ No judge scores or prompt thresholds were changed to fit this panel.
 
 A live `dry-v2:claude-sonnet-5-5` judgment on 2026-11-05 flagged all eight positives
 (scores 0.70–0.90) and kept all four after-cleanup controls separate (0.05–0.12),
-at both the default 0.60 report threshold and 0.70 failure threshold. This is binary
+at the `sonnet` preset's 0.60 report and 0.70 failure thresholds. This is binary
 duplicate/separate agreement, treating `drifted` as a duplicate; it does not claim
 agreement on every drift annotation. The run used 9,558 input and 2,263 output tokens.
 One run on this deliberately selected panel does not establish general accuracy.
