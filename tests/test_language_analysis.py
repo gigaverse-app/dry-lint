@@ -6,22 +6,24 @@ from dry_lint.detector import why_skipped
 from dry_lint.extractors import PythonExtractor
 from dry_lint.function_index import FunctionIndex, build_index, extraction_contract
 from dry_lint.models import Candidate, Function, Run, Verdict
+from dry_lint.plugins import Extractor
 from dry_lint.settings import Settings
+from dry_lint.store import VerdictStore
 from dry_lint.typescript import TypeScriptExtractor
 
 
 @pytest.fixture(params=[PythonExtractor(), TypeScriptExtractor()], ids=["python", "typescript"])
-def language(request):
+def language(request: pytest.FixtureRequest) -> Extractor:
     return request.param
 
 
-def extract(language, python: str, typescript: str) -> list[Function]:
+def extract(language: Extractor, python: str, typescript: str) -> list[Function]:
     path, source = ("source.py", python) if language.name == "python" else ("source.ts", typescript)
     return language.functions(path, source)
 
 
 @pytest.mark.parametrize("extra", [False, True], ids=["forwarder", "additional-policy"])
-def test_only_forwarding_bodies_settle_call_pairs(language, extra: bool) -> None:
+def test_only_forwarding_bodies_settle_call_pairs(language: Extractor, extra: bool) -> None:
     python_extra = "        key = key.strip().lower()\n" if extra else ""
     ts_extra = "key = key.trim().toLowerCase();" if extra else ""
     target, wrapper = extract(
@@ -36,7 +38,7 @@ def test_only_forwarding_bodies_settle_call_pairs(language, extra: bool) -> None
     assert why_skipped(target, wrapper, Settings()) == expected
 
 
-def test_overrides_with_executable_policy_remain_candidates(language) -> None:
+def test_overrides_with_executable_policy_remain_candidates(language: Extractor) -> None:
     base, child = extract(
         language,
         "class Base:\n    def normalize(self, key):\n        return key.strip().lower()\n"
@@ -47,7 +49,7 @@ def test_overrides_with_executable_policy_remain_candidates(language) -> None:
     assert why_skipped(base, child, Settings()) is None
 
 
-def test_special_method_conventions_belong_to_the_language(language) -> None:
+def test_special_method_conventions_belong_to_the_language(language: Extractor) -> None:
     first, second = extract(
         language,
         "class First:\n    def __len__(self):\n        return len(self.rows)\n"
@@ -72,7 +74,7 @@ def test_unknown_analysis_never_guesses_relationships_from_source() -> None:
     )
 
 
-def test_analysis_survives_wire_round_trip_and_invalidates_context(language) -> None:
+def test_analysis_survives_wire_round_trip_and_invalidates_context(language: Extractor) -> None:
     target, wrapper = extract(
         language,
         "class Store:\n    def normalize(self, key):\n        return key.strip().lower()\n"
@@ -89,11 +91,17 @@ def test_analysis_survives_wire_round_trip_and_invalidates_context(language) -> 
     assert pair.model_copy(update={"new": changed}).context_hash != pair.context_hash
 
 
-def test_function_indexes_preserve_language_analysis(language) -> None:
+def test_function_indexes_preserve_language_analysis(language: Extractor) -> None:
     path, source = (
-        ("source.py", "class Store:\n    def read(self, key):\n        return key.strip()\n")
+        (
+            "source.py",
+            "from base import Base\nclass Store(Base):\n    def read(self, key):\n        return key.strip()\n",
+        )
         if language.name == "python"
-        else ("source.ts", "class Store { read(key: string) { return key.trim(); } }")
+        else (
+            "source.ts",
+            "import { Base } from './base'; class Store extends Base { read(key: string) { return key.trim(); } }",
+        )
     )
     settings = Settings()
     index = build_index({path: source.encode()}, "example/project", "a" * 40, settings)
@@ -101,6 +109,7 @@ def test_function_indexes_preserve_language_analysis(language) -> None:
     function = restored.extracted()[0]
     assert function.analysis is not None
     assert function.analysis.language == language.name
+    assert function.bases == ["base::Base"]
 
 
 @pytest.mark.parametrize(
@@ -116,7 +125,7 @@ def test_function_indexes_preserve_language_analysis(language) -> None:
         ("return 1", "return 1;"),
     ],
 )
-def test_ambiguous_or_computed_calls_remain_candidates(language, python_body: str, ts_body: str) -> None:
+def test_ambiguous_or_computed_calls_remain_candidates(language: Extractor, python_body: str, ts_body: str) -> None:
     target, wrapper = extract(
         language,
         "class Store:\n    def normalize(self, key):\n        return key.strip()\n"
@@ -126,7 +135,7 @@ def test_ambiguous_or_computed_calls_remain_candidates(language, python_body: st
     assert why_skipped(wrapper, target, Settings()) is None
 
 
-def test_parameter_initializers_are_additional_policy(language) -> None:
+def test_parameter_initializers_are_additional_policy(language: Extractor) -> None:
     target, wrapper = extract(
         language,
         "class Store:\n    def normalize(self, key):\n        return key.strip()\n"
@@ -174,7 +183,7 @@ class LocalSearch extends SearchSource {
     assert all(f.analysis and f.analysis.declared_override and f.analysis.forward_target is None for f in found)
 
 
-def test_language_evidence_reopens_a_cached_verdict(language, store) -> None:
+def test_language_evidence_reopens_a_cached_verdict(language: Extractor, store: VerdictStore) -> None:
     first, second = extract(
         language,
         "class Base:\n    def normalize(self, key):\n        return key.strip()\n"
@@ -191,7 +200,7 @@ def test_language_evidence_reopens_a_cached_verdict(language, store) -> None:
     assert store.lookup(pair.model_copy(update={"new": changed}), "offline", reopen_margin=0.05).verdict is None
 
 
-def test_forwarding_never_crosses_repository_identity(language) -> None:
+def test_forwarding_never_crosses_repository_identity(language: Extractor) -> None:
     target, wrapper = extract(
         language,
         "class Store:\n    def normalize(self, key):\n        return key.strip()\n"
@@ -220,7 +229,7 @@ def test_forwarding_never_crosses_repository_identity(language) -> None:
         ),
     ],
 )
-def test_forwarder_variants_have_an_exact_local_target(language, python: str, typescript: str) -> None:
+def test_forwarder_variants_have_an_exact_local_target(language: Extractor, python: str, typescript: str) -> None:
     [wrapper] = extract(language, python, typescript)
     assert wrapper.analysis is not None
     assert wrapper.analysis.forward_target == f"{wrapper.path}::Store.normalize"
@@ -229,7 +238,7 @@ def test_forwarder_variants_have_an_exact_local_target(language, python: str, ty
 @pytest.mark.parametrize(
     "source",
     [
-        "class Store { @decorate read(key: string) { return this.normalize(key); } }",
+        "class Store { @decorate /* binding may change */ read(key: string) { return this.normalize(key); } }",
         "class Store { read = function(key: string) { return this.normalize(key); }; }",
         "class Store { read() { return; } }",
         "class Store { read(key: string) { return this.normalize?.(key); } }",

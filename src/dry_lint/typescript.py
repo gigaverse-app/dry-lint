@@ -181,7 +181,7 @@ class Bases:
         return []
 
 
-def forwarding_method(node: Node, code: Node) -> str | None:
+def forwarding_method(node: Node, code: Node, body: Node) -> str | None:
     """Recognize class methods/arrow fields containing only this.method(parameters), without evaluating code."""
     previous = code.prev_named_sibling
     while previous is not None and previous.type == "comment":
@@ -196,9 +196,6 @@ def forwarding_method(node: Node, code: Node) -> str | None:
         return None
     if node.type not in {"method_definition", "arrow_function"}:
         return None  # object methods and function-valued fields have different receiver binding
-    body = node.child_by_field_name("body")
-    if body is None:
-        return None
     if body.type == "statement_block":
         statements = [child for child in body.named_children if child.type != "comment"]
         if len(statements) != 1 or statements[0].type not in {"return_statement", "expression_statement"}:
@@ -281,7 +278,7 @@ class TypeScriptExtractor:
             snippet = text(code)
             if code.type == "variable_declarator":
                 snippet = "const " + snippet + ";"
-            target = forwarding_method(node, code)
+            target = forwarding_method(node, code, body)
             found.append(
                 Function(
                     path=path,
