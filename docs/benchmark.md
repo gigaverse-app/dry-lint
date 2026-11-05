@@ -27,6 +27,16 @@ Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 f
 much of it written with coding agents. The gold labels contain that private code and are not published, apart from
 [30 example pairs](#example-pairs). The method is described here so it can be repeated on another codebase.
 
+## Public cleanup regression panel
+
+The [pytest-obligation cleanup](case-studies/pytest-obligation-cleanup.md) adds
+[15 pinned public pairs](../examples/pytest-obligation-gold.toml): six repeated
+operations, six separate/delegated pairs, and three context-dependent borderline
+cases. Four families include the original duplication and its repaired form.
+These are agent-adjudicated regression examples, not additional observations in
+the population estimates below. The panel includes misses and false positives;
+it changes no prompt or threshold.
+
 ## Gold set
 
 The separate [pytest-selective cleanup panel](case-studies/pytest-selective.md#regression-goldens) contains

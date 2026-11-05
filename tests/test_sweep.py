@@ -6,11 +6,15 @@ from pathlib import Path
 import pytest
 
 from dry_lint.baseline import Baseline
+from dry_lint.cli import main
+from dry_lint.comparers import TfidfComparer
+from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
 from dry_lint.functions import repository_functions
 from dry_lint.ledger import COUNTER, counter_key
 from dry_lint.models import pair_key
 from dry_lint.report import Report
+from dry_lint.settings import Settings
 from dry_lint.typescript import TypeScriptExtractor
 
 from conftest import Repo, run_cli
@@ -99,6 +103,44 @@ def test_suppression_is_dismissal_not_cleanup(repo: Repo, tmp_path: Path, twin_j
     repo.commit()
     assert sweep(repo, tmp_path, twin_judge) == 0
     assert state(repo)["entries"][0]["state"] == "dismissed"
+
+
+def test_sweep_honors_only_committed_exact_source_feedback(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
+    report_path = tmp_path / "review.json"
+    assert sweep(repo, tmp_path, twin_judge, "--init", "--report", str(report_path)) == 0
+    report = Report.model_validate_json(report_path.read_bytes())
+    pair = next(f.candidate.key for f in report.findings if f.blocking)
+    assert (
+        main(
+            [
+                "feedback",
+                "dismiss",
+                pair,
+                "--root",
+                str(repo.root),
+                "--from",
+                str(report_path),
+                "--reason",
+                "Independently owned wire contracts verified at callers",
+                "--reviewer",
+                "source-review",
+            ]
+        )
+        == 0
+    )
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    assert state(repo)["entries"][0]["state"] == "remaining"  # Uncommitted feedback cannot settle committed code.
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    assert state(repo)["entries"][0]["state"] == "dismissed"
+    settled = state(repo)
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    assert state(repo) == settled
+    path = repo.root / "src/widgets/caption.py"
+    path.write_text(path.read_text().replace("max_len - 1", "max_len - 2"))
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge) == 1  # A stale dismissal cannot hide changed evidence.
+    assert state(repo) == settled
 
 
 @pytest.mark.parametrize("command", ["check", "sweep"])
@@ -371,6 +413,49 @@ def copy_judge(tmp_path: Path) -> str:
         "'owner': 'existing', 'why': 'the caption copies the helper'}))\n"
     )
     return f'"{sys.executable}" "{path}"'
+
+
+def test_property_setter_cannot_retire_unchanged_getter_debt(repo: Repo, tmp_path: Path) -> None:
+    repo.write(".dry-lint.toml", '[comparer]\nuse = "tfidf"\nmin_similarity = 0.3\n')
+    repo.write(
+        "src/widgets/caption.py",
+        """
+        class Caption:
+            @property
+            def preview_caption_text(self):
+                caption_text, max_len = self.text, self.limit
+                if len(caption_text) <= max_len:
+                    return caption_text
+                clipped = caption_text[: max_len - 1].rstrip()
+                return clipped.rstrip(".,;") + "…"
+
+            @preview_caption_text.setter
+            def preview_caption_text(self, value):
+                self.text = value
+                self.notify_listeners(value)
+        """,
+    )
+    repo.commit()
+    judge = copy_judge(tmp_path)
+    assert sweep(repo, tmp_path, judge, "--init") == 0
+    accepted = state(repo)
+    assert len(accepted["entries"]) == 1
+    detector = Detector.for_repository(repo.root, Settings.load(repo.root))
+    detector.comparer = TfidfComparer(min_similarity=1.0, min_similarity_small=1.0)
+    detector.comparer.index(detector.functions)
+    assert detector.candidates(detector.functions) == []  # Control: the getter fell outside retrieval.
+    baseline = Baseline.model_validate(accepted)
+    recovered = baseline.candidates(detector)
+    assert len(recovered) == 1 and baseline.entries[0].accepts(recovered[0])
+    for _ in range(2):
+        assert sweep(repo, tmp_path, judge) == 0
+        assert state(repo) == accepted
+
+    path = repo.root / "src/widgets/caption.py"
+    path.write_text(path.read_text().replace("max_len - 1", "max_len - 2"))
+    repo.commit()
+    assert sweep(repo, tmp_path, judge) == 1
+    assert state(repo) == accepted
 
 
 def test_a_rerouted_side_is_revisited_and_credited_on_a_separate_verdict(repo: Repo, tmp_path: Path) -> None:

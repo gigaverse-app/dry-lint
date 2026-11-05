@@ -13,7 +13,10 @@ explicitly only when you have a reason, and re-measure when you do.
 
 For full adoption or an adoption audit, follow the [adoption playbook](../../docs/adoption-playbook.md):
 local hooks and trailers, required PR/fork checks, cumulative ledgers, a README sign, and an audited baseline ratchet.
-Inventory what is already installed first; preserve existing debt and progress history.
+Inventory what is already installed first; preserve existing function/model debt and progress history.
+Include the playbook's model adoption: source-reviewed model baselines, opt-in path/name ownership policies,
+default-on hook/sticky review with explicit opt-outs, and separate model inventory/retirement in weekly audits.
+Atomic scores prioritize candidates; coding agents trace ownership and usage before accepting or dismissing them.
 
 ## 1. See what would run
 

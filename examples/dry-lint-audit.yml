@@ -8,6 +8,11 @@ on:
     - cron: '23 6 * * 1'
   workflow_dispatch:
   workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      DRY_LINT_RATCHET_TOKEN:
+        required: true
 permissions:
   contents: read
 concurrency:
@@ -20,6 +25,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: gigaverse-app/dry-lint@v1
         with:
           mode: sweep
@@ -30,6 +36,20 @@ jobs:
           baseline: .dry-lint/baseline.json
           require-complete: 'true'
           budget-usd: '5'
+      # The function sweep does not audit models. Preserve the complete candidate inventory for source review;
+      # an atomic score must never accept or dismiss a model pair on the adopter's behalf.
+      - name: Retire resolved reviewed model debt
+        if: ${{ !cancelled() }}
+        run: |
+          if [[ -f .dry-lint/models.json ]]; then
+            dry-lint model-baseline --update
+          fi
+      - name: Export model candidates for ownership review
+        if: ${{ !cancelled() }}
+        run: |
+          dry-lint detect --all --out "$RUNNER_TEMP/dry-lint/candidates.json"
+          dry-lint judge --candidates "$RUNNER_TEMP/dry-lint/candidates.json" --judge none \
+            --report "$RUNNER_TEMP/dry-lint/model-review.json" --output "$RUNNER_TEMP/dry-lint/model-review.md"
       - name: Retain the audit for human or agent review
         if: always()
         uses: actions/upload-artifact@v7
@@ -38,6 +58,9 @@ jobs:
           path: |
             ${{ runner.temp }}/dry-lint/report.json
             ${{ runner.temp }}/dry-lint/comment.md
+            ${{ runner.temp }}/dry-lint/candidates.json
+            ${{ runner.temp }}/dry-lint/model-review.json
+            ${{ runner.temp }}/dry-lint/model-review.md
           retention-days: 30
           if-no-files-found: warn
       - name: Require ratchet PR authentication
@@ -66,6 +89,7 @@ jobs:
           add-paths: |
             .dry-lint/baseline.json
             .dry-lint/progress.json
+            .dry-lint/models.json
             README.md
           commit-message: 'chore(dry-lint): record cleaned duplicate pairs in the baseline'
           title: 'chore(dry-lint): record cleaned duplicate pairs in the baseline'
@@ -89,3 +113,5 @@ jobs:
             | New debt | Rejected | Still rejected; no added allowances |
 
             Pair-count changes appear in the baseline/progress diff and the linked audit. No application code changes.
+            Model candidates remain source-review work; scores never accept or dismiss model debt.
+            Function progress totals and model debt are separate inventories.
