@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.0](https://github.com/gigaverse-app/dry-lint/compare/v1.1.2...v1.2.0) (2026-11-05)
+
+
+### Features
+
+* **counter:** draw a repository's backlog band on its sign ([006986a](https://github.com/gigaverse-app/dry-lint/commit/006986a39848c0b394c18a3380ef0f28da843522))
+* **sweep:** open the README block with the repository's counter sign ([422271f](https://github.com/gigaverse-app/dry-lint/commit/422271f76a1c75b8e2e8078daf7ba56f962acb5c))
+* **sweep:** open the README block with the repository's counter sign and backlog ([c2aaabe](https://github.com/gigaverse-app/dry-lint/commit/c2aaabe3a313f61420697e46ed58f7c28baa4ae0))
+
+
+### Bug Fixes
+
+* hand unresolved judge pairs to coding agents ([9e6af1b](https://github.com/gigaverse-app/dry-lint/commit/9e6af1b20b914d7fbd1c97b6cca35a7b8299a64c))
+* route budget-deferred judgments to coding-agent review ([59b8625](https://github.com/gigaverse-app/dry-lint/commit/59b8625e04827493cc38aabb69f8d2be1bc273dc))
+
+
+### Documentation
+
+* define coding-agent review for exhausted judge budgets ([155ee27](https://github.com/gigaverse-app/dry-lint/commit/155ee2770d00342c80ec5b136075b0f7778234e7))
+
 ## [1.1.2](https://github.com/gigaverse-app/dry-lint/compare/v1.1.1...v1.1.2) (2026-11-04)
 
 
