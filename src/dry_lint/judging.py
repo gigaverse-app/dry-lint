@@ -55,7 +55,7 @@ def decide(
     afford keeps the first judge's answer. So does every pair the second judge was asked about when it fails (an
     expired login, an outage), as long as there is a ledger to record that on.
     """
-    order = sorted(range(len(candidates)), key=lambda i: -candidates[i].similarity)
+    order = sorted(range(len(candidates)), key=lambda i: (-candidates[i].priority, -candidates[i].similarity))
     allowed = ledger.affordable(judge, [candidates[i] for i in order]) if ledger else len(order)
     asked = order[:allowed]
     answers: list[Verdict | None] = [None] * len(candidates)
@@ -153,7 +153,9 @@ class Judging:
         reported = {
             f.candidate.key
             for f in found
-            if f.verdict and self.settings.duplicate_at(f.verdict, self.settings.report_at)
+            if f.verdict
+            and f.verdict.model_assessment is None
+            and self.settings.duplicate_at(f.verdict, self.settings.report_at)
         }
         relatives = [c for c in candidates if c.filtered is None and c.lane == "relative" and c.parent in reported]
         found += [f for f in self.assess(relatives, source, refresh, advisory=True) if not f.deferred]
@@ -184,11 +186,11 @@ class Judging:
             if second and known[i] is None
         }
         cached = {i for i, verdict in enumerate(known) if verdict is not None}
-        pending = [i for i, verdict in enumerate(known) if verdict is None]
+        pending = sorted((i for i, verdict in enumerate(known) if verdict is None), key=lambda i: -proposed[i].priority)
         deferred = set(pending[self.settings.max_judgements :]) if self.settings.max_judgements is not None else set()
         pending = [i for i in pending if i not in deferred]
         if advisory and pending:
-            pending.sort(key=lambda i: -proposed[i].similarity)
+            pending.sort(key=lambda i: (-proposed[i].priority, -proposed[i].similarity))
             affordable = self.ledger.affordable(self.judge, [proposed[i] for i in pending])
             deferred |= set(pending[affordable:])
             pending = pending[:affordable]

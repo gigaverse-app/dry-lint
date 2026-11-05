@@ -40,4 +40,4 @@ def rank_candidates(candidates: list[Candidate]) -> list[Candidate]:
             ranked.append(queue.popleft())
             if not queue:
                 queues.remove(queue)
-    return ranked
+    return sorted(ranked, key=lambda candidate: -candidate.priority)

@@ -51,18 +51,19 @@ def finding(
 
 def script(tmp_path: Path, name: str, body: str) -> str:
     """A labeller command: records each prompt it is asked, then answers from `body` (Python using `text`)."""
-    path, log = tmp_path / f"{name}.py", tmp_path / f"{name}.log"
+    path = tmp_path / f"{name}.py"
     path.write_text(
-        "import json, pathlib, sys\n"
+        "import json, pathlib, sys, uuid\n"
         "text = sys.stdin.read()\n"
-        f"pathlib.Path({str(log)!r}).open('a').write(json.dumps(text) + '\\n')\n" + body
+        # Independent processes cannot safely append through buffered Windows file handles.
+        f"log = pathlib.Path({str(tmp_path)!r}) / ({name!r} + '-' + uuid.uuid4().hex + '.log')\n"
+        "log.write_text(json.dumps(text))\n" + body
     )
     return f'command:"{sys.executable}" "{path}"'
 
 
 def asked(tmp_path: Path, name: str) -> list[str]:
-    log = tmp_path / f"{name}.log"
-    return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+    return [json.loads(log.read_text()) for log in sorted(tmp_path.glob(f"{name}-*.log"))]
 
 
 TWIN_AWARE = (

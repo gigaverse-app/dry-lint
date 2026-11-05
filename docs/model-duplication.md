@@ -43,6 +43,22 @@ their function-judging benchmark numbers do not establish model-judging accuracy
 
 ## Retrieval and supported scope
 
+Keep the baseline and optionally add bounded discovery routes:
+
+```toml
+[discovery]
+enabled = true
+comparers = [
+  { use = "tfidf", min_similarity = 0.7, min_similarity_small = 0.7, max_df = 1.0, neighbours = 3 },
+  { use = "model-shape", min_similarity = 0.35, min_fields = 2, neighbours = 10 },
+]
+```
+
+Use `[tool.dry-lint.discovery]` when configuring through `pyproject.toml`. Exploration is opt-in and preserves
+the baseline's pairs and protected budget. Run scheduled checks with `--session model-review`; see
+[protected exploration](protected-exploration.md) for cumulative budgets, revision identity and persistence.
+Every route records its own similarity; no learned ranker or score averaging is involved.
+
 `model-shape` uses an inverted field index and symmetric Dice overlap:
 `2 * shared_fields / (left_fields + right_fields)`. It requires two shared names and score 0.65. Types, defaults
 and validation remain review evidence rather than hard filters: their differences may be the drift to find.
@@ -62,6 +78,66 @@ Renamed fields, small subsets of large models, cross-language mappings and fourt
 missed. Cross-file types/consumers are not resolved; same-file context is capped at 8,000 characters per side.
 These limits require repository review before acting. Comment-only edits conservatively reopen context caches.
 
+## Adopter policies
+
+An adopting repository can supply pair rules by filename, class name and, for workspace sources, repository.
+For example, after verifying this project's actual schema owners:
+
+```toml
+[[policies]]
+name = "prompt-domain-independence"
+left = { paths = ["src/prompts/*"], names = ["*PromptSchema"], role = "structured LLM answer" }
+right = { paths = ["src/domain/*"], role = "conformed application model" }
+reason = "Prompt schemas evolve independently to improve LLM results."
+action = "review"
+priority = -5
+
+[[policies]]
+name = "published-api-compatibility"
+left = { paths = ["src/public_api/*"], role = "published Developer API contract" }
+right = { paths = ["src/product/*"], role = "internal Product contract" }
+reason = "The published API has a longer compatibility lifetime than coordinated Product releases."
+action = "discard"
+```
+
+Use `[[tool.dry-lint.policies]]` in `pyproject.toml`. These paths and rules are illustrative; dry-lint ships no
+Gigaverse-specific exemption. In particular, a directory named `developer_api` may contain private capability
+contracts rather than the actual public facade. Match the authoritative owners in the adopting repository.
+
+Matching is symmetric. Within one selector, every dimension must match; patterns within a dimension are ORed.
+Patterns are case-sensitive `fnmatch` over repository-relative forward-slash paths, symbol names (`Class` or
+`Owner.method`) and `owner/repository` origin. `*` can cross path separators. Omitted dimensions match everything;
+repository selectors require workspace origin metadata. Both sides must match, so a public/private rule does
+not discard two public models. Ambiguous selectors retain both possible role claims.
+
+`review` attaches guidance and keeps the candidate. Higher `priority` values receive earlier review slots;
+multiple matched priorities add. Protected baseline slots still precede exploration. `discard` is an explicit
+adopter decision: the pair stays in candidate/report JSON with its rule and reason but consumes no judge calls.
+Any matching discard wins. Existing skip reasons take precedence in the display; all matched policies remain
+in JSON. Policy edits reopen cached judgments and source-bound dismissals. Configured roles are claims for the
+coding agent to verify, not automatic runtime type resolution.
+
+## Optional Jev triage
+
+Replace the judge settings with the following to use the adopter's `TYPESAFE_AI_API_KEY`:
+
+```toml
+judge = { use = "jev-models", model = "jev-1.14.0", context = false }
+escalate = "none"
+```
+
+These are top-level settings in `.dry-lint.toml`, before any table headers. The plugin records separate scores
+for shared authority, policy-required separation, established roles, same-owner specialization, existing reuse
+and missing context. `shared_authority` ranks the review queue; it is never multiplied by a boundary score to
+manufacture a final decision. Every assessed pair remains a coding-agent review task, even at a low score.
+Strict checks require those tasks to be resolved; use `--warn-only` while adopting. Explicit discard policies
+and source-bound agent feedback can settle pairs without an LLM call.
+
+`context = true` adds bounded same-file context. It does not resolve imported types, trace consumers or verify
+declared roles. The agent should inspect those sources selectively and record a justified decision using the
+existing feedback workflow. A manually configured escalation judge can replace the first verdict, so keep
+escalation disabled for this triage workflow. Function presets and automatic judge selection are unchanged.
+
 ## What the coding agent owns
 
 Find construction/conversion sites, inspect consumers and layers, and name the authority to reuse or promote.
@@ -75,93 +151,99 @@ exemption. Different consumers, paths, suffixes and a missing shared module alon
 Recognize inheritance, composition and derived schemas as existing reuse. A pair judge's dismissal is evidence,
 not architectural proof; insufficient context should prompt investigation.
 
-## Measured probe, 2026-11-05
+## Measured probes, 2026-11-05
 
-The actual implementation scanned committed source on Windows/Python 3.14. Timings are single full-inventory
-runs, including git reads, extraction and candidates. Default exclusions plus test/spec, `__tests__`,
+These are agent source reviews of private pinned repositories, not human ground truth or a measurement of
+repository-wide recall. Borderline cases remain review work. Raw source, labels and provider responses are
+kept outside the code PR.
+
+| Repository / pinned commit | Declarations | Baseline pairs | Additional TF-IDF | Additional wider Dice |
+| --- | ---: | ---: | ---: | ---: |
+| gigaverse-ai / `292bb323f2c7865ad04d80e81a67de191eac6de1` | 1,851 | 273 | 174 | 1,087 |
+| gigaverse-backend / `22dfbe180c6704101658a088cc269a25fa9c82dd` | 335 | 27 | 24 | 62 |
+| gigaverse-web-app / `03477c910588f88a0d93e10fc7618bfa3e41efee` | 1,978 | 603 | 506 | 1,521 |
+
+The production detector preserves all 903 baseline pairs and produces 4,277 unique pairs with the exploration
+configuration above. TF-IDF owns a pair before wider Dice when both retrieve it. Wider Dice includes both
+lower overlap and deeper neighbours. Full scans took 8.20 / 2.01 / 2.94 seconds on Windows/Python 3.14, individual
+observations rather than a performance benchmark. Default exclusions plus test/spec, `__tests__`,
 `*.generated.*` and node_modules exclusions were used; other generated files, including `*.gen.ts`, remained.
 
-| Repository / pinned commit | Declarations | Candidate pairs | Seconds |
+### Corrections to the original probe
+
+The original positive pool was revised from 26 to 24 after the repository owner clarified two independent
+schema boundaries: structured LLM answer versus conformed model, and private Product capability versus stable
+public Developer API contract. The original 42-pair holdout is now 17 duplicate, 24 separate and one borderline.
+The original atomic model-contracts judge retained 11/17 useful consolidations, rejected five and left one
+unanswered; it flagged 0/24 separate cases. These corrected labels supersede the initial field-only judgments.
+
+Concrete misses included `TranslationApiResult` / `WidgetApiResult`, which share an API receipt and decoding
+flow, and `CommunityStreamResult` specializations, whose result-producing tools share stream identity. Their
+consumers establish useful partial reuse even though the outer results differ. Prompt schemas remain separate.
+`EventParticipantPage` / `CursorPage` is a same-public-owner pagination specialization; the private/public
+compatibility rule does not exempt duplication inside that one public contract.
+
+A follow-up 48-pair diagnostic sample contained 13 useful consolidations, 30 separate cases and five borderline
+cases. Of 24 TF-IDF-only pairs, six were useful, representing three families: participant targets, invitation
+payloads and authentication schemas. Of 24 wider/lower-Dice pairs, seven were useful. Thus the earlier claim
+that TF-IDF added no useful candidates was specific to a small positive pool and did not generalize.
+The six TF-IDF positives were all excluded by the default two-common-field minimum. Allowing one common field
+also recovered them, but increased the baseline union to 2,214 pairs versus 1,607 for baseline plus TF-IDF.
+
+On that diagnostic sample, sorting by Dice put 3 useful pairs from 2 families in the first 8 and 6 from 3 families
+in the first 16. The exploratory declaration-only Jev questions put 8 useful pairs from 7 families in the first
+8 and 12 from 9 families in the first 16. Adding indiscriminate local context reduced those counts to 6/11;
+consumer excerpts gave 6/11 as well. This supports cheap triage followed by targeted source investigation;
+it does not show that more context is generally harmful or that these scores are calibrated probabilities.
+Those exploratory questions differ from the generic production plugin; its fresh evaluation is reported below.
+
+### Consolidation experiment
+
+An isolated consumer prototype extracted a shared generic CLI API receipt/decoder and shared stream-result
+identity. It passed 41 focused tests. A rescan reduced model pairs from 273 to 268. The 38 functions in the two
+CLI modules still produced 68 pairs; no new function pair crossed the detector threshold. Existing render
+similarity stayed 0.876 and send similarity changed from 0.676 to 0.672. Consolidation made the remaining shared
+workflow easier to inspect, but this experiment did not demonstrate a newly uncovered function duplicate.
+The consumer patch was not shipped, and live LLM/service compatibility was not tested.
+
+### Fresh production-plugin evaluation
+
+Two independent source reviewers, blinded to scores and each other's labels, reviewed 54 new pairs: six from
+each repository in each of baseline, TF-IDF-only and wider-Dice-only strata. Previously reviewed keys were
+excluded; one recognized case was replaced before judging. They agreed on 49/54 labels. Source adjudication
+of the five disagreements produced 11 useful consolidations, 42 separate cases and one borderline case.
+The strata yielded 6/18, 1/18 and 4/18 useful pairs respectively. These are stratified sample yields, not
+population precision. Five of the eleven useful cases require exploration beyond the unchanged baseline.
+
+The actual `jev-models` plugin (`model-ownership-v1`, `jev-1.14.0`) made 114 live requests: those 54 pairs plus
+three ownership controls, with declarations only and with same-file context. No questions were tuned against
+these answers. Sorting uses raw shared-authority score, with stable pair-key ties; borderline cases consume a
+review slot but do not count as useful. Families group positive edges sharing a declaration.
+
+| Ranking on the same 54 pairs, higher is better | Useful in first 8 / families | Useful in first 16 / families | Average precision |
 | --- | ---: | ---: | ---: |
-| gigaverse-ai / `292bb323f2c7865ad04d80e81a67de191eac6de1` | 1,851 | 273 | 8.54 |
-| gigaverse-backend / `22dfbe180c6704101658a088cc269a25fa9c82dd` | 335 | 27 | 2.02 |
-| gigaverse-web-app / `03477c910588f88a0d93e10fc7618bfa3e41efee` | 1,978 | 603 | 2.04 |
+| Mechanical Dice | 1 / 1 | 1 / 1 | 0.222 |
+| Jev declarations | 6 / 6 | 9 / 8 | 0.758 |
+| Jev with same-file context | 4 / 4 | 8 / 8 | 0.618 |
 
-A verification run after consolidating the shared parser code reproduced every count at the same commits in
-6.65 / 1.64 / 1.54 seconds respectively. Both are individual observations, not a speedup claim.
+Declaration requests used 74,567 input tokens; local-context requests used 139,542. At the configured input
+price, the 57 requests in each arm cost $0.002983 and $0.005582 respectively. These are provider-reported token
+usage multiplied by the configured price, not reconciled invoices. A hypothetical 0.6 declaration-score gate
+would retain 8/11 useful cases and flag 3/42 separate cases plus the borderline case. This is why the plugin
+keeps low-scoring candidates available for agent review.
 
-Development labels cover 74 initial pairs (30 AI, all 14 backend, 30 web) plus 20 broader challenge pairs.
-They are agent source reviews, not human ground truth. Three initial labels were corrected after investigating
-context/disagreements; original labels and reasons were retained. Borderlines are excluded from precision/recall.
-The 26 positives helped tune retrieval, so this is diagnostic evidence, not population-wide recall.
+Ownership controls also expose the limits of atomic questions. Private/public community summaries received
+shared-authority scores 0.23/0.25; prompt/conformed chapter models received 0.29/0.30. However, the chapter
+boundary fact itself scored only 0.32/0.45 despite the supplied policy. Same-public-owner pagination scored
+only 0.51/0.52 on shared authority but 0.88/0.87 on specialization. Do not use a single atomic threshold to
+authorize either consolidation or dismissal. Explicit, correctly scoped adopter discard rules are deterministic.
 
-The retrieval trial indexes all 4,164 declarations and measures directed new-to-existing recall@3. TF-IDF uses
-the existing engine with floor 0.7 and max_df 1; the semantic variant adds split field/class-name words.
-Candidate counts below are directed edges, not unique pairs.
-
-| Mechanical retrieval | Known positives retrieved / 26 | Directed candidates |
-| --- | ---: | ---: |
-| Dice, 3 common fields, floor 0.7 | 16 | 602 |
-| Dice, 2 common fields, floor 0.7 | 24 | 1,133 |
-| Dice, 2 common fields, floor 0.65 (selected) | 26 | 1,607 |
-| Field TF-IDF | 23 | 2,139 |
-| Name + field TF-IDF | 20 | 978 |
-| Union of selected Dice and field TF-IDF, up to 6 neighbours | 26 | 2,694 |
-
-Two-field contracts included dimensions, billing intervals and domain UI state. Lowering the floor recovered
-schema variants sharing two of three fields. The union added 1,087 edges without a known positive, so it is not
-shipped. This does not show that ensembles cannot help broader or renamed-field cases.
-
-An actual schema-only COMA run using Valentine 1.1.0 matched 24/26 positives and all 44 negatives at aggregate
-score 0.7; at 0.9 it matched 19 positives and 15 negatives. These are symmetric aggregates of pairwise column
-correspondence, not a full-repository retrieval benchmark. Correspondence does not establish shared ownership.
-
-The first prompt excused copies because of separate renderers, standalone scripts or a missing shared module.
-Version 2 recovered 14/16 development positives with 0/39 negative findings at score 0.6. Two borderline
-requests remained unanswered after malformed responses. Prompt version and output limit identify cached answers.
-
-A fresh seed-91 sample excluded both declaration files used in development/challenge labels: 20 AI, 2 backend,
-20 web. Initial labels were frozen before judging: 9 positive, 25 negative, 8 borderline. The same prompt caught
-7/9 positives and flagged 1/25 negatives: 87.5% precision and 77.8% recall on decidable labels. One borderline
-request remained unanswered after retry (41/42 completed). Mechanical proposal precision on these initial
-labels is 9/34 = 26.5% excluding borderline cases, or 9/42 = 21.4% confirmed positives counting uncertainty as
-review work. This sample tests judgment, not retrieval recall outside candidate output. Independent repository
-reviews are reported below and supersede those initial labels for architectural conclusions.
-
-### Repository-aware review versus pair judgment
-
-Two coding-agent reviewers independently reviewed all 42 frozen pairs without seeing any labels or judge
-answers. They checked pinned declaration source and relevant callers, serializers, validators and consumers.
-They agreed on 37/42 labels (88.1%); the five disagreements were adjudicated against those source sites.
-The resulting set has 17 actionable consolidations, 23 separate contracts and 2 borderline cases. These are
-still model-assisted labels, not independent human ground truth, and agreement does not establish correctness.
-
-| On the same 42 candidates | Result |
-| --- | ---: |
-| Mechanical proposals with an actionable consolidation | 17/42 (40.5%) |
-| Mechanical proposal precision excluding borderline cases | 17/40 (42.5%) |
-| Pair judge positive findings accepted by repository review | 11/11 |
-| Useful consolidations retained by pair judge | 11/17 (64.7%) |
-| Useful consolidations rejected / unanswered by pair judge | 5 / 1 |
-| Distinct contracts incorrectly flagged by pair judge | 0/23 |
-
-The distinction is often a **shared component**, not a whole-model merge. Repository review identified a
-stream-scope identity shared across distinct tool results, a reusable API-result envelope, a validated proof
-component copied across parsing stages, and domain fields preserved through registration and token adapters.
-Their outer validation/lifecycle contracts remain independent. Conversely, public exposure rules, hot-path
-summaries and distinct DSL discriminators with already-shared validation should stay separate. One initial
-false positive became a useful partial extraction after inspecting the shared coverage-field semantics.
-
-This supports keeping the mechanical candidate visible to the coding agent. The atomic judge is useful
-prioritization evidence but, in this sample, using its negative answers as a final gate loses 6/17 useful
-opportunities. It does not prove a general coding-agent advantage: reviewers had more context, different models
-and an explicit component-extraction rubric. No automated refactor or runtime compatibility test was performed
-in the consumer repositories.
-
-Each reviewer also found two positive pairs through domain/use-site searches independently of detector output.
-All four were extracted and retrieved in the directed top three: two lease-response mirrors, a shared role-badge
-contract and a duplicated moderation-tooltip contract. This tiny positive-only audit supports retrieval but
-does not measure repository-wide recall or precision.
+Source investigation changed decisions concretely: scheduled invitations and live role changes repeat the
+same label normalization despite different identity selectors; rendition maintenance reports repeat execution
+provenance under an existing shared evidence module; LiveKit publication summaries copy canonical SDK fields
+and a caller projects them field-for-field. These support partial reuse while preserving endpoint validation,
+report completion semantics and recording lifecycle. In contrast, actual image dimensions versus target
+dimensions, mutually exclusive image-source modes and role definitions versus assignments remain separate.
 
 ## Reproduce
 

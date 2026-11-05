@@ -132,6 +132,11 @@ judge failed, and how often the check failed or was let through with the overrid
 
 ## Every judge
 
+Model declarations have a separate opt-in `jev-models` plugin. It provides ranking and ownership evidence;
+every assessed pair remains a coding-agent review task, including low scores. Its measurements and adopter
+policy configuration are in [model duplication](model-duplication.md). The function benchmarks above do not
+establish model-consolidation accuracy.
+
 | Judge | What it is | Cost |
 | --- | --- | --- |
 | `auto` (default) | Jev when `TYPESAFE_AI_API_KEY` is set, otherwise `none` | |

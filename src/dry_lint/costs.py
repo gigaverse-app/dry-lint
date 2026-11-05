@@ -28,6 +28,7 @@ PRICES: dict[str, tuple[float, float]] = {
     "gemini-3.1-pro-preview": (2.0, 12.0),
     "gemini-2.5-pro": (1.25, 10.0),
 }
+PRICES["jev-models"] = PRICES["jev"]
 CHARS_PER_TOKEN = 2.8  # measured: the DRY prompt over gigaverse-ai pairs, Claude Sonnet 5.5's tokenizer
 ANSWER_TOKENS = 150  # measured: Sonnet 5.5's answers (thinking included) were 126 tokens on average, p90 150
 ANSWERS: dict[str, int] = {"claude-opus-5-5": 220}  # measured: Opus 5.5's were 217 on average, p90 390
@@ -48,13 +49,18 @@ def price(judge: Judge, settings: Settings) -> tuple[float, float] | None:
     return table.get(getattr(judge, "model", "") or "") or table.get(judge.name)
 
 
+def judging_input(judge: Judge, candidate: Candidate) -> str:
+    """Plugins may expose their exact input; text judges retain the shared prompt contract."""
+    input_text = getattr(judge, "input_text", None)
+    return input_text(candidate) if input_text else prompt(candidate, policy=getattr(judge, "prompt_policy", "concept"))
+
+
 def estimate(judge: Judge, candidates: list[Candidate], settings: Settings) -> float | None:
     """Estimated USD at list price for asking `judge` about `candidates`, subscriptions included; None if unknown."""
     rates = price(judge, settings)
     if rates is None:
         return None
-    policy = getattr(judge, "prompt_policy", "concept")  # Optional plugin contract for the rendered prompt.
-    tokens = sum(len(prompt(c, policy=policy)) for c in candidates) / CHARS_PER_TOKEN
+    tokens = sum(len(judging_input(judge, c)) for c in candidates) / CHARS_PER_TOKEN
     answer = ANSWERS.get(getattr(judge, "model", "") or "", ANSWER_TOKENS)
     return (tokens * rates[0] + len(candidates) * answer * rates[1]) / 1_000_000
 

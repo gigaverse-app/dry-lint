@@ -17,6 +17,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from dry_lint.models import Consolidation, Verdict
+from dry_lint.policies import PairPolicy
 
 
 class Pattern(BaseModel):
@@ -58,6 +59,10 @@ def _named(value: Any) -> Any:
 Choice = Annotated[PluginChoice, BeforeValidator(_named)]
 
 
+class ExplorationComparer(PluginChoice):
+    neighbours: int | None = Field(default=None, ge=1, le=100)
+
+
 class Budget(BaseModel):
     """What judging may spend on one pull request, across all its pushes (on one run, outside a pull request)."""
 
@@ -78,6 +83,7 @@ class Discovery(BaseModel):
     """Baseline first, then paced exploration, sharing a durable campaign allowance."""
 
     enabled: bool = False
+    comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(default_factory=list)
     depth: int = Field(default=20, ge=3, le=100)
     min_similarity: float = Field(default=0.35, ge=0, le=1)
     baseline_fraction: float = Field(default=0.625, ge=0, le=1)
@@ -91,6 +97,7 @@ class Settings(BaseModel):
     include: list[str] = Field(default_factory=lambda: ["*"], description="fnmatch over tracked paths.")
     exclude: list[str] = Field(default_factory=lambda: ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"])
     patterns: list[Pattern] = Field(default_factory=list)
+    policies: list[PairPolicy] = Field(default_factory=list)
     neighbours: int = Field(default=3, description="Nearest functions in other files considered per changed function.")
     consolidation: list[Consolidation] = Field(default_factory=list)
     max_judgements: int | None = Field(default=None, ge=1, description="Maximum uncached pairs judged per run.")

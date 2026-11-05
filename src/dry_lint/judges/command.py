@@ -170,7 +170,7 @@ PROMPT_POLICIES = {
 def prompt(candidate: Candidate, *, policy: str = "concept", template: str | None = None) -> str:
     """The DRY question about one pair, for any judge that answers in text."""
     template = PROMPT_POLICIES[policy][1] if template is None else template
-    return (
+    rendered = (
         template.replace("<<new_name>>", candidate.new.qualname)
         .replace("<<new_code>>", candidate.new.code)
         .replace("<<existing_name>>", candidate.existing.qualname)
@@ -178,6 +178,10 @@ def prompt(candidate: Candidate, *, policy: str = "concept", template: str | Non
         .replace("<<new_context>>", candidate.new.context)
         .replace("<<existing_context>>", candidate.existing.context)
     )
+    if candidate.policies:
+        rendered += "\nADOPTER POLICIES (configured rules and declared roles; verify applicability against source):\n"
+        rendered += json.dumps([policy.model_dump() for policy in candidate.policies], ensure_ascii=True)
+    return rendered
 
 
 def first_object(text: str, accepts: Callable[[dict], bool]) -> dict | None:
