@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from dry_lint.detector import Detector
 from dry_lint.function_index import digest, repository_name
+from dry_lint.git import git
 from dry_lint.ledger import COUNTER
 from dry_lint.models import Candidate, Function, pair_key
 from dry_lint.report import BacklogCleanup, Report
@@ -99,10 +100,30 @@ class Baseline(BaseModel):
 
     @classmethod
     def read(cls, path: Path, settings: Settings) -> "Baseline":
-        result = cls.model_validate_json(path.read_text(encoding="utf-8"))
+        return cls.parse(path.read_text(encoding="utf-8"), settings)
+
+    @classmethod
+    def parse(cls, raw: str, settings: Settings) -> "Baseline":
+        result = cls.model_validate_json(raw)
         if result.contract != contract(settings):
             raise ValueError("Baseline detection/judging policy differs; restore the adoption settings before checking")
         return result
+
+    @classmethod
+    def for_repository(
+        cls, root: Path, path: Path, settings: Settings, *, base: str | None = None, staged: bool = False
+    ) -> tuple["Baseline", "Baseline | None"]:
+        """Read proposed allowances and enforce the target branch's immutable pair set."""
+        relative = (root / path).resolve().relative_to(root.resolve()).as_posix()
+        raw = git(root, "show", f":{relative}") if staged else (root / path).read_text(encoding="utf-8")
+        proposed, previous = cls.parse(raw, settings), None
+        previous_ref = "HEAD" if staged else base
+        if previous_ref:
+            git(root, "rev-parse", "--verify", f"{previous_ref}^{{commit}}")
+            if git(root, "ls-tree", "--name-only", previous_ref, "--", relative):
+                previous = cls.model_validate_json(git(root, "show", f"{previous_ref}:{relative}"))
+                proposed.validate_successor(previous)
+        return proposed, previous
 
     @classmethod
     def start(cls, report: Report, settings: Settings) -> "Baseline":
@@ -132,15 +153,17 @@ class Baseline(BaseModel):
                 raise ValueError("A baseline update cannot widen an allowance or reopen settled debt")
 
     def apply(self, report: Report) -> Report:
-        accepted = {e.key: e for e in self.entries if e.state == "remaining"}
+        accepted = self.matching([f.candidate for f in report.findings])
         # INVARIANT: an old duplicate never grants permission for new or changed duplicate logic.
         findings = [
-            f.model_copy(update={"blocking": False, "reported": False})
-            if f.candidate.key in accepted and accepted[f.candidate.key].accepts(f.candidate)
-            else f
+            f.model_copy(update={"blocking": False, "reported": False}) if f.candidate.key in accepted else f
             for f in report.findings
         ]
         return report.model_copy(update={"findings": findings})
+
+    def matching(self, candidates: list[Candidate]) -> set[str]:
+        accepted = {e.key: e for e in self.entries if e.state == "remaining"}
+        return {c.key for c in candidates if c.key in accepted and accepted[c.key].accepts(c)}
 
     def candidates(self, detector: Detector, changed: list[Function] | None = None) -> list[Candidate]:
         """
@@ -199,19 +222,29 @@ class Baseline(BaseModel):
             raise ValueError("New or changed duplicates cannot be added to the baseline")
         findings = {f.candidate.key: f for f in report.findings}
         dismissed = {c.key for c in report.filtered}
+        cleaned = {
+            entry.key
+            for entry in self.entries
+            if (finding := findings.get(entry.key)) is None
+            or finding.verdict is not None
+            and finding.verdict.label == "separate"
+        }
+        return self.retire(dismissed=dismissed, cleaned=cleaned, revision=report.run.head)
+
+    def retire(self, *, dismissed: set[str], cleaned: set[str], revision: str) -> "Baseline":
+        """One irreversible state transition, with caller-specific evidence deciding what resolved a pair."""
         entries = []
         for entry in self.entries:
             state = entry.state
             if state == "remaining":
-                finding = findings.get(entry.key)
                 if entry.key in dismissed:
                     state = "dismissed"
-                elif finding is None or (finding.verdict is not None and finding.verdict.label == "separate"):
+                elif entry.key in cleaned:
                     state = "cleaned"
             entries.append(entry.model_copy(update={"state": state}))
         if entries == self.entries:
             return self  # Keep no-change audits idempotent, without timestamp-only baseline edits.
-        return self.model_copy(update={"entries": entries, "checked_at": report.run.head})
+        return self.model_copy(update={"entries": entries, "checked_at": revision})
 
     def badge(self) -> dict[str, str | int]:
         return {

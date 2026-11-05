@@ -33,7 +33,7 @@ from pathlib import Path
 
 import httpx
 
-from dry_lint import __version__
+from dry_lint import __version__, model_review, schema_policy
 from dry_lint.baseline import Baseline, readme_key, require_complete, update_readme
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.commits import Journal, append_trailers, staged_files, summary
@@ -79,7 +79,9 @@ def run_info(root: Path, base: str | None) -> Run:
 
 def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     """The repository's settings, with the judge the command line names, if any."""
-    settings = Settings.load(root)
+    settings = Settings.load(
+        root, staged=args.command in {"check", "detect", "model-baseline", "schema-check"} and args.staged
+    )
     if args.detector:
         settings.comparer = PluginChoice(use=args.detector)
     if args.fail_at is not None:
@@ -132,7 +134,7 @@ def judged(
     )
 
 
-def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
+def prepare(report: Report, settings: Settings, args: argparse.Namespace) -> Report:
     # Preserve evidence on strict failures so CI can publish a failing check with the assessed head.
     if args.report:
         args.report.write_text(as_json(report) + "\n", encoding="utf-8")
@@ -145,6 +147,12 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
             raise ValueError("Baseline enforcement cannot be combined with --warn-only")
         baseline, _ = baselines(repository_root(args.root), settings, args)
         report = baseline.apply(report)
+    return report
+
+
+def finish(report: Report, settings: Settings, args: argparse.Namespace, *, prepared: bool = False) -> int:
+    if not prepared:
+        report = prepare(report, settings, args)
     output = render(report, args.format, settings, args.warn_only)
     if output:
         print(output)
@@ -157,15 +165,7 @@ def finish(report: Report, settings: Settings, args: argparse.Namespace) -> int:
 
 def baselines(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Baseline, Baseline | None]:
     """The proposed baseline, and the target branch's at `--baseline-ref` when it has one."""
-    baseline, previous = Baseline.read(root / args.baseline, settings), None
-    if args.baseline_ref:
-        path = (root / args.baseline).resolve().relative_to(root.resolve()).as_posix()
-        # The target branch owns allowances. PRs may shrink them, never broaden or replace them.
-        git(root, "rev-parse", "--verify", f"{args.baseline_ref}^{{commit}}")
-        if git(root, "ls-tree", "--name-only", args.baseline_ref, "--", path):
-            previous = Baseline.model_validate_json(git(root, "show", f"{args.baseline_ref}:{path}"))
-            baseline.validate_successor(previous)
-    return baseline, previous
+    return Baseline.for_repository(root, args.baseline, settings, base=args.baseline_ref)
 
 
 def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[str]:
@@ -205,16 +205,51 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if debt:
         base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
         report.backlog = debt.cleared(report, removed(root, detector, debt, base))
+    report = prepare(report, settings, args)
+    if model_review.enabled(settings, args.models, staged=args.staged):
+        model_detector, model_changed, model_candidates, model_debt = model_candidates_for(root, settings, args, run)
+        model_report = judge_models(
+            root, settings, args, run, model_candidates, len(model_changed), len(model_detector.functions), model_debt
+        )
+        if model_debt:
+            base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
+            model_report.backlog = model_debt.cleared(model_report, removed(root, model_detector, model_debt, base))
+        report = model_review.combine(report, model_report, model_debt)
     if (settings.discovery.enabled or args.staged) and not args.report:  # `dry-lint feedback` reviews this report
         target = last_report(root)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(as_json(report), encoding="utf-8")
     if args.staged:
         Journal.load(root).observe(report, staged_files(root)).save(root)
-    status = finish(report, settings, args)
+    status = finish(report, settings, args, prepared=True)
     if args.staged and args.format == "text" and (line := summary(root, run.base)):
         print(line)
     return status
+
+
+def model_candidates_for(root: Path, settings: Settings, args: argparse.Namespace, run: Run):
+    # Function peer indexes cannot stand in for model inventories. Checked-out peers can be extracted normally.
+    model_args = argparse.Namespace(
+        **{**vars(args), "repo_index": [], "require_complete": bool(args.require_complete or settings.models.baseline)}
+    )
+    if args.repo_index and len(args.repo) == 1:
+        model_args.repo = []  # The only checked-out source is this repository; peer indexes hold functions only.
+    detector, primary = detector_for(root, model_review.profile(settings), model_args)
+    own = [f for f in detector.functions if not f.origin or f.origin.repository == primary]
+    changed = (
+        own if args.command == "detect" and args.all else touched(own, changed_lines(root, args.base, args.staged))
+    )
+    debt = model_review.baseline(root, settings, staged=args.staged, base=args.base or run.base)
+    if debt:
+        inventory = reviewed(root, debt.candidates(detector), staged=args.staged)
+        updated = model_review.advance(debt, detector.functions, inventory, run.head)
+        if updated.entries != debt.entries:
+            suffix = " --staged" if args.staged else ""
+            raise ValueError(
+                f"Retire resolved model allowances with `dry-lint model-baseline --update{suffix}`, then stage the baseline"
+            )
+    pairs = debt.candidates(detector, changed) if debt else detector.candidates(changed)
+    return detector, changed, reviewed(root, pairs, staged=args.staged), debt
 
 
 def trailers(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -226,12 +261,16 @@ def trailers(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 def reviewed(
     root: Path, candidates: list[Candidate], *, staged: bool = False, committed: bool = False
 ) -> list[Candidate]:
+    return read_feedback(root, staged=staged, committed=committed).apply(candidates)
+
+
+def read_feedback(root: Path, *, staged: bool = False, committed: bool = False) -> Feedback:
     if staged or committed:
         raw = git(root, "show", f"{'' if staged else 'HEAD'}:{FILENAME}", check=False)
         feedback = Feedback.model_validate_json(raw) if raw else Feedback()
     else:
         feedback = Feedback.read(root / FILENAME)
-    return feedback.apply(candidates)
+    return feedback
 
 
 def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Detector, str]:
@@ -366,6 +405,10 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
             root, candidates, staged=args.staged, committed=settings.discovery.enabled and not args.staged
         ),
     )
+    if model_review.enabled(settings, args.models, staged=args.staged):
+        model_detector, model_changed, pairs, _ = model_candidates_for(root, settings, args, run)
+        found.model_candidates = pairs
+        found.models, found.changed_models = len(model_detector.functions), len(model_changed)
     text = found.model_dump_json(indent=1)
     if args.out:
         args.out.write_text(text + "\n")
@@ -379,13 +422,48 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     return 0
 
 
+def judge_models(
+    root: Path,
+    settings: Settings,
+    args: argparse.Namespace,
+    run: Run,
+    candidates: list[Candidate],
+    changed: int,
+    count: int,
+    debt: Baseline | None,
+) -> Report:
+    profile = model_review.profile(settings)
+    if settings.judge.use == "none" or not os.environ.get("TYPESAFE_AI_API_KEY"):
+        profile = profile.model_copy(update={"judge": PluginChoice(use="none")})
+    result = judged(model_review.allowances(candidates, debt), profile, root, args, run, changed, functions=count)
+    # Model rankers never decide consolidation. Failed/budget-limited ranking is still an agent review task.
+    if result.judge or settings.judge.use != "none":
+        result.judge = result.judge or "source-review"
+        for finding in result.findings:
+            if finding.candidate.lane != "relative":
+                finding.source_review = finding.blocking = True
+                finding.reported = False
+    return result
+
+
 def judge(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     found = CandidatesFile.model_validate_json(args.candidates.read_text())
-    return finish(
+    if args.models is True and found.model_candidates is None:
+        raise ValueError(
+            "Model review was requested but detection supplied no model inventory; rerun detection with models enabled"
+        )
+    result = prepare(
         judged(found.candidates, settings, root, args, found.run, found.changed, functions=found.functions),
         settings,
         args,
     )
+    if found.model_candidates is not None and model_review.enabled(settings, args.models):
+        debt = model_review.baseline(root, settings, base=args.baseline_ref)
+        models = judge_models(
+            root, settings, args, found.run, found.model_candidates, found.changed_models, found.models, debt
+        )
+        result = model_review.combine(result, models, debt)
+    return finish(result, settings, args, prepared=True)
 
 
 def report(root: Path, settings: Settings, args: argparse.Namespace) -> int:
@@ -396,10 +474,27 @@ def feedback(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     source = args.source or last_report(root)
     report = Report.model_validate_json(source.read_bytes())
     matching = [f for f in report.findings if f.candidate.key == args.pair]
-    if len(matching) != 1 or not (matching[0].reported or matching[0].review_required):
+    if len(matching) != 1 or not (
+        matching[0].reported
+        or matching[0].review_required
+        or args.action in {"accept", "dismiss"}
+        and matching[0].candidate.new.declaration
+    ):
         raise ValueError("Choose a reported or review-required pair key from this report")
     candidate = matching[0].candidate
+    if candidate.new.declaration:
+        settings = model_review.profile(settings)
     revision = git(root, "write-tree")
+    if args.action == "accept":
+        if not candidate.new.declaration or not candidate.existing.declaration:
+            raise ValueError("Accepted model debt requires two model declarations")
+        detector = Detector.for_tree(root, revision, settings, strict=True)
+        functions = {f.qualname: f for f in detector.functions}
+        names = (candidate.new.qualname, candidate.existing.qualname)
+        if not all(name in functions for name in names) or evidence(
+            detector.pair(*(functions[name] for name in names), candidate.similarity)
+        ) != evidence(candidate):
+            raise ValueError("The reviewed model evidence changed; rerun the check before accepting debt")
     if args.action == "fix":
         detector = Detector.for_tree(root, revision, settings)
         functions = {f.qualname: f for f in detector.functions}
@@ -422,6 +517,30 @@ def feedback(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     )
     decisions.write(path)
     print(f"Recorded {args.action} for {candidate.key} in {FILENAME}; review and stage this file.")
+    return 0
+
+
+def model_baseline(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    path = root / (args.baseline or settings.models.baseline or ".dry-lint/models.json")
+    if args.init and path.exists():
+        raise ValueError("Model baseline already exists; use --update to ratchet it")
+    settings = settings.model_copy(
+        update={"models": settings.models.model_copy(update={"baseline": str(path.relative_to(root))})}
+    )
+    previous = (
+        None
+        if args.init
+        else model_review.baseline(root, settings, staged=args.staged, base=args.baseline_ref or "HEAD")
+    )
+    updated = model_review.ratchet(
+        root, settings, read_feedback(root, staged=args.staged), previous, staged=args.staged
+    )
+    if args.init or args.update:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    print(
+        f"dry-lint models: {updated.count('remaining')} reviewed pairs remaining, {updated.count('cleaned')} cleaned, {updated.count('dismissed')} dismissed"
+    )
     return 0
 
 
@@ -589,6 +708,12 @@ def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
     common.add_argument(
+        "--models",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Include model review (default on; --no-models opts out).",
+    )
+    common.add_argument(
         "--env-file", type=Path, help="Optional local dotenv file for judge credentials only; requires dry-lint[hooks]."
     )
     common.add_argument(
@@ -742,13 +867,33 @@ def parser() -> argparse.ArgumentParser:
     reviewing = commands.add_parser(
         "feedback", parents=[common], help="Record a reviewed fix or exact-source dismissal."
     )
-    reviewing.add_argument("action", choices=("fix", "dismiss"))
+    reviewing.add_argument("action", choices=("fix", "dismiss", "accept"))
     reviewing.add_argument("pair", help="Pair key shown in the finding.")
     reviewing.add_argument(
         "--from", dest="source", type=Path, help="Report to review; defaults to the last discovery check."
     )
     reviewing.add_argument("--reason", required=True)
     reviewing.add_argument("--reviewer", required=True, help="Person or coding agent that reviewed the finding.")
+    model_debt = commands.add_parser(
+        "model-baseline",
+        parents=[common],
+        help="Initialize reviewed model debt, or ratchet source removals and dismissals.",
+    )
+    model_debt.add_argument("--init", action="store_true")
+    model_debt.add_argument("--update", action="store_true")
+    model_debt.add_argument(
+        "--staged", action="store_true", help="Audit the Git index, for retiring debt before committing a repair."
+    )
+    schema_check = commands.add_parser(
+        "schema-check",
+        parents=[common],
+        help="Check explicitly configured Python schema naming and ownership contracts.",
+    )
+    schema_check.add_argument("--staged", action="store_true")
+    schema_check.add_argument(
+        "--all", action="store_true", help="Audit pre-existing violations as well as changed code."
+    )
+    schema_check.add_argument("--base")
     return main
 
 
@@ -763,6 +908,8 @@ COMMANDS = {
     "config": config,
     "index": index,
     "feedback": feedback,
+    "model-baseline": model_baseline,
+    "schema-check": schema_policy.check,
     "trailers": trailers,
     "bench": bench,
 }

@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 10
+SCHEMA = 11
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -43,6 +43,10 @@ class Declaration(BaseModel):
 
     kind: Literal["pydantic", "dataclass", "typescript", "zod"]
     fields: dict[str, str]
+    reachable_from: list[str] = Field(
+        default_factory=list,
+        description="Same-file schema roots that reach this type through annotations or bases, including itself.",
+    )
 
 
 class LanguageAnalysis(BaseModel):
@@ -261,3 +265,6 @@ class CandidatesFile(Versioned):
     changed: int = Field(default=0, description="How many functions the change touched.")
     functions: int = Field(default=0, description="How many functions the repository has: what changed ones meet.")
     candidates: list[Candidate] = Field(default_factory=list, description="Proposed pairs, and filtered ones with why.")
+    model_candidates: list[Candidate] | None = None
+    models: int = 0
+    changed_models: int = 0

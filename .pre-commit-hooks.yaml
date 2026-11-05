@@ -2,7 +2,7 @@
 # low threshold. `args: [--preset, auto]` puts a person's precision-first judging back.
 - id: dry-lint
   name: dry-lint
-  description: Flag staged functions that re-implement code the repository already has.
+  description: Flag staged function duplication and model consolidation candidates. Use --no-models to opt out of models.
   entry: dry-lint check --staged --preset agent --env-file .env
   language: python
   additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # the `hooks` extra: Claude judges, and .env
@@ -12,6 +12,16 @@
   require_serial: true
 # What the hook above saw fixed or dismissed before the commit, written into the commit's message as trailers so
 # the pull request's comment counts it. Install its stage once: `pre-commit install -t prepare-commit-msg`.
+- id: dry-lint-schema-policy
+  name: dry-lint schema ownership
+  description: Enforce explicitly configured Python structured-output schema boundaries.
+  entry: dry-lint schema-check --staged
+  language: python
+  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # share the other hooks' environment
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit]
+
 - id: dry-lint-trailers
   name: dry-lint trailers
   description: Record in the commit message the duplicates dry-lint's hook kept out before the commit.

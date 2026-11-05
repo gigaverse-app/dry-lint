@@ -26,14 +26,14 @@ def test_a_repository_s_args_override_the_hook_s_preset() -> None:
     assert args.preset == "agent+haiku"
 
 
-def test_both_hooks_install_what_the_judges_and_env_file_need_into_one_shared_environment() -> None:
+def test_hooks_install_what_the_judges_and_env_file_need_into_one_shared_environment() -> None:
     hooks = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["optional-dependencies"]["hooks"]
     for hook in HOOKS:
         assert sorted(re.findall(r'"([^"]+)"', field("additional_dependencies", hook))) == sorted(hooks)
 
 
 def test_the_trailers_hook_gets_the_commit_message_file_at_the_prepare_commit_msg_stage() -> None:
-    assert set(HOOKS) == {"dry-lint", "dry-lint-trailers"}
+    assert set(HOOKS) == {"dry-lint", "dry-lint-trailers", "dry-lint-schema-policy"}
     assert (field("stages", "dry-lint-trailers"), field("always_run", "dry-lint-trailers")) == (
         "[prepare-commit-msg]",
         "true",
@@ -41,3 +41,11 @@ def test_the_trailers_hook_gets_the_commit_message_file_at_the_prepare_commit_ms
     assert "pass_filenames" not in HOOKS["dry-lint-trailers"]  # pre-commit passes the message file
     args = parser().parse_args([*shlex.split(field("entry", "dry-lint-trailers"))[1:], ".git/COMMIT_EDITMSG"])
     assert (args.command, args.message.as_posix()) == ("trailers", ".git/COMMIT_EDITMSG")
+
+
+def test_opt_in_schema_hook_checks_the_index_without_filenames_or_credentials() -> None:
+    hook = "dry-lint-schema-policy"
+    args = parser().parse_args(shlex.split(field("entry", hook))[1:])
+    assert (args.command, args.staged, args.env_file) == ("schema-check", True, None)
+    assert field("pass_filenames", hook) == "false"
+    assert field("stages", hook) == "[pre-commit]"

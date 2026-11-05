@@ -158,6 +158,29 @@ def test_findings_are_counted_from_file_annotations_only() -> None:
     assert count_findings(lines) == (2, 1)
 
 
+@pytest.mark.parametrize("opt_out", ["none", "input", "repository"])
+def test_default_model_review_reaches_sticky_and_can_be_disabled(tmp_path, github_env, twin_judge, opt_out):
+    from test_model_adoption import model_repo
+
+    repo = model_repo(tmp_path)
+    if opt_out == "repository":
+        repo.write(".dry-lint.toml", "[models]\nsticky = false\n")
+        repo.commit()
+    github = FakeGitHub(head=repo.git("rev-parse", "HEAD"))
+    github_env(
+        "pull_request",
+        pr_event(repo),
+        working_directory=str(repo.root),
+        judge="command",
+        judge_command=twin_judge,
+        **({"models": "false"} if opt_out == "input" else {}),
+    )
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == (1 if opt_out == "none" else 0)
+    assert outputs(tmp_path)["models-checked"] == str(opt_out == "none").lower()
+    [body] = github.stickies()
+    assert ("Payload" in body and "review required" in body) == (opt_out == "none")
+
+
 def test_a_shallow_checkout_gets_the_history_a_merge_base_needs(repo: Repo, tmp_path: Path) -> None:
     clone = tmp_path / "clone"
     subprocess.run(
@@ -242,6 +265,7 @@ def test_single_mode_comments_and_reports_without_failing_by_default(github_env,
     assert posted[posted.index("--expect-head") + 1] == HEAD
     assert posted[posted.index("--run-url") + 1].endswith("/acme/shop/actions/runs/55")
     assert outputs(tmp_path) == {
+        "models-checked": "false",
         "mode": "single",
         "exit-code": "0",
         "findings": "1",
@@ -272,6 +296,7 @@ def test_a_near_certain_duplicate_fails_the_check_and_says_how_to_override(githu
     note = post.call_args.args[0][post.call_args.args[0].index("--note") + 1]
     assert note.startswith("> [!CAUTION]\n> **Blocking:** 1 finding(s)") and "`dry-lint: override` label" in note
     assert outputs(tmp_path) | {} == {
+        "models-checked": "false",
         "mode": "single",
         "exit-code": "1",
         "findings": "2",

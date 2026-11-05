@@ -1,6 +1,7 @@
 # Detect duplicated model ownership
 
-Use the opt-in model extractors to propose Pydantic/dataclass and TypeScript/Zod declarations for consolidation
+The action and staged hook now include a model pass by default; see [adoption and opt-outs](model-adoption.md).
+The standalone model extractors also propose Pydantic/dataclass and TypeScript/Zod declarations for consolidation
 review. Retrieval is mechanical and permissive. A judge or coding agent decides whether the overlap represents
 one authority and how to preserve independent contracts. No adopter code is imported or executed.
 
