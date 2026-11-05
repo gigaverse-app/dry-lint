@@ -434,6 +434,46 @@ def pr_event(repo: Repo, fork: bool = False) -> dict:
     return event
 
 
+@pytest.mark.parametrize("mode", ["single", "detect"])
+@pytest.mark.parametrize("invalid_source", [False, True], ids=["valid", "syntax-error"])
+def test_pr_analysis_uses_head_source_when_merge_ref_contains_newer_main(
+    repo: Repo, github_env, tmp_path: Path, mode: str, invalid_source: bool, capsys
+) -> None:
+    """A rerun's event base can predate its synthetic merge; main-only code is never PR work."""
+    if invalid_source:
+        repo.write("src/broken.py", "def broken(:\n")
+        repo.commit("invalid source on feature")
+    event = pr_event(repo)
+    head = event["pull_request"]["head"]["sha"]
+    repo.git("checkout", "main")
+    repo.write("src/main_only.py", "def unrelated(value):\n    return value.strip().lower()\n")
+    repo.write(".dry-lint.toml", 'include = ["src/main_only.py"]\n')
+    repo.commit("main advances after the event")
+    repo.git("merge", "--no-ff", "feature", "-m", "synthetic merge")
+    merge = repo.git("rev-parse", "HEAD")
+    before = repo.git("worktree", "list", "--porcelain")
+    github_env(
+        "pull_request",
+        event,
+        mode=mode,
+        judge="none",
+        working_directory=str(repo.root),
+        require_complete="true" if invalid_source else "false",
+    )
+
+    assert action.main(["run"]) == (2 if invalid_source else 0)
+
+    if invalid_source:
+        assert "broken.py" in capsys.readouterr().err
+    else:
+        filename = "report.json" if mode == "single" else "candidates.json"
+        result = json.loads((tmp_path / "runner" / "dry-lint" / filename).read_text())
+        assert result["changed"] == 2  # the feature's two functions, not unrelated() or main's config
+        assert result["run"]["head"] == head
+    assert repo.git("rev-parse", "HEAD") == merge
+    assert repo.git("worktree", "list", "--porcelain") == before
+
+
 def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_the_fix(
     repo: Repo, github_env, tmp_path, twin_judge, capsys, monkeypatch
 ) -> None:

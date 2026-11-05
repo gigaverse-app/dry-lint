@@ -28,6 +28,7 @@ import json
 import os
 import subprocess
 import sys
+from contextlib import ExitStack
 from pathlib import Path
 
 import httpx
@@ -41,7 +42,7 @@ from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.discovery import CampaignStore
 from dry_lint.feedback import FILENAME, Decision, Feedback
 from dry_lint.functions import extractor_for
-from dry_lint.git import git
+from dry_lint.git import git, worktree
 from dry_lint.github import github_event
 from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, default_store, open_store
@@ -778,7 +779,25 @@ def main(argv: list[str] | None = None) -> int:
             for name in ("ANTHROPIC_API_KEY", "TYPESAFE_AI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
                 if credentials.get(name) and not os.environ.get(name):
                     os.environ[name] = credentials[name]
-        return COMMANDS[args.command](root, settings_for(root, args), args)
+        with ExitStack() as snapshots:
+            # GitHub may refresh refs/pull/N/merge after the event's base was recorded. Read the same
+            # immutable head that run_info publishes, including its config and source-bound feedback.
+            pull = github_event().get("pull_request") or {}
+            head = (pull.get("head") or {}).get("sha")
+            if args.command in {"check", "detect"} and not args.staged and head:
+                head = git(root, "rev-parse", "--verify", f"{head}^{{commit}}")
+                if head != git(root, "rev-parse", "HEAD"):
+                    original = root.resolve()
+                    args.store = args.store or default_store(root)
+                    root = snapshots.enter_context(worktree(root, head))
+                    args.root = root
+                    # Peer scans must still recognize this snapshot as their primary repository.
+                    args.repo = [
+                        f"{name}={root}" if separator and repository_root(Path(path)).resolve() == original else spec
+                        for spec in args.repo
+                        for name, separator, path in [spec.partition("=")]
+                    ]
+            return COMMANDS[args.command](root, settings_for(root, args), args)
     except (subprocess.SubprocessError, httpx.HTTPError, ValueError, OSError) as error:
         detail = getattr(error, "stderr", None) or error
         print(f"dry-lint: {str(detail).strip()}", file=sys.stderr)
