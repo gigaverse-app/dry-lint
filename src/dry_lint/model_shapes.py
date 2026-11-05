@@ -6,7 +6,6 @@ source supplied to the judge; independently meaningful contracts may have identi
 
 import ast
 import hashlib
-import json
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Literal
@@ -14,6 +13,7 @@ from typing import Literal
 from tree_sitter import Node
 
 from dry_lint.extractors import PythonExtractor
+from dry_lint.functions import python_imports
 from dry_lint.models import Declaration, Function
 from dry_lint.source_context import SourceContext, with_comments
 from dry_lint.typescript import TypeScriptExtractor, text
@@ -34,21 +34,6 @@ def model_unit(
         context=context,
         context_digest=hashlib.sha256(source.encode()).hexdigest(),
     )
-
-
-def python_bindings(tree: ast.Module) -> dict[str, str]:
-    """Resolve explicit module imports, including aliases; no name-suffix guessing."""
-    bindings = {}
-    for node in tree.body:
-        if isinstance(node, ast.ImportFrom) and node.module:
-            for alias in node.names:
-                bindings[alias.asname or alias.name] = f"{node.module}.{alias.name}"
-        elif isinstance(node, ast.Import):
-            for alias in node.names:
-                bindings[alias.asname or alias.name.split(".")[0]] = (
-                    alias.name if alias.asname else alias.name.split(".")[0]
-                )
-    return bindings
 
 
 def resolved_name(node: ast.expr, bindings: dict[str, str]) -> str:
@@ -72,7 +57,9 @@ class PythonModelExtractor(PythonExtractor):
             tree = ast.parse(source)
         except SyntaxError:
             return []
-        bindings = python_bindings(tree)
+        modules, names = python_imports(tree, path)
+        bindings = {name: module.replace("/", ".") for name, module in modules.items()}
+        bindings.update({name: f"{module.replace('/', '.')}.{symbol}" for name, (module, symbol) in names.items()})
         kinds: dict[str, Literal["pydantic", "dataclass"]] = {
             "pydantic.BaseModel": "pydantic",
             "pydantic.v1.BaseModel": "pydantic",
@@ -169,16 +156,10 @@ def zod_object(node: Node, namespaces: set[str]) -> Node | None:
     return zod_object(receiver, namespaces)
 
 
-def syntax(node: Node) -> object:
-    """Full TypeScript syntax including types and string values, ignoring comments/formatting only."""
-    if not node.children:
-        return [node.type, text(node)]
-    return [node.type, [syntax(child) for child in node.children if child.type != "comment"]]
-
-
 class TypeScriptModelExtractor(TypeScriptExtractor):
     name = "typescript-models"
     version = "1"
+    preserve_types = True
 
     def functions(self, path: str, source: str) -> list[Function]:
         root = self.parser(path).parse(source.encode()).root_node
@@ -263,10 +244,6 @@ class TypeScriptModelExtractor(TypeScriptExtractor):
                     )
                 )
         return found
-
-    def structure_hash(self, function: Function) -> str:
-        tree = self.parser(function.path).parse(function.code.encode()).root_node
-        return hashlib.sha256(json.dumps(syntax(tree)).encode()).hexdigest()[:16]
 
 
 class ModelComparer:

@@ -222,6 +222,24 @@ def _is_stub(node: FunctionNode) -> bool:
     return True
 
 
+def python_imports(tree: ast.Module, path: str) -> tuple[dict[str, str], dict[str, tuple[str, str]]]:
+    """Explicit module/name bindings shared by function and model extraction; never imports code."""
+    modules: dict[str, str] = {}
+    names: dict[str, tuple[str, str]] = {}
+    package = PurePosixPath(path).parent.parts
+    for statement in tree.body:
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                bound = alias.asname or alias.name.partition(".")[0]
+                modules[bound] = (alias.name if alias.asname else bound).replace(".", "/")
+        elif isinstance(statement, ast.ImportFrom) and statement.level <= len(package) + 1:
+            parts = [*package[: len(package) - statement.level + 1]] if statement.level else []
+            module = "/".join([*parts, *(statement.module or "").split(".")] if statement.module else parts)
+            for alias in statement.names:
+                names[alias.asname or alias.name] = (module, alias.name)
+    return modules, names
+
+
 class _Bases:
     """
     A class's direct bases as `module::Class` references, resolved from the file alone: a class defined in it, or a
@@ -232,19 +250,7 @@ class _Bases:
     def __init__(self, tree: ast.Module, path: str) -> None:
         self.module = module_of(path)
         self.classes = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
-        self.modules: dict[str, str] = {}  # import a.b as m -> m: a/b
-        self.names: dict[str, tuple[str, str]] = {}  # from a import B as C -> C: (a, B)
-        package = PurePosixPath(path).parent.parts
-        for statement in tree.body:
-            if isinstance(statement, ast.Import):
-                for alias in statement.names:
-                    bound = alias.asname or alias.name.partition(".")[0]
-                    self.modules[bound] = (alias.name if alias.asname else bound).replace(".", "/")
-            elif isinstance(statement, ast.ImportFrom) and statement.level <= len(package) + 1:
-                parts = [*package[: len(package) - statement.level + 1]] if statement.level else []
-                module = "/".join([*parts, *(statement.module or "").split(".")] if statement.module else parts)
-                for alias in statement.names:
-                    self.names[alias.asname or alias.name] = (module, alias.name)
+        self.modules, self.names = python_imports(tree, path)
 
     def of(self, node: ast.ClassDef) -> list[str]:
         return [reference for base in node.bases if (reference := self.reference(base))]

@@ -7,12 +7,13 @@ preserve completed work. The inventory and source revision come from model_probe
 import argparse
 import json
 import random
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 
 from dry_lint.judges.anthropic import AnthropicJudge
-from dry_lint.models import CandidatesFile
+from dry_lint.models import CandidatesFile, Verdict
 from dry_lint.settings import Settings
 
 
@@ -24,6 +25,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--policy", default="model-contracts")
+    parser.add_argument("--max-tokens", type=int, default=512)
     args = parser.parse_args()
     if args.limit < 1:
         parser.error("--limit must be positive")
@@ -31,7 +33,7 @@ def main() -> None:
         from dotenv import load_dotenv
 
         load_dotenv(args.env_file)
-    judge = AnthropicJudge(prompt_policy=args.policy, max_tokens=512, workers=4, retry_malformed=True)
+    judge = AnthropicJudge(prompt_policy=args.policy, max_tokens=args.max_tokens, workers=4, retry_malformed=True)
     args.out.mkdir(parents=True, exist_ok=True)
     pairs = []
     for path in args.candidates:
@@ -39,7 +41,18 @@ def main() -> None:
         eligible = sorted((c for c in data.candidates if not c.filtered and c.lane == "baseline"), key=lambda c: c.key)
         chosen = random.Random(args.seed).sample(eligible, min(args.limit, len(eligible)))
         pairs.extend(chosen)
-    (args.out / "sample.json").write_text(CandidatesFile(candidates=pairs).model_dump_json(indent=2), encoding="utf-8")
+    sample_path = args.out / "sample.json"
+    sample = CandidatesFile(candidates=pairs)
+    if sample_path.exists() and CandidatesFile.model_validate_json(sample_path.read_text(encoding="utf-8")) != sample:
+        parser.error("Output directory belongs to a different sample; use a separate output directory")
+    sample_path.write_text(sample.model_dump_json(indent=2), encoding="utf-8")
+    for pair in pairs:
+        target = args.out / f"{pair.key}.json"
+        if (
+            target.exists()
+            and Verdict.model_validate_json(target.read_text(encoding="utf-8")).judge_version != judge.version
+        ):
+            parser.error("Output directory belongs to a different judge policy; use a separate output directory")
 
     def ask(pair):
         target = args.out / f"{pair.key}.json"
@@ -53,6 +66,7 @@ def main() -> None:
             # Checkpoint successful answers, but leave this one absent and retryable.
             print(pair.key, type(error).__name__, flush=True)
 
+    start = time.perf_counter()
     with ThreadPoolExecutor(4) as pool:
         list(pool.map(ask, pairs))
     completed = sum((args.out / f"{c.key}.json").exists() for c in pairs)
@@ -62,6 +76,7 @@ def main() -> None:
         "tokens_this_run": judge.tokens,
         "judge": judge.name,
         "version": judge.version,
+        "seconds_this_run": time.perf_counter() - start,
     }
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     (args.out / f"receipt-{stamp}.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")

@@ -136,12 +136,15 @@ def callable_value(node: Node) -> Node | None:
     return None
 
 
-def canonical(node: Node):
-    if node.type in TYPE_ONLY or node.type in {"comment", ";"}:
+def canonical(node: Node, *, preserve_types: bool = False):
+    if (not preserve_types and node.type in TYPE_ONLY) or node.type in {"comment", ";"}:
         return None
     if not node.children:
         return (node.type, text(node))
-    return (node.type, [value for child in node.children if (value := canonical(child)) is not None])
+    return (
+        node.type,
+        [value for child in node.children if (value := canonical(child, preserve_types=preserve_types)) is not None],
+    )
 
 
 class Bases:
@@ -369,11 +372,15 @@ class TypeScriptExtractor:
         visit(root)
         return found
 
+    preserve_types = False  # Declaration extractors retain type syntax in the shared hashing path.
+
     def structure_hash(self, function: Function) -> str:
         parser = self.parser(function.path)
         root = parser.parse(function.code.encode("utf-8")).root_node
         if has_syntax_error(root):
             root = parser.parse(("class __DryLint {\n" + function.code + "\n}").encode("utf-8")).root_node
         # Keep binding names: lexical shadowing and shorthand keys can make a rename change behavior.
-        payload = json.dumps(canonical(root), ensure_ascii=False, separators=(",", ":"))
+        payload = json.dumps(
+            canonical(root, preserve_types=self.preserve_types), ensure_ascii=False, separators=(",", ":")
+        )
         return hashlib.sha256(("typescript:1:" + payload).encode("utf-8")).hexdigest()[:16]
