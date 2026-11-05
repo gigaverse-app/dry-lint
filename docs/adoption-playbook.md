@@ -6,7 +6,7 @@ and steadily retire the duplication that predates adoption. Installing an Action
 This playbook comes from [Due's adoption](https://github.com/gigaverse-app/due/pull/188), its
 [cleanup](https://github.com/gigaverse-app/due/pull/190) and subsequent ratchets. Use the current dry-lint interfaces
 below rather than copying an old consumer workflow verbatim. [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation)
-is the second application of the playbook.
+([adoption PR](https://github.com/gigaverse-app/pytest-obligation/pull/204)) is the second application of the playbook.
 
 ## Adoption inventory
 
@@ -99,7 +99,9 @@ uvx pre-commit install
 
 The hook's default is the agent preset; explicitly override it when the baseline uses Sonnet. Keep the baseline's
 contract consistent. The hook reads judge credentials from the shell or an untracked `.env`. Missing credentials
-must fail strict judging. `default_stages` prevents unrelated hooks from accidentally running twice. Configuration
+must fail strict judging. `default_stages` prevents unrelated hooks from accidentally running twice. In shared Git worktrees, hook installation affects sibling worktrees too; use `pre-commit install --allow-missing-config`
+when older branches legitimately lack the configuration. This only tolerates an absent configuration; configured
+hooks still enforce the baseline. Configuration
 in Git does not install hooks in other contributors' clones; put the install command in CONTRIBUTING.
 
 When a pair blocks, read both functions. Reuse the existing owner for one concept, preserving its failure and
@@ -180,7 +182,8 @@ functions. Classify those findings before enabling the ratchet: reuse an existin
 record narrow exclusions only where the source and tests establish distinct contracts. For example, a Django
 commit counter can reuse a framework-free counter while retaining its connection cleanup; real-database and
 in-memory crash controls can deliberately keep different failure sites. Different filenames or backends alone
-do not justify a dismissal. Rerun with the saved verdicts; do not reinitialize the baseline or raise thresholds.
+do not justify a dismissal. Report how much of the retired backlog came from actual refactoring and how much
+from pairs now judged separate; the library counts both as cleaned, so that total is not a refactor count. Rerun with the saved verdicts; do not reinitialize the baseline or raise thresholds.
 
 To clean debt, select a pair from the audit, inspect both contracts, consolidate, run the affected tests, then run:
 
