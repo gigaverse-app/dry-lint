@@ -1,0 +1,76 @@
+# Preserve the background of retrieval goldens
+
+A pair's source is enough to ask a judge what it means. It is not enough to reproduce TF-IDF retrieval.
+The surrounding repository determines token document frequencies, the common-token cutoff and competing
+neighbors. Indexing only the golden snippets measures a different retrieval problem.
+
+Keep a `BenchBackground` beside each pinned corpus revision. Its versioned, compressed format preserves:
+
+- Repository and exact source revision, include/exclude scope, Python version, extractor choices and the
+  existing extraction-contract fingerprint.
+- Every function's qualified identity, source SHA-256 and sparse token counts, in corpus order.
+- Raw document frequencies, including tokens rejected by `max_df`, and the cutoff itself. The number of
+  documents is the function count; frequencies count functions, not files or token occurrences.
+- A digest covering the payload. Loading validates that document frequencies agree with the sparse rows.
+
+Raw counts preserve sublinear term frequency. Document frequencies reproduce smoothed IDF. Both are needed;
+document frequencies alone cannot reproduce neighbor competition. Source bodies remain in the pinned repo and
+gold pairs, rather than being copied into the sparse snapshot. Token names still reveal repository vocabulary,
+so private snapshots stay with private goldens.
+
+## Capture and replay
+
+Use the same Python/parser environment as the experiment. Due's snapshots in this PR were captured with
+Python 3.14; older parsers cannot reproduce all of its function syntax. The default command reads scope from
+the requested revision's configuration, not the current working tree:
+
+```bash
+uv run python scripts/freeze_bench_background.py --root /path/to/repo \
+  --repository owner/repo --revision FULL_COMMIT_SHA --out /path/to/background.json.gz
+```
+
+`--diagnostic` includes tests and scripts, excluding only migrations. It is a separate corpus from configured
+scope, not an approximation of it. `--max-df` overrides the cutoff; otherwise the command uses the pinned
+comparer's `max_df` option or the standard 0.3 default. Preserve diagnostic and configured snapshots under
+different paths. No repository source code is executed during extraction.
+
+```python
+from pathlib import Path
+from dry_lint.bench_background import BenchBackground
+
+background = BenchBackground.decode(Path("background.json.gz").read_bytes())
+index = background.index()
+query = background.documents[0]
+neighbors = [
+    (background.documents[position].id, score)
+    for position, score in index.similar(query.tokens(), exclude={0}, limit=3)
+]
+```
+
+This replays frozen TF-IDF weights and raw neighbor ranks with the existing weighting implementation.
+It does not apply source-level exclusions, forwarding-wrapper rules or judge budgets; those require the
+matching source/configuration and normal detector. The regular `load_gold`/CLI does not automatically switch
+corpora when it encounters a background manifest. Research runners must explicitly load the matching revision.
+Do not combine different revisions into one index or use after-refactor text to enrich before-refactor queries.
+
+The [Due panel](../examples/due-consolidation-gold.toml) references a manifest of five full diagnostic
+backgrounds, each with 2,336–2,368 functions. Fixture tests validate manifest hashes, sparse counts, revision
+coverage and every golden source digest. Synthetic integration tests verify that full-background weights and
+competitor ranks round-trip and that capture honors pinned scope despite a changed working tree.
+
+When changing tokenization, retain the old snapshot as the baseline. Re-extract the same pinned source into
+a new candidate snapshot and compare both. Replacing the old counts in place would erase the evidence of
+what changed. Keep benchmark outcomes and ad hoc audit dumps outside the code repository; these sparse
+fixtures are maintained benchmark inputs.
+
+## Audit before removing tokens
+
+Inspect frequent retained tokens, discarded tokens, singleton rates, per-family squared vector weight, and
+the actual shared-token contributions of true and false pairs. Check configured scope separately: tests can
+dominate both vocabulary and function names. A common domain term may distinguish important operations;
+a rare test-name word may contribute almost no behavior. Frequency alone is not a stop-word policy.
+
+Run controlled ablations with the same pinned corpus, labels and per-PR budget. Report which positives are
+gained and lost, not only the total. Validate added candidates with the unchanged judge, and reserve whole
+PR/repository families for holdout. See [the research results](tfidf-enrichment-research.md) for the initial audit
+and the resulting fixed ablations.

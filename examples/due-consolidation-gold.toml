@@ -4,6 +4,8 @@
 # Deleted functions have no fabricated after-state negative. See docs/tfidf-enrichment-research.md.
 # Due is public and Apache-2.0 licensed. No private repository source is included.
 
+background_manifest = "backgrounds/due/manifest.json"
+
 [[pair]]
 case = "due-180-10-before"
 label = "duplicate"

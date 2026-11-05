@@ -1,6 +1,7 @@
 """Public gold panels load and retrieve; calibrated examples retain their majority-label contract."""
 
 import hashlib
+import json
 import re
 import sys
 import tomllib
@@ -10,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from dry_lint.bench import as_function, bench_comparer, load_gold
+from dry_lint.bench_background import BenchBackground
 from dry_lint.detector import Detector
 from dry_lint.plugins import load
 from dry_lint.settings import Settings
@@ -51,6 +53,28 @@ def test_due_consolidations_preserve_pinned_source_and_real_after_controls() -> 
         if row["phase"] == "after":
             original = before[row["case"].removesuffix("-after")]
             assert any(row[side]["code"] != original[side]["code"] for side in ("new", "existing"))
+
+
+def test_due_gold_retains_background_counts_and_competing_functions() -> None:
+    panel = tomllib.loads(DUE.read_text())
+    manifest_path = DUE.parent / panel["background_manifest"]
+    manifest = json.loads(manifest_path.read_text())
+    backgrounds = {}
+    for entry in manifest["backgrounds"]:
+        encoded = (manifest_path.parent / entry["path"]).read_bytes()
+        assert hashlib.sha256(encoded).hexdigest() == entry["sha256"]
+        frozen = BenchBackground.decode(encoded)
+        assert frozen.repository == "gigaverse-app/due"
+        assert frozen.revision == entry["revision"]
+        assert len(frozen.documents) == entry["functions"]
+        assert len(frozen.documents) > 2000  # Full corpus, never just the labelled pair snippets.
+        backgrounds[frozen.revision] = {d.id: d for d in frozen.documents}
+    assert set(backgrounds) == {row["revision"] for row in panel["pair"]}
+    for row in panel["pair"]:
+        for side in ("new", "existing"):
+            document = backgrounds[row["revision"]][row[side]["source_id"]]
+            assert document.source_sha256 == row[side]["sha256"]
+            assert document.counts
 
 
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="Pinned Due source uses Python 3.12 generic syntax")
