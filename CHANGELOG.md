@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/gigaverse-app/dry-lint/compare/v1.4.1...v1.4.2) (2026-11-05)
+
+
+### Bug Fixes
+
+* **audit:** preserve source identity and prepare model allowances ([914654e](https://github.com/gigaverse-app/dry-lint/commit/914654ee9e4f6597c06976c94923dc93fddefdbb))
+
 ## [1.4.1](https://github.com/gigaverse-app/dry-lint/compare/v1.4.0...v1.4.1) (2026-11-05)
 
 
