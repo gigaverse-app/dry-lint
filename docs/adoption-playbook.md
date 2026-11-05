@@ -52,7 +52,7 @@ candidate detector, not every possible semantic duplicate. Keep the initial/week
 the per-PR budget. Reuse the verdict store between audit and update to avoid paying twice.
 
 Use `gigaverse-app/dry-lint@v1` now that v1 has launched; before v1 the Action used `@main`. Use published major
-tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.4.0`, so its
+tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.4.1`, so its
 cached hook environment changes explicitly on upgrade. Confirm the release and required capabilities exist.
 
 ## 2. Accept the existing backlog once
@@ -118,7 +118,7 @@ default_install_hook_types: [pre-commit, prepare-commit-msg]
 default_stages: [pre-commit]
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: v1.4.0
+    rev: v1.4.1
     hooks:
       - id: dry-lint
         args: [--preset, sonnet, --baseline, .dry-lint/baseline.json]
@@ -252,8 +252,11 @@ must leave the metadata unchanged. A dismissed false positive belongs in code/co
 
 ## 7. Verify the actual installation
 
-For model adopters, the scheduled audit also exports the full model inventory for source review and runs
-`model-baseline --update` when a reviewed model baseline exists. Add only `.dry-lint/models.json` to the
+For model adopters, the scheduled audit also exports the full model inventory for source review. Fetch the
+default-branch ref as well as the audited head (`fetch-depth: 0` in the template), because detection verifies
+model allowances against that branch. When a reviewed model baseline exists, run `model-baseline --update`
+before inventory export: detection refuses stale allowances that should already be retired. These working-tree
+retirements are published only if the entire audit succeeds. Add only `.dry-lint/models.json` to the
 ratchet's metadata paths. Automated audits must never accept models or generate dismissals. Retain the
 model report as an artifact, including unresolved lower-ranked candidates. Run model export with
 `if: ${{ !cancelled() }}` so a failed function sweep still leaves model review evidence; keep metadata

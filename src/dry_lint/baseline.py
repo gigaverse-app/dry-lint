@@ -171,14 +171,24 @@ class Baseline(BaseModel):
         whose functions the change touched and keeps its own pairs, so a rerouted side still gets a verdict.
         """
         found = {c.key: c for c in detector.candidates(detector.functions if changed is None else changed)}
-        functions = {f.qualname: f for f in detector.functions}
+        functions: dict[str, list[Function]] = {}
+        for function in detector.functions:
+            functions.setdefault(function.qualname, []).append(function)
         touched = None if changed is None else {f.qualname for f in changed}
         for entry in self.entries:
             if entry.state != "remaining" or not all(name in functions for name in entry.hashes):
                 continue
-            if touched is not None and (touched.isdisjoint(entry.hashes) or entry.key in found):
+            if entry.key in found or touched is not None and touched.isdisjoint(entry.hashes):
                 continue
-            a, b = (functions[name] for name in sorted(entry.hashes))
+            # Accessors can share a qualified name. Revisit the accepted body rather than silently
+            # substituting its setter and recording a negative verdict as cleanup of the getter.
+            a, b = (
+                next(
+                    (f for f in functions[name] if detector.hashed(f).hash == entry.hashes[name]),
+                    functions[name][-1],
+                )
+                for name in sorted(entry.hashes)
+            )
             pair = detector.pair(a, b, detector.comparer.similarity(a, b))
             found[pair.key] = pair  # Always revisit debt, even if it fell out of the nearest-neighbour ranking.
         return list(found.values())
