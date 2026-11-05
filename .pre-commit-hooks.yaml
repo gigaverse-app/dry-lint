@@ -17,6 +17,7 @@
   description: Enforce explicitly configured Python structured-output schema boundaries.
   entry: dry-lint schema-check --staged
   language: python
+  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # share the other hooks' environment
   pass_filenames: false
   always_run: true
   stages: [pre-commit]

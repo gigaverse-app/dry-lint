@@ -25,6 +25,9 @@ class AnswerPromptSchema(BaseModel):
 class Application(BaseModel):
     title: str
     score: int
+class OtherPromptSchema(BaseModel):
+    title: str
+    score: int
 def prompt(llm):
     return llm.with_structured_output(AnswerPromptSchema)
 """
@@ -51,6 +54,12 @@ right = {not_reachable_from = ["*PromptSchema"]}
         c for c in detector.candidates(detector.functions) if {c.new.name, c.existing.name} == {"Detail", "Application"}
     )
     assert pair.filtered and "prompt-application-boundary" in pair.filtered
+    within = next(
+        c
+        for c in detector.candidates(detector.functions)
+        if {c.new.name, c.existing.name} == {"Detail", "OtherPromptSchema"}
+    )
+    assert not within.filtered
     assert main(["schema-check", "--root", str(repo.root), "--all"]) == 0
 
 

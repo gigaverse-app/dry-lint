@@ -104,27 +104,17 @@ def ratchet(
 def advance(previous: Baseline, functions: list[Function], candidates: list[Candidate], revision: str) -> Baseline:
     """Retire only resolved allowances; shared by audits and checks that enforce the ratchet."""
     present = {f.qualname for f in functions}
-    pairs = {c.key: c for c in candidates}
-    entries = []
+    dismissed = {c.key for c in candidates if c.filtered}
+    cleaned = set()
     for entry in previous.entries:
-        state = entry.state
-        if state == "remaining":
-            candidate = pairs.get(entry.key)
-            if candidate and candidate.filtered:
-                state = "dismissed"
-            elif not set(entry.hashes) <= present:
-                # A renamed copy must remain work: do not count its surviving partner as cleaned while
-                # it still has unresolved look-alikes elsewhere in the current inventory.
-                surviving = set(entry.hashes) & present
-                unresolved = any(
-                    not c.filtered and c.key != entry.key and surviving & {c.new.qualname, c.existing.qualname}
-                    for c in candidates
-                )
-                if not unresolved:
-                    state = "cleaned"
-        entries.append(entry.model_copy(update={"state": state}))
-    return (
-        previous.model_copy(update={"entries": entries, "checked_at": revision})
-        if entries != previous.entries
-        else previous
-    )
+        if not set(entry.hashes) <= present:
+            # A renamed copy must remain work: do not count its surviving partner as cleaned while
+            # it still has unresolved look-alikes elsewhere in the current inventory.
+            surviving = set(entry.hashes) & present
+            unresolved = any(
+                not c.filtered and c.key != entry.key and surviving & {c.new.qualname, c.existing.qualname}
+                for c in candidates
+            )
+            if not unresolved:
+                cleaned.add(entry.key)
+    return previous.retire(dismissed=dismissed, cleaned=cleaned, revision=revision)

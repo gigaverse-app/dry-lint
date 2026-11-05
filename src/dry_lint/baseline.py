@@ -222,19 +222,29 @@ class Baseline(BaseModel):
             raise ValueError("New or changed duplicates cannot be added to the baseline")
         findings = {f.candidate.key: f for f in report.findings}
         dismissed = {c.key for c in report.filtered}
+        cleaned = {
+            entry.key
+            for entry in self.entries
+            if (finding := findings.get(entry.key)) is None
+            or finding.verdict is not None
+            and finding.verdict.label == "separate"
+        }
+        return self.retire(dismissed=dismissed, cleaned=cleaned, revision=report.run.head)
+
+    def retire(self, *, dismissed: set[str], cleaned: set[str], revision: str) -> "Baseline":
+        """One irreversible state transition, with caller-specific evidence deciding what resolved a pair."""
         entries = []
         for entry in self.entries:
             state = entry.state
             if state == "remaining":
-                finding = findings.get(entry.key)
                 if entry.key in dismissed:
                     state = "dismissed"
-                elif finding is None or (finding.verdict is not None and finding.verdict.label == "separate"):
+                elif entry.key in cleaned:
                     state = "cleaned"
             entries.append(entry.model_copy(update={"state": state}))
         if entries == self.entries:
             return self  # Keep no-change audits idempotent, without timestamp-only baseline edits.
-        return self.model_copy(update={"entries": entries, "checked_at": report.run.head})
+        return self.model_copy(update={"entries": entries, "checked_at": revision})
 
     def badge(self) -> dict[str, str | int]:
         return {
