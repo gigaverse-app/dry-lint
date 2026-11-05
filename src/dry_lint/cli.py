@@ -33,7 +33,7 @@ from pathlib import Path
 import httpx
 
 from dry_lint import __version__
-from dry_lint.baseline import Baseline, require_complete, update_readme
+from dry_lint.baseline import Baseline, readme_key, require_complete, update_readme
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.commits import Journal, append_trailers, staged_files, summary
 from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
@@ -46,6 +46,7 @@ from dry_lint.github import github_event
 from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, default_store, open_store
 from dry_lint.labelling import label, labeller, sample, summarise
+from dry_lint.ledger import counter_key
 from dry_lint.models import Candidate, CandidatesFile, Run, evidence
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
@@ -270,6 +271,18 @@ def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tu
     return Detector.for_repository(root, settings, strict=strict), ""
 
 
+def card_key(args: argparse.Namespace, readme: str) -> str:
+    """
+    The counter key for the README's sign: from --repository-id, else from the id GitHub Actions gives its own
+    repository, else the key of the sign already in the block, so a sweep run locally keeps it. "" leaves it out.
+    """
+    if args.no_counter_card:
+        return ""
+    own = os.environ.get("GITHUB_REPOSITORY") == args.repository
+    repository_id = args.repository_id or (os.environ.get("GITHUB_REPOSITORY_ID", "") if own else "")
+    return counter_key(repository_id) if repository_id else readme_key(readme)
+
+
 def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     path = root / (args.baseline or Path(".dry-lint/baseline.json"))
     if args.init and path.exists():
@@ -299,9 +312,8 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     content = None
     if readme:
         directory = path.parent.relative_to(root).as_posix()
-        content = update_readme(
-            readme.read_text(encoding="utf-8"), updated.markdown(args.repository, args.branch, directory)
-        )
+        text = readme.read_text(encoding="utf-8")
+        content = update_readme(text, updated.markdown(args.repository, args.branch, directory, card_key(args, text)))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
     (path.parent / "progress.json").write_text(json.dumps(updated.badge(), indent=2) + "\n", encoding="utf-8")
@@ -660,6 +672,14 @@ def parser() -> argparse.ArgumentParser:
         "--repository", default=os.environ.get("GITHUB_REPOSITORY", ""), help="README badge OWNER/NAME."
     )
     ratcheting.add_argument("--branch", default="main", help="README badge's published branch (default: main).")
+    ratcheting.add_argument(
+        "--repository-id",
+        default="",
+        help="The repository's numeric GitHub id, for its counter sign; GitHub Actions supplies it for its own repository.",
+    )
+    ratcheting.add_argument(
+        "--no-counter-card", action="store_true", help="Leave the repository's counter sign out of the README block."
+    )
     proposing = commands.add_parser("detect", parents=[common], help="Write candidates.json; no judge, no store.")
     where(proposing, everything=True)
     proposing.add_argument("--out", type=Path, help="Write candidates.json here (default: print it).")
