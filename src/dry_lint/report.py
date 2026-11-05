@@ -61,7 +61,9 @@ class Finding(BaseModel):
     @property
     def review_required(self) -> bool:
         """An unresolved primary pair is work for the coding agent, never a confirmed duplicate."""
-        return self.deferred and self.candidate.lane != "relative"
+        return self.candidate.lane != "relative" and (
+            self.deferred or self.verdict is not None and self.verdict.model_assessment is not None
+        )
 
     def headline(self) -> str:
         new, existing = self.candidate.new, self.candidate.existing
@@ -74,6 +76,11 @@ class Finding(BaseModel):
             parts.append(
                 "coding agent: inspect both implementations and callers; refactor duplication or record a reasoned pair-specific dismissal; no extra judge budget is needed"
             )
+            if self.candidate.new.declaration or self.candidate.existing.declaration:
+                parts.append(
+                    "resolve nested types and producer/consumer roles; apply repository ownership policies; "
+                    "preserve independently evolving contracts and verify any proposed shared component"
+                )
         if self.verdict:
             parts.append(f"judge {self.verdict.score:.2f}" + (" (cached)" if self.cached else ""))
             if self.verdict.label == "drifted":
@@ -88,6 +95,10 @@ class Finding(BaseModel):
                     + "; ".join(target.destination for target in self.candidate.consolidation)
                 )
         parts.append(f"similarity {self.candidate.similarity:.2f}")
+        if self.candidate.policies:
+            parts.append(
+                "adopter policies: " + "; ".join(plain(f"{p.name}: {p.reason}") for p in self.candidate.policies)
+            )
         parts.append(f"pair {self.candidate.key}")
         if self.family > 1:
             parts.append(f"{self.family} look-alikes")
@@ -223,7 +234,13 @@ class Report(Versioned):
                 family[f.candidate.new.qualname] = family.get(f.candidate.new.qualname, 0) + 1
 
         def duplicate_at(f: Finding, threshold: float) -> bool:
-            return not f.deferred and f.verdict is not None and settings.duplicate_at(f.verdict, threshold)
+            return (
+                not f.review_required
+                and not f.deferred
+                and f.verdict is not None
+                and f.verdict.model_assessment is None
+                and settings.duplicate_at(f.verdict, threshold)
+            )
 
         marked = [
             f.model_copy(update={"related": duplicate_at(f, settings.report_at)}) if f.candidate.lane == "relative" else
@@ -236,6 +253,7 @@ class Report(Versioned):
             key=lambda f: (
                 not f.blocking,
                 not f.reported,
+                -f.candidate.priority,
                 f.verdict is None or f.verdict.label != "drifted",
                 -(f.verdict.score if f.verdict else f.candidate.similarity),
             ),
@@ -414,7 +432,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
     at a glance; one row per pair says where and what to do; the folds hold the reasons and the ways out.
     """
     audit, stats, shown = report.repository_wide, report.stats, report.visible
-    below = sum(f.verdict is not None and not f.reported and not f.deferred for f in report.findings)
+    below = sum(f.verdict is not None and not f.reported and not f.review_required for f in report.findings)
     coverage = " · ".join(part for part in (
         "" if audit else plural(stats["changed"], "changed function"),
         f"{plural(stats['candidates'], 'pair')} compared",
@@ -511,6 +529,8 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
         details.extend([
             f"{dot(f)} **{concept}** · {scored}similarity {f.candidate.similarity:.2f} · {source}{drift}", "",
             *([f"> {escaped(f.verdict.why)}", ""] if f.verdict and f.verdict.why else []),
+            *(["Adopter policies: " + "; ".join(escaped(f"{p.name}: {p.reason}") for p in f.candidate.policies), ""]
+              if f.candidate.policies else []),
             *([f"Preferred home: {escaped(action(f))}.", ""] if f.candidate.consolidation else []),
             *([f"Fixing it touches {code(qualified(existing.owner, existing.name))}, which also looks like "
                + ", ".join(f"{function_link(r.candidate.existing, report.run)} ({r.verdict.label} {r.verdict.score:.2f})"

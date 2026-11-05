@@ -9,9 +9,11 @@ The benchmark numbers belong to this exact wording: change it and re-measure.
 """
 
 import hashlib
+import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
+from threading import Lock
 
 import httpx
 
@@ -131,6 +133,8 @@ def state(candidate: Candidate, context: bool = False) -> dict:
     result = {"new_function": side(candidate.new), "existing_function": side(candidate.existing)}
     if context:
         result["consolidation"] = [target.model_dump() for target in candidate.consolidation]
+    if candidate.policies:
+        result["adopter_policies"] = [policy.model_dump() for policy in candidate.policies]
     return result
 
 
@@ -155,11 +159,13 @@ class JevJudge:
         self.guidance = guidance
         self.model = model or ("jev-1.14.0" if context else "jev-latest")
         self.url, self.workers, self.transport = url, workers, transport
+        self.tokens = {"input": 0, "output": 0}
+        self._usage_lock = Lock()
         self.version = f"{CONTEXT_PROMPT_VERSION}:{self.model}" if context else PROMPT_VERSION
         if context and guidance:
             self.version += ":" + hashlib.sha256(guidance.encode()).hexdigest()[:16]
 
-    def _ask(self, client: httpx.Client, candidate: Candidate, settings: Settings) -> Verdict:
+    def request_body(self, candidate: Candidate) -> dict:
         body = {
             "model": self.model,
             "state": state(candidate, self.context),
@@ -167,9 +173,26 @@ class JevJudge:
         }
         if self.context and self.guidance:
             body["state"]["guidance"] = self.guidance
+        return body
+
+    def input_text(self, candidate: Candidate) -> str:
+        return json.dumps(self.request_body(candidate), ensure_ascii=True)
+
+    def _ask(self, client: httpx.Client, candidate: Candidate, settings: Settings) -> Verdict:
+        body = self.request_body(candidate)
         response = client.post(self.url, json=body, headers={"Authorization": f"Bearer {self.api_key}"})
         response.raise_for_status()
-        answers = response.json()["answers"]
+        data = response.json()
+        if usage := data.get("usage"):
+            with self._usage_lock:
+                for name in self.tokens:
+                    self.tokens[name] += usage.get(f"{name}_tokens", 0)
+        try:
+            return self.verdict(data["answers"], settings)
+        except (KeyError, TypeError) as error:
+            raise ValueError("Incomplete Jev response") from error
+
+    def verdict(self, answers: dict, settings: Settings) -> Verdict:
         same = float(answers["same_concept"]["noul"])
         differs = float(answers["behaves_differently"]["noul"])
         owner = answers["owner"]

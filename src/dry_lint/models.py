@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 9
+SCHEMA = 10
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -144,6 +144,23 @@ def pair_key(a: str, b: str) -> str:
     return hashlib.sha256(f"{first}\n{second}".encode()).hexdigest()[:16]
 
 
+class PolicyIntent(BaseModel):
+    """An adopter's review decision, distinct from a machine judgment."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    name: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    action: Literal["review", "discard"] = "review"
+    priority: int = Field(default=0, description="Higher values receive review slots first; matching values add.")
+
+
+class AppliedPolicy(PolicyIntent):
+    """A matched rule and its declared roles. Matching does not verify a model's runtime usage."""
+
+    definition_hash: str
+    roles: dict[str, list[str]] = Field(default_factory=dict)
+
+
 class Candidate(BaseModel):
     """A changed function and an existing one elsewhere that looks like it does the same job."""
 
@@ -160,8 +177,13 @@ class Candidate(BaseModel):
         default=False, description="Whether this metric permits reuse after logic changes."
     )
     consolidation: list[Consolidation] = Field(default_factory=list)
+    policies: list[AppliedPolicy] = Field(default_factory=list)
     lane: Literal["baseline", "exploration", "relative"] = "baseline"
     parent: str = Field(default="", description="For a relative: the key of the pair whose fix would touch `new`.")
+
+    @property
+    def priority(self) -> int:
+        return sum(policy.priority for policy in self.policies)
 
     @property
     def context_hash(self) -> str:
@@ -171,6 +193,7 @@ class Candidate(BaseModel):
             or self.new.context_digest
             or self.existing.context_digest
             or self.consolidation
+            or self.policies
             or self.new.analysis
             or self.existing.analysis
             or self.new.bases
@@ -184,6 +207,9 @@ class Candidate(BaseModel):
             ),
             [target.model_dump() for target in self.consolidation],
         ]
+        # Preserve legacy evidence when no policy applies; any matched rule edit reopens its answers.
+        if self.policies:
+            payload.append([policy.model_dump() for policy in self.policies])
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     @property
@@ -201,6 +227,17 @@ def evidence(candidate: Candidate, judge_policy: str = "") -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=True).encode()).hexdigest()
 
 
+class ModelAssessment(BaseModel):
+    """Atomic triage evidence; none of these scores authorizes a consolidation or dismissal."""
+
+    shared_authority: float = Field(ge=0, le=1)
+    policy_requires_separate_owners: float = Field(ge=0, le=1)
+    roles_established: float = Field(ge=0, le=1)
+    same_owner_specialization: float = Field(ge=0, le=1)
+    already_reused: float = Field(ge=0, le=1)
+    needs_context: float = Field(ge=0, le=1)
+
+
 class Verdict(BaseModel):
     """A judge's answer for one pair."""
 
@@ -214,6 +251,7 @@ class Verdict(BaseModel):
     judge: str = Field(description="The judge's name, e.g. 'jev' or 'command:claude'.")
     judge_version: str = Field(default="", description="Its model and prompt version, e.g. 'reuse-v2'.")
     second_opinion: str | None = Field(default=None, description="The escalation judge whose answer this is, if any.")
+    model_assessment: ModelAssessment | None = None
 
 
 class CandidatesFile(Versioned):

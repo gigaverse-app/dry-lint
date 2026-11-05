@@ -89,6 +89,7 @@ BUILT_IN = {
     },
     "judges": {
         "jev": "dry_lint.judges.jev:JevJudge",
+        "jev-models": "dry_lint.judges.model_jev:ModelJevJudge",
         "command": "dry_lint.judges.command:CommandJudge",
         "gemini": "dry_lint.judges.gemini:GeminiJudge",
         "anthropic": "dry_lint.judges.anthropic:AnthropicJudge",

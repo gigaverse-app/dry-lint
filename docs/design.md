@@ -94,6 +94,12 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 10 adds optional `Candidate.policies` and `Verdict.model_assessment`. Matched adopter rules carry
+their definition digest, reason, priority, action and declared roles. They participate in `context_hash`;
+changing a matched rule invalidates cached verdicts and source-bound dismissals. Empty policy lists preserve
+legacy hashes. Model assessments retain independent atomic scores as coding-agent review evidence; a raw
+score alone neither confirms duplication nor clears the candidate. See [model discovery](model-duplication.md).
+
 Schema 9 adds optional `Function.analysis` (`LanguageAnalysis`: language, adapter version, method convention,
 forwarding target and explicit override marker) and serializes the existing `bases` field. Earlier files remain
 readable with unknown analysis. These facts participate in `Candidate.context_hash`, so stored verdicts and reviewed
@@ -110,7 +116,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 9`; schemas 1 through 8 remain readable with conservative cache defaults. Schema 9 adds
+New files carry `"schema": 10`; schemas 1 through 9 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds

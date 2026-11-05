@@ -8,8 +8,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from dry_lint.costs import price
-from dry_lint.judges.command import prompt
+from dry_lint.costs import judging_input, price, usage_cost
 from dry_lint.models import Candidate, Run, evidence
 from dry_lint.plugins import Judge, identity
 from dry_lint.settings import Settings
@@ -133,7 +132,13 @@ class CampaignStore:
         while pending:
             candidate = min(
                 pending,
-                key=lambda c: (c.lane != "baseline", counts.get((c.lane, c.new.qualname), 0), -c.similarity, c.key),
+                key=lambda c: (
+                    c.lane != "baseline",
+                    -c.priority,
+                    counts.get((c.lane, c.new.qualname), 0),
+                    -c.similarity,
+                    c.key,
+                ),
             )
             pending.remove(candidate)
             ordered.append(candidate)
@@ -145,8 +150,8 @@ class CampaignStore:
 def reservation_cost(judge: Judge, candidate: Candidate, settings: Settings) -> float:
     rates = price(judge, settings)
     maximum = getattr(judge, "max_tokens", None)
-    if rates is None or maximum is None:
+    if rates is None or maximum is None and rates[1] != 0:
         raise ValueError("Discovery needs a priced judge with a maximum output token limit")
     # Conservative input estimate plus the actual configured output ceiling; actual usage settles the charge.
-    text = prompt(candidate, policy=getattr(judge, "prompt_policy", "concept"))
-    return ((len(text.encode("utf-8")) + 1024) * rates[0] + maximum * rates[1]) / 1_000_000
+    text = judging_input(judge, candidate)
+    return usage_cost({"input": len(text.encode("utf-8")) + 1024, "output": maximum or 0}, rates)

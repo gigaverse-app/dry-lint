@@ -1,9 +1,12 @@
 # Benchmark
 
-The opt-in [model duplication probe](model-duplication.md) measures Pydantic/dataclass and TypeScript/Zod
-retrieval separately from function similarity: field overlap, TF-IDF, their union and schema-only COMA,
-followed by model-contract judgment on frozen development and file-disjoint samples. Its diagnostic labels
-and thresholds do not inherit the function benchmark's population precision/recall claims.
+The opt-in [model duplication probe](model-duplication.md#fresh-production-plugin-evaluation) measures
+Pydantic/dataclass and TypeScript/Zod retrieval separately from function similarity. The follow-up preserves
+903 baseline pairs and adds bounded TF-IDF/wider-Dice exploration across 4,164 declarations. Two independent
+source reviewers adjudicated 54 fresh stratified candidates: 11 useful, 42 separate, one borderline. Live
+`jev-models` declaration triage places 6 useful pairs in the first 8 slots versus 1 for Dice; same-file context
+places 4. It retains every score for coding-agent review and carries adopter ownership policies. These sample
+yields and ranking results do not inherit the function benchmark's population precision/recall claims.
 
 The generic concept prompt is now `dry-v2`: language-neutral, with forwarding distinguished from repeated
 policy around a call. It has not been recalibrated; the historical second-judge results below used `dry-v1`.

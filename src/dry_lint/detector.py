@@ -16,7 +16,7 @@ from dry_lint.git import git
 from dry_lint.models import Candidate, Function, Run, qualified
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
-from dry_lint.settings import Settings
+from dry_lint.settings import ExplorationComparer, Settings
 
 SUPPRESSION = re.compile(r"(?:#|//)\s*dry-lint:\s*distinct-from\s+(\S+)")
 IGNORE = re.compile(r"(?:#|//)\s*dry-lint:\s*ignore\b")
@@ -239,14 +239,18 @@ class Detector:
                 for f in (new, existing)
             )
         ]
+        policies = [applied for policy in self.settings.policies if (applied := policy.apply(new, existing))]
+        discarded = next((p for p in policies if p.action == "discard"), None)
         return Candidate(
             new=self.hashed(new),
             existing=self.hashed(existing),
             similarity=round(similarity, 3),
             comparer=self.comparer_id,
-            filtered=why_skipped(new, existing, self.settings),
+            filtered=why_skipped(new, existing, self.settings)
+            or (f"adopter policy {discarded.name}: {discarded.reason}" if discarded else None),
             similarity_reusable=getattr(self.comparer, "similarity_reusable", False),
             consolidation=targets,
+            policies=policies,
         )
 
     def candidates(self, changed: list[Function]) -> list[Candidate]:
@@ -258,29 +262,39 @@ class Detector:
                 if key not in seen:
                     seen.add(key)
                     found.append(self.pair(function, other, similarity))
-        baseline = rank_candidates(found) if self.cross_repository or self.settings.consolidation else found
-        if self.settings.discovery.enabled and self.settings.comparer.use == "tfidf":
-            # A separate index leaves the baseline's floor, ranks and k unchanged.
-            from dry_lint.comparers import TfidfComparer
-
-            policy = self.settings.discovery
+        baseline = (
+            rank_candidates(found)
+            if self.cross_repository or self.settings.consolidation or self.settings.policies
+            else found
+        )
+        policy = self.settings.discovery
+        choices = policy.comparers
+        if not choices and self.settings.comparer.use == "tfidf":
             options = self.settings.comparer.options()
             options.update(min_similarity=policy.min_similarity, min_similarity_small=policy.min_similarity)
+            choices = [ExplorationComparer(use="tfidf", **options)]
+        keys = {c.key for c in baseline}
+        for choice in choices if policy.enabled else []:
+            # Independent indexes cannot displace baseline neighbours or consume their protected budget.
             wider = self.settings.model_copy(
-                update={"neighbours": policy.depth, "discovery": policy.model_copy(update={"enabled": False})}
+                update={
+                    "neighbours": choice.neighbours or policy.depth,
+                    "comparer": choice,
+                    "discovery": policy.model_copy(update={"enabled": False}),
+                }
             )
             detector = Detector(
                 self.functions,
                 wider,
-                TfidfComparer(**options),
+                load("comparers", choice),
                 self.extractors,
                 cross_repository=self.cross_repository,
                 same_file=True,
             )
-            keys = {c.key for c in baseline}
-            baseline += [
-                c.model_copy(update={"lane": "exploration"}) for c in detector.candidates(changed) if c.key not in keys
-            ]
+            for candidate in detector.candidates(changed):
+                if candidate.lane == "baseline" and candidate.key not in keys:
+                    keys.add(candidate.key)
+                    baseline.append(candidate.model_copy(update={"lane": "exploration"}))
         if not self.cross_repository:
             baseline += self.relatives(changed, baseline)
         return baseline

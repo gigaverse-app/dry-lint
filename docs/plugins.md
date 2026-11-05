@@ -7,7 +7,7 @@ implements one; nothing needs to inherit from dry-lint.
 | --- | --- | --- | --- |
 | Extractor | `extractors` (a list, one per language) | `python`, `typescript`, opt-in `python-models`, `typescript-models` | `dry_lint.extractors` |
 | Comparer | `comparer` | `tfidf`, optional `dryer`, opt-in `model-shape` | `dry_lint.comparers` |
-| Judge | `judge`, `escalate` | `jev`, `command` (and `auto`, `none`) | `dry_lint.judges` |
+| Judge | `judge`, `escalate` | `jev`, opt-in `jev-models`, `command` (and `auto`, `none`) | `dry_lint.judges` |
 | Store backend | `store` | `dir`, `s3` | `dry_lint.stores` |
 
 A slot takes a name, or a table whose `use` names the plugin and whose other keys are passed to its constructor:
@@ -115,6 +115,12 @@ literal can make two functions one concept without moving the score. An optional
 Measure it before switching: `dry-lint bench --gold gold.jsonl --comparer` reports how often each gold duplicate's
 partner is among the proposed neighbours.
 
+`discovery.comparers` accepts a list of comparer choices, each with an optional `neighbours` limit. Other
+options go to the comparer constructor. With discovery enabled, independent indexes add previously unseen
+pairs to the exploration lane without replacing baseline pairs. The first route to retrieve a pair owns its
+score and comparer identity; scores from different comparers are not averaged. An empty list preserves legacy
+TF-IDF exploration. See the [model configuration](model-duplication.md) for bounded TF-IDF and wider Dice routes.
+
 ## Judge
 
 ```python
@@ -129,6 +135,16 @@ One verdict per candidate, in order. Use `dry_lint.judges.label_for(score, behav
 labels follow the configured thresholds. A judge that cannot tell drift or ownership leaves
 `behaves_differently` at 0 and `owner` empty. Raise on failure rather than guessing: a missing answer is asked
 again next run, while a wrong one is stored.
+
+An optional `input_text(candidate) -> str` exposes the actual serialized request for budget estimation. Jev
+implements it so typed questions and policies are counted. Scheduled discovery reserves a conservative input
+byte bound and requires either a finite output ceiling or a zero output-token price. Actual token usage settles
+the reservation when the provider supplies it; missing usage retains the reservation charge.
+
+`jev-models` returns `Verdict.model_assessment` with six independent facts. The report keeps these pairs in the
+coding-agent review queue regardless of score. It uses strict prompt/model version reuse. Explicitly configure
+`escalate = "none"` for this workflow; a deliberately configured second judge replaces the first verdict under
+the ordinary escalation contract. Local context is optional and does not resolve cross-file types or callers.
 
 For a judge written in another language, the built-in `command` judge runs any program with
 `input = "candidate"`: one candidate as a JSON line on stdin, one JSON verdict on stdout. See
