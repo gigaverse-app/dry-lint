@@ -29,6 +29,10 @@ much of it written with coding agents. The gold labels contain that private code
 
 ## Gold set
 
+The separate [pytest-selective cleanup panel](case-studies/pytest-selective.md#regression-goldens) contains
+source-reviewed before/after regression pairs. Its implementation-agent labels and case-study outcomes are
+diagnostic evidence, not an addition to the population-calibrated figures below.
+
 **Population.** dry-lint's own detector ran on the functions changed by the 600 most recent merged gigaverse-ai
 pull requests (10 September to 3 November 2026), against main, and proposed **2,012 candidate pairs** (per PR:
 median 0, p90 10). Jev `reuse-v2` scored every pair; the scores are used only to stratify the sample.

@@ -200,6 +200,14 @@ dry-lint sweep --update --budget-usd 5 --readme README.md --repository OWNER/NAM
 Commit that metadata with the refactor, or dispatch the audit after the cleanup merges. A second identical update
 must leave the metadata unchanged. A dismissed false positive belongs in code/configuration with its reason.
 
+Before claiming impact, replay the new behavior tests against the pre-cleanup revision. Separate existing bugs
+fixed from guarantees merely preserved and regressions caught during consolidation. Compare resource/index
+ownership, failure behavior, exclusions and caller-specific policy, not just return values. Measure speed before
+claiming it: fewer duplicate pairs or lines do not establish a performance improvement. Keep before/after golden
+pairs so a judge can learn to recognize both the original repeated rule and its legitimate adapters afterward.
+The [pytest-selective case study](case-studies/pytest-selective.md) shows four reproduced bugs and why two snapshot
+policies still belong inside one shared implementation.
+
 ## 7. Verify the actual installation
 
 A new audit workflow cannot be dispatched directly until GitHub knows it on the default branch. The audit
