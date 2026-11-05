@@ -250,6 +250,29 @@ dry-lint sweep --update --budget-usd 5 --readme README.md --repository OWNER/NAM
 Commit that metadata with the refactor, or dispatch the audit after the cleanup merges. A second identical update
 must leave the metadata unchanged. A dismissed false positive belongs in code/configuration with its reason.
 
+## Measure what cleanup improved
+
+After a cleanup, describe at least one repeated rule and its new shared owner,
+including the callers that now use it. Pair counts track debt history; they do
+not count independent refactorings, bugs fixed or performance gains.
+
+- For a bug claim, keep a concrete before-failing/after-passing reproduction.
+- For a runtime claim, measure the same workload on both revisions. Otherwise
+  say that no speedup has been established.
+- For a maintenance claim, show how many implementations of the rule became one
+  and which caller-specific semantics remain explicit. Report added indirection
+  or allocations when relevant; fewer duplicates need not mean fewer lines.
+- Freeze useful positive pairs and their repaired delegation as regression
+  examples. Keep source revisions and label provenance. Mark context-dependent
+  judgments as uncertain instead of treating every dismissal as a gold negative.
+- Link the actual CI and complete sweep. Reuse verdicts for idempotence checks;
+  changing a stochastic answer is not a code repair.
+
+The [pytest-obligation cleanup case study](case-studies/pytest-obligation-cleanup.md)
+shows a 32-to-zero backlog with simpler ownership, roughly unchanged source size,
+no demonstrated functional bug fix and no measured runtime speedup. Its public
+gold pairs preserve both the useful detections and the stop-reporting controls.
+
 ## 7. Verify the actual installation
 
 For model adopters, the scheduled audit also exports the full model inventory for source review. Fetch the

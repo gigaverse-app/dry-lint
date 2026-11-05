@@ -1,0 +1,572 @@
+# Public, agent-adjudicated regression examples from pytest-obligation PR #206.
+# Exact function excerpts from pinned commits; no suppressions or answer comments added.
+# Curated diagnostic panel, not a random sample, independent human gold or population benchmark.
+# Apache-2.0 source: https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/LICENSE
+# Run: dry-lint bench --gold examples/pytest-obligation-gold.toml --preset sonnet
+# Borderline rows require omitted caller/policy context and are excluded by bench scoring.
+
+[[pair]]
+case = "imports-before"
+label = "duplicate"
+rationale = "Both implement module-level alias and relative-import bindings; the caller-specific module path calculation can remain outside the shared parser."
+transition = "imports"
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/reporting/inventory.py::_Sources.imports"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/reporting/inventory.py#L43-L57"
+sha256 = "e31e8ddb9fd34c97751b8c5f3b34b5989ec9445a309b8590242faa2e390ed893"
+code = '''
+def imports(self, path: Path) -> dict[str, str]:
+    aliases = {}
+    package = path.relative_to(self.root).with_suffix("").parts[:-1]
+    for node in self.tree(path).body:
+        if isinstance(node, ast.ImportFrom):
+            prefix = list(package[: len(package) - node.level + 1]) if node.level else []
+            prefix += node.module.split(".") if node.module else []
+            for alias in node.names:
+                aliases[alias.asname or alias.name] = ".".join([*prefix, alias.name])
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                aliases[alias.asname or alias.name.split(".")[0]] = (
+                    alias.name if alias.asname else alias.name.split(".")[0]
+                )
+    return aliases
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/coverage/project.py::top_level_imports"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/coverage/project.py#L214-L228"
+sha256 = "bf569251c29f073ba715e55922113c6127b9c405b1bac981c26dda681f0f8727"
+code = '''
+def top_level_imports(tree: ast.Module, module: Module) -> dict[str, str]:
+    """Local name -> the qualified name it refers to, from the module's top-level imports."""
+    imported: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom):
+            source = relative_source(node, module)
+            for alias in node.names:
+                imported[alias.asname or alias.name] = f"{source}.{alias.name}" if source else alias.name
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.asname:
+                    imported[alias.asname] = alias.name
+                else:
+                    imported[alias.name.split(".", 1)[0]] = alias.name.split(".", 1)[0]
+    return imported
+'''
+
+[[pair]]
+case = "imports-after"
+label = "separate"
+rationale = "Inventory now computes its Module and delegates import binding to top_level_imports. It no longer owns a second binding algorithm."
+transition = "imports"
+repository = "gigaverse-app/pytest-obligation"
+revision = "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/reporting/inventory.py::_Sources.imports"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/src/pytest_obligation/reporting/inventory.py#L44-L51"
+sha256 = "e604b59ac1945d2738258ce2777d1824b624e3fa2189bcb4e35d976636c7e69e"
+code = '''
+def imports(self, path: Path) -> dict[str, str]:
+    relative = path.relative_to(self.root)
+    parts = list(relative.with_suffix("").parts)
+    package = parts[-1] == "__init__"
+    if package:
+        parts.pop()
+    module = Module(name=".".join(parts), path=path, relative=relative.as_posix(), package=package)
+    return top_level_imports(self.tree(path), module)
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/_internal/python_source.py::top_level_imports"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/src/pytest_obligation/_internal/python_source.py#L42-L48"
+sha256 = "9f14cc24ad681abb5f22aeef7c9f3194c11f3592b0c538156cc5f730422772c4"
+code = '''
+def top_level_imports(tree: ast.Module, module: Module) -> dict[str, str]:
+    """Local name -> qualified name, with later module-level imports taking precedence."""
+    imported: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Import | ast.ImportFrom):
+            imported.update(import_bindings(node, module))
+    return imported
+'''
+
+[[pair]]
+case = "identities-before"
+label = "duplicate"
+rationale = "Both evaluate a selection and map rows to identities in order. Optional bounded consumption is a parameter of the same operation."
+transition = "identities"
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/profiles/automatic_recovery.py::_selected_identities"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/profiles/automatic_recovery.py#L393-L395"
+sha256 = "7ab3ab3e4bec30f89c90f556a010c711c1c59d9683140a7f814343b8f1f5edfd"
+code = '''
+def _selected_identities(sweep: DueWorkSweep, *, limit: int | None = None) -> list[Any]:
+    """One evaluation of the production selection, in its order, as identities."""
+    return [sweep.identity_of(row) for row in islice(sweep.due_work(), limit)]
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/integrations/django/owed_rows.py::_selected"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/django/owed_rows.py#L41-L43"
+sha256 = "61c9a9ddd677ad57d19c53be2a23381a3159ddd98da8b7d4bf5042d799b5bd06"
+code = '''
+def _selected(selection: Callable[[], Iterable[Any]], identity_of: Callable[[Any], Any]) -> list[Any]:
+    """One evaluation of the production selection, in its order, as identities."""
+    return [identity_of(row) for row in selection()]
+'''
+
+[[pair]]
+case = "identities-after"
+label = "separate"
+rationale = "The profile adapter forwards its selection, identity callback and limit to the shared implementation."
+transition = "identities"
+repository = "gigaverse-app/pytest-obligation"
+revision = "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/profiles/automatic_recovery.py::_selected_identities"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/src/pytest_obligation/profiles/automatic_recovery.py#L393-L395"
+sha256 = "3d0f64f276facc00598a5f6f342e13b73b7a9397607251b6c80c5be6065d6343"
+code = '''
+def _selected_identities(sweep: DueWorkSweep, *, limit: int | None = None) -> list[Any]:
+    """One evaluation of the production selection, in its order, as identities."""
+    return selected_identities(sweep.due_work, sweep.identity_of, limit=limit)
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/selection.py::selected_identities"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/src/pytest_obligation/selection.py#L15-L19"
+sha256 = "111b980901dfd1e991c8a4f3b3d41c7f514c85d087a6e7a05cac63157e80e7e1"
+code = '''
+def selected_identities(
+    selection: Callable[[], Iterable[Any]], identity_of: Callable[[Any], Any], *, limit: int | None = None
+) -> list[Any]:
+    """Evaluate selection once and preserve its order, duplicates and optional consumption limit."""
+    return [identity_of(row) for row in islice(selection(), limit)]
+'''
+
+[[pair]]
+case = "reply-lifetime-before"
+label = "duplicate"
+rationale = "Both create a lost-replies counter and install a wire observer for the context lifetime; driver-specific counter construction is a parameter."
+transition = "reply-lifetime"
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/integrations/redis.py::redis_reply_breaker"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/redis.py#L180-L189"
+sha256 = "d96fa4ba76205ad689aa3f141d12817c8b889586446d01246c7eae996a25caad"
+code = '''
+def redis_reply_breaker(client: Any) -> Callable[[int | None], AbstractContextManager[LostReplies]]:
+    """A reply breaker for every client and pipeline sharing ``client``'s connection pool."""
+
+    @contextmanager
+    def breaker(lose_at: int | None) -> Iterator[LostReplies]:
+        replies = LostReplies(lose_at)
+        with _watching(client, lambda: None, replies.committed):
+            yield replies
+
+    return breaker
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/integrations/mongodb.py::mongodb_reply_breaker"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/mongodb.py#L194-L201"
+sha256 = "f109d9fc46f7b944d47dbfb8076cd3749cbeb8e82b2e3332d2603b29b0996988"
+code = '''
+def mongodb_reply_breaker(client: Any) -> Callable[[int | None], AbstractContextManager[MongoDBLostReplies]]:
+    @contextmanager
+    def breaker(lose_at: int | None) -> Iterator[MongoDBLostReplies]:
+        replies = MongoDBLostReplies(lose_at)
+        with _watching(client, lambda: None, replies.committed):
+            yield replies
+
+    return breaker
+'''
+
+[[pair]]
+case = "reply-lifetime-after"
+label = "separate"
+rationale = "Both adapters now delegate the complete lifetime to counted_reply_breaker with their own observer and driver counter. There is no independently implemented lifetime left."
+transition = "reply-lifetime"
+repository = "gigaverse-app/pytest-obligation"
+revision = "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/integrations/redis.py::redis_reply_breaker"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/src/pytest_obligation/integrations/redis.py#L181-L184"
+sha256 = "bf08a9e140784e7c27886445c2827030367652434f6bdbbca6d2baffb2dca563"
+code = '''
+def redis_reply_breaker(client: Any) -> Callable[[int | None], AbstractContextManager[LostReplies]]:
+    """A reply breaker for every client and pipeline sharing ``client``'s connection pool."""
+
+    return counted_reply_breaker(partial(_watching, client), LostReplies)
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/integrations/mongodb.py::mongodb_reply_breaker"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/src/pytest_obligation/integrations/mongodb.py#L195-L196"
+sha256 = "b5b1503d31817a71d6b94d79acbf2511b42859554046212e099b1191b43ae8de"
+code = '''
+def mongodb_reply_breaker(client: Any) -> Callable[[int | None], AbstractContextManager[MongoDBLostReplies]]:
+    return counted_reply_breaker(partial(_watching, client), MongoDBLostReplies)
+'''
+
+[[pair]]
+case = "gap-grammar-before"
+label = "duplicate"
+rationale = "The same one-value-per-path grammar is reimplemented in two places. Error aggregation and direct rejection differ, so only parsing should be shared."
+transition = "gap-grammar"
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/contract.py::_selection_gaps"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/contract.py#L2217-L2234"
+sha256 = "1c6d537bb518af190a28648caad5a2d08f34bddb66b2dfcd47abae2add353862"
+code = '''
+def _selection_gaps(gaps: Mapping[str, str]) -> tuple[tuple[str, ...], list[str]]:
+    """The per-combination selection-completeness gaps among ``gaps``, and why any of them is malformed."""
+    named: list[str] = []
+    malformed: list[str] = []
+    for gap in gaps:
+        if not gap.startswith("assert_selection_is_complete["):
+            continue
+        inner = gap[len("assert_selection_is_complete[") : -1]
+        parts = [part.partition(":") for part in inner.split(",")]
+        if (
+            not gap.endswith("]")
+            or not inner
+            or not all(path and value and "|" not in value for path, _, value in parts)
+        ):
+            malformed.append(f"{gap!r}: a selection-completeness gap names one value per state path")
+            continue
+        named.append(gap)
+    return tuple(named), malformed
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/integrations/django/selection_completeness.py::gap_combination"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/django/selection_completeness.py#L293-L304"
+sha256 = "ff86b8a284f3181b51c0d8e329b62c19ab7192b171555a81898549a08cae7077"
+code = '''
+def gap_combination(gap: str) -> str | None:
+    """The combination inside a gap key, or None when ``gap`` is not a selection-completeness gap."""
+    prefix = f"{PROOF_NAME}["
+    if not (gap.startswith(prefix) and gap.endswith("]")):
+        return None
+    inner = gap[len(prefix) : -1]
+    parts = [part.partition(":") for part in inner.split(",")]
+    assert inner and all(path and value and "|" not in value for path, _, value in parts), (
+        f"{gap!r}: a selection-completeness gap names one value per state path, "
+        f"'{PROOF_NAME}[path:value,path:value]'; a gap on the whole proof would hide every combination"
+    )
+    return inner
+'''
+
+[[pair]]
+case = "gap-grammar-after"
+label = "separate"
+rationale = "The contract delegates grammar validation and only adapts parser errors into its aggregated diagnostics."
+transition = "gap-grammar"
+repository = "gigaverse-app/pytest-obligation"
+revision = "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/contract.py::_selection_gaps"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/src/pytest_obligation/contract.py#L2218-L2234"
+sha256 = "da4aaeaa5598394129eef6c14dbb22e880e66f83b125c4e439dd562a46ffd2da"
+code = '''
+def _selection_gaps(gaps: Mapping[str, str]) -> tuple[tuple[str, ...], list[str]]:
+    """The per-combination selection-completeness gaps among ``gaps``, and why any of them is malformed."""
+    named: list[str] = []
+    malformed: list[str] = []
+    for gap in gaps:
+        if not gap.startswith(f"{SELECTION_COMPLETENESS_PROOF}["):
+            continue
+        try:
+            combination = gap_combination(gap)
+        except AssertionError as error:
+            malformed.append(str(error))
+            continue
+        if combination is None:
+            malformed.append(f"{gap!r}: a selection-completeness gap names one value per state path")
+            continue
+        named.append(gap)
+    return tuple(named), malformed
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/selection.py::gap_combination"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4/package/src/pytest_obligation/selection.py#L28-L39"
+sha256 = "550d024cf3204e2a2039deb3be6a7ca717d17de19a564c2759cb1fbb70852b27"
+code = '''
+def gap_combination(gap: str) -> str | None:
+    """The combination in a complete selection-gap key, validating one value per path."""
+    prefix = f"{SELECTION_COMPLETENESS_PROOF}["
+    if not (gap.startswith(prefix) and gap.endswith("]")):
+        return None
+    inner = gap[len(prefix) : -1]
+    parts = [part.partition(":") for part in inner.split(",")]
+    assert inner and all(path and value and "|" not in value for path, _, value in parts), (
+        f"{gap!r}: a selection-completeness gap names one value per state path, "
+        f"'{SELECTION_COMPLETENESS_PROOF}[path:value,path:value]'; a gap on the whole proof would hide every combination"
+    )
+    return inner
+'''
+
+[[pair]]
+case = "lost-reply-counter"
+label = "duplicate"
+rationale = "Both increment commit count, create and retain one exception at the selected count, and raise that exact exception. The driver error factory is the legitimate variation."
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/references/in_memory_handoffs.py::_LostReplies.committed"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/references/in_memory_handoffs.py#L57-L61"
+sha256 = "eb0ba2d6c9703399586302f97714dd766c0725735f7b9c47bbf80c4a93373027"
+code = '''
+def committed(self) -> None:
+    self.count += 1
+    if self.count == self._lose_at:
+        self.failure = LedgerConnectionError(f"the reply to commit {self.count} was lost; the write landed")
+        raise self.failure
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/worker_death.py::LostCommitReplies.committed"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/worker_death.py#L61-L65"
+sha256 = "8aac06db0ee00862b4efed16ec1df726c09e8d989e4afe6b6288f050a89e4f56"
+code = '''
+def committed(self) -> None:
+    self.count += 1
+    if self.count == self._lose_at:
+        self.failure = self._failure(self.count)
+        raise self.failure
+'''
+
+[[pair]]
+case = "wagtail-purge-arrangement"
+label = "duplicate"
+rationale = "Both arrange one owed purge through Wagtail enqueue. URL choice, recorder reset and returning a row instead of an id remain at callers; enqueue plus identity conversion has one owner."
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "demos/wagtail_tasks/test_wagtail_tasks.py::a_purge_owed"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/demos/wagtail_tasks/test_wagtail_tasks.py#L514-L517"
+sha256 = "98f66cdf287a6f9b82ac96fc83d2aca38fe2eddaf8aeeaa143ee052c7343858a"
+code = '''
+def a_purge_owed() -> str:
+    # ARRANGE: a frontend cache purge enqueued by Wagtail's own task, ready for a worker.
+    cdn.PURGED.clear()
+    return str(purge_urls_from_cache_task.enqueue([URL]).id)
+'''
+
+[pair.existing]
+id = "demos/wagtail_tasks/test_worker_rows.py::owed_purge"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/demos/wagtail_tasks/test_worker_rows.py#L56-L59"
+sha256 = "b8acf72be050d0868dae4d265774976bfa5c15ad90e2331ea4ab93bf78d80a0d"
+code = '''
+def owed_purge() -> DBTaskResult:
+    """Enqueue through Wagtail, so the payload and task registration are production-owned."""
+    task = purge_urls_from_cache_task.enqueue([f"https://example.test/owed/{uuid4()}/"])
+    return DBTaskResult.objects.get(pk=task.id)
+'''
+
+[[pair]]
+case = "transaction-policy"
+label = "separate"
+rationale = "Handoff ownership recognizes resolved Django atomic; publication reach deliberately admits arbitrary atomic methods and configured openers. Unifying the acceptance predicate would change coverage meaning."
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/coverage/handoffs.py::_Sites._is_atomic"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/coverage/handoffs.py#L268-L270"
+sha256 = "e5706a57b7d71437e7b71b71cc16ad383ceaf07758ab207ceb4afdf874e4662f"
+code = '''
+def _is_atomic(self, expression: ast.expr) -> bool:
+    """``transaction.atomic``, ``atomic(using=...)``: the transaction block, as a decorator or a context."""
+    return self._resolve(expression.func if isinstance(expression, ast.Call) else expression) == ATOMIC
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/coverage/_internal/transactions.py::_PublicationReach._opens_transaction"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/coverage/_internal/transactions.py#L71-L75"
+sha256 = "4b536cc350b9902c07414f6cdcc854b2a5bd5c3170a5705e3b4899d0b7db79a8"
+code = '''
+def _opens_transaction(self, expression: ast.expr) -> bool:
+    target = expression.func if isinstance(expression, ast.Call) else expression
+    if isinstance(target, ast.Attribute) and target.attr == "atomic":
+        return True
+    return self._qualified(target) in self.openers
+'''
+
+[[pair]]
+case = "sql-membership-vs-rewrite"
+label = "separate"
+rationale = "Membership returns candidate column names including quoted spaces. Expression rewriting blanks non-word quoted identifiers for downstream word matching. Both already reuse literal/comment masking."
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/integrations/postgres_plans.py::referenced_columns"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/postgres_plans.py#L310-L314"
+sha256 = "98e24392b4bda36d95332d00bfdc4db98ae23068e46932ccbbca00f0d71c9d05"
+code = '''
+def referenced_columns(expression: str, candidates: Collection[str]) -> set[str]:
+    """Which of ``candidates`` an expression PostgreSQL printed names, outside its string literals."""
+    text = blank_literals_and_comments(expression)
+    names = {quoted or bare for quoted, bare in _IDENTIFIER.findall(text)}
+    return names & set(candidates)
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/integrations/_internal/postgres_sql.py::bare_identifiers"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/_internal/postgres_sql.py#L108-L126"
+sha256 = "a4c4f69b9e99892fe5190b7159f7a9acd8d2e4fce911dffa9a03de5e397bdb0e"
+code = '''
+def bare_identifiers(sql: str) -> str:
+    """
+    SQL text with literals and comments blanked, and each quoted identifier reduced to its bare name.
+
+    For a reader that matches column names with a word pattern: a column named
+    only inside a string literal (``'available_at <= soon'``) is no column, and a
+    quoted identifier that is a plain word (``"order"``) is the same column bare.
+    One that is not a plain word (``"odd name"``) is blanked, since no word
+    pattern can name it faithfully.
+    """
+
+    def bare(match: re.Match[str]) -> str:
+        quoted, word = match.group(1), match.group(2)
+        if word is not None:
+            return word
+        quoted = quoted.replace('""', '"')
+        return quoted if quoted.isidentifier() else " " * len(match.group(0))
+
+    return _NAME.sub(bare, blank_literals_and_comments(sql))
+'''
+
+[[pair]]
+case = "binding-guards-vs-contract"
+label = "borderline"
+rationale = "The full source establishes separate binding guards and state-changing invariants, but the pair omits AMBIGUITY_PROOFS and callers. Preserve as a context-requirement case, not a confident function-only negative."
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/gap_probes.py::_ambiguity_guards"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/gap_probes.py#L95-L98"
+sha256 = "d77b2264a93893243090f25f403de6062c995d46a7b050c9caaed5c403710688"
+code = '''
+def _ambiguity_guards(ambiguity: AmbiguityAware) -> None:
+    assert_ambiguity_transitions_are_production_bound(ambiguity)
+    assert_ordinary_due_work_is_production_bound(ambiguity)
+    assert_ambiguity_bindings_are_production_bound(ambiguity)
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/profiles/crash_ambiguity.py::assert_ambiguity_contract"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/profiles/crash_ambiguity.py#L288-L291"
+sha256 = "a85a8af85b9237e5b8f5999836b4669c23febf2f90387d698ccd9bcc73506873"
+code = '''
+def assert_ambiguity_contract(ambiguity: AmbiguityAware) -> None:
+    assert_ambiguity_bindings_are_production_bound(ambiguity)
+    for proof in AMBIGUITY_PROOFS:
+        proof(ambiguity)
+'''
+
+[[pair]]
+case = "already-delegated-effects"
+label = "borderline"
+rationale = "serve_row already assigns effects.did_work to ServedRow.worked; the caller adds a per-row external counter delta. This relationship is outside the snippets, so function-only judging lacks decisive context."
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/integrations/django/owed_rows.py::_did_work"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/django/owed_rows.py#L501-L503"
+sha256 = "7311d31070b514e8946d94fe2d38a1babbe824d5300f6962d0adbb2611cdeabf"
+code = '''
+def _did_work(served: ServedRow, rows: RowExecution, row: Any, calls_before: int) -> bool:
+    """A write or created row in the chain, or an external effect counted for this row."""
+    return served.worked or (rows.effect_calls_for is not None and rows.effect_calls_for(row) > calls_before)
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/integrations/django/lifecycle_states.py::_Effects.did_work"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/django/lifecycle_states.py#L426-L429"
+sha256 = "99151826d55d075bf0c72e2426076e33f39533ff3b934ae82a81e6e6788bda97"
+code = '''
+@property
+def did_work(self) -> bool:
+    """Recorder entries and scheduled messages alone do not prove work on an owed row."""
+    return bool(self.created or self.progress or self.newly_selectable or self.moved_state or self.effect_calls)
+'''
+
+[[pair]]
+case = "independent-successor-controls"
+label = "borderline"
+rationale = "The idempotent successor rule is similar, but the adopter retained independent real-database and simulated-ledger crash controls. Whether to share the rule requires inspecting test independence and commit boundaries; a different backend alone is not an exemption."
+repository = "gigaverse-app/pytest-obligation"
+revision = "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+label_source = "agent source review; not an independent panel"
+weight = 1.0
+
+[pair.new]
+id = "package/src/pytest_obligation/integrations/django/lifecycle_references.py::_create_successor"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/integrations/django/lifecycle_references.py#L121-L123"
+sha256 = "cec1f2e58ee7097bf13821839bc6659b1c92c8607d1f6165a84fc014d4c20f9c"
+code = '''
+def _create_successor(predecessor: LifecycleAttempt) -> None:
+    if not LifecycleAttempt.objects.filter(retry_of=predecessor).exists():
+        LifecycleAttempt.objects.create(status=Status.REQUESTED, retry_of=predecessor)
+'''
+
+[pair.existing]
+id = "package/src/pytest_obligation/references/in_memory_handoffs.py::_create_successor"
+source = "https://github.com/gigaverse-app/pytest-obligation/blob/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6/package/src/pytest_obligation/references/in_memory_handoffs.py#L189-L191"
+sha256 = "4e899c6698022a96d0abde62db7c25b7e4a534d286e41c1a83a332563035cc3c"
+code = '''
+def _create_successor(attempt: int) -> None:
+    if not LEDGER.select(retry_of=attempt):
+        LEDGER.insert(status=REQUESTED, retry_of=attempt)
+'''
