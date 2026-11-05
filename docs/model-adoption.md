@@ -8,6 +8,17 @@ The adoption ratchet records exact, source-reviewed duplicate pairs. Existing al
 survive changed evidence, or reopen after cleanup. Intentional boundaries belong in documented policies or
 pair-specific reviewed dismissals, not in duplicate debt.
 
+The PR sticky gives functions and models separate sections, each with its own display limit. The staged hook
+names both passes. A skipped pass says **not checked**. Model scores rank ownership work: the coding agent must
+inspect nested types, construction sites, consumers and repository policies, including prompt/application and
+independently versioned API boundaries. A low score is not permission to consolidate or dismiss.
+
+Model review history distinguishes open, resolved and dismissed tasks. Resolved means a completed pass no longer
+raises the pair; it does not prove consolidation and never increments confirmed-duplicate prevention totals.
+Hook trailers preserve this distinction. Combined judging costs include both passes, with unknown prices explicit.
+The README shows the two reviewed inventories separately. See [README progress](sweeps.md#readme-sticky-and-shieldsio-badge)
+for refreshing it without rejudging code.
+
 ## Controls
 
 The action defaults to `models: true`. Set that input to `false` to skip the model pass. Its

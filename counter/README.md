@@ -42,6 +42,11 @@ npx wrangler dev   # the Worker and its Durable Object, locally
   `npx wrangler deployments list` lists each deployment and its source.
 
 The Durable Object's data stays with the Worker named `dry-lint-counter`; deleting that Worker deletes the counts.
+README signs can carry `models_remaining`, `models_cleaned` and `models_dismissed` together alongside the function
+backlog counts. They display a separate reviewed-model tile; omitted model counts remain unknown. These snapshot
+counts only render the image and never enter the Durable Object totals. Model review resolution is excluded from
+the confirmed-function prevention counter. The README's text table remains readable if the image is unavailable.
+
 Columns are only ever added (`worker.js` adds any missing one at zero when the Durable Object starts), and every
 insert names its columns, so a rollback to an earlier version still writes to the wider tables. The exception is
 the first version, `310dfc9`, which inserted by position: it cannot write once a column has been added, so never

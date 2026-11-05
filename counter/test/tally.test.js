@@ -208,3 +208,25 @@ for (const query of ["cleaned=-1", "remaining=1.5", "dismissed=lots", "cleaned=1
     assert.throws(() => backlog(new URLSearchParams(query)), Invalid);
   });
 }
+
+test("reviewed model debt stays separate from functions and live prevention in both themes", () => {
+  const accepted = backlog(new URLSearchParams(
+    "cleaned=155&remaining=5184&dismissed=20&models_cleaned=1&models_remaining=56&models_dismissed=0"));
+  for (const theme of ["light", "dark"]) {
+    const svg = sign({ ...TOTALS, kept_out: 4 }, theme, "gigaverse-app/gigaverse-ai", accepted);
+    for (const label of ["function pairs remaining", "model pairs remaining", "155 retired · 20 dismissed",
+      "1 retired · 0 dismissed", "new duplicates kept out"]) assert.ok(svg.includes(label));
+    assert.match(svg, /5,184/);
+    assert.match(svg, />56</);
+    assert.doesNotMatch(svg, /old duplicates cleaned up/);
+  }
+});
+
+test("unknown model debt is not zero, and incomplete model totals cannot invent progress", () => {
+  assert.equal(backlog(new URLSearchParams("remaining=0")).models, undefined);
+  const zero = backlog(new URLSearchParams("remaining=0&models_cleaned=0&models_remaining=0&models_dismissed=0"));
+  assert.match(sign(TOTALS, "light", "acme/lib", zero), />0<\/text>\s*<text[^>]*>model pairs remaining/);
+  for (const value of ["models_remaining=0", "models_cleaned=0&models_remaining=-1&models_dismissed=0"]) {
+    assert.throws(() => backlog(new URLSearchParams(`remaining=1&${value}`)), Invalid);
+  }
+});
