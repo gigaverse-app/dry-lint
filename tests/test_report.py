@@ -554,6 +554,7 @@ def test_budget_deferred_pairs_are_actionable_review_tasks_not_clean_or_confirme
     assert built.findings[0].blocking and not built.findings[0].reported
     text = as_text(built)
     assert "coding agent" in text and "distinct-from" in text and "review required" in text
+    assert "0 reported, 1 review required" in text
     markdown = as_markdown(built)
     assert "review required" in markdown and "No duplicated concepts" not in markdown
     check = json.loads(as_check_run(built))

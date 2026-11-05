@@ -106,7 +106,7 @@ inputs:
     required: false
     default: "true"
   check-run:
-    description: In judge mode, post a "dry-lint" check run on the pull request's head (neutral with findings, so it never blocks).
+    description: In judge mode, post a "dry-lint" check run on the pull request's head, failing for blocking findings and neutral for advisory findings.
     required: false
     default: "true"
   sticky-key:
@@ -129,7 +129,7 @@ inputs:
     required: false
     default: ""
   warn-only:
-    description: Never fail; blocking findings are reported like the rest.
+    description: Report findings as warnings without failing. Operational errors still fail the action.
     required: false
     default: "false"
   require-complete:
@@ -167,10 +167,10 @@ outputs:
     description: The mode that ran.
     value: ${{ steps.plan.outputs.mode }}
   findings:
-    description: How many duplicates were reported.
+    description: How many duplicates and required reviews were reported.
     value: ${{ steps.run.outputs.findings }}
   blocking:
-    description: How many of them reach fail_at.
+    description: How many findings require review or reach fail_at before advisory mode or an override.
     value: ${{ steps.run.outputs.blocking }}
   overridden:
     description: Whether the override label turned blocking findings into warnings.
@@ -183,6 +183,8 @@ runs:
   using: composite
   steps:
     - uses: astral-sh/setup-uv@v10.0.1
+      with:
+        cache-dependency-glob: ${{ github.action_path }}/uv.lock
     - name: Install dry-lint
       shell: bash
       env:

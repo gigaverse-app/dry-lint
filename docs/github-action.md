@@ -169,7 +169,9 @@ The thresholds come from the judging preset, which the keys you pass choose ([ju
 A red check is a real duplicate about 60 times in 61 with `jev+opus`, 17 in 18 with `jev`; the overrides below
 handle the rest. To fail only on near-certain duplicates, raise `fail-at` (with `jev`, 0.9 is 100% precise and
 45% recall); findings between `report_at` and `fail-at` then only warn ([benchmark](benchmark.md)). `warn-only`
-never fails.
+does not fail on findings. Operational failures still fail the action and appear in the log and job summary.
+Advisory findings and overridden findings use warning annotations. Required model reviews and budget-deferred
+pairs are counted separately from confirmed duplicates in the text summary.
 
 **When dry-lint is wrong**, record the decision where it belongs:
 
@@ -238,16 +240,18 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment` | `true` | Keep the sticky comment. |
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `share-totals` | `true` | On the default branch, add each merged pull request's counts to [the global counter](#the-global-counter); `false` opts out. |
-| `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; `neutral` with findings, so it never blocks. |
+| `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; failure for blocking findings, neutral for advisory findings. |
 | `sticky-key` | | Legacy marker label, and the suffix that tells apart the verdict saves of several steps in one job; all keys share one PR comment. |
 | `fail-at` | the preset's (0.55 with `jev+opus`, 0.8 with `jev`) | Judge score at or above which a duplicate fails the check. |
-| `warn-only` | `false` | Never fail; blocking findings are reported like the rest. |
+| `warn-only` | `false` | Report findings as warnings without failing; operational errors still fail. |
 | `override-label` | `dry-lint: override` | The pull request label that lets blocking findings through. |
 | `github-token` | `github.token` | Needs `pull-requests: write`; in judge mode also `actions: read` and `checks: write`. |
 
-The outputs are `mode`, `findings` (how many duplicates were reported), `blocking` (how many reached `fail_at`),
+The outputs are `mode`, `findings` (duplicates and required reviews), `blocking` (required reviews or findings at `fail_at`, before advisory mode or an override),
 `overridden` and `exit-code`: 0 for nothing blocking, 1 for blocking findings, 2 when dry-lint could not run. Exit
-code 2 always fails the step, so a broken setup is never silent.
+code 2 always fails the step, including subprocess crashes and report-rendering failures. Errors produce an
+error annotation and a job-summary message even with `comment: false` or `warn-only: true`. Each invocation
+discards its previous report before scanning, so a failed scan cannot reuse an earlier successful report.
 
 Thresholds and exclusions live in `[tool.dry-lint]` in `pyproject.toml`, or in a `.dry-lint.toml` at the repository
 root (which wins when both exist), so that the action, the pre-commit hook and the command line all agree
