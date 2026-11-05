@@ -15,22 +15,27 @@ def reference(node: ast.AST, bindings: dict[str, str] | None = None, *, follow_c
     return ""
 
 
-def type_references(node: ast.AST) -> set[str]:
+def type_references(node: ast.AST, bindings: dict[str, str] | None = None) -> set[str]:
     """Annotations, including quoted forward references; never string-valued Literal metadata."""
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         try:
-            return type_references(ast.parse(node.value, mode="eval").body)
+            return type_references(ast.parse(node.value, mode="eval").body, bindings)
         except SyntaxError:
             return set()
     if isinstance(node, (ast.Name, ast.Attribute)):
         return {reference(node)}
-    if isinstance(node, ast.Subscript) and reference(node.value).split(".")[-1] in {"Literal", "Annotated"}:
+    if isinstance(node, ast.Subscript) and (kind := reference(node.value, bindings).split(".")[-1]) in {
+        "Literal",
+        "Annotated",
+        "ClassVar",
+        "InitVar",
+    }:
         return (
-            type_references(node.slice.elts[0])
-            if reference(node.value).endswith("Annotated") and isinstance(node.slice, ast.Tuple)
+            type_references(node.slice.elts[0], bindings)
+            if kind == "Annotated" and isinstance(node.slice, ast.Tuple)
             else set()
         )
-    return set().union(*(type_references(child) for child in ast.iter_child_nodes(node)))
+    return set().union(*(type_references(child, bindings) for child in ast.iter_child_nodes(node)))
 
 
 class SchemaModule:
@@ -52,7 +57,7 @@ class SchemaModule:
 
         collect(self.tree.body)
         aliases = {
-            node.targets[0].id: type_references(node.value)
+            node.targets[0].id: type_references(node.value, self.bindings)
             for node in self.tree.body
             if isinstance(node, ast.Assign)
             and len(node.targets) == 1
@@ -78,7 +83,7 @@ class SchemaModule:
         self.references: dict[str, set[str]] = {}
         for name, node in self.classes.items():
             annotations = [f.annotation for f in node.body if isinstance(f, ast.AnnAssign)]
-            refs = set().union(*(type_references(n) for n in [*node.bases, *annotations]))
+            refs = set().union(*(type_references(n, self.bindings) for n in [*node.bases, *annotations]))
             self.references[name] = expand(refs, name)
 
     def resolve(self, name: str, owner: str = "") -> str:
