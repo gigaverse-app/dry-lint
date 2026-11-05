@@ -32,7 +32,7 @@ from pathlib import Path
 
 import httpx
 
-from dry_lint import __version__, model_review
+from dry_lint import __version__, model_review, schema_policy
 from dry_lint.baseline import Baseline, readme_key, require_complete, update_readme
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.commits import Journal, append_trailers, staged_files, summary
@@ -78,7 +78,9 @@ def run_info(root: Path, base: str | None) -> Run:
 
 def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     """The repository's settings, with the judge the command line names, if any."""
-    settings = Settings.load(root, staged=args.command in {"check", "detect"} and args.staged)
+    settings = Settings.load(
+        root, staged=args.command in {"check", "detect", "model-baseline", "schema-check"} and args.staged
+    )
     if args.detector:
         settings.comparer = PluginChoice(use=args.detector)
     if args.fail_at is not None:
@@ -237,6 +239,14 @@ def model_candidates_for(root: Path, settings: Settings, args: argparse.Namespac
         own if args.command == "detect" and args.all else touched(own, changed_lines(root, args.base, args.staged))
     )
     debt = model_review.baseline(root, settings, staged=args.staged, base=args.base or run.base)
+    if debt:
+        inventory = reviewed(root, debt.candidates(detector), staged=args.staged)
+        updated = model_review.advance(debt, detector.functions, inventory, run.head)
+        if updated.entries != debt.entries:
+            suffix = " --staged" if args.staged else ""
+            raise ValueError(
+                f"Retire resolved model allowances with `dry-lint model-baseline --update{suffix}`, then stage the baseline"
+            )
     pairs = debt.candidates(detector, changed) if debt else detector.candidates(changed)
     return detector, changed, reviewed(root, pairs, staged=args.staged), debt
 
@@ -250,12 +260,16 @@ def trailers(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 def reviewed(
     root: Path, candidates: list[Candidate], *, staged: bool = False, committed: bool = False
 ) -> list[Candidate]:
+    return read_feedback(root, staged=staged, committed=committed).apply(candidates)
+
+
+def read_feedback(root: Path, *, staged: bool = False, committed: bool = False) -> Feedback:
     if staged or committed:
         raw = git(root, "show", f"{'' if staged else 'HEAD'}:{FILENAME}", check=False)
         feedback = Feedback.model_validate_json(raw) if raw else Feedback()
     else:
         feedback = Feedback.read(root / FILENAME)
-    return feedback.apply(candidates)
+    return feedback
 
 
 def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Detector, str]:
@@ -512,8 +526,14 @@ def model_baseline(root: Path, settings: Settings, args: argparse.Namespace) -> 
     settings = settings.model_copy(
         update={"models": settings.models.model_copy(update={"baseline": str(path.relative_to(root))})}
     )
-    previous = None if args.init else model_review.baseline(root, settings, base=args.baseline_ref or "HEAD")
-    updated = model_review.ratchet(root, settings, Feedback.read(root / FILENAME), previous)
+    previous = (
+        None
+        if args.init
+        else model_review.baseline(root, settings, staged=args.staged, base=args.baseline_ref or "HEAD")
+    )
+    updated = model_review.ratchet(
+        root, settings, read_feedback(root, staged=args.staged), previous, staged=args.staged
+    )
     if args.init or args.update:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
@@ -860,6 +880,19 @@ def parser() -> argparse.ArgumentParser:
     )
     model_debt.add_argument("--init", action="store_true")
     model_debt.add_argument("--update", action="store_true")
+    model_debt.add_argument(
+        "--staged", action="store_true", help="Audit the Git index, for retiring debt before committing a repair."
+    )
+    schema_check = commands.add_parser(
+        "schema-check",
+        parents=[common],
+        help="Check explicitly configured Python schema naming and ownership contracts.",
+    )
+    schema_check.add_argument("--staged", action="store_true")
+    schema_check.add_argument(
+        "--all", action="store_true", help="Audit pre-existing violations as well as changed code."
+    )
+    schema_check.add_argument("--base")
     return main
 
 
@@ -875,6 +908,7 @@ COMMANDS = {
     "index": index,
     "feedback": feedback,
     "model-baseline": model_baseline,
+    "schema-check": schema_policy.check,
     "trailers": trailers,
     "bench": bench,
 }

@@ -39,11 +39,11 @@ Use `models.policies` for model-only rules; existing top-level `policies` still 
 
 ```toml
 [[models.policies]]
-name = "prompt-domain-boundary"
-reason = "These specific prompt schemas evolve independently of runtime data."
+name = "prompt-schema-isolation"
+reason = "Prompt schema families evolve independently of application models."
 action = "discard"
-left = { paths = ["src/prompts/poll.py"], names = ["PollPromptSchema"], role = "LLM prompt" }
-right = { paths = ["src/domain/poll.py"], names = ["Poll"], role = "runtime authority" }
+left = { reachable_from = ["*PromptSchema"], role = "private prompt schema family" }
+right = { not_reachable_from = ["*PromptSchema"], role = "application contract" }
 
 [[models.policies]]
 name = "public-api-review"
@@ -59,6 +59,40 @@ rules accompany the candidate. Changing a matched rule invalidates its reviewed 
 Prefer `review` when a directory contains mixed ownership; `discard` is an explicit decision to suppress
 matching pairs, including future ones. See [model discovery](model-duplication.md) for selector details.
 
+Python model selectors also support `reachable_from` and `not_reachable_from`: globs over file-local roots
+that reach the declaration through annotations or bases, including itself. They follow nested classes,
+quoted references and ordinary type aliases. Imported types are not reclassified; a prompt referencing an
+application type is an ownership violation, not an exemption for the application model. These are static
+adapter facts, not a runtime schema expansion. TypeScript selectors currently support paths and names only.
+
+### Optional schema ownership checks
+
+Some adopters require LLM schemas to be private to their prompt/call file. The root plus its transitive
+nested structured types and bases is its **prompt schema family**. Only the root needs the identifying suffix.
+Application code consumes a converted, validated **application model**. This is a repository policy, not a
+universal rule for every dry-lint adopter. Configure the actual LLM APIs before enabling the check:
+
+```toml
+[models.schema_policy]
+root_suffix = "PromptSchema"
+include = ["src/*"]
+methods = ["with_structured_output"]
+functions = [{name = "myapp.llm.structured", position = 1, keyword = "response_model"}]
+chain_bases = ["myapp.llm.StructuredChain"]
+```
+
+Run `dry-lint schema-check --base origin/main` in CI, or add the opt-in `dry-lint-schema-policy` pre-commit
+hook. `schema-check --staged` reads indexed source and configuration. `--all` audits existing violations.
+The command reports root naming, cross-file imports/references, and application models embedding prompt
+types. It returns 1 for findings, independently of judge credentials; configuration errors return 2.
+Ordinary HTTP response models are not LLM sinks. Methods are an explicit adopter assertion; prefer qualified
+functions or chain bases where names are ambiguous. Scalar/string output is not a structured model.
+
+Existing issues reopen when their file changes; newly introduced dependencies also reopen unchanged
+consumers. Unresolved dynamic roots require source review. Static checks do not follow arbitrary re-exports,
+generated schemas or instance dataflow, and cannot prove the absence of prompt objects in application state.
+Coding agents must verify the full runtime boundary. Renaming a mixed-use model does not repair isolation.
+
 ## Establish and maintain reviewed debt
 
 1. Export the current inventory with `dry-lint detect --all --out candidates.json`, then render review evidence
@@ -71,8 +105,9 @@ matching pairs, including future ones. See [model discovery](model-duplication.m
 3. Run `dry-lint model-baseline --init` against committed source. Commit `.dry-lint/models.json` and the reviewed
    `.dry-lint-feedback.json` decisions, then set `models.baseline` as above. Only accepted source-bound pairs
    enter the baseline. Unreviewed pairs remain unknown, not accepted debt or confirmed duplication.
-4. After consolidation, run `dry-lint model-baseline --update` and commit the smaller remaining backlog.
-   The command inspects committed source. A removed declaration can retire debt; an exact reviewed dismissal
+4. After consolidation, stage the repair, run `dry-lint model-baseline --update --staged`, then stage the updated
+   baseline. Checks require resolved allowances to be retired before the repair can land, preventing later
+   reintroduction. Without `--staged`, the command audits committed source. A removed declaration can retire debt; an exact reviewed dismissal
    is counted separately. A renamed copy with unresolved neighbours does not earn cleanup credit.
 
 Checks validate the proposed baseline against the target ref (HEAD for the hook). They cannot change the

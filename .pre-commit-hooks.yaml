@@ -12,6 +12,15 @@
   require_serial: true
 # What the hook above saw fixed or dismissed before the commit, written into the commit's message as trailers so
 # the pull request's comment counts it. Install its stage once: `pre-commit install -t prepare-commit-msg`.
+- id: dry-lint-schema-policy
+  name: dry-lint schema ownership
+  description: Enforce explicitly configured Python structured-output schema boundaries.
+  entry: dry-lint schema-check --staged
+  language: python
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit]
+
 - id: dry-lint-trailers
   name: dry-lint trailers
   description: Record in the commit message the duplicates dry-lint's hook kept out before the commit.

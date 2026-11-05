@@ -39,6 +39,41 @@ def model_repo(tmp_path):
     return repo
 
 
+def test_function_peer_index_keeps_local_model_review(tmp_path, monkeypatch):
+    from dry_lint.function_index import export_index
+
+    clear_judge_credentials(monkeypatch)
+    repo = model_repo(tmp_path)
+    peer = Repo(tmp_path / "peer")
+    peer.write("helpers.py", "def square(x):\n    return x * x\n")
+    peer.commit()
+    snapshot = export_index(peer.root, "org/peer", Settings())
+    index = tmp_path / "peer.json.gz"
+    index.write_bytes(snapshot.encode())
+    report = tmp_path / "report.json"
+    assert (
+        main(
+            [
+                "check",
+                "--root",
+                str(repo.root),
+                "--base",
+                "main",
+                "--repo",
+                f"org/local={repo.root}",
+                "--repo-index",
+                f"org/peer@{snapshot.commit}={index}",
+                "--report",
+                str(report),
+            ]
+        )
+        == 0
+    )
+    result = Report.model_validate_json(report.read_text())
+    assert result.models == 2
+    assert len(result.visible) == 1
+
+
 def test_default_model_pass_survives_split_pipeline_and_opt_out(tmp_path, monkeypatch):
     clear_judge_credentials(monkeypatch)
     repo = model_repo(tmp_path)
@@ -259,6 +294,26 @@ def test_unstaged_policy_cannot_hide_staged_model_review(tmp_path, monkeypatch, 
     assert main(args) == 1
     repo.git("add", ".dry-lint.toml")
     assert main(args) == 0
+
+
+def test_deleting_accepted_model_debt_requires_retiring_its_allowance(tmp_path, monkeypatch):
+    clear_judge_credentials(monkeypatch)
+    repo = model_repo(tmp_path)
+    settings = Settings(models={"baseline": ".dry-lint/models.json"})
+    detector = Detector.for_repository(repo.root, profile(settings))
+    [pair] = detector.candidates(detector.functions)
+    debt = Baseline(
+        contract=contract(profile(settings)), started_at="adoption", checked_at="adoption", entries=[Entry.of(pair)]
+    )
+    repo.write(".dry-lint.toml", '[models]\nbaseline = ".dry-lint/models.json"\n')
+    repo.write(".dry-lint/models.json", debt.model_dump_json())
+    repo.commit()
+    repo.git("rm", "new.py")
+    assert main(["check", "--root", str(repo.root), "--staged"]) == 2
+    assert main(["model-baseline", "--root", str(repo.root), "--update", "--staged"]) == 0
+    repo.git("add", ".dry-lint/models.json")
+    assert main(["check", "--root", str(repo.root), "--staged"]) == 0
+    assert Baseline.model_validate_json((repo.root / ".dry-lint/models.json").read_text()).count("cleaned") == 1
 
 
 def test_model_allowances_cannot_be_widened_and_use_the_staged_baseline(tmp_path):

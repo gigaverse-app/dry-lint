@@ -19,6 +19,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 from dry_lint.git import git
 from dry_lint.models import Consolidation, Verdict
 from dry_lint.policies import PairPolicy
+from dry_lint.schema_policy import SchemaPolicy
 
 
 class Pattern(BaseModel):
@@ -103,6 +104,7 @@ class ModelReview(BaseModel):
     baseline: str | None = None
     policies: list[PairPolicy] = Field(default_factory=list)
     comparer: Choice = Field(default_factory=lambda: PluginChoice(use="model-shape"))
+    schema_policy: SchemaPolicy | None = None
     neighbours: int = Field(default=3, ge=1)
     budget: Budget = Field(default_factory=lambda: Budget(usd=0.01, subscription_calls=0))
 

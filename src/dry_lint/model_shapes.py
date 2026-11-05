@@ -15,6 +15,7 @@ from tree_sitter import Node
 from dry_lint.extractors import PythonExtractor
 from dry_lint.functions import python_imports
 from dry_lint.models import Declaration, Function
+from dry_lint.python_schemas import SchemaModule, reference
 from dry_lint.source_context import SourceContext, with_comments
 from dry_lint.typescript import TypeScriptExtractor, text
 
@@ -37,20 +38,12 @@ def model_unit(
 
 
 def resolved_name(node: ast.expr, bindings: dict[str, str]) -> str:
-    if isinstance(node, ast.Call):
-        return resolved_name(node.func, bindings)
-    if isinstance(node, ast.Subscript):
-        return resolved_name(node.value, bindings)
-    if isinstance(node, ast.Name):
-        return bindings.get(node.id, node.id)
-    if isinstance(node, ast.Attribute):
-        return f"{resolved_name(node.value, bindings)}.{node.attr}"
-    return ""
+    return reference(node, bindings, follow_calls=True)
 
 
 class PythonModelExtractor(PythonExtractor):
     name: str = "python-models"
-    version: str = "1"
+    version: str = "2"
 
     def functions(self, path: str, source: str) -> list[Function]:
         try:
@@ -58,6 +51,7 @@ class PythonModelExtractor(PythonExtractor):
         except SyntaxError:
             return []
         modules, names = python_imports(tree, path)
+        ancestors = SchemaModule(path, source).ancestors()
         bindings = {name: module.replace("/", ".") for name, module in modules.items()}
         bindings.update({name: f"{module.replace('/', '.')}.{symbol}" for name, (module, symbol) in names.items()})
         kinds: dict[str, Literal["pydantic", "dataclass"]] = {
@@ -126,7 +120,16 @@ class PythonModelExtractor(PythonExtractor):
             ]
             context = "\n".join([*imports, *uses])[:8000]
             found.append(
-                model_unit(path, node.name, start, end, code, Declaration(kind=kind, fields=fields), source, context)
+                model_unit(
+                    path,
+                    node.name,
+                    start,
+                    end,
+                    code,
+                    Declaration(kind=kind, fields=fields, reachable_from=ancestors[node.name]),
+                    source,
+                    context,
+                )
             )
         return found
 

@@ -15,11 +15,20 @@ class SymbolSelector(BaseModel):
     paths: list[str] = Field(default_factory=lambda: ["*"], min_length=1)
     names: list[str] = Field(default_factory=lambda: ["*"], min_length=1)
     repositories: list[str] = Field(default_factory=lambda: ["*"], min_length=1)
+    reachable_from: list[str] = Field(default_factory=list)
+    not_reachable_from: list[str] = Field(default_factory=list)
     role: str = Field(
         default="", description="Adopter-declared ownership role; verify against consumers before refactoring."
     )
 
     def matches(self, function: Function) -> bool:
+        roots = function.declaration.reachable_from if function.declaration else []
+        if self.reachable_from and not any(
+            fnmatch.fnmatchcase(root, pattern) for root in roots for pattern in self.reachable_from
+        ):
+            return False
+        if any(fnmatch.fnmatchcase(root, pattern) for root in roots for pattern in self.not_reachable_from):
+            return False
         return all(
             any(fnmatch.fnmatchcase(value, pattern) for pattern in patterns)
             for value, patterns in (

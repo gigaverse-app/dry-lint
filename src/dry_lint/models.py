@@ -43,6 +43,10 @@ class Declaration(BaseModel):
 
     kind: Literal["pydantic", "dataclass", "typescript", "zod"]
     fields: dict[str, str]
+    reachable_from: list[str] = Field(
+        default_factory=list,
+        description="Same-file schema roots that reach this type through annotations or bases, including itself.",
+    )
 
 
 class LanguageAnalysis(BaseModel):

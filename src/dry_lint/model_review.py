@@ -6,7 +6,7 @@ from dry_lint.baseline import Baseline, Entry, contract
 from dry_lint.detector import Detector
 from dry_lint.feedback import Feedback
 from dry_lint.git import git
-from dry_lint.models import Candidate
+from dry_lint.models import Candidate, Function
 from dry_lint.report import Report
 from dry_lint.settings import Discovery, PluginChoice, Settings
 
@@ -78,17 +78,19 @@ def combine(functions: Report, models: Report, debt: Baseline | None) -> Report:
     )
 
 
-def ratchet(root: Path, settings: Settings, feedback: Feedback, previous: Baseline | None) -> Baseline:
+def ratchet(
+    root: Path, settings: Settings, feedback: Feedback, previous: Baseline | None, *, staged: bool = False
+) -> Baseline:
     """Record reviewed positives, or retire allowances after source removal / explicit dismissal.
 
     Unknown and changed candidates never authorize new debt or cleanup. This is an inventory of reviewed
     consolidation work, not an assertion that the whole repository was classified by a model.
     """
     configured = profile(settings)
-    detector = Detector.for_tree(root, "HEAD", configured, strict=True)
+    revision = git(root, "write-tree") if staged else git(root, "rev-parse", "HEAD")
+    detector = Detector.for_tree(root, revision, configured, strict=True)
     candidates = previous.candidates(detector) if previous else detector.candidates(detector.functions)
     candidates = feedback.apply(candidates)
-    revision = git(root, "rev-parse", "HEAD")
     if previous is None:
         entries = [Entry.of(c) for c in candidates if not c.filtered and feedback.accepted(c)]
         if not entries:
@@ -96,7 +98,12 @@ def ratchet(root: Path, settings: Settings, feedback: Feedback, previous: Baseli
                 "Review model pairs with `feedback accept --reason ... --reviewer ...` before initializing debt"
             )
         return Baseline(contract=contract(configured), started_at=revision, checked_at=revision, entries=entries)
-    present = {f.qualname for f in detector.functions}
+    return advance(previous, detector.functions, candidates, revision)
+
+
+def advance(previous: Baseline, functions: list[Function], candidates: list[Candidate], revision: str) -> Baseline:
+    """Retire only resolved allowances; shared by audits and checks that enforce the ratchet."""
+    present = {f.qualname for f in functions}
     pairs = {c.key: c for c in candidates}
     entries = []
     for entry in previous.entries:
