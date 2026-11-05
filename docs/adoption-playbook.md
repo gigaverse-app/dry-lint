@@ -6,7 +6,8 @@ and steadily retire the duplication that predates adoption. Installing an Action
 This playbook comes from [Due's adoption](https://github.com/gigaverse-app/due/pull/188), its
 [cleanup](https://github.com/gigaverse-app/due/pull/190) and subsequent ratchets. Use the current dry-lint interfaces
 below rather than copying an old consumer workflow verbatim. [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation)
-([adoption PR](https://github.com/gigaverse-app/pytest-obligation/pull/204)) is the second application of the playbook.
+([adoption PR](https://github.com/gigaverse-app/pytest-obligation/pull/204)) and
+[pytest-selective's adoption](https://github.com/gigaverse-app/pytest-selective/pull/74) exercise the same lifecycle.
 
 ## Adoption inventory
 
@@ -104,6 +105,11 @@ when older branches legitimately lack the configuration. This only tolerates an 
 hooks still enforce the baseline. Configuration
 in Git does not install hooks in other contributors' clones; put the install command in CONTRIBUTING.
 
+If a general quality job runs `pre-commit run --all-files`, set `SKIP: dry-lint` on that step once the dedicated,
+required semantic job owns judging. Keep Ruff, formatting and documentation hooks running there. This avoids
+asking the general quality job, including fork runs, for judge credentials. Local hooks still judge normally;
+skipping the semantic hook in CI is only valid while the required judged check remains enforced.
+
 When a pair blocks, read both functions. Reuse the existing owner for one concept, preserving its failure and
 resource contracts. For genuinely different concepts, add a narrow `distinct-from` comment and reason. Run the
 affected tests and restage before retrying. Do not mechanically refactor from the score or add blanket ignores.
@@ -196,6 +202,23 @@ must leave the metadata unchanged. A dismissed false positive belongs in code/co
 
 ## 7. Verify the actual installation
 
+A new audit workflow cannot be dispatched directly until GitHub knows it on the default branch. The audit
+template also supports `workflow_call`: add this job to an already registered workflow with `workflow_dispatch`,
+then dispatch that workflow on the adoption branch to exercise the same audit before merging:
+
+```yaml
+jobs:
+  audit:
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/dry-lint-audit.yml
+    secrets: inherit
+```
+
+Preserve the caller's existing jobs and permissions. The caller must allow the audit's `contents: read` permission;
+the ratchet token supplies the write access. The checkout and ratchet PR target the dispatched branch, so review
+and incorporate that metadata into the adoption PR. If no registered workflow can call it yet, record the audit
+as awaiting its first post-merge dispatch. Scheduled runs only start after the workflow reaches the default branch.
+
 - Validate hook configuration and install both stages in a disposable checkout. Exercise staged detection and
   trailer handling; a no-source-change skip alone does not prove semantic judging.
 - Run a strict baseline check on the adoption PR; retain the existing baseline's contract and history.
@@ -215,5 +238,8 @@ but lacked hooks and automated ratchet PRs. Its README had backlog counts withou
 That comparison adds four requirements to the Due recipe: preserve partial adoption, check inherited secrets and
 rulesets, pass the numeric repository ID for a local README render, and protect main-push accounting from cancellation.
 It also removes a second CLI install from the audit workflow so judgment and update use the same runtime.
+pytest-selective additionally exercises the audit through a manual reusable-workflow call before first merge,
+and keeps semantic credentials out of its general all-hooks quality job. Its real ratchet and unchanged rerun
+verify both the metadata PR path and idempotence. These checks belong in the adoption recipe for future consumers.
 Keep consumer-specific paths, parser versions, token names and CI selection rules in the consumer; keep this lifecycle
 and the reusable workflow here.
