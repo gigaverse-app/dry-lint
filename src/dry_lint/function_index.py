@@ -21,7 +21,7 @@ from dry_lint.models import Function, Run, repository_path
 from dry_lint.plugins import identity, load
 from dry_lint.settings import Settings
 
-INDEX_SCHEMA = 1
+INDEX_SCHEMA = 2
 MAX_INDEX_BYTES = 256 * 1024 * 1024
 REPOSITORY = re.compile(r"[\w-][\w.-]*/[\w-][\w.-]*", re.ASCII)
 COMMIT = re.compile(r"[0-9a-f]{40}")
@@ -69,7 +69,7 @@ class IndexedFunction(Function):
 class FunctionIndex(BaseModel):
     model_config = ConfigDict(extra="forbid")
     format: Literal["dry-lint/function-index"] = "dry-lint/function-index"
-    schema_version: Literal[1] = Field(default=INDEX_SCHEMA, alias="schema")
+    schema_version: Literal[1, 2] = Field(default=INDEX_SCHEMA, alias="schema")
     repository: str
     commit: str
     contract: str

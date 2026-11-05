@@ -47,12 +47,15 @@ def test_opt_in_operation_policy_reaches_provider_and_invalidates_legacy_cache(t
     assert estimate(judge, [candidate], Settings()) > estimate(legacy, [candidate], Settings())
 
 
-def test_default_prompt_remains_legacy() -> None:
+def test_default_concept_prompt_uses_the_shared_relationship_policy() -> None:
     candidate = coverage_pair()
     judge = AnthropicJudge(api_key="test")
     assert judge.name == "anthropic"
-    assert judge.version == "dry-v1:claude-sonnet-5-5"
+    assert judge.version == "dry-v2:claude-sonnet-5-5"
     assert prompt(candidate) == prompt(candidate, policy="concept")
+    assert "Two Python functions" not in prompt(candidate)
+    assert "only forwards" in prompt(candidate)
+    assert "independently repeated behavior" in prompt(candidate)
 
 
 def test_compact_policy_uses_separate_evidence_and_bounded_response() -> None:

@@ -53,16 +53,15 @@ Every run goes through the same six steps, whatever plugins it uses:
    "relative"` pairs naming their `parent`. Fixing a duplicate touches the existing function, so without them
    its other copies surface one push at a time (in due#183, three copies of one recovery helper took three pushes).
    A changed existing side brings none: its look-alikes are proposed directly.
-4. **Settle by rule.** Core marks a pair `filtered` when both are dunders, one calls the other through `self`,
-   `cls` or `this` within the same class or across one direct base (a base method calling a subclass's override,
-   or a subclass method calling an inherited one; call names come from the extractor's syntax tree; names are not
-   resolved to symbols, so a bare or imported call is left to the judge), one overrides the other (the same name in
-   a class whose direct base is the other's class), both match a declared `pattern`, one carries
-   `# dry-lint: distinct-from <qualified name suffix>`, or either carries `# dry-lint: ignore`. A direct base
-   resolves from the file alone (a class it defines or a name its imports bind); a grandparent or an unresolvable
-   base is left to the judge. Settled pairs stay
-   in the output with their rule, so "why wasn't this flagged?" has an answer. The extractor hashes both
-   functions of every pair.
+4. **Settle by rule.** Core consumes language facts from the existing extractor interface. A pair is `filtered`
+   when both adapters identify the same convention in the same language (currently Python special methods),
+   one is a recognized forwarding wrapper for the other in the same repository, both match a declared `pattern`,
+   one carries `# dry-lint: distinct-from <qualified name suffix>`, or either carries `# dry-lint: ignore`.
+   A forwarding body consists only of a same-owner method call with unchanged parameter arguments. Additional
+   statements, computed arguments, decorators, parameter initializers and unresolved targets stay with the judge.
+   Calls and inheritance alone never exclude executable implementations. Core does not interpret receiver names,
+   base-module paths or naming syntax; unknown analysis never establishes an exemption.
+   Settled pairs remain in output with their rule. The extractor hashes both functions of every pair.
 5. **Look up.** Each remaining pair's record is read from the store and kept if it still holds (below).
 6. **Judge and report.** Pairs without a usable verdict go to the judge; scores in the escalation band go on to
    a second judge; every new verdict is stored; the report is built and rendered. Relatives come last, and only
@@ -94,6 +93,13 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 - A repository without outside contributors can run `dry-lint check` in one job instead. The files are the same.
 
 ## File formats
+
+Schema 9 adds optional `Function.analysis` (`LanguageAnalysis`: language, adapter version, method convention,
+forwarding target and explicit override marker) and serializes the existing `bases` field. Earlier files remain
+readable with unknown analysis. These facts participate in `Candidate.context_hash`, so stored verdicts and reviewed
+evidence cannot survive a changed analysis contract or base reference. Extractors do not inspect imported bodies;
+there are no hidden cross-file semantic dependencies to invalidate. Adding project-wide resolution must include
+those dependency digests before its evidence can influence reuse. See [language adapter contracts](plugins.md#language-analysis).
 
 Repository adoption baselines use an independent schema 1 and are reviewed policy, not cached verdicts.
 They bind exact pairs and their structure/context hashes to a fixed detection and judging contract. Strict

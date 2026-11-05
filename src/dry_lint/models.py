@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 8
+SCHEMA = 9
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -36,6 +36,18 @@ class Run(BaseModel):
     base: str = ""
     session: str = ""
     revision: str = ""
+
+
+class LanguageAnalysis(BaseModel):
+    """Syntax facts supplied by a language adapter, never a language-specific verdict policy."""
+
+    language: str
+    version: str
+    convention: str | None = Field(default=None, description="A language-defined method convention, if recognized.")
+    forward_target: str | None = Field(
+        default=None, description="File-local path::Owner.method for a body consisting only of forwarding a call."
+    )
+    declared_override: bool = False
 
 
 class Function(BaseModel):
@@ -65,9 +77,9 @@ class Function(BaseModel):
     )
     bases: list[str] = Field(
         default_factory=list,
-        exclude=True,
-        description="Its class's direct bases, as `module::Class` (see `module_of`); not written to files.",
+        description="Syntactically named direct bases as module::Class; not proof of runtime binding or duplication.",
     )
+    analysis: LanguageAnalysis | None = Field(default=None, description="Absent for legacy/unsupported extractors.")
 
     @property
     def qualname(self) -> str:
@@ -151,10 +163,17 @@ class Candidate(BaseModel):
             or self.new.context_digest
             or self.existing.context_digest
             or self.consolidation
+            or self.new.analysis
+            or self.existing.analysis
+            or self.new.bases
+            or self.existing.bases
         ):
             return ""
         payload = [
-            sorted((f.qualname, f.context, f.context_digest) for f in (self.new, self.existing)),
+            sorted(
+                (f.qualname, f.context, f.context_digest, f.analysis.model_dump_json() if f.analysis else "", f.bases)
+                for f in (self.new, self.existing)
+            ),
             [target.model_dump() for target in self.consolidation],
         ]
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
