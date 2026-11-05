@@ -233,11 +233,21 @@ usage multiplied by the configured price, not reconciled invoices. A hypothetica
 would retain 8/11 useful cases and flag 3/42 separate cases plus the borderline case. This is why the plugin
 keeps low-scoring candidates available for agent review.
 
+The three useful cases below that hypothetical gate show what the coding agent adds:
+
+| Pair | Jev score | Evidence that changes the decision |
+| --- | ---: | --- |
+| `CompactMetricParityCheck` / `ProviderProbeCheck` | 0.45 | Sibling Locust diagnostics emit the same frozen named check result. Provider `required` flags specialize the check; keep its required-only aggregation separate. |
+| `ActorOutcome` / `ActorRecycleOutcome` | 0.56 | Both producers populate identity from the same pool actor. Share identity/diagnostics while preserving provisioning versus recycling statuses and extra fields. |
+| Pre-room `searchSchema` / `NavigateToRoomCreationOptions` | 0.55 | The navigation helper builds exactly the route's search parameters, hiding some in an untyped dictionary. Promote one search contract and infer the navigation portion; preserve title masking and mode normalization. |
+
 Ownership controls also expose the limits of atomic questions. Private/public community summaries received
 shared-authority scores 0.23/0.25; prompt/conformed chapter models received 0.29/0.30. However, the chapter
 boundary fact itself scored only 0.32/0.45 despite the supplied policy. Same-public-owner pagination scored
 only 0.51/0.52 on shared authority but 0.88/0.87 on specialization. Do not use a single atomic threshold to
 authorize either consolidation or dismissal. Explicit, correctly scoped adopter discard rules are deterministic.
+An additional production-detector scan of all 1,534 AI pairs applied exact path/class discard rules to the two
+reviewed cross-owner controls: both were filtered, while same-public-owner pagination remained eligible.
 
 Source investigation changed decisions concretely: scheduled invitations and live role changes repeat the
 same label normalization despite different identity selectors; rendition maintenance reports repeat execution
