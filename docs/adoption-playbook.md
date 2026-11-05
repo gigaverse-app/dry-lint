@@ -54,6 +54,9 @@ the per-PR budget. Reuse the verdict store between audit and update to avoid pay
 Use `gigaverse-app/dry-lint@v1` now that v1 has launched; before v1 the Action used `@main`. Use published major
 tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.4.1`, so its
 cached hook environment changes explicitly on upgrade. Confirm the release and required capabilities exist.
+Check the installed hook version independently of the Action: a floating `@v1` can pick up new default-on
+features while an older pre-commit pin still lacks them. Upgrade that pin and exercise staged detection;
+absence of an opt-out setting alone does not prove the old release implements the feature.
 
 ## 2. Accept the existing backlog once
 
@@ -80,6 +83,8 @@ counts or the detection contract to force a pass. Scope/judge changes need a rev
 Model review is enabled by default in checks, the staged hook and the PR sticky. Keep it enabled during full
 adoption, including the trusted fork judge, and verify the Action's `models-checked` output on judged runs.
 Fork detection only uploads candidates, so do not require that output on the untrusted detection job.
+Record the model inventory and changed-model count from the report. A successful pass with zero changed
+models verifies that the pass ran; it does not certify the whole existing inventory as duplicate-free.
 Use a published release containing model review (1.4.0 or newer) for hooks. An explicit opt-out remains available
 through `models: false`, `--no-models`, or repository `models.enabled`, `models.hook` and `models.sticky` settings.
 
