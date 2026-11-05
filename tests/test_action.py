@@ -581,7 +581,10 @@ def test_without_a_judge_the_real_cli_lists_look_alikes_and_comments_nothing(rep
 
 
 @pytest.mark.parametrize("mode", ["single", "detect"])
-def test_workspace_action_keeps_primary_annotations_and_peer_links(repo, github_env, tmp_path, twin_judge, mode):
+@pytest.mark.parametrize("merge_checkout", [False, True])
+def test_workspace_action_keeps_primary_annotations_and_peer_links(
+    repo, github_env, tmp_path, twin_judge, mode, merge_checkout
+):
     from conftest import EXISTING
 
     peer = Repo(tmp_path / "peer checkout")
@@ -590,9 +593,15 @@ def test_workspace_action_keeps_primary_annotations_and_peer_links(repo, github_
     repo.write(".dry-lint.toml", '[[consolidation]]\nrepository = "acme/common"\npath = "src"\n')
     repo.commit()
     github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
+    event = pr_event(repo)
+    if merge_checkout:
+        repo.git("checkout", "main")
+        repo.write("README.md", "main advanced\n")
+        repo.commit()
+        repo.git("merge", "--no-ff", "feature", "-m", "synthetic merge")
     github_env(
         "pull_request",
-        pr_event(repo),
+        event,
         mode=mode,
         judge="command",
         judge_command=twin_judge,
