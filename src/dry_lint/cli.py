@@ -564,7 +564,7 @@ def model_baseline(root: Path, settings: Settings, args: argparse.Namespace) -> 
     if args.init and path.exists():
         raise ValueError("Model baseline already exists; use --update to ratchet it")
     settings = settings.model_copy(
-        update={"models": settings.models.model_copy(update={"baseline": str(path.relative_to(root))})}
+        update={"models": settings.models.model_copy(update={"baseline": path.relative_to(root).as_posix()})}
     )
     previous = (
         None

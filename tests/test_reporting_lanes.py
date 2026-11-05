@@ -198,5 +198,6 @@ def test_model_ratchet_refreshes_readme_and_missing_readme_option_is_actionable(
         == 0
     )
     assert "| Models | 0 | 0 | 0 |" in (repo.root / "README.md").read_text()
+    assert "[Reviewed model debt](.dry-lint/models.json)" in (repo.root / "README.md").read_text()
     assert main(["progress", "--root", str(repo.root)]) == 2
     assert "progress requires --readme" in capsys.readouterr().err
