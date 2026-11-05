@@ -204,7 +204,7 @@ Before claiming impact, replay the new behavior tests against the pre-cleanup re
 fixed from guarantees merely preserved and regressions caught during consolidation. Compare resource/index
 ownership, failure behavior, exclusions and caller-specific policy, not just return values. Measure speed before
 claiming it: fewer duplicate pairs or lines do not establish a performance improvement. Keep before/after golden
-pairs so a judge can learn to recognize both the original repeated rule and its legitimate adapters afterward.
+pairs so future judge changes can be checked against both the original repeated rule and its legitimate adapters afterward.
 The [pytest-selective case study](case-studies/pytest-selective.md) shows four reproduced bugs and why two snapshot
 policies still belong inside one shared implementation.
 

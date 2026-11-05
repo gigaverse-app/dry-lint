@@ -1,4 +1,4 @@
-"""The public example pairs (examples/gold.toml): usable by `dry-lint bench`, labelled by majority, safe to publish."""
+"""Public gold panels load and retrieve; calibrated examples retain their majority-label contract."""
 
 import re
 import tomllib
@@ -35,7 +35,7 @@ def test_cleanup_gold_extracts_real_functions_and_keeps_known_positive_retrieval
         for side in (pair.new, pair.existing):
             function = as_function(side, extractor)
             assert function.qualname == side.id
-            assert function.tokens and function.hash
+            assert function.tokens and function.analysis is not None
             functions[side.id] = function
     before = [function for identity, function in functions.items() if identity.startswith("before/")]
     settings = Settings()

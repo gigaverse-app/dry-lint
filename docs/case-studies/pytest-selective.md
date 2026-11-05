@@ -55,6 +55,28 @@ one private-index lifecycle
 Sharing a lifecycle does not require erasing caller policy. A useful review question
 is: which guarantees would disappear if every caller used the apparently simpler copy?
 
+## Performance: no speedup claim
+
+A paired Windows/Python 3.14.7 probe used eight measured samples per implementation,
+after two warmups, alternating before/after order in persistent separate processes.
+Snapshots used the same real Git repository with 1,000 Python files and one dirty
+file. Graph construction used the same fixed pytest-selective tree (`ae13063`),
+fresh SQLite databases for cold runs and a previously built graph for warm runs.
+Process startup is excluded; OS caches are warm. Every paired tree/graph result
+matched. Lower elapsed time is better; Git-call counts explain work, not user benefit.
+
+| Operation | Before median ms (min–max) | After median ms (min–max) | Git calls before / after |
+| --- | --- | --- | --- |
+| Planner snapshot | 402 (310–541) | 353 (307–562) | 6 / 6 |
+| Expansion snapshot | 247 (188–386) | 280 (229–305) | 3 / 4 |
+| Cold graph | 507 (438–687) | 528 (435–685) | 4 / 4 |
+| Warm graph | 44 (38–105) | 43 (39–50) | 1 / 1 |
+
+The ranges overlap and do not establish an end-to-end speedup. Expansion now checks
+the explicit repository root before snapshotting, adding one Git process. Its
+observed median increased by about 32 ms; that is a cost to disclose, not a saving.
+This small local probe is not a CI throughput or billing measurement.
+
 ## What the zero means
 
 The accepted backlog went from **7 remaining to 0**, with the same original nine
@@ -82,6 +104,18 @@ These labels come from the implementation agent's source review and executable
 consumer regressions. They are not independent three-vendor labels, a random sample,
 or a fresh holdout. Keep them separate from the calibrated benchmark population.
 No judge scores or prompt thresholds were changed to fit this panel.
+
+A live `dry-v2:claude-sonnet-5-5` judgment on 2026-11-05 flagged all eight positives
+(scores 0.70–0.90) and kept all four after-cleanup controls separate (0.05–0.12),
+at both the default 0.60 report threshold and 0.70 failure threshold. This is binary
+duplicate/separate agreement, treating `drifted` as a duplicate; it does not claim
+agreement on every drift annotation. The run used 9,558 input and 2,263 output tokens.
+One run on this deliberately selected panel does not establish general accuracy.
+
+Default top-three TF-IDF retrieval finds seven of the eight positives in the reduced
+frozen before-corpus. The snapshot pair remains a known miss there; it was found by
+the real repository sweep during cleanup. Corpus composition affects retrieval,
+so do not relabel the pair or claim full retrieval coverage from judge agreement.
 
 ```bash
 uv run dry-lint bench --gold examples/pytest-selective-gold.toml --preset sonnet
