@@ -83,10 +83,12 @@ External extractor plugins must bump their declared version when extraction sema
 as required by the plugin contract. Publishers and consumers must use compatible extraction options. A differing
 configuration remains correct through fallback but loses artifact reuse until aligned.
 
-The gzip JSON format has its own schema (`1`), repository and commit identity, extraction-contract fingerprint,
+The gzip JSON format has its own schema (`2`; schema 1 remains readable), repository and commit identity, extraction-contract fingerprint,
 scope, functions and SHA-256 content digest. Unlike candidate files, functions retain behavior tokens and syntax
 tree call names as well as code, line ranges, bounded context and full-source context digest. No serialized Python
 objects or precomputed pair scores are loaded. Snapshots replace the entire corpus, so deleted functions cannot linger.
+Schema 2 also preserves language analysis and base-class evidence. Old snapshots default to unknown analysis;
+the extraction-contract fingerprint prevents reusing a snapshot produced under an incompatible analyzer.
 
 ## CLI and audit reuse
 

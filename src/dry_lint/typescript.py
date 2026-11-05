@@ -10,7 +10,7 @@ import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
 from dry_lint.functions import words
-from dry_lint.models import Function, module_of
+from dry_lint.models import Function, LanguageAnalysis, module_of, qualified
 from dry_lint.source_context import SourceContext
 
 FUNCTIONS = {
@@ -181,9 +181,69 @@ class Bases:
         return []
 
 
+def forwarding_method(node: Node, code: Node) -> str | None:
+    """Recognize class methods/arrow fields containing only this.method(parameters), without evaluating code."""
+    previous = code.prev_named_sibling
+    while previous is not None and previous.type == "comment":
+        previous = previous.prev_named_sibling
+    if (
+        code.parent is None
+        or code.parent.type != "class_body"
+        or any(child.type == "decorator" for child in code.named_children)
+        or previous is not None
+        and previous.type == "decorator"
+    ):
+        return None
+    if node.type not in {"method_definition", "arrow_function"}:
+        return None  # object methods and function-valued fields have different receiver binding
+    body = node.child_by_field_name("body")
+    if body is None:
+        return None
+    if body.type == "statement_block":
+        statements = [child for child in body.named_children if child.type != "comment"]
+        if len(statements) != 1 or statements[0].type not in {"return_statement", "expression_statement"}:
+            return None
+        expressions = [child for child in statements[0].named_children if child.type != "comment"]
+        if len(expressions) != 1:
+            return None
+        body = expressions[0]
+    if body.type == "await_expression":
+        body = body.named_children[0]
+    if body.type != "call_expression":
+        return None
+    target, arguments = body.child_by_field_name("function"), body.child_by_field_name("arguments")
+    if target is None or target.type != "member_expression" or arguments is None:
+        return None
+    if any(child.type in {"?.", "optional_chain"} for parent in (body, target) for child in parent.children):
+        return None
+    receiver, prop = target.child_by_field_name("object"), target.child_by_field_name("property")
+    if receiver is None or receiver.type != "this" or prop is None or prop.type != "property_identifier":
+        return None
+    # A computed argument can contain the very repeated operation we are trying to detect.
+    parameters = node.child_by_field_name("parameters")
+    if parameters is not None and any(
+        param.child_by_field_name("value") is not None for param in parameters.named_children
+    ):
+        return None
+    names = (
+        {
+            text(pattern)
+            for param in parameters.named_children
+            if (pattern := param.child_by_field_name("pattern")) is not None and pattern.type == "identifier"
+        }
+        if parameters is not None
+        else set()
+    )
+    if any(
+        arg.type != "identifier" or text(arg) not in names for arg in arguments.named_children if arg.type != "comment"
+    ):
+        return None
+    return text(prop)
+
+
 class TypeScriptExtractor:
     name = "typescript"
-    version = "1"
+    version = "2"
     files = ("*.ts", "*.tsx", "*.mts", "*.cts")
 
     def __init__(self, min_lines: int = 1) -> None:
@@ -221,6 +281,7 @@ class TypeScriptExtractor:
             snippet = text(code)
             if code.type == "variable_declarator":
                 snippet = "const " + snippet + ";"
+            target = forwarding_method(node, code)
             found.append(
                 Function(
                     path=path,
@@ -234,6 +295,14 @@ class TypeScriptExtractor:
                     context=context.for_function(code),
                     context_digest=context_digest,
                     bases=list(inherits),
+                    analysis=LanguageAnalysis(
+                        language=self.name,
+                        version=self.version,
+                        forward_target=f"{path}::{qualified(owner, target)}" if target else None,
+                        declared_override=any(
+                            child.type == "override_modifier" or child.type == "override" for child in code.children
+                        ),
+                    ),
                 )
             )
 
@@ -245,15 +314,17 @@ class TypeScriptExtractor:
                 inherits = tuple(bases.of(node))
             elif node.type in {"internal_module", "object"}:
                 inherits = ()
+            if node.type in {"method_definition", "public_field_definition"} and any(
+                child.type == "static" for child in node.children
+            ):
+                owner = f"{owner}.static" if owner else "static"
+                inherits = tuple(f"{reference}.static" for reference in inherits)
             if node.type in FUNCTIONS:
                 name = text(name_node) if name_node is not None else "default"
                 if node.type == "method_definition":
                     modifiers = {child.type for child in node.children if not child.is_named}
                     if "get" in modifiers or "set" in modifiers:
                         name = ("get " if "get" in modifiers else "set ") + name
-                    if "static" in modifiers:
-                        owner = f"{owner}.static" if owner else "static"
-                        inherits = tuple(f"{reference}.static" for reference in inherits)
                 if name_node is not None or (node.parent is not None and node.parent.type == "export_statement"):
                     add(node, node, name, owner, inherits)
                 return

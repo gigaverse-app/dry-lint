@@ -13,7 +13,7 @@ from pathlib import Path
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
-from dry_lint.models import Candidate, Function, Run, module_of
+from dry_lint.models import Candidate, Function, Run, qualified
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
 from dry_lint.settings import Settings
@@ -79,77 +79,28 @@ def changed_functions(root: Path, settings: Settings, base: str | None) -> list[
     return found
 
 
-def calls(function: Function) -> set[str]:
-    """
-    The function's direct calls (`name`, or `self.name`, `cls.name`, `this.name`): from its extractor, else from
-    its code after the line that defines it.
-    """
-    if function.calls is not None:
-        return set(function.calls)
-    body = function.code.partition("\n")[2]
-    return {
-        *re.findall(r"(?<![\w.])(\w+)\s*\(", body),
-        *(f"{receiver}.{name}" for receiver, name in re.findall(r"\b(self|cls|this)\.(\w+)\s*\(", body)),
-    }
-
-
 def delegates(caller: Function, callee: Function) -> bool:
-    """
-    Whether `caller` provably calls `callee`: a call through `self`, `cls` or `this` of `callee`'s name, where
-    `callee` is a method of the same class in the same file, of a class whose direct base is the caller's (a base
-    method calling the subclass's override), or of the caller's class's direct base (a subclass method calling an
-    inherited one; if the subclass overrides it again, the call reaches that override, which `overrides` relates to
-    `callee` in turn). Names are not resolved to symbols, so nothing else proves it: a bare `normalize(value)` may
-    call an imported `normalize` or a parameter of that name, and `value.trim()` calls String.trim. Those pairs go to
-    the judge, which reads the code.
-    """
-    called = calls(caller)
-    related = (
-        callee.owner == caller.owner
-        and callee.path == caller.path
-        or inherits_from(callee, caller)
-        or inherits_from(caller, callee)
+    """Only adapter-established forwarding bodies may settle a pair; call names alone are not evidence."""
+    return bool(
+        caller.analysis and caller.analysis.forward_target == f"{callee.path}::{qualified(callee.owner, callee.name)}"
     )
-    return (
-        callee.owner is not None
-        and related
-        and any(f"{receiver}.{callee.name}" in called for receiver in ("self", "cls", "this"))
-    )
-
-
-def inherits_from(method: Function, base: Function) -> bool:
-    """
-    Whether `method`'s class has `base`'s class as a direct base. The extractor resolves bases only from the class's
-    own file (a class it defines, or a name its imports bind), so a grandparent, or a base the file cannot name, is
-    not a match.
-    """
-    module = module_of(base.path)
-    return base.owner is not None and any(
-        name == base.owner and (module == home or module.endswith(f"/{home}"))
-        for home, _, name in (reference.rpartition("::") for reference in method.bases)
-    )
-
-
-def overrides(method: Function, base: Function) -> bool:
-    """
-    Whether `method` overrides `base`: the same name, in a class whose direct base is `base`'s class (see
-    `inherits_from`), so an override of a grandparent's method, or of a base the file cannot name, stays with the
-    judge. An override is the class hierarchy's own variation point: its likeness to the base method is the contract,
-    not a copy.
-    """
-    return method.name == base.name and inherits_from(method, base)
 
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
     """Look-alikes that are never duplicates, by structure, by rule, or by a person's inline decision."""
     if IGNORE.search(a.code) or IGNORE.search(b.code):
         return "inline ignore"
-    if a.name.startswith("__") and b.name.startswith("__"):
-        return "constructor or dunder pattern"
+    # INVARIANT: language syntax is interpreted by the adapter, never guessed from source or file suffix here.
+    if (
+        a.analysis
+        and b.analysis
+        and a.analysis.language == b.analysis.language
+        and a.analysis.convention
+        and a.analysis.convention == b.analysis.convention
+    ):
+        return f"language convention: {a.analysis.convention}"
     if a.origin == b.origin and (delegates(a, b) or delegates(b, a)):
-        return "one calls the other"
-    if a.origin == b.origin and (overrides(a, b) or overrides(b, a)):
-        return "subclass override"
+        return "forwarding wrapper"
     for pattern in settings.patterns:
         if fnmatch.fnmatch(a.qualname, pattern.members) and fnmatch.fnmatch(b.qualname, pattern.members):
             return f"declared pattern: {pattern.reason}"

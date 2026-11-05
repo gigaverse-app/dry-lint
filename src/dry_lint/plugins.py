@@ -31,8 +31,10 @@ class Extractor(Protocol):
 
     def functions(self, path: str, source: str) -> list[Function]:
         """
-        Every function in the file, without `hash` (core asks for that only for the functions in a pair). Fill
-        `calls` when the language allows it; otherwise core reads calls from the code after its first line.
+        Every function in the file, without `hash` (core asks for that only for the functions in a pair).
+        Supply LanguageAnalysis and bases when supported; omitted analysis means unknown, never an exemption.
+        `calls` are syntactic names for inspection, not proof of delegation. Only forward_target on an otherwise
+        empty forwarding body can settle a call pair. Core owns policy; adapters interpret language syntax.
         """
         ...
 

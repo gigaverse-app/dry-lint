@@ -181,8 +181,8 @@ plugin slots: how functions are found, how they are compared, how a pair is judg
 1. **Detector** (local, no model, about 4.5 s on 10,000 functions). It finds the functions the diff touched. The
    **comparer** proposes each one's nearest look-alikes in other files; the built-in one is a TF-IDF fingerprint
    of what a function *does*: the names it calls, the attributes it touches, the words in its identifiers, its
-   loops, `try` blocks and `await`s. Rules settle known non-duplicates: dunders, one calling the other, an override
-   of its base class's method, declared patterns, inline `distinct-from`.
+   loops, `try` blocks and `await`s. One shared policy consumes language-adapter facts: Python special methods, recognized forwarding wrappers,
+   declared patterns and inline `distinct-from`. Inheritance or a call alone does not exclude repeated logic.
 2. **Judge** (separate and pluggable). [Jev](docs/judges.md) answers three typed questions per pair in about 0.3 s:
    - Is it one concept?
    - Do the two already behave differently?
