@@ -249,7 +249,7 @@ def test_direct_base_evidence_does_not_exclude_executable_overrides(path: str, s
     "        def entries(self, work):\n            return work.attempts()\n",
 ])  # fmt: skip
 def test_same_named_methods_without_a_resolved_base_relation_go_to_the_judge(source: str) -> None:
-    """INVARIANT: only a base the file itself names settles a pair; an unresolved or unrelated class does not."""
+    """INVARIANT: unresolved or unrelated bases never suppress an executable method pair."""
     base = methods("pkg/ops.py", BASE)["Operation.entries"]
     found = methods("pkg/bulk.py", source)
     assert found and all(why_skipped(method, base, Settings()) is None for method in found.values())
@@ -290,7 +290,7 @@ def test_inherited_calls_with_additional_policy_remain_candidates(subclass, a, b
     "class Bulk(Middle):\n    def entries(self, work):\n        return work.attempts()\n",  # the caller is a grandparent's
 ])  # fmt: skip
 def test_a_self_call_without_a_resolved_direct_base_goes_to_the_judge(source: str) -> None:
-    """INVARIANT: only a direct base the file itself names relates the two classes; anything else is judged."""
+    """INVARIANT: unresolved inherited dispatch remains a candidate for the judge."""
     caller = methods("pkg/ops.py", CALLER)["Operation.attempt"]
     [entries] = [f for f in methods("pkg/bulk.py", source).values() if f.name == "entries"]
     assert why_skipped(entries, caller, Settings()) is None
