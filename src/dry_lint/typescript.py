@@ -44,8 +44,26 @@ def text(node: Node) -> str:
     return node.text.decode("utf-8")
 
 
+def jsx_text_error(node: Node) -> bool:
+    """tree-sitter-typescript misreads bare ampersands in valid JSX text as incomplete entities."""
+    return (
+        node.is_error
+        and node.parent is not None
+        and node.parent.type == "jsx_element"
+        and re.fullmatch(r"&[^<>{}]*", text(node)) is not None
+    )
+
+
+def has_syntax_error(node: Node) -> bool:
+    if not node.has_error or jsx_text_error(node):
+        return False
+    if node.is_error:
+        return True
+    return node.is_missing or any(has_syntax_error(child) for child in node.children)
+
+
 def behavior(node: Node) -> Iterator[Node]:
-    if node.type in TYPE_ONLY or node.type == "comment":
+    if node.type in TYPE_ONLY or node.type == "comment" or jsx_text_error(node):
         return
     yield node
     for child in node.named_children:
@@ -245,7 +263,7 @@ def forwarding_method(node: Node, code: Node, body: Node) -> str | None:
 
 class TypeScriptExtractor:
     name = "typescript"
-    version = "2"
+    version = "3"
     files = ("*.ts", "*.tsx", "*.mts", "*.cts")
 
     def __init__(self, min_lines: int = 1) -> None:
@@ -259,7 +277,7 @@ class TypeScriptExtractor:
         return self.parsers["tsx" if path.endswith(".tsx") else "ts"]
 
     def validate_source(self, path: str, source: str) -> None:
-        if self.parser(path).parse(source.encode("utf-8")).root_node.has_error:
+        if has_syntax_error(self.parser(path).parse(source.encode("utf-8")).root_node):
             raise ValueError(f"Cannot completely scan {path}: TypeScript parse error")
 
     def functions(self, path: str, source: str) -> list[Function]:
@@ -273,7 +291,7 @@ class TypeScriptExtractor:
 
         def add(node: Node, code: Node, name: str, owner: str | None, inherits: tuple[str, ...]) -> None:
             body = node.child_by_field_name("body")
-            if node.has_error or body is None:
+            if has_syntax_error(node) or body is None:
                 return
             if body.type == "statement_block" and not any(child.type != "comment" for child in body.named_children):
                 return
@@ -354,7 +372,7 @@ class TypeScriptExtractor:
     def structure_hash(self, function: Function) -> str:
         parser = self.parser(function.path)
         root = parser.parse(function.code.encode("utf-8")).root_node
-        if root.has_error:
+        if has_syntax_error(root):
             root = parser.parse(("class __DryLint {\n" + function.code + "\n}").encode("utf-8")).root_node
         # Keep binding names: lexical shadowing and shorthand keys can make a rename change behavior.
         payload = json.dumps(canonical(root), ensure_ascii=False, separators=(",", ":"))

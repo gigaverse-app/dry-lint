@@ -269,6 +269,26 @@ def test_minimum_lines_and_invalid_functions_do_not_hide_valid_neighbors():
     assert [f.name for f in extractor.functions("source.ts", source)] == ["long"]
 
 
+@pytest.mark.parametrize("caption", ["Q&A Session", "Join & Participate", "Language & region", "A & B & C"])
+def test_jsx_text_ampersands_preserve_source_and_executable_functions(extractor, caption):
+    source = f"export function Panel() {{ return <section><p>{caption}</p>{{format(value)}}</section>; }}"
+    extractor.validate_source("panel.tsx", source)
+    [function] = extractor.functions("panel.tsx", source)
+    assert function.name == "Panel"
+    assert function.code == source.removeprefix("export ")
+    assert "format" in function.calls
+    [control] = extractor.functions("panel.tsx", source.replace(caption, "Plain caption"))
+    assert function.tokens == control.tokens
+
+
+@pytest.mark.parametrize("body", ["<p>A & B{broken(}</p>", "<p>A & B", "<p>A & B</p>; const x = ;"])
+def test_jsx_text_recovery_does_not_accept_broken_executable_code(extractor, body):
+    source = f"function broken() {{ return {body}; }}\nfunction valid() {{ return 1; }}"
+    with pytest.raises(ValueError, match="parse error"):
+        extractor.validate_source("panel.tsx", source)
+    assert [function.name for function in extractor.functions("panel.tsx", source)] == ["valid"]
+
+
 def test_sticky_source_links_point_to_exact_commit_and_encode_paths(extractor):
     function = extractor.functions("src/price [$id].tsx", "const Price = () => <span />;")[0]
     link = function_link(function, Run(repository="acme/web", head="a" * 40))

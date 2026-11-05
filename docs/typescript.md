@@ -70,6 +70,8 @@ Fingerprints retain calls, properties, object keys, identifier words, JSX tags, 
 Type annotations, comments, and arbitrary prose do not contribute similarity. A syntax error skips the affected
 implementation; valid siblings still participate. This is syntax-based analysis, not TypeScript type checking
 or import resolution. Framework boilerplate can still look similar; the judge and explicit patterns settle it.
+The adapter recovers the bundled grammar's bare-ampersand JSX text error (for example `Q&A`) without rewriting
+source or accepting malformed executable expressions. Such text does not contribute behavioral tokens.
 
 TypeScript uses the same rule engine as Python, with [language facts](plugins.md#language-analysis) supplied by
 its extractor. Explicit `override` modifiers, syntactically named bases, and conservatively recognized forwarding
