@@ -330,6 +330,8 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     baseline = None if args.init else Baseline.read(path, settings)
     detector, _ = detector_for(root, settings, args)
     candidates = baseline.candidates(detector) if baseline else detector.candidates(detector.functions)
+    # A whole-repository audit reads committed code; only matching committed review can settle its pairs.
+    candidates = reviewed(root, candidates, committed=True)
     report = judged(
         candidates, settings, root, args, run_info(root, None), 0, functions=len(detector.functions), scope="repository"
     )
