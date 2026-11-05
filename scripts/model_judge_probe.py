@@ -8,6 +8,7 @@ import argparse
 import json
 import random
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from pathlib import Path
 
 from dry_lint.judges.anthropic import AnthropicJudge
@@ -54,18 +55,19 @@ def main() -> None:
 
     with ThreadPoolExecutor(4) as pool:
         list(pool.map(ask, pairs))
-    print(
-        json.dumps(
-            {
-                "sample": len(pairs),
-                "completed": sum((args.out / f"{c.key}.json").exists() for c in pairs),
-                "tokens": judge.tokens,
-                "judge": judge.name,
-                "version": judge.version,
-            }
-        ),
-        flush=True,
-    )
+    completed = sum((args.out / f"{c.key}.json").exists() for c in pairs)
+    receipt = {
+        "sample": len(pairs),
+        "completed": completed,
+        "tokens_this_run": judge.tokens,
+        "judge": judge.name,
+        "version": judge.version,
+    }
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    (args.out / f"receipt-{stamp}.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+    print(json.dumps(receipt), flush=True)
+    if completed != len(pairs):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

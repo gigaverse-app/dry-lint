@@ -9,6 +9,7 @@ import hashlib
 import json
 from collections import defaultdict
 from collections.abc import Callable
+from typing import Literal
 
 from tree_sitter import Node
 
@@ -72,7 +73,7 @@ class PythonModelExtractor(PythonExtractor):
         except SyntaxError:
             return []
         bindings = python_bindings(tree)
-        kinds = {
+        kinds: dict[str, Literal["pydantic", "dataclass"]] = {
             "pydantic.BaseModel": "pydantic",
             "pydantic.v1.BaseModel": "pydantic",
             "pydantic.generics.GenericModel": "pydantic",
@@ -160,8 +161,7 @@ def zod_object(node: Node, namespaces: set[str]) -> Node | None:
     if target is None or target.type != "member_expression":
         return None
     receiver, prop = target.child_by_field_name("object"), target.child_by_field_name("property")
-    if receiver is None or prop is None:
-        return None
+    assert receiver is not None and prop is not None  # member_expression grammar
     if text(receiver) in namespaces and text(prop) in {"object", "strictObject", "looseObject"}:
         args = node.child_by_field_name("arguments")
         return next((a for a in args.named_children if a.type == "object"), None) if args else None
@@ -276,7 +276,7 @@ class ModelComparer:
     version = "1"
     similarity_reusable = False
 
-    def __init__(self, min_similarity: float = 0.7, min_fields: int = 3) -> None:
+    def __init__(self, min_similarity: float = 0.65, min_fields: int = 2) -> None:
         if not 0 <= min_similarity <= 1 or min_fields < 1:
             raise ValueError("model-shape needs 0 <= min_similarity <= 1 and min_fields >= 1")
         self.min_similarity, self.min_fields = min_similarity, min_fields
