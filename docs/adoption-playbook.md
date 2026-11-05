@@ -16,13 +16,14 @@ hooks and debt history. An existing baseline means resume adoption; never delete
 
 | Surface | Complete adoption means |
 | --- | --- |
-| Local feedback | `dry-lint` checks staged functions with the intended judge and baseline |
+| Local feedback | `dry-lint` checks staged functions and models with the intended judge and separate baselines |
 | Local credit | `dry-lint-trailers` runs at `prepare-commit-msg`, with both hooks installed |
 | PR feedback | One sticky, updated in place, including clean runs and incomplete judgments |
 | Merge enforcement | The judged `dry-lint` check is required by an active branch rule |
 | Forks | Detection without secrets; trusted `workflow_run` judgment supplies the required check |
 | Cumulative value | Default-branch pushes fold merged PR ledgers; the README presents prevention and backlog progress |
 | Existing debt | A committed, reviewed, pair-specific baseline that cannot expand |
+| Model ownership | Source-reviewed model debt and opt-in adopter policies for names, paths and contract boundaries |
 | Maintenance | Weekly/manual audit, retained reports, and one standing metadata ratchet PR |
 | Human workflow | Contributors know how to reuse, dismiss with a reason, test, and record cleanup |
 
@@ -72,6 +73,39 @@ Keep reports/verdict caches out of Git. For an existing baseline, use `sweep`, t
 An incomplete sweep or newly blocking pair must be resolved before updating. Never hand-edit states, hashes,
 counts or the detection contract to force a pass. Scope/judge changes need a reviewed migration. See
 [baseline semantics](sweeps.md).
+
+### Adopt model duplication alongside functions
+
+Model review is enabled by default in checks, the staged hook and the PR sticky. Keep it enabled during full
+adoption, including the trusted fork judge, and verify the Action's `models-checked` output on judged runs.
+Fork detection only uploads candidates, so do not require that output on the untrusted detection job.
+Use a published release containing model review (1.4.0 or newer) for hooks. An explicit opt-out remains available
+through `models: false`, `--no-models`, or repository `models.enabled`, `models.hook` and `models.sticky` settings.
+
+Function and model debt have different authorities. `sweep --init` initializes function debt from a complete
+judged sweep. Model debt requires a coding agent or human to read the declarations, nested types, constructors
+and consumers, then record exact-source `feedback accept` decisions before `model-baseline --init`. Keep
+`.dry-lint/models.json` and `.dry-lint-feedback.json` in Git; preserve them when resuming adoption. Configure
+`models.baseline` only after initialization. If no reviewed positive exists, leave it unset and retain review
+coverage; do not invent a positive merely to create a baseline. Unknown candidates remain unresolved.
+
+Follow [model adoption](model-adoption.md#establish-and-maintain-reviewed-debt) for the commands. Export the full
+inventory with `detect --all` and render it with `judge --judge none` before reviewing. Atomic model scores rank
+candidates; they cannot establish debt, dismiss overlap, or authorize consolidation. Matching fields are a
+lead to investigate. Trace validation, lifecycle, wire compatibility, exposure and ownership before deciding.
+
+Adopters may supply `models.policies` based on paths, qualified class names and explicit roles. Use `review`
+with a priority adjustment for a boundary that needs context; use `discard` only when the repo guarantees that
+every matching pair must stay separate. Document the reason and test a matching boundary plus a same-layer
+duplicate that must remain visible. Generic request/response suffixes are not universal exemptions.
+
+For example, a repo may keep LLM **prompt schema families** private to their prompt/call file and separate from
+**application models**. The family includes the root and all nested structured types, even when only the root
+ends in `PromptSchema`. Python `reachable_from` selectors express that family; imported application types
+remain application types. Opt into `schema_policy` and the `dry-lint-schema-policy` hook separately when the
+repo requires root naming and isolation. Another repo may preserve published Developer API contracts while
+Product contracts evolve with its own frontends. Verify the actual compatibility owner, not just the directory.
+See [adopter policies](model-adoption.md#adopter-policies) for concrete configuration and static-analysis limits.
 
 ## 3. Install both local hooks
 
@@ -195,6 +229,18 @@ Commit that metadata with the refactor, or dispatch the audit after the cleanup 
 must leave the metadata unchanged. A dismissed false positive belongs in code/configuration with its reason.
 
 ## 7. Verify the actual installation
+
+For model adopters, the scheduled audit also exports the full model inventory for source review and runs
+`model-baseline --update` when a reviewed model baseline exists. Add only `.dry-lint/models.json` to the
+ratchet's metadata paths. Automated audits must never accept models or generate dismissals. Retain the
+model report as an artifact, including unresolved lower-ranked candidates. `sweep` audits functions only;
+its successful exit does not prove models were reviewed. Model cleanup uses source removal or an exact
+reviewed dismissal, never an atomic negative score. Keep function README totals and model debt counts
+separate, and rerun both inventories after consolidation to discover newly exposed opportunities.
+
+For each model adoption, exercise unchanged accepted debt, a new or changed copy, retirement after removal,
+the opt-out, and both sides of each ownership policy. Confirm model findings survive fork detect/judge and
+appear in the combined sticky. Test schema naming/isolation separately if that optional policy is enabled.
 
 - Validate hook configuration and install both stages in a disposable checkout. Exercise staged detection and
   trailer handling; a no-source-change skip alone does not prove semantic judging.
