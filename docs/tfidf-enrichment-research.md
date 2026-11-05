@@ -1,0 +1,210 @@
+# Research plan: teach TF-IDF about related implementations
+
+Status: proposed experiments only. No production retrieval, judging, or budget changes.
+
+## Objective and budget
+
+Find more actionable duplicates whose implementations use different vocabulary or syntax, by enriching sparse
+TF-IDF evidence with documentation, contextual concept relationships, and reviewed consolidation examples.
+Keep the existing estimated **$0.04 per-PR judge budget contract**. Experiment spending is unrestricted by the
+user, but a production proposal must demonstrate useful findings within that same operating budget. This is
+not a proposal for a hard provider-metered ceiling. Record measured provider usage separately from estimates.
+
+Start with sparse enrichment, not another embedding replacement. Keep the existing detector model-free and
+stateless. Any learned artifacts would be built offline, versioned, and consumed deterministically by an
+experimental comparer. Slow model work must stay outside ordinary detection, behind an appropriate cache.
+Adopters supply their own credentials; private repository evidence must not become a shared training corpus
+without authorization.
+
+## Evidence that motivates this plan
+
+| Existing evidence | What it establishes | What it does not establish |
+| --- | --- | --- |
+| [Embedding benchmark](benchmark.md#detector-tf-idf-and-embeddings): TF-IDF ranks 12/13 seed pairs first; jina and Qodo each rank 10/13. TF-IDF indexes 7,195 functions in 4.4 seconds on CPU. | The sparse baseline is strong and inexpensive on that task. | Embeddings are universally worse. Their AUC was 0.85-0.86 versus 0.66, but the judged negatives were TF-IDF mistakes, favoring embeddings on that measure. |
+| [Semantic signal trial](semantic-signal-trial.md): unweighted API, argument-binding, and field-flow tokens recover one fresh AI positive but lose two old backend positives when combined. | Adding evidence to one vector can dilute similarity and change which neighbors get scarce slots. | All weighted or documentation-based enrichment will fail. These were particular static features, added without extra weighting. |
+| [Channel trial](channel-trial.md): additional channels recover real pairs; combined novel samples contain about 14-15% positives versus 38% in the baseline sample. | More candidates can consume judge budget less productively. | Repository-wide precision or recall. Samples were small, deliberately stratified, and assistant-labeled. |
+| [Earlier research](research-plan.md#representations-we-can-reuse): hand-written synonym groups did not improve results; comments and docstrings were listed as untried. | Global synonym replacement is a weak starting point. | Contextual associations learned from descriptions or refactors have been tested. |
+| Snapshot pair from the pytest-selective case study: frozen-corpus score 0.275425; full pinned-repository score 0.309721; both below the 0.5 floor. | Corpus composition changes weights, but neither run retrieved this pair. | A full sweep rescued it. That earlier explanation was unsupported; [PR #99](https://github.com/gigaverse-app/dry-lint/pull/99) corrects it. |
+
+These results justify experiments, not a predicted improvement. Broader retrieval must earn its share of the
+fixed judge budget. Retaining baseline candidates in a union does not guarantee they remain funded.
+
+## What relationships should mean
+
+Learn a shared operation or responsibility while retaining differences that matter to consolidation.
+
+| Example | Useful common evidence | Differences that must remain visible |
+| --- | --- | --- |
+| `for`, `while`, `map`, list comprehension | Iteration; sometimes transform-and-collect or filtering | Laziness, early exits, termination, ordering, effects, exception timing |
+| Semaphore, mutex, event | Coordination between concurrent tasks | Capacity limiting, mutual exclusion, signaling; these are not interchangeable contracts |
+| `copyfile`, `copy2` | Copy a file | Metadata preservation, which mattered to the pytest-selective cleanup |
+| Two functions consolidated into a helper | A shared operation that had multiple implementation owners | Caller-specific policy, input validation, lifecycle, and the extracted region's boundaries |
+| Two thin callers after extraction | Use of the same operation | They now share its implementation and should usually cease to be duplicate findings |
+
+A relationship can mean exact alias, alternative implementation under stated conditions, same operation with
+different guarantees, or merely the same topic. Do not flatten these into one synonym list or assume that
+relatedness is transitive. A mutex and an event sharing a concurrency label does not establish duplicated logic.
+
+## Sources of enrichment
+
+1. **Docstrings and local comments.** Associate text with its owning function or statement region. Strip
+   boilerplate and repeated license/tool text. Preserve useful contracts such as “preserves timestamps” or
+   “must remain independent.” A bag of words can lose negation, so such text is evidence, not an automatic rule.
+2. **Markdown documentation.** Resolve explicit symbol references, source links, and examples to their code.
+   Start with these high-confidence associations. Module-level or nearby documentation has weaker ownership;
+   attaching the same README to every function would create artificial similarity.
+3. **API documentation and import resolution.** Give known APIs contextual operation labels, retaining
+   qualified identity and guarantees. A name such as `Event` requires resolution before assuming concurrency.
+4. **Reviewed consolidations.** Align pre-change duplicated regions with the extracted shared helper. Record
+   which behavior was intentionally preserved or corrected. A merge alone does not prove equivalence, and a
+   helper extraction does not make entire caller functions equivalent.
+5. **Reviewed non-duplicates and post-consolidation code.** Include independent policies, tests that must remain
+   separate, adapters, and already-shared implementations. These teach when topical similarity is unhelpful.
+6. **Safe transformed examples.** Generate restricted, behavior-preserving alternatives, such as a simple
+   append loop and comprehension. Preserve scope and effect assumptions; arbitrary loop rewrites are unsafe.
+7. **Repository history.** Identifier renames and description changes can supply vocabulary correspondences.
+   Co-changing files are weaker evidence: coupling or adjacent functionality need not mean duplication.
+
+Each association needs source revision, symbol/region, relationship type, confidence, and derivation version.
+Missing or unresolved documentation should leave the baseline usable. Generated summaries or concept labels
+are an optional later experiment with cached outputs, explicit generation cost, and code-grounded review.
+
+## Sparse representations to compare
+
+### A. Weighted documentation counts
+
+Add selected docstring/comment terms to the existing sparse fingerprint with a small, bounded contribution.
+Compare ordinary shared word tokens with a separate documentation field. Shared tokens allow a term in one
+function's code to match another's description; field separation makes weighting easier but needs an explicit
+cross-field matching rule. Limit contributions by unique concepts or capped counts so verbose documentation
+does not overwhelm code. Do not duplicate text to simulate weight under sublinear term frequency.
+
+This directly tests the user's proposal to enrich TF-IDF counts. Compare against an unweighted additive control
+to distinguish useful information from the effect of weighting. Freeze a small parameter grid on development
+data before evaluating held-out cases.
+
+### B. Contextual concept tokens
+
+Add sparse tokens such as `op:transform_collect`, `op:file_copy`, or `contract:preserve_metadata` when evidence
+supports them. Keep original syntax and API tokens. Derive labels first from conservative AST patterns and
+explicit documentation associations, then test learned mappings separately.
+
+A loop should not acquire `op:transform_collect` just because it iterates. Similarly, `topic:concurrency` is
+weaker evidence than a shared admission policy. Cap generic concepts and count repeated mentions once in an
+ablation. Inspect whether the existing document-frequency filter removes broad concept tokens; do not exempt
+all concepts automatically, since common concepts can flood neighbor slots.
+
+### C. Learned sparse expansion
+
+Build a contextual association table offline from code-description pairs and reviewed examples. For a token
+or small feature pattern, it proposes a few related concept terms with weights and provenance. Apply only a
+bounded one-hop expansion; avoid uncontrolled chains such as “event -> synchronization -> every lock.”
+
+Contrast raw co-occurrence with associations discounted by commonness and checked against non-duplicates.
+Small repositories may not contain enough independent examples to learn reliable links. Keep support counts,
+hold out refactor families, and compare repository-local mappings with reviewed reusable mappings. This can
+learn vocabulary relationships while retrieval remains a sparse weighted lookup and cosine calculation.
+
+### D. Soft token matching
+
+As an alternative to inserting extra counts, score selected related token pairs as partial matches using the
+same bounded association table. This avoids physically repeating terms, but it is a different similarity
+function and must be evaluated separately. Candidate generation must also use the association edges: changing
+only the scorer will not surface pairs that never share an inverted-index posting. Bound expansion and measure
+runtime. If using a normalized soft-cosine formulation, ensure the token-similarity matrix has the mathematical
+properties it requires; arbitrary association weights are not automatically a valid cosine metric.
+
+### E. Separate fields or channels
+
+Compare single-vector enrichment with independently normalized code, documentation, and concept scores. A
+weighted field combination bounds how much added text can change the code score. Another variant retrieves a
+small enrichment candidate pool alongside baseline TF-IDF and merges their rankings.
+
+Neither weighted fields nor reserved retrieval slots guarantee preservation of baseline findings. Track
+displacement both before and after budget selection. Earlier channel results make this a control and an
+engineering choice to measure, not the assumed winner.
+
+### F. Learn which candidates deserve judging
+
+Use a small offline-trained ranker over sparse similarities and interpretable features: shared operation,
+contract differences, documentation confidence, overlap with an extracted region, existing delegation to a
+shared helper, and estimated judge cost. Compare with simple fixed weights first. Its target is actionable
+duplication, not general semantic relatedness. A difference may signal valuable drift rather than a negative.
+
+Keep this experiment separate from representation experiments so gains can be attributed. Do not treat prior
+judge scores or identifiers of labeled examples as deployable features. A cost-aware ranking must not merely
+favor trivial short functions; report which valuable expensive findings it displaces.
+
+### G. Embeddings as a secondary research tool
+
+Retain pretrained code/text embeddings, fine-tuning on reviewed pairs, and contrastive transformed examples as
+comparators or offline sources of candidate concept links. They are not the first production proposal. This
+tests whether their knowledge can yield a small inspectable sparse mapping without their per-run indexing
+cost. Any distilled mapping still requires validation; model-generated associations are not ground truth.
+
+Relevant primary research: [CodeRetriever](https://arxiv.org/abs/2201.10866) uses code documentation and comments
+to learn code-text and code-code representations for search. [ContraCode](https://parasj.github.io/contracode/)
+uses transformed programs to learn related representations. These support the learning mechanisms; neither
+establishes better budgeted duplicate detection for dry-lint or validates sparse distillation.
+
+## Experiment order and controls
+
+| Stage | Experiment | Main question |
+| --- | --- | --- |
+| 0 | Reproduce baseline on pinned full repositories and inventory documentation coverage | Which misses arise from extraction, floor, ranking, suppression, budget, or judgment? |
+| 1 | Docstrings/comments: unweighted control, capped weighted counts, separate fields | Does local intent text help without diluting known positives? |
+| 2 | Add explicitly linked Markdown passages; compare shuffled symbol-text associations | Does correct documentation ownership add information beyond generic vocabulary? |
+| 3 | Conservative operation tokens with contract-specific counterexamples | Can alternative syntax share useful sparse evidence without merging unrelated patterns? |
+| 4 | Learn bounded contextual expansion from reviewed history; compare hand-written and co-occurrence controls | Does learning improve on the failed global synonym approach? |
+| 5 | Compare expanded counts, soft matching, and separate retrieval channels | Which use of the same evidence yields the best funded candidate set? |
+| 6 | Fixed-weight versus learned and cost-aware ranking | Can additional recall reach the judge productively within $0.04? |
+| 7 | Only if justified, embeddings or generated summaries as offline teachers | Does learned semantic knowledge add value beyond cheap sparse sources? |
+
+Run one source or mechanism at a time before combinations. Include documentation-removal and stale/misleading
+documentation controls, generic synchronization examples, independent policies, and post-refactor adapters.
+Stop advancing a variant when its new evidence mostly consumes slots with topical matches. Preserve negative
+results and useful code rather than tuning indefinitely against the same examples.
+
+## Evaluation and adoption gate
+
+- Fit IDF on the full pinned repository, not only the gold functions. Freeze the split before learning mappings
+  or choosing weights. Keep all variants of a refactor in one split; use repository/time holdouts as well.
+- PR #90 and #91 goldens and earlier regression panels are development/regression evidence after this work has
+  inspected them. Add independently reviewed held-out pairs; do not call repeatedly tuned goldens fresh proof.
+  Prevent future refactor text, case studies describing a gold answer, or later commits from leaking into a
+  historical replay. Public pretrained models may have unknown prior exposure, which limits independence.
+- Sample novel proposals blind to variant and score; include a comparable baseline sample. Record ambiguous
+  labels and adjudication. Unknown pairs are not automatically false positives, and assistant agreement is not
+  an independent human panel. Keep task-run evidence outside the code PR and link concise findings.
+- Measure known-positive retrieval, candidate rank, floor failures, displacement, and actionable yield per
+  candidate source. Small incomplete gold sets measure known-pair retention, not exhaustive repository recall.
+- Measure the full path: proposed -> filtered -> selected within budget -> judged -> reported. Report true and
+  false findings, missed previously reported positives, judge calls, estimated and measured spend, cold/warm
+  indexing time, memory, and documentation coverage. Distinguish candidate yield from final report precision.
+- Keep judge version, prompt, reporting thresholds, cache policy, and estimated $0.04 contract fixed for the
+  comparison. Replay candidate admission first; use live judging for new pairs with repeated runs where verdict
+  variability could explain the gain. Account for actual cache behavior in PR-sequence replays.
+- Pre-register the final held-out comparison after development. Require more actionable true reports with no
+  increase in false reports or loss of established protected findings on that comparison. Report sample sizes
+  and uncertainty; a tiny favorable result warrants more evidence, not a general superiority claim. A tradeoff
+  that fails those conditions is a finding to discuss, not an automatic production change.
+
+Measure offline artifact-building or model costs separately and amortized per PR. A free-looking judge run
+must not hide an expensive rebuild. Determine an acceptable indexing-time ceiling from baseline CI use before
+the final trial, rather than choosing it after seeing the winner.
+
+## Integration if an experiment succeeds
+
+Implement comparison changes through the existing plugin boundary. Version the experimental comparer and any
+artifact by source revisions, extraction/association rules, and corpus policy. Documentation edits must update
+affected retrieval inputs even if code is unchanged. Check whether the current change selector notices those
+edits, and keep that proposed behavior distinct from scoring changes.
+
+Never reuse verdicts under the production comparer identity for changed experimental scores. Retrieval evidence
+and human decisions have different owners: explicit distinct-from decisions remain in code/configuration;
+the verdict store is not a repository of human policy. If artifact persistence changes a core file format,
+review the format contract and bump its schema. Prototype without changing production stores first.
+
+Deliver an experiment summary with reproducible commands, pinned revisions, the selected configuration,
+positive and negative examples, budgeted outcomes, and limitations. Only then propose a runtime change. A
+well-supported decision to retain current TF-IDF is also a valid research outcome.
