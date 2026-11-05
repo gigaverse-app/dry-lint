@@ -257,11 +257,14 @@ including the callers that now use it. Pair counts track debt history; they do
 not count independent refactorings, bugs fixed or performance gains.
 
 - For a bug claim, keep a concrete before-failing/after-passing reproduction.
+  Replay the new behavior tests against the pre-cleanup revision, separating existing
+  bugs fixed from guarantees preserved and regressions caught during consolidation.
 - For a runtime claim, measure the same workload on both revisions. Otherwise
   say that no speedup has been established.
 - For a maintenance claim, show how many implementations of the rule became one
   and which caller-specific semantics remain explicit. Report added indirection
   or allocations when relevant; fewer duplicates need not mean fewer lines.
+  Compare resource/index ownership, failure behavior and exclusions, not just return values.
 - Freeze useful positive pairs and their repaired delegation as regression
   examples. Keep source revisions and label provenance. Mark context-dependent
   judgments as uncertain instead of treating every dismissal as a gold negative.
@@ -272,6 +275,9 @@ The [pytest-obligation cleanup case study](case-studies/pytest-obligation-cleanu
 shows a 32-to-zero backlog with simpler ownership, roughly unchanged source size,
 no demonstrated functional bug fix and no measured runtime speedup. Its public
 gold pairs preserve both the useful detections and the stop-reporting controls.
+
+The [pytest-selective case study](case-studies/pytest-selective.md) shows four reproduced bugs and why two snapshot
+policies still belong inside one shared implementation.
 
 ## 7. Verify the actual installation
 

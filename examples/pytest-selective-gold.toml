@@ -1,0 +1,479 @@
+# Public, source-reviewed regression panel from pytest-selective PR #77.
+# Curated by the implementation agent and checked against real before/after tests.
+# Not three-vendor labels, a random sample, or an independent judge holdout.
+# No model scores are promoted to expected labels. See docs/case-studies/pytest-selective.md.
+
+[provenance]
+repository = "gigaverse-app/pytest-selective"
+pull_request = "https://github.com/gigaverse-app/pytest-selective/pull/77"
+base = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+head = "4ab22f35385bb0e3225cf9d40877b559d45c23dc"
+license = "Apache-2.0"
+label_source = "implementation-agent source review and executable consumer regressions"
+purpose = "before/after concept and adapter regressions; not population calibration"
+
+[[pair]]
+name = "git-audit-repository"
+phase = "before"
+label = "duplicate"
+drifted = true
+rationale = "Both execute repository-scoped Git. The audit copy lacks hook-location isolation; preserve text/bytes and error contracts while sharing process execution."
+revision = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+
+[pair.new]
+id = "before/src/pytest_selective/impact_audit_plugin.py::_git"
+source_id = "src/pytest_selective/impact_audit_plugin.py::_git"
+code = '''
+def _git(directory: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(directory), *args], check=True, capture_output=True, text=True, encoding="utf-8"
+    ).stdout
+'''
+
+
+[pair.existing]
+id = "before/src/pytest_selective/impact_graph.py::git"
+source_id = "src/pytest_selective/impact_graph.py::git"
+code = '''
+def git(repo: Path, *args: str, data: bytes | None = None) -> bytes:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        input=data,
+        capture_output=True,
+        check=True,
+        env=git_environment(),
+    ).stdout
+'''
+
+[[pair]]
+name = "git-expansion-execution"
+phase = "before"
+label = "duplicate"
+drifted = true
+rationale = "One Git process primitive with text, binary input and private-index adapters. Keep the standalone entry point and actionable error translation."
+revision = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+
+[pair.new]
+id = "before/src/pytest_selective/pytest_expansion.py::git"
+source_id = "src/pytest_selective/pytest_expansion.py::git"
+code = '''
+def git(root: Path, *args: str, index: Path | None = None) -> str:
+    environment = git_environment()
+    if index is not None:
+        environment["GIT_INDEX_FILE"] = str(index)
+    # encoding is explicit because `text=True` alone decodes with the locale default, which is
+    # cp1252 on Windows and raises UnicodeDecodeError on any UTF-8 source byte it has no mapping
+    # for (0x8d among them).
+    result = subprocess.run(
+        ["git", "-C", str(root), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=environment,
+    )
+    if result.returncode:
+        raise ValueError(f"Git history unavailable; fetch the requested base/head and retry: {result.stderr.strip()}")
+    return result.stdout
+'''
+
+
+[pair.existing]
+id = "before/src/pytest_selective/impact_graph.py::git"
+source_id = "src/pytest_selective/impact_graph.py::git"
+code = '''
+def git(repo: Path, *args: str, data: bytes | None = None) -> bytes:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        input=data,
+        capture_output=True,
+        check=True,
+        env=git_environment(),
+    ).stdout
+'''
+
+[[pair]]
+name = "git-environment-policy"
+phase = "before"
+label = "duplicate"
+drifted = true
+rationale = "One repository-isolation policy with drifted variable sets. The expansion snippet uses GIT_LOCATION_ENV from its source module."
+revision = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+
+[pair.new]
+id = "before/src/pytest_selective/pytest_expansion.py::git_environment"
+source_id = "src/pytest_selective/pytest_expansion.py::git_environment"
+code = '''
+def git_environment() -> dict[str, str]:
+    return {name: value for name, value in os.environ.items() if name not in GIT_LOCATION_ENV}
+'''
+
+
+[pair.existing]
+id = "before/src/pytest_selective/impact_graph.py::git_environment"
+source_id = "src/pytest_selective/impact_graph.py::git_environment"
+code = '''
+def git_environment() -> dict[str, str]:
+    """Explicit repository paths win over location variables inherited from hooks."""
+    locations = {
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_INDEX_FILE",
+        "GIT_COMMON_DIR",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_PREFIX",
+        "GIT_SHALLOW_FILE",
+        "GIT_GRAFT_FILE",
+    }
+    return {name: value for name, value in os.environ.items() if name not in locations}
+'''
+
+[[pair]]
+name = "test-discovery-cache"
+phase = "before"
+label = "duplicate"
+drifted = true
+rationale = "One test inventory; hygiene omits the cache exclusion. Preserve the sorted-list versus set return contracts."
+revision = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+
+[pair.new]
+id = "before/src/pytest_selective/hygiene.py::discover_test_modules"
+source_id = "src/pytest_selective/hygiene.py::discover_test_modules"
+code = '''
+def discover_test_modules(test_roots: list[Path]) -> list[Path]:
+    discovered: set[Path] = set()
+    for root in test_roots:
+        if root.is_file():
+            if is_test_module(root):
+                discovered.add(root)
+            continue
+        for pattern in TEST_FILE_PATTERNS:
+            discovered.update(root.rglob(pattern))
+    return sorted(discovered)
+'''
+
+
+[pair.existing]
+id = "before/src/pytest_selective/test_inventory.py::discover_test_files"
+source_id = "src/pytest_selective/test_inventory.py::discover_test_files"
+code = '''
+def discover_test_files(
+    test_roots: list[Path],
+    patterns: tuple[str, ...] = DEFAULT_TEST_FILE_PATTERNS,
+) -> set[Path]:
+    """
+    Discover configured test modules below directories or explicit files.
+    """
+    discovered: set[Path] = set()
+    for root in test_roots:
+        if root.is_file():
+            if is_test_file(root, patterns):
+                discovered.add(root)
+            continue
+        for pattern in patterns:
+            discovered.update(path for path in root.rglob(pattern) if "__pycache__" not in path.parts)
+    return discovered
+'''
+
+[[pair]]
+name = "root-containment"
+phase = "before"
+label = "duplicate"
+drifted = true
+rationale = "One repository-path containment rule; the checker copy loses the dot-root case and can return an empty affected scope."
+revision = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+
+[pair.new]
+id = "before/src/pytest_selective/typecheck_scope.py::_under"
+source_id = "src/pytest_selective/typecheck_scope.py::_under"
+code = '''
+def _under(path: str, root: str) -> bool:
+    root = root.rstrip("/")
+    return path == root or path.startswith(root + "/")
+'''
+
+
+[pair.existing]
+id = "before/src/pytest_selective/impact_graph.py::within"
+source_id = "src/pytest_selective/impact_graph.py::within"
+code = '''
+def within(path: str, root: str) -> bool:
+    return root == "." or path == root or path.startswith(root.rstrip("/") + "/")
+'''
+
+[[pair]]
+name = "python-module-name"
+phase = "before"
+label = "duplicate"
+drifted = false
+rationale = "Share relative Python-path to dotted-name conversion. Keep source-root selection and non-Python filtering in their callers."
+revision = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+
+[pair.new]
+id = "before/src/pytest_selective/impact_first_party.py::_module_name"
+source_id = "src/pytest_selective/impact_first_party.py::_module_name"
+code = '''
+def _module_name(path: str, spec: FirstPartyPackage) -> str:
+    parts = list(PurePosixPath(path).relative_to(spec.source_root).with_suffix("").parts)
+    if parts and parts[-1] == "__init__":
+        parts.pop()
+    return ".".join(parts)
+'''
+
+
+[pair.existing]
+id = "before/src/pytest_selective/pytest_expansion.py::SourceTree.module_name"
+source_id = "src/pytest_selective/pytest_expansion.py::SourceTree.module_name"
+code = '''
+def module_name(self, path: str) -> str | None:
+        """Invert `module_path`: `pkg/__init__.py` is `pkg`, so `from pkg import Name` maps too."""
+        source = PurePosixPath(path)
+        if source.suffix != ".py":
+            return None
+        parts = [*self.package(path), source.stem]
+        if parts[-1] == "__init__":
+            parts.pop()
+        return ".".join(parts) or None
+'''
+
+[[pair]]
+name = "private-index-lifecycle"
+phase = "before"
+label = "duplicate"
+drifted = true
+rationale = "Share private-index lifetime and staging, with explicit scope/cache policies. Do not replace the planner rebuild with a cache copy: it must see index-hidden edits. Preserve copied index timestamps."
+revision = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+
+[pair.new]
+id = "before/src/pytest_selective/pytest_expansion.py::worktree_snapshot"
+source_id = "src/pytest_selective/pytest_expansion.py::worktree_snapshot"
+code = '''
+def worktree_snapshot(root: Path) -> str:
+    """
+    Record the working tree's Python sources as a tree object without touching the real index.
+
+    Rename detection needs both sides in Git, but the local check also sees unstaged and untracked
+    edits. Staging into a copy of the index keeps its stat cache, so only changed files are hashed.
+    """
+    real_index = root / git(root, "rev-parse", "--git-path", "index").strip()
+    with tempfile.TemporaryDirectory() as scratch:
+        index = Path(scratch) / "index"
+        if real_index.is_file():
+            shutil.copyfile(real_index, index)
+        git(root, "add", "--all", "--", PYTHON_SOURCES, index=index)
+        return git(root, "write-tree", index=index).strip()
+'''
+
+
+[pair.existing]
+id = "before/src/pytest_selective/working_tree.py::snapshot_working_tree"
+source_id = "src/pytest_selective/working_tree.py::snapshot_working_tree"
+code = '''
+def snapshot_working_tree(repo: Path) -> str:
+    """Include tracked edits/deletions and nonignored untracked files.
+
+    A private index owns all staging. Git writes unreachable tree/blob objects,
+    but no commit, ref or working file; normal Git garbage collection owns those
+    objects afterwards. The planner can therefore reuse its immutable-tree graph
+    and both-side dependency analysis for local edits, including removed imports.
+    """
+    root = Path(git(repo, "rev-parse", "--show-toplevel").decode().strip())
+    if repo.resolve() != root.resolve():
+        raise ValueError("--repo must name the Git repository root")
+    # Reconstruct the actual index rather than HEAD: force-added ignored files
+    # are tracked local inputs too. The stage listing also supports split indexes.
+    staged = git(root, "ls-files", "--stage", "-z")
+    with tempfile.TemporaryDirectory(prefix="pytest-selective-index-") as directory:
+        environment = {**git_environment(), "GIT_INDEX_FILE": str(Path(directory) / "index")}
+
+        def indexed(*args: str, data: bytes | None = None) -> str:
+            return (
+                subprocess.run(
+                    ["git", "-C", str(root), *args],
+                    env=environment,
+                    input=data,
+                    capture_output=True,
+                    check=True,
+                )
+                .stdout.decode()
+                .strip()
+            )
+
+        indexed("read-tree", "--empty")
+        indexed("update-index", "-z", "--index-info", data=staged)
+        indexed("add", "--all", "--", ".")
+        return indexed("write-tree")
+'''
+
+[[pair]]
+name = "unicode-suboperation"
+phase = "before"
+label = "duplicate"
+drifted = false
+rationale = "The shared sub-operation is NFKC normalization followed by casefold, even though the containing resolver has additional responsibilities."
+revision = "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+
+[pair.new]
+id = "before/src/pytest_selective/impact_name_scope.py::_casefold"
+source_id = "src/pytest_selective/impact_name_scope.py::_casefold"
+code = '''
+def _casefold(name: str) -> str:
+    return unicodedata.normalize("NFKC", name).casefold()
+'''
+
+
+[pair.existing]
+id = "before/src/pytest_selective/impact_graph.py::ModuleIndex.resolve"
+source_id = "src/pytest_selective/impact_graph.py::ModuleIndex.resolve"
+code = '''
+def resolve(self, candidate: str) -> set[str]:
+        # Union ambiguous roots/self.modules conservatively. Ancestor initializers
+        # execute for every submodule import, even when never named explicitly.
+        normalized = unicodedata.normalize("NFKC", candidate).casefold()
+        if any(normalized == link or normalized.startswith(link + ".") for link in self.linked_modules):
+            raise ValueError(f"import through unsupported Git symlink: {candidate}")
+        result: set[str] = set()
+        parts = unicodedata.normalize("NFKC", candidate).casefold().split(".")
+        for end in range(1, len(parts) + 1):
+            prefix = ".".join(parts[:end])
+            result.update(self.modules.get(prefix, ()))
+        return result
+'''
+
+[[pair]]
+name = "sorted-inventory-adapter"
+phase = "after"
+label = "separate"
+drifted = false
+rationale = "The wrapper delegates discovery and adapts set to sorted list. There is no second inventory implementation to extract."
+revision = "4ab22f35385bb0e3225cf9d40877b559d45c23dc"
+
+[pair.new]
+id = "after/src/pytest_selective/hygiene.py::discover_test_modules"
+source_id = "src/pytest_selective/hygiene.py::discover_test_modules"
+code = '''
+def discover_test_modules(test_roots: list[Path]) -> list[Path]:
+    """Keep the sorted-list API while sharing the canonical test inventory."""
+    return sorted(discover_test_files(test_roots))
+'''
+
+
+[pair.existing]
+id = "after/src/pytest_selective/test_inventory.py::discover_test_files"
+source_id = "src/pytest_selective/test_inventory.py::discover_test_files"
+code = '''
+def discover_test_files(
+    test_roots: list[Path],
+    patterns: tuple[str, ...] = DEFAULT_TEST_FILE_PATTERNS,
+) -> set[Path]:
+    """
+    Discover configured test modules below directories or explicit files.
+    """
+    discovered: set[Path] = set()
+    for root in test_roots:
+        if root.is_file():
+            if is_test_file(root, patterns):
+                discovered.add(root)
+            continue
+        for pattern in patterns:
+            discovered.update(path for path in root.rglob(pattern) if "__pycache__" not in path.parts)
+    return discovered
+'''
+
+[[pair]]
+name = "git-error-adapter"
+phase = "after"
+label = "separate"
+drifted = false
+rationale = "The standalone error adapter delegates execution; its ValueError diagnostic belongs to that caller."
+revision = "4ab22f35385bb0e3225cf9d40877b559d45c23dc"
+
+[pair.new]
+id = "after/src/pytest_selective/pytest_expansion.py::git"
+source_id = "src/pytest_selective/pytest_expansion.py::git"
+code = '''
+def git(root: Path, *args: str, index: Path | None = None) -> str:
+    """Translate operational Git failures into the standalone CLI's actionable diagnostic."""
+    try:
+        return git_text(root, *args, index=index)
+    except subprocess.CalledProcessError as error:
+        detail = error.stderr.decode("utf-8").strip()
+        raise ValueError(f"Git history unavailable; fetch the requested base/head and retry: {detail}") from error
+'''
+
+
+[pair.existing]
+id = "after/src/pytest_selective/git_operations.py::git_text"
+source_id = "src/pytest_selective/git_operations.py::git_text"
+code = '''
+def git_text(repo: Path, *args: str, index: Path | None = None) -> str:
+    """UTF-8 text with universal newlines, independent of the Windows locale."""
+    return git(repo, *args, index=index).decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+'''
+
+[[pair]]
+name = "git-text-adapter"
+phase = "after"
+label = "separate"
+drifted = false
+rationale = "UTF-8 and universal-newline adaptation calls the binary executor. Shared execution already has one owner."
+revision = "4ab22f35385bb0e3225cf9d40877b559d45c23dc"
+
+[pair.new]
+id = "after/src/pytest_selective/git_operations.py::git_text"
+source_id = "src/pytest_selective/git_operations.py::git_text"
+code = '''
+def git_text(repo: Path, *args: str, index: Path | None = None) -> str:
+    """UTF-8 text with universal newlines, independent of the Windows locale."""
+    return git(repo, *args, index=index).decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+'''
+
+
+[pair.existing]
+id = "after/src/pytest_selective/git_operations.py::git"
+source_id = "src/pytest_selective/git_operations.py::git"
+code = '''
+def git(repo: Path, *args: str, data: bytes | None = None, index: Path | None = None) -> bytes:
+    """Run against the requested repository, preserving binary blobs and failure details."""
+    environment = git_environment()
+    if index is not None:
+        environment["GIT_INDEX_FILE"] = str(index)
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        input=data,
+        capture_output=True,
+        check=True,
+        env=environment,
+    ).stdout
+'''
+
+[[pair]]
+name = "module-root-adapter"
+phase = "after"
+label = "separate"
+drifted = false
+rationale = "The caller selects a source root and rejects non-Python input, then delegates dotted-name conversion. Preserve this composition."
+revision = "4ab22f35385bb0e3225cf9d40877b559d45c23dc"
+
+[pair.new]
+id = "after/src/pytest_selective/pytest_expansion.py::SourceTree.module_name"
+source_id = "src/pytest_selective/pytest_expansion.py::SourceTree.module_name"
+code = '''
+def module_name(self, path: str) -> str | None:
+        """Invert `module_path`: `pkg/__init__.py` is `pkg`, so `from pkg import Name` maps too."""
+        source = PurePosixPath(path)
+        if source.suffix != ".py":
+            return None
+        return module_name(PurePosixPath(*self.package(path), source.name)) or None
+'''
+
+
+[pair.existing]
+id = "after/src/pytest_selective/ast_imports.py::module_name"
+source_id = "src/pytest_selective/ast_imports.py::module_name"
+code = '''
+def module_name(relative: PurePosixPath) -> str:
+    """Dotted Python name after source-root removal; an initializer names its package."""
+    source = relative.with_suffix("")
+    return ".".join(source.parent.parts if source.name == "__init__" else source.parts)
+'''
