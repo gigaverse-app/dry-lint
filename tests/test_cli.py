@@ -223,7 +223,8 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(
     repo: Repo, tmp_path: Path, blocking_twin_judge: str, monkeypatch: pytest.MonkeyPatch, capsys
 ) -> None:
     event = tmp_path / "event.json"
-    event.write_text(json.dumps({"pull_request": {"number": 42, "head": {"sha": "feedbeef"}}}))
+    head = repo.git("rev-parse", "HEAD").strip()
+    event.write_text(json.dumps({"pull_request": {"number": 42, "head": {"sha": head}}}))
     monkeypatch.setenv("GITHUB_EVENT_PATH", str(event))
     monkeypatch.setenv("GITHUB_REPOSITORY", "octo/repo")
     candidates = tmp_path / "candidates.json"
@@ -233,7 +234,7 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(
     assert (handed.run.repository, handed.run.pull_request, handed.run.head, handed.run.base) == (
         "octo/repo",
         42,
-        "feedbeef",
+        head,
         "main",
     )
     assert handed.changed == 2 and all(c.new.hash and c.existing.hash for c in handed.candidates)
@@ -258,7 +259,7 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(
     capsys.readouterr()
     assert main(["report", "--root", str(repo.root), "--from", str(report), "--format", "check-run"]) == 1
     body = json.loads(capsys.readouterr().out)
-    assert (body["head_sha"], body["conclusion"]) == ("feedbeef", "failure")
+    assert (body["head_sha"], body["conclusion"]) == (head, "failure")
     assert json.loads(report.read_text())["findings"][0]["blocking"] is True
     main(["report", "--root", str(repo.root), "--from", str(report), "--format", "check-run", "--warn-only"])
     assert json.loads(capsys.readouterr().out)["conclusion"] == "neutral"
