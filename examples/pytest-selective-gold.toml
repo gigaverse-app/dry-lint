@@ -3,6 +3,8 @@
 # Not three-vendor labels, a random sample, or an independent judge holdout.
 # No model scores are promoted to expected labels. See docs/case-studies/pytest-selective.md.
 
+background_manifest = "backgrounds/pytest-selective/manifest.json"
+
 [provenance]
 repository = "gigaverse-app/pytest-selective"
 pull_request = "https://github.com/gigaverse-app/pytest-selective/pull/77"

@@ -1,9 +1,11 @@
 """Public gold panels load and retrieve; calibrated examples retain their majority-label contract."""
 
+import ast
 import hashlib
 import json
 import re
 import sys
+import textwrap
 import tomllib
 from collections import Counter
 from pathlib import Path
@@ -55,25 +57,35 @@ def test_due_consolidations_preserve_pinned_source_and_real_after_controls() -> 
             assert any(row[side]["code"] != original[side]["code"] for side in ("new", "existing"))
 
 
-def test_due_gold_retains_background_counts_and_competing_functions() -> None:
-    panel = tomllib.loads(DUE.read_text())
-    manifest_path = DUE.parent / panel["background_manifest"]
+@pytest.mark.parametrize("path,minimum", [(DUE, 2000), (CLEANUP, 200)], ids=["due", "pytest-selective"])
+def test_source_gold_retains_background_counts_and_competing_functions(path: Path, minimum: int) -> None:
+    panel = tomllib.loads(path.read_text())
+    manifest_path = path.parent / panel["background_manifest"]
     manifest = json.loads(manifest_path.read_text())
     backgrounds = {}
+    sources = {}
     for entry in manifest["backgrounds"]:
         encoded = (manifest_path.parent / entry["path"]).read_bytes()
         assert hashlib.sha256(encoded).hexdigest() == entry["sha256"]
         frozen = BenchBackground.decode(encoded)
-        assert frozen.repository == "gigaverse-app/due"
+        assert frozen.repository == entry["repository"]
         assert frozen.revision == entry["revision"]
         assert len(frozen.documents) == entry["functions"]
-        assert len(frozen.documents) > 2000  # Full corpus, never just the labelled pair snippets.
+        assert len(frozen.documents) > minimum  # Full corpus, never just the labelled pair snippets.
         backgrounds[frozen.revision] = {d.id: d for d in frozen.documents}
+        sources.update({s["id"]: s for s in entry.get("gold_sources", [])})
     assert set(backgrounds) == {row["revision"] for row in panel["pair"]}
     for row in panel["pair"]:
         for side in ("new", "existing"):
             document = backgrounds[row["revision"]][row[side]["source_id"]]
-            assert document.source_sha256 == row[side]["sha256"]
+            if "sha256" in row[side]:
+                assert document.source_sha256 == row[side]["sha256"]
+            else:
+                # Legacy snippets changed class indentation. Compare source-derived syntax fingerprints.
+                source = sources[row[side]["id"]]
+                syntax = ast.dump(ast.parse(textwrap.dedent(row[side]["code"])), include_attributes=False)
+                assert document.source_sha256 == source["source_sha256"]
+                assert hashlib.sha256(syntax.encode()).hexdigest() == source["syntax_sha256"]
             assert document.counts
 
 

@@ -58,6 +58,12 @@ backgrounds, each with 2,336–2,368 functions. Fixture tests validate manifest 
 coverage and every golden source digest. Synthetic integration tests verify that full-background weights and
 competitor ranks round-trip and that capture honors pinned scope despite a changed working tree.
 
+The [pytest-selective panel](../examples/pytest-selective-gold.toml) also retains its 272-function before and
+270-function after backgrounds. Its legacy snippets normalize class indentation, so the manifest records
+source-derived AST fingerprints alongside exact source hashes. Fixture tests check syntax equivalence without
+rewriting those snippets or pretending their formatting is verbatim. The original private 48-positive trial
+also has frozen backgrounds and gold-to-background references in its private artifact directory.
+
 When changing tokenization, retain the old snapshot as the baseline. Re-extract the same pinned source into
 a new candidate snapshot and compare both. Replacing the old counts in place would erase the evidence of
 what changed. Keep benchmark outcomes and ad hoc audit dumps outside the code repository; these sparse

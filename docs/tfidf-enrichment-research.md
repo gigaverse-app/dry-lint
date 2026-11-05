@@ -1,7 +1,9 @@
 # Research plan: teach TF-IDF about related implementations
 
-Status: the first documentation-enrichment probe is complete; see [results](#first-probe-results).
-No production retrieval, judging, or budget changes. Other experiments remain proposals.
+Status: documentation, fragment, containment and token-audit probes are complete. A protected name-weight
+channel improves funded retrieval on development and holdout, but actionable-report evidence is limited.
+Production retrieval, judging and budgets remain unchanged. [Frozen backgrounds](benchmark-backgrounds.md)
+now preserve the corpus context of the public and private source goldens.
 
 ## Objective and budget
 
@@ -368,7 +370,8 @@ Python versions still validate the fixture format and provenance.
 Reserve whole PR families backend-common #293, frontend-common #925, gigaverse-mobile #3935 and
 gigaverse-web-app #4346 as holdout. Keep Due and its vendored backend lineage together in development.
 Previously inspected panels are development evidence. Do not randomly split related pairs or let after code
-teach a before-time index. The holdout remains unscored because no variant passed the development gate.
+teach a before-time index. Through the fragment probe the holdout remained unscored. The later protected
+name-weight channel passed the development retrieval gate and was then evaluated once on this holdout.
 
 The new development panel contains 176 rows: 48 positives and 128 separate controls across 26 PR/phase
 batches and 48 proposed-owner families. These 48 positives are from the newly mined panel, not the original
@@ -424,3 +427,134 @@ the newly surfaced fragment candidates and diagnose missed operation boundaries 
 or learning a vocabulary. A block-level representation may be more useful than adding prose to a whole-function
 vector, but these results do not yet establish that claim. Markdown-derived and learned synonym expansion
 remain untested.
+
+### Next registered probe: protected token containment
+
+Test whether partial overlap is lost mainly through whole-function normalization. Reuse original behavior
+tokens and corpus IDF, excluding function-name and control-flow tokens from this additional signal. Compute
+the IDF mass of the shared token set divided by the smaller function's total IDF token mass. Require at least
+eight shared tokens, including three call/attribute/schema-key tokens, containment at least 0.75, and original
+cosine at least 0.1. Rank by containment, then shared IDF mass; append at most one allowed neighbor beyond
+baseline. Preserve the full baseline batch before budget selection. These parameters are fixed before scoring
+this probe. Repeat the development diagnostic first; inspect holdout only if a variant passes the existing gate.
+This uses no new vocabulary, documentation, labels or learned expansion at retrieval time. Review all newly
+funded candidates separately to detect extra false reports, including unknown pairs outside the frozen panel.
+
+### Registered token audit ablations
+
+Inspect full development-repository matrices before choosing token changes. Test two variants separately:
+remove `the and for with from into that this are was were has have had its our their these those` only from
+`fn:` and `w:` features; or multiply `fn:` weights by 0.5 before renormalizing. Keep each revision's original
+IDF and the unchanged retrieval floors, neighbor count and judge budget. Preserve negation and domain/API
+identifiers. These fixed ablations test whether English glue or excessive name weight hurts retrieval; they
+are not permission to tune the holdout or assume all rare names and common API calls are noise.
+
+The name-weight ablation recovered two development positives but lost another. Register a follow-up with the
+same 0.5 weight and unchanged floor: retain baseline neighbors, append at most one allowed alternative from
+the name-weighted index, and put the complete baseline batch first for funding. This tests the observed signal
+without accepting the observed displacement. It does not change the gold or inspect holdout.
+
+## Corpus audit and follow-up results
+
+### Preserve the evidence, including scope
+
+Captured 31 diagnostic backgrounds for the mined panels, plus the four original-panel/pytest-selective-after
+backgrounds, and separate configured-scope snapshots for all 31 mined revisions. Private gold rows now reference
+immutable snapshot hashes by scope profile. Public Due and pytest-selective
+goldens reference seven maintained sparse fixtures. The format retains raw document frequencies, per-function
+term counts, source hashes, corpus order, scope, extractor choices, Python version and extraction fingerprint.
+It reproduces original TF-IDF weights and raw ranking without relying on today's checkout. See
+[capture and replay](benchmark-backgrounds.md); these artifacts are inputs, not benchmark output dumps.
+
+Configured-scope captures show why a repository revision alone is insufficient:
+
+| Before snapshot | Diagnostic functions | Configured-scope functions |
+| --- | ---: | ---: |
+| backend-common #251 | 3,276 | 1,167 |
+| dry-lint #73 | 1,410 | 1,282 |
+| Due #180 | 2,336 | 1,257 |
+| gigaverse-ai #2997 | 29,405 | 9,743 |
+| gigaverse-backend #5358 | 20,092 | 5,112 |
+| gigaverse-web-app #4328 | 7,147 | 7,105 |
+
+For AI #2997, `w:mock` has IDF 2.97 in diagnostic scope and 7.55 in configured scope. The same term becomes
+rare when most tests disappear. These are different matrices, not interchangeable approximations. The follow-up
+therefore repeats candidate selection with each pinned repository's actual include/exclude and filtering
+settings, while retaining the experimental estimated $0.04 budget per diagnostic change batch.
+
+### Inspect feature weight before declaring noise
+
+Across those six diagnostic corpora, function-name features contribute 26–32% of average squared vector
+weight. High-frequency retained examples include `fn:the` and `fn:and`. These words survive because the
+identifier tokenizer's stop list is not an English stop list. Generic API features from the audited set
+(`get`, `set`, `append`, `extend`, `items`, `values`, `keys`, `len`, `str`, `int`, `dict`, `list`, `isinstance`,
+`cast`, `none`, `true`, `false`) contribute only 0.6–1.6% by the same measure. Singleton vocabulary ranges
+from roughly 32% to 47%; rarity alone does not establish usefulness or noise.
+
+Inspection also confirms that a method call can contribute call, attribute and word features. That is existing
+intentional behavior, not proof that all three should be removed. Annotation syntax is already excluded.
+The audit supports controlled family-weight and naming-glue ablations; it does not justify a broad new stop list.
+
+### Development screen
+
+All rows below use the same 48-positive/128-separate new development panel and diagnostic backgrounds.
+Funded means admitted by the unchanged Ledger; it is not a live duplicate verdict.
+
+| Variant | Funded positives | Funded known separate | All funded candidates |
+| --- | ---: | ---: | ---: |
+| Baseline | 15 | 7 | 88 |
+| Protected IDF containment | 15 | 7 | 141 |
+| Remove fixed naming-glue words | 15 | 7 | 87 |
+| Halve name weight in primary ranking | 16 | 8 | 105 |
+| Protected extra name-weighted neighbor | 17 | 8 | 115 |
+
+Containment spends more slots without gaining a fixed-panel positive. Removing glue changes one candidate,
+with no known recall gain. Primary name weighting gains two provisional positives but loses another; the
+protected variant retains every baseline positive and gains both. Strict-tier positive counts remain unchanged.
+This protected variant alone was selected for the reserved four PR families, without further weight tuning.
+
+| Corpus profile | Development funded positives | Development funded known separate | Holdout funded positives | Holdout funded known separate |
+| --- | --- | --- | --- | --- |
+| Diagnostic, baseline → protected | 15 → 17 / 48 | 7 → 8 / 128 | 7 → 8 / 12 | 3 → 5 / 54 |
+| Configured, baseline → protected | 13 → 14 / 48 | 6 → 6 / 128 | 7 → 8 / 12 | 3 → 5 / 54 |
+
+Configured scope contains only 26 eligible development positives; all 12 holdout positives remain eligible.
+The configured runs fund 75 → 93 candidates in development and 42 → 53 in holdout. The added fixed-panel
+positives are provisional partial operations, not new strict-tier wins. These are still PR-sized diagnostic
+batches built from gold query functions, not historical PR diff/cache replays. The holdout is now observed and
+must not become a repeatedly tuned source of allegedly independent confirmation.
+
+The original 48-positive/110-separate development regression panel was also replayed against its three pinned
+backgrounds. The protected channel retains every baseline positive and raises check recall from 46/48 to 47/48
+and scan recall from 41/48 to 43/48. It retrieves 100 rather than 97 known separate pairs in check. The campaign
+selection pair is the new check positive; casefold/module resolution is the other added scan positive. These
+are retrieval results without a historical PR funding claim; the motivating snapshot pair still misses.
+
+### Live judge and evidence review
+
+Reviewed all newly funded candidates separately from their retrieval scores and then called the unchanged
+Sonnet concept judge. Exact repeated requests reuse private evaluation results; none enters the production
+verdict store. This is a paired candidate-set comparison, not repeated stochastic judge sampling.
+
+- Exact fragments: seven extras, no report at 0.8. Two pairs receive provisional duplicate agreement from
+  source reviewers, but the normal judge calls their shared operation incidental.
+- Protected name channel, diagnostic development: 27 extras, one report at 0.8. Both source reviews agree
+  that it repeats Due's current-revision possible-provider-entry query, but confidence is only 0.70/0.72.
+  The two newly retrieved fixed-panel positives still receive separate verdicts from the normal judge.
+- Diagnostic holdout: eight extras, two reports for identical regex escaping across runtime UI and codemod
+  code. Reviewers disagree about the value of sharing an owner across that boundary. Keep them disputed,
+  rather than crediting them as improvements or silently changing the gold.
+- Configured development: 18 extras, the same one provisional agreed report. Configured holdout: 11 extras,
+  no reports. The disputed codemod comparisons disappear with the correct scope.
+
+No additional report contradicts consensus separate labels in these configured batches, but one provisional
+agreed report is insufficient evidence of preserved production precision. Neither the fixed-panel gains nor
+the mined consolidation history should override a disagreement about the useful operation boundary.
+
+**Decision:** keep the name-weighted channel experimental. The audit has produced a measurable retrieval
+signal and better reproducibility, but has not established an end-to-end production recall improvement.
+The next evaluation should replay actual configured PR changes and caches, retain the old 48-positive regression
+panel, and use fresh PR-family holdouts. It should examine the judge's treatment of meaningful partial operations
+with controls for boilerplate and already-shared delegation. Do not lower report thresholds or broaden prompts
+based only on these cases; earlier prompt trials already showed precision regressions. Learned Markdown or
+refactor-derived synonym expansion remains a separate, untested hypothesis.
