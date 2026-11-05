@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.4.1](https://github.com/gigaverse-app/dry-lint/compare/v1.4.0...v1.4.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **adoption:** honor reviewed feedback in full repository audits ([0319429](https://github.com/gigaverse-app/dry-lint/commit/0319429c2977cc6ca5a631c0317bfa1f990b06ea))
+* exclude annotation metadata from schema families ([e18532f](https://github.com/gigaverse-app/dry-lint/commit/e18532f12186fb8142400e7d794a6d9866904766))
+* exclude annotation metadata from schema families ([4c80f05](https://github.com/gigaverse-app/dry-lint/commit/4c80f0553288772e0aba488a438f15908cf1144b))
+* invalidate indexes with obsolete schema family facts ([001b843](https://github.com/gigaverse-app/dry-lint/commit/001b843eaf01c04c12b9cf525508133d32192ee8))
+
+
+### Documentation
+
+* cover first-merge validation in the adoption playbook ([#88](https://github.com/gigaverse-app/dry-lint/issues/88)) ([8d7875d](https://github.com/gigaverse-app/dry-lint/commit/8d7875debf63143592f0702a8acffed75e386695))
+
 ## [1.4.0](https://github.com/gigaverse-app/dry-lint/compare/v1.3.1...v1.4.0) (2026-11-05)
 
 
