@@ -69,8 +69,16 @@ class Entry(BaseModel):
         )
 
     def accepts(self, candidate: Candidate) -> bool:
+        """
+        The unchanged pair this entry accepted. An entry recorded without a context hash, before the detector gave
+        every pair one, is matched on its functions alone, as it was when accepted; both must still be unchanged.
+        """
         other = Entry.of(candidate)
-        return self.state == "remaining" and self.hashes == other.hashes and self.context_hash == other.context_hash
+        return (
+            self.state == "remaining"
+            and self.hashes == other.hashes
+            and (not self.context_hash or self.context_hash == other.context_hash)
+        )
 
 
 class Baseline(BaseModel):

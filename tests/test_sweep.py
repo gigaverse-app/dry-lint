@@ -67,6 +67,36 @@ def test_baseline_allows_only_unchanged_debt(repo: Repo, tmp_path: Path, twin_ju
     assert sweep(repo, tmp_path, twin_judge) == 1
 
 
+def test_an_entry_recorded_before_context_hashes_still_accepts_its_unchanged_pair(
+    repo: Repo, tmp_path: Path, twin_judge: str
+) -> None:
+    """
+    INVARIANT: a baseline accepted before the detector gave every pair a context hash keeps accepting the same,
+    unchanged functions; it still refuses them once either changes. A recorded context hash is still compared.
+    """
+    assert sweep(repo, tmp_path, twin_judge, "--init") == 0
+    path = repo.root / ".dry-lint/baseline.json"
+    recorded = json.loads(path.read_text())
+    assert recorded["entries"][0]["context_hash"]  # today every pair has one
+
+    def record(context_hash: str) -> None:
+        recorded["entries"][0]["context_hash"] = context_hash
+        path.write_text(json.dumps(recorded))
+        repo.commit()
+
+    args = ("--judge", "command", "--judge-command", twin_judge, "--baseline", ".dry-lint/baseline.json")
+    record("")  # as baselines written before context hashing
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    assert run_cli(repo, tmp_path, "--base", "main", *args, "--require-complete") == 0
+    record("0" * 16)  # a different recorded context is not this pair's
+    assert sweep(repo, tmp_path, twin_judge) == 1
+    record("")
+    source = repo.root / "src/widgets/caption.py"
+    source.write_text(source.read_text().replace("max_len - 1", "max_len - 2"))
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge) == 1  # changed logic is new debt, with or without a context hash
+
+
 def test_suppression_is_dismissal_not_cleanup(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
     assert sweep(repo, tmp_path, twin_judge, "--init") == 0
     path = repo.root / "src/widgets/caption.py"
