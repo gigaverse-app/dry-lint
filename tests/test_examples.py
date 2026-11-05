@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from dry_lint.bench import as_function, bench_comparer, load_gold
+from dry_lint.bench import GoldFunction, as_function, bench_comparer, load_gold
 from dry_lint.bench_background import BenchBackground
 from dry_lint.detector import Detector
 from dry_lint.plugins import load
@@ -22,6 +22,17 @@ EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "gold.toml"
 ROWS = tomllib.loads(EXAMPLES.read_text())["pair"]
 CLEANUP = EXAMPLES.with_name("pytest-selective-gold.toml")
 DUE = EXAMPLES.with_name("due-consolidation-gold.toml")
+OBLIGATION = EXAMPLES.with_name("pytest-obligation-gold.toml")
+
+
+def _syntax_fields(node: object) -> dict[str, object]:
+    """Ignore absent fields added by newer Python versions, preserving all actual syntax."""
+    if not isinstance(node, ast.AST):
+        return {"_literal": repr(node)}  # Ellipsis, bytes and complex constants are not JSON primitives.
+    return {
+        "_type": type(node).__name__,
+        **{name: value for name, value in ast.iter_fields(node) if value is not None and value != []},
+    }
 
 
 @pytest.mark.parametrize(
@@ -57,7 +68,11 @@ def test_due_consolidations_preserve_pinned_source_and_real_after_controls() -> 
             assert any(row[side]["code"] != original[side]["code"] for side in ("new", "existing"))
 
 
-@pytest.mark.parametrize("path,minimum", [(DUE, 2000), (CLEANUP, 200)], ids=["due", "pytest-selective"])
+@pytest.mark.parametrize(
+    "path,minimum",
+    [(DUE, 2000), (CLEANUP, 200), (OBLIGATION, 1000)],
+    ids=["due", "pytest-selective", "pytest-obligation"],
+)
 def test_source_gold_retains_background_counts_and_competing_functions(path: Path, minimum: int) -> None:
     panel = tomllib.loads(path.read_text())
     manifest_path = path.parent / panel["background_manifest"]
@@ -73,19 +88,22 @@ def test_source_gold_retains_background_counts_and_competing_functions(path: Pat
         assert len(frozen.documents) == entry["functions"]
         assert len(frozen.documents) > minimum  # Full corpus, never just the labelled pair snippets.
         backgrounds[frozen.revision] = {d.id: d for d in frozen.documents}
-        sources.update({s["id"]: s for s in entry.get("gold_sources", [])})
+        sources.update({(frozen.revision, s["id"]): s for s in entry.get("gold_sources", [])})
     assert set(backgrounds) == {row["revision"] for row in panel["pair"]}
     for row in panel["pair"]:
         for side in ("new", "existing"):
-            document = backgrounds[row["revision"]][row[side]["source_id"]]
-            if "sha256" in row[side]:
-                assert document.source_sha256 == row[side]["sha256"]
-            else:
-                # Legacy snippets changed class indentation. Compare source-derived syntax fingerprints.
-                source = sources[row[side]["id"]]
-                syntax = ast.dump(ast.parse(textwrap.dedent(row[side]["code"])), include_attributes=False)
+            document = backgrounds[row["revision"]][row[side].get("source_id", row[side]["id"])]
+            key = (row["revision"], row[side]["id"])
+            if key in sources:
+                # Legacy snippets normalize indentation/decorators. Compare the extracted function syntax.
+                source = sources[key]
+                extractor = load("extractors", Settings().extractors[0])
+                function = as_function(GoldFunction.model_validate(row[side]), extractor)
+                syntax = json.dumps(ast.parse(textwrap.dedent(function.code)), default=_syntax_fields, sort_keys=True)
                 assert document.source_sha256 == source["source_sha256"]
                 assert hashlib.sha256(syntax.encode()).hexdigest() == source["syntax_sha256"]
+            else:
+                assert document.source_sha256 == row[side]["sha256"]
             assert document.counts
 
 

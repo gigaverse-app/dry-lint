@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "backgrounds": [
+    {
+      "repository": "gigaverse-app/pytest-obligation",
+      "revision": "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4",
+      "path": "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4.json.gz",
+      "sha256": "46e0cd67a6759423dcb6162c8f62eb3f6f02dbf20699b7824ceb50e818f9e0f8",
+      "functions": 1656,
+      "tokens": 7440,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ]
+      },
+      "extraction_contract": "c763c6711500adc161711c4d48c9c207967b1077ecd01d6dad05a255ca3c58d0",
+      "max_df": 0.3,
+      "gold_sources": [
+        {
+          "id": "package/src/pytest_obligation/reporting/inventory.py::_Sources.imports",
+          "source_id": "package/src/pytest_obligation/reporting/inventory.py::_Sources.imports",
+          "source_sha256": "855d022e887a04e230cd036b26632c48ba7bf0fd87c61aa5a0e291d90e54cc29",
+          "syntax_sha256": "927f60045944e78cdebaa2f111cf0b5d489bcc42f6eac9ec8a9f54af0658312f"
+        },
+        {
+          "id": "package/src/pytest_obligation/_internal/python_source.py::top_level_imports",
+          "source_id": "package/src/pytest_obligation/_internal/python_source.py::top_level_imports",
+          "source_sha256": "3443dc052e84857d276a5d16943f85ca4a9613415982c872bcc577d99f219fff",
+          "syntax_sha256": "2e64d498ebb507eec641d6c4d60e41b60b1caa7b23c38604cee56fed3c8e54bf"
+        },
+        {
+          "id": "package/src/pytest_obligation/profiles/automatic_recovery.py::_selected_identities",
+          "source_id": "package/src/pytest_obligation/profiles/automatic_recovery.py::_selected_identities",
+          "source_sha256": "5a6fa5c96b7f12793d54427bf94f41db4dc1e0064f18631d442e9d309b1c80da",
+          "syntax_sha256": "50d720c130bac3a8a9c4edb24f94b98737c0b667945ddf3a7fae54ecd6981ed5"
+        },
+        {
+          "id": "package/src/pytest_obligation/selection.py::selected_identities",
+          "source_id": "package/src/pytest_obligation/selection.py::selected_identities",
+          "source_sha256": "f88f7259f5ab6c3e530b1c76f968b56e25fce77aac82c6f0a4c35868b32c613c",
+          "syntax_sha256": "0f91d042100293649d09882e8f6a29fbab38dc2432a7c645eae151c5fb5d1387"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/redis.py::redis_reply_breaker",
+          "source_id": "package/src/pytest_obligation/integrations/redis.py::redis_reply_breaker",
+          "source_sha256": "83c1253170e188544a3f39bd781691f9119c629c342fc3030642522d7a168991",
+          "syntax_sha256": "86bd560dd81895ce794c6e51a850b671fe67514e65734d07149d0719b42b5b2f"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/mongodb.py::mongodb_reply_breaker",
+          "source_id": "package/src/pytest_obligation/integrations/mongodb.py::mongodb_reply_breaker",
+          "source_sha256": "99e116a575ee2f6266964a84c31e1440f84da243b58ad4bd2ea83b8d76d62d05",
+          "syntax_sha256": "9fc664a05daebd5f21b0f6fe356d40023a35e1eb3aa500069ea0256e1ff6a199"
+        },
+        {
+          "id": "package/src/pytest_obligation/contract.py::_selection_gaps",
+          "source_id": "package/src/pytest_obligation/contract.py::_selection_gaps",
+          "source_sha256": "4b1c45597af3e562edad894063ba33bfbea9b6259285ccde93c81045c90e49fa",
+          "syntax_sha256": "fc18df502946c0552d46ad916a27b1d996735727e836b5a62551acce1e0653d1"
+        },
+        {
+          "id": "package/src/pytest_obligation/selection.py::gap_combination",
+          "source_id": "package/src/pytest_obligation/selection.py::gap_combination",
+          "source_sha256": "150be39e6105a4cb07d384ab9a46e8aba1d2a15f86f046c02568f28061fcf074",
+          "syntax_sha256": "7c7ea0b11bc5827754419fb524e381593f779dc0cc1274166e9229b033d32eed"
+        }
+      ],
+      "syntax_fingerprint": "sha256-sorted-json-ast-fields-without-none-or-empty-lists-v1"
+    },
+    {
+      "repository": "gigaverse-app/pytest-obligation",
+      "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6",
+      "path": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6.json.gz",
+      "sha256": "eceb1bd48b5a8bfa6471ff19f5064ea65f9046511680256f746b6172eef31940",
+      "functions": 1657,
+      "tokens": 7430,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ]
+      },
+      "extraction_contract": "c763c6711500adc161711c4d48c9c207967b1077ecd01d6dad05a255ca3c58d0",
+      "max_df": 0.3,
+      "gold_sources": [
+        {
+          "id": "package/src/pytest_obligation/reporting/inventory.py::_Sources.imports",
+          "source_id": "package/src/pytest_obligation/reporting/inventory.py::_Sources.imports",
+          "source_sha256": "30a4a4315d54ae1cf527f00a899ef3eda20208040a6a30f5cc62a011f88bae55",
+          "syntax_sha256": "2758979b3127478a76ffdeee6f79910e6e2c58f8f8cd4030fcb277f7284b4a77"
+        },
+        {
+          "id": "package/src/pytest_obligation/coverage/project.py::top_level_imports",
+          "source_id": "package/src/pytest_obligation/coverage/project.py::top_level_imports",
+          "source_sha256": "4c0c97594f0dfe63008d7c64d1fee376eb6167f87d0f7a76aa98b7fe91fd16c0",
+          "syntax_sha256": "782ab9d451192b7ef82e7dcd2f4cdc4279426a4b86d9ff93464169db1d19393e"
+        },
+        {
+          "id": "package/src/pytest_obligation/profiles/automatic_recovery.py::_selected_identities",
+          "source_id": "package/src/pytest_obligation/profiles/automatic_recovery.py::_selected_identities",
+          "source_sha256": "1c77638c46c139f374ef08b6e552e2409361f13dd4c971b57459fe688f89f0e1",
+          "syntax_sha256": "950e34a0d099062a11371583c8eb9b3a1173c36ff1a6f12732b10c334f004ec1"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/django/owed_rows.py::_selected",
+          "source_id": "package/src/pytest_obligation/integrations/django/owed_rows.py::_selected",
+          "source_sha256": "c819aafdd55e890d938abaf111f0557d0c02660baba805b7f7b1f30f230ed769",
+          "syntax_sha256": "dd544315cf481241dd408653ed85eb0b67d9500ce68e3f3eb83d358f241f909f"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/redis.py::redis_reply_breaker",
+          "source_id": "package/src/pytest_obligation/integrations/redis.py::redis_reply_breaker",
+          "source_sha256": "9172cc624c267ca0af069b2538041e322ca086d9e01bb10b29a9a1ca1049bcda",
+          "syntax_sha256": "330810df9202183830bf41e467d1160a183c2d70a0c6133b9434acc600bde0b3"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/mongodb.py::mongodb_reply_breaker",
+          "source_id": "package/src/pytest_obligation/integrations/mongodb.py::mongodb_reply_breaker",
+          "source_sha256": "ddb7583f6ed980211d4129ff88553d6422f39467dccd388cbd0a8fe3be625a91",
+          "syntax_sha256": "9d822d86b5d78784e666e7992fc1ee704d1d349f51aac18fb3bff448ecddccbf"
+        },
+        {
+          "id": "package/src/pytest_obligation/contract.py::_selection_gaps",
+          "source_id": "package/src/pytest_obligation/contract.py::_selection_gaps",
+          "source_sha256": "d652246c6802cacc793c4f8422627ace8accbb455536e0f4683b59db96f757b6",
+          "syntax_sha256": "82989f990dc477d9de2837bfd1a6687ca1502f72e55e4c344d71bde0f15f63c5"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/django/selection_completeness.py::gap_combination",
+          "source_id": "package/src/pytest_obligation/integrations/django/selection_completeness.py::gap_combination",
+          "source_sha256": "55e69222c75f9bf4ba876232cf9d624dbd4915ade922b1f02d1e9cefdefb922b",
+          "syntax_sha256": "49bbefacb549c8b5fe2f94be9c9e30fa7c7c6f8f2756776085e65c29433ec420"
+        },
+        {
+          "id": "package/src/pytest_obligation/references/in_memory_handoffs.py::_LostReplies.committed",
+          "source_id": "package/src/pytest_obligation/references/in_memory_handoffs.py::_LostReplies.committed",
+          "source_sha256": "085cdb27a85277c40656404b53056c8f57ee44a534c94c979db65c1396420791",
+          "syntax_sha256": "b4cf9c721135c09a6be73220696b9c0dd4bb54eac8ed444d762380260508b623"
+        },
+        {
+          "id": "package/src/pytest_obligation/worker_death.py::LostCommitReplies.committed",
+          "source_id": "package/src/pytest_obligation/worker_death.py::LostCommitReplies.committed",
+          "source_sha256": "196295d66f4f785aa1b9bb48dc420116aaf9270a3d4353ff5ee669b15d142e63",
+          "syntax_sha256": "0ee2d1ab2f528072ca849bab8860213ab96fdfde84a7ed92de7948d6af8c54e5"
+        },
+        {
+          "id": "demos/wagtail_tasks/test_wagtail_tasks.py::a_purge_owed",
+          "source_id": "demos/wagtail_tasks/test_wagtail_tasks.py::a_purge_owed",
+          "source_sha256": "c8775703b0f2768b890ac74470882e8c82b1d7249dc22b405f0ec3f033c056d4",
+          "syntax_sha256": "cb177a8609236f9ce83161b2ea33f0fc486d8787673aeb6ac3b28746c449cf83"
+        },
+        {
+          "id": "demos/wagtail_tasks/test_worker_rows.py::owed_purge",
+          "source_id": "demos/wagtail_tasks/test_worker_rows.py::owed_purge",
+          "source_sha256": "1348857f2e0ef4ea8c817afb825b87413183a361d4a763683056d1eb38b1da40",
+          "syntax_sha256": "64b0f1eea24991bd9384e01b8281822fac381e61d8ea0058e2a6fea2ad32c815"
+        },
+        {
+          "id": "package/src/pytest_obligation/coverage/handoffs.py::_Sites._is_atomic",
+          "source_id": "package/src/pytest_obligation/coverage/handoffs.py::_Sites._is_atomic",
+          "source_sha256": "1823558e9174f3efdc92235c14cce35de3ecb03b5f36a2e22756fe9386b8dc2d",
+          "syntax_sha256": "2074a2be7fe7eef63a01842068d2b266796d0d1f41a2a6969662cc9b7c800104"
+        },
+        {
+          "id": "package/src/pytest_obligation/coverage/_internal/transactions.py::_PublicationReach._opens_transaction",
+          "source_id": "package/src/pytest_obligation/coverage/_internal/transactions.py::_PublicationReach._opens_transaction",
+          "source_sha256": "b077f3390fc9475d229706edadb0a753dea3c1cb446efa0cf86950bd64815844",
+          "syntax_sha256": "fac1c896e04a8ff303d31814f34d2b185f319affc975af7cca10ec388a8d9b5c"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/postgres_plans.py::referenced_columns",
+          "source_id": "package/src/pytest_obligation/integrations/postgres_plans.py::referenced_columns",
+          "source_sha256": "aa91aeec48597f9e6ed954331135ff2dcddb8de1470f7a8a6e43f9fc385a88cf",
+          "syntax_sha256": "bee6f561ed74f368143ba6661577856aff7bcdbfd02c6487b2dcee54c514ff86"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/_internal/postgres_sql.py::bare_identifiers",
+          "source_id": "package/src/pytest_obligation/integrations/_internal/postgres_sql.py::bare_identifiers",
+          "source_sha256": "323f5d131165dae6ebd375852c93b1e9f598738b08372e72314f3626d51c7d6a",
+          "syntax_sha256": "e10189edf3a4dcabc8e54302f230b35d023951a11d49ecd4b648aae9063c1577"
+        },
+        {
+          "id": "package/src/pytest_obligation/gap_probes.py::_ambiguity_guards",
+          "source_id": "package/src/pytest_obligation/gap_probes.py::_ambiguity_guards",
+          "source_sha256": "f9953ccaf04c8d6cb9a528f555f82bcbc1729ae8752cd543c706485d1e0c5e4f",
+          "syntax_sha256": "9d1a34e2c86935528b99404115d00bba1459aa4c011794f4a3c31aa219112852"
+        },
+        {
+          "id": "package/src/pytest_obligation/profiles/crash_ambiguity.py::assert_ambiguity_contract",
+          "source_id": "package/src/pytest_obligation/profiles/crash_ambiguity.py::assert_ambiguity_contract",
+          "source_sha256": "8e172690cc59fcc27f00a0ae8a7fb31b6e2dfc8f41c15d593236e8bbe935427d",
+          "syntax_sha256": "0f8e49109a5542e56b1fe011cad02cced8bb90e3b7c3df74ba5d804fa35067b0"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/django/owed_rows.py::_did_work",
+          "source_id": "package/src/pytest_obligation/integrations/django/owed_rows.py::_did_work",
+          "source_sha256": "68851b83c50786013c251fb759cd1ef4c5741edf99d2da2dfda4f9373806b992",
+          "syntax_sha256": "d914f94d7d6e5bff0727652d9ecfee76039e8f84b866020945c1a5e3cb0da575"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/django/lifecycle_states.py::_Effects.did_work",
+          "source_id": "package/src/pytest_obligation/integrations/django/lifecycle_states.py::_Effects.did_work",
+          "source_sha256": "c2c68f9ec9794f3b613da1f49eca119176ed14111c77b4b548fe3bc4e1654a08",
+          "syntax_sha256": "ebd6283963976581e82d346319e87da2e02fb8c545ce226c014979db22b72c1c"
+        },
+        {
+          "id": "package/src/pytest_obligation/integrations/django/lifecycle_references.py::_create_successor",
+          "source_id": "package/src/pytest_obligation/integrations/django/lifecycle_references.py::_create_successor",
+          "source_sha256": "531e47da028e246265b669a870a7fc06be6ecf223dcea7f5b3fc526a6b7b3237",
+          "syntax_sha256": "6e2a9d9a8e2c3c46d893ceeeab544ee3b804b4c5ece04d6a78989a3ab07159f8"
+        },
+        {
+          "id": "package/src/pytest_obligation/references/in_memory_handoffs.py::_create_successor",
+          "source_id": "package/src/pytest_obligation/references/in_memory_handoffs.py::_create_successor",
+          "source_sha256": "3e8eda21cffb6c5ddee1a809d505b87269b1d2538d5024ec35a579bebd3de004",
+          "syntax_sha256": "e4a453f344801d94277384b385f659e18ab87d43015cd2ee7fe2867b19eb380b"
+        }
+      ],
+      "syntax_fingerprint": "sha256-sorted-json-ast-fields-without-none-or-empty-lists-v1"
+    }
+  ]
+}

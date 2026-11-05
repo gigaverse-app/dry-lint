@@ -460,8 +460,9 @@ without accepting the observed displacement. It does not change the gold or insp
 
 Captured 31 diagnostic backgrounds for the mined panels, plus the four original-panel/pytest-selective-after
 backgrounds, and separate configured-scope snapshots for all 31 mined revisions. Private gold rows now reference
-immutable snapshot hashes by scope profile. Public Due and pytest-selective
-goldens reference seven maintained sparse fixtures. The format retains raw document frequencies, per-function
+immutable snapshot hashes by scope profile. Public Due, pytest-selective and pytest-obligation goldens
+reference nine maintained sparse fixtures, including pytest-obligation's two additional revision captures.
+The format retains raw document frequencies, per-function
 term counts, source hashes, corpus order, scope, extractor choices, Python version and extraction fingerprint.
 It reproduces original TF-IDF weights and raw ranking without relying on today's checkout. See
 [capture and replay](benchmark-backgrounds.md); these artifacts are inputs, not benchmark output dumps.

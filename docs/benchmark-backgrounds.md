@@ -60,9 +60,15 @@ competitor ranks round-trip and that capture honors pinned scope despite a chang
 
 The [pytest-selective panel](../examples/pytest-selective-gold.toml) also retains its 272-function before and
 270-function after backgrounds. Its legacy snippets normalize class indentation, so the manifest records
-source-derived AST fingerprints alongside exact source hashes. Fixture tests check syntax equivalence without
+source-derived AST fingerprints alongside exact source hashes. These hash sorted JSON AST fields with absent
+values and empty lists omitted, so Python's changing `ast.dump` formatting does not invalidate identical syntax.
+Fixture tests check syntax equivalence without
 rewriting those snippets or pretending their formatting is verbatim. The original private 48-positive trial
 also has frozen backgrounds and gold-to-background references in its private artifact directory.
+The [pytest-obligation panel](../examples/pytest-obligation-gold.toml) retains separate 1,657-function before
+and 1,656-function after backgrounds, using the same source/syntax checks. Its mixed revisions remain separate;
+capturing them does not add its labels to the original 48-positive trial. The hand-written calibration examples
+in `examples/gold.toml` have no source-repository background to preserve.
 
 When changing tokenization, retain the old snapshot as the baseline. Re-extract the same pinned source into
 a new candidate snapshot and compare both. Replacing the old counts in place would erase the evidence of
