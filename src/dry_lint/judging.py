@@ -51,18 +51,24 @@ def decide(
 
     With a `ledger`, each judge is asked only about the pairs the budget covers, riskiest first: the closest look-
     alikes for the first judge; for the second, the first scores nearest the middle of the band, where the first
-    judge is least sure. A pair the first judge could not afford stays unjudged (None); one the second could not
+    judge is least sure. Single-judge and second-opinion queues skip unaffordable entries and try later ones;
+    a cascade's first pass retains its prefix so extra first judgments cannot crowd out its second opinions.
+    A pair the first judge could not afford stays unjudged (None); one the second could not
     afford keeps the first judge's answer. So does every pair the second judge was asked about when it fails (an
     expired login, an outage), as long as there is a ledger to record that on.
     """
     order = sorted(range(len(candidates)), key=lambda i: (-candidates[i].priority, -candidates[i].similarity))
-    allowed = ledger.affordable(judge, [candidates[i] for i in order]) if ledger else len(order)
-    asked = order[:allowed]
+    # Preserve the cascade's first-pass prefix: refilling it could consume the allowance its second judge needs.
+    cascade = escalation is not None and settings.escalate is not None
+    selected = (
+        ledger.select(judge, [candidates[i] for i in order], prefix_only=cascade) if ledger else range(len(order))
+    )
+    asked = [order[i] for i in selected]
     answers: list[Verdict | None] = [None] * len(candidates)
     for i, verdict in zip(asked, judge.judge([candidates[i] for i in asked], settings) if asked else [], strict=True):
         answers[i] = verdict
     if ledger:
-        ledger.charge(judge, [candidates[i] for i in asked], skipped=len(order) - allowed)
+        ledger.charge(judge, [candidates[i] for i in asked], skipped=len(order) - len(asked))
     if escalation is None or settings.escalate is None:
         return answers
     low, high = settings.escalate.between
@@ -71,18 +77,19 @@ def decide(
         (i for i, v in enumerate(answers) if v is not None and low <= v.score < high),
         key=lambda i: abs(answers[i].score - middle),
     )
-    allowed = ledger.affordable(escalation, [candidates[i] for i in unsure]) if ledger else len(unsure)
-    escalated = [candidates[i] for i in unsure[:allowed]]
+    selected = ledger.select(escalation, [candidates[i] for i in unsure]) if ledger else range(len(unsure))
+    asked = [unsure[i] for i in selected]
+    escalated = [candidates[i] for i in asked]
     try:
-        second = escalation.judge(escalated, settings) if allowed else []
+        second = escalation.judge(escalated, settings) if escalated else []
     except JUDGE_ERRORS as error:
         if ledger is None:
             raise
         ledger.fail(escalation, escalated, error)
         return answers
     if ledger:
-        ledger.charge(escalation, escalated, skipped=len(unsure) - allowed)
-    for i, verdict in zip(unsure[:allowed], second, strict=True):
+        ledger.charge(escalation, escalated, skipped=len(unsure) - len(asked))
+    for i, verdict in zip(asked, second, strict=True):
         answers[i] = verdict.model_copy(
             update={"judge": judge.name, "judge_version": judge.version, "second_opinion": identity(escalation)}
         )

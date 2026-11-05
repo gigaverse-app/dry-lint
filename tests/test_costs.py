@@ -105,3 +105,33 @@ def test_combined_spending_adds_up_per_judge_and_keeps_unknown_costs_unknown() -
     assert (total["a"].calls, total["a"].skipped, total["a"].failed, total["a"].usd) == (5, 1, 1, 0.75)
     assert total["a"].error == "login expired"
     assert total["b"].calls == 5 and total["b"].usd is None
+
+
+def test_refill_counts_only_funded_subscription_calls_and_keeps_prior_spend() -> None:
+    large = PAIR.model_copy(deep=True)
+    large.new.code += "\n    x += 1" * 10000
+    judge = SubscribedSonnet()
+    one = estimate(judge, [PAIR], Settings())
+    settings = Settings(budget=Budget(usd=one * 3.5, subscription_calls=2))
+    ledger = Ledger(settings, spent=one)
+    ledger.charge(judge, [PAIR], skipped=0)
+    candidates = [large, PAIR, PAIR]
+    assert ledger.affordable(judge, candidates) == 0  # the legacy prefix contract remains available
+    assert ledger.select(judge, candidates) == [1]
+    ledger.charge(judge, [PAIR], skipped=2)
+    assert ledger.select(judge, candidates) == []
+    assert ledger.usd + ledger.spent == pytest.approx(3 * one)
+
+
+def test_refill_preserves_the_funded_prefix_when_only_the_remaining_budget_is_too_small() -> None:
+    large = PAIR.model_copy(deep=True)
+    large.new.code += "\n    x += 1" * 500
+    judge = Priced()
+    one = estimate(judge, [PAIR], Settings())
+    expensive = estimate(judge, [large], Settings())
+    settings = Settings(budget=Budget(usd=expensive + one / 2))
+    assert expensive < settings.budget.usd < expensive + one
+    assert 2 * one < settings.budget.usd
+    ledger = Ledger(settings)
+    assert ledger.affordable(judge, [PAIR, large, PAIR]) == 1
+    assert ledger.select(judge, [PAIR, large, PAIR]) == [0, 2]
