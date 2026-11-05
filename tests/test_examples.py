@@ -1,6 +1,8 @@
 """Public gold panels load and retrieve; calibrated examples retain their majority-label contract."""
 
+import hashlib
 import re
+import sys
 import tomllib
 from collections import Counter
 from pathlib import Path
@@ -16,14 +18,50 @@ from dry_lint.settings import Settings
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "gold.toml"
 ROWS = tomllib.loads(EXAMPLES.read_text())["pair"]
 CLEANUP = EXAMPLES.with_name("pytest-selective-gold.toml")
+DUE = EXAMPLES.with_name("due-consolidation-gold.toml")
 
 
-@pytest.mark.parametrize("path", [EXAMPLES, CLEANUP], ids=["calibrated-examples", "cleanup-regressions"])
+@pytest.mark.parametrize(
+    "path", [EXAMPLES, CLEANUP, DUE], ids=["calibrated-examples", "cleanup-regressions", "due-consolidations"]
+)
 def test_every_example_is_a_gold_pair_bench_can_read(path: Path) -> None:
     pairs = load_gold(path)
     assert len(pairs) == len(tomllib.loads(path.read_text())["pair"])
     assert all(p.label in ("duplicate", "separate") for p in pairs)
     assert len({(p.new.id, p.existing.id) for p in pairs}) == len(pairs)
+
+
+def test_due_consolidations_preserve_pinned_source_and_real_after_controls() -> None:
+    rows = tomllib.loads(DUE.read_text())["pair"]
+    assert Counter((r["phase"], r["label"]) for r in rows) == {
+        ("before", "duplicate"): 7,
+        ("after", "separate"): 3,
+    }
+    before = {r["case"].removesuffix("-before"): r for r in rows if r["phase"] == "before"}
+    for row in rows:
+        assert re.fullmatch(r"[a-f0-9]{40}", row["revision"])
+        for side in ("new", "existing"):
+            source = row[side]
+            assert hashlib.sha256(source["code"].encode()).hexdigest() == source["sha256"]
+            assert source["source"] == (
+                f"https://github.com/gigaverse-app/due/blob/{row['revision']}/{source['source_id'].split('::')[0]}"
+            )
+            if row["phase"] == "after":
+                original = before[row["case"].removesuffix("-after")]
+                assert source["source_id"] == original[side]["source_id"]
+        if row["phase"] == "after":
+            original = before[row["case"].removesuffix("-after")]
+            assert any(row[side]["code"] != original[side]["code"] for side in ("new", "existing"))
+
+
+@pytest.mark.skipif(sys.version_info < (3, 12), reason="Pinned Due source uses Python 3.12 generic syntax")
+def test_due_gold_extracts_implementations_instead_of_unparsed_fallbacks() -> None:
+    extractor = PythonExtractor()
+    for pair in load_gold(DUE):
+        for side in (pair.new, pair.existing):
+            function = as_function(side, extractor)
+            assert function.qualname == side.id
+            assert function.tokens and function.analysis is not None
 
 
 def test_cleanup_gold_extracts_real_functions_and_keeps_known_positive_retrieval() -> None:

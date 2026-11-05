@@ -1,0 +1,755 @@
+# Public source-reviewed consolidation regressions from Due PRs #180, #183 and #190.
+# Exact immutable source excerpts; implementation-agent review, not independent human gold.
+# These include partial operations, drift and one same-file retrieval exclusion.
+# Deleted functions have no fabricated after-state negative. See docs/tfidf-enrichment-research.md.
+# Due is public and Apache-2.0 licensed. No private repository source is included.
+
+[[pair]]
+case = "due-180-10-before"
+label = "duplicate"
+phase = "before"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/180"
+revision = "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4"
+rationale = "Raw row locking repeats write routing, the transaction guard, known-field selection, bound predicates and FOR UPDATE. Preserve custom-manager fallback and missing-row behavior in callers."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "before/180/package/src/due/django/evidence/attempts.py::locked_effect_attempt"
+source_id = "package/src/due/django/evidence/attempts.py::locked_effect_attempt"
+source = "https://github.com/gigaverse-app/due/blob/6a68131774a25b6a7b6a192ca578be9b7ab5e1d4/package/src/due/django/evidence/attempts.py"
+sha256 = "7363f706b88cd73b99c5c405a550cc2eb06b03c6d7c27d7af04ee63e965b6ecc"
+code = '''
+def locked_effect_attempt(attempt_id: UUID) -> EffectAttempt:
+    """Read current evidence under its row lock without rebuilding a fixed ORM query.
+
+    This is always a database read, never a cached row. Django's raw queryset
+    retains field conversion and model construction; only this library-owned
+    primary-key lookup bypasses query compilation.
+    """
+    alias = EffectAttempt.objects.select_for_update().db
+    db = connections[alias]
+    if not db.in_atomic_block:
+        raise transaction.TransactionManagementError("attempt locking requires a transaction")
+    table = db.ops.quote_name(EffectAttempt._meta.db_table)
+    # Select only this worker's known fields. A newer deployment may have
+    # added columns that an older Django model must not treat as annotations.
+    columns = ", ".join(db.ops.quote_name(cast(str, field.column)) for field in EffectAttempt._meta.concrete_fields)
+    # Identifiers come from the library model. The external identity is
+    # a bound parameter, and FOR UPDATE retains serialization with late writers.
+    rows = list(
+        EffectAttempt.objects.raw(f"SELECT {columns} FROM {table} WHERE id = %s FOR UPDATE", [attempt_id], using=alias)
+    )
+    if not rows:
+        raise EffectAttempt.DoesNotExist("the provider attempt no longer exists")
+    return rows[0]'''
+
+[pair.existing]
+id = "before/180/package/src/due/django/runtime/coordination.py::WorkClaim.locked_work"
+source_id = "package/src/due/django/runtime/coordination.py::WorkClaim.locked_work"
+source = "https://github.com/gigaverse-app/due/blob/6a68131774a25b6a7b6a192ca578be9b7ab5e1d4/package/src/due/django/runtime/coordination.py"
+sha256 = "9629ee57a4850620c708f519314dccbafc538c985dc22c12eb1ec1a8e5039202"
+code = '''
+    def locked_work(self) -> ClaimedWorkT | None:
+        """Read current ownership without rebuilding a fixed ORM query.
+
+        Custom managers and multi-table models keep their ordinary query path.
+        RawQuerySet retains field conversion, from_db and model init signals.
+        No model data, authority decision or database clock is cached.
+        """
+        manager = self.model.objects
+        if type(manager) is not models.Manager or self.model._meta.parents:
+            return self.owned_work().select_for_update().first()
+        alias = manager.select_for_update().db
+        db = connections[alias]
+        if not db.in_atomic_block:
+            raise transaction.TransactionManagementError("work locking requires a transaction")
+        quote = db.ops.quote_name
+        columns = ", ".join(quote(cast(str, field.column)) for field in self.model._meta.concrete_fields)
+        authority = self._authority()
+        predicates = []
+        for name in authority:
+            column = self.model._meta.pk if name == "pk" else self.model._meta.get_field(name)
+            assert isinstance(column, models.Field)
+            predicates.append(f"{quote(cast(str, column.column))} = %s")
+        predicate = " AND ".join(predicates)
+        rows = list(
+            manager.raw(
+                f"SELECT {columns} FROM {quote(self.model._meta.db_table)} WHERE {predicate} FOR UPDATE",
+                list(authority.values()),
+                using=alias,
+            )
+        )
+        return rows[0] if rows else None'''
+
+[[pair]]
+case = "due-180-10-after"
+label = "separate"
+phase = "after"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/180"
+revision = "d45977a85f1804d8c6cbc3b35d02fd61438f7531"
+rationale = "Both callers now delegate raw locking to locked_row. Their remaining custom-manager fallback and missing-attempt exception are distinct caller contracts."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "after/180/package/src/due/django/evidence/attempts.py::locked_effect_attempt"
+source_id = "package/src/due/django/evidence/attempts.py::locked_effect_attempt"
+source = "https://github.com/gigaverse-app/due/blob/d45977a85f1804d8c6cbc3b35d02fd61438f7531/package/src/due/django/evidence/attempts.py"
+sha256 = "bb944deda5d2b303844b3c53fd14e12ecb08bac4572fdc1f38e89153121e20dd"
+code = '''
+def locked_effect_attempt(attempt_id: UUID) -> EffectAttempt:
+    """Read current evidence under its row lock without rebuilding a fixed ORM query.
+
+    This is always a database read, never a cached row; see ``locked_row``.
+    """
+    attempt = locked_row(EffectAttempt.objects, {"pk": attempt_id}, subject="attempt")
+    if attempt is None:
+        raise EffectAttempt.DoesNotExist("the provider attempt no longer exists")
+    return attempt'''
+
+[pair.existing]
+id = "after/180/package/src/due/django/runtime/coordination.py::WorkClaim.locked_work"
+source_id = "package/src/due/django/runtime/coordination.py::WorkClaim.locked_work"
+source = "https://github.com/gigaverse-app/due/blob/d45977a85f1804d8c6cbc3b35d02fd61438f7531/package/src/due/django/runtime/coordination.py"
+sha256 = "a0e0c0e9d51177f142553b9d769183d63bdcebe1ca454c952fa075f86fc295a3"
+code = '''
+    def locked_work(self) -> ClaimedWorkT | None:
+        """Read current ownership without rebuilding a fixed ORM query.
+
+        Custom managers and multi-table models keep their ordinary query path.
+        No model data, authority decision or database clock is cached.
+        """
+        manager = self.model.objects
+        if type(manager) is not models.Manager or self.model._meta.parents:
+            return self.owned_work().select_for_update().first()
+        return locked_row(manager, self._authority(), subject="work")'''
+
+[[pair]]
+case = "due-180-manual0-before"
+label = "duplicate"
+phase = "before"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/180"
+revision = "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4"
+rationale = "Both transport PostgreSQL clock_timestamp through a cursor and validate the returned timestamp. The optional EXISTS column and cross-database fallback are explicit variations. This same-file case is intentionally outside default cross-file retrieval."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "before/180/package/src/due/django/runtime/coordination.py::_read_database_clock"
+source_id = "package/src/due/django/runtime/coordination.py::_read_database_clock"
+source = "https://github.com/gigaverse-app/due/blob/6a68131774a25b6a7b6a192ca578be9b7ab5e1d4/package/src/due/django/runtime/coordination.py"
+sha256 = "c8a879a46059e7c0e0e2fb8324eb18491460786a0cd0b6ad450b28dd91740b72"
+code = '''
+def _read_database_clock() -> datetime:
+    """Clock transport seam owned by the public testing control."""
+    with connection.cursor() as cursor:
+        # Static coordination query; no request or domain data reaches SQL.
+        # nosemgrep: python.django.security.audit.raw-query.raw-query
+        cursor.execute("SELECT clock_timestamp()")
+        row = cursor.fetchone()
+    assert row is not None, "PostgreSQL must return its current timestamp"
+    value = row[0]
+    assert isinstance(value, datetime), "PostgreSQL timestamp must decode to datetime"
+    return value'''
+
+[pair.existing]
+id = "before/180/package/src/due/django/runtime/coordination.py::_database_now_with_exists"
+source_id = "package/src/due/django/runtime/coordination.py::_database_now_with_exists"
+source = "https://github.com/gigaverse-app/due/blob/6a68131774a25b6a7b6a192ca578be9b7ab5e1d4/package/src/due/django/runtime/coordination.py"
+sha256 = "502c6709beca2f854888bc2a89537c2b513d7e31c9c87e3a7271aac60561ac3e"
+code = '''
+def _database_now_with_exists(query: QuerySet) -> tuple[datetime, bool]:
+    """Sample the live database clock and an evidence predicate in one round trip.
+
+    Entry callers already hold the work lock. Compile the existing predicate so
+    its semantics have one owner; no predicate or evidence is cached.
+    """
+    if query.db != connection.alias:
+        # A custom evidence router keeps its existing cross-database behavior.
+        return database_now(), query.exists()
+    compiler = query.query.exists().get_compiler(using=query.db)
+    sql, params = compiler.as_sql()
+    with connection.cursor() as cursor:
+        # The subquery is generated by Django, and all values remain bound.
+        cursor.execute(f"SELECT clock_timestamp(), EXISTS ({sql})", params)
+        row = cursor.fetchone()
+    assert row is not None and isinstance(row[0], datetime) and isinstance(row[1], bool)
+    return row[0], row[1]'''
+
+[[pair]]
+case = "due-183-manual0-before"
+label = "duplicate"
+phase = "before"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/183"
+revision = "33857688849a481a794b46295f4080dca853cc0f"
+rationale = "Both recover targeted durable work and execute captured deliveries after checking worker options. Generalize one versus many rows and claimed-lease expiry, while strengthening exactly-once delivery checks."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "before/183/package/src/due/django/conformance/composition.py::recover_and_deliver"
+source_id = "package/src/due/django/conformance/composition.py::recover_and_deliver"
+source = "https://github.com/gigaverse-app/due/blob/33857688849a481a794b46295f4080dca853cc0f/package/src/due/django/conformance/composition.py"
+sha256 = "362edf11027b863f144a0e47c7cbd6a02b2866128c3c674edbba1776df0c0b37"
+code = '''
+def recover_and_deliver(work: UniverseDurableWork) -> None:
+    """Recover one work identity and execute the registered production worker delivery."""
+    entry = registration_of(type(work))
+    sent = []
+
+    def capture(*, args, **options):
+        if args[0] == entry.name and work_id_from_wire(entry.model, args[1]) == work.pk:
+            sent.append((args, options))
+
+    # Advance eligibility/leases only. Reaping, retry and reservation remain production-owned.
+    entry.model.objects.filter(pk=work.pk).update(available_at=database_now() - timedelta(seconds=1))
+    entry.model.objects.filter(pk=work.pk, lease_expires_at__isnull=False).update(
+        lease_expires_at=database_now() - timedelta(seconds=1)
+    )
+    with patch("due.django.runtime.tasks.run_durable_work_task.apply_async", capture):
+        recover_durable_work_task(entry.name)
+        work.refresh_from_db()
+        if work.state == DurableWorkState.RETRYABLE:
+            entry.model.objects.filter(pk=work.pk).update(available_at=database_now() - timedelta(seconds=1))
+            recover_durable_work_task(entry.name)
+    assert len(sent) == 1, "recovery must deliver the exact still-owed component"
+    args, options = sent[0]
+    assert_registered_worker_options(entry, options)
+    assert run_durable_work_task(*args), "component delivery must reach its actual executor"'''
+
+[pair.existing]
+id = "before/183/package/src/due/django/conformance/scenarios.py::_recover_lost_deliveries"
+source_id = "package/src/due/django/conformance/scenarios.py::_recover_lost_deliveries"
+source = "https://github.com/gigaverse-app/due/blob/33857688849a481a794b46295f4080dca853cc0f/package/src/due/django/conformance/scenarios.py"
+sha256 = "cb7fafd533f368dbe0bbd58d4727f503a384be720ab3fcd30772caad665e40ca"
+code = '''
+def _recover_lost_deliveries[W: UniverseDurableWork](
+    entry: DurableWorkRegistration, works: Iterable[W], sent: list[_SentTask]
+) -> list[_SentTask]:
+    """
+    Lose every post-commit notification, then let registered recovery deliver.
+
+    Expire only lost reservations; production recovery performs every state
+    transition and redispatch. Returns the deliveries it executed once.
+    """
+    ids = set()
+    sent.clear()
+    for work in works:
+        work.refresh_from_db()
+        ids.add(work.pk)
+        if work.state == DurableWorkState.QUEUED:
+            expire_lease(work)
+        make_due(work)
+    recover_durable_work_task(entry.name)
+    deliveries = [
+        (args, options)
+        for args, options in sent
+        if args[0] == entry.name and work_id_from_wire(entry.model, args[1]) in ids
+    ]
+    assert {work_id_from_wire(entry.model, args[1]) for args, _ in deliveries} == ids, (
+        "recovery omitted a committed obligation"
+    )
+    for args, options in deliveries:
+        assert_registered_worker_options(entry, options)
+        assert run_durable_work_task(*args), "recovered delivery did not execute"
+    return deliveries'''
+
+[[pair]]
+case = "due-183-manual1-before"
+label = "duplicate"
+phase = "before"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/183"
+revision = "33857688849a481a794b46295f4080dca853cc0f"
+rationale = "The lost-notification proof independently repeats captured recovery, RETRYABLE re-aging and delivery execution already owned by the composition helper. Keep independent domain outcome assertions in the proof."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "before/183/package/src/due/django/conformance/_internal/suite.py::assert_lost_notification_reaches_domain_outcome"
+source_id = "package/src/due/django/conformance/_internal/suite.py::assert_lost_notification_reaches_domain_outcome"
+source = "https://github.com/gigaverse-app/due/blob/33857688849a481a794b46295f4080dca853cc0f/package/src/due/django/conformance/_internal/suite.py"
+sha256 = "0b173dc15e24ab2031d368614056e1ccef55b5a3b8c9eca3e000e639cff2df07"
+code = '''
+def assert_lost_notification_reaches_domain_outcome[W: UniverseDurableWork, ResultT](
+    capability: DurableWorkCapability[W, ResultT], examples: EffectExamples[W]
+) -> None:
+    """Drop the producer wakeup and require recovery to reach its independent product oracle."""
+    bindings = _effect_bindings(capability, examples)
+    entry = bindings.registration
+    assert_registered_schedule(entry)
+    sent = []
+
+    def capture(*, args, **options):
+        if args[0] == entry.name:
+            sent.append((args, options))
+
+    with (
+        _binding(examples.environment),
+        hold_nudges(),
+        patch("due.django.runtime.tasks.run_durable_work_task.apply_async", capture),
+        _binding(examples.delivery) as example,
+    ):
+        assert type(example.work) is capability.model, "producer returned another capability's work"
+        assert example.observe() != example.expected, (
+            "positive control: the example must initially owe a visible effect"
+        )
+        assert not sent, "producer must record intent without inline worker execution"
+        example.work.refresh_from_db()
+        never_executed = example.work.state in (DurableWorkState.READY, DurableWorkState.QUEUED)
+        bindings.age(example.work)
+        # Compensation producers reserve cleanup before I/O. Losing that worker
+        # includes lease expiry; this is clock fault injection, not settlement.
+        capability.model.objects.filter(pk=example.work.pk, lease_expires_at__isnull=False).update(
+            lease_expires_at=database_now() - timedelta(seconds=1)
+        )
+        recover_durable_work_task(entry.name)
+        # Reaping preserves the configured retry delay. Advance only its clock.
+        example.work.refresh_from_db()
+        if example.work.state == DurableWorkState.RETRYABLE:
+            bindings.age(example.work)
+            recover_durable_work_task(entry.name)
+        deliveries = [
+            (args, options) for args, options in sent if work_id_from_wire(capability.model, args[1]) == example.work.pk
+        ]
+        assert len(deliveries) == 1, f"{entry.name}: configured recovery did not publish the producer's exact work"
+        args, options = deliveries[0]
+        assert_registered_worker_options(entry, options)
+        assert run_durable_work_task(*args), "captured production delivery was not executable"
+        assert_observation(example.observe(), example.expected, because="worker reaches the required domain outcome")
+        example.work.refresh_from_db()
+        if never_executed:
+            assert example.work.rearm_count == 0, (
+                f"{entry.name}: a lost notification spent the retry budget although no worker ever ran"
+            )'''
+
+[pair.existing]
+id = "before/183/package/src/due/django/conformance/composition.py::recover_and_deliver"
+source_id = "package/src/due/django/conformance/composition.py::recover_and_deliver"
+source = "https://github.com/gigaverse-app/due/blob/33857688849a481a794b46295f4080dca853cc0f/package/src/due/django/conformance/composition.py"
+sha256 = "362edf11027b863f144a0e47c7cbd6a02b2866128c3c674edbba1776df0c0b37"
+code = '''
+def recover_and_deliver(work: UniverseDurableWork) -> None:
+    """Recover one work identity and execute the registered production worker delivery."""
+    entry = registration_of(type(work))
+    sent = []
+
+    def capture(*, args, **options):
+        if args[0] == entry.name and work_id_from_wire(entry.model, args[1]) == work.pk:
+            sent.append((args, options))
+
+    # Advance eligibility/leases only. Reaping, retry and reservation remain production-owned.
+    entry.model.objects.filter(pk=work.pk).update(available_at=database_now() - timedelta(seconds=1))
+    entry.model.objects.filter(pk=work.pk, lease_expires_at__isnull=False).update(
+        lease_expires_at=database_now() - timedelta(seconds=1)
+    )
+    with patch("due.django.runtime.tasks.run_durable_work_task.apply_async", capture):
+        recover_durable_work_task(entry.name)
+        work.refresh_from_db()
+        if work.state == DurableWorkState.RETRYABLE:
+            entry.model.objects.filter(pk=work.pk).update(available_at=database_now() - timedelta(seconds=1))
+            recover_durable_work_task(entry.name)
+    assert len(sent) == 1, "recovery must deliver the exact still-owed component"
+    args, options = sent[0]
+    assert_registered_worker_options(entry, options)
+    assert run_durable_work_task(*args), "component delivery must reach its actual executor"'''
+
+[[pair]]
+case = "due-190-0-before"
+label = "duplicate"
+phase = "before"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/190"
+revision = "8d4d100b3a9ffb2ef259931508f0ccde87a968dd"
+rationale = "The comparison test repeats fault-aware subprocess launching against the test database, including environment construction and outcome assertions. Settings and optional log output belong on the existing run_child owner."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "before/190/integration_tests/comparison/test_books.py::test_shared_book_outcome_after_process_death"
+source_id = "integration_tests/comparison/test_books.py::test_shared_book_outcome_after_process_death"
+source = "https://github.com/gigaverse-app/due/blob/8d4d100b3a9ffb2ef259931508f0ccde87a968dd/integration_tests/comparison/test_books.py"
+sha256 = "a463febd74c7c99f5ea96ff9cd3955d9a8615c02c355d817813f797306263270"
+code = '''
+def test_shared_book_outcome_after_process_death(
+    backend: str, fault: str | None, queued_recovery: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    title = uuid4().hex
+    marker = tmp_path / "fault"
+    monkeypatch.setenv("DUE_BOOK_INDEX", str(tmp_path / "index.sqlite3"))
+    base = os.environ.get("DUE_DATABASE_URL", "postgresql://due:due@127.0.0.1:55439/due")
+    env = {
+        **os.environ,
+        "DUE_DATABASE_URL": base.rsplit("/", 1)[0] + "/" + str(connection.settings_dict["NAME"]),
+        "DJANGO_SETTINGS_MODULE": "examples.comparison.settings",
+        **fault_environment(fault, marker),
+    }
+    module = (
+        "integration_tests.harness.book_process" if backend == "due" else "integration_tests.harness.comparison_process"
+    )
+    result = subprocess.run([sys.executable, "-m", module, title], env=env, capture_output=True, text=True, timeout=30)
+    (tmp_path / f"{backend}-worker.log").write_text(result.stdout + result.stderr)
+    if fault is None:
+        assert result.returncode == 0, result.stderr
+    else:
+        assert fault_happened(marker), result.stderr
+        assert result.returncode != 0
+        book = Book.objects.get(title=title)
+        assert not book.index_key
+        if backend == "due":
+            recover_process(title)
+        else:
+            # The producer/worker subprocess is known dead. Only shorten the
+            # detection clock; Procrastinate's own selector and retry own recovery.
+            if queued_recovery:
+                # Reproduce the periodic scheduler winning the race before the
+                # explicit recovery driver starts. The killed worker is gone.
+                if not ProcrastinateJob.objects.filter(
+                    queueing_lock="comparison-stalled-recovery", status="todo"
+                ).exists():
+                    recover_stalled.configure(task_kwargs={"timestamp": 0}).defer()
+            env.update(fault_environment(None, marker))
+            env["DUE_COMPARISON_STALE_SECONDS"] = "0"
+            recovery = subprocess.run(
+                [sys.executable, "-m", module, "recover"], env=env, capture_output=True, text=True, timeout=30
+            )
+            (tmp_path / "procrastinate-recovery.log").write_text(recovery.stdout + recovery.stderr)
+            assert recovery.returncode == 0, recovery.stderr
+    book = Book.objects.get(title=title)
+    assert book.index_key
+    assert search.search(title) == [book.index_key]
+    assert search.get(book.index_key) == search.IndexEntry(
+        key=book.index_key, title=title, author="Process Author", published=True
+    )
+    # Provider truth, independently of either library's internal job/work state.
+    with search.connection() as provider:
+        assert provider.execute("SELECT count(*) FROM books WHERE title = ?", (title,)).fetchone()[0] == 1'''
+
+[pair.existing]
+id = "before/190/integration_tests/harness/processes.py::run_child"
+source_id = "integration_tests/harness/processes.py::run_child"
+source = "https://github.com/gigaverse-app/due/blob/8d4d100b3a9ffb2ef259931508f0ccde87a968dd/integration_tests/harness/processes.py"
+sha256 = "2e0a91ec56ab9141afddbc890511c64e83ff82d5900312c9ad236a2115f48ce6"
+code = '''
+def run_child(module: str, argument: str, point: str | None, marker: Path) -> int:
+    base = os.environ.get("DUE_DATABASE_URL", "postgresql://due:due@127.0.0.1:55439/due")
+    result = subprocess.run(
+        [sys.executable, "-m", module, argument],
+        env={
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": "examples.settings",
+            "DUE_DATABASE_URL": base.rsplit("/", 1)[0] + "/" + str(connection.settings_dict["NAME"]),
+            **fault_environment(point, marker),
+        },
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if point is not None:
+        assert fault_happened(marker), result.stderr
+        assert result.returncode != 0, result.stderr
+    else:
+        assert result.returncode == 0, result.stderr
+    return result.returncode'''
+
+[[pair]]
+case = "due-190-0-after"
+label = "separate"
+phase = "after"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/190"
+revision = "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0"
+rationale = "The comparison scenario now calls run_child for worker and recovery launches. Its outcome checks remain scenario assertions; it no longer owns subprocess setup."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "after/190/integration_tests/comparison/test_books.py::test_shared_book_outcome_after_process_death"
+source_id = "integration_tests/comparison/test_books.py::test_shared_book_outcome_after_process_death"
+source = "https://github.com/gigaverse-app/due/blob/701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0/integration_tests/comparison/test_books.py"
+sha256 = "ce207c905ecfd3a5b758d0392b80c4e0e3e7938bcaa4b9639ba6913e8e83fd68"
+code = '''
+def test_shared_book_outcome_after_process_death(
+    backend: str, fault: str | None, queued_recovery: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    title = uuid4().hex
+    marker = tmp_path / "fault"
+    monkeypatch.setenv("DUE_BOOK_INDEX", str(tmp_path / "index.sqlite3"))
+    module = (
+        "integration_tests.harness.book_process" if backend == "due" else "integration_tests.harness.comparison_process"
+    )
+    run_child(module, title, fault, marker, settings=SETTINGS, log=tmp_path / f"{backend}-worker.log")
+    if fault is not None:
+        book = Book.objects.get(title=title)
+        assert not book.index_key
+        if backend == "due":
+            recover_process(title)
+        else:
+            # The producer/worker subprocess is known dead. Only shorten the
+            # detection clock; Procrastinate's own selector and retry own recovery.
+            if queued_recovery:
+                # Reproduce the periodic scheduler winning the race before the
+                # explicit recovery driver starts. The killed worker is gone.
+                if not ProcrastinateJob.objects.filter(
+                    queueing_lock="comparison-stalled-recovery", status="todo"
+                ).exists():
+                    recover_stalled.configure(task_kwargs={"timestamp": 0}).defer()
+            monkeypatch.setenv("DUE_COMPARISON_STALE_SECONDS", "0")
+            run_child(module, "recover", None, marker, settings=SETTINGS, log=tmp_path / "procrastinate-recovery.log")
+    book = Book.objects.get(title=title)
+    assert book.index_key
+    assert search.search(title) == [book.index_key]
+    assert search.get(book.index_key) == search.IndexEntry(
+        key=book.index_key, title=title, author="Process Author", published=True
+    )
+    # Provider truth, independently of either library's internal job/work state.
+    with search.connection() as provider:
+        assert provider.execute("SELECT count(*) FROM books WHERE title = ?", (title,)).fetchone()[0] == 1'''
+
+[pair.existing]
+id = "after/190/integration_tests/harness/processes.py::run_child"
+source_id = "integration_tests/harness/processes.py::run_child"
+source = "https://github.com/gigaverse-app/due/blob/701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0/integration_tests/harness/processes.py"
+sha256 = "8eeaa833ee6a57af3daba4d5572d843a1d1025df6224541e1f43f801b201f000"
+code = '''
+def run_child(
+    module: str,
+    argument: str,
+    point: str | None,
+    marker: Path,
+    *,
+    settings: str = "examples.settings",
+    log: Path | None = None,
+) -> int:
+    """Run ``python -m module argument`` on pytest's database, failing at ``point``; ``log`` keeps its output."""
+    base = os.environ.get("DUE_DATABASE_URL", "postgresql://due:due@127.0.0.1:55439/due")
+    result = subprocess.run(
+        [sys.executable, "-m", module, argument],
+        env={
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": settings,
+            "DUE_DATABASE_URL": base.rsplit("/", 1)[0] + "/" + str(connection.settings_dict["NAME"]),
+            **fault_environment(point, marker),
+        },
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if log is not None:
+        log.write_text(result.stdout + result.stderr)
+    if point is not None:
+        assert fault_happened(marker), result.stderr
+        assert result.returncode != 0, result.stderr
+    else:
+        assert result.returncode == 0, result.stderr
+    return result.returncode'''
+
+[[pair]]
+case = "due-190-1-before"
+label = "duplicate"
+phase = "before"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/190"
+revision = "8d4d100b3a9ffb2ef259931508f0ccde87a968dd"
+rationale = "Both read the sole possible effect entry, reject the wrong work model, exclude definite non-application and map DoesNotExist to None. Retain bulk versus revision scope through the new query hook and retain multiple-entry failure."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "before/190/package/src/due/django/capabilities/bulk.py::DurableBulkExternalOperation.possible_effect_attempt"
+source_id = "package/src/due/django/capabilities/bulk.py::DurableBulkExternalOperation.possible_effect_attempt"
+source = "https://github.com/gigaverse-app/due/blob/8d4d100b3a9ffb2ef259931508f0ccde87a968dd/package/src/due/django/capabilities/bulk.py"
+sha256 = "3484a2f935a0623de6b635ab094989155904c6820832062508ab194054aff65f"
+code = '''
+    def possible_effect_attempt(self, work: WorkT) -> EffectAttempt | None:
+        if not isinstance(work, self.model):
+            raise ValueError("work belongs to another operation model")
+        try:
+            return (
+                attempts_for(work)
+                .filter(self.blocking_attempt_filter())
+                .exclude(outcome=EffectAttemptOutcome.NOT_APPLIED)
+                .get()
+            )
+        except EffectAttempt.DoesNotExist:
+            return None'''
+
+[pair.existing]
+id = "before/190/package/src/due/django/capabilities/operations.py::DurableExternalOperation.possible_effect_attempt"
+source_id = "package/src/due/django/capabilities/operations.py::DurableExternalOperation.possible_effect_attempt"
+source = "https://github.com/gigaverse-app/due/blob/8d4d100b3a9ffb2ef259931508f0ccde87a968dd/package/src/due/django/capabilities/operations.py"
+sha256 = "2a675251c3977c9ba6931ce08e12b9ff5893b35393ba7a15c35df95e1b5fb03a"
+code = '''
+    def possible_effect_attempt(self, work: WorkT) -> EffectAttempt | None:
+        """
+        Read this occurrence's sole possible provider entry, including settled APPLIED.
+
+        None means no entry or only definite rejections, NOT that queued work
+        cannot enter later. The attempt's started_at is the pre-call entry time,
+        not proof the provider received it. This snapshot supplies no lock,
+        cancellation or replay permission. More than one possible crossing is
+        an invariant violation; never choose the latest by timestamp.
+        """
+        if not isinstance(work, self.model):
+            raise ValueError("work belongs to another operation model")
+        try:
+            return (
+                attempts_for(work)
+                .exclude(outcome=EffectAttemptOutcome.NOT_APPLIED)
+                .get(desired_revision=work.desired_revision)
+            )
+        except EffectAttempt.DoesNotExist:
+            return None'''
+
+[[pair]]
+case = "due-190-manual0-before"
+label = "duplicate"
+phase = "before"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/190"
+revision = "8d4d100b3a9ffb2ef259931508f0ccde87a968dd"
+rationale = "The integration fixture repeats the shipped finite-retry proof binding. Delegate BoundedRetry assembly while retaining independent failure injection and provider-call counting; the PR explicitly records exception and observation changes."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "before/190/integration_tests/conformance/bindings.py::retries"
+source_id = "integration_tests/conformance/bindings.py::retries"
+source = "https://github.com/gigaverse-app/due/blob/8d4d100b3a9ffb2ef259931508f0ccde87a968dd/integration_tests/conformance/bindings.py"
+sha256 = "780d8d0021156492d3e4e98ed5b27d28483058057fa270da243ebe8bd4d6ecd8"
+code = '''
+def retries() -> Iterator[BoundedRetry]:
+    # ARRANGE: real obligations through the library producer.
+    bindings = DurableWorkBindings(fixture.primitive, fixture.record)
+    calls: Counter[int] = Counter()
+
+    def fail(work: fixture.PrimitiveWork) -> str:
+        # EXTERNAL SEAM: a provider outage, counted independently of retry state.
+        calls[work.pk] += 1
+        raise OSError("provider unavailable")
+
+    run_attempt = fixture.primitive.attempt_execution
+
+    def execute(work: fixture.PrimitiveWork) -> None:
+        # REAL PRODUCTION: normal executor, including its failure settlement.
+        with suppress(OSError):
+            run_attempt(work.pk)
+
+    maximum = fixture.primitive.policy.max_rearms
+    assert maximum is not None
+    with patch.object(fixture, "call", fail):
+        yield BoundedRetry(
+            name="Due retry budget",
+            max_executions=maximum + 1,
+            make_failing=bindings.make,
+            due_work=fixture.primitive.due_work,
+            run_once=execute,
+            advance_to_due=bindings.age,
+            is_terminal=lambda work: bindings.observe(work)[0] == DurableWorkState.EXHAUSTED,
+            failure_attempt_count=lambda work: calls[work.pk],
+            # OBSERVE: database state and independent provider call counts.
+            observe=lambda work: (bindings.observe(work), calls[work.pk]),
+            identity_of=lambda work: work.pk,
+        )'''
+
+[pair.existing]
+id = "before/190/package/src/due/django/conformance/_internal/suite.py::retry_bindings"
+source_id = "package/src/due/django/conformance/_internal/suite.py::retry_bindings"
+source = "https://github.com/gigaverse-app/due/blob/8d4d100b3a9ffb2ef259931508f0ccde87a968dd/package/src/due/django/conformance/_internal/suite.py"
+sha256 = "2add50e35786bd990c4aeaba17c42a5ec56f7a5679cc2f6cde882ef93b5b79fd"
+code = '''
+def retry_bindings[W: UniverseDurableWork, ResultT](
+    bindings: DurableWorkBindings[W, ResultT], factory: Binding[FailureExample[W]]
+) -> Iterator[BoundedRetry]:
+    """Bind a finite production retry policy to the shared BoundedRetry proof.
+
+    The failure factory remains open while the proof drives actual executions;
+    attempt counts come from the independent example, not inferred work state."""
+    with _binding(factory) as failure:
+
+        def make():
+            work = bindings.make()
+            failure.prepare(work)
+            return work
+
+        def execute(work):
+            with suppress(Exception):
+                bindings.capability.attempt_execution(work.pk)
+
+        assert bindings.capability.policy.max_rearms is not None
+        yield BoundedRetry(
+            name=bindings.registration.name,
+            max_executions=bindings.capability.policy.max_rearms + 1,
+            make_failing=make,
+            due_work=lambda: bindings.capability.due_work(),
+            run_once=execute,
+            advance_to_due=bindings.age,
+            is_terminal=lambda work: bindings.observe(work)[0] == DurableWorkState.EXHAUSTED,
+            failure_attempt_count=failure.attempts,
+            observe=bindings.observe,
+            identity_of=lambda work: work.pk,
+        )'''
+
+[[pair]]
+case = "due-190-manual0-after"
+label = "separate"
+phase = "after"
+repository = "gigaverse-app/due"
+pull_request = "https://github.com/gigaverse-app/due/pull/190"
+revision = "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0"
+rationale = "The fixture now supplies bindings and a failure factory to retry_bindings. Calling the shared proof builder does not duplicate its implementation."
+label_source = "implementation-agent review of before/after source and merged PR rationale"
+
+[pair.new]
+id = "after/190/integration_tests/conformance/bindings.py::retries"
+source_id = "integration_tests/conformance/bindings.py::retries"
+source = "https://github.com/gigaverse-app/due/blob/701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0/integration_tests/conformance/bindings.py"
+sha256 = "fc50d28f7f9412f7e753ff5ff93febf4d2e91abdd52172f6dbea3cbeca08d1b8"
+code = '''
+def retries() -> AbstractContextManager[BoundedRetry]:
+    # REAL PRODUCTION: the shipped binding runs the normal executor, including its failure settlement.
+    return retry_bindings(
+        # ARRANGE: real obligations through the library producer.
+        DurableWorkBindings(fixture.primitive, fixture.record),
+        # EXTERNAL SEAM: a provider outage.
+        # OBSERVE: database state, and provider calls counted independently of retry state.
+        partial(failing_external_call, f"{fixture.__name__}.call"),
+    )'''
+
+[pair.existing]
+id = "after/190/package/src/due/django/conformance/_internal/suite.py::retry_bindings"
+source_id = "package/src/due/django/conformance/_internal/suite.py::retry_bindings"
+source = "https://github.com/gigaverse-app/due/blob/701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0/package/src/due/django/conformance/_internal/suite.py"
+sha256 = "2add50e35786bd990c4aeaba17c42a5ec56f7a5679cc2f6cde882ef93b5b79fd"
+code = '''
+def retry_bindings[W: UniverseDurableWork, ResultT](
+    bindings: DurableWorkBindings[W, ResultT], factory: Binding[FailureExample[W]]
+) -> Iterator[BoundedRetry]:
+    """Bind a finite production retry policy to the shared BoundedRetry proof.
+
+    The failure factory remains open while the proof drives actual executions;
+    attempt counts come from the independent example, not inferred work state."""
+    with _binding(factory) as failure:
+
+        def make():
+            work = bindings.make()
+            failure.prepare(work)
+            return work
+
+        def execute(work):
+            with suppress(Exception):
+                bindings.capability.attempt_execution(work.pk)
+
+        assert bindings.capability.policy.max_rearms is not None
+        yield BoundedRetry(
+            name=bindings.registration.name,
+            max_executions=bindings.capability.policy.max_rearms + 1,
+            make_failing=make,
+            due_work=lambda: bindings.capability.due_work(),
+            run_once=execute,
+            advance_to_due=bindings.age,
+            is_terminal=lambda work: bindings.observe(work)[0] == DurableWorkState.EXHAUSTED,
+            failure_attempt_count=failure.attempts,
+            observe=bindings.observe,
+            identity_of=lambda work: work.pk,
+        )'''
+
+
