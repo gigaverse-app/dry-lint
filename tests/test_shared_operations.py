@@ -58,6 +58,16 @@ def test_default_concept_prompt_uses_the_shared_relationship_policy() -> None:
     assert "independently repeated behavior" in prompt(candidate)
 
 
+def test_model_policy_reaches_provider_with_distinct_identity() -> None:
+    requests = []
+    reply = {"content": [{"type": "text", "text": '{"label":"separate","score":0.1}'}]}
+    judge = AnthropicJudge(api_key="test", prompt_policy="model-contracts", http_client=claude(reply, requests))
+    [verdict] = judge.judge([coverage_pair()], Settings())
+    assert verdict.judge == "anthropic-models"
+    assert verdict.judge_version.startswith("dry-model-contracts-v2:")
+    assert "independent test oracles" in json.loads(requests[0].content)["messages"][0]["content"]
+
+
 def test_compact_policy_uses_separate_evidence_and_bounded_response() -> None:
     requests = []
     reply = {"content": [{"type": "text", "text": '{"label":"duplicate","score":0.9,"why":"Shared cancellation."}'}]}

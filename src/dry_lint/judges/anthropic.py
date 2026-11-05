@@ -54,6 +54,8 @@ class AnthropicJudge:
         self.retry_malformed = retry_malformed
         # An opt-in policy cannot inherit legacy answers, nor contaminate a rollback to the legacy judge.
         self.name = "anthropic" if prompt_policy == "concept" else "anthropic-operations"
+        if prompt_policy == "model-contracts":
+            self.name = "anthropic-models"
         self.strict_version = prompt_policy != "concept" or max_tokens != 8000
         self.version = f"{PROMPT_POLICIES[prompt_policy][0]}:{model}" + (f":{effort}" if effort else "")
         if max_tokens != 8000:

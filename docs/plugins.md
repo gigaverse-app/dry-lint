@@ -5,8 +5,8 @@ implements one; nothing needs to inherit from dry-lint.
 
 | Slot | Settings key | Built in | Entry-point group |
 | --- | --- | --- | --- |
-| Extractor | `extractors` (a list, one per language) | `python`, `typescript` | `dry_lint.extractors` |
-| Comparer | `comparer` | `tfidf`, optional `dryer` | `dry_lint.comparers` |
+| Extractor | `extractors` (a list, one per language) | `python`, `typescript`, opt-in `python-models`, `typescript-models` | `dry_lint.extractors` |
+| Comparer | `comparer` | `tfidf`, optional `dryer`, opt-in `model-shape` | `dry_lint.comparers` |
 | Judge | `judge`, `escalate` | `jev`, `command` (and `auto`, `none`) | `dry_lint.judges` |
 | Store backend | `store` | `dir`, `s3` | `dry_lint.stores` |
 
@@ -16,6 +16,10 @@ The Anthropic judge accepts opt-in `prompt_policy = "shared-operations"` or `"sh
 `max_tokens` constructor options. The [compact-policy experiment](four-cent-discovery.md) uses a 512-token cap.
 See the [configuration and measurements](protected-exploration.md); legacy judging remains the default, and
 experimental prompt answers have a distinct cache identity.
+
+The [model duplication profile](model-duplication.md) adds mechanical field retrieval and an optional
+`model-contracts` prompt. Model declarations allow same-file neighbours; function defaults are unchanged.
+Run function and model extraction of the same language in separate invocations.
 
 ```toml
 [tool.dry-lint]

@@ -110,7 +110,10 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 8`; schemas 1 through 7 remain readable with conservative cache defaults. Schema 8 adds
+New files carry `"schema": 9`; schemas 1 through 8 remain readable with conservative cache defaults. Schema 9 adds
+optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
+to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
+readable subject to extraction-contract validation. Schema 8 adds
 the report's optional `backlog`, the accepted baseline pairs a baselined check saw the change clean up, and the
 sticky ledger's matching `backlog`. The report's is `null` when no baseline was checked, which makes no claim and
 leaves the ledger's as it was; older ledgers read it as empty. Schema 7 adds the `relative` lane (below). Schema 6 adds

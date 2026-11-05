@@ -1,5 +1,10 @@
 # Benchmark
 
+The opt-in [model duplication probe](model-duplication.md) measures Pydantic/dataclass and TypeScript/Zod
+retrieval separately from function similarity: field overlap, TF-IDF, their union and schema-only COMA,
+followed by model-contract judgment on frozen development and file-disjoint samples. Its diagnostic labels
+and thresholds do not inherit the function benchmark's population precision/recall claims.
+
 The generic concept prompt is now `dry-v2`: language-neutral, with forwarding distinguished from repeated
 policy around a call. It has not been recalibrated; the historical second-judge results below used `dry-v1`.
 The measured Jev `reuse-v2` and contextual `reuse-context-v3` profiles are unchanged.

@@ -40,7 +40,7 @@ def repository_name(value: str) -> str:
 
 
 def extraction_contract(settings: Settings) -> str:
-    modules = ("function_index", "functions", "extractors", "typescript", "source_context", "models")
+    modules = ("function_index", "functions", "extractors", "typescript", "source_context", "models", "model_shapes")
     implementation = {
         name: Path(import_module(f"dry_lint.{name}").__file__).read_text(encoding="utf-8") for name in modules
     }

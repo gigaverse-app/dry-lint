@@ -38,6 +38,13 @@ class Run(BaseModel):
     revision: str = ""
 
 
+class Declaration(BaseModel):
+    """Declared model fields, not expanded inherited fields or a runtime schema."""
+
+    kind: Literal["pydantic", "dataclass", "typescript", "zod"]
+    fields: dict[str, str]
+
+
 class LanguageAnalysis(BaseModel):
     """Syntax facts supplied by a language adapter, never a language-specific verdict policy."""
 
@@ -59,6 +66,7 @@ class Function(BaseModel):
     line: int
     end_line: int
     code: str
+    declaration: Declaration | None = None
     context: str = Field(default="", description="Bounded source dependencies and policy comments; never executed.")
     context_digest: str = Field(
         default="", description="Full source-file digest, including context beyond the prompt limit."
