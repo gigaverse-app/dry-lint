@@ -98,7 +98,7 @@ class Finding(BaseModel):
             parts.append(f"judge {self.verdict.score:.2f}" + (" (cached)" if self.cached else ""))
             if self.verdict.label == "drifted":
                 parts.append("the two already behave differently")
-            if self.verdict.owner in OWNERS and not self.candidate.consolidation:
+            if self.kind == "function" and self.verdict.owner in OWNERS and not self.candidate.consolidation:
                 parts.append(OWNERS[self.verdict.owner])
             if self.verdict.why:
                 parts.append(plain(self.verdict.why))
@@ -360,7 +360,7 @@ def as_text(report: Report) -> str:
             [
                 "Functions\n" + text_lane(report.lane("function")),
                 "Models\n" + text_lane(report.lane("model"), kind="model"),
-                *model_summary(report),
+                *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
             ]
         )
     return text_lane(report) + "\nModels: not checked in this run."
@@ -547,7 +547,7 @@ def markdown_lane(
         *([f"<sub>{escaped(report.judging.line(ranking=kind == 'model'))}</sub>"] if report.judging else []),
         *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
     ]
-    if report.judge is None:
+    if report.judge is None and kind == "function":
         return "\n".join([
             MARKER, f"### dry-lint · {plural(len(report.findings), 'look-alike pair')}, not judged", "",
             NOTE_SLOT, "",
@@ -564,6 +564,8 @@ def markdown_lane(
     )
     if report.review_required:
         headline = f"### dry-lint · {plural(len(report.review_required), 'pair')}: review required"
+    elif kind == "model":
+        headline = f"### dry-lint · {plural(len(shown), 'model candidate')} for ownership review"
     if blocking:
         headline += f" · 🔴 {blocking} blocking"
     lead = (
@@ -574,6 +576,8 @@ def markdown_lane(
     )
     if report.review_required:
         lead += " The coding agent must inspect these pairs, then refactor or record a justified pair-specific dismissal. Budget exhaustion is a review handoff; no extra judge budget is needed."
+    elif kind == "model":
+        lead = "These are structural candidates, not confirmed duplicates. Inspect ownership and usage before deciding."
     actions = AUDIT_ACTIONS if audit else ACTIONS
     listed = shown[:max_findings]
 
@@ -667,7 +671,7 @@ def markdown_lane(
     return "\n".join([
         MARKER, headline, "", NOTE_SLOT, "", lead.strip(), "", *rows, "", *more,
         "", *details, "", "<details><summary><strong>False positive? Choose the scope of your decision</strong></summary>",
-        "", *overrides(shown, audit), "", "</details>", *skipped, *footer,
+        "", *overrides(shown, audit, kind), "", "</details>", *skipped, *footer,
     ])  # fmt: skip
 
 
@@ -739,14 +743,15 @@ def clean(report: Report, audit: bool, report_at: float | None, kind: str = "fun
     )
 
 
-def overrides(shown: list[Finding], audit: bool) -> list[str]:
+def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list[str]:
     typescript = [f.suppression().startswith("//") for f in shown]
     prefix = "//" if all(typescript) else "#"
-    where = "either function" if audit else "the changed function"
+    noun = "model declaration" if kind == "model" else "function"
+    where = f"either {noun}" if audit else f"the changed {noun}"
     return [
         "| Scope | Decision |", "| :-- | :-- |",
         f"| this pair | `{prefix} dry-lint: distinct-from <qualified name>` in {where} |",
-        f"| one function | `{prefix} dry-lint: ignore` in that function |",
+        f"| one {noun} | `{prefix} dry-lint: ignore` in that {noun} |",
         "| a family of look-alikes | a `patterns` entry under `[tool.dry-lint]`, or in `.dry-lint.toml` |",
         *([] if audit else ["| this pull request only | the `dry-lint: override` label |"]),
         *(["", "In TypeScript and TSX, the comments start with `//`."] if any(typescript) and prefix == "#" else []),

@@ -156,6 +156,16 @@ def test_no_ranking_key_still_displays_required_source_review():
     assert "pairs have not been assessed" not in shown
 
 
+def test_unranked_model_inventory_is_visible_without_claiming_confirmed_duplication():
+    proposed = model_finding().model_copy(update={"verdict": None, "source_review": False})
+    current = combined(models=[proposed])
+    current.model_judging.judge = None
+    shown = as_markdown(current)
+    assert "Payload" in shown and "Receipt" in shown
+    assert "1 model candidate for ownership review" in shown
+    assert "structural candidates, not confirmed duplicates" in shown
+
+
 def test_model_policy_dismissal_is_distinct_from_resolved_review():
     current = combined()
     proposed = current.findings[0].candidate

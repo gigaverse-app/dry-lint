@@ -287,7 +287,11 @@ class Baseline(BaseModel):
             f"{self.count('cleaned')} old duplicates cleaned up, {self.count('remaining')} remaining"
         )
         if models is not None:
-            alt += f"; reviewed model debt: {models.count('remaining')} remaining, {models.count('cleaned')} retired, {models.count('dismissed')} dismissed"
+            alt = (
+                f"dry-lint in {repository}: confirmed function duplicates kept out of pull requests; "
+                f"function debt: {self.count('remaining')} remaining, {self.count('cleaned')} retired, {self.count('dismissed')} dismissed; "
+                f"reviewed model debt: {models.count('remaining')} remaining, {models.count('cleaned')} retired, {models.count('dismissed')} dismissed"
+            )
         return (
             '<a href="https://github.com/gigaverse-app/dry-lint"><picture>'
             f'<source media="(prefers-color-scheme: dark)" srcset="{html.escape(dark)}">'
