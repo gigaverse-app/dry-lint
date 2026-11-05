@@ -52,8 +52,20 @@ candidate detector, not every possible semantic duplicate. Keep the initial/week
 the per-PR budget. Reuse the verdict store between audit and update to avoid paying twice.
 
 Use `gigaverse-app/dry-lint@v1` now that v1 has launched; before v1 the Action used `@main`. Use published major
-tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.4.1`, so its
-cached hook environment changes explicitly on upgrade. Confirm the release and required capabilities exist.
+tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.4.2`, so its
+cached hook environment changes explicitly on upgrade. `rev` is a Git ref, not a version constraint: `1.*` is
+not supported, and a moving `v1` tag does not refresh an already installed hook. Confirm the release and required
+capabilities exist. While dry-lint stabilizes, check for hook updates weekly and after important fixes:
+
+```bash
+uvx pre-commit autoupdate --repo https://github.com/gigaverse-app/dry-lint
+```
+
+Review and commit the changed `rev`; subsequent hook runs install that release. This command is an explicit
+update, not a scheduler, and can select a new major version. Hook updates happen automatically only when the
+adopter has configured an updater such as pre-commit.ci or Renovate's opt-in pre-commit manager. Keep the update
+command and cadence beside the pin in `.pre-commit-config.yaml`, as in the example below. See
+[pre-commit's caching contract](https://pre-commit.com/#using-the-latest-version-for-a-repository).
 
 ## 2. Accept the existing backlog once
 
@@ -118,7 +130,10 @@ default_install_hook_types: [pre-commit, prepare-commit-msg]
 default_stages: [pre-commit]
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: v1.4.1
+    # Check weekly while dry-lint stabilizes, and after important fixes:
+    # uvx pre-commit autoupdate --repo https://github.com/gigaverse-app/dry-lint
+    # Review and commit the new tag; rev does not support ranges or automatic refresh.
+    rev: v1.4.2
     hooks:
       - id: dry-lint
         args: [--preset, sonnet, --baseline, .dry-lint/baseline.json]
