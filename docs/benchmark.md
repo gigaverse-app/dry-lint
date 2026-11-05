@@ -39,6 +39,10 @@ it changes no prompt or threshold.
 
 ## Gold set
 
+The [budgeted recall follow-up](budgeted-recall.md) compares the cleanup panels with
+broader frozen labels, rejects prompt changes that regress precision, and measures
+a small scheduling improvement under the unchanged estimated PR allowance.
+
 The separate [pytest-selective cleanup panel](case-studies/pytest-selective.md#regression-goldens) contains
 source-reviewed before/after regression pairs. Its implementation-agent labels and case-study outcomes are
 diagnostic evidence, not an addition to the population-calibrated figures below.
