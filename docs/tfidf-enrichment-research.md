@@ -1,6 +1,7 @@
 # Research plan: teach TF-IDF about related implementations
 
-Status: proposed experiments only. No production retrieval, judging, or budget changes.
+Status: the first documentation-enrichment probe is complete; see [results](#first-probe-results).
+No production retrieval, judging, or budget changes. Other experiments remain proposals.
 
 ## Objective and budget
 
@@ -208,3 +209,102 @@ review the format contract and bump its schema. Prototype without changing produ
 Deliver an experiment summary with reproducible commands, pinned revisions, the selected configuration,
 positive and negative examples, budgeted outcomes, and limitations. Only then propose a runtime change. A
 well-supported decision to retain current TF-IDF is also a valid research outcome.
+
+## First probe results
+
+**Decision: do not promote capped docstring/comment additions to production.** They can recover a real lexical
+miss, but the tested variants fail to improve known-pair retrieval without regressions. This is an exploratory
+retrieval screen, not a final accuracy or $0.04 effectiveness benchmark. No live judge calls were needed because
+the variants failed the retrieval gate.
+
+### Frozen method
+
+The experiment used dry-lint `55443cf`, Python 3.14, and production extraction/filtering with the default
+three-neighbor limit, 0.5/0.3 floors, and mutual-nearest backlog rule. The full repositories supplied IDF:
+
+| Repository revision | Functions | Functions with description terms | Labeled pairs: duplicate / separate |
+| --- | ---: | ---: | ---: |
+| pytest-selective `ae1306377dda82d1d0a6fa0b43dbb612d69d72b2` | 272 | 158 | 8 / 0 |
+| gigaverse-backend `22dfbe180c6704101658a088cc269a25fa9c82dd` | 5,057 | 2,914 | 33 / 97 |
+| gigaverse-ai `78467d3e72508d355eb1fcf923f290a7a69980ef` | 9,907 | 6,988 | 7 / 13 |
+
+The labels are the existing backend 110-pair panel, the semantic trial's 40-pair panel, and pytest-selective's
+eight before-cleanup positives. All are regression/development evidence, not a new held-out population sample.
+After-cleanup adapters and the mixed-revision pytest-obligation panel were not included in this full-corpus
+probe. Compare each variant to this run's baseline; current filtering differs from older trial releases.
+
+Extract the owning Python function's docstring and comments, excluding nested function/class comments, ordinary
+string literals, and tool directives. Split words with the existing identifier splitter plus a fixed prose
+stop list. Keep at most the first 32 unique terms per function. Repeated prose cannot increase its contribution.
+No Markdown text, synthesized concepts, learned associations, new thresholds, or extra candidate slots enter
+this experiment. The two weights and cap were fixed before scoring.
+
+- **Unweighted:** append each retained term once as an ordinary `w:` token, using production sublinear TF-IDF.
+- **Weighted:** for each token, add `alpha * IDF` if it occurs in the description to its existing unnormalized
+  code TF-IDF weight, then normalize the combined vector. Test `alpha = 0.25` and `0.5`. IDF/document-frequency
+  filtering sees the union of code and description vocabulary. This is an explicit weighted contribution,
+  not repeated text to approximate a fractional count.
+- **Shuffled control:** permute entire descriptions between functions with seed 1117, using weight 0.25.
+  The control retains the description inventory but removes correct function ownership.
+
+The local probe reused production `TfidfIndex`, `TfidfComparer`, and `Detector`; experimental similarities never
+entered the verdict store. Checks covered comment ownership, multiline string indentation, directive/literal
+exclusion, the 32-term cap, repetition invariance, zero-weight parity with production vectors and neighbors,
+and matching a description term against a code term. Full-corpus scans and targeted score/rank diagnostics
+were saved outside the repository alongside the probe scripts. No task-run dumps or private source packets
+are included in this PR.
+
+### Retrieval outcome
+
+`Check` means the labeled pair is proposed directly in at least one direction and survives filtering. `Scan`
+requires mutual first neighbors. Known separate pairs retrieved are potential judge work, not false reports.
+
+| Variant | Known duplicates in check, of 48 (higher better) | Known duplicates in scan, of 48 (higher better) | Known separate pairs in check, of 110 (lower better) |
+| --- | ---: | ---: | ---: |
+| Baseline | 46 | 41 | 97 |
+| Unweighted descriptions | 44 | 38 | 88 |
+| Weight 0.25 | 46 | 40 | 98 |
+| Weight 0.5 | 45 | 39 | 95 |
+| Shuffled descriptions, weight 0.25 | 46 | 38 | 98 |
+
+The 0.25 variant preserves the identity of every baseline check positive, but adds no known positive. Its loss
+of a scan positive is a rank change: the active-showcase duplicate remains above the floor at 0.517, but a
+recent-trigger helper wins the first neighbor slot at 0.533. Unweighted enrichment instead drives that same
+duplicate from 0.551 to 0.474, below the 0.5 floor. It also loses the backend picture-queue and durable-attempt
+duplicates from check. Aggregate counts alone would hide the AI panel's swap of one positive for another.
+
+There is a concrete positive signal: unweighted descriptions bring the repeated campaign-community selection
+pair from **0.466 to 0.515**, making it retrievable in both check and scan. Shared campaign vocabulary appears
+among the strongest matching terms. The 0.25 version reaches only 0.482. These observations establish that
+enrichment can surface this known miss, not that the current weighting scheme is a net improvement.
+
+The motivating pytest-selective snapshot pair remains missed:
+
+| Variant | Similarity | Retrieved above the 0.5 floor? |
+| --- | ---: | --- |
+| Baseline | 0.309721 | No |
+| Unweighted descriptions | 0.295284 | No |
+| Weight 0.25 | 0.312421 | No |
+| Weight 0.5 | 0.311621 | No |
+
+Both snapshot functions have relevant descriptions, so absent documentation does not explain this failure.
+Adding their different prose changes normalization and document frequencies without enough matching weight.
+
+The 0.25 scan introduces 87 previously absent candidate pairs across the three repositories and removes 90;
+these are unadjudicated changes, not 87 new duplicates. Its sole added pytest-selective pair is a wrapper and
+the filename predicate it already calls, illustrating why additional retrieval is not automatically useful.
+Shuffling descriptions preserves the same check-positive count as correct descriptions, further limiting
+what can be inferred from that count alone.
+
+The single-run AI index setup rose from about 0.43 seconds to 1.04 seconds at weight 0.25; the whole scan plus
+gold scoring rose from 17.3 to 27.4 seconds. These are exploratory wall times, not a controlled performance
+benchmark; the prototype also performs a redundant index construction. No speedup is claimed.
+
+### What this changes in the research plan
+
+Keep descriptions as a plausible source of evidence, but do not ship raw or lightly weighted prose addition.
+The recovered campaign pair supports trying the field-separated alternative already listed in stage 1:
+preserve baseline code weights/IDF, represent description evidence separately, and measure bounded additional
+matching and ranking. That is a next experiment, not an implemented fix or a promise of improvement. A candidate
+union would still need to prove that useful extra pairs reach the judge without displacing baseline findings
+within $0.04. Learned contextual concepts and Markdown associations remain untested by this probe.
