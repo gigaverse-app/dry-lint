@@ -277,7 +277,7 @@ does not lead to; a private repository's id is visible only to people who can se
 request is counted once. Opt out with `share-totals: "false"`.
 
 A repository whose audit keeps a [README block](docs/sweeps.md#readme-sticky-and-shieldsio-badge) gets its sign
-there automatically, with a band for its accepted backlog. To show it anywhere else, take its counter key from the
+there automatically, beside the old duplicates it has cleaned up and still has. To show it anywhere else, take its counter key from the
 log of a dry-lint run on your default branch
 (`dry-lint: this repository's counter key is ...`). `name` only labels the sign; the counter never looks a name up:
 

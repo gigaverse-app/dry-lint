@@ -182,18 +182,56 @@ function tile(c, x, color, value, label, note) {
   ${text(x + 28, 170, 14, 400, c.muted, note)}`;
 }
 
-/** The backlog band: how much of the duplication accepted at adoption has been cleaned up since. */
-function band(c, top, { cleaned, remaining, dismissed }) {
-  const accepted = cleaned + remaining + dismissed;
-  // At least the bar's rounded ends, so one cleaned pair out of many still shows.
-  const filled = accepted && cleaned ? Math.max(16, Math.round((1040 * cleaned) / accepted)) : 0;
+/**
+ * A repository's sign with its backlog: three exact counts of duplicate pairs, new ones kept out of its pull requests
+ * and old ones cleaned up or remaining, over what was checked. Every number counts all of what it names; figures
+ * that only some runs measured are left to the global sign.
+ */
+function backlogSign(c, totals, scope, { cleaned, remaining }) {
   const one = (n, singular, many) => (n === 1 ? singular : many);
-  return `<line x1="1" y1="${top}" x2="1279" y2="${top}" stroke="${c.border}" stroke-width="2"/>
-  ${text(40, top + 42, 26, 800, c.text, `${count(cleaned)} of ${count(accepted)}`)}
-  ${text(40, top + 66, 12, 700, c.muted, "BACKLOG CLEANED", ' letter-spacing="1.2"')}
-  <rect x="200" y="${top + 26}" width="1040" height="16" rx="8" fill="${c.rule}"/>
-  ${filled ? `<rect x="200" y="${top + 26}" width="${filled}" height="16" rx="8" fill="${LINES}"/>` : ""}
-  ${text(200, top + 66, 14, 400, c.muted, `${percent(cleaned, accepted)} of the ${count(accepted)} duplicate ${one(accepted, "pair", "pairs")} accepted at adoption cleaned up · ${count(remaining)} remaining · ${count(dismissed)} dismissed as different`)}`;
+  const kept = totals.kept_out;
+  const strip = [
+    [count(totals.pulls), one(totals.pulls, "PULL REQUEST CHECKED", "PULL REQUESTS CHECKED")],
+    [count(totals.functions), one(totals.functions, "FUNCTION CHECKED", "FUNCTIONS CHECKED")],
+    [escape(scope.length > 34 ? `${scope.slice(0, 33)}…` : scope), "REPOSITORY"],
+  ];
+  const label = escape(
+    `${scope}: ${count(kept)} new ${one(kept, "duplicate", "duplicates")} kept out of ${count(totals.pulls)} `
+      + `${one(totals.pulls, "pull request", "pull requests")}, ${count(cleaned)} old `
+      + `${one(cleaned, "duplicate", "duplicates")} cleaned up, ${count(remaining)} remaining`,
+  );
+  return frame(c, label, `${tile(c, 236, c.accent, count(kept), one(kept, "new duplicate kept out", "new duplicates kept out"), "")}
+  ${tile(c, 580, LINES, count(cleaned), one(cleaned, "old duplicate cleaned up", "old duplicates cleaned up"), "")}
+  ${tile(c, 924, DRIFT, count(remaining), one(remaining, "old duplicate remaining", "old duplicates remaining"), "")}`,
+  strip, (i) => (i === 2 ? 20 : 26));
+}
+
+/** The sign's frame: Lint, three tiles and a strip of figures, in one 1280 by 330 card. */
+function frame(c, label, tiles, strip, size) {
+  const width = 1278 / strip.length;
+  const cells = strip.map(([value, name], i) => {
+    const x = 1 + width * i + width / 2;
+    return `${text(x, 278, size(i), 800, c.text, value, ' text-anchor="middle"')}
+  ${text(x, 302, 12, 700, c.muted, name, ' text-anchor="middle" letter-spacing="1.2"')}${i ? `
+  <line x1="${1 + width * i}" y1="256" x2="${1 + width * i}" y2="312" stroke="${c.rule}" stroke-width="2"/>` : ""}`;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="330" viewBox="0 0 1280 330" role="img" aria-label="${label}">
+  <title>${label}</title>
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.background}"/><stop offset="1" stop-color="${c.wash}"/></linearGradient>
+    <clipPath id="card"><rect x="1" y="1" width="1278" height="328" rx="22"/></clipPath>
+  </defs>
+  <rect x="1" y="1" width="1278" height="328" rx="22" fill="${c.background}"/>
+  <rect x="1" y="1" width="1278" height="328" rx="22" fill="url(#wash)"/>
+  <circle cx="122" cy="120" r="92" fill="${c.accent}" opacity="0.14"/>
+  <image href="${LINT}" x="34" y="32" width="176" height="176"/>
+  ${tiles}
+  <rect x="1" y="236" width="1278" height="93" fill="${c.strip}" clip-path="url(#card)"/>
+  <line x1="1" y1="236" x2="1279" y2="236" stroke="${c.border}" stroke-width="2"/>
+  ${cells.join("\n  ")}
+  <rect x="1" y="1" width="1278" height="328" rx="22" fill="none" stroke="${c.border}" stroke-width="2"/>
+</svg>
+`;
 }
 
 /**
@@ -203,6 +241,7 @@ function band(c, top, { cleaned, remaining, dismissed }) {
  */
 export function sign(totals, theme = "light", scope = "", accepted = null) {
   const c = THEMES[theme] ?? THEMES.light;
+  if (accepted && scope) return backlogSign(c, totals, scope, accepted);
   const kept = totals.kept_out, drifted = totals.drifted_kept_out ?? 0, lines = totals.lines_kept_out ?? 0;
   const rewrites = totals.rewrites_kept_out ?? 0, reused = totals.reused ?? 0, pairs = totals.pairs ?? 0;
   const one = (n, singular, many) => (n === 1 ? singular : many);
@@ -220,14 +259,6 @@ export function sign(totals, theme = "light", scope = "", accepted = null) {
     scope ? [escape(shown), "REPOSITORY"]
       : [count(totals.repositories), one(totals.repositories, "REPOSITORY TRUSTS IT", "REPOSITORIES TRUST IT")],
   ];
-  const width = 1278 / strip.length;
-  const cells = strip.map(([value, label], i) => {
-    const x = 1 + width * i + width / 2;
-    const size = i === 4 && scope ? 20 : 26;
-    return `${text(x, 278, size, 800, c.text, value, ' text-anchor="middle"')}
-  ${text(x, 302, 12, 700, c.muted, label, ' text-anchor="middle" letter-spacing="1.2"')}${i ? `
-  <line x1="${1 + width * i}" y1="256" x2="${1 + width * i}" y2="312" stroke="${c.rule}" stroke-width="2"/>` : ""}`;
-  });
   const label = escape([
     `${count(kept)} ${one(kept, "duplicate function", "duplicate functions")} kept out of ${scope || "codebases"}`,
     ...(detailed ? [
@@ -236,34 +267,13 @@ export function sign(totals, theme = "light", scope = "", accepted = null) {
       `${count(lines)} duplicate ${one(lines, "line", "lines")} never merged`,
     ] : []),
     `across ${count(totals.pulls)} ${one(totals.pulls, "pull request", "pull requests")}`,
-    ...(accepted ? [`${count(accepted.cleaned)} of ${count(accepted.cleaned + accepted.remaining + accepted.dismissed)} `
-      + `accepted duplicate pairs cleaned up, ${count(accepted.remaining)} remaining`] : []),
   ].join(", "));
-  // The card grows by the backlog band when the repository passes one; the strip then no longer closes it.
-  const height = accepted ? 420 : 330;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="${height}" viewBox="0 0 1280 ${height}" role="img" aria-label="${label}">
-  <title>${label}</title>
-  <defs>
-    <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.background}"/><stop offset="1" stop-color="${c.wash}"/></linearGradient>
-    <clipPath id="card"><rect x="1" y="1" width="1278" height="${height - 2}" rx="22"/></clipPath>
-  </defs>
-  <rect x="1" y="1" width="1278" height="${height - 2}" rx="22" fill="${c.background}"/>
-  <rect x="1" y="1" width="1278" height="${height - 2}" rx="22" fill="url(#wash)"/>
-  <circle cx="122" cy="120" r="92" fill="${c.accent}" opacity="0.14"/>
-  <image href="${LINT}" x="34" y="32" width="176" height="176"/>
-  ${tile(c, 236, c.accent, lead === "OVER" ? `${number}+` : number, one(kept, "duplicate kept out", "duplicates kept out"),
+  return frame(c, label, `${tile(c, 236, c.accent, lead === "OVER" ? `${number}+` : number, one(kept, "duplicate kept out", "duplicates kept out"),
     measuredKept ? `${percent(rewrites, measuredKept)} rewrites, not copies` : "rewrites, not just copies")}
   ${tile(c, 580, DRIFT, measured(detailed, drifted), one(drifted, "drifted copy cleaned up", "drifted copies cleaned up"),
     among("already behaving differently"))}
   ${tile(c, 924, LINES, measured(detailed, lines), one(lines, "line never merged", "lines never merged"),
-    among("of duplicated logic"))}
-  <rect x="1" y="236" width="1278" height="93" fill="${c.strip}" clip-path="url(#card)"/>
-  <line x1="1" y1="236" x2="1279" y2="236" stroke="${c.border}" stroke-width="2"/>
-  ${cells.join("\n  ")}
-  ${accepted ? band(c, 330, accepted) : ""}
-  <rect x="1" y="1" width="1278" height="${height - 2}" rx="22" fill="none" stroke="${c.border}" stroke-width="2"/>
-</svg>
-`;
+    among("of duplicated logic"))}`, strip, (i) => (i === 4 && scope ? 20 : 26));
 }
 
 function escape(text) {

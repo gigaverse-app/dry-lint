@@ -127,7 +127,11 @@ def test_the_readme_block_opens_with_the_repositorys_sign_and_its_backlog(
     repo.write("README.md", "# A library\n")
     args = ("--readme", "README.md", "--repository", "acme/library", "--repository-id", "4242")
     assert sweep(repo, tmp_path, twin_judge, "--init", *args) == 0
-    signs = card((repo.root / "README.md").read_text())
+    readme = (repo.root / "README.md").read_text()
+    signs = card(readme)
+    # The sign shows the backlog, so the block repeats it nowhere else.
+    assert "img.shields.io" not in readme and "| Duplicate pairs cleaned |" not in readme
+    assert "[Accepted backlog](.dry-lint/baseline.json) · [Weekly audit](" in readme
     key = counter_key("4242")
     assert signs == [
         f"{COUNTER}/v1/sign.svg?theme=dark&amp;key={key}&amp;name=acme%2Flibrary&amp;cleaned=0&amp;remaining=1&amp;dismissed=0",

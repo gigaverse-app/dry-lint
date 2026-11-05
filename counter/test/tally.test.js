@@ -169,35 +169,38 @@ test("a repository's sign shows a long name shortened, and keeps it whole in its
   assert.match(svg, new RegExp(`aria-label="[^"]*kept out of ${name},`));
 });
 
-test("a sign without backlog counts keeps its size and has no backlog band", () => {
+test("a sign without backlog counts is the usual sign", () => {
   const svg = sign(TOTALS, "light", "acme/shop");
-  assert.match(svg, /viewBox="0 0 1280 330"/);
-  assert.doesNotMatch(svg, /BACKLOG/);
+  assert.match(svg, />drifted copies cleaned up</);
+  assert.doesNotMatch(svg, /old duplicates/);
   assert.equal(backlog(new URLSearchParams("key=x&name=acme/shop")), null);
 });
 
-test("a repository's backlog grows its sign by a band of what was cleaned up out of everything accepted", () => {
+test("a repository's sign with its backlog shows only exact counts: new duplicates kept out, old ones cleaned up and remaining", () => {
   const accepted = backlog(new URLSearchParams("cleaned=8&remaining=21&dismissed=1"));
   assert.deepEqual(accepted, { cleaned: 8, remaining: 21, dismissed: 1 });
-  const svg = sign(TOTALS, "dark", "acme/shop", accepted);
-  assert.match(svg, /viewBox="0 0 1280 420"/);
-  assert.match(svg, />8 of 30</);
-  assert.match(svg, />BACKLOG CLEANED</);
-  assert.match(svg, /27% of the 30 duplicate pairs accepted at adoption cleaned up · 21 remaining · 1 dismissed/);
-  // The filled bar is the cleaned share of the 1040-wide track.
-  assert.match(svg, /<rect x="200" y="356" width="277" height="16"/);
-  assert.match(svg, /aria-label="[^"]*8 of 30 accepted duplicate pairs cleaned up, 21 remaining"/);
+  const svg = sign({ ...TOTALS, kept_out: 4, pulls: 12, functions: 212 }, "dark", "acme/shop", accepted);
+  assert.match(svg, /viewBox="0 0 1280 330"/);
+  for (const [value, label] of [["4", "new duplicates kept out"], ["8", "old duplicates cleaned up"],
+    ["21", "old duplicates remaining"], ["12", "PULL REQUESTS CHECKED"], ["212", "FUNCTIONS CHECKED"],
+    ["acme/shop", "REPOSITORY"]]) {
+    assert.match(svg, new RegExp(`>${value}</text>\\s*<text[^>]*>${label}<`));
+  }
+  // Figures that only some runs measured, and the checker's own workings, stay on the global sign.
+  for (const absent of ["drifted", "lines never merged", "rewrites", "measured", "LOOK-ALIKE", "RE-CHECKS"]) {
+    assert.doesNotMatch(svg, new RegExp(absent));
+  }
+  assert.match(svg, /aria-label="acme\/shop: 4 new duplicates kept out of 12 pull requests, 8 old duplicates cleaned up, 21 remaining"/);
 });
 
-test("a backlog with nothing cleaned yet shows an empty bar, and a missing count reads as zero", () => {
-  const accepted = backlog(new URLSearchParams("remaining=29"));
-  assert.deepEqual(accepted, { cleaned: 0, remaining: 29, dismissed: 0 });
-  const svg = sign(TOTALS, "light", "acme/shop", accepted);
-  assert.match(svg, />0 of 29</);
-  // Green fills only the lines tile's stripe: the bar has no filled part.
-  assert.equal(svg.match(/fill="#3FB950"/g).length, 1);
-  assert.equal(sign(TOTALS, "light", "acme/shop", { cleaned: 1, remaining: 28, dismissed: 0 })
-    .match(/fill="#3FB950"/g).length, 2);
+test("a backlog sign counts in the singular, and a missing count reads as zero", () => {
+  const accepted = backlog(new URLSearchParams("cleaned=1"));
+  assert.deepEqual(accepted, { cleaned: 1, remaining: 0, dismissed: 0 });
+  const svg = sign({ ...TOTALS, kept_out: 1, pulls: 1, functions: 1 }, "light", "acme/shop", accepted);
+  for (const text of ["new duplicate kept out", "old duplicate cleaned up", "old duplicates remaining",
+    "PULL REQUEST CHECKED", "FUNCTION CHECKED"]) {
+    assert.match(svg, new RegExp(`>${text}<`));
+  }
 });
 
 for (const query of ["cleaned=-1", "remaining=1.5", "dismissed=lots", "cleaned=12345678"]) {
