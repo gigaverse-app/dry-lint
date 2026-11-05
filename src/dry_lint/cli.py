@@ -780,6 +780,7 @@ def main(argv: list[str] | None = None) -> int:
                 if credentials.get(name) and not os.environ.get(name):
                     os.environ[name] = credentials[name]
         with ExitStack() as snapshots:
+            original = root.resolve()
             # GitHub may refresh refs/pull/N/merge after the event's base was recorded. Read the same
             # immutable head that run_info publishes, including its config and source-bound feedback.
             pull = github_event().get("pull_request") or {}
@@ -787,8 +788,6 @@ def main(argv: list[str] | None = None) -> int:
             if args.command in {"check", "detect"} and not args.staged and head:
                 head = git(root, "rev-parse", "--verify", f"{head}^{{commit}}")
                 if head != git(root, "rev-parse", "HEAD"):
-                    original = root.resolve()
-                    args.store = args.store or default_store(root)
                     root = snapshots.enter_context(worktree(root, head))
                     args.root = root
                     # Peer scans must still recognize this snapshot as their primary repository.
@@ -797,7 +796,11 @@ def main(argv: list[str] | None = None) -> int:
                         for spec in args.repo
                         for name, separator, path in [spec.partition("=")]
                     ]
-            return COMMANDS[args.command](root, settings_for(root, args), args)
+            settings = settings_for(root, args)
+            if root != original and args.store is None and settings.store.use == "dir":
+                folder = settings.store.options().get("path")
+                args.store = original / folder if folder else default_store(original)
+            return COMMANDS[args.command](root, settings, args)
     except (subprocess.SubprocessError, httpx.HTTPError, ValueError, OSError) as error:
         detail = getattr(error, "stderr", None) or error
         print(f"dry-lint: {str(detail).strip()}", file=sys.stderr)

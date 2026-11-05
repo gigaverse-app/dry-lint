@@ -13,16 +13,11 @@ from dry_lint.cli import main, parser, run_info, settings_for
 from dry_lint.judges.jev import JevJudge
 from dry_lint.models import CandidatesFile
 
-from conftest import EXISTING, Repo, clear_judge_credentials, judge_calls
+from conftest import EXISTING, Repo, judge_calls
 from conftest import TWIN as TWIN_SOURCE
 from conftest import run_cli as run
 
 TWIN = "src/widgets/caption.py::preview_caption_text"
-
-
-@pytest.fixture(autouse=True)
-def without_judge_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
-    clear_judge_credentials(monkeypatch)
 
 
 def test_check_fails_and_annotates_an_error_for_a_blocking_reimplementation(
@@ -266,11 +261,13 @@ def test_the_two_ci_jobs_hand_over_through_candidates_json(
 
 @pytest.mark.parametrize("command", ["check", "detect"])
 def test_pr_snapshot_preserves_dirty_checkout_and_primary_repo_identity(
-    repo: Repo, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, command: str
+    repo: Repo, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, command: str, twin_judge: str
 ) -> None:
     peer = Repo(tmp_path / "peer")
     peer.write("src/shared.py", EXISTING)
     peer.commit()
+    repo.write(".dry-lint.toml", 'store = {use = "dir", path = ".verdicts"}\n')
+    repo.commit()
     head = repo.git("rev-parse", "HEAD").strip()
     base = repo.git("rev-parse", "main").strip()
     event = tmp_path / "event.json"
@@ -294,7 +291,10 @@ def test_pr_snapshot_preserves_dirty_checkout_and_primary_repo_identity(
                 "--base",
                 base,
                 "--judge",
-                "none",
+                "command",
+                "--judge-command",
+                twin_judge,
+                "--warn-only",
                 "--repo",
                 f"owner/primary={repo.root}",
                 "--repo",
@@ -306,6 +306,8 @@ def test_pr_snapshot_preserves_dirty_checkout_and_primary_repo_identity(
         == 0
     )
     assert json.loads(report.read_text())["changed"] == 2
+    if command == "check":
+        assert list((repo.root / ".verdicts").rglob("*.json"))
     assert [
         repo.git(*args) for args in (("diff",), ("diff", "--cached"), ("worktree", "list", "--porcelain"))
     ] == before

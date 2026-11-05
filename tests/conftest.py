@@ -20,9 +20,10 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 
 
 @pytest.fixture(autouse=True)
-def outside_actions(monkeypatch: pytest.MonkeyPatch) -> None:
+def isolated_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """Temporary repositories must not inherit the CI runner's unrelated PR event."""
-    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY"):
+    clear_judge_credentials(monkeypatch)
+    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID"):
         monkeypatch.delenv(name, raising=False)
 
 
