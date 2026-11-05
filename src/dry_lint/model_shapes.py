@@ -43,7 +43,7 @@ def resolved_name(node: ast.expr, bindings: dict[str, str]) -> str:
 
 class PythonModelExtractor(PythonExtractor):
     name: str = "python-models"
-    version: str = "2"
+    version: str = "3"
 
     def functions(self, path: str, source: str) -> list[Function]:
         try:
