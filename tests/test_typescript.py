@@ -179,11 +179,13 @@ BASE_TS = """export class Operation {
     ("src/bulk.ts", "import Operation from './ops';\nexport default class Bulk extends Operation {\n"
                     "  entries(work: Work) { return work.attempts(); }\n}"),
 ])  # fmt: skip
-def test_a_method_overriding_its_extended_class_method_is_settled_by_rule(extractor, path, source):
-    """INVARIANT: `class X extends Y` resolves Y from the file alone, so X's override of Y's method is settled."""
+def test_extended_class_evidence_does_not_exclude_executable_overrides(extractor, path, source):
+    """INVARIANT: named bases remain available as evidence without suppressing repeated implementation."""
     [base] = [f for f in extractor.functions("src/ops.ts", BASE_TS) if f.name == "entries"]
     [override] = [f for f in extractor.functions(path, source) if f.name == "entries" and f.owner != "Operation"]
-    assert why_skipped(override, base, Settings()) == why_skipped(base, override, Settings()) == "subclass override"
+    assert override.bases == ["src/ops::Operation"]
+    assert why_skipped(override, base, Settings()) is None
+    assert why_skipped(base, override, Settings()) is None
 
 
 @pytest.mark.parametrize("source", [
@@ -211,7 +213,8 @@ def test_a_static_method_overrides_only_the_extended_class_static_method(extract
         "  of(work: Work) { return new Bulk(work.id); }\n}",
     )
     assert [f.qualname for f in found] == ["src/bulk.ts::Bulk.static.of", "src/bulk.ts::Bulk.of"]
-    assert why_skipped(found[0], static, Settings()) == "subclass override"
+    assert found[0].bases == ["src/ops::Operation.static"]
+    assert why_skipped(found[0], static, Settings()) is None
     assert why_skipped(found[1], static, Settings()) is None
     assert instance.name == "entries"
 
@@ -234,16 +237,12 @@ CALLER_TS = """export class Operation {
     ("class Bulk extends Operation {\n  static reload(id: string) { return this.create(id).refresh(); }\n}",
      "Bulk.static.reload", "Operation.static.create"),
 ])  # fmt: skip
-def test_a_this_call_between_a_class_and_its_extended_class_is_settled_by_rule(extractor, subclass, a, b):
-    """INVARIANT: `this.name()` reaches the extended class's method, or a direct subclass's override of it."""
+def test_inherited_this_calls_with_additional_policy_remain_candidates(extractor, subclass, a, b):
+    """INVARIANT: inheritance and calls alone cannot establish that executable overlap is shared."""
     found = {f.qualname.split("::")[1]: f for path, source in (
         ("src/ops.ts", CALLER_TS), ("src/bulk.ts", "import { Operation } from './ops';\n" + subclass))
         for f in extractor.functions(path, source)}  # fmt: skip
-    assert (
-        why_skipped(found[a], found[b], Settings())
-        == why_skipped(found[b], found[a], Settings())
-        == "one calls the other"
-    )
+    assert why_skipped(found[a], found[b], Settings()) == why_skipped(found[b], found[a], Settings()) is None
 
 
 @pytest.mark.parametrize("source", [
@@ -268,6 +267,26 @@ def test_minimum_lines_and_invalid_functions_do_not_hide_valid_neighbors():
       return 2;
     }"""
     assert [f.name for f in extractor.functions("source.ts", source)] == ["long"]
+
+
+@pytest.mark.parametrize("caption", ["Q&A Session", "Join & Participate", "Language & region", "A & B & C"])
+def test_jsx_text_ampersands_preserve_source_and_executable_functions(extractor, caption):
+    source = f"export function Panel() {{ return <section><p>{caption}</p>{{format(value)}}</section>; }}"
+    extractor.validate_source("panel.tsx", source)
+    [function] = extractor.functions("panel.tsx", source)
+    assert function.name == "Panel"
+    assert function.code == source.removeprefix("export ")
+    assert "format" in function.calls
+    [control] = extractor.functions("panel.tsx", source.replace(caption, "Plain caption"))
+    assert function.tokens == control.tokens
+
+
+@pytest.mark.parametrize("body", ["<p>A & B{broken(}</p>", "<p>A & B", "<p>A & B</p>; const x = ;"])
+def test_jsx_text_recovery_does_not_accept_broken_executable_code(extractor, body):
+    source = f"function broken() {{ return {body}; }}\nfunction valid() {{ return 1; }}"
+    with pytest.raises(ValueError, match="parse error"):
+        extractor.validate_source("panel.tsx", source)
+    assert [function.name for function in extractor.functions("panel.tsx", source)] == ["valid"]
 
 
 def test_sticky_source_links_point_to_exact_commit_and_encode_paths(extractor):

@@ -101,6 +101,14 @@ outside the accepted baseline fails the audit so a maintainer can investigate it
 the surrounding README, lists cleaned/remaining/dismissed pairs and links to the audit workflow. Use `--branch`
 when the published default branch differs from `main`.
 
+The block opens with the repository's own counter sign: what dry-lint kept out of its pull requests since adoption,
+read live from the [global counter](../README.md#the-counter), over a band of this backlog (pairs cleaned out of all
+accepted, remaining and dismissed). The backlog counts travel in the sign's address, so they change only when a
+sweep rewrites the block. The sign needs the repository's counter key: in GitHub Actions the sweep takes it from the
+repository's own id (`GITHUB_REPOSITORY_ID`); elsewhere pass `--repository-id`, or the sweep keeps the key of the
+sign already in the block. `--no-counter-card` leaves it out, for example when the repository opts out of sharing
+its totals with `share-totals: "false"`.
+
 The generated `.dry-lint/progress.json` follows the [Shields.io endpoint schema](https://shields.io/badges/endpoint-badge).
 Its badge URL is ready to copy from the README block. It reads the committed public JSON file, so no new service
 or deployment is needed. Private repositories need their own public aggregate endpoint to expose a badge.

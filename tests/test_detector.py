@@ -106,9 +106,9 @@ B = function("b.py", "def load_account(store, key):\n    return store.read(key)\
 
 @pytest.mark.parametrize("a, b, settings, reason", [
     (function("a.py", "def __init__(self, x):\n    self.x = x"), function("b.py", "def __init__(self, y):\n    self.y = y"),
-     Settings(), "constructor or dunder pattern"),
+     Settings(), None),
     (function("a.py", "def read(self, key):\n    return self.rows[key]\n", owner="Store"),
-     function("a.py", "def get(self, key):\n    return self.read(key)\n", owner="Store"), Settings(), "one calls the other"),
+     function("a.py", "def get(self, key):\n    return self.read(key)\n", owner="Store"), Settings(), None),
     (A, B, Settings(patterns=[Pattern(members="*::load_*", reason="one loader per resource")]),
      "declared pattern: one loader per resource"),
     (A, function("b.py", "def load_account(store, key):\n    # dry-lint: distinct-from a.py::load_user\n    return store.read(key)\n"),
@@ -167,9 +167,11 @@ def test_only_a_call_on_the_class_itself_is_proven_delegation() -> None:
     INVARIANT: "one calls the other" needs the call to resolve to the other function. Names are not resolved to
     symbols, so a bare call proves nothing: it may reach an imported function or a parameter of the same name.
     """
-    read = function("a.py", "def read(self, key):\n    return self.rows[key]\n", owner="Store")
-    get = function("a.py", "def get(self, key):\n    return self.read(key)\n", owner="Store")
-    assert why_skipped(get, read, Settings()) == "one calls the other"
+    read, get = PythonExtractor().functions(
+        "a.py",
+        "class Store:\n    def read(self, key):\n        return self.rows[key]\n    def get(self, key):\n        return self.read(key)\n",
+    )
+    assert why_skipped(get, read, Settings()) == "forwarding wrapper"
     other_class = function("b.py", "def read(self, key):\n    return self.rows[key]\n", owner="Cache")
     assert why_skipped(get, other_class, Settings()) is None
     imported = function(
@@ -199,7 +201,7 @@ def test_without_calls_from_the_extractor_the_defining_line_does_not_count_as_a_
     method = function("a.ts", "fetch(key) {\n  return this.load(key)\n}", name="fetch", owner="Cache").model_copy(
         update={"calls": None}
     )
-    assert why_skipped(method, a.model_copy(update={"owner": "Cache"}), Settings()) == "one calls the other"
+    assert why_skipped(method, a.model_copy(update={"owner": "Cache"}), Settings()) is None
     method_call = function("d.ts", "function fetch(key) {\n  return cache.load(key)\n}", name="fetch").model_copy(
         update={"calls": None}
     )
@@ -226,15 +228,14 @@ def methods(path: str, source: str) -> dict[str, Function]:
     ("pkg/bulk.py", "import pkg.ops as o\n" + OVERRIDE.format(base="o.Operation")),
     ("pkg/bulk.py", "from . import ops\n" + OVERRIDE.format(base="ops.Operation")),
 ])  # fmt: skip
-def test_a_method_overriding_its_base_class_method_is_settled_by_rule(path: str, source: str) -> None:
-    """
-    INVARIANT: an override of the same-named method of the class's direct base is the hierarchy's variation point,
-    not a copy. The base resolves from the file alone: a class it defines, or a name its imports bind.
-    """
+def test_direct_base_evidence_does_not_exclude_executable_overrides(path: str, source: str) -> None:
+    """INVARIANT: named bases are evidence, not proof that an override shares executable policy."""
     home = "src/pkg/ops.py" if path.startswith("src/") else "pkg/ops.py"
     base = methods(home, BASE)["Operation.entries"]
     override = methods(path, source)["Bulk.entries"]
-    assert why_skipped(override, base, Settings()) == why_skipped(base, override, Settings()) == "subclass override"
+    assert override.bases == ["pkg/ops::Operation"]
+    assert why_skipped(override, base, Settings()) is None
+    assert why_skipped(base, override, Settings()) is None
 
 
 @pytest.mark.parametrize("source", [
@@ -248,7 +249,7 @@ def test_a_method_overriding_its_base_class_method_is_settled_by_rule(path: str,
     "        def entries(self, work):\n            return work.attempts()\n",
 ])  # fmt: skip
 def test_same_named_methods_without_a_resolved_base_relation_go_to_the_judge(source: str) -> None:
-    """INVARIANT: only a base the file itself names settles a pair; an unresolved or unrelated class does not."""
+    """INVARIANT: unresolved or unrelated bases never suppress an executable method pair."""
     base = methods("pkg/ops.py", BASE)["Operation.entries"]
     found = methods("pkg/bulk.py", source)
     assert found and all(why_skipped(method, base, Settings()) is None for method in found.values())
@@ -276,17 +277,10 @@ CALLER = (
 @pytest.mark.parametrize(
     "imports, base", [("from pkg.ops import Operation\n", "Operation"), ("from . import ops\n", "ops.Operation")]
 )
-def test_a_self_call_between_a_class_and_its_direct_base_is_settled_by_rule(subclass, a, b, imports, base) -> None:
-    """
-    INVARIANT: a call through `self` or `cls` reaches the same-named method of the class's direct base, or a direct
-    subclass's override of it, so "one calls the other" holds across that one inheritance step as within a class.
-    """
+def test_inherited_calls_with_additional_policy_remain_candidates(subclass, a, b, imports, base) -> None:
+    """INVARIANT: a call in a larger computation does not prove its overlapping policy is shared."""
     found = {**methods("pkg/ops.py", CALLER), **methods("pkg/bulk.py", imports + subclass.format(base=base))}
-    assert (
-        why_skipped(found[a], found[b], Settings())
-        == why_skipped(found[b], found[a], Settings())
-        == "one calls the other"
-    )
+    assert why_skipped(found[a], found[b], Settings()) == why_skipped(found[b], found[a], Settings()) is None
 
 
 @pytest.mark.parametrize("source", [
@@ -296,7 +290,7 @@ def test_a_self_call_between_a_class_and_its_direct_base_is_settled_by_rule(subc
     "class Bulk(Middle):\n    def entries(self, work):\n        return work.attempts()\n",  # the caller is a grandparent's
 ])  # fmt: skip
 def test_a_self_call_without_a_resolved_direct_base_goes_to_the_judge(source: str) -> None:
-    """INVARIANT: only a direct base the file itself names relates the two classes; anything else is judged."""
+    """INVARIANT: unresolved inherited dispatch remains a candidate for the judge."""
     caller = methods("pkg/ops.py", CALLER)["Operation.attempt"]
     [entries] = [f for f in methods("pkg/bulk.py", source).values() if f.name == "entries"]
     assert why_skipped(entries, caller, Settings()) is None
@@ -318,7 +312,7 @@ def test_a_self_call_without_a_resolved_direct_base_goes_to_the_judge(source: st
     )
 
 
-def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(repo: Repo, monkeypatch) -> None:
+def test_an_executable_override_reaches_both_check_and_scan(repo: Repo) -> None:
     body = "        rows = self.store.read(key)\n        return [row for row in rows if row.revision == key.revision]\n"
     repo.write("src/ops.py", f"class Operation:\n    def possible_entries(self, key):\n{body}")
     repo.write(
@@ -333,11 +327,9 @@ def test_an_override_pair_is_proposed_but_settled_and_left_out_of_the_backlog(re
         for c in detector.candidates([detector.find("Bulk.possible_entries")])
         if c.existing.qualname == "src/ops.py::Operation.possible_entries"
     ]
-    assert pair.filtered == "subclass override"
+    assert pair.filtered is None
     names = {pair.new.qualname, pair.existing.qualname}
-    assert names not in [{c.new.qualname, c.existing.qualname} for c in detector.scan()]
-    monkeypatch.setattr(detection, "overrides", lambda method, base: False)
-    assert names in [{c.new.qualname, c.existing.qualname} for c in detector.scan()]  # only the rule keeps it out
+    assert names in [{c.new.qualname, c.existing.qualname} for c in detector.scan()]
 
 
 def test_skipped_pairs_are_listed_with_their_reason(repo: Repo) -> None:

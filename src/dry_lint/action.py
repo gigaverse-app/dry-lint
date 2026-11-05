@@ -35,12 +35,11 @@ from dry_lint.function_index import export_index
 from dry_lint.git import git
 from dry_lint.github import github_event
 from dry_lint.index_github import IndexClient
-from dry_lint.ledger import PullLedger, RepositoryLedger, Tally, counter_key
+from dry_lint.ledger import COUNTER, PullLedger, RepositoryLedger, Tally, counter_key
 from dry_lint.report import Report
 from dry_lint.settings import Settings
 
 ARTIFACT = "dry-lint-candidates"
-COUNTER = "https://dry-lint-counter.gigaverse-oss.workers.dev"
 OVERRIDE_LABEL = "dry-lint: override"
 HISTORY_DEPTHS = (2, 32, 128, 512, 2048)
 

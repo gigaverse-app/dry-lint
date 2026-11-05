@@ -59,7 +59,7 @@ For pre-commit, add `additional_dependencies: ['.[dryer]']` and `args: [--detect
 | Default | Yes | Opt-in |
 
 The comparer implements `index`, `neighbours` and `similarity` from [the plugin protocol](plugins.md#comparer).
-`Detector` owns the cross-file policy, three-neighbour budget, dunder/call/override rules, patterns and inline suppression.
+`Detector` owns the cross-file policy, three-neighbour budget, language-fact exclusion rules, patterns and inline suppression.
 Both comparers exclude same-file functions before taking the neighbour limit, and the Python extractor omits
 pure declaration stubs. `scan` returns mutual nearest neighbours. Equal Dryer scores break ties in corpus order.
 `similarity` returns a raw score even below size gates, so `explain` can explain why a pair was not proposed.

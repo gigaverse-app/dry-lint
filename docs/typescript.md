@@ -70,6 +70,19 @@ Fingerprints retain calls, properties, object keys, identifier words, JSX tags, 
 Type annotations, comments, and arbitrary prose do not contribute similarity. A syntax error skips the affected
 implementation; valid siblings still participate. This is syntax-based analysis, not TypeScript type checking
 or import resolution. Framework boilerplate can still look similar; the judge and explicit patterns settle it.
+The adapter recovers the bundled grammar's bare-ampersand JSX text error (for example `Q&A`) without rewriting
+source or accepting malformed executable expressions. Such text does not contribute behavioral tokens.
+
+TypeScript uses the same rule engine as Python, with [language facts](plugins.md#language-analysis) supplied by
+its extractor. Explicit `override` modifiers, syntactically named bases, and conservatively recognized forwarding
+bodies are preserved in candidate files and indexes. Class arrow fields distinguish static and instance ownership.
+An override, `super` call, React lifecycle method, hook name or double-underscore name is not automatically exempt.
+Wrappers that add work before delegating remain candidates, as do repeated implementations in subclasses.
+
+No TypeScript compiler process or project installation is needed. Unknown package imports, path aliases, mixins
+and dynamic receivers remain unknown. These bounds are deliberate: a false relationship must not hide a candidate.
+The Python dunder convention applies only to Python methods. Constructors and accessors with executable behavior
+remain ordinary TypeScript candidates.
 
 Structure hashes ignore comments, spacing, semicolons, and type annotations while retaining operators, literals,
 runtime modifiers, properties, and binding names. TypeScript renames deliberately invalidate verdicts:

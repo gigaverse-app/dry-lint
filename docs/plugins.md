@@ -56,6 +56,32 @@ empty. `structure_hash` must change when the logic changes and not for comments 
 renames only when the language's binding rules make that safe; conservative re-judging is preferable. Core
 calls it only for the functions in a candidate pair. `owner` is the enclosing class, if any.
 
+### Language analysis
+
+The extractor is also the language adapter: return optional `Function.analysis` using the canonical
+`LanguageAnalysis` model. No new engine or plugin slot is required. Core owns comparison, exclusions, ranking,
+judging, budgets, caching and reports; adapters own syntax and binding conventions.
+
+| Fact | Adapter contract | Shared policy |
+| --- | --- | --- |
+| `language`, `version` | Identify the analysis contract; bump version when facts change | Included in cache evidence |
+| `convention` | A recognized language convention; Python emits `python-special-method` for class dunders | Only matching conventions in the same language settle a pair |
+| `forward_target` | `path::Owner.method` for a same-owner forwarding body with no additional policy | Settle only against that exact declaration in the same repository |
+| `declared_override` | Explicit override syntax, without claiming a resolved runtime target | Evidence, never an automatic exclusion |
+| `Function.bases` | Syntactically named direct base references; unresolved imports may be absent | Evidence, never an automatic exclusion |
+
+`forward_target = None` means unestablished, not proof that no call exists. The built-ins conservatively recognize
+single receiver calls with unchanged parameter arguments, including awaited calls and direct TypeScript class arrow
+fields. Computed arguments, nested callbacks, decorators, parameter initializers, constructors and wrapped arrows
+(such as debounced fields) do not qualify. Bare/imported
+calls, inherited dispatch and TypeScript package/path aliases are not resolved. Function-valued object fields
+are not assumed to bind `this` like class arrow fields. No project dependencies are installed or executed.
+
+Legacy extractors keep working without analysis; their candidates reach the judge instead of core guessing
+relationships with regular expressions. `calls` remains syntax data for inspection. Candidate/report schema 9 and
+function-index schema 2 preserve analysis and bases. Changing either invalidates contextual verdict reuse.
+An adapter should emit facts through `functions()`, never implement its own `should_skip_pair()` policy.
+
 To support strict checks and repository sweeps, also implement `validate_source(path: str, source: str) -> None`.
 Raise `ValueError` on invalid or incompletely parsed source. Strict scans reject extractors without this optional
 capability; ordinary candidate-only scans retain their previous plugin behavior. Both built-in extractors support it.

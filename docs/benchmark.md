@@ -1,5 +1,9 @@
 # Benchmark
 
+The generic concept prompt is now `dry-v2`: language-neutral, with forwarding distinguished from repeated
+policy around a call. It has not been recalibrated; the historical second-judge results below used `dry-v1`.
+The measured Jev `reuse-v2` and contextual `reuse-context-v3` profiles are unchanged.
+
 The production `balanced` agent-hook profile has separate [58-commit validation](production-discovery-results.md):
 cumulative budgets, preserved baseline coverage, same-file exploration and reviewed feedback. Its small known-positive
 panel does not inherit the corpus precision/recall estimates below. Unattended `auto` remains unchanged.

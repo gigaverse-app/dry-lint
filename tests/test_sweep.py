@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -7,6 +8,7 @@ import pytest
 from dry_lint.baseline import Baseline
 from dry_lint.extractors import PythonExtractor
 from dry_lint.functions import repository_functions
+from dry_lint.ledger import COUNTER, counter_key
 from dry_lint.models import pair_key
 from dry_lint.report import Report
 from dry_lint.typescript import TypeScriptExtractor
@@ -101,6 +103,63 @@ def test_readme_progress_is_idempotent_and_matches_shields_schema(repo: Repo, tm
     badge = json.loads((repo.root / ".dry-lint/progress.json").read_text())
     assert badge["schemaVersion"] == 1
     assert badge["message"] == "0 cleaned · 1 remaining"
+
+
+def card(readme: str) -> list[str]:
+    """The sign addresses in a README's block, light and dark."""
+    return re.findall(r'(?:src|srcset)="(https://dry-lint-counter[^"]+)"', readme)
+
+
+@pytest.fixture
+def actions_env(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
+    for name in ("GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID"):
+        monkeypatch.delenv(name, raising=False)
+    return monkeypatch
+
+
+def test_the_readme_block_opens_with_the_repositorys_sign_and_its_backlog(
+    repo: Repo, tmp_path: Path, twin_judge: str, actions_env: pytest.MonkeyPatch
+) -> None:
+    """
+    INVARIANT: a repository's sign carries the long-term counts by its counter key, and this backlog's counts in its
+    address, so a sweep that cleans a pair changes the sign.
+    """
+    repo.write("README.md", "# A library\n")
+    args = ("--readme", "README.md", "--repository", "acme/library", "--repository-id", "4242")
+    assert sweep(repo, tmp_path, twin_judge, "--init", *args) == 0
+    signs = card((repo.root / "README.md").read_text())
+    key = counter_key("4242")
+    assert signs == [
+        f"{COUNTER}/v1/sign.svg?theme=dark&amp;key={key}&amp;name=acme%2Flibrary&amp;cleaned=0&amp;remaining=1&amp;dismissed=0",
+        f"{COUNTER}/v1/sign.svg?key={key}&amp;name=acme%2Flibrary&amp;cleaned=0&amp;remaining=1&amp;dismissed=0",
+    ]
+    repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge, *args) == 0
+    assert all("cleaned=1&amp;remaining=0" in sign for sign in card((repo.root / "README.md").read_text()))
+
+
+def test_actions_name_their_own_repository_and_a_local_sweep_keeps_the_sign(
+    repo: Repo, tmp_path: Path, twin_judge: str, actions_env: pytest.MonkeyPatch
+) -> None:
+    repo.write("README.md", "# A library\n")
+    args = ("--readme", "README.md", "--repository", "acme/library")
+    actions_env.setenv("GITHUB_REPOSITORY", "acme/other")
+    actions_env.setenv("GITHUB_REPOSITORY_ID", "77")
+    assert sweep(repo, tmp_path, twin_judge, "--init", *args) == 0
+    assert card((repo.root / "README.md").read_text()) == []  # another repository's id is not this one's
+    actions_env.setenv("GITHUB_REPOSITORY", "acme/library")
+    assert sweep(repo, tmp_path, twin_judge, *args) == 0
+    assert counter_key("77") in (repo.root / "README.md").read_text()
+    for name in ("GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID"):
+        actions_env.delenv(name)
+    repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge, *args) == 0
+    readme = (repo.root / "README.md").read_text()
+    assert len(card(readme)) == 2 and counter_key("77") in readme and "cleaned=1" in readme
+    assert sweep(repo, tmp_path, twin_judge, *args, "--no-counter-card") == 0
+    assert card((repo.root / "README.md").read_text()) == []
 
 
 def test_parse_failure_cannot_clear_the_backlog(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
