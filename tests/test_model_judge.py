@@ -5,6 +5,7 @@ import json
 import httpx
 import pytest
 
+from dry_lint.baseline import Baseline, Entry, contract, require_complete
 from dry_lint.discovery import CampaignStore, reservation_cost
 from dry_lint.judges import make_judge
 from dry_lint.judges.jev import JevJudge
@@ -13,7 +14,7 @@ from dry_lint.judging import Judging
 from dry_lint.model_shapes import PythonModelExtractor
 from dry_lint.models import Candidate, Run
 from dry_lint.policies import PairPolicy
-from dry_lint.report import Report, as_markdown, as_text
+from dry_lint.report import Finding, Report, as_markdown, as_text
 from dry_lint.settings import PluginChoice, Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
@@ -122,3 +123,20 @@ def test_generic_jev_also_receives_adopter_policy_evidence():
     pair = model_pair()
     body = JevJudge(api_key="test").request_body(pair)
     assert body["state"]["adopter_policies"] == [p.model_dump() for p in pair.policies]
+
+
+@pytest.mark.parametrize("score", [0.1, 0.95])
+def test_atomic_model_scores_cannot_settle_accepted_baseline_debt(score):
+    pair = model_pair()
+    pair.new.hash, pair.existing.hash = "new-hash", "old-hash"
+    settings = Settings(judge="jev-models", escalate="none")
+    verdict = ModelJevJudge(api_key="test").verdict({name: {"noul": score} for name in MODEL_QUESTIONS}, settings)
+    report = Report.build([Finding(candidate=pair, verdict=verdict)], settings, judge="jev-models")
+    baseline = Baseline(
+        contract=contract(settings), started_at="initial", checked_at="initial", entries=[Entry.of(pair)]
+    )
+    assert baseline.cleared(report, set()) == []
+    with pytest.raises(ValueError, match="incomplete"):
+        require_complete(report)
+    with pytest.raises(ValueError, match="incomplete"):
+        baseline.advance(report)

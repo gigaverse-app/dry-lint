@@ -170,7 +170,7 @@ class Baseline(BaseModel):
         duplicated = {
             side.qualname
             for f in self.apply(report).findings
-            if f.reported
+            if f.reported or f.review_required
             for side in (f.candidate.new, f.candidate.existing)
         }
         found = []
@@ -180,7 +180,12 @@ class Baseline(BaseModel):
             finding = findings.get(entry.key)
             if removed & entry.hashes.keys() and not (entry.hashes.keys() - removed) & duplicated:
                 how = "removed"
-            elif finding is not None and finding.verdict is not None and finding.verdict.label == "separate":
+            elif (
+                finding is not None
+                and not finding.review_required
+                and finding.verdict is not None
+                and finding.verdict.label == "separate"
+            ):
                 how = "separate"
             else:
                 continue
@@ -280,10 +285,10 @@ def require_complete(report: Report) -> None:
     """An unassessed pair is unknown, never evidence of a clean required check."""
     if report.judge is None:
         raise ValueError("Strict checking requires a configured judge; supply the adopter's credentials")
-    if any(f.verdict is None or f.deferred for f in report.findings) or (
+    if any(f.verdict is None or f.deferred or f.review_required for f in report.findings) or (
         report.judging and any(s.failed or s.skipped for s in report.judging.spend)
     ):
-        raise ValueError("Judging is incomplete; restore the judge or increase its budget and rerun")
+        raise ValueError("Judging is incomplete; resolve agent review tasks or restore the judge and rerun")
 
 
 def update_readme(text: str, block: str) -> str:
