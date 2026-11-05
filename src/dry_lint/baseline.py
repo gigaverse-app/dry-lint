@@ -211,8 +211,9 @@ class Baseline(BaseModel):
 
     def card(self, repository: str, key: str) -> str:
         """
-        The repository's counter sign: what dry-lint kept out of its pull requests, live from the counter, over a band
-        of this backlog. The backlog travels in the sign's address, so it changes when a sweep rewrites the block.
+        The repository's counter sign: new duplicates kept out of its pull requests, live from the counter, beside this
+        backlog's old duplicates cleaned up and remaining. The backlog travels in the sign's address, so it changes
+        when a sweep rewrites the block.
         """
         query = {
             "key": key,
@@ -224,8 +225,8 @@ class Baseline(BaseModel):
         light = f"{COUNTER}/v1/sign.svg?{urlencode(query)}"
         dark = f"{COUNTER}/v1/sign.svg?{urlencode({'theme': 'dark', **query})}"
         alt = (
-            f"dry-lint in {repository}: duplicates kept out of its pull requests, and "
-            f"{self.count('cleaned')} of {len(self.entries)} accepted duplicate pairs cleaned up"
+            f"dry-lint in {repository}: new duplicates kept out of its pull requests, "
+            f"{self.count('cleaned')} old duplicates cleaned up, {self.count('remaining')} remaining"
         )
         return (
             '<a href="https://github.com/gigaverse-app/dry-lint"><picture>'
@@ -234,19 +235,27 @@ class Baseline(BaseModel):
         )
 
     def markdown(self, repository: str, branch: str, directory: str, key: str = "") -> str:
-        """The README block; with the repository's counter key, it opens with the repository's counter sign."""
+        """
+        The README block. With the repository's counter key it is the repository's sign, which shows the backlog, and
+        its sources; without one, a progress badge and a table of the backlog.
+        """
         repository_name(repository)
+        audit = f"https://github.com/{repository}/actions/workflows/dry-lint-audit.yml"
+        if key:
+            return (
+                f"{START}\n{self.card(repository, key)}"
+                f"[Accepted backlog]({directory}/baseline.json) · [Weekly audit]({audit})\n{END}"
+            )
         source = f"https://raw.githubusercontent.com/{repository}/{quote(branch, safe='')}/{directory}/progress.json"
         badge = f"https://img.shields.io/endpoint?url={quote(source, safe='')}"
         return (
-            f"{START}\n{self.card(repository, key) if key else ''}"
-            f"[![dry-lint cleanup progress]({badge})](https://github.com/gigaverse-app/dry-lint)\n\n"
+            f"{START}\n[![dry-lint cleanup progress]({badge})](https://github.com/gigaverse-app/dry-lint)\n\n"
             "**Cleaning up duplication with dry-lint.** CI checks new changes against the accepted backlog.\n\n"
             "| Duplicate pairs cleaned | Remaining | Dismissed |\n| ---: | ---: | ---: |\n"
             f"| {self.count('cleaned')} | {self.count('remaining')} | {self.count('dismissed')} |\n\n"
             f"[Accepted backlog]({directory}/baseline.json). Counts cover judged pairs in the configured scope, "
             "not lines of code; dismissals do not count as cleanup.\n"
-            f"[Read the audit](https://github.com/{repository}/actions/workflows/dry-lint-audit.yml) "
+            f"[Read the audit]({audit}) "
             "to choose the next refactor.\n"
             f"{END}"
         )

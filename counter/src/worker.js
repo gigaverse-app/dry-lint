@@ -5,7 +5,7 @@
  *   GET  /v1/totals[?key=]             the totals, as JSON: everyone's, or one repository's by its counter key
  *   GET  /v1/badge[?metric=&key=]      a shields.io endpoint badge: kept-out, drifted, lines, pulls, ...
  *   GET  /v1/sign.svg[?theme=dark&key=&name=&cleaned=&remaining=&dismissed=]  the README sign; `name` labels it,
- *        and a repository's own backlog counts, which dry-lint's sweep writes into its README, add a band
+ *        and with a repository's own backlog counts, which dry-lint's sweep writes into its README, it shows them
  *
  * One SQLite-backed Durable Object holds the counts: a contribution is inserted once (the repository and pull
  * request number are its key) and the running totals move only when a row is new, so a retried or repeated
