@@ -117,7 +117,7 @@ lists every option.
 default_install_hook_types: [pre-commit, prepare-commit-msg]
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: main
+    rev: v1
     hooks:
       - id: dry-lint
       - id: dry-lint-trailers  # optional: the pull request's comment counts what the hook kept out

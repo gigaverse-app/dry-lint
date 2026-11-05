@@ -15,7 +15,7 @@ behavior for comparisons. Existing unattended presets remain available.
 ```yaml
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: main
+    rev: v1
     hooks:
       - id: dry-lint
         additional_dependencies: ["dry-lint[hooks]"]

@@ -51,12 +51,11 @@ consumer does. Review include/exclude rules: defaults omit tests and migrations.
 candidate detector, not every possible semantic duplicate. Keep the initial/weekly audit budget separate from
 the per-PR budget. Reuse the verdict store between audit and update to avoid paying twice.
 
-Use `gigaverse-app/dry-lint@v1` now that v1 has launched; before v1 the Action used `@main`. Use published major
-tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.4.1`, so its
-cached hook environment changes explicitly on upgrade. Confirm the release and required capabilities exist.
-Check the installed hook version independently of the Action: a floating `@v1` can pick up new default-on
-features while an older pre-commit pin still lacks them. Upgrade that pin and exercise staged detection;
-absence of an opt-out setting alone does not prove the old release implements the feature.
+Use the `v1` major-version tag throughout adoption: `gigaverse-app/dry-lint@v1` for Actions, `rev: v1` for
+pre-commit hooks, and `@v1` for Git-based CLI installs. Do not pin dry-lint to a commit SHA or a minor/patch
+release. This keeps adopters on the supported major release without a config edit for every compatible update.
+Use published major tags for established Actions too. Exercise staged detection after setup; if an existing
+pre-commit environment still runs an older version, refresh it with `uvx pre-commit clean` and rerun the hook.
 
 ## 2. Accept the existing backlog once
 
@@ -85,7 +84,7 @@ adoption, including the trusted fork judge, and verify the Action's `models-chec
 Fork detection only uploads candidates, so do not require that output on the untrusted detection job.
 Record the model inventory and changed-model count from the report. A successful pass with zero changed
 models verifies that the pass ran; it does not certify the whole existing inventory as duplicate-free.
-Use a published release containing model review (1.4.0 or newer) for hooks. An explicit opt-out remains available
+Keep hooks on `rev: v1` alongside the Action. An explicit opt-out remains available
 through `models: false`, `--no-models`, or repository `models.enabled`, `models.hook` and `models.sticky` settings.
 
 Function and model debt have different authorities. `sweep --init` initializes function debt from a complete
@@ -123,7 +122,7 @@ default_install_hook_types: [pre-commit, prepare-commit-msg]
 default_stages: [pre-commit]
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: v1.4.1
+    rev: v1
     hooks:
       - id: dry-lint
         args: [--preset, sonnet, --baseline, .dry-lint/baseline.json]
