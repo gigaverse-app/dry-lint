@@ -201,13 +201,15 @@ function backlogSign(c, totals, scope, { cleaned, remaining, dismissed, models }
     [count(totals.functions), one(totals.functions, "FUNCTION CHECKED", "FUNCTIONS CHECKED")],
     [escape(scope.length > 34 ? `${scope.slice(0, 33)}…` : scope), "REPOSITORY"],
   ];
-  const label = escape(
+  let label = escape(
     `${scope}: ${count(kept)} new ${one(kept, "duplicate", "duplicates")} kept out of ${count(totals.pulls)} `
       + `${one(totals.pulls, "pull request", "pull requests")}, ${count(cleaned)} old `
-      + `${one(cleaned, "duplicate", "duplicates")} ${models ? "retired function pairs" : "cleaned up"}, ${count(remaining)} remaining`
-      + (models ? `; reviewed model pairs: ${models.remaining} remaining, ${models.cleaned} retired, ${models.dismissed} dismissed` : ""),
+      + `${one(cleaned, "duplicate", "duplicates")} cleaned up, ${count(remaining)} remaining`,
   );
   if (models) {
+    label = escape(`${scope}: ${count(kept)} confirmed function duplicates kept out; `
+      + `function pairs: ${count(remaining)} remaining, ${count(cleaned)} retired, ${count(dismissed)} dismissed; `
+      + `reviewed model pairs: ${count(models.remaining)} remaining, ${count(models.cleaned)} retired, ${count(models.dismissed)} dismissed`);
     const note = (retired, excluded) => `${count(retired)} retired · ${count(excluded)} dismissed`;
     return frame(c, label, `${tile(c, 236, c.accent, count(kept), "new duplicates kept out", "confirmed function findings")}
       ${tile(c, 580, LINES, count(remaining), "function pairs remaining", note(cleaned, dismissed))}
