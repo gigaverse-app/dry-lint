@@ -57,6 +57,8 @@ def judging_input(judge: Judge, candidate: Candidate) -> str:
     return input_text(candidate) if input_text else prompt(candidate, policy=getattr(judge, "prompt_policy", "concept"))
 
 
+# Average token estimates and conservative admission bounds have different guarantees; both reuse usage_cost.
+# dry-lint: distinct-from src/dry_lint/discovery.py::reservation_cost
 def estimate(judge: Judge, candidates: list[Candidate], settings: Settings) -> float | None:
     """Estimated USD at list price for asking `judge` about `candidates`, subscriptions included; None if unknown."""
     rates = price(judge, settings)
