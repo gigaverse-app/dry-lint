@@ -213,7 +213,11 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         )
         if model_debt:
             base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
-            model_report.backlog = model_debt.cleared(model_report, removed(root, model_detector, model_debt, base))
+            # The required ratchet already marks removed declarations cleaned in the proposed baseline.
+            # Credit only debt outstanding at the base, while current allowances still enforce the check.
+            target = model_review.baseline(root, settings, staged=args.staged, base=base, target=True)
+            assert target is not None  # model_debt established a configured, validated baseline
+            model_report.backlog = target.cleared(model_report, removed(root, model_detector, target, base))
         report = model_review.combine(report, model_report, model_debt)
     if (settings.discovery.enabled or args.staged) and not args.report:  # `dry-lint feedback` reviews this report
         target = last_report(root)
