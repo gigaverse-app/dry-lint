@@ -11,6 +11,10 @@ whether each pair is one concept implemented twice. **The judges and the thresho
 preset**: a threshold means something only for the judges it was measured with. Start from a preset; set fields
 explicitly only when you have a reason, and re-measure when you do.
 
+For full adoption or an adoption audit, follow the [adoption playbook](../../docs/adoption-playbook.md):
+local hooks and trailers, required PR/fork checks, cumulative ledgers, a README sign, and an audited baseline ratchet.
+Inventory what is already installed first; preserve existing debt and progress history.
+
 ## 1. See what would run
 
 ```bash

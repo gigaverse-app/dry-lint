@@ -13,12 +13,7 @@ from dry_lint.models import pair_key
 from dry_lint.report import Report
 from dry_lint.typescript import TypeScriptExtractor
 
-from conftest import Repo, clear_judge_credentials, run_cli
-
-
-@pytest.fixture(autouse=True)
-def no_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
-    clear_judge_credentials(monkeypatch)
+from conftest import Repo, run_cli
 
 
 def sweep(repo: Repo, tmp_path: Path, judge: str, *args: str) -> int:
@@ -140,15 +135,8 @@ def card(readme: str) -> list[str]:
     return re.findall(r'(?:src|srcset)="(https://dry-lint-counter[^"]+)"', readme)
 
 
-@pytest.fixture
-def actions_env(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
-    for name in ("GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID"):
-        monkeypatch.delenv(name, raising=False)
-    return monkeypatch
-
-
 def test_the_readme_block_opens_with_the_repositorys_sign_and_its_backlog(
-    repo: Repo, tmp_path: Path, twin_judge: str, actions_env: pytest.MonkeyPatch
+    repo: Repo, tmp_path: Path, twin_judge: str
 ) -> None:
     """
     INVARIANT: a repository's sign carries the long-term counts by its counter key, and this backlog's counts in its
@@ -174,19 +162,19 @@ def test_the_readme_block_opens_with_the_repositorys_sign_and_its_backlog(
 
 
 def test_actions_name_their_own_repository_and_a_local_sweep_keeps_the_sign(
-    repo: Repo, tmp_path: Path, twin_judge: str, actions_env: pytest.MonkeyPatch
+    repo: Repo, tmp_path: Path, twin_judge: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     repo.write("README.md", "# A library\n")
     args = ("--readme", "README.md", "--repository", "acme/library")
-    actions_env.setenv("GITHUB_REPOSITORY", "acme/other")
-    actions_env.setenv("GITHUB_REPOSITORY_ID", "77")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/other")
+    monkeypatch.setenv("GITHUB_REPOSITORY_ID", "77")
     assert sweep(repo, tmp_path, twin_judge, "--init", *args) == 0
     assert card((repo.root / "README.md").read_text()) == []  # another repository's id is not this one's
-    actions_env.setenv("GITHUB_REPOSITORY", "acme/library")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/library")
     assert sweep(repo, tmp_path, twin_judge, *args) == 0
     assert counter_key("77") in (repo.root / "README.md").read_text()
     for name in ("GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID"):
-        actions_env.delenv(name)
+        monkeypatch.delenv(name)
     repo.write("src/widgets/caption.py", "from src.text import shorten_text\n")
     repo.commit()
     assert sweep(repo, tmp_path, twin_judge, *args) == 0

@@ -32,7 +32,9 @@ their candidates with your secrets. Without it, fork PRs still get the local can
 Check out the PR head from the event. GitHub can refresh its synthetic merge ref with newer base-branch commits
 after the event was created. Comparing that merged checkout with the event's older base SHA can report functions
 the PR never changed. The head ref above keeps detection and source links on the same commit; push events use
-their event SHA. The separate trusted judge workflow still checks out the default branch for its settings.
+their event SHA. As a backstop, PR detection takes a temporary detached snapshot of the event head when
+the checkout differs, including the head's settings and reviewed feedback. It leaves the caller's checkout
+and index unchanged and removes the snapshot on success or failure. The separate trusted judge workflow still checks out the default branch for its settings.
 
 ## What a pull request gets
 

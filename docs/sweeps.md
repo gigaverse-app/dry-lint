@@ -88,6 +88,9 @@ Set the Action's `python-version: '3.14'` when the repository uses Python 3.14 s
 3.13, independent of the application's installed dependencies. Index publishers and consumers must use the
 same parser version; an incompatible index is rebuilt under the existing contract validation rules.
 
+For the full setup, including local hooks, PR accounting and a standing ratchet PR, use the
+[adoption playbook](adoption-playbook.md) and [audit workflow example](../examples/dry-lint-audit.yml).
+
 ## Periodic audits
 
 Use `mode: sweep`, the same judging inputs, and an explicit audit budget in a scheduled or manually dispatched

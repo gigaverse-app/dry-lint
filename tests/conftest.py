@@ -19,6 +19,14 @@ from dry_lint.store import DirectoryStore, VerdictStore
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 
 
+@pytest.fixture(autouse=True)
+def isolated_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Temporary repositories must not inherit the CI runner's unrelated PR event."""
+    clear_judge_credentials(monkeypatch)
+    for name in ("GITHUB_EVENT_PATH", "GITHUB_REPOSITORY", "GITHUB_REPOSITORY_ID"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def clear_judge_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep tests hermetic even when a developer has paid-provider credentials configured."""
     for name in ("TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"):
