@@ -8,6 +8,11 @@ on:
     - cron: '23 6 * * 1'
   workflow_dispatch:
   workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      DRY_LINT_RATCHET_TOKEN:
+        required: true
 permissions:
   contents: read
 concurrency:

@@ -223,7 +223,23 @@ record narrow exclusions only where the source and tests establish distinct cont
 commit counter can reuse a framework-free counter while retaining its connection cleanup; real-database and
 in-memory crash controls can deliberately keep different failure sites. Different filenames or backends alone
 do not justify a dismissal. Report how much of the retired backlog came from actual refactoring and how much
-from pairs now judged separate; the library counts both as cleaned, so that total is not a refactor count. Rerun with the saved verdicts; do not reinitialize the baseline or raise thresholds.
+from pairs now judged separate; the library counts both as cleaned, so that total is not a refactor count.
+Rerun with the saved verdicts; do not reinitialize a merged baseline or raise thresholds.
+
+### Calibrate a new baseline before its first merge
+
+Independent cold judge runs can move an unchanged historical pair across the blocking threshold. While a
+function baseline is still new and unmerged, an adopter may explicitly review those additional pairs into
+the initial inventory. First prove the target branch has no function baseline and both implementations,
+their logic hashes and relevant context predate the adoption change. Keep the detection/judging policy fixed.
+Inspect each additional pair: record an exact source-bound dismissal for independent contracts; retain
+genuine or still-unresolved consolidation candidates as visible debt with a review reason. Preserve the
+previously accepted pairs and original adoption revision. Report additions and dismissals separately, and
+verify that a new or changed copy still fails. This is initial inventory calibration, not cleanup credit.
+
+Once the baseline is on the target branch, its accepted pair set is immutable. A new cold finding then
+requires a repair or a justified dismissal; it cannot grow the baseline. Existing model baselines remain
+immutable during function adoption, and initial model debt still requires explicit source-reviewed positives.
 
 To clean debt, select a pair from the audit, inspect both contracts, consolidate, run the affected tests, then run:
 
@@ -257,10 +273,15 @@ jobs:
   audit:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/dry-lint-audit.yml
-    secrets: inherit
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      DRY_LINT_RATCHET_TOKEN: ${{ secrets.DRY_LINT_RATCHET_TOKEN }}
 ```
 
-Preserve the caller's existing jobs and permissions. The caller must allow the audit's `contents: read` permission;
+Pass only the declared secrets, using the adopter's judge credential if it uses a different preset. For an
+audit-only manual run, add a boolean dispatch input and gate the audit and ordinary manual validation separately;
+leave pull-request and push validation unchanged. Preserve the caller's existing jobs and permissions.
+The caller must allow the audit's `contents: read` permission;
 the ratchet token supplies the write access. The checkout and ratchet PR target the dispatched branch, so review
 and incorporate that metadata into the adoption PR. If no registered workflow can call it yet, record the audit
 as awaiting its first post-merge dispatch. Scheduled runs only start after the workflow reaches the default branch.

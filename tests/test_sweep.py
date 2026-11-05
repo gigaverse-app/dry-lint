@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from dry_lint.baseline import Baseline
+from dry_lint.cli import main
 from dry_lint.extractors import PythonExtractor
 from dry_lint.functions import repository_functions
 from dry_lint.ledger import COUNTER, counter_key
@@ -99,6 +100,44 @@ def test_suppression_is_dismissal_not_cleanup(repo: Repo, tmp_path: Path, twin_j
     repo.commit()
     assert sweep(repo, tmp_path, twin_judge) == 0
     assert state(repo)["entries"][0]["state"] == "dismissed"
+
+
+def test_sweep_honors_only_committed_exact_source_feedback(repo: Repo, tmp_path: Path, twin_judge: str) -> None:
+    report_path = tmp_path / "review.json"
+    assert sweep(repo, tmp_path, twin_judge, "--init", "--report", str(report_path)) == 0
+    report = Report.model_validate_json(report_path.read_bytes())
+    pair = next(f.candidate.key for f in report.findings if f.blocking)
+    assert (
+        main(
+            [
+                "feedback",
+                "dismiss",
+                pair,
+                "--root",
+                str(repo.root),
+                "--from",
+                str(report_path),
+                "--reason",
+                "Independently owned wire contracts verified at callers",
+                "--reviewer",
+                "source-review",
+            ]
+        )
+        == 0
+    )
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    assert state(repo)["entries"][0]["state"] == "remaining"  # Uncommitted feedback cannot settle committed code.
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    assert state(repo)["entries"][0]["state"] == "dismissed"
+    settled = state(repo)
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    assert state(repo) == settled
+    path = repo.root / "src/widgets/caption.py"
+    path.write_text(path.read_text().replace("max_len - 1", "max_len - 2"))
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge) == 1  # A stale dismissal cannot hide changed evidence.
+    assert state(repo) == settled
 
 
 @pytest.mark.parametrize("command", ["check", "sweep"])
