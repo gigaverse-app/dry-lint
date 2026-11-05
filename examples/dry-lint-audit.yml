@@ -38,6 +38,7 @@ jobs:
       # The function sweep does not audit models. Preserve the complete candidate inventory for source review;
       # an atomic score must never accept or dismiss a model pair on the adopter's behalf.
       - name: Export model candidates for ownership review
+        if: ${{ !cancelled() }}
         run: |
           dry-lint detect --all --out "$RUNNER_TEMP/dry-lint/candidates.json"
           dry-lint judge --candidates "$RUNNER_TEMP/dry-lint/candidates.json" --judge none \

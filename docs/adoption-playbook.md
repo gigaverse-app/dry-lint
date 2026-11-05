@@ -255,7 +255,9 @@ must leave the metadata unchanged. A dismissed false positive belongs in code/co
 For model adopters, the scheduled audit also exports the full model inventory for source review and runs
 `model-baseline --update` when a reviewed model baseline exists. Add only `.dry-lint/models.json` to the
 ratchet's metadata paths. Automated audits must never accept models or generate dismissals. Retain the
-model report as an artifact, including unresolved lower-ranked candidates. `sweep` audits functions only;
+model report as an artifact, including unresolved lower-ranked candidates. Run model export with
+`if: ${{ !cancelled() }}` so a failed function sweep still leaves model review evidence; keep metadata
+updates gated on overall success. `sweep` audits functions only;
 its successful exit does not prove models were reviewed. Model cleanup uses source removal or an exact
 reviewed dismissal, never an atomic negative score. Keep function README totals and model debt counts
 separate, and rerun both inventories after consolidation to discover newly exposed opportunities.
