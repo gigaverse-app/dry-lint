@@ -4,14 +4,17 @@ The allowance is an exact pair and its logic hashes, never a numeric budget. Rem
 allowances cannot be spent on different pairs or used to reintroduce cleaned code.
 """
 
+import html
+import re
 from pathlib import Path
 from typing import Literal
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from dry_lint.detector import Detector
 from dry_lint.function_index import digest, repository_name
+from dry_lint.ledger import COUNTER
 from dry_lint.models import Candidate, Function, pair_key
 from dry_lint.report import BacklogCleanup, Report
 from dry_lint.settings import Settings
@@ -206,12 +209,38 @@ class Baseline(BaseModel):
             "message": f"{self.count('cleaned')} cleaned · {self.count('remaining')} remaining",
         }
 
-    def markdown(self, repository: str, branch: str, directory: str) -> str:
+    def card(self, repository: str, key: str) -> str:
+        """
+        The repository's counter sign: what dry-lint kept out of its pull requests, live from the counter, over a band
+        of this backlog. The backlog travels in the sign's address, so it changes when a sweep rewrites the block.
+        """
+        query = {
+            "key": key,
+            "name": repository,
+            "cleaned": self.count("cleaned"),
+            "remaining": self.count("remaining"),
+            "dismissed": self.count("dismissed"),
+        }
+        light = f"{COUNTER}/v1/sign.svg?{urlencode(query)}"
+        dark = f"{COUNTER}/v1/sign.svg?{urlencode({'theme': 'dark', **query})}"
+        alt = (
+            f"dry-lint in {repository}: duplicates kept out of its pull requests, and "
+            f"{self.count('cleaned')} of {len(self.entries)} accepted duplicate pairs cleaned up"
+        )
+        return (
+            '<a href="https://github.com/gigaverse-app/dry-lint"><picture>'
+            f'<source media="(prefers-color-scheme: dark)" srcset="{html.escape(dark)}">'
+            f'<img alt="{html.escape(alt)}" src="{html.escape(light)}" width="100%"></picture></a>\n\n'
+        )
+
+    def markdown(self, repository: str, branch: str, directory: str, key: str = "") -> str:
+        """The README block; with the repository's counter key, it opens with the repository's counter sign."""
         repository_name(repository)
         source = f"https://raw.githubusercontent.com/{repository}/{quote(branch, safe='')}/{directory}/progress.json"
         badge = f"https://img.shields.io/endpoint?url={quote(source, safe='')}"
         return (
-            f"{START}\n[![dry-lint cleanup progress]({badge})](https://github.com/gigaverse-app/dry-lint)\n\n"
+            f"{START}\n{self.card(repository, key) if key else ''}"
+            f"[![dry-lint cleanup progress]({badge})](https://github.com/gigaverse-app/dry-lint)\n\n"
             "**Cleaning up duplication with dry-lint.** CI checks new changes against the accepted backlog.\n\n"
             "| Duplicate pairs cleaned | Remaining | Dismissed |\n| ---: | ---: | ---: |\n"
             f"| {self.count('cleaned')} | {self.count('remaining')} | {self.count('dismissed')} |\n\n"
@@ -221,6 +250,13 @@ class Baseline(BaseModel):
             "to choose the next refactor.\n"
             f"{END}"
         )
+
+
+def readme_key(text: str) -> str:
+    """The counter key of a sign already in a README's block, so a sweep that cannot look it up keeps the sign."""
+    block = text[text.index(START) : text.index(END)] if START in text and END in text else ""
+    found = re.search(r"/v1/sign\.svg\?[^\"\s]*?\bkey=([0-9a-f]{64})", block)
+    return found.group(1) if found else ""
 
 
 def require_complete(report: Report) -> None:

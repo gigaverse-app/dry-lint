@@ -85,6 +85,21 @@ export function scope(params) {
   return { key, label: (params.get("name") ?? "").slice(0, 100) || "this repository" };
 }
 
+/**
+ * A repository's own backlog of accepted duplicates, as its README passes it: dry-lint's sweep writes the counts
+ * of its baseline into the sign's address whenever they change. Null when the address carries none. They are the
+ * repository's statement about itself, like `name`, and never reach the counter's totals.
+ */
+export function backlog(params) {
+  if (!["cleaned", "remaining", "dismissed"].some((name) => params.has(name))) return null;
+  const read = (name) => {
+    const value = params.get(name) ?? "0";
+    if (!/^\d{1,7}$/.test(value)) throw new Invalid(`${name} must be a whole number of pairs`);
+    return Number(value);
+  };
+  return { cleaned: read("cleaned"), remaining: read("remaining"), dismissed: read("dismissed") };
+}
+
 export function count(value) {
   return Math.round(value).toLocaleString("en-US");
 }
@@ -167,12 +182,26 @@ function tile(c, x, color, value, label, note) {
   ${text(x + 28, 170, 14, 400, c.muted, note)}`;
 }
 
+/** The backlog band: how much of the duplication accepted at adoption has been cleaned up since. */
+function band(c, top, { cleaned, remaining, dismissed }) {
+  const accepted = cleaned + remaining + dismissed;
+  // At least the bar's rounded ends, so one cleaned pair out of many still shows.
+  const filled = accepted && cleaned ? Math.max(16, Math.round((1040 * cleaned) / accepted)) : 0;
+  const one = (n, singular, many) => (n === 1 ? singular : many);
+  return `<line x1="1" y1="${top}" x2="1279" y2="${top}" stroke="${c.border}" stroke-width="2"/>
+  ${text(40, top + 42, 26, 800, c.text, `${count(cleaned)} of ${count(accepted)}`)}
+  ${text(40, top + 66, 12, 700, c.muted, "BACKLOG CLEANED", ' letter-spacing="1.2"')}
+  <rect x="200" y="${top + 26}" width="1040" height="16" rx="8" fill="${c.rule}"/>
+  ${filled ? `<rect x="200" y="${top + 26}" width="${filled}" height="16" rx="8" fill="${LINES}"/>` : ""}
+  ${text(200, top + 66, 14, 400, c.muted, `${percent(cleaned, accepted)} of the ${count(accepted)} duplicate ${one(accepted, "pair", "pairs")} accepted at adoption cleaned up · ${count(remaining)} remaining · ${count(dismissed)} dismissed as different`)}`;
+}
+
 /**
  * The sign: what dry-lint kept out of codebases, in three tiles, over a strip of what it checked to get there. For
  * a README, in a <picture> by theme; it scales to any width. `scope` is "" for every repository, or how a
  * repository's own sign names it, in the strip.
  */
-export function sign(totals, theme = "light", scope = "") {
+export function sign(totals, theme = "light", scope = "", accepted = null) {
   const c = THEMES[theme] ?? THEMES.light;
   const kept = totals.kept_out, drifted = totals.drifted_kept_out ?? 0, lines = totals.lines_kept_out ?? 0;
   const rewrites = totals.rewrites_kept_out ?? 0, reused = totals.reused ?? 0, pairs = totals.pairs ?? 0;
@@ -207,15 +236,19 @@ export function sign(totals, theme = "light", scope = "") {
       `${count(lines)} duplicate ${one(lines, "line", "lines")} never merged`,
     ] : []),
     `across ${count(totals.pulls)} ${one(totals.pulls, "pull request", "pull requests")}`,
+    ...(accepted ? [`${count(accepted.cleaned)} of ${count(accepted.cleaned + accepted.remaining + accepted.dismissed)} `
+      + `accepted duplicate pairs cleaned up, ${count(accepted.remaining)} remaining`] : []),
   ].join(", "));
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="330" viewBox="0 0 1280 330" role="img" aria-label="${label}">
+  // The card grows by the backlog band when the repository passes one; the strip then no longer closes it.
+  const height = accepted ? 420 : 330;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="${height}" viewBox="0 0 1280 ${height}" role="img" aria-label="${label}">
   <title>${label}</title>
   <defs>
     <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.background}"/><stop offset="1" stop-color="${c.wash}"/></linearGradient>
-    <clipPath id="card"><rect x="1" y="1" width="1278" height="328" rx="22"/></clipPath>
+    <clipPath id="card"><rect x="1" y="1" width="1278" height="${height - 2}" rx="22"/></clipPath>
   </defs>
-  <rect x="1" y="1" width="1278" height="328" rx="22" fill="${c.background}"/>
-  <rect x="1" y="1" width="1278" height="328" rx="22" fill="url(#wash)"/>
+  <rect x="1" y="1" width="1278" height="${height - 2}" rx="22" fill="${c.background}"/>
+  <rect x="1" y="1" width="1278" height="${height - 2}" rx="22" fill="url(#wash)"/>
   <circle cx="122" cy="120" r="92" fill="${c.accent}" opacity="0.14"/>
   <image href="${LINT}" x="34" y="32" width="176" height="176"/>
   ${tile(c, 236, c.accent, lead === "OVER" ? `${number}+` : number, one(kept, "duplicate kept out", "duplicates kept out"),
@@ -227,7 +260,8 @@ export function sign(totals, theme = "light", scope = "") {
   <rect x="1" y="236" width="1278" height="93" fill="${c.strip}" clip-path="url(#card)"/>
   <line x1="1" y1="236" x2="1279" y2="236" stroke="${c.border}" stroke-width="2"/>
   ${cells.join("\n  ")}
-  <rect x="1" y="1" width="1278" height="328" rx="22" fill="none" stroke="${c.border}" stroke-width="2"/>
+  ${accepted ? band(c, 330, accepted) : ""}
+  <rect x="1" y="1" width="1278" height="${height - 2}" rx="22" fill="none" stroke="${c.border}" stroke-width="2"/>
 </svg>
 `;
 }

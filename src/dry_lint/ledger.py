@@ -450,6 +450,10 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
     return "\n".join([*lines, ledger.snapshot()])
 
 
+#: The global counter: its totals, badges and README signs.
+COUNTER = "https://dry-lint-counter.gigaverse-oss.workers.dev"
+
+
 def counter_key(repository_id: str) -> str:
     """
     The global counter's name for a repository: the SHA-256 of its numeric GitHub id, never of its name. It is
