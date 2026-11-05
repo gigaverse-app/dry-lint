@@ -12,6 +12,8 @@ The budget is for a pull request, across all its pushes: what earlier runs on th
 from the verdict store (`VerdictStore.spent`), and a run without a pull request has the whole budget to itself.
 """
 
+from collections.abc import Mapping
+
 from pydantic import BaseModel, Field
 
 from dry_lint.judges.command import prompt
@@ -34,7 +36,7 @@ ANSWER_TOKENS = 150  # measured: Sonnet 5.5's answers (thinking included) were 1
 ANSWERS: dict[str, int] = {"claude-opus-5-5": 220}  # measured: Opus 5.5's were 217 on average, p90 390
 
 
-def usage_cost(tokens: dict[str, int], rates: tuple[float, float]) -> float:
+def usage_cost(tokens: Mapping[str, int | float], rates: tuple[float, float]) -> float:
     """Provider usage at the configured price, including Anthropic's cache write/read tiers."""
     return (
         tokens.get("input", 0) * rates[0]
@@ -62,7 +64,7 @@ def estimate(judge: Judge, candidates: list[Candidate], settings: Settings) -> f
         return None
     tokens = sum(len(judging_input(judge, c)) for c in candidates) / CHARS_PER_TOKEN
     answer = ANSWERS.get(getattr(judge, "model", "") or "", ANSWER_TOKENS)
-    return (tokens * rates[0] + len(candidates) * answer * rates[1]) / 1_000_000
+    return usage_cost({"input": tokens, "output": len(candidates) * answer}, rates)
 
 
 class Spend(BaseModel):

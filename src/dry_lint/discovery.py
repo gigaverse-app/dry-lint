@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from dry_lint.costs import judging_input, price
+from dry_lint.costs import judging_input, price, usage_cost
 from dry_lint.models import Candidate, Run, evidence
 from dry_lint.plugins import Judge, identity
 from dry_lint.settings import Settings
@@ -154,4 +154,4 @@ def reservation_cost(judge: Judge, candidate: Candidate, settings: Settings) -> 
         raise ValueError("Discovery needs a priced judge with a maximum output token limit")
     # Conservative input estimate plus the actual configured output ceiling; actual usage settles the charge.
     text = judging_input(judge, candidate)
-    return ((len(text.encode("utf-8")) + 1024) * rates[0] + (maximum or 0) * rates[1]) / 1_000_000
+    return usage_cost({"input": len(text.encode("utf-8")) + 1024, "output": maximum or 0}, rates)

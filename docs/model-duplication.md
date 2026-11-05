@@ -223,6 +223,7 @@ review slot but do not count as useful. Families group positive edges sharing a 
 | Ranking on the same 54 pairs, higher is better | Useful in first 8 / families | Useful in first 16 / families | Average precision |
 | --- | ---: | ---: | ---: |
 | Mechanical Dice | 1 / 1 | 1 / 1 | 0.222 |
+| Mechanical field TF-IDF | 1 / 1 | 1 / 1 | 0.210 |
 | Jev declarations | 6 / 6 | 9 / 8 | 0.758 |
 | Jev with same-file context | 4 / 4 | 8 / 8 | 0.618 |
 

@@ -13,7 +13,7 @@ from dry_lint.judging import Judging
 from dry_lint.model_shapes import PythonModelExtractor
 from dry_lint.models import Candidate, Run
 from dry_lint.policies import PairPolicy
-from dry_lint.report import Report, as_text
+from dry_lint.report import Report, as_markdown, as_text
 from dry_lint.settings import PluginChoice, Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
@@ -63,13 +63,14 @@ def test_model_scores_remain_review_tasks_and_cache_preserves_the_facts(tmp_path
     run = Run(session="models", revision="tree")
     judging.campaign = CampaignStore(tmp_path / "campaign.sqlite3", run)
     found = judging.findings([pair], run)
-    report = Report.build(found, settings)
+    report = Report.build(found, settings, judge=judging.name)
     assert len(report.review_required) == 1
     assert report.findings[0].reported is False
     assert report.findings[0].verdict.score == score
     assert report.findings[0].verdict.model_assessment.policy_requires_separate_owners == 0.8
     assert "prompt-domain" in as_text(report)
     assert "resolve nested types" in as_text(report)
+    assert "below the report threshold" not in as_markdown(report)
     assert "source_context" not in requests[0]["state"]["new_model"]
     assert requests[0]["state"]["adopter_policies"][0]["name"] == "prompt-domain"
     assert judging.campaign.snapshot().usd == pytest.approx(0.000048)

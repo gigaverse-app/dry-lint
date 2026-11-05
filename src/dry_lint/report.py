@@ -432,7 +432,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
     at a glance; one row per pair says where and what to do; the folds hold the reasons and the ways out.
     """
     audit, stats, shown = report.repository_wide, report.stats, report.visible
-    below = sum(f.verdict is not None and not f.reported and not f.deferred for f in report.findings)
+    below = sum(f.verdict is not None and not f.reported and not f.review_required for f in report.findings)
     coverage = " · ".join(part for part in (
         "" if audit else plural(stats["changed"], "changed function"),
         f"{plural(stats['candidates'], 'pair')} compared",
