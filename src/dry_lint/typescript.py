@@ -245,7 +245,7 @@ def forwarding_method(node: Node, code: Node, body: Node) -> str | None:
         param.child_by_field_name("value") is not None for param in parameters.named_children
     ):
         return None
-    names = (
+    names: set[str] = (
         {
             text(pattern)
             for param in parameters.named_children
