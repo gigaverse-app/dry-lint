@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/gigaverse-app/dry-lint/compare/v1.3.0...v1.3.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **baseline:** accept pre-context entries on their unchanged functions ([c26cdc8](https://github.com/gigaverse-app/dry-lint/commit/c26cdc8a6e725b66767aea8231fd05bf4165cf78))
+* **baseline:** accept pre-context entries on their unchanged functions ([6fcdcbc](https://github.com/gigaverse-app/dry-lint/commit/6fcdcbc0e6d395f8521b328ad09fbe57b5c9da6d))
+
 ## [1.3.0](https://github.com/gigaverse-app/dry-lint/compare/v1.2.1...v1.3.0) (2026-11-05)
 
 
