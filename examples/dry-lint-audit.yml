@@ -47,16 +47,13 @@ jobs:
             echo "::error::Configure the adopter-owned DRY_LINT_RATCHET_TOKEN with contents and pull-request write access."
             exit 1
           fi
-      - uses: astral-sh/setup-uv@v7
       # The Action's sweep mode only audits. The CLI records the ratchet, reusing the verdicts the audit just stored,
-      # so it judges nothing again. It writes nothing unless a pair changed state.
+      # and the exact CLI environment installed by the Action. No second install or judge-version drift.
       - name: Record cleaned pairs
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          uvx --no-config --python 3.13 --with anthropic==2.4.0 \
-            --from 'dry-lint[anthropic] @ git+https://github.com/gigaverse-app/dry-lint@v1' \
-            dry-lint sweep --update --store "$RUNNER_TEMP/dry-lint/verdicts" --budget-usd 5 \
+          dry-lint sweep --update --store "$RUNNER_TEMP/dry-lint/verdicts" --budget-usd 5 \
             --readme README.md --repository "$GITHUB_REPOSITORY" --branch main
       # One standing branch: a later run updates the open ratchet PR instead of stacking another. The adopter-owned
       # credential makes the PR run ordinary CI, including the required dry-lint check that refuses any widening.

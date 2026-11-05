@@ -159,7 +159,9 @@ Private repositories need a separately published aggregate endpoint for a public
 ## 6. Close the weekly ratchet loop
 
 Use [the audit workflow](../examples/dry-lint-audit.yml). The Action's `mode: sweep` is read-only; a later CLI
-`sweep --update` records the result using the same store. The workflow opens/updates one `dry-lint/ratchet` branch
+`sweep --update` records the result using the same store and the CLI already installed by the Action.
+Do not resolve/install the moving Action ref again between those steps: a different version can invalidate cached
+judgments or change the baseline contract. The workflow opens/updates one `dry-lint/ratchet` branch
 containing only baseline, progress JSON and README changes. No application code is automatically refactored.
 
 Configure an adopter-owned GitHub App token or fine-grained token with repository contents/PR write permission
