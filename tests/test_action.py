@@ -1256,7 +1256,7 @@ def test_a_baselined_pull_request_that_removes_accepted_debt_is_credited_in_its_
     assert ledger is not None and ledger.count("kept-out") == 0 and len(ledger.backlog) == 1
 
 
-def test_budget_exhaustion_publishes_an_agent_review_task(repo: Repo, github_env) -> None:
+def test_budget_exhaustion_publishes_a_nonblocking_agent_review_task(repo: Repo, github_env) -> None:
     github_env(
         "pull_request",
         pr_event(repo),
@@ -1266,7 +1266,7 @@ def test_budget_exhaustion_publishes_an_agent_review_task(repo: Repo, github_env
         budget_usd="0",
     )
     github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
-    assert action.main(["run"], transport=httpx.MockTransport(github)) == 1
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     comment = github.stickies()[0]
     assert "review required" in comment and "coding agent" in comment
     assert "distinct-from" in comment and "src/widgets/caption.py" in comment
@@ -1302,7 +1302,11 @@ def test_advisory_findings_are_visible_warnings_in_logs_and_summary(
     assert "::warning file=" in output
     assert "::error" not in output
     summary = (tmp_path / "summary").read_text()
-    assert ("**Advisory mode:**" if advisory == "warn-only" else "**Overridden:**") in summary
+    if kind == "budget":
+        assert "**Overridden:**" not in summary
+        assert "deferred" in summary
+    else:
+        assert ("**Advisory mode:**" if advisory == "warn-only" else "**Overridden:**") in summary
     assert "**Blocking:**" not in summary
     assert int(outputs(tmp_path)["findings"]) > 0
 

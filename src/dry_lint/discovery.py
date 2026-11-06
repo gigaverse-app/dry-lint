@@ -5,6 +5,7 @@ import sqlite3
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -76,7 +77,9 @@ class CampaignStore:
                 state.revisions.append(self.revision)
                 state.credit = min(cap, state.credit + settings.discovery.exploration_per_revision)
 
-    def reserve(self, candidate: Candidate, judge: Judge, settings: Settings, usd: float) -> int | None:
+    def reserve(
+        self, candidate: Candidate, judge: Judge, settings: Settings, usd: float
+    ) -> int | Literal["budget"] | None:
         policy = settings.discovery
         version = evidence(candidate, identity(judge))
         with self.transaction() as state:
@@ -101,7 +104,7 @@ class CampaignStore:
                 # Exploration cannot borrow the capacity reserved for future baseline evidence.
                 room = min(room, exploration_cap - sum(a.usd for a in explored), state.credit)
             if usd > room + 1e-12:
-                return None
+                return "budget"
             state.attempts.append(
                 Attempt(
                     revision=self.revision, evidence=version, lane=candidate.lane, query=candidate.new.qualname, usd=usd

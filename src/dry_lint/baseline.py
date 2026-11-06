@@ -348,12 +348,17 @@ def readme_key(text: str) -> str:
     return found.group(1) if found else ""
 
 
-def require_complete(report: Report) -> None:
+def require_complete(report: Report, *, check: bool = False, allow_review_tasks: bool = False) -> None:
     """An unassessed pair is unknown, never evidence of a clean required check."""
     if report.judge is None:
         raise ValueError("Strict checking requires a configured judge; supply the adopter's credentials")
-    if any(f.verdict is None or f.deferred or f.review_required for f in report.findings) or (
-        report.judging and any(s.failed or s.skipped for s in report.judging.spend)
+    unresolved = (
+        f
+        for f in report.findings
+        if not (check and f.budget_deferred) and not (allow_review_tasks and f.review_required)
+    )
+    if any(f.verdict is None or f.deferred or f.review_required for f in unresolved) or (
+        report.judging and any(s.failed or (s.skipped and not check) for s in report.judging.spend)
     ):
         raise ValueError("Judging is incomplete; resolve agent review tasks or restore the judge and rerun")
 

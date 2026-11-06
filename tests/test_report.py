@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from dry_lint.baseline import Baseline, require_complete
 from dry_lint.costs import Spend
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.report import (
@@ -365,7 +366,7 @@ def test_the_status_note_has_a_slot_between_the_result_and_the_evidence() -> Non
 def test_json_report_round_trips() -> None:
     built = report(finding("duplicate", existing="a"), finding("separate", existing="b"))
     loaded = Report.model_validate_json(render(built, "json", SETTINGS))
-    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 12
+    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 13
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:
@@ -561,3 +562,19 @@ def test_budget_deferred_pairs_are_actionable_review_tasks_not_clean_or_confirme
     assert check["conclusion"] == "failure"
     assert "review required" in check["output"]["title"]
     assert check["output"]["annotations"][0]["path"] == NEW.path
+
+
+def test_spending_cap_warns_without_clearing_other_findings_or_advancing_debt() -> None:
+    capped = finding(None).model_copy(update={"deferred": True, "budget_deferred": True})
+    built = report(capped)
+    require_complete(built, check=True)
+    assert not built.findings[0].blocking and built.findings[0].review_required
+    assert json.loads(as_check_run(built))["conclusion"] == "neutral"
+    with pytest.raises(ValueError, match="incomplete"):
+        Baseline.start(built, SETTINGS)
+
+    duplicate = finding("duplicate", 1, existing="confirmed")
+    assert json.loads(as_check_run(report(capped, duplicate)))["conclusion"] == "failure"
+    built.judging = JudgingSummary(spend=[Spend(judge="jev", failed=1, skipped=1)])
+    with pytest.raises(ValueError, match="incomplete"):
+        require_complete(built, check=True, allow_review_tasks=True)

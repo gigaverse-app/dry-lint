@@ -180,7 +180,8 @@ comment-on-clean: 'true'
 
 Name the untrusted fork job `dry-lint detect` and the judged check `dry-lint`. Configure the branch rule to require
 the latter from GitHub Actions. Fork judgment consumes artifacts with trusted default-branch settings; never run
-fork code with judge credentials. Baseline enforcement rejects widening, incomplete judging and warn-only bypasses;
+fork code with judge credentials. A PR can report a spending-cap warning against an existing baseline.
+Baseline enforcement rejects widening, judge failures and warn-only bypasses;
 the override label cannot waive it.
 
 Keep the `push` trigger on the actual default branch. Copy the example's concurrency policy: cancel superseded PR

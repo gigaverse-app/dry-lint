@@ -85,7 +85,7 @@ def test_atomic_reservations_and_abandoned_calls_stay_charged(setup, tmp_path):
 
     with ThreadPoolExecutor(4) as pool:
         reservations = list(pool.map(reserve, range(4)))
-    assert sum(r is not None for r in reservations) == 1
+    assert reservations.count(0) == 1 and reservations.count("budget") == 3
     # Reopening the DB after an abandoned provider call cannot reset its reservation.
     assert CampaignStore(path, run).snapshot().usd == 0.003
     assert CampaignStore(path, Run(session="another", revision="tree")).snapshot().usd == 0
@@ -326,3 +326,12 @@ def test_split_cli_carries_baseline_lanes_and_reuses_campaign(repo, setup, tmp_p
             )
             == 2
         )
+
+
+def test_spending_cap_leaves_baseline_and_waiting_exploration_advisory(setup, tmp_path):
+    settings, _, _, calls = setup
+    settings.budget.usd = 0
+    pairs = [coverage_pair(1), coverage_pair(2).model_copy(update={"lane": "exploration"})]
+    report, _ = check(setup, tmp_path, pairs)
+    assert len(report.findings) == 2 and not calls
+    assert all(f.budget_deferred and not f.blocking for f in report.findings)

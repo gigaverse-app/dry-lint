@@ -65,9 +65,10 @@ Budget changes and human pattern decisions do not change that detection contract
     require-complete: 'true'
 ```
 
-`baseline` implies complete judging. Missing credentials, skipped/deferred judgments and failed escalation
-fail with exit 2. New blocking duplicates exit 1. Accepted unchanged debt exits 0. The normal unbaselined,
-non-strict candidate-only mode retains its existing behavior.
+On a PR, the spending cap leaves unassessed pairs visible as warnings. The check exits 0 when those
+warnings are its only findings, including with `--baseline` and `--require-complete`.
+New blocking duplicates exit 1. Missing judge credentials or failed escalation still fail strict checks.
+Initializing or advancing the baseline requires complete evidence, including for budget-deferred pairs.
 
 Baseline enforcement rejects `--warn-only` and ignores the override label. Deliberate distinct concepts must
 be documented using the existing inline/pattern decisions, rather than widening an allowance.
