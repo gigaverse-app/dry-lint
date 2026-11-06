@@ -1,0 +1,312 @@
+{
+  "schema": 1,
+  "scope_kind": "full pinned supported-language diagnostic corpus; excludes only migrations",
+  "settings_origin": "explicit diagnostic settings; not adopter configured scope",
+  "backgrounds": [
+    {
+      "repository": "pingdotgg/t3code",
+      "revision": "ac0d1f52a087c63819b2b032ac4535d18d3c23af",
+      "path": "backgrounds/t3code/ac0d1f52a087c63819b2b032ac4535d18d3c23af.json.gz",
+      "sha256": "9152f296e32b80293db3a3d36a058a7cd1504a726821f65f5c320289e5cd7346",
+      "compressed_bytes": 248916,
+      "functions": 1597,
+      "tokens": 6999,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "python_version": "3.14.4",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "max_df": 0.3,
+      "source_inventory": "backgrounds/t3code/ac0d1f52a087c63819b2b032ac4535d18d3c23af.sources.json",
+      "source_inventory_sha256": "b79ce337224da8789f8fd1d3fe1ae812d6cdb0eb350c9d99d45d84216110fde2",
+      "source_files": 409,
+      "source_bytes": 3264220,
+      "gold_sources": [
+        {
+          "id": "apps/web/src/components/PlanSidebar.tsx::PlanSidebar.handleCopyPlan and timer cleanup",
+          "source_id": "apps/web/src/components/PlanSidebar.tsx::PlanSidebar",
+          "source_sha256": "7f142659272ca1ea2f00c92ff1709e32eedffa52a462f06edce854e53e2d93a5",
+          "snippet_sha256": "05d1a5ef955eeca35b250e914713323dcfa97d84a5f7a66e8348fc27e6a5a320",
+          "start_line": 71,
+          "end_line": 99
+        },
+        {
+          "id": "apps/web/src/components/chat/MessageCopyButton.tsx::MessageCopyButton.handleCopy",
+          "source_id": "apps/web/src/components/chat/MessageCopyButton.tsx::MessageCopyButton",
+          "source_sha256": "51c989f83aa4f125ec371438073cdbee96e57855fd913b09b3822dca38efed85",
+          "snippet_sha256": "a59192e75e6011620bc3487b72d9227f508dd42869946e00ec05a887f00efa38",
+          "start_line": 6,
+          "end_line": 13
+        },
+        {
+          "id": "apps/web/src/components/PlanSidebar.tsx::handleCopyPlan",
+          "source_id": "apps/web/src/components/PlanSidebar.tsx::PlanSidebar",
+          "source_sha256": "7f142659272ca1ea2f00c92ff1709e32eedffa52a462f06edce854e53e2d93a5",
+          "snippet_sha256": "337a1dc7830b5bde35f9e323e7e6de2c880ec59f0c9a1777f945d4c2d91c7038",
+          "start_line": 78,
+          "end_line": 99
+        },
+        {
+          "id": "apps/web/src/components/PlanSidebar.tsx::handleDownload",
+          "source_id": "apps/web/src/components/PlanSidebar.tsx::PlanSidebar",
+          "source_sha256": "7f142659272ca1ea2f00c92ff1709e32eedffa52a462f06edce854e53e2d93a5",
+          "snippet_sha256": "7ab0495124103c5cc3da0fc26fe2572eb92c4fc5b2aa8586889fe052a0013658",
+          "start_line": 101,
+          "end_line": 105
+        }
+      ],
+      "role": "active panel"
+    },
+    {
+      "repository": "pingdotgg/t3code",
+      "revision": "876bbd715ae6aa8e1d663455747e17c92e0a287c",
+      "path": "backgrounds/t3code/876bbd715ae6aa8e1d663455747e17c92e0a287c.json.gz",
+      "sha256": "1269484b895f0e3a46dffb7b9c4f5bb72effbd499a7e1aa2d3f1fb23ba8897ce",
+      "compressed_bytes": 249343,
+      "functions": 1601,
+      "tokens": 7010,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "python_version": "3.14.4",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "max_df": 0.3,
+      "source_inventory": "backgrounds/t3code/876bbd715ae6aa8e1d663455747e17c92e0a287c.sources.json",
+      "source_inventory_sha256": "26736195433f2041abd0484f33d3f0d281f38234fba6104544aab21eb4934df2",
+      "source_files": 410,
+      "source_bytes": 3267274,
+      "gold_sources": [
+        {
+          "id": "apps/web/src/components/PlanSidebar.tsx::PlanSidebar.handleCopyPlan",
+          "source_id": "apps/web/src/components/PlanSidebar.tsx::PlanSidebar",
+          "source_sha256": "f238c8a374e7408586bc382108ace61a60800b7d80d1c71b35c6cf2b3b37d9fe",
+          "snippet_sha256": "93e85963add5f784f95d6ea4519e9b48357b19c44608e3b5d0e7214556177e24",
+          "start_line": 72,
+          "end_line": 81
+        },
+        {
+          "id": "apps/web/src/components/chat/MessageCopyButton.tsx::MessageCopyButton",
+          "source_id": "apps/web/src/components/chat/MessageCopyButton.tsx::MessageCopyButton",
+          "source_sha256": "142d31f1c66101d3691b4a01ca698ac8f1b12be35bd79479149bdadb60b980f2",
+          "snippet_sha256": "85cfcb4975e557b7e2e075fd67556cfe1dc0c2471ef5806ba58436786cdde8c7",
+          "start_line": 6,
+          "end_line": 20
+        }
+      ],
+      "role": "active panel"
+    },
+    {
+      "repository": "anomalyco/opencode",
+      "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+      "path": "backgrounds/opencode/51626eee903ea31fde7f41deb6a3430c939d9d90.json.gz",
+      "sha256": "bf60fb3615061d02e74af05b44783ca01ed1dbd648608ef5bd827fe96d75f242",
+      "compressed_bytes": 2075643,
+      "functions": 13895,
+      "tokens": 34562,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "python_version": "3.14.4",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "max_df": 0.3,
+      "source_inventory": "backgrounds/opencode/51626eee903ea31fde7f41deb6a3430c939d9d90.sources.json",
+      "source_inventory_sha256": "2d7071907119cbe704e485309ace26f66157ff84a03146c8e9098a970095456c",
+      "source_files": 5110,
+      "source_bytes": 37079324,
+      "gold_sources": [
+        {
+          "id": "packages/ai/src/promise.ts::make.llmRequest",
+          "source_id": "packages/ai/src/promise.ts::make",
+          "source_sha256": "06e6f1f2d58225fa2e2c069455a907ebb9f2fa06e9f47207d337384f7719005d",
+          "snippet_sha256": "e08f857ff290989845631a02ba167adcf66fbe1de7a66be16e4e58f654221207",
+          "start_line": 96,
+          "end_line": 97
+        },
+        {
+          "id": "packages/ai/src/llm.ts::requestEffect",
+          "source_id": "packages/ai/src/llm.ts::requestEffect",
+          "source_sha256": "6c8e5e3a80ff713b6b1f60c1635e97d487904c5abd179b09404c8561be241eb8",
+          "snippet_sha256": "0fd64c186632dcdbe7d2bd033541fce4f134ff2bd2c90b05a55adc043ba18eaf",
+          "start_line": 57,
+          "end_line": 58
+        }
+      ],
+      "role": "active panel"
+    },
+    {
+      "repository": "anomalyco/opencode",
+      "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+      "path": "backgrounds/opencode/cc996eece172fc69e35662657ea6cea9c2c7db88.json.gz",
+      "sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+      "compressed_bytes": 2075475,
+      "functions": 13893,
+      "tokens": 34562,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "python_version": "3.14.4",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "max_df": 0.3,
+      "source_inventory": "backgrounds/opencode/cc996eece172fc69e35662657ea6cea9c2c7db88.sources.json",
+      "source_inventory_sha256": "e5afaebcc39702c808c15c4cbe4592b614b253a54febecf674d25a08da857919",
+      "source_files": 5110,
+      "source_bytes": 37078688,
+      "gold_sources": [
+        {
+          "id": "packages/ai/src/promise.ts::make.llm.generate",
+          "source_id": "packages/ai/src/promise.ts::make",
+          "source_sha256": "4860b657755d7248cc533ade60be3dbdf3b303b9ce19abab31e7035df7efd412",
+          "snippet_sha256": "3caed4100797287c797d24e8a16a4844c39a6bf31ce1d6a6ca7dd3af04e68bb3",
+          "start_line": 135,
+          "end_line": 136
+        },
+        {
+          "id": "packages/ai/src/llm.ts::generate",
+          "source_id": "packages/ai/src/llm.ts::generate",
+          "source_sha256": "74a603c6ded359131c47c69e93961c68ffc248b2acba4975c5036a635412dc64",
+          "snippet_sha256": "c50ba5db8c05e331d395c62c534235a8cc5ff65fc3c2ae46e41b1f54e3d08703",
+          "start_line": 43,
+          "end_line": 45
+        }
+      ],
+      "role": "active panel"
+    },
+    {
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+      "path": "backgrounds/software-agent-sdk/cfae94d00e7addaa592ee7c9a92ebb4939b13034.json.gz",
+      "sha256": "a068703e185ee6a85429f3de4f92c1e384196e8fb3f01bdd0d88ddd28ac2d424",
+      "compressed_bytes": 284018,
+      "functions": 2349,
+      "tokens": 5537,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "python_version": "3.14.4",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "max_df": 0.3,
+      "source_inventory": "backgrounds/software-agent-sdk/cfae94d00e7addaa592ee7c9a92ebb4939b13034.sources.json",
+      "source_inventory_sha256": "456a389073d388e640fc84ab2f6b3d5ae59db9f880c89ead2b1d9f1d79a317b8",
+      "source_files": 361,
+      "source_bytes": 2109803,
+      "gold_sources": [
+        {
+          "id": "openhands/sdk/conversation/conversation.py::compose_callbacks",
+          "source_id": "openhands/sdk/conversation/conversation.py::compose_callbacks",
+          "source_sha256": "b083c6654492b1b0daef7e34165d0bfd4411cb235f35495f4cc03abde45c75df",
+          "snippet_sha256": "84cc0d292a7350332541fb143064a8165b46f4bda7836605a6d475dc2d6feb2e",
+          "start_line": 17,
+          "end_line": 25
+        },
+        {
+          "id": "openhands/sdk/conversation/impl/local_conversation.py::compose_callbacks",
+          "source_id": "openhands/sdk/conversation/impl/local_conversation.py::compose_callbacks",
+          "source_sha256": "b083c6654492b1b0daef7e34165d0bfd4411cb235f35495f4cc03abde45c75df",
+          "snippet_sha256": "84cc0d292a7350332541fb143064a8165b46f4bda7836605a6d475dc2d6feb2e",
+          "start_line": 27,
+          "end_line": 35
+        }
+      ],
+      "role": "related dead-code evidence only"
+    },
+    {
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+      "path": "backgrounds/software-agent-sdk/344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz",
+      "sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+      "compressed_bytes": 284030,
+      "functions": 2348,
+      "tokens": 5540,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "python_version": "3.14.4",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "max_df": 0.3,
+      "source_inventory": "backgrounds/software-agent-sdk/344ec8a9c30dff0a4ca200fc412510aad44e1bdc.sources.json",
+      "source_inventory_sha256": "95e2b6e52e5de7e26e47534376eec8967f0ee7ca1bbdaf1d5a9f3154df44a694",
+      "source_files": 361,
+      "source_bytes": 2109953,
+      "gold_sources": [],
+      "role": "related dead-code evidence only"
+    }
+  ]
+}

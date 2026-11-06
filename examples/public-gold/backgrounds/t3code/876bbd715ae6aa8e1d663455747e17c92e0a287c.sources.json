@@ -1,0 +1,2467 @@
+{
+  "schema": 1,
+  "repository": "pingdotgg/t3code",
+  "revision": "876bbd715ae6aa8e1d663455747e17c92e0a287c",
+  "files": [
+    {
+      "path": "apps/desktop/src/confirmDialog.test.ts",
+      "sha256": "1a914ab71b496eb272175204ead2b70de1a13ec53da93c7ebe41b9d5d2efaa8c",
+      "bytes": 1646,
+      "git_blob_sha1": "4a4c0ddbed6c66a4896535ac2a03c087e4d56688"
+    },
+    {
+      "path": "apps/desktop/src/confirmDialog.ts",
+      "sha256": "5d90341e559884ae81d382d9357ad9970e992c1d00f7d04d65830c7c6c91e53b",
+      "bytes": 692,
+      "git_blob_sha1": "1beda8543ba1d722065166a52f321f74083bf7e9"
+    },
+    {
+      "path": "apps/desktop/src/fixPath.ts",
+      "sha256": "a004b919ef8cb297d6c497cd740ba4940d59274fb90ce4c06e0b9b3daeb1f753",
+      "bytes": 379,
+      "git_blob_sha1": "8853248b247c2314c1e8675733153486bc0d3c16"
+    },
+    {
+      "path": "apps/desktop/src/main.ts",
+      "sha256": "0d27c170cc6914a89e0c173a3b01329edc8882925b760df83138604e6a498557",
+      "bytes": 42832,
+      "git_blob_sha1": "46068492950c57efcc2f5f034e550eeee663b684"
+    },
+    {
+      "path": "apps/desktop/src/preload.ts",
+      "sha256": "3cc7486576e626b7bd78381b92280b6e3a11c21d26b1bda8de7587c862edfb95",
+      "bytes": 2157,
+      "git_blob_sha1": "1e1bb3bd8ebe2ec85a49e01c08e2591261d0c411"
+    },
+    {
+      "path": "apps/desktop/src/rotatingFileSink.test.ts",
+      "sha256": "eced2b9f262146ee3560530a06c06500cfd0408448f3c7a07fa22a3e767d2469",
+      "bytes": 2148,
+      "git_blob_sha1": "53dd98ade8c0c8394f5bade90bdde32e0b8b3c9e"
+    },
+    {
+      "path": "apps/desktop/src/runtimeArch.test.ts",
+      "sha256": "3953e2408423291ab8895ca171aa08d0e9278f03f741f741ff91e74464f83f18",
+      "bytes": 1394,
+      "git_blob_sha1": "258a8fb21520929d68f8e771d16700c587052b67"
+    },
+    {
+      "path": "apps/desktop/src/runtimeArch.ts",
+      "sha256": "85a98250ac956fda8247f6ecd9b72a5dacfd4b4af1b3db0dd2ef82c21ff82c63",
+      "bytes": 1107,
+      "git_blob_sha1": "127abf51ab8bad6e47f375dcd470291a7a7099c9"
+    },
+    {
+      "path": "apps/desktop/src/updateMachine.test.ts",
+      "sha256": "9d1b2461e2a78af73af65eacbc01cd98398c8d47b3270c26a2bbcb8e94ff6d6f",
+      "bytes": 4388,
+      "git_blob_sha1": "7fbc982eff8a72028383f15890b103be7b440239"
+    },
+    {
+      "path": "apps/desktop/src/updateMachine.ts",
+      "sha256": "b8552100e9bf0129f857444e192a2722b144e654e3ff43e63cec536d4aa87e58",
+      "bytes": 3509,
+      "git_blob_sha1": "f13b42028107b3b6f2e831888773a57a5bdfda8e"
+    },
+    {
+      "path": "apps/desktop/src/updateState.test.ts",
+      "sha256": "9bafc36ca2aca37480e44443a6bc7f8dbbf75935529ea59701e4137e7df3467c",
+      "bytes": 3706,
+      "git_blob_sha1": "43b718bd003931caefcec6ef5d659442f5629d87"
+    },
+    {
+      "path": "apps/desktop/src/updateState.ts",
+      "sha256": "66bad0dc431f0ebace9fee87110c6358ec490d0bfacab04e4f72a0c4c49e2833",
+      "bytes": 1474,
+      "git_blob_sha1": "8c8ef1ddc97502c3eb5f05601a776f92027e3217"
+    },
+    {
+      "path": "apps/desktop/tsdown.config.ts",
+      "sha256": "e2496a735f8c986636a3c70ba0c265e64d21c378926200821d0d062ce021cd2f",
+      "bytes": 383,
+      "git_blob_sha1": "f3ebc97325332f7262a8a4a10d81db2a9891119a"
+    },
+    {
+      "path": "apps/marketing/src/lib/releases.ts",
+      "sha256": "eeb16b211d083b453781f3e918d5036bb847cc872b2cef17ff9b8255ad069ead",
+      "bytes": 719,
+      "git_blob_sha1": "5f3209acf89bb1d28df2141ca89aae68c5f9d869"
+    },
+    {
+      "path": "apps/server/integration/OrchestrationEngineHarness.integration.ts",
+      "sha256": "d7a55430d8082ece9e9bff1c1c4d698bca34145c10978a2d1a5bd7d1d9313e69",
+      "bytes": 19247,
+      "git_blob_sha1": "c5eb125abac0ebe33bb3c1813a6d6072da6f6429"
+    },
+    {
+      "path": "apps/server/integration/TestProviderAdapter.integration.ts",
+      "sha256": "35fa78f71ef82d3259ca189db0949d8842bcaf182b2faefcdd6992f66a998704",
+      "bytes": 17744,
+      "git_blob_sha1": "017c59e2c8b4c926a156f26f3df29637408deccb"
+    },
+    {
+      "path": "apps/server/integration/fixtures/providerRuntime.ts",
+      "sha256": "dcb04ef331582a1775b09f27338fe233a0cb6353b70a4dae825e841b69ac2419",
+      "bytes": 3979,
+      "git_blob_sha1": "42e7ecd87dbb9beedda1f9ca47294ee0f27ecb9f"
+    },
+    {
+      "path": "apps/server/integration/orchestrationEngine.integration.test.ts",
+      "sha256": "697883dbde75c6d31ed08503f1c740ee6195a75c2f985c3407710e81729c198a",
+      "bytes": 29282,
+      "git_blob_sha1": "42dcfe34f8cce8c6b6ddf70bb9d55e0db52f4f98"
+    },
+    {
+      "path": "apps/server/integration/providerService.integration.test.ts",
+      "sha256": "747a5f0233a225bf587c2e15a3629f476c5142ac6106d668a65fa7d0675e8203",
+      "bytes": 9944,
+      "git_blob_sha1": "53b4f30a80c1211072289b1a275566ed5fbfbe9b"
+    },
+    {
+      "path": "apps/server/scripts/cli.ts",
+      "sha256": "1574bafa97dc1ffa101122e5ee6a0e608d466d76a9581065aae9b3621f6f4992",
+      "bytes": 9974,
+      "git_blob_sha1": "21bc515aa7b7f283d93fa85ebbf6ff0fd086ebff"
+    },
+    {
+      "path": "apps/server/src/attachmentPaths.ts",
+      "sha256": "789ef8dbdce46761e103eea4be1784c89015bf79bd50ad6a3a4cd35a6f8682e6",
+      "bytes": 963,
+      "git_blob_sha1": "c1680f6c082f360371fb4cdd35ce93574511c6d3"
+    },
+    {
+      "path": "apps/server/src/attachmentStore.test.ts",
+      "sha256": "5ee13c2a72b2cedc2772c349cf04890bccec9668684afcea2f3793477b6e6e3d",
+      "bytes": 2637,
+      "git_blob_sha1": "8e1bc4218e34e0bfcd91b1595f497606b7902d0b"
+    },
+    {
+      "path": "apps/server/src/attachmentStore.ts",
+      "sha256": "912807bef1a333033519e4eca8d668bf7775165afaad29426b4c81e31dc09872",
+      "bytes": 3438,
+      "git_blob_sha1": "3440e29fc3ee03ee7871eabf9c08d730f1082124"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Diffs.test.ts",
+      "sha256": "234aab2fddecf3a1127aa7d4ff71ec2603204486974ce04e3b3fef86d735d377",
+      "bytes": 1781,
+      "git_blob_sha1": "e81e509364218e60b015772fcb67f67862563547"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Diffs.ts",
+      "sha256": "fdf22230368d8ff01a7b5ea41dc73e39f147c3472a998eda603ecb22d081769f",
+      "bytes": 816,
+      "git_blob_sha1": "c2f867b96e0e64c9f6db155f4498a799578c0181"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Errors.ts",
+      "sha256": "e18f50ce365fc1efbaed4fed5935ea91a491e4ad290817a1802dbcf6f46aaeba",
+      "bytes": 1316,
+      "git_blob_sha1": "782d0918e628dc5ccbfb59f7ab58fc0024419166"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Layers/CheckpointDiffQuery.test.ts",
+      "sha256": "3ae03424b57984943c4e2765cbb3cee5fc540f929705ba8484b22c64536d10ac",
+      "bytes": 6277,
+      "git_blob_sha1": "2f79ea9d5a5364d1b4adea535c4f793fef968c8c"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Layers/CheckpointDiffQuery.ts",
+      "sha256": "762a8a03a3eaef541bc97c8cf99515a3e5886f94747bb3b792f754192de4d36e",
+      "bytes": 5836,
+      "git_blob_sha1": "5cf26c86da924098f7779997b12600c0849d090e"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Layers/CheckpointStore.ts",
+      "sha256": "336352a1dc3bee1598a97a53fd3c41d37ea24baa076a0845b1c105f07addef6d",
+      "bytes": 9055,
+      "git_blob_sha1": "fac183ff7a1fab4364a0399272caa349955819e3"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Services/CheckpointDiffQuery.ts",
+      "sha256": "9e1407ff9bd574507efb42e59a75f8ff34b60a361f83d501120e5e911c4c338d",
+      "bytes": 1519,
+      "git_blob_sha1": "2204294a435d2abef0e0e35c03e33e1193d9d0db"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Services/CheckpointStore.ts",
+      "sha256": "b6075fd3f3612c7c4fbe0bb48c1f9914fb965c0f7a0550387fae37e56dddc3d9",
+      "bytes": 3009,
+      "git_blob_sha1": "284198c1456a662f589b8782a357dca4666b05d6"
+    },
+    {
+      "path": "apps/server/src/checkpointing/Utils.ts",
+      "sha256": "934ca5ff4f8c5f4db1bbaeb10c67bf39b88ffaf1d342b48c99b9cd2d93cdf336",
+      "bytes": 904,
+      "git_blob_sha1": "3cd92f8510d418c3cf5a997e14b951a82843bd23"
+    },
+    {
+      "path": "apps/server/src/codexAppServerManager.test.ts",
+      "sha256": "5b9cf8040a68b6105f4f556f894ba451f53f3fd62e5d7803978b32ec1add51ef",
+      "bytes": 24367,
+      "git_blob_sha1": "cea8df0a0b0ac97c06de59f15bc921885c5da2f0"
+    },
+    {
+      "path": "apps/server/src/codexAppServerManager.ts",
+      "sha256": "8d3621a39e5fa8c5f0e3cdb3eb7bbce1ec3afce2b5bde15f75970e1d50eca1a2",
+      "bytes": 51355,
+      "git_blob_sha1": "a8a8ce4607b304933927309630b13961876d320c"
+    },
+    {
+      "path": "apps/server/src/config.ts",
+      "sha256": "03e767f7e62bca45740e7dda9a1f88094d044416f37a3f0a1f5d797d4a80b57f",
+      "bytes": 2383,
+      "git_blob_sha1": "ccbcea469d6feaf6d63876f91175f9ab6d9b6874"
+    },
+    {
+      "path": "apps/server/src/git/Errors.ts",
+      "sha256": "ac1b7ad3a3b821fa0528312ce1fc72388583ec6734e1414e0b2693524541de8f",
+      "bytes": 1876,
+      "git_blob_sha1": "15bf482f7bfe073b9037e8eed68fe7ec2c33ef60"
+    },
+    {
+      "path": "apps/server/src/git/Layers/CodexTextGeneration.test.ts",
+      "sha256": "6156dc3993d40b4213b96e514a02e923494157548956084aadfa97dd6f0e3a5f",
+      "bytes": 17823,
+      "git_blob_sha1": "1cf2d0e0922b142e442573c1a1a6007b6d663526"
+    },
+    {
+      "path": "apps/server/src/git/Layers/CodexTextGeneration.ts",
+      "sha256": "e88c3baef4b19cdf293813f85f8b47b2f41e54db1b4b95accd66a0df320d0500",
+      "bytes": 14555,
+      "git_blob_sha1": "9a8d1d93f0e315181fb716e9d9efa6bd46a8549c"
+    },
+    {
+      "path": "apps/server/src/git/Layers/GitCore.test.ts",
+      "sha256": "a57c9bd6d86d1692255005f1bc42e68ab2c8011b072cea6949a75efe48ff9721",
+      "bytes": 74216,
+      "git_blob_sha1": "6c98229e8a77ca3de16d0b3530e76faedbdac745"
+    },
+    {
+      "path": "apps/server/src/git/Layers/GitCore.ts",
+      "sha256": "5404a0c32a9fb516da75c3a0c073f800f57fd0c897817764378f9f0ff1bc81be",
+      "bytes": 47329,
+      "git_blob_sha1": "f5b9168abbbd4409efb7b5ce2f5d4f9e290345ef"
+    },
+    {
+      "path": "apps/server/src/git/Layers/GitHubCli.test.ts",
+      "sha256": "41325d9f93eb5b0ef5f4b7f6a7470ab74b8cb2f9ce4e98f47f416a2cf59bdd50",
+      "bytes": 3759,
+      "git_blob_sha1": "aafc796db300b0899724f7dcaf47ea6a75ac3b4c"
+    },
+    {
+      "path": "apps/server/src/git/Layers/GitHubCli.ts",
+      "sha256": "8b95d0359cea92df4ee1319f042123dc176ab92744a36c04ba6a3b6c7fcac2a2",
+      "bytes": 8246,
+      "git_blob_sha1": "80ce43659e6359810c5be08026dcd986d1e7de93"
+    },
+    {
+      "path": "apps/server/src/git/Layers/GitManager.test.ts",
+      "sha256": "0a7fca6a539668dfe9906cf09b4299f08f2c89e4eb4efeff8f52378345380726",
+      "bytes": 68366,
+      "git_blob_sha1": "8c72941cd0e248c1da2cf8b4d281efe949568f2b"
+    },
+    {
+      "path": "apps/server/src/git/Layers/GitManager.ts",
+      "sha256": "3980edc2bbb372aa74366d12387a635f0f84afa39096845194038106883782d5",
+      "bytes": 34601,
+      "git_blob_sha1": "8357795173c4d78dc0001a2b7d95c30a618f5552"
+    },
+    {
+      "path": "apps/server/src/git/Layers/GitService.test.ts",
+      "sha256": "e5a20ffd125bcd38e9cc5fdd6f938c2a4a872fc79f1ab5ca2db3ddd6755a4805",
+      "bytes": 2058,
+      "git_blob_sha1": "7db468c06cb0317aaae347a0593e390e5cf132b3"
+    },
+    {
+      "path": "apps/server/src/git/Layers/GitService.ts",
+      "sha256": "4e77535b83544e99d1d7b92fd81e72a8177438e4f8d28c744a02aa170456085a",
+      "bytes": 4746,
+      "git_blob_sha1": "d3f07e31516b90ecb1d82735de64082d2b8ecf6f"
+    },
+    {
+      "path": "apps/server/src/git/Services/GitCore.ts",
+      "sha256": "cddacd6b3100955b9c37715262653d755abf48379240c0f198f463bef3f08bf0",
+      "bytes": 5727,
+      "git_blob_sha1": "879927934ef87c7e184d00d8483a7b9c14019f9e"
+    },
+    {
+      "path": "apps/server/src/git/Services/GitHubCli.ts",
+      "sha256": "b89773764589c63d569011443b4662d2bbbe1c9832aa98ee87c2c13fcd0968bc",
+      "bytes": 2969,
+      "git_blob_sha1": "f10339af47717b3a454b0ac95f63c7b89b7fa7f7"
+    },
+    {
+      "path": "apps/server/src/git/Services/GitManager.ts",
+      "sha256": "b74d85328b1d0f73fffcb83ae31f6187a39df7b395f5803c75c345cd94645cd2",
+      "bytes": 1934,
+      "git_blob_sha1": "650581c71669421a3a0759bb4e6d01aa264e8583"
+    },
+    {
+      "path": "apps/server/src/git/Services/GitService.ts",
+      "sha256": "d30c79dd18fec31be937456eb9cfadda01b0754aa8bb108dd2fafbdd0b658677",
+      "bytes": 1155,
+      "git_blob_sha1": "f43a4e6dcc68d5e493dc42c042842726f954a103"
+    },
+    {
+      "path": "apps/server/src/git/Services/TextGeneration.ts",
+      "sha256": "3b906671ec470f7c97db6cb7803c47716bf1c404f418064fe70831237f068835",
+      "bytes": 2635,
+      "git_blob_sha1": "daae27fe66d4e7b313c72a741a39ea2dbc14d3de"
+    },
+    {
+      "path": "apps/server/src/git/isRepo.ts",
+      "sha256": "384a511f044cf1001dbc9c76b51c7a3e49b0a3eedaff9693bea1c46e1dba26eb",
+      "bytes": 171,
+      "git_blob_sha1": "6faf3e99c77b34cdd3a2dc8cebc03a687f74dde6"
+    },
+    {
+      "path": "apps/server/src/imageMime.test.ts",
+      "sha256": "32e59addaf8e40977127b3f739288076009bf0eb313aef18b82ab543776c3918",
+      "bytes": 1184,
+      "git_blob_sha1": "ceec282794ebe258403e6dac6cf37dbd7cd22488"
+    },
+    {
+      "path": "apps/server/src/imageMime.ts",
+      "sha256": "95d9255306a923b05409932e03bc5f29749c3da8b60a9615f6e67b2b526ac69f",
+      "bytes": 2070,
+      "git_blob_sha1": "814abbb32c1c483b595a2a0c8e82e3d03718f0db"
+    },
+    {
+      "path": "apps/server/src/index.ts",
+      "sha256": "3c440a05ea2606d038385b51249d696c59d3b72d24301186938ba870d11d2ed7",
+      "bytes": 917,
+      "git_blob_sha1": "363a07ee386f11d7853d8822f2eac4fc996046bf"
+    },
+    {
+      "path": "apps/server/src/keybindings.test.ts",
+      "sha256": "41719749f8c105d24286fdfae253dc80efb9265827914f2e2390fe3f6fe6e6ed",
+      "bytes": 17613,
+      "git_blob_sha1": "6954cafc5983110a626171ed38429b23d6187467"
+    },
+    {
+      "path": "apps/server/src/keybindings.ts",
+      "sha256": "9ae2efbc340cc6dc0b5682290dd0e607a1c693c25c377da57e3a79b55ed6b5db",
+      "bytes": 27815,
+      "git_blob_sha1": "bf58467825ad8b98aa5ea4e0389ae9348eb25335"
+    },
+    {
+      "path": "apps/server/src/logger.ts",
+      "sha256": "a959530fbe24fd18b3030ec596d16e6e18056f0dbfe0f5166d2318062b9a56c7",
+      "bytes": 2621,
+      "git_blob_sha1": "b9d18569ccfd45e66d631ae1f76f87ee0a2556d9"
+    },
+    {
+      "path": "apps/server/src/main.test.ts",
+      "sha256": "649d69d04a52d16ebd253a5ef4c81617d449e0ca5d08ab51e270b0e337e32867",
+      "bytes": 10191,
+      "git_blob_sha1": "83976e3d4cf81a225ddfc5a658b93b8bb122c031"
+    },
+    {
+      "path": "apps/server/src/main.ts",
+      "sha256": "3f0df846b66d36be928bea1e7c5b08af42f9c0dd5b785372d2fc86ef40b26d60",
+      "bytes": 11535,
+      "git_blob_sha1": "0a33be0cbb2e56377162ed46d30d5c66a590d55e"
+    },
+    {
+      "path": "apps/server/src/open.test.ts",
+      "sha256": "569fa825367e456cae988ac7f9445e1109c617b19626e8ea948bce77abdcbdbb",
+      "bytes": 7732,
+      "git_blob_sha1": "649e88462c63099e29e109e5cfe5cc22d3d76a36"
+    },
+    {
+      "path": "apps/server/src/open.ts",
+      "sha256": "08f965ee2fc110f422a4e8b8f641f7f71ad9087b89da75b14cc72a502951c279",
+      "bytes": 8324,
+      "git_blob_sha1": "e7238c04b29f57f7ef72aa0bdd7b09688102bdde"
+    },
+    {
+      "path": "apps/server/src/orchestration/Errors.ts",
+      "sha256": "b523ed0cb3394cd2f202de48a509bfea5b69f64aacdf0b19653b56081e7f7d26",
+      "bytes": 3827,
+      "git_blob_sha1": "1ea038e1d1357f0f49cc82b8862f36aecb316fb0"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/CheckpointReactor.test.ts",
+      "sha256": "ae986f47e2996ac0602d4cd271642d3e4648e0609a5ce7baad7134b346283dc3",
+      "bytes": 30441,
+      "git_blob_sha1": "09773b71dc91504a971f7d90b6d2567f387dce30"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/CheckpointReactor.ts",
+      "sha256": "567d7f320c2898668c8816a41aef6e4879a5c501e38b30efac278dfc75f0f173",
+      "bytes": 26705,
+      "git_blob_sha1": "ab38c103328d5a707b352e3b10f53e7d50e0208b"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/OrchestrationEngine.test.ts",
+      "sha256": "6c3a0638f1e50645c73038faf0f0945c88881fed63052cb99fe725a76cc02e8d",
+      "bytes": 22925,
+      "git_blob_sha1": "181b18d60cf752808b8405b18a57bae056497cfc"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/OrchestrationEngine.ts",
+      "sha256": "767d5496e54fc3a88a41d6441542ff31b4ff2715a407e81e5e036b84f9c9ea12",
+      "bytes": 8847,
+      "git_blob_sha1": "69b28b9d3cf6ca0f97dd2c1d5f16d8e258d9ca54"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/OrchestrationReactor.test.ts",
+      "sha256": "8aa51ac22f1a7fb612040854c3dbde6bc1e1c1231837601264ed0ffc3cf2eb05",
+      "bytes": 2177,
+      "git_blob_sha1": "1514bef595ffe63cf6e8921f7e69df6715fe04e4"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/OrchestrationReactor.ts",
+      "sha256": "23afc2d95ffbf7cd6131049df10f654ef2ee0b7ede005b318bff5b198001d6ae",
+      "bytes": 1038,
+      "git_blob_sha1": "1e498885a05f80052f16d17b20ba2f306e2660ed"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/ProjectionPipeline.test.ts",
+      "sha256": "1db9007c68056ab245f8c71628976676496046c6f619b5bcc3fb94fc10399a16",
+      "bytes": 70732,
+      "git_blob_sha1": "d15b2efa2e9f94da487bf2885f23e0777a6cf856"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/ProjectionPipeline.ts",
+      "sha256": "51e142343b821193b3ef512bf8aea855cf05ed6271cb6ed9813283b49e2bc14b",
+      "bytes": 45840,
+      "git_blob_sha1": "6ae94105a671fd19d0f8ee2d94ceab9ef5369f1e"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/ProjectionSnapshotQuery.test.ts",
+      "sha256": "451ca5ee94468dd2849cf4c45f377e53abe42cc4d38beda17e61acb8d08eb2fc",
+      "bytes": 8520,
+      "git_blob_sha1": "fc7db548022555c66446a5eb4fe4cea57690f078"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/ProjectionSnapshotQuery.ts",
+      "sha256": "d92c6bf04c9da641df712f2ff3bfa87e250f7576606f8f8652921106dc561974",
+      "bytes": 20432,
+      "git_blob_sha1": "5fd38a5401750576273abb84c5915c76318b53e8"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/ProviderCommandReactor.test.ts",
+      "sha256": "a1afce1748778208654e407a040c76de645a0a8dedf4b3d8887969c21d1a6a72",
+      "bytes": 29782,
+      "git_blob_sha1": "8de44d78f9c785536dd5bcf6be9c10279d6fd7d8"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/ProviderCommandReactor.ts",
+      "sha256": "9bff2bd1182529b9c8b85a98999801be1b75751507fcff028172288701f4adf0",
+      "bytes": 25237,
+      "git_blob_sha1": "fe02188450d168f658f613a2286e344019325b90"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/ProviderRuntimeIngestion.test.ts",
+      "sha256": "d4dc36028ce766c6f51a0d18827c8fbdecdd12dc6221e05540590300c8918e97",
+      "bytes": 50171,
+      "git_blob_sha1": "b6b48c7edf4b47b8e9738d6d4abb98ceb7d29f07"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/ProviderRuntimeIngestion.ts",
+      "sha256": "d7252e7c890c724cf7710f406f1bfc2601a2785fc3d9af62db649b5a863d9eac",
+      "bytes": 39498,
+      "git_blob_sha1": "417e93c8d499f9f7ce578728f801fbaabfcdd398"
+    },
+    {
+      "path": "apps/server/src/orchestration/Layers/RuntimeReceiptBus.ts",
+      "sha256": "1436e8f519f320a9cd8db441d75cc064dfff8ef28172852a9214399841789fd4",
+      "bytes": 593,
+      "git_blob_sha1": "56c526c08b5f503d3e69314c94f9025abe6237b0"
+    },
+    {
+      "path": "apps/server/src/orchestration/Schemas.ts",
+      "sha256": "966d5d5dc2d1de1118b412244009c43db304823a39b45992e49ca5cec6455f76",
+      "bytes": 3293,
+      "git_blob_sha1": "c96385cad1c4155626ad551d366eebba0b5c508e"
+    },
+    {
+      "path": "apps/server/src/orchestration/Services/CheckpointReactor.ts",
+      "sha256": "a07bb7d7021140d0a5698e25b087f287e5e1e1ace221d71b9c44780ba4f5b802",
+      "bytes": 1169,
+      "git_blob_sha1": "612bc22acb66e5921519c77575077ee682e568da"
+    },
+    {
+      "path": "apps/server/src/orchestration/Services/OrchestrationEngine.ts",
+      "sha256": "886c048e6880096d8427562588f6a8b25b70dbd6a32f4987a23bdd5ae539778a",
+      "bytes": 2675,
+      "git_blob_sha1": "33ac75049f8c9a037f8c2f81df739fa9aa29d1e9"
+    },
+    {
+      "path": "apps/server/src/orchestration/Services/OrchestrationReactor.ts",
+      "sha256": "e36dc2b295797c54ae17f3be2cbcbdb5f6b56d632e69b28953003886b775f98c",
+      "bytes": 976,
+      "git_blob_sha1": "258ef2d614d81e762fe86eb68c36eacd5c8c1280"
+    },
+    {
+      "path": "apps/server/src/orchestration/Services/ProjectionPipeline.ts",
+      "sha256": "5d52b5eaf774158b28e795673df7d2301fbc76e9aa77891130ebeb9c62e95c4e",
+      "bytes": 1430,
+      "git_blob_sha1": "f8c86bf09b8dd26516d4e7648f47b0c18ead518e"
+    },
+    {
+      "path": "apps/server/src/orchestration/Services/ProjectionSnapshotQuery.ts",
+      "sha256": "e646a87e0be5f75a3f1b577ed18364ef86b51b7b8c7165f37432ff02e95a5d3f",
+      "bytes": 1098,
+      "git_blob_sha1": "91e42f02ffd1159e69f78130a455386aa5bd64c5"
+    },
+    {
+      "path": "apps/server/src/orchestration/Services/ProviderCommandReactor.ts",
+      "sha256": "327d9bfbff7df64eaf1fce735984495a082b2c0b6f22f7e9a4531153ff636033",
+      "bytes": 1248,
+      "git_blob_sha1": "8f20571c15706200c9c27f8ef65c16ca9fd2caa4"
+    },
+    {
+      "path": "apps/server/src/orchestration/Services/ProviderRuntimeIngestion.ts",
+      "sha256": "a9cdf5d33cf57b85c7d4ccaa2e844179df89da7fd0ed3683f63a41a19a9a80fb",
+      "bytes": 1331,
+      "git_blob_sha1": "2bbb157f10c65f0a085641e6e04363b9dbd40f70"
+    },
+    {
+      "path": "apps/server/src/orchestration/Services/RuntimeReceiptBus.ts",
+      "sha256": "e82a8b443e08804d8ab55d3502f1719f92b518bd7aec89939cab24a3a8e096f8",
+      "bytes": 1845,
+      "git_blob_sha1": "a08ff916856dcd472ae6e5509e25289dcdf0c8f6"
+    },
+    {
+      "path": "apps/server/src/orchestration/commandInvariants.test.ts",
+      "sha256": "ee3369abcad23187cacac5cd3f2a8dde9a3720724ce136add9503771b0ec0d9e",
+      "bytes": 5355,
+      "git_blob_sha1": "f95e4db754bc20f575c2529a42a9e2138ee3e189"
+    },
+    {
+      "path": "apps/server/src/orchestration/commandInvariants.ts",
+      "sha256": "82ef7f971d0ea79957a9417dbd676f0b54318892590929acc64be60fdc0fbd3a",
+      "bytes": 3564,
+      "git_blob_sha1": "6acb9c82ba54b9d56ad8d66cf59eae975eb8aed8"
+    },
+    {
+      "path": "apps/server/src/orchestration/decider.projectScripts.test.ts",
+      "sha256": "6efd0b33d2b28c599af1a5d576c4b13296253935724909200dc364349ec7a27a",
+      "bytes": 11747,
+      "git_blob_sha1": "516d8b2a28cf186fbb66e282e19ff224fe56aeb3"
+    },
+    {
+      "path": "apps/server/src/orchestration/decider.ts",
+      "sha256": "73561e405e91a2415f90c0fce9064c324ca35799b05968a38fe59ed832842f9c",
+      "bytes": 17985,
+      "git_blob_sha1": "eea41a2b35e3b52deecae5607403191f6442554e"
+    },
+    {
+      "path": "apps/server/src/orchestration/projector.test.ts",
+      "sha256": "5a398485caa14bc3006775d4eec06be6c1a4e16c2e70069e8d3c047ed1eefbe7",
+      "bytes": 24821,
+      "git_blob_sha1": "71f5b6bd4ba9ee0eccc5e093af253c71ae9e23ce"
+    },
+    {
+      "path": "apps/server/src/orchestration/projector.ts",
+      "sha256": "693dc5dbf09bbf75c2b1ae0dcbbd84d8e683fc8532482bf112000c9e5332332a",
+      "bytes": 21583,
+      "git_blob_sha1": "015f82a6770126bf756523dfa10f02611ded2a79"
+    },
+    {
+      "path": "apps/server/src/os-jank.ts",
+      "sha256": "f2f55cdf44305409ed8fc217d8156ead2fe9b550a5602cb9e6024bb0962155f6",
+      "bytes": 1010,
+      "git_blob_sha1": "586aca6f79c3dbd8827d12235605dedb1103e964"
+    },
+    {
+      "path": "apps/server/src/persistence/Errors.ts",
+      "sha256": "16ad60b6f74e0f2d121b4583eb262794cb028eaa97d2ef215db56eb6aa658e7a",
+      "bytes": 3172,
+      "git_blob_sha1": "cb1cb2f3f87d711111d80c83371aa4e8790b5bd6"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/OrchestrationCommandReceipts.ts",
+      "sha256": "d4bbafde8bf9027991dd476505c5b7b4de566d83c25ffcea394590a004fadfc7",
+      "bytes": 2782,
+      "git_blob_sha1": "33f28567428a341f75f0ac0c681f7a38d0afca30"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/OrchestrationEventStore.test.ts",
+      "sha256": "2e503643ee7fbdb91f306d1337041964355e4098ae53aa010b3de8afa0b4c0f4",
+      "bytes": 4007,
+      "git_blob_sha1": "77f7ee3cacb743b33d65e21e906339448bda39ec"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/OrchestrationEventStore.ts",
+      "sha256": "eebe6682ee27cb4079e3173e6d6380503b6fa44ece1c97166c7d3b1e51d7eae2",
+      "bytes": 8306,
+      "git_blob_sha1": "4d81cf5e8d7324579e5ba4b17f2cd23e9d4b2faf"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionCheckpoints.ts",
+      "sha256": "eb15a8277d20a2b8f50e035d4e3435595e4fcddb46436b1641cefb95fe20ea1d",
+      "bytes": 7158,
+      "git_blob_sha1": "26ef8fed1b9e681a8bed1375ec60edade2e59385"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionPendingApprovals.ts",
+      "sha256": "2a33e0864c985096c449739c0c3bb82b017ce5eb6a383eea47ca20282c27c3a9",
+      "bytes": 4242,
+      "git_blob_sha1": "25443a70dca2c6323453e24d7067a6bad54960ce"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionProjects.ts",
+      "sha256": "18d307462ca395766f535ec1053df111ea0fcb959b16336acd9fcf09555d2aae",
+      "bytes": 5400,
+      "git_blob_sha1": "5dbc8c2d1f63b2f0a9fda47260d305fd70b3e6e1"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionState.ts",
+      "sha256": "b3fc5ffd78aa42f1201ccda3be4d8af4a30e790315d2c1fa10ae06bf1675a137",
+      "bytes": 3448,
+      "git_blob_sha1": "7c2b8110c70fd484f625a80783fdaf97ad103fd4"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionThreadActivities.ts",
+      "sha256": "a538162568339c6fa24e3047660933e28bc9f506f0801b21f35899a50ecb4274",
+      "bytes": 4986,
+      "git_blob_sha1": "8e88cfa7853e94929f94ee70cb46f8d8d49d3c2f"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionThreadMessages.test.ts",
+      "sha256": "c38df0a68676a5bfc5a4f24e5bf4bcd817c4adc3438d1c7bcca88fa04fa1d72d",
+      "bytes": 3314,
+      "git_blob_sha1": "b761387d474c202823478c49d11c22268dab82f5"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionThreadMessages.ts",
+      "sha256": "62de07d6bc5fb7ee03ebbf6e21b327407aed98b5892de7225b82e231c288923f",
+      "bytes": 4738,
+      "git_blob_sha1": "6f0b25ddffade7dd32f1a9db625cd46b9cb0aef5"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionThreadProposedPlans.ts",
+      "sha256": "8ce3e4ece6c7b9355c5d3fea1f0fba4528bf45383129b55e7e684e454c4ea5f4",
+      "bytes": 3299,
+      "git_blob_sha1": "3d103592f95719ca81f456ef172fa8ec8f2225f6"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionThreadSessions.ts",
+      "sha256": "c687dc3cdf74204436ca21b5b0cf88e31c39da6273f9d4ca56a093200694c59b",
+      "bytes": 3342,
+      "git_blob_sha1": "2499eba19676664cc9d91ff21f78a5410b37f5de"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionThreads.ts",
+      "sha256": "0e084cb5bfaef6b3d10ff51a0d6f0c0397fc36471cdfbc7ab18e368acc39a24f",
+      "bytes": 4695,
+      "git_blob_sha1": "10192697d074b806ef0578985dfb39d3af220798"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProjectionTurns.ts",
+      "sha256": "06f3045861fcad9f0599f16cb7881a09dbed3889c04deebab5e52245997b9edd",
+      "bytes": 10819,
+      "git_blob_sha1": "8330661e3057f42600dd39516c08d01948170dfa"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/ProviderSessionRuntime.ts",
+      "sha256": "724cfbd9378f0eea7e4408b1ad960d4e39dfbe3f34c128a6476c09306b25cd8c",
+      "bytes": 6308,
+      "git_blob_sha1": "da3e8bce90ae46ddc7eb7cee9660d47bdeb34520"
+    },
+    {
+      "path": "apps/server/src/persistence/Layers/Sqlite.ts",
+      "sha256": "88344f96cb46e268b919020f9272844ba824eaf9e97b6499209856a1379cbfb2",
+      "bytes": 1932,
+      "git_blob_sha1": "33f99482d9b3dc0c8f3cdd7c74c42713607b5d29"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations.ts",
+      "sha256": "5db1f9ce64140117773702932699185691b5bc8786042362ea1018a0d3d5dade",
+      "bytes": 3843,
+      "git_blob_sha1": "7deb890dd854eb7223597d94b1251eeed6f54fd5"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/001_OrchestrationEvents.ts",
+      "sha256": "a16e23b67f93ffb158c3e69f0660bc13150b82a121e74029dd5f39203b889bfe",
+      "bytes": 1260,
+      "git_blob_sha1": "b8e0cd43fa0100f0990d929b4e0a3841beed2132"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/002_OrchestrationCommandReceipts.ts",
+      "sha256": "3fb5ac84681f192144729b2c13d9826ee43a0d6329a42162922305bc784bcd21",
+      "bytes": 798,
+      "git_blob_sha1": "a81f309fbf90069cfc6818e5f51a9583123fc4c0"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/003_CheckpointDiffBlobs.ts",
+      "sha256": "8d7ae95b77bb0d4c32970553e80af663b47568196cf12c45c69f7ecabba3c469",
+      "bytes": 641,
+      "git_blob_sha1": "2a5d32a027eec8d19c6226e7259b0b4df38e7c79"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/004_ProviderSessionRuntime.ts",
+      "sha256": "481a1f88c6b369d4a472a3ff42e38b319e82c88b91196480b9d240eab566ea4c",
+      "bytes": 819,
+      "git_blob_sha1": "f468ad49cf93b5cfdd6c6a22ba562660da382192"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/005_Projections.ts",
+      "sha256": "a05f48508910a4890f3adb49c16823d94085fc2770817b49c370eecafe26c920",
+      "bytes": 4041,
+      "git_blob_sha1": "c950da76a18e2fd25609109764831ded8c84fbfe"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/006_ProjectionThreadSessionRuntimeModeColumns.ts",
+      "sha256": "306869b3ce7c77171fcff34c3005a64893aa4e1273da5f0dbfb92be3248fc8c4",
+      "bytes": 503,
+      "git_blob_sha1": "a988a509766f893a4f7864cd82f56974eac32359"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/007_ProjectionThreadMessageAttachments.ts",
+      "sha256": "70d9cf23829a0dc6907f729e4dc5750c4f8ee4b48c5785d8231342101c2aebdd",
+      "bytes": 289,
+      "git_blob_sha1": "d2cbe5b2b041d21dc4aa9536a27136ba686c5a7d"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/008_ProjectionThreadActivitySequence.ts",
+      "sha256": "b9d86b20b2f4664ca4b2afc4ff899eac3e252be095f2e54f7ffeff9079593bd8",
+      "bytes": 443,
+      "git_blob_sha1": "6000f0c62cb4b829ccaa7e2f40a43533aca6d7b4"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/009_ProviderSessionRuntimeMode.ts",
+      "sha256": "45016011b0731df2f67ae35ef160fd09b333153f0402ab8e86bed3fca5ea3c17",
+      "bytes": 177,
+      "git_blob_sha1": "3f7249e873fea0c65afe9c39a9aad479c4118c5c"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/010_ProjectionThreadsRuntimeMode.ts",
+      "sha256": "5fd32e890fc33d8709471d7e1d43ad76e322f4f58eaa0c57db6500887abb09d7",
+      "bytes": 426,
+      "git_blob_sha1": "93d1f0a8ec73b604702f382413f89ba468b85c6c"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/011_OrchestrationThreadCreatedRuntimeMode.ts",
+      "sha256": "ab6307dc6e461d9c1a7669d2256a6cfd5f746facf05f8d5d9fb32054856c15a3",
+      "bytes": 418,
+      "git_blob_sha1": "a1021a4da93b453a61ecd39087b2057c18e3fde3"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/012_ProjectionThreadsInteractionMode.ts",
+      "sha256": "dd3be859c649d6f0d26805a192ac6bed39ccb40da350c25490eeaec0fa93c0b2",
+      "bytes": 308,
+      "git_blob_sha1": "60695ac6cc748adef0c9c199842847ee4f991ab0"
+    },
+    {
+      "path": "apps/server/src/persistence/Migrations/013_ProjectionThreadProposedPlans.ts",
+      "sha256": "ab8ff8fca03a370497eaca34ba79b0a98519b31921077b61c19fe0192668dfb6",
+      "bytes": 628,
+      "git_blob_sha1": "2af642c838a321f22fb311cd4a415da774b4a204"
+    },
+    {
+      "path": "apps/server/src/persistence/NodeSqliteClient.test.ts",
+      "sha256": "0f9ac08d59bf40181276b81f6731bb5f6510daceb53ce1b9fff6575123d796f7",
+      "bytes": 1080,
+      "git_blob_sha1": "a055d409ba2ac7dbb88fb9f1fe8d561a54f5224a"
+    },
+    {
+      "path": "apps/server/src/persistence/NodeSqliteClient.ts",
+      "sha256": "802dedd76155865885606bb009a7769e4e24bec7795eb1c7d65bdbeeac54e6ee",
+      "bytes": 8562,
+      "git_blob_sha1": "b121764fccd0d5aedfd6739c1d5463544a135cb1"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/OrchestrationCommandReceipts.ts",
+      "sha256": "9f2950d48bf31d505dccc08fc6b974f5173c33fb7005d26a60648fdf06e9a9e1",
+      "bytes": 2187,
+      "git_blob_sha1": "0b8f8e9b5261e5f0a80a3c9a53b66ccd2225bcae"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/OrchestrationEventStore.ts",
+      "sha256": "513db023d13253ab93307bacde779f75d2f22f7c20ccfddc4390bc75ef52d0ac",
+      "bytes": 2334,
+      "git_blob_sha1": "24febd8fded8dc0360258871c02edac968529e9f"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionCheckpoints.ts",
+      "sha256": "7d4055f2e5ac8f6b89f15e3b231005f5d39ef6fb64dcce243d4ad8075b581213",
+      "bytes": 2880,
+      "git_blob_sha1": "191d0af968495b2d09c16c8fe7ac80cf96d95722"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionPendingApprovals.ts",
+      "sha256": "1f22f39015c8d4b2b74a463b463a3b44a764473ace422fa5a8f4d75c26e135e3",
+      "bytes": 2958,
+      "git_blob_sha1": "8f4ec5eb4b1a44f6768a96b13a303fd1a95b717e"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionProjects.ts",
+      "sha256": "5e806d096aa27c83240d5606eff37155952e4613f64b252eb50a5a964b8babba",
+      "bytes": 2451,
+      "git_blob_sha1": "1380a9609a4b9bfb1b8db9076de827d2fc546018"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionState.ts",
+      "sha256": "789c4713dbcbc530a1296ce8e71e990e082d33697700c79b19cea6c0241f5634",
+      "bytes": 2050,
+      "git_blob_sha1": "e8ef9ceeb0b1c0b87742468d37bb273f351052b5"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionThreadActivities.ts",
+      "sha256": "b1d84d3753662c7c5c6a7db09275e0dde158ababfb0be8d053f785fc13a50687",
+      "bytes": 2629,
+      "git_blob_sha1": "586ae3eb4a8499e81fd0458003f3392791334836"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionThreadMessages.ts",
+      "sha256": "a5a7ee506c2abd50f8d3f96c0f7f303f7492da8e61f845ff381baee565f8f135",
+      "bytes": 2511,
+      "git_blob_sha1": "00b1d399c6fecf9b66cda587d285e5b914303761"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionThreadProposedPlans.ts",
+      "sha256": "8fbfab73792f6ac30e18486aa38858e974f908f8dc4d483e9241e24fa9331338",
+      "bytes": 1807,
+      "git_blob_sha1": "ee662d52be029b167348c44d4d8e8770b4680aec"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionThreadSessions.ts",
+      "sha256": "504ae224cff92ba0e1ea94429fb36d102d9f350e890d197adbaacb27f63a90f3",
+      "bytes": 2399,
+      "git_blob_sha1": "537ee10beef65cc1d29088647a2ff7a437e6abf8"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionThreads.ts",
+      "sha256": "e96836655b1d55a4b07c5553ae652874771e7d36520521b44461cb5d7a0a29a2",
+      "bytes": 2803,
+      "git_blob_sha1": "7a30870f2d64a0dbf24b9c6c1ec901fc954d6f47"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProjectionTurns.ts",
+      "sha256": "34a6c4e57fb68cb96a0fa48e7087983df2d5c03ac9bf80167259e1d3b475cabb",
+      "bytes": 5753,
+      "git_blob_sha1": "1c791342ff529896b6d7d6c3e725ea665058c266"
+    },
+    {
+      "path": "apps/server/src/persistence/Services/ProviderSessionRuntime.ts",
+      "sha256": "2c760fa204688bcfdcbf2da30d755b49847e488cc820435334995ce8ac54a5bc",
+      "bytes": 2707,
+      "git_blob_sha1": "885a9dd5f1b97991a0b015f68f72a3b9ea7b095a"
+    },
+    {
+      "path": "apps/server/src/processRunner.test.ts",
+      "sha256": "14c64817a7a43fffef01f74bba9345cb5f0a3bca63a3ca7be714fd6c35b822c0",
+      "bytes": 808,
+      "git_blob_sha1": "dd909116d4d6a90739cb806a663e909865d7cfa3"
+    },
+    {
+      "path": "apps/server/src/processRunner.ts",
+      "sha256": "aefe0df304ec74aec8e652d0f569416467b8877889b4aa56e3bb6af1e5e9e31f",
+      "bytes": 7953,
+      "git_blob_sha1": "cbf4b76063fdab636a160f58d611a50c3b138a3c"
+    },
+    {
+      "path": "apps/server/src/projectFaviconRoute.test.ts",
+      "sha256": "f7a9e2bf8403fa9e57bed9e07de5dea5545878181fa0a46a1ea85d5930e5757a",
+      "bytes": 6134,
+      "git_blob_sha1": "a346e513ebfc4c729a633b01654737cc1a35de40"
+    },
+    {
+      "path": "apps/server/src/projectFaviconRoute.ts",
+      "sha256": "5f4838c08ac5e00d642ab00b100368fe8c27e983cbe39d543e3d38afb1132ff5",
+      "bytes": 5209,
+      "git_blob_sha1": "cf234ad894ac94ae702cbdf317707b80d261eef2"
+    },
+    {
+      "path": "apps/server/src/provider/Errors.ts",
+      "sha256": "345c1e0686aa7bc5a38b750c299d351337cfb306d24790564937290e4a871078",
+      "bytes": 4749,
+      "git_blob_sha1": "e4e46d374865c405d6fcda322976a1f8632ee19c"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/CodexAdapter.test.ts",
+      "sha256": "9000e25f98da639a7fd4298e523ec9fee8b96437e8bea72254629cef13e20d0a",
+      "bytes": 25851,
+      "git_blob_sha1": "3ad206d0be7e6788ed7b62820c6c9f8d32fdb9c7"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/CodexAdapter.ts",
+      "sha256": "b349b2d41a77daa004554be5f7be9ac18a54f30840f0deb4730a273de0b15e50",
+      "bytes": 45999,
+      "git_blob_sha1": "1e4b80ae9cbcc98817b366cb267b533e24e7fd69"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/EventNdjsonLogger.test.ts",
+      "sha256": "b139566f2c69d53c6d1a38b0290a60194097f947719942054145b417b63e63ea",
+      "bytes": 5658,
+      "git_blob_sha1": "258b50d6f29af02dd22cf4209d4072e7dd19d201"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/EventNdjsonLogger.ts",
+      "sha256": "8cf8f9f634311138c1e20767f3a287ecae11e2524b64c6e0d713c4f12f4a650e",
+      "bytes": 7645,
+      "git_blob_sha1": "28b7ecf6117f2c948e5ab57def53616a9a4f6231"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/ProviderAdapterRegistry.test.ts",
+      "sha256": "4749283b70c82c6977e5a62dea8e360ce7285512434c4ab4096eb2aeadf52042",
+      "bytes": 1952,
+      "git_blob_sha1": "c6f4a3c08cbed59a3d7951271c1b7f1f4a3a308d"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/ProviderAdapterRegistry.ts",
+      "sha256": "aecf40be7732cbf6cae3d6a3667d2599b7bd8bc619e5796af1d0e19a23aade39",
+      "bytes": 1794,
+      "git_blob_sha1": "3062ed790769419b55417bfa2e9fab79b1f9e124"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/ProviderHealth.test.ts",
+      "sha256": "d6c008da8b87055db1edc31e2286deb7d92d55f86f1d3c2dd8d65e4378851398",
+      "bytes": 17569,
+      "git_blob_sha1": "10bd12a7cf4aed25b6efb3d01a06524787d52577"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/ProviderHealth.ts",
+      "sha256": "6d5981064d554b492f02b25f098c17f0668725993ac782529535483f0f22d049",
+      "bytes": 13464,
+      "git_blob_sha1": "1fed0597a2eaad08b63bcb5dfc109a7272605839"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/ProviderService.test.ts",
+      "sha256": "afe941b70c8792ecbd35c502deed3d39275025b1f30bd213073a04770af8e449",
+      "bytes": 30078,
+      "git_blob_sha1": "d5cf4424b10aabc5c128d2d16009dc69bb39bd53"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/ProviderService.ts",
+      "sha256": "2997e9eee334c9d49e086f05f8970d1222e766b79d632072d7bf7e9296ac6a36",
+      "bytes": 20775,
+      "git_blob_sha1": "8e3bc7204147c03f19d0aa06e0ea166ab0bf1d84"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/ProviderSessionDirectory.test.ts",
+      "sha256": "243208dde62027eb6b9b0f485decd2e11824b802d6fc677e8da61a5068383c13",
+      "bytes": 7461,
+      "git_blob_sha1": "1882c1cc0e4cb96fc46eaa044d0f2b82e39f89cf"
+    },
+    {
+      "path": "apps/server/src/provider/Layers/ProviderSessionDirectory.ts",
+      "sha256": "74791062ac1197df22f73891194918c1e1225c10e2e881b026f8698d694cce9b",
+      "bytes": 5697,
+      "git_blob_sha1": "38e097e1c9e539da651dbb334edf9d58e32ebc47"
+    },
+    {
+      "path": "apps/server/src/provider/Services/CodexAdapter.ts",
+      "sha256": "f3e31fa36e04ce814185e7c54c90d751d0aff124935ffb915d51d48d0e598b7e",
+      "bytes": 1044,
+      "git_blob_sha1": "c9f944bb96ad0879af68bcbbb7d4e4ba29ef6667"
+    },
+    {
+      "path": "apps/server/src/provider/Services/ProviderAdapter.ts",
+      "sha256": "23e88184b01b34e3198b04932357a2d8793106a481f8efa8c2b7e75332f3efb1",
+      "bytes": 3385,
+      "git_blob_sha1": "38a05f75748d0f40cc07bfa3e2638a85fa99c776"
+    },
+    {
+      "path": "apps/server/src/provider/Services/ProviderAdapterRegistry.ts",
+      "sha256": "de71cb947210c80f5a7e21bbdb6bb509ea4eb3dd6b1f2a6f3f7be86417176c26",
+      "bytes": 1410,
+      "git_blob_sha1": "490c4d3d143e3ac17cfc252ade68d6fe7669cfa4"
+    },
+    {
+      "path": "apps/server/src/provider/Services/ProviderHealth.ts",
+      "sha256": "e2d4cd77e479ab31d43646bcd9dd3758ebfad4c85b90bbc57b5ae72900d82b7f",
+      "bytes": 698,
+      "git_blob_sha1": "318d7e18d0ad57109a021af7329e21118c926103"
+    },
+    {
+      "path": "apps/server/src/provider/Services/ProviderService.ts",
+      "sha256": "b508a62c3bc2c090f1959b8d417112227a06fbe83df32d099635c61f3f9bde36",
+      "bytes": 3340,
+      "git_blob_sha1": "ebfe8c8ab1ac22a8ef0652a9e4770ed696c7f695"
+    },
+    {
+      "path": "apps/server/src/provider/Services/ProviderSessionDirectory.ts",
+      "sha256": "ec787cc153cda33319a511887e36032c9ef2847a36a6cda4a854ab4dc525e87d",
+      "bytes": 1710,
+      "git_blob_sha1": "3a374976b0797fb8efe86ed1010278fc6ca389b6"
+    },
+    {
+      "path": "apps/server/src/provider/codexCliVersion.ts",
+      "sha256": "fa1b650bf64f5c190f8506af65b3aa00371b1ede5422f4dcd8502ada5e504571",
+      "bytes": 3994,
+      "git_blob_sha1": "544020016c6222c1c93696f621c142358c369575"
+    },
+    {
+      "path": "apps/server/src/serverLayers.ts",
+      "sha256": "e0326fe9b9ea16c5d4ea234d0ae94f3b6b4abc3440e1e677b9c28761e718ce02",
+      "bytes": 5936,
+      "git_blob_sha1": "ff9b10d96f220d1d795e3f94237b5d6bd9bb47fd"
+    },
+    {
+      "path": "apps/server/src/serverLogger.ts",
+      "sha256": "e22f99524bdeb0b5d314faba6f53de17a65005b81bb480bf63df6e010018752e",
+      "bytes": 656,
+      "git_blob_sha1": "de6b27f4294c8ec8a0392b34bf205f2525976398"
+    },
+    {
+      "path": "apps/server/src/telemetry/Identify.ts",
+      "sha256": "6d8312c4a576dbaa7f32271a20eee967ceb9bffbef92fdf1543e0c85ca38e27b",
+      "bytes": 2464,
+      "git_blob_sha1": "cf6ac7217874fa93b5f03f5d5e765ae185de8a99"
+    },
+    {
+      "path": "apps/server/src/telemetry/Layers/AnalyticsService.test.ts",
+      "sha256": "ab6e39f075dd702d2dea8853a62d40aa7054657844c92b915df87382df463135",
+      "bytes": 4417,
+      "git_blob_sha1": "adf7564ce4d7282fc20db665c807e7080beb62a4"
+    },
+    {
+      "path": "apps/server/src/telemetry/Layers/AnalyticsService.ts",
+      "sha256": "ccae021b483f80ab00ecd2f968e6497caf6581eefb975feb8ba26568e99f4400",
+      "bytes": 5246,
+      "git_blob_sha1": "297776f9dbd7ca442a4bf77c4c71e75484d5cb55"
+    },
+    {
+      "path": "apps/server/src/telemetry/Services/AnalyticsService.ts",
+      "sha256": "273d4aee24e3d017c7e50aba46d5df95df2071068c6e2d354fc267645fb55ef5",
+      "bytes": 929,
+      "git_blob_sha1": "64f8c8de55271906996450246fb3e8981e6f3002"
+    },
+    {
+      "path": "apps/server/src/terminal/Layers/BunPTY.ts",
+      "sha256": "6b9859451ce2757c758ad5f856366675a4e006d9fe3f015ae785ed8cf5f5274f",
+      "bytes": 3227,
+      "git_blob_sha1": "48b6492b195bce63958c5d93b38f20b828c741d0"
+    },
+    {
+      "path": "apps/server/src/terminal/Layers/Manager.test.ts",
+      "sha256": "db611adc12f19a9b1000ec6ca31405bc4cbbcd8f1e970ef042c5e51ca658d76b",
+      "bytes": 21966,
+      "git_blob_sha1": "825bcbded39e6c6399085629221ea4a95acb1969"
+    },
+    {
+      "path": "apps/server/src/terminal/Layers/Manager.ts",
+      "sha256": "4441c90bacc2cb315e2836ae321a66b199d304bba98cc3519cd758f2e23fed7b",
+      "bytes": 41419,
+      "git_blob_sha1": "f84e7b5930d292d5a7ec83c84affa4dd3df4706d"
+    },
+    {
+      "path": "apps/server/src/terminal/Layers/NodePTY.test.ts",
+      "sha256": "93a05b67a0221188c99e6de0ed0f1dc59f284a9d615ef530a040c9406f74c07c",
+      "bytes": 1644,
+      "git_blob_sha1": "58fcc70e4e56fcbd494ce8eea9f1d1b6b9985848"
+    },
+    {
+      "path": "apps/server/src/terminal/Layers/NodePTY.ts",
+      "sha256": "cead8335477b81eaa6fcd5edcaa9e15cec48994a7a1ccf967c59c31505860806",
+      "bytes": 3534,
+      "git_blob_sha1": "60a7ab6220898d5716edde9167e96a4632935544"
+    },
+    {
+      "path": "apps/server/src/terminal/Services/Manager.ts",
+      "sha256": "ccac683131cb5c381772b8b939b84baa0b8302bcaddd3a9c64c33c31d0aaf785",
+      "bytes": 3145,
+      "git_blob_sha1": "8d8398c7adb57e603ffe2881259aec482c62ba8e"
+    },
+    {
+      "path": "apps/server/src/terminal/Services/PTY.ts",
+      "sha256": "0b0bf2692bb44193c7b4608cfddaf980f6a17e0a06a59a444e720bff0121426d",
+      "bytes": 1484,
+      "git_blob_sha1": "dc164b2621f00206a0343152f4e4381e14ae5dd4"
+    },
+    {
+      "path": "apps/server/src/workspaceEntries.chunking.test.ts",
+      "sha256": "4409503964c87e59c357025f5d48673dca9ea7d58f8a405a6a085ada5d61fbd0",
+      "bytes": 2659,
+      "git_blob_sha1": "f978c5233ecca5a4bdd3ecc116a0d76c7aa8c629"
+    },
+    {
+      "path": "apps/server/src/workspaceEntries.test.ts",
+      "sha256": "221818f3a12c867dbd9c413f3aa83bcfff87db7540aefdd50bee69204e32f3e2",
+      "bytes": 7783,
+      "git_blob_sha1": "d867ad910db5001ac4f19e6dbefde94aefc9683f"
+    },
+    {
+      "path": "apps/server/src/workspaceEntries.ts",
+      "sha256": "8c88048481cb6b7b61e2ee66de9ebb5940adf534e9a00956c73a5c466989a2b6",
+      "bytes": 15854,
+      "git_blob_sha1": "684b005e83196ac60cadb57f5ac0e04b6bb57cc2"
+    },
+    {
+      "path": "apps/server/src/wsServer.test.ts",
+      "sha256": "5dd14998c9603020ef0ce773583a3f0d86cbd152438ecf4a208996036aa54854",
+      "bytes": 63434,
+      "git_blob_sha1": "f12792a318618b8c92f8a9d4becb2e7e1cde87fb"
+    },
+    {
+      "path": "apps/server/src/wsServer.ts",
+      "sha256": "52b44d3fb39231bfcd6495051cee71b72972aa0f86eba599575328911eb4eef3",
+      "bytes": 33287,
+      "git_blob_sha1": "2e6ac51b7fe0c5edeb31d5903af822eb0ac33452"
+    },
+    {
+      "path": "apps/server/src/wsServer/pushBus.test.ts",
+      "sha256": "da5b35ea347566e1bb3bce2c734cc6f67aed7eafdbc62414c2cb43ef1bac054f",
+      "bytes": 2815,
+      "git_blob_sha1": "172944607bd149d97e09b6402143eb511a60828f"
+    },
+    {
+      "path": "apps/server/src/wsServer/pushBus.ts",
+      "sha256": "d5169cef7ce258ec09dd2da1cd775803fefe6fcf1876ed9eca0afc8ae9ebfb82",
+      "bytes": 3498,
+      "git_blob_sha1": "c2cd302f23a72157d89469d8589498f99fbabcc9"
+    },
+    {
+      "path": "apps/server/src/wsServer/readiness.ts",
+      "sha256": "5001319f53a2313b7ebb304f6789051c60342bab59c26d9788c2c49f3de58cf6",
+      "bytes": 1539,
+      "git_blob_sha1": "2a973a8636f67967ad60b9d9db7d9b48bb8657cc"
+    },
+    {
+      "path": "apps/server/tsdown.config.ts",
+      "sha256": "eeb788d3940d8d3b85b251e2d991f5a3600f6e7b77857d4a320c5771add021a7",
+      "bytes": 339,
+      "git_blob_sha1": "f89bc7d3d763ca850d91af56e301026f62a6b029"
+    },
+    {
+      "path": "apps/server/vitest.config.ts",
+      "sha256": "34a74081651fd07ebefce6b3ccc0508389373f4257bc2388e54a6491d41c128e",
+      "bytes": 248,
+      "git_blob_sha1": "cb86636fb6f1bdeea63240056d216329ff2cd157"
+    },
+    {
+      "path": "apps/web/src/appSettings.test.ts",
+      "sha256": "269bd5095da811df459812d53659cab18155d63a2c2715a1ba9d3b33133a784a",
+      "bytes": 1873,
+      "git_blob_sha1": "326bceaacfa2e8f14b6daebdd349a8e2278a6ea2"
+    },
+    {
+      "path": "apps/web/src/appSettings.ts",
+      "sha256": "3f1c0e7334056f67beab9e9de1949fcba0317ad6b24aa18746322e8fc74b50e7",
+      "bytes": 5090,
+      "git_blob_sha1": "18e76d2f92c44a412e931abecaef2eb2a8295e31"
+    },
+    {
+      "path": "apps/web/src/branding.ts",
+      "sha256": "37b8e9d59f9dba9b42b362865587052c4bb5a707cfe0c12f3df95f8702c1cbb0",
+      "bytes": 250,
+      "git_blob_sha1": "bffd98381581cfe02c468ed5138d537a7d5ff1e8"
+    },
+    {
+      "path": "apps/web/src/chat-scroll.test.ts",
+      "sha256": "5cd69b63d890a21e069fdd38601ce97e2b4706c11d4500f701a563b68cd1a798",
+      "bytes": 1468,
+      "git_blob_sha1": "5311fb40aed522803511cda90ee52b38988f0267"
+    },
+    {
+      "path": "apps/web/src/chat-scroll.ts",
+      "sha256": "ce125cf079000feb7a15bcd92d983bba4676525641b4fa422e67b667b3a326a9",
+      "bytes": 677,
+      "git_blob_sha1": "35190ab1b94e4207aaf1a7c3614676a88153796f"
+    },
+    {
+      "path": "apps/web/src/components/BranchToolbar.logic.test.ts",
+      "sha256": "9fee994f79bdaefe2c589aee88c337ccd38efe5630c9c9f81a0679222d9674ba",
+      "bytes": 7648,
+      "git_blob_sha1": "5aef38ccf69b6c51b6ac61e5a4e4b72c99fb3149"
+    },
+    {
+      "path": "apps/web/src/components/BranchToolbar.logic.ts",
+      "sha256": "bc2af62fc7d91204836a471a17133b3f23ddff5e0c4a6629b96a2d1b269d8688",
+      "bytes": 3665,
+      "git_blob_sha1": "888c52cfd0ccdafb53ae36e7dad53fcefb0893fe"
+    },
+    {
+      "path": "apps/web/src/components/BranchToolbar.tsx",
+      "sha256": "ebf7b1ce02e77412d36c335b046ef926e993254a413b134d07074e89f2058093",
+      "bytes": 6106,
+      "git_blob_sha1": "e0ffa05c22e727363f425237965b5adf5d9d2827"
+    },
+    {
+      "path": "apps/web/src/components/BranchToolbarBranchSelector.tsx",
+      "sha256": "cda02fda1a49c2b8acd80029972eaaa717c95e0d4fec611350c7bcc2e4496b48",
+      "bytes": 15092,
+      "git_blob_sha1": "94462791615da9a356cb345e92757ad522fbb3c3"
+    },
+    {
+      "path": "apps/web/src/components/ChatMarkdown.tsx",
+      "sha256": "2ab1bd1f2df47547b9cb93534e31e66a6f1c708b229a478ae5bd4cb6a211381f",
+      "bytes": 9119,
+      "git_blob_sha1": "9663d158ebb0ee3ddfb51f4cbe303c80d80d9891"
+    },
+    {
+      "path": "apps/web/src/components/ChatView.browser.tsx",
+      "sha256": "5fcc85967a02f7aea7b2c145f11e5d68c5b9d52969472aabb69ab33f36b6759e",
+      "bytes": 37589,
+      "git_blob_sha1": "faecc7f51b11249e76a4df7757f33d40fe8677e8"
+    },
+    {
+      "path": "apps/web/src/components/ChatView.logic.ts",
+      "sha256": "dbd4069bdf76ad08dff758305c0957837c76b079df467c69d5dcabe84f2d517b",
+      "bytes": 3788,
+      "git_blob_sha1": "59e29043106056eb26e540b79eafb66aeaf5ac04"
+    },
+    {
+      "path": "apps/web/src/components/ChatView.tsx",
+      "sha256": "1b45d499f0bc3d4d4d209580239c7c4bda1cab80b08c844a690755d5928887d8",
+      "bytes": 148981,
+      "git_blob_sha1": "64c15ba2fcc06963aea319231919c5bfc7768e6e"
+    },
+    {
+      "path": "apps/web/src/components/ComposerPromptEditor.tsx",
+      "sha256": "5f72c92ef9a341801134e0d3f3b2f67cd17f5c8acd543772755ba3b32b20ade5",
+      "bytes": 27738,
+      "git_blob_sha1": "ab68f1fcbdc1a45dfd82f31bdf00ca49d29f3a6a"
+    },
+    {
+      "path": "apps/web/src/components/DiffPanel.tsx",
+      "sha256": "fafae5ac11b1a567ee3b8bf5a7e4d89af5c92d75c52068effcdeb27ec4fcd6c3",
+      "bytes": 23979,
+      "git_blob_sha1": "34ad78881467e1ad90bc8286d3d7b369a4a9b910"
+    },
+    {
+      "path": "apps/web/src/components/DiffPanelShell.tsx",
+      "sha256": "aeaadfabb094178476349b78052def8900991137859952ffe072c84e60c4562f",
+      "bytes": 3182,
+      "git_blob_sha1": "c08c53325d74c627827fc0767a755dfd3a0ba457"
+    },
+    {
+      "path": "apps/web/src/components/DiffWorkerPoolProvider.tsx",
+      "sha256": "bbb10ccfb045799b75639a20c320bf029507a48857b18379020b3a704ae56a33",
+      "bytes": 1628,
+      "git_blob_sha1": "5babd4248ad6bcd517bd1e40b15413b5992ec010"
+    },
+    {
+      "path": "apps/web/src/components/GitActionsControl.logic.test.ts",
+      "sha256": "c89d0864f0c631ef6956abc2da45de1e58ab6cb1dec8238616ab49feef9f1e4f",
+      "bytes": 27346,
+      "git_blob_sha1": "44ad29efac8485a84cdb48195a5a50b47502bad3"
+    },
+    {
+      "path": "apps/web/src/components/GitActionsControl.logic.ts",
+      "sha256": "877253f414ed60087c2fcbb5b025d4d2b64d7b3af7a63fc325116bbdcbb5dac3",
+      "bytes": 9930,
+      "git_blob_sha1": "8f7f023ef77b00ac6f90fdf8aedd1e33f1785968"
+    },
+    {
+      "path": "apps/web/src/components/GitActionsControl.tsx",
+      "sha256": "05ea7dc5817d518fd4f531cef0afe4742338784c911e09a9364b77faaadf4116",
+      "bytes": 35212,
+      "git_blob_sha1": "e4fad02af22f4e4b2780039c2f319c0b969412f5"
+    },
+    {
+      "path": "apps/web/src/components/Icons.tsx",
+      "sha256": "eab7e103ebe6a919ae4dd3450a8873fd2b794a8202f4de3bbfd9a7a931561d45",
+      "bytes": 28626,
+      "git_blob_sha1": "9a3ddbaa0fc085da9903b5a8038e607e69b4e7d0"
+    },
+    {
+      "path": "apps/web/src/components/KeybindingsToast.browser.tsx",
+      "sha256": "c9cfdbd102f85c5b83b78781f58a855140a0595a9639be0315fa2f2043d4f664",
+      "bytes": 9867,
+      "git_blob_sha1": "ba4c8f432051e1fe16a68e5163dd2ca1f98417fa"
+    },
+    {
+      "path": "apps/web/src/components/PlanSidebar.tsx",
+      "sha256": "50a496de67c9cc8233510b4ade71d5b19c61736da68588587e8e1f9c1ecaf107",
+      "bytes": 9715,
+      "git_blob_sha1": "47bee930cc7d9e12e899fd26e3c685f6cc162311"
+    },
+    {
+      "path": "apps/web/src/components/ProjectScriptsControl.tsx",
+      "sha256": "299cef9e16d6afc497e558d0c808d1e2a6a52c9ee9c9d88a72e66d33db6c748f",
+      "bytes": 18433,
+      "git_blob_sha1": "437b3e78ef7f8c98d8ebd30c309d9c1c66f61b6e"
+    },
+    {
+      "path": "apps/web/src/components/PullRequestThreadDialog.tsx",
+      "sha256": "033c264a73c7f60f23057ae6470060ecbd8fac262108c4c5fa8c1b4dd65354a1",
+      "bytes": 9230,
+      "git_blob_sha1": "8b1ed51220731ae5d2c73ca29d1e457d47e25d9f"
+    },
+    {
+      "path": "apps/web/src/components/Sidebar.logic.test.ts",
+      "sha256": "4d87baea37bd149e21258e1394137740e84995d826a3e8f057be628bacfdbf6f",
+      "bytes": 6301,
+      "git_blob_sha1": "a8f84d564acec0d3aa1ad0e067e6458314582e26"
+    },
+    {
+      "path": "apps/web/src/components/Sidebar.logic.ts",
+      "sha256": "5fdb9a23a42851189975d15af3b4e9feb5511ceb37f4bfd468dd87bd0726ee15",
+      "bytes": 4332,
+      "git_blob_sha1": "c65ef8379981b58e1364cce118dc2d3e1d82e936"
+    },
+    {
+      "path": "apps/web/src/components/Sidebar.tsx",
+      "sha256": "8508d25a989f6c7dd7fb1829f8c84eec0417fc4369a48a609dd1b7452c56b10b",
+      "bytes": 64683,
+      "git_blob_sha1": "1b43eb4c18e565b1ebc6c642b9347004606b4933"
+    },
+    {
+      "path": "apps/web/src/components/ThreadTerminalDrawer.tsx",
+      "sha256": "4c4ad43d8d01b5939fd7db2762bcd26ac3ea2eaad86ecd52cda79c2818932f5d",
+      "bytes": 34344,
+      "git_blob_sha1": "8e480715f54d0c3ac5a3d9167520a214217b9d2a"
+    },
+    {
+      "path": "apps/web/src/components/chat/ChangedFilesTree.tsx",
+      "sha256": "a1b89cf71c84480a8494da2aaf6c4c665596bb421a400f3b7009cc90af35ba21",
+      "bytes": 5267,
+      "git_blob_sha1": "0174a77088358e29ab459f327cc33bc2e62c0507"
+    },
+    {
+      "path": "apps/web/src/components/chat/ChatHeader.tsx",
+      "sha256": "dcbc31931aaf8694a74bb4f3c6cd87af6f8273bebcdabc2b127f6cf298c83126",
+      "bytes": 4193,
+      "git_blob_sha1": "ea7f911bec4bd94a7555b46482a2ca4cc7d8d638"
+    },
+    {
+      "path": "apps/web/src/components/chat/CodexTraitsPicker.tsx",
+      "sha256": "540a0dd33063c1225c03f8e176591e78e1d3be1a81bb446093a5d714fe7a4c18",
+      "bytes": 2994,
+      "git_blob_sha1": "6c72f497ba9f7fdc8d679933fc722e8bf0d6084b"
+    },
+    {
+      "path": "apps/web/src/components/chat/CompactComposerControlsMenu.tsx",
+      "sha256": "cd16468526eba47ab16eac0d669f89fdf7c08e6045444e717ba824d5bda13a29",
+      "bytes": 4830,
+      "git_blob_sha1": "0af50ff01ee52a2ad00fbefc79780923ebe30b5f"
+    },
+    {
+      "path": "apps/web/src/components/chat/ComposerCommandMenu.tsx",
+      "sha256": "71faa89025fabd02749fe41e7c3282a814854953e5da6ea58711c444b5adb2aa",
+      "bytes": 3716,
+      "git_blob_sha1": "818c3c20f8bfd6f232a3f108fecb1795b97d86e8"
+    },
+    {
+      "path": "apps/web/src/components/chat/ComposerPendingApprovalActions.tsx",
+      "sha256": "80c2b05ed2cf2bf627e24d2c14f5aed42636b58aabd49b497eee2b944f8264ac",
+      "bytes": 1461,
+      "git_blob_sha1": "5786bab478be92186b3fded911268ee344e29757"
+    },
+    {
+      "path": "apps/web/src/components/chat/ComposerPendingApprovalPanel.tsx",
+      "sha256": "1058daf113e5a66c10fe211dce410e42565e7cd9617e43f57295cad169f58a44",
+      "bytes": 1021,
+      "git_blob_sha1": "569fd108a4a828c119795725228ef48eb42c1418"
+    },
+    {
+      "path": "apps/web/src/components/chat/ComposerPendingUserInputPanel.tsx",
+      "sha256": "82e821634e1c16c20891abf27d173597c37432097a396054aa2cd533b98b2a47",
+      "bytes": 7092,
+      "git_blob_sha1": "c8cad7bf36f406b58da107d150928cf7b86b14f0"
+    },
+    {
+      "path": "apps/web/src/components/chat/ComposerPlanFollowUpBanner.tsx",
+      "sha256": "0c9932cd6bd5a520f573f16eb1802a1791a66f700fc3413729657a4304e070c8",
+      "bytes": 634,
+      "git_blob_sha1": "49b03f7724bb327ebbfd479594cfc974942806c7"
+    },
+    {
+      "path": "apps/web/src/components/chat/DiffStatLabel.tsx",
+      "sha256": "f668382fd8e71376ec90df600cc94a20e83e77e24fd2ce951f3113096383b207",
+      "bytes": 760,
+      "git_blob_sha1": "2dda06fd9dfc667f2c14e4053a583378f80b3c12"
+    },
+    {
+      "path": "apps/web/src/components/chat/ExpandedImagePreview.tsx",
+      "sha256": "8a34d56939e6ee85a0197143a9bd1ba74a5d953798271afe16672769ee813bac",
+      "bytes": 839,
+      "git_blob_sha1": "db5803d49082e58f8454c678e341f0cd19a8493b"
+    },
+    {
+      "path": "apps/web/src/components/chat/MessageCopyButton.tsx",
+      "sha256": "104f0e7c2495c6a5108d1b46894c2747b341a80f64cdf9a01a27f0fb305014c0",
+      "bytes": 627,
+      "git_blob_sha1": "cf1e798912397e04f76e7e37108d7f67daf2a2c2"
+    },
+    {
+      "path": "apps/web/src/components/chat/MessagesTimeline.logic.test.ts",
+      "sha256": "1265c4e16f65ea0b46d90ed8845a0de04cb7608ee7b082c00ea74c94e7485b19",
+      "bytes": 4285,
+      "git_blob_sha1": "dee42a8586c427c5f2be0d0449f16051f44d0a4b"
+    },
+    {
+      "path": "apps/web/src/components/chat/MessagesTimeline.logic.ts",
+      "sha256": "27d8d5e3bdc034791822dd28f769d0aeed1dea1e3fcbaca53a161728e423f55e",
+      "bytes": 821,
+      "git_blob_sha1": "726d61888e5d7ab611f894acaab553ca9c164bc9"
+    },
+    {
+      "path": "apps/web/src/components/chat/MessagesTimeline.tsx",
+      "sha256": "bf175e82f8376c47039d1a29d4cbf5ba5f1bb7ebdbe057577e29073f0708e5c2",
+      "bytes": 29522,
+      "git_blob_sha1": "e30801041f6eace94d25041227647b81d94c523d"
+    },
+    {
+      "path": "apps/web/src/components/chat/OpenInPicker.tsx",
+      "sha256": "81361e9f44623689e58e0f3811ea1810bd77fd96c0d06933a1a2a10246579b06",
+      "bytes": 4465,
+      "git_blob_sha1": "9f62f7121e8074ac9350156b3c6fa116dd0ecfd5"
+    },
+    {
+      "path": "apps/web/src/components/chat/ProposedPlanCard.tsx",
+      "sha256": "89e74899d093ff8e2821715b46f24f64680aaf06fd5ecea40effa88ff3fa3922",
+      "bytes": 6980,
+      "git_blob_sha1": "c8956b9cfa390bd517ad2e0115651d33ac1e1622"
+    },
+    {
+      "path": "apps/web/src/components/chat/ProviderHealthBanner.tsx",
+      "sha256": "43eb6e571d1ddf31bf6413f839f32bdac5ca1998b5cfe49026140113542ae6de",
+      "bytes": 1081,
+      "git_blob_sha1": "12c7f60544f317221b5b5d63016a75ff7769de1f"
+    },
+    {
+      "path": "apps/web/src/components/chat/ProviderModelPicker.tsx",
+      "sha256": "45aa95de1fa74392e36cb78b6b4a8537fd7b8fef87fe50ffa9034c5e0b9e6dcb",
+      "bytes": 7283,
+      "git_blob_sha1": "9bc034991e1b530c059ad9b892ab7603983c2752"
+    },
+    {
+      "path": "apps/web/src/components/chat/ThreadErrorBanner.tsx",
+      "sha256": "be33922285faf76ce399b8717bab3249a8e6ce3ebe2ed4acdd14e52f1598b5fc",
+      "bytes": 1024,
+      "git_blob_sha1": "b48412453ce2985756280ec1cd4812f664f95ade"
+    },
+    {
+      "path": "apps/web/src/components/chat/VscodeEntryIcon.tsx",
+      "sha256": "ae9f71b57403c7f925545b3d548d10f3e6ed8b1e0181d4cb0345c87212fee3de",
+      "bytes": 1127,
+      "git_blob_sha1": "bf110e2bb8ff5eb5a680f31cf05605c73f5cb08a"
+    },
+    {
+      "path": "apps/web/src/components/composerFooterLayout.test.ts",
+      "sha256": "7524fc2de57f95390a4ff3c5e39a3c0d305d3ec01bf6c99524ee8f0d6f597276",
+      "bytes": 1225,
+      "git_blob_sha1": "717e2623d4f793ab93347770d699bd5012354326"
+    },
+    {
+      "path": "apps/web/src/components/composerFooterLayout.ts",
+      "sha256": "fe3d5ed0634aca6f0f8209fc6a7ef960561b8e0a4244993e9e210942163c2872",
+      "bytes": 453,
+      "git_blob_sha1": "3cf994fc142c857cf431a65c21909ab1c1d48e99"
+    },
+    {
+      "path": "apps/web/src/components/desktopUpdate.logic.test.ts",
+      "sha256": "b9f0fba60c708a26e837bca024ed3c6e114fdfebe5f7d29468ec0cc83162cf94",
+      "bytes": 6147,
+      "git_blob_sha1": "984eebd6b1bd7f0248acb846ec5e642b5d300fb7"
+    },
+    {
+      "path": "apps/web/src/components/desktopUpdate.logic.ts",
+      "sha256": "806d075e3a777cd1054898963e4a63fad07db4cabe2e07f2520a9ba42650e8c9",
+      "bytes": 3781,
+      "git_blob_sha1": "faf30883cc402672e54d8349af71dbfb98193a5e"
+    },
+    {
+      "path": "apps/web/src/components/timelineHeight.test.ts",
+      "sha256": "1e619fd5f93b8e91ca2ed81074a8d56b287736620088e58744c9f64e36929ef3",
+      "bytes": 2910,
+      "git_blob_sha1": "73a21cd08d23af59f8ca14eb1b05c59cb6ae9231"
+    },
+    {
+      "path": "apps/web/src/components/timelineHeight.ts",
+      "sha256": "b1b8fb515470d6f431d713a6ea2369f7cff6e3068d62fa8f58e4147b65513e38",
+      "bytes": 3723,
+      "git_blob_sha1": "78a5f6539b391b91658f54eab616e07eae7304d9"
+    },
+    {
+      "path": "apps/web/src/components/ui/alert-dialog.tsx",
+      "sha256": "8048f128ff38f3843518d396dd2c1b1f3b549f9cf6994266837c10a6001e855d",
+      "bytes": 4847,
+      "git_blob_sha1": "5c65f261f59eebdbf2660c6f4dea504a140cfe2f"
+    },
+    {
+      "path": "apps/web/src/components/ui/alert.tsx",
+      "sha256": "a7de346d833f2086effbd2df9ed25bd35b97501e5dbdcea98b7fe98fe420a7d0",
+      "bytes": 2349,
+      "git_blob_sha1": "41013f95b1aa54a53cfd6bc45fdc005aadd7c146"
+    },
+    {
+      "path": "apps/web/src/components/ui/autocomplete.tsx",
+      "sha256": "45003ba2ad58ee0ce58c25d5b5b8619ab576315a2e0a3b07c9c20b8372bacc09",
+      "bytes": 9918,
+      "git_blob_sha1": "98ad1e431a575fb3c441bc41a3b3514139ff2d72"
+    },
+    {
+      "path": "apps/web/src/components/ui/badge.tsx",
+      "sha256": "d231c9f983bb9dc6bb24a776bab064b13fc05ec37e7ec4b97bc557ffac864120",
+      "bytes": 2714,
+      "git_blob_sha1": "e06d9b9a0d812fc51471a5695da2fc7fa57f2134"
+    },
+    {
+      "path": "apps/web/src/components/ui/button.tsx",
+      "sha256": "d0683e28a3d34c1a685f216247cfd15ef60ad7e4a33b1d227af2fa18e6e03023",
+      "bytes": 5003,
+      "git_blob_sha1": "4cbb3e831dcba5fcdc49a24660da1b513e107585"
+    },
+    {
+      "path": "apps/web/src/components/ui/card.tsx",
+      "sha256": "1dbeb64bf853df5720d92fd26813b695b4da5a737ad8e1f905184539ea77da26",
+      "bytes": 6077,
+      "git_blob_sha1": "f1428d13d9099adbc518bc71ecdc0b158f0022d0"
+    },
+    {
+      "path": "apps/web/src/components/ui/checkbox.tsx",
+      "sha256": "7873f001b086537e82aeb3855b968af5f46500c63e755588930978ea9efee21d",
+      "bytes": 2662,
+      "git_blob_sha1": "d842c7277411b6a40b2d3f2a25d2f1b45d3836dd"
+    },
+    {
+      "path": "apps/web/src/components/ui/collapsible.tsx",
+      "sha256": "3d0ac5f3397b2c20af05281f7b6aeb281321b74a7444cced3b4e8e4f91c50eea",
+      "bytes": 1101,
+      "git_blob_sha1": "e5f3db03c3f5e8bedcc3ac7ba1904656b6cded6d"
+    },
+    {
+      "path": "apps/web/src/components/ui/combobox.tsx",
+      "sha256": "4a4271ffe8b93e43efc5d3f41836d6475152a9d3835203b037377e857f233963",
+      "bytes": 14217,
+      "git_blob_sha1": "b0927898217dc3c2674576299ceebca6b87acb8d"
+    },
+    {
+      "path": "apps/web/src/components/ui/command.tsx",
+      "sha256": "dc7812ce2128fd63304df9d16ed0e00b617d40e47f689babeb5a590aed2b5411",
+      "bytes": 7034,
+      "git_blob_sha1": "a2bc59c092ff6211e5dbe6b61ef43d8a4377f5c8"
+    },
+    {
+      "path": "apps/web/src/components/ui/dialog.tsx",
+      "sha256": "aed50d9aa2832d919e180e4d3aa94ca30690d95eadf2ce02109b24cc4ef17063",
+      "bytes": 5737,
+      "git_blob_sha1": "080ac809975621bbca1de31d7b9e5a4078a064b9"
+    },
+    {
+      "path": "apps/web/src/components/ui/empty.tsx",
+      "sha256": "9791f11bb3f3eba63dc2bf6a3d2f1fff2ae3b158edf71e6fca649c74e9f5f38c",
+      "bytes": 3326,
+      "git_blob_sha1": "5390dd665620f19902e1aa782f4cf1341fea14c3"
+    },
+    {
+      "path": "apps/web/src/components/ui/field.tsx",
+      "sha256": "1663f4c19614820eafd77d07b6b7e1a9506fe4508c7a761a79dcfeb6ffaacf21",
+      "bytes": 1552,
+      "git_blob_sha1": "1bf65b6c8049dbb4bb3736860971441aa81f09c6"
+    },
+    {
+      "path": "apps/web/src/components/ui/fieldset.tsx",
+      "sha256": "4e66f28dcbe73b7016c5eab80a77a93b75f6ad746cd0a67cd428fb220ee64c05",
+      "bytes": 659,
+      "git_blob_sha1": "23763b982426d054d23bfb29a5d7db394b4d9de4"
+    },
+    {
+      "path": "apps/web/src/components/ui/form.tsx",
+      "sha256": "1d05f166b6eb6ce17d5d107e9d7d407a9fbdb4110535369d622866ec5823f78c",
+      "bytes": 338,
+      "git_blob_sha1": "641fc2ee6270c7681e3054bcaafd640666bb83bf"
+    },
+    {
+      "path": "apps/web/src/components/ui/group.tsx",
+      "sha256": "38d8e9d72b15e332de101a2b3d37c4962e247224f4f66cbb73d81a30414b04e4",
+      "bytes": 4850,
+      "git_blob_sha1": "6eedfdda922899022b175e0d5d31a00dc6e67beb"
+    },
+    {
+      "path": "apps/web/src/components/ui/input-group.tsx",
+      "sha256": "a5b7c5485633acef1359dec4acb15aa0a33d70e91fcd33365718c8e6cc0739ba",
+      "bytes": 6259,
+      "git_blob_sha1": "2d631627337db9ffcd5814d1209801d8c60323bc"
+    },
+    {
+      "path": "apps/web/src/components/ui/input.tsx",
+      "sha256": "d82a1cf5372e446fa181412763ac7ff8ce3aeef2a97e208102c4c95e6f0fe642",
+      "bytes": 2831,
+      "git_blob_sha1": "001a240ddfd499f81c9db6dd29144fa7be000e14"
+    },
+    {
+      "path": "apps/web/src/components/ui/kbd.tsx",
+      "sha256": "f0589fe3e38a2cb59e8f7e2d38298f50b6f5996d40725368410ba68aa933d690",
+      "bytes": 723,
+      "git_blob_sha1": "04a23f2b6cb36d5265095e39a0b4e762b3a70df7"
+    },
+    {
+      "path": "apps/web/src/components/ui/label.tsx",
+      "sha256": "59ada6763ed4410cc4319e4539fe3460ffbff1c0607dcb0bf8819b8226d9b13d",
+      "bytes": 585,
+      "git_blob_sha1": "d61934025a1a7249577fef89f24d3213af09cb08"
+    },
+    {
+      "path": "apps/web/src/components/ui/menu.tsx",
+      "sha256": "48b435fcf311012e65e868e10a53539eba981ac45b149e197649328062dc7b45",
+      "bytes": 10857,
+      "git_blob_sha1": "8f2833e41b30a21e7fac4d1917115087cde805e6"
+    },
+    {
+      "path": "apps/web/src/components/ui/popover.tsx",
+      "sha256": "cbef9fbb6651e691186e3da8d4211d5c08dcea4adce1aa36808398d64266b569",
+      "bytes": 4324,
+      "git_blob_sha1": "a2ed525035d8c17ec943d53926fe50ca4828f178"
+    },
+    {
+      "path": "apps/web/src/components/ui/radio-group.tsx",
+      "sha256": "b365b127c16a756c0d82ec94683a5c4b9386f58f4ee42dc327c5b37419899698",
+      "bytes": 1907,
+      "git_blob_sha1": "025ba7a84feb104e8b60672de40b013a98ece629"
+    },
+    {
+      "path": "apps/web/src/components/ui/scroll-area.tsx",
+      "sha256": "01fae8b333f76d293fa34d4148afeac7ad7baf477f06e5b24b851611122722d8",
+      "bytes": 2619,
+      "git_blob_sha1": "50deb1ba87176f2e8b6f690017a6a92d330e4f82"
+    },
+    {
+      "path": "apps/web/src/components/ui/select.tsx",
+      "sha256": "5f8946662eeed867a46415e93e4a80c4d421f04f9e79ae948e47fe1f44630fd5",
+      "bytes": 9507,
+      "git_blob_sha1": "e90b415820a8d0d992e4d976c5af910c78bb14f5"
+    },
+    {
+      "path": "apps/web/src/components/ui/separator.tsx",
+      "sha256": "b99515751890f0d4c61b06e3badd14ccec6ee7104238135602ca0a2f119f476e",
+      "bytes": 627,
+      "git_blob_sha1": "b74ce987beba843a8478344092b4cb3a2e06b056"
+    },
+    {
+      "path": "apps/web/src/components/ui/sheet.tsx",
+      "sha256": "e2cced4190362cff5860a0b173e5929b2ad71e25dfe48af6f5616cf06a8c3841",
+      "bytes": 6012,
+      "git_blob_sha1": "dfa3d6db14deeed51419c3bb42e7019c41aef24d"
+    },
+    {
+      "path": "apps/web/src/components/ui/sidebar.tsx",
+      "sha256": "bbcd903fab6048976fa356564054f790c94ff69d6bc9279af9a8347827f65345",
+      "bytes": 32823,
+      "git_blob_sha1": "15b8430c8259f930f4e27b747e62d6747ac90921"
+    },
+    {
+      "path": "apps/web/src/components/ui/skeleton.tsx",
+      "sha256": "49cee800431b30b009584967670a6c476c3c21cbdb27343d87c8556c099caf45",
+      "bytes": 545,
+      "git_blob_sha1": "b1e481784196f61860ec58eed1986d03221058df"
+    },
+    {
+      "path": "apps/web/src/components/ui/spinner.tsx",
+      "sha256": "2c9fe2e4796af41d58eb1d87d8be29fbb3d4f17f4ec98e9de62a7fb7becbca0b",
+      "bytes": 340,
+      "git_blob_sha1": "362b78f954636a2848855eae588cf2ed195b7313"
+    },
+    {
+      "path": "apps/web/src/components/ui/switch.tsx",
+      "sha256": "77a855c6051b028adea861bbe9b3360d6f2d9fbe42429d4096a73bc1f6736666",
+      "bytes": 1544,
+      "git_blob_sha1": "4b65b5466bb0073949b884de112ae776e960e733"
+    },
+    {
+      "path": "apps/web/src/components/ui/textarea.tsx",
+      "sha256": "9a8d3be108378d6a33b8fa7581474d3732167cf76054d342bf8c7d20d171975e",
+      "bytes": 2185,
+      "git_blob_sha1": "586ae8e4430aa38110895e60169cd2bc0006d795"
+    },
+    {
+      "path": "apps/web/src/components/ui/toast.logic.test.ts",
+      "sha256": "880448cbcba50b0d74811af61c95550d35e0edfd29998ded09287bdbf90ba95a",
+      "bytes": 1777,
+      "git_blob_sha1": "4e4595f73f3d46ce2aff30be1d20799a1a528d9d"
+    },
+    {
+      "path": "apps/web/src/components/ui/toast.logic.ts",
+      "sha256": "657a08e4592a2f6fb526b984887250ce3273a451462844c4cc861b975715b7cc",
+      "bytes": 1223,
+      "git_blob_sha1": "eaa4e0db4fe312a6df13e82a624cd2b5524ee9d3"
+    },
+    {
+      "path": "apps/web/src/components/ui/toast.tsx",
+      "sha256": "93dea10e73c2f7c69f5390d5c3cebee40a3924c4aa80a9f0f3724fc06b944553",
+      "bytes": 18687,
+      "git_blob_sha1": "768a083e2e05f599dbd0c36cdee6ab05959f84c5"
+    },
+    {
+      "path": "apps/web/src/components/ui/toggle-group.tsx",
+      "sha256": "9d27a6dd351eaf9fa158007d819daec9e1965814b66e8ed0703e714f4f22e504",
+      "bytes": 3533,
+      "git_blob_sha1": "437c5ef987c1133f85e0944b3f991192a6399197"
+    },
+    {
+      "path": "apps/web/src/components/ui/toggle.tsx",
+      "sha256": "c43f44bd634d95e25b92a5f47c827dfdcfe26aa5972043dab3a37448505532c8",
+      "bytes": 2379,
+      "git_blob_sha1": "5bbfdc7b54728929e2a7b6213858ba011377c576"
+    },
+    {
+      "path": "apps/web/src/components/ui/tooltip.tsx",
+      "sha256": "25da10f5b184e4f5ae4a49670890020f822829b9b5be9ddf6c0713d1d78051b4",
+      "bytes": 2959,
+      "git_blob_sha1": "f41c4520075cf95db2e90b925fb88d27fdd167de"
+    },
+    {
+      "path": "apps/web/src/composer-editor-mentions.test.ts",
+      "sha256": "09c99f1406f9e0b86745eadb484fc83302af6e90a9e33089cdd9d3d352bbf52d",
+      "bytes": 983,
+      "git_blob_sha1": "374892c1c29da8a1daffec152469ba8e2bcb9817"
+    },
+    {
+      "path": "apps/web/src/composer-editor-mentions.ts",
+      "sha256": "1d9d287a7df3c5055fb919a1cc5ad911209fc79ec397e83ee0217ac46ef512c4",
+      "bytes": 1418,
+      "git_blob_sha1": "94736eca4704154866fd15a97e4c808c42afef91"
+    },
+    {
+      "path": "apps/web/src/composer-logic.test.ts",
+      "sha256": "abd0adfb76862878e987141976d13bf6d6333bd1e966a6d4d1658b48129b31d7",
+      "bytes": 8731,
+      "git_blob_sha1": "36532e9044a09ac433b4c9c3ef41e2c3eb41f70b"
+    },
+    {
+      "path": "apps/web/src/composer-logic.ts",
+      "sha256": "4f50a6e8be78684ce40894ea2b67f4b64336e4f13de0fd35d19a70be9b4765d3",
+      "bytes": 6540,
+      "git_blob_sha1": "b696d80381db8ddfb6eb0c41b89a1fd5f26fd4de"
+    },
+    {
+      "path": "apps/web/src/composerDraftStore.test.ts",
+      "sha256": "63a44f7fda86b1b38d8b17d10b563c79e8cfd28f5ad97b8de2e717013e3daaae",
+      "bytes": 18781,
+      "git_blob_sha1": "927a1606015975eed8d8c980d31fa9fb32c480b6"
+    },
+    {
+      "path": "apps/web/src/composerDraftStore.ts",
+      "sha256": "80b9ca08fac9afc1f8152072b1d87ed28e4edf36da3ee3f54c2cd08249ba5d1d",
+      "bytes": 48050,
+      "git_blob_sha1": "2af92052757132658d07051d98066f37bb4d8c69"
+    },
+    {
+      "path": "apps/web/src/contextMenuFallback.ts",
+      "sha256": "2bfabec1920722c060e52915e0bcf9a8f9e617abf614d5dbe6daf7dd428d5bc1",
+      "bytes": 2430,
+      "git_blob_sha1": "63cdef8481c4420d4a9ae471a372d3f33f79f28b"
+    },
+    {
+      "path": "apps/web/src/diffRouteSearch.test.ts",
+      "sha256": "75d58659b547a599ae35cdf7037beba84137f4870f72574b61697d0990512e3a",
+      "bytes": 1544,
+      "git_blob_sha1": "ef00874bd266fbef26ff4b4ee595cb3dc0d15e7c"
+    },
+    {
+      "path": "apps/web/src/diffRouteSearch.ts",
+      "sha256": "f32d1502bf3c97e413d7df872991ea3385fa8e13e566f615596d906d2d5e5ca2",
+      "bytes": 1385,
+      "git_blob_sha1": "d7de23e348ba95010d3a2a1bc5d5b3ef128fe6d9"
+    },
+    {
+      "path": "apps/web/src/editorPreferences.ts",
+      "sha256": "e61cdd19dd847fb6cab2353b158898c298d0fe2741a2c714aa02ed4f812942d9",
+      "bytes": 1570,
+      "git_blob_sha1": "ca43f3e5d87e94ae7f1b4aa957385c6fb34b5857"
+    },
+    {
+      "path": "apps/web/src/env.ts",
+      "sha256": "4df05240d1d00f35569aad6c97b813f6f4def49888419c102bbff103b1bad840",
+      "bytes": 368,
+      "git_blob_sha1": "fb2e493cadaae65b6a6069812201dde42f97f41b"
+    },
+    {
+      "path": "apps/web/src/historyBootstrap.test.ts",
+      "sha256": "564774975da95abd2dd00fe108b7c0a90f8fb9fca6d9bb87a65d0cb09c0a498f",
+      "bytes": 3545,
+      "git_blob_sha1": "eda176dab427aaa362daeb992542ccad4490e1f8"
+    },
+    {
+      "path": "apps/web/src/historyBootstrap.ts",
+      "sha256": "2a1a056ee9e28660e239f31d5740f93c8b40247ab77c7bf336bb1cba11d43fae",
+      "bytes": 4685,
+      "git_blob_sha1": "b6a2570f0d9c6bbd5b96aeb34eb0916f14d4fc6d"
+    },
+    {
+      "path": "apps/web/src/hooks/useCopyToClipboard.ts",
+      "sha256": "b5daf604f568c9e604427ba6ee0523acb21037886fa1ee8c05e0314d46890837",
+      "bytes": 1803,
+      "git_blob_sha1": "d1feb621159fde0f050bf8a92672317ba8b9bb48"
+    },
+    {
+      "path": "apps/web/src/hooks/useHandleNewThread.ts",
+      "sha256": "f331e0ab7e8d1e3dbd6ad53f85e8f6ee101de3f3cf9b498d5e6b4b01ae5ccb34",
+      "bytes": 3978,
+      "git_blob_sha1": "35f92d98e9b51720d07f6abaf4d69ab6f180bd94"
+    },
+    {
+      "path": "apps/web/src/hooks/useLocalStorage.ts",
+      "sha256": "0a2c1e898742e238bff4ef4ddf8de7f2fb7954a9ac0feb52fd18ce90414d187a",
+      "bytes": 4575,
+      "git_blob_sha1": "da9aa4b889d1b7578b322d256871008ddcbf5873"
+    },
+    {
+      "path": "apps/web/src/hooks/useMediaQuery.ts",
+      "sha256": "eca632a42f3da41b2d760916748fc3117c70efa39cd596388018bc22e06fe8b2",
+      "bytes": 2613,
+      "git_blob_sha1": "e7e007b0b7c6d73d585c1332e4db28c09a98102b"
+    },
+    {
+      "path": "apps/web/src/hooks/useTheme.ts",
+      "sha256": "c9f4441572b0c72944825a9b09d10c500783791b3590fd01cd950655ef076fa0",
+      "bytes": 3416,
+      "git_blob_sha1": "6afe83dfe33153472f21c30c94598c4f7c522ca2"
+    },
+    {
+      "path": "apps/web/src/hooks/useTurnDiffSummaries.ts",
+      "sha256": "c35ee4f703ade1fc05cb91bf70970a1f55ba744db71ec6c6b4ce2fb71f1c50f0",
+      "bytes": 594,
+      "git_blob_sha1": "2bf72c96cca65317d3b0c4a70bf08066ed9bf426"
+    },
+    {
+      "path": "apps/web/src/keybindings.test.ts",
+      "sha256": "44a5bc4fbb4770e30dfa5e92eb2cbc3a67c42d30b072af470bdf6b6dd7d0c6b2",
+      "bytes": 14383,
+      "git_blob_sha1": "0ecccf43f85efe455016b2aa5b2378b4d4c62869"
+    },
+    {
+      "path": "apps/web/src/keybindings.ts",
+      "sha256": "e6bab87a8e7e0b3657c77121e17b085944b3ed7b14475764d0443825a4d1c66e",
+      "bytes": 8428,
+      "git_blob_sha1": "09d9308aade0c24f7e6e8dd7bde8359465c48ac6"
+    },
+    {
+      "path": "apps/web/src/lib/diffRendering.test.ts",
+      "sha256": "c229fb54f4fd6b70bf9192b3e6e065b85419600d50bf9589dc707a463adcb1db",
+      "bytes": 1105,
+      "git_blob_sha1": "9fd7045ff4064adb0771c1fb63f384f6170e9af0"
+    },
+    {
+      "path": "apps/web/src/lib/diffRendering.ts",
+      "sha256": "918bf908a71284cf1ead796ade7b48e1575e2534533c2f4dca6ad3bc88032fe4",
+      "bytes": 1218,
+      "git_blob_sha1": "7218f72978e07aacfcd164bcf616d0ff56970f0c"
+    },
+    {
+      "path": "apps/web/src/lib/gitReactQuery.test.ts",
+      "sha256": "e55488b942b74d7c64d1911f0b73306409ee3dba0029bbcca53267b85ae5f103",
+      "bytes": 1690,
+      "git_blob_sha1": "964d14fb8be002430203881321871ca82990925e"
+    },
+    {
+      "path": "apps/web/src/lib/gitReactQuery.ts",
+      "sha256": "08cefbb877ca32b21b419b6a7b2aebf2a60f6a4f254de07b44b0deb6892c000e",
+      "bytes": 7073,
+      "git_blob_sha1": "9b5fe7731fa09f0fa30747b091749f1de9fc82e4"
+    },
+    {
+      "path": "apps/web/src/lib/lruCache.test.ts",
+      "sha256": "47510be3ef89812217a541460dfc0fdeb473550dd051eefbf2097aa6eccca172",
+      "bytes": 1229,
+      "git_blob_sha1": "7f53db2607ed3c31c3908fd963673d82c300484b"
+    },
+    {
+      "path": "apps/web/src/lib/lruCache.ts",
+      "sha256": "41403e782c3034d7194c0c65d56eff72329234d0fb1635e9cb597b847eeecc09",
+      "bytes": 1508,
+      "git_blob_sha1": "141c796e737e6688bf6fbfb38676532b5ad76c31"
+    },
+    {
+      "path": "apps/web/src/lib/projectReactQuery.ts",
+      "sha256": "7c7e1596cc2348ded727e46ad3aee95ce487ff605666012ec93de12ff4b3f7a7",
+      "bytes": 1424,
+      "git_blob_sha1": "20aa265b873c7717e70302844a341d41d0e9c0b3"
+    },
+    {
+      "path": "apps/web/src/lib/projectScriptKeybindings.test.ts",
+      "sha256": "ea3964a62cb61b2e3a81d029537b24f9537adc7931cd46c207a44b061462229d",
+      "bytes": 2215,
+      "git_blob_sha1": "9db0fd5290836a8073a2752f505470d98db234c2"
+    },
+    {
+      "path": "apps/web/src/lib/projectScriptKeybindings.ts",
+      "sha256": "e5bd54d60792a1f91752d4d2424a0782c533f450b5eb0699d41f928db6217528",
+      "bytes": 1857,
+      "git_blob_sha1": "4ea80cf824f20a74d8ccd415af4ae9401c0fab35"
+    },
+    {
+      "path": "apps/web/src/lib/providerReactQuery.test.ts",
+      "sha256": "eb922d7a08b1712a796f410cdefec87376bf58acc8a86ff821d7a765c94f385a",
+      "bytes": 5073,
+      "git_blob_sha1": "b7e770799a59b519f52a311bf803cde2db03222a"
+    },
+    {
+      "path": "apps/web/src/lib/providerReactQuery.ts",
+      "sha256": "0e8924a136a85638e1c93267b20804813b69b37b7642c255727ecc555115dd9b",
+      "bytes": 3904,
+      "git_blob_sha1": "0547aa9e5f8bac16802436bdce1a710f0c523f69"
+    },
+    {
+      "path": "apps/web/src/lib/serverReactQuery.ts",
+      "sha256": "3afb39063b27c97753abf6df6640717a897d1e240285d26f1f3603d7d26a85fe",
+      "bytes": 464,
+      "git_blob_sha1": "85853e2ee23fa0f1310352de3a3c16391927cfbc"
+    },
+    {
+      "path": "apps/web/src/lib/terminalFocus.ts",
+      "sha256": "fa9439e531bfae4354279c309921c7878c23f86d9bfee067376f454bc9b91bb3",
+      "bytes": 311,
+      "git_blob_sha1": "d24c9572a381600a1bcbf5f75832abe7a2da61b9"
+    },
+    {
+      "path": "apps/web/src/lib/terminalStateCleanup.test.ts",
+      "sha256": "b83cf46dc78331d3df8d6e610fd438afa9cc848cc9e4325856607d5f48f0375b",
+      "bytes": 1162,
+      "git_blob_sha1": "8bc3c37300decdf04500a2a3f5d87a8d790ef021"
+    },
+    {
+      "path": "apps/web/src/lib/terminalStateCleanup.ts",
+      "sha256": "65d77dbfd0722b4c5a09bc22fed69ff709d22ceed977f91518595a7b2e95b650",
+      "bytes": 699,
+      "git_blob_sha1": "5f2bfdafaad5c3e060e554a8050f67a588ca0a2e"
+    },
+    {
+      "path": "apps/web/src/lib/turnDiffTree.test.ts",
+      "sha256": "e6729bba1877ac4e3bb9bee28d4a5df5bb4b1fc68a8218f7d6ee5197555b55af",
+      "bytes": 4759,
+      "git_blob_sha1": "6389fc3eea39041a1e8aa2111b1a09cbcb477620"
+    },
+    {
+      "path": "apps/web/src/lib/turnDiffTree.ts",
+      "sha256": "0481a43667214018a771d522517d443be73de90f701164355817758e055a1b65",
+      "bytes": 4715,
+      "git_blob_sha1": "cd9bfc831fbb3c190d38704201c344db75790d90"
+    },
+    {
+      "path": "apps/web/src/lib/utils.test.ts",
+      "sha256": "74acd8971a8aed4584f39209c8d17d073be092b99249a9dd22c2d28889bd067b",
+      "bytes": 437,
+      "git_blob_sha1": "017b6bee07246739af2790b958b6932d9816d561"
+    },
+    {
+      "path": "apps/web/src/lib/utils.ts",
+      "sha256": "7f622abdfad98dd8923705063707c433a6d570deb621aa7ed754cc73c17304d3",
+      "bytes": 1056,
+      "git_blob_sha1": "08a5de91e6619470d1b7d71d49fd1dea79b94ce5"
+    },
+    {
+      "path": "apps/web/src/main.tsx",
+      "sha256": "a22243069bc287267de7d0a6447d353109654fe235e1a65d57d397846c2d4e5a",
+      "bytes": 799,
+      "git_blob_sha1": "fda5913c9772e55409ac70ecaaaf474b26d257a9"
+    },
+    {
+      "path": "apps/web/src/markdown-links.test.ts",
+      "sha256": "4c5204fd7abe3ad85776039874beedba5933af849124d55a2249c18020b1bb25",
+      "bytes": 1682,
+      "git_blob_sha1": "5f0a0cd71157d094ef56a0f83763e9693f15eef2"
+    },
+    {
+      "path": "apps/web/src/markdown-links.ts",
+      "sha256": "46db66b661f3999b32c42b39aba9a4f7fe4ae8f9af883b639dacf75c64b65060",
+      "bytes": 4474,
+      "git_blob_sha1": "aa5f0f149808c2f368b570e0ccda9eb31328d07d"
+    },
+    {
+      "path": "apps/web/src/nativeApi.ts",
+      "sha256": "f95bb2956eb948c9d8fd7291c9dbd48a47426391f1cded6fdd33afba111a5d8e",
+      "bytes": 595,
+      "git_blob_sha1": "40443f67e01d5e5db8b240130b90f3d6a9f25a13"
+    },
+    {
+      "path": "apps/web/src/pendingUserInput.test.ts",
+      "sha256": "81526b9cc67113ad1fa59494a8fe98ebe137f9452c5aef8b82e6c909c8b21577",
+      "bytes": 4932,
+      "git_blob_sha1": "153b3153563e98b0566bd74ab9602f216de405f8"
+    },
+    {
+      "path": "apps/web/src/pendingUserInput.ts",
+      "sha256": "22880ead8a9d2a7554d3a8bd057f7913fbb0a785ab0d73be3ff793b85e40baf2",
+      "bytes": 3878,
+      "git_blob_sha1": "86e41285ad6a79b86c87f4ff1c12d4d4564da93d"
+    },
+    {
+      "path": "apps/web/src/projectScripts.test.ts",
+      "sha256": "206a58d0e2501e62a51608eadb27810ee82761913467f72dc6094b32b9180690",
+      "bytes": 2076,
+      "git_blob_sha1": "dadc22a4710b5358072af807dc364570dcd0cedd"
+    },
+    {
+      "path": "apps/web/src/projectScripts.ts",
+      "sha256": "976048efc029bcb4e9a7e8c2dd93038c5de5d8e8dd16cb73d0e57c3d34be6afb",
+      "bytes": 2667,
+      "git_blob_sha1": "e4ff752dbb4f26937da9089ddbe8a6f9d26666e1"
+    },
+    {
+      "path": "apps/web/src/proposedPlan.test.ts",
+      "sha256": "1cdf81a1799239b94a9d8e5a1d1d29e03602c5fd93cafafaef270edbcf2a75a9",
+      "bytes": 3653,
+      "git_blob_sha1": "63f95d4137b791d4014560f29e19ffd2d5f6cb51"
+    },
+    {
+      "path": "apps/web/src/proposedPlan.ts",
+      "sha256": "8a7969787c95d3b8802ac088e7a9c092c8cc735375018bf7f3973558d6766fea",
+      "bytes": 3585,
+      "git_blob_sha1": "48186392e8a39418375a9e76c8cbd321a5831158"
+    },
+    {
+      "path": "apps/web/src/pullRequestReference.test.ts",
+      "sha256": "1d99023de49f5a599b0c13228f0f12aa609c4f0c42aa9fd05b5b2dffecbfd57d",
+      "bytes": 705,
+      "git_blob_sha1": "60bb7b12f5a5804b9a61241cde62c78733c57f49"
+    },
+    {
+      "path": "apps/web/src/pullRequestReference.ts",
+      "sha256": "dd2d2e19c9d7614049398cfd936b1cd79372d44200858faeaf257e3b663924d4",
+      "bytes": 611,
+      "git_blob_sha1": "ecaf916b71e3c160944a4533c0b86d9dedcd40b2"
+    },
+    {
+      "path": "apps/web/src/routeTree.gen.ts",
+      "sha256": "4e94c15ade94d8e0692b023656e91c7e05a5eb28f9d203a4f31d3da2b46ba9bc",
+      "bytes": 3557,
+      "git_blob_sha1": "880d5ef64ba441142945fdfe91d85a9e897d7dbe"
+    },
+    {
+      "path": "apps/web/src/router.ts",
+      "sha256": "11c303bcf18ca2b64ec18299cd724470b519f310402139177d8bd487398fafea",
+      "bytes": 857,
+      "git_blob_sha1": "0192ee0c6cf890a9c6ae2ce2d415bbd1d43d6413"
+    },
+    {
+      "path": "apps/web/src/routes/__root.tsx",
+      "sha256": "ad8f54869fbe326e9f56fc251c5d904c93f79713e9143b4477ca8f706932cb57",
+      "bytes": 11218,
+      "git_blob_sha1": "34f9c4b82f8d9e172a0647c1de31ad423264b1f9"
+    },
+    {
+      "path": "apps/web/src/routes/_chat.$threadId.tsx",
+      "sha256": "88b72fc827d992bed231bd3f71955264d7fcb616aaea609f6d5b05b379fefd79",
+      "bytes": 8680,
+      "git_blob_sha1": "8e7a5d3ba8dc63f675f13093556bc47f8c0b7a9a"
+    },
+    {
+      "path": "apps/web/src/routes/_chat.index.tsx",
+      "sha256": "cdbcf2a274dd133f143d94f2532bb55e237ff15cd754cb902af2dfc024294ed7",
+      "bytes": 1190,
+      "git_blob_sha1": "888e6ee74b074c48569623975916d54231fbf38e"
+    },
+    {
+      "path": "apps/web/src/routes/_chat.settings.tsx",
+      "sha256": "4ba0c3e2420484f5abf6ee2f5ed2e5168db8063e3e42e91fe60f66f6874d3073",
+      "bytes": 28912,
+      "git_blob_sha1": "b4afcdefa1c903cd6b8859d29e95c05ecdccb25c"
+    },
+    {
+      "path": "apps/web/src/routes/_chat.tsx",
+      "sha256": "abe834e5016de8611d77dfe914a05b9789402845a57cf74d00e8620f1990d7ac",
+      "bytes": 4179,
+      "git_blob_sha1": "193cb0e7a92890261392b59cf997d411579d1137"
+    },
+    {
+      "path": "apps/web/src/session-logic.test.ts",
+      "sha256": "b507360f6be15f88fa2a553cb277f9adb3787a65d9f97441ec0f9dc3d1896732",
+      "bytes": 20700,
+      "git_blob_sha1": "74ba3a814fe873522b99f3feed5baa45e3f1975c"
+    },
+    {
+      "path": "apps/web/src/session-logic.ts",
+      "sha256": "ac3cda26d58c3cd93536b75bfe067a2ea836bec95ad799e2e89d55512f1bc262",
+      "bytes": 19990,
+      "git_blob_sha1": "e389f10e2d5b8a1e26f5d1f36172236c1e40f668"
+    },
+    {
+      "path": "apps/web/src/store.test.ts",
+      "sha256": "dcc0d1e9c3ee940d035b060ee768aaef3b8bcc03d326d958d205961c3151784d",
+      "bytes": 7437,
+      "git_blob_sha1": "92d084f2d6ffb1003dfe393dbe1351388c6bbdce"
+    },
+    {
+      "path": "apps/web/src/store.ts",
+      "sha256": "d6b1540f24fce48c111dc785463106d1ef29fa3c7236b3c99ed127152e5127da",
+      "bytes": 17308,
+      "git_blob_sha1": "faebe4b0fb6fbf6095cfacb058cf1ecdfc88e132"
+    },
+    {
+      "path": "apps/web/src/terminal-links.test.ts",
+      "sha256": "4c1416add5ea588b5df973550b5c7899249a492786e206aac3d3e4561f14a093",
+      "bytes": 2415,
+      "git_blob_sha1": "1e5fb39405df573838cf3597c7b62c75c592e697"
+    },
+    {
+      "path": "apps/web/src/terminal-links.ts",
+      "sha256": "a03b1724e6d479ca1a4949cea6092c1dd85574e686379623e48243cc05b79784",
+      "bytes": 5035,
+      "git_blob_sha1": "1119fc9087bd98f8d6c58712dd08596fbc440b47"
+    },
+    {
+      "path": "apps/web/src/terminalActivity.test.ts",
+      "sha256": "79ae184cafc6769d0dc0e40444bc352e72b889d0038c2d8d617c17c5614159b0",
+      "bytes": 1864,
+      "git_blob_sha1": "8fda32626641dea1efd3bc29ba0e42582ea0b0e7"
+    },
+    {
+      "path": "apps/web/src/terminalActivity.ts",
+      "sha256": "2184869e3ee3a27a27c5afa2fb07efddbd4c94165e16986715e8b1874158da50",
+      "bytes": 354,
+      "git_blob_sha1": "24f4984ff53eb22b5cbaab6133eab636a9c4dd9b"
+    },
+    {
+      "path": "apps/web/src/terminalStateStore.test.ts",
+      "sha256": "7cd68a68f4cd8214804d4f03bb1f425c8335ceaa63de6d7ef0b96ebe248e70df",
+      "bytes": 5903,
+      "git_blob_sha1": "e7e240cf254069f0296dae23cce3140e581ba84f"
+    },
+    {
+      "path": "apps/web/src/terminalStateStore.ts",
+      "sha256": "4456d1c5d5aee8023b4d6491867ef1a6f2b71959e0f3314187ef702b91786c97",
+      "bytes": 19123,
+      "git_blob_sha1": "b2cea6d56057f4be54ca8bdb64299af3efe8eddd"
+    },
+    {
+      "path": "apps/web/src/threadSelectionStore.test.ts",
+      "sha256": "ec4b832659515d208f7da6d84d7cddeab5672e0289b8ff53ae613e27155729d3",
+      "bytes": 11703,
+      "git_blob_sha1": "b142c5c7d2af9413aa85b75764f37cd7e8077409"
+    },
+    {
+      "path": "apps/web/src/threadSelectionStore.ts",
+      "sha256": "6344ad830b3d3907ac7ffc37ae963b56895725d0557217e205c271c64178dee2",
+      "bytes": 4213,
+      "git_blob_sha1": "8360bc5c6fa5a0c49f1d0ed628b7e20c97fcd2ef"
+    },
+    {
+      "path": "apps/web/src/timestampFormat.test.ts",
+      "sha256": "c4b9a7aeb18d6e22ede3b302893dfccfe3e753d984dd86c5a0a330f23023e963",
+      "bytes": 846,
+      "git_blob_sha1": "f45ada7341c066c54e72f43abc126e1776445164"
+    },
+    {
+      "path": "apps/web/src/timestampFormat.ts",
+      "sha256": "68e2e0e08ac3aae4432a1e7110c0ffa1184559a8dc0a55535cff30e184b6a973",
+      "bytes": 1460,
+      "git_blob_sha1": "d4ffa3c376056b4d9f51333ddbc37cfcbad98e25"
+    },
+    {
+      "path": "apps/web/src/truncateTitle.test.ts",
+      "sha256": "604e3b8f16ae8e7c0544a06352222938c7870c1b7537c624fba03d998a06fd84",
+      "bytes": 506,
+      "git_blob_sha1": "d7d61c5da1db7e1b3a3416ed36ba7f01cf87c465"
+    },
+    {
+      "path": "apps/web/src/truncateTitle.ts",
+      "sha256": "6c0222cdb10ab49789759135558bb259f60a7737fd5caee46c0787c62d3911f1",
+      "bytes": 210,
+      "git_blob_sha1": "bce55452830ac0e2e9c8bfcccf7e196e04383b48"
+    },
+    {
+      "path": "apps/web/src/types.ts",
+      "sha256": "d6665ac7f0dbc373fe8322bc441596ca09ff7e1604f5289ced008280eedb90c5",
+      "bytes": 2816,
+      "git_blob_sha1": "c071fb3f60870e8f9c6374d103501d99c11032fb"
+    },
+    {
+      "path": "apps/web/src/vite-env.d.ts",
+      "sha256": "d4c2439ca7ac32c83486e13b7940c977010270418dd5e3f22e8aa775cbb5398d",
+      "bytes": 332,
+      "git_blob_sha1": "c3a23ad40517a95b238325d561231d60f06f71aa"
+    },
+    {
+      "path": "apps/web/src/vscode-icons.test.ts",
+      "sha256": "a77568ea94db4e4ca04895c8624fea06f41a32992691045baaeffc1a0ad5a7a7",
+      "bytes": 2638,
+      "git_blob_sha1": "e03f5a4c3619cb2faa68790b958a3704c4327f5d"
+    },
+    {
+      "path": "apps/web/src/vscode-icons.ts",
+      "sha256": "c796fb09af297f81c4996b0648e86f223232ec161a64832e0da443728f6579ad",
+      "bytes": 6575,
+      "git_blob_sha1": "3d9a59702b4088f6dcc3c5ca112b80433f00fcbd"
+    },
+    {
+      "path": "apps/web/src/worktreeCleanup.test.ts",
+      "sha256": "e3cb22f2d4c9587f5e606e6e89c63edcee35ebc06debac7f6b092142ad4da734",
+      "bytes": 3631,
+      "git_blob_sha1": "516df6046a503ada0ca3663963b84e33b62d5208"
+    },
+    {
+      "path": "apps/web/src/worktreeCleanup.ts",
+      "sha256": "10e50fba32ed6e20013393f2311783ef6a350637846dbd9c2b39f0ace3a9fb47",
+      "bytes": 1199,
+      "git_blob_sha1": "8c09e89afa4dea9701002845c1e5e23af17d1005"
+    },
+    {
+      "path": "apps/web/src/wsNativeApi.test.ts",
+      "sha256": "8740e7b1713d72f89dcb643302b8d084bc58ca26f477396956b90a0aa806c5c7",
+      "bytes": 11709,
+      "git_blob_sha1": "2323380da0f803ac2ac69b035caf294ad45c47ec"
+    },
+    {
+      "path": "apps/web/src/wsNativeApi.ts",
+      "sha256": "a5786e8a314d964b198ecf4fbe2c9ad4b9cd4559d89d4dc79bcb32eb9727d239",
+      "bytes": 6628,
+      "git_blob_sha1": "ddfffbde69f2edd36752e98dc8b666885f1cefcb"
+    },
+    {
+      "path": "apps/web/src/wsTransport.test.ts",
+      "sha256": "405067d3d2065057a820edc042aac2f44545abf985d13dff1b3bb15c32ce207d",
+      "bytes": 5547,
+      "git_blob_sha1": "d905bbcf9a859f1855ec83461bcfc64a9448eb37"
+    },
+    {
+      "path": "apps/web/src/wsTransport.ts",
+      "sha256": "7f9e15b2f8fa12f24d4c666c342f8c79cbdbb3c5735314826eb85f8d833bfd7b",
+      "bytes": 7714,
+      "git_blob_sha1": "46c74d909092a66c0ea1f44b4a63125cec4f943b"
+    },
+    {
+      "path": "apps/web/vite.config.ts",
+      "sha256": "04abb7176c340b93b47a5d02c99f505e4c8d75aa3654e937d5af39597e309065",
+      "bytes": 2034,
+      "git_blob_sha1": "56b138d33159f1ca0608552ace1f10af80c15e44"
+    },
+    {
+      "path": "apps/web/vitest.browser.config.ts",
+      "sha256": "92a9105fe5759f769d475b0a3c31d75190eea5b4f423aa12a310578c395a3249",
+      "bytes": 755,
+      "git_blob_sha1": "c67fdfbe999d1a31a6f731fd762d5f9b771fc3fd"
+    },
+    {
+      "path": "packages/contracts/src/baseSchemas.ts",
+      "sha256": "45d7e0cd8394f432f860ddd01600be9cb6a7eaa0f21b6440107f3ebfe9591521",
+      "bytes": 2023,
+      "git_blob_sha1": "24962aed69f0ac6c4d41ae658dcf558827c9e5f8"
+    },
+    {
+      "path": "packages/contracts/src/editor.ts",
+      "sha256": "60af6cc6c40c5acbbf90c498e1b1e13fc9a68f0c7f39e4c205631704dcb073cd",
+      "bytes": 691,
+      "git_blob_sha1": "0ebd4fe5ae0d24fbbf2dd33733b01d584ec6fbf1"
+    },
+    {
+      "path": "packages/contracts/src/git.test.ts",
+      "sha256": "0d2ebe33852aa10c96c38a1da22afc12f8af698eacbe8d620c3c73ec3c827462",
+      "bytes": 1721,
+      "git_blob_sha1": "b3775504fbcb6846bacb3dca4c31a2723236a3ef"
+    },
+    {
+      "path": "packages/contracts/src/git.ts",
+      "sha256": "0aa8f16270358509e366e7abba87e458947076f4907f06e57bb829d499e3842a",
+      "bytes": 7353,
+      "git_blob_sha1": "081b4d0d8235639a68695116f484e90ae0fdb3ed"
+    },
+    {
+      "path": "packages/contracts/src/index.ts",
+      "sha256": "97e234f442ecbc6450ec30221a0e4a5fe32c633b65aec814723e68c7afc32fc1",
+      "bytes": 358,
+      "git_blob_sha1": "0f37a9351570c03a0865c9c55cecf880ebca5c37"
+    },
+    {
+      "path": "packages/contracts/src/ipc.ts",
+      "sha256": "17f31f1692eecc2b467cca8649b2a16312ed29b86f0fe1f36481610367ee7d4b",
+      "bytes": 5908,
+      "git_blob_sha1": "b9127fb17663c4783f3baf7beda71cf97c195eaf"
+    },
+    {
+      "path": "packages/contracts/src/keybindings.test.ts",
+      "sha256": "a61cc5c8c52655784d3c171efb0c011aded4894df45140fc1075244b082677e2",
+      "bytes": 3825,
+      "git_blob_sha1": "1b99362c537a942e95a57f50dbf1089dc4a69b2e"
+    },
+    {
+      "path": "packages/contracts/src/keybindings.ts",
+      "sha256": "a9ed73a7808b804aefe2ce9c432731619509c9c5b41e6e22e61731f29c335be5",
+      "bytes": 3429,
+      "git_blob_sha1": "48821b182410195a6f964eb602e0d8bfb9f65cd9"
+    },
+    {
+      "path": "packages/contracts/src/model.ts",
+      "sha256": "34d98a7c0e817a79a35ebdc43199dada6434fa901d3a1553fccc9ea73e7023d3",
+      "bytes": 2078,
+      "git_blob_sha1": "189fbf09dcd1e1aaa73e664c03c678c78b2965d3"
+    },
+    {
+      "path": "packages/contracts/src/orchestration.test.ts",
+      "sha256": "7479b93f277332fa0530f89e17fa82a8cd776c27dcc04d810f4eb30d8b0c14ff",
+      "bytes": 6908,
+      "git_blob_sha1": "25a641edbb9cbda6882e7dd76796094fe7023ea7"
+    },
+    {
+      "path": "packages/contracts/src/orchestration.ts",
+      "sha256": "73b0c1044b33484a845065c18c7571250723746dad95936931b03daf5a6b613e",
+      "bytes": 32360,
+      "git_blob_sha1": "17c5eb21d6801478345f2533d6a5ae3a63eb4b7a"
+    },
+    {
+      "path": "packages/contracts/src/project.ts",
+      "sha256": "c7fc9dcb0bc6e6e82623a7b7b0c0490e3e91a041949d38ed0d0c516ea3f41779",
+      "bytes": 1469,
+      "git_blob_sha1": "0903253301e68090b5827045663bfe45b6d685a8"
+    },
+    {
+      "path": "packages/contracts/src/provider.test.ts",
+      "sha256": "375222cc49275bd6ea08e691c4867d95dc025097169e9fcf302e7836d8a25b08",
+      "bytes": 1982,
+      "git_blob_sha1": "997db09b78ad8d1fd23798af10fa5ce90322959e"
+    },
+    {
+      "path": "packages/contracts/src/provider.ts",
+      "sha256": "353de7cb52c4a273b483bd76453040f61201b2ad26f371cfe7540a406c6faf82",
+      "bytes": 4583,
+      "git_blob_sha1": "9d2a198b6da4a465325bf354d71a0920c31042b1"
+    },
+    {
+      "path": "packages/contracts/src/providerRuntime.test.ts",
+      "sha256": "226918b0e1fa464ecbcff4c12a850c8ab88ae87fe9f2ce0418642e54132c9dc1",
+      "bytes": 4249,
+      "git_blob_sha1": "8dad509aeef6b9483bb94d4524e292776230291c"
+    },
+    {
+      "path": "packages/contracts/src/providerRuntime.ts",
+      "sha256": "cf8aefcd22a564d2a15b69335f9ecc11b0c8b9aeec99b5f317cfdabd1cd6c76f",
+      "bytes": 36078,
+      "git_blob_sha1": "d76475ab5a0e34528b42f9b3556ba589ce1f53d7"
+    },
+    {
+      "path": "packages/contracts/src/server.ts",
+      "sha256": "4facb4d217c843bf4e0adff268c4d34652dac09234b930af6b632e9aa8271418",
+      "bytes": 2499,
+      "git_blob_sha1": "96ea90c1f54cb5d86a243527f8ab9d031a5c70a6"
+    },
+    {
+      "path": "packages/contracts/src/terminal.test.ts",
+      "sha256": "7f106cfb20f79dcc605191f7c054b508ea90bbde3130982ec421c3082fad7bb8",
+      "bytes": 4761,
+      "git_blob_sha1": "614df05141fd0979da6f50954a37992927883083"
+    },
+    {
+      "path": "packages/contracts/src/terminal.ts",
+      "sha256": "46446932ece7e884002960c19142ba114c84d71b2ee90abc6003ff6407285e70",
+      "bytes": 5200,
+      "git_blob_sha1": "b0493d95c2aba9d3ee30b24b9f5b64fd02fa1aba"
+    },
+    {
+      "path": "packages/contracts/src/ws.test.ts",
+      "sha256": "6f833d4a2078485bf46aba58560378dc615ae2a686c7a6e8b74f0d353d713751",
+      "bytes": 3388,
+      "git_blob_sha1": "d732242ecdaa6479146c6fc71f7c8141ce61f78d"
+    },
+    {
+      "path": "packages/contracts/src/ws.ts",
+      "sha256": "160c31aedb0b55e6ae2ed8afdb24e060089bdcfb45390a65e26a2bb214937ee8",
+      "bytes": 8405,
+      "git_blob_sha1": "ebb76138b853a983a1924e31f79499387d5d97dd"
+    },
+    {
+      "path": "packages/shared/src/DrainableWorker.test.ts",
+      "sha256": "5d165f8da680a40369f85d2ac6b800e04c60f3cec13d142aa8086f419be0b7a8",
+      "bytes": 1877,
+      "git_blob_sha1": "1d7a3a83c78ff861f2ac3cf3a9f8bcfa16d3043f"
+    },
+    {
+      "path": "packages/shared/src/DrainableWorker.ts",
+      "sha256": "4e2faa700d3d7ba45cae690501295c5a8af783580ef48cb33ed73a7dc7dc79af",
+      "bytes": 3215,
+      "git_blob_sha1": "6b9ede9f4537613487e6a8470a7faf329713f20f"
+    },
+    {
+      "path": "packages/shared/src/Net.test.ts",
+      "sha256": "d19530d2d953b0bfc57dc77ca9fe2e274f270f8d62e8e3d78fa0cfb457da2dd5",
+      "bytes": 2819,
+      "git_blob_sha1": "137a9416fd1524fac4bf80738ea9ce21111dca51"
+    },
+    {
+      "path": "packages/shared/src/Net.ts",
+      "sha256": "7d612abf25fa1695c39fb4f1b9e3edf259dbf064a638ad142ed26e4b394ff2bf",
+      "bytes": 5198,
+      "git_blob_sha1": "e5ac354f924754b738452767806cd0eb1de0fffb"
+    },
+    {
+      "path": "packages/shared/src/git.ts",
+      "sha256": "cc152b34fefbc93fcc03987ede2021bdc01bfbf2217a8460129e5db98ba632bb",
+      "bytes": 1831,
+      "git_blob_sha1": "bbd290393fd5679725dfca8029591f21e5b7462d"
+    },
+    {
+      "path": "packages/shared/src/logging.ts",
+      "sha256": "946c808b2968aeea37b1f16233f13446ff33ca1541bc91e6ef8ffcde1e8ae59d",
+      "bytes": 3276,
+      "git_blob_sha1": "98fee9464c795be0dfe722c8a4b0cd8687adddf9"
+    },
+    {
+      "path": "packages/shared/src/model.test.ts",
+      "sha256": "6bb7bd2e3bbb07a8a6768f320fa3422a7a7d0ec8ad79453d3638a1b9044d63c0",
+      "bytes": 2445,
+      "git_blob_sha1": "8771a24c1cfb5a95587d9b70f070cc0073ec0009"
+    },
+    {
+      "path": "packages/shared/src/model.ts",
+      "sha256": "000e8b1085d9948c6e7c68208db43de6b88558d8fa63797d9cc13c3720bd067b",
+      "bytes": 2276,
+      "git_blob_sha1": "592e2dfb9f357830cfe54082b1155b4a68d61201"
+    },
+    {
+      "path": "packages/shared/src/schemaJson.ts",
+      "sha256": "2d0bf447b2c39ed7345333396e6c6d0ecf9986154fd732f90b3c6449e733e4c7",
+      "bytes": 1071,
+      "git_blob_sha1": "190dc097e840a6bfafb84d14e10dcc256627086e"
+    },
+    {
+      "path": "packages/shared/src/shell.test.ts",
+      "sha256": "a68bc8c26e4983dacc46eddfd3ce7eb5840396ea6e997b061f53351ff7b71e67",
+      "bytes": 2003,
+      "git_blob_sha1": "f659725c7349e83b09d9ebcd133e314a40c4bdb6"
+    },
+    {
+      "path": "packages/shared/src/shell.ts",
+      "sha256": "d1e7b1c0f4bb7dad31c2ff5b9cc07314e9feddb6468409a832286dbbd7c0b479",
+      "bytes": 1204,
+      "git_blob_sha1": "e6029c4432b1346cc5591349930889c3fafa0880"
+    },
+    {
+      "path": "scripts/build-desktop-artifact.ts",
+      "sha256": "fc765fc6f364c8f7835e302772e2b873cdf6289960ba0acd9af0d46fdfb34ced",
+      "bytes": 26012,
+      "git_blob_sha1": "0b875721fd1ffde9284ffd39fe66721435ee9fb1"
+    },
+    {
+      "path": "scripts/dev-runner.test.ts",
+      "sha256": "969d13aa1087e4e6f273ca025144208d641652a5db0ffa10552d66194616be85",
+      "bytes": 8384,
+      "git_blob_sha1": "704a285414ff821bdaff5d5de56efc8fd6fbc112"
+    },
+    {
+      "path": "scripts/dev-runner.ts",
+      "sha256": "1aa9ff51c1c42dc03549b714bf130f908e79a24c00332841b749304a68945629",
+      "bytes": 17571,
+      "git_blob_sha1": "3815c4a3b982fde9f4d5ff8a14ad01af7d580a06"
+    },
+    {
+      "path": "scripts/lib/brand-assets.ts",
+      "sha256": "d53ce77f555e0234d9f419b52d035127942cd6eac93c48f8953421abd490b75a",
+      "bytes": 2251,
+      "git_blob_sha1": "990d05c321f914ad2ed79eb105cfa2aadb04e390"
+    },
+    {
+      "path": "scripts/lib/resolve-catalog.ts",
+      "sha256": "3eb3db1d6caae53ffaf73c967fc623fb8a404ef885eeb73e2f8c6fdaa7425ff8",
+      "bytes": 1063,
+      "git_blob_sha1": "2946c4a5d9e1fbdc2674a1c5b7b2adc09806ad37"
+    },
+    {
+      "path": "scripts/merge-mac-update-manifests.test.ts",
+      "sha256": "2ed8bef228477a6dc2340a3517c8bace5fb7cd6eab5316f508df1ee2c1e5b726",
+      "bytes": 2702,
+      "git_blob_sha1": "22d2e7627e91c1d1d0832295947938a843711cd5"
+    },
+    {
+      "path": "scripts/merge-mac-update-manifests.ts",
+      "sha256": "8f313170b079396376f5bc24e8cb85f2a694d51593e92a27b66c9e6480863c3e",
+      "bytes": 8639,
+      "git_blob_sha1": "c59bc76b9b005f1c1cae8e5a7ed07825920891d3"
+    },
+    {
+      "path": "scripts/release-smoke.ts",
+      "sha256": "8c0fb812b87216252e73066639f6db5f2b22300b678e316e8bd906d7835bdcc5",
+      "bytes": 3541,
+      "git_blob_sha1": "bf9d9f5c6a25669a853a5780a2b20c44ac541423"
+    },
+    {
+      "path": "scripts/update-release-package-versions.ts",
+      "sha256": "639623acdd687a5aad8a2f8f539ce728e64c483cebda02f44aad9e23e649cecc",
+      "bytes": 2952,
+      "git_blob_sha1": "b860b85e8e8caca77cfc0d17b38ef90ab69d6a4c"
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "a2eedc16fda6b552429e29a122a289635c569fa75d07d2171a624a27b3b8c034",
+      "bytes": 303,
+      "git_blob_sha1": "b8c4e89a2b1f4c27487e79d366a5bef1a0a2f6af"
+    }
+  ]
+}

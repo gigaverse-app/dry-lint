@@ -70,6 +70,13 @@ and 1,656-function after backgrounds, using the same source/syntax checks. Its m
 capturing them does not add its labels to the original 48-positive trial. The hand-written calibration examples
 in `examples/gold.toml` have no source-repository background to preserve.
 
+The [public operation panel](../examples/public-gold/README.md) retains full diagnostic backgrounds for
+T3 clipboard and OpenCode request-normalization before/merge pins, plus separate SDK dead-code evidence.
+Its four active rows label narrow operations, not their enclosing functions. Exact snippet-to-extraction
+mappings flag scope mismatches; native JSONL import does not turn a partial-operation label into a
+whole-function label or silently replace full-corpus tokens with snippet tokens. Same-function regions,
+unextracted decoder bindings, dead-code duplicates and disputed labels remain outside its active panel.
+
 When changing tokenization, retain the old snapshot as the baseline. Re-extract the same pinned source into
 a new candidate snapshot and compare both. Replacing the old counts in place would erase the evidence of
 what changed. Keep benchmark outcomes and ad hoc audit dumps outside the code repository; these sparse

@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "reviewer": "G03",
+  "reviewer_kind": "model, not human gold",
+  "packet_id": "PY-R001",
+  "classification": "duplicate",
+  "confidence": 0.98,
+  "family_id": "db-connection-params",
+  "narrow_shared_operation_and_contract": "Build the Prisma URL connection_limit/pool_timeout mapping from resolved startup settings.",
+  "rationale": "Both regions independently create exactly the same two-key mapping from the same local values, immediately before decorating different connection URLs. This is one repeated settings-to-query-parameter operation, even though it is only four lines.",
+  "legitimate_variations": "DATABASE_URL uses get_secret and string coercion; DIRECT_URL uses getenv. Keep those resolution contracts distinct. URL destinations and guards differ, but neither changes the parameter policy.",
+  "existing_shared_owner_or_delegation": "append_query_params already owns URL parsing/merging, but does not own the repeated mapping construction.",
+  "uncertainty_and_disagreement": "Only this narrow mapping is duplicate; the whole 672-line run_server function is not two independent implementations.",
+  "source_evidence_spans": [
+    {
+      "role": "a",
+      "repository": "BerriAI/litellm",
+      "revision": "8acf64e16c027bf497bc3ba7f13b7298fd2caf28",
+      "path": "litellm/proxy/proxy_cli.py",
+      "symbol": "run_server",
+      "start_line": 968,
+      "end_line": 971,
+      "quote": "                    params = {\n                        \"connection_limit\": db_connection_pool_limit,\n                        \"pool_timeout\": db_connection_timeout,\n                    }\n",
+      "function_span": {
+        "start_line": 454,
+        "end_line": 1125
+      },
+      "verification": "source bytes, git blob, function hash/span and operation hash/span match"
+    },
+    {
+      "role": "b",
+      "repository": "BerriAI/litellm",
+      "revision": "8acf64e16c027bf497bc3ba7f13b7298fd2caf28",
+      "path": "litellm/proxy/proxy_cli.py",
+      "symbol": "run_server",
+      "start_line": 979,
+      "end_line": 982,
+      "quote": "                    params = {\n                        \"connection_limit\": db_connection_pool_limit,\n                        \"pool_timeout\": db_connection_timeout,\n                    }\n",
+      "function_span": {
+        "start_line": 454,
+        "end_line": 1125
+      },
+      "verification": "source bytes, git blob, function hash/span and operation hash/span match"
+    },
+    {
+      "role": "helpers[0]",
+      "repository": "BerriAI/litellm",
+      "revision": "8acf64e16c027bf497bc3ba7f13b7298fd2caf28",
+      "path": "litellm/proxy/proxy_cli.py",
+      "symbol": "append_query_params",
+      "start_line": 41,
+      "end_line": 58,
+      "quote": "def append_query_params(url: Optional[str], params: dict) -> str:\n    from litellm._logging import verbose_proxy_logger\n\n    verbose_proxy_logger.debug(f\"url: {url}\")\n    verbose_proxy_logger.debug(f\"params: {params}\")\n    if not isinstance(url, str) or url == \"\":\n        # Preserve previous startup behavior when DATABASE_URL is absent.\n        # Returning an empty string avoids urlparse type errors in test/dev flows.\n        verbose_proxy_logger.warning(\n            \"append_query_params received empty or non-string URL, returning empty string\"\n        )\n        return \"\"\n    parsed_url = urlparse.urlparse(url)\n    parsed_query = urlparse.parse_qs(parsed_url.query)\n    parsed_query.update(params)\n    encoded_query = urlparse.urlencode(parsed_query, doseq=True)\n    modified_url = urlparse.urlunparse(parsed_url._replace(query=encoded_query))\n    return modified_url  # type: ignore\n",
+      "function_span": {
+        "start_line": 41,
+        "end_line": 58
+      },
+      "verification": "source bytes, git blob, function hash/span and operation hash/span match"
+    },
+    {
+      "role": "tests[0]",
+      "repository": "BerriAI/litellm",
+      "revision": "8acf64e16c027bf497bc3ba7f13b7298fd2caf28",
+      "path": "tests/test_litellm/proxy/test_proxy_cli.py",
+      "symbol": "test_db_timeout_settings_are_forwarded_to_pool_timeout",
+      "start_line": 410,
+      "end_line": 484,
+      "quote": "    def test_db_timeout_settings_are_forwarded_to_pool_timeout(\n        self,\n        mock_should_update,\n        mock_setup_db,\n        mock_atexit_register,\n        mock_subprocess_run,\n        timeout_config,\n        expected_timeout,\n    ):\n        from click.testing import CliRunner\n\n        from litellm.proxy.proxy_cli import run_server\n\n        runner = CliRunner()\n        mock_subprocess_run.return_value = MagicMock(returncode=0)\n\n        mock_proxy_module = MagicMock(\n            app=MagicMock(),\n            ProxyConfig=MagicMock(),\n            KeyManagementSettings=MagicMock(),\n            save_worker_config=MagicMock(),\n        )\n        mock_proxy_module.ProxyConfig.return_value.get_config = AsyncMock(\n            return_value={\n                \"general_settings\": {\n                    \"database_url\": \"postgresql://test:test@localhost:5432/test\",\n                    \"database_connection_pool_limit\": 5,\n                    **timeout_config,\n                }\n            }\n        )\n\n        clean_env = {\n            k: v\n            for k, v in os.environ.items()\n            if k not in (\"DATABASE_URL\", \"DIRECT_URL\")\n        }\n\n        with (\n            patch.dict(os.environ, clean_env, clear=True),\n            patch.dict(\n                \"sys.modules\",\n                {\n                    \"proxy_server\": mock_proxy_module,\n                    \"litellm.proxy.proxy_server\": mock_proxy_module,\n                },\n            ),\n            patch(\n                \"litellm.proxy.proxy_cli.ProxyInitializationHelpers._get_default_unvicorn_init_args\"\n            ) as mock_get_args,\n            patch(\n                \"litellm.proxy.proxy_cli.append_query_params\",\n                side_effect=lambda url, params: (\n                    f\"{url}?connection_limit={params['connection_limit']}&pool_timeout={params['pool_timeout']}\"\n                ),\n            ) as mock_append_query_params,\n        ):\n            mock_get_args.return_value = {\n                \"app\": \"litellm.proxy.proxy_server:app\",\n                \"host\": \"localhost\",\n                \"port\": 8000,\n            }\n\n            result = runner.invoke(\n                run_server,\n                [\"--local\", \"--config\", \"test-config.yaml\", \"--skip_server_startup\"],\n            )\n\n            assert (\n                result.exit_code == 0\n            ), f\"exit_code={result.exit_code}, output={result.output}\"\n            mock_append_query_params.assert_called()\n            appended_params = mock_append_query_params.call_args.args[1]\n            assert appended_params[\"connection_limit\"] == 5\n            assert appended_params[\"pool_timeout\"] == expected_timeout\n",
+      "function_span": {
+        "start_line": 390,
+        "end_line": 484
+      },
+      "verification": "source bytes, git blob, function hash/span and operation hash/span match"
+    }
+  ]
+}
