@@ -1,0 +1,353 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.008748,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "98fbb7a863d2ce7e43e261f25e5f80dfc8d98f75bb4b87c279ee14a59271aa2a",
+      "prompt_sha256": "e539a56aa9b565098c097bbb8cbedaaf552d360f4054b62eb96ecf8386bf737e",
+      "request_key": "e0743475c8a9d8af0eedb8f171dee73d0b973ffaa867bd0a94d4547e7e4fbfc8",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2889,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 2889,
+            "model": null,
+            "output_tokens": 297,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 297,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.2,
+        "second_opinion": null,
+        "why": "Both functions fork a Node worker with ELECTRON_RUN_AS_NODE, empty execArgv and an IPC stdio layout, and both listen for \"ready\", \"error\" and \"exit\". That overlap is mostly fork options and event wiring. The workflows differ. NEW is a one-shot request/response reader with start and result timeouts, a settled-context cache and swallowed failures that resolve undefined. EXISTING is a long-lived shortcut listener that rejects on early failure, calls onFailure after readiness, and escalates to SIGKILL on stop. NEW also sets execPath for the macOS Accessibility grant. The fork options could become a small helper, but the shared contract is thin and the lifecycle, failure and kill semantics differ. Sharing a fork-helper alone is not a strong actionable duplication."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00011596000000000001,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "722f88c6641b0d444318c7b764d0c692dfd0f09fc570ca3eabfc035767858510",
+      "prompt_sha256": "ce94931b6d387a4439ae0e23343fa3dc31d0313ece15f9a77ac10d9ae6084379",
+      "request_key": "0202495b370b1757ba1e1615714cfc58055f4e7ced030b5b4086194f28f7933f",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 2899,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.25,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.17,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "acceptance_scope": "Source adjudication and recommendation, portable packaging pending. No claim of human gold or new coordinator acceptance. Exact native endpoint IDs retained.",
+    "accepted_hard_positive": false,
+    "actual_callers": [
+      {
+        "code": "\nimport * as Electron from \"electron\";\n\nimport * as DesktopEnvironment from \"../app/DesktopEnvironment.ts\";\nimport * as DesktopClientSettings from \"../settings/DesktopClientSettings.ts\";\nimport * as DesktopWindow from \"../window/DesktopWindow.ts\";\nimport { startGlobalShiftShortcutProcess } from \"./GlobalShiftShortcutProcess.ts\";\nimport { startMacModifierPairShortcutProcess } from \"./MacModifierPairShortcutProcess.ts\";\nimport { activeWindow, type ActiveWindow } from \"./ActiveWindow.ts\";\nimport { captureMacWindowSnapshot, type MacSnapShotSource } from \"./MacSnapShot.ts\";\nimport type { LinuxCaptureFeedback, LinuxWindowMetadata } from \"./LinuxSnapShot.ts\";\nimport { niriSocketPath } from \"./NiriSnapShot.ts\";\nimport { CaptureShortcutConfig, niriCaptureConfigPath } from \"./CaptureShortcutConfig.ts\";\nimport type { PortalCaptureShortcut } from \"./PortalCaptureShortcut.ts\";",
+        "file_sha256": "ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422",
+        "line": 44,
+        "path": "apps/desktop/src/snapShot/DesktopSnapShot.ts",
+        "portable_source_file": "sources/ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422.json.gz",
+        "start_line": 38
+      },
+      {
+        "code": "    modifier: SnapShotModifier,\n    onTrigger: () => void,\n    onFailure: (error: Error) => void,\n  ) =>\n    environment.platform === \"darwin\"\n      ? startMacModifierPairShortcutProcess(modifier, onTrigger, onFailure)\n      : startGlobalShiftShortcutProcess(shiftShortcutWorkerPath, modifier, onTrigger, onFailure);\n\n  const releaseShortcut = () => {\n    shortcutGeneration++;\n    portalShortcut?.close();\n    portalShortcut = undefined;\n    if (registeredAccelerator) {\n      Electron.globalShortcut.unregister(registeredAccelerator);",
+        "file_sha256": "ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422",
+        "line": 863,
+        "path": "apps/desktop/src/snapShot/DesktopSnapShot.ts",
+        "portable_source_file": "sources/ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422.json.gz",
+        "start_line": 857
+      },
+      {
+        "code": "// @effect-diagnostics nodeBuiltinImport:off -- This desktop-only helper owns a Node child process for global shortcut capture.\n\nimport * as NodeChildProcess from \"node:child_process\";\n\nimport type { SnapShotModifier } from \"@t3tools/contracts\";\n\nexport function startGlobalShiftShortcutProcess(\n  workerPath: string,\n  modifier: SnapShotModifier,\n  onTrigger: () => void,\n  onFailure: (error: Error) => void,\n): Promise<() => void> {\n  const worker = NodeChildProcess.fork(workerPath, [modifier], {\n    env: { ...process.env, ELECTRON_RUN_AS_NODE: \"1\" },",
+        "file_sha256": "b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194",
+        "line": 8,
+        "path": "apps/desktop/src/snapShot/GlobalShiftShortcutProcess.ts",
+        "portable_source_file": "sources/b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194.json.gz",
+        "start_line": 2
+      },
+      {
+        "code": "const unavailableProcess = (): AccessibilityProcess => ({\n  alive: false,\n  read: () => completedRead(),\n  close: () => undefined,\n});\n\nexport function startSnapShotAccessibilityProcess(workerPath: string): AccessibilityProcess {\n  let worker: NodeChildProcess.ChildProcess;\n  try {\n    worker = NodeChildProcess.fork(workerPath, [\"read\"], {\n      // Electron's default macOS Helper executable lacks the main app's Accessibility grant.\n      execPath: process.execPath,\n      env: {\n        ...process.env,",
+        "file_sha256": "36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c",
+        "line": 48,
+        "path": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts",
+        "portable_source_file": "sources/36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c.json.gz",
+        "start_line": 42
+      },
+      {
+        "code": "  let standby: AccessibilityProcess | undefined;\n  const active = new Set<AccessibilityProcess>();\n  let closed = false;\n\n  const warm = () => {\n    if (closed || standby?.alive) return;\n    standby = startSnapShotAccessibilityProcess(workerPath);\n  };\n  const cool = () => {\n    standby?.close();\n    standby = undefined;\n  };\n\n  return {",
+        "file_sha256": "36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c",
+        "line": 142,
+        "path": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts",
+        "portable_source_file": "sources/36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c.json.gz",
+        "start_line": 136
+      },
+      {
+        "code": "    warm,\n    cool,\n    read: (request) => {\n      if (closed) return completedRead();\n      const workerProcess = standby?.alive\n        ? standby\n        : startSnapShotAccessibilityProcess(workerPath);\n      standby = undefined;\n      warm();\n      active.add(workerProcess);\n      const read = workerProcess.read(request);\n      void read.result.then(\n        () => active.delete(workerProcess),\n        () => active.delete(workerProcess),",
+        "file_sha256": "36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c",
+        "line": 156,
+        "path": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts",
+        "portable_source_file": "sources/36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c.json.gz",
+        "start_line": 150
+      }
+    ],
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "function startGlobalShiftShortcutProcess(\n  workerPath: string,\n  modifier: SnapShotModifier,\n  onTrigger: () => void,\n  onFailure: (error: Error) => void,\n): Promise<() => void> {\n  const worker = NodeChildProcess.fork(workerPath, [modifier], {\n    env: { ...process.env, ELECTRON_RUN_AS_NODE: \"1\" },\n    execArgv: [],\n    stdio: [\"ignore\", \"ignore\", \"inherit\", \"ipc\"],\n  });\n\n  return new Promise((resolve, reject) => {\n    let settled = false;\n    let stopped = false;\n    const stop = () => {\n      if (stopped) return;\n      stopped = true;\n      worker.kill();\n      const forceKill = setTimeout(() => worker.kill(\"SIGKILL\"), 1_000);\n      forceKill.unref?.();\n      worker.once(\"exit\", () => clearTimeout(forceKill));\n    };\n    const fail = (error: Error) => {\n      if (stopped) return;\n      if (settled) {\n        stop();\n        onFailure(error);\n        return;\n      }\n      settled = true;\n      stop();\n      reject(error);\n    };\n\n    worker.on(\"message\", (message) => {\n      if (message === \"ready\" && !settled) {\n        settled = true;\n        resolve(stop);\n        return;\n      }\n      if (message !== \"trigger\" || !settled || stopped) return;\n      try {\n        onTrigger();\n      } catch {}\n    });\n    worker.once(\"error\", (error) => {\n      fail(error);\n    });\n    worker.once(\"exit\", (code) => {\n      fail(new Error(`Snapshot shortcut helper exited with code ${code}`));\n    });\n  });\n}",
+        "context": "// @effect-diagnostics globalTimers:off -- The child-process shutdown watchdog runs at a worker callback boundary outside any Effect fiber.\n// @effect-diagnostics nodeBuiltinImport:off -- This desktop-only helper owns a Node child process for global shortcut capture.\n\nimport * as NodeChildProcess from \"node:child_process\";\nimport type { SnapShotModifier } from \"@t3tools/contracts\";",
+        "context_digest": "b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194",
+        "declaration": null,
+        "end_line": 61,
+        "hash": "4f8254e8056aebee",
+        "line": 8,
+        "name": "startGlobalShiftShortcutProcess",
+        "origin": null,
+        "owner": null,
+        "path": "apps/desktop/src/snapShot/GlobalShiftShortcutProcess.ts",
+        "portable_source_file": "sources/b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "function startSnapShotAccessibilityProcess(workerPath: string): AccessibilityProcess {\n  let worker: NodeChildProcess.ChildProcess;\n  try {\n    worker = NodeChildProcess.fork(workerPath, [\"read\"], {\n      // Electron's default macOS Helper executable lacks the main app's Accessibility grant.\n      execPath: process.execPath,\n      env: {\n        ...process.env,\n        ELECTRON_RUN_AS_NODE: \"1\",\n      },\n      execArgv: [],\n      stdio: [\"ignore\", \"ignore\", \"inherit\", \"ipc\"],\n    });\n  } catch {\n    return unavailableProcess();\n  }\n\n  let ready = false;\n  let request: SnapShotAccessibilityRequest | undefined;\n  let startedResolve: (() => void) | undefined;\n  let resultResolve: ((value: CapturedWindowAccessibilityContext | undefined) => void) | undefined;\n  let startTimeout: ReturnType<typeof setTimeout> | undefined;\n  let resultTimeout: ReturnType<typeof setTimeout> | undefined;\n  let settled = false;\n  let settledContext: CapturedWindowAccessibilityContext | undefined;\n\n  const clearTimers = () => {\n    if (startTimeout) clearTimeout(startTimeout);\n    if (resultTimeout) clearTimeout(resultTimeout);\n  };\n  const finish = (context?: CapturedWindowAccessibilityContext) => {\n    if (settled) return;\n    settled = true;\n    settledContext = context;\n    clearTimers();\n    startedResolve?.();\n    resultResolve?.(context);\n    worker.kill();\n  };\n  const sendRequest = () => {\n    if (!ready || !request || settled) return;\n    startTimeout ??= setTimeout(() => finish(), START_TIMEOUT_MS);\n    startTimeout.unref();\n    try {\n      worker.send(request, (error) => {\n        if (error) finish();\n      });\n    } catch {\n      finish();\n    }\n  };\n\n  worker.on(\"message\", (rawMessage) => {\n    const message = rawMessage as AccessibilityMessage;\n    if (message === \"ready\") {\n      ready = true;\n      sendRequest();\n    } else if (message === \"started\") {\n      if (startTimeout) clearTimeout(startTimeout);\n      startedResolve?.();\n    } else {\n      finish(message.context);\n    }\n  });\n  worker.once(\"error\", () => finish());\n  worker.once(\"exit\", () => finish());\n\n  return {\n    get alive() {\n      return !settled;\n    },\n    read: (nextRequest) => {\n      if (settled) return completedRead(settledContext);\n      request = nextRequest;\n      const started = Promise.withResolvers<void>();\n      const result = Promise.withResolvers<CapturedWindowAccessibilityContext | undefined>();\n      startedResolve = started.resolve;\n      resultResolve = result.resolve;\n      resultTimeout = setTimeout(() => finish(), RESULT_TIMEOUT_MS);\n      resultTimeout.unref();\n      sendRequest();\n      return { started: started.promise, result: result.promise };\n    },\n    close: () => finish(),\n  };\n}",
+        "context": "// @effect-diagnostics globalTimers:off -- Helper timeouts run at child-process callback boundaries outside Effect fibers.\n// @effect-diagnostics nodeBuiltinImport:off -- This desktop-only helper owns a Node child process.\n\nimport * as NodeChildProcess from \"node:child_process\";\nimport type {\n  CapturedWindowAccessibilityContext,\n  SnapShotAccessibilityRequest,\n} from \"./SnapShotAccessibility.ts\";\nconst START_TIMEOUT_MS = 1_000;\nconst RESULT_TIMEOUT_MS = 4_000;\nexport type AccessibilityRead = {\n  readonly started: Promise<void>;\n  readonly result: Promise<CapturedWindowAccessibilityContext | undefined>;\n};\nexport type AccessibilityProcess = {\n  readonly alive: boolean;\n  readonly read: (request: SnapShotAccessibilityRequest) => AccessibilityRead;\n  readonly close: () => void;\n};\ntype AccessibilityMessage =\n  | \"ready\"\n  | \"started\"\n  | { readonly type: \"result\"; readonly context?: CapturedWindowAccessibilityContext };\nconst completedRead = (context?: CapturedWindowAccessibilityContext): AccessibilityRead => ({\n  started: Promise.resolve(),\n  result: Promise.resolve(context),\n});\nconst unavailableProcess = (): AccessibilityProcess => ({\n  alive: false,\n  read: () => completedRead(),\n  close: () => undefined,\n});",
+        "context_digest": "36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c",
+        "declaration": null,
+        "end_line": 133,
+        "hash": "f91613144a65b3b4",
+        "line": 48,
+        "name": "startSnapShotAccessibilityProcess",
+        "origin": null,
+        "owner": null,
+        "path": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts",
+        "portable_source_file": "sources/36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.4691393808381938,
+      "similarity_reusable": false
+    },
+    "contract": "Both fork Electron IPC workers, but accessibility is a bounded request/result with started/result timeouts and unavailable fallback; shortcut is a long-lived ready/trigger subscription with failure callbacks and forced kill. Generic process setup is not the full repeated operation.",
+    "existing_shared_owner": "Both own distinct worker state machines. Existing fork API is common, not an application workflow owner. AccessibilityProcess pool calls startSnapShotAccessibilityProcess (same file); DesktopSnapShot invokes startGlobalShiftShortcutProcess for global trigger subscription.",
+    "id": "T3-X01",
+    "legitimate_variations": [
+      "Accessibility uses execPath for macOS grant, one-shot started/result timers, cached result and undefined fallback.",
+      "Shortcut rejects before ready, reports failures after ready, listens for repeated triggers and escalates stop to SIGKILL."
+    ],
+    "proposed_label": "separate",
+    "provisional_family_id": "t3-native-helper-protocol-contrast",
+    "repository": "pingdotgg/t3code",
+    "retrieval_profiles": [
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": "similarity_floor",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": "similarity_floor",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "review_observation_path": {
+      "artifact_basename": "t3-new-observations.json",
+      "original_artifact_sha256": "824c56012d262e970c6595ea69ee6927541093f180e906ef08303536c427fb7e"
+    },
+    "review_observation_sha256": "824c56012d262e970c6595ea69ee6927541093f180e906ef08303536c427fb7e",
+    "review_observations": [
+      {
+        "id": "T3-X01",
+        "path": {
+          "artifact_basename": "e0743475c8a9d8af0eedb8f171dee73d0b973ffaa867bd0a94d4547e7e4fbfc8.json",
+          "original_artifact_sha256": "98fbb7a863d2ce7e43e261f25e5f80dfc8d98f75bb4b87c279ee14a59271aa2a"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.2,
+          "second_opinion": null,
+          "why": "Both functions fork a Node worker with ELECTRON_RUN_AS_NODE, empty execArgv and an IPC stdio layout, and both listen for \"ready\", \"error\" and \"exit\". That overlap is mostly fork options and event wiring. The workflows differ. NEW is a one-shot request/response reader with start and result timeouts, a settled-context cache and swallowed failures that resolve undefined. EXISTING is a long-lived shortcut listener that rejects on early failure, calls onFailure after readiness, and escalates to SIGKILL on stop. NEW also sets execPath for the macOS Accessibility grant. The fork options could become a small helper, but the shared contract is thin and the lifecycle, failure and kill semantics differ. Sharing a fork-helper alone is not a strong actionable duplication."
+        }
+      },
+      {
+        "id": "T3-X01",
+        "path": {
+          "artifact_basename": "0202495b370b1757ba1e1615714cfc58055f4e7ced030b5b4086194f28f7933f.json",
+          "original_artifact_sha256": "722f88c6641b0d444318c7b764d0c692dfd0f09fc570ca3eabfc035767858510"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.25,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.17,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_disagreements": "Both paid reviewers classify separate; source audit agrees. Preserve raw reviewer records, including any owner/behavior fields that differ; no consensus on those ancillary fields is inferred.",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "source_operation_regions": [
+      {
+        "code": "function startSnapShotAccessibilityProcess(workerPath: string): AccessibilityProcess {\n  let worker: NodeChildProcess.ChildProcess;\n  try {\n    worker = NodeChildProcess.fork(workerPath, [\"read\"], {\n      // Electron's default macOS Helper executable lacks the main app's Accessibility grant.\n      execPath: process.execPath,\n      env: {\n        ...process.env,\n        ELECTRON_RUN_AS_NODE: \"1\",\n      },\n      execArgv: [],\n      stdio: [\"ignore\", \"ignore\", \"inherit\", \"ipc\"],\n    });\n  } catch {\n    return unavailableProcess();\n  }\n\n  let ready = false;\n  let request: SnapShotAccessibilityRequest | undefined;\n  let startedResolve: (() => void) | undefined;\n  let resultResolve: ((value: CapturedWindowAccessibilityContext | undefined) => void) | undefined;\n  let startTimeout: ReturnType<typeof setTimeout> | undefined;\n  let resultTimeout: ReturnType<typeof setTimeout> | undefined;\n  let settled = false;\n  let settledContext: CapturedWindowAccessibilityContext | undefined;\n\n  const clearTimers = () => {\n    if (startTimeout) clearTimeout(startTimeout);\n    if (resultTimeout) clearTimeout(resultTimeout);\n  };\n  const finish = (context?: CapturedWindowAccessibilityContext) => {\n    if (settled) return;\n    settled = true;\n    settledContext = context;\n    clearTimers();\n    startedResolve?.();\n    resultResolve?.(context);\n    worker.kill();\n  };\n  const sendRequest = () => {\n    if (!ready || !request || settled) return;\n    startTimeout ??= setTimeout(() => finish(), START_TIMEOUT_MS);\n    startTimeout.unref();\n    try {\n      worker.send(request, (error) => {\n        if (error) finish();\n      });\n    } catch {\n      finish();\n    }\n  };\n\n  worker.on(\"message\", (rawMessage) => {\n    const message = rawMessage as AccessibilityMessage;\n    if (message === \"ready\") {\n      ready = true;\n      sendRequest();\n    } else if (message === \"started\") {\n      if (startTimeout) clearTimeout(startTimeout);\n      startedResolve?.();\n    } else {\n      finish(message.context);\n    }\n  });\n  worker.once(\"error\", () => finish());\n  worker.once(\"exit\", () => finish());\n\n  return {\n    get alive() {\n      return !settled;\n    },\n    read: (nextRequest) => {\n      if (settled) return completedRead(settledContext);\n      request = nextRequest;\n      const started = Promise.withResolvers<void>();\n      const result = Promise.withResolvers<CapturedWindowAccessibilityContext | undefined>();\n      startedResolve = started.resolve;\n      resultResolve = result.resolve;\n      resultTimeout = setTimeout(() => finish(), RESULT_TIMEOUT_MS);\n      resultTimeout.unref();\n      sendRequest();\n      return { started: started.promise, result: result.promise };\n    },\n    close: () => finish(),\n  };\n}",
+        "end_line": 133,
+        "portable_source_file": "sources/36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c.json.gz",
+        "scope": "Whole endpoint shown as contrasting contract evidence; no equivalence claim",
+        "sha256": "1ab3c9a6a16604aba4d448c4e5c11bc1d1c1a6845c843556cd7823a79106daa8",
+        "source_id": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts::startSnapShotAccessibilityProcess",
+        "start_line": 48
+      },
+      {
+        "code": "function startGlobalShiftShortcutProcess(\n  workerPath: string,\n  modifier: SnapShotModifier,\n  onTrigger: () => void,\n  onFailure: (error: Error) => void,\n): Promise<() => void> {\n  const worker = NodeChildProcess.fork(workerPath, [modifier], {\n    env: { ...process.env, ELECTRON_RUN_AS_NODE: \"1\" },\n    execArgv: [],\n    stdio: [\"ignore\", \"ignore\", \"inherit\", \"ipc\"],\n  });\n\n  return new Promise((resolve, reject) => {\n    let settled = false;\n    let stopped = false;\n    const stop = () => {\n      if (stopped) return;\n      stopped = true;\n      worker.kill();\n      const forceKill = setTimeout(() => worker.kill(\"SIGKILL\"), 1_000);\n      forceKill.unref?.();\n      worker.once(\"exit\", () => clearTimeout(forceKill));\n    };\n    const fail = (error: Error) => {\n      if (stopped) return;\n      if (settled) {\n        stop();\n        onFailure(error);\n        return;\n      }\n      settled = true;\n      stop();\n      reject(error);\n    };\n\n    worker.on(\"message\", (message) => {\n      if (message === \"ready\" && !settled) {\n        settled = true;\n        resolve(stop);\n        return;\n      }\n      if (message !== \"trigger\" || !settled || stopped) return;\n      try {\n        onTrigger();\n      } catch {}\n    });\n    worker.once(\"error\", (error) => {\n      fail(error);\n    });\n    worker.once(\"exit\", (code) => {\n      fail(new Error(`Snapshot shortcut helper exited with code ${code}`));\n    });\n  });\n}",
+        "end_line": 61,
+        "portable_source_file": "sources/b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194.json.gz",
+        "scope": "Whole endpoint shown as contrasting contract evidence; no equivalence claim",
+        "sha256": "7b11b5bebf737f832370080fd31ffe048325c703566ec89f675860baeef94ab3",
+        "source_id": "apps/desktop/src/snapShot/GlobalShiftShortcutProcess.ts::startGlobalShiftShortcutProcess",
+        "start_line": 8
+      }
+    ],
+    "source_proofs": [
+      {
+        "end_line": 133,
+        "file_sha256": "36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c",
+        "path": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts",
+        "portable_source_file": "sources/36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c.json.gz",
+        "snapshot": "sources/apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts",
+        "source_id": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts::startSnapShotAccessibilityProcess",
+        "source_sha256": "1ab3c9a6a16604aba4d448c4e5c11bc1d1c1a6845c843556cd7823a79106daa8",
+        "start_line": 48,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts#L48"
+      },
+      {
+        "end_line": 61,
+        "file_sha256": "b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194",
+        "path": "apps/desktop/src/snapShot/GlobalShiftShortcutProcess.ts",
+        "portable_source_file": "sources/b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194.json.gz",
+        "snapshot": "sources/apps/desktop/src/snapShot/GlobalShiftShortcutProcess.ts",
+        "source_id": "apps/desktop/src/snapShot/GlobalShiftShortcutProcess.ts::startGlobalShiftShortcutProcess",
+        "source_sha256": "7b11b5bebf737f832370080fd31ffe048325c703566ec89f675860baeef94ab3",
+        "start_line": 8,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/desktop/src/snapShot/GlobalShiftShortcutProcess.ts#L8"
+      }
+    ],
+    "status": "source_adjudicated_separate_control_pending_portable_package"
+  },
+  "source_adjudication_sha256": "133221c3b7eeaf0efd621b03913cc01eea9b2979bdcff639f93f2de3bcaf4256",
+  "source_closure": [
+    {
+      "file_sha256": "ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422",
+      "git_blob_sha1": "53799e157793985f689c7d8b4093d38065d0d56f",
+      "path": "apps/desktop/src/snapShot/DesktopSnapShot.ts",
+      "source_file": "sources/ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422.json.gz"
+    },
+    {
+      "file_sha256": "b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194",
+      "git_blob_sha1": "7c0eeb9e75e3f8b9045aee29f87c59074fcec833",
+      "path": "apps/desktop/src/snapShot/GlobalShiftShortcutProcess.ts",
+      "source_file": "sources/b4a75df3ec87460f4400bb62f6282d72a3dd10d789eb7df67792571de49a8194.json.gz"
+    },
+    {
+      "file_sha256": "36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c",
+      "git_blob_sha1": "542e3f13c08dc6a5df34de1737130db0b7313c16",
+      "path": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts",
+      "source_file": "sources/36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c.json.gz"
+    }
+  ],
+  "source_only": true
+}

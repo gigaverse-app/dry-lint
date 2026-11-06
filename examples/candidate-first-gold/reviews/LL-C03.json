@@ -1,0 +1,466 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.012652,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "3b614849ef7a7b2ff0ba55a48d52f0411a00166f2c55f87603f4c2d2aa0bec84",
+      "prompt_sha256": "90e07730ce7ec9327fc33f236e0ed29e3cbc65495190dbc8cf1ceca33ea27818",
+      "request_key": "487a8be0929d0fa9b0cba5d68b9bcbdad8b808ad4bca5380b74a934808785e17",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 4291,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 4291,
+            "model": null,
+            "output_tokens": 407,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 407,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.86,
+        "second_opinion": null,
+        "why": "Both functions run the same chunked budget-reset workflow. They fetch rows due for reset with batch limit and DB retry, then reset each row while capturing pre-reset spend. Each result becomes a `_RowReset` with its spend decrement, and a None result or exception becomes a failure entry. After that they write updates, invalidate spend counters, compute `_ChunkOutcome` via `_count_advanced`, emit phase failure or success/failure service hooks, and return `_NO_PROGRESS` on a top-level exception. The ordering, failure handling, and invariants match; the user and team versions differ only in table name, per-row reset function, writer, counter key function, call_type and metadata key names, and the user-only extra invalidation of the global proxy spend cache. A shared generic helper (for example `_reset_budget_chunk(table_name, entity_label, reset_fn, write_fn, counter_fn, extra_post_write)`) could own this. The per-entity pieces would be parameters, and the budget-reset-specific hook for the global proxy cache could stay at the user call site. The same copy likely exists for keys too, which strengthens the case for extraction."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00024564000000000004,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "c14ad93b17a3d86c470b46345c0f3b5a7c390f5160d4c6c199bf561e82f29c69",
+      "prompt_sha256": "475b8e053ae2cc9b61f00dff3226050ecbdd6c2e2534842003c55d0c2a757a54",
+      "request_key": "629d81d948a5067ce5629ef62527e6e2ba156c521bd84db54be2ebcae5f1a646",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 6141,
+        "output_tokens": 174
+      },
+      "verdict": {
+        "behaves_differently": 0.33,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.64,
+        "second_opinion": null,
+        "why": "One portable domain concept can share an implementation; review behavior differences before moving it."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "active_positive_proposed": true,
+    "background_proof": {
+      "documents": 37604,
+      "path": {
+        "artifact_basename": "background.json.gz",
+        "original_artifact_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+      },
+      "scope": "scope.json",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "    async def _reset_budget_for_litellm_users_chunk(self) -> _ChunkOutcome:\n        now: Final = datetime.utcnow()\n        start_time: Final = time.time()\n        users_to_reset: list[LiteLLM_UserTable] | None = None\n        try:\n            users_to_reset = await self._with_db_retry(\n                lambda: self.prisma_client.get_data(\n                    table_name=\"user\",\n                    query_type=\"find_all\",\n                    reset_at=now,\n                    limit=RESET_BUDGET_JOB_BATCH_SIZE,\n                ),\n                reason=\"reset_budget_read_users_failure\",\n            )\n            updated_users: Final[list[_RowReset[LiteLLM_UserTable]]] = []\n            failed_users: Final = []\n            if users_to_reset is not None and len(users_to_reset) > 0:\n                for user in users_to_reset:\n                    try:\n                        pre_reset_spend = float(user.spend or 0.0)\n                        updated_user = await ResetBudgetJob._reset_budget_for_user(\n                            user=user,\n                            current_time=now,\n                            reset_settings=self.reset_settings,\n                        )\n                        if updated_user is not None:\n                            updated_users.append(\n                                _RowReset(\n                                    row=updated_user,\n                                    spend_decrement=pre_reset_spend - float(updated_user.spend or 0.0),\n                                )\n                            )\n                        else:\n                            failed_users.append(\n                                {\n                                    \"user\": user,\n                                    \"error\": \"Returned None without exception\",\n                                }\n                            )\n                    except Exception as e:\n                        failed_users.append({\"user\": user, \"error\": str(e)})\n                        verbose_proxy_logger.exception(\"Failed to reset budget for user: %s\", user)\n\n                verbose_proxy_logger.debug(\"Updated users %s\", _LazyJson(updated_users))\n                if updated_users:\n                    await self._write_user_reset_updates(updated_users=updated_users)\n                    for u in updated_users:\n                        user_id = getattr(u.row, \"user_id\", None)\n                        if user_id:\n                            await self._invalidate_spend_counter(user_counter(str(user_id)))\n                        if user_id == LITELLM_PROXY_BUDGET_NAME:\n                            await self._invalidate_global_proxy_spend_cache()\n\n            end_time = time.time()\n            outcome: Final = _ChunkOutcome(\n                fetched=len(users_to_reset) if users_to_reset else 0,\n                advanced=_count_advanced(\n                    (u.row.budget_reset_at for u in updated_users),\n                    cutoff=datetime.now(timezone.utc),\n                ),\n            )\n            if len(failed_users) > 0:\n                self._emit_phase_failure(\n                    call_type=\"reset_budget_users\",\n                    error=Exception(\n                        f\"Failed to reset {len(failed_users)} users: {json.dumps(failed_users, default=str)}\"\n                    ),\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_users_found\": len(users_to_reset) if users_to_reset else 0,\n                    },\n                )\n                return outcome\n\n            asyncio.create_task(\n                self.proxy_logging_obj.service_logging_obj.async_service_success_hook(\n                    service=ServiceTypes.RESET_BUDGET_JOB,\n                    duration=end_time - start_time,\n                    call_type=\"reset_budget_users\",\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_users_found\": len(users_to_reset) if users_to_reset else 0,\n                        \"num_users_updated\": len(updated_users),\n                        \"num_users_failed\": len(failed_users),\n                    },\n                )\n            )\n        except Exception as e:\n            end_time = time.time()\n            asyncio.create_task(\n                self.proxy_logging_obj.service_logging_obj.async_service_failure_hook(\n                    service=ServiceTypes.RESET_BUDGET_JOB,\n                    duration=end_time - start_time,\n                    error=e,\n                    call_type=\"reset_budget_users\",\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_users_found\": len(users_to_reset) if users_to_reset else 0,\n                    },\n                )\n            )\n            verbose_proxy_logger.exception(\"Failed to reset budget for users: %s\", e)\n            return _NO_PROGRESS\n        else:\n            return outcome",
+        "context": "{\"imports\": [\"import asyncio\", \"import json\", \"import math\", \"import time\", \"from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence\", \"from dataclasses import dataclass, field\", \"from datetime import datetime, timedelta, timezone\", \"from enum import Enum\", \"from itertools import chain\", \"from types import MappingProxyType\", \"from typing import Final, Generic, Literal, Protocol, TypeVar\", \"from typing_extensions import assert_never\", \"import litellm\", \"from litellm._internal_context import with_service_target\", \"from litellm._logging import verbose_proxy_logger\", \"from litellm.constants import (\\n    GLOBAL_PROXY_SPEND_CACHE_KEY,\\n    LITELLM_PROXY_BUDGET_NAME,\\n    RESET_BUDGET_JOB_BATCH_SIZE,\\n    RESET_BUDGET_JOB_LOCK_TTL_SECONDS,\\n    RESET_BUDGET_JOB_MAX_CHUNKS_PER_RUN,\\n    RESET_BUDGET_JOB_NAME,\\n)\", \"from litellm.litellm_core_utils.duration_parser import duration_in_seconds\", \"from litellm.proxy._types import (\\n    DB_RETRY_SAFE_ERROR_TYPES,\\n    LiteLLM_BudgetTableFull,\\n    Litellm_EntityType,\\n    LiteLLM_TeamTable,\\n    LiteLLM_UserTable,\\n    LiteLLM_VerificationToken,\\n)\", \"from litellm.proxy.common_utils.timezone_utils import (\\n    BudgetResetSettings,\\n    compute_budget_reset_at,\\n    get_budget_reset_settings,\\n)\", \"from litellm.proxy.common_utils.user_api_key_cache import (\\n    AUTH_OBJECTS_TARGET,\\n    end_user_cache_key,\\n    model_access_group_cache_key,\\n    project_cache_key,\\n    tag_cache_key,\\n)\", \"from litellm.proxy.db.budget_window_spend_writer import roll_window_spend_row\", \"from litellm.proxy.db.db_span import db_span, db_spanned\", \"from litellm.proxy.db.db_transaction_queue.pod_lock_manager import POD_LOCK_TARGET, PodLockManager\", \"from litellm.proxy.db.exception_handler import call_with_db_reconnect_retry\", \"from litellm.proxy.utils import PrismaClient, ProxyLogging\", \"from litellm.redis.stores.spend_counters import (\\n    SPEND_COUNTERS_TARGET,\\n    SpendCounterStore,\\n    end_user_counter,\\n    key_counter,\\n    key_window_counter,\\n    model_access_group_counter,\\n    org_counter,\\n    project_counter,\\n    tag_counter,\\n    team_counter,\\n    team_member_counter,\\n    team_window_counter,\\n    user_counter,\\n)\", \"from litellm.repositories.organization_repository import OrganizationRepository\", \"from litellm.repositories.prisma_protocols import PrismaBatch, SpendLinkedTable\", \"from litellm.repositories.project_repository import ProjectRepository\", \"from litellm.repositories.table_repositories import (\\n    EndUserRepository,\\n    ModelAccessGroupBudgetRepository,\\n    TagRepository,\\n    TeamMembershipRepository,\\n)\", \"from litellm.repositories.team_repository import TeamRepository\", \"from litellm.repositories.unit_of_work import (\\n    LinkedSpendResetWrites,\\n    SpendResetWrites,\\n    budget_cascade_unit_of_work,\\n    enduser_spend_reset_unit_of_work,\\n    spend_reset_unit_of_work,\\n)\", \"from litellm.repositories.verification_token_repository import (\\n    VerificationTokenRepository,\\n)\", \"from litellm.types.services import ServiceTypes\"], \"possible_callers\": [], \"local_helper_owners\": [{\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._with_db_retry\", \"line\": 593, \"end_line\": 597, \"body_sha256\": \"4388f6cc6d387462a13d2885d0960b46d5b67cc8f56ae3787ed4ba340fed3a03\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._emit_phase_failure\", \"line\": 1104, \"end_line\": 1127, \"body_sha256\": \"c4d6aead7598ac5b6edbf4873769aa78da280532f531d151e113d964ae771ecc\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::_count_advanced\", \"line\": 368, \"end_line\": 376, \"body_sha256\": \"7a5a2a543c05f80f7ac02011c7d037168274e684959b79450ceea94879164964\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._write_user_reset_updates\", \"line\": 1054, \"end_line\": 1065, \"body_sha256\": \"502d3102337123232875cbd23b97b75f7961975ec9c2afc1aa443c6aba4aa83e\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._invalidate_spend_counter\", \"line\": 613, \"end_line\": 630, \"body_sha256\": \"b1ad6e7052487b034554dc265b3027c154dc6203dde0f6676383308c796d8356\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._invalidate_global_proxy_spend_cache\", \"line\": 633, \"end_line\": 638, \"body_sha256\": \"e089df39b348993d04b38ed51809f672fe3b0bead78d874274d4ec2f11e66371\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.py\"}",
+        "context_digest": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+        "declaration": null,
+        "end_line": 1353,
+        "hash": "",
+        "line": 1246,
+        "name": "_reset_budget_for_litellm_users_chunk",
+        "origin": null,
+        "owner": "ResetBudgetJob",
+        "path": "litellm/proxy/common_utils/reset_budget_job.py",
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "    async def _reset_budget_for_litellm_teams_chunk(self) -> _ChunkOutcome:\n        now: Final = datetime.utcnow()\n        start_time: Final = time.time()\n        teams_to_reset: list[LiteLLM_TeamTable] | None = None\n        try:\n            teams_to_reset = await self._with_db_retry(\n                lambda: self.prisma_client.get_data(\n                    table_name=\"team\",\n                    query_type=\"find_all\",\n                    reset_at=now,\n                    limit=RESET_BUDGET_JOB_BATCH_SIZE,\n                ),\n                reason=\"reset_budget_read_teams_failure\",\n            )\n            updated_teams: Final[list[_RowReset[LiteLLM_TeamTable]]] = []\n            failed_teams: Final = []\n            if teams_to_reset is not None and len(teams_to_reset) > 0:\n                for team in teams_to_reset:\n                    try:\n                        pre_reset_spend = float(team.spend or 0.0)\n                        updated_team = await ResetBudgetJob._reset_budget_for_team(\n                            team=team,\n                            current_time=now,\n                            reset_settings=self.reset_settings,\n                        )\n                        if updated_team is not None:\n                            updated_teams.append(\n                                _RowReset(\n                                    row=updated_team,\n                                    spend_decrement=pre_reset_spend - float(updated_team.spend or 0.0),\n                                )\n                            )\n                        else:\n                            failed_teams.append(\n                                {\n                                    \"team\": team,\n                                    \"error\": \"Returned None without exception\",\n                                }\n                            )\n                    except Exception as e:\n                        failed_teams.append({\"team\": team, \"error\": str(e)})\n                        verbose_proxy_logger.exception(\"Failed to reset budget for team: %s\", team)\n\n                verbose_proxy_logger.debug(\"Updated teams %s\", _LazyJson(updated_teams))\n                if updated_teams:\n                    await self._write_team_reset_updates(updated_teams=updated_teams)\n                    for t in updated_teams:\n                        team_id = getattr(t.row, \"team_id\", None)\n                        if team_id:\n                            await self._invalidate_spend_counter(team_counter(str(team_id)))\n\n            end_time = time.time()\n            outcome: Final = _ChunkOutcome(\n                fetched=len(teams_to_reset) if teams_to_reset else 0,\n                advanced=_count_advanced(\n                    (t.row.budget_reset_at for t in updated_teams),\n                    cutoff=datetime.now(timezone.utc),\n                ),\n            )\n            if len(failed_teams) > 0:\n                self._emit_phase_failure(\n                    call_type=\"reset_budget_teams\",\n                    error=Exception(\n                        f\"Failed to reset {len(failed_teams)} teams: {json.dumps(failed_teams, default=str)}\"\n                    ),\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_teams_found\": len(teams_to_reset) if teams_to_reset else 0,\n                    },\n                )\n                return outcome\n\n            asyncio.create_task(\n                self.proxy_logging_obj.service_logging_obj.async_service_success_hook(\n                    service=ServiceTypes.RESET_BUDGET_JOB,\n                    duration=end_time - start_time,\n                    call_type=\"reset_budget_teams\",\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_teams_found\": len(teams_to_reset) if teams_to_reset else 0,\n                        \"num_teams_updated\": len(updated_teams),\n                        \"num_teams_failed\": len(failed_teams),\n                    },\n                )\n            )\n        except Exception as e:\n            end_time = time.time()\n            asyncio.create_task(\n                self.proxy_logging_obj.service_logging_obj.async_service_failure_hook(\n                    service=ServiceTypes.RESET_BUDGET_JOB,\n                    duration=end_time - start_time,\n                    error=e,\n                    call_type=\"reset_budget_teams\",\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_teams_found\": len(teams_to_reset) if teams_to_reset else 0,\n                    },\n                )\n            )\n            verbose_proxy_logger.exception(\"Failed to reset budget for teams: %s\", e)\n            return _NO_PROGRESS\n        else:\n            return outcome",
+        "context": "{\"imports\": [\"import asyncio\", \"import json\", \"import math\", \"import time\", \"from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence\", \"from dataclasses import dataclass, field\", \"from datetime import datetime, timedelta, timezone\", \"from enum import Enum\", \"from itertools import chain\", \"from types import MappingProxyType\", \"from typing import Final, Generic, Literal, Protocol, TypeVar\", \"from typing_extensions import assert_never\", \"import litellm\", \"from litellm._internal_context import with_service_target\", \"from litellm._logging import verbose_proxy_logger\", \"from litellm.constants import (\\n    GLOBAL_PROXY_SPEND_CACHE_KEY,\\n    LITELLM_PROXY_BUDGET_NAME,\\n    RESET_BUDGET_JOB_BATCH_SIZE,\\n    RESET_BUDGET_JOB_LOCK_TTL_SECONDS,\\n    RESET_BUDGET_JOB_MAX_CHUNKS_PER_RUN,\\n    RESET_BUDGET_JOB_NAME,\\n)\", \"from litellm.litellm_core_utils.duration_parser import duration_in_seconds\", \"from litellm.proxy._types import (\\n    DB_RETRY_SAFE_ERROR_TYPES,\\n    LiteLLM_BudgetTableFull,\\n    Litellm_EntityType,\\n    LiteLLM_TeamTable,\\n    LiteLLM_UserTable,\\n    LiteLLM_VerificationToken,\\n)\", \"from litellm.proxy.common_utils.timezone_utils import (\\n    BudgetResetSettings,\\n    compute_budget_reset_at,\\n    get_budget_reset_settings,\\n)\", \"from litellm.proxy.common_utils.user_api_key_cache import (\\n    AUTH_OBJECTS_TARGET,\\n    end_user_cache_key,\\n    model_access_group_cache_key,\\n    project_cache_key,\\n    tag_cache_key,\\n)\", \"from litellm.proxy.db.budget_window_spend_writer import roll_window_spend_row\", \"from litellm.proxy.db.db_span import db_span, db_spanned\", \"from litellm.proxy.db.db_transaction_queue.pod_lock_manager import POD_LOCK_TARGET, PodLockManager\", \"from litellm.proxy.db.exception_handler import call_with_db_reconnect_retry\", \"from litellm.proxy.utils import PrismaClient, ProxyLogging\", \"from litellm.redis.stores.spend_counters import (\\n    SPEND_COUNTERS_TARGET,\\n    SpendCounterStore,\\n    end_user_counter,\\n    key_counter,\\n    key_window_counter,\\n    model_access_group_counter,\\n    org_counter,\\n    project_counter,\\n    tag_counter,\\n    team_counter,\\n    team_member_counter,\\n    team_window_counter,\\n    user_counter,\\n)\", \"from litellm.repositories.organization_repository import OrganizationRepository\", \"from litellm.repositories.prisma_protocols import PrismaBatch, SpendLinkedTable\", \"from litellm.repositories.project_repository import ProjectRepository\", \"from litellm.repositories.table_repositories import (\\n    EndUserRepository,\\n    ModelAccessGroupBudgetRepository,\\n    TagRepository,\\n    TeamMembershipRepository,\\n)\", \"from litellm.repositories.team_repository import TeamRepository\", \"from litellm.repositories.unit_of_work import (\\n    LinkedSpendResetWrites,\\n    SpendResetWrites,\\n    budget_cascade_unit_of_work,\\n    enduser_spend_reset_unit_of_work,\\n    spend_reset_unit_of_work,\\n)\", \"from litellm.repositories.verification_token_repository import (\\n    VerificationTokenRepository,\\n)\", \"from litellm.types.services import ServiceTypes\"], \"possible_callers\": [], \"local_helper_owners\": [{\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._with_db_retry\", \"line\": 593, \"end_line\": 597, \"body_sha256\": \"4388f6cc6d387462a13d2885d0960b46d5b67cc8f56ae3787ed4ba340fed3a03\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._emit_phase_failure\", \"line\": 1104, \"end_line\": 1127, \"body_sha256\": \"c4d6aead7598ac5b6edbf4873769aa78da280532f531d151e113d964ae771ecc\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::_count_advanced\", \"line\": 368, \"end_line\": 376, \"body_sha256\": \"7a5a2a543c05f80f7ac02011c7d037168274e684959b79450ceea94879164964\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._write_team_reset_updates\", \"line\": 1079, \"end_line\": 1090, \"body_sha256\": \"90e59624609604ce9d8d542a5fa32942d87341d230b445b99be6fc385f670a14\"}, {\"id\": \"litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._invalidate_spend_counter\", \"line\": 613, \"end_line\": 630, \"body_sha256\": \"b1ad6e7052487b034554dc265b3027c154dc6203dde0f6676383308c796d8356\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.py\"}",
+        "context_digest": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+        "declaration": null,
+        "end_line": 1466,
+        "hash": "",
+        "line": 1361,
+        "name": "_reset_budget_for_litellm_teams_chunk",
+        "origin": null,
+        "owner": "ResetBudgetJob",
+        "path": "litellm/proxy/common_utils/reset_budget_job.py",
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.8011739834091974,
+      "similarity_reusable": false
+    },
+    "classification": "duplicate",
+    "confidence": "source-supported operation; both reviewers duplicate",
+    "diagnostic_profiles": [
+      {
+        "cross_file_rank": null,
+        "first_retrieval_loss": "same_file_policy",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "retained_before_other_rules",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "same_file_policy",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._reset_budget_for_litellm_teams_chunk",
+        "query_lines": 106,
+        "query_token_count": 350,
+        "raw_rank": 2,
+        "score": 0.8011739834091974,
+        "target": "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._reset_budget_for_litellm_users_chunk"
+      },
+      {
+        "cross_file_rank": null,
+        "first_retrieval_loss": "same_file_policy",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "retained_before_other_rules",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "same_file_policy",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._reset_budget_for_litellm_users_chunk",
+        "query_lines": 108,
+        "query_token_count": 363,
+        "raw_rank": 2,
+        "score": 0.8011739834091974,
+        "target": "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._reset_budget_for_litellm_teams_chunk"
+      }
+    ],
+    "endpoints": [
+      {
+        "body_sha256": "f2728585c6277a56e6310ccfd3dcea7723a97edc171062b12928b056cdc1d81f",
+        "function_end": 1466,
+        "function_start": 1361,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+            "code": "        now: Final = datetime.utcnow()\n        start_time: Final = time.time()\n        teams_to_reset: list[LiteLLM_TeamTable] | None = None\n        try:\n            teams_to_reset = await self._with_db_retry(\n                lambda: self.prisma_client.get_data(\n                    table_name=\"team\",\n                    query_type=\"find_all\",\n                    reset_at=now,\n                    limit=RESET_BUDGET_JOB_BATCH_SIZE,\n                ),\n                reason=\"reset_budget_read_teams_failure\",\n            )\n            updated_teams: Final[list[_RowReset[LiteLLM_TeamTable]]] = []\n            failed_teams: Final = []\n            if teams_to_reset is not None and len(teams_to_reset) > 0:\n                for team in teams_to_reset:\n                    try:\n                        pre_reset_spend = float(team.spend or 0.0)\n                        updated_team = await ResetBudgetJob._reset_budget_for_team(\n                            team=team,\n                            current_time=now,\n                            reset_settings=self.reset_settings,\n                        )\n                        if updated_team is not None:\n                            updated_teams.append(\n                                _RowReset(\n                                    row=updated_team,\n                                    spend_decrement=pre_reset_spend - float(updated_team.spend or 0.0),\n                                )\n                            )\n                        else:\n                            failed_teams.append(\n                                {\n                                    \"team\": team,\n                                    \"error\": \"Returned None without exception\",\n                                }\n                            )\n                    except Exception as e:\n                        failed_teams.append({\"team\": team, \"error\": str(e)})\n                        verbose_proxy_logger.exception(\"Failed to reset budget for team: %s\", team)\n\n                verbose_proxy_logger.debug(\"Updated teams %s\", _LazyJson(updated_teams))\n                if updated_teams:\n                    await self._write_team_reset_updates(updated_teams=updated_teams)\n                    for t in updated_teams:\n                        team_id = getattr(t.row, \"team_id\", None)\n                        if team_id:\n                            await self._invalidate_spend_counter(team_counter(str(team_id)))\n\n            end_time = time.time()\n            outcome: Final = _ChunkOutcome(\n                fetched=len(teams_to_reset) if teams_to_reset else 0,\n                advanced=_count_advanced(\n                    (t.row.budget_reset_at for t in updated_teams),\n                    cutoff=datetime.now(timezone.utc),\n                ),\n            )\n            if len(failed_teams) > 0:\n                self._emit_phase_failure(\n                    call_type=\"reset_budget_teams\",\n                    error=Exception(\n                        f\"Failed to reset {len(failed_teams)} teams: {json.dumps(failed_teams, default=str)}\"\n                    ),\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_teams_found\": len(teams_to_reset) if teams_to_reset else 0,\n                    },\n                )\n                return outcome\n\n            asyncio.create_task(\n                self.proxy_logging_obj.service_logging_obj.async_service_success_hook(\n                    service=ServiceTypes.RESET_BUDGET_JOB,\n                    duration=end_time - start_time,\n                    call_type=\"reset_budget_teams\",\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_teams_found\": len(teams_to_reset) if teams_to_reset else 0,\n                        \"num_teams_updated\": len(updated_teams),\n                        \"num_teams_failed\": len(failed_teams),\n                    },\n                )\n            )\n        except Exception as e:\n            end_time = time.time()\n            asyncio.create_task(\n                self.proxy_logging_obj.service_logging_obj.async_service_failure_hook(\n                    service=ServiceTypes.RESET_BUDGET_JOB,\n                    duration=end_time - start_time,\n                    error=e,\n                    call_type=\"reset_budget_teams\",\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_teams_found\": len(teams_to_reset) if teams_to_reset else 0,\n                    },\n                )\n            )\n            verbose_proxy_logger.exception(\"Failed to reset budget for teams: %s\", e)\n            return _NO_PROGRESS\n        else:\n            return outcome",
+            "end_line": 1466,
+            "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+            "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+            "path": "litellm/proxy/common_utils/reset_budget_job.py",
+            "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+            "region_sha256": "babea6c957016270164d67c5fdcc742ca706bc4d5faf2cbe7db4f7f82dca051c",
+            "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+            "source_id": "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._reset_budget_for_litellm_teams_chunk",
+            "start_line": 1362
+          }
+        ],
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "source_id": "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._reset_budget_for_litellm_teams_chunk",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+          "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+          "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+          "path": "litellm/proxy/common_utils/reset_budget_job.py",
+          "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+          "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz"
+        }
+      },
+      {
+        "body_sha256": "1ba03b52a5615c9ad141b8f3f4ebea344e72cabd2dd84f0a4fb7a599f2f78fb1",
+        "function_end": 1353,
+        "function_start": 1246,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+            "code": "        now: Final = datetime.utcnow()\n        start_time: Final = time.time()\n        users_to_reset: list[LiteLLM_UserTable] | None = None\n        try:\n            users_to_reset = await self._with_db_retry(\n                lambda: self.prisma_client.get_data(\n                    table_name=\"user\",\n                    query_type=\"find_all\",\n                    reset_at=now,\n                    limit=RESET_BUDGET_JOB_BATCH_SIZE,\n                ),\n                reason=\"reset_budget_read_users_failure\",\n            )\n            updated_users: Final[list[_RowReset[LiteLLM_UserTable]]] = []\n            failed_users: Final = []\n            if users_to_reset is not None and len(users_to_reset) > 0:\n                for user in users_to_reset:\n                    try:\n                        pre_reset_spend = float(user.spend or 0.0)\n                        updated_user = await ResetBudgetJob._reset_budget_for_user(\n                            user=user,\n                            current_time=now,\n                            reset_settings=self.reset_settings,\n                        )\n                        if updated_user is not None:\n                            updated_users.append(\n                                _RowReset(\n                                    row=updated_user,\n                                    spend_decrement=pre_reset_spend - float(updated_user.spend or 0.0),\n                                )\n                            )\n                        else:\n                            failed_users.append(\n                                {\n                                    \"user\": user,\n                                    \"error\": \"Returned None without exception\",\n                                }\n                            )\n                    except Exception as e:\n                        failed_users.append({\"user\": user, \"error\": str(e)})\n                        verbose_proxy_logger.exception(\"Failed to reset budget for user: %s\", user)\n\n                verbose_proxy_logger.debug(\"Updated users %s\", _LazyJson(updated_users))\n                if updated_users:\n                    await self._write_user_reset_updates(updated_users=updated_users)\n                    for u in updated_users:\n                        user_id = getattr(u.row, \"user_id\", None)\n                        if user_id:\n                            await self._invalidate_spend_counter(user_counter(str(user_id)))\n                        if user_id == LITELLM_PROXY_BUDGET_NAME:\n                            await self._invalidate_global_proxy_spend_cache()\n\n            end_time = time.time()\n            outcome: Final = _ChunkOutcome(\n                fetched=len(users_to_reset) if users_to_reset else 0,\n                advanced=_count_advanced(\n                    (u.row.budget_reset_at for u in updated_users),\n                    cutoff=datetime.now(timezone.utc),\n                ),\n            )\n            if len(failed_users) > 0:\n                self._emit_phase_failure(\n                    call_type=\"reset_budget_users\",\n                    error=Exception(\n                        f\"Failed to reset {len(failed_users)} users: {json.dumps(failed_users, default=str)}\"\n                    ),\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_users_found\": len(users_to_reset) if users_to_reset else 0,\n                    },\n                )\n                return outcome\n\n            asyncio.create_task(\n                self.proxy_logging_obj.service_logging_obj.async_service_success_hook(\n                    service=ServiceTypes.RESET_BUDGET_JOB,\n                    duration=end_time - start_time,\n                    call_type=\"reset_budget_users\",\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_users_found\": len(users_to_reset) if users_to_reset else 0,\n                        \"num_users_updated\": len(updated_users),\n                        \"num_users_failed\": len(failed_users),\n                    },\n                )\n            )\n        except Exception as e:\n            end_time = time.time()\n            asyncio.create_task(\n                self.proxy_logging_obj.service_logging_obj.async_service_failure_hook(\n                    service=ServiceTypes.RESET_BUDGET_JOB,\n                    duration=end_time - start_time,\n                    error=e,\n                    call_type=\"reset_budget_users\",\n                    start_time=start_time,\n                    end_time=end_time,\n                    event_metadata={\n                        \"num_users_found\": len(users_to_reset) if users_to_reset else 0,\n                    },\n                )\n            )\n            verbose_proxy_logger.exception(\"Failed to reset budget for users: %s\", e)\n            return _NO_PROGRESS\n        else:\n            return outcome",
+            "end_line": 1353,
+            "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+            "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+            "path": "litellm/proxy/common_utils/reset_budget_job.py",
+            "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+            "region_sha256": "f0dcc20cd27ea98127d9aac3c22575245adec47f53a4400516f9d1b4e97e5a0b",
+            "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+            "source_id": "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._reset_budget_for_litellm_users_chunk",
+            "start_line": 1247
+          }
+        ],
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "source_id": "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob._reset_budget_for_litellm_users_chunk",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+          "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+          "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+          "path": "litellm/proxy/common_utils/reset_budget_job.py",
+          "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+          "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz"
+        }
+      }
+    ],
+    "existing_and_proposed_ownership": "ResetBudgetJob chunk orchestration. _run_phase_in_chunks already owns pacing only; _with_db_retry, entity reset/write helpers and _invalidate_spend_counter own primitives. No existing helper owns complete per-chunk collection/write/invalidation/outcome/error lifecycle.",
+    "hard_positive_balanced": false,
+    "id": "LL-C03",
+    "legitimate_variation": "Team versus user table/entity reset/writer/counter functions and metadata. User path additionally clears global proxy spend cache for LITELLM_PROXY_BUDGET_NAME. Shared helper would parameterize these domain hooks, not omit them.",
+    "license_scope": {
+      "header_checks": [
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/proxy/common_utils/reset_budget_job.py",
+          "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz"
+        },
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/proxy/proxy_server.py",
+          "portable_source_file": "sources/461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd.json.gz"
+        }
+      ],
+      "interpretation": "Importing enterprise symbols or checking premium status is not a file-license override. No enterprise/ body copied. Two conservatively excluded original files remain excluded; no scope expansion or IDF changes.",
+      "license_path": "LICENSE",
+      "nested_license_paths_in_litellm": [
+        "litellm/litellm_core_utils/tokenizers/deepseek_tokenizer_LICENSE",
+        "litellm/proxy/auth/litellm_license.py"
+      ],
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_license_rule": "All content outside enterprise/ is MIT unless other stated restrictions apply. All endpoints and added owner/caller proofs are under litellm/, outside enterprise/.",
+      "sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+      "spdx": "MIT"
+    },
+    "live_caller_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+        "code": "\n    async def reset_budget_for_litellm_users(self) -> None:\n        \"\"\"\n        Resets the budget for all LiteLLM Internal Users if their budget has expired\n        \"\"\"\n        await _run_phase_in_chunks(self._reset_budget_for_litellm_users_chunk)\n\n    async def _reset_budget_for_litellm_users_chunk(self) -> _ChunkOutcome:",
+        "enclosing_source_ids": [],
+        "end_line": 1246,
+        "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+        "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+        "path": "litellm/proxy/common_utils/reset_budget_job.py",
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "47d105d85c11364332df82d6f8b5b10ddc37913ae5362e43ed6a628996ec5a96",
+        "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "start_line": 1239
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+        "code": "\n    async def reset_budget_for_litellm_teams(self) -> None:\n        \"\"\"\n        Resets the budget for all LiteLLM Internal Teams if their budget has expired\n        \"\"\"\n        await _run_phase_in_chunks(self._reset_budget_for_litellm_teams_chunk)\n\n    async def _reset_budget_for_litellm_teams_chunk(self) -> _ChunkOutcome:",
+        "enclosing_source_ids": [],
+        "end_line": 1361,
+        "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+        "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+        "path": "litellm/proxy/common_utils/reset_budget_job.py",
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "b87bc1853d86958557930d3a2340d8290262a2552936d21013bfb74653cf4f6d",
+        "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "start_line": 1354
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+        "code": "        if lease is _Lease.FOLLOWER:\n            return\n\n        try:\n            await self.reset_budget_for_litellm_keys()\n            await self.reset_budget_for_litellm_users()\n            await self.reset_budget_for_litellm_teams()\n            await self.reset_budget_for_litellm_budget_table()\n            await self.reset_budget_windows()\n        finally:\n            if lease is _Lease.LEADER and self.pod_lock_manager is not None:\n                await self.pod_lock_manager.release_lock(cronjob_id=RESET_BUDGET_JOB_NAME)",
+        "enclosing_source_ids": [
+          "litellm/proxy/common_utils/reset_budget_job.py::ResetBudgetJob.reset_budget"
+        ],
+        "end_line": 591,
+        "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+        "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+        "path": "litellm/proxy/common_utils/reset_budget_job.py",
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "c42db53df958fcef96be4d8a5ccb5eb5777d2589aec2497c9bef28550fc981c0",
+        "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "start_line": 580
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/proxy_server.py",
+        "code": "            seconds=PROXY_WORKER_HEARTBEAT_INTERVAL_SECONDS,\n            id=\"proxy_worker_heartbeat_job\",\n            replace_existing=True,\n            misfire_grace_time=APSCHEDULER_MISFIRE_GRACE_TIME,\n        )\n\n        ### RESET BUDGET ###\n        if general_settings.get(\"disable_reset_budget\", False) is False:\n            budget_reset_job: Final = ResetBudgetJob(\n                proxy_logging_obj=proxy_logging_obj,\n                prisma_client=prisma_client,\n                reset_settings=get_budget_reset_settings(),\n                pod_lock_manager=proxy_logging_obj.db_spend_update_writer.pod_lock_manager,\n            )\n\n            scheduler.add_job(\n                budget_reset_job.reset_budget,\n                \"interval\",\n                seconds=budget_interval,\n                # REMOVED jitter parameter - major cause of memory leak\n                id=\"reset_budget_job\",\n                replace_existing=True,\n                misfire_grace_time=APSCHEDULER_MISFIRE_GRACE_TIME,\n            )\n\n        ### UPDATE SPEND ###\n        scheduler.add_job(\n            update_spend,\n            \"interval\",\n            seconds=batch_writing_interval,\n            # REMOVED jitter parameter - major cause of memory leak",
+        "enclosing_source_ids": [
+          "litellm/proxy/proxy_server.py::ProxyStartupEvent.initialize_scheduled_background_jobs"
+        ],
+        "end_line": 11615,
+        "file_sha256": "461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd",
+        "git_blob": "7f48d77ff094eabd62fab108dc0a11459176fbed",
+        "path": "litellm/proxy/proxy_server.py",
+        "portable_source_file": "sources/461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "3b4dcf914eb4239b614bf6a07c172e63f04e687f71bc49ad4f32705aa59e3cf0",
+        "snapshot": "sources/461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd.json.gz",
+        "start_line": 11585
+      }
+    ],
+    "live_proof_limit": "Exact production call sites/registration and branch wiring verified statically. No execution, configured deployment, provider, network or credentials accessed. Callback runtime type depends on configured integration.",
+    "operation_contract": "Process a bounded batch of due budget rows with retry read, record pre-reset spend, reset each row, collect result/decrement or failure, persist successes before invalidating counters, compute whether reset dates advanced, emit phase metrics and return progress/no-progress outcome. Preserve write-before-invalidate ordering.",
+    "owner_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+        "code": "async def _run_phase_in_chunks(process_chunk: Callable[[], Awaitable[_ChunkOutcome]]) -> None:\n    \"\"\"Drive one reset phase a chunk at a time, capped so a single run cannot\n    spin unbounded: leftovers are picked up by the next tick.\"\"\"\n    for _ in range(RESET_BUDGET_JOB_MAX_CHUNKS_PER_RUN):\n        if _phase_is_drained(await process_chunk()):\n            return",
+        "end_line": 391,
+        "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+        "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+        "path": "litellm/proxy/common_utils/reset_budget_job.py",
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "region_sha256": "4a55a76e3ba8897d8594cc158d834b7415918057d84e68e4d9c0f5fbb92c7ead",
+        "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "start_line": 386
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/common_utils/reset_budget_job.py",
+        "code": "    async def _with_db_retry(self, operation: Callable[[], Awaitable[_RowT]], *, reason: str) -> _RowT:\n        \"\"\"Reconnect and retry once on a transport error, so a dropped connection\n        costs one retry instead of the whole tick.\n        \"\"\"\n        return await call_with_db_reconnect_retry(self.prisma_client, operation, reason=reason)\n\n    async def _with_db_write_retry(self, operation: Callable[[], Awaitable[_RowT]], *, reason: str) -> _RowT:\n        \"\"\"Same, for writes: only replay when the statements provably never\n        reached the database. A reset zeroes spend unconditionally, so replaying\n        an ambiguous commit would erase spend accrued since it landed.\n        \"\"\"\n        return await call_with_db_reconnect_retry(\n            self.prisma_client,\n            operation,\n            reason=reason,\n            retry_safe_error_types=DB_RETRY_SAFE_ERROR_TYPES,\n        )\n\n    @staticmethod\n    @with_service_target(SPEND_COUNTERS_TARGET)\n    async def _invalidate_spend_counter(counter_key: str) -> None:\n        \"\"\"Drop a spend counter so the next read reseeds from the committed DB\n        row, the only value that includes increments that raced the reset.\n\n        Call AFTER the DB write commits. Clearing Redis before the DB\n        commit opens a window where get_current_spend reads 0 from Redis\n        while the DB still holds the pre-reset value, allowing bypass.\n        \"\"\"\n        from litellm.proxy.proxy_server import spend_counter_store\n\n        try:\n            await spend_counter_store.delete((counter_key,))\n        except Exception as e:\n            verbose_proxy_logger.warning(\n                \"Failed to reset spend counter %s in Redis: %s. Budget may be over-enforced until counter expires.\",\n                counter_key,\n                e,\n            )\n\n    @staticmethod\n    async def _invalidate_global_proxy_spend_cache() -> None:\n        \"\"\"Drop the cached global-proxy spend accumulator after the proxy",
+        "end_line": 634,
+        "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+        "git_blob": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+        "path": "litellm/proxy/common_utils/reset_budget_job.py",
+        "portable_source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "region_sha256": "900fd9243c90a055d3893e0ac62f6e1897a0825cd99f7770c25ce33a37f7276b",
+        "snapshot": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz",
+        "start_line": 593
+      }
+    ],
+    "provisional_family_id": "LL-BUDGET-CHUNK-ORCHESTRATION",
+    "repository": "BerriAI/litellm",
+    "reviewer_disagreement_resolution": "Both reviewers duplicate. Jev reports behavior differences 0.33; retain entity-specific hooks and user global-cache invalidation explicitly. Do not infer or count a third keys family from Claude's speculation.",
+    "reviewer_observations": [
+      {
+        "id": "LL-C03",
+        "path": {
+          "artifact_basename": "487a8be0929d0fa9b0cba5d68b9bcbdad8b808ad4bca5380b74a934808785e17.json",
+          "original_artifact_sha256": "3b614849ef7a7b2ff0ba55a48d52f0411a00166f2c55f87603f4c2d2aa0bec84"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.86,
+          "second_opinion": null,
+          "why": "Both functions run the same chunked budget-reset workflow. They fetch rows due for reset with batch limit and DB retry, then reset each row while capturing pre-reset spend. Each result becomes a `_RowReset` with its spend decrement, and a None result or exception becomes a failure entry. After that they write updates, invalidate spend counters, compute `_ChunkOutcome` via `_count_advanced`, emit phase failure or success/failure service hooks, and return `_NO_PROGRESS` on a top-level exception. The ordering, failure handling, and invariants match; the user and team versions differ only in table name, per-row reset function, writer, counter key function, call_type and metadata key names, and the user-only extra invalidation of the global proxy spend cache. A shared generic helper (for example `_reset_budget_chunk(table_name, entity_label, reset_fn, write_fn, counter_fn, extra_post_write)`) could own this. The per-entity pieces would be parameters, and the budget-reset-specific hook for the global proxy cache could stay at the user call site. The same copy likely exists for keys too, which strengthens the case for extraction."
+        }
+      },
+      {
+        "id": "LL-C03",
+        "path": {
+          "artifact_basename": "629d81d948a5067ce5629ef62527e6e2ba156c521bd84db54be2ebcae5f1a646.json",
+          "original_artifact_sha256": "c14ad93b17a3d86c470b46345c0f3b5a7c390f5160d4c6c199bf561e82f29c69"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.33,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.64,
+          "second_opinion": null,
+          "why": "One portable domain concept can share an implementation; review behavior differences before moving it."
+        }
+      }
+    ],
+    "reviews_provenance": {
+      "path": {
+        "artifact_basename": "litellm-observations.json",
+        "original_artifact_sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6"
+      },
+      "sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6",
+      "snapshot": "review-observations.json"
+    },
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "schema": 1,
+    "source_verification": {
+      "coordinator_all_16_endpoint_checks_passed": true,
+      "direct_git": true,
+      "full_background_match": true,
+      "native_extractor_exact_body": true
+    },
+    "status": "source_resolved_acceptance_proposal_not_final_gold",
+    "whole_function_equivalence": false
+  },
+  "source_adjudication_sha256": "3d5ea1f5b0da43be576920bae16cdf7082be74a7867a1d8980bba775ce16215f",
+  "source_closure": [
+    {
+      "file_sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+      "git_blob_sha1": "131f57568e80fbf0a1908287b995f7d172b75e4d",
+      "path": "litellm/proxy/common_utils/reset_budget_job.py",
+      "source_file": "sources/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.json.gz"
+    },
+    {
+      "file_sha256": "461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd",
+      "git_blob_sha1": "7f48d77ff094eabd62fab108dc0a11459176fbed",
+      "path": "litellm/proxy/proxy_server.py",
+      "source_file": "sources/461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd.json.gz"
+    }
+  ],
+  "source_only": true
+}

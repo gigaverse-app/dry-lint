@@ -1,0 +1,31 @@
+{
+  "by_repository": {
+    "BerriAI/litellm": 1975,
+    "OpenHands/software-agent-sdk": 299,
+    "anomalyco/opencode": 1897,
+    "pingdotgg/t3code": 1765
+  },
+  "family_deduplication": "Count families separately and group train/test splits; never delete valid labeled pair examples merely to meet family quotas.",
+  "keep_all_confirmed_negative_pairs": true,
+  "negative_strata": [
+    "high-score different operations",
+    "opposite operations or lifecycle phases",
+    "already-delegated shared helpers",
+    "low-score different operations",
+    "before/after surviving negatives when authenticated"
+  ],
+  "not_negative": [
+    "unreviewed",
+    "missing judge answer",
+    "source unverifiable",
+    "filtered by heuristic",
+    "deferred",
+    "disputed"
+  ],
+  "original_retained_pool_pairs": 5936,
+  "positive_and_negative_examples_equal_evidence_requirements": true,
+  "preserve_original_labels_and_dissent": true,
+  "public_pool_included": false,
+  "retention_gap": "Failed gates not all individually persisted; pinned corpora preserve reproducible inputs. Roughly 200 queries per repository and 20 neighbours in initial acquisition.",
+  "schema": 1
+}

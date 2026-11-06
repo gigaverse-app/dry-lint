@@ -1,0 +1,413 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.010216,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "f46ac471ca0a1e57d0541ce5a502d7c208a55f8fa751dc5633120541507c5a31",
+      "prompt_sha256": "ff25ac1fc3813c5863b34168973420bdce3c0f9629d89cfe6b20f189759f2f31",
+      "request_key": "4d2b78e75f5f9fe4c96c7b7fd3230af0b4195fe4f4185ad02fb08c07a4223f9d",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 3353,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 3353,
+            "model": null,
+            "output_tokens": 351,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 351,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.08,
+        "second_opinion": null,
+        "why": "The two functions do different jobs. `_process_record` is a logging Filter step: it scrubs the message, exception, stack and extras in place, running the native or Python diagnostic path and then stamping the record as redacted. `JsonFormatter.format` builds a JSON dict from the record, with parsed-message fields, extras, reserved correlation ids and component/logger defaults, and serializes it. The overlap is limited to calls into shared helpers (`_is_redacted`, `_record_attributes`) and iteration over record attributes with exclusion sets. These are different exclusion sets (`_STANDARD_RECORD_ATTRS` against `_NON_EXTRA_RECORD_ATTRS`) used for different purposes, so this is not a repeated operation. The formatter's reserved-field handling and JSON parsing have no counterpart in `_process_record`, and the leaf-based redaction and record mutation have no counterpart in `format`. No shared sub-operation with a common contract is evident."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00025188,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "7e3776a1471fd43adaf2cbc42ecc02def0bdbf660f91e49ca438c30a5b0018f5",
+      "prompt_sha256": "2268077fb25c88d7bfe0779f9b9214fc7f8eec59bf5ab04c47b00562ae17fc46",
+      "request_key": "1cd84e4c0f055edc63091b59e194bf631a922989044df508f46b5410575aece1",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 6297,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.44,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.12,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "active_positive_proposed": false,
+    "background_proof": {
+      "documents": 37604,
+      "path": {
+        "artifact_basename": "background.json.gz",
+        "original_artifact_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+      },
+      "scope": "scope.json",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [
+          "logging::Formatter"
+        ],
+        "code": "    def format(self, record):\n        message_str: Final = _ANSI_ESCAPE.sub(\"\", record.getMessage())\n        json_record: Final[dict[str, object]] = {\n            \"message\": message_str,\n            \"level\": record.levelname,\n            \"timestamp\": self.formatTime(record),\n        }\n\n        # Parse embedded JSON or Python dict repr in message so sub-fields become first-class properties.\n        # trace_id/session_id are excluded here unconditionally (not just \"if not already\n        # set\") - CorrelationContextFilter is the only legitimate source for these two\n        # fields, and a message that merely happens to parse as JSON/dict (e.g. a proxy\n        # log line dumping raw request headers) must never be able to claim them, even on\n        # a record the filter hasn't stamped yet (no correlation context active for it).\n        parsed = _try_parse_json_message(message_str)\n        if parsed is None:\n            parsed = _try_parse_embedded_python_dict(message_str)\n        if parsed is not None:\n            for key, value in parsed.items():\n                if key not in json_record and key not in _RESERVED_CORRELATION_FIELDS:\n                    json_record[key] = value\n\n        # Include extra attributes passed via logger.debug(\"msg\", extra={...})\n        for key, value in _record_attributes(record).items():\n            if key not in _NON_EXTRA_RECORD_ATTRS and key not in json_record:\n                json_record[key] = value\n\n        # trace_id/session_id are reserved: CorrelationContextFilter is the only\n        # legitimate source for these two fields. Without this, a message string\n        # that happens to parse as JSON/dict (e.g. a proxy log line dumping raw\n        # request headers) with a \"trace_id\"/\"session_id\" key would have already\n        # claimed the key at the parsed-message step above, and the extra-attributes\n        # loop's \"key not in json_record\" guard would then skip the real value -\n        # letting a caller-supplied header spoof another request's correlation ids.\n        for reserved_key in _RESERVED_CORRELATION_FIELDS:\n            value = getattr(record, reserved_key, None)\n            if value:\n                json_record[reserved_key] = value\n\n        # Set component/logger only if not already supplied via extra={...}\n        if \"component\" not in json_record:\n            json_record[\"component\"] = record.name\n        if \"logger\" not in json_record:\n            json_record[\"logger\"] = f\"{record.filename}:{record.lineno}\"\n\n        if record.exc_info:\n            json_record[\"stacktrace\"] = record.exc_text or self.formatException(record.exc_info)\n\n        return safe_dumps(\n            json_record if _is_redacted(record) or not _ENABLE_SECRET_REDACTION else _redact_json_record(json_record)\n        )",
+        "context": "{\"imports\": [\"import ast\", \"import contextvars\", \"import functools\", \"import inspect\", \"import itertools\", \"import logging\", \"import os\", \"import re\", \"import sys\", \"from collections.abc import Iterator, Mapping\", \"from datetime import datetime\", \"from logging import Formatter\", \"from types import FrameType\", \"from typing import Final, TextIO\", \"from urllib.parse import unquote\", \"from pydantic import TypeAdapter\", \"from typing_extensions import ReadOnly, TypedDict\", \"import litellm\", \"from litellm.constants import (\\n    LITELLM_TRUNCATED_PAYLOAD_FIELD,\\n    LITELLM_TRUNCATION_STDOUT_SAFEGUARD_NOTE,\\n    MAX_BASE64_LENGTH_STDOUT_LOG,\\n    MAX_STRING_LENGTH_STDOUT_LOG,\\n)\", \"from litellm.litellm_core_utils.env_utils import get_env_int\", \"from litellm.litellm_core_utils.safe_json_dumps import UNSERIALIZABLE_OBJECT, safe_dumps, safe_json_structure\", \"from litellm.litellm_core_utils.safe_json_loads import safe_json_loads\", \"from litellm.litellm_core_utils.secret_redaction import (\\n    REDACTED,\\n    python_redact_string,\\n    python_redact_structured_value,\\n    redact_internal_details,\\n    redact_structured_value,\\n)\", \"from litellm.litellm_core_utils.secret_redaction import (\\n    redact_string as redact_secret_string,\\n)\", \"from litellm.rust_bridge import diagnostics\"], \"possible_callers\": [{\"id\": \"litellm/integrations/langfuse/langfuse_sdk.py::resolve_trace_id\", \"line\": 139, \"body_sha256\": \"644eb3041a768fc15d2bb46ac96be300d93bbc6ec3ed3c222b15d5466f38bc04\"}, {\"id\": \"litellm/integrations/langfuse/langfuse_sdk.py::LangfuseObservation.id\", \"line\": 298, \"body_sha256\": \"4cba049ecffabd7c1524ac1bef4c641105e9563fcd498ce0defb90d53047d93e\"}, {\"id\": \"litellm/integrations/langfuse/langfuse_sdk.py::LangfuseObservation.trace_id\", \"line\": 302, \"body_sha256\": \"b5fe611fb8a1ed82afc7b8e3b82c0e0f18a17cae8ce5cf15938ee2464d0ec7cd\"}, {\"id\": \"litellm/integrations/opentelemetry.py::OpenTelemetry._get_span_context\", \"line\": 3052, \"body_sha256\": \"9d5ab67728452de5d8d1a176f8313bf6db26775aa5eb7023d41f1b3d84d31c11\"}, {\"id\": \"litellm/llms/cloudflare/extraction/guardrail_translation/handler.py::_scalar_text\", \"line\": 102, \"body_sha256\": \"6e5c0be7f2b1ea21a0030c8cc293598f526ea326a621543efd989347442ff9e5\"}, {\"id\": \"litellm/proxy/litellm_pre_call_utils.py::_trace_id_from_otel_span\", \"line\": 142, \"body_sha256\": \"f0c15e617082ae16eba4d8e11ef276128656521e8d16c0399321b660bc030419\"}], \"local_helper_owners\": [{\"id\": \"litellm/_logging.py::JsonFormatter.formatTime\", \"line\": 795, \"end_line\": 798, \"body_sha256\": \"8af4f75e902065a829a354ee2a5aa600181853dad7da6be07d3265b1ec5200a9\"}, {\"id\": \"litellm/_logging.py::_try_parse_json_message\", \"line\": 724, \"end_line\": 738, \"body_sha256\": \"0eab443169d9ba0ee78a5d8fd05633b9b3e28f6bb5e30b1c9b8bbeeab8bb44af\"}, {\"id\": \"litellm/_logging.py::_try_parse_embedded_python_dict\", \"line\": 741, \"end_line\": 772, \"body_sha256\": \"8cea9e4f801375571c39814449a5af55bd1507ee2d894616522dd79ce6913a96\"}, {\"id\": \"litellm/_logging.py::_record_attributes\", \"line\": 102, \"end_line\": 103, \"body_sha256\": \"b481c313d4b4843ec01843d08a9e53377305638a8299fb61e4efb3c7e2228b37\"}, {\"id\": \"litellm/_logging.py::_redact_json_record\", \"line\": 530, \"end_line\": 542, \"body_sha256\": \"af3a8e1569d8b11bc2e3096b3f1e9964b0b8c56dbf26ded49761ad67a5c152fe\"}, {\"id\": \"litellm/_logging.py::_is_redacted\", \"line\": 98, \"end_line\": 99, \"body_sha256\": \"e6029b6f6f1b94c1f9cc7cbc3d7a9bdce89320d9dd6b3d7a9858c18925bfe89a\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.py\"}",
+        "context_digest": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+        "declaration": null,
+        "end_line": 850,
+        "hash": "",
+        "line": 800,
+        "name": "format",
+        "origin": null,
+        "owner": "JsonFormatter",
+        "path": "litellm/_logging.py",
+        "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "def _process_record(record: logging.LogRecord, *, base64_limit: int, text_limit: int, redact: bool) -> bool:\n    if _is_redacted(record):\n        return True\n    message: Final = _render_message(record)\n    exception: Final = _render_exception(record)\n    stack: Final = record.stack_info if isinstance(record.stack_info, str) else None\n    substituted_color: Final = _substituted_color_message(record)\n    extras: Final = (\n        tuple(\n            (\n                key,\n                value,\n                _extra_structure(\n                    key, substituted_color if key == \"color_message\" and substituted_color is not None else value\n                ),\n            )\n            for key, value in _record_attributes(record).items()\n            if key not in _STANDARD_RECORD_ATTRS\n            and key != _REDACTED_RECORD_ATTR\n            and not isinstance(value, _UNREDACTED_SCALAR_TYPES)\n        )\n        if redact\n        else ()\n    )\n    extra_leaves: Final = tuple(\n        itertools.chain.from_iterable(_string_leaves(key, prepared) for key, _, prepared in extras)\n    )\n    raw_template: Final = record.msg if redact and isinstance(record.msg, str) and record.args else None\n    color_template: Final = record.__dict__.get(\"color_message\")\n    raw_color: Final = color_template if redact and isinstance(color_template, str) and record.args else None\n    leaves: Final = (\n        extra_leaves\n        + (((None, raw_template),) if raw_template is not None else ())\n        + (((None, raw_color),) if raw_color is not None else ())\n    )\n    candidate: Final = diagnostics.run(\n        lambda native: native.process_diagnostic(message, exception, stack, leaves, (redact, base64_limit, text_limit)),\n        lambda: _python_process_diagnostic(message, exception, stack, leaves, redact, base64_limit, text_limit),\n    )\n    processed_message, processed_exception, processed_stack, processed_leaves, _ = (\n        candidate\n        if len(candidate[3]) == len(leaves)\n        else _python_process_diagnostic(message, exception, stack, leaves, redact, base64_limit, text_limit)\n    )\n    raw_template_changed: Final = raw_template is not None and processed_leaves[len(extra_leaves)] != raw_template\n    safe_message: Final = \"REDACTED\" if raw_template_changed and processed_message == message else processed_message\n    if redact or safe_message != message:\n        record.msg = safe_message  # rebind-ok: the Filter interface mutates the record\n        record.args = None  # rebind-ok: the rendered message replaces interpolation inputs\n    if processed_exception is not None:\n        record.exc_text = processed_exception  # rebind-ok: the Filter interface mutates the record\n    if processed_stack is not None:\n        record.stack_info = processed_stack  # rebind-ok: the Filter interface mutates the record\n    processed_values: Final = iter(processed_leaves[: len(extra_leaves)])\n    for key, original, prepared in extras:\n        replacement = _sort_processed_sets(original, _replace_string_leaves(prepared, processed_values))\n        if not _scrubbing_changed_nothing(replacement, original):\n            setattr(record, key, replacement)\n    raw_color_changed: Final = (\n        raw_color is not None and processed_leaves[len(extra_leaves) + int(raw_template is not None)] != raw_color\n    )\n    if raw_color_changed and getattr(record, \"color_message\", None) == substituted_color:\n        setattr(record, \"color_message\", \"REDACTED\")\n    setattr(record, _REDACTED_RECORD_ATTR, _REDACTED_STAMP)\n    return True",
+        "context": "{\"imports\": [\"import ast\", \"import contextvars\", \"import functools\", \"import inspect\", \"import itertools\", \"import logging\", \"import os\", \"import re\", \"import sys\", \"from collections.abc import Iterator, Mapping\", \"from datetime import datetime\", \"from logging import Formatter\", \"from types import FrameType\", \"from typing import Final, TextIO\", \"from urllib.parse import unquote\", \"from pydantic import TypeAdapter\", \"from typing_extensions import ReadOnly, TypedDict\", \"import litellm\", \"from litellm.constants import (\\n    LITELLM_TRUNCATED_PAYLOAD_FIELD,\\n    LITELLM_TRUNCATION_STDOUT_SAFEGUARD_NOTE,\\n    MAX_BASE64_LENGTH_STDOUT_LOG,\\n    MAX_STRING_LENGTH_STDOUT_LOG,\\n)\", \"from litellm.litellm_core_utils.env_utils import get_env_int\", \"from litellm.litellm_core_utils.safe_json_dumps import UNSERIALIZABLE_OBJECT, safe_dumps, safe_json_structure\", \"from litellm.litellm_core_utils.safe_json_loads import safe_json_loads\", \"from litellm.litellm_core_utils.secret_redaction import (\\n    REDACTED,\\n    python_redact_string,\\n    python_redact_structured_value,\\n    redact_internal_details,\\n    redact_structured_value,\\n)\", \"from litellm.litellm_core_utils.secret_redaction import (\\n    redact_string as redact_secret_string,\\n)\", \"from litellm.rust_bridge import diagnostics\"], \"possible_callers\": [{\"id\": \"litellm/_logging.py::SecretRedactionFilter.filter\", \"line\": 194, \"body_sha256\": \"12ba52a93bb10d003e284218f1a124ffbb558c302dd03233310e95b15263d0ef\"}, {\"id\": \"litellm/_logging.py::DiagnosticProcessingFilter.filter\", \"line\": 593, \"body_sha256\": \"c2fd534665707f350cd3ea1b74fb1c47a1b3207643ef148e8cf2d473ff9f27cc\"}, {\"id\": \"litellm/_logging.py::_write_startup_message\", \"line\": 986, \"body_sha256\": \"64ef84e2b37edaed1c895e032bcd444362b70546ae1a698253b4f1a1e54898c4\"}], \"local_helper_owners\": [{\"id\": \"litellm/_logging.py::_is_redacted\", \"line\": 98, \"end_line\": 99, \"body_sha256\": \"e6029b6f6f1b94c1f9cc7cbc3d7a9bdce89320d9dd6b3d7a9858c18925bfe89a\"}, {\"id\": \"litellm/_logging.py::_render_message\", \"line\": 447, \"end_line\": 451, \"body_sha256\": \"4e5f7803f3e84b1c8b3f6a61645e801e3b1fe1d696cd170bc2d378756dec2e0c\"}, {\"id\": \"litellm/_logging.py::_render_exception\", \"line\": 454, \"end_line\": 460, \"body_sha256\": \"9da1abbd2f38f699b0d2b978792797531089cb96d2d67f48f165574b3fd21219\"}, {\"id\": \"litellm/_logging.py::_substituted_color_message\", \"line\": 171, \"end_line\": 186, \"body_sha256\": \"44f661b202c423e99f2ad8d27343c4890f7887bb3e0738d1e1800db3dd357200\"}, {\"id\": \"litellm/_logging.py::_extra_structure\", \"line\": 374, \"end_line\": 380, \"body_sha256\": \"df1ee2c5e431bab841909006a863edcc1ee990cbf814c2e6a31a370a98ef6069\"}, {\"id\": \"litellm/_logging.py::_record_attributes\", \"line\": 102, \"end_line\": 103, \"body_sha256\": \"b481c313d4b4843ec01843d08a9e53377305638a8299fb61e4efb3c7e2228b37\"}, {\"id\": \"litellm/_logging.py::_string_leaves\", \"line\": 383, \"end_line\": 391, \"body_sha256\": \"50128427ed1451902177cbb028c7aeb0243b025bfb039ceb22f966f870079fa8\"}, {\"id\": \"litellm/_logging.py::_python_process_diagnostic\", \"line\": 418, \"end_line\": 444, \"body_sha256\": \"85004a187961e40042e6b86536857201822a2f87e7f72b2a5c144916bcc42121\"}, {\"id\": \"litellm/_logging.py::_python_process_diagnostic\", \"line\": 418, \"end_line\": 444, \"body_sha256\": \"85004a187961e40042e6b86536857201822a2f87e7f72b2a5c144916bcc42121\"}, {\"id\": \"litellm/_logging.py::_sort_processed_sets\", \"line\": 406, \"end_line\": 415, \"body_sha256\": \"dd8bdc5c00f5f23ab3a1fe49d78e5e8efa05d907583edcfa7419e1aa4ab1518d\"}, {\"id\": \"litellm/_logging.py::_replace_string_leaves\", \"line\": 394, \"end_line\": 403, \"body_sha256\": \"a1fed3764bf5f38995ac625884a2ec649764904b9d62f388ebd4d5222a9cf94b\"}, {\"id\": \"litellm/_logging.py::_scrubbing_changed_nothing\", \"line\": 106, \"end_line\": 110, \"body_sha256\": \"5e1a87db94d0f9243a8363ff4ce99869840aef41d8a1d63e3a8f9cb6c758bca9\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.py\"}",
+        "context_digest": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+        "declaration": null,
+        "end_line": 527,
+        "hash": "",
+        "line": 463,
+        "name": "_process_record",
+        "origin": null,
+        "owner": null,
+        "path": "litellm/_logging.py",
+        "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.19144789723932168,
+      "similarity_reusable": false
+    },
+    "classification": "separate",
+    "confidence": "both reviewers agree; source supported",
+    "diagnostic_profiles": [
+      {
+        "cross_file_rank": null,
+        "first_retrieval_loss": "floor",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "floor",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "floor",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/_logging.py::_process_record",
+        "query_lines": 65,
+        "query_token_count": 336,
+        "raw_rank": 8,
+        "score": 0.19144789723932168,
+        "target": "litellm/_logging.py::JsonFormatter.format"
+      },
+      {
+        "cross_file_rank": null,
+        "first_retrieval_loss": "floor",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "floor",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "floor",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/_logging.py::JsonFormatter.format",
+        "query_lines": 51,
+        "query_token_count": 154,
+        "raw_rank": 8,
+        "score": 0.19144789723932165,
+        "target": "litellm/_logging.py::_process_record"
+      }
+    ],
+    "endpoints": [
+      {
+        "body_sha256": "da9ddbc79e096801ab0c0517d8567f73389bcc4d07134ab6115bd33ab01c97ce",
+        "function_end": 527,
+        "function_start": 463,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/_logging.py",
+            "code": "def _process_record(record: logging.LogRecord, *, base64_limit: int, text_limit: int, redact: bool) -> bool:\n    if _is_redacted(record):\n        return True\n    message: Final = _render_message(record)\n    exception: Final = _render_exception(record)\n    stack: Final = record.stack_info if isinstance(record.stack_info, str) else None\n    substituted_color: Final = _substituted_color_message(record)\n    extras: Final = (\n        tuple(\n            (\n                key,\n                value,\n                _extra_structure(\n                    key, substituted_color if key == \"color_message\" and substituted_color is not None else value\n                ),\n            )\n            for key, value in _record_attributes(record).items()\n            if key not in _STANDARD_RECORD_ATTRS\n            and key != _REDACTED_RECORD_ATTR\n            and not isinstance(value, _UNREDACTED_SCALAR_TYPES)\n        )\n        if redact\n        else ()\n    )\n    extra_leaves: Final = tuple(\n        itertools.chain.from_iterable(_string_leaves(key, prepared) for key, _, prepared in extras)\n    )\n    raw_template: Final = record.msg if redact and isinstance(record.msg, str) and record.args else None\n    color_template: Final = record.__dict__.get(\"color_message\")\n    raw_color: Final = color_template if redact and isinstance(color_template, str) and record.args else None\n    leaves: Final = (\n        extra_leaves\n        + (((None, raw_template),) if raw_template is not None else ())\n        + (((None, raw_color),) if raw_color is not None else ())\n    )\n    candidate: Final = diagnostics.run(\n        lambda native: native.process_diagnostic(message, exception, stack, leaves, (redact, base64_limit, text_limit)),\n        lambda: _python_process_diagnostic(message, exception, stack, leaves, redact, base64_limit, text_limit),\n    )\n    processed_message, processed_exception, processed_stack, processed_leaves, _ = (\n        candidate\n        if len(candidate[3]) == len(leaves)\n        else _python_process_diagnostic(message, exception, stack, leaves, redact, base64_limit, text_limit)\n    )\n    raw_template_changed: Final = raw_template is not None and processed_leaves[len(extra_leaves)] != raw_template\n    safe_message: Final = \"REDACTED\" if raw_template_changed and processed_message == message else processed_message\n    if redact or safe_message != message:\n        record.msg = safe_message  # rebind-ok: the Filter interface mutates the record\n        record.args = None  # rebind-ok: the rendered message replaces interpolation inputs\n    if processed_exception is not None:\n        record.exc_text = processed_exception  # rebind-ok: the Filter interface mutates the record\n    if processed_stack is not None:\n        record.stack_info = processed_stack  # rebind-ok: the Filter interface mutates the record\n    processed_values: Final = iter(processed_leaves[: len(extra_leaves)])\n    for key, original, prepared in extras:\n        replacement = _sort_processed_sets(original, _replace_string_leaves(prepared, processed_values))\n        if not _scrubbing_changed_nothing(replacement, original):\n            setattr(record, key, replacement)\n    raw_color_changed: Final = (\n        raw_color is not None and processed_leaves[len(extra_leaves) + int(raw_template is not None)] != raw_color\n    )\n    if raw_color_changed and getattr(record, \"color_message\", None) == substituted_color:\n        setattr(record, \"color_message\", \"REDACTED\")\n    setattr(record, _REDACTED_RECORD_ATTR, _REDACTED_STAMP)\n    return True",
+            "end_line": 527,
+            "file_sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+            "git_blob": "6a38eea2b120e1cd61cd68662537e60c04dff82e",
+            "path": "litellm/_logging.py",
+            "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+            "region_sha256": "da9ddbc79e096801ab0c0517d8567f73389bcc4d07134ab6115bd33ab01c97ce",
+            "snapshot": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+            "source_id": "litellm/_logging.py::_process_record",
+            "start_line": 463
+          }
+        ],
+        "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+        "source_id": "litellm/_logging.py::_process_record",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/_logging.py",
+          "file_sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+          "git_blob": "6a38eea2b120e1cd61cd68662537e60c04dff82e",
+          "path": "litellm/_logging.py",
+          "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+          "snapshot": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz"
+        }
+      },
+      {
+        "body_sha256": "e3a2ead04c61c48306b34efc2a4d22ed255c06554d58af03f4a2f079f6201550",
+        "function_end": 850,
+        "function_start": 800,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/_logging.py",
+            "code": "    def format(self, record):\n        message_str: Final = _ANSI_ESCAPE.sub(\"\", record.getMessage())\n        json_record: Final[dict[str, object]] = {\n            \"message\": message_str,\n            \"level\": record.levelname,\n            \"timestamp\": self.formatTime(record),\n        }\n\n        # Parse embedded JSON or Python dict repr in message so sub-fields become first-class properties.\n        # trace_id/session_id are excluded here unconditionally (not just \"if not already\n        # set\") - CorrelationContextFilter is the only legitimate source for these two\n        # fields, and a message that merely happens to parse as JSON/dict (e.g. a proxy\n        # log line dumping raw request headers) must never be able to claim them, even on\n        # a record the filter hasn't stamped yet (no correlation context active for it).\n        parsed = _try_parse_json_message(message_str)\n        if parsed is None:\n            parsed = _try_parse_embedded_python_dict(message_str)\n        if parsed is not None:\n            for key, value in parsed.items():\n                if key not in json_record and key not in _RESERVED_CORRELATION_FIELDS:\n                    json_record[key] = value\n\n        # Include extra attributes passed via logger.debug(\"msg\", extra={...})\n        for key, value in _record_attributes(record).items():\n            if key not in _NON_EXTRA_RECORD_ATTRS and key not in json_record:\n                json_record[key] = value\n\n        # trace_id/session_id are reserved: CorrelationContextFilter is the only\n        # legitimate source for these two fields. Without this, a message string\n        # that happens to parse as JSON/dict (e.g. a proxy log line dumping raw\n        # request headers) with a \"trace_id\"/\"session_id\" key would have already\n        # claimed the key at the parsed-message step above, and the extra-attributes\n        # loop's \"key not in json_record\" guard would then skip the real value -\n        # letting a caller-supplied header spoof another request's correlation ids.\n        for reserved_key in _RESERVED_CORRELATION_FIELDS:\n            value = getattr(record, reserved_key, None)\n            if value:\n                json_record[reserved_key] = value\n\n        # Set component/logger only if not already supplied via extra={...}\n        if \"component\" not in json_record:\n            json_record[\"component\"] = record.name\n        if \"logger\" not in json_record:\n            json_record[\"logger\"] = f\"{record.filename}:{record.lineno}\"\n\n        if record.exc_info:\n            json_record[\"stacktrace\"] = record.exc_text or self.formatException(record.exc_info)\n\n        return safe_dumps(\n            json_record if _is_redacted(record) or not _ENABLE_SECRET_REDACTION else _redact_json_record(json_record)\n        )",
+            "end_line": 850,
+            "file_sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+            "git_blob": "6a38eea2b120e1cd61cd68662537e60c04dff82e",
+            "path": "litellm/_logging.py",
+            "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+            "region_sha256": "e3a2ead04c61c48306b34efc2a4d22ed255c06554d58af03f4a2f079f6201550",
+            "snapshot": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+            "source_id": "litellm/_logging.py::JsonFormatter.format",
+            "start_line": 800
+          }
+        ],
+        "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+        "source_id": "litellm/_logging.py::JsonFormatter.format",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/_logging.py",
+          "file_sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+          "git_blob": "6a38eea2b120e1cd61cd68662537e60c04dff82e",
+          "path": "litellm/_logging.py",
+          "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+          "snapshot": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz"
+        }
+      }
+    ],
+    "existing_and_proposed_ownership": "_process_record owns scrubbing; JsonFormatter owns formatting. _is_redacted/_record_attributes already share access/stamp primitives.",
+    "hard_positive_balanced": false,
+    "id": "LL-C06",
+    "legitimate_variation": "Scrubbing diagnostic leaves versus parsed JSON/Python-dict message fields and reserved correlation keys. Different extra exclusion sets serve different roles.",
+    "license_scope": {
+      "header_checks": [
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/_logging.py",
+          "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz"
+        }
+      ],
+      "interpretation": "Importing enterprise symbols or checking premium status is not a file-license override. No enterprise/ body copied. Two conservatively excluded original files remain excluded; no scope expansion or IDF changes.",
+      "license_path": "LICENSE",
+      "nested_license_paths_in_litellm": [
+        "litellm/litellm_core_utils/tokenizers/deepseek_tokenizer_LICENSE",
+        "litellm/proxy/auth/litellm_license.py"
+      ],
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_license_rule": "All content outside enterprise/ is MIT unless other stated restrictions apply. All endpoints and added owner/caller proofs are under litellm/, outside enterprise/.",
+      "sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+      "spdx": "MIT"
+    },
+    "live_caller_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/_logging.py",
+        "code": "    \"\"\"Scrubs known secret/credential patterns from log records.\"\"\"\n\n    _formatter = logging.Formatter()\n\n    def filter(self, record: logging.LogRecord) -> bool:\n        if not _ENABLE_SECRET_REDACTION or _is_redacted(record):\n            return True\n        return _process_record(record, base64_limit=0, text_limit=0, redact=True)\n\n\n_secret_filter: Final = SecretRedactionFilter()\n\n\n_MAX_SCRUBBED_ACCESS_ARG: Final = 512\n\n_REDACTION_PLACEHOLDER: Final = \"REDACTED\"\n\n",
+        "enclosing_source_ids": [],
+        "end_line": 207,
+        "file_sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+        "git_blob": "6a38eea2b120e1cd61cd68662537e60c04dff82e",
+        "path": "litellm/_logging.py",
+        "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "dd8d77aa65a4db2011de2258b330e0f91c6abf80bbf6549a79b85add7c82ac11",
+        "snapshot": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+        "start_line": 190
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/_logging.py",
+        "code": "        )\n        if bounded_exc != exc_text:\n            record.exc_text = bounded_exc  # rebind-ok: the Filter interface mutates the record\n\n        return True\n\n\nclass DiagnosticProcessingFilter(StdoutLogTruncationFilter):\n    def filter(self, record: logging.LogRecord) -> bool:\n        return _process_record(\n            record,\n            base64_limit=_get_max_base64_length_stdout_log(),\n            text_limit=_get_max_string_length_stdout_log() if record.levelno >= logging.INFO else 0,\n            redact=_ENABLE_SECRET_REDACTION,\n        )\n\n\n_diagnostic_filter: Final = DiagnosticProcessingFilter()\n\n\nclass CorrelationContextFilter(logging.Filter):\n    \"\"\"Stamps each log record with the current request's trace_id and session_id from contextvars.\n",
+        "enclosing_source_ids": [],
+        "end_line": 607,
+        "file_sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+        "git_blob": "6a38eea2b120e1cd61cd68662537e60c04dff82e",
+        "path": "litellm/_logging.py",
+        "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "fc631c3af04e9297173671fa50c8ccce3488ed608a6d821d4343c8b8e7f70011",
+        "snapshot": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+        "start_line": 585
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/_logging.py",
+        "code": "                error_handler.handle(record)\n            else:\n                loop.default_exception_handler(context)\n\n        asyncio.get_event_loop().set_exception_handler(async_json_exception_handler)\n    except Exception:\n        pass\n\n\n# Create a formatter and set it for the handler\nif json_logs:\n    handler.setFormatter(JsonFormatter())\n    _setup_json_exception_handlers(JsonFormatter())\nelse:\n    formatter: Final = CorrelationPlainFormatter(\n        _plain_log_format(sys.stdout, sys.stderr),",
+        "enclosing_source_ids": [],
+        "end_line": 933,
+        "file_sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+        "git_blob": "6a38eea2b120e1cd61cd68662537e60c04dff82e",
+        "path": "litellm/_logging.py",
+        "portable_source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "e79d28aab90e67b2f733cb83df7328e999eb14c9678a779f263853d4fbdb4b49",
+        "snapshot": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz",
+        "start_line": 918
+      }
+    ],
+    "live_proof_limit": "Exact production call sites/registration and branch wiring verified statically. No execution, configured deployment, provider, network or credentials accessed. Callback runtime type depends on configured integration.",
+    "operation_contract": "Filter mutates and stamps redacted LogRecord fields; formatter converts a record to JSON, preserves trusted correlation provenance and serializes. Different stages and effects.",
+    "owner_proofs": [],
+    "provisional_family_id": "LL-LOG-SCRUB-VS-FORMAT",
+    "repository": "BerriAI/litellm",
+    "reviewer_disagreement_resolution": "No reviewer disagreement; both separate. Native name-only caller hits on unrelated format methods are not live-caller proofs; logging setFormatter registration is.",
+    "reviewer_observations": [
+      {
+        "id": "LL-C06",
+        "path": {
+          "artifact_basename": "4d2b78e75f5f9fe4c96c7b7fd3230af0b4195fe4f4185ad02fb08c07a4223f9d.json",
+          "original_artifact_sha256": "f46ac471ca0a1e57d0541ce5a502d7c208a55f8fa751dc5633120541507c5a31"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.08,
+          "second_opinion": null,
+          "why": "The two functions do different jobs. `_process_record` is a logging Filter step: it scrubs the message, exception, stack and extras in place, running the native or Python diagnostic path and then stamping the record as redacted. `JsonFormatter.format` builds a JSON dict from the record, with parsed-message fields, extras, reserved correlation ids and component/logger defaults, and serializes it. The overlap is limited to calls into shared helpers (`_is_redacted`, `_record_attributes`) and iteration over record attributes with exclusion sets. These are different exclusion sets (`_STANDARD_RECORD_ATTRS` against `_NON_EXTRA_RECORD_ATTRS`) used for different purposes, so this is not a repeated operation. The formatter's reserved-field handling and JSON parsing have no counterpart in `_process_record`, and the leaf-based redaction and record mutation have no counterpart in `format`. No shared sub-operation with a common contract is evident."
+        }
+      },
+      {
+        "id": "LL-C06",
+        "path": {
+          "artifact_basename": "1cd84e4c0f055edc63091b59e194bf631a922989044df508f46b5410575aece1.json",
+          "original_artifact_sha256": "7e3776a1471fd43adaf2cbc42ecc02def0bdbf660f91e49ca438c30a5b0018f5"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.44,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.12,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviews_provenance": {
+      "path": {
+        "artifact_basename": "litellm-observations.json",
+        "original_artifact_sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6"
+      },
+      "sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6",
+      "snapshot": "review-observations.json"
+    },
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "schema": 1,
+    "source_verification": {
+      "coordinator_all_16_endpoint_checks_passed": true,
+      "direct_git": true,
+      "full_background_match": true,
+      "native_extractor_exact_body": true
+    },
+    "status": "source_resolved_acceptance_proposal_not_final_gold",
+    "whole_function_equivalence": false
+  },
+  "source_adjudication_sha256": "3d5ea1f5b0da43be576920bae16cdf7082be74a7867a1d8980bba775ce16215f",
+  "source_closure": [
+    {
+      "file_sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+      "git_blob_sha1": "6a38eea2b120e1cd61cd68662537e60c04dff82e",
+      "path": "litellm/_logging.py",
+      "source_file": "sources/e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a.json.gz"
+    }
+  ],
+  "source_only": true
+}

@@ -1,0 +1,262 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.00053824,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "7ddcddb12cbc75d018e3b273a5faad9e4e5c31e4a3af8432d3ab7010aa34c230",
+      "prompt_sha256": "f97da8747e6f30082528a97934e154f5378334b9b6df2e5412a0f4b7ad858dc9",
+      "request_key": "75b5a6ac0db5e2d43c6004492c6a63fea5c79a4d38ed9014b13360a5c13f603c",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 13456,
+        "output_tokens": 174
+      },
+      "verdict": {
+        "behaves_differently": 0.25,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.28,
+        "second_opinion": null,
+        "why": "One portable domain concept can share an implementation; review behavior differences before moving it."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    },
+    {
+      "estimated_usd": 0.008796,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "90da9515157372ffb0b707bebd70f0123f1ddce80ff6d786c214d968dc45d833",
+      "prompt_sha256": "332b4fd473eb0e8c375a29f06dda505a48ccff6cf558c80575dbe5698d08fc37",
+      "request_key": "11376d9ccd2151bad90ac0ca97f38b9e02a5c4efebe383898d324d8bca705967",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2898,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 2898,
+            "model": null,
+            "output_tokens": 300,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 300,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.8,
+        "second_opinion": null,
+        "why": "Both build a FileDiffInfo from a file path plus before/after text: they run diffLines to total additions (added) and deletions (removed), and call createTwoFilesPatch(file, file, before, after) with status \"modified\". NEW does this inline in the edit branch of CurrentFileToolGroup, and EXISTING's fileDiff already implements it. A shared helper such as fileDiff(file, before, after, status) could be reused. NEW would keep its own surrounding policy: skip the entry when additions and deletions are both 0, and the key/toolID wrapping. The write branch (empty before, a line count that ignores a trailing newline) is a nearby variation and is not clearly the same computation. The shared operation is limited to the edit-diff construction. The metadata merging, memo reconciliation and rendering stay in NEW."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "contract": "For file,before,after, total diffLines added/removed counts with nullish counts treated as zero; build createTwoFilesPatch(file,file,before,after) and modified status.",
+    "granularity": "partial_operation",
+    "id": "OCH01",
+    "label": "duplicate",
+    "observations_proof": {
+      "path": {
+        "artifact_basename": "hard-observations.json",
+        "original_artifact_sha256": "dc6751a4255e99b1ef58bf005ae2e9cf022e6af74bd47bd94409af1c6443ea47"
+      },
+      "sha256": "dc6751a4255e99b1ef58bf005ae2e9cf022e6af74bd47bd94409af1c6443ea47"
+    },
+    "operation_regions": [
+      {
+        "code": "const changes = diffLines(input.oldString, input.newString)\n\n        const additions = changes\n          .filter((change) => change.added)\n          .reduce((total, change) => total + (change.count ?? 0), 0)\n\n        const deletions = changes\n          .filter((change) => change.removed)\n          .reduce((total, change) => total + (change.count ?? 0), 0)\n\n        if (additions === 0 && deletions === 0) return []\n\n        return [\n          {\n            key: `${tool.id}:0`,\n            toolID: tool.id,\n            value: {\n              file: input.path,\n              patch: createTwoFilesPatch(input.path, input.path, input.oldString, input.newString),\n              additions,\n              deletions,\n              status: \"modified\" as const,\n            },\n          },\n        ]",
+        "end_line": 987,
+        "portable_source_file": "sources/8a868105a5177e9efc605d09b6a4b9bc0bcc1ffc304a229815f937d70bbe924c.json.gz",
+        "source_id": "packages/session-ui/src/tools/tool-renderer.tsx::CurrentFileToolGroup",
+        "start_line": 963
+      },
+      {
+        "code": "function fileDiff(\n  file: string,\n  before: string,\n  after: string,\n  status: typeof FileDiff.Info.Type.status = \"modified\",\n): typeof FileDiff.Info.Type {\n  const counts = diffLines(before, after).reduce(\n    (result, item) => ({\n      additions: result.additions + (item.added ? (item.count ?? 0) : 0),\n      deletions: result.deletions + (item.removed ? (item.count ?? 0) : 0),\n    }),\n    { additions: 0, deletions: 0 },\n  )\n  return {\n    file,\n    patch: createTwoFilesPatch(file, file, before, after),\n    status,\n    ...counts,\n  }\n}",
+        "end_line": 23,
+        "portable_source_file": "sources/da711b1bae9ec75f251d4d9531e51ce6a4d61066bc9dc75782d1d23da3c980fd.json.gz",
+        "source_id": "packages/core/src/tool/plugin/file-diff.ts::fileDiff",
+        "start_line": 4
+      }
+    ],
+    "owner": "Core fileDiff already provides pure diff-library-based summary assembly, with no filesystem, runtime or Effect service calls, and is used by edit/write/patch. UI imports the same diff functions and duplicates the assembly. Direct UI->Core import violates pinned package direction, so useful sharing requires moving/adding a helper in a permitted common dependency; it is not already delegated.",
+    "proposal_status": "source-resolved_acceptance_proposal_not_final_gold",
+    "provisional_family_id": "OP-FILE-DIFF-SUMMARY",
+    "repository": "anomalyco/opencode",
+    "resolution": "Propose partial-operation duplicate despite Jev separate .28, retaining disagreement. Jev explanation itself allows one portable domain concept to share an implementation; it supplies no concrete incompatible contract for this narrowed computation. Claude duplicate .8 identifies exact counts/patch behavior and excludes write variation. Source establishes a coherent pure summary operation with existing consumers, not equivalence of CurrentFileToolGroup and fileDiff as wholes.",
+    "retrieval_profiles": [
+      {
+        "cross_file_rank": 2,
+        "diagnostic_profiles": {
+          "balanced_exploration": {
+            "first_loss": "similarity_floor",
+            "floor": 0.35,
+            "retrieved": false,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "similarity_floor",
+            "floor": 0.5,
+            "retrieved": false,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "packages/session-ui/src/tools/tool-renderer.tsx::CurrentFileToolGroup",
+        "query_lines": 122,
+        "query_tokens": 393,
+        "raw_rank": 3,
+        "same_file": false,
+        "score": 0.3397736332331265,
+        "target": "packages/core/src/tool/plugin/file-diff.ts::fileDiff"
+      },
+      {
+        "cross_file_rank": 16,
+        "diagnostic_profiles": {
+          "balanced_exploration": {
+            "first_loss": "similarity_floor",
+            "floor": 0.35,
+            "retrieved": false,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "similarity_floor",
+            "floor": 0.5,
+            "retrieved": false,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "packages/core/src/tool/plugin/file-diff.ts::fileDiff",
+        "query_lines": 20,
+        "query_tokens": 48,
+        "raw_rank": 16,
+        "same_file": false,
+        "score": 0.3397736332331265,
+        "target": "packages/session-ui/src/tools/tool-renderer.tsx::CurrentFileToolGroup"
+      }
+    ],
+    "reviewer_label_disagreement": true,
+    "reviewers": [
+      {
+        "id": "OCH01",
+        "path": {
+          "artifact_basename": "75b5a6ac0db5e2d43c6004492c6a63fea5c79a4d38ed9014b13360a5c13f603c.json",
+          "original_artifact_sha256": "7ddcddb12cbc75d018e3b273a5faad9e4e5c31e4a3af8432d3ab7010aa34c230"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.25,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.28,
+          "second_opinion": null,
+          "why": "One portable domain concept can share an implementation; review behavior differences before moving it."
+        }
+      },
+      {
+        "id": "OCH01",
+        "path": {
+          "artifact_basename": "11376d9ccd2151bad90ac0ca97f38b9e02a5c4efebe383898d324d8bca705967.json",
+          "original_artifact_sha256": "90da9515157372ffb0b707bebd70f0123f1ddce80ff6d786c214d968dc45d833"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.8,
+          "second_opinion": null,
+          "why": "Both build a FileDiffInfo from a file path plus before/after text: they run diffLines to total additions (added) and deletions (removed), and call createTwoFilesPatch(file, file, before, after) with status \"modified\". NEW does this inline in the edit branch of CurrentFileToolGroup, and EXISTING's fileDiff already implements it. A shared helper such as fileDiff(file, before, after, status) could be reused. NEW would keep its own surrounding policy: skip the entry when additions and deletions are both 0, and the key/toolID wrapping. The write branch (empty before, a line count that ignores a trailing newline) is a nearby variation and is not clearly the same computation. The shared operation is limited to the edit-diff construction. The metadata merging, memo reconciliation and rendering stay in NEW."
+        }
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "scope": "Only edit before/after diff-summary construction: line counts plus patch, file and modified status. UI no-change suppression, tool-ID wrapping, metadata precedence and rendering are outside the shared operation.",
+    "source_proofs": [
+      {
+        "blob_url": "https://github.com/anomalyco/opencode/blob/cc996eece172fc69e35662657ea6cea9c2c7db88/packages/session-ui/src/tools/tool-renderer.tsx",
+        "body_sha256": "917e47faa2a60d896648eb594e8b8f37ffcb599fc4b5277faa9452060c0b1220",
+        "end_line": 1064,
+        "git_blob_sha1": "3150ad6aabdc1d92dda2c7a0db14c1583155967e",
+        "path": "packages/session-ui/src/tools/tool-renderer.tsx",
+        "portable_source_file": "sources/8a868105a5177e9efc605d09b6a4b9bc0bcc1ffc304a229815f937d70bbe924c.json.gz",
+        "sha256": "8a868105a5177e9efc605d09b6a4b9bc0bcc1ffc304a229815f937d70bbe924c",
+        "snapshot": "8a868105a5177e9efc605d09b6a4b9bc0bcc1ffc304a229815f937d70bbe924c.txt",
+        "source_id": "packages/session-ui/src/tools/tool-renderer.tsx::CurrentFileToolGroup",
+        "start_line": 943
+      },
+      {
+        "blob_url": "https://github.com/anomalyco/opencode/blob/cc996eece172fc69e35662657ea6cea9c2c7db88/packages/core/src/tool/plugin/file-diff.ts",
+        "body_sha256": "4f5017e2f20aa5642b212d797d97f3c305c903680a2f45f4dd2563c9178bc2c9",
+        "end_line": 23,
+        "git_blob_sha1": "b40f11c967fce4b903ff1cd1bb8491596d9eb450",
+        "path": "packages/core/src/tool/plugin/file-diff.ts",
+        "portable_source_file": "sources/da711b1bae9ec75f251d4d9531e51ce6a4d61066bc9dc75782d1d23da3c980fd.json.gz",
+        "sha256": "da711b1bae9ec75f251d4d9531e51ce6a4d61066bc9dc75782d1d23da3c980fd",
+        "snapshot": "da711b1bae9ec75f251d4d9531e51ce6a4d61066bc9dc75782d1d23da3c980fd.txt",
+        "source_id": "packages/core/src/tool/plugin/file-diff.ts::fileDiff",
+        "start_line": 4
+      }
+    ],
+    "variation": "UI uses separate filter/reduce passes and omits unchanged entries; core combines reductions, returns zero summaries, and accepts non-modified statuses. UI write-preview line-count behavior is expressly excluded.",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "42e54b2d2d525c5b064cf1d3377f1a8e40ee0721ef59c36a826c6c8945e4c27b",
+  "source_closure": [
+    {
+      "file_sha256": "da711b1bae9ec75f251d4d9531e51ce6a4d61066bc9dc75782d1d23da3c980fd",
+      "git_blob_sha1": "b40f11c967fce4b903ff1cd1bb8491596d9eb450",
+      "path": "packages/core/src/tool/plugin/file-diff.ts",
+      "source_file": "sources/da711b1bae9ec75f251d4d9531e51ce6a4d61066bc9dc75782d1d23da3c980fd.json.gz"
+    },
+    {
+      "file_sha256": "8a868105a5177e9efc605d09b6a4b9bc0bcc1ffc304a229815f937d70bbe924c",
+      "git_blob_sha1": "3150ad6aabdc1d92dda2c7a0db14c1583155967e",
+      "path": "packages/session-ui/src/tools/tool-renderer.tsx",
+      "source_file": "sources/8a868105a5177e9efc605d09b6a4b9bc0bcc1ffc304a229815f937d70bbe924c.json.gz"
+    }
+  ],
+  "source_only": true
+}

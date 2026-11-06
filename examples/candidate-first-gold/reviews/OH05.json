@@ -1,0 +1,318 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.005574,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "b425c8fcd911ddda8d10088c20efb7fe2610ccb264e40f884d6541d1d4b808ce",
+      "prompt_sha256": "f4357674efc3716252d663b945b9a138981f6af75468dc28f40e517cb4daaf4a",
+      "request_key": "986d0fac98dcd42db507a57479ef25d2071de581529141a5551211357d22b638",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 1782,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 1782,
+            "model": null,
+            "output_tokens": 201,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 201,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.12,
+        "second_opinion": null,
+        "why": "Both methods of FileHistoryManager load the per-file metadata from the cache with the same default and write it back. That is only a one-line shared ingredient, and a trivial _load_metadata helper would be marginal. The real operations differ. add_history appends a new entry, bumps the counter, and evicts the oldest entries beyond the max. pop_last_history removes the newest entry, reads and deletes its content, and handles a missing entry. They share no coherent reusable policy beyond cache get/set on the same schema, so this is not actionable duplication."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.0006832,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "dfa8136f8535ff1d439bddb68c2af858b6a6cc4f6c46de3448c50d9cd60ff1cb",
+      "prompt_sha256": "7b069772de712d997429f8ba22856621eb3e96eedf5be573ca6e9045e14fbdeb",
+      "request_key": "469bf5484411be7311714dd0d59eabe3d1f691baf0766c7ba296d6e98440e87f",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 17080,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.15,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.14,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "balanced_hard_positive": false,
+    "bug": null,
+    "caller_proofs": [
+      {
+        "code": "        )\n\n        # Write the new content to the file\n        self.write_file(path, new_file_content)\n\n        # Save the content to history\n        self._history_manager.add_history(path, file_content)\n\n",
+        "end_line": 232,
+        "file_sha256": "8fd665589e788e0746a016dbc3545f349ce414fa9a3b27c58240e29a1c4418a2",
+        "path": "openhands/tools/str_replace_editor/editor.py",
+        "portable_source_file": "sources/8fd665589e788e0746a016dbc3545f349ce414fa9a3b27c58240e29a1c4418a2.json.gz",
+        "purpose": "edit saves history",
+        "snippet_sha256": "36888d00e0b4f77c31452864815c1e27e8eee7150b2a9a9917ce038b70bc00f9",
+        "start_line": 225,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/str_replace_editor/editor.py#L225"
+      },
+      {
+        "code": "\n    def undo_edit(self, path: Path) -> StrReplaceEditorObservation:\n        \"\"\"\n        Implement the undo_edit command.\n        \"\"\"\n        current_text = self.read_file(path)\n        old_text = self._history_manager.pop_last_history(path)\n        if old_text is None:\n            raise ToolError(f\"No edit history found for {path}.\")\n\n        self.write_file(path, old_text)\n\n        return StrReplaceEditorObservation(\n            command=\"undo_edit\",\n            output=(\n                f\"Last edit to {path} undone successfully. \"\n",
+        "end_line": 565,
+        "file_sha256": "8fd665589e788e0746a016dbc3545f349ce414fa9a3b27c58240e29a1c4418a2",
+        "path": "openhands/tools/str_replace_editor/editor.py",
+        "portable_source_file": "sources/8fd665589e788e0746a016dbc3545f349ce414fa9a3b27c58240e29a1c4418a2.json.gz",
+        "purpose": "undo pops history",
+        "snippet_sha256": "169c5e2cfa6a73ec015dddb04d651d562a2aed0be820bbf2d7ecdf42d73e99f1",
+        "start_line": 550,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/str_replace_editor/editor.py#L550"
+      }
+    ],
+    "diagnostic_profiles": [
+      {
+        "balanced_exploration": {
+          "eligible_rank": 3,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "eligible_rank": 3,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "disagreement_preserved": false,
+    "exact_shared_or_contrasting_regions": [
+      {
+        "code": "        metadata_key = self._get_metadata_key(file_path)\n        metadata = self.cache.get(metadata_key, {\"entries\": [], \"counter\": 0})\n",
+        "end_line": 43,
+        "file_sha256": "7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0",
+        "path": "openhands/tools/str_replace_editor/utils/history.py",
+        "portable_source_file": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz",
+        "purpose": "short metadata fetch overlap",
+        "snippet_sha256": "1083dd761656a05e22b0e62cca5616f453fe12d898a75535fefa6c471e6b8aaf",
+        "start_line": 42,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/str_replace_editor/utils/history.py#L42"
+      },
+      {
+        "code": "        metadata_key = self._get_metadata_key(file_path)\n        metadata = self.cache.get(metadata_key, {\"entries\": [], \"counter\": 0})\n",
+        "end_line": 64,
+        "file_sha256": "7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0",
+        "path": "openhands/tools/str_replace_editor/utils/history.py",
+        "portable_source_file": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz",
+        "purpose": "short metadata fetch counterpart",
+        "snippet_sha256": "1083dd761656a05e22b0e62cca5616f453fe12d898a75535fefa6c471e6b8aaf",
+        "start_line": 63,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/str_replace_editor/utils/history.py#L63"
+      },
+      {
+        "code": "        history_key = self._get_history_key(file_path, counter)\n        self.cache.set(history_key, content)\n\n        metadata[\"entries\"].append(counter)\n        metadata[\"counter\"] += 1\n\n        # Keep only last N entries\n        while len(metadata[\"entries\"]) > self.max_history_per_file:\n            old_counter = metadata[\"entries\"].pop(0)\n            old_history_key = self._get_history_key(file_path, old_counter)\n            self.cache.delete(old_history_key)\n\n        self.cache.set(metadata_key, metadata)\n",
+        "end_line": 59,
+        "file_sha256": "7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0",
+        "path": "openhands/tools/str_replace_editor/utils/history.py",
+        "portable_source_file": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz",
+        "purpose": "append/evict behavior",
+        "snippet_sha256": "d5b7f61766217298e20c1b9cc474a21acf94e779c668c211942d6d81890d5a13",
+        "start_line": 47,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/str_replace_editor/utils/history.py#L47"
+      },
+      {
+        "code": "        # Pop and remove the last entry\n        last_counter = entries.pop()\n        history_key = self._get_history_key(file_path, last_counter)\n        content = self.cache.get(history_key)\n\n        if content is None:\n            self.logger.warning(f\"History entry not found for {file_path}\")\n        else:\n            # Remove the entry from the cache\n            self.cache.delete(history_key)\n\n        # Update metadata\n        metadata[\"entries\"] = entries\n        self.cache.set(metadata_key, metadata)\n\n        return content\n",
+        "end_line": 85,
+        "file_sha256": "7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0",
+        "path": "openhands/tools/str_replace_editor/utils/history.py",
+        "portable_source_file": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz",
+        "purpose": "pop/read/delete behavior",
+        "snippet_sha256": "f98b856a6074ece13b6b99c0c1d68e6764d185c9a5856031c53b2e80f1ff411f",
+        "start_line": 70,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/str_replace_editor/utils/history.py#L70"
+      }
+    ],
+    "id": "OH05",
+    "label": "separate",
+    "legitimate_variation": "Opposite stack effects, return type, missing-entry behavior, counter advancement and eviction. No meaningful common policy beyond metadata/cache primitives.",
+    "license": {
+      "path": "LICENSE",
+      "sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+      "snapshot": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+      "spdx": "MIT"
+    },
+    "operation_contract": "Append history with monotonic counter and bounded oldest-entry eviction versus pop latest history and delete its cached content. Separate whole operations.",
+    "provisional_family_id": "OH-history-push-pop",
+    "repository": "OpenHands/software-agent-sdk",
+    "reviewer_observations": [
+      {
+        "id": "OH05",
+        "path": {
+          "artifact_basename": "986d0fac98dcd42db507a57479ef25d2071de581529141a5551211357d22b638.json",
+          "original_artifact_sha256": "b425c8fcd911ddda8d10088c20efb7fe2610ccb264e40f884d6541d1d4b808ce"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.12,
+          "second_opinion": null,
+          "why": "Both methods of FileHistoryManager load the per-file metadata from the cache with the same default and write it back. That is only a one-line shared ingredient, and a trivial _load_metadata helper would be marginal. The real operations differ. add_history appends a new entry, bumps the counter, and evicts the oldest entries beyond the max. pop_last_history removes the newest entry, reads and deletes its content, and handles a missing entry. They share no coherent reusable policy beyond cache get/set on the same schema, so this is not actionable duplication."
+        }
+      },
+      {
+        "id": "OH05",
+        "path": {
+          "artifact_basename": "469bf5484411be7311714dd0d59eabe3d1f691baf0766c7ba296d6e98440e87f.json",
+          "original_artifact_sha256": "dfa8136f8535ff1d439bddb68c2af858b6a6cc4f6c46de3448c50d9cd60ff1cb"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.15,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.14,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_status": "centralized observations received; independent static source audit complete; coordinator acceptance pending",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "scope": "whole operations separate; small overlaps acknowledged",
+    "shared_owner_proof": "_get_metadata_key, _get_history_key and FileCache already own naming/storage; a metadata-fetch wrapper would only package trivial setup.",
+    "source_audit": {
+      "method": "Re-read Git objects at the exact pin, validate native extraction, match both full bodies/file hashes, inspect exact local helpers and live callers/imports; no execution of target code or further models.",
+      "observations_path": {
+        "artifact_basename": "openhands-observations.json",
+        "original_artifact_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b"
+      },
+      "observations_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b",
+      "source_verified": true
+    },
+    "source_audit_resolution": "Independent source audit supports both separate observations; no claim that every line is distinct.",
+    "source_proofs": [
+      {
+        "body_sha256": "8ad597db48a32767fcf62dd9a77784d966c6d630abcc26bd57b778b6d6d6a17e",
+        "end_line": 59,
+        "file_sha256": "7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0",
+        "git_blob_sha1": "d0dacf75835c41d2d4fc6897c2f8797f7fe2a0d3",
+        "line": 40,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/tools/str_replace_editor/utils/history.py",
+        "portable_source_file": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz",
+        "snapshot": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz",
+        "source_id": "openhands/tools/str_replace_editor/utils/history.py::FileHistoryManager.add_history",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/str_replace_editor/utils/history.py#L40"
+      },
+      {
+        "body_sha256": "7a5a1c8f81cc11b448d3347aecea024f435d0a3e6293d1705c50e4948aae425f",
+        "end_line": 85,
+        "file_sha256": "7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0",
+        "git_blob_sha1": "d0dacf75835c41d2d4fc6897c2f8797f7fe2a0d3",
+        "line": 61,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/tools/str_replace_editor/utils/history.py",
+        "portable_source_file": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz",
+        "snapshot": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz",
+        "source_id": "openhands/tools/str_replace_editor/utils/history.py::FileHistoryManager.pop_last_history",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/str_replace_editor/utils/history.py#L61"
+      }
+    ],
+    "status": "acceptance_proposal_not_gold",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "7dda862e0b6e38d08c9e8463c1fa338ec2cbbf00f4d5b8f494052590aae82ef9",
+  "source_closure": [
+    {
+      "file_sha256": "8fd665589e788e0746a016dbc3545f349ce414fa9a3b27c58240e29a1c4418a2",
+      "git_blob_sha1": "593e7622706a371c1559413cb7ed3c49ca39539d",
+      "path": "openhands/tools/str_replace_editor/editor.py",
+      "source_file": "sources/8fd665589e788e0746a016dbc3545f349ce414fa9a3b27c58240e29a1c4418a2.json.gz"
+    },
+    {
+      "file_sha256": "6f3308ce67969dc237370ecf431ee6afc0ed17237688ce08a7c0f9323c965a30",
+      "git_blob_sha1": "edd1406246c76b75e9084cbd5803baa2bf7867bb",
+      "path": "openhands/tools/str_replace_editor/utils/file_cache.py",
+      "source_file": "sources/6f3308ce67969dc237370ecf431ee6afc0ed17237688ce08a7c0f9323c965a30.json.gz"
+    },
+    {
+      "file_sha256": "7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0",
+      "git_blob_sha1": "d0dacf75835c41d2d4fc6897c2f8797f7fe2a0d3",
+      "path": "openhands/tools/str_replace_editor/utils/history.py",
+      "source_file": "sources/7e79a0d2ac85d0046820035d6448dba01db80d53ad7baf45c1cd432406be1bb0.json.gz"
+    }
+  ],
+  "source_only": true
+}

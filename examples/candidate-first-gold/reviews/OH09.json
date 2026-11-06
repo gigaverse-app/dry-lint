@@ -1,0 +1,366 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.006742,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "3680875c5727e27814cff5996e81c7879f00456df775a208cf3e7242949624cf",
+      "prompt_sha256": "daa895364f78af59ccde3f78e91067db1bf55e5f1f6cd5d2c6c02a176e4893d3",
+      "request_key": "3d33b80a5158c38cb5af020dd67bfd7ec787018d5e180e183421c861832f232c",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 1821,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 1821,
+            "model": null,
+            "output_tokens": 310,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 310,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.62,
+        "second_opinion": null,
+        "why": "Both resolvers independently implement the same sub-operation: call a factory with `conv_state=conv_state, **params`, then validate that the result is a `Sequence` whose items are all `Tool`, and raise `TypeError` if not. This is a small, clear contract. A shared helper such as `_validate_tool_sequence(created, source_label)` or `_create_tools(factory, params, conv_state, label)` would own the check, with the caller-specific error message passed as a parameter. Each caller would keep its own variation. NEW validates that `cls.create` is a concrete callable classmethod when the resolver is built. EXISTING wraps the call in a try/except that converts a `TypeError` into an 'Unable to resolve tool' error. Their message wording also differs. The overlap is only the post-call return validation, and possibly the invocation convention. It is not the whole function."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.000861,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "9e98e7235f62e374173b865536527a18c9ab63fbc17289a1ecc2eb6d400ea94a",
+      "prompt_sha256": "a1f1eb05d70a8a9424324f75c2c7b35a347461d7881b6223f7ce3d107e0f1335",
+      "request_key": "4791d337f19affecfcbdfd3e3fe8839523a4c57d435054e2d06bc7a124dab98f",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 21525,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.36,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.49,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "balanced_hard_positive": false,
+    "caller_proofs": [
+      {
+        "code": "import inspect\nfrom collections.abc import Callable, Sequence\nfrom threading import RLock\nfrom typing import TYPE_CHECKING, Any\n\nfrom openhands.sdk.tool.spec import ToolSpec\nfrom openhands.sdk.tool.tool import Tool, ToolBase\n\n\nif TYPE_CHECKING:\n    from openhands.sdk.conversation.state import ConversationState\n\n\n# A resolver produces Tool instances for given params.\nResolver = Callable[[dict[str, Any], \"ConversationState\"], Sequence[Tool]]\n\"\"\"A resolver produces Tool instances for given params.\n\nArgs:\n    params: Arbitrary parameters passed to the resolver. These are typically\n        used to configure the Tool instances that are created.\n    conversation: Optional conversation state to get directories from.\nReturns: A sequence of Tool instances. Most of the time this will be a single-item\n    sequence, but in some cases a Tool.create may produce multiple tools\n    (e.g., BrowserToolSet).\n",
+        "end_line": 24,
+        "file_sha256": "1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29",
+        "path": "openhands/sdk/tool/registry.py",
+        "portable_source_file": "sources/1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29.json.gz",
+        "purpose": "type import bindings and public Resolver return contract",
+        "snippet_sha256": "802d2c6b2ed0007b5da2ca0747f8e77cbd08339bcf4cd02fa206fa5373bb3237",
+        "start_line": 1
+      },
+      {
+        "code": "def register_tool(\n    name: str, factory: Tool | type[ToolBase] | Callable[..., Sequence[Tool]]\n) -> None:\n    if not isinstance(name, str) or not name.strip():\n        raise ValueError(\"Tool name must be a non-empty string\")\n\n    if isinstance(factory, Tool):\n        resolver = _resolver_from_instance(name, factory)\n    elif isinstance(factory, type) and issubclass(factory, ToolBase):\n        resolver = _resolver_from_subclass(name, factory)\n    elif callable(factory):\n        resolver = _resolver_from_callable(name, factory)\n    else:\n        raise TypeError(\n            \"register_tool(...) only accepts: (1) a Tool instance with .executor, \"\n            \"(2) a Tool subclass with .create(**params), or (3) a callable factory \"\n            \"returning a Sequence[Tool]\"\n        )\n\n    with _LOCK:\n        _REG[name] = resolver\n\n\ndef resolve_tool(\n    tool_spec: ToolSpec, conv_state: \"ConversationState\"\n) -> Sequence[Tool]:\n    with _LOCK:\n        resolver = _REG.get(tool_spec.name)\n\n    if resolver is None:\n        raise KeyError(f\"Tool '{tool_spec.name}' is not registered\")\n\n    return resolver(tool_spec.params, conv_state)\n\n\n",
+        "end_line": 145,
+        "file_sha256": "1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29",
+        "path": "openhands/sdk/tool/registry.py",
+        "portable_source_file": "sources/1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29.json.gz",
+        "purpose": "both registration branches, storing closures and resolving them",
+        "snippet_sha256": "8c411abfe22504dbe2e99b593e6da1dd4c4767340bd22d2b014670c8314c4bac",
+        "start_line": 111
+      },
+      {
+        "code": "\"\"\"OpenHands runtime package.\"\"\"\n\nfrom openhands.sdk.tool.builtins import BUILT_IN_TOOLS, FinishTool, ThinkTool\nfrom openhands.sdk.tool.registry import (\n    list_registered_tools,\n    register_tool,\n    resolve_tool,\n)\nfrom openhands.sdk.tool.schema import (\n    ActionBase,\n    ObservationBase,\n)\n",
+        "end_line": 12,
+        "file_sha256": "24fc514fc1e83a8c815eeaaa33665dfef6a195ae863f886614da1e040279898c",
+        "path": "openhands/sdk/tool/__init__.py",
+        "portable_source_file": "sources/24fc514fc1e83a8c815eeaaa33665dfef6a195ae863f886614da1e040279898c.json.gz",
+        "purpose": "public register/resolve exports",
+        "snippet_sha256": "7fb870b6d6052348b84e8a9a2bf2eb5dc5cea6b70a019d6990aa28b81fb20530",
+        "start_line": 1
+      },
+      {
+        "code": "\n    def _initialize(self, state: \"ConversationState\"):\n        \"\"\"Create an AgentBase instance from an AgentSpec.\"\"\"\n        if self._tools:\n            logger.warning(\"Agent already initialized; skipping re-initialization.\")\n            return\n\n        tools: list[Tool] = []\n        for tool_spec in self.tools:\n            tools.extend(resolve_tool(tool_spec, state))\n\n",
+        "end_line": 197,
+        "file_sha256": "8072a35d0793b529f34c3ec5e7e79651ea1a56fb52e7a17cfdaca06537d1f133",
+        "path": "openhands/sdk/agent/base.py",
+        "portable_source_file": "sources/8072a35d0793b529f34c3ec5e7e79651ea1a56fb52e7a17cfdaca06537d1f133.json.gz",
+        "purpose": "agent initialization resolves registered tools",
+        "snippet_sha256": "1a67ad7ac17950b2ef4935239cef0d15fb22df2fa4d084fd84bb38fe027417af",
+        "start_line": 187
+      },
+      {
+        "code": "\ndef _hello_tool_factory(conv_state=None, **params) -> list[Tool]:\n    return [\n        Tool(\n            name=\"say_hello\",\n            description=\"Says hello\",\n            action_type=_HelloAction,\n            observation_type=_HelloObservation,\n            executor=_HelloExec(),\n        )\n    ]\n\n\ndef test_register_and_resolve_callable_factory():\n    register_tool(\"say_hello\", _hello_tool_factory)\n    tools = resolve_tool(ToolSpec(name=\"say_hello\"), _create_mock_conv_state())\n    assert len(tools) == 1\n    assert isinstance(tools[0], Tool)\n    assert tools[0].name == \"say_hello\"\n",
+        "end_line": 87,
+        "file_sha256": "eb122f099556e4502d40273d3e8a2bbf6254901ed160a8ec442de0364542ba34",
+        "path": "tests/sdk/tool/test_registry.py",
+        "portable_source_file": "sources/eb122f099556e4502d40273d3e8a2bbf6254901ed160a8ec442de0364542ba34.json.gz",
+        "purpose": "compatible callable accepts conv_state; live test registration/resolution",
+        "snippet_sha256": "5b01365049de1725b1c641bd0f81430429a114c87e8e111f3163d7f6f18799a3",
+        "start_line": 69
+      },
+      {
+        "code": "def test_register_tool_type_uses_create_params():\n    register_tool(\"say_configurable_hello_type\", _ConfigurableHelloTool)\n\n    tools = resolve_tool(\n        ToolSpec(\n            name=\"say_configurable_hello_type\",\n            params={\"greeting\": \"Howdy\", \"punctuation\": \"?\"},\n        ),\n        _create_mock_conv_state(),\n    )\n\n    assert len(tools) == 1\n    tool = tools[0]\n    assert isinstance(tool, _ConfigurableHelloTool)\n    assert tool.description == \"Howdy?\"\n\n    observation = tool(_HelloAction(name=\"Alice\"))\n    assert isinstance(observation, _HelloObservation)\n    assert observation.message == \"Howdy, Alice?\"\n",
+        "end_line": 136,
+        "file_sha256": "eb122f099556e4502d40273d3e8a2bbf6254901ed160a8ec442de0364542ba34",
+        "path": "tests/sdk/tool/test_registry.py",
+        "portable_source_file": "sources/eb122f099556e4502d40273d3e8a2bbf6254901ed160a8ec442de0364542ba34.json.gz",
+        "purpose": "class test registration/resolution",
+        "snippet_sha256": "d2737fd0877fc76ed44e49892493a16307cc5a1a2d4b2af048251a9fbefce608",
+        "start_line": 116
+      },
+      {
+        "code": "def register_default_tools(enable_browser: bool = True) -> None:\n    \"\"\"Register the default set of tools.\"\"\"\n    from openhands.tools.execute_bash import BashTool\n    from openhands.tools.str_replace_editor import FileEditorTool\n    from openhands.tools.task_tracker import TaskTrackerTool\n\n    register_tool(\"BashTool\", BashTool)\n    logger.debug(\"Tool: BashTool registered.\")\n    register_tool(\"FileEditorTool\", FileEditorTool)\n    logger.debug(\"Tool: FileEditorTool registered.\")\n    register_tool(\"TaskTrackerTool\", TaskTrackerTool)\n    logger.debug(\"Tool: TaskTrackerTool registered.\")\n",
+        "end_line": 28,
+        "file_sha256": "770075460d24ac82b6239a671af61ea223c0e2cf37a20d778d1948c3d19fc00f",
+        "path": "openhands/tools/preset/default.py",
+        "portable_source_file": "sources/770075460d24ac82b6239a671af61ea223c0e2cf37a20d778d1948c3d19fc00f.json.gz",
+        "purpose": "built-in subclass registration",
+        "snippet_sha256": "52088abb1cad5eebefd218c3e3a3966782d28b401d8491afd4d3cbd650c7372b",
+        "start_line": 17
+      },
+      {
+        "code": "def _make_bash_and_grep_tools(working_dir: str) -> list[Tool]:\n    \"\"\"Create execute_bash and custom grep tools sharing one executor.\"\"\"\n\n    bash_executor = BashExecutor(working_dir=working_dir)\n    bash_tool = execute_bash_tool.set_executor(executor=bash_executor)\n\n    grep_executor = GrepExecutor(bash_executor)\n    grep_tool = Tool(\n        name=\"grep\",\n        description=_GREP_DESCRIPTION,\n        action_type=GrepAction,\n        observation_type=GrepObservation,\n        executor=grep_executor,\n    )\n\n    return [bash_tool, grep_tool]\n\n\nregister_tool(\"FileEditorTool\", FileEditorTool)\nregister_tool(\"BashAndGrepToolSet\", _make_bash_and_grep_tools)\n\ntools = [\n    ToolSpec(name=\"FileEditorTool\"),\n    ToolSpec(name=\"BashAndGrepToolSet\", params={\"working_dir\": cwd}),\n]\n\n# Agent\n",
+        "end_line": 158,
+        "file_sha256": "039458384a4885f7b1abadeff8987fc6678f3bab30bfd0618d6ce47a0656804a",
+        "path": "examples/02_custom_tools.py",
+        "portable_source_file": "sources/039458384a4885f7b1abadeff8987fc6678f3bab30bfd0618d6ce47a0656804a.json.gz",
+        "purpose": "example incompatible callable signature and registration, preserved as a caveat",
+        "snippet_sha256": "7353870bad1be4259b294cef8e072db818abe26748846cf6c798b0fbe415e44b",
+        "start_line": 132
+      }
+    ],
+    "diagnostic_profiles": [
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "disagreement_preserved": true,
+    "drifted": false,
+    "exact_shared_or_contrasting_regions": [
+      {
+        "code": "            ) from exc\n        if not isinstance(created, Sequence) or not all(\n            isinstance(t, Tool) for t in created\n        ):\n            raise TypeError(\n                f\"Factory '{name}' must return Sequence[Tool], got {type(created)}\"\n            )\n        return created\n",
+        "end_line": 68,
+        "file_sha256": "1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29",
+        "path": "openhands/sdk/tool/registry.py",
+        "portable_source_file": "sources/1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29.json.gz",
+        "purpose": "callable result validation",
+        "snippet_sha256": "cbebb8f839b410da0f8e8257cb4835fe454a43fbb8412ad21b4507d044efb53c",
+        "start_line": 61
+      },
+      {
+        "code": "        if not isinstance(created, Sequence) or not all(\n            isinstance(t, Tool) for t in created\n        ):\n            raise TypeError(\n                f\"Tool subclass '{cls.__name__}' create() must return Sequence[Tool], \"\n                f\"got {type(created)}\"\n            )\n        # Optional sanity: permit tools without executor; they'll fail at .call()\n        return created\n",
+        "end_line": 106,
+        "file_sha256": "1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29",
+        "path": "openhands/sdk/tool/registry.py",
+        "portable_source_file": "sources/1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29.json.gz",
+        "purpose": "subclass result validation",
+        "snippet_sha256": "aa45cabd4595580447c2b9759f220fa85b006d3e12cdf6b528b603a4cd081340",
+        "start_line": 98
+      }
+    ],
+    "id": "OH09",
+    "label": "duplicate",
+    "legitimate_variation": "Class adapter verifies concrete callable create at resolver construction; callable adapter decorates invocation TypeError. Names/messages differ. Invocation must remain outside a shared _validate_tool_sequence(created, source_label) to preserve error boundaries. No whole-wrapper equivalence.",
+    "license": {
+      "path": "LICENSE",
+      "sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+      "spdx": "MIT"
+    },
+    "operation_contract": "Scoped post-call result validation only: created must be collections.abc.Sequence and every member must be the same imported Tool class, otherwise TypeError; return the validated sequence unchanged. No nonempty requirement, executor requirement, or schema coercion is added.",
+    "provisional_family_id": "OH-tool-factory-result-validation",
+    "repository": "OpenHands/software-agent-sdk",
+    "reviewer_observations": [
+      {
+        "id": "OH09",
+        "path": {
+          "artifact_basename": "3d33b80a5158c38cb5af020dd67bfd7ec787018d5e180e183421c861832f232c.json",
+          "original_artifact_sha256": "3680875c5727e27814cff5996e81c7879f00456df775a208cf3e7242949624cf"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.62,
+          "second_opinion": null,
+          "why": "Both resolvers independently implement the same sub-operation: call a factory with `conv_state=conv_state, **params`, then validate that the result is a `Sequence` whose items are all `Tool`, and raise `TypeError` if not. This is a small, clear contract. A shared helper such as `_validate_tool_sequence(created, source_label)` or `_create_tools(factory, params, conv_state, label)` would own the check, with the caller-specific error message passed as a parameter. Each caller would keep its own variation. NEW validates that `cls.create` is a concrete callable classmethod when the resolver is built. EXISTING wraps the call in a try/except that converts a `TypeError` into an 'Unable to resolve tool' error. Their message wording also differs. The overlap is only the post-call return validation, and possibly the invocation convention. It is not the whole function."
+        }
+      },
+      {
+        "id": "OH09",
+        "path": {
+          "artifact_basename": "4791d337f19affecfcbdfd3e3fe8839523a4c57d435054e2d06bc7a124dab98f.json",
+          "original_artifact_sha256": "9e98e7235f62e374173b865536527a18c9ab63fbc17289a1ecc2eb6d400ea94a"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.36,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.49,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_status": "Centralized observations received; independent static source audit complete; coordinator acceptance pending",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "scope": "partial result-validation operation only",
+    "shared_owner_proof": "Both nested _resolve closures independently implement Sequence/all(Tool) validation. The enclosing functions create and return distinct closures; neither forwards result validation to the other. Imported Sequence and Tool identify the same types; all/isinstance are primitives, not an existing policy owner. The public Resolver alias requires Sequence[Tool].",
+    "source_audit": {
+      "method": "Same-pin full source reread and native full-body/file hash verification; static call/export/ownership audit only",
+      "observations_path": {
+        "artifact_basename": "openhands-additional-observations.json",
+        "original_artifact_sha256": "6434ccdc0c0cc66467ade34744ad3fb60e21ceafa5fe66ec0ad2189fc65a2c01"
+      },
+      "observations_sha256": "6434ccdc0c0cc66467ade34744ad3fb60e21ceafa5fe66ec0ad2189fc65a2c01",
+      "source_verified": true
+    },
+    "source_audit_qualification": "Correction to earlier reachability wording: examples/02_custom_tools.py registers both adapter kinds, but _make_bash_and_grep_tools(working_dir) lacks conv_state, so the example would raise at callable invocation and cannot prove that its post-call validation is reached. Tests/sdk/tool/test_registry.py has _hello_tool_factory(conv_state=None, **params), registers and resolves it, demonstrating a compatible source call path (tests not executed). Class create path has production preset registrations. Public exported register/resolve dispatch retains both branches. This qualifies successful-caller evidence without claiming dead or tested execution.",
+    "source_audit_resolution": "I support a scoped duplicate proposal, with moderate actionability: although short, the return check is a coherent shared runtime boundary enforcing the registry Sequence[Tool] contract in two independent adapters. A small shared validator is concrete. Jev separate remains preserved and this proposal is not coordinator-accepted. Unlike trivial generic metadata setup, this rejects malformed extension results at the public registry boundary. Claude supports this exact scope; neither reviewer substitutes for source evidence.",
+    "source_proofs": [
+      {
+        "body_sha256": "86d42ff9574cd634a921324734ff31b4d8adc165020124c432082bd7ac9102d3",
+        "end_line": 108,
+        "file_sha256": "1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29",
+        "line": 84,
+        "operation_mapping": "Reviewed operation within this exact native full function ID; snippets never replace frozen tokens.",
+        "path": "openhands/sdk/tool/registry.py",
+        "portable_source_file": "sources/1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29.json.gz",
+        "source_id": "openhands/sdk/tool/registry.py::_resolver_from_subclass"
+      },
+      {
+        "body_sha256": "4a0509bd80052438be6d008b7e1852278dc0fd46402b38b155ef493fd22e2400",
+        "end_line": 70,
+        "file_sha256": "1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29",
+        "line": 48,
+        "operation_mapping": "Reviewed operation within this exact native full function ID; snippets never replace frozen tokens.",
+        "path": "openhands/sdk/tool/registry.py",
+        "portable_source_file": "sources/1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29.json.gz",
+        "source_id": "openhands/sdk/tool/registry.py::_resolver_from_callable"
+      }
+    ],
+    "status": "acceptance_proposal_not_gold",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "7dda862e0b6e38d08c9e8463c1fa338ec2cbbf00f4d5b8f494052590aae82ef9",
+  "source_closure": [
+    {
+      "file_sha256": "039458384a4885f7b1abadeff8987fc6678f3bab30bfd0618d6ce47a0656804a",
+      "git_blob_sha1": "4db40f62e09ba1859e743c45f670d21a6311f10e",
+      "path": "examples/02_custom_tools.py",
+      "source_file": "sources/039458384a4885f7b1abadeff8987fc6678f3bab30bfd0618d6ce47a0656804a.json.gz"
+    },
+    {
+      "file_sha256": "8072a35d0793b529f34c3ec5e7e79651ea1a56fb52e7a17cfdaca06537d1f133",
+      "git_blob_sha1": "c90afe25a85e7b1590b2be609d8c174841ccab5c",
+      "path": "openhands/sdk/agent/base.py",
+      "source_file": "sources/8072a35d0793b529f34c3ec5e7e79651ea1a56fb52e7a17cfdaca06537d1f133.json.gz"
+    },
+    {
+      "file_sha256": "24fc514fc1e83a8c815eeaaa33665dfef6a195ae863f886614da1e040279898c",
+      "git_blob_sha1": "3cf9b42b892a92eaa121403a1a38934a439f0d2b",
+      "path": "openhands/sdk/tool/__init__.py",
+      "source_file": "sources/24fc514fc1e83a8c815eeaaa33665dfef6a195ae863f886614da1e040279898c.json.gz"
+    },
+    {
+      "file_sha256": "1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29",
+      "git_blob_sha1": "a31fefb56ba321098ef8234c36349709281d7187",
+      "path": "openhands/sdk/tool/registry.py",
+      "source_file": "sources/1dbc6c48153e5414a2755a5a6e104c728c027886c233ad524e83b1cff0317f29.json.gz"
+    },
+    {
+      "file_sha256": "0fd763dd619e81b189e03e1427ca1f0dccc57957c770833113154af5288567b8",
+      "git_blob_sha1": "52c5a60ad489a4dd6c6642aa14e416c49a91445b",
+      "path": "openhands/sdk/tool/tool.py",
+      "source_file": "sources/0fd763dd619e81b189e03e1427ca1f0dccc57957c770833113154af5288567b8.json.gz"
+    },
+    {
+      "file_sha256": "770075460d24ac82b6239a671af61ea223c0e2cf37a20d778d1948c3d19fc00f",
+      "git_blob_sha1": "f08e2fcc5f82191bf5e01bd27be60f295f4d5998",
+      "path": "openhands/tools/preset/default.py",
+      "source_file": "sources/770075460d24ac82b6239a671af61ea223c0e2cf37a20d778d1948c3d19fc00f.json.gz"
+    },
+    {
+      "file_sha256": "eb122f099556e4502d40273d3e8a2bbf6254901ed160a8ec442de0364542ba34",
+      "git_blob_sha1": "85e677ff2588705a8e8c592984a09ffe6e8f0550",
+      "path": "tests/sdk/tool/test_registry.py",
+      "source_file": "sources/eb122f099556e4502d40273d3e8a2bbf6254901ed160a8ec442de0364542ba34.json.gz"
+    }
+  ],
+  "source_only": true
+}

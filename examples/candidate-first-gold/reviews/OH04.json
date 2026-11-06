@@ -1,0 +1,375 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.00577,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "c0616ff32b333956ed29398a4d40e9e591c8f51343563d7e3f1a7034c5b79e15",
+      "prompt_sha256": "58fe490273f57a79c95bc2f7625d13f873552c1ab17dc939b34218ca33153d27",
+      "request_key": "eac5c5ab206564a6dea1e6cdd3bb9d2992a762d21d777d0045785bd6269aa5cd",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 1575,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 1575,
+            "model": null,
+            "output_tokens": 262,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 262,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.8,
+        "second_opinion": null,
+        "why": "Both stop() methods run the same graceful-shutdown sequence for an asyncio subprocess: terminate, wait up to 5 seconds, on timeout kill and wait again, log other exceptions, and clear the process reference in finally. A shared helper such as `terminate_process(proc, name, timeout=5)` would own the terminate, wait, kill contract. Legitimate variation stays with the callers: the service name in log messages, the attribute holding the process, and the guard (NEW also checks `returncode is None`, EXISTING only checks that the process is truthy). The callers would keep resetting their own process attribute. The sequence is a coherent process-lifecycle policy, so the overlap is more than similar syntax."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00050808,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "29dd4b7f7cfb022588bf65b82d9df47b1e0282838892d2b5f158b0b143860303",
+      "prompt_sha256": "c100496026d820ce8563fb44f32049ab7b3b6ee5ae0c519c8acc25fd24b728fd",
+      "request_key": "95e384747e00ff1f9dcb11ae7c975cb97fba016922be7916a08db8ee555aa231",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 12702,
+        "output_tokens": 175
+      },
+      "verdict": {
+        "behaves_differently": 0.45,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.62,
+        "second_opinion": null,
+        "why": "The resemblance is generic boilerplate rather than duplicated domain behavior."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "balanced_hard_positive": false,
+    "bug": null,
+    "caller_proofs": [
+      {
+        "code": "    # Start Desktop service if enabled\n    if desktop_service is not None:\n        desktop_started = await desktop_service.start()\n        if desktop_started:\n            logger.info(\"Desktop service started successfully\")\n        else:\n            logger.warning(\n                \"Desktop service failed to start, continuing without desktop\"\n            )\n    else:\n        logger.info(\"Desktop service is disabled\")\n\n    async with service:\n        try:\n            yield\n        finally:\n            # Stop services on shutdown\n            if vscode_service is not None:\n                await vscode_service.stop()\n            if desktop_service is not None:\n                await desktop_service.stop()\n\n",
+        "end_line": 76,
+        "file_sha256": "398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023",
+        "path": "openhands/agent_server/api.py",
+        "portable_source_file": "sources/398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023.json.gz",
+        "purpose": "API lifespan cleanup invokes both concrete stop methods",
+        "snippet_sha256": "0e85fbd6ca69bf5c0aaf52c0acf7798693c0749244e7dc1b8cbf723cbc1b9920",
+        "start_line": 55,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/api.py#L55"
+      }
+    ],
+    "diagnostic_profiles": [
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.5,
+          "retrieved": true,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.5,
+          "retrieved": true,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "disagreement_preserved": false,
+    "exact_shared_or_contrasting_regions": [
+      {
+        "code": "                self._proc.terminate()\n                await asyncio.wait_for(self._proc.wait(), timeout=5)\n                logger.info(\"Desktop stopped\")\n            except TimeoutError:\n                logger.warning(\"Desktop did not stop gracefully, killing process\")\n                self._proc.kill()\n                await self._proc.wait()\n            except Exception as e:\n                logger.error(\"Error stopping desktop: %s\", e)\n            finally:\n                self._proc = None\n",
+        "end_line": 173,
+        "file_sha256": "5f783b91eb5a3b12c5e31ff2e867771925566ad515f130b6aef71ce49d9fe576",
+        "path": "openhands/agent_server/desktop_service.py",
+        "portable_source_file": "sources/5f783b91eb5a3b12c5e31ff2e867771925566ad515f130b6aef71ce49d9fe576.json.gz",
+        "purpose": "timed termination/kill escalation and reset",
+        "snippet_sha256": "2360bf27b9a4acf9b6652b2ad26efd4cfa159dabe4a4a5a401726472a93698bc",
+        "start_line": 163,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/desktop_service.py#L163"
+      },
+      {
+        "code": "                self.process.terminate()\n                await asyncio.wait_for(self.process.wait(), timeout=5.0)\n                logger.info(\"VSCode server stopped successfully\")\n            except TimeoutError:\n                logger.warning(\"VSCode server did not stop gracefully, killing process\")\n                self.process.kill()\n                await self.process.wait()\n            except Exception as e:\n                logger.error(f\"Error stopping VSCode server: {e}\")\n            finally:\n                self.process = None\n",
+        "end_line": 92,
+        "file_sha256": "ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7",
+        "path": "openhands/agent_server/vscode_service.py",
+        "portable_source_file": "sources/ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7.json.gz",
+        "purpose": "timed termination/kill escalation and reset counterpart",
+        "snippet_sha256": "0528e25a8c67ec07f1caeeebbbb31144b27a3d02019044c271d0e0d259f81398",
+        "start_line": 82,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/vscode_service.py#L82"
+      }
+    ],
+    "id": "OH04",
+    "label": "duplicate",
+    "legitimate_variation": "Desktop guard additionally requires returncode is None; VSCode only checks truthiness. Process attribute ownership, log strings and reset stay at callers. The helper must preserve exception behavior: failures in the timeout handler are not caught by sibling except Exception.",
+    "license": {
+      "path": "LICENSE",
+      "sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+      "snapshot": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+      "spdx": "MIT"
+    },
+    "operation_contract": "For a caller-selected asyncio process, terminate; await wait for five seconds; on TimeoutError kill and await wait without timeout; log other primary-path exceptions; caller finally clears its process reference.",
+    "provisional_family_id": "OH-process-stop-escalation",
+    "repository": "OpenHands/software-agent-sdk",
+    "reviewer_observations": [
+      {
+        "id": "OH04",
+        "path": {
+          "artifact_basename": "eac5c5ab206564a6dea1e6cdd3bb9d2992a762d21d777d0045785bd6269aa5cd.json",
+          "original_artifact_sha256": "c0616ff32b333956ed29398a4d40e9e591c8f51343563d7e3f1a7034c5b79e15"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.8,
+          "second_opinion": null,
+          "why": "Both stop() methods run the same graceful-shutdown sequence for an asyncio subprocess: terminate, wait up to 5 seconds, on timeout kill and wait again, log other exceptions, and clear the process reference in finally. A shared helper such as `terminate_process(proc, name, timeout=5)` would own the terminate, wait, kill contract. Legitimate variation stays with the callers: the service name in log messages, the attribute holding the process, and the guard (NEW also checks `returncode is None`, EXISTING only checks that the process is truthy). The callers would keep resetting their own process attribute. The sequence is a coherent process-lifecycle policy, so the overlap is more than similar syntax."
+        }
+      },
+      {
+        "id": "OH04",
+        "path": {
+          "artifact_basename": "95e384747e00ff1f9dcb11ae7c975cb97fba016922be7916a08db8ee555aa231.json",
+          "original_artifact_sha256": "29dd4b7f7cfb022588bf65b82d9df47b1e0282838892d2b5f158b0b143860303"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.45,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.62,
+          "second_opinion": null,
+          "why": "The resemblance is generic boilerplate rather than duplicated domain behavior."
+        }
+      }
+    ],
+    "reviewer_status": "centralized observations received; independent static source audit complete; coordinator acceptance pending",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "scope": "partial operation only",
+    "shared_owner_proof": "DesktopService and VSCodeService independently own escalation. asyncio.wait_for and Process.terminate/kill/wait are primitives; no shared lifecycle helper is called by either stop body.",
+    "source_audit": {
+      "method": "Re-read Git objects at the exact pin, validate native extraction, match both full bodies/file hashes, inspect exact local helpers and live callers/imports; no execution of target code or further models.",
+      "observations_path": {
+        "artifact_basename": "openhands-observations.json",
+        "original_artifact_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b"
+      },
+      "observations_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b",
+      "source_verified": true
+    },
+    "source_audit_resolution": "Both labels support duplicate, but Jev rationale calls it generic boilerplate, inconsistent with its label. Source audit independently identifies the five-second escalation/error/reset policy and limits the proposal to it; agreement is not the acceptance argument.",
+    "source_proofs": [
+      {
+        "body_sha256": "1d1871750aa6703d65c204c3dfa3ad5e6227764f2c7ab459569b8f3608a60211",
+        "end_line": 173,
+        "file_sha256": "5f783b91eb5a3b12c5e31ff2e867771925566ad515f130b6aef71ce49d9fe576",
+        "git_blob_sha1": "0c77295e2c996ad257a36842a7a3c95a501e697c",
+        "line": 159,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/agent_server/desktop_service.py",
+        "portable_source_file": "sources/5f783b91eb5a3b12c5e31ff2e867771925566ad515f130b6aef71ce49d9fe576.json.gz",
+        "snapshot": "sources/5f783b91eb5a3b12c5e31ff2e867771925566ad515f130b6aef71ce49d9fe576.json.gz",
+        "source_id": "openhands/agent_server/desktop_service.py::DesktopService.stop",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/desktop_service.py#L159"
+      },
+      {
+        "body_sha256": "4cc37921094c9620da550608623d13b492d65c330de60d0103852c1ea2b77981",
+        "end_line": 92,
+        "file_sha256": "ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7",
+        "git_blob_sha1": "00d05f9e775dd56c07c49a1ffd61ca33c4effa65",
+        "line": 78,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/agent_server/vscode_service.py",
+        "portable_source_file": "sources/ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7.json.gz",
+        "snapshot": "sources/ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7.json.gz",
+        "source_id": "openhands/agent_server/vscode_service.py::VSCodeService.stop",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/vscode_service.py#L78"
+      }
+    ],
+    "status": "acceptance_proposal_not_gold",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "7dda862e0b6e38d08c9e8463c1fa338ec2cbbf00f4d5b8f494052590aae82ef9",
+  "source_closure": [
+    {
+      "file_sha256": "398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023",
+      "git_blob_sha1": "7d71e3a740d3aeb1600343555a6ee3ef8a05f87b",
+      "path": "openhands/agent_server/api.py",
+      "source_file": "sources/398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023.json.gz"
+    },
+    {
+      "file_sha256": "d1d1547c0a2694aac8476aec460c93b5d90909467e56d2443cb10925f868756e",
+      "git_blob_sha1": "1167578bfb7756ec524c74de4d36ff868b306bf5",
+      "path": "openhands/agent_server/conversation_service.py",
+      "source_file": "sources/d1d1547c0a2694aac8476aec460c93b5d90909467e56d2443cb10925f868756e.json.gz"
+    },
+    {
+      "file_sha256": "5f783b91eb5a3b12c5e31ff2e867771925566ad515f130b6aef71ce49d9fe576",
+      "git_blob_sha1": "0c77295e2c996ad257a36842a7a3c95a501e697c",
+      "path": "openhands/agent_server/desktop_service.py",
+      "source_file": "sources/5f783b91eb5a3b12c5e31ff2e867771925566ad515f130b6aef71ce49d9fe576.json.gz"
+    },
+    {
+      "file_sha256": "3c387f135d5b988edd224c908e21a43d960f6055110b8a35fb74cef970c22533",
+      "git_blob_sha1": "6fb85d7c4f09318cfdf3d185dcb1aafad082ce2c",
+      "path": "openhands/agent_server/models.py",
+      "source_file": "sources/3c387f135d5b988edd224c908e21a43d960f6055110b8a35fb74cef970c22533.json.gz"
+    },
+    {
+      "file_sha256": "ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7",
+      "git_blob_sha1": "00d05f9e775dd56c07c49a1ffd61ca33c4effa65",
+      "path": "openhands/agent_server/vscode_service.py",
+      "source_file": "sources/ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7.json.gz"
+    },
+    {
+      "file_sha256": "8313a46cd570ba2bdc79f922097065e6cd71e53db71e39650126c66352676819",
+      "git_blob_sha1": "6bbb296631eadb3fc9bad1b72985375c31b042ee",
+      "path": "openhands/sdk/context/view.py",
+      "source_file": "sources/8313a46cd570ba2bdc79f922097065e6cd71e53db71e39650126c66352676819.json.gz"
+    },
+    {
+      "file_sha256": "d51834262d7b015db886c65c6f81ade7fa43cf3542b3d929f45e27ef098685eb",
+      "git_blob_sha1": "82c22df7da6216a139ab129d5c91539d208fd12d",
+      "path": "openhands/sdk/conversation/event_store.py",
+      "source_file": "sources/d51834262d7b015db886c65c6f81ade7fa43cf3542b3d929f45e27ef098685eb.json.gz"
+    },
+    {
+      "file_sha256": "60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee",
+      "git_blob_sha1": "acf972d61fea0df96a5452abbf86ca3ab5f66cef",
+      "path": "openhands/sdk/conversation/impl/local_conversation.py",
+      "source_file": "sources/60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee.json.gz"
+    },
+    {
+      "file_sha256": "f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b",
+      "git_blob_sha1": "3779855067ca3457bb454bc28cfce9abd3c0cef9",
+      "path": "openhands/sdk/conversation/impl/remote_conversation.py",
+      "source_file": "sources/f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b.json.gz"
+    },
+    {
+      "file_sha256": "af76cade321cfb2ab5a42c3a9a6d3fbd213286c765116e31e45b70abcb8fc2b6",
+      "git_blob_sha1": "1922d52e7e9e9b58805dc403903a34e60a54400d",
+      "path": "openhands/sdk/llm/llm.py",
+      "source_file": "sources/af76cade321cfb2ab5a42c3a9a6d3fbd213286c765116e31e45b70abcb8fc2b6.json.gz"
+    },
+    {
+      "file_sha256": "f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e",
+      "git_blob_sha1": "a3c4fe3faf75a36454c4315558201aa43ca9794a",
+      "path": "openhands/sdk/llm/mixins/fn_call_converter.py",
+      "source_file": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz"
+    },
+    {
+      "file_sha256": "787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc",
+      "git_blob_sha1": "9d9db4acf46b8ae96a3d088a54ab9147425f9a3a",
+      "path": "openhands/sdk/llm/mixins/non_native_fc.py",
+      "source_file": "sources/787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc.json.gz"
+    },
+    {
+      "file_sha256": "f6342cb864536121d8ae378893a7dd0c65becbc19108514308a96690adbf34c6",
+      "git_blob_sha1": "bc57e9cb9fa62086a2e2f25950b6ed10ac9a3ac9",
+      "path": "openhands/sdk/llm/utils/model_features.py",
+      "source_file": "sources/f6342cb864536121d8ae378893a7dd0c65becbc19108514308a96690adbf34c6.json.gz"
+    },
+    {
+      "file_sha256": "c88914c60b729b8a2e39c8b4a35bb50499d3854b74e678db9610b46f64ef99bf",
+      "git_blob_sha1": "11b025d2833887c6d14495c33fff30b827c36f5f",
+      "path": "openhands/sdk/llm/utils/retry_mixin.py",
+      "source_file": "sources/c88914c60b729b8a2e39c8b4a35bb50499d3854b74e678db9610b46f64ef99bf.json.gz"
+    },
+    {
+      "file_sha256": "d074ecb5288134cd0a99d36c61154c80f02b75bd743bda03324817ada56d54a2",
+      "git_blob_sha1": "a61323648009a7c407fe46f3b1d2bfc839cdfe3c",
+      "path": "openhands/sdk/sandbox/docker.py",
+      "source_file": "sources/d074ecb5288134cd0a99d36c61154c80f02b75bd743bda03324817ada56d54a2.json.gz"
+    },
+    {
+      "file_sha256": "417d2ce18da46e62c5e223e1546b15423d7fa284bd5b72434ef2f2b4d949a1c4",
+      "git_blob_sha1": "b1a5b32a6bf016ebfc75ae422c61e44487b8cc22",
+      "path": "openhands/sdk/utils/async_executor.py",
+      "source_file": "sources/417d2ce18da46e62c5e223e1546b15423d7fa284bd5b72434ef2f2b4d949a1c4.json.gz"
+    },
+    {
+      "file_sha256": "db7fe204eb8ed046b3bfdecf9e0b16f6d2b2addb1097156b2a0fee44096adc54",
+      "git_blob_sha1": "1e8ac7d6c5b7639f8d2b95afb96d8ad344a23770",
+      "path": "openhands/tools/execute_bash/definition.py",
+      "source_file": "sources/db7fe204eb8ed046b3bfdecf9e0b16f6d2b2addb1097156b2a0fee44096adc54.json.gz"
+    },
+    {
+      "file_sha256": "11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0",
+      "git_blob_sha1": "4f17e7545375536202734cea8ca492192645c948",
+      "path": "openhands/tools/execute_bash/terminal/subprocess_terminal.py",
+      "source_file": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz"
+    }
+  ],
+  "source_only": true
+}

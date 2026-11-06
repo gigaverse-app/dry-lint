@@ -1,0 +1,383 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.012532,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "0010509459731a8023a59bdada89be9785c1656863dc6467d98d6316c62cf5bd",
+      "prompt_sha256": "f818d7755829d13a2269b251fa1700d90c816794e9df638c5afe30910c91037a",
+      "request_key": "31385421bb6fef21bd06e3e773e2c83bac932da1e817347c87557e9a07383e05",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 3051,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 3051,
+            "model": null,
+            "output_tokens": 643,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 643,
+        "output_tokens_details": {
+          "thinking_tokens": 277
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.72,
+        "second_opinion": null,
+        "why": "Both functions implement the XDG desktop portal Request/Response handshake. Each generates a `t3_<uuid>` handle token and builds the expected request path from the namespace. Each calls the portal method with `handle_token` in the options, then checks that the returned handle starts with the namespace. Each then waits for the Response signal at that handle, replaying a response that arrived before the method reply. Each decodes the `[status, results]` pair with `decodeResponse` and sends a Request.Close if the request did not complete. A shared helper such as `portalRequest({call, namespace, owner, interface, member, signature, body, options, timeout, responses})` could own this sequence. Callers would keep their own variation: the Screenshot flow's AddMatch subscription and listener, the shortcut flow's class-level listener and pending state, the timeout values, and the mapping of status codes to outcomes (cancelled or denied errors, the BindShortcuts UI update, PNG reading). Only the request/response lifecycle overlaps, not the whole functions."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00013452,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "a1ca82152efd14a42652c1bac0686338be2e1870fe858cdba9564041e941abeb",
+      "prompt_sha256": "9dac9e3ebcde8d1af53bacd4e5b9f6f3405d4282e874db620ed9d7f2e3b91042",
+      "request_key": "6f2f11a56d70f8fb013ee5fc1436ed3a138cb269d98a5d118ac2b5e5b2d8f575",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 3363,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.34,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.38,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "acceptance_scope": "Source adjudication and recommendation, portable packaging pending. No claim of human gold or new coordinator acceptance. Exact native endpoint IDs retained.",
+    "accepted_hard_positive": false,
+    "actual_callers": [
+      {
+        "code": "        shortcutMessage: null,\n        message: null,\n      });\n      yield* Effect.tryPromise({\n        try: async () => {\n          const { PortalCaptureShortcut } = await import(\"./PortalCaptureShortcut.ts\");\n          return new PortalCaptureShortcut(\n            linuxAppId,\n            isModifierPairShortcut(shortcut)\n              ? {\n                  key: \"2\",\n                  ctrlKey: true,\n                  modKey: false,\n                  altKey: false,",
+        "file_sha256": "ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422",
+        "line": 1276,
+        "path": "apps/desktop/src/snapShot/DesktopSnapShot.ts",
+        "portable_source_file": "sources/ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422.json.gz",
+        "start_line": 1270
+      },
+      {
+        "code": "      this.extensionVersion = parsed.Version.value;\n      if (this.extensionVersion === 1 || this.extensionVersion === 2) return \"gnome-extension\";\n    }\n    return \"picker\";\n  }\n\n  async capturePortal(): Promise<LinuxWindowSnapshot> {\n    const owner = await this.call({\n      destination: DBUS,\n      path: DBUS_PATH,\n      interface: DBUS,\n      member: \"GetNameOwner\",\n      signature: \"s\",\n      body: [PORTAL],",
+        "file_sha256": "0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee",
+        "line": 214,
+        "path": "apps/desktop/src/snapShot/LinuxSnapShot.ts",
+        "portable_source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz",
+        "start_line": 208
+      },
+      {
+        "code": "      case \"kde\": {\n        if (!kdePaths) throw new Error(\"KDE capture setup is unavailable in this build.\");\n        const { captureKdeWindow } = await import(\"./KdeSnapShot.ts\");\n        return await captureKdeWindow(kdePaths, options);\n      }\n      case \"screenshot-portal\":\n        return await connection.capturePortal();\n      case \"gnome-extension\": {\n        const snapshot = await connection.captureExtension(appId, options);\n        retained = snapshot.feedback !== undefined;\n        return snapshot;\n      }\n      case \"picker\":\n        return undefined;",
+        "file_sha256": "0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee",
+        "line": 408,
+        "path": "apps/desktop/src/snapShot/LinuxSnapShot.ts",
+        "portable_source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz",
+        "start_line": 402
+      },
+      {
+        "code": "        path: \"/org/freedesktop/DBus\",\n        interface: DBUS,\n        member: \"AddMatch\",\n        signature: \"s\",\n        body: [rule],\n      });\n    const created = await this.request(\"CreateSession\", \"\", [], {\n      session_handle_token: new Variant(\n        \"s\",\n        `t3_capture_${NodeCrypto.randomUUID().replaceAll(\"-\", \"\")}`,\n      ),\n    });\n    const session = decodeSession(created).session_handle.value;\n    const sessionNamespace = this.namespace.replace(\"/request/\", \"/session/\");",
+        "file_sha256": "2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c",
+        "line": 394,
+        "path": "apps/desktop/src/snapShot/PortalCaptureShortcut.ts",
+        "portable_source_file": "sources/2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c.json.gz",
+        "start_line": 388
+      },
+      {
+        "code": "    if (!session.startsWith(sessionNamespace)) throw new Error(\"Invalid shortcut session handle.\");\n    this.session = session;\n    this.shortcutId = this.managedByHyprland\n      ? HYPRLAND_CAPTURE_ACTION\n      : `t3-snap-shot-${NodeCrypto.createHash(\"sha256\").update(trigger).digest(\"hex\").slice(0, 16)}`;\n    // Every session must bind, even when the desktop remembers this shortcut's approval.\n    const bound = await this.request(\"BindShortcuts\", \"oa(sa{sv})s\", [\n      this.session,\n      [\n        [\n          this.shortcutId,\n          {\n            description: new Variant(\"s\", \"Capture a window\"),\n            ...(!this.managedByHyprland ? { preferred_trigger: new Variant(\"s\", trigger) } : {}),",
+        "file_sha256": "2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c",
+        "line": 408,
+        "path": "apps/desktop/src/snapShot/PortalCaptureShortcut.ts",
+        "portable_source_file": "sources/2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c.json.gz",
+        "start_line": 402
+      }
+    ],
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "private async request(\n    member: string,\n    signature: string,\n    body: unknown[],\n    options: Record<string, Variant<unknown>> = {},\n  ) {\n    const token = `t3_${NodeCrypto.randomUUID().replaceAll(\"-\", \"\")}`;\n    const expectedPath = this.namespace + token;\n    let resolve!: (body: unknown) => void;\n    const response = new Promise<unknown>((done) => {\n      resolve = done;\n    });\n    this.pending = { path: expectedPath, resolve };\n    this.responses.clear();\n    let completed = false;\n    try {\n      const reply = await this.call({\n        destination: this.owner,\n        path: PATH,\n        interface: SHORTCUTS,\n        member,\n        signature: signature + \"a{sv}\",\n        body: [...body, { ...options, handle_token: new Variant(\"s\", token) }],\n      });\n      const handle = string(reply.body[0]);\n      if (!handle.startsWith(this.namespace)) throw new Error(\"Invalid shortcut request handle.\");\n      this.pending.path = handle;\n      if (this.responses.has(handle)) resolve(this.responses.get(handle));\n      const [status, results] = decodeResponse(\n        await this.wait(response, member === \"BindShortcuts\" ? 120_000 : 5_000),\n      );\n      completed = true;\n      if (status !== 0) {\n        if (member === \"BindShortcuts\") {\n          this.update({\n            shortcutRegistered: false,\n            shortcutPending: false,\n            shortcutMessage:\n              this.version >= 2\n                ? \"Shortcut permission wasn't granted. Open shortcut permissions to allow it.\"\n                : \"Shortcut permission wasn't granted. Allow T3 Code in your desktop's shortcut settings.\",\n          });\n          return undefined;\n        }\n        throw new Error(\"Your desktop could not create a capture shortcut session.\");\n      }\n      return results;\n    } finally {\n      if (!completed && !this.closed && this.pending) this.closeObject(this.pending.path, REQUEST);\n      this.pending = undefined;\n      this.responses.clear();\n    }\n  }",
+        "context": "// @effect-diagnostics nodeBuiltinImport:off -- Stable shortcut IDs and unique portal request tokens.\n// @effect-diagnostics globalTimers:off -- Bounded D-Bus calls and user-consent requests at the native boundary.\nimport * as NodeCrypto from \"node:crypto\";\nimport {\n  DBusError,\n  Message,\n  MessageFlag,\n  MessageType,\n  Variant,\n  sessionBus,\n  type MessageBus,\n  type MessageLike,\n} from \"dbus-next\";\nimport * as Schema from \"effect/Schema\";\nconst PATH = \"/org/freedesktop/portal/desktop\";\nconst SHORTCUTS = \"org.freedesktop.portal.GlobalShortcuts\";\nconst REQUEST = \"org.freedesktop.portal.Request\";\nconst string = Schema.decodeUnknownSync(Schema.String);\nconst decodeResponse = Schema.decodeUnknownSync(\n  Schema.Tuple([Schema.Int, Schema.Record(Schema.String, Schema.Unknown)]),\n);",
+        "context_digest": "2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c",
+        "declaration": null,
+        "end_line": 313,
+        "hash": "802b5e5f3d069914",
+        "line": 261,
+        "name": "request",
+        "origin": null,
+        "owner": "PortalCaptureShortcut",
+        "path": "apps/desktop/src/snapShot/PortalCaptureShortcut.ts",
+        "portable_source_file": "sources/2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "async capturePortal(): Promise<LinuxWindowSnapshot> {\n    const owner = await this.call({\n      destination: DBUS,\n      path: DBUS_PATH,\n      interface: DBUS,\n      member: \"GetNameOwner\",\n      signature: \"s\",\n      body: [PORTAL],\n    });\n    const sender = decodeString(owner.body[0]);\n    const token = `t3_${NodeCrypto.randomUUID().replaceAll(\"-\", \"\")}`;\n    const namespace = `${PORTAL_PATH}/request/${this.uniqueName.slice(1).replaceAll(\".\", \"_\")}/`;\n    let handle = namespace + token;\n    let completed = false;\n    // Subscribe before Screenshot: the response may precede its method reply.\n    const responses = new Map<string, unknown>();\n    let deliver: ((body: unknown) => void) | undefined;\n    const listener = (message: Message) => {\n      if (\n        message.type !== MessageType.SIGNAL ||\n        message.sender !== sender ||\n        message.interface !== REQUEST ||\n        message.member !== \"Response\" ||\n        !message.path.startsWith(namespace)\n      )\n        return;\n      if (deliver && message.path === handle) deliver(message.body);\n      else if (responses.size < 8) responses.set(message.path, message.body);\n    };\n    this.bus.on(\"message\", listener);\n    try {\n      await this.call({\n        destination: DBUS,\n        path: DBUS_PATH,\n        interface: DBUS,\n        member: \"AddMatch\",\n        signature: \"s\",\n        body: [\n          `type='signal',sender='${sender}',interface='${REQUEST}',member='Response',path_namespace='${namespace.slice(0, -1)}'`,\n        ],\n      });\n      const reply = await this.call({\n        destination: sender,\n        path: PORTAL_PATH,\n        interface: SCREENSHOT,\n        member: \"Screenshot\",\n        signature: \"sa{sv}\",\n        body: [\n          \"\",\n          {\n            handle_token: new Variant(\"s\", token),\n            interactive: new Variant(\"b\", false),\n            modal: new Variant(\"b\", false),\n            target: new Variant(\"u\", 8),\n          },\n        ],\n      });\n      handle = decodeString(reply.body[0]);\n      if (!handle.startsWith(namespace)) throw new Error(\"Invalid screenshot request handle.\");\n      const body = await this.wait(\n        new Promise<unknown>((resolve) => {\n          deliver = resolve;\n          if (responses.has(handle)) resolve(responses.get(handle));\n        }),\n        120_000,\n      );\n      const [status, results] = decodeResponse(body);\n      completed = true;\n      if (status === 1) throw new Error(\"Snapshot was cancelled.\");\n      if (status !== 0) throw new Error(\"Your desktop did not allow the snapshot.\");\n      const uri = decodeUri(results.uri).value;\n      return { png: await readPortalPng(uri) };\n    } finally {\n      this.bus.removeListener(\"message\", listener);\n      if (!completed) {\n        this.bus.send(\n          new Message({\n            destination: sender,\n            path: handle,\n            interface: REQUEST,\n            member: \"Close\",\n            flags: MessageFlag.NO_REPLY_EXPECTED,\n          }),\n        );\n      }\n    }\n  }",
+        "context": "// @effect-diagnostics globalTimers:off -- D-Bus deadlines run at a native async boundary.\n// @effect-diagnostics nodeBuiltinImport:off -- Read the portal file through one bounded file descriptor at the native adapter boundary.\n\nimport * as NodeCrypto from \"node:crypto\";\nimport {\n  DBusError,\n  Message,\n  MessageFlag,\n  MessageType,\n  NameFlag,\n  RequestNameReply,\n  Variant,\n  sessionBus,\n  type MessageBus,\n  type MessageLike,\n} from \"dbus-next\";\nimport * as Schema from \"effect/Schema\";\nimport { isGnomeCaptureSession, readPortalPng, resizeLinuxCapture } from \"./linuxCaptureSession.ts\";\nconst PORTAL = \"org.freedesktop.portal.Desktop\";\nconst PORTAL_PATH = \"/org/freedesktop/portal/desktop\";\nconst SCREENSHOT = \"org.freedesktop.portal.Screenshot\";\nconst REQUEST = \"org.freedesktop.portal.Request\";\nconst DBUS = \"org.freedesktop.DBus\";\nconst DBUS_PATH = \"/org/freedesktop/DBus\";\nconst UInt = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 0xffff_ffff }));\nconst StringVariant = Schema.Struct({ signature: Schema.Literal(\"s\"), value: Schema.String });\nconst WindowMetadata = Schema.Struct({\n  title: Schema.String,\n  appName: Schema.String,\n  appIdentifier: Schema.String,\n  processId: UInt,\n  bounds: Schema.Struct({\n    x: Schema.Int,\n    y: Schema.Int,\n    width: Schema.Int.check(Schema.isGreaterThan(0)),\n    height: Schema.Int.check(Schema.isGreaterThan(0)),\n  }),\n});\nexport type LinuxWindowMetadata = typeof WindowMetadata.Type & {\n  readonly clientBounds?: typeof WindowMetadata.Type.bounds;\n  readonly accessibilityBoundsReliable?: boolean;\n};\nconst decodeString = Schema.decodeUnknownSync(Schema.String);\nconst decodeResponse = Schema.decodeUnknownSync(\n  Schema.Tuple([UInt, Schema.Record(Schema.String, Schema.Unknown)]),\n);\nconst decodeUri = Schema.decodeUnknownSync(StringVariant);\nexport type LinuxWindowSnapshot = {\n  readonly png: Buffer;\n  readonly window?: LinuxWindowMetadata;\n  readonly feedback?: LinuxCaptureFeedback;\n};\nexport type LinuxCaptureFeedback = {\n  readonly animationStarted: boolean;\n  readonly activate: (title: string) => Promise<void>;\n  readonly animateTo: (frame: {\n    x: number;\n    y: number;\n    width: number;\n    height: number;\n  }) => Promise<void>;\n  readonly complete: () => Promise<void>;\n  readonly close: () => void;\n};",
+        "context_digest": "0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee",
+        "declaration": null,
+        "end_line": 300,
+        "hash": "1799e3f9314c6538",
+        "line": 214,
+        "name": "capturePortal",
+        "origin": null,
+        "owner": "LinuxCaptureConnection",
+        "path": "apps/desktop/src/snapShot/LinuxSnapShot.ts",
+        "portable_source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.46427639260836995,
+      "similarity_reusable": false
+    },
+    "contract": "Asynchronous XDG portal Request/Response handshake: mint namespace handle token, establish pending response handling before method call, pass handle_token, validate returned handle namespace, replay early response for actual handle, wait/decode response, and close incomplete request in finally. This is a shared protocol operation across Screenshot and GlobalShortcuts, not whole workflow equivalence.",
+    "existing_shared_owner": "LinuxCaptureConnection.capturePortal and PortalCaptureShortcut.request each implement predicted/returned handle reconciliation and early Response replay. Class call/wait/closeObject and decodeResponse helpers own pieces; no existing shared request-handshake owner found in supplied full files. PortalCaptureShortcut.message routes responses but does not issue or reconcile a request.",
+    "id": "T3-N01",
+    "legitimate_variations": [
+      "Screenshot owns GetNameOwner/AddMatch and per-call signal listener; shortcut owns class-level authenticated signal listener, shared response buffer and pending slot. Keep those lifetimes and concurrency guards explicit.",
+      "Timeout is request-specific (Screenshot and BindShortcuts long; CreateSession short).",
+      "Screenshot cancellation/denial errors and PNG URI loading differ from shortcut BindShortcuts permission updates/results. Do not move status interpretation, session configuration or image decoding into the common handshake.",
+      "Shortcut closeObject already owns sending Close; screenshot still sends independently. call/wait helpers are per-class and do not own the complete handshake."
+    ],
+    "proposed_label": "duplicate",
+    "provisional_family_id": "t3-portal-request-response",
+    "repository": "pingdotgg/t3code",
+    "retrieval_profiles": [
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": "similarity_floor",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": "similarity_floor",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "review_observation_path": {
+      "artifact_basename": "t3-new-observations.json",
+      "original_artifact_sha256": "824c56012d262e970c6595ea69ee6927541093f180e906ef08303536c427fb7e"
+    },
+    "review_observation_sha256": "824c56012d262e970c6595ea69ee6927541093f180e906ef08303536c427fb7e",
+    "review_observations": [
+      {
+        "id": "T3-N01",
+        "path": {
+          "artifact_basename": "31385421bb6fef21bd06e3e773e2c83bac932da1e817347c87557e9a07383e05.json",
+          "original_artifact_sha256": "0010509459731a8023a59bdada89be9785c1656863dc6467d98d6316c62cf5bd"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.72,
+          "second_opinion": null,
+          "why": "Both functions implement the XDG desktop portal Request/Response handshake. Each generates a `t3_<uuid>` handle token and builds the expected request path from the namespace. Each calls the portal method with `handle_token` in the options, then checks that the returned handle starts with the namespace. Each then waits for the Response signal at that handle, replaying a response that arrived before the method reply. Each decodes the `[status, results]` pair with `decodeResponse` and sends a Request.Close if the request did not complete. A shared helper such as `portalRequest({call, namespace, owner, interface, member, signature, body, options, timeout, responses})` could own this sequence. Callers would keep their own variation: the Screenshot flow's AddMatch subscription and listener, the shortcut flow's class-level listener and pending state, the timeout values, and the mapping of status codes to outcomes (cancelled or denied errors, the BindShortcuts UI update, PNG reading). Only the request/response lifecycle overlaps, not the whole functions."
+        }
+      },
+      {
+        "id": "T3-N01",
+        "path": {
+          "artifact_basename": "6f2f11a56d70f8fb013ee5fc1436ed3a138cb269d98a5d118ac2b5e5b2d8f575.json",
+          "original_artifact_sha256": "a1ca82152efd14a42652c1bac0686338be2e1870fe858cdba9564041e941abeb"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.34,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.38,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_disagreements": "Claude duplicate 0.72 for narrow handshake; Jev separate 0.38, different concepts. Source supports protocol-level repeated implementation while preserving screenshot/shortcut domain contracts. Recommend positive at handshake scope; coordinator has not yet accepted this new proposal. Preserve dissent.",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "source_operation_regions": [
+      {
+        "code": "    const token = `t3_${NodeCrypto.randomUUID().replaceAll(\"-\", \"\")}`;\n    const namespace = `${PORTAL_PATH}/request/${this.uniqueName.slice(1).replaceAll(\".\", \"_\")}/`;\n    let handle = namespace + token;\n    let completed = false;",
+        "end_line": 227,
+        "portable_source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz",
+        "scope": "Mint token and predicted handle",
+        "sha256": "2bd961f87594ba568b241d25767d5fbde3c3402930be7da530ff635c6df17616",
+        "source_id": "apps/desktop/src/snapShot/LinuxSnapShot.ts::LinuxCaptureConnection.capturePortal",
+        "start_line": 224
+      },
+      {
+        "code": "    const responses = new Map<string, unknown>();\n    let deliver: ((body: unknown) => void) | undefined;\n    const listener = (message: Message) => {\n      if (\n        message.type !== MessageType.SIGNAL ||\n        message.sender !== sender ||\n        message.interface !== REQUEST ||\n        message.member !== \"Response\" ||\n        !message.path.startsWith(namespace)\n      )\n        return;\n      if (deliver && message.path === handle) deliver(message.body);\n      else if (responses.size < 8) responses.set(message.path, message.body);\n    };\n    this.bus.on(\"message\", listener);",
+        "end_line": 243,
+        "portable_source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz",
+        "scope": "Install early-response routing before portal call",
+        "sha256": "614d2a0a3ae0ec964a460fd1868a6e5158b198bf1def8a3c62505922830a22e9",
+        "source_id": "apps/desktop/src/snapShot/LinuxSnapShot.ts::LinuxCaptureConnection.capturePortal",
+        "start_line": 229
+      },
+      {
+        "code": "      const reply = await this.call({\n        destination: sender,\n        path: PORTAL_PATH,\n        interface: SCREENSHOT,\n        member: \"Screenshot\",\n        signature: \"sa{sv}\",\n        body: [\n          \"\",\n          {\n            handle_token: new Variant(\"s\", token),\n            interactive: new Variant(\"b\", false),\n            modal: new Variant(\"b\", false),\n            target: new Variant(\"u\", 8),\n          },\n        ],\n      });\n      handle = decodeString(reply.body[0]);\n      if (!handle.startsWith(namespace)) throw new Error(\"Invalid screenshot request handle.\");\n      const body = await this.wait(\n        new Promise<unknown>((resolve) => {\n          deliver = resolve;\n          if (responses.has(handle)) resolve(responses.get(handle));\n        }),\n        120_000,\n      );\n      const [status, results] = decodeResponse(body);\n      completed = true;",
+        "end_line": 281,
+        "portable_source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz",
+        "scope": "Issue Screenshot request with handle_token; validate actual handle; consume early signal; wait and decode",
+        "sha256": "e21bc29a376a5599af50e71da5283616e3e78a9d5c7328583fb63005485f8d14",
+        "source_id": "apps/desktop/src/snapShot/LinuxSnapShot.ts::LinuxCaptureConnection.capturePortal",
+        "start_line": 255
+      },
+      {
+        "code": "      if (!completed) {\n        this.bus.send(\n          new Message({\n            destination: sender,\n            path: handle,\n            interface: REQUEST,\n            member: \"Close\",\n            flags: MessageFlag.NO_REPLY_EXPECTED,",
+        "end_line": 295,
+        "portable_source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz",
+        "scope": "Close incomplete Request; surrounding listener teardown stays caller-owned",
+        "sha256": "33ecdd01b0b202ae06fc35c4f4fe7c7c3a17895844684ff728edf417fc999bfe",
+        "source_id": "apps/desktop/src/snapShot/LinuxSnapShot.ts::LinuxCaptureConnection.capturePortal",
+        "start_line": 288
+      },
+      {
+        "code": "    const token = `t3_${NodeCrypto.randomUUID().replaceAll(\"-\", \"\")}`;\n    const expectedPath = this.namespace + token;\n    let resolve!: (body: unknown) => void;\n    const response = new Promise<unknown>((done) => {\n      resolve = done;\n    });\n    this.pending = { path: expectedPath, resolve };\n    this.responses.clear();\n    let completed = false;\n    try {\n      const reply = await this.call({\n        destination: this.owner,\n        path: PATH,\n        interface: SHORTCUTS,\n        member,\n        signature: signature + \"a{sv}\",\n        body: [...body, { ...options, handle_token: new Variant(\"s\", token) }],\n      });\n      const handle = string(reply.body[0]);\n      if (!handle.startsWith(this.namespace)) throw new Error(\"Invalid shortcut request handle.\");\n      this.pending.path = handle;\n      if (this.responses.has(handle)) resolve(this.responses.get(handle));\n      const [status, results] = decodeResponse(\n        await this.wait(response, member === \"BindShortcuts\" ? 120_000 : 5_000),\n      );\n      completed = true;",
+        "end_line": 292,
+        "portable_source_file": "sources/2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c.json.gz",
+        "scope": "Shortcut Request handshake from predicted handle through status decoding",
+        "sha256": "943f3c52d1ddbe823cbb4f9d98c179a15779ae94f5b68bbe7e5c7704b7fe4330",
+        "source_id": "apps/desktop/src/snapShot/PortalCaptureShortcut.ts::PortalCaptureShortcut.request",
+        "start_line": 267
+      },
+      {
+        "code": "      if (!completed && !this.closed && this.pending) this.closeObject(this.pending.path, REQUEST);\n      this.pending = undefined;\n      this.responses.clear();",
+        "end_line": 311,
+        "portable_source_file": "sources/2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c.json.gz",
+        "scope": "Close incomplete Request and clear pending state",
+        "sha256": "791a539a36791e85ae051eca94982116406e7d6594c897d4a47b5c3ba62d0869",
+        "source_id": "apps/desktop/src/snapShot/PortalCaptureShortcut.ts::PortalCaptureShortcut.request",
+        "start_line": 309
+      }
+    ],
+    "source_proofs": [
+      {
+        "end_line": 300,
+        "file_sha256": "0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee",
+        "path": "apps/desktop/src/snapShot/LinuxSnapShot.ts",
+        "portable_source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz",
+        "snapshot": "sources/apps/desktop/src/snapShot/LinuxSnapShot.ts",
+        "source_id": "apps/desktop/src/snapShot/LinuxSnapShot.ts::LinuxCaptureConnection.capturePortal",
+        "source_sha256": "8a8fb6d9b0f1b865341ffa15fc3ae74f8281b14f3e61c5f56e10740ec7084825",
+        "start_line": 214,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/desktop/src/snapShot/LinuxSnapShot.ts#L214"
+      },
+      {
+        "end_line": 313,
+        "file_sha256": "2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c",
+        "path": "apps/desktop/src/snapShot/PortalCaptureShortcut.ts",
+        "portable_source_file": "sources/2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c.json.gz",
+        "snapshot": "sources/apps/desktop/src/snapShot/PortalCaptureShortcut.ts",
+        "source_id": "apps/desktop/src/snapShot/PortalCaptureShortcut.ts::PortalCaptureShortcut.request",
+        "source_sha256": "885d7748ddb6ef562a7194b64fc79b2aa503177125c85e28b32e3a01f67c19fb",
+        "start_line": 261,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/desktop/src/snapShot/PortalCaptureShortcut.ts#L261"
+      }
+    ],
+    "status": "source_supported_positive_proposal_pending_coordinator_acceptance"
+  },
+  "source_adjudication_sha256": "133221c3b7eeaf0efd621b03913cc01eea9b2979bdcff639f93f2de3bcaf4256",
+  "source_closure": [
+    {
+      "file_sha256": "ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422",
+      "git_blob_sha1": "53799e157793985f689c7d8b4093d38065d0d56f",
+      "path": "apps/desktop/src/snapShot/DesktopSnapShot.ts",
+      "source_file": "sources/ee43bc288e036675ce3c7bc4e2c547a6850dcb0608f89e4106d6a708acc39422.json.gz"
+    },
+    {
+      "file_sha256": "0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee",
+      "git_blob_sha1": "3d05c5eecceb8225b5db7f13dd3af4bcbc715307",
+      "path": "apps/desktop/src/snapShot/LinuxSnapShot.ts",
+      "source_file": "sources/0cf150ba69f79e2705924a5024b15f907d99b39709b3ad2505d2a3d58d220bee.json.gz"
+    },
+    {
+      "file_sha256": "2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c",
+      "git_blob_sha1": "ec42af46a388180d6c5e5f374f027069a0beb26e",
+      "path": "apps/desktop/src/snapShot/PortalCaptureShortcut.ts",
+      "source_file": "sources/2a0236acb122e74500c164740039cec088322293ca06f5795cce591a019f025c.json.gz"
+    }
+  ],
+  "source_only": true
+}

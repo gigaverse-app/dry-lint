@@ -1,0 +1,495 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.00029092,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "b94886e5d6272e3e36f762081e8da5d5d2f52c22cad00295fddd5d4a1ceef5fc",
+      "prompt_sha256": "6adc0cfa39308c4307d31ec3ec57da7ac5f6b615bc7227ced4745349b3d38344",
+      "request_key": "c4dba1b0ab68e564a0bb3038287fb3cc90ff5c8b801157fa77c262c8d48a3d0d",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 7273,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.38,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "new",
+        "score": 0.35,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    },
+    {
+      "estimated_usd": 0.01586,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "6e004fea3102a4f4b1632bd58e40388cd37c993be0647d3beb587b7896c74792",
+      "prompt_sha256": "312f281e0e4ea004b2e382c4639266e33e5b26787245aa41c504719471df25fe",
+      "request_key": "1b58bb9954b73dfe56ecdbc9d99dd9ece166839eb6d133251171b095050d8bfc",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 6190,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 6190,
+            "model": null,
+            "output_tokens": 348,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 348,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.62,
+        "second_opinion": null,
+        "why": "Both components independently implement the same sub-operation: tracking horizontal overflow of a search input. Each has an identical `updateOverflow` that reads `Math.abs(input.scrollLeft)` and sets `overflow.start = offset > 1` and `overflow.end = scrollWidth - clientWidth - offset > 1`. Each then wires it the same way: an effect on the query value, a resize observer on the input, and `onScroll`, feeding `data-overflow-start`/`data-overflow-end`. This could be a shared hook or helper, e.g. `createInputOverflow(getInput, value)`, that returns the overflow state, an update function and the observer setup. The overlap is limited to that. The key handling, the combobox and results list, clear behavior, focus management and narrow-screen logic differ legitimately and should stay in their callers. The clear-and-refocus step is too small and too different to count, since one uses `preventScroll` and the other calls the search store's `clear`."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "behavioral_execution": false,
+    "caller_owner_proof": [
+      {
+        "file_sha256": "4ccaa1b21a3056b964eee921b61fe90065ece9ab6aa9ef017cdd34a783a7c1c2",
+        "path": "packages/app/src/settings/navigation.tsx",
+        "portable_source_file": "sources/4ccaa1b21a3056b964eee921b61fe90065ece9ab6aa9ef017cdd34a783a7c1c2.json.gz",
+        "snapshot": "acceptance-source/4ccaa1b21a3056b964eee921b61fe90065ece9ab6aa9ef017cdd34a783a7c1c2.txt",
+        "snippets": [
+          {
+            "code": "import { Button } from \"@opencode/ui/button\"\nimport { Icon } from \"@opencode/ui/icon\"\nimport { Menu } from \"@opencode/ui/menu\"\nimport { Tabs } from \"@opencode/ui/tabs\"\nimport { createEffect, ErrorBoundary, For, on, Show, type ComponentProps, type JSX } from \"solid-js\"\nimport { useLanguage } from \"@/runtime/i18n/language\"\nimport { ErrorPage } from \"@/shell/errors/error\"\nimport { useSettingsSurface } from \"./surface\"\nimport { SettingsSearch } from \"./search\"\nimport \"./search.css\"\n\nexport type SettingsNavItem = {\n  value: string\n  label: string",
+            "end_line": 14,
+            "start_line": 1
+          },
+          {
+            "code": "          </Menu>\n        </div>\n      </div>\n      <aside class=\"settings-sidebar\" data-searchable={searchable()}>\n        <div class=\"settings-nav\">\n          <button type=\"button\" class=\"settings-back\" onClick={back}>\n            <Icon name=\"arrow-left\" size=\"small\" class=\"settings-back-icon\" />\n            <span>{backLabel()}</span>\n          </button>\n          <Show when={searchable()}>\n            <SettingsSearch />\n          </Show>\n          <Show when={!searchable() || !surface.search.state.query.trim()}>\n            <Tabs.List class=\"settings-nav-groups\">\n              <For each={props.groups}>\n                {(group) => (",
+            "end_line": 115,
+            "start_line": 100
+          }
+        ]
+      },
+      {
+        "file_sha256": "9997360646610d212f378b73b6b114307444b626b2662337c6c7afcd9c668268",
+        "path": "packages/app/src/home/sessions/controller.tsx",
+        "portable_source_file": "sources/9997360646610d212f378b73b6b114307444b626b2662337c6c7afcd9c668268.json.gz",
+        "snapshot": "acceptance-source/9997360646610d212f378b73b6b114307444b626b2662337c6c7afcd9c668268.txt",
+        "snippets": [
+          {
+            "code": "      title: language.t(\"command.palette\"),\n      hidden: true,\n      onSelect: async () => {\n        const conn = home.server.focused()\n\n        if (!conn) return\n        const ctx = home.server.focusedContext()\n\n        if (!ctx) return\n        const { HomeCommandPalette } = await import(\"./command-palette\")\n        void dialog.show(() => (\n          <HomeCommandPalette\n            server={conn}\n            onSelectSession={(entry) => {\n              if (!entry.sessionID || !entry.directory || !entry.server) return\n              const sessionID = entry.sessionID\n              const server = entry.server\n              const directory = entry.project?.worktree ?? entry.directory\n              ctx.projects.open(directory)\n              ctx.projects.touch(directory)\n              void startTransition(() => {\n                const tab = tabs.addSessionTab({ server, sessionId: sessionID })\n                tabs.select(tab)\n              })\n            }}\n          />\n        ))\n      },\n    },",
+            "end_line": 179,
+            "start_line": 151
+          }
+        ]
+      },
+      {
+        "file_sha256": "d1beee2b1d92c804d27852526f29264e09e7c4d172f77ae36d0647714e620c96",
+        "path": "packages/app/src/shell/commands/dialog.tsx",
+        "portable_source_file": "sources/d1beee2b1d92c804d27852526f29264e09e7c4d172f77ae36d0647714e620c96.json.gz",
+        "snapshot": "acceptance-source/d1beee2b1d92c804d27852526f29264e09e7c4d172f77ae36d0647714e620c96.txt",
+        "snippets": [
+          {
+            "code": "import { useTabs } from \"@/shell/tabs/tabs\"\nimport { SessionTabAvatar } from \"@/shell/layout/session-tab-avatar\"\nimport { getRelativeTime } from \"@/shell/time\"\nimport { createCommandPaletteFileEntry, createCommandPaletteModel, type CommandPaletteEntry } from \"./palette\"\nimport { createCommandPaletteSearch } from \"./search\"\nimport \"./dialog.css\"\n\nfunction groups(entries: CommandPaletteEntry[]) {\n  const map = new Map<string, CommandPaletteEntry[]>()\n\n  for (const entry of entries) map.set(entry.category, [...(map.get(entry.category) ?? []), entry])\n\n  return Array.from(map.entries()).map(([category, entries]) => ({ category, entries }))\n}\n\nexport function matchesCommandPaletteEntry(entry: CommandPaletteEntry, query: string) {\n  const value = query.toLowerCase()\n\n  return [entry.title, entry.description, entry.category].some((text) => text?.toLowerCase().includes(value))\n}\n\nexport function DialogCommandPalette(props: { onOpenFile?: (path: string) => void }) {\n  const palette = createCommandPaletteModel(props)\n\n  const items = (q: string) => {\n    if (!q) return [...palette.preferredCommandEntries(), ...palette.recentFileEntries()]\n\n    return palette.commandEntries().filter((entry) => matchesCommandPaletteEntry(entry, q))\n  }",
+            "end_line": 40,
+            "start_line": 12
+          }
+        ]
+      },
+      {
+        "file_sha256": "6dc4c1e9bc6ba08f15b3fa5f4e29fc6e7ec69db4e8cf4fc8ffd7d8413de1eb59",
+        "path": "packages/core/src/database/sqlite.bun.ts",
+        "portable_source_file": "sources/6dc4c1e9bc6ba08f15b3fa5f4e29fc6e7ec69db4e8cf4fc8ffd7d8413de1eb59.json.gz",
+        "snapshot": "acceptance-source/6dc4c1e9bc6ba08f15b3fa5f4e29fc6e7ec69db4e8cf4fc8ffd7d8413de1eb59.txt",
+        "snippets": [
+          {
+            "code": "        Effect.try({\n          try: () => native.loadExtension(path),\n          catch: (cause) =>\n            new SqlError({\n              reason: classifySqliteError(cause, { message: \"Failed to load extension\", operation: \"loadExtension\" }),\n            }),\n        }),\n    })\n\n    return yield* Sqlite.makeClient(options, connection, TypeId, (acquirer) => ({\n      export: Effect.flatMap(acquirer, (_) => _.export),\n      loadExtension: (path: string) => Effect.flatMap(acquirer, (_) => _.loadExtension(path)),\n    }))\n  })\n\nconst nativeLayer = (config: Config) =>\n  Layer.effect(",
+            "end_line": 84,
+            "start_line": 68
+          }
+        ]
+      },
+      {
+        "file_sha256": "1b737bc2f884ff3931d20bd4f76490a384b9ae54fbe4645fc80cd6f4d81eb47a",
+        "path": "packages/core/src/database/sqlite.node.ts",
+        "portable_source_file": "sources/1b737bc2f884ff3931d20bd4f76490a384b9ae54fbe4645fc80cd6f4d81eb47a.json.gz",
+        "snapshot": "acceptance-source/1b737bc2f884ff3931d20bd4f76490a384b9ae54fbe4645fc80cd6f4d81eb47a.txt",
+        "snippets": [
+          {
+            "code": "          try: () => native.loadExtension(path),\n          catch: (cause) =>\n            new SqlError({\n              reason: classifySqliteError(cause, { message: \"Failed to load extension\", operation: \"loadExtension\" }),\n            }),\n        }),\n    })\n\n    return yield* Sqlite.makeClient(options, connection, TypeId, (acquirer) => ({\n      loadExtension: (path: string) => Effect.flatMap(acquirer, (_) => _.loadExtension(path)),\n    }))\n  })\n\nconst nativeLayer = (config: Config) =>\n  Layer.effect(\n    Sqlite.Native,\n    Effect.gen(function* () {",
+            "end_line": 81,
+            "start_line": 65
+          }
+        ]
+      },
+      {
+        "file_sha256": "f0612f903da88ba4dce048dd611b6337118665d68dba03f55faa1ce8cdd9e081",
+        "path": "packages/core/src/database/sqlite.workerd.ts",
+        "portable_source_file": "sources/f0612f903da88ba4dce048dd611b6337118665d68dba03f55faa1ce8cdd9e081.json.gz",
+        "snapshot": "acceptance-source/f0612f903da88ba4dce048dd611b6337118665d68dba03f55faa1ce8cdd9e081.txt",
+        "snippets": [
+          {
+            "code": "// does not depend on @cloudflare/workers-types (whose ambient globals conflict\n// with @types/bun). Shapes match the SqlStorage and DurableObjectStorage docs.\ntype SqlStorageValue = ArrayBuffer | string | number | null\n\ninterface SqlStorageCursor {\n  readonly columnNames: Array<string>\n  raw(): IterableIterator<Array<SqlStorageValue>>\n  toArray(): Array<Record<string, SqlStorageValue>>\n}\n\nexport interface SqlStorage {\n  exec(query: string, ...bindings: Array<unknown>): SqlStorageCursor\n}\n\nexport interface DurableObjectStorage {\n  readonly sql: SqlStorage\n  transaction<T>(closure: (txn: { rollback(): void }) => Promise<T>): Promise<T>\n  transactionSync<T>(closure: () => T): T\n}\n\ninterface SqliteClient extends SqlClient.SqlClient {\n  readonly [TypeId]: TypeId\n  readonly config: Config\n  readonly updateValues: never\n}\n\ninterface Config {\n  readonly storage: DurableObjectStorage\n  readonly spanAttributes?: Record<string, unknown>\n  readonly transformResultNames?: (str: string) => string\n  readonly transformQueryNames?: (str: string) => string\n}\n\n// sql.exec() rejects BEGIN/COMMIT/SAVEPOINT, so SqlClient.make's default\n// transaction SQL can never run. withTransaction is replaced below with a\n// DurableObjectStorage.transaction-backed implementation; this service only\n// tracks the active transaction connection for statements and nesting checks.\nconst WorkerdTransaction = Context.Service<SqlClient.TransactionConnection, SqlClient.TransactionConnection.Service>(\n  \"@opencode/core/database/SqliteWorkerdTransaction\",\n)\n\nconst transactionError = (message: string) =>\n  new SqlError({\n    reason: new UnknownError({ cause: new Error(message), message, operation: \"transaction\" }),\n  })\n\nconst makeWithTransaction =\n  (\n    storage: DurableObjectStorage,\n    connection: Connection,\n    semaphore: Semaphore.Semaphore,\n  ): SqlClient.SqlClient[\"withTransaction\"] =>\n  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>\n    Effect.withFiber((fiber) => {\n      const services = fiber.context\n      if (Context.getOption(services, WorkerdTransaction)._tag === \"Some\")\n        return Effect.fail(\n          transactionError(\"Nested transactions are not supported by Cloudflare Durable Object SQLite storage\"),\n        )\n      const effectWithTxn = Effect.provideContext(\n        effect,\n        Context.add(services, WorkerdTransaction, [connection, 0] as const),\n      )\n      return semaphore.withPermits(1)(\n        Effect.callback((resume) => {\n          let interrupted = false\n          const promise = storage\n            .transaction(\n              (txn) =>\n                new Promise<void>((resolve) => {\n                  if (interrupted) return resolve()\n                  resume(\n                    Effect.onExit(effectWithTxn, (exit) => {\n                      if (Exit.isFailure(exit)) txn.rollback()\n                      resolve()\n                      // wait for the transaction to complete\n                      return Effect.promise(() => promise)\n                    }),\n                  )\n                }),\n            )\n            .catch((cause) =>\n              resume(\n                Effect.fail(\n                  new SqlError({\n                    reason: classifySqliteError(cause, { message: \"Failed transaction\", operation: \"transaction\" }),\n                  }),\n                ),\n              ),\n            )\n          return Effect.suspend(() => {\n            interrupted = true\n            return Effect.promise(() => promise)\n          })\n        }),\n      )",
+            "end_line": 120,
+            "start_line": 25
+          },
+          {
+            "code": "        [TypeId]: TypeId,\n        config: options,\n        withTransaction: makeWithTransaction(native, connection, semaphore),\n        // Durable Object SQLite rejects BEGIN/COMMIT/SAVEPOINT; consumers such\n        // as the drizzle session detect this and route through withTransaction.\n        transactionStatements: false,\n      } as const,\n    ) satisfies NativeTransactionSqlClient\n\n    return client\n  })\n\n// Defends against the shared path-based Database.layer, which passes a\n// filename instead of storage when resolved under the workerd condition.\nconst nativeLayer = (config: Config) =>\n  config.storage\n    ? Layer.succeed(Sqlite.Native, config.storage)\n    : Layer.effect(\n        Sqlite.Native,\n        Effect.die(\n          \"workerd sqlite cannot open a database from a path; use Database.layerFromClient.pipe(Layer.provide(sqliteLayer({ storage })))\",\n        ),\n      )\n\nconst clientLayer = (config: Config) => Layer.effect(SqlClient.SqlClient, make(config))\n\nexport const sqliteLayer = (config: Config) => {\n  const native = nativeLayer(config)\n  return Layer.merge(native, clientLayer(config).pipe(Layer.provide(native))).pipe(Layer.provide(Reactivity.layer))\n}",
+            "end_line": 224,
+            "start_line": 195
+          }
+        ]
+      },
+      {
+        "file_sha256": "aeea94546be35739691306d288865f28f221e35fb780750c77052e51582457fc",
+        "path": "packages/core/src/plugin/provider/openai.ts",
+        "portable_source_file": "sources/aeea94546be35739691306d288865f28f221e35fb780750c77052e51582457fc.json.gz",
+        "snapshot": "acceptance-source/aeea94546be35739691306d288865f28f221e35fb780750c77052e51582457fc.txt",
+        "snippets": [
+          {
+            "code": "function listen(server: Server) {\n  return bind(server, callbackPort).pipe(\n    Effect.as(callbackPort),\n    Effect.catchIf(addressInUse, () =>\n      cancel(callbackPort).pipe(\n        Effect.ignore,\n        Effect.andThen(Effect.sleep(callbackBindRetryDelay)),\n        Effect.andThen(bindWithRetry(server, callbackPort, callbackBindAttempts - 1)),\n        Effect.as(callbackPort),\n        Effect.catchIf(addressInUse, () =>\n          bindWithRetry(server, callbackFallbackPort, callbackBindAttempts).pipe(\n            Effect.as(callbackFallbackPort),\n            Effect.catchIf(addressInUse, () =>\n              Effect.fail(\n                new Error(\n                  `OpenAI browser login needs local port ${callbackPort} or ${callbackFallbackPort}, but both are already in use. Stop the processes using those ports or choose Codex device code (legacy), then try again.`,\n                ),\n              ),\n            ),\n          ),\n        ),\n      ),\n    ),\n  )\n}\n\nfunction bindWithRetry(server: Server, port: number, attempts: number): Effect.Effect<void, Error> {\n  return bind(server, port).pipe(\n    Effect.catchIf(\n      (error) => addressInUse(error) && attempts > 1,\n      () => Effect.sleep(callbackBindRetryDelay).pipe(Effect.andThen(bindWithRetry(server, port, attempts - 1))),\n    ),\n  )\n}\n\nfunction bind(server: Server, port: number) {\n  return Effect.callback<void, Error>((resume) => {\n    const onError = (error: Error) => resume(Effect.fail(error))\n    server.once(\"error\", onError)\n    server.listen(port, \"localhost\", () => {\n      server.off(\"error\", onError)\n      resume(Effect.void)\n    })\n  })\n}\n\nfunction cancel(port: number) {",
+            "end_line": 158,
+            "start_line": 112
+          },
+          {
+            "code": "      const credential = connection\n        ? yield* ctx.integration.connection.resolve(connection).pipe(Effect.orElseSucceed(() => undefined))\n        : undefined\n      chatgpt =\n        credential?.type === \"oauth\" &&\n        (credential.methodID === browserMethodID || credential.methodID === headlessMethodID)\n          ? credential\n          : undefined\n    })\n\n    yield* ctx.integration.transform((editor) => {\n      editor.method.update(browser(ctx.app))\n      editor.method.update(headless(ctx.app))\n    })\n    yield* load()\n    // Config applies after provider plugins, so read it here: a custom baseURL may not decode zstd.\n    const configured = yield* configuredSettings(Provider.ID.openai)",
+            "end_line": 258,
+            "start_line": 242
+          }
+        ]
+      },
+      {
+        "file_sha256": "27f84a6177a6e01b5a1fc15dbcd39510a1d239779034533a548162e979425064",
+        "path": "packages/core/src/plugin/provider/chatgpt.ts",
+        "portable_source_file": "sources/27f84a6177a6e01b5a1fc15dbcd39510a1d239779034533a548162e979425064.json.gz",
+        "snapshot": "acceptance-source/27f84a6177a6e01b5a1fc15dbcd39510a1d239779034533a548162e979425064.txt",
+        "snippets": [
+          {
+            "code": "function listen(server: Server) {\n  return Effect.callback<number, Error>((resume) => {\n    const onError = (error: Error) => resume(Effect.fail(error))\n    server.once(\"error\", onError)\n    server.listen(0, \"127.0.0.1\", () => {\n      server.off(\"error\", onError)\n      const address = server.address()\n      if (!address || typeof address === \"string\") return resume(Effect.fail(new Error(\"Missing OAuth callback port\")))\n      resume(Effect.succeed(address.port))\n    })\n  })\n}\n\nexport const ChatGPTPlugin = define({",
+            "end_line": 209,
+            "start_line": 196
+          },
+          {
+            "code": "        ? yield* ctx.integration.connection.resolve(connection).pipe(Effect.orElseSucceed(() => undefined))\n        : undefined\n      chatgpt = credential?.type === \"oauth\" && credential.methodID === methodID ? credential : undefined\n      source = chatgpt ? connection : undefined\n      // if (previous !== IntegrationConnection.key(source)) {\n      //   const metadata = Option.getOrUndefined(decodeMetadata(chatgpt?.metadata))\n      //   const stored = metadata ? yield* ctx.storage.get(modelCacheKey(metadata.clientID)) : undefined\n      //   available = Option.getOrUndefined(decodeCachedModels(stored))\n      // }\n    })\n\n    yield* ctx.integration.transform((editor) => {\n      editor.method.update(\n        signIn(ctx.app, () => Option.getOrUndefined(decodeMetadata(chatgpt?.metadata))?.clientID, ctx.storage),\n      )\n    })\n    yield* Effect.forEach(\n      yield* credentials.list(Integration.ID.make(\"openai\")),\n      (entry) => {",
+            "end_line": 241,
+            "start_line": 223
+          }
+        ]
+      },
+      {
+        "file_sha256": "6bb8cb0ee38d8a4967200fe0e1340081f8641849a590eced06494dc4a61393e4",
+        "path": "packages/app/src/settings/keybinds/keybinds.tsx",
+        "portable_source_file": "sources/6bb8cb0ee38d8a4967200fe0e1340081f8641849a590eced06494dc4a61393e4.json.gz",
+        "snapshot": "acceptance-source/6bb8cb0ee38d8a4967200fe0e1340081f8641849a590eced06494dc4a61393e4.txt",
+        "snippets": [
+          {
+            "code": "            <h2 class=\"settings-tab-title\">{language.t(\"settings.shortcuts.title\")}</h2>\n            <span class=\"text-11-regular text-v2-text-text-muted\">{language.t(\"settings.shortcuts.description\")}</span>\n          </div>\n          <Button variant=\"ghost\" onClick={props.onReset} disabled={!props.hasOverrides}>\n            {language.t(\"settings.shortcuts.reset.button\")}\n          </Button>\n        </div>\n        <SettingsSearchField\n          value={store.filter}\n          active={props.visible ?? true}\n          onInput={(value) => setStore(\"filter\", value)}\n          placeholder={language.t(\"settings.shortcuts.search.placeholder\")}\n        />\n      </div>\n      <div class=\"settings-tab-body\">\n        <div class=\"settings-shortcuts settings-section-stack\">\n          <For each={props.groups}>",
+            "end_line": 466,
+            "start_line": 450
+          }
+        ]
+      },
+      {
+        "file_sha256": "e0ffbcecc130341c1c650c31f3e797761b8db62d179e25a85ebd158dab6b1b28",
+        "path": "packages/core/src/oauth/page.ts",
+        "portable_source_file": "sources/e0ffbcecc130341c1c650c31f3e797761b8db62d179e25a85ebd158dab6b1b28.json.gz",
+        "snapshot": "acceptance-source/e0ffbcecc130341c1c650c31f3e797761b8db62d179e25a85ebd158dab6b1b28.txt",
+        "snippets": [
+          {
+            "code": "// Branded HTML pages for local OAuth callback servers.\n//\n// These are served by the loopback HTTP servers that finish an OAuth exchange\n// (MCP, Codex/ChatGPT, xAI, Snowflake, DigitalOcean, ...). The functions return\n// a fully self-contained HTML string with no external assets, so they work\n// offline and drop into any transport (`res.end(...)`, Effect `response.end`,\n// etc.).\n//\n// The visual language mirrors the OpenCode app: the design tokens are a curated\n// subset of the OC-2 semantic tokens in `packages/ui/src/styles/theme.css`, and\n// the wordmark is the same geometry as `packages/ui/src/components/logo.tsx`.\n// Keep this file in sync with those sources when the brand changes.\n\nexport interface CallbackPageOptions {\n  /** Friendly integration name shown as a subtitle, e.g. \"xAI\", \"Snowflake\", \"MCP\". */\n  provider?: string\n  /** Attempt to close the window shortly after success. Defaults to true. */\n  autoClose?: boolean\n}\n\nexport function success(options?: CallbackPageOptions) {\n  const provider = options?.provider\n  return renderDocument({\n    title: \"Authorization successful\",\n    body: renderCard({\n      status: \"success\",\n      headline: \"Authorization successful\",\n      message: provider ? `OpenCode is now connected to ${escapeHtml(provider)}.` : \"OpenCode is now authorized.\",\n      footnote: \"You can close this window.\",\n    }),\n    script: options?.autoClose === false ? undefined : AUTO_CLOSE_SCRIPT,\n  })\n}\n\nexport function error(detail: string, options?: CallbackPageOptions) {\n  const provider = options?.provider\n  return renderDocument({\n    title: \"Authorization failed\",\n    body: renderCard({\n      status: \"error\",\n      headline: \"Authorization failed\",\n      message: provider\n        ? `OpenCode couldn't finish connecting to ${escapeHtml(provider)}.`\n        : \"OpenCode couldn't complete authorization.\",\n      detail,\n      footnote: \"Close this window and try again from OpenCode.\",\n    }),\n  })\n}\n\nexport interface BootstrapOptions {\n  /** Same-origin path the in-browser script POSTs the parsed callback to. */\n  tokenPath: string\n  provider?: string\n}\n\n// For flows where the credential arrives in the URL fragment (implicit grant),\n// the browser must relay it back to the loopback server. This renders a pending\n// page whose script reads the fragment, POSTs it to `tokenPath`, then resolves\n// to the success or error state in place.\nexport function bootstrap(options: BootstrapOptions) {\n  return renderDocument({\n    title: \"Finishing sign-in\",\n    body: renderCard({\n      status: \"pending\",\n      headline: \"Finishing sign-in\",\n      message: options.provider\n        ? `Completing your ${escapeHtml(options.provider)} authorization.`\n        : \"Completing authorization.\",\n      footnote: \"You can close this window once sign-in finishes.\",\n    }),\n    script: bootstrapScript(options),\n  })\n}\n\nexport * as OauthCallbackPage from \"./page.js\"\n\ntype Status = \"pending\" | \"success\" | \"error\"\n\nfunction renderCard(input: { status: Status; headline: string; message: string; detail?: string; footnote: string }) {\n  const detail = input.detail?.trim()\n  return `<main class=\"card\" id=\"oc-card\" data-status=\"${input.status}\" role=\"status\" aria-live=\"polite\">\n      <div class=\"brand\">${WORDMARK}</div>\n      <div class=\"status\" aria-hidden=\"true\">\n        <span class=\"icon icon-pending\">${ICON_SPINNER}</span>\n        <span class=\"icon icon-success\">${ICON_CHECK}</span>\n        <span class=\"icon icon-error\">${ICON_CROSS}</span>\n      </div>\n      <h1 class=\"headline\" id=\"oc-headline\">${escapeHtml(input.headline)}</h1>\n      <p class=\"message\" id=\"oc-message\">${input.message}</p>\n      <pre class=\"detail\" id=\"oc-detail\"${detail ? \"\" : \" hidden\"}>${detail ? escapeHtml(detail) : \"\"}</pre>\n      <p class=\"footnote\" id=\"oc-footnote\">${escapeHtml(input.footnote)}</p>\n    </main>`\n}\n\nfunction renderDocument(input: { title: string; body: string; script?: string }) {\n  return `<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <meta name=\"robots\" content=\"noindex\" />\n    <title>${escapeHtml(input.title)} \u00b7 OpenCode</title>\n    <style>${STYLES}</style>\n  </head>\n  <body>\n    ${input.body}${input.script ? `\\n    <script>${input.script}</script>` : \"\"}\n  </body>\n</html>`\n}\n\nconst AUTO_CLOSE_SCRIPT = `setTimeout(function(){try{window.close()}catch(e){}},2500)`\n\nfunction bootstrapScript(options: BootstrapOptions) {\n  return `var PROVIDER=${scriptString(options.provider ?? \"\")};\nvar TOKEN_URL=new URL(${scriptString(options.tokenPath)},window.location.origin).href;\n(function(){\n  var card=document.getElementById(\"oc-card\"),headline=document.getElementById(\"oc-headline\"),message=document.getElementById(\"oc-message\"),detail=document.getElementById(\"oc-detail\"),footnote=document.getElementById(\"oc-footnote\");\n  function fail(text){card.dataset.status=\"error\";headline.textContent=\"Authorization failed\";message.textContent=PROVIDER?(\"OpenCode couldn't finish connecting to \"+PROVIDER+\".\"):\"OpenCode couldn't complete authorization.\";if(text){detail.textContent=text;detail.hidden=false}footnote.textContent=\"Close this window and try again from OpenCode.\"}\n  function ok(){card.dataset.status=\"success\";headline.textContent=\"Authorization successful\";message.textContent=PROVIDER?(\"OpenCode is now connected to \"+PROVIDER+\".\"):\"OpenCode is now authorized.\";detail.hidden=true;footnote.textContent=\"You can close this window.\";setTimeout(function(){try{window.close()}catch(e){}},2500)}\n  try{\n    var hash=new URLSearchParams((window.location.hash||\"\").slice(1));\n    var search=new URLSearchParams(window.location.search||\"\");\n    var err=hash.get(\"error\")||search.get(\"error\");\n    var errDescription=hash.get(\"error_description\")||search.get(\"error_description\");\n    var body=err?{error:err,error_description:errDescription||\"\"}:{access_token:hash.get(\"access_token\")||\"\",expires_in:hash.get(\"expires_in\")||\"0\",state:hash.get(\"state\")||\"\"};\n    fetch(TOKEN_URL,{method:\"POST\",headers:{\"Content-Type\":\"application/json\"},body:JSON.stringify(body)}).then(function(res){\n      if(!res.ok)return res.text().catch(function(){return\"\"}).then(function(t){throw new Error(t||(\"callback failed (\"+res.status+\")\"))});\n      if(err){fail(errDescription||err);return}\n      ok();\n    }).catch(function(e){fail(String(e&&e.message?e.message:e))});\n  }catch(e){fail(String(e&&e.message?e.message:e))}\n})()`\n}\n\nfunction scriptString(value: string) {\n  return JSON.stringify(value).replaceAll(\"<\", \"\\\\u003c\")\n}\n\nfunction escapeHtml(value: string) {\n  return value\n    .replaceAll(\"&\", \"&amp;\")\n    .replaceAll(\"<\", \"&lt;\")\n    .replaceAll(\">\", \"&gt;\")\n    .replaceAll('\"', \"&quot;\")\n    .replaceAll(\"'\", \"&#39;\")\n}\n\n// Curated subset of OC-2 tokens (packages/ui/src/styles/theme.css). Default is\n// light; dark applies via prefers-color-scheme. The [data-theme] selectors let a\n// host force a scheme without changing the default.\nconst LIGHT_VARS = `\n    --oc-bg: #f8f8f8;\n    --oc-card: #fcfcfc;\n    --oc-text-strong: #171717;\n    --oc-text-base: #6f6f6f;\n    --oc-text-weak: #8f8f8f;\n    --oc-border-weak: #e5e5e5;\n    --oc-icon-strong: #171717;\n    --oc-icon-base: #8f8f8f;\n    --oc-icon-weak: #dbdbdb;\n    --oc-success: #2dba26;\n    --oc-error: #ed4831;\n    --oc-detail-bg: #fff8f6;\n    --oc-detail-border: #fdc3b7;\n    --oc-shadow: 0 16px 48px -6px rgba(0,0,0,.10), 0 6px 12px -2px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.06);`\n\nconst DARK_VARS = `\n    --oc-bg: #101010;\n    --oc-card: #161616;\n    --oc-text-strong: rgba(255,255,255,.936);\n    --oc-text-base: rgba(255,255,255,.618);\n    --oc-text-weak: rgba(255,255,255,.422);\n    --oc-border-weak: #282828;\n    --oc-icon-strong: #ededed;\n    --oc-icon-base: #7e7e7e;\n    --oc-icon-weak: #343434;\n    --oc-success: #12c905;\n    --oc-error: #fc533a;\n    --oc-detail-bg: #28110c;",
+            "end_line": 180,
+            "start_line": 1
+          }
+        ]
+      }
+    ],
+    "contract": "Given mounted input, use abs(scrollLeft), set start if offset>1 and end if scrollWidth-clientWidth-offset>1; update on value/effect, input scroll and resize; feed start/end data attributes.",
+    "granularity": "partial_operation",
+    "id": "OC03",
+    "label": "duplicate",
+    "observations_proof": {
+      "path": {
+        "artifact_basename": "opencode-observations.json",
+        "original_artifact_sha256": "5650e88d03aba5a8fbf821c33017210d196a6c7f77b86b8470dce3777cafaede"
+      },
+      "sha256": "5650e88d03aba5a8fbf821c33017210d196a6c7f77b86b8470dce3777cafaede"
+    },
+    "operation_regions": [
+      {
+        "body_sha256": "584c3402c904da846369f10ce80c199de4425b0f0d22d3d92c854488b5b716bb",
+        "code": "const updateOverflow = () => {\n    if (!input) return\n    const offset = Math.abs(input.scrollLeft)\n    setState(\"overflow\", {\n      start: offset > 1,\n      end: input.scrollWidth - input.clientWidth - offset > 1,\n    })\n  }\n\n",
+        "end_line": 27,
+        "portable_source_file": "sources/cdfb469870b7d902af1ae152053ebffefe0539cf8e0b2cc83e03242ac9f9f1f8.json.gz",
+        "source_id": "packages/app/src/settings/search-field.tsx::SettingsSearchField",
+        "start_line": 19
+      },
+      {
+        "body_sha256": "8745a054771c3f2d02c806967a7a2e4de9f21f127730b64772cc93bbeb42d75c",
+        "code": "const updateOverflow = () => {\n    if (!input) return\n    const offset = Math.abs(input.scrollLeft)\n    setState(\"overflow\", {\n      start: offset > 1,\n      end: input.scrollWidth - input.clientWidth - offset > 1,\n    })\n  }\n\n",
+        "end_line": 42,
+        "portable_source_file": "sources/696175cf2c9b447692a394ee6f6d27a3ca0dc9c4dbab938a9acfbaef87a774f9.json.gz",
+        "source_id": "packages/app/src/settings/search.tsx::SettingsSearch",
+        "start_line": 34
+      }
+    ],
+    "owner": "Each component independently owns updateOverflow. TextInput is a shared rendering dependency, not owner of this calculation in supplied files. SettingsSearch is visibly mounted in settings/navigation.tsx; SettingsSearchField has keybind/model/workspace consumers.",
+    "proposal_status": "source-resolved_acceptance_proposal_not_final_gold",
+    "provisional_family_id": "OP-SEARCH-OVERFLOW",
+    "repository": "anomalyco/opencode",
+    "resolution": "Jev separate addresses enclosing concepts without operation evidence; Claude .62 is moderate. Source proves identical eight-line calculation plus wiring, sufficient only for this tiny operation. Preserve reviewer disagreement and granularity warning; no whole-function positive.",
+    "retrieval_profiles": [
+      {
+        "cross_file_rank": 1,
+        "diagnostic_profiles": {
+          "balanced_exploration": {
+            "first_loss": "retrieved",
+            "min_similarity": 0.35,
+            "retrieved": true,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "similarity_floor",
+            "min_similarity": 0.5,
+            "retrieved": false,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "first_loss": "similarity_floor",
+        "floor": 0.5,
+        "no_filter_assumptions": "Raw self-excluded TFIDF ranks; no pattern/policy/schema/forwarder filtering, budget scheduling or production admission. Default profile additionally filters other files before top3; balanced allows all source IDs except self.",
+        "query": "packages/app/src/settings/search-field.tsx::SettingsSearchField",
+        "query_lines": 93,
+        "query_tokens": 231,
+        "raw_rank": 1,
+        "same_file": false,
+        "score": 0.4612244714509029,
+        "target": "packages/app/src/settings/search.tsx::SettingsSearch"
+      },
+      {
+        "cross_file_rank": 1,
+        "diagnostic_profiles": {
+          "balanced_exploration": {
+            "first_loss": "retrieved",
+            "min_similarity": 0.35,
+            "retrieved": true,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "similarity_floor",
+            "min_similarity": 0.5,
+            "retrieved": false,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "first_loss": "similarity_floor",
+        "floor": 0.5,
+        "no_filter_assumptions": "Raw self-excluded TFIDF ranks; no pattern/policy/schema/forwarder filtering, budget scheduling or production admission. Default profile additionally filters other files before top3; balanced allows all source IDs except self.",
+        "query": "packages/app/src/settings/search.tsx::SettingsSearch",
+        "query_lines": 338,
+        "query_tokens": 964,
+        "raw_rank": 1,
+        "same_file": false,
+        "score": 0.46122447145090306,
+        "target": "packages/app/src/settings/search-field.tsx::SettingsSearchField"
+      }
+    ],
+    "reviewer_label_disagreement": true,
+    "reviewers": [
+      {
+        "id": "OC03",
+        "path": {
+          "artifact_basename": "c4dba1b0ab68e564a0bb3038287fb3cc90ff5c8b801157fa77c262c8d48a3d0d.json",
+          "original_artifact_sha256": "b94886e5d6272e3e36f762081e8da5d5d2f52c22cad00295fddd5d4a1ceef5fc"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.38,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "new",
+          "score": 0.35,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      },
+      {
+        "id": "OC03",
+        "path": {
+          "artifact_basename": "1b58bb9954b73dfe56ecdbc9d99dd9ece166839eb6d133251171b095050d8bfc.json",
+          "original_artifact_sha256": "6e004fea3102a4f4b1632bd58e40388cd37c993be0647d3beb587b7896c74792"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.62,
+          "second_opinion": null,
+          "why": "Both components independently implement the same sub-operation: tracking horizontal overflow of a search input. Each has an identical `updateOverflow` that reads `Math.abs(input.scrollLeft)` and sets `overflow.start = offset > 1` and `overflow.end = scrollWidth - clientWidth - offset > 1`. Each then wires it the same way: an effect on the query value, a resize observer on the input, and `onScroll`, feeding `data-overflow-start`/`data-overflow-end`. This could be a shared hook or helper, e.g. `createInputOverflow(getInput, value)`, that returns the overflow state, an update function and the observer setup. The overlap is limited to that. The key handling, the combobox and results list, clear behavior, focus management and narrow-screen logic differ legitimately and should stay in their callers. The clear-and-refocus step is too small and too different to count, since one uses `preventScroll` and the other calls the search store's `clear`."
+        }
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "scope": "Only horizontal input overflow tracking; tiny partial-operation positive, never entire search component equivalence.",
+    "source_proofs": [
+      {
+        "blob_url": "https://github.com/anomalyco/opencode/blob/cc996eece172fc69e35662657ea6cea9c2c7db88/packages/app/src/settings/search-field.tsx",
+        "body_sha256": "584c3402c904da846369f10ce80c199de4425b0f0d22d3d92c854488b5b716bb",
+        "end_line": 101,
+        "file_sha256": "cdfb469870b7d902af1ae152053ebffefe0539cf8e0b2cc83e03242ac9f9f1f8",
+        "git_blob_sha1": "042ecd93fc273a9d076504716ac0b3e782e647cc",
+        "line": 9,
+        "path": "packages/app/src/settings/search-field.tsx",
+        "portable_source_file": "sources/cdfb469870b7d902af1ae152053ebffefe0539cf8e0b2cc83e03242ac9f9f1f8.json.gz",
+        "snapshot": "snapshots/cdfb469870b7d902af1ae152053ebffefe0539cf8e0b2cc83e03242ac9f9f1f8.txt",
+        "source_id": "packages/app/src/settings/search-field.tsx::SettingsSearchField"
+      },
+      {
+        "blob_url": "https://github.com/anomalyco/opencode/blob/cc996eece172fc69e35662657ea6cea9c2c7db88/packages/app/src/settings/search.tsx",
+        "body_sha256": "8745a054771c3f2d02c806967a7a2e4de9f21f127730b64772cc93bbeb42d75c",
+        "end_line": 356,
+        "file_sha256": "696175cf2c9b447692a394ee6f6d27a3ca0dc9c4dbab938a9acfbaef87a774f9",
+        "git_blob_sha1": "4b48d45b02adcdc4976d6656a8d6159b6ffa3cda",
+        "line": 19,
+        "path": "packages/app/src/settings/search.tsx",
+        "portable_source_file": "sources/696175cf2c9b447692a394ee6f6d27a3ca0dc9c4dbab938a9acfbaef87a774f9.json.gz",
+        "snapshot": "snapshots/696175cf2c9b447692a394ee6f6d27a3ca0dc9c4dbab938a9acfbaef87a774f9.txt",
+        "source_id": "packages/app/src/settings/search.tsx::SettingsSearch"
+      }
+    ],
+    "variation": "SettingsSearchField uses props.value and a resize observer in input ref; SettingsSearch uses search.state.query and mount-time resize observer. Clear/refocus preventScroll, type-to-search, combobox navigation and narrow-screen behavior differ and are excluded.",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "42e54b2d2d525c5b064cf1d3377f1a8e40ee0721ef59c36a826c6c8945e4c27b",
+  "source_closure": [
+    {
+      "file_sha256": "9997360646610d212f378b73b6b114307444b626b2662337c6c7afcd9c668268",
+      "git_blob_sha1": "3e27ebc2f051e837a41852e5786e4d47acc1eded",
+      "path": "packages/app/src/home/sessions/controller.tsx",
+      "source_file": "sources/9997360646610d212f378b73b6b114307444b626b2662337c6c7afcd9c668268.json.gz"
+    },
+    {
+      "file_sha256": "6bb8cb0ee38d8a4967200fe0e1340081f8641849a590eced06494dc4a61393e4",
+      "git_blob_sha1": "4352962c541ed2e5638984ba1710f598dd842a18",
+      "path": "packages/app/src/settings/keybinds/keybinds.tsx",
+      "source_file": "sources/6bb8cb0ee38d8a4967200fe0e1340081f8641849a590eced06494dc4a61393e4.json.gz"
+    },
+    {
+      "file_sha256": "d75a58db29e9421f9c698f5af0a2ec72b17986f3ad94c2d70d8f86d14cf17e21",
+      "git_blob_sha1": "7c6b5aa47bacdff7c40c09a4251514a643147fa4",
+      "path": "packages/app/src/settings/models/models.tsx",
+      "source_file": "sources/d75a58db29e9421f9c698f5af0a2ec72b17986f3ad94c2d70d8f86d14cf17e21.json.gz"
+    },
+    {
+      "file_sha256": "4ccaa1b21a3056b964eee921b61fe90065ece9ab6aa9ef017cdd34a783a7c1c2",
+      "git_blob_sha1": "76827b88006178865b7b5008359916013e6051f7",
+      "path": "packages/app/src/settings/navigation.tsx",
+      "source_file": "sources/4ccaa1b21a3056b964eee921b61fe90065ece9ab6aa9ef017cdd34a783a7c1c2.json.gz"
+    },
+    {
+      "file_sha256": "cdfb469870b7d902af1ae152053ebffefe0539cf8e0b2cc83e03242ac9f9f1f8",
+      "git_blob_sha1": "042ecd93fc273a9d076504716ac0b3e782e647cc",
+      "path": "packages/app/src/settings/search-field.tsx",
+      "source_file": "sources/cdfb469870b7d902af1ae152053ebffefe0539cf8e0b2cc83e03242ac9f9f1f8.json.gz"
+    },
+    {
+      "file_sha256": "696175cf2c9b447692a394ee6f6d27a3ca0dc9c4dbab938a9acfbaef87a774f9",
+      "git_blob_sha1": "4b48d45b02adcdc4976d6656a8d6159b6ffa3cda",
+      "path": "packages/app/src/settings/search.tsx",
+      "source_file": "sources/696175cf2c9b447692a394ee6f6d27a3ca0dc9c4dbab938a9acfbaef87a774f9.json.gz"
+    },
+    {
+      "file_sha256": "74483fd67662be85ca3cdafd45e32848110587fa370e6cc69510687b9132baf7",
+      "git_blob_sha1": "8b1f78d603add13903a0e8ea187392866fb3949e",
+      "path": "packages/app/src/settings/workspaces/projects.tsx",
+      "source_file": "sources/74483fd67662be85ca3cdafd45e32848110587fa370e6cc69510687b9132baf7.json.gz"
+    },
+    {
+      "file_sha256": "d1beee2b1d92c804d27852526f29264e09e7c4d172f77ae36d0647714e620c96",
+      "git_blob_sha1": "203415586a66876dacf0c085e274e22c1c5b1242",
+      "path": "packages/app/src/shell/commands/dialog.tsx",
+      "source_file": "sources/d1beee2b1d92c804d27852526f29264e09e7c4d172f77ae36d0647714e620c96.json.gz"
+    },
+    {
+      "file_sha256": "6dc4c1e9bc6ba08f15b3fa5f4e29fc6e7ec69db4e8cf4fc8ffd7d8413de1eb59",
+      "git_blob_sha1": "7728bc8f4e9545c225e205c23acf436f38aba9ed",
+      "path": "packages/core/src/database/sqlite.bun.ts",
+      "source_file": "sources/6dc4c1e9bc6ba08f15b3fa5f4e29fc6e7ec69db4e8cf4fc8ffd7d8413de1eb59.json.gz"
+    },
+    {
+      "file_sha256": "1b737bc2f884ff3931d20bd4f76490a384b9ae54fbe4645fc80cd6f4d81eb47a",
+      "git_blob_sha1": "9053a0def6630936899aefb1a7edd21967fb3db9",
+      "path": "packages/core/src/database/sqlite.node.ts",
+      "source_file": "sources/1b737bc2f884ff3931d20bd4f76490a384b9ae54fbe4645fc80cd6f4d81eb47a.json.gz"
+    },
+    {
+      "file_sha256": "f0612f903da88ba4dce048dd611b6337118665d68dba03f55faa1ce8cdd9e081",
+      "git_blob_sha1": "7c032507f0f0cd47e9af859db2f1affdaf5f9d10",
+      "path": "packages/core/src/database/sqlite.workerd.ts",
+      "source_file": "sources/f0612f903da88ba4dce048dd611b6337118665d68dba03f55faa1ce8cdd9e081.json.gz"
+    },
+    {
+      "file_sha256": "e0ffbcecc130341c1c650c31f3e797761b8db62d179e25a85ebd158dab6b1b28",
+      "git_blob_sha1": "accead6216616e1b1b57141a4a1b3fa95119c8ab",
+      "path": "packages/core/src/oauth/page.ts",
+      "source_file": "sources/e0ffbcecc130341c1c650c31f3e797761b8db62d179e25a85ebd158dab6b1b28.json.gz"
+    },
+    {
+      "file_sha256": "27f84a6177a6e01b5a1fc15dbcd39510a1d239779034533a548162e979425064",
+      "git_blob_sha1": "57571aa036918890b90f77775b63a5ed2c2d6a80",
+      "path": "packages/core/src/plugin/provider/chatgpt.ts",
+      "source_file": "sources/27f84a6177a6e01b5a1fc15dbcd39510a1d239779034533a548162e979425064.json.gz"
+    },
+    {
+      "file_sha256": "aeea94546be35739691306d288865f28f221e35fb780750c77052e51582457fc",
+      "git_blob_sha1": "f1b1a151681de27c89a44fb1e2bcd86d8cf4a703",
+      "path": "packages/core/src/plugin/provider/openai.ts",
+      "source_file": "sources/aeea94546be35739691306d288865f28f221e35fb780750c77052e51582457fc.json.gz"
+    }
+  ],
+  "source_only": true
+}

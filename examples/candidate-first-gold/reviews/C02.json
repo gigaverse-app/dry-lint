@@ -1,0 +1,302 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.013104,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "c29d0263265373bfc71f230a9035aaac42c23745269d01ef7f16f1f4de239e15",
+      "prompt_sha256": "f0750f21fa094adb412853120ca044a4991cb77a2bf4dde8f6edefad73590ecd",
+      "request_key": "699516869ffaf869a71d478d2156778e0224f3803bcdc1f0874f8829f9ee0fe7",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 5087,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 5087,
+            "model": null,
+            "output_tokens": 293,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 293,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.12,
+        "second_opinion": null,
+        "why": "Both functions convert normalized screen coordinates into NDC and cast a three.js ray, but that overlap is only generic three.js boilerplate (`x * 2 - 1, 1 - y * 2`, `setFromCamera`, `updateMatrixWorld`). The domain logic differs. NEW (phone) intersects a single display mesh, or a fixed plane while captured. It then maps local coordinates to clamped u/v and applies a rotation-dependent remap. EXISTING (duo) hit-tests multiple meshes, derives UV from triangle barycentric interpolation, tracks capture state keyed to a display, and delegates to `duoRawPoint`. Their capture handling, coordinate derivation and outputs are not the same operation. No concrete shared helper beyond trivial NDC setup is established."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00029156,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "1c3e1552f05b39fc4c6dd767b97fe28d2f99f6069a845d2a829b78bc9d5ac06b",
+      "prompt_sha256": "58909e9ebcc6f916d1a31aad498f0352e1ff25a31c679fcec7bf33a57aa04fd2",
+      "request_key": "0a3681ef688f84b0d3fe0382a8eb2e03b5f8bcd7d22aeb13b0f546269f20134e",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 7289,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.28,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.36,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "acceptance_scope": "Coordinator source-supported proposal, portable packaging pending; no new external execution or claim of human gold. Exact enclosing function IDs retained for partial regions.",
+    "accepted_hard_positive": false,
+    "actual_callers": [
+      "phoneScene.ts creates screenPoint at line 205",
+      "modelScene.ts calls existing createDisplayProjection at line 75",
+      "duoViewer.ts constructs createDuoScene at line 281 and calls model.screenPoint at line 529"
+    ],
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "function createDuoScene(asset: Group, textures: Record<DuoPanelId, Texture>) {\n  const left = asset.getObjectByName(\"left-half\");\n  const right = asset.getObjectByName(\"right-half\");\n  const cover = asset.getObjectByName(\"cover-display\");\n  const innerLeft = asset.getObjectByName(\"inner-display-left\");\n  const innerRight = asset.getObjectByName(\"inner-display-right\");\n  if (\n    !left ||\n    !right ||\n    !(cover instanceof Mesh) ||\n    !(innerLeft instanceof Mesh) ||\n    !(innerRight instanceof Mesh)\n  )\n    throw new Error(\"Duo model must have two hinge groups and all three display meshes\");\n  const surfaces = { 1: [cover], 3: [innerLeft, innerRight] };\n  const boundsByPanel = ([1, 3] as const).map((id) => {\n    const bounds = new Box3();\n    for (const mesh of surfaces[id]) {\n      mesh.geometry.computeBoundingBox();\n      bounds.union(mesh.geometry.boundingBox!);\n    }\n    const size = bounds.getSize(new Vector3());\n    if (![size.x, size.y].every((value) => Number.isFinite(value) && value > 0))\n      throw new Error(\"Invalid Duo display bounds\");\n    return { bounds, size };\n  });\n  const root = new Group();\n  const content = new Group();\n  content.add(asset);\n  root.add(content);\n  let currentAngle = Number.NaN;\n  const localBounds = new Box3();\n  const relative = new Matrix4();\n  const inverse = new Matrix4();\n  const materials = {\n    1: new MeshBasicMaterial({ map: textures[1], toneMapped: false }),\n    3: new MeshBasicMaterial({ map: textures[3], toneMapped: false }),\n  };\n  const originals = new Map<Mesh, Mesh[\"material\"]>();\n  for (const id of [1, 3] as const) {\n    const { bounds, size } = boundsByPanel[id === 1 ? 0 : 1]!;\n    for (const mesh of surfaces[id]) {\n      const position = mesh.geometry.getAttribute(\"position\");\n      const uv = new Float32Array(position.count * 2);\n      for (let i = 0; i < position.count; i++) {\n        const x = (position.getX(i) - bounds.min.x) / size.x;\n        uv[i * 2] = id === 1 ? 1 - x : x;\n        uv[i * 2 + 1] = (position.getY(i) - bounds.min.y) / size.y;\n      }\n      mesh.geometry.setAttribute(\"uv\", new BufferAttribute(uv, 2));\n      originals.set(mesh, mesh.material);\n      mesh.material = materials[id];\n    }\n  }\n  const ray = new Raycaster();\n  let captured: {\n    panel: DuoPanelId;\n    plane: Plane;\n    triangle: Triangle;\n    uv: [Vector2, Vector2, Vector2];\n    key: string;\n  } | null = null;\n  return {\n    root,\n    setAngle(angle: number) {\n      if (angle === currentAngle) return;\n      currentAngle = angle;\n      const radians = ((180 - Math.min(180, Math.max(0, angle))) * Math.PI) / 360;\n      left.rotation.y = radians;\n      right.rotation.y = -radians;\n      content.position.set(0, 0, 0);\n      root.updateWorldMatrix(true, true);\n      inverse.copy(root.matrixWorld).invert();\n      localBounds.makeEmpty();\n      asset.traverse((object) => {\n        if (!(object instanceof Mesh)) return;\n        if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();\n        if (!object.geometry.boundingBox) return;\n        relative.multiplyMatrices(inverse, object.matrixWorld);\n        localBounds.union(object.geometry.boundingBox.clone().applyMatrix4(relative));\n      });\n      content.position.copy(localBounds.getCenter(new Vector3())).negate();\n    },\n    restFrames(panel: DuoPanelId): DuoRestFrame[] {\n      root.updateWorldMatrix(true, true);\n      inverse.copy(root.matrixWorld).invert();\n      const frame = (meshes: Mesh[], face: DuoRestFrame[\"face\"]): DuoRestFrame => {\n        const bounds = new Box3();\n        const normal = new Vector3();\n        const up = new Vector3();\n        for (const mesh of meshes) {\n          if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();\n          relative.multiplyMatrices(inverse, mesh.matrixWorld);\n          bounds.union(mesh.geometry.boundingBox!.clone().applyMatrix4(relative));\n          normal.add(\n            new Vector3()\n              .fromBufferAttribute(mesh.geometry.getAttribute(\"normal\"), 0)\n              .transformDirection(relative),\n          );\n          up.add(new Vector3(0, 1, 0).transformDirection(relative));\n        }\n        return {\n          face,\n          center: bounds.getCenter(new Vector3()),\n          normal: normal.normalize(),\n          up: up.normalize(),\n        };\n      };\n      if (panel === 1) return [frame([cover], \"cover\")];\n      const inside = frame([innerLeft, innerRight], \"inside\");\n      return currentAngle > 20 && currentAngle < 165\n        ? [inside, frame([innerLeft], \"left\"), frame([innerRight], \"right\")]\n        : [inside];\n    },\n    leafRotation(leaf: DuoHingeLeaf) {\n      root.updateWorldMatrix(true, true);\n      relative.multiplyMatrices(\n        root.matrixWorld.clone().invert(),\n        (leaf === \"left\" ? left : right).matrixWorld,\n      );\n      return new Quaternion().setFromRotationMatrix(relative.extractRotation(relative));\n    },\n    hingeLeafAt(x: number, y: number, camera: PerspectiveCamera): DuoHingeLeaf | null {\n      if (!Number.isFinite(x) || !Number.isFinite(y)) return null;\n      root.updateMatrixWorld(true);\n      camera.updateMatrixWorld(true);\n      ray.setFromCamera(new Vector2(x * 2 - 1, 1 - y * 2), camera);\n      let object = ray.intersectObject(root, true)[0]?.object;\n      while (object) {\n        if (object === left) return \"left\";\n        if (object === right) return \"right\";\n        object = object.parent ?? undefined;\n      }\n      return null;\n    },\n    cancelInput() {\n      captured = null;\n    },\n    screenPoint(\n      x: number,\n      y: number,\n      camera: PerspectiveCamera,\n      screen: DeviceScreenSize | null,\n      readyKey: string,\n      extend = false,\n    ) {\n      const key = duoDisplayKey(screen);\n      if (!screen || !readyKey || key !== readyKey) {\n        captured = null;\n        return null;\n      }\n      root.updateMatrixWorld(true);\n      camera.updateMatrixWorld(true);\n      ray.setFromCamera(new Vector2(x * 2 - 1, 1 - y * 2), camera);\n      if (extend && captured?.key === key) {\n        const point = ray.ray.intersectPlane(captured.plane, new Vector3());\n        const bary = point ? captured.triangle.getBarycoord(point, new Vector3()) : null;\n        if (!bary) return null;\n        const uv = captured.uv[0]\n          .clone()\n          .multiplyScalar(bary.x)\n          .addScaledVector(captured.uv[1], bary.y)\n          .addScaledVector(captured.uv[2], bary.z);\n        return duoRawPoint(captured.panel, uv.x, 1 - uv.y);\n      }\n      const hit = ray.intersectObject(root, true)[0];\n      if (!hit?.uv || !hit.face || !(hit.object instanceof Mesh)) return null;\n      const panel: DuoPanelId | null = surfaces[1].includes(hit.object)\n        ? 1\n        : surfaces[3].includes(hit.object)\n          ? 3\n          : null;\n      if (!panel || panel !== screen.screenId) return null;\n      const indices = [hit.face.a, hit.face.b, hit.face.c] as const;\n      const positions = hit.object.geometry.getAttribute(\"position\");\n      const triangle = new Triangle(\n        ...(indices.map((index) =>\n          new Vector3().fromBufferAttribute(positions, index).applyMatrix4(hit.object.matrixWorld),\n        ) as [Vector3, Vector3, Vector3]),\n      );\n      const hitUvs = hit.object.geometry.getAttribute(\"uv\");\n      const uv = indices.map((index) => new Vector2().fromBufferAttribute(hitUvs, index)) as [\n        Vector2,\n        Vector2,\n        Vector2,\n      ];\n      captured = { panel, triangle, uv, plane: triangle.getPlane(new Plane()), key };\n      return duoRawPoint(panel, hit.uv.x, 1 - hit.uv.y);\n    },\n    dispose() {\n      for (const [mesh, material] of originals) mesh.material = material;\n      for (const material of Object.values(materials)) {\n        material.map = null;\n        material.dispose();\n      }\n      content.remove(asset);\n      captured = null;\n    },\n  };\n}",
+        "context": "/** Asset resources belong to its model slot; this scene owns only live-screen replacement materials. */\nimport {\n  Box3,\n  BufferAttribute,\n  Group,\n  Mesh,\n  MeshBasicMaterial,\n  Matrix4,\n  Quaternion,\n  Plane,\n  Raycaster,\n  Triangle,\n  Vector2,\n  Vector3,\n  type PerspectiveCamera,\n  type Texture,\n} from \"three\";\nimport type { DuoRestFrame } from \"./duoSnap.ts\";\nimport type { DeviceScreenSize } from \"./stream.ts\";\nexport type DuoPanelId = 1 | 3;\nexport type DuoHingeLeaf = \"left\" | \"right\";\nexport function duoRawPoint(panel: DuoPanelId, x: number, y: number) {\n  return panel === 1 ? { x, y } : { x: y, y: 1 - x };\n}\nexport function duoDisplayKey(screen: DeviceScreenSize | null) {\n  return screen ? `${screen.screenId}:${screen.width}:${screen.height}:${screen.orientation}` : \"\";\n}",
+        "context_digest": "3ee16217328cbe8748dea52b0ff83c1657bbec8c8acf6d8ba2465e5b8827a228",
+        "declaration": null,
+        "end_line": 239,
+        "hash": "0e98c03f36b8dc93",
+        "line": 40,
+        "name": "createDuoScene",
+        "origin": null,
+        "owner": null,
+        "path": "packages/client-runtime/src/device/duoScene.ts",
+        "portable_source_file": "sources/3ee16217328cbe8748dea52b0ff83c1657bbec8c8acf6d8ba2465e5b8827a228.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "function createDisplayProjection(\n  display: Mesh,\n  orientation: Group,\n  width: number,\n  height: number,\n  getLayout: () => PhoneDisplayLayout,\n) {\n  const raycaster = new Raycaster();\n  const pointer = new Vector2();\n  const local = new Vector3();\n  display.geometry.computeBoundingBox();\n  const z = display.position.z + (display.geometry.boundingBox?.max.z ?? 0);\n  const plane = new Plane(new Vector3(0, 0, 1), -z);\n  return (x: number, y: number, camera: Camera, captured = false) => {\n    orientation.updateWorldMatrix(true, true);\n    camera.updateMatrixWorld(true);\n    pointer.set(x * 2 - 1, 1 - y * 2);\n    raycaster.setFromCamera(pointer, camera);\n    if (!captured) {\n      const hit = raycaster.intersectObject(display, false)[0];\n      if (!hit) return null;\n      local.copy(hit.point);\n      orientation.worldToLocal(local);\n    } else {\n      const ray = raycaster.ray.clone().applyMatrix4(orientation.matrixWorld.clone().invert());\n      if (!ray.intersectPlane(plane, local)) return null;\n    }\n    const u = Math.min(1, Math.max(0, (local.x + width / 2) / width));\n    const v = Math.min(1, Math.max(0, (local.y + height / 2) / height));\n    const { rotation } = getLayout();\n    if (rotation === -Math.PI / 2) return { x: v, y: u };\n    if (rotation === Math.PI / 2) return { x: 1 - v, y: 1 - u };\n    if (rotation === Math.PI) return { x: 1 - u, y: v };\n    return { x: u, y: 1 - v };\n  };\n}",
+        "context": "import {\n  BoxGeometry,\n  CircleGeometry,\n  CylinderGeometry,\n  ExtrudeGeometry,\n  Float32BufferAttribute,\n  Group,\n  Mesh,\n  MeshBasicMaterial,\n  MeshPhysicalMaterial,\n  MeshStandardMaterial,\n  Plane,\n  Raycaster,\n  Shape,\n  ShapeGeometry,\n  Vector2,\n  Vector3,\n  type Camera,\n  type BufferGeometry,\n  type Texture,\n} from \"three\";\nimport type { DeviceScreenSize } from \"./stream.ts\";\nexport function phoneDisplayLayout(\n  screen: DeviceScreenSize | null,\n  rawWidth: number,\n  rawHeight: number,\n) {\n  const width = rawWidth || screen?.width || 900;\n  const height = rawHeight || screen?.height || 1950;\n  const landscape =\n    screen?.orientation === \"landscape_left\" || screen?.orientation === \"landscape_right\";\n  const rotation =\n    screen?.orientation === \"landscape_left\"\n      ? -Math.PI / 2\n      : screen?.orientation === \"landscape_right\"\n        ? Math.PI / 2\n        : screen?.orientation === \"portrait_upside_down\"\n          ? Math.PI\n          : 0;\n  return {\n    aspect: Math.min(width, height) / Math.max(width, height),\n    rotation,\n    landscape,\n    rawLandscape: width > height,\n  };\n}\nexport type PhoneDisplayLayout = ReturnType<typeof phoneDisplayLayout>;",
+        "context_digest": "f82d1ac055cd0627ea5d126c4156b6c8e5fbd6a7ba9e306cbd29118b8cfe75c9",
+        "declaration": null,
+        "end_line": 297,
+        "hash": "630c3e9e8484a6f6",
+        "line": 262,
+        "name": "createDisplayProjection",
+        "origin": null,
+        "owner": null,
+        "path": "packages/client-runtime/src/device/phoneScene.ts",
+        "portable_source_file": "sources/f82d1ac055cd0627ea5d126c4156b6c8e5fbd6a7ba9e306cbd29118b8cfe75c9.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.5058298861527042,
+      "similarity_reusable": false
+    },
+    "contract": "No common nontrivial projection contract established. Phone computes local rectangular plane position, clamps and rotates; Duo selects display meshes, computes/stores triangle UV capture and extends through barycentric interpolation.",
+    "existing_shared_owner": "createDisplayProjection already owns phone/model projection; Duo does not call it. Existing helper cannot absorb Duo unchanged. Captured plane semantics and UV policy differ.",
+    "id": "C02",
+    "independent_frozen_source_conclusion": "Borderline; do not accept broad projection equivalence. Phone clamps local rectangular coordinates and rotates output; Duo identifies active mesh/panel, retains a world triangle/UVs and extends via barycentric coordinates. Shared camera ray setup alone is likely framework shape. Need a useful narrow owner argument beyond Raycaster before acceptance.",
+    "legitimate_variations": [
+      "Keep mesh/display identity, captured plane frame, UV interpolation, clamp and output rotation semantics independent."
+    ],
+    "proposed_label": "separate",
+    "provisional_family_id": "t3-projection-raycast",
+    "repository": "pingdotgg/t3code",
+    "retrieval_profiles": [
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": null,
+          "floor": 0.5,
+          "retrieved": true,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": null,
+          "floor": 0.5,
+          "retrieved": true,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "review_observation_path": {
+      "artifact_basename": "t3-pilot-observations.json",
+      "original_artifact_sha256": "1c2318b7e6a1f78ef9e2f9e29b1514a39b842ed2a89042055ce537fd8b3cea06"
+    },
+    "review_observation_sha256": "1c2318b7e6a1f78ef9e2f9e29b1514a39b842ed2a89042055ce537fd8b3cea06",
+    "review_observations": [
+      {
+        "id": "C02",
+        "path": {
+          "artifact_basename": "699516869ffaf869a71d478d2156778e0224f3803bcdc1f0874f8829f9ee0fe7.json",
+          "original_artifact_sha256": "c29d0263265373bfc71f230a9035aaac42c23745269d01ef7f16f1f4de239e15"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.12,
+          "second_opinion": null,
+          "why": "Both functions convert normalized screen coordinates into NDC and cast a three.js ray, but that overlap is only generic three.js boilerplate (`x * 2 - 1, 1 - y * 2`, `setFromCamera`, `updateMatrixWorld`). The domain logic differs. NEW (phone) intersects a single display mesh, or a fixed plane while captured. It then maps local coordinates to clamped u/v and applies a rotation-dependent remap. EXISTING (duo) hit-tests multiple meshes, derives UV from triangle barycentric interpolation, tracks capture state keyed to a display, and delegates to `duoRawPoint`. Their capture handling, coordinate derivation and outputs are not the same operation. No concrete shared helper beyond trivial NDC setup is established."
+        }
+      },
+      {
+        "id": "C02",
+        "path": {
+          "artifact_basename": "0a3681ef688f84b0d3fe0382a8eb2e03b5f8bcd7d22aeb13b0f546269f20134e.json",
+          "original_artifact_sha256": "1c3e1552f05b39fc4c6dd767b97fe28d2f99f6069a845d2a829b78bc9d5ac06b"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.28,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.36,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_disagreements": "Both paid reviewers separate (Claude 0.12; Jev 0.36), consistent with independent source caveat. Shared NDC/raycaster setup is framework boilerplate, not a positive family.",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "source_operation_regions": [
+      {
+        "code": "    orientation.updateWorldMatrix(true, true);\n    camera.updateMatrixWorld(true);\n    pointer.set(x * 2 - 1, 1 - y * 2);\n    raycaster.setFromCamera(pointer, camera);\n    if (!captured) {\n      const hit = raycaster.intersectObject(display, false)[0];\n      if (!hit) return null;\n      local.copy(hit.point);\n      orientation.worldToLocal(local);\n    } else {\n      const ray = raycaster.ray.clone().applyMatrix4(orientation.matrixWorld.clone().invert());\n      if (!ray.intersectPlane(plane, local)) return null;\n    }\n    const u = Math.min(1, Math.max(0, (local.x + width / 2) / width));\n    const v = Math.min(1, Math.max(0, (local.y + height / 2) / height));\n    const { rotation } = getLayout();\n    if (rotation === -Math.PI / 2) return { x: v, y: u };\n    if (rotation === Math.PI / 2) return { x: 1 - v, y: 1 - u };\n    if (rotation === Math.PI) return { x: 1 - u, y: v };\n    return { x: u, y: 1 - v };",
+        "end_line": 295,
+        "portable_source_file": "sources/f82d1ac055cd0627ea5d126c4156b6c8e5fbd6a7ba9e306cbd29118b8cfe75c9.json.gz",
+        "scope": "Phone projection contract",
+        "sha256": "d9829d0ca14e2980834dfd329cda334c7f3a2d8e595a11b56f16e9f5c55f9734",
+        "source_id": "packages/client-runtime/src/device/phoneScene.ts::createDisplayProjection",
+        "start_line": 276
+      },
+      {
+        "code": "    screenPoint(\n      x: number,\n      y: number,\n      camera: PerspectiveCamera,\n      screen: DeviceScreenSize | null,\n      readyKey: string,\n      extend = false,\n    ) {\n      const key = duoDisplayKey(screen);\n      if (!screen || !readyKey || key !== readyKey) {\n        captured = null;\n        return null;\n      }\n      root.updateMatrixWorld(true);\n      camera.updateMatrixWorld(true);\n      ray.setFromCamera(new Vector2(x * 2 - 1, 1 - y * 2), camera);\n      if (extend && captured?.key === key) {\n        const point = ray.ray.intersectPlane(captured.plane, new Vector3());\n        const bary = point ? captured.triangle.getBarycoord(point, new Vector3()) : null;\n        if (!bary) return null;\n        const uv = captured.uv[0]\n          .clone()\n          .multiplyScalar(bary.x)\n          .addScaledVector(captured.uv[1], bary.y)\n          .addScaledVector(captured.uv[2], bary.z);\n        return duoRawPoint(captured.panel, uv.x, 1 - uv.y);\n      }\n      const hit = ray.intersectObject(root, true)[0];\n      if (!hit?.uv || !hit.face || !(hit.object instanceof Mesh)) return null;\n      const panel: DuoPanelId | null = surfaces[1].includes(hit.object)\n        ? 1\n        : surfaces[3].includes(hit.object)\n          ? 3\n          : null;\n      if (!panel || panel !== screen.screenId) return null;\n      const indices = [hit.face.a, hit.face.b, hit.face.c] as const;\n      const positions = hit.object.geometry.getAttribute(\"position\");\n      const triangle = new Triangle(\n        ...(indices.map((index) =>\n          new Vector3().fromBufferAttribute(positions, index).applyMatrix4(hit.object.matrixWorld),\n        ) as [Vector3, Vector3, Vector3]),\n      );\n      const hitUvs = hit.object.geometry.getAttribute(\"uv\");\n      const uv = indices.map((index) => new Vector2().fromBufferAttribute(hitUvs, index)) as [\n        Vector2,\n        Vector2,\n        Vector2,\n      ];\n      captured = { panel, triangle, uv, plane: triangle.getPlane(new Plane()), key };\n      return duoRawPoint(panel, hit.uv.x, 1 - hit.uv.y);",
+        "end_line": 227,
+        "portable_source_file": "sources/3ee16217328cbe8748dea52b0ff83c1657bbec8c8acf6d8ba2465e5b8827a228.json.gz",
+        "scope": "Duo captured-display/triangle-UV projection contract",
+        "sha256": "89d70b8b37e103dc9eecc9b08e1a067f5fa7716ff54d939dea44abd6815d939b",
+        "source_id": "packages/client-runtime/src/device/duoScene.ts::createDuoScene",
+        "start_line": 178
+      }
+    ],
+    "source_proofs": [
+      {
+        "end_line": 297,
+        "file_sha256": "f82d1ac055cd0627ea5d126c4156b6c8e5fbd6a7ba9e306cbd29118b8cfe75c9",
+        "path": "packages/client-runtime/src/device/phoneScene.ts",
+        "portable_source_file": "sources/f82d1ac055cd0627ea5d126c4156b6c8e5fbd6a7ba9e306cbd29118b8cfe75c9.json.gz",
+        "snapshot": "sources/packages/client-runtime/src/device/phoneScene.ts",
+        "source_id": "packages/client-runtime/src/device/phoneScene.ts::createDisplayProjection",
+        "source_sha256": "12d010b4ea99d19627f9dd3a7a8c674e53077de25c9b99cede34ccf5bf30cf1a",
+        "start_line": 262,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/packages/client-runtime/src/device/phoneScene.ts#L262"
+      },
+      {
+        "end_line": 239,
+        "file_sha256": "3ee16217328cbe8748dea52b0ff83c1657bbec8c8acf6d8ba2465e5b8827a228",
+        "path": "packages/client-runtime/src/device/duoScene.ts",
+        "portable_source_file": "sources/3ee16217328cbe8748dea52b0ff83c1657bbec8c8acf6d8ba2465e5b8827a228.json.gz",
+        "snapshot": "sources/packages/client-runtime/src/device/duoScene.ts",
+        "source_id": "packages/client-runtime/src/device/duoScene.ts::createDuoScene",
+        "source_sha256": "ab89094dfa4829f3085ec081dfa48deb8361f35b2d1b0ab57f730e002825c160",
+        "start_line": 40,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/packages/client-runtime/src/device/duoScene.ts#L40"
+      }
+    ],
+    "status": "propose_separate_control"
+  },
+  "source_adjudication_sha256": "133221c3b7eeaf0efd621b03913cc01eea9b2979bdcff639f93f2de3bcaf4256",
+  "source_closure": [
+    {
+      "file_sha256": "3ee16217328cbe8748dea52b0ff83c1657bbec8c8acf6d8ba2465e5b8827a228",
+      "git_blob_sha1": "2b018bdf41d8ff3478ca102494012ca9e385a627",
+      "path": "packages/client-runtime/src/device/duoScene.ts",
+      "source_file": "sources/3ee16217328cbe8748dea52b0ff83c1657bbec8c8acf6d8ba2465e5b8827a228.json.gz"
+    },
+    {
+      "file_sha256": "f82d1ac055cd0627ea5d126c4156b6c8e5fbd6a7ba9e306cbd29118b8cfe75c9",
+      "git_blob_sha1": "6bf74cf0c95bce7fe35fc3a1ad05ccf6c9514a45",
+      "path": "packages/client-runtime/src/device/phoneScene.ts",
+      "source_file": "sources/f82d1ac055cd0627ea5d126c4156b6c8e5fbd6a7ba9e306cbd29118b8cfe75c9.json.gz"
+    }
+  ],
+  "source_only": true
+}
