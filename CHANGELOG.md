@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.5.0](https://github.com/gigaverse-app/dry-lint/compare/v1.4.3...v1.5.0) (2026-11-06)
+
+
+### Features
+
+* **bench:** preserve corpus backgrounds and audit recall ([#100](https://github.com/gigaverse-app/dry-lint/issues/100)) ([fb15ecc](https://github.com/gigaverse-app/dry-lint/commit/fb15ecce4fdee244c03103948275c44e062fdd69))
+
+
+### Bug Fixes
+
+* **judging:** report spending-cap deferrals without failing checks ([#105](https://github.com/gigaverse-app/dry-lint/issues/105)) ([b3074f2](https://github.com/gigaverse-app/dry-lint/commit/b3074f20186b625e601eec0951c85c4a4133eaff))
+* **reporting:** preserve model retirement history and portable links ([#102](https://github.com/gigaverse-app/dry-lint/issues/102)) ([44702d1](https://github.com/gigaverse-app/dry-lint/commit/44702d10e839eccd8cfc3e6027a402d475fa6081))
+
+
+### Documentation
+
+* correct the snapshot retrieval explanation ([#99](https://github.com/gigaverse-app/dry-lint/issues/99)) ([b74a622](https://github.com/gigaverse-app/dry-lint/commit/b74a6223b4b41b8bb881c445c86c2dba82d62dd2))
+* use v1 throughout dry-lint adoption ([#96](https://github.com/gigaverse-app/dry-lint/issues/96)) ([c0e184b](https://github.com/gigaverse-app/dry-lint/commit/c0e184b538223c32e8ac24649b529e1e9b30a1f1))
+
 ## [1.4.3](https://github.com/gigaverse-app/dry-lint/compare/v1.4.2...v1.4.3) (2026-11-05)
 
 
