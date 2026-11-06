@@ -36,7 +36,7 @@ from dry_lint.git import git
 from dry_lint.github import github_event
 from dry_lint.index_github import IndexClient
 from dry_lint.ledger import COUNTER, PullLedger, RepositoryLedger, Tally, counter_key
-from dry_lint.report import Report
+from dry_lint.report import NOTE_SLOT, Report
 from dry_lint.settings import Settings
 
 ARTIFACT = "dry-lint-candidates"
@@ -154,6 +154,11 @@ def dry_lint(*args: str, echo: bool = True) -> tuple[int, list[str]]:
     if echo:
         sys.stdout.write(result.stdout)
     sys.stderr.write(result.stderr)
+    if result.returncode not in (0, 1) or (args[0] == "detect" and result.returncode != 0):
+        if not echo:
+            sys.stdout.write(result.stdout)
+        action_error(f"dry-lint {args[0]} failed with exit code {result.returncode}; see the command output above.")
+        return 2, result.stdout.splitlines()
     return result.returncode, result.stdout.splitlines()
 
 
@@ -166,10 +171,7 @@ def count_findings(lines: list[str]) -> tuple[int, int]:
 
 def judged(report: Path) -> bool:
     """Whether a judge actually ran, by report.json; the repository's settings can turn judging off."""
-    try:
-        return bool(json.loads(report.read_text()).get("judge"))
-    except (OSError, ValueError):
-        return False
+    return bool(json.loads(report.read_text()).get("judge"))
 
 
 def fail_at() -> list[str]:
@@ -202,7 +204,7 @@ def status_note(blocking: int, overridden: bool, baselined: bool = False) -> str
     if flag("INPUT_WARN_ONLY"):
         return "> [!NOTE]\n> **Advisory mode:** `warn-only` is enabled, so this check does not fail on these findings."
     return (
-        f"> [!CAUTION]\n> **Blocking:** {blocking} finding(s) reach `fail_at`, so this check fails. A false "
+        f"> [!CAUTION]\n> **Blocking:** {blocking} finding(s) require review or reach `fail_at`, so this check fails. A false "
         f"positive? Use the scoped decisions below, or add the `{override_label()}` label to this pull request."
     )
 
@@ -214,11 +216,21 @@ def write_outputs(**outputs: object) -> None:
             handle.writelines(f"{name.replace('_', '-')}={value}\n" for name, value in outputs.items())
 
 
-def write_summary(comment: Path) -> None:
+def write_summary(comment: Path, note: str = "") -> None:
     path = env("GITHUB_STEP_SUMMARY")
     if path and comment.exists():
         with open(path, "a") as handle:
-            handle.write(comment.read_text() + "\n")
+            text = comment.read_text()
+            handle.write((note + "\n\n" if note else "") + text.replace(NOTE_SLOT, "") + "\n")
+
+
+def action_error(message: str) -> None:
+    escaped = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    print(f"::error title=dry-lint::{escaped}")
+    write_outputs(exit_code=2, models_checked="false")
+    if path := env("GITHUB_STEP_SUMMARY"):
+        with open(path, "a") as handle:
+            handle.write("\n### dry-lint failed\n\n" + message + "\n")
 
 
 def run_url() -> str:
@@ -280,15 +292,23 @@ def check_run(
     if not flag("INPUT_CHECK_RUN") or not token or not report.exists():
         return "off"
     code, lines = dry_lint(
-        "report", "--root", str(root), "--from", str(report), "--format", "check-run", *fail_at(), echo=False
+        "report",
+        "--root",
+        str(root),
+        "--from",
+        str(report),
+        "--format",
+        "check-run",
+        *fail_at(),
+        *([] if blocked else ["--warn-only"]),
+        echo=False,
     )
     try:
         body = json.loads("\n".join(lines))
     except json.JSONDecodeError:
         code = 2
     if code == 2:  # 1 only means the report has findings
-        print("::warning title=dry-lint::Could not render the check run.")
-        return "failed"
+        raise ValueError("Could not render the check run.")
     if blocked:
         body["conclusion"] = "failure"
     github = sticky.GitHub(token, env("GITHUB_API_URL", "https://api.github.com"), transport)
@@ -504,6 +524,8 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
         write_outputs(mode=mode, exit_code=0)
         return 0
     store, report, body = work / "verdicts", work / "report.json", work / "comment.md"
+    report.unlink(missing_ok=True)
+    body.unlink(missing_ok=True)
     judge = resolve_judge(env("INPUT_JUDGE"), any(env(key) for key in JUDGE_KEYS))
     # dry-lint logs as text; annotations are rendered from report.json afterwards, and only when a judge ran:
     # unjudged look-alikes on every pull request would be noise. dry-lint exits 1 when a finding blocks (at or
@@ -568,8 +590,10 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
             *model_arguments,
         )
         write_outputs(mode=mode, exit_code=code, findings=0)
+        if code != 0:
+            return 2
         print(f"::notice title=dry-lint::Candidates saved as the {ARTIFACT} artifact for the judge workflow.")
-        return 2 if code == 2 else 0
+        return 0
 
     if mode == "judge":
         candidates = work / "in" / "candidates.json"
@@ -606,7 +630,11 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
 
     if code != 2 and judge != "none":
         if judged(report):
-            _, lines = dry_lint("report", "--root", str(root), "--from", str(report), "--format", "github", *fail_at())
+            rendered, lines = dry_lint(
+                "report", "--root", str(root), "--from", str(report), "--format", "github", *fail_at(), echo=False
+            )
+            if rendered == 2:
+                code = 2
         else:  # the repository's settings turn judging off (preset or judge "none") although keys are present
             judge, code = "none", 0
     findings, blocking = count_findings(lines)
@@ -617,28 +645,52 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
     )
     if receipt and body.exists():
         body.write_text(body.read_text() + receipt)
-    write_summary(body)
     if code == 2:
+        write_summary(body)
         if mode == "judge":
             check_run(root, repository, report, transport, blocked=True)
         write_outputs(mode=mode, exit_code=2, findings=findings, blocking=blocking, overridden="false")
         return 2
     if judge == "none":
+        write_summary(body)
         print(
             "::notice title=dry-lint::Look-alikes are listed unjudged in the log. Set typesafe-api-key (or "
             "judge-command) to judge them; until then dry-lint does not comment or fail."
         )
         write_outputs(mode=mode, exit_code=0, findings=0, blocking=0, overridden="false")
         return 0
-    blocking = blocking if code == 1 else 0
+    blocking = blocking if code == 1 or flag("INPUT_WARN_ONLY") else 0
     baselined = bool(env("INPUT_BASELINE"))
     overridden = bool(blocking) and not baselined and override_label() in labels
-    blocked = bool(blocking) and not overridden and not flag("INPUT_WARN_ONLY")
+    blocked = code == 1 and not overridden and not flag("INPUT_WARN_ONLY")
+    for line in lines:
+        print(line.replace("::error file=", "::warning file=", 1) if not blocked else line)
+    if overridden:
+        rendered, _ = dry_lint(
+            "report",
+            "--root",
+            str(root),
+            "--from",
+            str(report),
+            "--format",
+            "markdown",
+            "--output",
+            str(body),
+            "--warn-only",
+            *fail_at(),
+            echo=False,
+        )
+        if rendered == 2:
+            return 2
+        if receipt and body.exists():
+            body.write_text(body.read_text() + receipt)
+    note = status_note(blocking, overridden, baselined)
+    write_summary(body, note)
     if overridden:
         print(f"::notice title=dry-lint::{blocking} blocking finding(s) overridden by the `{override_label()}` label.")
     if mode == "judge":
         check_run(root, repository, report, transport, blocked)
-    comment(repository, number, body, findings, head, transport, status_note(blocking, overridden, baselined))
+    comment(repository, number, body, findings, head, transport, note)
     if branch := default_branch(event_name, event):
         fold(repository, branch, event.get("after", ""), report, transport)
     write_outputs(mode=mode, exit_code=code, findings=findings, blocking=blocking, overridden=str(overridden).lower())
@@ -647,17 +699,18 @@ def run(transport: httpx.BaseTransport | None = None) -> int:
 
 def main(argv: list[str] | None = None, transport: httpx.BaseTransport | None = None) -> int:
     command = (argv if argv is not None else sys.argv[1:])[:1]
-    if command == ["plan"]:
-        return plan()
     try:
+        if command == ["plan"]:
+            return plan()
         return run(transport)
     except (ValueError, OSError, httpx.HTTPError, subprocess.CalledProcessError) as error:
-        print(f"::error title=dry-lint::{error}")
+        action_error(str(error))
         return 2
     finally:
         # action.yml saves the verdict cache only when there is something to save (hashFiles cannot see RUNNER_TEMP).
-        store = workdir() / "verdicts"
-        write_outputs(stored=str(store.is_dir() and any(store.iterdir())).lower())
+        if command != ["plan"]:
+            store = workdir() / "verdicts"
+            write_outputs(stored=str(store.is_dir() and any(store.iterdir())).lower())
 
 
 if __name__ == "__main__":  # pragma: no cover

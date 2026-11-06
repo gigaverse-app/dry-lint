@@ -130,8 +130,8 @@ def test_text_report_gives_location_verdict_advice_and_a_way_out() -> None:
         "# dry-lint: distinct-from src/text.py::shorten",
     ]:
         assert part in text
-    assert text.endswith("1 candidate pair(s), 0 skipped by rule, 1 from the store, 0 judged (judge jev:v), 1 reported")
-    assert as_text(report(judge=None)).endswith("(no judge), 0 reported")
+    assert "1 candidate pair(s), 0 skipped by rule, 1 from the store, 0 judged (judge jev:v), 1 reported" in text
+    assert "(no judge), 0 reported" in as_text(report(judge=None))
 
 
 def test_github_annotations_are_errors_for_blocking_findings_and_warnings_for_the_rest() -> None:
@@ -365,7 +365,7 @@ def test_the_status_note_has_a_slot_between_the_result_and_the_evidence() -> Non
 def test_json_report_round_trips() -> None:
     built = report(finding("duplicate", existing="a"), finding("separate", existing="b"))
     loaded = Report.model_validate_json(render(built, "json", SETTINGS))
-    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 11
+    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 12
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:
@@ -471,14 +471,14 @@ def test_every_view_states_the_judging() -> None:
     built = Report.build(
         [finding("duplicate")], SETTINGS, run=Run(repository="o/r", head="abc"), judge="jev:reuse-v2", judging=summary
     )
-    assert as_text(built).endswith(
-        "judging: preset jev · jev:reuse-v2 · reports and fails at 0.8 · est. $0.000 of $0.25 budget"
+    assert ("judging: preset jev · jev:reuse-v2 · reports and fails at 0.8 · est. $0.000 of $0.25 budget") in as_text(
+        built
     )
     assert "<sub>preset jev · jev:reuse-v2 · reports and fails at 0.8" in as_markdown(built)
     clean = Report.build([finding("separate", 0.3)], SETTINGS, judge="jev:reuse-v2", judging=summary)
-    assert as_markdown(clean).endswith(
+    assert (
         "<sub>preset jev · jev:reuse-v2 · reports and fails at 0.8 · est. $0.000 of $0.25 budget</sub>"
-    )  # the bill shows on a clean pull request too
+    ) in as_markdown(clean)  # the bill shows on a clean pull request too
     assert Report.model_validate_json(as_json(built)).judging == summary
 
 
@@ -554,6 +554,7 @@ def test_budget_deferred_pairs_are_actionable_review_tasks_not_clean_or_confirme
     assert built.findings[0].blocking and not built.findings[0].reported
     text = as_text(built)
     assert "coding agent" in text and "distinct-from" in text and "review required" in text
+    assert "0 reported, 1 review required" in text
     markdown = as_markdown(built)
     assert "review required" in markdown and "No duplicated concepts" not in markdown
     check = json.loads(as_check_run(built))

@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.4.3](https://github.com/gigaverse-app/dry-lint/compare/v1.4.2...v1.4.3) (2026-11-05)
+
+
+### Bug Fixes
+
+* **action:** surface failures and honor advisory severity ([#97](https://github.com/gigaverse-app/dry-lint/issues/97)) ([68beb41](https://github.com/gigaverse-app/dry-lint/commit/68beb41e56a92f33f0ff50ee5e54b36b3163366b))
+* **judging:** fund affordable pairs after a budget gap ([#95](https://github.com/gigaverse-app/dry-lint/issues/95)) ([18934df](https://github.com/gigaverse-app/dry-lint/commit/18934df6c8e667c1bb503359c2ea9a7240c6544e))
+* **reporting:** surface model review and debt across hooks and stickies ([e36e0f4](https://github.com/gigaverse-app/dry-lint/commit/e36e0f462ef0de55a791c3f066ab1636e67b119a))
+
+
+### Documentation
+
+* **adoption:** explain frequent pre-commit hook updates ([#98](https://github.com/gigaverse-app/dry-lint/issues/98)) ([ee57ea5](https://github.com/gigaverse-app/dry-lint/commit/ee57ea54b26e30f37c9f9fbb96c2c7ea6875c64d))
+* capture pytest-selective cleanup impact and regression goldens ([#91](https://github.com/gigaverse-app/dry-lint/issues/91)) ([dfcb667](https://github.com/gigaverse-app/dry-lint/commit/dfcb667f30dda769102b396be662b7c147f7bb6a))
+
 ## [1.4.2](https://github.com/gigaverse-app/dry-lint/compare/v1.4.1...v1.4.2) (2026-11-05)
 
 

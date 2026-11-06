@@ -216,6 +216,36 @@ def test_without_a_ledger_nothing_is_limited(store: VerdictStore) -> None:
     assert second.asked == ["a"]
 
 
+@pytest.mark.parametrize("escalated", [False, True], ids=["single-judge", "second-opinion"])
+def test_an_unaffordable_pair_does_not_hide_later_affordable_findings(escalated: bool) -> None:
+    candidates = [pair_at(name, similarity) for name, similarity in [("near", 0.9), ("large", 0.8), ("far", 0.7)]]
+    candidates[1].new.code += "\n    text = text.strip()" * 5000
+    paid = Billed("paid", {"near": 0.95, "far": 0.9})
+    settings = SETTINGS.model_copy(update={"budget": Budget(usd=0.04)})
+    assert estimate(paid, [candidates[1]], settings) > settings.budget.usd
+    first = ScoringJudge("first", {"near": 0.7, "large": 0.71, "far": 0.72}) if escalated else paid
+    ledger = Ledger(settings)
+    answers = decide(candidates, first, paid if escalated else None, settings, ledger)
+    assert paid.asked == ["near", "far"]
+    assert answers[0].score == 0.95 and answers[2].score == 0.9
+    assert (answers[1].second_opinion is None) if escalated else (answers[1] is None)
+    assert ledger.usd <= 0.04
+    assert ledger.spend["paid:1"].skipped == 1
+
+
+def test_first_pass_refill_cannot_spend_the_second_opinions_allowance() -> None:
+    candidates = [pair_at(name, score) for name, score in [("near", 0.9), ("large", 0.8), ("far", 0.7)]]
+    candidates[1].new.code += "\n    text = text.strip()" * 5000
+    first = Billed("first", {"near": 0.7})
+    second = Billed("second", {"near": 0.95})
+    one = estimate(first, [candidates[0]], SETTINGS)
+    settings = SETTINGS.model_copy(update={"budget": Budget(usd=one * 2.1)})
+    answers = decide(candidates, first, second, settings, Ledger(settings))
+    assert answers[0].score == 0.95 and answers[0].second_opinion == "second:1"
+    assert first.asked == second.asked == ["near"]
+    assert answers[1:] == [None, None]
+
+
 def test_the_summary_names_the_preset_judges_band_thresholds_and_budget(store: VerdictStore) -> None:
     settings = SETTINGS.model_copy(update={"preset": "jev+sonnet", "report_at": 0.6, "fail_at": 0.7})
     summary = Judging(settings, ScoringJudge("first", {}), ScoringJudge("second", {}), store).summary()

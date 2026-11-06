@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "reviewer_kind": "independent model source review, not human gold",
+  "breadth_update_summaries": [
+    {
+      "schema": 1,
+      "reviewer": "G03 reviewing G04 packets",
+      "reviewer_kind": "model, not human gold",
+      "review_stage": "exact-before-pin caller resolution",
+      "provenance_file": "pin-resolution-provenance.json",
+      "provenance_sha256": "fc80cd270ce09406584aa626a3f17bb4269e880ef60f2ea2240f3fa130ddbcac",
+      "supersedes": "Only bounded-context caller/identity eligibility findings from initial reviews.jsonl; original review preserved. All after-control deletion and scope judgments unchanged.",
+      "packet_id": "G04-01",
+      "classification": "duplicate",
+      "confidence": 0.99,
+      "scope": "tiny decoder-construction operation only",
+      "active_duplicate_eligible": true,
+      "whole_parser_duplicate_eligible": false,
+      "rationale": "Both decoder owners are used. partial-json local decoder is called at 43/49 and nested parsing paths. utils/json exports the same synchronous unknown decoder; protocols/shared imports it at 22 and calls it in parseJson at 159-163. shared parseJson is called in its own parseToolCallInput at 218 and protocol handlers including bedrock-event-stream and Gemini. This closes the previously unproven second-consumer gap. Shared Effect parsing machinery still means the positive is local schema/decoder policy construction, not two parsing algorithms.",
+      "evidence": [
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/utils/json.ts",
+          "sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7",
+          "git_blob_sha1": "a0cbeab0f80083c068a9221dc63a0492f1c7344d",
+          "start_line": 1,
+          "end_line": 5,
+          "quote": "import { Schema } from \"effect\"\n\nexport const Json = Schema.fromJsonString(Schema.Unknown)\nexport const decodeJson = Schema.decodeUnknownSync(Json)\nexport const encodeJson = Schema.encodeSync(Json)\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/protocols/utils/partial-json.ts",
+          "sha256": "0084ab32a73234ca8e5736f79d7efe684058d6615463a58a3ca85494eadbbcb9",
+          "git_blob_sha1": "345a19e4dcaa8c767abb33f3357c359f8f10f4cd",
+          "start_line": 35,
+          "end_line": 49,
+          "quote": "const decodeJson = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))\n\n/** Parse complete or incomplete JSON, restricted by the supplied partial-value flags. */\nexport function parseJSON(jsonString: string, allowPartial = Allow.ALL): unknown {\n  if (typeof jsonString !== \"string\") throw new TypeError(`expecting str, got ${typeof jsonString}`)\n  const input = jsonString.trim()\n  if (!input) throw new Error(`${jsonString} is empty`)\n  try {\n    return decodeJson(input)\n  } catch {}\n\n  const repaired = repairJSON(input)\n  if (repaired !== input) {\n    try {\n      return decodeJson(repaired)\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/protocols/shared.ts",
+          "sha256": "b02f3e8d98a144c08ebd85c31f93a435293b46ffbea2b49911c776aae3c915fc",
+          "git_blob_sha1": "74144b0c96f8a8c8c96c4b3612265b25f5768504",
+          "start_line": 22,
+          "end_line": 24,
+          "quote": "import { Json, decodeJson, encodeJson } from \"../utils/json.js\"\nimport { isRecord } from \"../utils/record.js\"\nexport { Json, decodeJson, encodeJson, isRecord }\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/protocols/shared.ts",
+          "sha256": "b02f3e8d98a144c08ebd85c31f93a435293b46ffbea2b49911c776aae3c915fc",
+          "git_blob_sha1": "74144b0c96f8a8c8c96c4b3612265b25f5768504",
+          "start_line": 159,
+          "end_line": 163,
+          "quote": "export const parseJson = (route: string, input: string, message: string) =>\n  Effect.try({\n    try: () => decodeJson(input),\n    catch: (cause) => eventError(route, message, input, cause),\n  })\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/protocols/shared.ts",
+          "sha256": "b02f3e8d98a144c08ebd85c31f93a435293b46ffbea2b49911c776aae3c915fc",
+          "git_blob_sha1": "74144b0c96f8a8c8c96c4b3612265b25f5768504",
+          "start_line": 208,
+          "end_line": 220,
+          "quote": "  return { type: \"text\" as const, text: wrapSystemUpdate(content), cache: content.at(-1)?.cache }\n})\n\n/**\n * Parse the streamed JSON input of a tool call. Treats an empty string as\n * `\"{}\"` — providers occasionally finish a tool call without ever emitting\n * input deltas (e.g. zero-arg tools). The error message is uniform across\n * routes: `Invalid JSON input for <route> tool call <name>`.\n */\nexport const parseToolInput = (route: string, name: string, raw: string) =>\n  parseJson(route, raw || \"{}\", `Invalid JSON input for ${route} tool call ${name}`)\n\n/** Inline view or a typed `InvalidRequest` for routes that cannot fetch URLs or dereference provider refs. */\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/protocols/bedrock-event-stream.ts",
+          "sha256": "150efc23340413500347262a9d53b61431eb097070efe15ce7fff9aed4cd35b2",
+          "git_blob_sha1": "af81da859c2b97c22cc99da47f34b6172379dba7",
+          "start_line": 98,
+          "end_line": 112,
+          "quote": "      if (!payload) continue\n      // The AWS event stream pads short payloads with a `p` field. Drop it\n      // before handing the object to the chunk schema. JSON decode goes\n      // through the shared Schema-driven codec to satisfy the package rule\n      // against ad-hoc `JSON.parse` calls.\n      const parsed = (yield* ProviderShared.parseJson(\n        route,\n        payload,\n        \"Failed to parse Bedrock Converse event-stream payload\",\n      ).pipe(\n        Effect.mapError(\n          (error) =>\n            new AIError({\n              reason: AIErrorReason.make({ ...error.reason, message: error.message, cause: error.reason.cause, body }),\n            }),\n"
+        }
+      ],
+      "uncertainty": "Static source call paths verified; no runtime execution or claim of whole parser duplication.",
+      "original_provenance_sha256": "146c1d14956ae9e7b1d9d36d447aaef62fcb4843e9e53b59eaba108d7e34662e"
+    },
+    {
+      "schema": 1,
+      "reviewer": "G03 reviewing G04 packets",
+      "reviewer_kind": "model, not human gold",
+      "review_stage": "exact-before-pin caller resolution",
+      "provenance_file": "pin-resolution-provenance.json",
+      "provenance_sha256": "fc80cd270ce09406584aa626a3f17bb4269e880ef60f2ea2240f3fa130ddbcac",
+      "supersedes": "Only bounded-context caller/identity eligibility findings from initial reviews.jsonl; original review preserved. All after-control deletion and scope judgments unchanged.",
+      "packet_id": "G04-03",
+      "classification": "duplicate",
+      "confidence": 0.99,
+      "scope": "request normalization helper; partial operation within Promise make",
+      "active_duplicate_eligible": true,
+      "whole_make_duplicate_eligible": false,
+      "rationale": "At the before pin index.ts:116 exports the llm.ts module as LLM. promise.ts imports LLM from index.ts, so LLM.request refers to llm.ts exported request at 60. llm.ts requestEffect uses that same local request binding. Both import LLMRequest from schema/index.js. Promise llmRequest and llm requestEffect independently perform the same instanceof/passthrough/tryRequest normalization; the before identity gap is closed. Both helpers have explicit generate/stream callers.",
+      "evidence": [
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/index.ts",
+          "sha256": "320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0",
+          "git_blob_sha1": "10a2bb79e532fb4a0fac683fedc0451dd3f78a1d",
+          "start_line": 116,
+          "end_line": 116,
+          "quote": "export * as LLM from \"./llm.js\"\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/promise.ts",
+          "sha256": "e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133",
+          "git_blob_sha1": "d4dd8dddc606514114cc319e0c4f4bd0b57d0447",
+          "start_line": 1,
+          "end_line": 10,
+          "quote": "import { Effect, Layer, ManagedRuntime, Stream } from \"effect\"\nimport { AIClient } from \"./ai-client.js\"\nimport type { AwaitOptions, Event, Generation, Snapshot } from \"./generation.js\"\nimport { Image, type ImageModel, type ImageRequest, type ImageRequestInput } from \"./image.js\"\nimport { LLM } from \"./index.js\"\nimport { Media } from \"./media.js\"\nimport { tryRequest } from \"./media-model.js\"\nimport { RequestExecutor } from \"./route/executor.js\"\nimport { AIError, InvalidRequestError, LanguageModel, LLMRequest } from \"./schema/index.js\"\nimport type { RequestInput } from \"./llm.js\"\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/promise.ts",
+          "sha256": "e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133",
+          "git_blob_sha1": "d4dd8dddc606514114cc319e0c4f4bd0b57d0447",
+          "start_line": 96,
+          "end_line": 97,
+          "quote": "  const llmRequest = (input: RequestInput | LLMRequest) =>\n    input instanceof LLMRequest ? Effect.succeed(input) : tryRequest(() => LLM.request(input))\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/promise.ts",
+          "sha256": "e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133",
+          "git_blob_sha1": "d4dd8dddc606514114cc319e0c4f4bd0b57d0447",
+          "start_line": 137,
+          "end_line": 143,
+          "quote": "    llm: {\n      request: LLM.request,\n      generate: <const Model extends LanguageModel>(input: RequestInput<Model> | LLMRequest, options?: RunOptions) =>\n        run(Effect.flatMap(llmRequest(input), LLM.generate), options),\n      stream: <const Model extends LanguageModel>(input: RequestInput<Model> | LLMRequest, options?: RunOptions) =>\n        iterate(Stream.unwrap(Effect.map(llmRequest(input), LLM.stream)), options),\n    },\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/llm.ts",
+          "sha256": "4a5561ff487204efdac017514400aeded748ee7b0d5ec15dd93d834468db6552",
+          "git_blob_sha1": "f28804927b1a56126c9ec031807d8e3021478f84",
+          "start_line": 1,
+          "end_line": 24,
+          "quote": "import { Effect, JsonSchema, Schema, Stream } from \"effect\"\nimport { tryRequest } from \"./media-model.js\"\nimport { LLMClient, Service, type StreamOptions } from \"./route/client.js\"\nimport {\n  GenerationOptions,\n  HttpOptions,\n  InvalidProviderOutputError,\n  AIError,\n  LLMEvent,\n  LLMRequest,\n  LLMResponse,\n  Message,\n  LanguageModel,\n  SystemPart,\n  ToolChoice,\n  ToolEntry,\n  type ContentPart,\n  type LanguageModelProviderOptions,\n  type ToolEntryInput,\n} from \"./schema/index.js\"\nimport { make as makeTool, toDefinitions, type ToolSchema } from \"./tool.js\"\n\n/** Input accepted by `LLM.request`, normalized into the canonical `LLMRequest` class. */\nexport type RequestInput<SelectedLanguageModel extends LanguageModel = LanguageModel> = Omit<\n"
+        },
+        {
+          "repository": "opencode",
+          "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+          "path": "packages/ai/src/llm.ts",
+          "sha256": "4a5561ff487204efdac017514400aeded748ee7b0d5ec15dd93d834468db6552",
+          "git_blob_sha1": "f28804927b1a56126c9ec031807d8e3021478f84",
+          "start_line": 43,
+          "end_line": 81,
+          "quote": "export function generate(input: LLMRequest, options?: StreamOptions): Effect.Effect<LLMResponse, AIError, Service>\nexport function generate(input: RequestInput | LLMRequest, options?: StreamOptions) {\n  return requestEffect(input).pipe(Effect.flatMap((request) => LLMClient.generate(request, options)))\n}\n\nexport function stream<const Model extends LanguageModel>(\n  input: RequestInput<Model>,\n  options?: StreamOptions,\n): Stream.Stream<LLMEvent, AIError, Service>\nexport function stream(input: LLMRequest, options?: StreamOptions): Stream.Stream<LLMEvent, AIError, Service>\nexport function stream(input: RequestInput | LLMRequest, options?: StreamOptions) {\n  return Stream.unwrap(requestEffect(input).pipe(Effect.map((request) => LLMClient.stream(request, options))))\n}\n\nconst requestEffect = (input: RequestInput | LLMRequest) =>\n  input instanceof LLMRequest ? Effect.succeed(input) : tryRequest(() => request(input))\n\nexport const request = <const SelectedLanguageModel extends LanguageModel>(\n  input: RequestInput<SelectedLanguageModel>,\n) => {\n  const {\n    system: requestSystem,\n    prompt,\n    messages,\n    tools,\n    toolChoice: requestToolChoice,\n    generation: requestGeneration,\n    providerOptions: requestProviderOptions,\n    http: requestHttp,\n    ...rest\n  } = input\n  return new LLMRequest({\n    ...rest,\n    system: SystemPart.content(requestSystem),\n    messages: [...(messages?.map(Message.make) ?? []), ...(prompt === undefined ? [] : [Message.user(prompt)])],\n    tools: tools?.map(ToolEntry.make) ?? [],\n    toolChoice: requestToolChoice ? ToolChoice.make(requestToolChoice) : undefined,\n    generation: requestGeneration === undefined ? undefined : GenerationOptions.make(requestGeneration),\n    providerOptions: requestProviderOptions,\n"
+        }
+      ],
+      "uncertainty": "Static ES module binding identity established at pin; no execution. Already shared constructor and tryRequest are not independently duplicated.",
+      "original_provenance_sha256": "146c1d14956ae9e7b1d9d36d447aaef62fcb4843e9e53b59eaba108d7e34662e"
+    },
+    {
+      "schema": 1,
+      "reviewer": "G03 reviewing G04 packets",
+      "reviewer_kind": "model, not human gold",
+      "review_stage": "exact-before-pin caller resolution",
+      "provenance_file": "pin-resolution-provenance.json",
+      "provenance_sha256": "fc80cd270ce09406584aa626a3f17bb4269e880ef60f2ea2240f3fa130ddbcac",
+      "supersedes": "Only bounded-context caller/identity eligibility findings from initial reviews.jsonl; original review preserved. All after-control deletion and scope judgments unchanged.",
+      "packet_id": "G04-04",
+      "classification": "duplicate",
+      "confidence": 0.99,
+      "scope": "whole identical small helper bodies, one dead in pinned repository",
+      "active_duplicate_eligible": false,
+      "source_text_duplicate_eligible": true,
+      "dead_code_duplicate": true,
+      "rationale": "Exact whole-tree git grep for compose_callbacks returns only conversation.py:17 definition, local_conversation.py:27 definition, and local_conversation.py:97 call. Import/dynamic-import search over openhands and tests shows no composer import or wildcard re-export. conversation/__init__.py imports and exports Conversation, not compose_callbacks. Thus conversation.py composer is unused/dead under pinned repository static source evidence; LocalConversation owns the sole demonstrated active implementation. Do not package this as two active independent implementations. Retain only as source-level dead-code duplicate or exclude from an active-duplicate gold set.",
+      "evidence": [
+        {
+          "repository": "software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "path": "openhands/sdk/conversation/conversation.py",
+          "sha256": "a6b076f0c2913fcde381a7abf9562b04017c82ef925682ac118213c512b6d1a3",
+          "git_blob_sha1": "a768715604afc14c4db1e1d5e1fd8e5848b02914",
+          "start_line": 17,
+          "end_line": 25,
+          "quote": "def compose_callbacks(\n    callbacks: Iterable[ConversationCallbackType],\n) -> ConversationCallbackType:\n    def composed(event) -> None:\n        for cb in callbacks:\n            if cb:\n                cb(event)\n\n    return composed\n"
+        },
+        {
+          "repository": "software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "path": "openhands/sdk/conversation/impl/local_conversation.py",
+          "sha256": "94b2ace427a0b182d172491800e6eed77aca2b0b4355270eda673689814ddde7",
+          "git_blob_sha1": "0e355ec00c9e77b735298c5f0994ee404d74543f",
+          "start_line": 27,
+          "end_line": 35,
+          "quote": "def compose_callbacks(\n    callbacks: Iterable[ConversationCallbackType],\n) -> ConversationCallbackType:\n    def composed(event) -> None:\n        for cb in callbacks:\n            if cb:\n                cb(event)\n\n    return composed\n"
+        },
+        {
+          "repository": "software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "path": "openhands/sdk/conversation/impl/local_conversation.py",
+          "sha256": "94b2ace427a0b182d172491800e6eed77aca2b0b4355270eda673689814ddde7",
+          "git_blob_sha1": "0e355ec00c9e77b735298c5f0994ee404d74543f",
+          "start_line": 85,
+          "end_line": 104,
+          "quote": "\n        composed_list = (callbacks if callbacks else []) + [_default_callback]\n        # Add default visualizer if requested\n        if visualize:\n            self._visualizer = create_default_visualizer(\n                conversation_stats=self._state.stats\n            )\n            composed_list = [self._visualizer.on_event] + composed_list\n            # visualize should happen first for visibility\n        else:\n            self._visualizer = None\n\n        self._on_event = compose_callbacks(composed_list)\n        self.max_iteration_per_run = max_iteration_per_run\n\n        # Initialize stuck detector\n        self._stuck_detector = StuckDetector(self._state) if stuck_detection else None\n\n        with self._state:\n            self.agent.init_state(self._state, on_event=self._on_event)\n"
+        },
+        {
+          "repository": "software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "path": "openhands/sdk/conversation/__init__.py",
+          "sha256": "0cced376dce51cbf8e708e4f15184798cbbb9dc63dd5769b126867356b8a1bea",
+          "git_blob_sha1": "0e77502fa4d9e53dce789a67a6ac1968671780eb",
+          "start_line": 1,
+          "end_line": 21,
+          "quote": "from openhands.sdk.conversation.base import BaseConversation\nfrom openhands.sdk.conversation.conversation import Conversation\nfrom openhands.sdk.conversation.event_store import EventLog, ListLike\nfrom openhands.sdk.conversation.secrets_manager import SecretsManager\nfrom openhands.sdk.conversation.state import ConversationState\nfrom openhands.sdk.conversation.stuck_detector import StuckDetector\nfrom openhands.sdk.conversation.types import ConversationCallbackType\nfrom openhands.sdk.conversation.visualizer import ConversationVisualizer\n\n\n__all__ = [\n    \"Conversation\",\n    \"BaseConversation\",\n    \"ConversationState\",\n    \"ConversationCallbackType\",\n    \"ConversationVisualizer\",\n    \"SecretsManager\",\n    \"StuckDetector\",\n    \"EventLog\",\n    \"ListLike\",\n]\n"
+        }
+      ],
+      "grep_provenance_command_indices": [
+        0,
+        1
+      ],
+      "uncertainty": "A static whole-tree name/import search cannot disprove dynamic attribute construction or out-of-repository imports. Neither is demonstrated, so it cannot justify active-positive eligibility.",
+      "original_provenance_sha256": "146c1d14956ae9e7b1d9d36d447aaef62fcb4843e9e53b59eaba108d7e34662e"
+    }
+  ],
+  "pin_resolution_summary": {
+    "schema": 1,
+    "initial_reviews_sha256": "1bf5df117879b4300d0a83ffa85dcd90c941cc3d5952989bc523230edc538aa6",
+    "updates_sha256": "5f1a5060ab42dfd42834239a0fade44b8989362a0cabd56ad445e595d95534d4",
+    "pin_provenance_sha256": "146c1d14956ae9e7b1d9d36d447aaef62fcb4843e9e53b59eaba108d7e34662e",
+    "current_eligibility": {
+      "G04-01": "active duplicate at tiny decoder-binding operation scope",
+      "G04-02": "separate array acceptance contract; unchanged",
+      "G04-03": "active duplicate at normalization helper scope",
+      "G04-04": "dead-code source duplicate; exclude from active duplicate positives"
+    },
+    "active_positive_families": 2,
+    "active_positive_family_ids": [
+      "G04-01",
+      "G04-03"
+    ],
+    "independent_changes_for_active_positives": 1,
+    "whole_large_function_positive_count": 0,
+    "original_after_pair_negative_count": 0,
+    "after_surviving_scoped_controls": "unchanged from initial review",
+    "no_target_execution": true
+  },
+  "review_input_hashes": {
+    "typescript": "f8e3172cb1f4456c1496f1c1163923c6413de38db6bf82ceeba7e9112c03d47f",
+    "breadth": "9ecf3eb775f7ad9f31304c2e81bd603eb44b8fe4272dda8403cb2a80c9b5dad1"
+  },
+  "limitations": "Curator/reviewer agreement at stated operation scope; no target execution, model-provider calls, prevalence or recall claims."
+}

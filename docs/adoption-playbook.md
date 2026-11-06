@@ -121,9 +121,9 @@ minimum_pre_commit_version: '4.3.0'
 default_install_hook_types: [pre-commit, prepare-commit-msg]
 default_stages: [pre-commit]
 repos:
-  - repo: https://github.com/gigaverse-app/dry-lint
-    rev: v1
-    hooks:
+- repo: https://github.com/gigaverse-app/dry-lint
+  rev: v1
+  hooks:
       - id: dry-lint
         args: [--preset, sonnet, --baseline, .dry-lint/baseline.json]
         language_version: python3.13
@@ -297,6 +297,17 @@ updates gated on overall success. `sweep` audits functions only;
 its successful exit does not prove models were reviewed. Model cleanup uses source removal or an exact
 reviewed dismissal, never an atomic negative score. Keep function README totals and model debt counts
 separate, and rerun both inventories after consolidation to discover newly exposed opportunities.
+
+After both ratchets succeed, run `dry-lint progress --readme README.md --repository OWNER/NAME` before staging
+the metadata PR. This refreshes both inventories without judging again; the README links each baseline and
+shows remaining, retired and dismissed pairs separately. A missing model baseline must read **Not initialized**,
+never zero. Keep the configured model baseline path in the ratchet's allowed paths.
+
+Verify the sticky and hook with a mixed change large enough to exceed the function display limit: model ownership
+tasks must still be visible. Confirm a model opt-out says **not checked** and cannot resolve earlier model reviews.
+Model review resolution must stay separate from confirmed duplicate prevention, and the combined cost must include
+both passes. Check the light and dark README sign against both committed baselines, then refresh again to prove
+idempotence. Retired baseline pairs are not a count of refactors; function judgments can also retire a pair.
 
 For each model adoption, exercise unchanged accepted debt, a new or changed copy, retirement after removal,
 the opt-out, and both sides of each ownership policy. Confirm model findings survive fork detect/judge and

@@ -113,9 +113,22 @@ agreement on every drift annotation. The run used 9,558 input and 2,263 output t
 One run on this deliberately selected panel does not establish general accuracy.
 
 Default top-three TF-IDF retrieval finds seven of the eight positives in the reduced
-frozen before-corpus. The snapshot pair remains a known miss there; it was found by
-the real repository sweep during cleanup. Corpus composition affects retrieval,
-so do not relabel the pair or claim full retrieval coverage from judge agreement.
+frozen before-corpus. Replaying the unchanged snapshot pair against the full tracked
+scope at `ae13063` also misses it. Both functions' extracted tokens are identical
+between these two evaluations:
+
+| Retrieval corpus | Functions | Snapshot similarity | Required floor |
+| --- | ---: | ---: | ---: |
+| Frozen positive panel | 15 | 0.275 | 0.5 |
+| Full repository at the pinned pre-cleanup revision | 272 | 0.310 | 0.5 |
+
+TF-IDF drops tokens appearing in more than 30% of indexed functions. For example,
+`w:git` appears in 5/15 panel functions and is dropped, but in 21/272 repository
+functions and is retained. That changes the score without changing either function,
+but does not recover this pair. The original baseline does not include it either.
+The earlier claim that the full sweep retrieved these frozen bodies was unsupported.
+Do not relabel the pair or claim retrieval coverage from judge agreement. Retrieval
+comparisons need a pinned corpus as well as pinned pair bodies.
 
 ```bash
 uv run dry-lint bench --gold examples/pytest-selective-gold.toml --preset sonnet

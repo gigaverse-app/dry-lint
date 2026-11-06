@@ -265,7 +265,7 @@ class Baseline(BaseModel):
             "message": f"{self.count('cleaned')} cleaned · {self.count('remaining')} remaining",
         }
 
-    def card(self, repository: str, key: str) -> str:
+    def card(self, repository: str, key: str, models: "Baseline | None" = None) -> str:
         """
         The repository's counter sign: new duplicates kept out of its pull requests, live from the counter, beside this
         backlog's old duplicates cleaned up and remaining. The backlog travels in the sign's address, so it changes
@@ -278,41 +278,65 @@ class Baseline(BaseModel):
             "remaining": self.count("remaining"),
             "dismissed": self.count("dismissed"),
         }
+        if models is not None:
+            query.update({f"models_{state}": models.count(state) for state in ("cleaned", "remaining", "dismissed")})
         light = f"{COUNTER}/v1/sign.svg?{urlencode(query)}"
         dark = f"{COUNTER}/v1/sign.svg?{urlencode({'theme': 'dark', **query})}"
         alt = (
             f"dry-lint in {repository}: new duplicates kept out of its pull requests, "
             f"{self.count('cleaned')} old duplicates cleaned up, {self.count('remaining')} remaining"
         )
+        if models is not None:
+            alt = (
+                f"dry-lint in {repository}: confirmed function duplicates kept out of pull requests; "
+                f"function debt: {self.count('remaining')} remaining, {self.count('cleaned')} retired, {self.count('dismissed')} dismissed; "
+                f"reviewed model debt: {models.count('remaining')} remaining, {models.count('cleaned')} retired, {models.count('dismissed')} dismissed"
+            )
         return (
             '<a href="https://github.com/gigaverse-app/dry-lint"><picture>'
             f'<source media="(prefers-color-scheme: dark)" srcset="{html.escape(dark)}">'
             f'<img alt="{html.escape(alt)}" src="{html.escape(light)}" width="100%"></picture></a>\n\n'
         )
 
-    def markdown(self, repository: str, branch: str, directory: str, key: str = "") -> str:
+    def markdown(
+        self,
+        repository: str,
+        branch: str,
+        directory: str,
+        key: str = "",
+        *,
+        models: "Baseline | None" = None,
+        models_path: str = ".dry-lint/models.json",
+        filename: str = "baseline.json",
+    ) -> str:
         """
         The README block. With the repository's counter key it is the repository's sign, which shows the backlog, and
         its sources; without one, a progress badge and a table of the backlog.
         """
         repository_name(repository)
         audit = f"https://github.com/{repository}/actions/workflows/dry-lint-audit.yml"
-        if key:
-            return (
-                f"{START}\n{self.card(repository, key)}"
-                f"[Accepted backlog]({directory}/baseline.json) · [Weekly audit]({audit})\n{END}"
-            )
         source = f"https://raw.githubusercontent.com/{repository}/{quote(branch, safe='')}/{directory}/progress.json"
         badge = f"https://img.shields.io/endpoint?url={quote(source, safe='')}"
+        image = (
+            self.card(repository, key, models)
+            if key
+            else (f"[![dry-lint cleanup progress]({badge})](https://github.com/gigaverse-app/dry-lint)\n\n")
+        )
+        model_row = (
+            f"| Models | {models.count('remaining')} | {models.count('cleaned')} | {models.count('dismissed')} |"
+            if models is not None
+            else "| Models | Not initialized | — | — |"
+        )
+        model_link = f" · [Reviewed model debt]({quote(models_path, safe='/')})" if models is not None else ""
         return (
-            f"{START}\n[![dry-lint cleanup progress]({badge})](https://github.com/gigaverse-app/dry-lint)\n\n"
-            "**Cleaning up duplication with dry-lint.** CI checks new changes against the accepted backlog.\n\n"
-            "| Duplicate pairs cleaned | Remaining | Dismissed |\n| ---: | ---: | ---: |\n"
-            f"| {self.count('cleaned')} | {self.count('remaining')} | {self.count('dismissed')} |\n\n"
-            f"[Accepted backlog]({directory}/baseline.json). Counts cover judged pairs in the configured scope, "
-            "not lines of code; dismissals do not count as cleanup.\n"
-            f"[Read the audit]({audit}) "
-            "to choose the next refactor.\n"
+            f"{START}\n{image}"
+            "**Reviewed duplication debt** · Counts from the committed baselines.\n\n"
+            "| Accepted pairs | Remaining | Retired | Dismissed |\n| :-- | --: | --: | --: |\n"
+            f"| Functions | {self.count('remaining')} | {self.count('cleaned')} | {self.count('dismissed')} |\n"
+            f"{model_row}\n\n"
+            f"[Accepted backlog]({quote(directory + '/' + filename, safe='/')}) · [Weekly audit]({audit}){model_link}\n\n"
+            "Retired means a side was removed, or (functions only) the judge now finds the pair separate. "
+            "It is not a count of refactors. Dismissals stay separate; an uninitialized model baseline is unknown.\n"
             f"{END}"
         )
 

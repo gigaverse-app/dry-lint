@@ -94,6 +94,13 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 12 separates model ownership reviews from confirmed function duplicates in hook journals, commit trailers,
+PR ledgers and backlog cleanup. Model reviews have their own resolved/dismissed counts and never enter the
+anonymous prevention counter. A skipped model pass cannot settle those reviews or erase earlier model debt
+retirement. Tallies include model coverage and spending; unknown prices remain unknown while known spending is
+retained. Older ledgers and trailers remain readable as function findings; they did not track model source-review
+tasks. Historical cost and coverage are not backfilled.
+
 Schema 11 adds the independent model inventory to split detect/judge artifacts and model coverage, judging,
 reviewed-debt counts and explicit source-review tasks to reports. Old artifacts remain readable; an action
 requesting models rejects an artifact without a model inventory instead of silently claiming coverage.
@@ -122,7 +129,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 11`; schemas 1 through 10 remain readable with conservative cache defaults. Schema 9 adds
+New files carry `"schema": 12`; schemas 1 through 11 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds

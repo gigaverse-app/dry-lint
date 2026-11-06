@@ -109,19 +109,28 @@ class Ledger:
         return sum(s.usd or 0.0 for s in self.spend.values())
 
     def affordable(self, judge: Judge, candidates: list[Candidate]) -> int:
-        """How many of `candidates`, in order, the budget still allows `judge` to be asked about."""
+        """Length of the affordable prefix, for callers that reserve later work before refilling."""
+        return len(self.select(judge, candidates, prefix_only=True))
+
+    def select(self, judge: Judge, candidates: list[Candidate], *, prefix_only: bool = False) -> list[int]:
+        """Fund candidates in priority order, skipping those that cannot fit the remaining allowance."""
+        limit = len(candidates)
         if getattr(judge, "subscription", False):
             used = sum(s.calls for s in self.spend.values() if s.subscription)
-            candidates = candidates[: max(0, self.settings.budget.subscription_calls - used)]
+            limit = max(0, self.settings.budget.subscription_calls - used)
         total, room = 0.0, self.settings.budget.usd - self.spent - self.usd
+        selected = []
         for n, candidate in enumerate(candidates):
+            if len(selected) == limit:
+                break
             cost = estimate(judge, [candidate], self.settings)
-            if cost is None:
-                return len(candidates)  # unpriced: cannot be budgeted, and is reported as unknown
-            if total + cost > room:
-                return n
-            total += cost
-        return len(candidates)
+            if cost is not None and total + cost > room:
+                if prefix_only:
+                    break
+                continue
+            selected.append(n)
+            total += cost or 0.0  # unpriced judges remain unbounded in dollars and reported as unknown
+        return selected
 
     def charge(self, judge: Judge, asked: list[Candidate], skipped: int) -> None:
         name = identity(judge)

@@ -395,7 +395,7 @@ def test_a_fork_pull_request_only_proposes_candidates(github_env, tmp_path, caps
 
 
 def test_judge_mode_comments_on_the_pull_request_of_the_triggering_commit(github_env, tmp_path) -> None:
-    github_env("workflow_run", WORKFLOW_RUN, key="secret")
+    github_env("workflow_run", WORKFLOW_RUN, key="secret", check_run="false")
     candidates = tmp_path / "runner" / "dry-lint" / "in" / "candidates.json"
     candidates.parent.mkdir(parents=True)
     candidates.write_text("{}")
@@ -728,7 +728,8 @@ def test_no_check_run_when_off_or_when_the_report_cannot_be_rendered(github_env,
     github_env("workflow_run", WORKFLOW_RUN, check_run="true")
     broken = tmp_path / "report.json"
     broken.write_text("not json")
-    assert action.check_run(tmp_path, "acme/shop", broken) == "failed"
+    with pytest.raises(ValueError, match="Could not render the check run"):
+        action.check_run(tmp_path, "acme/shop", broken)
 
 
 def test_a_base_the_checkout_lacks_is_fetched(repo: Repo, tmp_path: Path) -> None:
@@ -994,10 +995,12 @@ def test_settings_that_turn_judging_off_keep_the_action_quiet_even_with_keys(git
     assert outputs(tmp_path)["findings"] == "0"
 
 
-def test_an_unreadable_report_counts_as_unjudged(tmp_path: Path) -> None:
-    assert action.judged(tmp_path / "missing.json") is False
+def test_an_unreadable_report_cannot_count_as_successful_unjudged_analysis(tmp_path: Path) -> None:
+    with pytest.raises(OSError):
+        action.judged(tmp_path / "missing.json")
     (tmp_path / "bad.json").write_text("{")
-    assert action.judged(tmp_path / "bad.json") is False
+    with pytest.raises(ValueError):
+        action.judged(tmp_path / "bad.json")
 
 
 def test_fetch_replaces_inherited_auth_headers_without_persisting_token(repo, monkeypatch):
@@ -1268,3 +1271,132 @@ def test_budget_exhaustion_publishes_an_agent_review_task(repo: Repo, github_env
     assert "review required" in comment and "coding agent" in comment
     assert "distinct-from" in comment and "src/widgets/caption.py" in comment
     assert "Judging is incomplete" not in comment
+
+
+@pytest.mark.parametrize("advisory", ["warn-only", "override"])
+@pytest.mark.parametrize("kind", ["duplicate", "models", "budget"])
+def test_advisory_findings_are_visible_warnings_in_logs_and_summary(
+    repo, github_env, tmp_path, twin_judge, capsys, advisory, kind
+):
+    if kind == "models":
+        from test_model_adoption import model_repo
+
+        repo = model_repo(tmp_path / "models")
+    event = pr_event(repo)
+    if advisory == "override":
+        event["pull_request"]["labels"] = [{"name": "dry-lint: override"}]
+    github_env(
+        "pull_request",
+        event,
+        working_directory=str(repo.root),
+        comment="false",
+        **(
+            {"key": "test", "budget_usd": "0"}
+            if kind == "budget"
+            else {"judge": "command", "judge_command": twin_judge}
+        ),
+        warn_only=str(advisory == "warn-only").lower(),
+    )
+    assert action.main(["run"]) == 0
+    output = capsys.readouterr().out
+    assert "::warning file=" in output
+    assert "::error" not in output
+    summary = (tmp_path / "summary").read_text()
+    assert ("**Advisory mode:**" if advisory == "warn-only" else "**Overridden:**") in summary
+    assert "**Blocking:**" not in summary
+    assert int(outputs(tmp_path)["findings"]) > 0
+
+
+@pytest.mark.parametrize("mode", ["single", "detect", "sweep"])
+@pytest.mark.parametrize("exit_code", [2, 3, -9])
+def test_subprocess_failures_cannot_pass_or_reuse_an_earlier_summary(
+    repo, github_env, tmp_path, capsys, mode, exit_code
+):
+    github_env("pull_request", pr_event(repo), working_directory=str(repo.root), mode=mode, warn_only="true")
+    work = tmp_path / "runner" / "dry-lint"
+    work.mkdir(parents=True)
+    (work / "comment.md").write_text("stale successful analysis")
+    (work / "report.json").write_text('{"judge": null}')
+    real_run = subprocess.run
+
+    def crashed_cli(args, **kwargs):
+        if args[1:3] == ["-m", "dry_lint"]:
+            return subprocess.CompletedProcess(args, exit_code, stdout="", stderr="worker terminated\n")
+        return real_run(args, **kwargs)
+
+    with patch.object(subprocess, "run", side_effect=crashed_cli):
+        assert action.main(["run"]) == 2
+    captured = capsys.readouterr()
+    assert "::error title=dry-lint::" in captured.out
+    assert "worker terminated" in captured.err
+    assert "Candidates saved" not in captured.out
+    summary = (tmp_path / "summary").read_text()
+    assert "failed" in summary and "stale successful analysis" not in summary
+    assert outputs(tmp_path)["exit-code"] == "2"
+
+
+@pytest.mark.parametrize("form", ["github", "markdown"])
+def test_rendering_failure_fails_even_when_findings_are_advisory(repo, github_env, tmp_path, twin_judge, capsys, form):
+    event = pr_event(repo)
+    event["pull_request"]["labels"] = [{"name": "dry-lint: override"}]
+    github_env(
+        "pull_request",
+        event,
+        working_directory=str(repo.root),
+        judge="command",
+        judge_command=twin_judge,
+        warn_only="true",
+        comment="false",
+    )
+    real_run = subprocess.run
+
+    def broken_renderer(args, **kwargs):
+        if args[1:4] == ["-m", "dry_lint", "report"] and form in args:
+            return subprocess.CompletedProcess(args, 2, stdout="renderer diagnostic\n", stderr="cannot render report\n")
+        return real_run(args, **kwargs)
+
+    with patch.object(subprocess, "run", side_effect=broken_renderer):
+        assert action.main(["run"]) == 2
+    output = capsys.readouterr().out
+    assert "::error title=dry-lint::" in output and "renderer diagnostic" in output
+    assert "failed" in (tmp_path / "summary").read_text()
+    assert outputs(tmp_path)["exit-code"] == "2"
+
+
+@pytest.mark.parametrize("advisory", ["warn-only", "override"])
+def test_fork_check_runs_match_advisory_annotations(repo, github_env, tmp_path, twin_judge, advisory):
+    _, head = judged_report(tmp_path, repo, twin_judge, github_env)
+    github_env(
+        "workflow_run",
+        {"workflow_run": {"id": 3, "head_sha": head}},
+        working_directory=str(repo.root),
+        judge="command",
+        judge_command=twin_judge,
+        warn_only=str(advisory == "warn-only").lower(),
+        comment="false",
+    )
+    github = FakeGitHub(head=head, labels=["dry-lint: override"] if advisory == "override" else [])
+    assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
+    [check] = github.check_runs
+    assert check["conclusion"] == "neutral"
+    assert {item["annotation_level"] for item in check["output"]["annotations"]} == {"warning"}
+
+
+def test_recovered_judge_errors_are_annotated_in_advisory_mode(repo, github_env, tmp_path, twin_judge, capsys):
+    repo.write(
+        ".dry-lint.toml",
+        '[escalate]\nuse = "command"\ncommand = "missing-dry-lint-test-judge"\nbetween = [0.5, 0.9]\n',
+    )
+    repo.commit()
+    github_env(
+        "pull_request",
+        pr_event(repo),
+        working_directory=str(repo.root),
+        judge="command",
+        judge_command=twin_judge,
+        warn_only="true",
+        comment="false",
+    )
+    assert action.main(["run"]) == 0
+    assert "::warning title=dry-lint::Judging degraded:" in capsys.readouterr().out
+    assert "failed" in (tmp_path / "summary").read_text()

@@ -1,0 +1,276 @@
+{
+  "schema": 1,
+  "reviewer": "G03 reviewing G04 packets",
+  "reviewer_kind": "model, not human gold",
+  "packet_id": "G04-03",
+  "family_id": "G04-03",
+  "pins": {
+    "base": "aadd4d861458d66af9bc3994b428d829b54eaa60",
+    "first_parent": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+    "head": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+    "merge": "cc996eece172fc69e35662657ea6cea9c2c7db88"
+  },
+  "provenance": {
+    "packet_sha256": "9ecf3eb775f7ad9f31304c2e81bd603eb44b8fe4272dda8403cb2a80c9b5dad1",
+    "all_linked_source_checks_pass": true,
+    "license_spdx_declared": "MIT",
+    "license_evidence": "Linked license code records hash/span verified; no independent legal or authorship inference.",
+    "source_records": [
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "packages/ai/src/promise.ts",
+        "start_line": 1,
+        "end_line": 210,
+        "source_file": "sources/2daaffa1a7158939b2f14f2984fe68fcae32d0c178bdcc9c69973a65bdbd2630.json.gz",
+        "file_sha256": "2daaffa1a7158939b2f14f2984fe68fcae32d0c178bdcc9c69973a65bdbd2630",
+        "snippet_sha256": "2daaffa1a7158939b2f14f2984fe68fcae32d0c178bdcc9c69973a65bdbd2630"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "packages/ai/src/llm.ts",
+        "start_line": 1,
+        "end_line": 194,
+        "source_file": "sources/64bf1f595ed8199ee0dfc77318398104df8b2109e5fc7e18e605af354ea2779f.json.gz",
+        "file_sha256": "64bf1f595ed8199ee0dfc77318398104df8b2109e5fc7e18e605af354ea2779f",
+        "snippet_sha256": "64bf1f595ed8199ee0dfc77318398104df8b2109e5fc7e18e605af354ea2779f"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "packages/ai/src/index.ts",
+        "start_line": 1,
+        "end_line": 125,
+        "source_file": "sources/320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0.json.gz",
+        "file_sha256": "320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0",
+        "snippet_sha256": "320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "packages/ai/src/media-model.ts",
+        "start_line": 1,
+        "end_line": 110,
+        "source_file": "sources/47b177f9822e84bc55f411fa64d6d6ad9cbf3f05215a2321273bcc957a0ac6fc.json.gz",
+        "file_sha256": "47b177f9822e84bc55f411fa64d6d6ad9cbf3f05215a2321273bcc957a0ac6fc",
+        "snippet_sha256": "47b177f9822e84bc55f411fa64d6d6ad9cbf3f05215a2321273bcc957a0ac6fc"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "packages/ai/src/promise.ts",
+        "start_line": 1,
+        "end_line": 210,
+        "source_file": "sources/2daaffa1a7158939b2f14f2984fe68fcae32d0c178bdcc9c69973a65bdbd2630.json.gz",
+        "file_sha256": "2daaffa1a7158939b2f14f2984fe68fcae32d0c178bdcc9c69973a65bdbd2630",
+        "snippet_sha256": "2daaffa1a7158939b2f14f2984fe68fcae32d0c178bdcc9c69973a65bdbd2630"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "packages/ai/src/llm.ts",
+        "start_line": 1,
+        "end_line": 194,
+        "source_file": "sources/64bf1f595ed8199ee0dfc77318398104df8b2109e5fc7e18e605af354ea2779f.json.gz",
+        "file_sha256": "64bf1f595ed8199ee0dfc77318398104df8b2109e5fc7e18e605af354ea2779f",
+        "snippet_sha256": "64bf1f595ed8199ee0dfc77318398104df8b2109e5fc7e18e605af354ea2779f"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "packages/ai/src/index.ts",
+        "start_line": 1,
+        "end_line": 125,
+        "source_file": "sources/320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0.json.gz",
+        "file_sha256": "320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0",
+        "snippet_sha256": "320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "packages/ai/src/media-model.ts",
+        "start_line": 1,
+        "end_line": 110,
+        "source_file": "sources/47b177f9822e84bc55f411fa64d6d6ad9cbf3f05215a2321273bcc957a0ac6fc.json.gz",
+        "file_sha256": "47b177f9822e84bc55f411fa64d6d6ad9cbf3f05215a2321273bcc957a0ac6fc",
+        "snippet_sha256": "47b177f9822e84bc55f411fa64d6d6ad9cbf3f05215a2321273bcc957a0ac6fc"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+        "path": "packages/ai/src/promise.ts",
+        "start_line": 96,
+        "end_line": 97,
+        "source_file": "sources/e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133.json.gz",
+        "file_sha256": "e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133",
+        "snippet_sha256": "e08f857ff290989845631a02ba167adcf66fbe1de7a66be16e4e58f654221207"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+        "path": "packages/ai/src/llm.ts",
+        "start_line": 57,
+        "end_line": 58,
+        "source_file": "sources/4a5561ff487204efdac017514400aeded748ee7b0d5ec15dd93d834468db6552.json.gz",
+        "file_sha256": "4a5561ff487204efdac017514400aeded748ee7b0d5ec15dd93d834468db6552",
+        "snippet_sha256": "0fd64c186632dcdbe7d2bd033541fce4f134ff2bd2c90b05a55adc043ba18eaf"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "aadd4d861458d66af9bc3994b428d829b54eaa60",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b.json.gz",
+        "file_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "snippet_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b.json.gz",
+        "file_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "snippet_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b.json.gz",
+        "file_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "snippet_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b.json.gz",
+        "file_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "snippet_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "aadd4d861458d66af9bc3994b428d829b54eaa60",
+        "path": "packages/ai/src/promise.ts",
+        "start_line": 96,
+        "end_line": 97,
+        "source_file": "sources/e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133.json.gz",
+        "file_sha256": "e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133",
+        "snippet_sha256": "e08f857ff290989845631a02ba167adcf66fbe1de7a66be16e4e58f654221207"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "aadd4d861458d66af9bc3994b428d829b54eaa60",
+        "path": "packages/ai/src/llm.ts",
+        "start_line": 57,
+        "end_line": 58,
+        "source_file": "sources/4a5561ff487204efdac017514400aeded748ee7b0d5ec15dd93d834468db6552.json.gz",
+        "file_sha256": "4a5561ff487204efdac017514400aeded748ee7b0d5ec15dd93d834468db6552",
+        "snippet_sha256": "0fd64c186632dcdbe7d2bd033541fce4f134ff2bd2c90b05a55adc043ba18eaf"
+      }
+    ]
+  },
+  "original_after_pair": {
+    "classification": null,
+    "eligibility": "ineligible as an original-pair negative: at least one original endpoint is deleted",
+    "deletion_is_negative": false
+  },
+  "uncertainty": [
+    "No behavioral tests or target code executed.",
+    "Bounded supplied source closure cannot establish all external callers, repository-wide absence, or author identity."
+  ],
+  "before": {
+    "classification": "duplicate",
+    "confidence": 0.96,
+    "scope": "complete two-line request-normalization helper; partial operation within Promise make",
+    "narrow_operation_and_contract": "Accept existing LLMRequest unchanged in a successful Effect; otherwise construct request through tryRequest so constructor exceptions become typed failures.",
+    "independent_ownership": "llmRequest and requestEffect each perform the instance check, success wrapping and guarded constructor conversion. Both use shared tryRequest, so exception mapping itself is already shared. Promise generate/stream then call LLM.generate/stream, whose requestEffect repeats the same check on the normalized request.",
+    "legitimate_variations": "LLM.request is namespace-qualified versus same-module request; Promise runtime/cancellation and stream iteration are surrounding adapter contracts, not duplicated whole make behavior. Before namespace re-export resolution is plausible from imports and after index, but not independently pinned in supplied before index source.",
+    "caller_reachability": "Promise llm.generate and llm.stream call llmRequest at 140/142; LLM.generate and stream call requestEffect at 45/54. Public adapter and exported Effect routes visibly retain these call sites.",
+    "existing_shared_owner": "request constructor and tryRequest are shared; outer normalization decision has two local owners."
+  },
+  "eligibility": {
+    "before_operation_positive": "accepted at request-normalization helper scope",
+    "whole_function_positive": false,
+    "two_proven_live_callers": true,
+    "after_original_pair_negative": false,
+    "surviving_control": "accepted at generate/stream caller-operation scope with shared requestEffect ownership"
+  },
+  "after_ownership": "Promise llm.generate/stream directly invoke LLM.generate/stream. Those surviving exported routes own requestEffect normalization. Promise make.llmRequest is removed; do not call that absent pair a negative.",
+  "surviving_after_controls": [
+    {
+      "classification": "separate",
+      "confidence": 0.99,
+      "scope": "Promise llm.generate adapter versus LLM.generate; analogous stream adapters",
+      "operation": "Promise delegates normalization/execution to LLM.generate and adds runtime/abort handling; LLM.generate calls requestEffect then LLMClient. These are surviving different layers with a shared normalization owner. Not a negative comparing whole Promise make to LLM.generate.",
+      "evidence": [
+        {
+          "phase": "head",
+          "repository": "anomalyco/opencode",
+          "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+          "path": "packages/ai/src/promise.ts",
+          "start_line": 134,
+          "end_line": 138,
+          "quote": "      request: LLM.request,\n      generate: <const Model extends LanguageModel>(input: RequestInput<Model> | LLMRequest, options?: RunOptions) =>\n        run(LLM.generate(input), options),\n      stream: <const Model extends LanguageModel>(input: RequestInput<Model> | LLMRequest, options?: RunOptions) =>\n        iterate(LLM.stream(input), options),\n",
+          "source_file": "sources/2daaffa1a7158939b2f14f2984fe68fcae32d0c178bdcc9c69973a65bdbd2630.json.gz",
+          "file_sha256": "2daaffa1a7158939b2f14f2984fe68fcae32d0c178bdcc9c69973a65bdbd2630"
+        },
+        {
+          "phase": "head",
+          "repository": "anomalyco/opencode",
+          "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+          "path": "packages/ai/src/llm.ts",
+          "start_line": 38,
+          "end_line": 56,
+          "quote": "\nexport function generate<const Model extends LanguageModel>(\n  input: RequestInput<Model> | LLMRequest,\n  options?: StreamOptions,\n): Effect.Effect<LLMResponse, AIError, Service>\nexport function generate(input: RequestInput | LLMRequest, options?: StreamOptions) {\n  return requestEffect(input).pipe(Effect.flatMap((request) => LLMClient.generate(request, options)))\n}\n\nexport function stream<const Model extends LanguageModel>(\n  input: RequestInput<Model> | LLMRequest,\n  options?: StreamOptions,\n): Stream.Stream<LLMEvent, AIError, Service>\nexport function stream(input: RequestInput | LLMRequest, options?: StreamOptions) {\n  return Stream.unwrap(requestEffect(input).pipe(Effect.map((request) => LLMClient.stream(request, options))))\n}\n\nconst requestEffect = (input: RequestInput | LLMRequest) =>\n  input instanceof LLMRequest ? Effect.succeed(input) : tryRequest(() => request(input))\n",
+          "source_file": "sources/64bf1f595ed8199ee0dfc77318398104df8b2109e5fc7e18e605af354ea2779f.json.gz",
+          "file_sha256": "64bf1f595ed8199ee0dfc77318398104df8b2109e5fc7e18e605af354ea2779f"
+        },
+        {
+          "phase": "head",
+          "repository": "anomalyco/opencode",
+          "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+          "path": "packages/ai/src/index.ts",
+          "start_line": 116,
+          "end_line": 116,
+          "quote": "export * as LLM from \"./llm.js\"\n",
+          "source_file": "sources/320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0.json.gz",
+          "file_sha256": "320087261b0bd2e986a9f313468a34068f47c07905d089a21a3373c8903019d0"
+        }
+      ]
+    }
+  ],
+  "before_evidence": [
+    {
+      "phase": "before",
+      "repository": "anomalyco/opencode",
+      "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+      "path": "packages/ai/src/promise.ts",
+      "start_line": 96,
+      "end_line": 97,
+      "quote": "  const llmRequest = (input: RequestInput | LLMRequest) =>\n    input instanceof LLMRequest ? Effect.succeed(input) : tryRequest(() => LLM.request(input))\n",
+      "source_file": "sources/e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133.json.gz",
+      "file_sha256": "e7f80fb076b8064020b5b74ed5391ff9619550e5b1d05ce7361b2b9a28134133"
+    },
+    {
+      "phase": "before",
+      "repository": "anomalyco/opencode",
+      "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+      "path": "packages/ai/src/llm.ts",
+      "start_line": 57,
+      "end_line": 58,
+      "quote": "const requestEffect = (input: RequestInput | LLMRequest) =>\n  input instanceof LLMRequest ? Effect.succeed(input) : tryRequest(() => request(input))\n",
+      "source_file": "sources/4a5561ff487204efdac017514400aeded748ee7b0d5ec15dd93d834468db6552.json.gz",
+      "file_sha256": "4a5561ff487204efdac017514400aeded748ee7b0d5ec15dd93d834468db6552"
+    }
+  ],
+  "after_control_revision_checks": "Head and merge linked full-file hashes/spans both verified; described control snippets cite head. No original deleted endpoint is labeled separate."
+}

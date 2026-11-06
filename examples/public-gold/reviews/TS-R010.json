@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "reviewer": "G03",
+  "reviewer_kind": "model, not human gold",
+  "packet_id": "TS-R010",
+  "classification": "borderline",
+  "confidence": 0.73,
+  "family_id": "request-auth",
+  "narrow_shared_operation_and_contract": "Resolve request credentials and authenticate a session, subject to route-specific credential constraints.",
+  "rationale": "Both resolve current/legacy/dev cookies and call authenticateToken; raw token verification already has an owner. Browser resolution independently reproduces a subset of request credential selection, but differs on Authorization precedence and proof binding. A shared credential-resolution policy might prevent drift only if those differences are deliberately modeled.",
+  "legitimate_variations": "General request accepts selected cookie/bearer/DPoP and validates proofs; browser reads cookies directly and requires browser method with no proof key. General dev fallback is suppressed by any Authorization header; browser direct selection is not.",
+  "existing_shared_owner_or_delegation": "authenticateToken already owns session verification, error mapping, audience rejection and projection; general path also calls selectRequestCredential.",
+  "uncertainty_and_disagreement": "Cannot infer that browser endpoint should adopt general precedence or DPoP behavior. Narrow resolution overlap is real, equivalence is not established.",
+  "source_evidence_spans": [
+    {
+      "role": "a",
+      "source_id": "pingdotgg/t3code@abc80c80a73fdda78600184276da9e36cca89703:apps/server/src/auth/EnvironmentAuth.ts::authenticateRequest:729-780",
+      "path": "apps/server/src/auth/EnvironmentAuth.ts",
+      "revision": "abc80c80a73fdda78600184276da9e36cca89703",
+      "start_line": 729,
+      "end_line": 780,
+      "quote": "  const authenticateRequest = (\n    request: HttpServerRequest.HttpServerRequest,\n  ): Effect.Effect<AuthenticatedSession, ServerAuthCredentialError | ServerAuthInternalError> => {\n    const selectedCredential = selectRequestCredential(\n      request,\n      sessions.cookieName,\n      sessions.legacyCookieName,\n    );\n    const dpopToken = parseDpopToken(request);\n    const hasAuthorization = request.headers.authorization !== undefined;\n    const devCookieToken = devAuth ? request.cookies[devAuth.cookieName] : undefined;\n    const credential =\n      selectedCredential ??\n      (!hasAuthorization && devCookieToken !== undefined\n        ? { token: devCookieToken, source: \"dev-cookie\" as const }\n        : undefined);\n    if (!credential?.token) {\n      return Effect.fail(new ServerAuthMissingCredentialError({}));\n    }\n    return authenticateToken(credential.token).pipe(\n      Effect.flatMap((session) => {\n        if (session.proofKeyThumbprint) {\n          if (!dpopToken || dpopToken !== credential.token) {\n            return Effect.fail(\n              new ServerAuthInvalidCredentialError({\n                diagnostic: \"DPoP-bound access token requires DPoP authorization.\",\n                dpopFailureReason: \"invalid_proof\",\n              }),\n            );\n          }\n          return verifyRequestDpopProof({\n            request,\n            expectedThumbprint: session.proofKeyThumbprint,\n            expectedAccessToken: dpopToken,\n          }).pipe(\n            Effect.provideService(ServerSecretStore.ServerSecretStore, secretStore),\n            Effect.provideService(Crypto.Crypto, crypto),\n            Effect.as(session),\n          );\n        }\n        if (dpopToken) {\n          return Effect.fail(\n            new ServerAuthInvalidCredentialError({\n              diagnostic: \"DPoP authorization requires a proof-bound access token.\",\n              dpopFailureReason: \"invalid_proof\",\n            }),\n          );\n        }\n        return Effect.succeed(session);\n      }),\n    );\n  };\n",
+      "verification": "hashes and exact full_source line span match"
+    },
+    {
+      "role": "b",
+      "source_id": "pingdotgg/t3code@abc80c80a73fdda78600184276da9e36cca89703:apps/server/src/auth/EnvironmentAuth.ts::authenticateBrowserSession:1248-1263",
+      "path": "apps/server/src/auth/EnvironmentAuth.ts",
+      "revision": "abc80c80a73fdda78600184276da9e36cca89703",
+      "start_line": 1248,
+      "end_line": 1263,
+      "quote": "  const authenticateBrowserSession: EnvironmentAuth[\"Service\"][\"authenticateBrowserSession\"] = (\n    request,\n  ) => {\n    const token =\n      request.cookies[sessions.cookieName] ??\n      (sessions.legacyCookieName ? request.cookies[sessions.legacyCookieName] : undefined) ??\n      (devAuth ? request.cookies[devAuth.cookieName] : undefined);\n    if (!token) return Effect.fail(new ServerAuthMissingCredentialError({}));\n    return authenticateToken(token).pipe(\n      Effect.filterOrFail(\n        (session) => session.method === \"browser-session-cookie\" && !session.proofKeyThumbprint,\n        () => new ServerAuthInvalidCredentialError({ diagnostic: \"Not a browser session.\" }),\n      ),\n      Effect.withSpan(\"EnvironmentAuth.authenticateBrowserSession\"),\n    );\n  };\n",
+      "verification": "hashes and exact full_source line span match"
+    }
+  ]
+}

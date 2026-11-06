@@ -397,7 +397,7 @@ def test_a_check_credits_accepted_debt_its_change_removed(
         repo.commit()
     metadata = [(repo.root / ".dry-lint" / name).read_bytes() for name in ("baseline.json", "progress.json")]
     assert run_cli(repo, tmp_path, *args) == 0
-    assert backlog(tmp_path) == [{**TWIN_PAIR, "how": "removed"}]
+    assert backlog(tmp_path) == [{**TWIN_PAIR, "kind": "function", "how": "removed"}]
     # The baseline and its badge belong to the sweep: a check never moves them.
     assert [(repo.root / ".dry-lint" / name).read_bytes() for name in ("baseline.json", "progress.json")] == metadata
 
@@ -468,7 +468,7 @@ def test_a_rerouted_side_is_revisited_and_credited_on_a_separate_verdict(repo: R
     assert run_cli(repo, tmp_path, *args) == 0
     report = Report.model_validate_json((tmp_path / "report.json").read_text())
     assert any(f.candidate.key == pair_key(*TWIN_PAIR.values()) for f in report.findings)  # judged, proposed or not
-    assert backlog(tmp_path) == [{**TWIN_PAIR, "how": "separate"}]
+    assert backlog(tmp_path) == [{**TWIN_PAIR, "kind": "function", "how": "separate"}]
 
 
 def test_debt_removed_before_the_branch_is_not_credited_to_it(repo: Repo, tmp_path: Path, twin_judge: str) -> None:

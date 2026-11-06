@@ -1,0 +1,277 @@
+{
+  "schema": 1,
+  "reviewer": "G03 reviewing G04 packets",
+  "reviewer_kind": "model, not human gold",
+  "packet_id": "G04-04",
+  "family_id": "G04-04",
+  "pins": {
+    "base": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+    "first_parent": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+    "head": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+    "merge": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc"
+  },
+  "provenance": {
+    "packet_sha256": "9ecf3eb775f7ad9f31304c2e81bd603eb44b8fe4272dda8403cb2a80c9b5dad1",
+    "all_linked_source_checks_pass": true,
+    "license_spdx_declared": "MIT",
+    "license_evidence": "Linked license code records hash/span verified; no independent legal or authorship inference.",
+    "source_records": [
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+        "path": "openhands/sdk/conversation/base.py",
+        "start_line": 1,
+        "end_line": 129,
+        "source_file": "sources/c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18.json.gz",
+        "file_sha256": "c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18",
+        "snippet_sha256": "c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+        "path": "openhands/sdk/conversation/conversation.py",
+        "start_line": 1,
+        "end_line": 100,
+        "source_file": "sources/2265fb9bbfd68591caae0ba6c391a2f240c43d840dab7e393231f3216a8de396.json.gz",
+        "file_sha256": "2265fb9bbfd68591caae0ba6c391a2f240c43d840dab7e393231f3216a8de396",
+        "snippet_sha256": "2265fb9bbfd68591caae0ba6c391a2f240c43d840dab7e393231f3216a8de396"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+        "path": "openhands/sdk/conversation/impl/local_conversation.py",
+        "start_line": 1,
+        "end_line": 337,
+        "source_file": "sources/60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee.json.gz",
+        "file_sha256": "60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee",
+        "snippet_sha256": "60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+        "path": "openhands/sdk/conversation/impl/remote_conversation.py",
+        "start_line": 1,
+        "end_line": 506,
+        "source_file": "sources/f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b.json.gz",
+        "file_sha256": "f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b",
+        "snippet_sha256": "f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+        "path": "openhands/sdk/conversation/base.py",
+        "start_line": 1,
+        "end_line": 129,
+        "source_file": "sources/c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18.json.gz",
+        "file_sha256": "c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18",
+        "snippet_sha256": "c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+        "path": "openhands/sdk/conversation/conversation.py",
+        "start_line": 1,
+        "end_line": 100,
+        "source_file": "sources/2265fb9bbfd68591caae0ba6c391a2f240c43d840dab7e393231f3216a8de396.json.gz",
+        "file_sha256": "2265fb9bbfd68591caae0ba6c391a2f240c43d840dab7e393231f3216a8de396",
+        "snippet_sha256": "2265fb9bbfd68591caae0ba6c391a2f240c43d840dab7e393231f3216a8de396"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+        "path": "openhands/sdk/conversation/impl/local_conversation.py",
+        "start_line": 1,
+        "end_line": 337,
+        "source_file": "sources/60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee.json.gz",
+        "file_sha256": "60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee",
+        "snippet_sha256": "60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+        "path": "openhands/sdk/conversation/impl/remote_conversation.py",
+        "start_line": 1,
+        "end_line": 506,
+        "source_file": "sources/f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b.json.gz",
+        "file_sha256": "f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b",
+        "snippet_sha256": "f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+        "path": "openhands/sdk/conversation/conversation.py",
+        "start_line": 17,
+        "end_line": 25,
+        "source_file": "sources/a6b076f0c2913fcde381a7abf9562b04017c82ef925682ac118213c512b6d1a3.json.gz",
+        "file_sha256": "a6b076f0c2913fcde381a7abf9562b04017c82ef925682ac118213c512b6d1a3",
+        "snippet_sha256": "84cc0d292a7350332541fb143064a8165b46f4bda7836605a6d475dc2d6feb2e"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+        "path": "openhands/sdk/conversation/impl/local_conversation.py",
+        "start_line": 27,
+        "end_line": 35,
+        "source_file": "sources/94b2ace427a0b182d172491800e6eed77aca2b0b4355270eda673689814ddde7.json.gz",
+        "file_sha256": "94b2ace427a0b182d172491800e6eed77aca2b0b4355270eda673689814ddde7",
+        "snippet_sha256": "84cc0d292a7350332541fb143064a8165b46f4bda7836605a6d475dc2d6feb2e"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+        "file_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+        "snippet_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+        "file_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+        "snippet_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+        "file_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+        "snippet_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+        "path": "openhands/sdk/conversation/conversation.py",
+        "start_line": 17,
+        "end_line": 25,
+        "source_file": "sources/a6b076f0c2913fcde381a7abf9562b04017c82ef925682ac118213c512b6d1a3.json.gz",
+        "file_sha256": "a6b076f0c2913fcde381a7abf9562b04017c82ef925682ac118213c512b6d1a3",
+        "snippet_sha256": "84cc0d292a7350332541fb143064a8165b46f4bda7836605a6d475dc2d6feb2e"
+      },
+      {
+        "repository": "OpenHands/software-agent-sdk",
+        "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+        "path": "openhands/sdk/conversation/impl/local_conversation.py",
+        "start_line": 27,
+        "end_line": 35,
+        "source_file": "sources/94b2ace427a0b182d172491800e6eed77aca2b0b4355270eda673689814ddde7.json.gz",
+        "file_sha256": "94b2ace427a0b182d172491800e6eed77aca2b0b4355270eda673689814ddde7",
+        "snippet_sha256": "84cc0d292a7350332541fb143064a8165b46f4bda7836605a6d475dc2d6feb2e"
+      }
+    ]
+  },
+  "original_after_pair": {
+    "classification": null,
+    "eligibility": "ineligible as an original-pair negative: at least one original endpoint is deleted",
+    "deletion_is_negative": false
+  },
+  "uncertainty": [
+    "No behavioral tests or target code executed.",
+    "Bounded supplied source closure cannot establish all external callers, repository-wide absence, or author identity."
+  ],
+  "before": {
+    "classification": "duplicate",
+    "confidence": 0.99,
+    "scope": "whole nine-line compose_callbacks functions, with reachability qualification",
+    "narrow_operation_and_contract": "Capture an iterable by reference, return a callback that invokes truthy entries in iteration order for each event, without locally handling callback exceptions.",
+    "independent_ownership": "The two functions independently implement exactly the same closure and loop. Neither calls the other or a shared composer. Reusing an iterable also preserves generator exhaustion/list mutation behavior; no snapshot or exception isolation may be added implicitly.",
+    "legitimate_variations": "No body-level variation. Surrounding Conversation factory and LocalConversation lifecycle are different. Remote transport exception handling is outside this before pair.",
+    "caller_reachability": "LocalConversation.__init__ calls its local compose_callbacks and supplies the result to agent init_state. conversation.py composer has no caller within its supplied full file; external imports cannot be excluded from bounded context. Thus two active independent owners are not proven.",
+    "existing_shared_owner": "None in the before functions."
+  },
+  "eligibility": {
+    "before_operation_positive": "accepted as source-level duplicate; conditional/ineligible for a benchmark requiring two proven active implementations",
+    "whole_function_positive": true,
+    "two_proven_live_callers": false,
+    "after_original_pair_negative": false,
+    "surviving_control": "accepted only as callback-composition operation in surviving local and remote constructors, not as whole constructor equivalence"
+  },
+  "after_ownership": "Both originals are gone. BaseConversation.compose_callbacks now owns closure semantics; surviving LocalConversation and RemoteConversation constructors call it. Remote WebSocket callback invocation remains inside its existing exception handler.",
+  "surviving_after_controls": [
+    {
+      "classification": "separate",
+      "confidence": 0.99,
+      "scope": "partial callback-composition regions in local and remote constructors",
+      "operation": "Both regions delegate to BaseConversation.compose_callbacks; local wires agent state and remote wires WebSocketCallbackClient. Shared composer owns ordered truthy callback iteration. Constructors have different state/transport lifecycles and must not be labeled duplicate whole functions.",
+      "evidence": [
+        {
+          "phase": "head",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+          "path": "openhands/sdk/conversation/base.py",
+          "start_line": 111,
+          "end_line": 129,
+          "quote": "    @staticmethod\n    def compose_callbacks(\n        callbacks: Iterable[ConversationCallbackType],\n    ) -> ConversationCallbackType:\n        \"\"\"Compose multiple callbacks into a single callback function.\n\n        Args:\n            callbacks: An iterable of callback functions\n\n        Returns:\n            A single callback function that calls all provided callbacks\n        \"\"\"\n\n        def composed(event) -> None:\n            for cb in callbacks:\n                if cb:\n                    cb(event)\n\n        return composed\n",
+          "source_file": "sources/c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18.json.gz",
+          "file_sha256": "c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18"
+        },
+        {
+          "phase": "head",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+          "path": "openhands/sdk/conversation/impl/local_conversation.py",
+          "start_line": 85,
+          "end_line": 92,
+          "quote": "        self._on_event = BaseConversation.compose_callbacks(composed_list)\n        self.max_iteration_per_run = max_iteration_per_run\n\n        # Initialize stuck detector\n        self._stuck_detector = StuckDetector(self._state) if stuck_detection else None\n\n        with self._state:\n            self.agent.init_state(self._state, on_event=self._on_event)\n",
+          "source_file": "sources/60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee.json.gz",
+          "file_sha256": "60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee"
+        },
+        {
+          "phase": "head",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+          "path": "openhands/sdk/conversation/impl/remote_conversation.py",
+          "start_line": 378,
+          "end_line": 399,
+          "quote": "        # Add default callback to maintain local event state\n        default_callback = self._state.events.create_default_callback()\n        self._callbacks.append(default_callback)\n\n        # Add default visualizer callback if requested\n        if visualize:\n            self._visualizer = create_default_visualizer()\n            self._callbacks.append(self._visualizer.on_event)\n        else:\n            self._visualizer = None\n\n        # Compose all callbacks into a single callback\n        composed_callback = BaseConversation.compose_callbacks(self._callbacks)\n\n        # Initialize WebSocket client for callbacks\n        self._ws_client = WebSocketCallbackClient(\n            host=self._host,\n            conversation_id=str(self._id),\n            callback=composed_callback,\n            api_key=self._api_key,\n        )\n        self._ws_client.start()\n",
+          "source_file": "sources/f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b.json.gz",
+          "file_sha256": "f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b"
+        },
+        {
+          "phase": "head",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "4c2b5be4395b4344a1f08ccc7077d4dc758ee888",
+          "path": "openhands/sdk/conversation/impl/remote_conversation.py",
+          "start_line": 89,
+          "end_line": 95,
+          "quote": "                        try:\n                            event = EventBase.model_validate(json.loads(message))\n                            self.callback(event)\n                        except Exception:\n                            logger.exception(\n                                \"ws_event_processing_error\", stack_info=True\n                            )\n",
+          "source_file": "sources/f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b.json.gz",
+          "file_sha256": "f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b"
+        }
+      ]
+    }
+  ],
+  "before_evidence": [
+    {
+      "phase": "before",
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+      "path": "openhands/sdk/conversation/conversation.py",
+      "start_line": 17,
+      "end_line": 25,
+      "quote": "def compose_callbacks(\n    callbacks: Iterable[ConversationCallbackType],\n) -> ConversationCallbackType:\n    def composed(event) -> None:\n        for cb in callbacks:\n            if cb:\n                cb(event)\n\n    return composed\n",
+      "source_file": "sources/a6b076f0c2913fcde381a7abf9562b04017c82ef925682ac118213c512b6d1a3.json.gz",
+      "file_sha256": "a6b076f0c2913fcde381a7abf9562b04017c82ef925682ac118213c512b6d1a3"
+    },
+    {
+      "phase": "before",
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+      "path": "openhands/sdk/conversation/impl/local_conversation.py",
+      "start_line": 27,
+      "end_line": 35,
+      "quote": "def compose_callbacks(\n    callbacks: Iterable[ConversationCallbackType],\n) -> ConversationCallbackType:\n    def composed(event) -> None:\n        for cb in callbacks:\n            if cb:\n                cb(event)\n\n    return composed\n",
+      "source_file": "sources/94b2ace427a0b182d172491800e6eed77aca2b0b4355270eda673689814ddde7.json.gz",
+      "file_sha256": "94b2ace427a0b182d172491800e6eed77aca2b0b4355270eda673689814ddde7"
+    }
+  ],
+  "after_control_revision_checks": "Head and merge linked full-file hashes/spans both verified; described control snippets cite head. No original deleted endpoint is labeled separate."
+}

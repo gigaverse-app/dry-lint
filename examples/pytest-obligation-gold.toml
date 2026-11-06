@@ -5,6 +5,8 @@
 # Run: dry-lint bench --gold examples/pytest-obligation-gold.toml --preset sonnet
 # Borderline rows require omitted caller/policy context and are excluded by bench scoring.
 
+background_manifest = "backgrounds/pytest-obligation/manifest.json"
+
 [[pair]]
 case = "imports-before"
 label = "duplicate"

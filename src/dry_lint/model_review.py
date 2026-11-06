@@ -39,13 +39,16 @@ def enabled(settings: Settings, override: bool | None, *, staged: bool = False) 
     return override if override is not None else settings.models.enabled and (not staged or settings.models.hook)
 
 
-def baseline(root: Path, settings: Settings, *, staged: bool = False, base: str | None = None) -> Baseline | None:
+def baseline(
+    root: Path, settings: Settings, *, staged: bool = False, base: str | None = None, target: bool = False
+) -> Baseline | None:
+    """Validate current allowances; cleanup may read the target's still-outstanding debt."""
     if not settings.models.baseline:
         return None
-    proposed, _ = Baseline.for_repository(
+    proposed, previous = Baseline.for_repository(
         root, Path(settings.models.baseline), profile(settings), base=base, staged=staged
     )
-    return proposed
+    return (previous or proposed) if target else proposed
 
 
 def allowances(candidates: list[Candidate], debt: Baseline | None) -> list[Candidate]:
@@ -71,8 +74,8 @@ def combine(functions: Report, models: Report, debt: Baseline | None) -> Report:
             "model_debt": {state: debt.count(state) for state in ("remaining", "cleaned", "dismissed")}
             if debt
             else None,
-            "backlog": [*(functions.backlog or []), *(models.backlog or [])]
-            if functions.backlog is not None or models.backlog is not None
+            "model_backlog": [item.model_copy(update={"kind": "model"}) for item in models.backlog]
+            if models.backlog is not None
             else None,
         }
     )
