@@ -753,5 +753,3 @@ def retry_bindings[W: UniverseDurableWork, ResultT](
             observe=bindings.observe,
             identity_of=lambda work: work.pk,
         )'''
-
-

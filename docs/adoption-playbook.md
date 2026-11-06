@@ -51,21 +51,11 @@ consumer does. Review include/exclude rules: defaults omit tests and migrations.
 candidate detector, not every possible semantic duplicate. Keep the initial/weekly audit budget separate from
 the per-PR budget. Reuse the verdict store between audit and update to avoid paying twice.
 
-Use `gigaverse-app/dry-lint@v1` now that v1 has launched; before v1 the Action used `@main`. Use published major
-tags for established Actions. Pre-commit uses an immutable published release, for example `rev: v1.4.2`, so its
-cached hook environment changes explicitly on upgrade. `rev` is a Git ref, not a version constraint: `1.*` is
-not supported, and a moving `v1` tag does not refresh an already installed hook. Confirm the release and required
-capabilities exist. While dry-lint stabilizes, check for hook updates weekly and after important fixes:
-
-```bash
-uvx pre-commit autoupdate --repo https://github.com/gigaverse-app/dry-lint
-```
-
-Review and commit the changed `rev`; subsequent hook runs install that release. This command is an explicit
-update, not a scheduler, and can select a new major version. Hook updates happen automatically only when the
-adopter has configured an updater such as pre-commit.ci or Renovate's opt-in pre-commit manager. Keep the update
-command and cadence beside the pin in `.pre-commit-config.yaml`, as in the example below. See
-[pre-commit's caching contract](https://pre-commit.com/#using-the-latest-version-for-a-repository).
+Use the `v1` major-version tag throughout adoption: `gigaverse-app/dry-lint@v1` for Actions, `rev: v1` for
+pre-commit hooks, and `@v1` for Git-based CLI installs. Do not pin dry-lint to a commit SHA or a minor/patch
+release. This keeps adopters on the supported major release without a config edit for every compatible update.
+Use published major tags for established Actions too. Exercise staged detection after setup; if an existing
+pre-commit environment still runs an older version, refresh it with `uvx pre-commit clean` and rerun the hook.
 
 ## 2. Accept the existing backlog once
 
@@ -92,7 +82,9 @@ counts or the detection contract to force a pass. Scope/judge changes need a rev
 Model review is enabled by default in checks, the staged hook and the PR sticky. Keep it enabled during full
 adoption, including the trusted fork judge, and verify the Action's `models-checked` output on judged runs.
 Fork detection only uploads candidates, so do not require that output on the untrusted detection job.
-Use a published release containing model review (1.4.0 or newer) for hooks. An explicit opt-out remains available
+Record the model inventory and changed-model count from the report. A successful pass with zero changed
+models verifies that the pass ran; it does not certify the whole existing inventory as duplicate-free.
+Keep hooks on `rev: v1` alongside the Action. An explicit opt-out remains available
 through `models: false`, `--no-models`, or repository `models.enabled`, `models.hook` and `models.sticky` settings.
 
 Function and model debt have different authorities. `sweep --init` initializes function debt from a complete
@@ -129,12 +121,9 @@ minimum_pre_commit_version: '4.3.0'
 default_install_hook_types: [pre-commit, prepare-commit-msg]
 default_stages: [pre-commit]
 repos:
-  - repo: https://github.com/gigaverse-app/dry-lint
-    # Check weekly while dry-lint stabilizes, and after important fixes:
-    # uvx pre-commit autoupdate --repo https://github.com/gigaverse-app/dry-lint
-    # Review and commit the new tag; rev does not support ranges or automatic refresh.
-    rev: v1.4.2
-    hooks:
+- repo: https://github.com/gigaverse-app/dry-lint
+  rev: v1
+  hooks:
       - id: dry-lint
         args: [--preset, sonnet, --baseline, .dry-lint/baseline.json]
         language_version: python3.13

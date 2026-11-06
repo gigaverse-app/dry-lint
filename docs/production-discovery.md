@@ -75,7 +75,7 @@ from the index; an unstaged dismissal cannot clear staged source. Committed chec
 ```yaml
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    rev: main
+    rev: v1
     hooks:
       - id: dry-lint
         additional_dependencies: ["dry-lint[hooks]"]

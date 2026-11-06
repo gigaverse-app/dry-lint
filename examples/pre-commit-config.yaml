@@ -5,10 +5,7 @@ default_stages: [pre-commit]
 minimum_pre_commit_version: '4.3.0'
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
-    # Check weekly while dry-lint stabilizes, and after important fixes:
-    # uvx pre-commit autoupdate --repo https://github.com/gigaverse-app/dry-lint
-    # Review and commit the new tag; rev does not support ranges or automatic refresh.
-    rev: v1.4.2
+    rev: v1
     hooks:
       - id: dry-lint
         # args: [--preset, agent+haiku]   # Haiku re-judges Jev's uncertain scores; needs ANTHROPIC_API_KEY too
