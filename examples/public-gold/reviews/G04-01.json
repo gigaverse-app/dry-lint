@@ -1,0 +1,275 @@
+{
+  "schema": 1,
+  "reviewer": "G03 reviewing G04 packets",
+  "reviewer_kind": "model, not human gold",
+  "packet_id": "G04-01",
+  "family_id": "G04-01",
+  "pins": {
+    "base": "aadd4d861458d66af9bc3994b428d829b54eaa60",
+    "first_parent": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+    "head": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+    "merge": "cc996eece172fc69e35662657ea6cea9c2c7db88"
+  },
+  "provenance": {
+    "packet_sha256": "9ecf3eb775f7ad9f31304c2e81bd603eb44b8fe4272dda8403cb2a80c9b5dad1",
+    "all_linked_source_checks_pass": true,
+    "license_spdx_declared": "MIT",
+    "license_evidence": "Linked license code records hash/span verified; no independent legal or authorship inference.",
+    "source_records": [
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "packages/ai/src/protocols/utils/partial-json.ts",
+        "start_line": 1,
+        "end_line": 283,
+        "source_file": "sources/0d9cb448c828b4e05e09ecb249cce5582830b85df60529227184033f6e004e71.json.gz",
+        "file_sha256": "0d9cb448c828b4e05e09ecb249cce5582830b85df60529227184033f6e004e71",
+        "snippet_sha256": "0d9cb448c828b4e05e09ecb249cce5582830b85df60529227184033f6e004e71"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "packages/ai/src/utils/json.ts",
+        "start_line": 1,
+        "end_line": 5,
+        "source_file": "sources/4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7.json.gz",
+        "file_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7",
+        "snippet_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "packages/ai/src/provider-error.ts",
+        "start_line": 1,
+        "end_line": 337,
+        "source_file": "sources/d4d9df41c44d43fd6183ce68936594599f186760048f74d2b365a97d198dfcde.json.gz",
+        "file_sha256": "d4d9df41c44d43fd6183ce68936594599f186760048f74d2b365a97d198dfcde",
+        "snippet_sha256": "d4d9df41c44d43fd6183ce68936594599f186760048f74d2b365a97d198dfcde"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "packages/ai/src/protocols/utils/partial-json.ts",
+        "start_line": 1,
+        "end_line": 283,
+        "source_file": "sources/0d9cb448c828b4e05e09ecb249cce5582830b85df60529227184033f6e004e71.json.gz",
+        "file_sha256": "0d9cb448c828b4e05e09ecb249cce5582830b85df60529227184033f6e004e71",
+        "snippet_sha256": "0d9cb448c828b4e05e09ecb249cce5582830b85df60529227184033f6e004e71"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "packages/ai/src/utils/json.ts",
+        "start_line": 1,
+        "end_line": 5,
+        "source_file": "sources/4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7.json.gz",
+        "file_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7",
+        "snippet_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "packages/ai/src/provider-error.ts",
+        "start_line": 1,
+        "end_line": 337,
+        "source_file": "sources/d4d9df41c44d43fd6183ce68936594599f186760048f74d2b365a97d198dfcde.json.gz",
+        "file_sha256": "d4d9df41c44d43fd6183ce68936594599f186760048f74d2b365a97d198dfcde",
+        "snippet_sha256": "d4d9df41c44d43fd6183ce68936594599f186760048f74d2b365a97d198dfcde"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+        "path": "packages/ai/src/protocols/utils/partial-json.ts",
+        "start_line": 35,
+        "end_line": 35,
+        "source_file": "sources/0084ab32a73234ca8e5736f79d7efe684058d6615463a58a3ca85494eadbbcb9.json.gz",
+        "file_sha256": "0084ab32a73234ca8e5736f79d7efe684058d6615463a58a3ca85494eadbbcb9",
+        "snippet_sha256": "b790ad685130c04fffe851e171fe80af7b9c83dce3c5581a8d004f68c110c736"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+        "path": "packages/ai/src/utils/json.ts",
+        "start_line": 3,
+        "end_line": 4,
+        "source_file": "sources/4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7.json.gz",
+        "file_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7",
+        "snippet_sha256": "01b12e696fdb12ffb8cc8d3c670de9cc5da1359ecfde457f4535ab6cc0bf1851"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "aadd4d861458d66af9bc3994b428d829b54eaa60",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b.json.gz",
+        "file_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "snippet_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b.json.gz",
+        "file_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "snippet_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b.json.gz",
+        "file_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "snippet_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+        "path": "LICENSE",
+        "start_line": 1,
+        "end_line": 21,
+        "source_file": "sources/625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b.json.gz",
+        "file_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+        "snippet_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "aadd4d861458d66af9bc3994b428d829b54eaa60",
+        "path": "packages/ai/src/protocols/utils/partial-json.ts",
+        "start_line": 35,
+        "end_line": 35,
+        "source_file": "sources/0084ab32a73234ca8e5736f79d7efe684058d6615463a58a3ca85494eadbbcb9.json.gz",
+        "file_sha256": "0084ab32a73234ca8e5736f79d7efe684058d6615463a58a3ca85494eadbbcb9",
+        "snippet_sha256": "b790ad685130c04fffe851e171fe80af7b9c83dce3c5581a8d004f68c110c736"
+      },
+      {
+        "repository": "anomalyco/opencode",
+        "revision": "aadd4d861458d66af9bc3994b428d829b54eaa60",
+        "path": "packages/ai/src/utils/json.ts",
+        "start_line": 3,
+        "end_line": 4,
+        "source_file": "sources/4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7.json.gz",
+        "file_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7",
+        "snippet_sha256": "01b12e696fdb12ffb8cc8d3c670de9cc5da1359ecfde457f4535ab6cc0bf1851"
+      }
+    ]
+  },
+  "original_after_pair": {
+    "classification": null,
+    "eligibility": "ineligible as an original-pair negative: at least one original endpoint is deleted",
+    "deletion_is_negative": false
+  },
+  "uncertainty": [
+    "No behavioral tests or target code executed.",
+    "Bounded supplied source closure cannot establish all external callers, repository-wide absence, or author identity."
+  ],
+  "before": {
+    "classification": "duplicate",
+    "confidence": 0.95,
+    "scope": "complete decoder binding; tiny operation, not whole partial JSON parser",
+    "narrow_operation_and_contract": "Construct a synchronous Effect Schema JSON-string-to-unknown decoder, throwing on invalid JSON.",
+    "independent_ownership": "partial-json creates its own Schema.fromJsonString(Schema.Unknown) decoder; utils/json separately constructs the same schema and decoder. Underlying parsing belongs to Effect; the duplicated local ownership is decoder selection/construction, not two JSON parsing algorithms.",
+    "legitimate_variations": "Inline schema versus exported Json schema alias is not a decode contract difference. utils/json additionally exports an encoder outside the reviewed operation.",
+    "caller_reachability": "partial-json calls the local decoder in parseJSON and nested numeric/string parsing. utils/json decoder is exported; no before direct consumer of that exported decoder is proven by supplied files.",
+    "existing_shared_owner": "Effect supplies parsing mechanics, but partial-json does not delegate to the local utils/json decoder."
+  },
+  "eligibility": {
+    "before_operation_positive": "accepted at tiny binding/operation granularity",
+    "whole_function_positive": false,
+    "two_proven_live_callers": false,
+    "after_original_pair_negative": false,
+    "surviving_control": "accepted: synchronous unknown decoder versus synchronous string decoder, and throwing versus Option decoder are separate contracts"
+  },
+  "surviving_after_controls": [
+    {
+      "classification": "separate",
+      "confidence": 0.99,
+      "scope": "decoder bindings",
+      "operation": "head/merge partial-json decodeJsonString uses Schema.String; utils/json decodeJson uses Schema.Unknown. String decoder validates decoded value as string, unknown decoder does not.",
+      "evidence": [
+        {
+          "phase": "head",
+          "repository": "anomalyco/opencode",
+          "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+          "path": "packages/ai/src/protocols/utils/partial-json.ts",
+          "start_line": 28,
+          "end_line": 44,
+          "quote": "import { Schema } from \"effect\"\nimport { decodeJson } from \"../../utils/json.js\"\nimport { Allow } from \"./partial-json-options.js\"\nexport * from \"./partial-json-options.js\"\n\nexport class PartialJSON extends Error {}\nexport class MalformedJSON extends Error {}\n\nconst decodeJsonString = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.String))\n\n/** Parse complete or incomplete JSON, restricted by the supplied partial-value flags. */\nexport function parseJSON(jsonString: string, allowPartial = Allow.ALL): unknown {\n  if (typeof jsonString !== \"string\") throw new TypeError(`expecting str, got ${typeof jsonString}`)\n  const input = jsonString.trim()\n  if (!input) throw new Error(`${jsonString} is empty`)\n  try {\n    return decodeJson(input)\n",
+          "source_file": "sources/0d9cb448c828b4e05e09ecb249cce5582830b85df60529227184033f6e004e71.json.gz",
+          "file_sha256": "0d9cb448c828b4e05e09ecb249cce5582830b85df60529227184033f6e004e71"
+        },
+        {
+          "phase": "head",
+          "repository": "anomalyco/opencode",
+          "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+          "path": "packages/ai/src/utils/json.ts",
+          "start_line": 1,
+          "end_line": 5,
+          "quote": "import { Schema } from \"effect\"\n\nexport const Json = Schema.fromJsonString(Schema.Unknown)\nexport const decodeJson = Schema.decodeUnknownSync(Json)\nexport const encodeJson = Schema.encodeSync(Json)\n",
+          "source_file": "sources/4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7.json.gz",
+          "file_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7"
+        }
+      ]
+    },
+    {
+      "classification": "separate",
+      "confidence": 0.99,
+      "scope": "error contract",
+      "operation": "provider-error local decodeJson uses Schema.decodeUnknownOption(Json), while utils/json uses decodeUnknownSync(Json); failure-as-Option differs from throwing.",
+      "evidence": [
+        {
+          "phase": "head",
+          "repository": "anomalyco/opencode",
+          "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+          "path": "packages/ai/src/provider-error.ts",
+          "start_line": 120,
+          "end_line": 120,
+          "quote": "const decodeJson = Schema.decodeUnknownOption(Json)\n",
+          "source_file": "sources/d4d9df41c44d43fd6183ce68936594599f186760048f74d2b365a97d198dfcde.json.gz",
+          "file_sha256": "d4d9df41c44d43fd6183ce68936594599f186760048f74d2b365a97d198dfcde"
+        },
+        {
+          "phase": "head",
+          "repository": "anomalyco/opencode",
+          "revision": "126c2448eb370cef2b9bf3bf426571f861ba43b6",
+          "path": "packages/ai/src/utils/json.ts",
+          "start_line": 1,
+          "end_line": 5,
+          "quote": "import { Schema } from \"effect\"\n\nexport const Json = Schema.fromJsonString(Schema.Unknown)\nexport const decodeJson = Schema.decodeUnknownSync(Json)\nexport const encodeJson = Schema.encodeSync(Json)\n",
+          "source_file": "sources/4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7.json.gz",
+          "file_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7"
+        }
+      ]
+    }
+  ],
+  "after_ownership": "partial-json imports utils/json.decodeJson at line 29 for complete/numeric decode and keeps a distinct typed string decoder. Local original unknown-decoder binding is gone.",
+  "before_evidence": [
+    {
+      "phase": "before",
+      "repository": "anomalyco/opencode",
+      "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+      "path": "packages/ai/src/protocols/utils/partial-json.ts",
+      "start_line": 35,
+      "end_line": 35,
+      "quote": "const decodeJson = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))\n",
+      "source_file": "sources/0084ab32a73234ca8e5736f79d7efe684058d6615463a58a3ca85494eadbbcb9.json.gz",
+      "file_sha256": "0084ab32a73234ca8e5736f79d7efe684058d6615463a58a3ca85494eadbbcb9"
+    },
+    {
+      "phase": "before",
+      "repository": "anomalyco/opencode",
+      "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+      "path": "packages/ai/src/utils/json.ts",
+      "start_line": 3,
+      "end_line": 4,
+      "quote": "export const Json = Schema.fromJsonString(Schema.Unknown)\nexport const decodeJson = Schema.decodeUnknownSync(Json)\n",
+      "source_file": "sources/4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7.json.gz",
+      "file_sha256": "4f334f85ff675fda188618eb7b0eacf04ee59d80891f89d0584f5391362553a7"
+    }
+  ],
+  "after_control_revision_checks": "Head and merge linked full-file hashes/spans both verified; described control snippets cite head. No original deleted endpoint is labeled separate."
+}

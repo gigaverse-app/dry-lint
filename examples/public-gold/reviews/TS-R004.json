@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "reviewer": "G03",
+  "reviewer_kind": "model, not human gold",
+  "packet_id": "TS-R004",
+  "classification": "duplicate",
+  "confidence": 0.88,
+  "family_id": "settings-secrets",
+  "narrow_shared_operation_and_contract": "Materialize a redacted sensitive settings value from the secret store, decode UTF-8, and substitute empty string if absent while mapping read failures.",
+  "rationale": "Both loops independently implement the same lookup/decode/missing-value/error operation inside the same settings materialization flow. Collection shape and key derivation can remain adapters around a narrow secret materializer.",
+  "legitimate_variations": "Environment uses sensitive plus valueRedacted and retains variable metadata; usage source uses a sentinel and replaces managementKey. Environment errors attach provider/name metadata. These variations must remain.",
+  "existing_shared_owner_or_delegation": "Both use secretStore and textDecoder. Supplied settingsSecrets context describes mapSettingsSecrets, but these endpoint loops do not delegate their lookup operation to it; context alone does not establish its revision applicability.",
+  "uncertainty_and_disagreement": "A common operation is supported; identical representation or wholesale loop replacement is not.",
+  "source_evidence_spans": [
+    {
+      "role": "a",
+      "source_id": "pingdotgg/t3code@37e2acda5118d13c144efb009d4911ff8f65d6ed:apps/server/src/serverSettings.ts::materializeProviderEnvironmentSecrets.environment-region:975-998",
+      "path": "apps/server/src/serverSettings.ts",
+      "revision": "37e2acda5118d13c144efb009d4911ff8f65d6ed",
+      "start_line": 975,
+      "end_line": 998,
+      "quote": "        for (const variable of instance.environment) {\n          if (!variable.sensitive || !variable.valueRedacted) {\n            environment.push(variable);\n            continue;\n          }\n          const secret = yield* secretStore\n            .get(providerEnvironmentSecretName({ instanceId, name: variable.name }))\n            .pipe(\n              Effect.mapError(\n                (cause) =>\n                  new ServerSettingsError({\n                    settingsPath,\n                    operation: \"read-secret\",\n                    providerInstanceId: instanceId,\n                    environmentVariable: variable.name,\n                    cause,\n                  }),\n              ),\n            );\n          environment.push({\n            ...variable,\n            value: Option.isSome(secret) ? textDecoder.decode(secret.value) : \"\",\n          });\n        }\n",
+      "verification": "hashes and exact full_source line span match"
+    },
+    {
+      "role": "b",
+      "source_id": "pingdotgg/t3code@37e2acda5118d13c144efb009d4911ff8f65d6ed:apps/server/src/serverSettings.ts::materializeProviderEnvironmentSecrets.usage-source-region:1005-1021",
+      "path": "apps/server/src/serverSettings.ts",
+      "revision": "37e2acda5118d13c144efb009d4911ff8f65d6ed",
+      "start_line": 1005,
+      "end_line": 1021,
+      "quote": "      for (const [sourceId, source] of Object.entries(settings.usageLimitSources)) {\n        if (source.managementKey !== SECRET_REDACTED) {\n          usageLimitSources[sourceId] = source;\n          continue;\n        }\n        const secret = yield* secretStore\n          .get(usageLimitSourceSecretName(sourceId))\n          .pipe(\n            Effect.mapError(\n              (cause) => new ServerSettingsError({ settingsPath, operation: \"read-secret\", cause }),\n            ),\n          );\n        usageLimitSources[sourceId] = {\n          ...source,\n          managementKey: Option.isSome(secret) ? textDecoder.decode(secret.value) : \"\",\n        };\n      }\n",
+      "verification": "hashes and exact full_source line span match"
+    },
+    {
+      "role": "helper_context",
+      "path": "apps/server/src/settingsSecrets.ts",
+      "revision": "d514a8c6176ace9057dc8c7619f0b5f0d81d1bd0",
+      "start_line": 1,
+      "end_line": 150,
+      "verification": "full_source hashes match",
+      "relevance": "Supplied helper establishes delegation/representation contract; contextual revision is not assumed identical to endpoints."
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Public operation gold maintenance row, independent schema 1",
+  "type": "object",
+  "required": ["schema", "id", "family_id", "cohort", "split", "repository", "phase", "label", "granularity", "label_scope", "whole_function_label", "review_status", "review_file", "license", "pins", "new", "existing", "active_panel_eligible"],
+  "properties": {
+    "schema": {"const": 1},
+    "id": {"type": "string", "minLength": 1},
+    "family_id": {"type": "string", "minLength": 1},
+    "cohort": {"enum": ["t3-history-development", "breadth-history-development"]},
+    "split": {"const": "development"},
+    "phase": {"enum": ["before", "after"]},
+    "label": {"enum": ["duplicate", "separate"]},
+    "granularity": {"const": "operation"},
+    "whole_function_label": {"type": "null"},
+    "active_panel_eligible": {"const": true},
+    "label_scope": {"type": "string", "minLength": 1},
+    "review_file": {"type": "string", "pattern": "^reviews/[^/]+\\.json$"},
+    "new": {"$ref": "#/$defs/side"},
+    "existing": {"$ref": "#/$defs/side"},
+    "license": {
+      "type": "object",
+      "required": ["spdx", "revision", "sha256", "text", "source_file"],
+      "properties": {"spdx": {"const": "MIT"}, "revision": {"$ref": "#/$defs/commit"}, "sha256": {"$ref": "#/$defs/hash"}, "text": {"type": "string"}, "source_file": {"$ref": "#/$defs/source"}}
+    }
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "source": {"type": "string", "pattern": "^sources/[a-f0-9]{64}\\.json\\.gz$"},
+    "side": {
+      "type": "object",
+      "required": ["id", "code", "repository", "revision", "path", "symbol", "start_line", "end_line", "snippet_sha256", "file_sha256", "git_blob_sha1", "source_file", "extraction"],
+      "properties": {
+        "id": {"type": "string"},
+        "code": {"type": "string", "minLength": 1},
+        "revision": {"$ref": "#/$defs/commit"},
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "snippet_sha256": {"$ref": "#/$defs/hash"},
+        "file_sha256": {"$ref": "#/$defs/hash"},
+        "source_file": {"$ref": "#/$defs/source"},
+        "extraction": {
+          "type": "object",
+          "required": ["source_id", "source_sha256", "start_line", "end_line", "scope_mismatch", "relationship", "evaluation_policy"],
+          "properties": {"source_id": {"type": "string"}, "source_sha256": {"$ref": "#/$defs/hash"}, "scope_mismatch": {"type": "boolean"}, "relationship": {"enum": ["exact function", "reviewed operation within enclosing extracted function"]}}
+        }
+      }
+    }
+  }
+}
