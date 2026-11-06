@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "backgrounds": [
+    {
+      "repository": "gigaverse-app/due",
+      "revision": "33857688849a481a794b46295f4080dca853cc0f",
+      "path": "33857688849a481a794b46295f4080dca853cc0f.json.gz",
+      "sha256": "e8eb65099fbc8a4e0853da3bce62fc497f9c428331d05ce5c47f994290456b22",
+      "functions": 2361,
+      "tokens": 7913,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "29c147cf1bb3084cd24b480e6e8d6b78215961708219ee085302c80d59099dac",
+      "max_df": 0.3
+    },
+    {
+      "repository": "gigaverse-app/due",
+      "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4",
+      "path": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4.json.gz",
+      "sha256": "d54104cc3e03c039fc62af6abbaae2ed9673e6d053497bc6c11017a19ed8fcaf",
+      "functions": 2336,
+      "tokens": 7862,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "29c147cf1bb3084cd24b480e6e8d6b78215961708219ee085302c80d59099dac",
+      "max_df": 0.3
+    },
+    {
+      "repository": "gigaverse-app/due",
+      "revision": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0",
+      "path": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0.json.gz",
+      "sha256": "0be1688db28aea6d0fbb9e2cfb32eaef07fb554aa9053ee063275ce679bc8a6a",
+      "functions": 2368,
+      "tokens": 7944,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "29c147cf1bb3084cd24b480e6e8d6b78215961708219ee085302c80d59099dac",
+      "max_df": 0.3
+    },
+    {
+      "repository": "gigaverse-app/due",
+      "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd",
+      "path": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd.json.gz",
+      "sha256": "1c9d034edbdcd322738556c283ac31b487d66be858f733d768fbadf9ec941ef1",
+      "functions": 2367,
+      "tokens": 7943,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "29c147cf1bb3084cd24b480e6e8d6b78215961708219ee085302c80d59099dac",
+      "max_df": 0.3
+    },
+    {
+      "repository": "gigaverse-app/due",
+      "revision": "d45977a85f1804d8c6cbc3b35d02fd61438f7531",
+      "path": "d45977a85f1804d8c6cbc3b35d02fd61438f7531.json.gz",
+      "sha256": "be1b38de21febc643bf194daffa937fa7063d4b263f3f5f93b9ff56524e076e0",
+      "functions": 2340,
+      "tokens": 7870,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/migrations/*"
+        ]
+      },
+      "extraction_contract": "29c147cf1bb3084cd24b480e6e8d6b78215961708219ee085302c80d59099dac",
+      "max_df": 0.3
+    }
+  ]
+}

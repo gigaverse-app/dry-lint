@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "backgrounds": [
+    {
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2",
+      "path": "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2.json.gz",
+      "sha256": "fc5d60d9a7922b37b69218a94f25b0e71a7596c65ad24a29dc4518ab2aaf3dfe",
+      "functions": 272,
+      "tokens": 2322,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ]
+      },
+      "extraction_contract": "c763c6711500adc161711c4d48c9c207967b1077ecd01d6dad05a255ca3c58d0",
+      "max_df": 0.3,
+      "gold_sources": [
+        {
+          "id": "before/src/pytest_selective/impact_audit_plugin.py::_git",
+          "source_id": "src/pytest_selective/impact_audit_plugin.py::_git",
+          "source_sha256": "0315d8c4bbba8a4f5b776668546c2106c2e563e3dac5a3524dd1217951087cfe",
+          "syntax_sha256": "463ed582e65e6d9e14db60d5b2dfa80bf6eec037102e48ed6b038ac8dc35d208"
+        },
+        {
+          "id": "before/src/pytest_selective/impact_graph.py::git",
+          "source_id": "src/pytest_selective/impact_graph.py::git",
+          "source_sha256": "c6668997bac8e3ed833cdf59cf9903f3d937a04a834a456ab66ea504631d1a6d",
+          "syntax_sha256": "277803cd3ee4166c6678396f6f365cab852227102ddd25325bf55bc5c95093b3"
+        },
+        {
+          "id": "before/src/pytest_selective/pytest_expansion.py::git",
+          "source_id": "src/pytest_selective/pytest_expansion.py::git",
+          "source_sha256": "4d0e61749cab607ad22a3788a80fa156e0d6a13265622b170390eb39d1f0f050",
+          "syntax_sha256": "95b0ad52a6a647261ac3bf3c754c1be91a4d83def220c9aa030962aa5a835feb"
+        },
+        {
+          "id": "before/src/pytest_selective/impact_graph.py::git",
+          "source_id": "src/pytest_selective/impact_graph.py::git",
+          "source_sha256": "c6668997bac8e3ed833cdf59cf9903f3d937a04a834a456ab66ea504631d1a6d",
+          "syntax_sha256": "277803cd3ee4166c6678396f6f365cab852227102ddd25325bf55bc5c95093b3"
+        },
+        {
+          "id": "before/src/pytest_selective/pytest_expansion.py::git_environment",
+          "source_id": "src/pytest_selective/pytest_expansion.py::git_environment",
+          "source_sha256": "12a0528fde0af8a7e8adff9c8388e5d9a8f7bee5a65a8873824a5fb3c49ef9ed",
+          "syntax_sha256": "0e68a0159eed9e968ea2caa51e1cbde77db1c9253813097a0513ecb0571a08b2"
+        },
+        {
+          "id": "before/src/pytest_selective/impact_graph.py::git_environment",
+          "source_id": "src/pytest_selective/impact_graph.py::git_environment",
+          "source_sha256": "6ac511126c7997430d6d75db1fb192f7487e4071c4f89fcf1b6d51682eba0dd0",
+          "syntax_sha256": "272a268df13bc1254d5d74fdafd92b2473b5d58deeb4ffe44181252f7202bfa7"
+        },
+        {
+          "id": "before/src/pytest_selective/hygiene.py::discover_test_modules",
+          "source_id": "src/pytest_selective/hygiene.py::discover_test_modules",
+          "source_sha256": "543a2b4acfba4b628e03848220eb4a04d2bcd19031ed83b99e8d5cdcfac1eef1",
+          "syntax_sha256": "e6d0e677a8886d308f8b1cde40be6baf08e014e62652e0f1e04821f60fc6c77f"
+        },
+        {
+          "id": "before/src/pytest_selective/test_inventory.py::discover_test_files",
+          "source_id": "src/pytest_selective/test_inventory.py::discover_test_files",
+          "source_sha256": "e2a600fcabb12e543b4bb12f12759075e00817fa96883674e992f86e9f070e15",
+          "syntax_sha256": "3125ab77ed5a0c3015d6b434e0ed0e5eebe583b236fa74c32ac72ee1b26df8ef"
+        },
+        {
+          "id": "before/src/pytest_selective/typecheck_scope.py::_under",
+          "source_id": "src/pytest_selective/typecheck_scope.py::_under",
+          "source_sha256": "82f1ac9890d0d15c232fc88ca30832705c87edda1548cb650c2dae6cc18fa925",
+          "syntax_sha256": "5e887a28ae85de61a4a18892981471d5c7bdf97aac2685317b1c69aa048815a9"
+        },
+        {
+          "id": "before/src/pytest_selective/impact_graph.py::within",
+          "source_id": "src/pytest_selective/impact_graph.py::within",
+          "source_sha256": "1c9b8b0a79501f04c9f37ecbbbc6e63c398c375c429a0290650f7e35303d9273",
+          "syntax_sha256": "cbc808726a88d58d622f2bdb03215e2a31aaa6f44cd5d52e1b0470da8b5a2c47"
+        },
+        {
+          "id": "before/src/pytest_selective/impact_first_party.py::_module_name",
+          "source_id": "src/pytest_selective/impact_first_party.py::_module_name",
+          "source_sha256": "3eef439c691567953319de242abbd7c0258da448b984dbb4a1f5d03508727701",
+          "syntax_sha256": "bffc186fc0048826f7907c56182d9b2a14918508e317f77765e06c6e5b67fc8d"
+        },
+        {
+          "id": "before/src/pytest_selective/pytest_expansion.py::SourceTree.module_name",
+          "source_id": "src/pytest_selective/pytest_expansion.py::SourceTree.module_name",
+          "source_sha256": "fbfbc31f209d9696afb2cb15554135e63cb5098bfe49e4b7d47883417af5c1df",
+          "syntax_sha256": "ba5bda48badb637be864ee0460f90a73d364373e12041ef74cdc2f8ae1d02f4c"
+        },
+        {
+          "id": "before/src/pytest_selective/pytest_expansion.py::worktree_snapshot",
+          "source_id": "src/pytest_selective/pytest_expansion.py::worktree_snapshot",
+          "source_sha256": "33cd09dd3252a16ba3ed36bfdb7ee94657c070b4be5744ea8c30fd99ebc04bd7",
+          "syntax_sha256": "69bafb8ae73774898ac83d74e4af9774cde78845b16455b2c0d9879ded33db0c"
+        },
+        {
+          "id": "before/src/pytest_selective/working_tree.py::snapshot_working_tree",
+          "source_id": "src/pytest_selective/working_tree.py::snapshot_working_tree",
+          "source_sha256": "b2cd7674b031a6caa2a07290f9a217af9186393b6d625dbf91784dfc38e79dfc",
+          "syntax_sha256": "1571c5478967f7e61c3ef461d986fecde14a4f95f3628abbf11aa62a3a5cc132"
+        },
+        {
+          "id": "before/src/pytest_selective/impact_name_scope.py::_casefold",
+          "source_id": "src/pytest_selective/impact_name_scope.py::_casefold",
+          "source_sha256": "b202c33be801843259b581f2f15babe9cc09717dadfeb734f3c8007ca405d3c9",
+          "syntax_sha256": "6ce886c8ed008bea4ce8a01762d98080a0414a338741b08ee1e560307dd19583"
+        },
+        {
+          "id": "before/src/pytest_selective/impact_graph.py::ModuleIndex.resolve",
+          "source_id": "src/pytest_selective/impact_graph.py::ModuleIndex.resolve",
+          "source_sha256": "8f2852d50998b46604d4570eb42d3717e79f6360b9d1eafe89b063c1e4d296cf",
+          "syntax_sha256": "9e8200ea82fadc0b19ff2520fc07e6769f506653743addecc514e8f6776ec8aa"
+        }
+      ],
+      "syntax_fingerprint": "sha256-sorted-json-ast-fields-without-none-or-empty-lists-v1"
+    },
+    {
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "4ab22f35385bb0e3225cf9d40877b559d45c23dc",
+      "path": "4ab22f35385bb0e3225cf9d40877b559d45c23dc.json.gz",
+      "sha256": "7a250fd17ca113c76e5e893f1c0848754987aa05577010dae36b776edd2b9c72",
+      "functions": 270,
+      "tokens": 2320,
+      "scope": {
+        "include": [
+          "*"
+        ],
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ]
+      },
+      "extraction_contract": "c763c6711500adc161711c4d48c9c207967b1077ecd01d6dad05a255ca3c58d0",
+      "max_df": 0.3,
+      "gold_sources": [
+        {
+          "id": "after/src/pytest_selective/hygiene.py::discover_test_modules",
+          "source_id": "src/pytest_selective/hygiene.py::discover_test_modules",
+          "source_sha256": "613a9790f5bdfbf329648eeb60f7a17b31ea2705151cd896a6c9d626db7b0bf1",
+          "syntax_sha256": "64dbe88589454cf1aa54f6139227e5d5e8057af6fd92c5612dacf12632464755"
+        },
+        {
+          "id": "after/src/pytest_selective/test_inventory.py::discover_test_files",
+          "source_id": "src/pytest_selective/test_inventory.py::discover_test_files",
+          "source_sha256": "e2a600fcabb12e543b4bb12f12759075e00817fa96883674e992f86e9f070e15",
+          "syntax_sha256": "3125ab77ed5a0c3015d6b434e0ed0e5eebe583b236fa74c32ac72ee1b26df8ef"
+        },
+        {
+          "id": "after/src/pytest_selective/pytest_expansion.py::git",
+          "source_id": "src/pytest_selective/pytest_expansion.py::git",
+          "source_sha256": "310d0ab817f83e2be28da1909650778196d6169157728b03caafab4a3b15d8e4",
+          "syntax_sha256": "0d4a8797a54b80cebc2318fa9ed0e69b8e4ae369b64e1cdf12c3d8ccef0f6575"
+        },
+        {
+          "id": "after/src/pytest_selective/git_operations.py::git_text",
+          "source_id": "src/pytest_selective/git_operations.py::git_text",
+          "source_sha256": "56a1b37dd3ebb071bc26d6b8a9ae0555fe8a42a359f3288f6c23eb1f0b3cc80e",
+          "syntax_sha256": "88038d307ad27f6361456517dc9ef4ad64cb074a30e9aca89b689421ad45c882"
+        },
+        {
+          "id": "after/src/pytest_selective/git_operations.py::git_text",
+          "source_id": "src/pytest_selective/git_operations.py::git_text",
+          "source_sha256": "56a1b37dd3ebb071bc26d6b8a9ae0555fe8a42a359f3288f6c23eb1f0b3cc80e",
+          "syntax_sha256": "88038d307ad27f6361456517dc9ef4ad64cb074a30e9aca89b689421ad45c882"
+        },
+        {
+          "id": "after/src/pytest_selective/git_operations.py::git",
+          "source_id": "src/pytest_selective/git_operations.py::git",
+          "source_sha256": "5d1f0b300023370f9b895e28b3357ba421fb5d0ed9879fc16bb11869648122ea",
+          "syntax_sha256": "9c1242592942174742d6afa5e8b0f362e02e9cf39be2fb0c8526efc4ed9c86a1"
+        },
+        {
+          "id": "after/src/pytest_selective/pytest_expansion.py::SourceTree.module_name",
+          "source_id": "src/pytest_selective/pytest_expansion.py::SourceTree.module_name",
+          "source_sha256": "c717ba534a9a6d3eeac302365182950dfa1fb983d94b03fb845229a4312008a5",
+          "syntax_sha256": "18a0a86cbb7ff892de680b0e0ea42f534169d3b9b0e06e7da306c6cc63d2d6db"
+        },
+        {
+          "id": "after/src/pytest_selective/ast_imports.py::module_name",
+          "source_id": "src/pytest_selective/ast_imports.py::module_name",
+          "source_sha256": "765b34fe958a9d172474013ca6dcec135010540dba81cabbd43f6ba3866ac225",
+          "syntax_sha256": "372d54fc22bbeb6d79dd67cefb404e276710403bdb0ce1d83587f1c1592d8da0"
+        }
+      ],
+      "syntax_fingerprint": "sha256-sorted-json-ast-fields-without-none-or-empty-lists-v1"
+    }
+  ]
+}

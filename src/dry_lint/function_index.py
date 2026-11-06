@@ -11,7 +11,7 @@ import tomllib
 from importlib import import_module
 from importlib.metadata import version
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -31,6 +31,31 @@ def digest(value: object) -> str:
     return hashlib.sha256(
         json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
     ).hexdigest()
+
+
+def encode_snapshot(payload: dict[str, Any], *, sort_keys: bool = True) -> bytes:
+    """Shared envelope for extraction indexes and sparse benchmark backgrounds."""
+    return gzip.compress(
+        json.dumps({**payload, "digest": digest(payload)}, sort_keys=sort_keys, separators=(",", ":")).encode(), mtime=0
+    )
+
+
+def decode_snapshot(data: bytes, label: str) -> dict[str, Any]:
+    """Bound decompression and verify integrity before the caller validates its schema."""
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(data)) as compressed:
+            raw = compressed.read(MAX_INDEX_BYTES + 1)
+    except (OSError, EOFError) as error:
+        raise ValueError(f"Invalid compressed {label}") from error
+    if len(raw) > MAX_INDEX_BYTES:
+        raise ValueError(f"{label.capitalize()} exceeds decompressed size limit")
+    payload = json.loads(raw)
+    if not isinstance(payload, dict) or "digest" not in payload:
+        raise ValueError(f"Missing {label} digest")
+    checksum = payload.pop("digest")
+    if checksum != digest(payload):
+        raise ValueError(f"{label.capitalize()} content digest mismatch")
+    return payload
 
 
 def repository_name(value: str) -> str:
@@ -81,27 +106,11 @@ class FunctionIndex(BaseModel):
         return f"dry-lint-index-v{self.schema_version}-{self.contract}-{self.commit}"
 
     def encode(self) -> bytes:
-        data = self.model_dump(mode="json", by_alias=True)
-        return gzip.compress(
-            json.dumps({**data, "digest": digest(data)}, sort_keys=True, separators=(",", ":")).encode(), mtime=0
-        )
+        return encode_snapshot(self.model_dump(mode="json", by_alias=True))
 
     @classmethod
     def decode(cls, data: bytes, repository: str, commit: str, contract: str) -> "FunctionIndex":
-        try:
-            with gzip.GzipFile(fileobj=io.BytesIO(data)) as compressed:
-                raw = compressed.read(MAX_INDEX_BYTES + 1)
-        except (OSError, EOFError) as error:
-            raise ValueError("Invalid compressed function index") from error
-        if len(raw) > MAX_INDEX_BYTES:
-            raise ValueError("Function index exceeds decompressed size limit")
-        payload = json.loads(raw)
-        if not isinstance(payload, dict) or "digest" not in payload:
-            raise ValueError("Missing function index digest")
-        checksum = payload.pop("digest")
-        if checksum != digest(payload):
-            raise ValueError("Function index content digest mismatch")
-        index = cls.model_validate(payload)
+        index = cls.model_validate(decode_snapshot(data, "function index"))
         for field, expected in (
             ("repository", repository_name(repository)),
             ("commit", commit),

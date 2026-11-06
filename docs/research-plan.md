@@ -8,6 +8,11 @@ slots, not a shortage of signal.
 This page records the evidence so far, the hypotheses it suggests, and the experiments queued to test them, with
 decision rules fixed before their results are seen. It changes no runtime behaviour.
 
+The follow-up [TF-IDF enrichment research plan](tfidf-enrichment-research.md) revisits weighted documentation
+counts, contextual concept tokens, and learned sparse relationships. It records the earlier negative results,
+compares single-vector enrichment with separate fields, and requires an improvement within the existing
+estimated $0.04 per-PR judge budget before proposing a production change.
+
 **Status:** E1 to E3 have run as [the channel trial](channel-trial.md); no variant met the decision rules.
 Reserved slots keep every known duplicate but their extra pairs are judged real about 15% of the time, against 38%
 for the baseline scan. E4 has run as [retrieval presets](retrieval-presets.md), on 600 commits of four repositories:
