@@ -70,12 +70,42 @@ and 1,656-function after backgrounds, using the same source/syntax checks. Its m
 capturing them does not add its labels to the original 48-positive trial. The hand-written calibration examples
 in `examples/gold.toml` have no source-repository background to preserve.
 
-The [public operation panel](../examples/public-gold/README.md) retains full diagnostic backgrounds for
+The [public operation panel](https://github.com/gigaverse-app/dry-lint-goldens/blob/412a9ba0bc114018a05ea57a801627a43fa77f1f/README.md) retains full diagnostic backgrounds for
 T3 clipboard and OpenCode request-normalization before/merge pins, plus separate SDK dead-code evidence.
 Its four active rows label narrow operations, not their enclosing functions. Exact snippet-to-extraction
 mappings flag scope mismatches; native JSONL import does not turn a partial-operation label into a
 whole-function label or silently replace full-corpus tokens with snippet tokens. Same-function regions,
 unextracted decoder bindings, dead-code duplicates and disputed labels remain outside its active panel.
+
+## Retrieve released operation datasets
+
+The public-operation and candidate-first packages now live in the dedicated
+[dataset catalog](https://github.com/gigaverse-app/dry-lint-goldens/blob/412a9ba0bc114018a05ea57a801627a43fa77f1f/catalog.json), with readable
+[label indexes](https://github.com/gigaverse-app/dry-lint-goldens/blob/412a9ba0bc114018a05ea57a801627a43fa77f1f/labels) and immutable, shared SHA-256 objects.
+The packages retain all original labels, controls, disputes, licenses, sources,
+validators and full frozen TF-IDF backgrounds. New cohorts belong in that repository.
+
+Pin retrieval to a reviewed corpus commit (this migration: `412a9ba0bc114018a05ea57a801627a43fa77f1f`):
+
+```sh
+git clone https://github.com/gigaverse-app/dry-lint-goldens.git /tmp/dry-lint-goldens
+git -C /tmp/dry-lint-goldens checkout --detach 412a9ba0bc114018a05ea57a801627a43fa77f1f
+python3 /tmp/dry-lint-goldens/corpus.py verify
+python3 /tmp/dry-lint-goldens/corpus.py materialize public-gold-v1 --out /tmp/public-gold
+python3 /tmp/dry-lint-goldens/corpus.py materialize candidate-first-gold-v1 --out /tmp/candidate-first-gold
+```
+
+For native import, pass `/tmp/public-gold/accepted-public-gold.jsonl` or
+`/tmp/candidate-first-gold/accepted-public-gold.jsonl` to `dry_lint.bench.load_gold`.
+Keep the original operation scope and review qualifications; native import does not
+make these whole-function labels. Run the original `validate.py` in each materialized
+package with the external dry-lint code pinned to
+`b74a6223b4b41b8bb881c445c86c2dba82d62dd2`, CPython 3.14.4/Linux and its locked
+dependencies. Exact install/validation commands are in the
+[corpus README](https://github.com/gigaverse-app/dry-lint-goldens/blob/412a9ba0bc114018a05ea57a801627a43fa77f1f/README.md). No model calls or credentials are needed to validate.
+Private historical cohorts remain separate from these public-source development panels.
+The corpus repository is private and cloning requires repository access. The original
+public packages also remain accessible in the [prior dry-lint release](https://github.com/gigaverse-app/dry-lint/tree/34fd0e5f15dfbd614fe4b37a38bdb19210e92f7e/examples).
 
 When changing tokenization, retain the old snapshot as the baseline. Re-extract the same pinned source into
 a new candidate snapshot and compare both. Replacing the old counts in place would erase the evidence of
