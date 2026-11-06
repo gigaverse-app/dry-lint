@@ -196,6 +196,7 @@ class Judging:
         pending = sorted((i for i, verdict in enumerate(known) if verdict is None), key=lambda i: -proposed[i].priority)
         deferred = set(pending[self.settings.max_judgements :]) if self.settings.max_judgements is not None else set()
         pending = [i for i in pending if i not in deferred]
+        count_limited = deferred.copy()
         if advisory and pending:
             pending.sort(key=lambda i: (-proposed[i].priority, -proposed[i].similarity))
             affordable = self.ledger.affordable(self.judge, [proposed[i] for i in pending])
@@ -214,12 +215,14 @@ class Judging:
         for i in [i for i in deferred if first.get(i) is not None]:
             known[i], cached = first[i], cached | {i}
             deferred.discard(i)
+        deferred.update(i for i, v in enumerate(known) if not advisory and v is not None and self.unsure(v))
         return [
             Finding(
                 candidate=c,
                 verdict=known[i],
                 cached=i in cached,
-                deferred=i in deferred or (not advisory and known[i] is not None and self.unsure(known[i])),
+                deferred=i in deferred,
+                budget_deferred=i in deferred and i not in count_limited and not self.ledger.failed,
             )
             for i, c in enumerate(proposed)
         ]
@@ -236,6 +239,7 @@ class Judging:
         spend = self.ledger.spend.setdefault(identity(judge), Spend(judge=identity(judge)))
         findings = []
         baseline_pending = False
+        baseline_budget_only = True
         for candidate in campaign.order(candidates):
             cached = self.store.lookup(
                 candidate, judge.name, self.settings.reopen_margin, judge.version, exact_source=True
@@ -243,15 +247,17 @@ class Judging:
             if cached is not None:
                 findings.append(Finding(candidate=candidate, verdict=cached, cached=True))
                 continue
-            reservation = None
+            reservation = "budget" if baseline_pending and baseline_budget_only else None
             if not (baseline_pending and candidate.lane == "exploration"):
                 reservation = campaign.reserve(
                     candidate, judge, self.settings, reservation_cost(judge, candidate, self.settings)
                 )
-            if reservation is None:
-                baseline_pending |= candidate.lane == "baseline"
+            if not isinstance(reservation, int):
+                if candidate.lane == "baseline":
+                    baseline_pending = True
+                    baseline_budget_only &= reservation == "budget"
                 spend.skipped += 1
-                findings.append(Finding(candidate=candidate, deferred=True))
+                findings.append(Finding(candidate=candidate, deferred=True, budget_deferred=reservation == "budget"))
                 continue
             # Reservation is committed before this call. Crashes cannot give its allowance back.
             tokens = getattr(judge, "tokens", None)
@@ -276,6 +282,8 @@ class Judging:
             if verdict is not None:
                 self.store.remember(candidate, verdict, source)
             else:
-                baseline_pending |= candidate.lane == "baseline"
+                if candidate.lane == "baseline":
+                    baseline_pending = True
+                    baseline_budget_only = False
             findings.append(Finding(candidate=candidate, verdict=verdict, deferred=verdict is None))
         return findings

@@ -47,6 +47,7 @@ class Finding(BaseModel):
     verdict: Verdict | None = None
     cached: bool = False
     deferred: bool = False
+    budget_deferred: bool = Field(default=False, description="No final verdict because the spending allowance ran out.")
     source_review: bool = False
     family: int = Field(default=1, description="How many look-alikes were proposed for the same changed function.")
     reported: bool = Field(default=False, description="Judged a duplicate at or above report_at.")
@@ -266,7 +267,7 @@ class Report(Versioned):
         marked = [
             f.model_copy(update={"related": duplicate_at(f, settings.report_at)}) if f.candidate.lane == "relative" else
             f.model_copy(update={"family": family[f.candidate.new.qualname], "reported": duplicate_at(f, settings.report_at),
-                                 "blocking": f.review_required or duplicate_at(f, max(settings.report_at, settings.fail_at))})
+                                 "blocking": (f.review_required and not f.budget_deferred) or duplicate_at(f, max(settings.report_at, settings.fail_at))})
             for f in findings
         ]  # fmt: skip
         order = sorted(
@@ -575,7 +576,7 @@ def markdown_lane(
         else ""
     )
     if report.review_required:
-        lead += " The coding agent must inspect these pairs, then refactor or record a justified pair-specific dismissal. Budget exhaustion is a review handoff; no extra judge budget is needed."
+        lead += " The coding agent must inspect these pairs, then refactor or record a justified pair-specific dismissal. Pairs deferred solely by the spending cap are advisory. No extra judge budget is needed."
     elif kind == "model":
         lead = "These are structural candidates, not confirmed duplicates. Inspect ownership and usage before deciding."
     actions = AUDIT_ACTIONS if audit else ACTIONS

@@ -113,7 +113,7 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(
     assert comment.read_text().startswith("<!-- dry-lint -->") and f"`{TWIN.split('::')[1]}`" in comment.read_text()
     assert "blocking" not in comment.read_text()
     written = json.loads(report.read_text())
-    assert written["schema"] == 12 and any(f["reported"] for f in written["findings"])
+    assert written["schema"] == 13 and any(f["reported"] for f in written["findings"])
 
 
 def test_without_a_judge_candidates_are_listed_and_never_fail(repo: Repo, tmp_path: Path, capsys) -> None:
@@ -482,14 +482,22 @@ def test_preset_and_budget_flags_shape_the_run(repo: Repo, tmp_path: Path, twin_
     assert capsys.readouterr().out.startswith("preset: jev - Jev on every pair")
 
 
+@pytest.mark.parametrize("with_baseline", [False, True])
 def test_exhausted_judging_routes_to_agent_feedback_without_more_paid_calls(
-    repo, tmp_path, monkeypatch, capsys
+    repo, tmp_path, monkeypatch, capsys, with_baseline
 ) -> None:
     repo.write(".dry-lint.toml", "[budget]\nusd = 0\n")
     monkeypatch.setenv("TYPESAFE_AI_API_KEY", "test")
     report_path = tmp_path / "report.json"
     args = ["--base", "main", "--judge", "jev", "--require-complete", "--report", str(report_path)]
-    assert run(repo, tmp_path, *args) == 1  # review task, not infrastructure exit 2
+    if with_baseline:
+        from dry_lint.baseline import Baseline, contract
+
+        settings = settings_for(repo.root, parser().parse_args(["check", *args]))
+        baseline = Baseline(contract=contract(settings), started_at="main", checked_at="main", entries=[])
+        repo.write(".dry-lint/baseline.json", baseline.model_dump_json())
+        args.extend(["--baseline", ".dry-lint/baseline.json"])
+    assert run(repo, tmp_path, *args) == 0
     assert "coding agent" in capsys.readouterr().out
     from dry_lint.report import Report
 

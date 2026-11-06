@@ -138,10 +138,10 @@ def prepare(report: Report, settings: Settings, args: argparse.Namespace) -> Rep
     # Preserve evidence on strict failures so CI can publish a failing check with the assessed head.
     if args.report:
         args.report.write_text(as_json(report) + "\n", encoding="utf-8")
-    # Reviewable budget gaps render as actionable findings (exit 1), not an operational error (exit 2).
+    # Read-only checks report budget gaps as warnings.
     # Baseline ratchets still require complete assessment before changing accepted debt.
-    if args.baseline or (args.require_complete and not report.review_required):
-        require_complete(report)
+    if args.baseline or args.require_complete:
+        require_complete(report, check=True, allow_review_tasks=not args.baseline)
     if args.baseline:
         if args.warn_only:
             raise ValueError("Baseline enforcement cannot be combined with --warn-only")
@@ -484,7 +484,8 @@ def judge_models(
         result.judge = result.judge or "source-review"
         for finding in result.findings:
             if finding.candidate.lane != "relative":
-                finding.source_review = finding.blocking = True
+                finding.source_review = True
+                finding.blocking = not finding.budget_deferred
                 finding.reported = False
     return result
 
