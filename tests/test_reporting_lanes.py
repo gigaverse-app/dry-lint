@@ -3,14 +3,15 @@
 import pytest
 from test_report import finding, report
 
-from dry_lint.baseline import Baseline
+from dry_lint.baseline import Baseline, Entry, contract
 from dry_lint.cli import main
 from dry_lint.commits import Journal, outcomes
 from dry_lint.costs import Spend
+from dry_lint.detector import Detector
 from dry_lint.ledger import PullLedger, Tally, render
 from dry_lint.model_review import combine, profile
 from dry_lint.models import Declaration
-from dry_lint.report import BacklogCleanup, JudgingSummary, as_markdown, as_text
+from dry_lint.report import BacklogCleanup, JudgingSummary, Report, as_markdown, as_text
 from dry_lint.settings import Settings
 
 from conftest import Repo
@@ -198,5 +199,49 @@ def test_model_ratchet_refreshes_readme_and_missing_readme_option_is_actionable(
         == 0
     )
     assert "| Models | 0 | 0 | 0 |" in (repo.root / "README.md").read_text()
+    assert "[Reviewed model debt](.dry-lint/models.json)" in (repo.root / "README.md").read_text()
     assert main(["progress", "--root", str(repo.root)]) == 2
     assert "progress requires --readme" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("staged", [True, False])
+def test_retiring_model_baseline_in_same_change_keeps_pr_cleanup_visible(tmp_path, monkeypatch, staged):
+    """A required baseline ratchet must not erase this PR's evidence of removed model debt."""
+    from conftest import clear_judge_credentials
+
+    clear_judge_credentials(monkeypatch)
+    repo = Repo(tmp_path / "retirement")
+    repo.write("old.py", "from pydantic import BaseModel\nclass Receipt(BaseModel):\n    url: str\n    size: int\n")
+    repo.write("copy.py", "from pydantic import BaseModel\nclass Payload(BaseModel):\n    url: str\n    size: int\n")
+    repo.write(".dry-lint.toml", '[models]\nbaseline = ".dry-lint/models.json"\n')
+    repo.commit()
+    settings = Settings.load(repo.root)
+    detector = Detector.for_repository(repo.root, profile(settings))
+    [pair] = detector.candidates(detector.functions)
+    debt = Baseline(
+        contract=contract(profile(settings)), started_at="adoption", checked_at="adoption", entries=[Entry.of(pair)]
+    )
+    repo.write(".dry-lint/models.json", debt.model_dump_json())
+    repo.commit()
+    repo.git("checkout", "-qb", "consolidate")
+    repo.git("rm", "copy.py")
+    args = ["--root", str(repo.root)]
+    assert main(["model-baseline", *args, "--update", "--staged"]) == 0
+    repo.git("add", ".dry-lint/models.json")
+    if not staged:
+        repo.commit()
+    path = tmp_path / "report.json"
+    check = ["check", *args, "--judge", "none", "--report", str(path)]
+    assert main([*check, *(["--staged"] if staged else ["--base", "main"])]) == 0
+    result = Report.model_validate_json(path.read_bytes())
+    assert result.model_debt == {"remaining": 0, "cleaned": 1, "dismissed": 0}
+    assert result.model_backlog == [
+        BacklogCleanup(new="copy.py::Payload", existing="old.py::Receipt", how="removed", kind="model")
+    ]
+    ledger = PullLedger().advance([result], run="1")
+    assert ledger.backlog_count("model") == 1 and ledger.backlog_count() == 0
+    # After the retirement is in the base, a later change must not claim it again.
+    if staged:
+        repo.commit()
+    assert main(["check", *args, "--base", "HEAD", "--judge", "none", "--report", str(path)]) == 0
+    assert Report.model_validate_json(path.read_bytes()).model_backlog == []
