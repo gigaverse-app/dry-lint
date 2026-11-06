@@ -1,0 +1,153 @@
+{
+  "backgrounds": [
+    {
+      "duplicate_source_ids": 122,
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "extraction_limitations": "T3 snapshot includes partial parse files and ambiguous competitors; selected endpoint files strictly parse and endpoint IDs are unique.",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "functions": 18892,
+      "max_df": 0.3,
+      "path": "backgrounds/t3code-6577c6b6185167c0e502fa01f9e8e8f2dee6ff25.json.gz",
+      "python_version": "3.14.4",
+      "repository": "pingdotgg/t3code",
+      "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+      "scope": {
+        "exclude": [
+          "*/node_modules/*",
+          "*/dist/*",
+          "*/build/*",
+          "*/generated/*",
+          "*/_generated/*",
+          "*/__generated__/*",
+          "*/fixtures/*",
+          "*/__fixtures__/*",
+          "*/snapshots/*",
+          "*/__snapshots__/*",
+          "*/tests/*",
+          "*/test/*",
+          "*/__tests__/*",
+          "*/spec/*",
+          "*/specs/*",
+          "*.test.ts",
+          "*.test.tsx",
+          "*.spec.ts",
+          "*.spec.tsx",
+          "*.test-d.ts",
+          "*.spec-d.ts",
+          "*.snap.ts",
+          "*.snap.tsx",
+          "*.gen.ts",
+          "*.gen.tsx",
+          "*.generated.ts",
+          "*.generated.tsx",
+          "*.d.ts"
+        ],
+        "include": [
+          "apps/*.ts",
+          "apps/*.tsx",
+          "packages/*.ts",
+          "packages/*.tsx"
+        ]
+      },
+      "sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a"
+    },
+    {
+      "duplicate_source_ids": 72,
+      "extraction_contract": "c0753877f06f8bea50666014c9f81cb14f36ea8480cc6f80ee622b59cabc9af2",
+      "extraction_limitations": "Frozen scoped supported-language extraction; not a consumer deployment replay.",
+      "extractors": [
+        {
+          "use": "python"
+        }
+      ],
+      "functions": 37604,
+      "max_df": 0.3,
+      "path": "backgrounds/litellm-fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f.json.gz",
+      "python_version": "3.14.4",
+      "repository": "BerriAI/litellm",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "*/test_*",
+          "*/migrations/*",
+          "*/generated/*",
+          "*/enterprise/*",
+          "*/_generated/*",
+          "litellm/proxy/common_utils/load_config_utils.py",
+          "litellm/secret_managers/google_secret_manager.py",
+          "litellm/proxy/common_utils/load_config_utils.py",
+          "litellm/secret_managers/google_secret_manager.py"
+        ],
+        "include": [
+          "litellm/*.py"
+        ]
+      },
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    {
+      "duplicate_source_ids": 138,
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "extraction_limitations": "Frozen scoped supported-language extraction; not a consumer deployment replay.",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "functions": 13893,
+      "max_df": 0.3,
+      "path": "backgrounds/opencode-cc996eece172fc69e35662657ea6cea9c2c7db88.json.gz",
+      "python_version": "3.14.4",
+      "repository": "anomalyco/opencode",
+      "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094"
+    },
+    {
+      "duplicate_source_ids": 1,
+      "extraction_contract": "2ec2bff3c4e54114753ac53a5336d0807c535d53fe7f6cd1f4ab20f91f851509",
+      "extraction_limitations": "Frozen scoped supported-language extraction; not a consumer deployment replay.",
+      "extractors": [
+        {
+          "use": "python"
+        },
+        {
+          "use": "typescript"
+        }
+      ],
+      "functions": 2348,
+      "max_df": 0.3,
+      "path": "backgrounds/software-agent-sdk-344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz",
+      "python_version": "3.14.4",
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842"
+    }
+  ],
+  "schema": 1
+}

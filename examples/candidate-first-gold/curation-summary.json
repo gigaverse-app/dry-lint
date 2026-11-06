@@ -1,0 +1,298 @@
+{
+  "before_after_pairs": 0,
+  "by_repository": {
+    "BerriAI/litellm": {
+      "duplicate": 5,
+      "separate": 5
+    },
+    "OpenHands/software-agent-sdk": {
+      "duplicate": 5,
+      "separate": 5
+    },
+    "anomalyco/opencode": {
+      "duplicate": 5,
+      "separate": 5
+    },
+    "pingdotgg/t3code": {
+      "duplicate": 5,
+      "separate": 6
+    }
+  },
+  "counts_not_population_rates": true,
+  "disputed": 3,
+  "labels": {
+    "duplicate": 20,
+    "separate": 21
+  },
+  "positive_family_count": 20,
+  "prior_exclusions": "Workers also checked prior E02 source/body pairs and previously accepted operation families; this is not proof of all transitive clones.",
+  "prior_package_pair_overlap": 0,
+  "rows": 41,
+  "schema": 1,
+  "source_checks": [
+    {
+      "background_checked": true,
+      "id": "C02",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "C03",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "C04",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "C05",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "T3-N01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "T3-X01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "T3-X02",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "T3-X03",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "T3-X04",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "T3-H01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C02",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C03",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C04",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C05",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C06",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C07",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C08",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OC01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OC02",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OC03",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OC04",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OC05",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OC06",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OC07",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OC08",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OCH01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH02",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH03",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH04",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH05",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH06",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH07",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH08",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH09",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OH10",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "T3-F01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "T3-F02",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C09",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C10",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "LL-C11",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OCX01",
+      "observations": 2,
+      "source_checked": true
+    },
+    {
+      "background_checked": true,
+      "id": "OCX02",
+      "observations": 2,
+      "source_checked": true
+    }
+  ]
+}

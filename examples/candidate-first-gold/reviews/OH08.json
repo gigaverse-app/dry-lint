@@ -1,0 +1,434 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.005696,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "3ff9571059d0a84aaef943b28de7a551464e557452945087b63872203cd5a790",
+      "prompt_sha256": "1e70ea10c856c60fcb3dbf664336a619026c5818d0cd0a232353a3bfb687501a",
+      "request_key": "edf5ec5df23fe902e9fe05eaa272c08ea1f08cfd2a3f228ad5a11d3d6944b1de",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 1803,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 1803,
+            "model": null,
+            "output_tokens": 209,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 209,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.12,
+        "second_opinion": null,
+        "why": "Both functions call os.killpg(os.getpgid(self.process.pid), <signal>), but this is only a one-line shared API pattern. close() runs a shutdown escalation: write exit, wait, SIGTERM, wait, SIGKILL, then close the FD, join the reader thread, and clear state. interrupt() sends one SIGINT, resets a command-running flag, and returns a bool. They have different signals, failure handling, and invariants. A helper that wraps the killpg call would be trivial and would not own a meaningful shared contract, so there is no actionable duplication."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00077992,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "77e07073b714c582d0cf15c8b3c544351e76485e8b5246c1220c242cf659b32e",
+      "prompt_sha256": "f111c49b0ba755244c4c8b128508d64553549d17b8b55a6d655ee428d3c00a54",
+      "request_key": "b69914da7178097fcc5a2ab0b826a8013f94e8c2597901e3ccdae79550716719",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 19498,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.17,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.1,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "balanced_hard_positive": false,
+    "bug": null,
+    "caller_proofs": [
+      {
+        "code": "\n    def close(self) -> None:\n        \"\"\"Clean up the terminal backend.\"\"\"\n        if self._closed:\n            return\n        self.terminal.close()\n        self._closed = True\n\n    def interrupt(self) -> bool:\n        \"\"\"Interrupt the currently running command (equivalent to Ctrl+C).\"\"\"\n        return self.terminal.interrupt()\n",
+        "end_line": 92,
+        "file_sha256": "5caa46d87cd3f854d3ac4494ba9500b10f11c878b812c7d4af518861497cd4c5",
+        "path": "openhands/tools/execute_bash/terminal/terminal_session.py",
+        "portable_source_file": "sources/5caa46d87cd3f854d3ac4494ba9500b10f11c878b812c7d4af518861497cd4c5.json.gz",
+        "purpose": "session delegates close and interrupt to terminal backend",
+        "snippet_sha256": "2f6fd6242bdd7fb3e1ab75cc2b49c4e08d13dbe49537b4d4be67daa1761007f5",
+        "start_line": 82,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/execute_bash/terminal/terminal_session.py#L82"
+      }
+    ],
+    "diagnostic_profiles": [
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "disagreement_preserved": false,
+    "exact_shared_or_contrasting_regions": [
+      {
+        "code": "                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)\n                        self.process.wait(timeout=1)\n                    except subprocess.TimeoutExpired:\n                        os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)\n",
+        "end_line": 155,
+        "file_sha256": "11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0",
+        "path": "openhands/tools/execute_bash/terminal/subprocess_terminal.py",
+        "portable_source_file": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz",
+        "purpose": "close TERM/KILL process-group calls",
+        "snippet_sha256": "4a92fc3104c8f522decdebfa7f6ad4fa1501a01530c102f3cfb126cc6b80146f",
+        "start_line": 152,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/execute_bash/terminal/subprocess_terminal.py#L152"
+      },
+      {
+        "code": "            os.killpg(os.getpgid(self.process.pid), signal.SIGINT)\n            self._current_command_running = False\n            return True\n",
+        "end_line": 393,
+        "file_sha256": "11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0",
+        "path": "openhands/tools/execute_bash/terminal/subprocess_terminal.py",
+        "portable_source_file": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz",
+        "purpose": "interrupt SIGINT process-group call and command flag reset",
+        "snippet_sha256": "dbf03b327c0c15cd9e77124f2318ab831ba46883ae7dfe5a619aee1520f4db4d",
+        "start_line": 391,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/execute_bash/terminal/subprocess_terminal.py#L391"
+      },
+      {
+        "code": "        finally:\n            # Reader thread stop: close master FD; thread exits on read error/EOF\n            try:\n                if self._pty_master_fd is not None:\n                    os.close(self._pty_master_fd)\n            except Exception:\n                pass\n            self._pty_master_fd = None\n\n            if self.reader_thread and self.reader_thread.is_alive():\n                self.reader_thread.join(timeout=1)\n\n            self.process = None\n            self._closed = True\n",
+        "end_line": 171,
+        "file_sha256": "11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0",
+        "path": "openhands/tools/execute_bash/terminal/subprocess_terminal.py",
+        "portable_source_file": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz",
+        "purpose": "close-only resource teardown",
+        "snippet_sha256": "496925329f6629af016cc39bb80ed57bf3c4827927a720235eba5f3444a645dc",
+        "start_line": 158,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/execute_bash/terminal/subprocess_terminal.py#L158"
+      }
+    ],
+    "id": "OH08",
+    "label": "separate",
+    "legitimate_variation": "Signals, waits, cleanup, return bool versus None, initialized/closed guards, and error handling differ; only os.killpg(getpgid(...), signal) is shared API shape.",
+    "license": {
+      "path": "LICENSE",
+      "sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+      "snapshot": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+      "spdx": "MIT"
+    },
+    "operation_contract": "Close terminal permanently via graceful shell exit, TERM/KILL escalation and descriptor/thread cleanup versus interrupt current command via SIGINT while preserving session resources.",
+    "provisional_family_id": "OH-terminal-close-interrupt",
+    "repository": "OpenHands/software-agent-sdk",
+    "reviewer_observations": [
+      {
+        "id": "OH08",
+        "path": {
+          "artifact_basename": "edf5ec5df23fe902e9fe05eaa272c08ea1f08cfd2a3f228ad5a11d3d6944b1de.json",
+          "original_artifact_sha256": "3ff9571059d0a84aaef943b28de7a551464e557452945087b63872203cd5a790"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.12,
+          "second_opinion": null,
+          "why": "Both functions call os.killpg(os.getpgid(self.process.pid), <signal>), but this is only a one-line shared API pattern. close() runs a shutdown escalation: write exit, wait, SIGTERM, wait, SIGKILL, then close the FD, join the reader thread, and clear state. interrupt() sends one SIGINT, resets a command-running flag, and returns a bool. They have different signals, failure handling, and invariants. A helper that wraps the killpg call would be trivial and would not own a meaningful shared contract, so there is no actionable duplication."
+        }
+      },
+      {
+        "id": "OH08",
+        "path": {
+          "artifact_basename": "b69914da7178097fcc5a2ab0b826a8013f94e8c2597901e3ccdae79550716719.json",
+          "original_artifact_sha256": "77e07073b714c582d0cf15c8b3c544351e76485e8b5246c1220c242cf659b32e"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.17,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.1,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_status": "centralized observations received; independent static source audit complete; coordinator acceptance pending",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "scope": "whole operations separate; small overlaps acknowledged",
+    "shared_owner_proof": "os.getpgid/killpg already own process-group signaling. Wrapping that one expression would not share the distinct lifecycle policies.",
+    "source_audit": {
+      "method": "Re-read Git objects at the exact pin, validate native extraction, match both full bodies/file hashes, inspect exact local helpers and live callers/imports; no execution of target code or further models.",
+      "observations_path": {
+        "artifact_basename": "openhands-observations.json",
+        "original_artifact_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b"
+      },
+      "observations_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b",
+      "source_verified": true
+    },
+    "source_audit_resolution": "Separate; no duplicate credit for opposite lifecycle operations.",
+    "source_proofs": [
+      {
+        "body_sha256": "616d8da777877ffb0f0b8ba4518a39aea665f8727434e6b4d060e410b9f6c3de",
+        "end_line": 171,
+        "file_sha256": "11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0",
+        "git_blob_sha1": "4f17e7545375536202734cea8ca492192645c948",
+        "line": 135,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/tools/execute_bash/terminal/subprocess_terminal.py",
+        "portable_source_file": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz",
+        "snapshot": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz",
+        "source_id": "openhands/tools/execute_bash/terminal/subprocess_terminal.py::SubprocessTerminal.close",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/execute_bash/terminal/subprocess_terminal.py#L135"
+      },
+      {
+        "body_sha256": "3fc2e4a1054185fb68b7a7fbe547040c0bffbb48fb73fa12fbebfc2b1fb69d79",
+        "end_line": 396,
+        "file_sha256": "11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0",
+        "git_blob_sha1": "4f17e7545375536202734cea8ca492192645c948",
+        "line": 385,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/tools/execute_bash/terminal/subprocess_terminal.py",
+        "portable_source_file": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz",
+        "snapshot": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz",
+        "source_id": "openhands/tools/execute_bash/terminal/subprocess_terminal.py::SubprocessTerminal.interrupt",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/tools/execute_bash/terminal/subprocess_terminal.py#L385"
+      }
+    ],
+    "status": "acceptance_proposal_not_gold",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "7dda862e0b6e38d08c9e8463c1fa338ec2cbbf00f4d5b8f494052590aae82ef9",
+  "source_closure": [
+    {
+      "file_sha256": "fab704d0d9ca2a8bbe3f24522d110d62a206097c8e899dcf458585c176c1b67a",
+      "git_blob_sha1": "615d3b6ef585b05a2f521352087782ffc6ffa474",
+      "path": "openhands/agent_server/bash_service.py",
+      "source_file": "sources/fab704d0d9ca2a8bbe3f24522d110d62a206097c8e899dcf458585c176c1b67a.json.gz"
+    },
+    {
+      "file_sha256": "d1d1547c0a2694aac8476aec460c93b5d90909467e56d2443cb10925f868756e",
+      "git_blob_sha1": "1167578bfb7756ec524c74de4d36ff868b306bf5",
+      "path": "openhands/agent_server/conversation_service.py",
+      "source_file": "sources/d1d1547c0a2694aac8476aec460c93b5d90909467e56d2443cb10925f868756e.json.gz"
+    },
+    {
+      "file_sha256": "e54e2ffb3e43f33843ac4d3b9c0503301e046cd81e6c12bddf78f1a468189ad4",
+      "git_blob_sha1": "d5704c3a92a12c616a4d232685a80474203f6341",
+      "path": "openhands/agent_server/event_service.py",
+      "source_file": "sources/e54e2ffb3e43f33843ac4d3b9c0503301e046cd81e6c12bddf78f1a468189ad4.json.gz"
+    },
+    {
+      "file_sha256": "c8f07ce16b9bec0daec145ac5bf82b6f1a265a629a5b21aea3a755354ce0d455",
+      "git_blob_sha1": "7d2be6abc70fbb9874d8ef616f772cecb386e367",
+      "path": "openhands/agent_server/pub_sub.py",
+      "source_file": "sources/c8f07ce16b9bec0daec145ac5bf82b6f1a265a629a5b21aea3a755354ce0d455.json.gz"
+    },
+    {
+      "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+      "git_blob_sha1": "d71399084874bc539a9af72b34dacc6b70ee42b6",
+      "path": "openhands/agent_server/sockets.py",
+      "source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz"
+    },
+    {
+      "file_sha256": "ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7",
+      "git_blob_sha1": "00d05f9e775dd56c07c49a1ffd61ca33c4effa65",
+      "path": "openhands/agent_server/vscode_service.py",
+      "source_file": "sources/ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7.json.gz"
+    },
+    {
+      "file_sha256": "8313a46cd570ba2bdc79f922097065e6cd71e53db71e39650126c66352676819",
+      "git_blob_sha1": "6bbb296631eadb3fc9bad1b72985375c31b042ee",
+      "path": "openhands/sdk/context/view.py",
+      "source_file": "sources/8313a46cd570ba2bdc79f922097065e6cd71e53db71e39650126c66352676819.json.gz"
+    },
+    {
+      "file_sha256": "c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18",
+      "git_blob_sha1": "e88c8101af7210551a8534826bbd347e8521f9dc",
+      "path": "openhands/sdk/conversation/base.py",
+      "source_file": "sources/c978b8309b06a76758136b76d7a8733a6bdad804fb08409d895f90220fff0e18.json.gz"
+    },
+    {
+      "file_sha256": "60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee",
+      "git_blob_sha1": "acf972d61fea0df96a5452abbf86ca3ab5f66cef",
+      "path": "openhands/sdk/conversation/impl/local_conversation.py",
+      "source_file": "sources/60f1ccc860e2a8e27cda91ae5e8f0142b22e9fa7b19e517bc82fd3a30e17d9ee.json.gz"
+    },
+    {
+      "file_sha256": "f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b",
+      "git_blob_sha1": "3779855067ca3457bb454bc28cfce9abd3c0cef9",
+      "path": "openhands/sdk/conversation/impl/remote_conversation.py",
+      "source_file": "sources/f496d26e2d5e71b923e2a25f93dfad20ad06edefb147839559b32ef35f5c2c7b.json.gz"
+    },
+    {
+      "file_sha256": "256488a16d96b84c046b45fb78941e34c1401a01721fd597f85449007d029e52",
+      "git_blob_sha1": "e8844d634a6048518047b1d6c9f9eec058a7e0a8",
+      "path": "openhands/sdk/conversation/stuck_detector.py",
+      "source_file": "sources/256488a16d96b84c046b45fb78941e34c1401a01721fd597f85449007d029e52.json.gz"
+    },
+    {
+      "file_sha256": "ca6c78d78f0021c21f84210b98216cbf24e1d5ab96611f12121a71bdc7549f42",
+      "git_blob_sha1": "1d33f0cb1203dd2572fc025934047bd402fa70cc",
+      "path": "openhands/sdk/llm/exceptions.py",
+      "source_file": "sources/ca6c78d78f0021c21f84210b98216cbf24e1d5ab96611f12121a71bdc7549f42.json.gz"
+    },
+    {
+      "file_sha256": "c84897bb41395fbc66a023928f46d9113e755cb137289bd83f6ae1f3c0a0b4f4",
+      "git_blob_sha1": "f0ea5210cc96d0492898ce7fd8e03d5cbaab1407",
+      "path": "openhands/sdk/mcp/client.py",
+      "source_file": "sources/c84897bb41395fbc66a023928f46d9113e755cb137289bd83f6ae1f3c0a0b4f4.json.gz"
+    },
+    {
+      "file_sha256": "57ec2dee88f8b0cf6a453735d646a6178663416f9b9f910775528af7cfd779db",
+      "git_blob_sha1": "5656e08e766ad2c2693062e331be3b9f6ab2c6ef",
+      "path": "openhands/sdk/sandbox/port_utils.py",
+      "source_file": "sources/57ec2dee88f8b0cf6a453735d646a6178663416f9b9f910775528af7cfd779db.json.gz"
+    },
+    {
+      "file_sha256": "0fd763dd619e81b189e03e1427ca1f0dccc57957c770833113154af5288567b8",
+      "git_blob_sha1": "52c5a60ad489a4dd6c6642aa14e416c49a91445b",
+      "path": "openhands/sdk/tool/tool.py",
+      "source_file": "sources/0fd763dd619e81b189e03e1427ca1f0dccc57957c770833113154af5288567b8.json.gz"
+    },
+    {
+      "file_sha256": "417d2ce18da46e62c5e223e1546b15423d7fa284bd5b72434ef2f2b4d949a1c4",
+      "git_blob_sha1": "b1a5b32a6bf016ebfc75ae422c61e44487b8cc22",
+      "path": "openhands/sdk/utils/async_executor.py",
+      "source_file": "sources/417d2ce18da46e62c5e223e1546b15423d7fa284bd5b72434ef2f2b4d949a1c4.json.gz"
+    },
+    {
+      "file_sha256": "f86d976d65db2e7e6e4837ab306d7fd5ae3c6106b0e422e61e841a9b71d7e4e6",
+      "git_blob_sha1": "7c0d05009f1910a246f91a8e6d89a9658c82e6d6",
+      "path": "openhands/tools/browser_use/__init__.py",
+      "source_file": "sources/f86d976d65db2e7e6e4837ab306d7fd5ae3c6106b0e422e61e841a9b71d7e4e6.json.gz"
+    },
+    {
+      "file_sha256": "b8361e40854b161a38afbec1416b74b46efe95a3062f9cc2d0c1fc9945614875",
+      "git_blob_sha1": "6c5e3c77188ca8a43f42134e17fe77c321898f7b",
+      "path": "openhands/tools/browser_use/definition.py",
+      "source_file": "sources/b8361e40854b161a38afbec1416b74b46efe95a3062f9cc2d0c1fc9945614875.json.gz"
+    },
+    {
+      "file_sha256": "064e3287daa2d05a4aa79d1b1c9532cd542bc26c48d380b8e2dc6f8b0668e759",
+      "git_blob_sha1": "2098e8b7e6486bfce26058cebb12e1f8ae36e383",
+      "path": "openhands/tools/browser_use/impl.py",
+      "source_file": "sources/064e3287daa2d05a4aa79d1b1c9532cd542bc26c48d380b8e2dc6f8b0668e759.json.gz"
+    },
+    {
+      "file_sha256": "232ee73740609d06759ddc62e61934d2deaa9f89a4b43735ceae413c43fd9433",
+      "git_blob_sha1": "261be8df47d42c87ca478247d10ce857368f7f38",
+      "path": "openhands/tools/execute_bash/constants.py",
+      "source_file": "sources/232ee73740609d06759ddc62e61934d2deaa9f89a4b43735ceae413c43fd9433.json.gz"
+    },
+    {
+      "file_sha256": "db7fe204eb8ed046b3bfdecf9e0b16f6d2b2addb1097156b2a0fee44096adc54",
+      "git_blob_sha1": "1e8ac7d6c5b7639f8d2b95afb96d8ad344a23770",
+      "path": "openhands/tools/execute_bash/definition.py",
+      "source_file": "sources/db7fe204eb8ed046b3bfdecf9e0b16f6d2b2addb1097156b2a0fee44096adc54.json.gz"
+    },
+    {
+      "file_sha256": "183e0f5208eec2a4fa4d4d5dca4b89c1a9cbf0955cebf4327adcec05e9090f4a",
+      "git_blob_sha1": "7b354f2901cfd3f93767f984937fcb2237054ca6",
+      "path": "openhands/tools/execute_bash/impl.py",
+      "source_file": "sources/183e0f5208eec2a4fa4d4d5dca4b89c1a9cbf0955cebf4327adcec05e9090f4a.json.gz"
+    },
+    {
+      "file_sha256": "a2ec647e08c905ccfa5887d578b93f829544fa1002da59057c70c451ca6d5a7e",
+      "git_blob_sha1": "abc3a57a91e0e582762f9f6fbcd7b50e4b8d1a8e",
+      "path": "openhands/tools/execute_bash/terminal/interface.py",
+      "source_file": "sources/a2ec647e08c905ccfa5887d578b93f829544fa1002da59057c70c451ca6d5a7e.json.gz"
+    },
+    {
+      "file_sha256": "11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0",
+      "git_blob_sha1": "4f17e7545375536202734cea8ca492192645c948",
+      "path": "openhands/tools/execute_bash/terminal/subprocess_terminal.py",
+      "source_file": "sources/11921f293f1955b78ae0f5ea2c39bb3df8abd882411e1919511afa659fdd15b0.json.gz"
+    },
+    {
+      "file_sha256": "5caa46d87cd3f854d3ac4494ba9500b10f11c878b812c7d4af518861497cd4c5",
+      "git_blob_sha1": "b6cc106d7508ec27c76d15753a5fa9aeac088bb3",
+      "path": "openhands/tools/execute_bash/terminal/terminal_session.py",
+      "source_file": "sources/5caa46d87cd3f854d3ac4494ba9500b10f11c878b812c7d4af518861497cd4c5.json.gz"
+    },
+    {
+      "file_sha256": "e86a440ca242839303ee192cd67a8779620153ff283e9a92ea07e350b8191cde",
+      "git_blob_sha1": "ecdc588355801ff8b0820465386f1816c895633a",
+      "path": "openhands/tools/execute_bash/terminal/tmux_terminal.py",
+      "source_file": "sources/e86a440ca242839303ee192cd67a8779620153ff283e9a92ea07e350b8191cde.json.gz"
+    }
+  ],
+  "source_only": true
+}

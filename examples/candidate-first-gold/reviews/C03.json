@@ -1,0 +1,357 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.000184,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "54622e05e6ca5bc7ad52afd8973f85503b805ef8648700900a2a022e662cf3b5",
+      "prompt_sha256": "5966db1b0125120acfb2d9e9a03b7dd88736f190a5da1c691d754bae479ce0df",
+      "request_key": "f52c20958e0aeeaea43b6e5e5644b9139ee832886f5721623f77c8d1391721a8",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 4600,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.59,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.21,
+        "second_opinion": null,
+        "why": "Platform SDK or provider boundaries should remain separate."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    },
+    {
+      "estimated_usd": 0.009524,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "c95a870a65663a14503a5a25feaf46a8764c4f098d8af1c0c5b5bddd2cddfcd8",
+      "prompt_sha256": "bba6c14b72db03b38c1f75685a57c07b70c1dda6b94d3a02ad4f59cf8f4a9e82",
+      "request_key": "6262310d9eae14994ec1f1e7218ce3a742bb26a0a2271de278856dc49f8465c9",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2757,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 2757,
+            "model": null,
+            "output_tokens": 401,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 401,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.72,
+        "second_opinion": null,
+        "why": "Both perform() methods repeat one sub-operation: safely install or remove a capture-helper executable. The shared steps are: lstat the parent directory, tolerate ENOENT, reject a non-directory or symlink, and check the target with regularFile. Removal then deletes the executable. Installation reads the bundle, throws if it is missing, creates the directory, makes an `.install-` temp dir, writes the bundle with mode 0o755, renames it into place, and removes the staging dir in `finally`. This could become a helper such as `installOrRemoveHelperExecutable({executable, bundle, action, messages})`. The call sites would keep their own error messages, the `wx` flag choice, and the other behavior. The KDE-specific desktop-entry marker check, the desktop-file staging, and the kbuildsycoca6/systemd-run cache refresh stay in KdeCaptureSetup. The overlap is only this executable lifecycle, not the whole KDE workflow. Small differences, such as Hyprland's `flag: 'wx'` and its ENOENT-tolerant `rm`, are parameterizable and do not conflict."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "acceptance_scope": "Coordinator source-supported proposal, portable packaging pending; no new external execution or claim of human gold. Exact enclosing function IDs retained for partial regions.",
+    "accepted_hard_positive": false,
+    "actual_callers": [
+      "DesktopSnapShot.ts lines 1451 and 1466 dispatch perform(action)",
+      "HyprlandSnapShot.ts line 173 auto-installs missing helper from capture path"
+    ],
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "async perform(action: \"install-hyprland-helper\" | \"remove-hyprland-helper\") {\n    const executable = hyprlandCaptureExecutable(this.paths);\n    const directory = NodePath.dirname(executable);\n    const stat = await NodeFSP.lstat(directory).catch((error: NodeJS.ErrnoException) => {\n      if (error.code !== \"ENOENT\") throw error;\n      return undefined;\n    });\n    if (stat && (!stat.isDirectory() || stat.isSymbolicLink()))\n      throw new Error(\"The capture helper directory must not be a link.\");\n    await regularFile(executable);\n    if (action === \"remove-hyprland-helper\") {\n      await NodeFSP.rm(executable, { force: true });\n      return;\n    }\n    const bundle = await regularFile(this.paths.bundle);\n    if (!bundle) throw new Error(\"The Hyprland capture helper is missing from this build.\");\n    await NodeFSP.mkdir(directory, { recursive: true });\n    const staging = await NodeFSP.mkdtemp(NodePath.join(directory, \".install-\"));\n    try {\n      const staged = NodePath.join(staging, HYPRLAND_CAPTURE_EXECUTABLE);\n      await NodeFSP.writeFile(staged, bundle, { mode: 0o755, flag: \"wx\" });\n      await NodeFSP.rename(staged, executable);\n    } finally {\n      await NodeFSP.rm(staging, { recursive: true, force: true });\n    }\n  }",
+        "context": "import * as NodeFSP from \"node:fs/promises\";\nimport * as NodePath from \"node:path\";\nexport const HYPRLAND_CAPTURE_EXECUTABLE = \"t3-hyprland-snap-shot\";\nexport type HyprlandCapturePaths = { readonly bundle: string; readonly dataHome: string };\nexport function hyprlandCaptureExecutable(paths: HyprlandCapturePaths) {\n  return NodePath.join(paths.dataHome, \"t3code\", \"hyprland-capture\", HYPRLAND_CAPTURE_EXECUTABLE);\n}\nasync function regularFile(path: string): Promise<Buffer | undefined> {\n  const stat = await NodeFSP.lstat(path).catch((error: NodeJS.ErrnoException) => {\n    if (error.code !== \"ENOENT\") throw error;\n    return undefined;\n  });\n  if (!stat) return undefined;\n  if (!stat.isFile() || stat.isSymbolicLink())\n    throw new Error(\"The capture helper must be a regular file, not a link.\");\n  return NodeFSP.readFile(path);\n}",
+        "context_digest": "4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9",
+        "declaration": null,
+        "end_line": 144,
+        "hash": "4624b031eae3c193",
+        "line": 119,
+        "name": "perform",
+        "origin": null,
+        "owner": "HyprlandCaptureSetup",
+        "path": "apps/desktop/src/snapShot/HyprlandSnapShot.ts",
+        "portable_source_file": "sources/4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "async perform(action: \"install-kde-helper\" | \"remove-kde-helper\") {\n    const { executable, desktop } = kdeCapturePaths(this.paths);\n    const entry = await regularFile(desktop);\n    if (entry && !entry.toString().split(\"\\n\").includes(MARKER))\n      throw new Error(\n        \"Another desktop entry uses the capture helper's name. Rename it before continuing.\",\n      );\n    const directory = NodePath.dirname(executable);\n    const existing = await NodeFSP.lstat(directory).catch((error: NodeJS.ErrnoException) => {\n      if (error.code !== \"ENOENT\") throw error;\n      return undefined;\n    });\n    if (existing && (!existing.isDirectory() || existing.isSymbolicLink()))\n      throw new Error(\"The capture helper directory is not a regular directory.\");\n    await regularFile(executable);\n    if (action === \"remove-kde-helper\") {\n      if (entry) await NodeFSP.unlink(desktop);\n      await NodeFSP.unlink(executable).catch((error: NodeJS.ErrnoException) => {\n        if (error.code !== \"ENOENT\") throw error;\n      });\n    } else {\n      const bundle = await regularFile(this.paths.bundle);\n      if (!bundle)\n        throw new Error(\n          \"The capture helper is missing from this build. Update or reinstall T3 Code.\",\n        );\n      await NodeFSP.mkdir(directory, { recursive: true });\n      await NodeFSP.mkdir(NodePath.dirname(desktop), { recursive: true });\n      const staging = await NodeFSP.mkdtemp(NodePath.join(directory, \".install-\"));\n      const stagedDesktop = `${desktop}.${NodeCrypto.randomUUID()}.tmp`;\n      try {\n        const staged = NodePath.join(staging, KDE_CAPTURE_EXECUTABLE);\n        await NodeFSP.writeFile(staged, bundle, { mode: 0o755 });\n        await NodeFSP.rename(staged, executable);\n        await NodeFSP.writeFile(stagedDesktop, kdeCaptureDesktopEntry(executable), {\n          mode: 0o644,\n          flag: \"wx\",\n        });\n        await NodeFSP.rename(stagedDesktop, desktop);\n      } finally {\n        await NodeFSP.rm(stagedDesktop, { force: true });\n        await NodeFSP.rm(staging, { recursive: true, force: true });\n      }\n    }\n    // KService must see the new desktop entry before KWin checks the executable.\n    await run(\"kbuildsycoca6\", [\"--noincremental\"]);\n    // AppImage search paths and locale affect KService caches; refresh in Plasma's session environment.\n    await run(\"systemd-run\", [\n      \"--user\",\n      \"--quiet\",\n      \"--wait\",\n      \"--collect\",\n      \"--pipe\",\n      \"--service-type=exec\",\n      \"kbuildsycoca6\",\n      \"--noincremental\",\n    ]).catch(() => undefined);\n  }",
+        "context": "// @effect-diagnostics nodeBuiltinImport:off -- KDE authorizes a dedicated, installed native executable.\nimport * as NodeCrypto from \"node:crypto\";\nimport * as NodeChildProcess from \"node:child_process\";\nimport * as NodeFSP from \"node:fs/promises\";\nimport * as NodePath from \"node:path\";\nimport { escapeDesktopEntryExecArgument } from \"../app/DesktopLinuxUrlHandler.ts\";\nexport const KDE_CAPTURE_EXECUTABLE = \"t3-kde-snap-shot\";\nconst DESKTOP_FILE = \"com.t3tools.T3Code.KdeCapture.desktop\";\nconst MARKER = \"X-T3Code-Capture-Helper=true\";\nexport type KdeCapturePaths = { readonly bundle: string; readonly dataHome: string };\nexport function kdeCapturePaths(paths: KdeCapturePaths) {\n  return {\n    executable: NodePath.join(paths.dataHome, \"t3code\", \"kde-capture\", KDE_CAPTURE_EXECUTABLE),\n    desktop: NodePath.join(paths.dataHome, \"applications\", DESKTOP_FILE),\n  };\n}\nfunction kdeCaptureDesktopEntry(executable: string): string {\n  return [\n    \"[Desktop Entry]\",\n    \"Type=Application\",\n    \"Name=T3 Code SnapShots\",\n    \"NoDisplay=true\",\n    `Exec=${escapeDesktopEntryExecArgument(executable)} check`,\n    // KService reads this custom property as a KConfig list, not an XDG ';' list.\n    \"X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2\",\n    MARKER,\n    \"\",\n  ].join(\"\\n\");\n}\nfunction run(executable: string, args: string[], signal?: AbortSignal): Promise<string> {\n  return new Promise((resolve, reject) => {\n    NodeChildProcess.execFile(\n      executable,\n      args,\n      {\n        timeout: 20_000,\n        maxBuffer: 128 * 1024,\n        encoding: \"utf8\",\n        ...(signal ? { signal } : {}),\n      },\n      (error, stdout, stderr) => {\n        if (!error) return resolve(stdout);\n        if (executable === \"kbuildsycoca6\") {\n          reject(\n            new Error(\n              \"KDE couldn't register the capture helper. Make sure KDE's service tools (kbuildsycoca6) are installed, then reinstall the helper.\",\n            ),\n          );\n          return;\n        }\n        if (stderr.includes(\"NoAuthorized\")) {\n          reject(\n            new Error(\n              \"KDE hasn't granted capture access. Reinstall the capture helper in setup, then try again.\",\n            ),\n          );\n        } else\n          reject(\n            new Error(\n              stderr.trim() ||\n                \"The KDE capture helper did not respond. Reopen capture setup and check access.\",\n            ),\n          );\n      },\n    );\n  });\n}\nasync function regularFile(path: string): Promise<Buffer | undefined> {\n  const stat = await NodeFSP.lstat(path).catch((error: NodeJS.ErrnoException) => {\n    if (error.code !== \"ENOENT\") throw error;\n    return undefined;\n  });\n  if (!stat) return undefined;\n  if (!stat.isFile() || stat.isSymbolicLink())\n    throw new Error(\n      \"Capture helper files must be regular files. Remove the conflicting link before trying again.\",\n    );\n  return NodeFSP.readFile(path);\n}",
+        "context_digest": "e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6",
+        "declaration": null,
+        "end_line": 196,
+        "hash": "9b7717a1c04c45d7",
+        "line": 139,
+        "name": "perform",
+        "origin": null,
+        "owner": "KdeCaptureSetup",
+        "path": "apps/desktop/src/snapShot/KdeSnapShot.ts",
+        "portable_source_file": "sources/e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.8271254862756006,
+      "similarity_reusable": false
+    },
+    "contract": "Install validated bundled executable using destination-local staging, executable mode, rename and finally cleanup after rejecting unsafe parent/target paths. Scope is installation only; removal is not required for this positive.",
+    "existing_shared_owner": "Each file has its own regularFile helper; neither owns the whole staged install. GnomeCaptureSetup.installGnomeCaptureBundle installs a metadata-validated directory with backup/rollback, not the executable operation, and is not called by these methods.",
+    "id": "C03",
+    "independent_frozen_source_conclusion": "Plausible narrow repeated operation: validate non-link directory and executable, load regular bundled executable, mkdir, mkdtemp under destination directory, write executable with mode 0755, rename into place, finally remove staging. Preserve KDE desktop entry ownership/atomic write/cache refresh, removal differences, and Hyprland exclusive write flag.",
+    "legitimate_variations": [
+      "KDE desktop entry marker/ownership, separate desktop-file atomic write and cache refresh remain KDE-owned.",
+      "KDE and Hyprland removal semantics remain separate.",
+      "Preserve exclusive-write flag choice, bundle/error wording, and capture-specific paths."
+    ],
+    "proposed_label": "duplicate",
+    "provisional_family_id": "t3-safe-capture-executable-install",
+    "repository": "pingdotgg/t3code",
+    "retrieval_profiles": [
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": null,
+          "floor": 0.5,
+          "retrieved": true,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": null,
+          "floor": 0.5,
+          "retrieved": true,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "review_observation_path": {
+      "artifact_basename": "t3-pilot-observations.json",
+      "original_artifact_sha256": "1c2318b7e6a1f78ef9e2f9e29b1514a39b842ed2a89042055ce537fd8b3cea06"
+    },
+    "review_observation_sha256": "1c2318b7e6a1f78ef9e2f9e29b1514a39b842ed2a89042055ce537fd8b3cea06",
+    "review_observations": [
+      {
+        "id": "C03",
+        "path": {
+          "artifact_basename": "f52c20958e0aeeaea43b6e5e5644b9139ee832886f5721623f77c8d1391721a8.json",
+          "original_artifact_sha256": "54622e05e6ca5bc7ad52afd8973f85503b805ef8648700900a2a022e662cf3b5"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.59,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.21,
+          "second_opinion": null,
+          "why": "Platform SDK or provider boundaries should remain separate."
+        }
+      },
+      {
+        "id": "C03",
+        "path": {
+          "artifact_basename": "6262310d9eae14994ec1f1e7218ce3a742bb26a0a2271de278856dc49f8465c9.json",
+          "original_artifact_sha256": "c95a870a65663a14503a5a25feaf46a8764c4f098d8af1c0c5b5bddd2cddfcd8"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.72,
+          "second_opinion": null,
+          "why": "Both perform() methods repeat one sub-operation: safely install or remove a capture-helper executable. The shared steps are: lstat the parent directory, tolerate ENOENT, reject a non-directory or symlink, and check the target with regularFile. Removal then deletes the executable. Installation reads the bundle, throws if it is missing, creates the directory, makes an `.install-` temp dir, writes the bundle with mode 0o755, renames it into place, and removes the staging dir in `finally`. This could become a helper such as `installOrRemoveHelperExecutable({executable, bundle, action, messages})`. The call sites would keep their own error messages, the `wx` flag choice, and the other behavior. The KDE-specific desktop-entry marker check, the desktop-file staging, and the kbuildsycoca6/systemd-run cache refresh stay in KdeCaptureSetup. The overlap is only this executable lifecycle, not the whole KDE workflow. Small differences, such as Hyprland's `flag: 'wx'` and its ENOENT-tolerant `rm`, are parameterizable and do not conflict."
+        }
+      }
+    ],
+    "reviewer_disagreements": "Jev labels separate (0.21) because platform SDK/provider boundaries should remain separate; Claude labels duplicate (0.72). Source supports a shared filesystem executable-install suboperation without merging KDE/Hyprland platform workflows. Preserve dissent; not model unanimity.",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "source_operation_regions": [
+      {
+        "code": "    const directory = NodePath.dirname(executable);\n    const existing = await NodeFSP.lstat(directory).catch((error: NodeJS.ErrnoException) => {\n      if (error.code !== \"ENOENT\") throw error;\n      return undefined;\n    });\n    if (existing && (!existing.isDirectory() || existing.isSymbolicLink()))\n      throw new Error(\"The capture helper directory is not a regular directory.\");\n    await regularFile(executable);",
+        "end_line": 153,
+        "portable_source_file": "sources/e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6.json.gz",
+        "scope": "Validate executable parent directory and target; per-platform messages retained",
+        "sha256": "4941d4eb54cf7fb09ce62d7f13be4ef58cf4e6abc6ddd96ac60ce9641f19b2ce",
+        "source_id": "apps/desktop/src/snapShot/KdeSnapShot.ts::KdeCaptureSetup.perform",
+        "start_line": 146
+      },
+      {
+        "code": "      const bundle = await regularFile(this.paths.bundle);\n      if (!bundle)\n        throw new Error(\n          \"The capture helper is missing from this build. Update or reinstall T3 Code.\",\n        );\n      await NodeFSP.mkdir(directory, { recursive: true });\n      await NodeFSP.mkdir(NodePath.dirname(desktop), { recursive: true });\n      const staging = await NodeFSP.mkdtemp(NodePath.join(directory, \".install-\"));",
+        "end_line": 167,
+        "portable_source_file": "sources/e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6.json.gz",
+        "scope": "Load regular bundle and allocate staging; KDE desktop-directory mkdir is caller policy inside this context span",
+        "sha256": "c2bfd78e73e63673c6dd046e48122ed30d5be302b32255061b5c8b96b80333ea",
+        "source_id": "apps/desktop/src/snapShot/KdeSnapShot.ts::KdeCaptureSetup.perform",
+        "start_line": 160
+      },
+      {
+        "code": "        const staged = NodePath.join(staging, KDE_CAPTURE_EXECUTABLE);\n        await NodeFSP.writeFile(staged, bundle, { mode: 0o755 });\n        await NodeFSP.rename(staged, executable);",
+        "end_line": 172,
+        "portable_source_file": "sources/e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6.json.gz",
+        "scope": "Stage executable bytes with mode 0755 then rename; Hyprland wx flag preserved",
+        "sha256": "3b1115973f3978b7efc55ce335debca01b8ee7379c60c2e10bea2069213ffc7e",
+        "source_id": "apps/desktop/src/snapShot/KdeSnapShot.ts::KdeCaptureSetup.perform",
+        "start_line": 170
+      },
+      {
+        "code": "        await NodeFSP.rm(staging, { recursive: true, force: true });",
+        "end_line": 180,
+        "portable_source_file": "sources/e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6.json.gz",
+        "scope": "Executable staging cleanup in finally",
+        "sha256": "c26e1e90c8c1586d1d5a353c05104928867c080e17e0e849b254a5125bd2b6ec",
+        "source_id": "apps/desktop/src/snapShot/KdeSnapShot.ts::KdeCaptureSetup.perform",
+        "start_line": 180
+      },
+      {
+        "code": "    const directory = NodePath.dirname(executable);\n    const stat = await NodeFSP.lstat(directory).catch((error: NodeJS.ErrnoException) => {\n      if (error.code !== \"ENOENT\") throw error;\n      return undefined;\n    });\n    if (stat && (!stat.isDirectory() || stat.isSymbolicLink()))\n      throw new Error(\"The capture helper directory must not be a link.\");\n    await regularFile(executable);",
+        "end_line": 128,
+        "portable_source_file": "sources/4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9.json.gz",
+        "scope": "Validate executable parent directory and target; per-platform messages retained",
+        "sha256": "2795128c97226400505ca30abf5efb5bd147d19b7739d30663ac70181e071db7",
+        "source_id": "apps/desktop/src/snapShot/HyprlandSnapShot.ts::HyprlandCaptureSetup.perform",
+        "start_line": 121
+      },
+      {
+        "code": "    const bundle = await regularFile(this.paths.bundle);\n    if (!bundle) throw new Error(\"The Hyprland capture helper is missing from this build.\");\n    await NodeFSP.mkdir(directory, { recursive: true });\n    const staging = await NodeFSP.mkdtemp(NodePath.join(directory, \".install-\"));",
+        "end_line": 136,
+        "portable_source_file": "sources/4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9.json.gz",
+        "scope": "Load regular bundle and allocate staging; KDE desktop-directory mkdir is caller policy inside this context span",
+        "sha256": "2def5fe59264094a8017e5bc8d5764ff164168ad6179f9ae56433c69079819f7",
+        "source_id": "apps/desktop/src/snapShot/HyprlandSnapShot.ts::HyprlandCaptureSetup.perform",
+        "start_line": 133
+      },
+      {
+        "code": "      const staged = NodePath.join(staging, HYPRLAND_CAPTURE_EXECUTABLE);\n      await NodeFSP.writeFile(staged, bundle, { mode: 0o755, flag: \"wx\" });\n      await NodeFSP.rename(staged, executable);",
+        "end_line": 140,
+        "portable_source_file": "sources/4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9.json.gz",
+        "scope": "Stage executable bytes with mode 0755 then rename; Hyprland wx flag preserved",
+        "sha256": "54fc46b331286ebb07af15ca171f8743e2031940bdb1c10acf9a1149e91c843f",
+        "source_id": "apps/desktop/src/snapShot/HyprlandSnapShot.ts::HyprlandCaptureSetup.perform",
+        "start_line": 138
+      },
+      {
+        "code": "      await NodeFSP.rm(staging, { recursive: true, force: true });",
+        "end_line": 142,
+        "portable_source_file": "sources/4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9.json.gz",
+        "scope": "Executable staging cleanup in finally",
+        "sha256": "13e0d86de6fa03d228fc9dc86f62d7080c25b9d3c70c19157432d5c189f3294f",
+        "source_id": "apps/desktop/src/snapShot/HyprlandSnapShot.ts::HyprlandCaptureSetup.perform",
+        "start_line": 142
+      }
+    ],
+    "source_proofs": [
+      {
+        "end_line": 196,
+        "file_sha256": "e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6",
+        "path": "apps/desktop/src/snapShot/KdeSnapShot.ts",
+        "portable_source_file": "sources/e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6.json.gz",
+        "snapshot": "sources/apps/desktop/src/snapShot/KdeSnapShot.ts",
+        "source_id": "apps/desktop/src/snapShot/KdeSnapShot.ts::KdeCaptureSetup.perform",
+        "source_sha256": "79270599dfcafc47aa64771359f428eb149a3525cca61a87271fa6a2a7f803f0",
+        "start_line": 139,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/desktop/src/snapShot/KdeSnapShot.ts#L139"
+      },
+      {
+        "end_line": 144,
+        "file_sha256": "4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9",
+        "path": "apps/desktop/src/snapShot/HyprlandSnapShot.ts",
+        "portable_source_file": "sources/4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9.json.gz",
+        "snapshot": "sources/apps/desktop/src/snapShot/HyprlandSnapShot.ts",
+        "source_id": "apps/desktop/src/snapShot/HyprlandSnapShot.ts::HyprlandCaptureSetup.perform",
+        "source_sha256": "71f03992ae4a297fabebc1481c52eca50a638f818684565f6387c8c0f72a0aaa",
+        "start_line": 119,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/desktop/src/snapShot/HyprlandSnapShot.ts#L119"
+      }
+    ],
+    "status": "coordinator_accepted_positive_pending_portable_package"
+  },
+  "source_adjudication_sha256": "133221c3b7eeaf0efd621b03913cc01eea9b2979bdcff639f93f2de3bcaf4256",
+  "source_closure": [
+    {
+      "file_sha256": "4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9",
+      "git_blob_sha1": "c40f397809d263a50b4a8c4efe054a8229a8745a",
+      "path": "apps/desktop/src/snapShot/HyprlandSnapShot.ts",
+      "source_file": "sources/4c606e36e620b606db72a7ffa0e176c94e2b985a1d45ed166881b3aa2766afe9.json.gz"
+    },
+    {
+      "file_sha256": "e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6",
+      "git_blob_sha1": "f141bd485d027fd3dcca9b5e0a7c0ed17db70dc6",
+      "path": "apps/desktop/src/snapShot/KdeSnapShot.ts",
+      "source_file": "sources/e083ec4a04b864f492c3c9336673ef52d6b961448fcfbc97d75e3cfb178cbca6.json.gz"
+    }
+  ],
+  "source_only": true
+}

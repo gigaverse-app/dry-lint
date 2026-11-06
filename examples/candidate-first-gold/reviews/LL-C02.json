@@ -1,0 +1,482 @@
+{
+  "coordinator_decision": {
+    "label": "borderline",
+    "rationale": "Unresolved ownership/actionability; excluded from accepted counts."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.00035944,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "e7af6bcb891e8d0443c7813d6f79e9b03198be1138e77568430be2c646bdc8ea",
+      "prompt_sha256": "4355d5690e0fef85993cff649b7e31db3812c46938b10230069d83f5af62d9dd",
+      "request_key": "29cee5b0231abc4d2a22a94ea1154e98ec7a51cdccf36e2c315c6c7211c25ea4",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 8986,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.75,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.28,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    },
+    {
+      "estimated_usd": 0.01792,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "81755aaa977cd5afe8a527b27215e971dd48b46ff281c2e0b5d81fc8d2c4867a",
+      "prompt_sha256": "0307f1c23464309c3c0037111169c5ea94d6533a3eab4acac73428a0a38174f0",
+      "request_key": "bf37e4b808ac49b932b117427a873620e77a9868e4a55fe638105f00023c3e70",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 5315,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 5315,
+            "model": null,
+            "output_tokens": 729,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 729,
+        "output_tokens_details": {
+          "thinking_tokens": 377
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.25,
+        "second_opinion": null,
+        "why": "Both functions branch on call_type to pick which request fields to estimate (Responses, embeddings, text completion, extraction, the Google GenAI translation), and both reuse the same helpers: _translate_google_genai_native_request, _extraction_input_text and split_embedding_input_tokens. Reusing those ingredients is not duplicated implementation, and the field selection itself is not a shared contract. NEW selects (messages, text, tools, tool_choice) for token_counter. It converts Responses input to chat messages, handles rerank, and strips audio and PDF content. EXISTING selects (messages, prompt, input) for a character-count heuristic. It trims Responses input at the newest compaction, splits out media, and derives an output-token budget, which NEW has no equivalent of. NEW also calls EXISTING as its fallback, so the cheap estimate is already centralized in one place. A unified selector would need many parameters to cover the legitimate differences, so I don't see a clear common operation worth extracting."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "active_positive_proposed": false,
+    "background_proof": {
+      "documents": 37604,
+      "path": {
+        "artifact_basename": "background.json.gz",
+        "original_artifact_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+      },
+      "scope": "scope.json",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [
+          "litellm/integrations/custom_logger::CustomLogger"
+        ],
+        "code": "    def _estimate_input_and_output_tokens(\n        self,\n        data: object,\n        min_configured_tpm_limit: int | None = None,\n        call_type: str | None = None,\n        configured_output_tokens: int | None = None,\n        include_media: bool = True,\n        team_id: str | None = None,\n        media_model_resolver: Callable[[str, str | None], tuple[str, ...]] | None = None,\n    ) -> tuple[int, int]:\n        \"\"\"\n        Estimate input tokens and output (max_tokens) budget separately, so\n        callers needing independent ITPM/OTPM reservations (rather than one\n        combined TPM reservation) can use each half on its own.\n\n        ``min_configured_tpm_limit`` is the smallest ``tokens_per_unit`` among\n        the TPM-bearing descriptors this request will be charged against. When\n        provided, the no-``max_tokens`` output-budget floor is capped at a\n        fraction of that limit so small TPM caps remain usable. Omit to\n        preserve the unconstrained floor.\n\n        ``call_type`` disambiguates embeddings from the Responses API: both\n        put their prompt in ``data[\"input\"]``, but only embeddings have no\n        output tokens. Unset (the default) preserves the historical\n        \"any `input` means zero output\" behavior for callers that don't have\n        a call type to pass.\n\n        ``configured_output_tokens`` is the operator-declared estimate resolved\n        from key or team metadata. When provided it replaces the heuristic\n        floor entirely, so the reservation reflects what this tenant's model\n        actually emits rather than one constant shared by every tenant.\n        \"\"\"\n        request_data: Final = as_str_mapping(data)\n        if not isinstance(data, dict) or request_data is None:\n            return 0, 0\n        request_model: Final = request_data.get(\"model\")\n        translated_data: Final = self._translate_google_genai_native_request(data, call_type)\n        estimable_data: Final = translated_data if translated_data is not None else request_data\n        selected_fields: Final[tuple[object | None, object | None, object | None]] = (\n            (None, None, estimable_data.get(\"input\"))\n            if call_type in RESPONSES_API_CALL_TYPES or call_type in EMBEDDING_API_CALL_TYPES\n            else (None, estimable_data.get(\"prompt\"), None)\n            if call_type in TEXT_COMPLETION_API_CALL_TYPES\n            else (None, self._extraction_input_text(_REQUEST_RATE_LIMIT_DATA.validate_python(estimable_data)), None)\n            if call_type in EXTRACTION_API_CALL_TYPES\n            else (estimable_data.get(\"messages\"), None, None)\n            if call_type\n            else (\n                estimable_data.get(\"messages\"),\n                estimable_data.get(\"prompt\"),\n                estimable_data.get(\"input\"),\n            )\n        )\n        messages, prompt, raw_input = selected_fields\n        original_input: Final = (\n            billable_input_since_newest_compaction(raw_input) if call_type in RESPONSES_API_CALL_TYPES else raw_input\n        )\n\n        media_source: Final = messages if messages is not None else original_input\n        is_embedding_call: Final = call_type in EMBEDDING_API_CALL_TYPES\n        projected, media = (\n            split_media_for_tpm(media_source)\n            if include_media and (isinstance(messages, list) or call_type in RESPONSES_API_CALL_TYPES)\n            else (original_input, ())\n        )\n        fallback_model: Final = request_model if isinstance(request_model, str) else None\n        resolved_models: Final = (\n            _media_models(media_model_resolver, fallback_model or \"\", team_id) if media else (fallback_model or \"\",)\n        )\n        embedding_text, embedding_media_tokens = (\n            split_embedding_input_tokens(\n                original_input,\n                lambda: _media_models(media_model_resolver, fallback_model or \"\", team_id),\n                fallback_model,\n            )\n            if include_media and is_embedding_call\n            else (original_input, 0)\n        )\n        input_text: Final = projected if call_type in RESPONSES_API_CALL_TYPES else embedding_text\n        media_tokens: Final = embedding_media_tokens + sum(\n            estimate_media_block_tokens(block, resolved_models, fallback_model) for block in media\n        )\n\n        total_chars: Final = (\n            len(get_str_from_messages(messages))\n            if isinstance(messages, list) and messages\n            else len(prompt)\n            if isinstance(prompt, str)\n            else sum(len(str(item)) for item in prompt)\n            if isinstance(prompt, list)\n            else len(input_text)\n            if isinstance(input_text, str)\n            else sum(len(str(item)) for item in input_text)\n            if isinstance(input_text, list)\n            else 0\n        )\n\n        estimated_input_tokens: Final = (\n            max(1, total_chars // DEFAULT_CHARS_PER_TOKEN) if total_chars > 0 else 0\n        ) + media_tokens\n\n        explicit_max_tokens: Final = self._get_explicit_output_cap(data, call_type)\n        generates_no_output: Final = (\n            self._is_embedding_request(data, call_type) or call_type in EXTRACTION_API_CALL_TYPES\n        )\n\n        base_output_floor: Final = self.no_max_tokens_output_floor(min_configured_tpm_limit)\n        output_floor: Final = (\n            max(base_output_floor, RESPONSES_API_MIN_OUTPUT_TOKENS)\n            if call_type in RESPONSES_API_CALL_TYPES\n            else base_output_floor\n        )\n        max_tokens_estimate: Final = (\n            0\n            if generates_no_output\n            or (explicit_max_tokens is None and estimated_input_tokens == 0 and configured_output_tokens is None)\n            else explicit_max_tokens\n            if explicit_max_tokens is not None\n            else configured_output_tokens\n            if configured_output_tokens is not None\n            else max(estimated_input_tokens, output_floor)\n        )\n\n        return estimated_input_tokens, max_tokens_estimate * self.get_output_candidate_count(data, call_type)",
+        "context": "{\"imports\": [\"import asyncio\", \"import itertools\", \"import json\", \"import logging\", \"import os\", \"import uuid\", \"from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping, Sequence, Set\", \"from contextlib import asynccontextmanager\", \"from contextvars import ContextVar\", \"from dataclasses import dataclass, field\", \"from datetime import datetime, timezone\", \"from types import MappingProxyType\", \"from typing import (\\n    TYPE_CHECKING,\\n    Any,\\n    Final,\\n    Literal,\\n    Protocol,\\n    TypeAlias,\\n    TypedDict,\\n)\", \"from fastapi import HTTPException\", \"from pydantic import TypeAdapter, ValidationError\", \"from starlette.status import HTTP_400_BAD_REQUEST, HTTP_503_SERVICE_UNAVAILABLE\", \"from typing_extensions import NotRequired, ReadOnly\", \"from litellm import DualCache\", \"from litellm._internal_context import with_service_target\", \"from litellm._logging import verbose_proxy_logger\", \"from litellm.caching.redis_batch import Batch\", \"from litellm.caching.redis_cache import log_redis_failure\", \"from litellm.constants import (\\n    DYNAMIC_RATE_LIMIT_ERROR_THRESHOLD_PER_MINUTE,\\n    INTERNAL_CALL_ORIGIN_METADATA_KEY,\\n    NO_MAX_TOKENS_TPM_RESERVATION_FRACTION,\\n    RESPONSES_WEBSOCKET_CALL_ID_METADATA_KEY,\\n)\", \"from litellm.cost_calculator import get_usage_object\", \"from litellm.exceptions import ServiceUnavailableError\", \"from litellm.integrations.custom_logger import CustomLogger\", \"from litellm.litellm_core_utils.add_retry_fallback_headers import (\\n    ensure_response_additional_headers,\\n    response_has_hidden_params,\\n)\", \"from litellm.litellm_core_utils.core_helpers import as_str_mapping\", \"from litellm.litellm_core_utils.model_latest_aliases import expand_model_latest_alias\", \"from litellm.litellm_core_utils.prompt_templates.common_utils import (\\n    get_str_from_messages,\\n)\", \"from litellm.litellm_core_utils.prompt_templates.tpm_media_utils import (\\n    split_media_for_tpm,\\n)\", \"from litellm.litellm_core_utils.ptu_pricing import is_ptu_cost_attribution_enabled\", \"from litellm.litellm_core_utils.ptu_shares import PTUTeamCeiling\", \"from litellm.litellm_core_utils.routing_common_utils import resolve_model_group_alias\", \"from litellm.litellm_core_utils.token_counter import (\\n    estimate_media_block_tokens,\\n    offload_token_count,\\n    split_embedding_input_tokens,\\n)\", \"from litellm.llms.azure.ptu_capacity import normalized_tokens\", \"from litellm.proxy._types import UserAPIKeyAuth\", \"from litellm.proxy.auth.auth_utils import (\\n    ESTIMATED_OUTPUT_TOKENS_FIELD,\\n    get_estimated_output_tokens,\\n    get_key_own_model_rate_limit,\\n    get_key_tag_rpm_limit,\\n    get_model_rate_limit_from_metadata,\\n)\", \"from litellm.proxy.auth.budget_throttle import throttled_limit\", \"from litellm.proxy.common_utils.callback_utils import get_model_group_from_litellm_kwargs\", \"from litellm.proxy.common_utils.http_parsing_utils import get_tags_from_request_body\", \"from litellm.proxy.common_utils.proxy_rate_limit_error import (\\n    ProxyRateLimitError,\\n    map_v3_rate_limit_type,\\n)\", \"from litellm.proxy.hooks.batch_enqueued_tokens import (\\n    BATCH_ENQUEUED_REFUND_STATUSES,\\n    BatchEnqueuedTokenReservation,\\n    BatchEnqueuedTokenStore,\\n    batch_response_view,\\n    canonical_provider_batch_id,\\n)\", \"from litellm.proxy.hooks.rate_limiter_utils import resolve_llm_provider_for_rate_limit, socket_session_usage\", \"from litellm.proxy.spend_tracking.input_tokens import (\\n    inline_pdf_file_count,\\n    models_counted_for,\\n    openai_chat_pdf_file_tokens,\\n)\", \"from litellm.redis.stores.connection import connect\", \"from litellm.redis.stores.rate_limits import (\\n    RATE_LIMITS_TARGET,\\n    AtomicApplied,\\n    AtomicCounter,\\n    AtomicOverLimit,\\n    AtomicReply,\\n    CounterIncrement,\\n    GaugeOverLimit,\\n    LocalValue,\\n    RateLimitCounter,\\n    RateLimitScope,\\n    RateLimitStore,\\n    WindowCount,\\n)\", \"from litellm.responses.litellm_completion_transformation.compaction_items import billable_input_since_newest_compaction\", \"from litellm.types.extraction import ExtractionResponse\", \"from litellm.types.llms.openai import BaseLiteLLMOpenAIResponseObject, ResponseAPIUsage\", \"from litellm.types.mcp_server.mcp_server_manager import MCPServer\", \"from litellm.types.passthrough_endpoints.pass_through_endpoints import EndpointType\", \"from litellm.types.utils import (\\n    CallTypes,\\n    EmbeddingResponse,\\n    ModelResponse,\\n    RerankResponse,\\n    TextCompletionResponse,\\n    Usage,\\n)\"], \"possible_callers\": [{\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_tokens_for_request\", \"line\": 956, \"body_sha256\": \"729f42a75693076b9c76482b21a4f353471956b3b8faf9265546f3b0cfc334ae\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_ptu_tokens_for_request\", \"line\": 1004, \"body_sha256\": \"a11131e5ed83bb3a8a8d0b0260c0870a8355d6dfb78fa6f5af16d1d3685ab24a\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_precise_input_tokens\", \"line\": 3454, \"body_sha256\": \"6c82e0f5c405288e8d901e52f2cf5a13653dd2611663105cde08d3ce0bc04e19\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._reserve_project_io_tokens_or_raise\", \"line\": 3565, \"body_sha256\": \"7f0bb854a0cf94d71ca95e7c0be785f1372a9353c1c41fbd6fcb4be6757b7442\"}], \"local_helper_owners\": [{\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._translate_google_genai_native_request\", \"line\": 814, \"end_line\": 837, \"body_sha256\": \"5facb953971d0be0e64a74d9076cc0c289549c491b739d8eeeb603aed327e7fa\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._extraction_input_text\", \"line\": 3450, \"end_line\": 3452, \"body_sha256\": \"af3b85c89847cbb875cb8ce67593e7e69b4edd20459b2f15ceee187138be62cb\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_media_models\", \"line\": 173, \"end_line\": 176, \"body_sha256\": \"800a0ac20df8e1d74553447ccd3a3fb11b7e159f51a6717cd0052fca144fca78\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_media_models\", \"line\": 173, \"end_line\": 176, \"body_sha256\": \"800a0ac20df8e1d74553447ccd3a3fb11b7e159f51a6717cd0052fca144fca78\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._get_explicit_output_cap\", \"line\": 840, \"end_line\": 868, \"body_sha256\": \"478309e9b34fc3062683f699eeb5bb378aea3830945d0d1e5f46dee36157320c\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._is_embedding_request\", \"line\": 802, \"end_line\": 811, \"body_sha256\": \"8be7f60b40408c6377219bb1e44a4f49b5283f83442d708a91e9d8b5e0b684fc\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3.no_max_tokens_output_floor\", \"line\": 787, \"end_line\": 799, \"body_sha256\": \"94e88e2edd780192f097777624c895b7cc4ec4f6e0f9ed1cf075ceb29efd557d\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3.get_output_candidate_count\", \"line\": 880, \"end_line\": 900, \"body_sha256\": \"e9630a472a211553fc9354ff330177b364f05135c92a830700d0aa36d32f9796\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.py\"}",
+        "context_digest": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+        "declaration": null,
+        "end_line": 1154,
+        "hash": "",
+        "line": 1031,
+        "name": "_estimate_input_and_output_tokens",
+        "origin": null,
+        "owner": "_PROXY_MaxParallelRequestsHandler_v3",
+        "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [
+          "litellm/integrations/custom_logger::CustomLogger"
+        ],
+        "code": "    def _estimate_precise_input_tokens(\n        self, data: object, model: str | None, call_type: str | None = None, team_id: str | None = None\n    ) -> int:\n        \"\"\"\n        Model-aware input token estimate for the project ITPM reservation,\n        using ``litellm.token_counter`` -- the same approach the\n        deployment-level itpm/otpm check uses in\n        ``io_token_rate_limit_check.py``. Unlike the cheap char-count\n        estimate the combined-TPM path uses, this accounts for image/tool\n        content and derives per-``input_audio``-block estimates from the\n        base64 payload size (assuming the lowest reasonable bitrate so\n        longer recordings always reserve proportionally more), so a burst\n        of multimodal, tool-heavy, or audio-heavy requests can't each\n        reserve only the one-token floor and blow past ITPM before\n        post-call reconciliation catches up.\n\n        For the Responses API, ``input`` is converted to chat messages first\n        (via ``_responses_input_to_chat_messages``) so its own multimodal\n        content blocks are counted the same way; ``token_counter``'s ``text``\n        argument can only see plain strings in a list, not content blocks.\n\n        Falls back to the cheap char-count estimate if ``token_counter``\n        can't resolve a tokenizer for this model (e.g. an unrecognized\n        custom model name) or otherwise raises -- the audio add-on still\n        applies on top of the fallback.\n        \"\"\"\n        from litellm import token_counter\n\n        if not isinstance(data, dict):\n            return 0\n        is_responses_request: Final = call_type in RESPONSES_API_CALL_TYPES\n        translated_request: Final = (\n            None if is_responses_request else self._translate_google_genai_native_request(data, call_type)\n        )\n        is_embedding_request: Final = self._is_embedding_request(data, call_type)\n        request: Final = as_str_mapping(data)\n        raw_embedding_input: Final = request.get(\"input\") if is_embedding_request and request is not None else None\n        pretokenized_input_tokens: Final = (\n            self._count_pretokenized_embedding_input(raw_embedding_input) if is_embedding_request else None\n        )\n        if pretokenized_input_tokens is not None:\n            return pretokenized_input_tokens\n        embedding_text, embedding_media_tokens = (\n            split_embedding_input_tokens(\n                raw_embedding_input, lambda: self._media_model_resolver(model or \"\", team_id), model\n            )\n            if is_embedding_request\n            else (None, 0)\n        )\n\n        prompt: Final = data.get(\"prompt\")\n        fallback_text: Final = prompt if prompt is not None else data.get(\"input\")\n        selected_inputs: Final[tuple[object | None, object | None, object | None, object | None]] = (\n            (self._responses_input_to_chat_messages(data), None, data.get(\"tools\"), data.get(\"tool_choice\"))\n            if is_responses_request\n            else (\n                translated_request.get(\"messages\"),\n                None,\n                translated_request.get(\"tools\"),\n                translated_request.get(\"tool_choice\"),\n            )\n            if translated_request is not None\n            else (None, embedding_text, data.get(\"tools\"), data.get(\"tool_choice\"))\n            if is_embedding_request\n            else (None, self._rerank_input_to_text(data), data.get(\"tools\"), data.get(\"tool_choice\"))\n            if call_type in RERANK_API_CALL_TYPES\n            else (None, prompt, data.get(\"tools\"), data.get(\"tool_choice\"))\n            if call_type in TEXT_COMPLETION_API_CALL_TYPES\n            else (None, self._extraction_input_text(_REQUEST_RATE_LIMIT_DATA.validate_python(data)), None, None)\n            if call_type in EXTRACTION_API_CALL_TYPES\n            else (data.get(\"messages\"), fallback_text, data.get(\"tools\"), data.get(\"tool_choice\"))\n        )\n        messages, selected_text, countable_tools, countable_tool_choice = selected_inputs\n\n        audio_token_estimate: Final = self._estimate_audio_content_tokens(messages)\n        countable_messages: Final = self._strip_audio_content_blocks(messages) if audio_token_estimate > 0 else messages\n        chat_pdf_files: Final = (\n            inline_pdf_file_count(countable_messages) if call_type in CHAT_COMPLETION_API_CALL_TYPES else 0\n        )\n\n        try:\n            estimate: Final = max(\n                0,\n                *(\n                    int(\n                        token_counter(\n                            model=tokenizer_model,\n                            messages=countable_messages,\n                            text=selected_text,\n                            tools=countable_tools,\n                            tool_choice=countable_tool_choice,\n                            use_default_image_token_count=True,\n                        )\n                    )\n                    + openai_chat_pdf_file_tokens(tokenizer_model, chat_pdf_files)\n                    for tokenizer_model in (self._counted_models_resolver(model, team_id) if model else (\"\",))\n                ),\n            )\n            return estimate + audio_token_estimate + embedding_media_tokens\n        except Exception:  # noqa: BLE001  # tokenizer failures degrade to the cheap estimate\n            if call_type in RERANK_API_CALL_TYPES and isinstance(selected_text, str):\n                return max(0, len(selected_text) // DEFAULT_CHARS_PER_TOKEN)\n            estimated_input_tokens, _ = self._estimate_input_and_output_tokens(\n                data=data,\n                call_type=call_type,\n                include_media=is_embedding_request,\n                team_id=team_id,\n                media_model_resolver=self._media_model_resolver,\n            )\n            return estimated_input_tokens + audio_token_estimate",
+        "context": "{\"imports\": [\"import asyncio\", \"import itertools\", \"import json\", \"import logging\", \"import os\", \"import uuid\", \"from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping, Sequence, Set\", \"from contextlib import asynccontextmanager\", \"from contextvars import ContextVar\", \"from dataclasses import dataclass, field\", \"from datetime import datetime, timezone\", \"from types import MappingProxyType\", \"from typing import (\\n    TYPE_CHECKING,\\n    Any,\\n    Final,\\n    Literal,\\n    Protocol,\\n    TypeAlias,\\n    TypedDict,\\n)\", \"from fastapi import HTTPException\", \"from pydantic import TypeAdapter, ValidationError\", \"from starlette.status import HTTP_400_BAD_REQUEST, HTTP_503_SERVICE_UNAVAILABLE\", \"from typing_extensions import NotRequired, ReadOnly\", \"from litellm import DualCache\", \"from litellm._internal_context import with_service_target\", \"from litellm._logging import verbose_proxy_logger\", \"from litellm.caching.redis_batch import Batch\", \"from litellm.caching.redis_cache import log_redis_failure\", \"from litellm.constants import (\\n    DYNAMIC_RATE_LIMIT_ERROR_THRESHOLD_PER_MINUTE,\\n    INTERNAL_CALL_ORIGIN_METADATA_KEY,\\n    NO_MAX_TOKENS_TPM_RESERVATION_FRACTION,\\n    RESPONSES_WEBSOCKET_CALL_ID_METADATA_KEY,\\n)\", \"from litellm.cost_calculator import get_usage_object\", \"from litellm.exceptions import ServiceUnavailableError\", \"from litellm.integrations.custom_logger import CustomLogger\", \"from litellm.litellm_core_utils.add_retry_fallback_headers import (\\n    ensure_response_additional_headers,\\n    response_has_hidden_params,\\n)\", \"from litellm.litellm_core_utils.core_helpers import as_str_mapping\", \"from litellm.litellm_core_utils.model_latest_aliases import expand_model_latest_alias\", \"from litellm.litellm_core_utils.prompt_templates.common_utils import (\\n    get_str_from_messages,\\n)\", \"from litellm.litellm_core_utils.prompt_templates.tpm_media_utils import (\\n    split_media_for_tpm,\\n)\", \"from litellm.litellm_core_utils.ptu_pricing import is_ptu_cost_attribution_enabled\", \"from litellm.litellm_core_utils.ptu_shares import PTUTeamCeiling\", \"from litellm.litellm_core_utils.routing_common_utils import resolve_model_group_alias\", \"from litellm.litellm_core_utils.token_counter import (\\n    estimate_media_block_tokens,\\n    offload_token_count,\\n    split_embedding_input_tokens,\\n)\", \"from litellm.llms.azure.ptu_capacity import normalized_tokens\", \"from litellm.proxy._types import UserAPIKeyAuth\", \"from litellm.proxy.auth.auth_utils import (\\n    ESTIMATED_OUTPUT_TOKENS_FIELD,\\n    get_estimated_output_tokens,\\n    get_key_own_model_rate_limit,\\n    get_key_tag_rpm_limit,\\n    get_model_rate_limit_from_metadata,\\n)\", \"from litellm.proxy.auth.budget_throttle import throttled_limit\", \"from litellm.proxy.common_utils.callback_utils import get_model_group_from_litellm_kwargs\", \"from litellm.proxy.common_utils.http_parsing_utils import get_tags_from_request_body\", \"from litellm.proxy.common_utils.proxy_rate_limit_error import (\\n    ProxyRateLimitError,\\n    map_v3_rate_limit_type,\\n)\", \"from litellm.proxy.hooks.batch_enqueued_tokens import (\\n    BATCH_ENQUEUED_REFUND_STATUSES,\\n    BatchEnqueuedTokenReservation,\\n    BatchEnqueuedTokenStore,\\n    batch_response_view,\\n    canonical_provider_batch_id,\\n)\", \"from litellm.proxy.hooks.rate_limiter_utils import resolve_llm_provider_for_rate_limit, socket_session_usage\", \"from litellm.proxy.spend_tracking.input_tokens import (\\n    inline_pdf_file_count,\\n    models_counted_for,\\n    openai_chat_pdf_file_tokens,\\n)\", \"from litellm.redis.stores.connection import connect\", \"from litellm.redis.stores.rate_limits import (\\n    RATE_LIMITS_TARGET,\\n    AtomicApplied,\\n    AtomicCounter,\\n    AtomicOverLimit,\\n    AtomicReply,\\n    CounterIncrement,\\n    GaugeOverLimit,\\n    LocalValue,\\n    RateLimitCounter,\\n    RateLimitScope,\\n    RateLimitStore,\\n    WindowCount,\\n)\", \"from litellm.responses.litellm_completion_transformation.compaction_items import billable_input_since_newest_compaction\", \"from litellm.types.extraction import ExtractionResponse\", \"from litellm.types.llms.openai import BaseLiteLLMOpenAIResponseObject, ResponseAPIUsage\", \"from litellm.types.mcp_server.mcp_server_manager import MCPServer\", \"from litellm.types.passthrough_endpoints.pass_through_endpoints import EndpointType\", \"from litellm.types.utils import (\\n    CallTypes,\\n    EmbeddingResponse,\\n    ModelResponse,\\n    RerankResponse,\\n    TextCompletionResponse,\\n    Usage,\\n)\"], \"possible_callers\": [], \"local_helper_owners\": [{\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._translate_google_genai_native_request\", \"line\": 814, \"end_line\": 837, \"body_sha256\": \"5facb953971d0be0e64a74d9076cc0c289549c491b739d8eeeb603aed327e7fa\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._is_embedding_request\", \"line\": 802, \"end_line\": 811, \"body_sha256\": \"8be7f60b40408c6377219bb1e44a4f49b5283f83442d708a91e9d8b5e0b684fc\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._count_pretokenized_embedding_input\", \"line\": 3424, \"end_line\": 3433, \"body_sha256\": \"096b8f48c24456df79cb50e75ff933317bcb0a0cc48535eeee79f4fbd9ba605f\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._responses_input_to_chat_messages\", \"line\": 3402, \"end_line\": 3421, \"body_sha256\": \"b11099044ae81ba5824962e71bdc6ea2fec79afb300c79ecec7355d3dd5f500c\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._rerank_input_to_text\", \"line\": 3436, \"end_line\": 3447, \"body_sha256\": \"b3174546ada33743838e7a19697010e400f540fdbcbb3a7564156473ff976b56\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._extraction_input_text\", \"line\": 3450, \"end_line\": 3452, \"body_sha256\": \"af3b85c89847cbb875cb8ce67593e7e69b4edd20459b2f15ceee187138be62cb\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_audio_content_tokens\", \"line\": 3356, \"end_line\": 3372, \"body_sha256\": \"7e86bb6023ead5080a1a8ff8aa337bf9705905191e3a29c076e2d11d3b13824b\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._strip_audio_content_blocks\", \"line\": 3375, \"end_line\": 3399, \"body_sha256\": \"82477f5be8f6b5f10f0d48527647907fc461670508d57d4362072e372e67521f\"}, {\"id\": \"litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_input_and_output_tokens\", \"line\": 1031, \"end_line\": 1154, \"body_sha256\": \"cf3e34617e22495bfd230bd913d48494679f637894dc264511facde79fe03fa0\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.py\"}",
+        "context_digest": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+        "declaration": null,
+        "end_line": 3563,
+        "hash": "",
+        "line": 3454,
+        "name": "_estimate_precise_input_tokens",
+        "origin": null,
+        "owner": "_PROXY_MaxParallelRequestsHandler_v3",
+        "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.4947129824482915,
+      "similarity_reusable": false
+    },
+    "classification": "borderline",
+    "confidence": "not eligible as active positive",
+    "diagnostic_profiles": [
+      {
+        "cross_file_rank": null,
+        "first_retrieval_loss": "floor",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "retained_before_other_rules",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "floor",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_precise_input_tokens",
+        "query_lines": 110,
+        "query_token_count": 379,
+        "raw_rank": 1,
+        "score": 0.4947129824482914,
+        "target": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_input_and_output_tokens"
+      },
+      {
+        "cross_file_rank": null,
+        "first_retrieval_loss": "floor",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "retained_before_other_rules",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "floor",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_input_and_output_tokens",
+        "query_lines": 124,
+        "query_token_count": 440,
+        "raw_rank": 1,
+        "score": 0.4947129824482915,
+        "target": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_precise_input_tokens"
+      }
+    ],
+    "endpoints": [
+      {
+        "body_sha256": "6c82e0f5c405288e8d901e52f2cf5a13653dd2611663105cde08d3ce0bc04e19",
+        "function_end": 3563,
+        "function_start": 3454,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+            "code": "\n        if not isinstance(data, dict):\n            return 0\n        is_responses_request: Final = call_type in RESPONSES_API_CALL_TYPES\n        translated_request: Final = (\n            None if is_responses_request else self._translate_google_genai_native_request(data, call_type)\n        )\n        is_embedding_request: Final = self._is_embedding_request(data, call_type)\n        request: Final = as_str_mapping(data)\n        raw_embedding_input: Final = request.get(\"input\") if is_embedding_request and request is not None else None\n        pretokenized_input_tokens: Final = (\n            self._count_pretokenized_embedding_input(raw_embedding_input) if is_embedding_request else None\n        )\n        if pretokenized_input_tokens is not None:\n            return pretokenized_input_tokens\n        embedding_text, embedding_media_tokens = (\n            split_embedding_input_tokens(\n                raw_embedding_input, lambda: self._media_model_resolver(model or \"\", team_id), model\n            )\n            if is_embedding_request\n            else (None, 0)\n        )\n\n        prompt: Final = data.get(\"prompt\")\n        fallback_text: Final = prompt if prompt is not None else data.get(\"input\")\n        selected_inputs: Final[tuple[object | None, object | None, object | None, object | None]] = (\n            (self._responses_input_to_chat_messages(data), None, data.get(\"tools\"), data.get(\"tool_choice\"))\n            if is_responses_request\n            else (\n                translated_request.get(\"messages\"),\n                None,\n                translated_request.get(\"tools\"),\n                translated_request.get(\"tool_choice\"),\n            )\n            if translated_request is not None\n            else (None, embedding_text, data.get(\"tools\"), data.get(\"tool_choice\"))\n            if is_embedding_request\n            else (None, self._rerank_input_to_text(data), data.get(\"tools\"), data.get(\"tool_choice\"))\n            if call_type in RERANK_API_CALL_TYPES\n            else (None, prompt, data.get(\"tools\"), data.get(\"tool_choice\"))\n            if call_type in TEXT_COMPLETION_API_CALL_TYPES\n            else (None, self._extraction_input_text(_REQUEST_RATE_LIMIT_DATA.validate_python(data)), None, None)\n            if call_type in EXTRACTION_API_CALL_TYPES\n            else (data.get(\"messages\"), fallback_text, data.get(\"tools\"), data.get(\"tool_choice\"))\n        )\n        messages, selected_text, countable_tools, countable_tool_choice = selected_inputs\n",
+            "end_line": 3527,
+            "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+            "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+            "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+            "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+            "region_sha256": "02be3e13ed05c76f688713ffe23336297831a7b60d03a619e85d9676f72394f9",
+            "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+            "source_id": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_precise_input_tokens",
+            "start_line": 3481
+          },
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+            "code": "        except Exception:  # noqa: BLE001  # tokenizer failures degrade to the cheap estimate\n            if call_type in RERANK_API_CALL_TYPES and isinstance(selected_text, str):\n                return max(0, len(selected_text) // DEFAULT_CHARS_PER_TOKEN)\n            estimated_input_tokens, _ = self._estimate_input_and_output_tokens(\n                data=data,\n                call_type=call_type,\n                include_media=is_embedding_request,\n                team_id=team_id,\n                media_model_resolver=self._media_model_resolver,\n            )\n            return estimated_input_tokens + audio_token_estimate",
+            "end_line": 3563,
+            "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+            "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+            "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+            "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+            "region_sha256": "3617675429c91dac8e901e545557c92158605fb348506a2147946d194a26e223",
+            "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+            "source_id": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_precise_input_tokens",
+            "start_line": 3553
+          }
+        ],
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "source_id": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_precise_input_tokens",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+          "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+          "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+          "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+          "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+          "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz"
+        }
+      },
+      {
+        "body_sha256": "cf3e34617e22495bfd230bd913d48494679f637894dc264511facde79fe03fa0",
+        "function_end": 1154,
+        "function_start": 1031,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+            "code": "        \"\"\"\n        request_data: Final = as_str_mapping(data)\n        if not isinstance(data, dict) or request_data is None:\n            return 0, 0\n        request_model: Final = request_data.get(\"model\")\n        translated_data: Final = self._translate_google_genai_native_request(data, call_type)\n        estimable_data: Final = translated_data if translated_data is not None else request_data\n        selected_fields: Final[tuple[object | None, object | None, object | None]] = (\n            (None, None, estimable_data.get(\"input\"))\n            if call_type in RESPONSES_API_CALL_TYPES or call_type in EMBEDDING_API_CALL_TYPES\n            else (None, estimable_data.get(\"prompt\"), None)\n            if call_type in TEXT_COMPLETION_API_CALL_TYPES\n            else (None, self._extraction_input_text(_REQUEST_RATE_LIMIT_DATA.validate_python(estimable_data)), None)\n            if call_type in EXTRACTION_API_CALL_TYPES\n            else (estimable_data.get(\"messages\"), None, None)\n            if call_type\n            else (\n                estimable_data.get(\"messages\"),\n                estimable_data.get(\"prompt\"),\n                estimable_data.get(\"input\"),\n            )\n        )\n        messages, prompt, raw_input = selected_fields\n        original_input: Final = (\n            billable_input_since_newest_compaction(raw_input) if call_type in RESPONSES_API_CALL_TYPES else raw_input\n        )\n\n        media_source: Final = messages if messages is not None else original_input\n        is_embedding_call: Final = call_type in EMBEDDING_API_CALL_TYPES\n        projected, media = (\n            split_media_for_tpm(media_source)\n            if include_media and (isinstance(messages, list) or call_type in RESPONSES_API_CALL_TYPES)\n            else (original_input, ())\n        )\n        fallback_model: Final = request_model if isinstance(request_model, str) else None\n        resolved_models: Final = (\n            _media_models(media_model_resolver, fallback_model or \"\", team_id) if media else (fallback_model or \"\",)\n        )\n        embedding_text, embedding_media_tokens = (\n            split_embedding_input_tokens(\n                original_input,\n                lambda: _media_models(media_model_resolver, fallback_model or \"\", team_id),\n                fallback_model,\n            )",
+            "end_line": 1105,
+            "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+            "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+            "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+            "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+            "region_sha256": "482416a6fbcd38201a3c9c455f8adf192d60b8145ef01e0eb582e7f0e6025c6e",
+            "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+            "source_id": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_input_and_output_tokens",
+            "start_line": 1062
+          }
+        ],
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "source_id": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_input_and_output_tokens",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+          "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+          "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+          "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+          "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+          "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz"
+        }
+      }
+    ],
+    "existing_and_proposed_ownership": "_translate_google_genai_native_request, _extraction_input_text and split_embedding_input_tokens already own meaningful common work. _estimate_input_and_output_tokens owns fallback estimation. Remaining field dispatch has different outputs and semantics; no new shared owner justified.",
+    "hard_positive_balanced": false,
+    "id": "LL-C02",
+    "legitimate_variation": "Precise path converts Responses to chat messages, handles rerank/tools/audio/PDF and counts tokens. Cheap path trims at compaction, splits media and derives output budget. Precise fallback directly calls cheap path.",
+    "license_scope": {
+      "header_checks": [
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/litellm_core_utils/token_counter.py",
+          "portable_source_file": "sources/761e008224a9cac7b857f98e85cf245b7eb9d26439ae1725b6fd1fb7c13995b3.json.gz"
+        },
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+          "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz"
+        }
+      ],
+      "interpretation": "Importing enterprise symbols or checking premium status is not a file-license override. No enterprise/ body copied. Two conservatively excluded original files remain excluded; no scope expansion or IDF changes.",
+      "license_path": "LICENSE",
+      "nested_license_paths_in_litellm": [
+        "litellm/litellm_core_utils/tokenizers/deepseek_tokenizer_LICENSE",
+        "litellm/proxy/auth/litellm_license.py"
+      ],
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_license_rule": "All content outside enterprise/ is MIT unless other stated restrictions apply. All endpoints and added owner/caller proofs are under litellm/, outside enterprise/.",
+      "sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+      "spdx": "MIT"
+    },
+    "live_caller_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "code": "        the TPM-bearing descriptors this request will be charged against. When\n        provided, the no-``max_tokens`` output-budget floor is capped at a\n        fraction of that limit so small TPM caps remain usable. Omit to\n        preserve the unconstrained floor.\n\n        ``configured_output_tokens`` is the operator-declared estimate resolved\n        from key or team metadata. When provided it replaces the heuristic\n        floor entirely, so the reservation reflects what this tenant's model\n        actually emits rather than one constant shared by every tenant.\n        \"\"\"\n        estimated_input_tokens, max_tokens_estimate = self._estimate_input_and_output_tokens(\n            data=data,\n            min_configured_tpm_limit=min_configured_tpm_limit,\n            call_type=call_type,\n            configured_output_tokens=configured_output_tokens,\n            team_id=team_id,\n            media_model_resolver=self._media_model_resolver,\n        )\n        total_estimated: Final = estimated_input_tokens + max_tokens_estimate\n\n        verbose_proxy_logger.debug(\n            \"TPM reservation estimate: input=%s, max_tokens=%s, total=%s\",\n            estimated_input_tokens,",
+        "enclosing_source_ids": [
+          "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._estimate_tokens_for_request"
+        ],
+        "end_line": 997,
+        "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+        "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+        "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "80cbd571a60479e3c9d95548737e8dfb63803a0d999155428e55346487607761",
+        "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "start_line": 975
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "code": "            int(v)\n            for d in io_token_descriptors\n            if d[\"key\"] == PROJECT_OTPM_DESCRIPTOR_KEY\n            for v in [(d.get(\"rate_limit\") or {}).get(\"tokens_per_unit\")]\n            if v is not None\n        ]\n        min_configured_otpm_limit: Final = min(configured_otpm_limits) if configured_otpm_limits else None\n        _, raw_estimated_output_tokens = self._estimate_input_and_output_tokens(\n            data=data,\n            min_configured_tpm_limit=min_configured_otpm_limit,\n            call_type=call_type,\n            include_media=False,\n        )\n        raw_estimated_input_tokens: Final = await offload_token_count(self._estimate_precise_input_tokens)(\n            data=data, model=requested_model, call_type=call_type, team_id=user_api_key_dict.team_id\n        )\n        estimated_input_tokens: Final = max(raw_estimated_input_tokens, 1)\n        estimated_output_tokens: Final = (\n            raw_estimated_output_tokens",
+        "enclosing_source_ids": [
+          "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._reserve_project_io_tokens_or_raise"
+        ],
+        "end_line": 3614,
+        "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+        "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+        "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "4c8fb72143d24fefaf9c5f0efd8e2db643bbba374be6a5aa5ba6579b50c95de5",
+        "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "start_line": 3596
+      }
+    ],
+    "live_proof_limit": "Exact production call sites/registration and branch wiring verified statically. No execution, configured deployment, provider, network or credentials accessed. Callback runtime type depends on configured integration.",
+    "operation_contract": "Apparent partial overlap is API-specific request projection before token estimation. No single proven shared projection contract across precise tokenizer and character-count/output-budget algorithms.",
+    "owner_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "code": "                ),\n            )\n            return estimate + audio_token_estimate + embedding_media_tokens\n        except Exception:  # noqa: BLE001  # tokenizer failures degrade to the cheap estimate\n            if call_type in RERANK_API_CALL_TYPES and isinstance(selected_text, str):\n                return max(0, len(selected_text) // DEFAULT_CHARS_PER_TOKEN)\n            estimated_input_tokens, _ = self._estimate_input_and_output_tokens(\n                data=data,\n                call_type=call_type,\n                include_media=is_embedding_request,\n                team_id=team_id,\n                media_model_resolver=self._media_model_resolver,\n            )\n            return estimated_input_tokens + audio_token_estimate",
+        "end_line": 3563,
+        "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+        "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+        "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "region_sha256": "e8a544c4541772f83910125ceb7245f89925ae72a4f9e143058c0ec8ae2d113e",
+        "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "start_line": 3550
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "code": "    def _translate_google_genai_native_request(\n        data: object,\n        call_type: str | None,\n    ) -> Mapping[str, object] | None:\n        contents: Final = data.get(\"contents\") if isinstance(data, dict) else None\n        if (\n            not isinstance(data, dict)\n            or call_type not in GOOGLE_GENAI_NATIVE_CALL_TYPES\n            or not isinstance(contents, (dict, list))\n        ):\n            return None\n        from litellm.google_genai.adapters.transformation import GoogleGenAIAdapter\n\n        config: Final = data.get(\"config\") if \"config\" in data else data.get(\"generationConfig\")\n        return GoogleGenAIAdapter().translate_generate_content_to_completion(\n            model=data.get(\"model\") if isinstance(data.get(\"model\"), str) else \"\",\n            contents=contents,\n            config=config if isinstance(config, dict) else None,\n            systemInstruction=data.get(\"systemInstruction\"),\n            system_instruction=data.get(\"system_instruction\"),\n            tools=data.get(\"tools\"),\n            toolConfig=data.get(\"toolConfig\"),\n            tool_config=data.get(\"tool_config\"),\n        )",
+        "end_line": 837,
+        "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+        "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+        "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "region_sha256": "5facb953971d0be0e64a74d9076cc0c289549c491b739d8eeeb603aed327e7fa",
+        "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "source_id": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._translate_google_genai_native_request",
+        "start_line": 814
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "code": "    def _extraction_input_text(data: Mapping[str, object]) -> str:\n        state: Final = data.get(\"state\")\n        return f\"{state if isinstance(state, str) else ''}\\n{json.dumps(data.get('fields'), default=str)}\"",
+        "end_line": 3452,
+        "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+        "git_blob": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+        "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "portable_source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "region_sha256": "af3b85c89847cbb875cb8ce67593e7e69b4edd20459b2f15ceee187138be62cb",
+        "snapshot": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz",
+        "source_id": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._extraction_input_text",
+        "start_line": 3450
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/litellm_core_utils/token_counter.py",
+        "code": "def split_embedding_input_tokens(\n    value: _EmbeddingInputT, media_models: Callable[[], Sequence[str]], fallback_model: str | None = None\n) -> tuple[_EmbeddingInputT, int]:\n    from litellm.litellm_core_utils.prompt_templates.tpm_media_utils import (\n        embedding_input_is_all_media,\n        split_embedding_media_for_tpm,\n    )\n\n    text, media = split_embedding_media_for_tpm(value)\n    if not media:\n        return value, 0\n    models: Final = tuple(media_models())\n    scopes: Final = frozenset(_data_uri_media_scope(model, media) for model in models)\n    if not models or None in scopes or (\"whole_batch\" in scopes and not embedding_input_is_all_media(value)):\n        return value, 0\n    media_tokens: Final = sum(estimate_media_block_tokens(block, models, fallback_model) for block in media)\n    return cast(_EmbeddingInputT, text), media_tokens  # cast-ok: the projection keeps the input's container shape",
+        "end_line": 722,
+        "file_sha256": "761e008224a9cac7b857f98e85cf245b7eb9d26439ae1725b6fd1fb7c13995b3",
+        "git_blob": "e56dd83a2778495239d56f96e116ea2a621f3e9f",
+        "path": "litellm/litellm_core_utils/token_counter.py",
+        "portable_source_file": "sources/761e008224a9cac7b857f98e85cf245b7eb9d26439ae1725b6fd1fb7c13995b3.json.gz",
+        "region_sha256": "70dab3d633488162bc55cbd806babf0bad22b049e15debf82589931824c7dfbd",
+        "snapshot": "sources/761e008224a9cac7b857f98e85cf245b7eb9d26439ae1725b6fd1fb7c13995b3.json.gz",
+        "source_id": "litellm/litellm_core_utils/token_counter.py::split_embedding_input_tokens",
+        "start_line": 706
+      }
+    ],
+    "provisional_family_id": "LL-TOKEN-INPUT-PREPARATION",
+    "repository": "BerriAI/litellm",
+    "reviewer_disagreement_resolution": "Both Jev and Claude label separate. Retain worker's conservative borderline status for proposed suboperation because ingredients already shared; this is not an override to duplicate and adds zero positives. No reviewer disagreement; worker uncertainty is narrower than whole-function separate assessment.",
+    "reviewer_observations": [
+      {
+        "id": "LL-C02",
+        "path": {
+          "artifact_basename": "29cee5b0231abc4d2a22a94ea1154e98ec7a51cdccf36e2c315c6c7211c25ea4.json",
+          "original_artifact_sha256": "e7af6bcb891e8d0443c7813d6f79e9b03198be1138e77568430be2c646bdc8ea"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.75,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.28,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      },
+      {
+        "id": "LL-C02",
+        "path": {
+          "artifact_basename": "bf37e4b808ac49b932b117427a873620e77a9868e4a55fe638105f00023c3e70.json",
+          "original_artifact_sha256": "81755aaa977cd5afe8a527b27215e971dd48b46ff281c2e0b5d81fc8d2c4867a"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.25,
+          "second_opinion": null,
+          "why": "Both functions branch on call_type to pick which request fields to estimate (Responses, embeddings, text completion, extraction, the Google GenAI translation), and both reuse the same helpers: _translate_google_genai_native_request, _extraction_input_text and split_embedding_input_tokens. Reusing those ingredients is not duplicated implementation, and the field selection itself is not a shared contract. NEW selects (messages, text, tools, tool_choice) for token_counter. It converts Responses input to chat messages, handles rerank, and strips audio and PDF content. EXISTING selects (messages, prompt, input) for a character-count heuristic. It trims Responses input at the newest compaction, splits out media, and derives an output-token budget, which NEW has no equivalent of. NEW also calls EXISTING as its fallback, so the cheap estimate is already centralized in one place. A unified selector would need many parameters to cover the legitimate differences, so I don't see a clear common operation worth extracting."
+        }
+      }
+    ],
+    "reviews_provenance": {
+      "path": {
+        "artifact_basename": "litellm-observations.json",
+        "original_artifact_sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6"
+      },
+      "sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6",
+      "snapshot": "review-observations.json"
+    },
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "schema": 1,
+    "source_verification": {
+      "coordinator_all_16_endpoint_checks_passed": true,
+      "direct_git": true,
+      "full_background_match": true,
+      "native_extractor_exact_body": true
+    },
+    "status": "source_resolved_acceptance_proposal_not_final_gold",
+    "whole_function_equivalence": false
+  },
+  "source_adjudication_sha256": "3d5ea1f5b0da43be576920bae16cdf7082be74a7867a1d8980bba775ce16215f",
+  "source_closure": [
+    {
+      "file_sha256": "761e008224a9cac7b857f98e85cf245b7eb9d26439ae1725b6fd1fb7c13995b3",
+      "git_blob_sha1": "e56dd83a2778495239d56f96e116ea2a621f3e9f",
+      "path": "litellm/litellm_core_utils/token_counter.py",
+      "source_file": "sources/761e008224a9cac7b857f98e85cf245b7eb9d26439ae1725b6fd1fb7c13995b3.json.gz"
+    },
+    {
+      "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+      "git_blob_sha1": "33a14bfbeda8daa7edb629d3ae1b859de71b5f5b",
+      "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+      "source_file": "sources/76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16.json.gz"
+    }
+  ],
+  "source_only": true
+}

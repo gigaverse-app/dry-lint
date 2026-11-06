@@ -1,0 +1,508 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator reviewed pinned operation source and accepts the bounded contract with explicit variations and source-based ownership resolution; preserve all independent reviewer dissent. Not whole-function equivalence or human validation."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.00013832,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "2f8dab39955dd85ef656f8efc26c5dedfd0d30d888562192f4727f4e0ac035d9",
+      "prompt_sha256": "219ded123c3e5faea6315f3019665a4cba543419edbf52b06fa6e05a3aebba82",
+      "request_key": "3cbc17734db8181e5efbf91645894563478b18f30102b37baf90cc056150205a",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 3458,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.5,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.4,
+        "second_opinion": null,
+        "why": "The source context shows different schemas, policies or dependency contracts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    },
+    {
+      "estimated_usd": 0.01209,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "f99b7cfb884e970ee2bce71aac021ade323b7e11962b640f96c39cd9986bb8f7",
+      "prompt_sha256": "58603909efa3f3583e254d67f2f96bca9a0b94af640384d3b7b03ba3983e31f6",
+      "request_key": "59fbb5c18cca28601a84c0b03646fdd9290c7cff0227e6297f59bf9399590fef",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 3580,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 3580,
+            "model": null,
+            "output_tokens": 493,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 493,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.72,
+        "second_opinion": null,
+        "why": "Both functions independently implement the same two-file transactional commit protocol. First, ensure the private state dir and stage the receipt. Second, stage the settings file, discarding the staged receipt if that fails. Third, commit the receipt, and discard the staged files on failure. Fourth, commit the settings, and on failure restore the earlier receipt (re-staged from `earlier`) or remove the new one, reporting a distinct error if the rollback itself fails. The ordering, failure handling, and invariant are the same: the receipt on disk never describes settings that were not written. A shared helper could take the receipt path, the receipt payload, the earlier receipt payload (or None), the staged settings and target, the commit callable, and an error factory or message formatter. It would own stage/commit/rollback sequencing. The variation to keep at the call sites is how each side builds its receipt, merges its settings (JSON vs TOML), maps errors (`ClaudeSettingsError` vs `CodexSettingsError`) and words its messages, plus the Claude-specific pre-steps like `refuse_while_owned`, statusline install and model unpinning. Only the staged-commit-with-rollback sub-operation overlaps, not the whole functions. Minor drifts exist: Claude uses `_land` and Codex hand-rolls the same steps, and the rollback in Codex uses `commit_staged_json` while Claude's default `commit` is used."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "actionability": "A helper parameterized by serializers/staging functions and application error translation can own receipt-before-settings ordering plus cleanup/rollback without combining document schemas or model policy. A multi-step failure protocol is more than two calls to an existing owner.",
+    "active_positive_proposed": true,
+    "background_proof": {
+      "documents": 37604,
+      "path": {
+        "artifact_basename": "background.json.gz",
+        "original_artifact_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+      },
+      "scope_path": {
+        "artifact_basename": "scope.json",
+        "original_artifact_sha256": "6884cdf458cca34810b87f50dcd3208bddb000645218680f6e268dc7e7d6ca48"
+      },
+      "scope_sha256": "6884cdf458cca34810b87f50dcd3208bddb000645218680f6e268dc7e7d6ca48",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "def configure_codex_settings(\n    base_url: str,\n    api_key: str,\n    model: str,\n    settings_path: Path,\n    *,\n    commit: Callable[[str, str], None] = commit_staged_json,\n) -> None:\n    require_safe_codex()\n    current: Final = _read(settings_path)\n    earlier: Final = _receipt(settings_path)\n    headers: Final = tomlkit.parse(tomlkit.dumps(MappingProxyType({\"Authorization\": f\"Bearer {api_key}\"})))\n    provider_table: Final = tomlkit.parse(\n        tomlkit.dumps(MappingProxyType({**codex_proxy_provider(base_url), \"http_headers\": headers}))\n    )\n    provider: Final = tomlkit.dumps(MappingProxyType({\"value\": provider_table}))\n    selections: Final = tomlkit.parse(\n        tomlkit.dumps(MappingProxyType({\"model_provider\": CODEX_PROXY_PROVIDER, \"model\": model}))\n    )\n    merged: Final = _with(\n        _with(\n            _with(_with(current, \"profile\", None), \"model\", _snapshot(selections, \"model\")),\n            \"model_provider\",\n            _snapshot(selections, \"model_provider\"),\n        ),\n        _PROVIDER_PATH,\n        provider,\n    )\n    owned: Final = tuple(\n        path\n        for path in _OWNED_PATHS\n        if _fingerprint(_snapshot(current, path)) != _fingerprint(_snapshot(merged, path))\n        or (earlier is not None and _ours(current, path, earlier))\n    )\n    receipt: Final = _Receipt(\n        settings_path=str(settings_path.resolve()),\n        file_existed=settings_path.exists() if earlier is None else earlier.file_existed,\n        providers_existed=\"model_providers\" in current if earlier is None else earlier.providers_existed,\n        previous=MappingProxyType(\n            {\n                path: earlier.previous[path]\n                if earlier is not None and _ours(current, path, earlier)\n                else _snapshot(current, path)\n                for path in owned\n            }\n        ),\n        written=MappingProxyType({path: _fingerprint(_snapshot(merged, path)) for path in owned}),\n    )\n    target: Final = settings_path.resolve()\n    state_path: Final = codex_configure_state_path(settings_path)\n    try:\n        ensure_private_dir(state_path.parent)\n        staged_receipt: Final = stage_private_json(str(state_path), receipt.model_dump(mode=\"json\"))\n    except OSError as error:\n        raise CodexSettingsError(f\"Could not stage the Codex configure receipt at {state_path}\") from error\n    try:\n        staged_settings: Final = _stage_settings(target, merged)\n    except CodexSettingsError:\n        discard_staged_json(staged_receipt)\n        raise\n    try:\n        commit(staged_receipt, str(state_path))\n    except OSError as error:\n        discard_staged_json(staged_receipt)\n        discard_staged_json(staged_settings)\n        raise CodexSettingsError(\n            f\"Could not write the Codex configure receipt at {state_path}; no settings were changed\"\n        ) from error\n    try:\n        commit(staged_settings, str(target))\n    except OSError as error:\n        discard_staged_json(staged_settings)\n        try:\n            _commit(\n                state_path,\n                None if earlier is None else stage_private_json(str(state_path), earlier.model_dump(mode=\"json\")),\n                commit_staged_json,\n            )\n        except OSError as rollback_error:\n            raise CodexSettingsError(\n                f\"Codex settings were not written and its receipt at {state_path} could not be restored\"\n            ) from rollback_error\n        raise CodexSettingsError(\n            f\"Could not write Codex settings at {settings_path}; the earlier receipt was restored\"\n        ) from error",
+        "context": "{\"imports\": [\"import hashlib\", \"import json\", \"import re\", \"import subprocess\", \"from collections.abc import Callable, Mapping\", \"from dataclasses import dataclass\", \"from functools import reduce\", \"from pathlib import Path\", \"from types import MappingProxyType\", \"from typing import Final, Literal, TypeAlias\", \"import tomlkit\", \"from pydantic import ConfigDict, ValidationError\", \"from tomlkit.container import OutOfOrderTableProxy\", \"from tomlkit.exceptions import TOMLKitError\", \"from tomlkit.items import InlineTable, Table\", \"from tomlkit.toml_document import TOMLDocument\", \"from litellm.litellm_core_utils.private_json import (\\n    commit_staged_json,\\n    discard_staged_json,\\n    ensure_private_dir,\\n    stage_private_bytes,\\n    stage_private_json,\\n)\", \"from litellm.types.llms.base_model import LiteLLMBaseModel\", \"from .agents import CODEX_PROXY_PROVIDER, codex_proxy_provider\"], \"possible_callers\": [{\"id\": \"litellm/proxy/client/cli/commands/configure_setup.py::_apply_codex\", \"line\": 259}], \"caller_limit\": \"Terminal-name candidates only; exact wiring is separately pinned for shortlisted packets.\"}",
+        "context_digest": "8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c",
+        "declaration": null,
+        "end_line": 272,
+        "hash": "",
+        "line": 188,
+        "name": "configure_codex_settings",
+        "origin": null,
+        "owner": null,
+        "path": "litellm/proxy/client/cli/commands/codex_settings.py",
+        "portable_source_file": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "def configure_claude_settings(\n    base_url: str,\n    credential: StaticToken,\n    model: ModelChoice,\n    settings_path: Path,\n    state_path: Path,\n    owners: Sequence[SettingsFileOwner],\n    commit: Callable[[str, str], None] = commit_staged_json,\n    script_path: Path | None = None,\n) -> None:\n    \"\"\"Persistently route Claude Code through base_url, recording how to undo it.\n\n    Both files are staged before either is committed, so a full disk or a read-only directory fails\n    before anything changes. The two commits are still two renames: a receipt rename that fails\n    discards the staged settings, and a settings rename that fails after the receipt landed puts the\n    earlier receipt back (or removes the new one), so the receipt on disk never describes settings\n    that were not written. `model`: StartOn pins the starting model, UnpinModel lets go of a pin an\n    earlier configure made (never of the user's own), KeepModel leaves it alone (a re-login). The\n    status line script is installed and registered under `statusLine` unless the user runs their own;\n    the receipt owns that key like any other, so unconfigure removes only ours.\n    \"\"\"\n    refuse_while_owned(settings_path, owners)\n    current: Final = load_json_or_empty(settings_path)\n    _env_object(current, settings_path)\n    earlier: Final = read_configure_receipt(state_path)\n    unpinned: Final = MappingProxyType(\n        {\n            path: earlier.previous[path]\n            for path in _MODEL_PATHS\n            if isinstance(model, UnpinModel) and earlier is not None and _ours(current, path, earlier)\n        }\n    )\n    existing: Final = _with_all(current, unpinned)\n    merged: Final = merge_claude_settings(\n        existing,\n        base_url,\n        credential,\n        model.model if isinstance(model, StartOn) else None,\n        status_line=install_statusline_script(script_path),\n    )\n    receipt: Final = _receipt(current, merged, earlier, settings_path.exists())\n    target: Final = _write_target(settings_path)\n    try:\n        ensure_private_dir(state_path.parent)\n    except OSError as e:\n        raise ClaudeSettingsError(f\"Could not write {state_path}: {e}\") from e\n    staged_receipt: Final = _stage(state_path, receipt.model_dump(mode=\"json\"))\n    try:\n        staged_settings: Final = _stage(target, merged)\n    except ClaudeSettingsError:\n        discard_staged_json(staged_receipt)\n        raise\n    _land(state_path, staged_receipt, (staged_settings,), commit)\n    try:\n        _land(target, staged_settings, commit=commit)\n    except ClaudeSettingsError as settings_error:\n        try:\n            _land(state_path, None if earlier is None else _stage(state_path, earlier.model_dump(mode=\"json\")))\n        except ClaudeSettingsError as receipt_error:\n            raise ClaudeSettingsError(\n                f\"{settings_error} The receipt at {state_path} now describes settings that were not written and \"\n                f\"could not be put back either ({receipt_error}); remove it before retrying.\"\n            ) from settings_error\n        raise",
+        "context": "{\"imports\": [\"import hashlib\", \"import json\", \"import shlex\", \"import sys\", \"from collections.abc import Callable, Mapping, Sequence\", \"from dataclasses import dataclass\", \"from functools import reduce\", \"from itertools import chain\", \"from pathlib import Path\", \"from types import MappingProxyType\", \"from typing import Final, TypeAlias\", \"import click\", \"from filelock import FileLock\", \"from packaging.version import InvalidVersion, Version\", \"from pydantic import ConfigDict, JsonValue, TypeAdapter, ValidationError\", \"from litellm._version import version as litellm_version\", \"from litellm.litellm_core_utils.private_json import (\\n    commit_staged_json,\\n    discard_staged_json,\\n    ensure_private_dir,\\n    stage_private_json,\\n    write_private_bytes,\\n)\", \"from litellm.types.llms.base_model import LiteLLMBaseModel\", \"from . import statusline_script\", \"from .cmd_quoting import quote_for_cmd\"], \"possible_callers\": [{\"id\": \"litellm/proxy/client/cli/commands/auth.py::_configure_claude_code\", \"line\": 810}, {\"id\": \"litellm/proxy/client/cli/commands/configure_setup.py::_apply_claude\", \"line\": 176}], \"caller_limit\": \"Terminal-name candidates only; exact wiring is separately pinned for shortlisted packets.\"}",
+        "context_digest": "6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca",
+        "declaration": null,
+        "end_line": 584,
+        "hash": "",
+        "line": 521,
+        "name": "configure_claude_settings",
+        "origin": null,
+        "owner": null,
+        "path": "litellm/proxy/client/cli/commands/claude_settings.py",
+        "portable_source_file": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.5220116564785895,
+      "similarity_reusable": false
+    },
+    "classification": "duplicate",
+    "confidence": "source-supported partial operation, reviewer dissent preserved",
+    "diagnostic_profiles": [
+      {
+        "cross_file_rank": 1,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "retained_before_other_rules",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "retained_before_other_rules",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/proxy/client/cli/commands/claude_settings.py::configure_claude_settings",
+        "query_lines": 64,
+        "query_tokens": 241,
+        "raw_rank": 2,
+        "score": 0.5220116564785895,
+        "target": "litellm/proxy/client/cli/commands/codex_settings.py::configure_codex_settings"
+      },
+      {
+        "cross_file_rank": 1,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "retained_before_other_rules",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "retained_before_other_rules",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/proxy/client/cli/commands/codex_settings.py::configure_codex_settings",
+        "query_lines": 85,
+        "query_tokens": 414,
+        "raw_rank": 2,
+        "score": 0.5220116564785895,
+        "target": "litellm/proxy/client/cli/commands/claude_settings.py::configure_claude_settings"
+      }
+    ],
+    "endpoints": [
+      {
+        "body_sha256": "929183e35ed46bd9ebac5b945f58b46bae3dc8568cb6bca3d61fc0ef361adfb9",
+        "function_end": 584,
+        "function_start": 521,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/claude_settings.py",
+            "code": "    try:\n        ensure_private_dir(state_path.parent)\n    except OSError as e:\n        raise ClaudeSettingsError(f\"Could not write {state_path}: {e}\") from e\n    staged_receipt: Final = _stage(state_path, receipt.model_dump(mode=\"json\"))\n    try:\n        staged_settings: Final = _stage(target, merged)\n    except ClaudeSettingsError:\n        discard_staged_json(staged_receipt)\n        raise\n    _land(state_path, staged_receipt, (staged_settings,), commit)\n    try:\n        _land(target, staged_settings, commit=commit)\n    except ClaudeSettingsError as settings_error:\n        try:\n            _land(state_path, None if earlier is None else _stage(state_path, earlier.model_dump(mode=\"json\")))\n        except ClaudeSettingsError as receipt_error:\n            raise ClaudeSettingsError(\n                f\"{settings_error} The receipt at {state_path} now describes settings that were not written and \"\n                f\"could not be put back either ({receipt_error}); remove it before retrying.\"\n            ) from settings_error\n        raise",
+            "end_line": 584,
+            "file_sha256": "6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca",
+            "git_blob": "60492a81cab4f39b8867077c248a9bf538071843",
+            "path": "litellm/proxy/client/cli/commands/claude_settings.py",
+            "portable_source_file": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz",
+            "region_sha256": "ece73b82e085023251a98196ff3d2d92fd231e0fd535e30376b95b73ec760492",
+            "snapshot": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz",
+            "source_id": "litellm/proxy/client/cli/commands/claude_settings.py::configure_claude_settings",
+            "start_line": 563
+          }
+        ],
+        "portable_source_file": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz",
+        "source_id": "litellm/proxy/client/cli/commands/claude_settings.py::configure_claude_settings",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/claude_settings.py",
+          "file_sha256": "6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca",
+          "git_blob": "60492a81cab4f39b8867077c248a9bf538071843",
+          "path": "litellm/proxy/client/cli/commands/claude_settings.py",
+          "portable_source_file": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz",
+          "snapshot": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz"
+        }
+      },
+      {
+        "body_sha256": "daa86f329b5a38d55917a14e22e3e2f2f2495f361b1e03943f7d31ef42f65a19",
+        "function_end": 272,
+        "function_start": 188,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/codex_settings.py",
+            "code": "    try:\n        ensure_private_dir(state_path.parent)\n        staged_receipt: Final = stage_private_json(str(state_path), receipt.model_dump(mode=\"json\"))\n    except OSError as error:\n        raise CodexSettingsError(f\"Could not stage the Codex configure receipt at {state_path}\") from error\n    try:\n        staged_settings: Final = _stage_settings(target, merged)\n    except CodexSettingsError:\n        discard_staged_json(staged_receipt)\n        raise\n    try:\n        commit(staged_receipt, str(state_path))\n    except OSError as error:\n        discard_staged_json(staged_receipt)\n        discard_staged_json(staged_settings)\n        raise CodexSettingsError(\n            f\"Could not write the Codex configure receipt at {state_path}; no settings were changed\"\n        ) from error\n    try:\n        commit(staged_settings, str(target))\n    except OSError as error:\n        discard_staged_json(staged_settings)\n        try:\n            _commit(\n                state_path,\n                None if earlier is None else stage_private_json(str(state_path), earlier.model_dump(mode=\"json\")),\n                commit_staged_json,\n            )\n        except OSError as rollback_error:\n            raise CodexSettingsError(\n                f\"Codex settings were not written and its receipt at {state_path} could not be restored\"\n            ) from rollback_error\n        raise CodexSettingsError(\n            f\"Could not write Codex settings at {settings_path}; the earlier receipt was restored\"\n        ) from error",
+            "end_line": 272,
+            "file_sha256": "8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c",
+            "git_blob": "557f4379773a7ebe24caa508e2c563b26131c6f8",
+            "path": "litellm/proxy/client/cli/commands/codex_settings.py",
+            "portable_source_file": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz",
+            "region_sha256": "a9fcfa0ee8d37ae3de9efa13ecb38e2e9e9d9e2bebcd4367eee590808519177f",
+            "snapshot": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz",
+            "source_id": "litellm/proxy/client/cli/commands/codex_settings.py::configure_codex_settings",
+            "start_line": 238
+          }
+        ],
+        "portable_source_file": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz",
+        "source_id": "litellm/proxy/client/cli/commands/codex_settings.py::configure_codex_settings",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/codex_settings.py",
+          "file_sha256": "8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c",
+          "git_blob": "557f4379773a7ebe24caa508e2c563b26131c6f8",
+          "path": "litellm/proxy/client/cli/commands/codex_settings.py",
+          "portable_source_file": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz",
+          "snapshot": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz"
+        }
+      }
+    ],
+    "existing_and_proposed_ownership": "Shared staged-pair commit/recovery helper in existing private-file/settings ownership. private_json owns staging, single os.replace and staged cleanup; Claude _land and Codex _commit own one target per invocation. None owns the two-file ordering/second-write-failure rollback sequence. Both live configure_setup call sites execute the repeated sequence.",
+    "hard_positive_balanced": false,
+    "id": "LL-C09",
+    "legitimate_variation": "Keep JSON/TOML rendering, receipt schemas, merge/ownership/preflight rules, statusline work and application errors at callers. Claude wraps effects through _land; Codex handles OSError directly. Both rollback paths use default commit rather than injected commit. Single-file cleanup depends on commit primitive contract; do not claim identical cleanup for arbitrary injected callables.",
+    "license_scope": {
+      "path": "LICENSE",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "scope": "Unchanged original public Python scope, all endpoint/owner/caller files checked members of original file manifest, outside enterprise/. No enterprise body copied.",
+      "sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+      "spdx": "MIT"
+    },
+    "live_caller_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/configure_setup.py",
+        "code": "\ndef _apply_claude(base_url: str, credential: StaticToken, listing: _Listing, model: str | None) -> None:\n    listed: Final = listing.ids\n    starting: Final = _validated_model(model, listing, base_url)\n    settings_path: Final = claude_settings_path(os.environ)\n    try:\n        configure_claude_settings(\n            base_url,\n            credential,\n            _model_choice(starting),\n            settings_path,\n            configure_state_path(settings_path),\n            settings_file_owners(settings_path),\n        )\n    except ClaudeSettingsError as e:\n        raise click.ClickException(str(e))\n    in_picker: Final = sum(1 for listed_model in listed if CLAUDE_CODE_PICKER_PATTERN.search(listed_model))",
+        "end_line": 191,
+        "file_sha256": "83c3b58e18404a7ccd43d0c74eaacb023127fd8b0b97c85ba57a34c0fff81329",
+        "git_blob": "6004de72e188c5fad0fad540af03c288349316ad",
+        "path": "litellm/proxy/client/cli/commands/configure_setup.py",
+        "portable_source_file": "sources/83c3b58e18404a7ccd43d0c74eaacb023127fd8b0b97c85ba57a34c0fff81329.json.gz",
+        "region_sha256": "3be0688a8a405402b92788e86d214bae53cf608f1459d9f9590b326ec5f63b25",
+        "snapshot": "sources/83c3b58e18404a7ccd43d0c74eaacb023127fd8b0b97c85ba57a34c0fff81329.json.gz",
+        "start_line": 175
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/configure_setup.py",
+        "code": "\ndef _apply_codex(base_url: str, credential: StaticToken, listing: _Listing, model: str) -> None:\n    _validated_model(model, listing, base_url)\n    settings_path: Final = codex_config_path(os.environ)\n    try:\n        configure_codex_settings(base_url, credential.token, model, settings_path)\n    except CodexSettingsError as e:\n        raise click.ClickException(str(e)) from e\n    click.echo(f\"Configured Codex: {settings_path} now routes through {base_url}.\")\n    click.echo(f\"Starting model: {model}. Credential: your virtual key, stored in the private provider settings.\")",
+        "end_line": 267,
+        "file_sha256": "83c3b58e18404a7ccd43d0c74eaacb023127fd8b0b97c85ba57a34c0fff81329",
+        "git_blob": "6004de72e188c5fad0fad540af03c288349316ad",
+        "path": "litellm/proxy/client/cli/commands/configure_setup.py",
+        "portable_source_file": "sources/83c3b58e18404a7ccd43d0c74eaacb023127fd8b0b97c85ba57a34c0fff81329.json.gz",
+        "region_sha256": "f9fe130e9beb7cb6023b194413623ad0aced6eeba9ac8bf820c2001c16b0a6a5",
+        "snapshot": "sources/83c3b58e18404a7ccd43d0c74eaacb023127fd8b0b97c85ba57a34c0fff81329.json.gz",
+        "start_line": 258
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/auth.py",
+        "code": "\ndef _configure_claude_code(base_url: str, api_key: str) -> None:\n    \"\"\"Write the key this login just minted into Claude Code's settings.json as a static token, undoable with\n    `lite unconfigure claude`. The key expires with the login, so the flag is the re-wire step of each login\n    rather than a one-time setup: no apiKeyHelper is written, since Claude Code would spawn `lite` (and its\n    keychain probe) on every credential refresh to keep one fresh.\"\"\"\n    settings_path: Final = claude_settings_path(os.environ)\n    try:\n        configure_claude_settings(\n            base_url,\n            StaticToken(api_key),\n            KeepModel(),\n            settings_path,\n            configure_state_path(settings_path),\n            settings_file_owners(settings_path),\n        )\n    except ClaudeSettingsError as e:\n        raise click.ClickException(f\"Logged in, but could not configure Claude Code: {e}\")\n    click.echo(f\"\\nConfigured Claude Code: {settings_path} now routes through {base_url.rstrip('/')}.\")\n    click.echo(\n        \"This login's key is stored in the file, so run `lite login --config-claude` again after it expires. \"\n        \"Your other Claude Code settings were left untouched. Restart Claude Code to pick this up. \"\n        f\"Undo with `lite unconfigure claude`; `lite configure claude --model` sets {STARTING_MODEL_ROLE}.\"",
+        "end_line": 831,
+        "file_sha256": "fe55bddd45c1c61f64c078a9d0bc2498b97f30fc61e06231ea743148e865428a",
+        "git_blob": "e38f54adc4f72cc8ccdf76695ec921837185e8e8",
+        "path": "litellm/proxy/client/cli/commands/auth.py",
+        "portable_source_file": "sources/fe55bddd45c1c61f64c078a9d0bc2498b97f30fc61e06231ea743148e865428a.json.gz",
+        "region_sha256": "6b151ca29c944f794ce10c1b87e8b1d01ee034b5d5ec68e1246f8955e96dae6b",
+        "snapshot": "sources/fe55bddd45c1c61f64c078a9d0bc2498b97f30fc61e06231ea743148e865428a.json.gz",
+        "start_line": 809
+      }
+    ],
+    "live_proof_limit": "Static production calls/route/lazy registration; no runtime execution or enabled-adopter assertion.",
+    "operation_contract": "Stage receipt and settings before committing either; commit receipt first; if settings commit fails, attempt to restore earlier receipt or remove the new one; report rollback failure distinctly. This repeated recovery sequence is not atomic or crash-safe.",
+    "owner_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/claude_settings.py",
+        "code": "def _stage(path: Path, document: Mapping[str, object]) -> str:\n    try:\n        return stage_private_json(str(path), document)\n    except OSError as e:\n        raise ClaudeSettingsError(f\"Could not write {path}: {e}\") from e",
+        "end_line": 284,
+        "file_sha256": "6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca",
+        "git_blob": "60492a81cab4f39b8867077c248a9bf538071843",
+        "path": "litellm/proxy/client/cli/commands/claude_settings.py",
+        "portable_source_file": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz",
+        "region_sha256": "0a78fa10bcc761d9dece01ba03159a9b7a94d216b7a55eafcfff5a9cf3137256",
+        "snapshot": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz",
+        "source_id": "litellm/proxy/client/cli/commands/claude_settings.py::_stage",
+        "start_line": 280
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/claude_settings.py",
+        "code": "def _land(\n    path: Path,\n    staged: str | None,\n    also_discard: Sequence[str | None] = (),\n    commit: Callable[[str, str], None] = commit_staged_json,\n) -> None:\n    \"\"\"Commit a staged file to `path`, or remove `path` when nothing is staged for it. The one place a\n    filesystem error becomes a ClaudeSettingsError; on failure the operation's other staged files are\n    discarded, so no temp file holding a token is left behind.\"\"\"\n    try:\n        if staged is None:\n            path.unlink(missing_ok=True)\n        else:\n            commit(staged, str(path))\n    except OSError as e:\n        for other in also_discard:\n            if other is not None:\n                discard_staged_json(other)\n        raise ClaudeSettingsError(f\"Could not {'remove' if staged is None else 'write'} {path}: {e}\") from e",
+        "end_line": 305,
+        "file_sha256": "6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca",
+        "git_blob": "60492a81cab4f39b8867077c248a9bf538071843",
+        "path": "litellm/proxy/client/cli/commands/claude_settings.py",
+        "portable_source_file": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz",
+        "region_sha256": "7230bc06ee13e11a612abcde6920a4fb2dfab3401c422afb07b9b1c102e0dcdc",
+        "snapshot": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz",
+        "source_id": "litellm/proxy/client/cli/commands/claude_settings.py::_land",
+        "start_line": 287
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/codex_settings.py",
+        "code": "def _stage_settings(path: Path, document: TOMLDocument) -> str:\n    try:\n        return stage_private_bytes(str(path), document.as_string().encode())\n    except OSError as error:\n        raise CodexSettingsError(f\"Could not stage Codex settings at {path}; no settings were changed\") from error",
+        "end_line": 178,
+        "file_sha256": "8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c",
+        "git_blob": "557f4379773a7ebe24caa508e2c563b26131c6f8",
+        "path": "litellm/proxy/client/cli/commands/codex_settings.py",
+        "portable_source_file": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz",
+        "region_sha256": "bd22dad7a322a2473bb8b47ba810bb6e0a0a04767bbd4e57498341380773d726",
+        "snapshot": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz",
+        "source_id": "litellm/proxy/client/cli/commands/codex_settings.py::_stage_settings",
+        "start_line": 174
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/client/cli/commands/codex_settings.py",
+        "code": "def _commit(path: Path, staged: str | None, commit: Callable[[str, str], None]) -> None:\n    if staged is None:\n        path.unlink(missing_ok=True)\n    else:\n        commit(staged, str(path))",
+        "end_line": 185,
+        "file_sha256": "8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c",
+        "git_blob": "557f4379773a7ebe24caa508e2c563b26131c6f8",
+        "path": "litellm/proxy/client/cli/commands/codex_settings.py",
+        "portable_source_file": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz",
+        "region_sha256": "db75e6909aede66059397d4696a27fb7ecef67b86a44417ae00b2acb23771398",
+        "snapshot": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz",
+        "source_id": "litellm/proxy/client/cli/commands/codex_settings.py::_commit",
+        "start_line": 181
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/litellm_core_utils/private_json.py",
+        "code": "def stage_private_json(path: str, data: Mapping[str, object]) -> str:\n    \"\"\"Write JSON to a private temp file beside `path`, ready for `commit_staged_json`.\n\n    Staging is the half that can fail on a read-only or full directory, so callers with something\n    to lose can find that out before they act on the assumption that the rewrite will land.\n    \"\"\"\n    parent: Final = Path(path).parent\n    parent.mkdir(parents=True, exist_ok=True)\n    fd, tmp_path = tempfile.mkstemp(dir=str(parent), prefix=\".tmp-\", suffix=\".json\")\n    try:\n        with os.fdopen(fd, \"w\") as f:\n            json.dump(data, f, indent=2)\n            f.flush()\n            os.fsync(f.fileno())\n    except BaseException:\n        Path(tmp_path).unlink(missing_ok=True)\n        raise\n    return tmp_path",
+        "end_line": 36,
+        "file_sha256": "f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685",
+        "git_blob": "4cd4a9b4f82f692d9b44c3097b06d3e12a6f45f6",
+        "path": "litellm/litellm_core_utils/private_json.py",
+        "portable_source_file": "sources/f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685.json.gz",
+        "region_sha256": "a667e46cdd730eb75371484fefbdc8fbd3c99dca23bd97cdfc10fe32da526082",
+        "snapshot": "sources/f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685.json.gz",
+        "source_id": "litellm/litellm_core_utils/private_json.py::stage_private_json",
+        "start_line": 19
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/litellm_core_utils/private_json.py",
+        "code": "def commit_staged_json(staged: str, path: str) -> None:\n    \"\"\"Move a staged file into place, replacing whatever is there in one step\"\"\"\n    try:\n        os.replace(staged, path)\n    except OSError:\n        Path(staged).unlink(missing_ok=True)\n        raise",
+        "end_line": 60,
+        "file_sha256": "f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685",
+        "git_blob": "4cd4a9b4f82f692d9b44c3097b06d3e12a6f45f6",
+        "path": "litellm/litellm_core_utils/private_json.py",
+        "portable_source_file": "sources/f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685.json.gz",
+        "region_sha256": "4329dcfbd4e9e9be7140c59b2535712d7f642951e51e6e9e70b020c4c7bbca3a",
+        "snapshot": "sources/f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685.json.gz",
+        "source_id": "litellm/litellm_core_utils/private_json.py::commit_staged_json",
+        "start_line": 54
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/litellm_core_utils/private_json.py",
+        "code": "def discard_staged_json(staged: str) -> None:\n    \"\"\"Throw a staged file away when the change it was part of is abandoned\"\"\"\n    Path(staged).unlink(missing_ok=True)",
+        "end_line": 80,
+        "file_sha256": "f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685",
+        "git_blob": "4cd4a9b4f82f692d9b44c3097b06d3e12a6f45f6",
+        "path": "litellm/litellm_core_utils/private_json.py",
+        "portable_source_file": "sources/f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685.json.gz",
+        "region_sha256": "6898f737932941ab806cea8ceb59ea2d533143a643c96b35231a50a59aa3464c",
+        "snapshot": "sources/f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685.json.gz",
+        "source_id": "litellm/litellm_core_utils/private_json.py::discard_staged_json",
+        "start_line": 78
+      }
+    ],
+    "provisional_family_id": "LL-SETTINGS-RECEIPT-COMMIT",
+    "repository": "BerriAI/litellm",
+    "reviewer_disagreement_resolution": "Jev separate on schema/policy/dependency differences versus Claude duplicate. Those differences are real at enclosing-function level; narrow shared staged-pair recovery policy remains independently implemented. Propose duplicate only for pinned regions. Correct Claude claim that receipt never describes unwritten settings: first rename creates a temporary mismatch, crash can interrupt, and explicit rollback failure leaves inconsistency. Do not upgrade the actual guarantee.",
+    "reviewer_observations": [
+      {
+        "id": "LL-C09",
+        "path": {
+          "artifact_basename": "3cbc17734db8181e5efbf91645894563478b18f30102b37baf90cc056150205a.json",
+          "original_artifact_sha256": "2f8dab39955dd85ef656f8efc26c5dedfd0d30d888562192f4727f4e0ac035d9"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.5,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.4,
+          "second_opinion": null,
+          "why": "The source context shows different schemas, policies or dependency contracts."
+        }
+      },
+      {
+        "id": "LL-C09",
+        "path": {
+          "artifact_basename": "59fbb5c18cca28601a84c0b03646fdd9290c7cff0227e6297f59bf9399590fef.json",
+          "original_artifact_sha256": "f99b7cfb884e970ee2bce71aac021ade323b7e11962b640f96c39cd9986bb8f7"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.72,
+          "second_opinion": null,
+          "why": "Both functions independently implement the same two-file transactional commit protocol. First, ensure the private state dir and stage the receipt. Second, stage the settings file, discarding the staged receipt if that fails. Third, commit the receipt, and discard the staged files on failure. Fourth, commit the settings, and on failure restore the earlier receipt (re-staged from `earlier`) or remove the new one, reporting a distinct error if the rollback itself fails. The ordering, failure handling, and invariant are the same: the receipt on disk never describes settings that were not written. A shared helper could take the receipt path, the receipt payload, the earlier receipt payload (or None), the staged settings and target, the commit callable, and an error factory or message formatter. It would own stage/commit/rollback sequencing. The variation to keep at the call sites is how each side builds its receipt, merges its settings (JSON vs TOML), maps errors (`ClaudeSettingsError` vs `CodexSettingsError`) and words its messages, plus the Claude-specific pre-steps like `refuse_while_owned`, statusline install and model unpinning. Only the staged-commit-with-rollback sub-operation overlaps, not the whole functions. Minor drifts exist: Claude uses `_land` and Codex hand-rolls the same steps, and the rollback in Codex uses `commit_staged_json` while Claude's default `commit` is used."
+        }
+      }
+    ],
+    "reviews_provenance": {
+      "path": {
+        "artifact_basename": "litellm-final-observations.json",
+        "original_artifact_sha256": "f037523914466e01a9bee425ce3d4ac11734f9606e7898ffd4fe8d42153beb72"
+      },
+      "sha256": "f037523914466e01a9bee425ce3d4ac11734f9606e7898ffd4fe8d42153beb72",
+      "snapshot": "review-final-observations.json"
+    },
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "schema": 1,
+    "source_verification": {
+      "direct_git": true,
+      "full_background_match": true,
+      "native_extractor_exact_body": true
+    },
+    "status": "source_resolved_acceptance_proposal_not_final_gold",
+    "whole_function_equivalence": false
+  },
+  "source_adjudication_sha256": "3d5ea1f5b0da43be576920bae16cdf7082be74a7867a1d8980bba775ce16215f",
+  "source_closure": [
+    {
+      "file_sha256": "f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685",
+      "git_blob_sha1": "4cd4a9b4f82f692d9b44c3097b06d3e12a6f45f6",
+      "path": "litellm/litellm_core_utils/private_json.py",
+      "source_file": "sources/f8cfc90acc1154652b1fac8ce6712d7cc66092fe6566cc356ed20ad0d157c685.json.gz"
+    },
+    {
+      "file_sha256": "fe55bddd45c1c61f64c078a9d0bc2498b97f30fc61e06231ea743148e865428a",
+      "git_blob_sha1": "e38f54adc4f72cc8ccdf76695ec921837185e8e8",
+      "path": "litellm/proxy/client/cli/commands/auth.py",
+      "source_file": "sources/fe55bddd45c1c61f64c078a9d0bc2498b97f30fc61e06231ea743148e865428a.json.gz"
+    },
+    {
+      "file_sha256": "6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca",
+      "git_blob_sha1": "60492a81cab4f39b8867077c248a9bf538071843",
+      "path": "litellm/proxy/client/cli/commands/claude_settings.py",
+      "source_file": "sources/6550f75d43790697e65923f43e9ce97c6dcb250d6023dbb18b648536217e6bca.json.gz"
+    },
+    {
+      "file_sha256": "8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c",
+      "git_blob_sha1": "557f4379773a7ebe24caa508e2c563b26131c6f8",
+      "path": "litellm/proxy/client/cli/commands/codex_settings.py",
+      "source_file": "sources/8cc2b71a8b483c7c4f288612ac99226de6729f4131b5fe2d21f338af7f52a97c.json.gz"
+    },
+    {
+      "file_sha256": "83c3b58e18404a7ccd43d0c74eaacb023127fd8b0b97c85ba57a34c0fff81329",
+      "git_blob_sha1": "6004de72e188c5fad0fad540af03c288349316ad",
+      "path": "litellm/proxy/client/cli/commands/configure_setup.py",
+      "source_file": "sources/83c3b58e18404a7ccd43d0c74eaacb023127fd8b0b97c85ba57a34c0fff81329.json.gz"
+    }
+  ],
+  "source_only": true
+}

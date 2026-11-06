@@ -1,0 +1,334 @@
+{
+  "coordinator_decision": {
+    "label": "duplicate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.00035332,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "0c333b1438cac582b8b5e14edf54bd01f1b9ce976daa26ad7c0d677ab5a4c9f7",
+      "prompt_sha256": "fe50f12680f62d7aa76742f9bbafe8065394b2e32c92656a64a32f595542467e",
+      "request_key": "a2560763cf0b3096c2a1c8d02b93baa16d82afe52988f109469f524d34bcaaf5",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 8833,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.25,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.3,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    },
+    {
+      "estimated_usd": 0.008162,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "e1f99115d531c75fd61de0af83d6a72c5910dc8a36d5865aab3115f64836300b",
+      "prompt_sha256": "3bb6fbe10bffb5fb1b5b0bcc4d999911b976620e6909714b534056d7f5740c12",
+      "request_key": "fa0b5107b3df3ca965e37507cf62bc44a65836c546e06d06b71cceed0208373e",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2261,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 2261,
+            "model": null,
+            "output_tokens": 364,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 364,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "duplicate",
+        "model_assessment": null,
+        "owner": "shared",
+        "score": 0.72,
+        "second_opinion": null,
+        "why": "Both endpoints repeat the same WebSocket pre-accept authentication gate: load the default config, and if session_api_keys is set and the query key isn't in it, close with code 4001 and reason \"Authentication failed\", then return before accept(). They also share the subscribe \u2192 receive loop \u2192 unsubscribe-in-finally lifecycle, with identical handling of WebSocketDisconnect and of other exceptions (log, re-raise RuntimeError/ConnectionError, otherwise continue). A shared helper such as `authenticate_websocket(websocket, session_api_key) -> bool` would own the auth policy. A second helper or context manager could own the subscription loop, parameterized by the event service, subscriber, per-message handler (`receive_json` plus `send_message` versus `receive_text` ignored) and log event name. The callers would keep the conversation lookup and its 4004 close, the choice of service and subscriber, and the message handling. The auth check is the strongest overlap, and it is a repeated security policy that could drift."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "balanced_hard_positive": false,
+    "bug": null,
+    "caller_proofs": [
+      {
+        "code": "sockets_router = APIRouter(prefix=\"/sockets\", tags=[\"WebSockets\"])\nconversation_service = get_default_conversation_service()\nbash_event_service = get_default_bash_event_service()\nlogger = logging.getLogger(__name__)\n\n\n@sockets_router.websocket(\"/events/{conversation_id}\")\nasync def events_socket(\n    conversation_id: UUID,\n    websocket: WebSocket,\n    session_api_key: Annotated[str | None, Query(alias=\"session_api_key\")] = None,\n",
+        "end_line": 42,
+        "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+        "path": "openhands/agent_server/sockets.py",
+        "portable_source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "purpose": "conversation route decorator and router ownership",
+        "snippet_sha256": "50c266ef6ae87ff0111353889523b7d46a28ee045008545c54ccf833f8963a9c",
+        "start_line": 32,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/sockets.py#L32"
+      },
+      {
+        "code": "@sockets_router.websocket(\"/bash-events\")\nasync def bash_events_socket(\n    websocket: WebSocket,\n    session_api_key: Annotated[str | None, Query(alias=\"session_api_key\")] = None,\n):\n",
+        "end_line": 89,
+        "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+        "path": "openhands/agent_server/sockets.py",
+        "portable_source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "purpose": "bash route decorator",
+        "snippet_sha256": "c8a2730c76741d7ae676edeed3fac2141c5d7661887b23b3558dc4ae36a6b945",
+        "start_line": 85,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/sockets.py#L85"
+      },
+      {
+        "code": "from openhands.agent_server.file_router import file_router\nfrom openhands.agent_server.middleware import LocalhostCORSMiddleware\nfrom openhands.agent_server.server_details_router import (\n    get_server_info,\n    server_details_router,\n)\nfrom openhands.agent_server.sockets import sockets_router\nfrom openhands.agent_server.tool_router import tool_router\n",
+        "end_line": 30,
+        "file_sha256": "398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023",
+        "path": "openhands/agent_server/api.py",
+        "portable_source_file": "sources/398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023.json.gz",
+        "purpose": "router import binding",
+        "snippet_sha256": "c0b1b92d9620a9315b4a8a24473ba757ee94956460bc261a9ddd5e3afffc7fc2",
+        "start_line": 23,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/api.py#L23"
+      },
+      {
+        "code": "    api_router.include_router(file_router)\n    api_router.include_router(vscode_router)\n    api_router.include_router(desktop_router)\n    app.include_router(api_router)\n    app.include_router(sockets_router)\n\n",
+        "end_line": 135,
+        "file_sha256": "398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023",
+        "path": "openhands/agent_server/api.py",
+        "portable_source_file": "sources/398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023.json.gz",
+        "purpose": "router installed on app",
+        "snippet_sha256": "8c165a1e4e10079396fadd949b4b4de84834c9e9b0162d51f8df4417cc825efc",
+        "start_line": 130,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/api.py#L130"
+      }
+    ],
+    "diagnostic_profiles": [
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "disagreement_preserved": true,
+    "exact_shared_or_contrasting_regions": [
+      {
+        "code": "    config = get_default_config()\n    if config.session_api_keys and session_api_key not in config.session_api_keys:\n        # Close the WebSocket connection with an authentication error code\n        await websocket.close(code=4001, reason=\"Authentication failed\")\n        return\n\n    await websocket.accept()\n",
+        "end_line": 57,
+        "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+        "path": "openhands/agent_server/sockets.py",
+        "portable_source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "purpose": "pre-accept allowlist policy",
+        "snippet_sha256": "43e2633f854bffea7b79477b6a5466b82c1828400d3a5ebb921f0b67d5e25406",
+        "start_line": 51,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/sockets.py#L51"
+      },
+      {
+        "code": "    config = get_default_config()\n    if config.session_api_keys and session_api_key not in config.session_api_keys:\n        # Close the WebSocket connection with an authentication error code\n        await websocket.close(code=4001, reason=\"Authentication failed\")\n        return\n\n    await websocket.accept()\n",
+        "end_line": 102,
+        "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+        "path": "openhands/agent_server/sockets.py",
+        "portable_source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "purpose": "pre-accept allowlist counterpart",
+        "snippet_sha256": "43e2633f854bffea7b79477b6a5466b82c1828400d3a5ebb921f0b67d5e25406",
+        "start_line": 96,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/sockets.py#L96"
+      },
+      {
+        "code": "            except WebSocketDisconnect:\n                # Exit the loop when websocket disconnects\n                return\n            except Exception as e:\n                logger.exception(\"error_in_subscription\", stack_info=True)\n                # For critical errors that indicate the websocket is broken, exit\n                if isinstance(e, (RuntimeError, ConnectionError)):\n                    raise\n                # For other exceptions, continue the loop\n    finally:\n        await event_service.unsubscribe_from_events(subscriber_id)\n",
+        "end_line": 82,
+        "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+        "path": "openhands/agent_server/sockets.py",
+        "portable_source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "purpose": "disconnect/escalation/finally policy",
+        "snippet_sha256": "560acfa7c4d1a17886acbcd6b1597424966881f69cceaf40d3ed683143c12cd4",
+        "start_line": 72,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/sockets.py#L72"
+      },
+      {
+        "code": "            except WebSocketDisconnect:\n                # Exit the loop when websocket disconnects\n                return\n            except Exception as e:\n                logger.exception(\"error_in_bash_event_subscription\", stack_info=True)\n                # For critical errors that indicate the websocket is broken, exit\n                if isinstance(e, (RuntimeError, ConnectionError)):\n                    raise\n                # For other exceptions, continue the loop\n    finally:\n        await bash_event_service.unsubscribe_from_events(subscriber_id)\n",
+        "end_line": 121,
+        "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+        "path": "openhands/agent_server/sockets.py",
+        "portable_source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "purpose": "disconnect/escalation/finally counterpart",
+        "snippet_sha256": "25d61a03a32bf4e3fdeccd72ee155c7ee4a4bdb446d2ca3f918f217099d5f8fc",
+        "start_line": 111,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/sockets.py#L111"
+      }
+    ],
+    "id": "OH02",
+    "label": "duplicate",
+    "legitimate_variation": "Conversation lookup and 4004, subscriber type/service binding, receive_json plus validation/message sending versus receive_text ignored, and log keys stay local. No equivalence of message handlers or whole endpoints.",
+    "license": {
+      "path": "LICENSE",
+      "sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+      "snapshot": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+      "spdx": "MIT"
+    },
+    "operation_contract": "Operation scope: enforce the same configured query-key allowlist before accepting a WebSocket (close 4001 on failure), then protect a live subscription receive loop with disconnect return, RuntimeError/ConnectionError escalation and finally unsubscribe. Authentication is the strongest domain policy; lifecycle error policy is a second shared region.",
+    "provisional_family_id": "OH-socket-subscription",
+    "repository": "OpenHands/software-agent-sdk",
+    "reviewer_observations": [
+      {
+        "id": "OH02",
+        "path": {
+          "artifact_basename": "a2560763cf0b3096c2a1c8d02b93baa16d82afe52988f109469f524d34bcaaf5.json",
+          "original_artifact_sha256": "0c333b1438cac582b8b5e14edf54bd01f1b9ce976daa26ad7c0d677ab5a4c9f7"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.25,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.3,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      },
+      {
+        "id": "OH02",
+        "path": {
+          "artifact_basename": "fa0b5107b3df3ca965e37507cf62bc44a65836c546e06d06b71cceed0208373e.json",
+          "original_artifact_sha256": "e1f99115d531c75fd61de0af83d6a72c5910dc8a36d5865aab3115f64836300b"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "duplicate",
+          "model_assessment": null,
+          "owner": "shared",
+          "score": 0.72,
+          "second_opinion": null,
+          "why": "Both endpoints repeat the same WebSocket pre-accept authentication gate: load the default config, and if session_api_keys is set and the query key isn't in it, close with code 4001 and reason \"Authentication failed\", then return before accept(). They also share the subscribe \u2192 receive loop \u2192 unsubscribe-in-finally lifecycle, with identical handling of WebSocketDisconnect and of other exceptions (log, re-raise RuntimeError/ConnectionError, otherwise continue). A shared helper such as `authenticate_websocket(websocket, session_api_key) -> bool` would own the auth policy. A second helper or context manager could own the subscription loop, parameterized by the event service, subscriber, per-message handler (`receive_json` plus `send_message` versus `receive_text` ignored) and log event name. The callers would keep the conversation lookup and its 4004 close, the choice of service and subscriber, and the message handling. The auth check is the strongest overlap, and it is a repeated security policy that could drift."
+        }
+      }
+    ],
+    "reviewer_status": "centralized observations received; independent static source audit complete; coordinator acceptance pending",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "scope": "partial operation only",
+    "shared_owner_proof": "get_default_config supplies configuration, not the allowlist decision; WebSocket.accept/close are primitives. Each endpoint independently checks configured keys and independently owns disconnect/error cleanup. Shared subscriber classes send different event types and do not own endpoint authentication.",
+    "source_audit": {
+      "method": "Re-read Git objects at the exact pin, validate native extraction, match both full bodies/file hashes, inspect exact local helpers and live callers/imports; no execution of target code or further models.",
+      "observations_path": {
+        "artifact_basename": "openhands-observations.json",
+        "original_artifact_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b"
+      },
+      "observations_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b",
+      "source_verified": true
+    },
+    "source_audit_resolution": "Jev rejection concerns differing endpoint concepts. Exact matching allowlist/error-lifecycle policies are narrower than those concepts. Source audit supports a scoped duplicate proposal, with policy-size/actionability disagreement still explicit. A generic parameterized receive loop is optional and must not erase per-message contracts.",
+    "source_proofs": [
+      {
+        "body_sha256": "b53b1447e5d5496310d399ecdd0649a76bda3dfc829467da0a53a40eed1c1f52",
+        "end_line": 82,
+        "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+        "git_blob_sha1": "d71399084874bc539a9af72b34dacc6b70ee42b6",
+        "line": 39,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/agent_server/sockets.py",
+        "portable_source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "snapshot": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "source_id": "openhands/agent_server/sockets.py::events_socket",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/sockets.py#L39"
+      },
+      {
+        "body_sha256": "77fd70f7c0b65b1564aefaf58373280e94447dc1d43a60d6517dbfdd16ec6adf",
+        "end_line": 121,
+        "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+        "git_blob_sha1": "d71399084874bc539a9af72b34dacc6b70ee42b6",
+        "line": 86,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/agent_server/sockets.py",
+        "portable_source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "snapshot": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz",
+        "source_id": "openhands/agent_server/sockets.py::bash_events_socket",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/sockets.py#L86"
+      }
+    ],
+    "status": "acceptance_proposal_not_gold",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "7dda862e0b6e38d08c9e8463c1fa338ec2cbbf00f4d5b8f494052590aae82ef9",
+  "source_closure": [
+    {
+      "file_sha256": "398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023",
+      "git_blob_sha1": "7d71e3a740d3aeb1600343555a6ee3ef8a05f87b",
+      "path": "openhands/agent_server/api.py",
+      "source_file": "sources/398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023.json.gz"
+    },
+    {
+      "file_sha256": "db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40",
+      "git_blob_sha1": "d71399084874bc539a9af72b34dacc6b70ee42b6",
+      "path": "openhands/agent_server/sockets.py",
+      "source_file": "sources/db046a6ed2c8a19a42800cff926078e4b590a8e182877c9298af146ee34e7f40.json.gz"
+    }
+  ],
+  "source_only": true
+}

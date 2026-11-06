@@ -1,0 +1,341 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.008354,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "4cad6d218781f3fee7215d897bc65f83c0b34a66210ce38e5fb6e520df48d466",
+      "prompt_sha256": "1091afb3d7e31fe09bdb372ca47a1fa560205aa51888f3386294348499fd6b17",
+      "request_key": "77399e3589134ea08012bc9ee0150ab3bdc836906cea21f2f9421bacd6f60625",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 3047,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 3047,
+            "model": null,
+            "output_tokens": 226,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 226,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.08,
+        "second_opinion": null,
+        "why": "onPointerDown and onPointerUp are complementary handlers of the same state machine: down sets up touch scroll, mouse reporting, link activation and selection state, and up tears it down and dispatches. Shared elements are only generic syntax (pointerType checks, preventDefault, and setPointerCapture vs releasePointerCapture, which are opposite operations), plus calls to existing helpers such as shouldReportTerminalMouse, sendMouse and linkAt. The handlers run different steps in different order. The only repeated fragment is a guarded release of pointer capture, and that is too small to justify a shared helper."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00012908,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "e3d01fc26398f4808106341302f54ac1c1a6c123b7200fcdd1709d021c9dfc10",
+      "prompt_sha256": "0d265723a857c08756dc1f99e9978b48ab8cd5dcb41595f880f475fe6a242255",
+      "request_key": "144ca7e67d31dad1a597e650cb938248d750e721b55a0e797e9999879d9f159f",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 3227,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.4,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.17,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "acceptance_scope": "Source adjudication and recommendation, portable packaging pending. No claim of human gold or new coordinator acceptance. Exact native endpoint IDs retained.",
+    "accepted_hard_positive": false,
+    "actual_callers": [
+      {
+        "code": "    this.input.addEventListener(\"blur\", this.onBlur);\n    this.input.addEventListener(\"input\", this.onInput);\n    this.input.addEventListener(\"paste\", this.onPaste);\n    this.input.addEventListener(\"copy\", this.onCopyEvent);\n    this.input.addEventListener(\"compositionstart\", this.onCompositionStart);\n    this.input.addEventListener(\"compositionend\", this.onCompositionEnd);\n    this.canvas.addEventListener(\"pointerdown\", this.onPointerDown);\n    this.canvas.addEventListener(\"pointermove\", this.onPointerMove);\n    this.canvas.addEventListener(\"pointerleave\", this.onPointerLeave);\n    this.canvas.addEventListener(\"pointerup\", this.onPointerUp);\n    this.canvas.addEventListener(\"pointercancel\", this.onPointerUp);\n    this.canvas.addEventListener(\"wheel\", this.onWheel, { passive: false });\n    this.canvas.addEventListener(\"mousedown\", this.onMouseDown);\n    this.canvas.addEventListener(\"mouseup\", this.onMouseUp);",
+        "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "line": 1877,
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "start_line": 1871
+      },
+      {
+        "code": "    this.input.addEventListener(\"copy\", this.onCopyEvent);\n    this.input.addEventListener(\"compositionstart\", this.onCompositionStart);\n    this.input.addEventListener(\"compositionend\", this.onCompositionEnd);\n    this.canvas.addEventListener(\"pointerdown\", this.onPointerDown);\n    this.canvas.addEventListener(\"pointermove\", this.onPointerMove);\n    this.canvas.addEventListener(\"pointerleave\", this.onPointerLeave);\n    this.canvas.addEventListener(\"pointerup\", this.onPointerUp);\n    this.canvas.addEventListener(\"pointercancel\", this.onPointerUp);\n    this.canvas.addEventListener(\"wheel\", this.onWheel, { passive: false });\n    this.canvas.addEventListener(\"mousedown\", this.onMouseDown);\n    this.canvas.addEventListener(\"mouseup\", this.onMouseUp);\n    this.canvas.addEventListener(\"contextmenu\", this.onContextMenu);\n    this.scrollbar.addEventListener(\"pointerdown\", this.onScrollbarPointerDown);\n    this.scrollbar.addEventListener(\"pointermove\", this.onScrollbarPointerMove);",
+        "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "line": 1880,
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "start_line": 1874
+      },
+      {
+        "code": "    this.input.addEventListener(\"compositionstart\", this.onCompositionStart);\n    this.input.addEventListener(\"compositionend\", this.onCompositionEnd);\n    this.canvas.addEventListener(\"pointerdown\", this.onPointerDown);\n    this.canvas.addEventListener(\"pointermove\", this.onPointerMove);\n    this.canvas.addEventListener(\"pointerleave\", this.onPointerLeave);\n    this.canvas.addEventListener(\"pointerup\", this.onPointerUp);\n    this.canvas.addEventListener(\"pointercancel\", this.onPointerUp);\n    this.canvas.addEventListener(\"wheel\", this.onWheel, { passive: false });\n    this.canvas.addEventListener(\"mousedown\", this.onMouseDown);\n    this.canvas.addEventListener(\"mouseup\", this.onMouseUp);\n    this.canvas.addEventListener(\"contextmenu\", this.onContextMenu);\n    this.scrollbar.addEventListener(\"pointerdown\", this.onScrollbarPointerDown);\n    this.scrollbar.addEventListener(\"pointermove\", this.onScrollbarPointerMove);\n    this.scrollbar.addEventListener(\"pointerup\", this.onScrollbarPointerUp);",
+        "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "line": 1881,
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "start_line": 1875
+      },
+      {
+        "code": "    this.input.removeEventListener(\"blur\", this.onBlur);\n    this.input.removeEventListener(\"input\", this.onInput);\n    this.input.removeEventListener(\"paste\", this.onPaste);\n    this.input.removeEventListener(\"copy\", this.onCopyEvent);\n    this.input.removeEventListener(\"compositionstart\", this.onCompositionStart);\n    this.input.removeEventListener(\"compositionend\", this.onCompositionEnd);\n    this.canvas.removeEventListener(\"pointerdown\", this.onPointerDown);\n    this.canvas.removeEventListener(\"pointermove\", this.onPointerMove);\n    this.canvas.removeEventListener(\"pointerleave\", this.onPointerLeave);\n    this.canvas.removeEventListener(\"pointerup\", this.onPointerUp);\n    this.canvas.removeEventListener(\"pointercancel\", this.onPointerUp);\n    this.canvas.removeEventListener(\"wheel\", this.onWheel);\n    this.canvas.removeEventListener(\"mousedown\", this.onMouseDown);\n    this.canvas.removeEventListener(\"mouseup\", this.onMouseUp);",
+        "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "line": 1907,
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "start_line": 1901
+      },
+      {
+        "code": "    this.input.removeEventListener(\"copy\", this.onCopyEvent);\n    this.input.removeEventListener(\"compositionstart\", this.onCompositionStart);\n    this.input.removeEventListener(\"compositionend\", this.onCompositionEnd);\n    this.canvas.removeEventListener(\"pointerdown\", this.onPointerDown);\n    this.canvas.removeEventListener(\"pointermove\", this.onPointerMove);\n    this.canvas.removeEventListener(\"pointerleave\", this.onPointerLeave);\n    this.canvas.removeEventListener(\"pointerup\", this.onPointerUp);\n    this.canvas.removeEventListener(\"pointercancel\", this.onPointerUp);\n    this.canvas.removeEventListener(\"wheel\", this.onWheel);\n    this.canvas.removeEventListener(\"mousedown\", this.onMouseDown);\n    this.canvas.removeEventListener(\"mouseup\", this.onMouseUp);\n    this.canvas.removeEventListener(\"contextmenu\", this.onContextMenu);\n    this.scrollbar.removeEventListener(\"pointerdown\", this.onScrollbarPointerDown);\n    this.scrollbar.removeEventListener(\"pointermove\", this.onScrollbarPointerMove);",
+        "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "line": 1910,
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "start_line": 1904
+      },
+      {
+        "code": "    this.input.removeEventListener(\"compositionstart\", this.onCompositionStart);\n    this.input.removeEventListener(\"compositionend\", this.onCompositionEnd);\n    this.canvas.removeEventListener(\"pointerdown\", this.onPointerDown);\n    this.canvas.removeEventListener(\"pointermove\", this.onPointerMove);\n    this.canvas.removeEventListener(\"pointerleave\", this.onPointerLeave);\n    this.canvas.removeEventListener(\"pointerup\", this.onPointerUp);\n    this.canvas.removeEventListener(\"pointercancel\", this.onPointerUp);\n    this.canvas.removeEventListener(\"wheel\", this.onWheel);\n    this.canvas.removeEventListener(\"mousedown\", this.onMouseDown);\n    this.canvas.removeEventListener(\"mouseup\", this.onMouseUp);\n    this.canvas.removeEventListener(\"contextmenu\", this.onContextMenu);\n    this.scrollbar.removeEventListener(\"pointerdown\", this.onScrollbarPointerDown);\n    this.scrollbar.removeEventListener(\"pointermove\", this.onScrollbarPointerMove);\n    this.scrollbar.removeEventListener(\"pointerup\", this.onScrollbarPointerUp);",
+        "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "line": 1911,
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "start_line": 1905
+      }
+    ],
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "private readonly onPointerUp = (event: PointerEvent) => {\n    if (event.pointerType === \"touch\") {\n      const touch = this.touchScroll;\n      if (touch?.pointerId !== event.pointerId) return;\n      this.touchScroll = null;\n      event.preventDefault();\n      if (this.canvas.hasPointerCapture(event.pointerId)) {\n        this.canvas.releasePointerCapture(event.pointerId);\n      }\n      if (event.type === \"pointercancel\" || touch.moved) return;\n      this.focus();\n      if (shouldReportTerminalMouse(this.core.isMouseTracking(), event)) {\n        this.sendMouse(\"press\", ghosttyMouseButton(0), event);\n        this.sendMouse(\"release\", ghosttyMouseButton(0), event);\n      } else {\n        const link = this.linkAt(event.clientX, event.clientY, true);\n        if (link) this.activateLink(link, event);\n        else this.clearSelection();\n      }\n      return;\n    }\n    this.setSelectionAutoscroll(0);\n    if (this.linkActivationPointerId === event.pointerId) {\n      event.preventDefault();\n      event.stopPropagation();\n      const link = this.linkActivationLink;\n      const validation = this.linkActivationValidation;\n      this.linkActivationPointerId = null;\n      this.linkActivationLink = null;\n      this.linkActivationValidation = undefined;\n      this.linkActivationOrigin = null;\n      if (this.canvas.hasPointerCapture(event.pointerId)) {\n        this.canvas.releasePointerCapture(event.pointerId);\n      }\n      if (event.type !== \"pointercancel\") {\n        if (link && isSameTerminalLink(link, this.linkAt(event.clientX, event.clientY, true))) {\n          this.activateLink(link, event, validation);\n        }\n      }\n      return;\n    }\n    if (this.mouseReportingPointerId === event.pointerId) {\n      event.preventDefault();\n      event.stopPropagation();\n      this.sendMouse(\"release\", this.mouseReportingButton, event);\n      this.mouseReportingPointerId = null;\n      this.mouseReportingButton = null;\n      if (this.canvas.hasPointerCapture(event.pointerId)) {\n        this.canvas.releasePointerCapture(event.pointerId);\n      }\n      if (event.type === \"pointercancel\") {\n        this.clearHoveredLink();\n      } else {\n        this.hoverPointer = { x: event.clientX, y: event.clientY };\n        this.refreshHoveredLink();\n      }\n      return;\n    }\n    if (this.canvas.hasPointerCapture(event.pointerId)) {\n      this.canvas.releasePointerCapture(event.pointerId);\n    }\n    if (event.button === 1 && isMiddleClickPastePlatform()) {\n      event.preventDefault();\n      return;\n    }\n    if (event.button !== 0) return;\n    if (!this.selectionMoved && this.selectionMode === \"cell\") {\n      this.clearSelection();\n    }\n    this.options.onSelectionChange();\n  }",
+        "context": "import {\n  measureGhosttyCell,\n  renderGhosttySnapshot,\n  terminalGridSize,\n  type GhosttyCellRange,\n  type GhosttyCellMetrics,\n} from \"./renderer\";\nexport interface TerminalLinkWithRange {\n  readonly text: string;\n  readonly range: GhosttyCellRange;\n}\nfunction isSameTerminalLink(\n  left: TerminalLinkWithRange,\n  right: TerminalLinkWithRange | null,\n): boolean {\n  return (\n    right?.text === left.text &&\n    right.range.start.x === left.range.start.x &&\n    right.range.start.y === left.range.start.y &&\n    right.range.end.x === left.range.end.x &&\n    right.range.end.y === left.range.end.y\n  );\n}\n// X11/Wayland expects middle-click paste; macOS and Windows use it for autoscroll.\nfunction isMiddleClickPastePlatform(): boolean {\n  return /linux|bsd/i.test(navigator.platform);\n}\nfunction shouldReportTerminalMouse(\n  tracking: boolean,\n  event: Pick<MouseEvent, \"ctrlKey\" | \"metaKey\" | \"shiftKey\">,\n): boolean {\n  return tracking && !event.shiftKey && !event.ctrlKey && !event.metaKey;\n}\nfunction ghosttyMouseButton(button: number): number | null {\n  switch (button) {\n    case 0:\n      return 1;\n    case 1:\n      return 3;\n    case 2:\n      return 2;\n    case 3:\n      return 4;\n    case 4:\n      return 5;\n    default:\n      return null;\n  }\n}",
+        "context_digest": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "declaration": null,
+        "end_line": 1747,
+        "hash": "6068a8de50df0d91",
+        "line": 1677,
+        "name": "onPointerUp",
+        "origin": null,
+        "owner": "GhosttyTerminalSurface",
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "private readonly onPointerDown = (event: PointerEvent) => {\n    this.linkActivationRequestId += 1;\n    if (event.pointerType === \"touch\") {\n      event.preventDefault();\n      if (!event.isPrimary || this.touchScroll !== null) return;\n      this.touchScroll = {\n        pointerId: event.pointerId,\n        startX: event.clientX,\n        startY: event.clientY,\n        lastY: event.clientY,\n        remainder: 0,\n        moved: false,\n      };\n      this.clearHoveredLink();\n      this.canvas.setPointerCapture(event.pointerId);\n      return;\n    }\n    this.focus();\n    if (shouldReportTerminalMouse(this.core.isMouseTracking(), event)) {\n      const button = ghosttyMouseButton(event.button);\n      if (button === null) return;\n      event.preventDefault();\n      event.stopPropagation();\n      this.clearHoveredLink(\"default\");\n      this.mouseReportingPointerId = event.pointerId;\n      this.mouseReportingButton = button;\n      this.sendMouse(\"press\", button, event);\n      this.canvas.setPointerCapture(event.pointerId);\n      return;\n    }\n    if (event.button === 1 && isMiddleClickPastePlatform()) {\n      // Keep pointerdown uncancelled so compatibility mousedown activates the split pane.\n      this.pasteTerminalSelection();\n      return;\n    }\n    if (event.button !== 0) return;\n    const clickCount = this.recordSelectionClick(event);\n    const link = this.linkAt(event.clientX, event.clientY, true);\n    if (link && !event.shiftKey && clickCount === 1) {\n      event.preventDefault();\n      event.stopPropagation();\n      this.linkActivationPointerId = event.pointerId;\n      this.linkActivationLink = link;\n      this.linkActivationValidation = this.validateLink(link.text);\n      this.linkActivationOrigin = {\n        x: event.clientX,\n        y: event.clientY,\n        clickCount,\n      };\n      this.canvas.setPointerCapture(event.pointerId);\n      return;\n    }\n    this.clearHoveredLink();\n    this.beginSelection(event, clickCount);\n    this.canvas.setPointerCapture(event.pointerId);\n  }",
+        "context": "// X11/Wayland expects middle-click paste; macOS and Windows use it for autoscroll.\nfunction isMiddleClickPastePlatform(): boolean {\n  return /linux|bsd/i.test(navigator.platform);\n}\nfunction shouldReportTerminalMouse(\n  tracking: boolean,\n  event: Pick<MouseEvent, \"ctrlKey\" | \"metaKey\" | \"shiftKey\">,\n): boolean {\n  return tracking && !event.shiftKey && !event.ctrlKey && !event.metaKey;\n}\nfunction ghosttyMouseButton(button: number): number | null {\n  switch (button) {\n    case 0:\n      return 1;\n    case 1:\n      return 3;\n    case 2:\n      return 2;\n    case 3:\n      return 4;\n    case 4:\n      return 5;\n    default:\n      return null;\n  }\n}",
+        "context_digest": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "declaration": null,
+        "end_line": 1419,
+        "hash": "2301b653e421d873",
+        "line": 1364,
+        "name": "onPointerDown",
+        "origin": null,
+        "owner": "GhosttyTerminalSurface",
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.6883260165171565,
+      "similarity_reusable": false
+    },
+    "contract": "High-score opposite lifecycle control: down acquires capture and initializes selection/report/link/touch state; up releases capture, completes link activation, emits release and clears state. Existing sendMouse/link/selection helpers already own shared primitives.",
+    "existing_shared_owner": "GhosttyTerminalSurface registers pointer handlers in same owning file. shouldReportTerminalMouse/sendMouse/linkAt and selection helpers already own primitives; down/up are complementary state transitions.",
+    "id": "T3-X04",
+    "legitimate_variations": [
+      "Down acquires capture and initializes touch/report/link/selection; up releases capture, completes activation/reporting and resets state.",
+      "The .688 score is high but both directions are retrieved by balanced same-file exploration; no hard-positive coverage."
+    ],
+    "proposed_label": "separate",
+    "provisional_family_id": "t3-terminal-pointer-down-up-contrast",
+    "repository": "pingdotgg/t3code",
+    "retrieval_profiles": [
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": "same_file_filter",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "first_retrieval_loss": null,
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default": {
+          "first_retrieval_loss": "same_file_filter",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "review_observation_path": {
+      "artifact_basename": "t3-new-observations.json",
+      "original_artifact_sha256": "824c56012d262e970c6595ea69ee6927541093f180e906ef08303536c427fb7e"
+    },
+    "review_observation_sha256": "824c56012d262e970c6595ea69ee6927541093f180e906ef08303536c427fb7e",
+    "review_observations": [
+      {
+        "id": "T3-X04",
+        "path": {
+          "artifact_basename": "77399e3589134ea08012bc9ee0150ab3bdc836906cea21f2f9421bacd6f60625.json",
+          "original_artifact_sha256": "4cad6d218781f3fee7215d897bc65f83c0b34a66210ce38e5fb6e520df48d466"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.08,
+          "second_opinion": null,
+          "why": "onPointerDown and onPointerUp are complementary handlers of the same state machine: down sets up touch scroll, mouse reporting, link activation and selection state, and up tears it down and dispatches. Shared elements are only generic syntax (pointerType checks, preventDefault, and setPointerCapture vs releasePointerCapture, which are opposite operations), plus calls to existing helpers such as shouldReportTerminalMouse, sendMouse and linkAt. The handlers run different steps in different order. The only repeated fragment is a guarded release of pointer capture, and that is too small to justify a shared helper."
+        }
+      },
+      {
+        "id": "T3-X04",
+        "path": {
+          "artifact_basename": "144ca7e67d31dad1a597e650cb938248d750e721b55a0e797e9999879d9f159f.json",
+          "original_artifact_sha256": "e3d01fc26398f4808106341302f54ac1c1a6c123b7200fcdd1709d021c9dfc10"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.4,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.17,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_disagreements": "Both paid reviewers classify separate; source audit agrees. Preserve raw reviewer records, including any owner/behavior fields that differ; no consensus on those ancillary fields is inferred.",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "source_operation_regions": [
+      {
+        "code": "private readonly onPointerDown = (event: PointerEvent) => {\n    this.linkActivationRequestId += 1;\n    if (event.pointerType === \"touch\") {\n      event.preventDefault();\n      if (!event.isPrimary || this.touchScroll !== null) return;\n      this.touchScroll = {\n        pointerId: event.pointerId,\n        startX: event.clientX,\n        startY: event.clientY,\n        lastY: event.clientY,\n        remainder: 0,\n        moved: false,\n      };\n      this.clearHoveredLink();\n      this.canvas.setPointerCapture(event.pointerId);\n      return;\n    }\n    this.focus();\n    if (shouldReportTerminalMouse(this.core.isMouseTracking(), event)) {\n      const button = ghosttyMouseButton(event.button);\n      if (button === null) return;\n      event.preventDefault();\n      event.stopPropagation();\n      this.clearHoveredLink(\"default\");\n      this.mouseReportingPointerId = event.pointerId;\n      this.mouseReportingButton = button;\n      this.sendMouse(\"press\", button, event);\n      this.canvas.setPointerCapture(event.pointerId);\n      return;\n    }\n    if (event.button === 1 && isMiddleClickPastePlatform()) {\n      // Keep pointerdown uncancelled so compatibility mousedown activates the split pane.\n      this.pasteTerminalSelection();\n      return;\n    }\n    if (event.button !== 0) return;\n    const clickCount = this.recordSelectionClick(event);\n    const link = this.linkAt(event.clientX, event.clientY, true);\n    if (link && !event.shiftKey && clickCount === 1) {\n      event.preventDefault();\n      event.stopPropagation();\n      this.linkActivationPointerId = event.pointerId;\n      this.linkActivationLink = link;\n      this.linkActivationValidation = this.validateLink(link.text);\n      this.linkActivationOrigin = {\n        x: event.clientX,\n        y: event.clientY,\n        clickCount,\n      };\n      this.canvas.setPointerCapture(event.pointerId);\n      return;\n    }\n    this.clearHoveredLink();\n    this.beginSelection(event, clickCount);\n    this.canvas.setPointerCapture(event.pointerId);\n  }",
+        "end_line": 1419,
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "scope": "Whole endpoint shown as contrasting contract evidence; no equivalence claim",
+        "sha256": "baa126549095039fe959b34725a846ce38a444e32afe53bd17fb06b46173d776",
+        "source_id": "apps/web/src/terminal/ghostty/surface.ts::GhosttyTerminalSurface.onPointerDown",
+        "start_line": 1364
+      },
+      {
+        "code": "private readonly onPointerUp = (event: PointerEvent) => {\n    if (event.pointerType === \"touch\") {\n      const touch = this.touchScroll;\n      if (touch?.pointerId !== event.pointerId) return;\n      this.touchScroll = null;\n      event.preventDefault();\n      if (this.canvas.hasPointerCapture(event.pointerId)) {\n        this.canvas.releasePointerCapture(event.pointerId);\n      }\n      if (event.type === \"pointercancel\" || touch.moved) return;\n      this.focus();\n      if (shouldReportTerminalMouse(this.core.isMouseTracking(), event)) {\n        this.sendMouse(\"press\", ghosttyMouseButton(0), event);\n        this.sendMouse(\"release\", ghosttyMouseButton(0), event);\n      } else {\n        const link = this.linkAt(event.clientX, event.clientY, true);\n        if (link) this.activateLink(link, event);\n        else this.clearSelection();\n      }\n      return;\n    }\n    this.setSelectionAutoscroll(0);\n    if (this.linkActivationPointerId === event.pointerId) {\n      event.preventDefault();\n      event.stopPropagation();\n      const link = this.linkActivationLink;\n      const validation = this.linkActivationValidation;\n      this.linkActivationPointerId = null;\n      this.linkActivationLink = null;\n      this.linkActivationValidation = undefined;\n      this.linkActivationOrigin = null;\n      if (this.canvas.hasPointerCapture(event.pointerId)) {\n        this.canvas.releasePointerCapture(event.pointerId);\n      }\n      if (event.type !== \"pointercancel\") {\n        if (link && isSameTerminalLink(link, this.linkAt(event.clientX, event.clientY, true))) {\n          this.activateLink(link, event, validation);\n        }\n      }\n      return;\n    }\n    if (this.mouseReportingPointerId === event.pointerId) {\n      event.preventDefault();\n      event.stopPropagation();\n      this.sendMouse(\"release\", this.mouseReportingButton, event);\n      this.mouseReportingPointerId = null;\n      this.mouseReportingButton = null;\n      if (this.canvas.hasPointerCapture(event.pointerId)) {\n        this.canvas.releasePointerCapture(event.pointerId);\n      }\n      if (event.type === \"pointercancel\") {\n        this.clearHoveredLink();\n      } else {\n        this.hoverPointer = { x: event.clientX, y: event.clientY };\n        this.refreshHoveredLink();\n      }\n      return;\n    }\n    if (this.canvas.hasPointerCapture(event.pointerId)) {\n      this.canvas.releasePointerCapture(event.pointerId);\n    }\n    if (event.button === 1 && isMiddleClickPastePlatform()) {\n      event.preventDefault();\n      return;\n    }\n    if (event.button !== 0) return;\n    if (!this.selectionMoved && this.selectionMode === \"cell\") {\n      this.clearSelection();\n    }\n    this.options.onSelectionChange();\n  }",
+        "end_line": 1747,
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "scope": "Whole endpoint shown as contrasting contract evidence; no equivalence claim",
+        "sha256": "78e40c8af0aa65412c27d273a4b21b28d8222bd018a197836facd8ef8cf57397",
+        "source_id": "apps/web/src/terminal/ghostty/surface.ts::GhosttyTerminalSurface.onPointerUp",
+        "start_line": 1677
+      }
+    ],
+    "source_proofs": [
+      {
+        "end_line": 1419,
+        "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "snapshot": "sources/apps/web/src/terminal/ghostty/surface.ts",
+        "source_id": "apps/web/src/terminal/ghostty/surface.ts::GhosttyTerminalSurface.onPointerDown",
+        "source_sha256": "baa126549095039fe959b34725a846ce38a444e32afe53bd17fb06b46173d776",
+        "start_line": 1364,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/web/src/terminal/ghostty/surface.ts#L1364"
+      },
+      {
+        "end_line": 1747,
+        "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+        "path": "apps/web/src/terminal/ghostty/surface.ts",
+        "portable_source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz",
+        "snapshot": "sources/apps/web/src/terminal/ghostty/surface.ts",
+        "source_id": "apps/web/src/terminal/ghostty/surface.ts::GhosttyTerminalSurface.onPointerUp",
+        "source_sha256": "78e40c8af0aa65412c27d273a4b21b28d8222bd018a197836facd8ef8cf57397",
+        "start_line": 1677,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/web/src/terminal/ghostty/surface.ts#L1677"
+      }
+    ],
+    "status": "source_adjudicated_separate_control_pending_portable_package"
+  },
+  "source_adjudication_sha256": "133221c3b7eeaf0efd621b03913cc01eea9b2979bdcff639f93f2de3bcaf4256",
+  "source_closure": [
+    {
+      "file_sha256": "0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750",
+      "git_blob_sha1": "f1db43056f76f842511e6138b9506c6ac428890e",
+      "path": "apps/web/src/terminal/ghostty/surface.ts",
+      "source_file": "sources/0d453660ac6945ef4baaf464e02b92d1a7567801db42ae90480fd8f191cab750.json.gz"
+    }
+  ],
+  "source_only": true
+}

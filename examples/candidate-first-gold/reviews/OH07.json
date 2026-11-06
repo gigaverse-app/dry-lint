@@ -1,0 +1,334 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.006026,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "bb7126851bdde9554d9222d0144043ae7a81840acf8c7692e545a9121a62cab4",
+      "prompt_sha256": "e67845ce4d3a0c41a526ae569d3ecccc4514066f1c95a97776a9c3b6043c40c7",
+      "request_key": "4f273927074a9d31de9bb450c6dac71c29c04353e2d708f73b1092b744955efb",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 1968,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 1968,
+            "model": null,
+            "output_tokens": 209,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 209,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.2,
+        "second_opinion": null,
+        "why": "The only overlap is a short absolute-path check (`Path(path)`, `is_absolute()`, 400 \"Path must be absolute\") and the generic 500 error wrapper. Beyond that, the two endpoints do different things: download checks existence and file type and returns a FileResponse, while upload creates parent directories and streams the body to disk. That check is only a few lines and is not a substantial domain policy. A helper would add little, so I do not treat it as actionable duplication. The error wrapping also differs: download re-raises HTTPException, while upload has no such clause."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00030508,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "201106c3ba6ec86876c72929292088d25e27df05dbc299d60cd2b76a93ef74f7",
+      "prompt_sha256": "afd24710e4da868fa75bf4f51f1cc7f7b0509c3b799838edac828bfbecd73e2e",
+      "request_key": "7c681e25fa7aec2b5b49810b9a31d303fcc8cefe5a843d1ef3b02c265619f5aa",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 7627,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.23,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.12,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "balanced_hard_positive": false,
+    "bug": null,
+    "caller_proofs": [
+      {
+        "code": "config = get_default_config()\n\n\n@file_router.post(\"/upload/{path}\")\nasync def upload_file(\n    path: Annotated[str, FastApiPath(alias=\"path\", description=\"Absolute file path.\")],\n    file: UploadFile = File(...),\n) -> Success:\n    \"\"\"Upload a file to the workspace.\"\"\"\n",
+        "end_line": 29,
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "portable_source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "purpose": "upload decorator",
+        "snippet_sha256": "464181f3d4c8650eb94c5d0f75cf7d5edae5d271c355bd73a09759cdc3a113ec",
+        "start_line": 21,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/file_router.py#L21"
+      },
+      {
+        "code": "@file_router.get(\"/download/{path}\")\nasync def download_file(\n    path: Annotated[str, FastApiPath(description=\"Absolute file path.\")],\n) -> FileResponse:\n    \"\"\"Download a file from the workspace.\"\"\"\n    try:\n",
+        "end_line": 62,
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "portable_source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "purpose": "download decorator",
+        "snippet_sha256": "201dfba622025a9f37b08e5c61382117ee69c1fa5b8a547d3f8df33e2d32a10e",
+        "start_line": 57,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/file_router.py#L57"
+      },
+      {
+        "code": "from openhands.agent_server.file_router import file_router\nfrom openhands.agent_server.middleware import LocalhostCORSMiddleware\n",
+        "end_line": 24,
+        "file_sha256": "398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023",
+        "path": "openhands/agent_server/api.py",
+        "portable_source_file": "sources/398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023.json.gz",
+        "purpose": "router import",
+        "snippet_sha256": "30635d09817385e4760376c0072a83c7d09bd83ed518af71fae8d50ed234d36e",
+        "start_line": 23,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/api.py#L23"
+      },
+      {
+        "code": "    api_router.include_router(conversation_router)\n    api_router.include_router(tool_router)\n    api_router.include_router(bash_router)\n    api_router.include_router(file_router)\n    api_router.include_router(vscode_router)\n    api_router.include_router(desktop_router)\n",
+        "end_line": 132,
+        "file_sha256": "398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023",
+        "path": "openhands/agent_server/api.py",
+        "portable_source_file": "sources/398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023.json.gz",
+        "purpose": "file router installed",
+        "snippet_sha256": "cad90f6ad85ecc2262009ccc824847211a3efd941472eeff4151c7c3233089c0",
+        "start_line": 127,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/api.py#L127"
+      }
+    ],
+    "diagnostic_profiles": [
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "disagreement_preserved": false,
+    "exact_shared_or_contrasting_regions": [
+      {
+        "code": "    try:\n        target_path = Path(path)\n        if not target_path.is_absolute():\n            raise HTTPException(\n                status_code=status.HTTP_400_BAD_REQUEST,\n                detail=\"Path must be absolute\",\n            )\n\n",
+        "end_line": 37,
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "portable_source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "purpose": "short absolute-path policy",
+        "snippet_sha256": "6a931ce6538a137064fd45b8de06d3dfe328b1ae283d072235abb9b16bdc9908",
+        "start_line": 30,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/file_router.py#L30"
+      },
+      {
+        "code": "        target_path = Path(path)\n        if not target_path.is_absolute():\n            raise HTTPException(\n                status_code=status.HTTP_400_BAD_REQUEST,\n                detail=\"Path must be absolute\",\n            )\n\n        if not target_path.exists():\n",
+        "end_line": 70,
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "portable_source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "purpose": "short absolute-path counterpart",
+        "snippet_sha256": "4c2a0e955bb0bfbe5a49361ec9059258a6b8f4de707831db84308d28cbc45db3",
+        "start_line": 63,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/file_router.py#L63"
+      },
+      {
+        "code": "        target_path.parent.mkdir(parents=True, exist_ok=True)\n\n        # Stream the file to disk to avoid memory issues with large files\n        with open(target_path, \"wb\") as f:\n            while chunk := await file.read(8192):  # Read in 8KB chunks\n                f.write(chunk)\n\n        logger.info(f\"Uploaded file to {target_path}\")\n        return Success()\n\n",
+        "end_line": 48,
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "portable_source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "purpose": "upload writes",
+        "snippet_sha256": "cf91a8f25ea44a8742ad67bdb5a8b008f89e78d302b0620463cee5a4dccdf6a2",
+        "start_line": 39,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/file_router.py#L39"
+      },
+      {
+        "code": "                status_code=status.HTTP_404_NOT_FOUND, detail=\"File not found\"\n            )\n\n        if not target_path.is_file():\n            raise HTTPException(\n                status_code=status.HTTP_400_BAD_REQUEST, detail=\"Path is not a file\"\n            )\n\n        return FileResponse(\n            path=target_path,\n            filename=target_path.name,\n            media_type=\"application/octet-stream\",\n        )\n\n    except HTTPException:\n        raise\n",
+        "end_line": 87,
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "portable_source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "purpose": "download validates and returns response",
+        "snippet_sha256": "0979c6b0a7f6720344ced019706cc46a2b64a6284072d5a04ff430cd17cf067e",
+        "start_line": 72,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/file_router.py#L72"
+      }
+    ],
+    "id": "OH07",
+    "label": "separate",
+    "legitimate_variation": "Resource existence and file-type guards, mkdir/write versus response read, success types, and HTTP error handling. Upload catches its own HTTPException under generic Exception; download explicitly rethrows it. Tiny path guard alone is insufficient actionability.",
+    "license": {
+      "path": "LICENSE",
+      "sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+      "snapshot": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+      "spdx": "MIT"
+    },
+    "operation_contract": "Upload streams chunks into a created parent/file; download validates an existing regular file and returns FileResponse. Separate transfer directions.",
+    "provisional_family_id": "OH-file-upload-download",
+    "repository": "OpenHands/software-agent-sdk",
+    "reviewer_observations": [
+      {
+        "id": "OH07",
+        "path": {
+          "artifact_basename": "4f273927074a9d31de9bb450c6dac71c29c04353e2d708f73b1092b744955efb.json",
+          "original_artifact_sha256": "bb7126851bdde9554d9222d0144043ae7a81840acf8c7692e545a9121a62cab4"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.2,
+          "second_opinion": null,
+          "why": "The only overlap is a short absolute-path check (`Path(path)`, `is_absolute()`, 400 \"Path must be absolute\") and the generic 500 error wrapper. Beyond that, the two endpoints do different things: download checks existence and file type and returns a FileResponse, while upload creates parent directories and streams the body to disk. That check is only a few lines and is not a substantial domain policy. A helper would add little, so I do not treat it as actionable duplication. The error wrapping also differs: download re-raises HTTPException, while upload has no such clause."
+        }
+      },
+      {
+        "id": "OH07",
+        "path": {
+          "artifact_basename": "7c681e25fa7aec2b5b49810b9a31d303fcc8cefe5a843d1ef3b02c265619f5aa.json",
+          "original_artifact_sha256": "201106c3ba6ec86876c72929292088d25e27df05dbc299d60cd2b76a93ef74f7"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.23,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.12,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_status": "centralized observations received; independent static source audit complete; coordinator acceptance pending",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "scope": "whole operations separate; small overlaps acknowledged",
+    "shared_owner_proof": "Path and FileResponse own primitives; no substantive duplicated transfer operation. Guard extraction would be only a few lines.",
+    "source_audit": {
+      "method": "Re-read Git objects at the exact pin, validate native extraction, match both full bodies/file hashes, inspect exact local helpers and live callers/imports; no execution of target code or further models.",
+      "observations_path": {
+        "artifact_basename": "openhands-observations.json",
+        "original_artifact_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b"
+      },
+      "observations_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b",
+      "source_verified": true
+    },
+    "source_audit_resolution": "Separate; reviewer agreement matches independent source distinctions. Different HTTP error behavior retained.",
+    "source_proofs": [
+      {
+        "body_sha256": "68ea2cdafb62a826babc2de1ae9837101910393c2d2c6ffda40f81d8bb618edb",
+        "end_line": 93,
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "git_blob_sha1": "2267e0787e43932fe41a620e10f90a9e6fbee08b",
+        "line": 58,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/agent_server/file_router.py",
+        "portable_source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "snapshot": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "source_id": "openhands/agent_server/file_router.py::download_file",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/file_router.py#L58"
+      },
+      {
+        "body_sha256": "991c5c67582dbe72207f97c100c4fa49f34fa8bebc82318db1cb5936ec85f11b",
+        "end_line": 54,
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "git_blob_sha1": "2267e0787e43932fe41a620e10f90a9e6fbee08b",
+        "line": 25,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/agent_server/file_router.py",
+        "portable_source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "snapshot": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz",
+        "source_id": "openhands/agent_server/file_router.py::upload_file",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/agent_server/file_router.py#L25"
+      }
+    ],
+    "status": "acceptance_proposal_not_gold",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "7dda862e0b6e38d08c9e8463c1fa338ec2cbbf00f4d5b8f494052590aae82ef9",
+  "source_closure": [
+    {
+      "file_sha256": "398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023",
+      "git_blob_sha1": "7d71e3a740d3aeb1600343555a6ee3ef8a05f87b",
+      "path": "openhands/agent_server/api.py",
+      "source_file": "sources/398570e474ee0a32947aca1e51062715796e1d30d1dc4f806fb1c55c65857023.json.gz"
+    },
+    {
+      "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+      "git_blob_sha1": "2267e0787e43932fe41a620e10f90a9e6fbee08b",
+      "path": "openhands/agent_server/file_router.py",
+      "source_file": "sources/42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847.json.gz"
+    }
+  ],
+  "source_only": true
+}

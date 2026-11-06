@@ -1,0 +1,323 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.015212,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "c6fcc91b97b45d7a73b27c80ae8467571151fcfb740cccb7c71dac38163ed753",
+      "prompt_sha256": "e94b94c118d48e0c15d33ae4483659b3acce9207eeea7094433abb8a6a884f8d",
+      "request_key": "fcd262fe04833fd0f55f3e27871380bb1b937a08d64ec605974c292e4de40cf8",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 6246,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 6246,
+            "model": null,
+            "output_tokens": 272,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 272,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.2,
+        "second_opinion": null,
+        "why": "The two functions are inverse transformations (fncall\u2192non-fncall vs non-fncall\u2192fncall). They share setup: deepcopy, `convert_tools_to_description`, and formatting `system_message_suffix_TEMPLATE`. That is just a few lines composing existing helpers, with no substantial domain contract. The str-or-list content branching and the `FunctionCallConversionError` raises are generic syntax, and each branch does something different: one appends the suffix, the other strips it. Adding the in-context example is the inverse of removing it, and the removal logic is not the same code. Tool-call serialization and parsing are inverse operations that use different helpers. No single reusable operation is repeated across both with the same contract, so there is no actionable duplicate or drift."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.000955,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "741fbff1c7589f8a73c11fbb7d864610a6506224f57226a0260c3c79af022c5c",
+      "prompt_sha256": "589c6840d4b7f645213e4f88bb643302c7d030296c1d0462cc0afac6b4aebb47",
+      "request_key": "602f464c368b13773aa5c09ed39e1230fce9d50347a3923ad7da3bf34ecfcc62",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 23875,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.2,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.16,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "balanced_hard_positive": false,
+    "bug": null,
+    "caller_proofs": [
+      {
+        "code": "\nfrom openhands.sdk.llm.exceptions import LLMNoResponseError\nfrom openhands.sdk.llm.mixins.fn_call_converter import (\n    STOP_WORDS,\n    convert_fncall_messages_to_non_fncall_messages,\n    convert_non_fncall_messages_to_fncall_messages,\n)\nfrom openhands.sdk.llm.utils.model_features import get_features\n\n",
+        "end_line": 15,
+        "file_sha256": "787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc",
+        "path": "openhands/sdk/llm/mixins/non_native_fc.py",
+        "portable_source_file": "sources/787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc.json.gz",
+        "purpose": "imports bind both converters",
+        "snippet_sha256": "c08b0e78cb14eb5961e358e63f2183f3a62ef8995599d6d78a26049eaf7e9aea",
+        "start_line": 7,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/non_native_fc.py#L7"
+      },
+      {
+        "code": "        messages: list[dict],\n        tools: list[ChatCompletionToolParam],\n        kwargs: dict,\n    ) -> tuple[list[dict], dict]:\n        \"\"\"Convert to non-fncall prompting when native tool-calling is off.\"\"\"\n        add_iclex = not any(s in self.model for s in (\"openhands-lm\", \"devstral\"))\n        messages = convert_fncall_messages_to_non_fncall_messages(\n            messages, tools, add_in_context_learning_example=add_iclex\n        )\n        if get_features(self.model).supports_stop_words and not self.disable_stop_word:\n            kwargs = dict(kwargs)\n            kwargs[\"stop\"] = STOP_WORDS\n\n        # Ensure we don't send tool_choice when mocking\n",
+        "end_line": 53,
+        "file_sha256": "787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc",
+        "path": "openhands/sdk/llm/mixins/non_native_fc.py",
+        "portable_source_file": "sources/787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc.json.gz",
+        "purpose": "request conversion call",
+        "snippet_sha256": "847de43d73dfc85279990937c0841e3cbc10d4f178beb82b28817b7c5b52b7c9",
+        "start_line": 40,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/non_native_fc.py#L40"
+      },
+      {
+        "code": "                \"Expected non-streaming Choices when post-processing mocked tools\"\n            )\n\n        # Preserve provider-specific reasoning fields before conversion\n        orig_msg = resp.choices[0].message\n        non_fn_message: dict = orig_msg.model_dump()\n        fn_msgs: list[dict] = convert_non_fncall_messages_to_fncall_messages(\n            nonfncall_msgs + [non_fn_message], tools\n        )\n        last: dict = fn_msgs[-1]\n\n        for name in (\"reasoning_content\", \"provider_specific_fields\"):\n            val = getattr(orig_msg, name, None)\n            if not val:\n                continue\n",
+        "end_line": 90,
+        "file_sha256": "787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc",
+        "path": "openhands/sdk/llm/mixins/non_native_fc.py",
+        "portable_source_file": "sources/787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc.json.gz",
+        "purpose": "response conversion call",
+        "snippet_sha256": "71ef6b67a2c2a89f702f4433077d030adeb6749548255957f82700b4dd466c87",
+        "start_line": 76,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/non_native_fc.py#L76"
+      }
+    ],
+    "diagnostic_profiles": [
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      },
+      {
+        "balanced_exploration": {
+          "eligible_rank": 1,
+          "first_loss": "retrieved",
+          "floor": 0.35,
+          "retrieved": true,
+          "same_file_allowed": true,
+          "top_k": 20
+        },
+        "default_cross_file": {
+          "eligible_rank": null,
+          "first_loss": "same_file_exclusion",
+          "floor": 0.5,
+          "retrieved": false,
+          "same_file_allowed": false,
+          "top_k": 3
+        }
+      }
+    ],
+    "disagreement_preserved": false,
+    "exact_shared_or_contrasting_regions": [
+      {
+        "code": "    messages = copy.deepcopy(messages)\n\n    formatted_tools = convert_tools_to_description(tools)\n    system_message_suffix = system_message_suffix_TEMPLATE.format(\n        description=formatted_tools\n    )\n",
+        "end_line": 506,
+        "file_sha256": "f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e",
+        "path": "openhands/sdk/llm/mixins/fn_call_converter.py",
+        "portable_source_file": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz",
+        "purpose": "deepcopy and already-shared description/template setup",
+        "snippet_sha256": "7c6bbe935facc077fdff614427b4ed230a6a57c759eb3123e7549a7ebace6ed6",
+        "start_line": 501,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/fn_call_converter.py#L501"
+      },
+      {
+        "code": "    messages = copy.deepcopy(messages)\n    formatted_tools = convert_tools_to_description(tools)\n    system_message_suffix = system_message_suffix_TEMPLATE.format(\n        description=formatted_tools\n    )\n",
+        "end_line": 784,
+        "file_sha256": "f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e",
+        "path": "openhands/sdk/llm/mixins/fn_call_converter.py",
+        "portable_source_file": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz",
+        "purpose": "already-shared setup counterpart",
+        "snippet_sha256": "a6c87ae6bf13c8139259c20d580fe5308c127f480680dfb89fae5de72a024a05",
+        "start_line": 780,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/fn_call_converter.py#L780"
+      },
+      {
+        "code": "        # 1. SYSTEM MESSAGES\n        # append system prompt suffix to content\n        if role == \"system\":\n            if isinstance(content, str):\n                content += system_message_suffix\n            elif isinstance(content, list):\n                if content and content[-1][\"type\"] == \"text\":\n                    content[-1][\"text\"] += system_message_suffix\n",
+        "end_line": 521,
+        "file_sha256": "f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e",
+        "path": "openhands/sdk/llm/mixins/fn_call_converter.py",
+        "portable_source_file": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz",
+        "purpose": "append suffix",
+        "snippet_sha256": "10bcb6a77f1177cc8dd5c0214789beb9f7499d1916ecca84efe07d7bd847164e",
+        "start_line": 514,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/fn_call_converter.py#L514"
+      },
+      {
+        "code": "        # For system messages, remove the added suffix\n        if role == \"system\":\n            if isinstance(content, str):\n                # Remove the suffix if present\n                content = content.split(system_message_suffix)[0]\n            elif isinstance(content, list):\n                if content and content[-1][\"type\"] == \"text\":\n                    # Remove the suffix from the last text item\n                    content[-1][\"text\"] = content[-1][\"text\"].split(\n                        system_message_suffix\n",
+        "end_line": 802,
+        "file_sha256": "f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e",
+        "path": "openhands/sdk/llm/mixins/fn_call_converter.py",
+        "portable_source_file": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz",
+        "purpose": "strip suffix",
+        "snippet_sha256": "ab00f326ab2df872b32defea170f01ad307c2e89d9969a9dfe7e81bc0ea42d5a",
+        "start_line": 793,
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/fn_call_converter.py#L793"
+      }
+    ],
+    "id": "OH06",
+    "label": "separate",
+    "legitimate_variation": "Add versus remove in-context examples, render versus parse function calls, string/list branches with different edits, and schema validation. Setup overlap is too small and already helper-based.",
+    "license": {
+      "path": "LICENSE",
+      "sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+      "snapshot": "sources/08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b.json.gz",
+      "spdx": "MIT"
+    },
+    "operation_contract": "Serialize native calls/results into textual prompt messages versus parse textual calls/results into native structures. Inverse conversions remain separate.",
+    "provisional_family_id": "OH-function-call-codec-directions",
+    "repository": "OpenHands/software-agent-sdk",
+    "reviewer_observations": [
+      {
+        "id": "OH06",
+        "path": {
+          "artifact_basename": "fcd262fe04833fd0f55f3e27871380bb1b937a08d64ec605974c292e4de40cf8.json",
+          "original_artifact_sha256": "c6fcc91b97b45d7a73b27c80ae8467571151fcfb740cccb7c71dac38163ed753"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.2,
+          "second_opinion": null,
+          "why": "The two functions are inverse transformations (fncall\u2192non-fncall vs non-fncall\u2192fncall). They share setup: deepcopy, `convert_tools_to_description`, and formatting `system_message_suffix_TEMPLATE`. That is just a few lines composing existing helpers, with no substantial domain contract. The str-or-list content branching and the `FunctionCallConversionError` raises are generic syntax, and each branch does something different: one appends the suffix, the other strips it. Adding the in-context example is the inverse of removing it, and the removal logic is not the same code. Tool-call serialization and parsing are inverse operations that use different helpers. No single reusable operation is repeated across both with the same contract, so there is no actionable duplicate or drift."
+        }
+      },
+      {
+        "id": "OH06",
+        "path": {
+          "artifact_basename": "602f464c368b13773aa5c09ed39e1230fce9d50347a3923ad7da3bf34ecfcc62.json",
+          "original_artifact_sha256": "741fbff1c7589f8a73c11fbb7d864610a6506224f57226a0260c3c79af022c5c"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.2,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.16,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviewer_status": "centralized observations received; independent static source audit complete; coordinator acceptance pending",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "scope": "whole operations separate; small overlaps acknowledged",
+    "shared_owner_proof": "copy.deepcopy, convert_tools_to_description and the same template already own shared setup. Dedicated call-string conversion/parser helpers own their respective directions.",
+    "source_audit": {
+      "method": "Re-read Git objects at the exact pin, validate native extraction, match both full bodies/file hashes, inspect exact local helpers and live callers/imports; no execution of target code or further models.",
+      "observations_path": {
+        "artifact_basename": "openhands-observations.json",
+        "original_artifact_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b"
+      },
+      "observations_sha256": "415f12c6e4f401c5792e65707bdebeb695cfa925d4bf72da9c679a3e3ee20f8b",
+      "source_verified": true
+    },
+    "source_audit_resolution": "Separate at whole transformation scope; no actionable same-contract repeated block established.",
+    "source_proofs": [
+      {
+        "body_sha256": "d2520508456cfd4889f23ee30e8d4b2cbf79db84508ebfe869b00f2b0c49ec4e",
+        "end_line": 660,
+        "file_sha256": "f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e",
+        "git_blob_sha1": "a3c4fe3faf75a36454c4315558201aa43ca9794a",
+        "line": 495,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/sdk/llm/mixins/fn_call_converter.py",
+        "portable_source_file": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz",
+        "snapshot": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz",
+        "source_id": "openhands/sdk/llm/mixins/fn_call_converter.py::convert_fncall_messages_to_non_fncall_messages",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/fn_call_converter.py#L495"
+      },
+      {
+        "body_sha256": "f75bafab98a35298e4b8322f0f411a50fbd760feb84f83ca70b5e789ce4f867f",
+        "end_line": 999,
+        "file_sha256": "f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e",
+        "git_blob_sha1": "a3c4fe3faf75a36454c4315558201aa43ca9794a",
+        "line": 775,
+        "operation_mapping": "Narrow operation remains within this exact full extracted ID/body; no snippet token substitution",
+        "path": "openhands/sdk/llm/mixins/fn_call_converter.py",
+        "portable_source_file": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz",
+        "snapshot": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz",
+        "source_id": "openhands/sdk/llm/mixins/fn_call_converter.py::convert_non_fncall_messages_to_fncall_messages",
+        "url": "https://github.com/OpenHands/software-agent-sdk/blob/344ec8a9c30dff0a4ca200fc412510aad44e1bdc/openhands/sdk/llm/mixins/fn_call_converter.py#L775"
+      }
+    ],
+    "status": "acceptance_proposal_not_gold",
+    "whole_function_positive": false
+  },
+  "source_adjudication_sha256": "7dda862e0b6e38d08c9e8463c1fa338ec2cbbf00f4d5b8f494052590aae82ef9",
+  "source_closure": [
+    {
+      "file_sha256": "f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e",
+      "git_blob_sha1": "a3c4fe3faf75a36454c4315558201aa43ca9794a",
+      "path": "openhands/sdk/llm/mixins/fn_call_converter.py",
+      "source_file": "sources/f0f50f6a74dfd08c87a95150d7f07910a0ffa767c855f7860b01a0ec3270519e.json.gz"
+    },
+    {
+      "file_sha256": "787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc",
+      "git_blob_sha1": "9d9db4acf46b8ae96a3d088a54ab9147425f9a3a",
+      "path": "openhands/sdk/llm/mixins/non_native_fc.py",
+      "source_file": "sources/787baa58d7cb1729f72dcc30dd091f0e9927d351a7352e61fc903475d0aa80cc.json.gz"
+    }
+  ],
+  "source_only": true
+}

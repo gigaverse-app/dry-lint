@@ -1,0 +1,425 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.00894,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "5cd4054e49593be66c1275986fcb2ef354015b4d4de61a086b90650b04fb386e",
+      "prompt_sha256": "f14c44f0b76f0a148d01bf04577877be4d03a3bde83bb3833605563bca71f9a5",
+      "request_key": "6bcb664feae8ee43ff14842b3fb27f0b541895569f4edddf72f11b5052fe3e74",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 3060,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 3060,
+            "model": null,
+            "output_tokens": 282,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 282,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.1,
+        "second_opinion": null,
+        "why": "Both functions import `run_prisma` and `prisma_command_timeout` from the same toolchain module, call `run_prisma` with `os.environ.copy()`, and catch `TimeoutExpired` and `CalledProcessError`. That overlap is already delegated to the toolchain owner, and the remaining logic differs. NEW runs `prisma db push` inside a four-attempt retry loop. It changes directory, calls pre-checks and post-triggers, and sleeps between attempts. EXISTING runs `prisma migrate diff` once, parses the SQL output, and maps every failure to a \"no diff\" result. No separately repeated operation with a shared contract is visible, because the error handling and outcomes serve different workflows. A shared helper would only wrap a single call to `run_prisma`."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.00012548,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "dcc2473aeb7b1bd1f74465c9ae256f46e1a7a84c7902c98f77ae628185862a49",
+      "prompt_sha256": "8e324f175aef58f47f7ced2cf3f58ec77c86d51a6c7c60c32d644f72a63454dd",
+      "request_key": "7502f72ca88e59fe303c1034075b9c0ce11fc1a7ac68e2510dc569babd1c04f6",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 3137,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.33,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.19,
+        "second_opinion": null,
+        "why": "The functions implement different concepts."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "active_positive_proposed": false,
+    "background_proof": {
+      "documents": 37604,
+      "path": {
+        "artifact_basename": "background.json.gz",
+        "original_artifact_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+      },
+      "scope": "scope.json",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "def check_prisma_schema_diff_helper(db_url: str) -> tuple[bool, list[str]]:\n    \"\"\"Checks for differences between current database and Prisma schema.\n\n    Never raises: a diff that cannot be produced, because the runner is missing,\n    because the command failed, or because it outlived its budget, is reported as\n    \"no diff\" so boot continues.\n\n    Returns:\n        A tuple containing:\n        - A boolean indicating if differences were found (True) or not (False).\n        - The SQL commands that would close the diff, empty when there is none.\n    \"\"\"\n    try:\n        from litellm_proxy_extras.prisma_toolchain import (\n            PRISMA_COMMAND_TIMEOUT_ENV_VAR,\n            prisma_command_timeout,\n            run_prisma,\n        )\n    except ImportError as e:\n        print_startup_warning(\n            f\"Skipping the migration diff: litellm-proxy-extras has no Prisma runner. Error: {e}\",\n        )\n        return False, []\n\n    verbose_logger.debug(\"Checking for Prisma schema diff...\")\n    timeout: Final = prisma_command_timeout()\n    try:\n        result: Final = run_prisma(\n            [\n                \"prisma\",\n                \"migrate\",\n                \"diff\",\n                \"--from-url\",\n                db_url,\n                \"--to-schema-datamodel\",\n                \"./schema.prisma\",\n                \"--script\",\n            ],\n            timeout=timeout,\n            env=os.environ.copy(),\n        )\n\n        sql_commands: Final = extract_sql_commands(result.stdout)\n\n        if sql_commands:\n            print_startup_message(\n                \"\\n\".join((\"Changes to DB Schema detected\", \"Required SQL commands:\", *sql_commands)),\n            )\n            return True, sql_commands\n        else:\n            return False, []\n    except subprocess.TimeoutExpired:\n        print_startup_warning(\n            f\"Timed out after {timeout}s generating the migration diff. \"\n            f\"Raise {PRISMA_COMMAND_TIMEOUT_ENV_VAR} if this database needs longer.\",\n        )\n        return False, []\n    except subprocess.CalledProcessError as e:\n        error_message: Final = f\"Failed to generate migration diff. Error: {e.stderr}\"\n        print_startup_warning(error_message)\n        return False, []",
+        "context": "{\"imports\": [\"import os\", \"import subprocess\", \"from typing import Final\", \"from litellm._logging import print_startup_message, print_startup_warning, verbose_logger\"], \"possible_callers\": [{\"id\": \"litellm/proxy/db/check_migration.py::check_prisma_schema_diff\", \"line\": 110, \"body_sha256\": \"9369701f76ea0c07fd75712fc83ba711e6539f5bb0ef61dcdd8c2667039a49c6\"}], \"local_helper_owners\": [{\"id\": \"litellm/proxy/db/check_migration.py::extract_sql_commands\", \"line\": 10, \"end_line\": 44, \"body_sha256\": \"04a0846f95ba5e25d162308df3311c7147f817c4fc0675ce54fda94bc480fa80\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.py\"}",
+        "context_digest": "dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59",
+        "declaration": null,
+        "end_line": 107,
+        "hash": "",
+        "line": 47,
+        "name": "check_prisma_schema_diff_helper",
+        "origin": null,
+        "owner": null,
+        "path": "litellm/proxy/db/check_migration.py",
+        "portable_source_file": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "    def setup_database(use_migrate: bool = False, use_v2_resolver: bool = False) -> bool:\n        \"\"\"\n        Set up the database using either prisma migrate or prisma db push\n\n        Args:\n            use_migrate: Use `prisma migrate deploy` instead of `db push`.\n            use_v2_resolver: Opt into the v2 migration resolver that avoids\n                the diff-and-force recovery behavior (which caused schema\n                thrashing during rolling deploys). Defaults to False.\n\n        Returns:\n            bool: True if setup was successful, False otherwise\n        \"\"\"\n\n        for attempt in range(4):\n            original_dir = os.getcwd()\n            prisma_dir = PrismaManager._get_prisma_dir()\n            os.chdir(prisma_dir)\n            try:\n                if use_migrate:\n                    try:\n                        from litellm_proxy_extras.utils import ProxyExtrasDBManager\n                    except ImportError as e:\n                        verbose_proxy_logger.error(\"\\x1b[1;31mLiteLLM: Failed to import proxy extras. Got %s\\x1b[0m\", e)\n                        return False\n\n                    prisma_dir = PrismaManager._get_prisma_dir()\n\n                    return ProxyExtrasDBManager.setup_database(\n                        use_migrate=use_migrate,\n                        use_v2_resolver=use_v2_resolver,\n                    )\n                else:\n                    try:\n                        from litellm_proxy_extras.prisma_toolchain import (\n                            prisma_command_timeout,\n                            run_prisma,\n                        )\n                    except ImportError as e:\n                        verbose_proxy_logger.error(\"\\x1b[1;31mLiteLLM: Failed to import proxy extras. Got %s\\x1b[0m\", e)\n                        return False\n\n                    from litellm_proxy_extras.utils import ProxyExtrasDBManager\n\n                    ProxyExtrasDBManager.raise_if_lens_rename_pending()\n                    PrismaManager._raise_if_partitioned_spend_logs()\n                    run_prisma(\n                        [\n                            \"prisma\",\n                            \"db\",\n                            \"push\",\n                            \"--accept-data-loss\",\n                            \"--skip-generate\",\n                        ],\n                        timeout=prisma_command_timeout(),\n                        env=os.environ.copy(),\n                        stdout=None,\n                        stderr=None,\n                    )\n                    PrismaManager._apply_environment_variables_revision_trigger()\n                    PrismaManager._apply_replica_identity_full_if_requested()\n                    return True\n            except subprocess.TimeoutExpired as e:\n                verbose_proxy_logger.warning(\"Attempt %s timed out after %.0fs\", attempt + 1, e.timeout)\n                time.sleep(random.randrange(5, 15))\n            except subprocess.CalledProcessError as e:\n                attempts_left = 3 - attempt\n                retry_msg = f\" Retrying... ({attempts_left} attempts left)\" if attempts_left > 0 else \"\"\n                verbose_proxy_logger.warning(\"The process failed to execute. Details: %s.%s\", e, retry_msg)\n                time.sleep(random.randrange(5, 15))\n            finally:\n                os.chdir(original_dir)\n        return False",
+        "context": "{\"imports\": [\"import asyncio\", \"import importlib.resources\", \"import os\", \"import random\", \"import signal\", \"import subprocess\", \"import time\", \"import urllib\", \"import urllib.parse\", \"from collections.abc import Awaitable, Callable, Coroutine\", \"from datetime import datetime, timedelta\", \"from typing import TYPE_CHECKING, Final, Protocol, TypeVar\", \"from pydantic import TypeAdapter\", \"from litellm._logging import verbose_proxy_logger\", \"from litellm.proxy.db.db_span import db_span\", \"from litellm.proxy.db.db_url_settings import add_missing_query_params, token_refresh_params_from_url\", \"from litellm.proxy.db.log_db_metrics import db_io_claimed, record_db_io\", \"from litellm.proxy.db.prisma_query_span import parse_prisma_query\", \"from litellm.proxy.db.token_auth import (\\n    DEFAULT_POSTGRES_PORT,\\n    DatabaseTokenAuth,\\n    IAMEndpoint,\\n    RdsIamTokenAuth,\\n    mint_database_token,\\n    parse_database_token_expiration,\\n    parse_iam_endpoint_from_url,\\n)\", \"from litellm.secret_managers.main import str_to_bool\"], \"possible_callers\": [], \"local_helper_owners\": [], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.py\"}",
+        "context_digest": "b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365",
+        "declaration": null,
+        "end_line": 1115,
+        "hash": "",
+        "line": 1043,
+        "name": "setup_database",
+        "origin": null,
+        "owner": "PrismaManager",
+        "path": "litellm/proxy/db/prisma_client.py",
+        "portable_source_file": "sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.20587664305721257,
+      "similarity_reusable": false
+    },
+    "classification": "separate",
+    "confidence": "both reviewers agree; source supported",
+    "diagnostic_profiles": [
+      {
+        "cross_file_rank": 1,
+        "first_retrieval_loss": "floor",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "floor",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "floor",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/proxy/db/prisma_client.py::PrismaManager.setup_database",
+        "query_lines": 73,
+        "query_token_count": 174,
+        "raw_rank": 2,
+        "score": 0.20587664305721254,
+        "target": "litellm/proxy/db/check_migration.py::check_prisma_schema_diff_helper"
+      },
+      {
+        "cross_file_rank": 11,
+        "first_retrieval_loss": "floor",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "floor",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "floor",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/proxy/db/check_migration.py::check_prisma_schema_diff_helper",
+        "query_lines": 61,
+        "query_token_count": 100,
+        "raw_rank": 13,
+        "score": 0.20587664305721257,
+        "target": "litellm/proxy/db/prisma_client.py::PrismaManager.setup_database"
+      }
+    ],
+    "endpoints": [
+      {
+        "body_sha256": "dddef28c4d221d3ced26c965a0dd330fa93ed0885a6b292a417dc729ec652885",
+        "function_end": 1115,
+        "function_start": 1043,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/db/prisma_client.py",
+            "code": "    def setup_database(use_migrate: bool = False, use_v2_resolver: bool = False) -> bool:\n        \"\"\"\n        Set up the database using either prisma migrate or prisma db push\n\n        Args:\n            use_migrate: Use `prisma migrate deploy` instead of `db push`.\n            use_v2_resolver: Opt into the v2 migration resolver that avoids\n                the diff-and-force recovery behavior (which caused schema\n                thrashing during rolling deploys). Defaults to False.\n\n        Returns:\n            bool: True if setup was successful, False otherwise\n        \"\"\"\n\n        for attempt in range(4):\n            original_dir = os.getcwd()\n            prisma_dir = PrismaManager._get_prisma_dir()\n            os.chdir(prisma_dir)\n            try:\n                if use_migrate:\n                    try:\n                        from litellm_proxy_extras.utils import ProxyExtrasDBManager\n                    except ImportError as e:\n                        verbose_proxy_logger.error(\"\\x1b[1;31mLiteLLM: Failed to import proxy extras. Got %s\\x1b[0m\", e)\n                        return False\n\n                    prisma_dir = PrismaManager._get_prisma_dir()\n\n                    return ProxyExtrasDBManager.setup_database(\n                        use_migrate=use_migrate,\n                        use_v2_resolver=use_v2_resolver,\n                    )\n                else:\n                    try:\n                        from litellm_proxy_extras.prisma_toolchain import (\n                            prisma_command_timeout,\n                            run_prisma,\n                        )\n                    except ImportError as e:\n                        verbose_proxy_logger.error(\"\\x1b[1;31mLiteLLM: Failed to import proxy extras. Got %s\\x1b[0m\", e)\n                        return False\n\n                    from litellm_proxy_extras.utils import ProxyExtrasDBManager\n\n                    ProxyExtrasDBManager.raise_if_lens_rename_pending()\n                    PrismaManager._raise_if_partitioned_spend_logs()\n                    run_prisma(\n                        [\n                            \"prisma\",\n                            \"db\",\n                            \"push\",\n                            \"--accept-data-loss\",\n                            \"--skip-generate\",\n                        ],\n                        timeout=prisma_command_timeout(),\n                        env=os.environ.copy(),\n                        stdout=None,\n                        stderr=None,\n                    )\n                    PrismaManager._apply_environment_variables_revision_trigger()\n                    PrismaManager._apply_replica_identity_full_if_requested()\n                    return True\n            except subprocess.TimeoutExpired as e:\n                verbose_proxy_logger.warning(\"Attempt %s timed out after %.0fs\", attempt + 1, e.timeout)\n                time.sleep(random.randrange(5, 15))\n            except subprocess.CalledProcessError as e:\n                attempts_left = 3 - attempt\n                retry_msg = f\" Retrying... ({attempts_left} attempts left)\" if attempts_left > 0 else \"\"\n                verbose_proxy_logger.warning(\"The process failed to execute. Details: %s.%s\", e, retry_msg)\n                time.sleep(random.randrange(5, 15))\n            finally:\n                os.chdir(original_dir)\n        return False",
+            "end_line": 1115,
+            "file_sha256": "b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365",
+            "git_blob": "be5de040fdf22c527fc9d751d90e7534d970f344",
+            "path": "litellm/proxy/db/prisma_client.py",
+            "portable_source_file": "sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.json.gz",
+            "region_sha256": "dddef28c4d221d3ced26c965a0dd330fa93ed0885a6b292a417dc729ec652885",
+            "snapshot": "sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.json.gz",
+            "source_id": "litellm/proxy/db/prisma_client.py::PrismaManager.setup_database",
+            "start_line": 1043
+          }
+        ],
+        "portable_source_file": "sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.json.gz",
+        "source_id": "litellm/proxy/db/prisma_client.py::PrismaManager.setup_database",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/db/prisma_client.py",
+          "file_sha256": "b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365",
+          "git_blob": "be5de040fdf22c527fc9d751d90e7534d970f344",
+          "path": "litellm/proxy/db/prisma_client.py",
+          "portable_source_file": "sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.json.gz",
+          "snapshot": "sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.json.gz"
+        }
+      },
+      {
+        "body_sha256": "50428d896a31adc3d01e82554f319366516a7bd43bd4ad70b851d68f8d93c422",
+        "function_end": 107,
+        "function_start": 47,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/db/check_migration.py",
+            "code": "def check_prisma_schema_diff_helper(db_url: str) -> tuple[bool, list[str]]:\n    \"\"\"Checks for differences between current database and Prisma schema.\n\n    Never raises: a diff that cannot be produced, because the runner is missing,\n    because the command failed, or because it outlived its budget, is reported as\n    \"no diff\" so boot continues.\n\n    Returns:\n        A tuple containing:\n        - A boolean indicating if differences were found (True) or not (False).\n        - The SQL commands that would close the diff, empty when there is none.\n    \"\"\"\n    try:\n        from litellm_proxy_extras.prisma_toolchain import (\n            PRISMA_COMMAND_TIMEOUT_ENV_VAR,\n            prisma_command_timeout,\n            run_prisma,\n        )\n    except ImportError as e:\n        print_startup_warning(\n            f\"Skipping the migration diff: litellm-proxy-extras has no Prisma runner. Error: {e}\",\n        )\n        return False, []\n\n    verbose_logger.debug(\"Checking for Prisma schema diff...\")\n    timeout: Final = prisma_command_timeout()\n    try:\n        result: Final = run_prisma(\n            [\n                \"prisma\",\n                \"migrate\",\n                \"diff\",\n                \"--from-url\",\n                db_url,\n                \"--to-schema-datamodel\",\n                \"./schema.prisma\",\n                \"--script\",\n            ],\n            timeout=timeout,\n            env=os.environ.copy(),\n        )\n\n        sql_commands: Final = extract_sql_commands(result.stdout)\n\n        if sql_commands:\n            print_startup_message(\n                \"\\n\".join((\"Changes to DB Schema detected\", \"Required SQL commands:\", *sql_commands)),\n            )\n            return True, sql_commands\n        else:\n            return False, []\n    except subprocess.TimeoutExpired:\n        print_startup_warning(\n            f\"Timed out after {timeout}s generating the migration diff. \"\n            f\"Raise {PRISMA_COMMAND_TIMEOUT_ENV_VAR} if this database needs longer.\",\n        )\n        return False, []\n    except subprocess.CalledProcessError as e:\n        error_message: Final = f\"Failed to generate migration diff. Error: {e.stderr}\"\n        print_startup_warning(error_message)\n        return False, []",
+            "end_line": 107,
+            "file_sha256": "dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59",
+            "git_blob": "d126f112f900a2094700169549218a9a8a3199a5",
+            "path": "litellm/proxy/db/check_migration.py",
+            "portable_source_file": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz",
+            "region_sha256": "50428d896a31adc3d01e82554f319366516a7bd43bd4ad70b851d68f8d93c422",
+            "snapshot": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz",
+            "source_id": "litellm/proxy/db/check_migration.py::check_prisma_schema_diff_helper",
+            "start_line": 47
+          }
+        ],
+        "portable_source_file": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz",
+        "source_id": "litellm/proxy/db/check_migration.py::check_prisma_schema_diff_helper",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/db/check_migration.py",
+          "file_sha256": "dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59",
+          "git_blob": "d126f112f900a2094700169549218a9a8a3199a5",
+          "path": "litellm/proxy/db/check_migration.py",
+          "portable_source_file": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz",
+          "snapshot": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz"
+        }
+      }
+    ],
+    "existing_and_proposed_ownership": "run_prisma and prisma_command_timeout from litellm_proxy_extras.prisma_toolchain already own shared invocation/timeout. External helper is outside selected corpus; its body is not claimed verified or relabeled. Caller command/error behavior establishes separation without it.",
+    "hard_positive_balanced": false,
+    "id": "LL-C07",
+    "legitimate_variation": "Mutation/prechecks/post-triggers/retry sleep versus read-only inspection/output parsing/no-diff return. Error contracts differ.",
+    "license_scope": {
+      "header_checks": [
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/proxy/proxy_cli.py",
+          "portable_source_file": "sources/76c54a73754e7a31394ca0dde7707371a5a82139f7c23a76029454217654e673.json.gz"
+        },
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/proxy/db/prisma_client.py",
+          "portable_source_file": "sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.json.gz"
+        },
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/proxy/db/check_migration.py",
+          "portable_source_file": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz"
+        }
+      ],
+      "interpretation": "Importing enterprise symbols or checking premium status is not a file-license override. No enterprise/ body copied. Two conservatively excluded original files remain excluded; no scope expansion or IDF changes.",
+      "license_path": "LICENSE",
+      "nested_license_paths_in_litellm": [
+        "litellm/litellm_core_utils/tokenizers/deepseek_tokenizer_LICENSE",
+        "litellm/proxy/auth/litellm_license.py"
+      ],
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_license_rule": "All content outside enterprise/ is MIT unless other stated restrictions apply. All endpoints and added owner/caller proofs are under litellm/, outside enterprise/.",
+      "sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+      "spdx": "MIT"
+    },
+    "live_caller_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/proxy_cli.py",
+        "code": "            from litellm_proxy_extras.prisma_toolchain import prisma_cli_available\n\n            is_prisma_runnable: Final = prisma_cli_available()\n\n            if is_prisma_runnable:\n                from litellm.proxy.db.check_migration import check_prisma_schema_diff\n                from litellm.proxy.db.prisma_client import (\n                    PrismaManager,\n                    should_update_prisma_schema,\n                )\n\n                if should_update_prisma_schema(general_settings.get(\"disable_prisma_schema_update\")) is False:\n                    check_prisma_schema_diff(db_url=None)\n                else:\n                    use_v2_resolver: Final = resolve_v2_migration_resolver(\n                        use_legacy_flag=use_legacy_migration_resolver,\n                        env_value=os.getenv(\"USE_V2_MIGRATION_RESOLVER\"),\n                    )\n                    if deprecated_v2_flag_passed_on_cli() and use_v2_resolver:\n                        print_startup_warning(\n                            \"\\033[1;33mLiteLLM Proxy: --use_v2_migration_resolver is \"\n                            \"deprecated and has no effect, because the v2 migration \"\n                            \"resolver is now the default. You can safely remove it. To \"\n                            \"opt back into the legacy v1 resolver, pass \"\n                            \"--use_legacy_migration_resolver.\\033[0m\",\n                        )\n                    if not use_v2_resolver:\n                        print_startup_warning(\n                            \"\\033[1;33mLiteLLM Proxy: Using the legacy (v1) migration \"\n                            \"resolver. It performs the diff-and-force recovery that can \"\n                            \"cause schema thrashing during rolling deploys where two \"\n                            \"LiteLLM versions contend for the same DB.\\033[0m\",\n                        )\n                    try:\n                        migrated: Final = PrismaManager.setup_database(\n                            use_migrate=not use_prisma_db_push,\n                            use_v2_resolver=use_v2_resolver,\n                        )\n                        setup_ok: Final = migrated and (\n                            not skip_server_startup or PrismaManager.build_request_log_indexes()\n                        )\n                        if migrated and not skip_server_startup:\n                            PrismaManager.start_request_log_index_build()\n                    except RuntimeError as e:\n                        # Raised on unrecoverable migration errors: the v2",
+        "enclosing_source_ids": [
+          "litellm/proxy/proxy_cli.py::run_server"
+        ],
+        "end_line": 1676,
+        "file_sha256": "76c54a73754e7a31394ca0dde7707371a5a82139f7c23a76029454217654e673",
+        "git_blob": "0c89627e74df511e0d7ec413e77d1546673f1dbb",
+        "path": "litellm/proxy/proxy_cli.py",
+        "portable_source_file": "sources/76c54a73754e7a31394ca0dde7707371a5a82139f7c23a76029454217654e673.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "f934f1bba921dbe2e369eb6f3a93bb27e7d8cee4d29bb4197524329474445c69",
+        "snapshot": "sources/76c54a73754e7a31394ca0dde7707371a5a82139f7c23a76029454217654e673.json.gz",
+        "start_line": 1632
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/proxy/db/check_migration.py",
+        "code": "def check_prisma_schema_diff(db_url: str | None = None) -> None:\n    \"\"\"Main function to run the Prisma schema diff check.\"\"\"\n    if db_url is None:\n        db_url = os.getenv(\"DATABASE_URL\")\n        if db_url is None:\n            raise Exception(\"DATABASE_URL not set\")\n    has_diff, message = check_prisma_schema_diff_helper(db_url)\n    if has_diff:\n        verbose_logger.exception(\n            \"\ud83d\udea8\ud83d\udea8\ud83d\udea8 prisma schema out of sync with db. Consider running these sql_commands to sync the two - %s\",\n            message,\n        )",
+        "enclosing_source_ids": [
+          "litellm/proxy/db/check_migration.py::check_prisma_schema_diff"
+        ],
+        "end_line": 121,
+        "file_sha256": "dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59",
+        "git_blob": "d126f112f900a2094700169549218a9a8a3199a5",
+        "path": "litellm/proxy/db/check_migration.py",
+        "portable_source_file": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "9369701f76ea0c07fd75712fc83ba711e6539f5bb0ef61dcdd8c2667039a49c6",
+        "snapshot": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz",
+        "start_line": 110
+      }
+    ],
+    "live_proof_limit": "Exact production call sites/registration and branch wiring verified statically. No execution, configured deployment, provider, network or credentials accessed. Callback runtime type depends on configured integration.",
+    "operation_contract": "Schema-changing db push with bounded retries and directory restoration versus one best-effort migrate diff that parses SQL and maps errors to no-diff.",
+    "owner_proofs": [],
+    "provisional_family_id": "LL-PRISMA-PUSH-VS-DIFF",
+    "repository": "BerriAI/litellm",
+    "reviewer_disagreement_resolution": "No reviewer disagreement; both separate.",
+    "reviewer_observations": [
+      {
+        "id": "LL-C07",
+        "path": {
+          "artifact_basename": "6bcb664feae8ee43ff14842b3fb27f0b541895569f4edddf72f11b5052fe3e74.json",
+          "original_artifact_sha256": "5cd4054e49593be66c1275986fcb2ef354015b4d4de61a086b90650b04fb386e"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.1,
+          "second_opinion": null,
+          "why": "Both functions import `run_prisma` and `prisma_command_timeout` from the same toolchain module, call `run_prisma` with `os.environ.copy()`, and catch `TimeoutExpired` and `CalledProcessError`. That overlap is already delegated to the toolchain owner, and the remaining logic differs. NEW runs `prisma db push` inside a four-attempt retry loop. It changes directory, calls pre-checks and post-triggers, and sleeps between attempts. EXISTING runs `prisma migrate diff` once, parses the SQL output, and maps every failure to a \"no diff\" result. No separately repeated operation with a shared contract is visible, because the error handling and outcomes serve different workflows. A shared helper would only wrap a single call to `run_prisma`."
+        }
+      },
+      {
+        "id": "LL-C07",
+        "path": {
+          "artifact_basename": "7502f72ca88e59fe303c1034075b9c0ce11fc1a7ac68e2510dc569babd1c04f6.json",
+          "original_artifact_sha256": "dcc2473aeb7b1bd1f74465c9ae256f46e1a7a84c7902c98f77ae628185862a49"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.33,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.19,
+          "second_opinion": null,
+          "why": "The functions implement different concepts."
+        }
+      }
+    ],
+    "reviews_provenance": {
+      "path": {
+        "artifact_basename": "litellm-observations.json",
+        "original_artifact_sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6"
+      },
+      "sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6",
+      "snapshot": "review-observations.json"
+    },
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "schema": 1,
+    "source_verification": {
+      "coordinator_all_16_endpoint_checks_passed": true,
+      "direct_git": true,
+      "full_background_match": true,
+      "native_extractor_exact_body": true
+    },
+    "status": "source_resolved_acceptance_proposal_not_final_gold",
+    "whole_function_equivalence": false
+  },
+  "source_adjudication_sha256": "3d5ea1f5b0da43be576920bae16cdf7082be74a7867a1d8980bba775ce16215f",
+  "source_closure": [
+    {
+      "file_sha256": "dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59",
+      "git_blob_sha1": "d126f112f900a2094700169549218a9a8a3199a5",
+      "path": "litellm/proxy/db/check_migration.py",
+      "source_file": "sources/dc8931b4e241af600e5dfd30dd00b1d547c03252295f3d59e25b10d206ffbe59.json.gz"
+    },
+    {
+      "file_sha256": "b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365",
+      "git_blob_sha1": "be5de040fdf22c527fc9d751d90e7534d970f344",
+      "path": "litellm/proxy/db/prisma_client.py",
+      "source_file": "sources/b07540bd12cac3cc984e2b0ff0fdd8d08ae65477635eb1a333802997c4b98365.json.gz"
+    },
+    {
+      "file_sha256": "76c54a73754e7a31394ca0dde7707371a5a82139f7c23a76029454217654e673",
+      "git_blob_sha1": "0c89627e74df511e0d7ec413e77d1546673f1dbb",
+      "path": "litellm/proxy/proxy_cli.py",
+      "source_file": "sources/76c54a73754e7a31394ca0dde7707371a5a82139f7c23a76029454217654e673.json.gz"
+    }
+  ],
+  "source_only": true
+}

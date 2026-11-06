@@ -1,0 +1,264 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.01919,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "066efbde6cf8a108e3841f5a3ee6eabf8970e3afd19f8adbc269c79c63b89506",
+      "prompt_sha256": "7fc4ceb531601a0c6ab6387017aff9ef9e92ec55e9efad146856c351872f4812",
+      "request_key": "c2428bb1093feb879f79d36e0c5be078ed45c9d6d0d2205e3fd27ea61d027a8f",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 7735,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 7735,
+            "model": null,
+            "output_tokens": 372,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 372,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.2,
+        "second_opinion": null,
+        "why": "Both functions import a copied attachment from a source environment. They check for a locally copied file, then request an asset URL for the attachment, resolve it against the connection's base URL, and download it. That overlap is shared domain flow, not a clearly independent shared operation. The mobile version does platform-specific work: Expo file URIs, preview disposal, persisting the imported attachment, abort signals, and Atom query execution. The web version works with File/Blob objects, draft targets, attachment limits, toasts, pending-work tracking, and the draft store. Both already call the same helpers where they could: `resolveAssetUrl`, `assetEnvironment.createUrl`, and a download function. Beyond that, the sequences differ in failure handling (throw vs toast-and-return), the download mechanism, and the local-copy lookup. The web function also holds a lot of unrelated orchestration (record ordering, conflict reminting, per-kind handling). The remaining overlap is a few lines of adapter glue over different platform APIs, so no sensible shared helper with a stable contract is established."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    },
+    {
+      "estimated_usd": 0.000221,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "535c300591e521dd594bc50454b6803c1cb7f8319dda925b6cbec1ed71fd2bd3",
+      "prompt_sha256": "5fa14b0b5bc6e9e8078e0cd2d2049c8199d5f1ee00f913d48407aa6ed4fd1c30",
+      "request_key": "87c8a2acb0f597f6e96e51991713a48afa8ca1e891e92604ec4f24c83ed76461",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 5525,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.8,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.49,
+        "second_opinion": null,
+        "why": "Platform SDK or provider boundaries should remain separate."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "accepted_hard_positive": false,
+    "adjudication": "Accept rejection. Local file lookup, assetEnvironment.createUrl, resolveAssetUrl and download helpers already own common steps. Mobile adapter performs Expo preview URI/persistence/disposal/abort; web handles File/Blob timeout, draft identity/chip references/limits, UI errors and store updates. No concrete independent remaining portable acquisition owner is established beyond adapter glue. Prior nomination overstated workflow sharing; source evidence does not overturn either reviewer.",
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "function useComposerContextImport(input: {\n  readonly environmentId: EnvironmentId;\n  readonly linkedEnvironments: ReadonlyMap<EnvironmentId, string>;\n  readonly activeThread: ChatComposerProps[\"activeThread\"];\n  readonly activeThreadId: ChatComposerProps[\"activeThreadId\"];\n  readonly composerDraftTarget: ChatComposerProps[\"composerDraftTarget\"];\n  readonly attachmentDraftTarget: ChatComposerProps[\"composerDraftTarget\"];\n  readonly attachmentTargetKey: string;\n  readonly attachmentTargetKeyRef: RefObject<string>;\n  readonly questionAttachmentTarget: DraftId | null;\n  readonly pendingUserInputs: ReadonlyArray<PendingUserInput>;\n  readonly composerContextRecords: ComposerDraftContextRecords;\n  readonly composerImages: ReadonlyArray<ComposerImageAttachment>;\n  readonly composerFilesRef: ChatComposerProps[\"composerFilesRef\"];\n  readonly promptRef: RefObject<string>;\n  readonly pendingThreadImportsRef: RefObject<Map<string, number>>;\n  readonly addComposerFilesToDraft: (files: ComposerFileAttachment[]) => string[];\n}) {\n  const {\n    environmentId,\n    linkedEnvironments,\n    activeThread,\n    activeThreadId,\n    composerDraftTarget,\n    attachmentDraftTarget,\n    attachmentTargetKey,\n    attachmentTargetKeyRef,\n    questionAttachmentTarget,\n    pendingUserInputs,\n    composerContextRecords,\n    composerImages,\n    composerFilesRef,\n    promptRef,\n    pendingThreadImportsRef,\n    addComposerFilesToDraft,\n  } = input;\n  const getComposerDraft = useComposerDraftStore((store) => store.getComposerDraft);\n  const addComposerDraftImages = useComposerDraftStore((store) => store.addImages);\n  const addComposerDraftTerminalContexts = useComposerDraftStore(\n    (store) => store.addTerminalContexts,\n  );\n  const addComposerDraftReviewComment = useComposerDraftStore((store) => store.addReviewComment);\n  const addComposerDraftPreviewAnnotation = useComposerDraftStore(\n    (store) => store.addPreviewAnnotation,\n  );\n  const addComposerDraftThreadContexts = useComposerDraftStore((store) => store.addThreadContexts);\n  const addComposerDraftEnvironmentContexts = useComposerDraftStore(\n    (store) => store.addEnvironmentContexts,\n  );\n  const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, { reportFailure: false });\n  const loadThreadTranscript = useAtomCommand(orchestrationEnvironment.threadTranscript, {\n    reportFailure: false,\n  });\n  const countReservedAttachments = () => {\n    const questionRequest = pendingUserInputs[0];\n    const otherQuestionKeys =\n      questionAttachmentTarget && questionRequest && activeThreadId\n        ? questionRequest.questions\n            .map((question) =>\n              questionAttachmentDraftId(\n                environmentId,\n                activeThreadId,\n                questionRequest.requestId,\n                question.id,\n              ),\n            )\n            .filter((key) => key !== questionAttachmentTarget)\n        : [];\n    const draft = getComposerDraft(attachmentDraftTarget);\n    return (\n      (draft?.images.length ?? 0) +\n      (draft?.files.length ?? 0) +\n      countPreparingComposerImages(attachmentTargetKey) +\n      (pendingThreadImportsRef.current.get(attachmentTargetKey) ?? 0) +\n      countQuestionAttachments(otherQuestionKeys)\n    );\n  };\n  const countReservedAttachmentsStable = useStableCallback(countReservedAttachments);\n  const runAttachmentImport = async (\n    record: Extract<ComposerContextRecord, { kind: \"image\" | \"file\" }>,\n    localId: string,\n    sourceEnvironmentId: EnvironmentId,\n    importTargetKey: string,\n  ) => {\n    const fail = (reason: string) => {\n      toastManager.add({\n        type: \"error\",\n        title: `Couldn't bring ${record.name} into this message`,\n        description: `${reason} Remove the chip or attach the file again.`,\n      });\n    };\n    let file = copiedComposerAttachmentFile(sourceEnvironmentId, record.attachmentId);\n    if (!file) {\n      const sourceConnection = readPreparedConnection(sourceEnvironmentId);\n      if (!sourceConnection) {\n        fail(\"The environment it came from is not connected.\");\n        return;\n      }\n      const result = await createAssetUrl({\n        environmentId: sourceEnvironmentId,\n        input: { resource: { _tag: \"attachment\", attachmentId: record.attachmentId } },\n      });\n      const url =\n        result._tag === \"Success\"\n          ? resolveAssetUrl(sourceConnection.httpBaseUrl, result.value.relativeUrl)\n          : null;\n      if (!url) {\n        const cause = result._tag === \"Failure\" ? Cause.squash(result.cause) : null;\n        fail(\n          isUnreachable(cause)\n            ? \"The environment it came from is not reachable right now.\"\n            : \"The original attachment is no longer available.\",\n        );\n        return;\n      }\n      const blob = await downloadAttachmentBlob(url);\n      if (!blob) {\n        fail(\"Downloading it from the source failed.\");\n        return;\n      }\n      // Question attachments have no inline reference; annotations can own their screenshots.\n      const references = new Set(collectInlineContextIds(promptRef.current));\n      if (\n        !questionAttachmentTarget &&\n        !references.has(toKindScopedComposerContextId(record.kind, localId)) &&\n        !(\n          record.kind === \"image\" &&\n          references.has(previewAnnotationContextId(localId)) &&\n          getComposerDraft(composerDraftTarget)?.previewAnnotations.some(\n            (annotation) => annotation.id === localId,\n          )\n        )\n      )\n        return;\n      file = new File([blob], record.name, { type: record.mimeType || blob.type });\n    }\n    // The draft these bytes belong to may have been sent or switched away from while they\n    // downloaded. Dropping them here keeps them out of whatever draft is open now.\n    if (attachmentTargetKeyRef.current !== importTargetKey) return;\n    const replacesFileMarker =\n      record.kind === \"file\" &&\n      composerFilesRef.current.some(\n        (candidate) =>\n          composerFileNeedsReattach(candidate) &&\n          composerFileMatchesReattachMarker(candidate, {\n            name: record.name,\n            mimeType: file.type,\n            sizeBytes: file.size,\n          }),\n      );\n    if (\n      !replacesFileMarker &&\n      (pendingThreadImportsRef.current.get(importTargetKey) ?? 0) > 0 &&\n      countReservedAttachments() >= PROVIDER_SEND_TURN_MAX_ATTACHMENTS\n    ) {\n      fail(\"The attachment limit has been reached.\");\n      return;\n    }\n    if (record.kind === \"image\") {\n      const accepted = addComposerDraftImages(\n        attachmentDraftTarget,\n        [\n          {\n            type: \"image\",\n            id: localId,\n            name: record.name,\n            mimeType: file.type,\n            sizeBytes: file.size,\n            previewUrl: URL.createObjectURL(file),\n            file,\n          },\n        ],\n        {\n          allowDuplicates:\n            getComposerDraft(composerDraftTarget)?.previewAnnotations.some(\n              (annotation) => annotation.id === localId,\n            ) ?? false,\n        },\n      );\n      if (!accepted.includes(localId))\n        fail(\"The draft rejected this attachment (duplicate or attachment limit reached).\");\n    } else {\n      const accepted = addComposerFilesToDraft([\n        {\n          type: \"file\",\n          id: localId,\n          name: record.name,\n          mimeType: file.type,\n          sizeBytes: file.size,\n          file,\n        },\n      ]);\n      if (!accepted.includes(localId))\n        fail(\"The draft rejected this attachment (duplicate or attachment limit reached).\");\n    }\n  };\n  const importAttachmentRecord = async (\n    record: Extract<ComposerContextRecord, { kind: \"image\" | \"file\" }>,\n    localId: string,\n    sourceEnvironmentId: EnvironmentId,\n  ) => {\n    // The chip lands in the draft immediately while these bytes are still downloading. Count\n    // the transfer against its own draft so a send cannot snapshot a message whose chip has no\n    // attachment behind it, and so bytes for an abandoned draft never enter the next one.\n    const importTargetKey = attachmentTargetKey;\n    pendingDraftWork.begin(importTargetKey);\n    await runAttachmentImport(record, localId, sourceEnvironmentId, importTargetKey).finally(() =>\n      pendingDraftWork.end(importTargetKey),\n    );\n  };\n  const importContextRecords = (\n    records: ReadonlyArray<ComposerContextRecord>,\n    sourceEnvironmentId: EnvironmentId | null,\n    threadDraftTarget = attachmentDraftTarget,\n  ): ReadonlyMap<string, string> => {\n    const rewritten = new Map<string, string>();\n    const dependentAttachmentLocalIds = new Map<string, string>();\n    const skippedDependentAttachmentIds = new Set<string>();\n    // Resolve annotations before their dependent screenshot records even if a foreign\n    // clipboard producer emitted the records in a different order.\n    const orderedRecords = records.toSorted((left, right) =>\n      left.kind === \"preview-annotation\" && right.kind !== \"preview-annotation\"\n        ? -1\n        : right.kind === \"preview-annotation\" && left.kind !== \"preview-annotation\"\n          ? 1\n          : 0,\n    );\n    for (const candidate of orderedRecords) {\n      // Producer ids fold into context ids, so two different excerpts can collide. Only skip\n      // when the draft already holds the same payload; a colliding but different record is\n      // re-minted under a fresh id so both survive the paste.\n      const record = asKnownContextRecord(candidate);\n      if (!record) continue;\n      // A reminted annotation needs its screenshot under the new annotation id.\n      const existing = dependentAttachmentLocalIds.has(record.contextId)\n        ? undefined\n        : composerContextImportLookupIds(record).flatMap((contextId) => {\n            const found = composerContextRecords.get(contextId);\n            return found ? [found] : [];\n          })[0];\n      // Upload completion can change the server id since copy; the local bytes still match.\n      if (\n        sourceEnvironmentId !== null &&\n        (record.kind === \"image\" || record.kind === \"file\") &&\n        (existing?.kind === \"image\" || existing?.kind === \"file\") &&\n        existing.record.file !== null &&\n        existing.record.file ===\n          copiedComposerAttachmentFile(sourceEnvironmentId, record.attachmentId)\n      )\n        continue;\n      const existingRecord =\n        existing?.kind === \"terminal\"\n          ? terminalContextRecord(existing.record)\n          : existing?.kind === \"review-comment\"\n            ? reviewCommentContextRecord(existing.record)\n            : existing?.kind === \"preview-annotation\"\n              ? previewAnnotationContextRecord(existing.record, {\n                  screenshotContextId: composerImages.some(\n                    (image) => image.id === existing.record.id,\n                  )\n                    ? existing.record.id\n                    : undefined,\n                })\n              : existing?.kind === \"thread\" || existing?.kind === \"environment\"\n                ? existing.record\n                : existing\n                  ? (uploadedContextRecordFromDraft(existing) ?? undefined)\n                  : undefined;\n      if (\n        existingRecord &&\n        isSameComposerContextPayload(existingRecord, record) &&\n        (record.kind !== \"thread\" || threadDraftTarget === attachmentDraftTarget)\n      ) {\n        if (record.kind === \"preview-annotation\" && record.screenshotContextId) {\n          skippedDependentAttachmentIds.add(record.screenshotContextId);\n        }\n        continue;\n      }\n      const conflicts = existing !== undefined;\n      switch (record.kind) {\n        case \"terminal\": {\n          const threadId = activeThread?.id ?? activeThreadId;\n          if (!threadId) break;\n          const imported = terminalContextDraftFromRecord(record, threadId);\n          const draft = conflicts ? { ...imported, id: randomUUID() } : imported;\n          addComposerDraftTerminalContexts(composerDraftTarget, [draft], {\n            appendReference: false,\n          });\n          rewritten.set(record.contextId, terminalContextReference(draft).contextId);\n          break;\n        }\n        case \"review-comment\": {\n          const imported = reviewCommentFromRecord(record);\n          const comment = conflicts ? { ...imported, id: randomUUID() } : imported;\n          addComposerDraftReviewComment(composerDraftTarget, comment, {\n            appendReference: false,\n          });\n          rewritten.set(record.contextId, reviewCommentContextId(comment.id));\n          break;\n        }\n        case \"element\":\n        case \"preview-annotation\": {\n          const imported =\n            record.kind === \"element\"\n              ? elementContextToPreviewAnnotation(record, randomUUID(), new Date().toISOString())\n              : previewAnnotationFromRecord(record);\n          const annotation = conflicts ? { ...imported, id: randomUUID() } : imported;\n          if (record.kind === \"preview-annotation\" && record.screenshotContextId) {\n            dependentAttachmentLocalIds.set(record.screenshotContextId, annotation.id);\n          }\n          addComposerDraftPreviewAnnotation(composerDraftTarget, annotation, {\n            appendReference: false,\n          });\n          rewritten.set(record.contextId, previewAnnotationContextId(annotation.id));\n          break;\n        }\n        case \"thread\": {\n          // The agent reads threads on its own server and the machines it links to; a pasted\n          // thread from any other machine is dropped.\n          if (\n            record.environmentId !== environmentId &&\n            !linkedEnvironments.has(record.environmentId)\n          )\n            break;\n          addComposerDraftThreadContexts(threadDraftTarget, [record], {\n            appendReference: false,\n          });\n          rewritten.set(record.contextId, record.contextId);\n          break;\n        }\n        case \"environment\": {\n          // A machine means the same machine from any thread, so a pasted one is kept,\n          // but not in an answer to an agent's question, which carries no machines.\n          if (questionAttachmentTarget !== null) break;\n          addComposerDraftEnvironmentContexts(composerDraftTarget, [record], {\n            appendReference: false,\n          });\n          rewritten.set(record.contextId, record.contextId);\n          break;\n        }\n        case \"image\":\n        case \"file\": {\n          if (skippedDependentAttachmentIds.has(record.contextId)) break;\n          if (sourceEnvironmentId === null && !conflicts) {\n            rewritten.set(record.contextId, record.contextId);\n            break;\n          }\n          if (sourceEnvironmentId === null) break;\n          const localId = dependentAttachmentLocalIds.get(record.contextId) ?? randomUUID();\n          rewritten.set(record.contextId, toKindScopedComposerContextId(record.kind, localId));\n          void importAttachmentRecord(record, localId, sourceEnvironmentId);\n          break;\n        }\n        default:\n          break;\n      }\n    }\n    return rewritten;\n  };\n  const importContextFragment = (\n    fragment: ComposerContextClipboardFragment,\n  ): ReadonlyMap<string, string> =>\n    importContextRecords(fragment.records, fragment.source.environmentId);\n  const importContextFragmentStable = useStableCallback(importContextFragment);\n\n  return {\n    loadThreadTranscript,\n    countReservedAttachments,\n    countReservedAttachmentsStable,\n    importContextRecords,\n    importContextFragment,\n    importContextFragmentStable,\n  };\n}",
+        "context": "/**\n * Imports copied composer context (terminal output, review comments, annotations, threads,\n * images and files) into the open draft, and counts the attachment slots already spoken for.\n */\nimport {\n  ConnectionBlockedError,\n  ConnectionTransientError,\n} from \"@t3tools/client-runtime/connection\";\nimport { EnvironmentRpcUnavailableError } from \"@t3tools/client-runtime/rpc\";\nimport * as Cause from \"effect/Cause\";\nimport * as Schema from \"effect/Schema\";\nimport type { RefObject } from \"react\";\nimport type { ChatComposerProps } from \"./ChatComposer\";\nimport {\n  type ComposerContextClipboardFragment,\n  type ComposerContextRecord,\n  type EnvironmentId,\n  PROVIDER_SEND_TURN_MAX_ATTACHMENTS,\n} from \"@t3tools/contracts\";\nimport {\n  type ComposerFileAttachment,\n  type ComposerImageAttachment,\n  type DraftId,\n  composerFileMatchesReattachMarker,\n  composerFileNeedsReattach,\n  useComposerDraftStore,\n} from \"../../composerDraftStore\";\nimport { type PendingUserInput } from \"../../session-logic\";\nimport {\n  asKnownContextRecord,\n  composerContextImportLookupIds,\n  isSameComposerContextPayload,\n  previewAnnotationContextId,\n  previewAnnotationContextRecord,\n  previewAnnotationFromRecord,\n  reviewCommentContextId,\n  reviewCommentContextRecord,\n  reviewCommentFromRecord,\n  terminalContextDraftFromRecord,\n  terminalContextRecord,\n  terminalContextReference,\n} from \"~/lib/composerContextRecords\";\nimport { assetEnvironment } from \"~/state/assets\";\nimport { copiedComposerAttachmentFile } from \"~/lib/copiedComposerAttachments\";\nimport { countQuestionAttachments, questionAttachmentDraftId } from \"../../questionAttachments\";\nimport { collectInlineContextIds } from \"../../lib/composerContextReferences\";\nimport { elementContextToPreviewAnnotation } from \"../../lib/elementContext\";\nimport { orchestrationEnvironment } from \"~/state/orchestration\";\nimport { pendingDraftWork } from \"./pendingDraftWork\";\nimport { randomUUID } from \"~/lib/utils\";\nimport { readPreparedConnection } from \"~/state/session\";\nimport { resolveAssetUrl } from \"~/assets/assetUrls\";\nimport { toKindScopedComposerContextId } from \"@t3tools/shared/composerContextReferences\";\nimport { toastManager } from \"../ui/toast\";\nimport {\n  type ComposerDraftContextRecords,\n  uploadedContextRecordFromDraft,\n} from \"../composerContextPresentation\";\nimport { useAtomCommand } from \"../../state/use-atom-command\";\nimport { useAtomQueryRunner } from \"~/state/use-atom-query-runner\";\nimport { useStableCallback } from \"../../hooks/useStableCallback\";\nimport { countPreparingComposerImages } from \"./preparingComposerImages\";\nconst isUnreachable = Schema.is(\n  Schema.Union([ConnectionTransientError, ConnectionBlockedError, EnvironmentRpcUnavailableError]),\n);\nasync function downloadAttachmentBlob(url: string): Promise<Blob | null> {\n  try {\n    const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });\n    return response.ok ? await response.blob() : null;\n  } catch {\n    return null;\n  }\n}",
+        "context_digest": "0b4c1a812ab65af9ad6ac23b405342d408e5ecc789f118904d566f4b441fa920",
+        "declaration": null,
+        "end_line": 450,
+        "hash": "8e84598ad6d160e4",
+        "line": 77,
+        "name": "useComposerContextImport",
+        "origin": null,
+        "owner": null,
+        "path": "apps/web/src/components/chat/useComposerContextImport.ts",
+        "portable_source_file": "sources/0b4c1a812ab65af9ad6ac23b405342d408e5ecc789f118904d566f4b441fa920.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "typescript",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "async function importAttachment(\n  record: Extract<ComposerContextRecord, { attachmentId: string }>,\n  environmentId: EnvironmentId,\n  signal: AbortSignal,\n): Promise<DraftComposerAttachment> {\n  await waitForComposerDraftsLoaded();\n  checkAborted(signal);\n  const local = findLocalComposerClipboardAttachment(\n    appAtomRegistry\n      .get(workspaceConnections.environmentsAtom)\n      .map((environment) => environment.environmentId),\n    environmentId,\n    record.attachmentId,\n  );\n  if (local) {\n    if (!local.fileUri && local.type === \"image\" && local.dataUrl)\n      return {\n        ...local,\n        id: uuidv4(),\n        uploadedAttachmentId: undefined,\n        uploadEnvironmentId: undefined,\n      };\n    if (local.fileUri) {\n      const preview = await loadLocalAttachmentPreview(\n        { ...local, fileUri: local.fileUri },\n        signal,\n      );\n      if (!preview) throw new Error(\"Context import cancelled\");\n      try {\n        return await persistImportedAttachment(record, preview.uri, signal);\n      } finally {\n        preview.dispose();\n      }\n    }\n  }\n  const connection = appAtomRegistry.get(\n    environmentSession.preparedConnectionValueAtom(environmentId),\n  );\n  if (Option.isNone(connection)) throw new Error(\"Reconnect to the source environment\");\n  const result = await executeAtomQuery(\n    appAtomRegistry,\n    assetEnvironment.createUrl({\n      environmentId,\n      input: {\n        resource: { _tag: \"attachment\", attachmentId: record.attachmentId, fileName: record.name },\n      },\n    }),\n    { refresh: true, reportFailure: false },\n  );\n  if (result._tag === \"Failure\") throw squashAtomCommandFailure(result);\n  checkAborted(signal);\n  const url = resolveAssetUrl(connection.value.httpBaseUrl, result.value.relativeUrl);\n  if (!url) throw new Error(\"Attachment URL unavailable\");\n  const temporary = await downloadAttachmentForPreview({\n    attachment: { name: record.name, mimeType: record.mimeType },\n    url,\n    signal,\n  });\n  if (!temporary) throw new Error(\"Attachment import cancelled\");\n  try {\n    return await persistImportedAttachment(record, temporary.uri, signal);\n  } finally {\n    temporary.dispose();\n  }\n}",
+        "context": "import {\n  type ComposerContextClipboardFragment,\n  type ComposerContextRecord,\n  PROVIDER_SEND_TURN_MAX_ATTACHMENTS,\n  PROVIDER_SEND_TURN_MAX_FILE_BYTES,\n  PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,\n  COMPOSER_CONTEXT_MAX_RECORDS,\n  type EnvironmentId,\n} from \"@t3tools/contracts\";\nimport { executeAtomQuery, squashAtomCommandFailure } from \"@t3tools/client-runtime/state/runtime\";\nimport { resolveAssetUrl } from \"@t3tools/client-runtime/state/assets\";\nimport * as Option from \"effect/Option\";\nimport { appAtomRegistry } from \"../state/atom-registry\";\nimport { assetEnvironment } from \"../state/assets\";\nimport { environmentSession } from \"../state/session\";\nimport { workspaceConnections } from \"../state/workspace\";\nimport { downloadAttachmentForPreview } from \"./attachmentDownload\";\nimport {\n  persistComposerAttachmentFile,\n  removePersistedComposerAttachmentFile,\n  type DraftComposerAttachment,\n} from \"./composerImages\";\nimport { uuidv4 } from \"./uuid\";\nimport {\n  findLocalComposerClipboardAttachment,\n  waitForComposerDraftsLoaded,\n} from \"../state/use-composer-drafts\";\nimport { loadLocalAttachmentPreview } from \"./localAttachmentPreview\";\nfunction checkAborted(signal: AbortSignal): void {\n  if (signal.aborted) throw new Error(\"Context import cancelled\");\n}\nasync function persistImportedAttachment(\n  record: Extract<ComposerContextRecord, { attachmentId: string }>,\n  uri: string,\n  signal: AbortSignal,\n): Promise<DraftComposerAttachment> {\n  const fileUri = await persistComposerAttachmentFile(\n    uri,\n    record.name,\n    record.kind === \"image\"\n      ? PROVIDER_SEND_TURN_MAX_IMAGE_BYTES\n      : PROVIDER_SEND_TURN_MAX_FILE_BYTES,\n  );\n  if (signal.aborted) {\n    await removePersistedComposerAttachmentFile(fileUri);\n    checkAborted(signal);\n  }\n  const { File } = await import(\"expo-file-system\");\n  const common = {\n    id: uuidv4(),\n    fileUri,\n    name: record.name,\n    mimeType: record.mimeType,\n    sizeBytes: new File(fileUri).size,\n  };\n  return record.kind === \"image\"\n    ? { ...common, type: \"image\", previewUri: fileUri }\n    : { ...common, type: \"file\" };\n}",
+        "context_digest": "4f43222ccf8467c325b4b1214127f2efb351ad8d527cd2b589eac7b5f70a4ed8",
+        "declaration": null,
+        "end_line": 229,
+        "hash": "6522f8a794a427d5",
+        "line": 165,
+        "name": "importAttachment",
+        "origin": null,
+        "owner": null,
+        "path": "apps/mobile/src/lib/composerContextClipboard.ts",
+        "portable_source_file": "sources/4f43222ccf8467c325b4b1214127f2efb351ad8d527cd2b589eac7b5f70a4ed8.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.24821286947538698,
+      "similarity_reusable": false
+    },
+    "counts_as_target_control": false,
+    "id": "T3-H01",
+    "ownership_evidence": [
+      "hard-pass/sources/apps/web/src/lib/copiedComposerAttachments.ts",
+      "hard-pass/sources/apps/mobile/src/lib/localAttachmentPreview.ts",
+      "hard-pass/sources/apps/mobile/src/lib/attachmentDownload.ts",
+      "hard-pass/sources/apps/web/src/assets/assetUrls.ts"
+    ],
+    "proposed_label": "separate",
+    "reason_not_counted_as_control": "Five existing source-adjudicated controls suffice; preserve rejection without increasing target tally.",
+    "repository": "pingdotgg/t3code",
+    "review_observation_path": {
+      "artifact_basename": "hard-observations.json",
+      "original_artifact_sha256": "dc6751a4255e99b1ef58bf005ae2e9cf022e6af74bd47bd94409af1c6443ea47"
+    },
+    "review_observation_sha256": "dc6751a4255e99b1ef58bf005ae2e9cf022e6af74bd47bd94409af1c6443ea47",
+    "review_observations": [
+      {
+        "id": "T3-H01",
+        "path": {
+          "artifact_basename": "c2428bb1093feb879f79d36e0c5be078ed45c9d6d0d2205e3fd27ea61d027a8f.json",
+          "original_artifact_sha256": "066efbde6cf8a108e3841f5a3ee6eabf8970e3afd19f8adbc269c79c63b89506"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.2,
+          "second_opinion": null,
+          "why": "Both functions import a copied attachment from a source environment. They check for a locally copied file, then request an asset URL for the attachment, resolve it against the connection's base URL, and download it. That overlap is shared domain flow, not a clearly independent shared operation. The mobile version does platform-specific work: Expo file URIs, preview disposal, persisting the imported attachment, abort signals, and Atom query execution. The web version works with File/Blob objects, draft targets, attachment limits, toasts, pending-work tracking, and the draft store. Both already call the same helpers where they could: `resolveAssetUrl`, `assetEnvironment.createUrl`, and a download function. Beyond that, the sequences differ in failure handling (throw vs toast-and-return), the download mechanism, and the local-copy lookup. The web function also holds a lot of unrelated orchestration (record ordering, conflict reminting, per-kind handling). The remaining overlap is a few lines of adapter glue over different platform APIs, so no sensible shared helper with a stable contract is established."
+        }
+      },
+      {
+        "id": "T3-H01",
+        "path": {
+          "artifact_basename": "87c8a2acb0f597f6e96e51991713a48afa8ca1e891e92604ec4f24c83ed76461.json",
+          "original_artifact_sha256": "535c300591e521dd594bc50454b6803c1cb7f8319dda925b6cbec1ed71fd2bd3"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.8,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.49,
+          "second_opinion": null,
+          "why": "Platform SDK or provider boundaries should remain separate."
+        }
+      }
+    ],
+    "reviewer_disagreements": "Both separate; confidence and behavior-difference scores differ. Preserve observations verbatim. Other repository observations in the supplied file were excluded by exact T3-H01 ID.",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "source_operation_regions": [
+      {
+        "code": "  await waitForComposerDraftsLoaded();\n  checkAborted(signal);\n  const local = findLocalComposerClipboardAttachment(\n    appAtomRegistry\n      .get(workspaceConnections.environmentsAtom)\n      .map((environment) => environment.environmentId),\n    environmentId,\n    record.attachmentId,\n  );\n  if (local) {\n    if (!local.fileUri && local.type === \"image\" && local.dataUrl)\n      return {\n        ...local,\n        id: uuidv4(),\n        uploadedAttachmentId: undefined,\n        uploadEnvironmentId: undefined,\n      };\n    if (local.fileUri) {\n      const preview = await loadLocalAttachmentPreview(\n        { ...local, fileUri: local.fileUri },\n        signal,\n      );\n      if (!preview) throw new Error(\"Context import cancelled\");\n      try {\n        return await persistImportedAttachment(record, preview.uri, signal);\n      } finally {\n        preview.dispose();\n      }\n    }\n  }\n  const connection = appAtomRegistry.get(\n    environmentSession.preparedConnectionValueAtom(environmentId),\n  );\n  if (Option.isNone(connection)) throw new Error(\"Reconnect to the source environment\");\n  const result = await executeAtomQuery(\n    appAtomRegistry,\n    assetEnvironment.createUrl({\n      environmentId,\n      input: {\n        resource: { _tag: \"attachment\", attachmentId: record.attachmentId, fileName: record.name },\n      },\n    }),\n    { refresh: true, reportFailure: false },\n  );\n  if (result._tag === \"Failure\") throw squashAtomCommandFailure(result);\n  checkAborted(signal);\n  const url = resolveAssetUrl(connection.value.httpBaseUrl, result.value.relativeUrl);\n  if (!url) throw new Error(\"Attachment URL unavailable\");\n  const temporary = await downloadAttachmentForPreview({\n    attachment: { name: record.name, mimeType: record.mimeType },\n    url,\n    signal,\n  });\n  if (!temporary) throw new Error(\"Attachment import cancelled\");",
+        "end_line": 223,
+        "portable_source_file": "sources/4f43222ccf8467c325b4b1214127f2efb351ad8d527cd2b589eac7b5f70a4ed8.json.gz",
+        "scope": "Contained operation only, not enclosing-function equivalence",
+        "sha256": "2d94ccffe6d7b292e28ac68a5e1e4a7b86b2c89610d8066b27ebca8f3f2e0e0d",
+        "source_id": "apps/mobile/src/lib/composerContextClipboard.ts::importAttachment",
+        "start_line": 170
+      },
+      {
+        "code": "    let file = copiedComposerAttachmentFile(sourceEnvironmentId, record.attachmentId);\n    if (!file) {\n      const sourceConnection = readPreparedConnection(sourceEnvironmentId);\n      if (!sourceConnection) {\n        fail(\"The environment it came from is not connected.\");\n        return;\n      }\n      const result = await createAssetUrl({\n        environmentId: sourceEnvironmentId,\n        input: { resource: { _tag: \"attachment\", attachmentId: record.attachmentId } },\n      });\n      const url =\n        result._tag === \"Success\"\n          ? resolveAssetUrl(sourceConnection.httpBaseUrl, result.value.relativeUrl)\n          : null;\n      if (!url) {\n        const cause = result._tag === \"Failure\" ? Cause.squash(result.cause) : null;\n        fail(\n          isUnreachable(cause)\n            ? \"The environment it came from is not reachable right now.\"\n            : \"The original attachment is no longer available.\",\n        );\n        return;\n      }\n      const blob = await downloadAttachmentBlob(url);\n      if (!blob) {\n        fail(\"Downloading it from the source failed.\");\n        return;\n      }\n      // Question attachments have no inline reference; annotations can own their screenshots.\n      const references = new Set(collectInlineContextIds(promptRef.current));",
+        "end_line": 198,
+        "portable_source_file": "sources/0b4c1a812ab65af9ad6ac23b405342d408e5ecc789f118904d566f4b441fa920.json.gz",
+        "scope": "Contained operation only, not enclosing-function equivalence",
+        "sha256": "ada4c60f58ccb9f5f96392aac927f9f18ec4d62254c192000c15b64563403667",
+        "source_id": "apps/web/src/components/chat/useComposerContextImport.ts::useComposerContextImport",
+        "start_line": 168
+      }
+    ],
+    "source_proofs": [
+      {
+        "end_line": 229,
+        "file_sha256": "4f43222ccf8467c325b4b1214127f2efb351ad8d527cd2b589eac7b5f70a4ed8",
+        "path": "apps/mobile/src/lib/composerContextClipboard.ts",
+        "portable_source_file": "sources/4f43222ccf8467c325b4b1214127f2efb351ad8d527cd2b589eac7b5f70a4ed8.json.gz",
+        "snapshot": "hard-pass/sources/apps/mobile/src/lib/composerContextClipboard.ts",
+        "source_id": "apps/mobile/src/lib/composerContextClipboard.ts::importAttachment",
+        "source_sha256": "ede312343e6b28a49884107f6f4f7033251b8a2af5a47d4cd03d3fdc497fd044",
+        "start_line": 165,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/mobile/src/lib/composerContextClipboard.ts#L165"
+      },
+      {
+        "end_line": 450,
+        "file_sha256": "0b4c1a812ab65af9ad6ac23b405342d408e5ecc789f118904d566f4b441fa920",
+        "path": "apps/web/src/components/chat/useComposerContextImport.ts",
+        "portable_source_file": "sources/0b4c1a812ab65af9ad6ac23b405342d408e5ecc789f118904d566f4b441fa920.json.gz",
+        "snapshot": "hard-pass/sources/apps/web/src/components/chat/useComposerContextImport.ts",
+        "source_id": "apps/web/src/components/chat/useComposerContextImport.ts::useComposerContextImport",
+        "source_sha256": "f938636998fd734e6bcaf9b12c8c6502ebf7368e506cdb4a50544c83627a80c7",
+        "start_line": 77,
+        "url": "https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/web/src/components/chat/useComposerContextImport.ts#L77"
+      }
+    ],
+    "status": "source_adjudicated_rejected_positive"
+  },
+  "source_adjudication_sha256": "133221c3b7eeaf0efd621b03913cc01eea9b2979bdcff639f93f2de3bcaf4256",
+  "source_closure": [
+    {
+      "file_sha256": "4f43222ccf8467c325b4b1214127f2efb351ad8d527cd2b589eac7b5f70a4ed8",
+      "git_blob_sha1": "8c5a31cdb7e44db9e6e92f025fb80a39f154b991",
+      "path": "apps/mobile/src/lib/composerContextClipboard.ts",
+      "source_file": "sources/4f43222ccf8467c325b4b1214127f2efb351ad8d527cd2b589eac7b5f70a4ed8.json.gz"
+    },
+    {
+      "file_sha256": "0b4c1a812ab65af9ad6ac23b405342d408e5ecc789f118904d566f4b441fa920",
+      "git_blob_sha1": "74e97a5076d7df11c9b15d58b7587708e55b90c3",
+      "path": "apps/web/src/components/chat/useComposerContextImport.ts",
+      "source_file": "sources/0b4c1a812ab65af9ad6ac23b405342d408e5ecc789f118904d566f4b441fa920.json.gz"
+    }
+  ],
+  "source_only": true
+}

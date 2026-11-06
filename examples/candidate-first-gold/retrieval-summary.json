@@ -1,0 +1,314 @@
+{
+  "accepted_rows": 41,
+  "by_label_and_direction": {
+    "borderline": {
+      "existing_to_new": {
+        "balanced_retrieved": {
+          "denominator": 2,
+          "numerator": 2
+        },
+        "default_retrieved": {
+          "denominator": 2,
+          "numerator": 1
+        },
+        "raw_top1": {
+          "denominator": 2,
+          "numerator": 2
+        },
+        "raw_top3": {
+          "denominator": 2,
+          "numerator": 2
+        }
+      },
+      "new_to_existing": {
+        "balanced_retrieved": {
+          "denominator": 2,
+          "numerator": 2
+        },
+        "default_retrieved": {
+          "denominator": 2,
+          "numerator": 1
+        },
+        "raw_top1": {
+          "denominator": 2,
+          "numerator": 2
+        },
+        "raw_top3": {
+          "denominator": 2,
+          "numerator": 2
+        }
+      }
+    },
+    "duplicate": {
+      "existing_to_new": {
+        "balanced_retrieved": {
+          "denominator": 20,
+          "numerator": 19
+        },
+        "default_retrieved": {
+          "denominator": 20,
+          "numerator": 11
+        },
+        "raw_top1": {
+          "denominator": 20,
+          "numerator": 15
+        },
+        "raw_top3": {
+          "denominator": 20,
+          "numerator": 18
+        }
+      },
+      "new_to_existing": {
+        "balanced_retrieved": {
+          "denominator": 20,
+          "numerator": 19
+        },
+        "default_retrieved": {
+          "denominator": 20,
+          "numerator": 11
+        },
+        "raw_top1": {
+          "denominator": 20,
+          "numerator": 15
+        },
+        "raw_top3": {
+          "denominator": 20,
+          "numerator": 19
+        }
+      }
+    },
+    "separate": {
+      "existing_to_new": {
+        "balanced_retrieved": {
+          "denominator": 21,
+          "numerator": 12
+        },
+        "default_retrieved": {
+          "denominator": 21,
+          "numerator": 1
+        },
+        "raw_top1": {
+          "denominator": 21,
+          "numerator": 8
+        },
+        "raw_top3": {
+          "denominator": 21,
+          "numerator": 13
+        }
+      },
+      "new_to_existing": {
+        "balanced_retrieved": {
+          "denominator": 21,
+          "numerator": 12
+        },
+        "default_retrieved": {
+          "denominator": 21,
+          "numerator": 1
+        },
+        "raw_top1": {
+          "denominator": 21,
+          "numerator": 8
+        },
+        "raw_top3": {
+          "denominator": 21,
+          "numerator": 14
+        }
+      }
+    },
+    "unknown": {
+      "existing_to_new": {
+        "balanced_retrieved": {
+          "denominator": 1,
+          "numerator": 1
+        },
+        "default_retrieved": {
+          "denominator": 1,
+          "numerator": 1
+        },
+        "raw_top1": {
+          "denominator": 1,
+          "numerator": 1
+        },
+        "raw_top3": {
+          "denominator": 1,
+          "numerator": 1
+        }
+      },
+      "new_to_existing": {
+        "balanced_retrieved": {
+          "denominator": 1,
+          "numerator": 1
+        },
+        "default_retrieved": {
+          "denominator": 1,
+          "numerator": 1
+        },
+        "raw_top1": {
+          "denominator": 1,
+          "numerator": 1
+        },
+        "raw_top3": {
+          "denominator": 1,
+          "numerator": 1
+        }
+      }
+    }
+  },
+  "by_repository_and_label": {
+    "BerriAI/litellm": {
+      "duplicate": {
+        "balanced_first_losses": {},
+        "balanced_retrieved": 10,
+        "default_first_losses": {
+          "same_file": 4,
+          "score_floor": 2
+        },
+        "default_floor_only_failures": 2,
+        "default_retrieved": 4,
+        "default_same_file_exclusions": 4,
+        "directional_denominator": 10,
+        "families": 5,
+        "pairs": 5,
+        "raw_top1": 4,
+        "raw_top3": 8,
+        "small_query_directions": 0
+      },
+      "separate": {
+        "balanced_first_losses": {
+          "score_floor": 8
+        },
+        "balanced_retrieved": 2,
+        "default_first_losses": {
+          "same_file": 6,
+          "score_floor": 4
+        },
+        "default_floor_only_failures": 8,
+        "default_retrieved": 0,
+        "default_same_file_exclusions": 6,
+        "directional_denominator": 10,
+        "families": 5,
+        "pairs": 5,
+        "raw_top1": 0,
+        "raw_top3": 3,
+        "small_query_directions": 0
+      }
+    },
+    "OpenHands/software-agent-sdk": {
+      "duplicate": {
+        "balanced_first_losses": {},
+        "balanced_retrieved": 10,
+        "default_first_losses": {
+          "same_file": 6
+        },
+        "default_floor_only_failures": 0,
+        "default_retrieved": 4,
+        "default_same_file_exclusions": 6,
+        "directional_denominator": 10,
+        "families": 5,
+        "pairs": 5,
+        "raw_top1": 9,
+        "raw_top3": 10,
+        "small_query_directions": 0
+      },
+      "separate": {
+        "balanced_first_losses": {},
+        "balanced_retrieved": 10,
+        "default_first_losses": {
+          "same_file": 8,
+          "score_floor": 2
+        },
+        "default_floor_only_failures": 2,
+        "default_retrieved": 0,
+        "default_same_file_exclusions": 8,
+        "directional_denominator": 10,
+        "families": 5,
+        "pairs": 5,
+        "raw_top1": 8,
+        "raw_top3": 10,
+        "small_query_directions": 0
+      }
+    },
+    "anomalyco/opencode": {
+      "duplicate": {
+        "balanced_first_losses": {
+          "score_floor": 2
+        },
+        "balanced_retrieved": 8,
+        "default_first_losses": {
+          "score_floor": 4
+        },
+        "default_floor_only_failures": 4,
+        "default_retrieved": 6,
+        "default_same_file_exclusions": 0,
+        "directional_denominator": 10,
+        "families": 5,
+        "pairs": 5,
+        "raw_top1": 8,
+        "raw_top3": 9,
+        "small_query_directions": 0
+      },
+      "separate": {
+        "balanced_first_losses": {
+          "score_floor": 6
+        },
+        "balanced_retrieved": 4,
+        "default_first_losses": {
+          "same_file": 4,
+          "score_floor": 6
+        },
+        "default_floor_only_failures": 8,
+        "default_retrieved": 0,
+        "default_same_file_exclusions": 4,
+        "directional_denominator": 10,
+        "families": 5,
+        "pairs": 5,
+        "raw_top1": 2,
+        "raw_top3": 6,
+        "small_query_directions": 0
+      }
+    },
+    "pingdotgg/t3code": {
+      "duplicate": {
+        "balanced_first_losses": {},
+        "balanced_retrieved": 10,
+        "default_first_losses": {
+          "score_floor": 2
+        },
+        "default_floor_only_failures": 2,
+        "default_retrieved": 8,
+        "default_same_file_exclusions": 0,
+        "directional_denominator": 10,
+        "families": 5,
+        "pairs": 5,
+        "raw_top1": 9,
+        "raw_top3": 10,
+        "small_query_directions": 0
+      },
+      "separate": {
+        "balanced_first_losses": {
+          "score_floor": 4
+        },
+        "balanced_retrieved": 8,
+        "default_first_losses": {
+          "same_file": 2,
+          "score_floor": 8
+        },
+        "default_floor_only_failures": 8,
+        "default_retrieved": 2,
+        "default_same_file_exclusions": 2,
+        "directional_denominator": 12,
+        "families": 6,
+        "pairs": 6,
+        "raw_top1": 6,
+        "raw_top3": 8,
+        "small_query_directions": 0
+      }
+    }
+  },
+  "control_semantics": "Retrieving a separate control is exposure to a look-alike, not an emitted false positive.",
+  "disputed_rows": 3,
+  "self_and_missing": "Exact self document excluded. Selected IDs must each exist uniquely; missing or ambiguous endpoints fail validation.",
+  "settings": "Laboratory retrieval diagnostics only. Default .5 (.3 for <6 lines), top3 cross-file; balanced .35/top20 same-file allowed. No changed-line, rule, budget, cached judge, or reporting replay.",
+  "source_files_checked": 154,
+  "tie_policy": "descending raw production score, source ID lexicographically, frozen document position; zero-score targets rank after positive scores"
+}

@@ -1,0 +1,453 @@
+{
+  "coordinator_decision": {
+    "label": "separate",
+    "rationale": "Coordinator accepts the bounded source contract and preserved variations in the attached source adjudication; provider disagreement is retained. No whole-function equivalence or human validation claimed."
+  },
+  "human_review": false,
+  "independent_provider_observations": [
+    {
+      "estimated_usd": 0.00022388,
+      "max_output_tokens": null,
+      "model": "jev-1.14.0",
+      "observation_sha256": "bbde867c3411240b47e7077114ffb1f6a9dcccb9e675116d185ea6589d815475",
+      "prompt_sha256": "e3b53f5744b37180dbedda5d951809a815d8c0799cbd4ac1ff349e2a28cb2d26",
+      "request_key": "8a82ac060f673bd7893302fcd85a91394587574addcb438979eb72acac7eb251",
+      "reviewer": "jev",
+      "usage": {
+        "input_tokens": 5597,
+        "output_tokens": 173
+      },
+      "verdict": {
+        "behaves_differently": 0.43,
+        "judge": "jev",
+        "judge_version": "reuse-context-v3:jev-1.14.0",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "none",
+        "score": 0.19,
+        "second_opinion": null,
+        "why": "Platform SDK or provider boundaries should remain separate."
+      },
+      "version": "reuse-context-v3:jev-1.14.0"
+    },
+    {
+      "estimated_usd": 0.00907,
+      "max_output_tokens": 1024,
+      "model": "claude-sonnet-5-5",
+      "observation_sha256": "46efddbb1ac10739a81a92a85483b30d367ace8254e0d6a5e3c2b21bf2eb5d55",
+      "prompt_sha256": "2affa0701bfcb832d1890dedaa26c25e7b79612992bd915a5c9a5cbecfe5b7f4",
+      "request_key": "0373f47751e26ca5023beee8588329d9699a55a07b3082cce11a00f59fe78941",
+      "reviewer": "claude",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 3275,
+        "iterations": [
+          {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "input_tokens": 3275,
+            "model": null,
+            "output_tokens": 252,
+            "type": "message"
+          }
+        ],
+        "output_tokens": 252,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "verdict": {
+        "behaves_differently": 0.0,
+        "judge": "anthropic-operations",
+        "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "label": "separate",
+        "model_assessment": null,
+        "owner": "",
+        "score": 0.08,
+        "second_opinion": null,
+        "why": "Both functions create an OpenTelemetry TracerProvider and attach span processors, but that is SDK boilerplate rather than a shared domain operation. NEW assembles a multi-exporter fan-out: baggage processor, request-exclusion sampler, per-spec filtering and wrapping for tenant overrides, Langfuse scope and content stripping. EXISTING builds a single-channel Langfuse tracing setup with its own sampler, ID generator, span limits, export ledger and batch processor, plus an OTEL_SDK_DISABLED warning. The resource builders, sampler policies, processor choices and failure handling all differ. No concrete reusable operation with a common contract is established."
+      },
+      "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+    }
+  ],
+  "provider_context_limit": "Claude canonical shared-operations prompt includes full candidate code, not supplemental caller files. Jev uses bounded context; source worker/coordinator inspect callers separately.",
+  "providers_blind_to_labels_and_scores": true,
+  "source_adjudication": {
+    "active_positive_proposed": false,
+    "background_proof": {
+      "documents": 37604,
+      "path": {
+        "artifact_basename": "background.json.gz",
+        "original_artifact_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+      },
+      "scope": "scope.json",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    "candidate": {
+      "comparer": "tfidf:2",
+      "consolidation": [],
+      "existing": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "def build_langfuse_tracing(\n    *,\n    exporter: SpanExporter,\n    environment: str | None,\n    release: str | None,\n    sample_rate: float,\n    flush_interval_millis: int,\n    flush_at: int = _DEFAULT_FLUSH_AT,\n) -> LangfuseTracing:\n    \"\"\"Wire the provider from litellm's own settings so a host's ``OTEL_*`` variables do not steer it.\n\n    An unset sampler or span limit falls back to ``OTEL_TRACES_SAMPLER`` and\n    ``OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT`` style variables, which are meant for the\n    host application's own tracing. ``OTEL_SDK_DISABLED`` still applies, as it does to the SDK.\n\n    The tracer carries the SDK's scope name because Langfuse keys on it: spans from any other\n    scope are treated as foreign OTel traffic and get their raw attributes echoed into metadata.\n    \"\"\"\n    if os.environ.get(\"OTEL_SDK_DISABLED\", \"\").strip().lower() == \"true\":\n        verbose_logger.warning(\"OTEL_SDK_DISABLED=true also disables the langfuse callback's export channel\")\n    provider: Final = TracerProvider(\n        resource=_resource(environment=environment, release=release),\n        sampler=ALWAYS_ON if sample_rate >= 1 else TraceIdHashSampler(sample_rate),\n        id_generator=_RequestedIdGenerator(),\n        span_limits=_SPAN_LIMITS,\n    )\n    ledger: Final = _ExportLedger(exporter)\n    provider.add_span_processor(\n        BatchSpanProcessor(\n            ledger,\n            max_queue_size=_MAX_QUEUE_SIZE,\n            max_export_batch_size=flush_at,\n            schedule_delay_millis=flush_interval_millis,\n        )\n    )\n    return LangfuseTracing(provider=provider, tracer=provider.get_tracer(_TRACER_NAME), ledger=ledger)",
+        "context": "{\"imports\": [\"from __future__ import annotations\", \"import logging\", \"import os\", \"import re\", \"import threading\", \"from base64 import b64encode\", \"from collections.abc import Iterable, Mapping, Sequence\", \"from contextvars import ContextVar\", \"from dataclasses import dataclass, replace\", \"from datetime import datetime\", \"from functools import partial, reduce\", \"from hashlib import sha256\", \"from importlib.metadata import version\", \"from itertools import chain\", \"from time import monotonic, sleep\", \"from types import MappingProxyType\", \"from typing import Final, Literal\", \"from urllib.parse import quote\", \"import httpx\", \"import opentelemetry.trace as otel_trace\", \"from langfuse import LangfuseOtelSpanAttributes\", \"from langfuse.api import LangfuseAPI, Prompt, Prompt_Chat\", \"from langfuse.api.core.api_error import ApiError\", \"from langfuse.api.core.request_options import RequestOptions\", \"from langfuse.model import BasePromptClient, ChatPromptClient, PromptClient, TextPromptClient\", \"from opentelemetry.context import Context\", \"from opentelemetry.exporter.otlp.proto.common.trace_encoder import encode_spans\", \"from opentelemetry.sdk.resources import Resource\", \"from opentelemetry.sdk.trace import ReadableSpan, SpanLimits, TracerProvider\", \"from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter, SpanExportResult\", \"from opentelemetry.sdk.trace.id_generator import RandomIdGenerator\", \"from opentelemetry.sdk.trace.sampling import ALWAYS_ON, Decision, Sampler, SamplingResult\", \"from opentelemetry.trace import Link, NonRecordingSpan, Span, SpanContext, SpanKind, TraceFlags, Tracer, TraceState\", \"from opentelemetry.util.types import Attributes, AttributeValue\", \"from pydantic import ConfigDict\", \"import litellm\", \"from litellm._logging import verbose_logger\", \"from litellm.integrations.langfuse.langfuse import PROMPT_CACHE_TTL_ENV, parse_langfuse_debug, whole_number\", \"from litellm.integrations.langfuse.langfuse_otel_attributes import serialize_langfuse_datetime\", \"from litellm.litellm_core_utils.safe_json_dumps import safe_dumps\", \"from litellm.llms.custom_httpx.http_handler import HTTPHandler, get_httpx_client\", \"from litellm.types.llms.base import LiteLLMBaseModel\"], \"possible_callers\": [{\"id\": \"litellm/integrations/langfuse/langfuse_sdk.py::acquire_langfuse_tracing\", \"line\": 891, \"body_sha256\": \"ea9b6e96a36e81e1c2074a6fa57d3ce5cd66566b547e12004c3f304c0aa0a7ab\"}], \"local_helper_owners\": [{\"id\": \"litellm/integrations/langfuse/langfuse_sdk.py::_resource\", \"line\": 814, \"end_line\": 823, \"body_sha256\": \"0a7155ef3cc996eee8a3368da20a97a05f2df0aa3280be03b48f8235440400c1\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.py\"}",
+        "context_digest": "22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e",
+        "declaration": null,
+        "end_line": 1042,
+        "hash": "",
+        "line": 1007,
+        "name": "build_langfuse_tracing",
+        "origin": null,
+        "owner": null,
+        "path": "litellm/integrations/langfuse/langfuse_sdk.py",
+        "portable_source_file": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz"
+      },
+      "filtered": null,
+      "lane": "exploration",
+      "new": {
+        "analysis": {
+          "convention": null,
+          "declared_override": false,
+          "forward_target": null,
+          "language": "python",
+          "version": "3"
+        },
+        "bases": [],
+        "code": "def build_tracer_provider(\n    config: OpenTelemetryV2Config,\n    exporter: SpanExporter | None = None,\n    baggage_processor: SpanProcessor | None = None,\n    use_simple_processor: bool | None = None,\n    tenant_overrides: bool = False,\n    strip_message_content: bool = False,\n    console_default: bool = False,\n) -> TracerProvider:\n    \"\"\"Build the shared :class:`TracerProvider`.\n\n    Attach the Baggage processor first (so identity attributes land on each\n    span before any export decision), then add one ``SpanProcessor`` per\n    ``config.exporters`` entry \u2014 this is what fans spans out to multiple\n    backends. ``exporter`` and ``use_simple_processor`` are explicit overrides:\n    pass a single exporter to attach exactly that one (used by tests).\n\n    ``tenant_overrides`` wraps each owned exporter so a request that pointed that\n    backend at a key's or team's own account skips it. Every v2 logger's provider\n    wants it, since any of them may own the overridden backend; delivering to the\n    tenant is a separate job, done once by :func:`attach_tenant_fan_out`. The\n    per-tenant providers this same function builds must leave it off, or they would\n    filter out the very spans they exist to carry.\n\n    ``config.langfuse_span_scope`` narrows the exporter owned by ``langfuse_otel``\n    alone; a collector or any other backend in the same config keeps the full tree.\n    Every exporter but ``langfuse_otel``'s goes without the Langfuse attributes only a\n    Langfuse destination asked for (see :func:`without_destination_langfuse_attributes`),\n    which any logger writes for a request with a Langfuse destination.\n    ``strip_message_content`` removes prompt and response content before every\n    exporter, for a routed provider whose spans can carry content another\n    destination asked for.\n\n    The console spec ``config._normalize`` folds in when nothing was configured\n    prints only under ``console_default``, which the ``otel`` callback passes: a\n    vendor preset or the proxy's background global logger was never asked to print.\n    \"\"\"\n    provider: Final = TracerProvider(resource=build_resource(config))\n    provider.sampler = _RequestExclusionSampler(provider.sampler)\n    if baggage_processor is None:\n        baggage_processor = LiteLLMBaggageSpanProcessor(allowed_keys=config.baggage_promoted_keys)\n    provider.add_span_processor(baggage_processor)\n\n    if exporter is not None:\n        provider.add_span_processor(_processor_for(exporter, use_simple_processor))\n        return provider\n\n    langfuse_mapped: Final = _maps_langfuse(config)\n    # ``config._normalize`` guarantees at least one spec (it folds the top-level\n    # ``exporter``/``endpoint``/``headers`` fields in when ``exporters`` is empty).\n    for spec in config.exporters:\n        if spec.requires_headers and not spec.headers:\n            continue\n        if is_unconfigured_placeholder(spec) and not console_default:\n            continue\n        processor = _spec_processor(\n            spec,\n            use_simple_processor,\n            strip_message_content,\n            strip_destination_langfuse_attributes=spec.owner is not ExporterOwner.LANGFUSE_OTEL,\n            langfuse_mapped=langfuse_mapped,\n        )\n        owner = spec.owner.value if tenant_overrides and spec.owner is not None else None\n        scope = _operator_scope(config, spec)\n        sink = _sink_key(spec.endpoint, parse_headers(spec.headers)) if _exports_to_the_wire(spec) else None\n        provider.add_span_processor(\n            _OverriddenBackendFilter(\n                processor,\n                owner,\n                scope,\n                sink,\n                config.capture_span_content,\n                tenant_overrides,\n            )\n            if owner is not None\n            or scope != \"full\"\n            or sink is not None\n            or (tenant_overrides and not config.capture_span_content)\n            else processor\n        )\n    return provider",
+        "context": "{\"imports\": [\"import queue\", \"import threading\", \"import time\", \"import weakref\", \"from collections import OrderedDict\", \"from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence\", \"from hashlib import sha256\", \"from types import MappingProxyType\", \"from typing import TYPE_CHECKING, Final, Literal, TypeAlias\", \"from opentelemetry import _logs, baggage, metrics, trace\", \"from opentelemetry._logs import Logger, LoggerProvider, NoOpLoggerProvider\", \"from opentelemetry.context import Context\", \"from opentelemetry.metrics import MeterProvider, NoOpMeterProvider\", \"from opentelemetry.sdk._logs import LoggerProvider as SDKLoggerProvider\", \"from opentelemetry.sdk._logs.export import (\\n    BatchLogRecordProcessor,\\n    ConsoleLogExporter,\\n    InMemoryLogExporter,\\n    LogExporter,\\n    SimpleLogRecordProcessor,\\n)\", \"from opentelemetry.sdk.metrics import MeterProvider as SDKMeterProvider\", \"from opentelemetry.sdk.resources import Resource\", \"from opentelemetry.sdk.trace import Event, ReadableSpan, SpanProcessor, TracerProvider\", \"from opentelemetry.sdk.trace import Span as SDKSpan\", \"from opentelemetry.sdk.trace.export import (\\n    BatchSpanProcessor,\\n    ConsoleSpanExporter,\\n    SimpleSpanProcessor,\\n    SpanExporter,\\n)\", \"from opentelemetry.sdk.trace.export.in_memory_span_exporter import (\\n    InMemorySpanExporter,\\n)\", \"from opentelemetry.sdk.trace.sampling import Decision, Sampler, SamplingResult\", \"from opentelemetry.trace import Link, Span, SpanContext, SpanKind, Status, StatusCode, Tracer, TraceState\", \"from opentelemetry.util.re import parse_env_headers\", \"from opentelemetry.util.types import Attributes, AttributeValue\", \"from litellm._logging import verbose_logger\", \"from litellm._version import version as litellm_version\", \"from litellm.integrations.otel.mappers.langfuse import (\\n    LANGFUSE_OBSERVATION_INPUT,\\n    LANGFUSE_OBSERVATION_OUTPUT,\\n    LANGFUSE_REQUEST_METADATA_ATTRIBUTES,\\n    LANGFUSE_TRACE_NAME,\\n    LangfuseMapper,\\n)\", \"from litellm.integrations.otel.model.config import (\\n    CaptureMessageContent,\\n    ExporterOwner,\\n    ExporterSpec,\\n    OpenTelemetryV2Config,\\n    capture_message_content_from_env,\\n    captures_span_content,\\n    is_unconfigured_placeholder,\\n)\", \"from litellm.integrations.otel.model.semconv import (\\n    DB,\\n    MCP,\\n    Error,\\n    ExceptionEvent,\\n    GenAI,\\n    LiteLLM,\\n    LiteLLMError,\\n    Server,\\n)\", \"from litellm.integrations.otel.model.spans import LiteLLMSpanKind\", \"from litellm.integrations.otel.plumbing.context import (\\n    request_destinations,\\n    request_traces_excluded,\\n    suppressed_backends,\\n)\", \"from litellm.integrations.otel.plumbing.otlp_tls import resolve_otlp_http_tls\"], \"possible_callers\": [{\"id\": \"litellm/integrations/otel/logger.py::OpenTelemetryV2.__init__\", \"line\": 194, \"body_sha256\": \"4cd42f893b4299b94504b7ed20da7136c1a263fe601c18929628c8af19900a50\"}, {\"id\": \"litellm/integrations/otel/plumbing/providers.py::in_memory_provider\", \"line\": 1771, \"body_sha256\": \"4469cf34cc62eade134e57704625f1dcccc788214100dfc39453cb80962d28da\"}, {\"id\": \"litellm/integrations/otel/plumbing/routing.py::TenantTracerCache._cached_provider_locked\", \"line\": 274, \"body_sha256\": \"c1b62259f2e4672f1abee6d254bf3a8c9d06f7748d2598babaee58054c7c44d9\"}], \"local_helper_owners\": [{\"id\": \"litellm/integrations/otel/plumbing/providers.py::build_resource\", \"line\": 1499, \"end_line\": 1504, \"body_sha256\": \"21342114d679b906426730131e2238309bbe23d9ce6890871e5323d98dbc815b\"}, {\"id\": \"litellm/integrations/otel/plumbing/providers.py::_processor_for\", \"line\": 241, \"end_line\": 250, \"body_sha256\": \"5e7ed991de3c54b2c732c537ea16121749675621940c65d8993768b7d6bf31d1\"}, {\"id\": \"litellm/integrations/otel/plumbing/providers.py::_maps_langfuse\", \"line\": 1663, \"end_line\": 1665, \"body_sha256\": \"f7faee0e5403a2b23a3e4a6e26620af898b55b4a89137c9f4489caed4ce0b236\"}, {\"id\": \"litellm/integrations/otel/plumbing/providers.py::_spec_processor\", \"line\": 1507, \"end_line\": 1523, \"body_sha256\": \"89b54ab7f46ccb8e08b310733d1565df90c3868bc4c983acb0f9f473918b7aaa\"}, {\"id\": \"litellm/integrations/otel/plumbing/providers.py::_operator_scope\", \"line\": 1725, \"end_line\": 1726, \"body_sha256\": \"0a0585b301b3adea1267b5ea7829ef156af1c36304ee77e0d9f60f39be933834\"}, {\"id\": \"litellm/integrations/otel/plumbing/providers.py::_exports_to_the_wire\", \"line\": 1733, \"end_line\": 1735, \"body_sha256\": \"d6095183742bb86f4d2500aba740593897952321a4df005e1a0e69e3b16b8dde\"}, {\"id\": \"litellm/integrations/otel/plumbing/providers.py::_sink_key\", \"line\": 1738, \"end_line\": 1749, \"body_sha256\": \"777102bd5b4a1da77e2fb243bcb84769c2ca10c1a49ae06a16c8918e6f6f9571\"}, {\"id\": \"litellm/integrations/otel/plumbing/providers.py::parse_headers\", \"line\": 163, \"end_line\": 177, \"body_sha256\": \"7eb54f406c136812ee9d6b2e03e05a973677468986151fc3adb1d62dabdc63c6\"}], \"caller_resolution\": \"Static terminal-name candidates, not resolved runtime graph. Full owning file snapshot includes helper implementations.\", \"full_source_file\": \"sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.py\"}",
+        "context_digest": "6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb",
+        "declaration": null,
+        "end_line": 1628,
+        "hash": "",
+        "line": 1548,
+        "name": "build_tracer_provider",
+        "origin": null,
+        "owner": null,
+        "path": "litellm/integrations/otel/plumbing/providers.py",
+        "portable_source_file": "sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.json.gz"
+      },
+      "parent": "",
+      "policies": [],
+      "similarity": 0.2489669206909752,
+      "similarity_reusable": false
+    },
+    "classification": "separate",
+    "confidence": "both reviewers agree; source supported",
+    "diagnostic_profiles": [
+      {
+        "cross_file_rank": 4,
+        "first_retrieval_loss": "floor",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "floor",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "floor",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/integrations/otel/plumbing/providers.py::build_tracer_provider",
+        "query_lines": 81,
+        "query_token_count": 202,
+        "raw_rank": 9,
+        "score": 0.24896692069097515,
+        "target": "litellm/integrations/langfuse/langfuse_sdk.py::build_langfuse_tracing"
+      },
+      {
+        "cross_file_rank": 4,
+        "first_retrieval_loss": "floor",
+        "floor": 0.5,
+        "profiles": {
+          "balanced_exploration": {
+            "first_loss": "floor",
+            "floor": 0.35,
+            "same_file_allowed": true,
+            "top_k": 20
+          },
+          "default": {
+            "first_loss": "floor",
+            "floor": 0.5,
+            "same_file_allowed": false,
+            "top_k": 3
+          }
+        },
+        "query": "litellm/integrations/langfuse/langfuse_sdk.py::build_langfuse_tracing",
+        "query_lines": 36,
+        "query_token_count": 115,
+        "raw_rank": 5,
+        "score": 0.2489669206909752,
+        "target": "litellm/integrations/otel/plumbing/providers.py::build_tracer_provider"
+      }
+    ],
+    "endpoints": [
+      {
+        "body_sha256": "efdd22f1365bd3b78befdb168c7e5d302fbf2f6200961be0431bb3196471410e",
+        "function_end": 1628,
+        "function_start": 1548,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/integrations/otel/plumbing/providers.py",
+            "code": "    \"\"\"\n    provider: Final = TracerProvider(resource=build_resource(config))\n    provider.sampler = _RequestExclusionSampler(provider.sampler)\n    if baggage_processor is None:\n        baggage_processor = LiteLLMBaggageSpanProcessor(allowed_keys=config.baggage_promoted_keys)\n    provider.add_span_processor(baggage_processor)\n\n    if exporter is not None:\n        provider.add_span_processor(_processor_for(exporter, use_simple_processor))\n        return provider\n\n    langfuse_mapped: Final = _maps_langfuse(config)\n    # ``config._normalize`` guarantees at least one spec (it folds the top-level\n    # ``exporter``/``endpoint``/``headers`` fields in when ``exporters`` is empty).\n    for spec in config.exporters:\n        if spec.requires_headers and not spec.headers:\n            continue\n        if is_unconfigured_placeholder(spec) and not console_default:\n            continue\n        processor = _spec_processor(\n            spec,\n            use_simple_processor,\n            strip_message_content,\n            strip_destination_langfuse_attributes=spec.owner is not ExporterOwner.LANGFUSE_OTEL,\n            langfuse_mapped=langfuse_mapped,\n        )\n        owner = spec.owner.value if tenant_overrides and spec.owner is not None else None\n        scope = _operator_scope(config, spec)\n        sink = _sink_key(spec.endpoint, parse_headers(spec.headers)) if _exports_to_the_wire(spec) else None\n        provider.add_span_processor(\n            _OverriddenBackendFilter(\n                processor,\n                owner,\n                scope,\n                sink,\n                config.capture_span_content,\n                tenant_overrides,\n            )\n            if owner is not None\n            or scope != \"full\"\n            or sink is not None\n            or (tenant_overrides and not config.capture_span_content)\n            else processor\n        )\n    return provider",
+            "end_line": 1628,
+            "file_sha256": "6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb",
+            "git_blob": "b5a5b85fc110813baa6c9d0bf4a0d66bcc535754",
+            "path": "litellm/integrations/otel/plumbing/providers.py",
+            "portable_source_file": "sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.json.gz",
+            "region_sha256": "2466d3834bbdce58f535bbe77d138b16dc13b8c492b41fdcb814a5db07c65827",
+            "snapshot": "sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.json.gz",
+            "source_id": "litellm/integrations/otel/plumbing/providers.py::build_tracer_provider",
+            "start_line": 1584
+          }
+        ],
+        "portable_source_file": "sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.json.gz",
+        "source_id": "litellm/integrations/otel/plumbing/providers.py::build_tracer_provider",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/integrations/otel/plumbing/providers.py",
+          "file_sha256": "6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb",
+          "git_blob": "b5a5b85fc110813baa6c9d0bf4a0d66bcc535754",
+          "path": "litellm/integrations/otel/plumbing/providers.py",
+          "portable_source_file": "sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.json.gz",
+          "snapshot": "sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.json.gz"
+        }
+      },
+      {
+        "body_sha256": "ed427b881e94f2ee9897538cbc9a9c49bb3f3f8bdfdeea37ad6efb0e47f13671",
+        "function_end": 1042,
+        "function_start": 1007,
+        "operation_regions": [
+          {
+            "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/integrations/langfuse/langfuse_sdk.py",
+            "code": "    if os.environ.get(\"OTEL_SDK_DISABLED\", \"\").strip().lower() == \"true\":\n        verbose_logger.warning(\"OTEL_SDK_DISABLED=true also disables the langfuse callback's export channel\")\n    provider: Final = TracerProvider(\n        resource=_resource(environment=environment, release=release),\n        sampler=ALWAYS_ON if sample_rate >= 1 else TraceIdHashSampler(sample_rate),\n        id_generator=_RequestedIdGenerator(),\n        span_limits=_SPAN_LIMITS,\n    )\n    ledger: Final = _ExportLedger(exporter)\n    provider.add_span_processor(\n        BatchSpanProcessor(\n            ledger,\n            max_queue_size=_MAX_QUEUE_SIZE,\n            max_export_batch_size=flush_at,\n            schedule_delay_millis=flush_interval_millis,\n        )\n    )\n    return LangfuseTracing(provider=provider, tracer=provider.get_tracer(_TRACER_NAME), ledger=ledger)",
+            "end_line": 1042,
+            "file_sha256": "22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e",
+            "git_blob": "51b08cb72dff4249b34a52c3f0923000bdb1ab50",
+            "path": "litellm/integrations/langfuse/langfuse_sdk.py",
+            "portable_source_file": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz",
+            "region_sha256": "4b0ec15a38d741b101c456b2d8a5a739b822f52503b856d0f8cef722fda30841",
+            "snapshot": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz",
+            "source_id": "litellm/integrations/langfuse/langfuse_sdk.py::build_langfuse_tracing",
+            "start_line": 1025
+          }
+        ],
+        "portable_source_file": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz",
+        "source_id": "litellm/integrations/langfuse/langfuse_sdk.py::build_langfuse_tracing",
+        "source_proof": {
+          "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/integrations/langfuse/langfuse_sdk.py",
+          "file_sha256": "22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e",
+          "git_blob": "51b08cb72dff4249b34a52c3f0923000bdb1ab50",
+          "path": "litellm/integrations/langfuse/langfuse_sdk.py",
+          "portable_source_file": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz",
+          "snapshot": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz"
+        }
+      }
+    ],
+    "existing_and_proposed_ownership": "Keep V2 provider plumbing and isolated Langfuse SDK tracing owners. No repeated domain-specific assembly contract beyond generic SDK construction.",
+    "hard_positive_balanced": false,
+    "id": "LL-C08",
+    "legitimate_variation": "Baggage/request-exclusion/destination filtering/content stripping versus single SDK channel and batch queue/interval settings. Shared TracerProvider/resource/add_span_processor shape is SDK boilerplate.",
+    "license_scope": {
+      "header_checks": [
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/integrations/otel/logger.py",
+          "portable_source_file": "sources/1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d.json.gz"
+        },
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/integrations/langfuse/langfuse.py",
+          "portable_source_file": "sources/1ef82b6c69940bd7758230b52fb14d3e30e4a3227d856ac67e99056fc81fd521.json.gz"
+        },
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/integrations/langfuse/langfuse_sdk.py",
+          "portable_source_file": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz"
+        },
+        {
+          "enterprise_license_header_found": false,
+          "header_checked": true,
+          "path": "litellm/integrations/otel/plumbing/providers.py",
+          "portable_source_file": "sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.json.gz"
+        }
+      ],
+      "interpretation": "Importing enterprise symbols or checking premium status is not a file-license override. No enterprise/ body copied. Two conservatively excluded original files remain excluded; no scope expansion or IDF changes.",
+      "license_path": "LICENSE",
+      "nested_license_paths_in_litellm": [
+        "litellm/litellm_core_utils/tokenizers/deepseek_tokenizer_LICENSE",
+        "litellm/proxy/auth/litellm_license.py"
+      ],
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_license_rule": "All content outside enterprise/ is MIT unless other stated restrictions apply. All endpoints and added owner/caller proofs are under litellm/, outside enterprise/.",
+      "sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+      "spdx": "MIT"
+    },
+    "live_caller_proofs": [
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/integrations/otel/logger.py",
+        "code": "    def __init__(\n        self,\n        config: OpenTelemetryV2Config | None = None,\n        callback_name: str | None = None,\n        tracer_provider: TracerProvider | None = None,\n        logger_provider: LoggerProvider | None = None,\n        meter_provider: \"MeterProvider | None\" = None,\n        console_default: bool = False,\n        **kwargs: Unpack[_CustomLoggerOptions],\n    ) -> None:\n        super().__init__(**kwargs)\n        self.config: OpenTelemetryV2Config = config or OpenTelemetryV2Config(**kwargs)\n        self.callback_name = callback_name\n        self._tracer_provider: TracerProvider = (\n            tracer_provider\n            if tracer_provider is not None\n            else build_tracer_provider(self.config, tenant_overrides=True, console_default=console_default)\n        )\n        self.tracer: Tracer = get_tracer(self._tracer_provider, LITELLM_TRACER_NAME)\n        self._metrics_recorder = self._init_metrics(meter_provider)\n        self._metric_filter_error_logged = False\n        self._emitter = SpanEmitter(\n            self.tracer,",
+        "enclosing_source_ids": [
+          "litellm/integrations/otel/logger.py::OpenTelemetryV2.__init__"
+        ],
+        "end_line": 216,
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "git_blob": "b5b65d299e08f62a2157eada16242cc214c9a4bf",
+        "path": "litellm/integrations/otel/logger.py",
+        "portable_source_file": "sources/1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "810832b7ec62d0f6cbe9ab884c1197813eab97cce7dda304976e9e30a8da3893",
+        "snapshot": "sources/1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d.json.gz",
+        "start_line": 194
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/integrations/langfuse/langfuse_sdk.py",
+        "code": "                cached.retire.cancel()\n            _TRACING[key] = replace(cached, holders=cached.holders + 1, retire=None)\n            return cached.tracing\n        created: Final = build_langfuse_tracing(\n            exporter=DiscardingSpanExporter()\n            if mock_mode\n            else _build_span_exporter(public_key=public_key, secret_key=secret_key, base_url=base_url),\n            environment=environment,\n            release=release,\n            sample_rate=key.sample_rate,\n            flush_at=key.flush_at,\n            flush_interval_millis=key.flush_interval_millis,\n        )",
+        "enclosing_source_ids": [
+          "litellm/integrations/langfuse/langfuse_sdk.py::acquire_langfuse_tracing"
+        ],
+        "end_line": 935,
+        "file_sha256": "22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e",
+        "git_blob": "51b08cb72dff4249b34a52c3f0923000bdb1ab50",
+        "path": "litellm/integrations/langfuse/langfuse_sdk.py",
+        "portable_source_file": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "9bd47b37aadbee8a14fdacf4fb3093da12453543361d50b5a30823de9c7e6e76",
+        "snapshot": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz",
+        "start_line": 923
+      },
+      {
+        "blob_url": "https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/integrations/langfuse/langfuse.py",
+        "code": "        \"\"\"\n        if litellm.initialized_langfuse_clients >= MAX_LANGFUSE_INITIALIZED_CLIENTS:\n            raise Exception(\n                f\"Max langfuse clients reached: {litellm.initialized_langfuse_clients} is greater than {MAX_LANGFUSE_INITIALIZED_CLIENTS}\"\n            )\n        from litellm.integrations.langfuse.langfuse_sdk import (\n            acquire_langfuse_tracing,\n            build_langfuse_client,\n            release_langfuse_tracing,\n        )\n\n        tracing: Final = acquire_langfuse_tracing(\n            public_key=str(self.public_key),\n            secret_key=str(self.secret_key),\n            base_url=self.langfuse_host,\n            environment=self.langfuse_environment,\n            release=self.langfuse_release,\n            flush_interval=self.langfuse_flush_interval,\n            mock_mode=self.is_mock_mode,\n        )\n        try:\n            api_client: Final = build_langfuse_client(\n                public_key=self.public_key,\n                secret_key=self.secret_key,\n                base_url=self.langfuse_host,\n                httpx_client=self.langfuse_client,\n            )",
+        "enclosing_source_ids": [
+          "litellm/integrations/langfuse/langfuse.py::LangFuseLogger.safe_init_langfuse_client"
+        ],
+        "end_line": 441,
+        "file_sha256": "1ef82b6c69940bd7758230b52fb14d3e30e4a3227d856ac67e99056fc81fd521",
+        "git_blob": "bd68ffe8cd6033f6b1ba7ba7c3cbe8d46bbf1365",
+        "path": "litellm/integrations/langfuse/langfuse.py",
+        "portable_source_file": "sources/1ef82b6c69940bd7758230b52fb14d3e30e4a3227d856ac67e99056fc81fd521.json.gz",
+        "proof_kind": "Pinned production call/registration/dispatch source, statically wired; not runtime execution proof",
+        "region_sha256": "0f39c39899f676cae5d21d72a261cfa7c080166f41fb4fa9ffa85c6db0f81b2f",
+        "snapshot": "sources/1ef82b6c69940bd7758230b52fb14d3e30e4a3227d856ac67e99056fc81fd521.json.gz",
+        "start_line": 415
+      }
+    ],
+    "live_proof_limit": "Exact production call sites/registration and branch wiring verified statically. No execution, configured deployment, provider, network or credentials accessed. Callback runtime type depends on configured integration.",
+    "operation_contract": "V2 tenant-aware multi-exporter fan-out provider versus isolated Langfuse SDK provider with dedicated sampler, requested IDs, span limits and export ledger.",
+    "owner_proofs": [],
+    "provisional_family_id": "LL-TRACER-PROVIDER-OWNERSHIP",
+    "repository": "BerriAI/litellm",
+    "reviewer_disagreement_resolution": "No reviewer disagreement; both separate.",
+    "reviewer_observations": [
+      {
+        "id": "LL-C08",
+        "path": {
+          "artifact_basename": "8a82ac060f673bd7893302fcd85a91394587574addcb438979eb72acac7eb251.json",
+          "original_artifact_sha256": "bbde867c3411240b47e7077114ffb1f6a9dcccb9e675116d185ea6589d815475"
+        },
+        "reviewer": "jev",
+        "verdict": {
+          "behaves_differently": 0.43,
+          "judge": "jev",
+          "judge_version": "reuse-context-v3:jev-1.14.0",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "none",
+          "score": 0.19,
+          "second_opinion": null,
+          "why": "Platform SDK or provider boundaries should remain separate."
+        }
+      },
+      {
+        "id": "LL-C08",
+        "path": {
+          "artifact_basename": "0373f47751e26ca5023beee8588329d9699a55a07b3082cce11a00f59fe78941.json",
+          "original_artifact_sha256": "46efddbb1ac10739a81a92a85483b30d367ace8254e0d6a5e3c2b21bf2eb5d55"
+        },
+        "reviewer": "claude",
+        "verdict": {
+          "behaves_differently": 0.0,
+          "judge": "anthropic-operations",
+          "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+          "label": "separate",
+          "model_assessment": null,
+          "owner": "",
+          "score": 0.08,
+          "second_opinion": null,
+          "why": "Both functions create an OpenTelemetry TracerProvider and attach span processors, but that is SDK boilerplate rather than a shared domain operation. NEW assembles a multi-exporter fan-out: baggage processor, request-exclusion sampler, per-spec filtering and wrapping for tenant overrides, Langfuse scope and content stripping. EXISTING builds a single-channel Langfuse tracing setup with its own sampler, ID generator, span limits, export ledger and batch processor, plus an OTEL_SDK_DISABLED warning. The resource builders, sampler policies, processor choices and failure handling all differ. No concrete reusable operation with a common contract is established."
+        }
+      }
+    ],
+    "reviews_provenance": {
+      "path": {
+        "artifact_basename": "litellm-observations.json",
+        "original_artifact_sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6"
+      },
+      "sha256": "eea8a7d32bed12ecf9c55077c9c9b6159366907781d6435c481aee9153dbdcd6",
+      "snapshot": "review-observations.json"
+    },
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "schema": 1,
+    "source_verification": {
+      "coordinator_all_16_endpoint_checks_passed": true,
+      "direct_git": true,
+      "full_background_match": true,
+      "native_extractor_exact_body": true
+    },
+    "status": "source_resolved_acceptance_proposal_not_final_gold",
+    "whole_function_equivalence": false
+  },
+  "source_adjudication_sha256": "3d5ea1f5b0da43be576920bae16cdf7082be74a7867a1d8980bba775ce16215f",
+  "source_closure": [
+    {
+      "file_sha256": "1ef82b6c69940bd7758230b52fb14d3e30e4a3227d856ac67e99056fc81fd521",
+      "git_blob_sha1": "bd68ffe8cd6033f6b1ba7ba7c3cbe8d46bbf1365",
+      "path": "litellm/integrations/langfuse/langfuse.py",
+      "source_file": "sources/1ef82b6c69940bd7758230b52fb14d3e30e4a3227d856ac67e99056fc81fd521.json.gz"
+    },
+    {
+      "file_sha256": "22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e",
+      "git_blob_sha1": "51b08cb72dff4249b34a52c3f0923000bdb1ab50",
+      "path": "litellm/integrations/langfuse/langfuse_sdk.py",
+      "source_file": "sources/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.json.gz"
+    },
+    {
+      "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+      "git_blob_sha1": "b5b65d299e08f62a2157eada16242cc214c9a4bf",
+      "path": "litellm/integrations/otel/logger.py",
+      "source_file": "sources/1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d.json.gz"
+    },
+    {
+      "file_sha256": "6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb",
+      "git_blob_sha1": "b5a5b85fc110813baa6c9d0bf4a0d66bcc535754",
+      "path": "litellm/integrations/otel/plumbing/providers.py",
+      "source_file": "sources/6e99611af7ac4dc909e3abbcea0f2c9d702aad48afd938ef790a2740102641fb.json.gz"
+    }
+  ],
+  "source_only": true
+}
