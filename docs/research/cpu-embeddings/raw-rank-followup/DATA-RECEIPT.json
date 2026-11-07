@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "status": "UPLOADED_VERIFIED",
+  "asset_name": "combined-recall-data-v1.tar.gz",
+  "asset_bytes": 206845062,
+  "asset_sha256": "216fb0de00c490cea71c924f3c4db65c6fa46477b9549bf321624190d79633bc",
+  "data_manifest_sha256": "d9dce7bc446886739ee70c35e2260d8c61db67512b92e5a698616506c595e775",
+  "data_manifest_files": 294,
+  "extracted_directory": "combined-recall-data-v1",
+  "intended_repository": "gigaverse-app/dry-lint-goldens",
+  "repository_visibility": "private",
+  "access": "Authorized repository access required; unavailable to public readers without access",
+  "upload_performed": true,
+  "provider_calls_by_worker": 0,
+  "successor_fresh_calls": 0,
+  "successor_new_usd": 0,
+  "verified_successor_question_reuses": 64,
+  "layout": {
+    "cohorts/": "Four complete public backgrounds, functions, frozen prefix/tail vectors",
+    "sources/": "Pinned whole files for endpoints and cited source helpers",
+    "observations.jsonl.gz": "Selected reply text/parsed verdicts/usage/cost; no transport metadata",
+    "requests.jsonl.gz": "Exact rendered prompt and source/model/options/policy identities",
+    "campaigns.jsonl.gz": "All selected primary arm pools and normal/native ledgers",
+    "source-seals/": "Original sealed source decisions and hash receipts",
+    "licenses/": "Pinned root and nested source notices",
+    "runtime.zip": "Immutable5583 runtime Python source"
+  },
+  "replay": "python replay.py --data-dir /path/to/combined-recall-data-v1 --output-dir /path/to/fresh-output --retrieval",
+  "release_url": "https://github.com/gigaverse-app/dry-lint-goldens/releases/tag/combined-recall-data-v1-20261107",
+  "download_url": "https://github.com/gigaverse-app/dry-lint-goldens/releases/download/combined-recall-data-v1-20261107/combined-recall-data-v1.tar.gz"
+}

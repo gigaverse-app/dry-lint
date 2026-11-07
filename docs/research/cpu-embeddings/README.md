@@ -1,5 +1,7 @@
 # CPU tail views recover two useful reports after prefix-only recipes failed
 
+**New implemented follow-up:** [complete statements with raw rank scoring](raw-rank-followup/README.md) add three useful reports and three tiny reports without lost admissions in 66 selected single-function campaigns. Five shared campaigns show no gain. The route is opt-in in [#109](https://github.com/gigaverse-app/dry-lint/pull/109). The follow-up publishes a full selected retrieval/budget reproducer with a separately hosted, access-controlled data archive; the older experiments below remain distinct.
+
 A bounded successor now demonstrates useful additional reports: **two among 47 novel candidate pairs**, with
 zero reports among 16 controls. It preserves existing candidates and appends at most one comparison built from
 complete tail statements. The original prefix-only and lexical-reranking studies below remain negative against
