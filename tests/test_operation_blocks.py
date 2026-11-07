@@ -3,6 +3,7 @@
 import pytest
 
 from dry_lint.detector import Detector
+from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Declaration, LanguageAnalysis
 from dry_lint.operation_blocks import _blocks
 from dry_lint.plugins import load
@@ -43,7 +44,7 @@ def test_native_parents_scores_shared_operations_and_standalone_queries():
     assert "call:decode_packet" in comparer.shared(query, target)
     assert len(comparer.shared(query, target, limit=1)) == 1
     assert comparer.similarity_reusable is False
-    assert comparer.name == "operation-blocks" and comparer.version == "1"
+    assert comparer.name == "operation-blocks" and comparer.version == "2"
     assert comparer.neighbours(query, 0, allowed=lambda f: True) == []
     assert comparer.neighbours(query, 3, allowed=lambda f: False) == []
     # Querying must neither fit its tokens nor give it indexed position zero.
@@ -248,7 +249,7 @@ def test_detector_discovery_keeps_baseline_and_fills_one_unseen_native_pair(tmp_
     assert [c for c in candidates if c.lane == "baseline"] == [c for c in baseline if c.lane == "baseline"]
     extra = [c for c in candidates if c.lane == "exploration"]
     assert len(extra) == 1
-    assert extra[0].comparer == "operation-blocks:1" and not extra[0].similarity_reusable
+    assert extra[0].comparer == "operation-blocks:2" and not extra[0].similarity_reusable
     assert extra[0].new.code == changed.code and "Full native documentation" in extra[0].new.code
     assert extra[0].existing.code.startswith("def deliver_")
     assert len({c.key for c in candidates}) == len(candidates)
@@ -297,3 +298,86 @@ def test_detector_skips_settled_unseen_pairs_before_the_block_cap(tmp_path, sett
         ("b.py", "baseline"),
         ("d.py", "exploration"),
     ]
+
+
+COMPLETE_HELPER = '''\
+def commit_staged(path):
+    """Release staging even when publication fails; keep the receipt outside cleanup."""
+    token = acquire_staging(path)
+    try:
+        publish_staging(token)
+    finally:
+        release_staging(token)
+    return receipt_for(path)
+'''
+
+
+def test_complete_helper_fallback_retrieves_full_native_cleanup_contract():
+    query = function("writer.py", COMPLETE_HELPER)
+    target = function("copy.py", COMPLETE_HELPER.replace("commit_staged", "commit_copy"))
+    assert _blocks(query) == []  # no complete region qualifies by itself
+    before = [f.model_dump() for f in (query, target)]
+    comparer = fitted(query, target, count=400)
+    assert comparer.neighbours(query, 1, lambda f: True) == [(target, pytest.approx(1))]
+    assert comparer.similarity(query, target) == pytest.approx(1)
+    assert "call:release_staging" in comparer.shared(query, target)
+    assert [f.model_dump() for f in (query, target)] == before
+    assert comparer.neighbours(query, 1, lambda f: False) == []
+    assert comparer.neighbours(query, 1, lambda f: f is query) == []
+
+
+def test_helper_discovery_keeps_complete_distinct_error_timing_in_candidates():
+    query = function("always.py", COMPLETE_HELPER)
+    failure = COMPLETE_HELPER.replace("finally:", "except OSError:").replace(
+        "    return receipt_for(path)", "        raise\n    return receipt_for(path)"
+    )
+    target = function("failure.py", failure)
+    comparer = fitted(query, target, count=400)
+    detector = Detector([query, target, *background(400)], Settings(), comparer, [PythonExtractor()])
+    candidates = detector.candidates([query])
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate.new.code == COMPLETE_HELPER.rstrip()
+    assert candidate.existing.code == failure.rstrip()
+    assert "finally:" in candidate.new.code
+    assert "except OSError:" in candidate.existing.code
+    assert '"""Release staging' in candidate.new.code
+    assert candidate.comparer == "operation-blocks:2"
+    assert candidate.similarity_reusable is False
+
+
+def test_helper_fallback_uses_revised_standalone_source_and_clears_on_reindex():
+    target = function("copy.py", COMPLETE_HELPER)
+    query = function("writer.py", COMPLETE_HELPER)
+    comparer = fitted(target, count=400)
+    assert comparer.neighbours(query, 1, lambda f: True)[0][0] is target
+    changed = function("writer.py", "def commit_staged(path):\n    return unrelated(path)\n")
+    assert comparer.neighbours(changed, 1, lambda f: True) == []
+    comparer.index([])
+    assert comparer.neighbours(query, 1, lambda f: True) == []
+    comparer.index([target, *background(400)])
+    assert comparer.neighbours(query, 1, lambda f: True)[0][0] is target
+
+
+def test_original_regions_win_before_a_helper_fallback_and_bounds_are_fixed():
+    query, target = job("a.py"), job("b.py")
+    helper = function("helper.py", COMPLETE_HELPER)
+    comparer = fitted(query, target, helper, count=400)
+    old_score, _ = comparer._best(comparer._parents[0], comparer._parents[1])
+    assert comparer.neighbours(query, 1, lambda f: True) == [(target, old_score)]
+    assert all(len(blocks) <= 12 for blocks in comparer._parents)
+    assert all(len(blocks) <= 13 for blocks in comparer._fallback_parents)
+    assert all(len(indexes) <= 64 for indexes in comparer._fallback_postings.values())
+    assert len(comparer._pool(query, comparer._query_blocks(query, fallback=True), fallback=True)) <= 64
+
+
+def test_documentation_without_executable_body_cannot_be_a_helper_candidate():
+    documented = function(
+        "docs.py",
+        'def documentation_only():\n    """acquire_staging, publish_staging and release_staging describe the API."""\n',
+    )
+    helper = function("helper.py", COMPLETE_HELPER)
+    comparer = fitted(documented, helper, count=400)
+    assert comparer.neighbours(documented, 1, lambda f: True) == []
+    assert comparer.similarity(documented, helper) == 0
+    assert comparer.shared(documented, helper) == []

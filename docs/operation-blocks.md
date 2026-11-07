@@ -67,14 +67,39 @@ Changed full function  -> complete syntax regions -> rare operation anchors
 4. Bound lookup to eight anchors per region, 64 postings per anchor and 64 candidate parents. Oversubscribed
    anchors are dropped. Each region match needs three shared concrete operations, two shared calls and a retained
    shared anchor. Its cosine must reach 0.65 and the full-function cosine must reach 0.10.
-5. Deduplicate parents and return the best previously unseen eligible function. Scores and ties are deterministic.
+5. Deduplicate parents and return the best previously unseen eligible function. If the original region route
+   has no eligible winner, try a second index with at most one complete helper body added per function. This
+   body excludes its docstring, rejects nested owners, and passes the same size, operation and score guards.
+   Its independently capped postings preserve the original route and scores. The fallback has at most 13
+   regions, 6,656 posting visits and 10,816 region comparisons. Scores and ties are deterministic.
    The returned Candidate preserves both native functions, signatures, documentation, coordinates and context.
 
 The implementation is [`operation_blocks.py`](../src/dry_lint/operation_blocks.py); exact frequency and tie
 rules are also documented in the [plugin contract](plugins.md#bounded-python-operation-blocks). These bounds
 make work predictable, but they also create misses: a useful operation may be too small, occur after the first
 12 regions, use different call names or lack a rare anchor. A zero block score does not establish different
-behavior. The comparer identity is `operation-blocks:1`, and its score does not permit changed-code verdict reuse.
+behavior. The comparer identity is `operation-blocks:2`, and its score does not permit changed-code verdict reuse.
+
+## Why the complete-helper fallback matters
+
+A helper can perform a single operation across a short setup, a `try`/`finally` and a return. Each region may
+be too small to qualify alone, so version 1 never retrieves it. Version 2 can compare the complete helper body
+while preserving its exception and cleanup boundaries in the returned source:
+
+```python
+def commit_staged(path):
+    token = acquire_staging(path)
+    try:
+        publish_staging(token)
+    finally:
+        release_staging(token)
+    return receipt_for(path)
+```
+
+The fallback adds a representation; it does not move `release_staging` out of `finally`, label the function a
+duplicate, or replace an original region winner. An earlier winner can still consume the available retrieval
+slot, and a later scheduler can still displace another candidate under a fixed budget. Retrieval preservation
+and report preservation therefore require separate checks.
 
 ## What has been measured
 
@@ -97,3 +122,40 @@ operation appearing elsewhere does not prove that this caller already delegates 
 Keep the route opt-in for partial-operation exploration. Measure added useful reports, displaced reports and
 runtime in your repository before recommending it broadly. Neither the tested research judge settings nor the
 synthetic allowance should be silently substituted for an adopter's configured policy.
+
+## Complete-helper follow-up
+
+The new helper representation was tested against the original block route, with the earlier TF-IDF routes
+preserved. On 37 newly funded candidate pairs, independent source review found 11 bounded useful extractions,
+5 tiny conveniences and 21 already-shared, related or separate pairs. Sonnet/shared-operations at the diagnostic
+.80 reporting rule emitted three bounded useful reports: TLS-context construction, streaming hook/text
+accumulation, and custom key-policy invocation. These are partial extractions with caller-specific guards,
+error handling and ownership retained.
+
+A separate cold-campaign comparison used the actual balanced Haiku policy, a 2,048-token output hold and
+independent .04 ledgers. Across the full admission delta, 38 pairs became funded and 28 prior pairs lost funding.
+New reports included 10 bounded useful operations, 2 tiny ones and 5 source-unsupported reports. Lost prior
+reports included 1 bounded useful operation, 1 tiny one and 2 source-unsupported reports. Thus the selected
+panel gained **nine net bounded useful reports**, while adding three net unsupported reports. This supports an
+opt-in capability with a measured precision tradeoff, not a default-policy recommendation. Reports on common
+admissions cancel in this delta comparison; this is not an overall precision/recall estimate.
+
+The balanced run is a native cold-query admission simulation using real pinned source, not observed historical
+PR traffic or a settlement-timing replay. Thirty-four of the initial 37 candidates overlap prior family proxies
+and three are development cases; there is no fresh confirmation candidate family. The ten bounded additions
+span nine frozen proxy components, which are not independently established semantic families. Seven canonical Jev questions
+truncate a body at 8,000 characters. All Claude questions and source reviews contain complete native functions;
+the partial Jev inputs remain explicitly marked in the records. Exact model, input and policy matches are required
+for cached answers, and each arm still pays its normal logical charge.
+
+The extra representation has a runtime cost. In the measured LiteLLM background, cold indexing rose from
+27.46 to 41.94 seconds; a paired warm query batch rose from 2.45 to 3.97 seconds. Original winners and scores
+were preserved in 964 sampled winning queries, and representation/posting parity was checked across 119,312
+available native function occurrences. A separate Due/pytest extension reconstructed 14 exact backgrounds
+and 115 labeled pair/background combinations: both original and helper routes retained their funded outcomes.
+These observations support bounded regression confidence, not a claim of zero future regressions.
+
+The [helper-recovery study](https://github.com/gigaverse-app/dry-lint/pull/115) supplies the frozen implementation,
+exact prompts and recorded answers, source-review boundaries, budgets, and provider-free reproduction. Full
+retrieval refitting requires the separately identified complete backgrounds; never fit IDF on just the selected
+source examples. See the [research index](research-results.md) for the other directions and their conclusions.

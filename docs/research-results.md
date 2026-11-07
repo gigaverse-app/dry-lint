@@ -1,0 +1,24 @@
+# What the recall research established
+
+Start with [the comparer guide](discovery-comparers.md) for configuration and worked examples. The studies below explain why the two optional comparers exist, which alternatives were tested, and why several appealing changes did not earn a production recommendation.
+
+Each study links its original implementation, configuration, exact selected source and recorded judge inputs/answers, a provider-free reproduction, and the inputs still needed for a complete corpus rerun. A selected-case replay does not recreate an entire retrieval experiment. Gold backgrounds remain in the separate dataset repository; private source and redistribution-held payloads are not copied into these reports.
+
+| Direction | What was tested | Result and decision |
+| --- | --- | --- |
+| [Token hygiene and weighting — #111](https://github.com/gigaverse-app/dry-lint/pull/111) | Stop words, name splitting, and counting each body word once | Better top-three ranks, but four useful default admissions lost. Keep the original weights. |
+| [Operation/contract tokens — #112](https://github.com/gigaverse-app/dry-lint/pull/112) | Generic operation tags, then exact conjunctive contracts | One minor existing-helper reuse; no substantial added report. Stop these recipes. |
+| [Budget-aware ranking — #113](https://github.com/gigaverse-app/dry-lint/pull/113) | Fixed utility, utility per estimated cost, then scheduling fairness | One useful public addition and one related emission; historical losses argue against flat global sorting. |
+| [Signal ensembles — #114](https://github.com/gigaverse-app/dry-lint/pull/114) | Learned ranking, alternating block/dense extras, operational gates | More funded candidates did not yield an observed additional report. Twenty-eight novel questions remain unanswered. |
+| [Operation blocks — #115](https://github.com/gigaverse-app/dry-lint/pull/115) | Complete syntax regions with rare operation anchors; a residual-coverage veto | Complete-helper recovery adds nine net bounded useful reports in the selected balanced delta, with three net unsupported reports. Keep opt-in. The residual veto removed useful opportunities and should not ship. |
+| [CPU embeddings — #116](https://github.com/gigaverse-app/dry-lint/pull/116) | Cached MiniLM candidates and a lexical reranker | Narrow-baseline retrieval gains did not establish useful report gains over TF-IDF20. Keep experimental and opt-in. |
+| [Source-reading judges — #117](https://github.com/gigaverse-app/dry-lint/pull/117) | Bounded source tools versus a corrected supplied-source control | Resolved two contextual uncertainties, but both arms already reported the same useful operation. No default rollout. |
+| [Latent vectors and sparse associations — #118](https://github.com/gigaverse-app/dry-lint/pull/118) | Rank-64 compression, hub correction, and bounded token cooccurrence expansion | Latent ranking regressed; sparse expansion yielded a small polling convenience, not a substantial gain. |
+| [Model/function signals — #119](https://github.com/gigaverse-app/dry-lint/pull/119) | Resolved schema links, then matching operations on the same model | Eighteen treatment-only funded pairs in the revised supplement yielded no additional report. |
+| [Linked documentation — #120](https://github.com/gigaverse-app/dry-lint/pull/120) | Reference-bound Markdown, then windows centered on the reference | Correcting text selection did not add useful reports; code-only retrieval remains the baseline. |
+| [Mechanically extracted judge context — #110](https://github.com/gigaverse-app/dry-lint/pull/110) | Imports/references, then targeted surrounding source in one-shot requests | No recovered report under the tested rules. Some useful overlaps were recognized but scored below the reporting threshold. |
+| [Historical protected recovery — #121](https://github.com/gigaverse-app/dry-lint/pull/121) | Half-weight names, guarded exploration, and protected/refill scheduling | One eight-revision family gained two reported pairs; a different one-candidate guard lost useful reports. Keep these distinct and experimental. |
+
+These are observed development and regression studies, with different supported denominators. Do not add their row counts into an independent sample or pool their default, wider-search, and deployed-adopter policies. Provider answers are observations; independent source review determines whether a report describes useful sharing. Missing answers remain unknown.
+
+The common lesson is to trace the first loss: source scope, score/filter, shortlist, funding, or judging. A rank improvement cannot repair a score-floor failure, and a new representation cannot repair a judge's rejection of a pair it already received. The original experiments and their counterexamples provide concrete starting points for subsequent work; they do not close the broader research directions.

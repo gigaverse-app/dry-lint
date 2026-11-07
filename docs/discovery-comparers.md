@@ -64,3 +64,4 @@ measurement.
 A quick inspection of a few interesting candidates is useful for development. It is not evidence of improved
 repository-wide precision or recall. The [research overview](tfidf-enrichment-research.md) describes the wider
 evaluation problem; each method guide explains its current measured boundary and operational costs.
+The [research results index](research-results.md) links the separate studies, runnable evidence, and decisions.

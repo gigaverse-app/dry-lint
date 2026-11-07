@@ -132,7 +132,7 @@ Start with the [worked operation-block example](operation-blocks.md) for why thi
 a larger workflow, when to use it, and the measured limits. The [comparer selection guide](discovery-comparers.md)
 explains route ordering and how to run a fair repository trial. This section specifies the plugin contract.
 
-`operation-blocks:1` retrieves complete native Python functions by shared operation regions. It supports Python
+`operation-blocks:2` retrieves complete native Python functions by shared operation regions. It supports Python
 functions with parseable source and valid source coordinates, not model declarations or other languages. Candidates
 retain their complete signature, documentation, source, hashes and context. Region cosine is a retrieval score,
 not a duplication verdict, and cannot authorize reuse of stored verdicts.
@@ -158,12 +158,15 @@ Regions are whole compound statements or maximal consecutive straight runs of at
 functions/classes and string-expression boundaries split runs; no region includes a nested owner. Compound suites
 are visited through depth three. Regions must span 4–80 lines and 20–400 executable AST nodes, contain at least
 eight distinct behavior tokens and two distinct nongeneric calls. Oversized regions are rejected, never split into
-windows. At most 12 regions survive in source order.
+windows. At most 12 regions survive in source order. If this original route finds no eligible winner, a second
+index adds at most one whole helper body, subject to the same guards and excluding its docstring and nested
+owners. Independent postings preserve the first route; this fallback keeps at most 13 regions.
 
 The complete indexed function-token background supplies TF-IDF (max document frequency .3) and anchor frequencies;
 blocks and standalone queries never refit it. Each region keeps at most eight concrete call/attribute/key anchors
 whose function frequency is at most `min(128, max(2, floor(.01 * functions)))`. An anchor with more than 64 region
-postings is dropped entirely. At most 6,144 posting visits select 64 parents. A region pair needs three shared
+postings is dropped entirely. At most 6,144 posting visits in the original route, or 6,656 in the fallback,
+select 64 parents. The fallback compares at most 64 × 13 × 13 region pairs. A region pair needs three shared
 concrete operations, two shared nongeneric calls and a retained shared anchor. Region cosine must reach .65 and
 whole-function cosine .1. Results deduplicate native parent identities and break score ties by qualified name,
 then original position. `similarity(a, b)` applies the same guards and floors directly; neighbour retrieval also

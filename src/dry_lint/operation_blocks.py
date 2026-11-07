@@ -7,7 +7,7 @@ The constants are the frozen operation-block experiment's bounds, not tunable po
 import ast
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from dry_lint.functions import _behaviour_nodes, _function_node, node_tokens
 from dry_lint.index import TfidfIndex
@@ -70,36 +70,76 @@ def _regions(body: list[ast.stmt], depth: int = 0) -> Iterator[tuple[str, list[a
         yield "straight_run", run
 
 
-def _blocks(function: Function) -> list[_Block]:
+def _block(function: Function, kind: str, statements: list[ast.stmt]) -> _Block | None:
+    if not statements:
+        return None
+    start, end = statements[0].lineno, statements[-1].end_lineno
+    assert end is not None  # parsed source, rather than a synthesized AST
+    nodes = sum(1 for statement in statements for _ in _behaviour_nodes(statement))
+    if not 4 <= end - start + 1 <= 80 or not 20 <= nodes <= 400:
+        return None
+    wrapper = ast.FunctionDef(
+        name="",
+        args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
+        body=statements,
+        decorator_list=[],
+    )
+    tokens = [token for token in node_tokens(wrapper) if not token.startswith("fn:")]
+    operations = frozenset(
+        token
+        for token in tokens
+        if token.partition(":")[0] in {"call", "attr", "key"} and token.partition(":")[2].lower() not in _GENERIC
+    )
+    calls = frozenset(token for token in operations if token.startswith("call:"))
+    if len(set(tokens)) < 8 or len(calls) < 2:
+        return None
+    return _Block(function.line + start - 1, function.line + end - 1, kind, tokens, operations, calls)
+
+
+def _representations(function: Function) -> tuple[list[_Block], _Block | None]:
+    """The original first 12 complete regions and at most one complete helper body."""
     python = function.analysis.language == "python" if function.analysis else function.path.endswith(".py")
     if not python or function.declaration is not None or function.line < 1 or function.end_line < function.line:
-        return []
+        return [], None
     node = _function_node(function.code)
     if node is None:
-        return []
-    blocks = []
-    for kind, statements in _regions(node.body):
-        start, end = statements[0].lineno, statements[-1].end_lineno
-        assert end is not None  # parsed source, rather than a synthesized AST
-        nodes = sum(1 for statement in statements for _ in _behaviour_nodes(statement))
-        if not 4 <= end - start + 1 <= 80 or not 20 <= nodes <= 400:
-            continue
-        wrapper = ast.FunctionDef(
-            name="",
-            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
-            body=statements,
-            decorator_list=[],
-        )
-        tokens = [token for token in node_tokens(wrapper) if not token.startswith("fn:")]
-        operations = frozenset(
-            token
-            for token in tokens
-            if token.partition(":")[0] in {"call", "attr", "key"} and token.partition(":")[2].lower() not in _GENERIC
-        )
-        calls = frozenset(token for token in operations if token.startswith("call:"))
-        if len(set(tokens)) >= 8 and len(calls) >= 2:
-            blocks.append(_Block(function.line + start - 1, function.line + end - 1, kind, tokens, operations, calls))
-    return sorted(blocks, key=lambda block: (block.line, block.end_line, block.kind))[:_MAX_BLOCKS]
+        return [], None
+    blocks = [
+        block for kind, statements in _regions(node.body) if (block := _block(function, kind, statements)) is not None
+    ]
+    original = sorted(blocks, key=lambda block: (block.line, block.end_line, block.kind))[:_MAX_BLOCKS]
+    body = node.body
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(body[0].value, ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        body = body[1:]
+    helper = None
+    if not any(isinstance(nested, _NESTED) for statement in body for nested in ast.walk(statement)):
+        helper = _block(function, "whole_helper", body)
+    if helper and any((block.line, block.end_line) == (helper.line, helper.end_line) for block in original):
+        helper = None
+    return original, helper
+
+
+def _blocks(function: Function) -> list[_Block]:
+    """Original region vocabulary; useful for inspecting the protected first route."""
+    return _representations(function)[0]
+
+
+def _postings(parents: list[list[_Block]]) -> dict[str, list[int]]:
+    postings: dict[str, list[int]] = defaultdict(list)
+    for parent, blocks in enumerate(parents):
+        for block in blocks:
+            for anchor in block.anchors:
+                postings[anchor].append(parent)
+    kept = {token: indexes for token, indexes in postings.items() if len(indexes) <= _MAX_POSTINGS}
+    for blocks in parents:
+        for block in blocks:
+            block.retained = frozenset(token for token in block.anchors if token in kept)
+    return kept
 
 
 def _cosine(left: dict[str, float], right: dict[str, float]) -> float:
@@ -119,13 +159,19 @@ def _source_key(function: Function) -> tuple:
 class OperationBlocksComparer:
     """Opt-in retrieval, not a duplication decision; scores are region cosines.
 
-    At most 12 regions × 8 anchors × 64 postings select 64 parents. Only the
-    complete original function background supplies IDF and anchor frequencies.
+    The protected first route keeps its 12 regions × 8 anchors × 64 postings,
+    selecting at most 64 parents. Only when it has no allowed winner, a second
+    route adds one complete helper body per function: at most 13 regions,
+    6,656 posting visits and 64 × 13 × 13 region comparisons. No score floor,
+    original winner or original winner's score changes. Regions retrieve native
+    functions; they never replace candidate source or erase error/cleanup scopes.
+
+    Both routes share the complete function-token IDF and anchor frequencies.
     Standalone queries use that same fit, without becoming background documents.
     """
 
     name = "operation-blocks"
-    version = "1"
+    version = "2"
     similarity_reusable = False
     # Discovery asks for k unseen, unsettled pairs after preceding routes. Other
     # comparers keep their existing raw-neighbour caps and first-route ownership.
@@ -141,16 +187,15 @@ class OperationBlocksComparer:
         self._anchor_df = min(128, max(2, int(0.01 * len(functions))))
         self._positions = {id(function): i for i, function in enumerate(functions)}
         self._source_keys = [_source_key(function) for function in functions]
-        self._parents = [[self._prepare(block) for block in _blocks(function)] for function in functions]
-        postings: dict[str, list[int]] = defaultdict(list)
-        for parent, blocks in enumerate(self._parents):
-            for block in blocks:
-                for anchor in block.anchors:
-                    postings[anchor].append(parent)
-        self._postings = {token: parents for token, parents in postings.items() if len(parents) <= _MAX_POSTINGS}
-        for blocks in self._parents:
-            for block in blocks:
-                block.retained = frozenset(token for token in block.anchors if token in self._postings)
+        representations = [_representations(function) for function in functions]
+        self._parents = [[self._prepare(block) for block in blocks] for blocks, _ in representations]
+        self._postings = _postings(self._parents)
+        # Independent retained-anchor state protects the first route from extra postings.
+        self._fallback_parents = [
+            [*(replace(block) for block in blocks), *([self._prepare(helper)] if helper else [])]
+            for blocks, (_, helper) in zip(self._parents, representations, strict=True)
+        ]
+        self._fallback_postings = _postings(self._fallback_parents)
         self._full_vectors: dict[int, dict[str, float]] = {}
 
     def _prepare(self, block: _Block) -> _Block:
@@ -167,20 +212,25 @@ class OperationBlocksComparer:
         )
         return block
 
-    def _query_blocks(self, function: Function) -> list[_Block]:
+    def _query_blocks(self, function: Function, *, fallback: bool = False) -> list[_Block]:
         position = self._positions.get(id(function))
         if position is not None and _source_key(function) == self._source_keys[position]:
-            return self._parents[position]
-        blocks = [self._prepare(block) for block in _blocks(function)]
+            return (self._fallback_parents if fallback else self._parents)[position]
+        original, helper = _representations(function)
+        blocks = [self._prepare(block) for block in original]
+        if fallback and helper:
+            blocks.append(self._prepare(helper))
+        postings = self._fallback_postings if fallback else self._postings
         for block in blocks:
-            block.retained = frozenset(token for token in block.anchors if token in self._postings)
+            block.retained = frozenset(token for token in block.anchors if token in postings)
         return blocks
 
-    def _pool(self, function: Function, blocks: list[_Block]) -> list[int]:
+    def _pool(self, function: Function, blocks: list[_Block], *, fallback: bool = False) -> list[int]:
         mass: dict[int, float] = defaultdict(float)
+        postings = self._fallback_postings if fallback else self._postings
         for block in blocks:
             for token in block.anchors:
-                for parent in self._postings.get(token, ()):
+                for parent in postings.get(token, ()):
                     if self.functions[parent].qualname != function.qualname:
                         mass[parent] += self.tfidf.idf[token]
         return sorted(mass, key=lambda i: (-mass[i], self.functions[i].qualname, i))[:_MAX_PARENTS]
@@ -204,10 +254,17 @@ class OperationBlocksComparer:
     ) -> list[tuple[Function, float]]:
         if k <= 0:
             return []
-        blocks = self._query_blocks(function)
+        original = self._neighbours(function, k, allowed, fallback=False)
+        return original or self._neighbours(function, k, allowed, fallback=True)
+
+    def _neighbours(
+        self, function: Function, k: int, allowed: Callable[[Function], bool], *, fallback: bool
+    ) -> list[tuple[Function, float]]:
+        blocks = self._query_blocks(function, fallback=fallback)
+        parents = self._fallback_parents if fallback else self._parents
         full = self.tfidf.vector(function.tokens)
         ranked = []
-        for parent in self._pool(function, blocks):
+        for parent in self._pool(function, blocks, fallback=fallback):
             other = self.functions[parent]
             if not allowed(other):
                 continue
@@ -215,7 +272,7 @@ class OperationBlocksComparer:
                 self._full_vectors[parent] = self.tfidf.vector(other.tokens)
             if _cosine(full, self._full_vectors[parent]) < 0.1:
                 continue
-            score, _ = self._best(blocks, self._parents[parent])
+            score, _ = self._best(blocks, parents[parent])
             if score >= 0.65:
                 ranked.append((parent, score))
         ranked.sort(key=lambda pair: (-pair[1], self.functions[pair[0]].qualname, pair[0]))
@@ -229,14 +286,22 @@ class OperationBlocksComparer:
                     break
         return found
 
-    def similarity(self, a: Function, b: Function) -> float:
+    def _pair_evidence(self, a: Function, b: Function) -> tuple[float, list[str]]:
         if _cosine(self.tfidf.vector(a.tokens), self.tfidf.vector(b.tokens)) < 0.1:
-            return 0.0
-        score, _ = self._best(self._query_blocks(a), self._query_blocks(b))
-        return score if score >= 0.65 else 0.0
+            return 0.0, []
+        # Retain original pair evidence whenever it qualifies; otherwise inspect
+        # the extra complete-body representation with the same guards and floor.
+        for fallback in (False, True):
+            score, shared = self._best(
+                self._query_blocks(a, fallback=fallback), self._query_blocks(b, fallback=fallback)
+            )
+            if score >= 0.65:
+                return score, shared
+        return 0.0, []
+
+    def similarity(self, a: Function, b: Function) -> float:
+        return self._pair_evidence(a, b)[0]
 
     def shared(self, a: Function, b: Function, limit: int = 12) -> list[str]:
-        """Concrete operations in the highest-scoring guarded region pair."""
-        if not self.similarity(a, b):
-            return []
-        return self._best(self._query_blocks(a), self._query_blocks(b))[1][:limit]
+        """Concrete operations in the first qualifying guarded representation."""
+        return self._pair_evidence(a, b)[1][:limit]
