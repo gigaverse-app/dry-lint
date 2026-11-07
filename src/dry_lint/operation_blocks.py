@@ -28,6 +28,12 @@ _MAX_BLOCKS = 12
 _MAX_ANCHORS = 8
 _MAX_POSTINGS = 64
 _MAX_PARENTS = 64
+# A shared operation found in more indexed functions than this is a codebase idiom (a lookup-404-permission
+# prologue, a capture-and-raise wrapper), not one duplicate: its best partner would be arbitrary.
+_MAX_FAMILY = 8
+# The guard applies only below TF-IDF's default whole-function floor: above it the functions are alike as a
+# whole (copies, siblings), so the partner is meaningful however common the shared operation is.
+_IDIOM_WHOLE_FLOOR = 0.5
 
 
 @dataclass
@@ -213,7 +219,7 @@ class OperationBlocksComparer:
     """
 
     name = "operation-blocks"
-    version = "2"
+    version = "3"
     similarity_reusable = False
     # Discovery asks for k unseen, unsettled pairs after preceding routes. Other
     # comparers keep their existing raw-neighbour caps and first-route ownership.
@@ -238,6 +244,7 @@ class OperationBlocksComparer:
         "_postings",
         "_fallback_parents",
         "_fallback_postings",
+        "_operation_parents",
     )
 
     def index_for_run(self, functions, resources):
@@ -255,6 +262,7 @@ class OperationBlocksComparer:
 
     def _reset_queries(self) -> None:
         self._full_vectors: dict[int, dict[str, float]] = {}
+        self._families: dict[frozenset[str], int] = {}
         # One standalone source, independent of object identity and discarded on
         # reindex. Never retain a query AST or an unbounded history of source edits.
         self._query_key: tuple | None = None
@@ -277,6 +285,13 @@ class OperationBlocksComparer:
             for blocks, (_, helper) in zip(self._parents, representations, strict=True)
         ]
         self._fallback_postings = _postings(self._fallback_parents)
+        # Every indexed function holding each concrete operation, for the family-size idiom guard.
+        holders: dict[str, set[int]] = defaultdict(set)
+        for parent, blocks in enumerate(self._fallback_parents):
+            for block in blocks:
+                for token in block.operations:
+                    holders[token].add(parent)
+        self._operation_parents = {token: frozenset(parents) for token, parents in holders.items()}
         self._reset_queries()
 
     def _prepare(self, block: _Block) -> _Block:
@@ -320,8 +335,14 @@ class OperationBlocksComparer:
                         mass[parent] += self.tfidf.idf[token]
         return sorted(mass, key=lambda i: (-mass[i], self.functions[i].qualname, i))[:_MAX_PARENTS]
 
-    @staticmethod
-    def _best(left: list[_Block], right: list[_Block]) -> tuple[float, list[str]]:
+    def _family(self, common: frozenset[str]) -> int:
+        """How many indexed functions hold every one of these operations."""
+        if common not in self._families:
+            holders = [self._operation_parents.get(token, frozenset()) for token in common]
+            self._families[common] = len(frozenset.intersection(*holders)) if holders else 0
+        return self._families[common]
+
+    def _best(self, left: list[_Block], right: list[_Block], *, specific: bool) -> tuple[float, list[str]]:
         best, shared = 0.0, frozenset()
         # Both lists are in source order, so equal scores retain the earliest regions.
         for a in left:
@@ -331,7 +352,10 @@ class OperationBlocksComparer:
                 if not a.retained & b.retained or len(a.calls & b.calls) < 2:
                     continue
                 common = a.operations & b.operations
-                if len(common) < 3:
+                # INVARIANT: when the region is the pair's only evidence (`specific`), an operation shared by more
+                # than _MAX_FAMILY functions never wins; a rarer region of the same pair still can.
+                # `test_idiom_operations_do_not_pick_a_partner` pins it.
+                if len(common) < 3 or specific and self._family(common) > _MAX_FAMILY:
                     continue
                 score = sparse_cosine(a.vector, b.vector)
                 if score > best:
@@ -359,14 +383,17 @@ class OperationBlocksComparer:
                 continue
             if parent not in self._full_vectors:
                 self._full_vectors[parent] = self.tfidf.vector(other.tokens)
-            if sparse_cosine(full, self._full_vectors[parent]) < 0.1:
+            whole = sparse_cosine(full, self._full_vectors[parent])
+            if whole < 0.1:
                 continue
-            score, _ = self._best(blocks, parents[parent])
+            score, _ = self._best(blocks, parents[parent], specific=whole < _IDIOM_WHOLE_FLOOR)
             if score >= 0.65:
-                ranked.append((parent, score))
-        ranked.sort(key=lambda pair: (-pair[1], self.functions[pair[0]].qualname, pair[0]))
+                ranked.append((parent, score, whole))
+        # Equal region scores are common (identical regions score 1.0): the closest whole function is the most
+        # useful sibling for whoever consolidates the operation, so it wins before any name order.
+        ranked.sort(key=lambda row: (-row[1], -row[2], self.functions[row[0]].qualname, row[0]))
         found, seen = [], set()
-        for parent, score in ranked:
+        for parent, score, _ in ranked:
             other = self.functions[parent]
             if other.qualname not in seen:
                 seen.add(other.qualname)
@@ -376,13 +403,16 @@ class OperationBlocksComparer:
         return found
 
     def _pair_evidence(self, a: Function, b: Function) -> tuple[float, list[str]]:
-        if sparse_cosine(self.tfidf.vector(a.tokens), self.tfidf.vector(b.tokens)) < 0.1:
+        whole = sparse_cosine(self.tfidf.vector(a.tokens), self.tfidf.vector(b.tokens))
+        if whole < 0.1:
             return 0.0, []
         # Retain original pair evidence whenever it qualifies; otherwise inspect
         # the extra complete-body representation with the same guards and floor.
         for fallback in (False, True):
             score, shared = self._best(
-                self._query_blocks(a, fallback=fallback), self._query_blocks(b, fallback=fallback)
+                self._query_blocks(a, fallback=fallback),
+                self._query_blocks(b, fallback=fallback),
+                specific=whole < _IDIOM_WHOLE_FLOOR,
             )
             if score >= 0.65:
                 return score, shared

@@ -46,7 +46,7 @@ def test_native_parents_scores_shared_operations_and_standalone_queries():
     assert "call:decode_packet" in comparer.shared(query, target)
     assert len(comparer.shared(query, target, limit=1)) == 1
     assert comparer.similarity_reusable is False
-    assert comparer.name == "operation-blocks" and comparer.version == "2"
+    assert comparer.name == "operation-blocks" and comparer.version == "3"
     assert comparer.neighbours(query, 0, allowed=lambda f: True) == []
     assert comparer.neighbours(query, 3, allowed=lambda f: False) == []
     # Querying must neither fit its tokens nor give it indexed position zero.
@@ -80,7 +80,7 @@ def test_index_for_run_shares_exactly_the_prepared_fields():
     functions = [job(), job("b.py", "deliver_copy"), *background()]
     alone = OperationBlocksComparer()
     alone.index(functions)
-    query_caches = {"_full_vectors", "_query_key", "_query_original", "_query_fallback"}
+    query_caches = {"_full_vectors", "_families", "_query_key", "_query_original", "_query_fallback"}
     # Every field `index` sets is either shared prepared state or a per-instance query cache.
     assert set(vars(alone)) == set(OperationBlocksComparer._PREPARED) | query_caches
 
@@ -93,6 +93,47 @@ def test_index_for_run_shares_exactly_the_prepared_fields():
     for name in query_caches - {"_query_key"}:
         assert getattr(first, name) is not getattr(second, name)
     assert first.neighbours(functions[0], 1, lambda _: True) == alone.neighbours(functions[0], 1, lambda _: True)
+
+
+PROLOGUE = """\
+    packet = owner.decode_packet(payload)
+    packet.validate_packet(owner.schema)
+    packet.attach_receipt(owner.receipt)
+    encoded = owner.encode_packet(packet)
+"""
+
+
+def prologue_job(path, name, branch):
+    return job(path, name, PROLOGUE + f"    if payload.flag:\n{branch}    return encoded\n")
+
+
+def distinct_branch(tag):
+    # Enough unrelated work that the whole functions stay below TF-IDF's floor: only the prologue is shared.
+    return "".join(f"        owner.{tag}_step_{i}(payload.{tag}_field_{i}, owner.{tag}_option_{i})\n" for i in range(8))
+
+
+@pytest.mark.parametrize(("copies", "found"), [(3, True), (9, False)])
+def test_idiom_operations_do_not_pick_a_partner(copies, found):
+    # The query shares only the prologue. Shared by four functions it is a duplicate worth one slot; shared by ten
+    # it is a codebase idiom whose "best" partner would be arbitrary.
+    query = prologue_job("q.py", "deliver", distinct_branch("query"))
+    family = [prologue_job(f"c{i}.py", f"copy{i}", distinct_branch(f"copy{i}")) for i in range(copies)]
+    # A large background keeps the anchor-frequency guard (1% of functions) from deciding first.
+    comparer = fitted(query, *family, count=1000)
+    neighbours = comparer.neighbours(query, 1, lambda _: True)
+    assert bool(neighbours) is found
+    assert (comparer.similarity(query, family[0]) > 0) is found
+
+
+def test_equal_region_scores_prefer_the_closest_whole_function():
+    branch = "        owner.archive_receipt(payload)\n        owner.publish_receipt(payload)\n"
+    query = prologue_job("q.py", "deliver", branch)
+    distant = prologue_job("a.py", "alpha", "        owner.unrelated_audit(payload)\n")
+    sibling = prologue_job("z.py", "zeta", branch)
+    comparer = fitted(query, distant, sibling)
+    (best, score), *_ = comparer.neighbours(query, 2, lambda _: True)
+    # Both share the identical prologue region (score 1.0); the name order alone would pick `alpha`.
+    assert score == 1.0 and best is sibling
 
 
 @pytest.mark.parametrize(
@@ -179,14 +220,16 @@ def test_full_function_and_region_cosine_floors_are_independent():
     padding = "".join(f"    noise_{i} = task_{i}(argument_{i})\n" for i in range(500))
     query = job(body=padding + '    "boundary"\n' + OPERATION)
     comparer = fitted(query, target)
-    assert comparer._best(comparer._query_blocks(query), comparer._query_blocks(target))[0] == pytest.approx(1)
+    assert comparer._best(comparer._query_blocks(query), comparer._query_blocks(target), specific=True)[
+        0
+    ] == pytest.approx(1)
     assert comparer.similarity(query, target) == 0  # full-function cosine below .1
     assert comparer.neighbours(query, 3, allowed=lambda f: True) == []
 
     padding = "".join(f"    noise_{i} = unrelated_{i} + distinct_{i}\n" for i in range(18))
     query = job(body=padding + OPERATION)
     comparer = fitted(query, target)
-    score = comparer._best(comparer._query_blocks(query), comparer._query_blocks(target))[0]
+    score = comparer._best(comparer._query_blocks(query), comparer._query_blocks(target), specific=True)[0]
     assert 0.1 < score < 0.65
     assert comparer.similarity(query, target) == 0  # region cosine below .65
     assert comparer.neighbours(query, 3, allowed=lambda f: True) == []
@@ -216,8 +259,9 @@ def test_two_shared_calls_without_a_third_shared_operation_do_not_score():
 
     left = block("call:decode", "call:encode", "attr:left_only")
     right = block("call:decode", "call:encode", "attr:right_only")
-    assert OperationBlocksComparer._best([left], [right]) == (0.0, [])
-    assert OperationBlocksComparer._best([left], [block("call:decode", "call:encode", "attr:left_only")])[1] == [
+    comparer = OperationBlocksComparer()
+    assert comparer._best([left], [right], specific=True) == (0.0, [])
+    assert comparer._best([left], [block("call:decode", "call:encode", "attr:left_only")], specific=True)[1] == [
         "attr:left_only",
         "call:decode",
         "call:encode",
@@ -286,7 +330,7 @@ def test_detector_discovery_keeps_baseline_and_fills_one_unseen_native_pair(tmp_
     assert [c for c in candidates if c.lane == "baseline"] == [c for c in baseline if c.lane == "baseline"]
     extra = [c for c in candidates if c.lane == "exploration"]
     assert len(extra) == 1
-    assert extra[0].comparer == "operation-blocks:2" and not extra[0].similarity_reusable
+    assert extra[0].comparer == "operation-blocks:3" and not extra[0].similarity_reusable
     assert extra[0].new.code == changed.code and "Full native documentation" in extra[0].new.code
     assert extra[0].existing.code.startswith("def deliver_")
     assert len({c.key for c in candidates}) == len(candidates)
@@ -379,7 +423,7 @@ def test_helper_discovery_keeps_complete_distinct_error_timing_in_candidates():
     assert "finally:" in candidate.new.code
     assert "except OSError:" in candidate.existing.code
     assert '"""Release staging' in candidate.new.code
-    assert candidate.comparer == "operation-blocks:2"
+    assert candidate.comparer == "operation-blocks:3"
     assert candidate.similarity_reusable is False
 
 
@@ -400,7 +444,7 @@ def test_original_regions_win_before_a_helper_fallback_and_bounds_are_fixed():
     query, target = job("a.py"), job("b.py")
     helper = function("helper.py", COMPLETE_HELPER)
     comparer = fitted(query, target, helper, count=400)
-    old_score, _ = comparer._best(comparer._parents[0], comparer._parents[1])
+    old_score, _ = comparer._best(comparer._parents[0], comparer._parents[1], specific=True)
     assert comparer.neighbours(query, 1, lambda f: True) == [(target, old_score)]
     assert all(len(blocks) <= 12 for blocks in comparer._parents)
     assert all(len(blocks) <= 13 for blocks in comparer._fallback_parents)
@@ -439,5 +483,5 @@ def test_balanced_default_appends_one_unseen_pair_and_empty_list_restores_origin
     additions = [c for c in new if c.key not in {c.key for c in old}]
     assert 1 <= len(additions) <= len(queries)
     assert len({c.new.qualname for c in additions}) == len(additions)
-    assert all(c.lane == "exploration" and c.comparer == "operation-blocks:2" for c in additions)
+    assert all(c.lane == "exploration" and c.comparer == "operation-blocks:3" for c in additions)
     assert all(c.new.code in {f.code for f in queries} for c in additions)

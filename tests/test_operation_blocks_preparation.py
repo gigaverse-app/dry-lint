@@ -106,7 +106,8 @@ def test_fallback_preparation_does_not_poison_original_retained_anchors():
     helper_body = OPERATION.replace(
         "    packet.validate_packet(owner.schema)",
         "    try:\n        packet.validate_packet(owner.schema)\n    finally:\n        cleanup()",
-    )
+    ).replace("    packet.attach_receipt(owner.receipt)\n", "    packet.attach_metadata(owner.metadata)\n")
+    # The helpers share the anchors but not the whole operation, so they are not the pair's idiom family.
     helpers = [job(f"helper{i}.py", body=helper_body) for i in range(65)]
     comparer = fitted(target, *helpers, count=7000)
     first = comparer.neighbours(query, 1, lambda f: f is target)
