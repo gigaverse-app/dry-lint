@@ -1,0 +1,146 @@
+# PUBLICATION COPY: private lab roots/identities redacted; algorithm otherwise unchanged.
+"""H05: one real PR; read-only bare Git, production detector/scheduler, no network."""
+import sys,json,subprocess,hashlib,math,tomllib,shutil
+from pathlib import Path
+from collections import Counter,defaultdict
+ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'src'))
+import h02_support as h
+from dry_lint.detector import Detector,touched
+from dry_lint.models import Run,evidence
+from dry_lint.settings import Settings
+from dry_lint.discovery import CampaignStore
+from dry_lint.judging import Judging
+I=Path('/PRIVATE_LAB_ROOT/research-corpus/history-inputs');O=Path(__file__).parent
+G=I/'git/private-repository-a.git'
+def git(*args,check=True):
+ p=subprocess.run(['git','--git-dir',str(G),*args],capture_output=True,check=check);return p.stdout
+
+def dump(name,value):h.dump(O/name,value)
+def read(p):return json.loads(p.read_text())
+M=read(I/'historical-trial/captures/private-repository-a-7001/manifest.json');H=M['history']
+S=Settings.model_validate(read(I/'production-discovery/frozen/captures/private-repository-a-7002/manifest.json')['settings'])
+assert S.budget.usd==.04 and S.discovery.depth==20
+# Never infer adoption from this laboratory's imposed capture settings.
+audit=[]
+for pin in dict.fromkeys([H['base']]+H['commits']+[r['merge_base'] for r in M['revisions']]):
+ obj=git('cat-file','-t',pin,check=False).decode().strip();row=dict(pin=pin,object_type=obj or 'missing')
+ if obj=='commit':
+  row['tree']=git('rev-parse',pin+'^{tree}').decode().strip()
+  listing=git('ls-tree','-r',pin).decode().splitlines();files={l.split('\t',1)[1]:l.split()[2] for l in listing}
+  row['files']={};config={}
+  for path,oid in files.items():
+   if path not in ['.dry-lint.toml','pyproject.toml'] and not path.startswith('.github/workflows/'):continue
+   data=git('show',pin+':'+path);dest=O/'audit-sources'/pin/path;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
+   row['files'][path]=dict(blob=oid,sha256=h.sha(data),bytes=len(data))
+   if path=='.dry-lint.toml':config=tomllib.loads(data.decode())
+   elif path=='pyproject.toml' and '.dry-lint.toml' not in files:config=tomllib.loads(data.decode()).get('tool',{}).get('dry-lint',{})
+  row['adopter_config']=config;row['effective_adopter_settings']=Settings.model_validate(config).model_dump(mode='json');row['settings_interpreter']='current worktree settings defaults; historical pinned action runtime defaults unproven'
+  row['adoption']='dedicated settings present' if config else 'default settings; workflow configured, execution/deployment unproven' if any('dry-lint' in p for p in row['files']) else 'default settings; no adoption evidence'
+ audit.append(row)
+dump('config-source-audit.json',dict(manifest=str(I/'historical-trial/captures/private-repository-a-7001/manifest.json'),manifest_sha256=h.sha((I/'historical-trial/captures/private-repository-a-7001/manifest.json').read_bytes()),pins=audit,experiment_settings=S.model_dump(mode='json'),provenance='lab-imposed Python-only balanced settings from production-discovery SETTINGS_DONOR; NOT adopter settings'))
+print('AUDIT saved',flush=True)
+# Cache identities bind complete current evidence to original captured evidence, never pair IDs alone.
+answers={};bindings=defaultdict(set)
+for cohort in ['frozen','regression']:
+ for p in (I/'production-discovery'/cohort/'answers').glob('*.json'):answers[p.stem]=read(p)
+ for p in (I/'production-discovery'/cohort/'captures').glob('*/*.json'):
+  if p.name=='manifest.json':continue
+  d=read(p)
+  if 'candidates' not in d:continue
+  from dry_lint.models import CandidatesFile
+  snap=CandidatesFile.model_validate(d);j=h.OfflineJudge(S,{})
+  # Only source/context bindings captured under identical effective settings qualify.
+  ms=Settings.model_validate(read(p.parent/'manifest.json')['settings'])
+  if ms.model_dump(mode='json')!=S.model_dump(mode='json'):continue
+  for c in snap.candidates:bindings[j.key(c)].add(h.digest(j.stamp(c)))
+for p in (I/'protected-trial/answers').glob('*.json'):
+ row=read(p)
+ if p.stem not in answers:answers[p.stem]=row
+# Half-name is a weight on existing normalized TF-IDF components, retaining original IDF then L2-normalizing.
+def half_vectors(det):
+ idx=det.comparer.tfidf;vs=[]
+ for f in det.functions:
+  v={t:w*(.5 if t.startswith('fn:') else 1) for t,w in idx.vector(f.tokens).items()};n=math.sqrt(sum(w*w for w in v.values())) or 1
+  vs.append({t:w/n for t,w in v.items()})
+ return vs
+class ProtectedCampaign(CampaignStore):
+ def order(self,candidates):
+  original=[c for c in candidates if c.key in self.protected_keys]
+  added=[c for c in candidates if c.key not in self.protected_keys]
+  return super().order(original)+super().order(added)
+states={};curves=[];stage=[];deltas=[];target=[];skipped=[];gold_stages=[]
+refs=read(I/'historical-trial/reference/private-repository-a-7001.json')
+labels={r['pair']:r for r in read(I/'historical-trial/reference/labels.json') if r['cohort']=='private-repository-a-7001'}
+for arm in ['current20','protected_half_name']:
+ folder=O/arm
+ if folder.exists():shutil.rmtree(folder)
+ judge=h.OfflineJudge(S,answers);judge.bindings=bindings;store=h.StrictStore(folder/'verdicts',judge)
+ states[arm]=dict(judge=judge,store=store,censored=False,reports={})
+for ordinal,r in enumerate(M['revisions']):
+ head=r['head'];mb=r['merge_base']
+ if not git('cat-file','-t',mb,check=False):skipped.append(dict(ordinal=ordinal,head=head,merge_base=mb,first_loss='missing_recorded_merge_base_object; cannot authenticate PR diff'));continue
+ det=Detector.for_tree(G,head,S,strict=True)
+ diff=git('diff','--no-ext-diff','-U0',mb,head,'--','*.py','*.js','*.jsx','*.ts','*.tsx').decode();(O/f'diff-{ordinal}.patch').write_text(diff)
+ import re
+ lines={};path=None
+ for l in diff.splitlines():
+  if l.startswith('+++ '):path=None if l.endswith('/dev/null') else l[6:];lines.setdefault(path,set())
+  elif l.startswith('@@') and path:
+   match=re.search(r'\+(\d+)(?:,(\d+))?',l);start=int(match[1]);count=int(match[2] or 1);lines[path].update(range(start,start+max(count,1)))
+ changed=touched(det.functions,lines);current=det.candidates(changed);protected=[c for c in current if c.lane!='relative'];vs=half_vectors(det);extra=[];seen={c.key for c in current}
+ queries=[]
+ for q in changed:
+  qi=det.position[q.qualname];v=vs[qi];raw=det.comparer.tfidf.similar(q.tokens,exclude={qi})
+  half=sorted(((i,sum(w*vs[i].get(t,0) for t,w in v.items())) for i in range(len(vs)) if i!=qi),key=lambda x:-x[1])
+  # Current exploration allows same file, but excludes self. Floor applies before top20.
+  eligible=[(i,s) for i,s in raw if s>=S.discovery.min_similarity];top={i for i,s in eligible[:20]}
+  chosen=None
+  for i,s in half:
+   if s<S.discovery.min_similarity:break
+   if i in top:continue
+   c=det.pair(q,det.functions[i],s).model_copy(update={'lane':'exploration'})
+   if c.key in seen or c.filtered:continue
+   extra.append(c);seen.add(c.key);chosen=c;break
+  queries.append(dict(query=q.qualname,line=q.line,end_line=q.end_line,source_sha256=h.sha(q.code.encode()),current20=[dict(name=det.functions[i].qualname,score=s) for i,s in eligible[:20]],extra=chosen.model_dump(mode='json') if chosen else None))
+  if q.name=='private_query':
+   matches=[i for i,f in enumerate(det.functions) if f.owner=='PrivateTargetOwner' and f.name=='aclose']
+   for i in matches:
+    rawpos=next(((rank+1,s) for rank,(ix,s) in enumerate(raw) if ix==i),None);halfpos=next(((rank+1,s) for rank,(ix,s) in enumerate(half) if ix==i),None)
+    target.append(dict(ordinal=ordinal,query=q.qualname,target=det.functions[i].qualname,raw_rank_score=rawpos,half_rank_score=halfpos,same_file=q.path==det.functions[i].path,baseline_floor=det.comparer.floor(q),exploration_floor=S.discovery.min_similarity,in_current=any({c.new.qualname,c.existing.qualname}=={q.qualname,det.functions[i].qualname} for c in current),in_extra=any({c.new.qualname,c.existing.qualname}=={q.qualname,det.functions[i].qualname} for c in extra)))
+ dump(f'queries-{ordinal}.json',queries)
+ # Assert entire original candidate sequence/source/score remains byte-identical.
+ variant=current+extra
+ dump(f'candidates-{ordinal}.json',dict(run=dict(repository=H['repository'],pull_request=7001,base=H['base'],head=head,merge_base=mb),changed=[f.qualname for f in changed],functions=len(det.functions),candidates=[c.model_dump(mode='json') for c in variant]))
+ for ref in refs:
+  names=[f"{ref[side]['path']}::{(ref[side]['owner']+'.') if ref[side]['owner'] else ''}{ref[side]['name']}" for side in ['new','existing']]
+  fs=[det.functions[det.position[n]] if n in det.position else None for n in names]
+  exact=all(f and f.code==ref[side]['code'] for f,side in zip(fs,['new','existing']))
+  q,e=fs;rawrank=None;score=None
+  if q and e:
+   ranked=det.comparer.tfidf.similar(q.tokens,exclude={det.position[q.qualname]})
+   rawrank=next((rank+1 for rank,(i,sc) in enumerate(ranked) if det.functions[i].qualname==e.qualname),None)
+   score=det.comparer.similarity(q,e)
+  in_current=any(c.key==ref['pair'] for c in current);in_variant=any(c.key==ref['pair'] for c in variant)
+  gold_stages.append(dict(ordinal=ordinal,pair=ref['pair'],label=labels.get(ref['pair'],{}).get('label','unknown'),exact_source=exact,query_extracted=q is not None,target_extracted=e is not None,query_changed=q is not None and q.qualname in {f.qualname for f in changed},same_file=q.path==e.path if q and e else None,raw_self_excluded_rank=rawrank,score=score,baseline_floor=det.comparer.floor(q) if q else None,current20_floor=S.discovery.min_similarity,in_current20=in_current,in_half=in_variant,first_loss='source_version_mismatch' if not exact else 'not_diff_touched' if q.qualname not in {f.qualname for f in changed} else 'no_retrieval_loss; offline_answer_unknown' if in_current else 'current20_floor_or_rank; half_recovered' if in_variant else 'floor_or_rank_in_both'))
+ assert [c.model_dump() for c in variant[:len(current)]]==[c.model_dump() for c in current]
+ deltas.append(dict(ordinal=ordinal,head=head,indexed=len(det.functions),changed=len(changed),current_counts=dict(Counter(c.lane for c in current)),extras=len(extra),protected_candidates_unchanged=True))
+ for arm,pool in [('current20',current),('protected_half_name',variant)]:
+  st=states[arm];j=st['judge'];campaign=ProtectedCampaign(O/arm/'ledger.sqlite3',Run(repository=H['repository'],pull_request=7001,head=head,base=H['base'],revision=git('rev-parse',head+'^{tree}').decode().strip()))
+  campaign.protected_keys={c.key for c in current}
+  findings=[];err=None;before=len(j.events)
+  if not st['censored']:
+   judging=Judging(S,j,None,st['store']);judging.campaign=campaign
+   try:findings=judging.findings(pool,Run(repository=H['repository'],pull_request=7001,head=head,base=H['base']))
+   except h.CensoredReplay as e:st['censored']=True;err=str(e)
+  returned={f.candidate.key:f for f in findings}
+  for c in pool:
+   row,why=j.lookup(c);f=returned.get(c.key)
+   stage.append(dict(arm=arm,ordinal=ordinal,pair=c.key,evidence=evidence(c),lane=c.lane,filtered=c.filtered,exact_answer_available=row is not None,cache_reason=why,status='filtered' if c.filtered else 'known' if f and f.verdict else 'unknown_censored' if st['censored'] else 'deferred',reported=f.reported if f else None))
+   if f and f.reported:st['reports'][j.key(c)]=c.key
+  state=campaign.snapshot();dump(f'{arm}/campaign-{ordinal}.json',state.model_dump(mode='json'))
+  curves.append(dict(arm=arm,ordinal=ordinal,head=head,changed=len(changed),candidates=len(pool),censored=st['censored'],reason=err,new_admissions=len(j.events)-before,observed_replayed_usd=sum(e['observed_usd'] or 0 for e in j.events),spent_and_retained_reservation_usd=state.usd,retained_unknown_reservation_usd=sum(a.usd for a in state.attempts if a.status!='answered'),physical_provider_calls=0))
+ print('replayed',ordinal,len(changed),len(current),len(extra),flush=True)
+dump('reference-stages.json',gold_stages);dump('curves.json',curves);dump('candidate-stages.json',stage);dump('candidate-deltas.json',deltas);dump('known-miss-stages.json',target);dump('unavailable-revisions.json',skipped)
+for arm,st in states.items():dump(f'{arm}/observations.json',st['judge'].events)
+dump('summary.json',dict(pr=7001,complete_pr=not skipped,unavailable_revisions=len(skipped),replayed_revisions=len(deltas),cap_per_arm=.04,protected_baseline_reserve=.025,exploration_cap=.015,arms={a:dict(known_useful_judged_reports=0,known_negative_judged_reports=0,unknown=sum(r['arm']==a and not r['filtered'] and r['status']!='known' for r in stage),observed_reports=len(st['reports']),censored=st['censored']) for a,st in states.items()},source_exact_reference_counts={arm:dict(Counter(r['label'] for r in {r['pair']:r for r in gold_stages if r['exact_source'] and r['in_current20' if arm=='current20' else 'in_half']}.values())) for arm in states},observed_lost=0,unresolved_loss='censoring prevents proving retention of judged findings; original pools preserved exactly',scope='full eight-revision historical SOURCE_HISTORY' if not skipped else 'incomplete historical SOURCE_HISTORY; missing merge-base; provisional only',target=target))
+dump('implementation-provenance.json',dict(python=sys.executable,repository=str(ROOT),dry_lint_module=__import__('dry_lint').__file__,source_sha256={str(p.relative_to(ROOT)):h.sha(p.read_bytes()) for p in (ROOT/'src/dry_lint').rglob('*.py')},cache_answers_loaded=len(answers),bindings=len(bindings),no_local_provider_calls=True));print('DONE',flush=True)

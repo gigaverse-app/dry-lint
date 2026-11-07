@@ -1,0 +1,85 @@
+[
+  {
+    "cohort": "frozen",
+    "arm": "baseline",
+    "label": "separate",
+    "first_available_reference_stages": {
+      "recovery_guard_or_baseline_pool": 19,
+      "judge_rejected_or_below_threshold": 46,
+      "reported": 1,
+      "budget_or_pacing": 2
+    }
+  },
+  {
+    "cohort": "frozen",
+    "arm": "balanced",
+    "label": "separate",
+    "first_available_reference_stages": {
+      "judge_rejected_or_below_threshold": 59,
+      "budget_or_pacing": 7,
+      "reported": 2
+    }
+  },
+  {
+    "cohort": "frozen",
+    "arm": "guarded",
+    "label": "separate",
+    "first_available_reference_stages": {
+      "judge_rejected_or_below_threshold": 51,
+      "recovery_guard_or_baseline_pool": 11,
+      "reported": 2,
+      "budget_or_pacing": 4
+    }
+  },
+  {
+    "cohort": "frozen",
+    "arm": "baseline",
+    "label": "borderline",
+    "first_available_reference_stages": {
+      "judge_rejected_or_below_threshold": 1,
+      "recovery_guard_or_baseline_pool": 1
+    }
+  },
+  {
+    "cohort": "frozen",
+    "arm": "balanced",
+    "label": "borderline",
+    "first_available_reference_stages": {
+      "judge_rejected_or_below_threshold": 1,
+      "budget_or_pacing": 1
+    }
+  },
+  {
+    "cohort": "frozen",
+    "arm": "guarded",
+    "label": "borderline",
+    "first_available_reference_stages": {
+      "judge_rejected_or_below_threshold": 1,
+      "budget_or_pacing": 1
+    }
+  },
+  {
+    "cohort": "frozen",
+    "arm": "baseline",
+    "label": "duplicate",
+    "first_available_reference_stages": {
+      "recovery_guard_or_baseline_pool": 3
+    }
+  },
+  {
+    "cohort": "frozen",
+    "arm": "balanced",
+    "label": "duplicate",
+    "first_available_reference_stages": {
+      "reported": 3
+    }
+  },
+  {
+    "cohort": "frozen",
+    "arm": "guarded",
+    "label": "duplicate",
+    "first_available_reference_stages": {
+      "reported": 3
+    }
+  }
+]

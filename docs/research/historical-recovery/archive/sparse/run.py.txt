@@ -1,0 +1,117 @@
+# PUBLICATION COPY: private lab roots/identities redacted; algorithm otherwise unchanged.
+"""E03 offline sparse retrieval diagnostic. Never imports a judge client."""
+import sys, json, hashlib, math, fnmatch, ast, textwrap
+from pathlib import Path, PureWindowsPath
+from collections import defaultdict, Counter
+ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT/'src'))
+from dry_lint.bench_background import BenchBackground
+from dry_lint.index import TfidfIndex
+INPUT=Path('/PRIVATE_LAB_ROOT/research-corpus/history-inputs/pr-mining')
+OUT=Path(__file__).resolve().parent
+
+def sha(b): return hashlib.sha256(b).hexdigest()
+def write(n,v): (OUT/n).write_text(json.dumps(v,indent=2,sort_keys=True)+'\n')
+class Half(TfidfIndex):
+    def __init__(self,bg,base):
+        self.size=base.size; self.idf=base.idf.copy(); self.postings=defaultdict(list)
+        for i,d in enumerate(bg.documents):
+            for t,w in self.vector(d.tokens()).items(): self.postings[t].append((i,w))
+    def vector(self,doc):
+        v=super().vector(doc)
+        v={t:w*(.5 if t.startswith('fn:') else 1) for t,w in v.items()}
+        norm=math.sqrt(sum(w*w for w in v.values())) or 1
+        return {t:w/norm for t,w in v.items()}
+def language(name): return 'python' if name.split('::')[0].endswith('.py') else 'typescript'
+def in_scope(name,scope):
+    p=name.split('::')[0]
+    return any(fnmatch.fnmatch(p,g) for g in scope['include']) and not any(fnmatch.fnmatch(p,g) for g in scope['exclude'])
+def main():
+    manifests={}; inventory=[]; groups=defaultdict(list); rows=[]; handoff=[]
+    for profile,file in [('diagnostic','background-manifest.json'),('configured','configured-background-manifest.json'),('legacy','legacy-background-manifest.json')]:
+        m=json.loads((INPUT/file).read_text()); entries=m.values() if isinstance(m,dict) else m
+        for e in entries:
+            name=PureWindowsPath(e['path']).name
+            manifests[name]=(profile,e)
+    for panel,file in [('mined','challenge.jsonl'),('legacy','legacy-gold-with-backgrounds.jsonl')]:
+        for ordinal,line in enumerate((INPUT/file).read_text().splitlines()):
+            r=json.loads(line); r['_panel']=panel; r['_ordinal']=ordinal
+            refs=r.get('backgrounds',{'legacy':r['background']})
+            for profile,ref in refs.items(): groups[PureWindowsPath(ref['path']).name].append((r,profile,ref))
+    seen=set()
+    for name,(profile,e) in sorted(manifests.items()):
+        data=(INPUT/'backgrounds'/name).read_bytes(); assert sha(data)==e['sha256'],name
+        bg=BenchBackground.decode(data)
+        repo=e.get('repository',name); revision=e.get('revision')
+        if revision: assert bg.revision==revision
+        # configured manifest keys pin repository/revision even when entry omits them.
+        if profile=='configured':
+            m=json.loads((INPUT/'configured-background-manifest.json').read_text())
+            key=next(k for k,v in m.items() if PureWindowsPath(v['path']).name==name)
+            assert key==bg.repository+'@'+bg.revision
+        elif 'repository' in e: assert repo==bg.repository
+        assert bg.scope==e['scope'] and len(bg.documents)==e['functions']
+        assert bg.extraction_contract==e['extraction_contract']
+        base=bg.index(); half=Half(bg,base); assert base.idf==half.idf
+        positions=defaultdict(list)
+        for i,d in enumerate(bg.documents): positions[d.id].append(i)
+        pos={k:v[0] for k,v in positions.items() if len(v)==1}
+        inventory.append(dict(file=name,sha256=sha(data),repository=bg.repository,revision=bg.revision,scope=bg.scope,functions=len(bg.documents),duplicate_ids={k:v for k,v in positions.items() if len(v)>1},profile=profile))
+        cache={}
+        for r,rprofile,ref in groups.get(name,[]):
+            assert ref['sha256']==sha(data) and r['revision']==bg.revision and r['repository']==bg.repository
+            identity=[r[s].get('source_id',r[s]['id']) for s in ('new','existing')]
+            dedupe=(name,*sorted(identity))
+            if dedupe in seen: continue
+            seen.add(dedupe)
+            resolved=[]
+            for s,ident in zip(('new','existing'),identity):
+                i=pos.get(ident); method='source_id'
+                proofs=[p for p in e.get('gold_sources',[]) if p['id']==r[s]['id']]
+                if proofs:
+                    assert all(p==proofs[0] for p in proofs)
+                    ident=proofs[0]['source_id']; i=pos.get(ident); method='gold_sources'
+                    if i is not None: assert bg.documents[i].source_sha256==proofs[0]['source_sha256']
+                if i is not None:
+                    digest=sha(r[s]['code'].encode())
+                    # Snippets can omit indentation/context. Record rather than imply full-source verification.
+                    method += ':exact_body' if digest==bg.documents[i].source_sha256 else ':snippet_body_differs'
+                resolved.append((i,ident,method))
+            for direction,(q,target) in enumerate((resolved,resolved[::-1])):
+                qi,qid,qmethod=q; ti,tid,tmethod=target
+                row=dict(panel=r['_panel'],ordinal=r['_ordinal'],case=r.get('case_id'),family=r.get('family'),split=r.get('split','legacy-development'),tier=r.get('tier'),label=r['label'],profile=rprofile,background=name,revision=bg.revision,repository=bg.repository,direction=direction,query=qid,target=tid,source_matching=[qmethod,tmethod],budget='unknown',judge='unknown',cache='unknown',filter='unknown_full_source_rules')
+                if qi is None or ti is None:
+                    row['first_observed_loss']='scope' if not in_scope(qid,bg.scope) or not in_scope(tid,bg.scope) else 'extraction_or_identity_unresolved'
+                    rows.append(row); continue
+                if qi==ti: row['first_observed_loss']='self'; rows.append(row); continue
+                if qi not in cache:
+                    ranks=base.similar(bg.documents[qi].tokens(),exclude={qi}); hranks=half.similar(bg.documents[qi].tokens(),exclude={qi})
+                    allowed=lambda i: language(bg.documents[i].id)==language(qid)
+                    deployed=[(i,s) for i,s in ranks if s>=.35 and allowed(i)][:20]
+                    alt=[(i,s) for i,s in hranks if s>=.35 and allowed(i)]
+                    outside=next(((i,s) for i,s in alt if i not in dict(deployed)),None)
+                    cache[qi]=(ranks,hranks,deployed,alt,outside)
+                ranks,hranks,deployed,alt,outside=cache[qi]
+                dset=set(dict(deployed)); protected=dset|({outside[0]} if outside else set()); assert dset<=protected
+                def rec(pair): return None if pair is None else dict(id=bg.documents[pair[0]].id,score=pair[1],position=pair[0])
+                br=next((k+1 for k,(i,s) in enumerate(ranks) if i==ti),None)
+                ar=next((k+1 for k,(i,s) in enumerate(hranks) if i==ti),None)
+                row.update(raw_rank=br,half_rank=ar,score=dict(ranks).get(ti,0),half_score=dict(hranks).get(ti,0),deployed20=ti in dset,protected=ti in protected,additional=ti in protected-dset,best_half=rec(alt[0] if alt else None),first_outside20=rec(outside),same_file=qid.split('::')[0]==tid.split('::')[0])
+                row['first_observed_loss']='none_retrieved_downstream_unknown' if ti in dset else ('floor' if row['score']<.35 else 'rank' if language(qid)==language(tid) else 'extractor_filter')
+                rows.append(row)
+                if outside:
+                    handoff.append(dict(repository=bg.repository,revision=bg.revision,profile=rprofile,background_sha256=sha(data),query=qid,candidate=rec(outside),query_source_sha256=bg.documents[qi].source_sha256,candidate_source_sha256=bg.documents[outside[0]].source_sha256,prompt=None,missing=['full pinned function bodies/context for exact shared-operations prompt','actual PR base/head and changed-function provenance','complete pinned detector settings and full extraction metadata','ordered revision/cache/admission state and exact recorded judge answers'],status='retrieval_diagnostic_request_only'))
+    (OUT/'rows.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rows))
+    unique={json.dumps(r,sort_keys=True):r for r in handoff}
+    (OUT/'historical-handoff.jsonl').write_text(''.join(k+'\n' for k in unique))
+    summary={}
+    for key in sorted({(r['panel'],r['profile'],r['split'],r['label']) for r in rows}):
+        rr=[r for r in rows if (r['panel'],r['profile'],r['split'],r['label'])==key]
+        pairs=defaultdict(list)
+        for r in rr: pairs[r['ordinal']].append(r)
+        added=[v for v in pairs.values() if any(x.get('additional') for x in v) and not any(x.get('deployed20') for x in v)]
+        summary['/'.join(key)]=dict(pairs=len(pairs),directions=len(rr),deployed20_pairs=sum(any(x.get('deployed20') for x in v) for v in pairs.values()),protected_pairs=sum(any(x.get('protected') for x in v) for v in pairs.values()),additional_pairs=len(added),additional_families=sorted({v[0]['family'] or 'legacy-family-unavailable' for v in added}),directional_losses=dict(Counter(r['first_observed_loss'] for r in rr)))
+    write('summary.json',summary); write('snapshots.json',inventory)
+    write('validation.json',dict(backgrounds_verified=len(inventory),directions=len(rows),baseline_protection=True,unknown_historical_budget=True,source_root=str(ROOT),inputs={p.name:sha(p.read_bytes()) for p in INPUT.glob('*.json*')},source_hashes={n:sha((ROOT/n).read_bytes()) for n in ['src/dry_lint/index.py','src/dry_lint/detector.py','src/dry_lint/presets.py','src/dry_lint/settings.py']}))
+    print(json.dumps(summary,indent=2))
+if __name__=='__main__': main()
