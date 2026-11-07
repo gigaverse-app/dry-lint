@@ -1,0 +1,10 @@
+{
+  "public_exact_replay": "passed:2native campaigns,4questions,3source files,2accepted source decisions",
+  "private_source_join": "local exact repository/revision and both source/span/body/file hashes verified; prose withheld",
+  "corruption_checks": {
+    "altered_source_body_hash": "rejected",
+    "altered_source_label": "rejected"
+  },
+  "privacy_check": "no private004 source paths, bodies or review prose in public exports",
+  "prior_frozen_packages_unchanged": true
+}

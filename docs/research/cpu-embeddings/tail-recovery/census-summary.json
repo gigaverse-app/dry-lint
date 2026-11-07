@@ -1,0 +1,14 @@
+{
+  "cohorts": 16,
+  "seconds": 343.5805040280029,
+  "totals": {
+    "functions": 171449,
+    "native": 170750,
+    "ok": 46226,
+    "python-parse-unavailable": 57,
+    "truncated": 46283,
+    "untruncated": 125166,
+    "views": 48466,
+    "with_views": 32219
+  }
+}

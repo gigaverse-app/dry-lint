@@ -1,0 +1,58 @@
+{
+  "changed_source_files_in_root_branch": [
+    "src/dry_lint/operation_blocks.py"
+  ],
+  "corrected_sha256": {
+    "common.py": "1cd38f4a8668f7613e96bcb97578e431e0ff534070cb1c93621033a7f177f6de",
+    "freeze-v2.py": "c4579a8ea80dcc206830805784edebdccd2decd84e6a54652ce18131954f9b97",
+    "harness.py": "07555f5828b7087df734ed928373ac04ca029fdfb09b152488298a5d241ab617",
+    "successor.py": "c8ee5ed3a972dd72d7230f87932644307205d8464a74a21d4372eb38b740e753",
+    "test_successor.py": "7f3e38e5d2515ac3d2241abeb06de98e16e603338fa7ad4b977c9bdd55f905bc"
+  },
+  "corrections": [
+    "Detector caches comparer_id at construction; set actual tail.comparer_id to cpu-complete-statements:2-append. No source/rank/recipe change.",
+    "Assert equality of full Candidate.model_dump(mode=json), including comparer/source/context/similarity; exclude only inherently nonserialized ephemeral tokens/calls from object equality.",
+    "PR109 working branch advanced toad54102; only src change operation_blocks.py, not imported by CPU harness/central source verifier. Copy complete73709fd src under own .lab-results/runtime-pr109-73709fd and bind common.py there for future replays. No CPU comparison source behavior changed."
+  ],
+  "frozen_recipe_changed": false,
+  "provider_calls": 0,
+  "registration_sha256": "8c2163ddcd9cda834ba7e40ade676e56fef34343405749216f6ebd97047abd42",
+  "runtime_snapshot": "/home/researcher/dry-lint-round/jobs/improve-cpu-retrieval/.lab-results/runtime-pr109-73709fd",
+  "runtime_source_commit": "73709fdbe884c107b665400a186cb71caecc03f7",
+  "stage": "pre-answer; no R2 handoff paid",
+  "unused_changed_module_proof": {
+    "dry_lint.operation_blocks_imported": false,
+    "loaded_modules_sha256": {
+      "dry_lint": "a61bbd251b9dfa7d519456f93bcd77076f798efa4276c9d90896190ac4bd5de1",
+      "dry_lint.bench_background": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f",
+      "dry_lint.comparers": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608",
+      "dry_lint.costs": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+      "dry_lint.cpu_embedding": "1be10b5839f34387f9dd82b7baefc63e92a37eec3be337cab687210ee9a6c83b",
+      "dry_lint.detector": "6b4a1e3723ba9f24c58b1d22bf6eaf2cac49ab9d940dc7e252de36f292ea8e9b",
+      "dry_lint.discovery": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684",
+      "dry_lint.extractors": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32",
+      "dry_lint.function_index": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd",
+      "dry_lint.functions": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae",
+      "dry_lint.git": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a",
+      "dry_lint.index": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7",
+      "dry_lint.judges": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7",
+      "dry_lint.judges.command": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317",
+      "dry_lint.judges.jev": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2",
+      "dry_lint.judges.model_jev": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9",
+      "dry_lint.judging": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac",
+      "dry_lint.model_shapes": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c",
+      "dry_lint.models": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3",
+      "dry_lint.plugins": "d1126c221a2fffc2bcf9afc79ab7dbd81a78854622748f2b76a27ef26ec16027",
+      "dry_lint.policies": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0",
+      "dry_lint.python_schemas": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34",
+      "dry_lint.ranking": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e",
+      "dry_lint.report": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105",
+      "dry_lint.schema_policy": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110",
+      "dry_lint.settings": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9",
+      "dry_lint.source_context": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e",
+      "dry_lint.store": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e",
+      "dry_lint.typescript": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7"
+    }
+  },
+  "updated_utc": "2026-11-07T10:40:35.196896+00:00"
+}

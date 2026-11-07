@@ -1,6 +1,33 @@
-# Small local embeddings add candidates, but have not beaten wider lexical search
+# CPU tail views recover two useful reports after prefix-only recipes failed
+
+A bounded successor now demonstrates useful additional reports: **two among 47 novel candidate pairs**, with
+zero reports among 16 controls. It preserves existing candidates and appends at most one comparison built from
+complete tail statements. The original prefix-only and lexical-reranking studies below remain negative against
+wider TF-IDF; the follow-up does not rewrite those results.
+
+Read the [complete-statement follow-up](tail-recovery/README.md) for the new mechanism, independent source reviews,
+exact prompts and answers, runtime measurements, and runnable selected-case and native balanced replays. Its
+first abstention-only paid batch produced no report. The successor batch contains two bounded reports; one would
+also pass the earlier recipe, while the public snapshot case specifically requires removing the gate. One public example
+repeats metrics-snapshot field projection, but safe reuse must preserve copying versus aliasing. Two other
+source-supported opportunities remain missed by judging. A post-hoc two-query balanced check preserves both
+reports without a lost admission; it is distinct from the 63-case discovery comparison.
+
+**Decision:** keep the existing prefix-only plugin optional, stop the abstention-only tail recipe, and retain the
+append-only successor as a scoped research improvement. Its small measured gain and cold encoding cost do not
+justify a general default rollout. The exact reproducible successor is included here; no runtime or CI changes
+are part of this evidence PR.
+
+## Original frozen study: prefix vectors and lexical reranking
 
 A small pretrained encoder can recover candidates labeled as shared operations that dry-lint's first three lexical matches miss. This experiment did **not demonstrate an additional emitted report over the existing wider TF-IDF exploration route**. The apparent Windows report gain is now disputed by independent source review. Keep the implemented encoder optional and cached, retain TF-IDF defaults, and do not promote the experimental reranker on these results.
+
+**Follow-up coverage correction:** the original study below remains frozen. A later acquisition pass recovered
+nine public Due/pytest pins and reconstructed fourteen complete backgrounds, which had not been searched in the
+original registered clone audit. Both original and complete-statement fallback recipes retain their funded
+outcomes on 115 labeled pair/background combinations. See the [public regression extension](https://github.com/gigaverse-app/dry-lint/blob/research/study-operation-blocks/docs/research/operation-blocks/helper-recovery/public-extension/README.md)
+for exact scope, floors, same-file cases and the preserved original CPU snapshot-helper match. This closes a
+source-coverage gap; it is not additional fallback recall or a fresh holdout.
 
 ## What problem we tested
 

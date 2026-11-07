@@ -1,0 +1,59 @@
+{
+  "budget": {
+    "fresh_direction_cap_usd": 4,
+    "fresh_round_cap_usd": 2,
+    "original_Claude_only_estimate_usd": 0.04,
+    "paired_diagnostic_usd": 0.04,
+    "target": ">=.20actual where informative eligible requests exist; no padding"
+  },
+  "change": "Append max1 previously unseen operation candidate after all original routes regardless of original CPU abstention. Original candidates/order/normal charges unchanged. No refill, rerank, delegation inference or Jev gate.",
+  "default_unchanged": true,
+  "frozen_utc": "2026-11-07T10:37:10.681998+00:00",
+  "guard": "No additional call guard. Strict core native forwarding/analysis eligibility remains; no new cross-file resolution or inferred negative. Append-only variant explicitly authorized to avoid unproven resolver.",
+  "head": "73709fdbe884c107b665400a186cb71caecc03f7",
+  "implementation_sha256": {
+    "harness.py": "07555f5828b7087df734ed928373ac04ca029fdfb09b152488298a5d241ab617",
+    "selection.py": "ef060e2206b52177407f2f9adbf0d7e36ebeb7b017287642ac6e0af9b4d5cd07",
+    "successor.py": "1b4b3b7a2a715130dcec76b7cff894c37ff2134c54143eddb7e609a0034241d8",
+    "test_successor.py": "ae0c169cd60477faec270d11746642347a74c899cb10b8ac607b7233bb6c5783",
+    "views.py": "fc01645561aa165c0172965b056ec9555dea815a7f0417a897fc11d4e4f96cb8"
+  },
+  "justification": "R1 produced no additional canonical Claude report. Independent review identified a bounded cost-row projection in the public opencode rejected audit CPUIS1-024. Test whether appending one operation candidate after original winners recovers useful reports. Other held-source motivation prose is intentionally withheld.",
+  "method": "cpu-complete-statements:2-append",
+  "no_provider_calls": true,
+  "ranking": "max cosine between query full-prefix or operation views and target full-prefix or operation views, requiring at least one operation view; floor .80; stable original source order; at most one new eligible pair. Full native functions returned.",
+  "representation": "Same pinned MiniLM. Only truncated functions gain at most two complete-statement native line views, 48..180 wordpieces. Largest eligible tail statement, then largest disjoint tail statement; stable source order breaks ties. Function name precedes native statement; input <=256 tokens enforced, never silently truncated. No summaries, refitting, future code or labels.",
+  "selection": {
+    "confirmation_target": 24,
+    "controls": 16,
+    "development_fill": "Fill confirmation shortfall up to48 with development; do not change split. Both endpoints same split. Confirmation excludes all earlier reviewed families including R1.",
+    "initial_complete_backgrounds": [
+      "1269484b895f0e3a46dffb7b9c4f5bb72effbd499a7e1aa2d3f1fb23ba8897ce",
+      "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+      "39fae3b3a8cbef21e2de52c544ca36d2a9fb65e42ac0c18c52afb2742662959b",
+      "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+      "8eb6c8f6128ba76f26cbd73c7e0a5613551d08607072f0adc84a3b6c0c229fde",
+      "9152f296e32b80293db3a3d36a058a7cd1504a726821f65f5c320289e5cd7346",
+      "92afa0cbed059fb3353bb1da97d43c961f623e5bbc3cdf1c822ed32a9968a9f1",
+      "a068703e185ee6a85429f3de4f92c1e384196e8fb3f01bdd0d88ddd28ac2d424",
+      "a14b900df550841ec099d7d9abe27c4aafce799a7b48d48ea62b4d193c839bf2",
+      "b989dc3a47d648a09203862132f955a16eb028a287bc543eac8cc6f998463289",
+      "bf60fb3615061d02e74af05b44783ca01ed1dbd648608ef5bd827fe96d75f242",
+      "c6bdea064c4533a86a9d1bb1fb010877634d2edba2bbdb6d43964a38cdc320b6",
+      "dd01f33452ea0f762874b620d8230bf221ca9f2dab34149e5fd94f7b91512cfe",
+      "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+      "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094"
+    ],
+    "last_background_supplement": "When last7489 COMPLETE, independently apply same eligibility/order to that full chosen cohort only; up to32 new candidate pairs (confirmation first then development),8independentcontrols, excluding all prior frozen endpoints/pairs. Same cumulative2USD cap; R2 answers NEVER used for selection.",
+    "novel_target": 48,
+    "ordering": "Existing source-key SHA ordering, repository round-robin, no endpoint reuse including all executed R1 endpoints. Confirmation candidates first, then development;8 confirmation controls then8development, remaining development fill if needed.",
+    "query_population": "Existing preanswer diagnosis: every operation-bearing eligible native non-test query plus fixed sha(qualname)%8==0 short queries, against full pinned competitor background. Discovery-controls original fixed1/31 hash sample. Report this narrower paid-query census separately from full V1 sweep.",
+    "source": "Canonical wave.source entire-file strict parse BEFORE READY; failed rows excluded unknown, no extractor repair and no label-based refill.",
+    "source_cohorts_path": "/home/researcher/dry-lint-round/jobs/improve-cpu-retrieval/.lab-results/paid-source-cohorts.json"
+  },
+  "split": {
+    "path": "/home/researcher/dry-lint-round/jobs/improve-cpu-retrieval/.lab-results/family-split.json",
+    "sha256": "81103da510550d5f45b9130a650bcf73f3dedba2368f8903d491ada0086df033"
+  },
+  "publication_note": "Recipe/selection constants unchanged; held-source motivation prose removed. Original registration sha256: 8c2163ddcd9cda834ba7e40ade676e56fef34343405749216f6ebd97047abd42"
+}
