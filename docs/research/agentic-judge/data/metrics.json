@@ -1,0 +1,380 @@
+{
+  "schema": 1,
+  "direction": "agentic-judge",
+  "status": "COMPLETE_CORRECTED_COMPARATOR_NO_DEFAULT_PROMOTION",
+  "canonical_report": "DECISION.md",
+  "decision": "Do not enable the tested source-reading recipe by default. Keep bounded tools/traces for investigation; no further calls or variants.",
+  "claim_to_evidence_map": [
+    {
+      "question": "Does the tested source-reading judge add useful reports?",
+      "mechanism": "Same full source bodies and semantic user question; supporting-source tools versus corrected supplied-source-only procedure.",
+      "comparison": "Eight R1 novel pairs and nine R2 novel pairs; separate protocols, one response sample per rendered request.",
+      "observation": "Both arms report checkpoint construction in R1 and the test-tool factory in R2. Certain paired report decisions agree: 6/6 per round.",
+      "interpretation": "No added report established; this is not proof source access never helps. R2 procedures differ, so no pure same-prompt causal claim.",
+      "decision": "Do not enable this recipe by default; retain bounded tools and traces for investigation."
+    },
+    {
+      "question": "Did supporting context clarify any decisions?",
+      "mechanism": "Retrieve definitions, bindings and delegated helper contracts named as missing by body-only responses.",
+      "comparison": "Corrected R2 body-only six certain/three uncertain versus teacher eight certain/one uncertain.",
+      "observation": "Plugin context and proxy URL contracts are source-supported non-reporting decisions with tools and uncertain body-only. Tiny file-mutation predicate uncertain in both.",
+      "interpretation": "Two observed source-supported uncertainty resolutions; not report recoveries and not a stable causal effect estimate.",
+      "decision": "Retain this narrower useful finding without claiming report-recall improvement."
+    },
+    {
+      "question": "Can generic facts derived from tool traces improve one-shot reporting?",
+      "mechanism": "Fixed imports, nearby-line and lexical-reference extraction recipe.",
+      "comparison": "Six separate development families, 24 valid requests across two models and two context arms.",
+      "observation": "Zero recoveries, losses or new false reports in each model.",
+      "interpretation": "The tested generic recipe did not improve reporting on this panel.",
+      "decision": "Stop that recipe; no blanket conclusion about all context extraction."
+    },
+    {
+      "question": "Does the Windows source dispute change report recovery?",
+      "mechanism": "Count archived prior-positive versus current related assessment separately.",
+      "comparison": "Same frozen teacher control output; no paired control baseline.",
+      "observation": "R2 supported teacher reports one excluding dispute, two including prior positive. Established paired recoveries zero either way.",
+      "interpretation": "Neither unqualified gain nor confirmed false report.",
+      "decision": "Preserve both assessments and the archived prior label."
+    }
+  ],
+  "cohort_comparisons": {
+    "1": {
+      "novel_pairs": 8,
+      "certain_paired_finals": 6,
+      "reporting_changes_among_certain_pairs": 0,
+      "teacher_novel_reports": 1,
+      "body_novel_reports": 1,
+      "accepted_novel_partial_operations": 2,
+      "minor_convenience_positive": 0,
+      "unresolved_novel_comparisons": 2,
+      "source_supported_novel_reports": 1,
+      "established_added_reports": 0,
+      "established_lost_reports": 0,
+      "confirmed_false_novel_reports": 0,
+      "provider_rounds_teacher_started_cohort": 18,
+      "source_labels_started": {
+        "duplicate": 4,
+        "drifted": 0,
+        "separate": 4,
+        "related": 3
+      },
+      "source_disputed_cases": 1,
+      "source_supported_nonreport_uncertainty_resolutions": 0
+    },
+    "2": {
+      "novel_pairs": 9,
+      "certain_paired_finals": 6,
+      "reporting_changes_among_certain_pairs": 0,
+      "teacher_novel_reports": 1,
+      "body_novel_reports": 1,
+      "accepted_novel_partial_operations": 2,
+      "minor_convenience_positive": 1,
+      "unresolved_novel_comparisons": 3,
+      "source_supported_novel_reports": 1,
+      "established_added_reports": 0,
+      "established_lost_reports": 0,
+      "confirmed_false_novel_reports": 0,
+      "provider_rounds_teacher_started_cohort": 24,
+      "source_labels_started": {
+        "duplicate": 3,
+        "drifted": 0,
+        "separate": 5,
+        "related": 4
+      },
+      "source_disputed_cases": 1,
+      "source_supported_nonreport_uncertainty_resolutions": 2,
+      "body_comparator": "v3 supplied-source-only procedure, auto tool choice"
+    }
+  },
+  "round1_final": {
+    "accepted_positive_started": [
+      "AJ-R1-01df4515b3387c9a",
+      "AJ-R1-e0e09e30f70fb045",
+      "AJ-R1-252d6146fdd56664",
+      "AJ-R1-92702b5c40cb27a7"
+    ],
+    "accepted_tiny_convenience_started": [],
+    "api_seconds_body_sum": 38.41722829599894,
+    "api_seconds_teacher_sum": 62.77941835798265,
+    "body_baseline_actual_usd": 0.088006,
+    "disputed_teacher_reports": [],
+    "initial_body_lines_repeated": 9,
+    "interpretation": "Observed development. Within each case only source-tool availability differs; one model sample per arm. Body-only retains source-tool instructions but has no source tools: unavailable-tool requests remain unknown and cannot establish gain. No causal attribution of a changed verdict to a specific citation. Protocol versions across rounds are not matched accuracy comparisons. Teacher batch wall time includes controls; compare matched novel per-case API totals separately from CPU/source extraction.",
+    "new_source_lines_cited": 1,
+    "new_source_lines_returned": 104,
+    "no_pristine_population_holdout": true,
+    "novel_api_seconds_teacher_sum": 38.29439505598566,
+    "novel_baseline_statuses": {
+      "complete": 6,
+      "uncertain": 2
+    },
+    "novel_body_false_reports_on_source_separate": [],
+    "novel_comparisons": {
+      "both_report": 1,
+      "neither_reports": 5,
+      "unknown_or_not_paired": 2
+    },
+    "novel_source_confirmed_losses": [],
+    "novel_source_confirmed_recoveries": [],
+    "novel_started": 8,
+    "novel_teacher_actual_usd": 0.153436,
+    "novel_teacher_false_reports_on_source_separate": [],
+    "round": 1,
+    "schema": 1,
+    "source_confirmed_teacher_report_without_comparable_baseline": [
+      "AJ-R1-e0e09e30f70fb045"
+    ],
+    "source_confirmed_teacher_reports_excluding_disputes": [
+      "AJ-R1-e0e09e30f70fb045",
+      "AJ-R1-92702b5c40cb27a7"
+    ],
+    "source_disputed_started": [
+      "AJ-R1-3f310c0655076c00"
+    ],
+    "source_pending_started": [],
+    "source_supported_paired_recoveries_excluding_disputes": [],
+    "source_supported_paired_recoveries_including_disputed_prior_positives": [],
+    "started": 12,
+    "teacher_actual_usd": 0.356584,
+    "teacher_concurrency": 4,
+    "teacher_minimum_actual_met": true,
+    "teacher_reports_supported_if_disputed_prior_positives_counted": [
+      "AJ-R1-e0e09e30f70fb045",
+      "AJ-R1-92702b5c40cb27a7"
+    ],
+    "teacher_statuses": {
+      "capped_or_no_submission": 1,
+      "complete": 7,
+      "tool_error_or_cap": 2,
+      "uncertain": 2
+    },
+    "teacher_wall_seconds": 26.277239675997407,
+    "thinking_payloads_interpreted_or_exported": false,
+    "unknowns_preserved": true,
+    "unstarted_unknown": 8,
+    "worker_provider_calls": 0
+  },
+  "round2_corrected_comparator": {
+    "body_actual_usd": 0.085286,
+    "body_api_seconds_sum": 32.11823359999835,
+    "body_false_reports_on_accepted_nonpositive": [],
+    "body_usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 23498,
+      "output_tokens": 3829
+    },
+    "certain_paired_finals": 6,
+    "corrected_body_novel_reports": 1,
+    "corrected_body_statuses": {
+      "complete": 6,
+      "uncertain": 3
+    },
+    "evidence_sha256": {
+      "/home/researcher/dry-lint-round/jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/requests.jsonl": "31aa3dd820c5520af7420e7155a95ee7042ee32b654271c6adef637c65ce13ab",
+      "/home/researcher/dry-lint-round/jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/root-remaining-01/returned.jsonl": "317355e264c7456e4bf867477dc716c20f3945327f7ae65f1a0ddaa9b22d2e41",
+      "/home/researcher/dry-lint-round/jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/root-smoke-01/returned.jsonl": "7ce49a39235c0a878f687e091e918c9ae0f9be960a79272244dea1886679a5c4",
+      "/home/researcher/dry-lint-round/reports/research-experiments/promotion/agentic-round2-source/coordinator-decisions.jsonl": "87a0f62c03fb68d0a4b40ddb25747dd011bce7c4e3ff49203149f873d98b4310",
+      "/home/researcher/dry-lint-round/reports/research-experiments/promotion/agentic-round2-source/private-map.jsonl": "da747c0847fe4eb1399cc543bfd5d194795e4e0f5fc2492d704782bd673ad196",
+      "/home/researcher/dry-lint-round/reports/research-experiments/promotion/agentic-v3-observed.jsonl": "733eb53cde26786a034dff24a7800dbafd04294039eac7b409cf4809cd7546cc"
+    },
+    "invalid_body_submissions": 0,
+    "old_five_unavailable_tool_replies_still_unknown": true,
+    "pairs": 9,
+    "r1_uncertainty_unchanged": true,
+    "remaining_uncertain_pairs": [
+      "AJ-R2-294585ab744e5e23",
+      "AJ-R2-54b6abcd0f86aeb6",
+      "AJ-R2-9d94b5ed1e94eaf2"
+    ],
+    "report_changes_in_certain_pairs": 0,
+    "root_strict_observations_independently_matched": true,
+    "same_prompt_claim": false,
+    "schema": 1,
+    "source_decisions_unchanged": true,
+    "source_supported_nonreport_uncertainty_resolutions": [
+      "AJ-R2-54b6abcd0f86aeb6",
+      "AJ-R2-9d94b5ed1e94eaf2"
+    ],
+    "source_supported_report_losses": [],
+    "source_supported_report_recoveries": [],
+    "status": "COMPLETE_CORRECTED_COMPARATOR",
+    "teacher_false_reports_on_accepted_nonpositive": [],
+    "teacher_improvement_claim": false,
+    "teacher_novel_actual_usd": 0.233598,
+    "teacher_novel_api_seconds_sum": 52.72121828902891,
+    "teacher_novel_reports": 1,
+    "teacher_statuses": {
+      "complete": 8,
+      "uncertain": 1
+    },
+    "uncertain_in_both_arms": [
+      "AJ-R2-294585ab744e5e23"
+    ],
+    "v2_failed_actual_cost_usd": null,
+    "v2_failed_held_reservation_usd_separate": 0.127882,
+    "valid_body_final_submissions": 9,
+    "worker_provider_calls": 0
+  },
+  "round2_original_comparator_archived_unchanged": {
+    "accepted_positive_started": [
+      "AJ-R2-b2baa757d0e06e7c",
+      "AJ-R2-294585ab744e5e23",
+      "AJ-R2-79b342568fc7ba88"
+    ],
+    "accepted_tiny_convenience_started": [
+      "AJ-R2-294585ab744e5e23"
+    ],
+    "api_seconds_body_sum": 25.130906739002967,
+    "api_seconds_teacher_sum": 75.75756108103815,
+    "body_baseline_actual_usd": 0.075302,
+    "disputed_teacher_reports": [
+      "AJ-R2-f9cf78df16c6039a"
+    ],
+    "initial_body_lines_repeated": 10,
+    "interpretation": "Observed development. Within each case only source-tool availability differs; one model sample per arm. Body-only retains source-tool instructions but has no source tools: unavailable-tool requests remain unknown and cannot establish gain. No causal attribution of a changed verdict to a specific citation. Protocol versions across rounds are not matched accuracy comparisons. Teacher batch wall time includes controls; compare matched novel per-case API totals separately from CPU/source extraction.",
+    "new_source_lines_cited": 61,
+    "new_source_lines_returned": 249,
+    "no_pristine_population_holdout": true,
+    "novel_api_seconds_teacher_sum": 52.72121828902891,
+    "novel_baseline_statuses": {
+      "complete": 4,
+      "unknown": 5
+    },
+    "novel_body_false_reports_on_source_separate": [],
+    "novel_comparisons": {
+      "neither_reports": 4,
+      "unknown_or_not_paired": 5
+    },
+    "novel_source_confirmed_losses": [],
+    "novel_source_confirmed_recoveries": [],
+    "novel_started": 9,
+    "novel_teacher_actual_usd": 0.233598,
+    "novel_teacher_false_reports_on_source_separate": [],
+    "round": 2,
+    "schema": 1,
+    "source_confirmed_teacher_report_without_comparable_baseline": [
+      "AJ-R2-79b342568fc7ba88"
+    ],
+    "source_confirmed_teacher_reports_excluding_disputes": [
+      "AJ-R2-79b342568fc7ba88"
+    ],
+    "source_disputed_started": [
+      "AJ-R2-f9cf78df16c6039a"
+    ],
+    "source_pending_started": [],
+    "source_supported_paired_recoveries_excluding_disputes": [],
+    "source_supported_paired_recoveries_including_disputed_prior_positives": [],
+    "started": 13,
+    "teacher_actual_usd": 0.320782,
+    "teacher_concurrency": 4,
+    "teacher_minimum_actual_met": true,
+    "teacher_reports_supported_if_disputed_prior_positives_counted": [
+      "AJ-R2-f9cf78df16c6039a",
+      "AJ-R2-79b342568fc7ba88"
+    ],
+    "teacher_statuses": {
+      "complete": 11,
+      "uncertain": 2
+    },
+    "teacher_wall_seconds": 37.03162054999848,
+    "thinking_payloads_interpreted_or_exported": false,
+    "unknowns_preserved": true,
+    "unstarted_unknown": 7,
+    "worker_provider_calls": 0
+  },
+  "source_disputes": {
+    "r1_wsl_original_separate_preserved": true,
+    "r2_windows_prior_positive_and_new_related_preserved": true,
+    "r2_supported_teacher_reports_excluding_windows": 1,
+    "r2_supported_teacher_reports_including_windows_prior_positive": 2,
+    "paired_report_recoveries_excluding_windows": 0,
+    "paired_report_recoveries_including_windows": 0
+  },
+  "controlled_context_replay": {
+    "cases": 6,
+    "requests": 24,
+    "recoveries": {
+      "claude": 0,
+      "jev": 0
+    },
+    "losses": {
+      "claude": 0,
+      "jev": 0
+    },
+    "new_false_reports": {
+      "claude": 0,
+      "jev": 0
+    },
+    "actual_cost_usd": 0.2491218
+  },
+  "comparator_history": {
+    "original_r2": "Five unavailable-source-tool requests remain unknown; comparator cannot establish no benefit.",
+    "v2": "Four HTTP400 rejections, five unstarted; no model answers, unknown .127882 reservation held. SDK mock was serialization-only.",
+    "v3": "Only tool_choice auto changed from v2; corrected supplied-evidence guidance unchanged. Nine valid finals; one smoke then remaining8.",
+    "same_prompt_claim": false,
+    "teacher_improvement_claim": false,
+    "r1_uncertain_answers_not_retried": true
+  },
+  "costs": {
+    "funded_round1_teacher_including_controls_and_protocol_checks_usd": 0.356584,
+    "r1_body_baselines_usd": 0.088006,
+    "funded_round2_teacher_including_controls_usd": 0.320782,
+    "r2_original_flawed_body_controls_settled_usd": 0.075302,
+    "r2_v3_corrected_controls_settled_usd": 0.085286,
+    "funded_direction_settled_total_usd": 0.92596,
+    "historical_teacher_pilot_separate_usd": 0.252152,
+    "deterministic_context_replay_separate_shared_comparison_usd": 0.2491218,
+    "known_evidence_spend_sum_usd": 1.4272338,
+    "v2_failed_http400_actual_cost_usd": null,
+    "v2_unknown_held_maximum_usd": 0.127882,
+    "unknown_reserved_excluded_from_settled_totals": true,
+    "v3_fresh_ledger_allocation_usd": 0.2,
+    "v3_seeded_spend_usd": 0,
+    "no_old_ledger_reset": true,
+    "normal_deployment_estimated_ledger_usd": 0.04,
+    "no_deployment_budget_fit_claim": true
+  },
+  "shared_ledger_reconciliation": {
+    "old_cap2_settled_usd": 1.81426984,
+    "old_cap2_unknown_held_usd": 0.127882,
+    "old_cap2_halted": true,
+    "fresh_v3_cap_usd": 0.2,
+    "fresh_v3_actual_settled_usd": 0.085286,
+    "old_ledger_covers_multiple_directions_not_only_this_report": true
+  },
+  "limits": {
+    "observed_development_not_pristine_holdout": true,
+    "one_sample_per_request": true,
+    "scoped_partial_operations_only": true,
+    "valid_uncertainties_preserved": {
+      "r1_body": 2,
+      "r1_teacher_novel": 2,
+      "r2_corrected_body": 3,
+      "r2_teacher_novel": 1
+    },
+    "uncertain_pair_counts": {
+      "r1": 2,
+      "r2": 3
+    },
+    "population_precision_recall_estimate": null,
+    "source_provider_answers_not_truth": true
+  },
+  "evidence_files_sha256": {
+    "jobs/experiment-agentic-judge/.lab-results/conclusion/DECISION.md": "0634657fcafdd14c60cb9aac8277b06f8f35ccc2df2ef80c601af9afe43fbce8",
+    "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/final-join/cases.jsonl": "a1b8e4061d553a1ddc92855a79262d23a105e25062df019baaa603c1674cfbf2",
+    "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/final-join/metrics.json": "7c27f15f37be7c45254772e89d27fe0ed17bbf601c8367f822080f84f1c68692",
+    "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/final-join/cases.jsonl": "7a636a578d09eba0efcab77ad800ef3e1d61b8398e70ce607bb78c3974e2fa87",
+    "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/analysis/cases.jsonl": "82e71fb022a8531d2fe4bc333719d7a6fd8b5672c75c77ac7d8932a6bd7ab537",
+    "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/analysis/metrics.json": "908259ed797eaf00563726c79242a9d113fbde6a39800ade36e60bb9902f0c4f",
+    "reports/research-experiments/promotion/agentic-v3-observed.jsonl": "733eb53cde26786a034dff24a7800dbafd04294039eac7b409cf4809cd7546cc",
+    "reports/research-experiments/promotion/agentic-round2-source/coordinator-decisions.jsonl": "87a0f62c03fb68d0a4b40ddb25747dd011bce7c4e3ff49203149f873d98b4310",
+    "reports/research-experiments/judge-research/shared-ledger.json": "97d8227b2e47710af66c1b775254b9853a112cc1e1d7b8df0112b33039816f59",
+    "reports/research-experiments/promotion/agentic-repair-v3-ledger.json": "f80a3a995994217554e0523dd4dc1b527860be838829c13ac71072e0bc655d6b"
+  },
+  "worker_provider_calls": 0,
+  "worker_credentials_read": false,
+  "frozen_source_teacher_evidence_changed": false,
+  "skill": "research-output"
+}

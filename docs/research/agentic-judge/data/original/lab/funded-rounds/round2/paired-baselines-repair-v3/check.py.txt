@@ -1,0 +1,112 @@
+"""Serialization only, synthetic smoke1/remaining8/cache/unknown-budget tests."""
+import copy
+import json
+import socket
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+import anthropic
+import httpx2
+import adapter as a
+import root_runner as r
+import repair_budget_runner as b
+
+
+def main():
+    rows = a.v.h.lines(a.HERE / 'requests.jsonl')
+    previous = a.v.h.lines(a.HERE.parent / 'paired-baselines-repair-v2/requests.jsonl')
+    assert {q['id'] for q in rows} == {q['id'] for q in previous} and len(rows) == 9
+    for q, old in zip(rows, previous):
+        a.validate_request(q)
+        assert q['request_body']['tool_choice'] == {'type': 'auto'}
+        assert all(q['request_body'][k] == old['request_body'][k] for k in q['request_body'] if k != 'tool_choice')
+    byrequest = {a.sha(a.canon(q['request_body'])): q for q in rows}
+    seen = []
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('No network')
+
+    def handler(request):
+        actual = json.loads(request.content)
+        q = byrequest[a.sha(a.canon(actual))]
+        assert actual == q['request_body'] and actual['tool_choice'] == {'type': 'auto'}
+        assert [t['name'] for t in actual['tools']] == ['submit_verdict']
+        teacher = a.validate_request(q); f = teacher['original']['candidate']['new']
+        answer = {'label': 'separate', 'score': .1, 'owner': '', 'why': 'Offline fixture only.',
+            'uncertainty': False, 'missing_evidence': [], 'citations': [
+                {'evidence_id': 'initial:new', 'start_line': f['line'], 'end_line': f['end_line']}]}
+        seen.append(q['request_id'])
+        return httpx2.Response(200, json={'id': 'msg_offline', 'type': 'message', 'role': 'assistant',
+            'model': actual['model'], 'content': [{'type': 'tool_use', 'id': 'submit_offline', 'name': 'submit_verdict', 'input': answer}],
+            'stop_reason': 'tool_use', 'stop_sequence': None, 'usage': {'input_tokens': 100, 'output_tokens': 20}})
+
+    with tempfile.TemporaryDirectory(dir=a.HERE) as temp:
+        dest = Path(temp); ledger = dest/'fresh20c.json'
+        b.atomic(ledger, {'schema': 1, 'limit_usd': .20, 'halted': False, 'entries': []})
+        with patch.object(socket.socket, 'connect', side_effect=forbidden), patch.object(httpx2.HTTPTransport, 'handle_request', side_effect=forbidden):
+            with anthropic.Anthropic(api_key='offline-placeholder', max_retries=0,
+                    http_client=httpx2.Client(trust_env=False, transport=httpx2.MockTransport(handler))) as client:
+                def caller(q, credentials):
+                    assert credentials == {'offline': True}
+                    raw = client.messages.create(**q['request_body']).model_dump(mode='json')
+                    return 200, raw, a.sha(a.canon(raw))
+                smoke = r.execute(a.HERE/'smoke.jsonl', dest/'smoke', ledger, {'offline': True}, caller=caller)
+                assert smoke['fresh_this_invocation'] == 1
+                receipt = next((dest/'smoke/responses').glob('*.json'))
+                rest = r.execute(a.HERE/'remaining-eight.jsonl', dest/'remaining', ledger, {'offline': True},
+                                 smoke_receipt_path=receipt, caller=caller)
+                assert rest['fresh_this_invocation'] == 8 and len(seen) == 9
+                cached = r.execute(a.HERE/'smoke.jsonl', dest/'smoke', ledger, {'offline': True}, caller=caller)
+                assert cached['exact_resume_hits'] == 1 and len(seen) == 9
+        data = b.read(ledger)
+        assert len(data['entries']) == 9 and len({e['key'] for e in data['entries']}) == 9
+        assert len({e['question_key'] for e in data['entries']}) == 9
+        assert all(e['charged_usd'] is not None for e in data['entries'])
+        byid = {q['request_id']: q for q in rows}
+        for record in list((dest/'smoke/responses').glob('*.json')) + list((dest/'remaining/responses').glob('*.json')):
+            rec = b.read(record); q = byid[rec['request_id']]
+            assert a.parse_receipt(q, rec)['status'] == 'complete'
+        rec = b.read(receipt); q = byid[rec['request_id']]
+        for kind in ('unsupported', 'invalid_citation', 'uncertain', 'capped'):
+            raw = copy.deepcopy(rec['raw_response'])
+            if kind == 'unsupported': raw['content'][0]['name'] = 'search_source'
+            elif kind == 'invalid_citation': raw['content'][0]['input']['citations'][0]['evidence_id'] = 'unreturned'
+            elif kind == 'uncertain': raw['content'][0]['input']['uncertainty'] = True
+            else: raw['stop_reason'] = 'max_tokens'
+            parsed = a.parse_response(q, raw)
+            assert parsed['reported'] is None and parsed['status'] != 'complete'
+        failed = dest/'failed-ledger.json'
+        b.atomic(failed, {'schema': 1, 'limit_usd': .20, 'halted': False, 'entries': []})
+        def rejection(q, credentials):
+            raw = {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'offline validation fixture'}}
+            return 400, raw, a.sha(a.canon(raw))
+        result = r.execute(a.HERE/'smoke.jsonl', dest/'failed', failed, {'offline': True}, caller=rejection)
+        held = b.read(failed)
+        assert held['halted'] and len(held['entries']) == 1
+        assert held['entries'][0]['charged_usd'] is None and held['entries'][0]['reserved_usd'] > 0
+        try:
+            r.execute(a.HERE/'remaining-eight.jsonl', dest/'forbidden', failed, {'offline': True}, smoke_receipt_path=next((dest/'failed/responses').glob('*.json')), caller=rejection)
+        except (AssertionError, ValueError):
+            pass
+        else:
+            raise AssertionError('Unknown smoke allowed batch')
+        assert b.read(failed) == held
+        cap = dest/'cap.json'; b.atomic(cap, {'schema': 1, 'limit_usd': .20, 'halted': False, 'entries': []})
+        budget = b.SharedBudget(cap)
+        assert not budget.reserve('over-cap', .21)
+    freeze = a.v.h.load_json(a.HERE/'REQUEST-FREEZE.json')
+    assert all(a.sha(Path(p).read_bytes()) == digest for p, digest in freeze['old_v2_files_sha256'].items())
+    report = {'schema': 1, 'passed': True, 'sdk_mock_requests': 9, 'sdk_test_scope': 'Serialization only; not server capability.',
+        'server_capability_verified': False, 'smoke_before_batch_required': True, 'smoke1_then_remaining8_same_fresh_20c_ledger': True,
+        'nine_distinct_question_and_execution_keys': True, 'prior_spent_zero_seed_zero': True,
+        'exact_cache_resume_no_new_call': True, 'unknown_http400_reservation_held_and_halted': True,
+        'batch_blocked_after_unknown_smoke': True, 'only_tool_choice_changed_vs_v2': True,
+        'old_v2_receipts_and_cap2_ledger_untouched': True, 'unexpected_tool_and_bad_citation_unknown': True,
+        'real_worker_calls': 0, 'real_credentials_read': False}
+    a.v.h.save(a.HERE/'VALIDATION.json', report)
+    print(json.dumps(report))
+
+
+if __name__ == '__main__':
+    main()

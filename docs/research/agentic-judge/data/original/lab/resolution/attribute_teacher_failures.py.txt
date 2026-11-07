@@ -1,0 +1,89 @@
+"""Observe explicit final JSON fields without accepting noncompliant decisions.
+
+Posthoc diagnostic only. Registered verdicts/unknowns and the strict text-only
+diagnostic remain unchanged. Non-text response payloads are never inspected.
+"""
+import json
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent / 'agentic-claude'))
+import harness as h
+import diagnostic_text_parser as diagnostic
+from analyze import reference_summary, reported
+
+
+def main():
+    spec = h.load_json(HERE / 'EXPERIMENT.json')
+    queue = h.validate_prereg(h.HERE / 'queue.jsonl')
+    refs = {r['id']: r for r in h.lines(h.HERE / 'references.jsonl')}
+    old_diagnostic = h.load_json(h.HERE / 'evidence/text-block-diagnostic/summary.json')
+    protected = old_diagnostic['protected_artifact_hashes']
+    assert all(h.sha(Path(p).read_bytes()) == digest for p, digest in protected.items())
+    rows = []
+    for item in queue:
+        base = h.HERE / 'runs/root-attempt-2' / item['id']
+        result = h.load_json(base / 'result.json')
+        events = h.lines(base / 'events.jsonl')
+        source = h.validate_item(item)
+        tool_results = [e['data'] for e in events if e['kind'] == 'after_tool']
+        for e in tool_results:
+            source.register_evidence(e['result'])
+        responses = [e['data']['response'] for e in events if e['kind'] == 'after_provider']
+        row = {'id': item['id'], 'split': item['split'], 'registered_status': result['status'],
+               'registered_reported': result['reported'], 'registered_decision': result['decision'],
+               'source_reference': reference_summary(refs[item['id']]),
+               'historical_body_only_claude_reported': reported(item['baselines']['claude']['record'].get('verdict')),
+               'successful_tool_results': sum(not e['result'].get('error') for e in tool_results),
+               'observed_assessment_fields': None, 'observed_report_signal': None,
+               'accepted_as_valid_new_verdict': False}
+        if not responses or responses[-1].get('stop_reason') != 'end_turn' or result['status'] == 'tool_error_or_cap':
+            row['diagnostic_reason'] = 'No final answer; unknown retained.'
+            rows.append(row)
+            continue
+        response = responses[-1]
+        parsed = diagnostic.parse_text_only(response, source)
+        row['strict_text_diagnostic_status'] = parsed['status']
+        row['format_failures'] = parsed['reasons']
+        # Every field, finite score, uncertainty and citation constraint must pass.
+        # Only observe fields if the sole rejection is the explanation word cap.
+        eligible = parsed['status'] in ('complete', 'uncertain') or (
+            parsed['reasons'] and all(r['code'] == 'why_word_limit' for r in parsed['reasons']))
+        if not eligible:
+            row['diagnostic_reason'] = 'Semantic/evidence fields cannot be safely observed; unknown retained.'
+            rows.append(row)
+            continue
+        text = ''.join(b['text'] for b in response['content'] if b.get('type') == 'text')
+        obj = json.loads(text)
+        row['observed_assessment_fields'] = {k: obj[k] for k in ('label', 'score', 'owner', 'uncertainty', 'missing_evidence', 'citations')}
+        row['observed_report_signal'] = (obj['label'] in ('duplicate', 'drifted') and obj['score'] >= .8) if not obj['uncertainty'] else None
+        row['cites_returned_supporting_source'] = any(c['evidence_id'].startswith('source:') for c in obj['citations'])
+        row['observed_only_due_to_word_limit'] = bool(parsed['reasons'] and all(r['code'] == 'why_word_limit' for r in parsed['reasons']))
+        row['diagnostic_reason'] = 'Explicit text fields only; no invalid decision is promoted or added to registered accuracy.'
+        rows.append(row)
+    out = HERE / 'teacher-observed-fields.jsonl'
+    out.write_bytes(b''.join(h.canonical(r) + b'\n' for r in rows))
+    changed = [r for r in rows if r['observed_report_signal'] is not None and
+               r['historical_body_only_claude_reported'] != r['observed_report_signal']]
+    summary = {'schema': 1, 'preregistered_resolution_spec_sha256': h.sha((HERE / 'EXPERIMENT.json').read_bytes()),
+               'registered_complete': sum(r['registered_status'] == 'complete' for r in rows),
+               'registered_unknown': sum(r['registered_reported'] is None for r in rows),
+               'explicit_text_assessments_with_valid_semantic_and_citation_fields': sum(r['observed_assessment_fields'] is not None for r in rows),
+               'word_limit_only_rejections': [r['id'] for r in rows if r.get('observed_only_due_to_word_limit')],
+               'no_final_answer': [r['id'] for r in rows if r['observed_assessment_fields'] is None],
+               'observed_signal_changes': [{'id': r['id'], 'historical': r['historical_body_only_claude_reported'],
+                    'observed': r['observed_report_signal'], 'successful_tool_results': r['successful_tool_results'],
+                    'supporting_source_cited': r['cites_returned_supporting_source'],
+                    'registered_status': r['registered_status']} for r in changed],
+               'registered_results_modified': False, 'noncompliant_decisions_promoted': False,
+               'nontext_payloads_exposed_or_interpreted': False, 'provider_calls': 0,
+               'interpretation': 'Descriptive failure attribution only. Observable fields are not accepted verdicts. Compare context effects using the frozen separate-family paired followup, not historic-versus-agentic changes with different prompts/sampling.'}
+    h.save(HERE / 'teacher-attribution.json', summary)
+    assert all(h.sha(Path(p).read_bytes()) == digest for p, digest in protected.items())
+    print(json.dumps(summary, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

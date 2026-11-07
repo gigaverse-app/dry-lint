@@ -1,0 +1,87 @@
+"""Strict funded results, source novelty and exact historical body-only joins."""
+import importlib.util
+import json
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+import teacher_v3_adapter as v
+
+h = v.h
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(v.WORK / '.lab-results/resolution'))
+from analyze_teacher_v2 import analyze_case
+from diagnostic_text_parser import parse_text_only
+from dry_lint.judges.command import prompt
+from dry_lint.models import Candidate
+
+
+def main():
+    execution = h.load_json(HERE / 'root-topup-1/execution.json')
+    assert 'elapsed_seconds' in execution
+    queue = {r['id']: r for r in h.lines(HERE / 'teacher-requests.jsonl')}
+    private = {r['id']: r for r in h.lines(HERE / 'selection-private.jsonl')}
+    # Reuse source/hash verification; only the separately versioned final validator differs.
+    analyzed, baselines = [], []
+    observed_path = v.WORK.parent.parent / 'jobs/judge-operations/.lab-results/judge-operations/full-corpus/exact-observations.jsonl'
+    observations = h.lines(observed_path)
+    for ident in queue:
+        case = HERE / 'root-topup-1' / ident
+        if not (case / 'events.jsonl').exists():
+            analyzed.append({'id': ident, 'status': 'not_started_unknown', 'reported': None,
+                             'role': private[ident]['role']})
+            continue
+        # Imported function's globals are private to this analysis process; use its
+        # original implementation with an explicit v3 submit shim, no runtime edits.
+        checker = type(analyze_case)(analyze_case.__code__, {**analyze_case.__globals__,
+            'v': SimpleNamespace(submit=v.strict_submit)}, 'analyze_funded_case')
+        result = checker(queue[ident], HERE / 'root-topup-1')
+        result['role'] = private[ident]['role']
+        result['independent_control_source'] = private[ident]['source_reference']
+        original = queue[ident]['original']
+        text = original['rendered_body_only_prompt']
+        matches = []
+        for o in observations:
+            i = o['identity']
+            if (o['repository'], o['revision']) != (original['repository'], original['revision']):
+                continue
+            if i.get('kind') != 'claude' or i.get('model') != h.MODEL or i.get('max_output_tokens') != 1024:
+                continue
+            if i.get('rendered_input') != text:
+                continue
+            c = Candidate.model_validate(o['candidate'])
+            if prompt(c, policy='shared-operations') != text:
+                continue
+            if any(c.model_dump()[s]['code'] != original['candidate'][s]['code'] or
+                   c.model_dump()[s]['path'] != original['candidate'][s]['path'] for s in ('new','existing')):
+                continue
+            matches.append({'historical_request_key': o['request_key'], 'verdict': o['verdict'],
+                'source_proof': o['proof'], 'source_pin': o['revision'],
+                'rendered_prompt_sha256': h.sha(text.encode()), 'recorded_cost_usd_historical_only': o['usd'],
+                'note': 'Exact rendered-input and role/source match; original output proof required before cached-answer use.'})
+        baselines.append({'id': ident, 'exact_historical_matches': matches,
+                          'baseline_status': 'exact_match_requires_output_proof' if matches else 'missing_exact_baseline_unknown'})
+        analyzed.append(result)
+    (HERE / 'analysis').mkdir(exist_ok=True)
+    for name, data in [('cases.jsonl', analyzed), ('exact-baseline-joins.jsonl', baselines)]:
+        (HERE / 'analysis' / name).write_bytes(b''.join(h.canonical(r) + b'\n' for r in data))
+    started = [r for r in analyzed if r['status'] != 'not_started_unknown']
+    summary = {'schema':1, 'direction':'agentic-judge', 'round':1,
+        'actual_new_paid_usd': execution['known_round1_actual_usd'], 'minimum_actual_met': execution['minimum_reached'],
+        'historical_teacher_pilot_excluded_usd': .252152, 'started_topup':len(started), 'unstarted_unknown':len(analyzed)-len(started),
+        'strict_complete':sum(r['status']=='complete' for r in started),
+        'strict_uncertain':sum(r['status']=='uncertain' for r in started),
+        'valid_novel_reports_at_08':[r['id'] for r in started if r['role']=='novel' and r['reported'] is True],
+        'source_confirmed_novel_reports':None, 'source_review_status':'pending_independent_reviewer',
+        'exact_baseline_join_cases':sum(bool(r['exact_historical_matches']) for r in baselines),
+        'new_source_lines_across_cases':sum(r['unique_new_source_lines'] for r in started),
+        'initial_body_lines_repeated_across_cases':sum(r['unique_initial_body_lines_repeated'] for r in started),
+        'key_failure':'Two independent controls queried non-identifier literal strings through identifier-only find_references; preserved tool errors. One control had no valid final submission. No retries.',
+        'planned_single_round2_revision':'Bounded literal supporting-source search outside supplied endpoint bodies, with explicit truncation/absence limits. Same semantic/strict citation constraints, new disjoint families.',
+        'no_accuracy_gain_claimed':True,'worker_provider_calls':0}
+    h.save(HERE / 'analysis/summary.json', summary)
+    print(json.dumps(summary,sort_keys=True))
+
+
+if __name__=='__main__':
+    main()

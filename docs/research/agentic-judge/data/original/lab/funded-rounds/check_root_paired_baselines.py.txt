@@ -1,0 +1,58 @@
+"""Synthetic ledger and root caller contract; zero HTTP and no key reads."""
+import json
+import tempfile
+from pathlib import Path
+
+import root_paired_baselines as r
+
+
+def main():
+    queue = r.p.HERE / 'round2/paired-baselines/actually-started-requests.jsonl'
+    rows = r.p.v.h.lines(queue)
+    assert len(rows) == 9
+    calls = []
+
+    def caller(q, credentials):
+        assert credentials == {'offline': True}
+        teacher = r.p.validate_request(q)
+        f = teacher['original']['candidate']['new']
+        answer = {'label': 'separate', 'score': .1, 'owner': '', 'why': 'Offline only.',
+                  'uncertainty': False, 'missing_evidence': [], 'citations': [
+                      {'evidence_id': 'initial:new', 'start_line': f['line'], 'end_line': f['end_line']}]}
+        raw = {'model': q['model'], 'stop_reason': 'tool_use', 'content': [
+            {'type': 'tool_use', 'id': 'submit_offline', 'name': 'submit_verdict', 'input': answer}],
+            'usage': {'input_tokens': 100, 'output_tokens': 20}}
+        calls.append(q['request_id'])
+        return 200, raw, r.p.sha(r.p.canon(raw))
+
+    with tempfile.TemporaryDirectory(dir=r.p.HERE) as temp:
+        base = Path(temp)
+        ledger = base / 'synthetic-ledger.json'
+        prior = {'key': 'preserved', 'charged_usd': 1.65096184, 'reserved_usd': 1.65096184, 'job': 'prior'}
+        r.p.v.h.save(ledger, {'schema': 1, 'limit_usd': 2, 'halted': False, 'entries': [prior]})
+        result = r.execute(queue, base/'run', ledger, {'offline': True}, caller=caller)
+        assert result['fresh_this_invocation'] == 9 and len(calls) == 9
+        data = r.p.v.h.load_json(ledger)
+        assert data['entries'][0] == prior
+        assert all(e['job'] == 'agentic-judge' and e['funded_phase'] == 'paired_body_baseline'
+                   and e['counts_toward_teacher_minimum'] is False for e in data['entries'][1:])
+        byid = {q['request_id']: q for q in rows}
+        for receipt in r.p.v.h.lines(base/'run/returned.jsonl'):
+            assert r.p.parse_receipt(byid[receipt['request_id']], receipt)['status'] == 'complete'
+        try:
+            r.execute(queue, base/'run', ledger, {'offline': True}, caller=caller)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Existing attempt accepted')
+    report = {'schema': 1, 'passed': True, 'requests': 9, 'synthetic_only': True,
+              'root_executor_receipts_and_final_parser_verified': True, 'prior_ledger_preserved': True,
+              'paired_phase_attribution_not_teacher_minimum': True, 'repeated_attempt_rejected': True,
+              'real_provider_calls': 0, 'real_credentials_read': False,
+              'budget_module_sha256': r.BUDGET_SHA}
+    r.p.v.h.save(r.p.HERE / 'paired-root-validation.json', report)
+    print(json.dumps(report))
+
+
+if __name__ == '__main__':
+    main()

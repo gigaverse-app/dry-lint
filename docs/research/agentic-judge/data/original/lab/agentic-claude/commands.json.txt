@@ -1,0 +1,9 @@
+{
+  "validate": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=\"$PWD/src\" LAB_ROOT/retrieval/.venv/bin/python .lab-results/agentic-claude/harness.py validate",
+  "source_tests": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=\"$PWD/src\" LAB_ROOT/retrieval/.venv/bin/python .lab-results/agentic-claude/test_harness.py",
+  "execute_root_only": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=\"$PWD/src\" LAB_ROOT/retrieval/.venv/bin/python .lab-results/agentic-claude/harness.py execute --shared-ledger \"$ROOT_SHARED_LEDGER\" --root-reviewed-pricing-and-source",
+  "ledger_init_root_only": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=\"$PWD/src\" LAB_ROOT/retrieval/.venv/bin/python .lab-results/agentic-claude/harness.py init-ledger --shared-ledger \"$ROOT_SHARED_LEDGER\" --limit-usd 1 --external-reserved-usd \"$ROOT_JEV_RESERVATION_USD\"",
+  "audit": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=\"$PWD/src\" LAB_ROOT/retrieval/.venv/bin/python .lab-results/agentic-claude/analyze.py audit",
+  "score": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=\"$PWD/src\" LAB_ROOT/retrieval/.venv/bin/python .lab-results/agentic-claude/analyze.py score",
+  "derive_learning_only": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=\"$PWD/src\" LAB_ROOT/retrieval/.venv/bin/python .lab-results/agentic-claude/analyze.py derive"
+}

@@ -1,0 +1,93 @@
+"""Actual SDK, corrected procedure, strict parsing and synthetic cap2 ledger."""
+import copy
+import json
+import socket
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+import anthropic
+import httpx2
+import adapter as a
+import root_runner as r
+
+
+def main():
+    queue = a.HERE / 'requests.jsonl'
+    rows = a.v.h.lines(queue)
+    old = a.v.h.lines(a.HERE.parent / 'paired-baselines/actually-started-requests.jsonl')
+    assert len(rows) == 9 and {q['id'] for q in rows} == {q['id'] for q in old}
+    before = {str(p): a.sha(p.read_bytes()) for p in (a.HERE.parent / 'paired-baselines').rglob('*') if p.is_file()}
+    byrequest = {a.sha(a.canon(q['request_body'])): q for q in rows}
+    seen, unsupported = [], []
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Network forbidden')
+
+    def handler(request):
+        actual = json.loads(request.content)
+        q = byrequest[a.sha(a.canon(actual))]
+        teacher = a.validate_request(q)
+        assert actual == q['request_body']
+        assert actual['tool_choice'] == {'type': 'tool', 'name': 'submit_verdict', 'disable_parallel_tool_use': True}
+        assert [t['name'] for t in actual['tools']] == ['submit_verdict']
+        assert 'search_source' not in actual['system'] and 'Retrieve supporting' not in actual['system']
+        f = teacher['original']['candidate']['new']
+        answer = {'label': 'separate', 'score': .1, 'owner': '', 'why': 'Offline fixture only.',
+            'uncertainty': False, 'missing_evidence': [], 'citations': [
+                {'evidence_id': 'initial:new', 'start_line': f['line'], 'end_line': f['end_line']}]}
+        raw = {'id': 'msg_offline', 'type': 'message', 'role': 'assistant', 'model': actual['model'],
+            'content': [{'type': 'tool_use', 'id': 'submit_offline', 'name': 'submit_verdict', 'input': answer}],
+            'stop_reason': 'tool_use', 'stop_sequence': None, 'usage': {'input_tokens': 100, 'output_tokens': 20}}
+        assert a.parse_response(q, raw)['status'] == 'complete'
+        uncertain = copy.deepcopy(raw); uncertain['content'][0]['input']['uncertainty'] = True
+        parsed = a.parse_response(q, uncertain)
+        assert parsed['status'] == 'uncertain' and parsed['reported'] is None
+        for change in ('unknown_citation', 'out_of_bounds', 'long_why', 'unsupported_source_tool', 'max_tokens'):
+            bad = copy.deepcopy(raw)
+            if change == 'unknown_citation': bad['content'][0]['input']['citations'][0]['evidence_id'] = 'unreturned'
+            elif change == 'out_of_bounds': bad['content'][0]['input']['citations'][0]['end_line'] = f['end_line'] + 1
+            elif change == 'long_why': bad['content'][0]['input']['why'] = ' '.join(['word'] * 81)
+            elif change == 'unsupported_source_tool':
+                bad['content'][0]['name'] = 'search_source'; unsupported.append(q['id'])
+            else: bad['stop_reason'] = 'max_tokens'
+            assert a.parse_response(q, bad)['status'] == 'unknown' and a.parse_response(q, bad)['reported'] is None
+        seen.append(q['request_id'])
+        return httpx2.Response(200, json=raw)
+
+    with tempfile.TemporaryDirectory(dir=a.HERE) as temp:
+        dest = Path(temp)
+        ledger = dest / 'synthetic-cap2.json'
+        prior = {'key': 'preserved-before-comparator-repair', 'charged_usd': 1.81426984,
+                 'reserved_usd': 1.81426984, 'job': 'prior'}
+        a.v.h.save(ledger, {'schema': 1, 'limit_usd': 2, 'halted': False, 'entries': [prior]})
+        with patch.object(socket.socket, 'connect', side_effect=forbidden), patch.object(httpx2.HTTPTransport, 'handle_request', side_effect=forbidden):
+            with anthropic.Anthropic(api_key='offline-placeholder', max_retries=0,
+                http_client=httpx2.Client(trust_env=False, transport=httpx2.MockTransport(handler))) as client:
+                def caller(q, credentials):
+                    assert credentials == {'offline': True}
+                    raw = client.messages.create(**q['request_body']).model_dump(mode='json')
+                    return 200, raw, a.sha(a.canon(raw))
+                summary = r.execute(queue, dest/'run', ledger, {'offline': True}, workers=4, caller=caller)
+        assert summary['fresh_this_invocation'] == 9 and len(seen) == 9
+        data = a.v.h.load_json(ledger)
+        assert data['entries'][0] == prior
+        assert all(e['funded_phase'] == 'paired_body_baseline_procedure_repair' and e['method_version'] == a.VERSION for e in data['entries'][1:])
+        byid = {q['request_id']: q for q in rows}
+        for receipt in a.v.h.lines(dest/'run/returned.jsonl'):
+            assert a.parse_receipt(byid[receipt['request_id']], receipt)['status'] == 'complete'
+    assert all(a.sha(Path(p).read_bytes()) == digest for p, digest in before.items())
+    report = {'schema': 1, 'passed': True, 'actual_sdk_mock_requests': 9, 'network_attempts': 0,
+        'real_credentials_read': False, 'real_provider_calls': 0, 'all_nine_started_novels_included': True,
+        'only_system_and_tool_choice_request_fields_changed': True,
+        'no_source_tool_registered_or_dispatched': True, 'forced_submit_verdict_sdk_serialized': True,
+        'unexpected_model_tool_calls_rejected_unknown': len(unsupported),
+        'strict_citations_80word_uncertainty_and_caps_preserved': True,
+        'old_nine_requests_answers_and_r1_unchanged': True, 'synthetic_ledger_prior_charge_preserved': True,
+        'queue_sha256': a.sha(queue.read_bytes())}
+    a.v.h.save(a.HERE/'VALIDATION.json', report)
+    print(json.dumps(report))
+
+
+if __name__ == '__main__':
+    main()

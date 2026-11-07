@@ -1,0 +1,91 @@
+"""Actual-SDK mock-transport submission smoke and strict negative controls."""
+import json
+import socket
+import tempfile
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import anthropic
+import httpx2
+import teacher_v2 as v
+
+h = v.h
+
+
+def main():
+    rows = v.validate()
+    dummy = SimpleNamespace(catalog={'initial:new': {'path': 'fixture.py', 'start_line': 1, 'end_line': 5}})
+    valid = {'label': 'separate', 'score': .1, 'owner': '', 'why': 'Synthetic fixture only.',
+             'uncertainty': False, 'missing_evidence': [],
+             'citations': [{'evidence_id': 'initial:new', 'start_line': 1, 'end_line': 2}]}
+    assert v.submit(valid, dummy)[1] == 'complete'
+    assert v.submit({**valid, 'uncertainty': True}, dummy)[1] == 'uncertain'
+    assert v.submit({**valid, 'why': ' '.join(['x'] * 81)}, dummy)[0] is None
+    assert v.submit({**valid, 'why': 'x' * 241}, dummy)[0] is None
+    assert v.submit({**valid, 'citations': [{'evidence_id': 'missing', 'start_line': 1, 'end_line': 2}]}, dummy)[0] is None
+    assert v.submit({**valid, 'citations': [{'evidence_id': 'initial:new', 'start_line': 1, 'end_line': 6}]}, dummy)[0] is None
+    out = v.DEST / 'offline-smoke'
+    out.mkdir(exist_ok=True)
+    summaries, network = [], []
+
+    def forbid(*args, **kwargs):
+        network.append(True)
+        raise AssertionError('Network forbidden')
+
+    with tempfile.TemporaryDirectory(dir=out) as temp:
+        base = Path(temp)
+        ledger = base / 'synthetic-ledger.json'
+        h.save(ledger, {'schema': 1, 'limit_usd': 1, 'halted': False, 'entries': []})
+        for row in rows:
+            seen = []
+
+            def handler(request):
+                body = json.loads(request.content)
+                assert body['tools'] == v.TOOLS and 'temperature' not in body
+                if not seen:
+                    assert body == row['request']
+                    f = row['original']['candidate']['new']
+                    content = [{'type': 'tool_use', 'id': 'toolu_source_fixture', 'name': 'read_source',
+                                'input': {'path': f['path'], 'start_line': max(1, f['line'] - 2),
+                                          'end_line': max(1, f['line'] - 1)}}]
+                else:
+                    assert len(seen) == 1 and len(body['messages']) == 3
+                    result = body['messages'][-1]['content'][0]
+                    assert result['type'] == 'tool_result' and not result['is_error']
+                    fact = json.loads(result['content'])
+                    answer = {**valid, 'citations': [{'evidence_id': fact['evidence_id'],
+                              'start_line': fact['start_line'], 'end_line': fact['end_line']}]}
+                    content = [{'type': 'tool_use', 'id': 'toolu_submit_fixture', 'name': 'submit_verdict', 'input': answer}]
+                seen.append(body)
+                return httpx2.Response(200, json={'id': 'msg_offline', 'type': 'message', 'role': 'assistant',
+                    'model': h.MODEL, 'content': content, 'stop_reason': 'tool_use', 'stop_sequence': None,
+                    'usage': {'input_tokens': 100, 'output_tokens': 20}})
+
+            with patch.object(socket.socket, 'connect', side_effect=forbid), patch.object(httpx2.HTTPTransport, 'handle_request', side_effect=forbid):
+                with anthropic.Anthropic(api_key='offline-placeholder', max_retries=0,
+                       http_client=httpx2.Client(trust_env=False, transport=httpx2.MockTransport(handler))) as client:
+                    result = v.run(row, base / 'synthetic-runs', client, h.SharedBudget(ledger))
+            assert result['status'] == 'complete' and result['provider_calls'] == 2 and result['source_tool_calls'] == 1
+            events = h.lines(base / 'synthetic-runs' / row['id'] / 'events.jsonl')
+            assert seen == [e['data']['request'] for e in events if e['kind'] == 'before_provider']
+            summaries.append({'id': row['id'], 'initial_and_tool_round_exact': True,
+                              'terminal_submission_valid': True, 'mock_rounds': len(seen)})
+        # Admission respects the other job's budget even before any SDK call.
+        blocked = base / 'blocked.json'
+        h.save(blocked, {'schema': 1, 'limit_usd': 1, 'halted': False,
+                         'entries': [{'key': 'other-job', 'charged_usd': None, 'reserved_usd': .999}]})
+        result = v.run(rows[0], base / 'budget-blocked', None, h.SharedBudget(blocked))
+        assert result['status'] == 'shared_budget_deferred' and result['provider_calls'] == 0
+    assert not network
+    report = {'schema': 1, 'passed': True, 'synthetic_only': True, 'cases': summaries,
+              'mock_sdk_rounds': 8, 'network_attempts': 0, 'real_provider_calls': 0,
+              'strict_word_character_and_citation_negative_controls': 4,
+              'explicit_uncertainty_preserved': True, 'other_job_budget_respected': True,
+              'queue_sha256': h.sha((v.DEST / 'queue.jsonl').read_bytes())}
+    h.save(out / 'report.json', report)
+    print(json.dumps(report, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

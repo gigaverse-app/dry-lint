@@ -1,0 +1,60 @@
+"""Root-only four-case entrypoint; frozen teacher-v2 requests remain unchanged."""
+import argparse
+import json
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+import teacher_v2 as v
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--shared-ledger', required=True)
+    p.add_argument('--out', default=str(v.DEST / 'root-attempt-1'))
+    args = p.parse_args()
+    rows = v.validate()
+    assert len(rows) == 4 and len({r['request_key'] for r in rows}) == 4
+    out = Path(args.out)
+    if any((out / r['id'] / 'events.jsonl').exists() for r in rows):
+        p.error('Existing attempt events found; never overwrite or automatically retry.')
+    budget = v.h.SharedBudget(args.shared_ledger)  # one existing ledger, flock per operation
+    metadata = {'schema': 1, 'concurrency': 4, 'cases': [r['id'] for r in rows],
+                'queue_sha256': v.h.sha((v.DEST / 'queue.jsonl').read_bytes()),
+                'entrypoint_sha256': v.h.sha(Path(__file__).read_bytes()),
+                'max_rounds_per_case': 6, 'case_cap_usd': .15, 'max_tokens_per_round': 1024,
+                'retries': 0, 'source_and_output_contract': 'unchanged frozen teacher-v2',
+                'shared_ledger': str(Path(args.shared_ledger).resolve()), 'ledger_reset': False}
+    out.mkdir(parents=True, exist_ok=True)
+    v.h.save(out / 'execution.json', metadata)
+    import anthropic
+    import httpx2
+
+    def worker(row):
+        # Only root executes this path. Each case owns its SDK client and source state.
+        with anthropic.Anthropic(max_retries=0, timeout=90, base_url='https://api.anthropic.com',
+                http_client=httpx2.Client(trust_env=False)) as client:
+            return v.run(row, out, client, budget)
+
+    started = time.monotonic()
+    results, errors = [], []
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(worker, r): r['id'] for r in rows}
+        for future in as_completed(futures):
+            ident = futures[future]
+            try:
+                result = future.result()
+                short = {k: result[k] for k in ('id', 'status', 'provider_calls', 'cost_usd')}
+                results.append(short)
+                print(json.dumps(short), flush=True)
+            except Exception as error:
+                # Preserve durable case events and pending reservations for root reconciliation.
+                # Never emit exception text or retry an uncertain paid attempt.
+                errors.append({'id': ident, 'error_type': type(error).__name__, 'status': 'unknown'})
+                print(json.dumps(errors[-1]), flush=True)
+    metadata.update(wall_seconds=time.monotonic() - started, results=results, errors=errors)
+    v.h.save(out / 'execution.json', metadata)
+
+
+if __name__ == '__main__':
+    main()
