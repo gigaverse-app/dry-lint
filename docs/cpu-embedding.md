@@ -30,7 +30,8 @@ A later [complete-statement experiment](https://github.com/gigaverse-app/dry-lin
 that this plugin cannot see. It kept the original routes first, encoded at most two complete tail statements,
 and appended at most one unseen candidate at cosine >= .80. The first version ran only when the original CPU
 route abstained and produced no new reports in five funded novel pairs. Removing that gate yielded two
-source-supported reports among 47 novel pairs, with no reports among 16 controls. The two reports also survived
+source-supported reports among 47 novel pairs, with no reports among 16 controls. One of those two would also pass the first tail recipe; only the public snapshot case specifically requires
+removing the gate. The selected rounds are not a paired causal comparison. The two reports also survived
 a separate, post-hoc balanced-budget check of those two queries; that check is not overall precision or recall.
 
 One public example is OpenHands' metrics snapshot: its tail repeats a projection that the 256-token prefix
