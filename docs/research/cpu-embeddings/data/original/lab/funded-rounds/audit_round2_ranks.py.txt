@@ -1,0 +1,27 @@
+"""Directional raw rank audit from frozen existing matrices; no encoder or fitting."""
+import collections
+import hashlib
+import json
+from pathlib import Path
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'venv/lib/python3.14/site-packages'))
+import numpy as np
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'promotion/implementation/src'))
+from dry_lint.models import Function
+R=Path(__file__).resolve().parent/'round2';LAB=R.parent.parent
+read=lambda p:[json.loads(x) for x in p.open()]
+packets=read(R/'provider-queue.jsonl');sha=packets[0]['background_proof']['sha256'];folder=LAB/'full-corpus/cohorts'/sha
+functions=read(folder/'functions.jsonl');matrix=np.load(folder/'embeddings.npy',mmap_mode='r');assert matrix.shape==(len(functions),384)
+positions=collections.defaultdict(list)
+for f in functions:f['qualname']=Function.model_validate(f).qualname
+for i,f in enumerate(functions):positions[f['qualname']].append(i)
+out=[]
+for p in packets:
+ ids=[Function.model_validate(p['candidate'][s]).qualname for s in ['new','existing']];assert all(len(positions[s])==1 for s in ids)
+ a,b=[positions[s][0] for s in ids]
+ for side,i,j in [('new_to_existing',a,b),('existing_to_new',b,a)]:
+  for ix,s in [(a,'new'),(b,'existing')]:assert functions[ix]['code']==p['candidate'][s]['code']
+  scores=matrix @ matrix[i];order=np.argsort(-scores,kind='stable');rank=next(k for k,pos in enumerate((x for x in order if x!=i),1) if pos==j)
+  assert round(float(scores[j]),3)==p['candidate']['similarity']
+  out.append({'id':p['id'],'direction':side,'query_source_id':functions[i]['qualname'],'target_source_id':functions[j]['qualname'],'background_sha256':sha,'raw_dense_cosine':float(scores[j]),'canonical_candidate_similarity_rounded3':p['candidate']['similarity'],'raw_self_excluding_dense_rank':rank,'competitors':len(functions)-1,'rank_contract':'All original full-background competitors, only query position excluded. No eligibility, ambiguity, policy or floor filtering; not the eligible20 proposal rank. Stable original source-order ties.','actual_revised_selected_rank':1 if side=='new_to_existing' else None,'actual_reverse_selection':'not evaluated' if side!='new_to_existing' else None,'normal04_funding':'separate frozen native-original-query-ledgers.jsonl','worker_provider_calls':0,'new_encodings':0})
+(R/'raw-directional-ranks-private.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in out));print('raw-rank-audit',len(out),'directions','maxforwardrank',max(r['raw_self_excluding_dense_rank'] for r in out if r['direction']=='new_to_existing'),'newencodes0 fits0',flush=True)

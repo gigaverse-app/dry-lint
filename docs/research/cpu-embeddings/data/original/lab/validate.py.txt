@@ -1,0 +1,130 @@
+"""Independent measured-output checks against materialized prior corpus replays and native baseline."""
+
+import argparse
+import collections
+import hashlib
+import json
+import math
+from pathlib import Path
+
+import experiment
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger
+from dry_lint.models import Candidate, Function
+from dry_lint.settings import Settings
+
+HERE = Path(__file__).resolve().parent
+ROOT = Path("/home/researcher/dry-lint-round")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--contrast", action="store_true")
+    args = parser.parse_args()
+    experiment.verify_freeze()
+    folder = HERE / ("kaizen" if args.contrast else "openhands")
+    protocol = experiment.PROTOCOL
+    manifest = json.loads((folder / "manifest.json").read_text())
+    repo = protocol["contrast"]["repository"] if args.contrast else protocol["repositories"][0]
+    background = BenchBackground.decode(Path(repo["background_proof"]["path"]).read_bytes())
+    functions = [Function.model_validate(x) for x in experiment.read_rows(folder / "functions.jsonl")]
+    assert len(functions) == len(background.documents) == (2101 if args.contrast else 2348)
+    for f, d in zip(functions, background.documents, strict=True):
+        assert f.qualname == d.id and hashlib.sha256(f.code.encode()).hexdigest() == d.source_sha256
+    rows = experiment.read_rows(folder / "per-row.jsonl")
+    baseline = [r for r in rows if r["arm"] == "sparse"]
+    firstwave = json.loads(
+        (ROOT / "reports/candidate-first/corpus-verification/candidate-first-gold/replay.json").read_text()
+    )["rows"]
+    scaled = experiment.read_rows(ROOT / "reports/candidate-first/corpus-verification/scaled-v1/replay.jsonl")
+    references = {r["id"]: r for r in firstwave + scaled if r["repository"] == repo["repository"]}
+    checked_directions = 0
+    for row in baseline:
+        ref = references[row["id"]]
+        for current, previous in zip(row["directions"], ref["directions"], strict=True):
+            assert current["query"] == previous["query"] and current["target"] == previous["target"]
+            assert current["raw_rank"] == previous["raw_rank"]
+            assert current["cross_file_rank"] == previous["cross_file_rank"]
+            assert math.isclose(current["score"], previous["score"], rel_tol=1e-12, abs_tol=1e-12)
+            profile = "default" if row["profile"] == "laboratory-default" else "balanced"
+            assert current["retrieved"] == previous[profile + "_retrieved"]
+            checked_directions += 1
+    # Independent ledger replay validates order, normal estimator, skipped counts, and each batch's cap.
+    candidates = experiment.read_rows(folder / "candidates.jsonl")
+    ledger_rows = experiment.read_rows(folder / "ledger.jsonl")
+    groups = collections.defaultdict(list)
+    for row in candidates:
+        c = Candidate.model_validate(row["candidate"])
+        assert c.new.qualname != c.existing.qualname
+        groups[(row["profile"], row["batch_id"], row["arm"])].append(row)
+    settings = Settings(budget={"usd": 0.04})
+    ledger_checks = 0
+    for row in ledger_rows:
+        group = groups[(row["profile"], row["batch_id"], row["arm"])]
+        assert [c["order"] for c in group] == list(range(len(group)))
+        cs = [Candidate.model_validate(x["candidate"]) for x in group if not x["candidate"]["filtered"]]
+        ledger = Ledger(settings)
+        judge = experiment.EstimateOnlySonnet()
+        ix = ledger.select(judge, cs)
+        chosen = [cs[i] for i in ix]
+        ledger.charge(judge, chosen, len(cs) - len(chosen))
+        assert {c.key for c in chosen} == {c["key"] for c in group if c["funded"]}
+        assert math.isclose(ledger.usd, row["usd_estimated"], abs_tol=1e-12)
+        assert 0 <= ledger.usd <= 0.04
+        ledger_checks += 1
+    # Repeat native ranking to test determinism, including existing tied-score encounter order.
+    index = background.index()
+    tie_queries = 0
+    for row in experiment.read_rows(folder / "neighbors.jsonl"):
+        i = row["query_row"]
+        a = index.similar(background.documents[i].tokens(), exclude={i})
+        b = index.similar(background.documents[i].tokens(), exclude={i})
+        assert a == b
+        assert [{"row": j, "id": functions[j].qualname, "score": s} for j, s in a[:20]] == row["sparse_raw_top20"]
+        assert i not in {j for j, _ in a}
+        tie_queries += int(any(a[n][1] == a[n + 1][1] for n in range(len(a) - 1)))
+    status = json.loads((folder / "embedding-status.json").read_text())
+    dense_checks = 0
+    if status["status"] == "complete":
+        import numpy as np
+
+        dense = np.load(folder / "embeddings.npy")
+        assert dense.shape == (len(functions), 384)
+        assert np.max(np.abs(np.linalg.norm(dense, axis=1) - 1)) < 1e-5
+        for row in experiment.read_rows(folder / "neighbors.jsonl"):
+            i = row["query_row"]
+            scores = dense @ dense[i]
+            order = [int(j) for j in np.argsort(-scores, kind="stable") if j != i][:20]
+            assert order == [r["row"] for r in row["dense_raw_top20"]]
+            dense_checks += 1
+        keyed = {(r["profile"], r["cohort"], r["id"], r["arm"]): r for r in rows}
+        for r in baseline:
+            protected = keyed[(r["profile"], r["cohort"], r["id"], "protected-sparse-plus-dense1")]
+            assert not r["funded"] or protected["funded"]
+    if status["status"] != "complete":
+        for row in rows:
+            if row["arm"] != "sparse":
+                assert row["retrieved"] is row["funded"] is row["report_emitted"] is None
+        assert not (folder / "embeddings.npy").exists()
+    result = {
+        "all_pass": True,
+        "source_rows_verified": len(functions),
+        "source_files_verified": manifest["files"],
+        "prior_replay_directional_profile_checks": checked_directions,
+        "normal_ledger_replays": ledger_checks,
+        "repeat_native_query_checks": len(experiment.read_rows(folder / "neighbors.jsonl")),
+        "dense_exact_ranking_checks": dense_checks,
+        "queries_with_exact_score_ties": tie_queries,
+        "self_pairs_emitted": 0,
+        "ambiguous_ids": manifest["duplicate_ids"],
+        "embedding_result": status["status"],
+        "dense_real_inference_tested": status["status"] == "complete",
+        "limitations": "ONNX encoder is an offline experiment; labels remain development evidence and reports require centrally supplied answers.",
+    }
+    experiment.dump(folder / "validation.json", result)
+    print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

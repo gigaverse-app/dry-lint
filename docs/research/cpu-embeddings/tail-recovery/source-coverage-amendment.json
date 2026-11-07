@@ -1,0 +1,235 @@
+{
+  "by_repository": {
+    "gigaverse-app/backend-common": 8,
+    "gigaverse-app/due": 10,
+    "gigaverse-app/frontend-common": 4,
+    "gigaverse-app/gigaverse-mobile": 4,
+    "gigaverse-app/gigaverse-web-app": 6,
+    "gigaverse-app/pytest-obligation": 2,
+    "gigaverse-app/pytest-selective": 2
+  },
+  "corrections": [
+    {
+      "background_sha256": "fc5d60d9a7922b37b69218a94f25b0e71a7596c65ad24a29dc4518ab2aaf3dfe",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+    },
+    {
+      "background_sha256": "1c9d034edbdcd322738556c283ac31b487d66be858f733d768fbadf9ec941ef1",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd"
+    },
+    {
+      "background_sha256": "4edc2f988654836c7ab1a887b6aba67d70b6f893acf5ca5a59870e4ccc329351",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd"
+    },
+    {
+      "background_sha256": "eceb1bd48b5a8bfa6471ff19f5064ea65f9046511680256f746b6172eef31940",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/pytest-obligation",
+      "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+    },
+    {
+      "background_sha256": "393753b9ef2fa032f3f15b2004e333f3d33e48056656b57f2044c562d11441c8",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4"
+    },
+    {
+      "background_sha256": "d54104cc3e03c039fc62af6abbaae2ed9673e6d053497bc6c11017a19ed8fcaf",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4"
+    },
+    {
+      "background_sha256": "a35412534e3d42e7e10b78aee9e0a0fcf2b7fb42c436cda0e70af17a97735720",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "33857688849a481a794b46295f4080dca853cc0f"
+    },
+    {
+      "background_sha256": "e8eb65099fbc8a4e0853da3bce62fc497f9c428331d05ce5c47f994290456b22",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "33857688849a481a794b46295f4080dca853cc0f"
+    },
+    {
+      "background_sha256": "894966b82cc49055237b155e48e8d6e604e6a10b6251f62cea4743f5a0229c99",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-web-app",
+      "revision": "32aebe0520f79acb0599b16c42f08c101e5d1663"
+    },
+    {
+      "background_sha256": "f5dd74c220aacda927de13b97f40922d1615100f9d40271b65fd95a706bf19e5",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-web-app",
+      "revision": "32aebe0520f79acb0599b16c42f08c101e5d1663"
+    },
+    {
+      "background_sha256": "b6a0a81cac2732a1da2d0e4698b208a445f5710744d88f2b63edce00f0f2ad4c",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/backend-common",
+      "revision": "fdf66129075daa21b8e16a63fe949af91ef800a4"
+    },
+    {
+      "background_sha256": "fb2e166253479293b7feda917ce3b60166434a57b6135df3422374b361c00f36",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/backend-common",
+      "revision": "fdf66129075daa21b8e16a63fe949af91ef800a4"
+    },
+    {
+      "background_sha256": "8cf9db3fdef74ee30b49996eae4e721d68e3840e2e419c41d0cadc4a7319d805",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/frontend-common",
+      "revision": "80d88027188de391b6bdb71f9f0e1642f7f57ae6"
+    },
+    {
+      "background_sha256": "ed8641ceff6e78f9c1dfb6499700560fc55beee06656b80a65cbda86699ca20c",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/frontend-common",
+      "revision": "80d88027188de391b6bdb71f9f0e1642f7f57ae6"
+    },
+    {
+      "background_sha256": "71e56a5220331676a300d81312a96b48b4451a9716eb5344175f9f19f110a226",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-mobile",
+      "revision": "c87eb7a087aa215aeac87857cd60f63b2a876282"
+    },
+    {
+      "background_sha256": "fb806e8c6be9ac74d12f90e272971a39d40cd30bc68ca8e4089c9eb36149e002",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-mobile",
+      "revision": "c87eb7a087aa215aeac87857cd60f63b2a876282"
+    },
+    {
+      "background_sha256": "8404b56ead73be02a359cbe33cef32a7461bf53612802393ede441e892cb8ca7",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-web-app",
+      "revision": "ee54b2d8e15df95b7ac7a4367cc480061909932c"
+    },
+    {
+      "background_sha256": "cdab44d47504532239df4dacf47e5d9df585a2d4fce3b8978cc69225aff9ed6d",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-web-app",
+      "revision": "ee54b2d8e15df95b7ac7a4367cc480061909932c"
+    },
+    {
+      "background_sha256": "895eaa1252e98b691106a8c961d5f3760b06d4119e3c982746dfe631bcb1204a",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/backend-common",
+      "revision": "3637bfd293036b8a2350b3e048f6ff496de24363"
+    },
+    {
+      "background_sha256": "f7de02516d3f1b2aec616556cd569c80d8a38066b919a04d035080567b4bdffb",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/backend-common",
+      "revision": "3637bfd293036b8a2350b3e048f6ff496de24363"
+    },
+    {
+      "background_sha256": "be1b38de21febc643bf194daffa937fa7063d4b263f3f5f93b9ff56524e076e0",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "d45977a85f1804d8c6cbc3b35d02fd61438f7531"
+    },
+    {
+      "background_sha256": "d1a8938133a6059a3add8869c8915aedc24697313f70599a757ec444c28e0f8b",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "d45977a85f1804d8c6cbc3b35d02fd61438f7531"
+    },
+    {
+      "background_sha256": "0be1688db28aea6d0fbb9e2cfb32eaef07fb554aa9053ee063275ce679bc8a6a",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0"
+    },
+    {
+      "background_sha256": "46e0cd67a6759423dcb6162c8f62eb3f6f02dbf20699b7824ceb50e818f9e0f8",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/pytest-obligation",
+      "revision": "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4"
+    },
+    {
+      "background_sha256": "7a250fd17ca113c76e5e893f1c0848754987aa05577010dae36b776edd2b9c72",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "4ab22f35385bb0e3225cf9d40877b559d45c23dc"
+    },
+    {
+      "background_sha256": "80d2ae63aa96e4ba824e16094ffebecb33745efb87957501ef1a9a9bb1679d2e",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/due",
+      "revision": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0"
+    },
+    {
+      "background_sha256": "8e7ab78200825cc3143e7311f7327404903059c85598792d62989987828a115e",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/frontend-common",
+      "revision": "9228b3551725ac8811b3847332cf79b17619d662"
+    },
+    {
+      "background_sha256": "a2c4a4ef78a3ce69b04534aeb95fbfdb9c199400dd38ab42ab87eadad61dd4aa",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/frontend-common",
+      "revision": "9228b3551725ac8811b3847332cf79b17619d662"
+    },
+    {
+      "background_sha256": "40df57500892399377d1fe742e0f0540e25b8e953af379d61e5d0c3d87f13457",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-mobile",
+      "revision": "54d85bf96c540938f3a2eb9535ebd296ec58ef69"
+    },
+    {
+      "background_sha256": "5e5dbaabeedae76f5ad39cc1829b4584cdaca48ba43805db7877aa7e2b5c38e4",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-mobile",
+      "revision": "54d85bf96c540938f3a2eb9535ebd296ec58ef69"
+    },
+    {
+      "background_sha256": "7b9c40b2dfbc7b0e694cfa83ee19d96dbe4afdec3965c3530b7fc40ee08d1299",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-web-app",
+      "revision": "9bb41b07258430213dedac210a394e71029b3d85"
+    },
+    {
+      "background_sha256": "9137e39b4078cbec1b557f81b3da7bb8d54fafe58744997c338ac670d1554217",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/gigaverse-web-app",
+      "revision": "9bb41b07258430213dedac210a394e71029b3d85"
+    },
+    {
+      "background_sha256": "96ab0a80b441da9830913539b25c8b5fc21a4edc58eb2ae6e61c7fca7c4a715f",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/backend-common",
+      "revision": "f099568e3738f0307acca9601631cff3f9fd7dff"
+    },
+    {
+      "background_sha256": "bb8fb69d8e3c2357d8730c93710e5bcb622ac1aab28ea966f4c34902b0944e48",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/backend-common",
+      "revision": "00429d803f95987ce575e7261809d116dc0ac634"
+    },
+    {
+      "background_sha256": "9112b3fdf5ab52857bf4a29f9beb6f65a663497ec8365b18d60d558ecd547845",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/backend-common",
+      "revision": "00429d803f95987ce575e7261809d116dc0ac634"
+    },
+    {
+      "background_sha256": "f2cab999c0b74130081f89307c417f5d4a900e3187214c3117151f629cf7ff8b",
+      "corrected_status": "not_checked_in_inherited_source_registry; cannot_claim_local_pin_absence",
+      "repository": "gigaverse-app/backend-common",
+      "revision": "f099568e3738f0307acca9601631cff3f9fd7dff"
+    }
+  ],
+  "next": "Root materializer will supply exact full native backgrounds; separate regression-extension results. Current16 frozen cohorts and R1 selection unchanged.",
+  "original_audit": "/home/researcher/dry-lint-round/jobs/improve-cpu-retrieval/.lab-results/source-coverage.jsonl",
+  "original_audit_sha256": "812f9ef15c3f8a5f7e381fb02d03c85a8be52f1c3aae0c6d187218fe7d763c5b",
+  "registry_gap_backgrounds": 36,
+  "root_acquisition_receipt_expected": "/home/researcher/dry-lint-round/reports/research-experiments/improvement-wave/public-pin-acquisition.json",
+  "wording": "63 backgrounds unavailable via inherited registry; a subset were not actually checked, not established locally missing."
+}

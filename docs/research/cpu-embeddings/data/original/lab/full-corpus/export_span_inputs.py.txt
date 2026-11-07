@@ -1,0 +1,158 @@
+"""Export evidence to the sole shared resolver owner; this code performs no resolution."""
+
+import collections
+import hashlib
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+SHARED = Path(
+    "LAB_ROOT/jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v1-88f0f73927ce28d2"
+)
+
+
+def read(p):
+    return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+
+
+cs = {c["cohort_id"]: c for c in read(SHARED / "cohorts.jsonl")}
+rs = read(SHARED / "rows.jsonl")
+examples = []
+models = []
+for r in rs:
+    if r["record_kind"] == "model":
+        models.append(
+            {
+                "row_id": r["row_id"],
+                "repository": r["repository"],
+                "revision": r["revision"],
+                "reason": "declaration record; absent from function background, track in separate model-inventory evaluation",
+            }
+        )
+        continue
+    for m in r["mappings"]:
+        c = cs.get(m["cohort_id"])
+        folder = HERE / "cohorts" / c["background_sha256"] if c else None
+        native = {}
+        if folder and (folder / "functions.jsonl").exists():
+            native = {i: f for i, f in enumerate(read(folder / "functions.jsonl"))}
+        for side in ["new", "existing"]:
+            s = m["sources"][side]
+            position = s.get("position")
+            full = native.get(position)
+            payload = r.get("payload") or {}
+            source = r.get("sources", {}).get(side, {}) or {}
+            legacy = payload.get(side, {}) or {}
+            source = source if isinstance(source, dict) else {}
+            legacy = legacy if isinstance(legacy, dict) else {}
+            spans = []
+            for origin, d in [
+                ("shared-row.sources", source),
+                ("shared-row.payload", legacy),
+                (
+                    "inventory-endpoints",
+                    r["input_record"]["row"].get("endpoints", {}).get(side, {})
+                    if isinstance(r["input_record"]["row"].get("endpoints"), dict)
+                    else {},
+                ),
+            ]:
+                if isinstance(d, dict) and any(k in d for k in ["line", "start_line", "end_line"]):
+                    spans.append(
+                        {
+                            "origin": origin,
+                            "line": d.get("line", d.get("start_line")),
+                            "end_line": d.get("end_line"),
+                            "validated": False,
+                        }
+                    )
+            valid_native = bool(
+                full
+                and isinstance(full.get("line"), int)
+                and isinstance(full.get("end_line"), int)
+                and 1 <= full["line"] <= full["end_line"]
+            )
+            if valid_native:
+                continue
+            code = source.get("code", legacy.get("code"))
+            code = code if isinstance(code, str) else None
+            reasons = []
+            if m["status"] != "mapped":
+                reasons.extend(m.get("reasons", []))
+            if not full:
+                reasons.append("complete_exact_native_competitor_body_not_available_locally_for_this_background")
+            if not spans:
+                reasons.append("no_source_span_metadata_provided")
+            examples.append(
+                {
+                    "row_id": r["row_id"],
+                    "dataset": r["dataset"],
+                    "repository": r["repository"],
+                    "pin": r["revision"],
+                    "background": {
+                        "cohort_id": m["cohort_id"],
+                        "path": c["background_path"] if c else None,
+                        "sha256": c["background_sha256"] if c else None,
+                        "scope": c["scope"] if c else None,
+                    },
+                    "side": side,
+                    "source_id": s.get("source_id"),
+                    "authoritative_position": position,
+                    "available_spans": spans,
+                    "candidate_body_sha256": hashlib.sha256(code.encode()).hexdigest()
+                    if code
+                    else s.get("candidate_body_sha256"),
+                    "frozen_full_body_sha256": s.get("source_sha256"),
+                    "body_relation": s.get("body_relation"),
+                    "span_inferred_by_worker": False,
+                    "native_size_policy_applied": False,
+                    "failure_reasons": reasons,
+                    "label": r["label"],
+                    "accepted_gold": r["accepted_gold"],
+                    "affected_record_count": 1,
+                }
+            )
+call_sites = []
+for filename, needles in [
+    ("experiment.py", ["def evaluate", "def candidates", "f.lines < 6"]),
+    ("full-corpus/run_full.py", ["def adapt", "def raw_sparse", "native_function_size_known"]),
+    ("full-corpus/prepare.py", ["def prepare", "extractor.functions", "by_key["]),
+    ("full-corpus/span-audit.py", ["native_valid_spans"]),
+]:
+    path = LAB / filename
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        if any(x in line for x in needles):
+            call_sites.append(
+                {
+                    "path": str(path),
+                    "line": n,
+                    "code": line.strip(),
+                    "behavior": "Existing native extraction/body proof or mapper-position consumer; no fallback span resolver",
+                }
+            )
+out = {
+    "schema": 1,
+    "owner": "corpus-wide-evaluation",
+    "reviewed_helper_status": "awaiting root-routed shared span-resolution helper",
+    "shared_snapshot": str(SHARED),
+    "shared_rows_sha256": hashlib.sha256((SHARED / "rows.jsonl").read_bytes()).hexdigest(),
+    "total_inventory_records": len(rs),
+    "unresolved_side_examples": len(examples),
+    "affected_unique_rows": len({r["row_id"] for r in examples}),
+    "by_failure": dict(collections.Counter(x for r in examples for x in r["failure_reasons"])),
+    "by_repository": dict(collections.Counter(r["repository"] for r in examples)),
+    "examples": examples,
+    "call_sites": call_sites,
+    "model_rows_separate": models,
+    "guard": "Valid native spans required. Raw sparse scores/ranks do not require spans and remain usable. No 0-0+1 default, fuzzy match, revision fallback, or independently invented resolver. Source availability exceptions are distinguished from span-resolution exceptions.",
+}
+(LAB / "span-resolution-input.json").write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
+print(
+    "Exported",
+    len(examples),
+    "unresolved sides,",
+    out["affected_unique_rows"],
+    "unique rows;",
+    len(call_sites),
+    "call sites",
+)

@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "checks": {
+    "reparsed_primary_answers": 112,
+    "reparsed_diagnostic_answers": 35
+  },
+  "final_manifest_files": 294,
+  "provider_calls": 0,
+  "purpose": "Additive parser and final manifest verification after unchanged 497-pool full replay"
+}

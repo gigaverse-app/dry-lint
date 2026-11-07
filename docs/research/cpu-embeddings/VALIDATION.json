@@ -1,0 +1,65 @@
+{
+  "reproduce.py": {
+    "method": "cpu-embeddings",
+    "source_files": 6,
+    "selected_cases": 4,
+    "replayed_decisions": 8,
+    "scope": "Recorded source, rendered input, answer parsing, citation/report policy and row aggregation. No full-corpus rank regeneration or new model outputs.",
+    "round2_pairs": 64,
+    "reports": 1,
+    "nonreports": 35,
+    "unknown": 28,
+    "positive_revised_additions": 11,
+    "positive_revised_losses": 1
+  },
+  "native.py": {
+    "status": "PASS",
+    "original_algorithm": "CpuEmbeddingComparer.similarity (unchanged AST)",
+    "pairs": [
+      {
+        "id": "CPUR2-001",
+        "cosine": 0.7412877678871155,
+        "recorded": 0.7412877678871155
+      },
+      {
+        "id": "CPUR2-002",
+        "cosine": 0.9746828675270081,
+        "recorded": 0.9746828079223633
+      },
+      {
+        "id": "CPUR2-044",
+        "cosine": 0.8215616941452026,
+        "recorded": 0.8215616941452026
+      },
+      {
+        "id": "CPUR2-056",
+        "cosine": 0.8266754746437073,
+        "recorded": 0.826675534248352
+      }
+    ],
+    "encodes": 0,
+    "refits": 0,
+    "scope": "Pair cosine only. Original full-background rank and eligible top20 reranking are not recomputed from a two-vector subset."
+  },
+  "audit.py": {
+    "status": "PASS",
+    "files": 157,
+    "decompressed_archives": 1,
+    "local_markdown_links": 41,
+    "credential_pattern_matches": 0,
+    "limits": "Allowlisted OSS provenance and structured response sanitization plus pattern scan; regex is not a universal secret detector."
+  },
+  "materialize.py": {
+    "status": "PASS",
+    "restored_files": 107,
+    "nothing_executed": true
+  },
+  "csv_output": {
+    "status": "PASS",
+    "csv_exists": true
+  },
+  "original_provenance": {
+    "status": "PASS",
+    "unchanged_original_hashes_checked": 136
+  }
+}

@@ -1,0 +1,66 @@
+"""Finish remaining source-supported cohorts serially after bootstrap; no concurrent encoder jobs."""
+
+import json
+import os
+import subprocess
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+PY = "LAB_ROOT/retrieval/.venv/bin/python"
+env = {
+    **os.environ,
+    "PYTHONPATH": str(LAB.parent / "src"),
+    "OPENBLAS_NUM_THREADS": "2",
+    "OMP_NUM_THREADS": "2",
+    "MKL_NUM_THREADS": "2",
+    "TOKENIZERS_PARALLELISM": "false",
+}
+bootstrap = [
+    "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+]
+while True:
+    statuses = []
+    for key in bootstrap:
+        p = HERE / "cohorts" / key / "embedding-status.json"
+        statuses.append(json.loads(p.read_text()).get("status") if p.exists() else "not_started")
+    (HERE / "finish-progress.json").write_text(
+        json.dumps(
+            {
+                "phase": "bootstrap_encoder_running",
+                "bootstrap_statuses": statuses,
+                "remaining_source_cohorts": "queued serially",
+                "last_check_epoch": time.time(),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    if all(s in ["complete", "measured_resource_blocker", "measured_rss_blocker", "runtime_failure"] for s in statuses):
+        break
+    time.sleep(15)
+# No model/judge parallelism; own venv encodes exact registered CPU weights.
+subprocess.run([PY, str(HERE / "run_full.py"), "--prepare-rest", "--raw-sparse-all"], env=env, check=True)
+if (HERE / "model-supplement-ready.json").exists():
+    for folder in json.loads((HERE / "model-supplement-ready.json").read_text())["folders"]:
+        status = Path(folder) / "embedding-status.json"
+        if not status.exists() or json.loads(status.read_text()).get("status") != "complete":
+            subprocess.run([str(LAB / "venv/bin/python"), str(HERE / "encode.py"), folder], env=env, check=True)
+    subprocess.run([PY, str(HERE / "models.py"), "evaluate"], env=env, check=True)
+subprocess.run([PY, str(HERE / "paired_summary.py")], env=env, check=True)
+subprocess.run([PY, str(HERE / "coverage_tables.py")], env=env, check=True)
+subprocess.run([PY, str(HERE / "migration_receipt.py")], env=env, check=True)
+(HERE / "finish-progress.json").write_text(
+    json.dumps(
+        {
+            "phase": "all_locally_source_supported_function_cohorts_and_declaration_supplement_processed",
+            "last_check_epoch": time.time(),
+            "root_source_exceptions": "See coverage rows, source availability, native matching failures; no generic method conclusion",
+        },
+        indent=2,
+    )
+    + "\n"
+)

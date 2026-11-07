@@ -1,0 +1,160 @@
+{
+  "arms": {
+    "embedding-only": "profile k and same-file policy, fixed dense cosine >=0.65 independent of line size",
+    "protected-sparse-plus-dense1": "complete sparse batch ranked/funded first, then at most1 highest dense neighbor per query absent from sparse query candidates, cosine >=0.65, same-file policy of profile; rank extras separately; baseline preserved before/after funding. This is not default-plus20.",
+    "sparse": "profile baseline"
+  },
+  "authority": {
+    "path": "LAB_ROOT/reports/candidate-first/scaled-coordinator-decisions.jsonl",
+    "sha256": "96219a571163f9f7b42818f03cd5bd1e44d95347c703876067a5c2594170b616"
+  },
+  "baseline": "BenchBackground.decode/index; unchanged frozen counts/DF/max_df/order. Native sparse tied scores retain TfidfIndex.similar stable encounter order; dense exact ties break by frozen corpus row index.",
+  "batches": "synthetic cohort+repository+revision+family groups; queries are unique gold endpoints in frozen order. Separately novel discovery uses each production query function as its own synthetic batch. Never called historical PR replay.",
+  "candidate_rules": "unchanged source bodies and core why_skipped(Settings with frozen scope, no inferred adopter patterns); minimum extraction2lines, no new size-ratio floor; self excluded, ambiguous/missing gold mappings unknown; raw rank includes all nonself competitors; record same-file/cross-file rank, score/rank floor and filters independently",
+  "cohorts": [
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/candidate-first-gold/accepted-public-gold.jsonl",
+      "sha256": "94fdf74c8c323be4c5e6dd4a4924e4186fd18245af2c72f4cd4c77ed48829d70"
+    },
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/candidate-first-gold/disputed.jsonl",
+      "sha256": "b5cb23ff32382e536a90454bed6a0d7305b62710a9867f8f39e47f4ca45f5ef0"
+    },
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/scaled-v1/accepted-public-gold.jsonl",
+      "sha256": "ab2481b7c057274e6295e2b04b0a0ec106ed12a92ca8ceecdb608391b2afb5f8"
+    },
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/scaled-v1/unresolved.jsonl",
+      "sha256": "58cb70716e5a47e74b7271d211b2d49f3b74099f857e0f6b7a36d4692a1de391"
+    }
+  ],
+  "contrast": {
+    "repository": {
+      "background_proof": {
+        "path": "LAB_ROOT/jobs/kaizen-candidate-golds/.lab-results/kaizen-candidate-golds/background-full.json.gz",
+        "sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3"
+      },
+      "git": "LAB_ROOT/research-corpus/kaizen",
+      "proposals": "LAB_ROOT/jobs/kaizen-candidate-golds/.lab-results/kaizen-candidate-golds/proposals-all.jsonl",
+      "redistribution": "held; local research only",
+      "repository": "Garsson-io/kaizen",
+      "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2"
+    },
+    "run_only_if": "primary encoder preflight succeeds, full primary index <300 seconds, no safety failure; otherwise omit contrast"
+  },
+  "decision_rules": [
+    "All sparse funded baseline candidates retained by protected arm on same batch; zero baseline known-positive losses",
+    "Report embedding-only and protected new/lost known-positive and negative/unknown exposures with per-stage denominators and families",
+    "Report raw directional ranks and all losses; no exposure-to-report gain conversion",
+    "CPU viability requires100function preflight and projected<=600s <=3GiB; actual indexing/query/update costs recorded separately from cold dependency/model acquisition",
+    "Any production proposal needs independent review and useful report evidence within .04, no deploy changes authorized"
+  ],
+  "experiment": "cpu-minilm-reserved1-v1",
+  "frozen_at_utc": "2026-11-06T23:26:04.688226+00:00",
+  "hypothesis": "A small pretrained CPU encoder supplies complementary funded candidates without sparse baseline displacement; topical matches may consume budget without useful reports.",
+  "labels_status": "ALL observed development/regression; no fresh or independent holdout; preserve repository, revision, cohort, family, lineage, scoped partial-operation, drifted, negatives and unresolved labels. No training or tuning.",
+  "ledger": {
+    "cached_answers_charge_each_arm": true,
+    "mechanism": "normal dry_lint.costs.Ledger.select/charge, standalone Claude Sonnet5.5 shared-operations with normal150token answer estimate and actual unchanged prompt, model rates2/10 per million. All arms charged independently even if answers cached. Jev/Claude queue canonical only; funding estimates do not claim a two-stage replay. No live provider calls.",
+    "physical_shared_remaining_not_reserved": 4.7889404,
+    "physical_usd": 0,
+    "usd_per_batch": 0.04
+  },
+  "model": {
+    "artifact": "onnx/model.onnx",
+    "artifact_sha256_official": "6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452",
+    "backend": "onnxruntime==1.31.1 CPUExecutionProvider fp32, sequential execution, intra_op=2 inter_op=1; no remote code",
+    "cache": "worktree .lab-results/model-cache only; embedding cache key binds model and artifact hashes, code digests, corpus order, policy/backend versions",
+    "contamination": "public pretraining may contain these repos/code; no independent holdout claim",
+    "id": "sentence-transformers/all-MiniLM-L6-v2",
+    "input": "unchanged native full function code including signature, docstring/comments; no path, label, ID, judge-score, generated context or future text",
+    "license": "Apache-2.0",
+    "parameter_count": 22713728,
+    "pooling": "attention-mask weighted mean of last_hidden_state, then L2 normalization, exact float32 cosine",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "sources": [
+      "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
+      "https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2",
+      "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/blob/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/onnx/model.onnx",
+      "https://www.sbert.net/docs/sentence_transformer/usage/efficiency.html"
+    ],
+    "tokenizer": "tokenizers==0.23.3; official tokenizer.json WordPiece uncased",
+    "truncation": "first 256 total wordpieces including special tokens; no chunks/overlap; count original lengths and truncated functions/tokens per corpus"
+  },
+  "novel_review": {
+    "blind_packet": "neutral IDs, exact full Candidate.model_dump retained, no outer variant/rank/funding/putative label; required intrinsic Candidate.similarity/comparer remain for canonical full packet, reviewer presentation must strip retrieval fields; private sidecar holds ranks/funding/selection",
+    "judge_wanted": [
+      "jev-1.14.0 context=True",
+      "claude-sonnet-5-5 shared-operations max_tokens=1024"
+    ],
+    "maximum_matched_controls": 4,
+    "maximum_promising": 8,
+    "missing_answers": "unknown, never zero or negative",
+    "only": "source-verified actually funded new exact pairs; exclude exact reviewed pairs not known endpoints/families; positive operation requires common extractable owner and caller proof; controls independently matched topical operation with distinct ownership. Do not infer labels from score"
+  },
+  "prior_read": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "docs/design.md",
+    "docs/research-plan.md",
+    "docs/tfidf-enrichment-research.md",
+    "docs/benchmark.md",
+    "docs/channel-trial.md",
+    "docs/retrieval-presets.md"
+  ],
+  "profiles": {
+    "laboratory-default": {
+      "k": 3,
+      "same_file": false,
+      "small_lines_lt": 6,
+      "sparse_floor": 0.5,
+      "sparse_small_floor": 0.3
+    },
+    "standalone-balanced-diagnostic": {
+      "k": 20,
+      "same_file": true,
+      "small_lines_lt": 6,
+      "sparse_floor": 0.35,
+      "sparse_small_floor": 0.35
+    }
+  },
+  "prohibited": [
+    "production/CI/config changes",
+    "shared repo or package edits",
+    "production verdict stores",
+    "direct judge/provider calls or credentials",
+    "new agents",
+    "posthoc parameter tuning"
+  ],
+  "repositories": [
+    {
+      "background_proof": {
+        "path": "LAB_ROOT/jobs/public-gold-packaging/.lab-results/package/examples/public-gold/backgrounds/software-agent-sdk/344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz",
+        "sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842"
+      },
+      "git": "LAB_ROOT/research-corpus/gold-pins/software-agent-sdk.git",
+      "proposals": "LAB_ROOT/jobs/openhands-candidate-golds/.lab-results/openhands/proposals.jsonl",
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc"
+    }
+  ],
+  "safety": {
+    "batch_size": 8,
+    "env": {
+      "MKL_NUM_THREADS": "2",
+      "OMP_NUM_THREADS": "2",
+      "OPENBLAS_NUM_THREADS": "2",
+      "TOKENIZERS_PARALLELISM": "false"
+    },
+    "max_peak_rss_gib": 3,
+    "max_projected_index_seconds": 600,
+    "preflight_functions": 100,
+    "preflight_selection": "first100 frozen background rows, before looking at embedding/gold results",
+    "stop_on": "missing artifacts/runtime, load/inference failure, preflight RSS >3GiB, full projected index >600s; record infrastructure separately from latency failure. No model substitution or GPU.",
+    "threads": 2
+  },
+  "schema": 1,
+  "source_main": "15567ee22a662208e8e6ad66b2439c10c08584cf",
+  "worker": "Herdr CPU Embeddings / GPT-6.1-Sol high"
+}

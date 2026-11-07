@@ -1,0 +1,86 @@
+{
+  "COORDINATOR-ISOLATED-RESULT.json": {
+    "sha256": "0bcafd70b2d4788a8ecddb63a4bba7c67b9c24e64927346532e3be7f8360b7ea",
+    "bytes": 560
+  },
+  "COORDINATOR-REPLAY-RESULT.json": {
+    "sha256": "4ec088de7926d3bc6eb7ff92495c00146c0313633a8ab46bd7e99f3845981134",
+    "bytes": 664
+  },
+  "COVERAGE.json": {
+    "sha256": "fcef0ccd5fc30ceb239572a6e72aec80fa23166cabdf92b6f7e4a0a85b390271",
+    "bytes": 1095
+  },
+  "DATA-RECEIPT.json": {
+    "sha256": "80a25e3c431179617b61d9d924d1c11d5474e11c4018ae591350e44314739b95",
+    "bytes": 1798
+  },
+  "EXAMPLES.json": {
+    "sha256": "fb2dac1514402269cf16cbda812f4511ad59c93c6bd40ab466efd78192f79e56",
+    "bytes": 1015
+  },
+  "FINAL-ADDITIVE-CHECK.json": {
+    "sha256": "e32ef6133c9d6a0b84b2846692176ae688f7e601901cad365c3454f338a43861",
+    "bytes": 270
+  },
+  "MATCHED-SUMMARY.json": {
+    "sha256": "4fc46861c32afca5886868f70d42c1ae5cd7ce4f4f8f5b254e9e14c9eecf4f79",
+    "bytes": 13983
+  },
+  "PUBLICATION-PROVENANCE.json": {
+    "sha256": "9dcb97950fc3bdb5576878d41ff33597f71a3532c28f73fbe1ca1b2a1fd4e9ac",
+    "bytes": 1736
+  },
+  "README.md": {
+    "sha256": "fd5f4ef514e0a284af47c7484f60e9d53e670bef021be629fd448e52352bf5df",
+    "bytes": 13462
+  },
+  "REPLAY-RESULT.json": {
+    "sha256": "998ac730867d3221f2c66c19144ed0e819501b19305c3ec4fdc405affc09d025",
+    "bytes": 555
+  },
+  "common.py": {
+    "sha256": "697d00700491e146727e586a9c0939650b262bac7b7401713724c8bcb5f90a83",
+    "bytes": 2026
+  },
+  "hybrid.py": {
+    "sha256": "90462150021d4e676b47b191c7d6632b640b13cd5a29da6a1aef9d5c233ae573",
+    "bytes": 12056
+  },
+  "matched-results.json": {
+    "sha256": "b682793b2981aea3c91f4ba962e4f22fb2c6cc32e7d318e24e93231a688e34df",
+    "bytes": 2807
+  },
+  "multiquery.py": {
+    "sha256": "49b8804c9f4409727c60ce7dbf96f5a71d406081b9eb70f6aacde98cc0d9c5c1",
+    "bytes": 7554
+  },
+  "payments.json": {
+    "sha256": "59bf15b633418a4ebbf5f293456d91558ad31041cb79aa6bd2362d876e7319ee",
+    "bytes": 751
+  },
+  "recordings.py": {
+    "sha256": "00983e9f531112e354fb8d7ae8f57eea9850e0475a917eca52154cae60888bc0",
+    "bytes": 1200
+  },
+  "regression-summary.json": {
+    "sha256": "202e18af011b352dd1a6fb4eb70807ced83a9265355b9824a387929426fb0fd9",
+    "bytes": 10660
+  },
+  "replay.py": {
+    "sha256": "ed7ae28ac249eec2b7e56814835de3049c5a0f581fe8fe39de87f16b7f142df2",
+    "bytes": 9213
+  },
+  "requirements.txt": {
+    "sha256": "446621f0583d9f36bcfdc1e01e9c66139ef140d8e9edd8119e9aee12796f1e9b",
+    "bytes": 95
+  },
+  "retrieval.py": {
+    "sha256": "22023c9432f0a75af63d0a9181d3b5697ae48003ed19cb47c0b9088ef4bf03ae",
+    "bytes": 4985
+  },
+  "tail_index.py": {
+    "sha256": "1da870b78cf6504f762a63eefea8bcad122ad5f08013addaca566733abf248e3",
+    "bytes": 2225
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "encoder_contract": {
+    "artifacts": {
+      "onnx/model.onnx": "6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452",
+      "tokenizer.json": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037"
+    },
+    "backend": [
+      "2.5.4",
+      "1.31.1",
+      "0.23.3"
+    ],
+    "batch_size": 8,
+    "dimensions": 384,
+    "max_length": 256,
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "pooling": "attention-mask-mean-float32-l2-epsilon1e-9-v1",
+    "provider": "CPUExecutionProvider",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "threads": 2,
+    "tokenization": "unchanged-code-specials-serial-dynamic-right-padding-v1"
+  },
+  "fragment_index_rows": 293,
+  "fragment_matrix_bytes": 450048,
+  "functions": 100,
+  "load_seconds": 0.47385401600331534,
+  "new_operation_encode_seconds": 7.381445042999985,
+  "note": "Single run under concurrent offline research load; no stable CI latency claim. Fragment caching is keyed by exact input content and complete encoder contract. Full source/provenance is separately immutable.",
+  "one_query_to_full_fragment_index_seconds": 1.1664519988698884e-05,
+  "operation_cache_max_abs": 0.0,
+  "operation_inputs": 157,
+  "original_prefix_encode_seconds": 7.282074984999781,
+  "peak_rss_kib": 388876,
+  "prefix_reference_max_abs": 0.0,
+  "selection": "First100 native operation-bearing functions in frozen1269484 background source order; timing regression only, no outcome-driven placement",
+  "warm_new_encodes": 0,
+  "warm_sqlite_vector_read_seconds": 0.007271886002854444
+}

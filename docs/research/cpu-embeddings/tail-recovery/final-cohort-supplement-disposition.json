@@ -1,0 +1,154 @@
+{
+  "background": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+  "complete_receipt_sha256": "73c6b1568bd283503d1e09e203ccef75105f6234149820a124b367d276d130c0",
+  "decision": "No supplemental request. R2 paid.44305252 exceeds minimum and produced2canonical reports; existing independent reviews plus full regression answer the registered question. No spend padding and no third recipe. Eligibility census is descriptive, not a paid/source-reviewed result.",
+  "eligibility_counts": {
+    "confirmation": {
+      "eligible_query_target_occurrences": 1,
+      "max32_endpoint_independent": 1
+    },
+    "development": {
+      "eligible_query_target_occurrences": 123,
+      "max32_endpoint_independent": 32
+    }
+  },
+  "eligible_choices_without_labels": {
+    "confirmation": [
+      {
+        "query_position": 1386,
+        "target_position": 1379
+      }
+    ],
+    "development": [
+      {
+        "query_position": 37323,
+        "target_position": 37322
+      },
+      {
+        "query_position": 8741,
+        "target_position": 18068
+      },
+      {
+        "query_position": 18222,
+        "target_position": 18223
+      },
+      {
+        "query_position": 32865,
+        "target_position": 5437
+      },
+      {
+        "query_position": 31833,
+        "target_position": 9996
+      },
+      {
+        "query_position": 32756,
+        "target_position": 32755
+      },
+      {
+        "query_position": 12212,
+        "target_position": 12260
+      },
+      {
+        "query_position": 142,
+        "target_position": 927
+      },
+      {
+        "query_position": 857,
+        "target_position": 895
+      },
+      {
+        "query_position": 16660,
+        "target_position": 16643
+      },
+      {
+        "query_position": 12210,
+        "target_position": 15598
+      },
+      {
+        "query_position": 5625,
+        "target_position": 5600
+      },
+      {
+        "query_position": 11144,
+        "target_position": 14756
+      },
+      {
+        "query_position": 8284,
+        "target_position": 37179
+      },
+      {
+        "query_position": 9435,
+        "target_position": 7703
+      },
+      {
+        "query_position": 10040,
+        "target_position": 10029
+      },
+      {
+        "query_position": 12004,
+        "target_position": 36421
+      },
+      {
+        "query_position": 17797,
+        "target_position": 17807
+      },
+      {
+        "query_position": 594,
+        "target_position": 35944
+      },
+      {
+        "query_position": 31857,
+        "target_position": 12081
+      },
+      {
+        "query_position": 37295,
+        "target_position": 37297
+      },
+      {
+        "query_position": 9605,
+        "target_position": 9606
+      },
+      {
+        "query_position": 15071,
+        "target_position": 15132
+      },
+      {
+        "query_position": 5919,
+        "target_position": 7109
+      },
+      {
+        "query_position": 7115,
+        "target_position": 8254
+      },
+      {
+        "query_position": 14225,
+        "target_position": 14220
+      },
+      {
+        "query_position": 32994,
+        "target_position": 621
+      },
+      {
+        "query_position": 5671,
+        "target_position": 5691
+      },
+      {
+        "query_position": 35070,
+        "target_position": 35265
+      },
+      {
+        "query_position": 37462,
+        "target_position": 37461
+      },
+      {
+        "query_position": 8979,
+        "target_position": 14331
+      },
+      {
+        "query_position": 7093,
+        "target_position": 7116
+      }
+    ]
+  },
+  "executed": false
+}

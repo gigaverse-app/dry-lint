@@ -1,0 +1,68 @@
+"""Freeze unchanged, already funded source cases for central providers; never calls a provider."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+P=Path(__file__).resolve().parent; LAB=P.parent
+sys.path.insert(0,str(P/'implementation/src'))
+from dry_lint.models import Candidate,evidence
+from dry_lint.judges.command import PROMPT_POLICIES,prompt
+from dry_lint.judges.jev import CONTEXT_PROMPT_VERSION,CONTEXT_QUESTIONS,state
+
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+def read(p):return [json.loads(line) for line in p.open()]
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+def jsonl(p,x):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in x))
+
+index=LAB/'full-corpus/shared-inputs/9bfa15c84eb72dd2';cs={c['cohort_id']:c for c in read(index/'cohorts.jsonl')}
+paired=read(LAB/'full-corpus/paired-rows.jsonl')
+selected=[r for r in read(LAB/'full-corpus/paired-unique-pairs.jsonl') if r['profile']=='laboratory-default' and r['arms']['protected-sparse-plus-dense1']['funded'] and not r['arms']['sparse']['funded']]
+assert len(selected)==11
+out=P/'funded-cases-v1';out.mkdir(exist_ok=True)
+queue=[];blind=[];private=[];contracts=[]
+for n,record in enumerate(selected,1):
+ cmeta=cs[record['cohort_id']];folder=LAB/'full-corpus/cohorts'/cmeta['background_sha256']
+ lineage=next(r for r in paired if r['cohort_id']==record['cohort_id'] and r['pair_id']==record['pair_id'] and r['profile']=='laboratory-default')
+ key=lineage['arms']['protected-sparse-plus-dense1']['pair_key']
+ funded=next(c for c in read(folder/'candidates.jsonl') if c['profile']=='laboratory-default' and c['arm']=='protected-sparse-plus-dense1' and c['key']==key and c['funded'])
+ candidate=funded['candidate'];obj=Candidate.model_validate(candidate);assert obj.model_dump(mode='json')==candidate
+ ledger=next(l for l in read(folder/'ledger.jsonl') if l['batch_id']==funded['batch_id'] and l['profile']==funded['profile'] and l['arm']==funded['arm'])
+ assert ledger['synthetic'] and ledger['budget_usd']==.04 and ledger['usd_estimated']<=.04+1e-12
+ proof=read(folder/'source-proof.jsonl');manifest=json.loads((folder/'manifest.json').read_text());positions={r['id']:r for r in proof}
+ endpoints=[];references=[]
+ for side,f in [('new',obj.new),('existing',obj.existing)]:
+  pr=positions[f.qualname];raw=Path(pr['source_file']).read_bytes();assert sha(raw)==pr['file_sha256'] and sha(f.code.encode())==pr['source_sha256']
+  pinned=subprocess.check_output(['git','-C',manifest['repository']['git'],'show',cmeta['revision']+':'+f.path],env={**os.environ,'GIT_NO_LAZY_FETCH':'1','GIT_TERMINAL_PROMPT':'0'})
+  assert pinned==raw and 1<=f.line<=f.end_line
+  assert f.code in '\n'.join(raw.decode().splitlines()[f.line-1:f.end_line])
+  lines=raw.decode().splitlines();a=max(1,f.line-6);b=min(len(lines),f.end_line+4)
+  endpoints.append({'side':side,'source_id':f.qualname,'revision':cmeta['revision'],'path':f.path,'line':f.line,'end_line':f.end_line,'body_sha256':sha(f.code.encode()),'full_source_sha256':sha(raw),'git_blob_sha1':pr['git_blob_sha1'],'full_source_file':pr['source_file'],'excerpt_start':a,'excerpt_end':b,'excerpt':'\n'.join(lines[a-1:b])})
+  found=subprocess.run(['git','-C',manifest['repository']['git'],'grep','-n','-F',f.name+'(',cmeta['revision'],'--',f.path],capture_output=True,text=True)
+  references.extend(found.stdout.splitlines()[:10])
+ ident=f'CPUP-{n:02d}'
+ packet={'id':ident,'repository':cmeta['repository'],'revision':cmeta['revision'],'candidate':candidate,'background_proof':{'path':cmeta['background_path'],'sha256':cmeta['background_sha256']},'source_endpoints':endpoints,'caller_evidence':{'method':'Exact pinned source-file syntactic references; no runtime-binding inference','matches':references},'ownership_evidence':{'method':'Native source owner/path and context; independent ownership review requested','owners':[obj.new.owner,obj.existing.owner],'bases':[obj.new.bases,obj.existing.bases]},'wanted':{'jev':{'model':'jev-1.14.0','context':True},'claude':{'model':'claude-sonnet-5-5','prompt_policy':'shared-operations','max_output_tokens':1024}}}
+ queue.append(packet);blind.append({k:v for k,v in packet.items() if k!='candidate'}|{'new':candidate['new'],'existing':candidate['existing']})
+ private.append({'id':ident,'label_group_private':record['label_group'],'lineage_rows':record['lineage_rows'],'cohort_id':record['cohort_id'],'pair_id':record['pair_id'],'original_profile':'laboratory-default; baseline3+oneDense, NOT new production tfidf20+cpu1','funded_candidate_unchanged':True,'funding':funded,'ledger':ledger,'source_candidate_file':str(folder/'candidates.jsonl'),'source_candidate_file_sha256':sha((folder/'candidates.jsonl').read_bytes()),'provider_answers':'unknown until canonical central-cache/provider lookup; do not infer missing from accepted source labels'})
+ for kind in ['jev','claude']:
+  if kind=='jev':
+   identity={'kind':kind,'judge':'jev','version':CONTEXT_PROMPT_VERSION+':jev-1.14.0','model':'jev-1.14.0','max_output_tokens':None,'rendered_input':json.dumps({'model':'jev-1.14.0','state':state(obj,True),'questions':CONTEXT_QUESTIONS},ensure_ascii=True),'source_evidence':evidence(obj),'context_hash':obj.context_hash}
+  else:
+   identity={'kind':kind,'judge':'anthropic-operations','version':PROMPT_POLICIES['shared-operations'][0]+':claude-sonnet-5-5:output=1024','model':'claude-sonnet-5-5','max_output_tokens':1024,'rendered_input':prompt(obj,policy='shared-operations'),'source_evidence':evidence(obj),'context_hash':obj.context_hash}
+  contracts.append({'id':ident,'kind':kind,'identity':identity,'request_key':sha(json.dumps(identity,sort_keys=True).encode())})
+files={'provider-queue.jsonl':queue,'source-reviewer-blind.jsonl':blind,'funding-sidecar-private.jsonl':private}
+for name,data in files.items():
+ p=out/name
+ if p.exists():assert p.read_text()==''.join(json.dumps(r,sort_keys=True)+'\n' for r in data)
+ else:jsonl(p,data)
+qsha=sha((out/'provider-queue.jsonl').read_bytes())
+for c in contracts:c['packet_file_sha256']=qsha
+dump(out/'judge-contract.json',contracts)
+dump(out/'freeze.json',{'schema':1,'version':'funded-cases-v1','queue_rows':11,'positive_exposures_private':4,'negative_exposures_private':7,'distinct_source_pairs':len({(r['repository'],r['revision'],Candidate.model_validate(r['candidate']).key) for r in queue}),'note':'dry-lint73-4-after occurs under2background scopes. Root should exact-cache-deduplicate canonical requests; all accepted-source labels/ranks remain private.','all_original_normal_04_funded':True,'candidate_mutations':0,'worker_provider_calls':0,'hashes':{name:sha((out/name).read_bytes()) for name in [*files,'judge-contract.json']}})
+for p in out.iterdir():p.chmod(0o444)
+remaining=[r['id'] for r in read(LAB/'full-corpus/novel-batch-v1/novel-review-queue.jsonl') if r['id'] not in {'CPUF1-01','CPUF1-04','CPUF1-14'}]
+dump(P/'judgeops-handoff.json',{'already_frozen_novel_queue':str(LAB/'full-corpus/novel-batch-v1/novel-review-queue.jsonl'),'remaining13':remaining,'original_funded_exposure_queue':str(out/'provider-queue.jsonl'),'native_funding_proof_private':str(out/'funding-sidecar-private.jsonl'),'canonical_contracts':str(out/'judge-contract.json'),'blind_source_review':str(out/'source-reviewer-blind.jsonl'),'root_centrally_runs_providers':True,'worker_provider_calls':0,'direct_message':'Tool rejected send: requires approval while approval policy never; root relay required.'})
+print('SEALED',len(queue),'funded contexts',len(remaining),'pending novel/control IDs','sha',qsha)
+for r in private:print(r['id'],r['label_group_private'],r['lineage_rows'],r['cohort_id'])

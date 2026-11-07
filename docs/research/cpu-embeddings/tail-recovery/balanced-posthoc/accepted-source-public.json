@@ -1,0 +1,117 @@
+[
+  {
+    "case_id": "CPUI2-012",
+    "decision": {
+      "accepted_gold": false,
+      "coordinator_constraint": "Accept only shared snapshot field projection with explicit copy/alias policy preserving each caller. Direct get_snapshot substitution changes ownership and is not behavior preserving. Independent reviewer identified this before coordinator feedback.",
+      "coordinator_scope_accepted": true,
+      "endpoints": [
+        {
+          "body_sha256": "da1ff89d2f275667503d82aceae0b5af1399401ec54ca69825b6f7f6bbd98a07",
+          "end_line": 473,
+          "file_sha256": "af76cade321cfb2ab5a42c3a9a6d3fbd213286c765116e31e45b70abcb8fc2b6",
+          "line": 358,
+          "path": "openhands/sdk/llm/llm.py",
+          "source_id": "openhands/sdk/llm/llm.py::LLM.completion"
+        },
+        {
+          "body_sha256": "002815c10a708c268b9e1486ee1b82b275cd6142566e7e81d64b5c74e8b4fcfe",
+          "end_line": 143,
+          "file_sha256": "8392ba32a556a806bf618073dcb5df50ed77e69b6679e60eea30ab27fc33f79c",
+          "line": 134,
+          "path": "openhands/sdk/llm/utils/metrics.py",
+          "source_id": "openhands/sdk/llm/utils/metrics.py::Metrics.get_snapshot"
+        }
+      ],
+      "evidence": [
+        {
+          "end_line": 470,
+          "line": 459,
+          "path": "openhands/sdk/llm/llm.py",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "supports": "Inline snapshot projection before response construction."
+        },
+        {
+          "end_line": 200,
+          "line": 185,
+          "path": "openhands/sdk/llm/utils/metrics.py",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "supports": "Normal accumulation replaces TokenUsage rather than mutating it; the counterexample concerns direct mutation of the retained object, not every subsequent completion."
+        },
+        {
+          "end_line": 143,
+          "line": 134,
+          "path": "openhands/sdk/llm/utils/metrics.py",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "supports": "Existing projection additionally deep-copies token usage."
+        },
+        {
+          "end_line": 58,
+          "line": 33,
+          "path": "openhands/sdk/llm/utils/metrics.py",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "supports": "TokenUsage is a mutable model with token fields."
+        },
+        {
+          "end_line": 110,
+          "line": 75,
+          "path": "openhands/sdk/llm/utils/metrics.py",
+          "repository": "OpenHands/software-agent-sdk",
+          "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+          "supports": "Snapshot excludes detailed lists while Metrics owns accumulated data."
+        }
+      ],
+      "label": "duplicate",
+      "packet_id": "f056c0d727a9af1bb9fcddce3e1c89d1e71b43445546feb00e23c5f70ef9b9a8",
+      "proposed_extraction_or_counterexample": "Boundary: replace only llm.py:460-465 with self.metrics.get_snapshot(), leaving transport, telemetry and response construction unchanged. This intentionally adopts the helper's deep-copy ownership rule and is not exact alias-preserving substitution. If strict current behavior is required, make token-usage copying an explicit keyword policy on the snapshot helper and pass false from completion. Counterexample: after returning a response, mutating metrics.accumulated_token_usage.prompt_tokens can affect the inline snapshot, but not the deep-copied snapshot. Keep this behavioral change explicit; do not claim the bodies are equivalent.",
+      "reason": "completion reimplements the MetricsSnapshot field projection already owned by Metrics.get_snapshot. The existing helper also isolates mutable token usage; the inline projection passes that object through. This is useful consolidation of a snapshot contract, with an explicit aliasing difference.",
+      "repository": "OpenHands/software-agent-sdk",
+      "reviewer": "a",
+      "reviewer_label": "duplicate",
+      "reviewer_utility": "useful-extractable-bounded",
+      "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+      "utility": "bounded"
+    },
+    "join": "exact repository/revision and both source_id/path/span/bodySHA/fileSHA; review packet ID preserved"
+  },
+  {
+    "case_id": "CPUHS2-CONTROL-c57bba13138e684e",
+    "decision": {
+      "accepted_gold": false,
+      "blind_id": "CPUHS2-CONTROL-c57bba13138e684e",
+      "coordinator_scope_accepted": true,
+      "endpoints": [
+        {
+          "body_sha256": "da1ff89d2f275667503d82aceae0b5af1399401ec54ca69825b6f7f6bbd98a07",
+          "end_line": 473,
+          "file_sha256": "af76cade321cfb2ab5a42c3a9a6d3fbd213286c765116e31e45b70abcb8fc2b6",
+          "line": 358,
+          "path": "openhands/sdk/llm/llm.py",
+          "source_id": "openhands/sdk/llm/llm.py::LLM.completion"
+        },
+        {
+          "body_sha256": "00ab00dab5d8273d0c3c0b6b29a9bb7f62d74f69de7529bc2fe979eb76fc5b2e",
+          "end_line": 143,
+          "file_sha256": "7da53ca2d2d5ccc8b5562a56af12d2ca600f49a4a4634bf9b302473b20fe709a",
+          "line": 99,
+          "path": "tests/sdk/llm/test_llm_completion.py",
+          "source_id": "tests/sdk/llm/test_llm_completion.py::test_llm_completion_with_tools"
+        }
+      ],
+      "id": "9a0e2b01e5df4440559b167d681b2a8ac8efdb659426d028b7a6b5b26061cd9e",
+      "label": "separate",
+      "packet_id": "9a0e2b01e5df4440559b167d681b2a8ac8efdb659426d028b7a6b5b26061cd9e",
+      "proposed_extraction_or_counterexample": "No production/test extraction: deriving expected protocol fields using production conversion would weaken the independent oracle. Mock setup and return assertions remain test responsibilities.",
+      "reason": "The test constructs mocked tool output, invokes LLM.completion and independently asserts response fields and the provider call. It does not implement the production completion pipeline.",
+      "repository": "OpenHands/software-agent-sdk",
+      "review_mode": "coordinator source inspection; control role known; not fully method blind",
+      "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+      "utility": "separate"
+    },
+    "join": "exact repository/revision and both source_id/path/span/bodySHA/fileSHA; review packet ID preserved"
+  }
+]

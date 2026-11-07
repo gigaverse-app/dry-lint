@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "scope": "post-hoc two prior Sonnet-reported queries; not full63/global",
+  "rows": [
+    {
+      "id": "CPUI2-004",
+      "private": true,
+      "role": "candidate",
+      "answers": {
+        "jev": {
+          "label": "drifted",
+          "score": 0.9,
+          "reported": true,
+          "new_usd": 0,
+          "newly_paid_here": false
+        },
+        "claude": {
+          "label": "duplicate",
+          "score": 0.8,
+          "reported": true,
+          "new_usd": 0.0008519,
+          "newly_paid_here": true
+        }
+      },
+      "source_status": "coordinator scope accepted",
+      "source_label": "duplicate",
+      "accepted_gold": false,
+      "source_utility": "bounded",
+      "coordinator_scope_accepted": true,
+      "bounded_useful_report": true
+    },
+    {
+      "id": "CPUI2-012",
+      "private": false,
+      "role": "candidate",
+      "answers": {
+        "jev": {
+          "label": "separate",
+          "score": 0.2,
+          "reported": false,
+          "new_usd": 0,
+          "newly_paid_here": false
+        },
+        "claude": {
+          "label": "drifted",
+          "score": 0.8,
+          "reported": true,
+          "new_usd": 0.0007489,
+          "newly_paid_here": true
+        }
+      },
+      "source_status": "coordinator scope accepted",
+      "source_label": "duplicate",
+      "accepted_gold": false,
+      "source_utility": "bounded",
+      "coordinator_scope_accepted": true,
+      "bounded_useful_report": true
+    },
+    {
+      "id": "CPUHS2-CONTROL-c57bba13138e684e",
+      "private": false,
+      "role": "control",
+      "answers": {
+        "jev": {
+          "label": "separate",
+          "score": 0.08,
+          "reported": false,
+          "new_usd": 0.00010716,
+          "newly_paid_here": true
+        },
+        "claude": {
+          "label": "separate",
+          "score": 0.05,
+          "reported": false,
+          "new_usd": 0.0005266,
+          "newly_paid_here": true
+        }
+      },
+      "source_status": "coordinator scope accepted",
+      "source_label": "separate",
+      "accepted_gold": false,
+      "source_utility": "separate",
+      "coordinator_scope_accepted": true,
+      "bounded_useful_report": false,
+      "source_review_mode": "coordinator source inspection; control role known; not fully method blind"
+    }
+  ],
+  "native_original": 1,
+  "native_treatment": 3,
+  "gains": 2,
+  "losses": 0,
+  "retained": 1,
+  "gained_reports": 2,
+  "lost_reports": 0,
+  "retained_control_reports": 0,
+  "source_known_gains": 2,
+  "source_unknown_gains": 0,
+  "source_useful_net_lower": 2,
+  "source_useful_net_upper": 2,
+  "new_physical_usd": 0.00223456,
+  "new_calls": 4,
+  "exact_reuses": 2,
+  "public_exact_cases": 2,
+  "private_numeric_cases": 1,
+  "public_replay_campaigns": 2,
+  "local_verified_campaigns": 4,
+  "independent_query_control": false,
+  "control_review_blindness": "role known; not fully method-blind",
+  "native_holds": [
+    {
+      "id": "CPUI2-004",
+      "private": true,
+      "original_admitted": 0,
+      "treatment_admitted": 1,
+      "original_held_usd": 0.0,
+      "treatment_held_usd": 0.0019665,
+      "target_held_usd": 0.0019665,
+      "normal_estimate_target_usd": 0.0003748214285714286,
+      "haiku_report_status": "complete; reported under exact balanced profile"
+    },
+    {
+      "id": "CPUI2-012",
+      "private": false,
+      "original_admitted": 1,
+      "treatment_admitted": 2,
+      "original_held_usd": 0.002123,
+      "treatment_held_usd": 0.0041253,
+      "target_held_usd": 0.0020023000000000003,
+      "normal_estimate_target_usd": 0.0003876071428571429,
+      "haiku_report_status": "complete; reported under exact balanced profile"
+    }
+  ],
+  "gained_bounded_useful_reports": 2,
+  "lost_bounded_useful_reports": 0,
+  "net_bounded_useful_reports": 2,
+  "source_join_status": "complete; accepted scoped judgments, not automatic gold",
+  "public012_boundary": "Strict copying/aliasing and falsy-to-None policy must be explicit; no direct substitution equivalence"
+}

@@ -1,0 +1,23 @@
+{
+  "original_prefix": "Original MiniLM vectors exist for all indexed snapshots, including unresolved. CpuEmbeddingComparer rejects unknown spans and ambiguous identities before neighbour cap.",
+  "report_backgrounds": [
+    {
+      "background": "8eb6c8f6128ba76f26cbd73c7e0a5613551d08607072f0adc84a3b6c0c229fde",
+      "id": "CPUI2-004",
+      "indexed_documents": 31104,
+      "influence": "potential sparse IDF/rank competition; fixed unchanged background retained",
+      "unresolved_competitors": 4
+    },
+    {
+      "background": "a068703e185ee6a85429f3de4f92c1e384196e8fb3f01bdd0d88ddd28ac2d424",
+      "id": "CPUI2-012",
+      "indexed_documents": 2349,
+      "influence": "potential sparse IDF/rank competition; fixed unchanged background retained",
+      "unresolved_competitors": 2
+    }
+  ],
+  "source_loader": "common.load verifies each retained raw snapshot body hash matches immutable background document; unresolved rows keep raw snapshot code, tokens and old prefix vectors, line0/end-1 placeholders. No silent drop or refit.",
+  "sparse": "All original documents remain in TFIDF fit and vocabulary. Sparse candidates can consume retrieval ranks, but unknown spans fail the common logical funding ledger. Thus affected background findings are qualified; no source-negative labels assigned.",
+  "tail": "Only native-resolved statement views encoded. Raw operation score arrays can compare query views against unresolved prefix vectors, but OperationIndex.neighbours rejects their unknown spans/ambiguous identities before cap. They are excluded from discovery/diagnostic query populations.",
+  "whole_file": "Paid selections separately pass canonical whole-file parsing; historical native-resolved count is function/body/span resolution, not a claim of strict whole-file validation of every competitor."
+}

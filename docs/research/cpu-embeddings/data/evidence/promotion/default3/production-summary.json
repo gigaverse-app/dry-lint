@@ -1,0 +1,24 @@
+{
+  "all_previous_primary_candidates_unchanged": true,
+  "cohorts": 16,
+  "full_corpus_encodings": 0,
+  "gold_manual_relabels": 0,
+  "labels": {
+    "duplicate": {
+      "lost_retrieved": 0,
+      "new_retrieved": 15,
+      "pair_backgrounds": 78
+    },
+    "separate": {
+      "lost_retrieved": 0,
+      "new_retrieved": 15,
+      "pair_backgrounds": 120
+    }
+  },
+  "policy_limit": "No authentic PR/campaign ledger supplied; this production candidate-set replay does not assert production funding or emitted-report gains. Legacy4positive/7negative normal.04 exposures separately frozen.",
+  "profile": "baseline3 + first-unseen-unsettled-cpu1-.65",
+  "rows": 223,
+  "schema": 1,
+  "unique_input_rows": 207,
+  "worker_provider_calls": 0
+}

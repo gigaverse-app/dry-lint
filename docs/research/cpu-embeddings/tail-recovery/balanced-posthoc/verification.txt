@@ -1,0 +1,13 @@
+{
+  "public_native_campaigns_recomputed": 2,
+  "public_exact_questions_recomputed": 4,
+  "public_source_files_verified": 3,
+  "public_source_decisions_verified": 2,
+  "private004_source_recomputed": false,
+  "net_bounded_useful_reports_numeric": 2,
+  "gained_reports_numeric": 2,
+  "lost_reports_numeric": 0,
+  "source_known_gains": 2,
+  "source_unknown_gains": 0,
+  "new_physical_usd": 0.00223456
+}

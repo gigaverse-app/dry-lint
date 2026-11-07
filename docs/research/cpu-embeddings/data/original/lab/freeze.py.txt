@@ -1,0 +1,151 @@
+"""Create the pre-evaluation registration once. Never overwrite it."""
+
+import hashlib
+import json
+import subprocess
+from datetime import UTC, datetime
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = Path("/home/researcher/dry-lint-round")
+
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+repos = json.loads((ROOT / "jobs/review-automation/.lab-results/review-automation/repositories-five.json").read_text())
+cohorts = []
+for name in [
+    "candidate-first-gold/accepted-public-gold.jsonl",
+    "candidate-first-gold/disputed.jsonl",
+    "scaled-v1/accepted-public-gold.jsonl",
+    "scaled-v1/unresolved.jsonl",
+]:
+    p = ROOT / "reports/candidate-first/corpus-verification" / name
+    cohorts.append({"path": str(p), "sha256": sha(p)})
+protocol = {
+    "schema": 1,
+    "experiment": "cpu-minilm-reserved1-v1",
+    "worker": "Herdr CPU Embeddings / GPT-6.1-Sol high",
+    "frozen_at_utc": datetime.now(UTC).isoformat(),
+    "source_main": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+    "prior_read": [
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "docs/design.md",
+        "docs/research-plan.md",
+        "docs/tfidf-enrichment-research.md",
+        "docs/benchmark.md",
+        "docs/channel-trial.md",
+        "docs/retrieval-presets.md",
+    ],
+    "hypothesis": "A small pretrained CPU encoder supplies complementary funded candidates without sparse baseline displacement; topical matches may consume budget without useful reports.",
+    "repositories": [repos[3]],
+    "contrast": {
+        "repository": repos[4],
+        "run_only_if": "primary encoder preflight succeeds, full primary index <300 seconds, no safety failure; otherwise omit contrast",
+    },
+    "cohorts": cohorts,
+    "labels_status": "ALL observed development/regression; no fresh or independent holdout; preserve repository, revision, cohort, family, lineage, scoped partial-operation, drifted, negatives and unresolved labels. No training or tuning.",
+    "authority": {
+        "path": str(ROOT / "reports/candidate-first/scaled-coordinator-decisions.jsonl"),
+        "sha256": sha(ROOT / "reports/candidate-first/scaled-coordinator-decisions.jsonl"),
+    },
+    "model": {
+        "id": "sentence-transformers/all-MiniLM-L6-v2",
+        "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+        "license": "Apache-2.0",
+        "parameter_count": 22713728,
+        "artifact": "onnx/model.onnx",
+        "artifact_sha256_official": "6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452",
+        "backend": "onnxruntime==1.31.1 CPUExecutionProvider fp32, sequential execution, intra_op=2 inter_op=1; no remote code",
+        "tokenizer": "tokenizers==0.23.3; official tokenizer.json WordPiece uncased",
+        "pooling": "attention-mask weighted mean of last_hidden_state, then L2 normalization, exact float32 cosine",
+        "input": "unchanged native full function code including signature, docstring/comments; no path, label, ID, judge-score, generated context or future text",
+        "truncation": "first 256 total wordpieces including special tokens; no chunks/overlap; count original lengths and truncated functions/tokens per corpus",
+        "cache": "worktree .lab-results/model-cache only; embedding cache key binds model and artifact hashes, code digests, corpus order, policy/backend versions",
+        "contamination": "public pretraining may contain these repos/code; no independent holdout claim",
+        "sources": [
+            "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
+            "https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2",
+            "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/blob/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/onnx/model.onnx",
+            "https://www.sbert.net/docs/sentence_transformer/usage/efficiency.html",
+        ],
+    },
+    "safety": {
+        "threads": 2,
+        "env": {
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2",
+            "MKL_NUM_THREADS": "2",
+            "TOKENIZERS_PARALLELISM": "false",
+        },
+        "preflight_functions": 100,
+        "preflight_selection": "first100 frozen background rows, before looking at embedding/gold results",
+        "batch_size": 8,
+        "max_projected_index_seconds": 600,
+        "max_peak_rss_gib": 3,
+        "stop_on": "missing artifacts/runtime, load/inference failure, preflight RSS >3GiB, full projected index >600s; record infrastructure separately from latency failure. No model substitution or GPU.",
+    },
+    "baseline": "BenchBackground.decode/index; unchanged frozen counts/DF/max_df/order. Native sparse tied scores retain TfidfIndex.similar stable encounter order; dense exact ties break by frozen corpus row index.",
+    "profiles": {
+        "laboratory-default": {
+            "k": 3,
+            "same_file": False,
+            "sparse_floor": 0.5,
+            "sparse_small_floor": 0.3,
+            "small_lines_lt": 6,
+        },
+        "standalone-balanced-diagnostic": {
+            "k": 20,
+            "same_file": True,
+            "sparse_floor": 0.35,
+            "sparse_small_floor": 0.35,
+            "small_lines_lt": 6,
+        },
+    },
+    "arms": {
+        "sparse": "profile baseline",
+        "embedding-only": "profile k and same-file policy, fixed dense cosine >=0.65 independent of line size",
+        "protected-sparse-plus-dense1": "complete sparse batch ranked/funded first, then at most1 highest dense neighbor per query absent from sparse query candidates, cosine >=0.65, same-file policy of profile; rank extras separately; baseline preserved before/after funding. This is not default-plus20.",
+    },
+    "candidate_rules": "unchanged source bodies and core why_skipped(Settings with frozen scope, no inferred adopter patterns); minimum extraction2lines, no new size-ratio floor; self excluded, ambiguous/missing gold mappings unknown; raw rank includes all nonself competitors; record same-file/cross-file rank, score/rank floor and filters independently",
+    "batches": "synthetic cohort+repository+revision+family groups; queries are unique gold endpoints in frozen order. Separately novel discovery uses each production query function as its own synthetic batch. Never called historical PR replay.",
+    "ledger": {
+        "usd_per_batch": 0.04,
+        "mechanism": "normal dry_lint.costs.Ledger.select/charge, standalone Claude Sonnet5.5 shared-operations with normal150token answer estimate and actual unchanged prompt, model rates2/10 per million. All arms charged independently even if answers cached. Jev/Claude queue canonical only; funding estimates do not claim a two-stage replay. No live provider calls.",
+        "cached_answers_charge_each_arm": True,
+        "physical_usd": 0,
+        "physical_shared_remaining_not_reserved": 4.7889404,
+    },
+    "novel_review": {
+        "maximum_promising": 8,
+        "maximum_matched_controls": 4,
+        "only": "source-verified actually funded new exact pairs; exclude exact reviewed pairs not known endpoints/families; positive operation requires common extractable owner and caller proof; controls independently matched topical operation with distinct ownership. Do not infer labels from score",
+        "judge_wanted": ["jev-1.14.0 context=True", "claude-sonnet-5-5 shared-operations max_tokens=1024"],
+        "blind_packet": "neutral IDs, exact full Candidate.model_dump retained, no outer variant/rank/funding/putative label; required intrinsic Candidate.similarity/comparer remain for canonical full packet, reviewer presentation must strip retrieval fields; private sidecar holds ranks/funding/selection",
+        "missing_answers": "unknown, never zero or negative",
+    },
+    "decision_rules": [
+        "All sparse funded baseline candidates retained by protected arm on same batch; zero baseline known-positive losses",
+        "Report embedding-only and protected new/lost known-positive and negative/unknown exposures with per-stage denominators and families",
+        "Report raw directional ranks and all losses; no exposure-to-report gain conversion",
+        "CPU viability requires100function preflight and projected<=600s <=3GiB; actual indexing/query/update costs recorded separately from cold dependency/model acquisition",
+        "Any production proposal needs independent review and useful report evidence within .04, no deploy changes authorized",
+    ],
+    "prohibited": [
+        "production/CI/config changes",
+        "shared repo or package edits",
+        "production verdict stores",
+        "direct judge/provider calls or credentials",
+        "new agents",
+        "posthoc parameter tuning",
+    ],
+}
+p = HERE / "EXPERIMENT.json"
+with p.open("x") as f:
+    f.write(json.dumps(protocol, indent=2, sort_keys=True) + "\n")
+(HERE / "EXPERIMENT.sha256").write_text(sha(p) + "  EXPERIMENT.json\n")
+p.chmod(0o444)
+print(p, sha(p))

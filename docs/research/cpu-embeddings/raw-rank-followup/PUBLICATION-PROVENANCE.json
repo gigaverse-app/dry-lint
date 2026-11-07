@@ -1,0 +1,40 @@
+{
+  "changes": "Formatting and file-local lint annotations only; parsed Python ASTs identical to frozen worker scripts",
+  "files": [
+    {
+      "file": "common.py",
+      "original_sha256": "84d9f2d5d37d220e0aeb796ab07b481835b1e65d0aaccea066d979a1bf2d7215",
+      "published_sha256": "697d00700491e146727e586a9c0939650b262bac7b7401713724c8bcb5f90a83"
+    },
+    {
+      "file": "recordings.py",
+      "original_sha256": "0c15e6798750a2bc3ad5696fa53f0c0419652987d88ddf28b94844a473d0f888",
+      "published_sha256": "00983e9f531112e354fb8d7ae8f57eea9850e0475a917eca52154cae60888bc0"
+    },
+    {
+      "file": "replay.py",
+      "original_sha256": "9d291597bda4757797834942b37520808f21c5621b3393055c7f8e6d6551bb0d",
+      "published_sha256": "ed7ae28ac249eec2b7e56814835de3049c5a0f581fe8fe39de87f16b7f142df2"
+    },
+    {
+      "file": "multiquery.py",
+      "original_sha256": "14872279489da975df200d708177bb6096dcbe76ddbde49bd2f2f303d8bfc5b0",
+      "published_sha256": "49b8804c9f4409727c60ce7dbf96f5a71d406081b9eb70f6aacde98cc0d9c5c1"
+    },
+    {
+      "file": "tail_index.py",
+      "original_sha256": "e4afa820bdd6bbef03762e12af755a3a1145e571e6cfb365182e5b934e46e05a",
+      "published_sha256": "1da870b78cf6504f762a63eefea8bcad122ad5f08013addaca566733abf248e3"
+    },
+    {
+      "file": "retrieval.py",
+      "original_sha256": "6c0517bf63c7a48182825478296b89452809646db672abeb8be00ca2a7447cf8",
+      "published_sha256": "22023c9432f0a75af63d0a9181d3b5697ae48003ed19cb47c0b9088ef4bf03ae"
+    },
+    {
+      "file": "hybrid.py",
+      "original_sha256": "bde0cd90d709001383c340b0e987895f2c92f3f97b7303c7414f6f629a2fc5cb",
+      "published_sha256": "90462150021d4e676b47b191c7d6632b640b13cd5a29da6a1aef9d5c233ae573"
+    }
+  ]
+}

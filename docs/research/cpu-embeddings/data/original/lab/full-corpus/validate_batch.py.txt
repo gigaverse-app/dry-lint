@@ -1,0 +1,191 @@
+"""Read-only native/background/funding validator and exact canonical function-judge bindings."""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import experiment
+import numpy as np
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger
+from dry_lint.detector import why_skipped
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
+from dry_lint.judges.jev import CONTEXT_PROMPT_VERSION, CONTEXT_QUESTIONS, state
+from dry_lint.models import Candidate, Function, evidence
+from dry_lint.ranking import rank_candidates
+from dry_lint.settings import Settings
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+
+
+def main():
+    folder = Path(sys.argv[1])
+    freeze = json.loads((folder / "freeze.json").read_text())
+    read = experiment.read_rows
+    sha = experiment.sha
+    for name, hash in freeze["hashes"].items():
+        assert sha((folder / name).read_bytes()) == hash
+    rows = read(folder / "novel-review-queue.jsonl")
+    private = {r["id"]: r for r in read(folder / "novel-review-sidecar-private.jsonl")}
+    repo = experiment.PROTOCOL["repositories"][0]
+    bg = BenchBackground.decode(Path(repo["background_proof"]["path"]).read_bytes())
+    fs = [Function.model_validate(f) for f in read(LAB / "openhands/functions.jsonl")]
+    dense = np.load(LAB / "openhands/embeddings.npy")
+    index = bg.index()
+    settings = Settings(budget={"usd": 0.04}, patterns=[])
+    contracts = []
+    checks = []
+    for row in rows:
+        c = Candidate.model_validate(row["candidate"])
+        r = private[row["id"]]["funding"]
+        assert c.model_dump(mode="json") == r["candidate"]
+        assert r["funded"]
+        assert not c.new.declaration and not c.existing.declaration
+        for f, proof in zip([c.new, c.existing], row["source_endpoints"], strict=True):
+            raw = subprocess.check_output(["git", "-C", repo["git"], "show", repo["revision"] + ":" + f.path])
+            ex = experiment.PythonExtractor()
+            native = [n for n in ex.functions(f.path, raw.decode()) if n.qualname == f.qualname]
+            assert (
+                len(native) == 1
+                and native[0].code == f.code
+                and native[0].line == f.line
+                and native[0].end_line == f.end_line
+            )
+            assert sha(raw) == proof["full_source_sha256"]
+            assert sha(f.code.encode()) == proof["body_sha256"]
+            assert 1 <= f.line <= f.end_line
+            assert any(d.id == f.qualname and d.source_sha256 == proof["body_sha256"] for d in bg.documents)
+        i = r["query_row"]
+        f = fs[i]
+        cfg = experiment.PROTOCOL["profiles"][r["profile"]]
+        floor = cfg["sparse_small_floor"] if f.lines < 6 else cfg["sparse_floor"]
+        base = []
+        for j, score in index.similar(bg.documents[i].tokens(), exclude={i}):
+            if score < floor:
+                break
+            if (not cfg["same_file"] and fs[j].path == f.path) or fs[j].qualname == f.qualname:
+                continue
+            base.append(
+                Candidate(
+                    new=f,
+                    existing=fs[j],
+                    similarity=score,
+                    comparer="lab-cpu-minilm-sparse:1:" + repo["background_proof"]["sha256"][:16],
+                    filtered=why_skipped(f, fs[j], settings),
+                    similarity_reusable=False,
+                )
+            )
+            if len(base) == cfg["k"]:
+                break
+        base = rank_candidates(base)
+        keys = {b.key for b in base}
+        scores = dense @ dense[i]
+        extra = None
+        for index_row in np.argsort(-scores, kind="stable"):
+            j = int(index_row)
+            score = float(scores[j])
+            if score < 0.65:
+                break
+            if j == i or (not cfg["same_file"] and fs[j].path == f.path) or fs[j].qualname == f.qualname:
+                continue
+            candidate = Candidate(
+                new=f,
+                existing=fs[j],
+                similarity=score,
+                comparer="lab-cpu-minilm-dense:1:" + experiment.PROTOCOL["model"]["revision"][:16],
+                filtered=why_skipped(f, fs[j], settings),
+                similarity_reusable=False,
+            )
+            if candidate.key not in keys:
+                extra = candidate
+                break
+        assert extra is not None and extra.model_dump(mode="json") == row["candidate"]
+        allowed = [b for b in base + [extra] if not b.filtered]
+        judge = experiment.EstimateOnlySonnet()
+        ledger = Ledger(settings)
+        ix = ledger.select(judge, allowed)
+        asked = [allowed[n] for n in ix]
+        assert c.key in {a.key for a in asked}
+        ledger.charge(judge, asked, len(allowed) - len(asked))
+        assert abs(ledger.usd - r["ledger_usd_estimated"]) < 1e-12
+        checks.append(
+            {
+                "id": row["id"],
+                "source_native": True,
+                "background": True,
+                "native_spans_valid": True,
+                "normal_funding_replayed": True,
+                "usd_estimated": ledger.usd,
+                "candidate_unchanged": True,
+            }
+        )
+        for kind in ["jev", "claude"]:
+            if kind == "jev":
+                ident = {
+                    "kind": kind,
+                    "judge": "jev",
+                    "version": CONTEXT_PROMPT_VERSION + ":jev-1.14.0",
+                    "model": "jev-1.14.0",
+                    "max_output_tokens": None,
+                    "rendered_input": json.dumps(
+                        {"model": "jev-1.14.0", "state": state(c, True), "questions": CONTEXT_QUESTIONS},
+                        ensure_ascii=True,
+                    ),
+                    "source_evidence": evidence(c),
+                    "context_hash": c.context_hash,
+                }
+            else:
+                ident = {
+                    "kind": kind,
+                    "judge": "anthropic-operations",
+                    "version": PROMPT_POLICIES["shared-operations"][0] + ":claude-sonnet-5-5:output=1024",
+                    "model": "claude-sonnet-5-5",
+                    "max_output_tokens": 1024,
+                    "rendered_input": prompt(c, policy="shared-operations"),
+                    "source_evidence": evidence(c),
+                    "context_hash": c.context_hash,
+                }
+            contracts.append(
+                {
+                    "id": row["id"],
+                    "kind": kind,
+                    "identity": ident,
+                    "request_key": sha(json.dumps(ident, sort_keys=True).encode()),
+                    "packet_file_sha256": freeze["hashes"]["novel-review-queue.jsonl"],
+                }
+            )
+    for name, data in [
+        ("judge-contract.json", contracts),
+        (
+            "native-funding-validation.json",
+            {
+                "all_pass": True,
+                "rows": len(checks),
+                "request_bindings": len(contracts),
+                "checks": checks,
+                "worker_provider_calls": 0,
+                "candidate_mutations": 0,
+            },
+        ),
+    ]:
+        p = folder / name
+        text = json.dumps(data, indent=2, sort_keys=True) + "\n"
+        if p.exists():
+            assert p.read_text() == text
+        else:
+            p.write_text(text)
+    print(
+        "PASS",
+        len(checks),
+        "native/source/funding checks;",
+        len(contracts),
+        "exact request bindings; frozen queue unchanged",
+    )
+
+
+if __name__ == "__main__":
+    main()

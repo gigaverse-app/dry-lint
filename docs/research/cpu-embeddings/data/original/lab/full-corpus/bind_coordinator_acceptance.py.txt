@@ -1,0 +1,83 @@
+"""Append coordinator authority without mutating frozen provider-policy observations."""
+
+import hashlib
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+INDEX = Path(
+    "LAB_ROOT/jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2"
+)
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def identity(f):
+    return f["path"] + "::" + (f["owner"] + "." if f.get("owner") else "") + f["name"]
+
+
+def main():
+    rows = [json.loads(line) for line in (INDEX / "rows.jsonl").open()]
+    results = []
+    for queue in [LAB / "novel-review-queue.jsonl", HERE / "novel-batch-v1/novel-review-queue.jsonl"]:
+        for packet in map(json.loads, queue.open()):
+            functions = [packet["candidate"]["new"], packet["candidate"]["existing"]]
+            bodies = {identity(f): digest(f["code"].encode()) for f in functions}
+            matches = []
+            for r in rows:
+                if r["repository"] != packet["repository"] or r["revision"] != packet["revision"]:
+                    continue
+                other = {f.get("source_id"): digest(f.get("code", "").encode()) for f in r["sources"].values()}
+                if other != bodies:
+                    continue
+                native = r["input_record"]["row"]
+                matches.append(
+                    {
+                        "row_id": r["row_id"],
+                        "label": r["label"],
+                        "accepted_gold": r["accepted_gold"],
+                        "label_scope": native.get("label_scope"),
+                        "operation_scope": native.get("operation_scope"),
+                        "whole_function_label": native.get("whole_function_label"),
+                        "review_id": native.get("review_id"),
+                        "source_review_file": native.get("source_review_file"),
+                        "source_review_sha256": native.get("source_review_sha256"),
+                        "exact_native_source_and_pin_matches": True,
+                    }
+                )
+            results.append(
+                {
+                    "id": packet["id"],
+                    "matches": matches,
+                    "accepted_source_label_available": any(m["accepted_gold"] for m in matches),
+                }
+            )
+    data = {
+        "schema": 1,
+        "index_receipt_sha256": digest((INDEX / "index-ready.json").read_bytes()),
+        "index_rows_sha256": digest((INDEX / "rows.jsonl").read_bytes()),
+        "binding_policy": "Exact repository, full pin, two canonical source IDs and unchanged full-body SHA256; no confidence/label-assisted matching. Append authority only, never mutate queue/provider observations or accepted gold.",
+        "provider_projection_source_truth_null": "Denotes no source-review feed merged into those sealed observations; this separate authoritative binding supplies accepted coordinator evidence when present.",
+        "results": results,
+        "manual_gold_relabels": 0,
+    }
+    p = HERE / "coordinator-source-acceptance-binding-v1.json"
+    p.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+    p.chmod(0o444)
+    print(
+        "Coordinator binding",
+        len(results),
+        "queued pairs;",
+        [
+            (r["id"], [(m["row_id"], m["label"], m["accepted_gold"]) for m in r["matches"]])
+            for r in results
+            if r["matches"]
+        ],
+    )
+
+
+if __name__ == "__main__":
+    main()

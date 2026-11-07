@@ -1,0 +1,922 @@
+[
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/acquire.py",
+    "original_sha256": "78929f3dbdada74491b9b6193aceb29947ee82cabf1da34e57cb9d0e7310811b",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/acquire.py.txt",
+    "published_sha256": "78929f3dbdada74491b9b6193aceb29947ee82cabf1da34e57cb9d0e7310811b"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/build_handoff.py",
+    "original_sha256": "ffb2338b5d5e313eef0441edf15787898c22a5317062f0f0621d5c59e4903762",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/build_handoff.py.txt",
+    "published_sha256": "6bb32c412e0fd95940db4bd9a9f3aee58fd7b4ff77cd2dad9f4e9ea4a5a007e4"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/discover.py",
+    "original_sha256": "60b772ddfa3cc7279c8aaa6d2e4cbc37f30518612582584dfe3dc2f29b7ee468",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/discover.py.txt",
+    "published_sha256": "60b772ddfa3cc7279c8aaa6d2e4cbc37f30518612582584dfe3dc2f29b7ee468"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/embed.py",
+    "original_sha256": "7f4d1554312ed914fa0b92b6f792cf957e76985bc376e65889dff6b994bb08ea",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/embed.py.txt",
+    "published_sha256": "7f4d1554312ed914fa0b92b6f792cf957e76985bc376e65889dff6b994bb08ea"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/experiment.py",
+    "original_sha256": "752b3265f0714cf509aef255d1278c8becdb4c0f5b58c6dc62e12eedd4ea9f8d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/experiment.py.txt",
+    "published_sha256": "752b3265f0714cf509aef255d1278c8becdb4c0f5b58c6dc62e12eedd4ea9f8d"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/freeze.py",
+    "original_sha256": "44df68e9976606d84e4ea3a387696f4091d5301bb8c826582e986bd44132c289",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/freeze.py.txt",
+    "published_sha256": "44df68e9976606d84e4ea3a387696f4091d5301bb8c826582e986bd44132c289"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/make_packets.py",
+    "original_sha256": "d2a8855cc2d2b9e214bd1ae617445cc58b9c73f172fe3e5b60eec3ad10fcfdd3",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/make_packets.py.txt",
+    "published_sha256": "d2a8855cc2d2b9e214bd1ae617445cc58b9c73f172fe3e5b60eec3ad10fcfdd3"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/measure_sparse.py",
+    "original_sha256": "48f5915decc6c969e8da7d7af94e50f7932e95c6fe0ad157b7a35f6c5a24ad2c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/measure_sparse.py.txt",
+    "published_sha256": "48f5915decc6c969e8da7d7af94e50f7932e95c6fe0ad157b7a35f6c5a24ad2c"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/summarize.py",
+    "original_sha256": "d384b367f27c60c728097e7501c6510c7718e6dd6f3866d6da5e2778f2298746",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/summarize.py.txt",
+    "published_sha256": "d384b367f27c60c728097e7501c6510c7718e6dd6f3866d6da5e2778f2298746"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/validate.py",
+    "original_sha256": "4cb7187607d2e2a54d1596d6b1585281bed5bfb84571a328f329f6f2c42c7531",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/validate.py.txt",
+    "published_sha256": "4cb7187607d2e2a54d1596d6b1585281bed5bfb84571a328f329f6f2c42c7531"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/validate_queue.py",
+    "original_sha256": "fe20c5bc775efcda18e26166f46a7fd8d8f96c9da08813b01462adbec59d7680",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/validate_queue.py.txt",
+    "published_sha256": "fe20c5bc775efcda18e26166f46a7fd8d8f96c9da08813b01462adbec59d7680"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/audit_round2_ranks.py",
+    "original_sha256": "d4a0e1482d618980715b86f0af41783f46ed6f9d41790b7a4d257c22f8d374f8",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/audit_round2_ranks.py.txt",
+    "published_sha256": "d4a0e1482d618980715b86f0af41783f46ed6f9d41790b7a4d257c22f8d374f8"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/discover_round1.py",
+    "original_sha256": "717cad7ebe9315ba459a492492b4dcb86fa1cae942c5f6bea99a9b9db11541d9",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/discover_round1.py.txt",
+    "published_sha256": "87982cb8c100cdbcac159536b6f18b851e84c744167c15393d1ec68225814707"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/discover_round2.py",
+    "original_sha256": "9863c68ea9f318511ec736d3c0a7ca8de7347ec05b1f2d2381a0cbcdb4aa220f",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/discover_round2.py.txt",
+    "published_sha256": "c3f1d3f7457c50188d0202b5c351ed3958a98b3e3766f2d8405df98a1e085207"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/matched_sparse_baselines.py",
+    "original_sha256": "f5919abcea2e69984027b5721325c78efc8dbe487989d53c00a64007d6543699",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/matched_sparse_baselines.py.txt",
+    "published_sha256": "f5919abcea2e69984027b5721325c78efc8dbe487989d53c00a64007d6543699"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/project_round1.py",
+    "original_sha256": "76ef8285ceee3067489d786c3a03e991b980f497dc2cf6cb66225e565f62105e",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/project_round1.py.txt",
+    "published_sha256": "486e115f6dbbc4d3ccdf3a0bec0cf3b23945bd841619ae566bce883aad7142ee"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/project_round2.py",
+    "original_sha256": "06b72ea9eee366b525d7fbd912d4fde60553b507267045c53a52c97d1f7ef93a",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/project_round2.py.txt",
+    "published_sha256": "f05e53808ec8bd1fcbdb41b54cb0b7f53f8d647c8597c304ed607748aa53efd3"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/summarize_round2.py",
+    "original_sha256": "8abfb1da4c28514b6e65a6025bcd661d3c58be837a301a88d04e0c01087e9758",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/summarize_round2.py.txt",
+    "published_sha256": "8abfb1da4c28514b6e65a6025bcd661d3c58be837a301a88d04e0c01087e9758"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/translate_central.py",
+    "original_sha256": "87edcc9eb2d68f6faf1de2fa51081395d138dce4b2c5883b8f6fa99deb69a4b0",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/translate_central.py.txt",
+    "published_sha256": "4a27ebae0861e55e45f9d4da26fb15fc2faf6a4c5d132026e57a347f8766e045"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/translate_round2.py",
+    "original_sha256": "d617915956d9c336b25832977234496fbcf610fa0c8eb0a31532a7ac1b64dacd",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/translate_round2.py.txt",
+    "published_sha256": "eb10e57816290dff71eafd64e9d4f1ab01eee3d8723ab50d862980d632dce3ed"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/validate_round1.py",
+    "original_sha256": "f4a6bec261cad082ad141f6edae1998a8d12d2a957e148492bb5414cf0a8e3fe",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/validate_round1.py.txt",
+    "published_sha256": "f4a6bec261cad082ad141f6edae1998a8d12d2a957e148492bb5414cf0a8e3fe"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/validate_round2.py",
+    "original_sha256": "0ce66d96119ea27555df262a9f3f6991afe8a9a1373799fd0b67710328baba96",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/validate_round2.py.txt",
+    "published_sha256": "0ce66d96119ea27555df262a9f3f6991afe8a9a1373799fd0b67710328baba96"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/adjudication_sensitivity.py",
+    "original_sha256": "5341aa91d1fd918e08ab98e0a7a5e2b799f8ed4760293add8a166ea82ac61fde",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/adjudication_sensitivity.py.txt",
+    "published_sha256": "8c1e4dd85919cd2a4f035184d4f0de81865559ab2f2fa677122e93f056ce30af"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/bind_coordinator_acceptance.py",
+    "original_sha256": "945d6ac5ad2a5d9d11b3c068e0335f39aabe5e887f09c88fbecda87ab6a13134",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/bind_coordinator_acceptance.py.txt",
+    "published_sha256": "deed7c50ff614f06ba39f2c50439aa175701721aad4ed337a518d635593a28b7"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/coverage_tables.py",
+    "original_sha256": "3289dcd8e6b5ebeb5b0ff5145114dfb06bb4f6a5bbb9509e33f64e1200277e87",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/coverage_tables.py.txt",
+    "published_sha256": "3289dcd8e6b5ebeb5b0ff5145114dfb06bb4f6a5bbb9509e33f64e1200277e87"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/encode.py",
+    "original_sha256": "0b6b44006541a7cc1e6a121225552da2ef771149739060e48978d476f19f74c1",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/encode.py.txt",
+    "published_sha256": "0b6b44006541a7cc1e6a121225552da2ef771149739060e48978d476f19f74c1"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/export_span_inputs.py",
+    "original_sha256": "e1cbbcaaa1b078545cf6afb85e01998c7aff057e27fd30161a37ae3fcca4552a",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/export_span_inputs.py.txt",
+    "published_sha256": "e403bd4ceff3c353275cc61155418ec5f5feea65f7d95d31710444c41bba2f46"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/finalize.py",
+    "original_sha256": "d963427fe3195ebfccee92efb04f3863c32c4d04d8ded74fd7879b3401064154",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/finalize.py.txt",
+    "published_sha256": "37f9c0b6474a854ded0673966d480241930599c8e558e12a097d8a49f5958f1e"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/finish_all.py",
+    "original_sha256": "4bebc52fd1fdd2f49f13fc38f448cd87ef8a2189c2d9177a47abd8182378c74d",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/finish_all.py.txt",
+    "published_sha256": "6eda2ade06a45b35e789b0e97d80a87fb81d001b1a8147bcf2084033b699d10a"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/freeze_policy_results.py",
+    "original_sha256": "f6d2707dc6a584ea2eb292d2609a83a1e6f8ed0d90d8148eda88080da84a5e77",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/freeze_policy_results.py.txt",
+    "published_sha256": "b58ca9c9321e70e1244552ee4c35a776cc31cb96197e370038f21cea10565eaf"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/make_batch1.py",
+    "original_sha256": "48ae25ce6bf2134e981608827493a32cea2645041d2d42fdb8342c2d393a5dee",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/make_batch1.py.txt",
+    "published_sha256": "ea2740da03420f000465e6583c5e7c96c20cfb5d14666a477b5a10abc3635ad2"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/migrate_spans.py",
+    "original_sha256": "4a1acde81b9e60e64fe52a77332a4b6f60fa80ab32bbc9e02957ddfbad48feca",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/migrate_spans.py.txt",
+    "published_sha256": "cde9c5a76c8e7f8217338981f73ef65d7155a7a8c42d4aa216718c2f07f1567c"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/migration_receipt.py",
+    "original_sha256": "70d05ec6ee12f8846dbcb3da84c557a9453bf13141b4358e52d6411300cb85a2",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/migration_receipt.py.txt",
+    "published_sha256": "70d05ec6ee12f8846dbcb3da84c557a9453bf13141b4358e52d6411300cb85a2"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/models.py",
+    "original_sha256": "0a5a2a7dafb07e97ac80ddaa0d7e7106e02203f86c1bb558e793b80495896af8",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/models.py.txt",
+    "published_sha256": "7614582fabf06f0da5280619c6124a362f2d974b53b8f7a65fc0c1d27f67be30"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/paired_summary.py",
+    "original_sha256": "e079101532a90ae7d8c3f002742ba013241ed5e8486385b1ed74a68b3172356b",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/paired_summary.py.txt",
+    "published_sha256": "e079101532a90ae7d8c3f002742ba013241ed5e8486385b1ed74a68b3172356b"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/prepare.py",
+    "original_sha256": "2205978777f0dd85d9a0cd0303096c5af9e1b6b836dc89a54ae9904b622b3294",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/prepare.py.txt",
+    "published_sha256": "2205978777f0dd85d9a0cd0303096c5af9e1b6b836dc89a54ae9904b622b3294"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/prepare_available.py",
+    "original_sha256": "9914d002044cca05050aa390f1a9f57ec15bcb7248a2ad562c1b0b025d737f01",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/prepare_available.py.txt",
+    "published_sha256": "ba82b2c8a1f354d02cd82c9828cb5c63f70268c1e2ed8356264fb539e516e81c"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/project_intake.py",
+    "original_sha256": "5c2e1f743e591657b4de23be9639951fd0910a74325c58549634fc87750fd809",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/project_intake.py.txt",
+    "published_sha256": "5c2e1f743e591657b4de23be9639951fd0910a74325c58549634fc87750fd809"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/resource_call.py",
+    "original_sha256": "b1529502238a0d43e90e876acad011911cf1f32ac1bc2acf000c4685e6d69ffd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/resource_call.py.txt",
+    "published_sha256": "b1529502238a0d43e90e876acad011911cf1f32ac1bc2acf000c4685e6d69ffd"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/run_full.py",
+    "original_sha256": "ba6c70c2b83750263fe92b4095d974d8bde00480215469ab8b608b3728b3f066",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/run_full.py.txt",
+    "published_sha256": "ba6c70c2b83750263fe92b4095d974d8bde00480215469ab8b608b3728b3f066"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/runtime_receipt.py",
+    "original_sha256": "44421f902fc5715a4f504e0191812770a40bab57ceb5526b17291a18264a3cd6",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/runtime_receipt.py.txt",
+    "published_sha256": "44421f902fc5715a4f504e0191812770a40bab57ceb5526b17291a18264a3cd6"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/span-audit.py",
+    "original_sha256": "8e59360b4c58f72af93ed9580fbccff4f1e10d1896da730f225cd0a6257f33a3",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/span-audit.py.txt",
+    "published_sha256": "8e59360b4c58f72af93ed9580fbccff4f1e10d1896da730f225cd0a6257f33a3"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/span_adapter.py",
+    "original_sha256": "bd33fdf4b228a45ba8b53eabee6a568ccb3a3367bae5638ff6796777334caa1e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/span_adapter.py.txt",
+    "published_sha256": "bd33fdf4b228a45ba8b53eabee6a568ccb3a3367bae5638ff6796777334caa1e"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/validate_batch.py",
+    "original_sha256": "f2fe79ef5892f68a5bfca7e469d71064454df99082de0005146dbf6bfc5a151f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus/validate_batch.py.txt",
+    "published_sha256": "f2fe79ef5892f68a5bfca7e469d71064454df99082de0005146dbf6bfc5a151f"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/compare.py",
+    "original_sha256": "26ea1e0942a8976a4f5a937bbd73133ea770b574277cdf471208bf4b14eaf750",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/promotion/compare.py.txt",
+    "published_sha256": "26ea1e0942a8976a4f5a937bbd73133ea770b574277cdf471208bf4b14eaf750"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/cpue04_directions.py",
+    "original_sha256": "2a2b7d8781c55b64e16035db50eddab3ca702e700bc2dcf1198ffb6595f8b077",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/promotion/cpue04_directions.py.txt",
+    "published_sha256": "81f0622e3eedfeabbab12777455ce883c1027747e55c79b8d7f9f4fcf3da2f06"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/freeze_funded.py",
+    "original_sha256": "68a82177285ef1b7d741635d14cebb0427977f6a77ac4e869b4d69e220bfec0b",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/promotion/freeze_funded.py.txt",
+    "published_sha256": "68a82177285ef1b7d741635d14cebb0427977f6a77ac4e869b4d69e220bfec0b"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/project_v2.py",
+    "original_sha256": "4783335484d18b79e4db74ebc1e0fdc7a53be1e58cd4353c455dafbe4c650aaa",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/promotion/project_v2.py.txt",
+    "published_sha256": "756014de3bb27e2f566f4dd3c638617cc487ba4a16e2c1c80fa59608ddc37ba5"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/conclusion/disputed_source_sensitivity.py",
+    "original_sha256": "6e70fd452731728a9c9fd1b8d64992a089046775b18d1372686b91e9a50a558b",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/conclusion/disputed_source_sensitivity.py.txt",
+    "published_sha256": "92115cb62ac224f90fad016ca0420d175a3f1468ec0c632d2abecb286765ad92"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/conclusion/join_source_review.py",
+    "original_sha256": "19114006fc3da8aff5539b6fe6223de0152edcc9ca9e3c1494d9a20bcc1a1101",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/conclusion/join_source_review.py.txt",
+    "published_sha256": "35487003cb4dcc527a3b3544242422574f2809ca0d37b6a1925b1af1997fc4c6"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/__init__.py",
+    "original_sha256": "a61bbd251b9dfa7d519456f93bcd77076f798efa4276c9d90896190ac4bd5de1",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/__init__.py.txt",
+    "published_sha256": "a61bbd251b9dfa7d519456f93bcd77076f798efa4276c9d90896190ac4bd5de1"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/__main__.py",
+    "original_sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/__main__.py.txt",
+    "published_sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/action.py",
+    "original_sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/action.py.txt",
+    "published_sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/baseline.py",
+    "original_sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/baseline.py.txt",
+    "published_sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/bench.py",
+    "original_sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/bench.py.txt",
+    "published_sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/bench_background.py",
+    "original_sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/bench_background.py.txt",
+    "published_sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/cli.py",
+    "original_sha256": "d88d3ff97d41d4e80d2fb1d8f69ad4e38a8abf7bd7db7ab03b38de8c48936409",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/cli.py.txt",
+    "published_sha256": "0ac9caac3b63e0c5b53d0b8dd1648d01b886569a1d0985bc4e044c5184f4edb8"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/commits.py",
+    "original_sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/commits.py.txt",
+    "published_sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/comparers.py",
+    "original_sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparers.py.txt",
+    "published_sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/comparison.py",
+    "original_sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparison.py.txt",
+    "published_sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/comparison_helpers.py",
+    "original_sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparison_helpers.py.txt",
+    "published_sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/costs.py",
+    "original_sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/costs.py.txt",
+    "published_sha256": "284f037b5fe0dd34b7f79a603ef3fe9c99b05822b1fe8da9b281e2de562989d3"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/cpu_embedding.py",
+    "original_sha256": "485326e9a8122c6bd8d82d6656338530abdcaee10e3532a577dcb996dd83105d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/cpu_embedding.py.txt",
+    "published_sha256": "485326e9a8122c6bd8d82d6656338530abdcaee10e3532a577dcb996dd83105d"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/detector.py",
+    "original_sha256": "8c570d8f8d483da4ab657c76aa862acd29d7e9b4a7e0053971f0bebc44734126",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/detector.py.txt",
+    "published_sha256": "8c570d8f8d483da4ab657c76aa862acd29d7e9b4a7e0053971f0bebc44734126"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/discovery.py",
+    "original_sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/discovery.py.txt",
+    "published_sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/dryer.py",
+    "original_sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/dryer.py.txt",
+    "published_sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/evidence.py",
+    "original_sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/evidence.py.txt",
+    "published_sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/extractors.py",
+    "original_sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/extractors.py.txt",
+    "published_sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/feedback.py",
+    "original_sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/feedback.py.txt",
+    "published_sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/function_index.py",
+    "original_sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/function_index.py.txt",
+    "published_sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/functions.py",
+    "original_sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/functions.py.txt",
+    "published_sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/git.py",
+    "original_sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/git.py.txt",
+    "published_sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/github.py",
+    "original_sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/github.py.txt",
+    "published_sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/index.py",
+    "original_sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/index.py.txt",
+    "published_sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/index_github.py",
+    "original_sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/index_github.py.txt",
+    "published_sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judges/__init__.py",
+    "original_sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/__init__.py.txt",
+    "published_sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judges/anthropic.py",
+    "original_sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/anthropic.py.txt",
+    "published_sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judges/command.py",
+    "original_sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/command.py.txt",
+    "published_sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judges/gemini.py",
+    "original_sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/gemini.py.txt",
+    "published_sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judges/http.py",
+    "original_sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/http.py.txt",
+    "published_sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judges/jev.py",
+    "original_sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/judges/jev.py.txt",
+    "published_sha256": "26246f465c6e1134ca7a982f8b81e3a1c2b9b803773b7b259dc3bc5ef08ba34f"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judges/model_jev.py",
+    "original_sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/model_jev.py.txt",
+    "published_sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judges/subscription.py",
+    "original_sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/subscription.py.txt",
+    "published_sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/judging.py",
+    "original_sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judging.py.txt",
+    "published_sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/labelling.py",
+    "original_sha256": "7b6fc95c25e05f299a19cc36401f5596a13007083d819ecbaa0358bce22c9731",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/labelling.py.txt",
+    "published_sha256": "0948aaf07f7e270e408aa19fadbcc5cf346266585d2018a0bf10857c8d72e9ad"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/ledger.py",
+    "original_sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/ledger.py.txt",
+    "published_sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/model_review.py",
+    "original_sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/model_review.py.txt",
+    "published_sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/model_shapes.py",
+    "original_sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/model_shapes.py.txt",
+    "published_sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/models.py",
+    "original_sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/models.py.txt",
+    "published_sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/plugins.py",
+    "original_sha256": "c0adac2d405e50e07ac20dc2f811ee3c31d0c2c193a28114b9637312c6fd3647",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/plugins.py.txt",
+    "published_sha256": "c0adac2d405e50e07ac20dc2f811ee3c31d0c2c193a28114b9637312c6fd3647"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/policies.py",
+    "original_sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/policies.py.txt",
+    "published_sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/presets.py",
+    "original_sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/presets.py.txt",
+    "published_sha256": "669e7a4edcd0b60897acd67f47552ace66805637d11ef0ebe105607b2e4dd132"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/python_schemas.py",
+    "original_sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/python_schemas.py.txt",
+    "published_sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/ranking.py",
+    "original_sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/ranking.py.txt",
+    "published_sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/replay.py",
+    "original_sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/replay.py.txt",
+    "published_sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/report.py",
+    "original_sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/report.py.txt",
+    "published_sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/schema_policy.py",
+    "original_sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/schema_policy.py.txt",
+    "published_sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/settings.py",
+    "original_sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/settings.py.txt",
+    "published_sha256": "a7b51d8614b5f2fd0e1f4b8390d110b6e0c273823f3bbd6b09a7d78e24613696"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/source_context.py",
+    "original_sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/source_context.py.txt",
+    "published_sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/sticky.py",
+    "original_sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/sticky.py.txt",
+    "published_sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/store.py",
+    "original_sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/store.py.txt",
+    "published_sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/src/dry_lint/typescript.py",
+    "original_sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/typescript.py.txt",
+    "published_sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/pyproject.toml",
+    "original_sha256": "65901311ec75722ac5ab79281f8b20b60c9dd9c5158534d5209c97b85237eff6",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/pyproject.toml.txt",
+    "published_sha256": "65901311ec75722ac5ab79281f8b20b60c9dd9c5158534d5209c97b85237eff6"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/implementation/uv.lock",
+    "original_sha256": "c6456043e0cb3a30d150c9bd30f9a0240e03bf6456081015cb8d4d3dd0414659",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/uv.lock.txt",
+    "published_sha256": "c6456043e0cb3a30d150c9bd30f9a0240e03bf6456081015cb8d4d3dd0414659"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/EXPERIMENT.json",
+    "original_sha256": "37e16969a527717245c536c0d815eb9acf5cd606c6de11afd37ec79dc03b4571",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/EXPERIMENT.json.txt",
+    "published_sha256": "9ec3a1b92c4f678357b6821a5ef6bebe9feebcc3e79dde056077552f65fbbcc5"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/environment.json",
+    "original_sha256": "3d1d19af4ff219571fdfd51872fc9917dd98e4feaf83cc26357431618243b800",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/environment.json.txt",
+    "published_sha256": "40e3dd1cc00eb337c1da7cd1c9fbd74eaece705ee553d5db9f1749be5569893a"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/runtime-requirements.lock",
+    "original_sha256": "4959b0d4c203c76e76d5b6b2ed6a930362b20253750922d01a136d8dc9ba76d2",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/runtime-requirements.lock.txt",
+    "published_sha256": "4959b0d4c203c76e76d5b6b2ed6a930362b20253750922d01a136d8dc9ba76d2"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/reproduce.sh",
+    "original_sha256": "25c181976e493e3b20e059c567b3544932b5a6b1a6bd30783bba044b91cf08fa",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/reproduce.sh.txt",
+    "published_sha256": "69e4b17a7b4fa88441677efda438c39b08a1db613c7ffa5cf7d4d2fbd08c7c5c"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round1/EXPERIMENT.json",
+    "original_sha256": "d3cb765f2e63664b3d835bbab61942503be2f2b118c5e83ce735cfe3dd216712",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round1/EXPERIMENT.json.txt",
+    "published_sha256": "d3cb765f2e63664b3d835bbab61942503be2f2b118c5e83ce735cfe3dd216712"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/EXPERIMENT.json",
+    "original_sha256": "7504097b2cdadd4cef9589aef1206b03e4f14a21e98e459c855561466299e672",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/EXPERIMENT.json.txt",
+    "published_sha256": "7504097b2cdadd4cef9589aef1206b03e4f14a21e98e459c855561466299e672"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/REPRODUCE.json",
+    "original_sha256": "2816e9304415f25cbcf4fbae86aca8a9518eaa236598354656ced62ce378ff8b",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/round2/REPRODUCE.json.txt",
+    "published_sha256": "bd0ed35f61c6d4becbda7413f136ff72f2b777f6091ac780b41f09517b17d3f4"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/projection-policy.json",
+    "original_sha256": "03ef17dd39a6227c3fe2a737f683049f7d177191fa4714191d9366f9641f924e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/projection-policy.json.txt",
+    "published_sha256": "03ef17dd39a6227c3fe2a737f683049f7d177191fa4714191d9366f9641f924e"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/EXPERIMENT.json",
+    "original_sha256": "da70e4f1fcd7c4b50a9a173887185e4d077b197de2f95bf863c5413b18df0712",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/EXPERIMENT.json.txt",
+    "published_sha256": "be6cc8fa62d1eba81f42e842a390f05775b6c4d471a49b2f7ebee728935a5ce1"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/commands.json",
+    "original_sha256": "608c48eb9989d215192f17013470f82c74dc9905c2d4f13fee624ba94aed0c60",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus/commands.json.txt",
+    "published_sha256": "2c5d834036fc29c6e0c4413160a3fdb67e87be8233266654f21ae87d989bdee1"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/EXPERIMENT.json",
+    "original_sha256": "01713e53d4c54647fce2fcf2d24f78c320b0a3fa04cdbc688b7da293616ba9e7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/promotion/EXPERIMENT.json.txt",
+    "published_sha256": "01713e53d4c54647fce2fcf2d24f78c320b0a3fa04cdbc688b7da293616ba9e7"
+  },
+  {
+    "original_location": "jobs/judge-operations/.lab-results/promotion-operations/intakes/cpu-embeddings/round2/97419b6a2d4e0fbf-4cbb628cfd97/completed.jsonl",
+    "original_sha256": "c4ef52603ace8928a159346152e18da153243c262213c24c4919ea646c1fbedb",
+    "publication_action": "selected public licensed cases, sanitized responses; source-free all-64 projections"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/regression/comparison-summary.json",
+    "original_sha256": "8ae78dffd2886d3795e6a9d585ade5308d13cf92d2de3b27528cccd2a8606a7e",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/emission-summary.json",
+    "original_sha256": "9766b841518f4def9aba8807f432da03e0fb34373383fe0eb8edfa91b2279c15",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/matched-sparse-baseline-summary.json",
+    "original_sha256": "4fc718511eeec7cbb9c5d231a520c42094ba9284b6b663ae63ad3b2204497172",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/projection-policy.json",
+    "original_sha256": "03ef17dd39a6227c3fe2a737f683049f7d177191fa4714191d9366f9641f924e",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/conclusion/disputed-source-sensitivity.json",
+    "original_sha256": "526b2aa9e8dc1c0814f9fe74cf1efcc6bb7d93a090122acafc496cc1929f10ca",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/CPUE04.json",
+    "original_sha256": "5925d567baae7fb2d707de1659dbecfbbfd1de3701f28fc2add8eb6c16663a82",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/cache-measurements.json",
+    "original_sha256": "b07485c2dc32b21b3891625f54330d45f748d74d498acd8b86197b4441274fe2",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/acquisition.json",
+    "original_sha256": "ffc94a1ec5e01fefc77ee420ea07aa7a18d466382221684ccebd52adbcbc4eca",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/emission-projections.jsonl",
+    "original_sha256": "8483d89a03a4537bf21d44817472447c25ff61ea71885eea23f86a4909bfd3d7",
+    "publication_action": "public OSS source-free report projections"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/matched-sparse-baseline-projections.jsonl",
+    "original_sha256": "f1da32ca3ac15ad951009023f2feffe1af1e60d87b590e6822a89193d38608f4",
+    "publication_action": "public OSS source-free report projections"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/regression/method-paired-deltas.jsonl",
+    "original_sha256": "2410d5a5ae147c0d47527fceac2b8971df76bd0aa5b9808ab262c1fc2be3df09",
+    "publication_action": "all source/repository/family/row identifiers removed; anonymous outcome booleans only"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/cohorts/7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b/embeddings.npy",
+    "original_sha256": "1e53e21c2bb256df8be00e437149eaa138530a736456004e5136c46eb885eb9e",
+    "publication_action": "Selected eight public-source rows only, serialized float32 values as JSON; no model encoding or index fitting"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/span-migration/helper-v1/resolver.py",
+    "original_sha256": "28dc9e01cfa4fc85215ef80ca4be3c564f2e4bc2ddabd88e9f5ab34d349330cd",
+    "published_path": "data/original/lab/full-corpus/span-migration/helper-v1/resolver.py.txt",
+    "published_sha256": "28dc9e01cfa4fc85215ef80ca4be3c564f2e4bc2ddabd88e9f5ab34d349330cd",
+    "publication_action": "Archive with explicit LAB_ROOT/private repository substitutions"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/span-migration/pre-helper-v1/experiment.py",
+    "original_sha256": "9b8074134c5bb2667286fb80c9f1ec5f8c98e5f620950a3d6cf6354f1394da5d",
+    "published_path": "data/original/lab/full-corpus/span-migration/pre-helper-v1/experiment.py.txt",
+    "published_sha256": "9b8074134c5bb2667286fb80c9f1ec5f8c98e5f620950a3d6cf6354f1394da5d",
+    "publication_action": "Archive with explicit LAB_ROOT/private repository substitutions"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/execution-failures/nullable-drifted-summary-v1/run_full.py",
+    "original_sha256": "e9afb6b968655856042eb985c9657f08b8aa338317d8997d89b2b54adf15dd62",
+    "published_path": "data/original/lab/full-corpus/execution-failures/nullable-drifted-summary-v1/run_full.py.txt",
+    "published_sha256": "e9afb6b968655856042eb985c9657f08b8aa338317d8997d89b2b54adf15dd62",
+    "publication_action": "Archive with explicit LAB_ROOT/private repository substitutions"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/execution-failures/nullable-drifted-summary-v1/experiment.py",
+    "original_sha256": "7d207ca928fee3d5c15f21f2c755e1c98d529aa41f5f439d61dbac24a3d54db0",
+    "published_path": "data/original/lab/full-corpus/execution-failures/nullable-drifted-summary-v1/experiment.py.txt",
+    "published_sha256": "7d207ca928fee3d5c15f21f2c755e1c98d529aa41f5f439d61dbac24a3d54db0",
+    "publication_action": "Archive with explicit LAB_ROOT/private repository substitutions"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/pilot-preserved/experiment.py",
+    "original_sha256": "424098eec4ec00236e5393e9492db52b756e727292683f33c39cdf988bf1757e",
+    "published_path": "data/original/lab/pilot-preserved/experiment.py.txt",
+    "published_sha256": "424098eec4ec00236e5393e9492db52b756e727292683f33c39cdf988bf1757e",
+    "publication_action": "Archive with explicit LAB_ROOT/private repository substitutions"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/production-summary.json",
+    "original_sha256": "67445549ccf148d3faa47ea02939281fc8419b93ae9cd828fe41d58e468d0731",
+    "publication_action": "Public/aggregate evidence with LAB_ROOT path normalization"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/default3/production-summary.json",
+    "original_sha256": "785a9490c0391576ae590be1c75738cc81181e512a8c87e3ff3c9ffb6e1b8069",
+    "publication_action": "Public/aggregate evidence with LAB_ROOT path normalization"
+  },
+  {
+    "original_location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/CPUE04-directional-emissions.jsonl",
+    "original_sha256": "ece0870a98b96551dfec83873edb94766186db22f1633533af8f2fa814ac174e",
+    "publication_action": "Public/aggregate evidence with LAB_ROOT path normalization"
+  }
+]

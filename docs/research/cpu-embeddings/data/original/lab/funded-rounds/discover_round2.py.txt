@@ -1,0 +1,136 @@
+"""Actual opt-in CPU discovery, bounded public-source supply for central paid round1."""
+import collections
+import hashlib
+import json
+import os
+from pathlib import Path
+import random
+import resource
+import subprocess
+import sys
+import time
+from unittest.mock import patch
+
+R=Path(__file__).resolve().parent;LAB=R.parent;P=LAB/'promotion';OUT=R/'round2'
+sys.path[:0]=[str(P/'implementation/src'),str(LAB)]
+from dry_lint import detector as core
+from dry_lint.cpu_embedding import CpuEmbeddingComparer,MiniLMEncoder
+from dry_lint.bench_background import BenchBackground
+from dry_lint.comparers import TfidfComparer
+from dry_lint.extractors import PythonExtractor
+from dry_lint.typescript import TypeScriptExtractor
+from dry_lint.models import Candidate,Function,evidence
+from dry_lint.settings import Settings
+from dry_lint.costs import Ledger
+from dry_lint.ranking import rank_candidates
+from dry_lint.judges.command import PROMPT_POLICIES,prompt
+from dry_lint.judges.jev import CONTEXT_PROMPT_VERSION,CONTEXT_QUESTIONS,state
+from experiment import EstimateOnlySonnet
+
+def sha(b):return hashlib.sha256(b).hexdigest()
+def read(p):return [json.loads(line) for line in p.open()]
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+def jsonl(p,x):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in x))
+def endpoints(c):return tuple(sorted((f.qualname,sha(f.code.encode())) for f in [c.new,c.existing]))
+def forbid(*args):raise AssertionError('Round2 forbids encoding: only existing exact-input cached vectors')
+MiniLMEncoder.encode=forbid
+registration={'schema':1,'round':1,'profile':'ordinary baseline3 then explicit first-unseen-unsettled CPU1 cosine.65; no TFIDF20 route in this explicitly narrower profile','encoder':'unchanged pinned MiniLM and already verified production vector cache; encoding forbidden','public_only':'exact original5public backgrounds; full competitors, no enterprise paths','query_sampling':'deterministic SHA order, production/library functions6..160native lines, skip test/example query paths; <=768queries/repo, <=16eligible pairs/repo initially','selection':'Actual production Detector.candidates(single_changed_function); unchanged full Candidate; normal synthetic single-change .04 ledger; no authentic deployment ledger claim','controls':'Every fourth sampled pair is an independent-endpoint matched control hypothesis from the same actual arm; source review, not provider confidence, establishes labels. Different names/owners required for controls. No endpoint reuse across selected pairs.','normal_vs_paid':'Normal .04 estimates separate from diagnostic central actual paid spend. Root excludes cache hits and duplicate rendered requests; no worker provider calls.','families':'Reserve full endpoint parent directories for round1; round2 must be disjoint in these coarse source families and independently source-qualified.','caps':'round1 initial supply64, immutable chunks32, add adaptively until root actual >=.20. No paid repeats to fill quota.','price_goal':'Expected .25-.35 new spend based on normal150-answer estimate; actual central ledger authoritative','stop':'Do not close before root verification of .20actual or exhausted eligible distinct supply. Failed benefit requires one justified preregistered revision and disjoint-family round2.'}
+registration=json.loads((OUT/'EXPERIMENT.json').read_text());registration['profile']=registration['exact_profile']
+index=LAB/'full-corpus/shared-inputs/9bfa15c84eb72dd2'
+cohorts=read(index/'cohorts.jsonl');shared=read(index/'rows.jsonl')
+public={'BerriAI/litellm':'7489aa'}
+known=set()
+for row in shared:
+ if row.get('candidate'):
+  c=Candidate.model_validate(row['candidate']);known.add((row['repository'],row['revision'],endpoints(c)))
+for path in [LAB/'novel-review-queue.jsonl',LAB/'full-corpus/novel-batch-v1/novel-review-queue.jsonl',P/'funded-cases-v1/provider-queue.jsonl',R/'round1/provider-queue.jsonl']:
+ for packet in read(path):known.add((packet['repository'],packet['revision'],endpoints(Candidate.model_validate(packet['candidate']))))
+# Consume central completed intake packets only to exclude exact already-reviewed pairs; never use their scores.
+intake=Path('LAB_ROOT/reports/research-experiments/intake-seven')
+for path in intake.glob('*provider-feed.jsonl'):
+ for row in read(path):
+  packet=row.get('packet',{})
+  if packet.get('candidate'):known.add((packet.get('repository'),packet.get('revision'),endpoints(Candidate.model_validate(packet['candidate']))))
+queue=[];private=[];inventory=[];used=set();families=set();oldload=core.load
+for repo,prefix in public.items():
+ cohort=next(c for c in cohorts if c['repository']==repo and c['background_sha256'].startswith(prefix))
+ folder=LAB/'full-corpus/cohorts'/cohort['background_sha256'];bg=BenchBackground.decode(Path(cohort['background_path']).read_bytes())
+ raw=read(folder/'functions.jsonl');policy=read(folder/'functions-policy-resolver-v1.jsonl');proof=read(folder/'source-proof.jsonl');manifest=json.loads((folder/'manifest.json').read_text())
+ fs=[];native=set();source_by_id={}
+ for i,(item,pr,doc) in enumerate(zip(raw,policy,bg.documents,strict=True)):
+  f=Function.model_validate(pr['function'] or {**item,'line':0,'end_line':-1});assert f.qualname==doc.id and sha(f.code.encode())==doc.source_sha256
+  f.tokens=doc.tokens();fs.append(f);source_by_id[f.qualname]=proof[i]
+  if pr['function'] is not None:native.add(f.qualname)
+ index_start=time.perf_counter();cpu=CpuEmbeddingComparer(str(LAB/'model-cache'),cache_dir=str(P/'vector-cache'),behavior_rerank=True);cpu.index(fs);index_seconds=time.perf_counter()-index_start
+ assert cpu.cache_misses==0
+ # Same indexed instance reused for independent synthetic changes; this does not change a neighbour or cap.
+ original_index=cpu.index
+ def stable_index(functions):
+  assert len(functions)==len(fs) and all(a is b for a,b in zip(functions,fs,strict=True))
+ cpu.index=stable_index
+ settings=Settings(include=bg.scope['include'],exclude=bg.scope['exclude'],discovery={'enabled':True,'comparers':[{'use':'cpu-embedding','model_dir':str(LAB/'model-cache'),'cache_dir':str(P/'vector-cache'),'neighbours':1,'behavior_rerank':True}]})
+ detector=core.Detector(fs,settings,TfidfComparer(max_df=bg.max_df),[PythonExtractor(),TypeScriptExtractor()])
+ queries=[f for f in fs if f.qualname in native and 6<=f.lines<=160 and not any(part.startswith('test') or part in ['examples','fixtures'] for part in Path(f.path).parts)]
+ queries.sort(key=lambda f:sha((repo+'@'+cohort['revision']+':'+f.qualname).encode()))
+ count=0
+ with patch.object(core,'load',lambda slot,choice,**kw: cpu if slot=='comparers' and choice.use=='cpu-embedding' else oldload(slot,choice,**kw)):
+  for qi,q in enumerate(queries[:2048]):
+   query_start=time.perf_counter();candidates=detector.candidates([q]);query_seconds=time.perf_counter()-query_start;offered=[c for c in candidates if c.lane=='exploration' and c.comparer.startswith('cpu-embedding:')]
+   assert len(offered)<=1
+   for c in offered:
+    key=(repo,cohort['revision'],endpoints(c));reason=None
+    eligible=[x for x in candidates if x.lane!='relative' and not x.filtered and x.new.qualname in native and x.existing.qualname in native]
+    judge=EstimateOnlySonnet();ledger=Ledger(settings);ix=ledger.select(judge,eligible);funded=[eligible[i] for i in ix];ledger.charge(judge,funded,len(eligible)-len(funded))
+    control=(len(queue)%4==3)
+    if key in known:reason='exact_pair_already_reviewed_or_frozen'
+    elif c.key not in {x.key for x in funded}:reason='normal_synthetic04_budget_first_loss'
+    elif c.filtered or c.new.qualname not in native or c.existing.qualname not in native:reason='unsettled_native_source_required'
+    elif c.new.qualname in used or c.existing.qualname in used:reason='independent_endpoint_matching'
+    elif control and (c.new.name==c.existing.name or c.new.owner==c.existing.owner):reason='control_requires_distinct_names_and_owners'
+    inventory.append({'repository':repo,'pin':cohort['revision'],'query':q.qualname,'pair_key':c.key,'similarity':c.similarity,'query_seconds':query_seconds,'funded':c.key in {x.key for x in funded},'exclusion':reason})
+    if reason:continue
+    wanted={'jev':{'model':'jev-1.14.0','context':True},'claude':{'model':'claude-sonnet-5-5','prompt_policy':'shared-operations','max_output_tokens':1024}}
+    source=[]
+    for side,f in [('new',c.new),('existing',c.existing)]:
+     pr=source_by_id[f.qualname];data=Path(pr['source_file']).read_bytes();assert sha(data)==pr['file_sha256'] and sha(f.code.encode())==pr['source_sha256']
+     lines=data.decode().splitlines();a=max(1,f.line-6);b=min(len(lines),f.end_line+4)
+     source.append({'side':side,'source_id':f.qualname,'revision':cohort['revision'],'path':f.path,'line':f.line,'end_line':f.end_line,'body_sha256':sha(f.code.encode()),'full_source_sha256':sha(data),'git_blob_sha1':pr['git_blob_sha1'],'full_source_file':pr['source_file'],'excerpt_start':a,'excerpt_end':b,'excerpt':'\n'.join(lines[a-1:b])})
+     families.add(repo+':'+str(Path(f.path).parent))
+    ident=f'CPUR2-{len(queue)+1:03d}'
+    packet={'id':ident,'repository':repo,'revision':cohort['revision'],'candidate':c.model_dump(mode='json'),'background_proof':{'path':cohort['background_path'],'sha256':cohort['background_sha256']},'source_endpoints':source,'caller_evidence':{'method':'Native full source file provides exact declaration, owner, body and enclosing context; independent caller/ownership review required','source_files':[x['full_source_file'] for x in source]},'ownership_evidence':{'owners':[c.new.owner,c.existing.owner],'bases':[c.new.bases,c.existing.bases],'runtime_binding':'unestablished'},'wanted':wanted}
+    single=Ledger(settings);single.charge(judge,[c],0)
+    queue.append(packet);private.append({'id':ident,'role':'matched-independent-control-hypothesis' if control else 'novel-candidate','family_directories':[repo+':'+str(Path(f.path).parent) for f in [c.new,c.existing]],'variant':registration['profile'],'index_wall_seconds':index_seconds,'query_wall_seconds':query_seconds,'peak_rss_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'normal_04_single_change_funded':True,'normal_04_ledger_usd_estimated':ledger.usd,'original_candidates':[x.model_dump(mode='json') for x in candidates],'funded_keys':[x.key for x in funded],'normal_single_answer_estimated_usd':single.usd,'actual_deployment_funding':'unknown: synthetic one-function change, no authentic PR/campaign ledger','diagnostic_paid_usd':0,'source_review_label':None})
+    used.update([c.new.qualname,c.existing.qualname]);known.add(key);count+=1
+   if (qi+1)%32==0:print('PROGRESS',repo,'queries',qi+1,'queued',len(queue),flush=True)
+   if count>=64 or len(queue)>=64:break
+ cpu.index=original_index
+ print(repo,'queries',min(qi+1,2048),'eligible',count,'queued',len(queue),'cachehits',cpu.cache_hits,'encoded',cpu.cache_misses,flush=True)
+ dump(OUT/'STATUS.json',{'status':'building_immutable_chunks','eligible':len(queue),'current_repository':repo,'worker_paid_usd':0,'index_wall_seconds':index_seconds,'peak_rss_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'root_actual_paid_usd':'pending_root_ledger','normal_04_is_synthetic':True})
+ if len(queue)>=64:break
+# Freeze chunks; no packet ever rewritten after publication.
+assert len(queue)>=48, ('insufficient reserve',len(queue))
+for offset in range(0,len(queue),32):
+ packets=queue[offset:offset+32];side=private[offset:offset+32];chunk=OUT/f'batch-{offset//32+1:02d}';chunk.mkdir(exist_ok=True)
+ jsonl(chunk/'provider-queue.jsonl',packets);jsonl(chunk/'funding-sidecar-private.jsonl',side)
+ jsonl(chunk/'source-reviewer-blind.jsonl',[{k:v for k,v in row.items() if k!='candidate'}|{'new':row['candidate']['new'],'existing':row['candidate']['existing']} for row in packets])
+ contracts=[]
+ for row in packets:
+  c=Candidate.model_validate(row['candidate'])
+  for kind in ['jev','claude']:
+   if kind=='jev':
+    identity={'kind':kind,'judge':'jev','version':CONTEXT_PROMPT_VERSION+':jev-1.14.0','model':'jev-1.14.0','max_output_tokens':None,'rendered_input':json.dumps({'model':'jev-1.14.0','state':state(c,True),'questions':CONTEXT_QUESTIONS},ensure_ascii=True),'source_evidence':evidence(c),'context_hash':c.context_hash}
+   else:
+    identity={'kind':kind,'judge':'anthropic-operations','version':PROMPT_POLICIES['shared-operations'][0]+':claude-sonnet-5-5:output=1024','model':'claude-sonnet-5-5','max_output_tokens':1024,'rendered_input':prompt(c,policy='shared-operations'),'source_evidence':evidence(c),'context_hash':c.context_hash}
+   contracts.append({'id':row['id'],'kind':kind,'identity':identity,'request_key':sha(json.dumps(identity,sort_keys=True).encode())})
+ dump(chunk/'judge-contract.json',contracts);hashes={p.name:sha(p.read_bytes()) for p in chunk.iterdir() if p.is_file()};dump(chunk/'freeze.json',{'schema':1,'version':chunk.name,'rows':len(packets),'candidate_regeneration':0,'worker_provider_calls':0,'hashes':hashes})
+ for f in chunk.iterdir():f.chmod(0o444)
+jsonl(OUT/'selection-audit-private.jsonl',inventory);dump(OUT/'reserved-families-private.json',sorted(families))
+chunks=[str(x.resolve()) for x in OUT.glob('batch-*/provider-queue.jsonl')]
+estimate=sum(r['normal_single_answer_estimated_usd'] for r in private)
+dump(OUT/'HANDOFF.json',{'schema':1,'direction':'cpu-embeddings','round':2,'status':'batch_ready_pending_root_paid_judging','profile':registration['profile'],'queue_chunks':chunks,'rows':len(queue),'novel_hypotheses':sum(r['role']=='novel-candidate' for r in private),'independent_control_hypotheses':sum(r['role']!='novel-candidate' for r in private),'sourceproof':'source_endpoints in each exact pinned packet; full source files and SHA256; existing verified native proof','manifest':'freeze.json in each chunk','funding':'funding-sidecar-private.jsonl; actual arm and normal synthetic04 funded, distinct from diagnostic paid spend','expected_single_claude_normal150_answer_estimate_usd':estimate,'actual_new_paid_usd':'unknown until root ledger; cache hits excluded; target >=.20','source_review':'independent source labels pending; providers not truth','historical_spend_separate':{'urgent4pair':.02289708,'sealed3pair_intake':.01526976,'current_phase_funded11':'root attribution pending, count actual fresh only once'},'older_pending13':str((P/'judgeops-handoff.json').resolve()),'remaining_work':'Root judges fresh distinct requests, relays actual ledger and source outcomes; supply adapts if below.20. If no useful benefit, one preregistered error-driven revision and disjoint-family round2 >=.20actual. No worker providers.','worker_provider_calls':0,'full_corpus_encodings':0})
+print('ROUND2_READY',len(queue),'expected normal150answerUSD',estimate,'chunks',len(chunks),flush=True)
+
+jsonl(OUT/'provider-queue.jsonl',queue);jsonl(OUT/'funding-sidecar-private.jsonl',private)
+jsonl(OUT/'canonical-request-plan.jsonl',[v for chunk in sorted(OUT.glob('batch-*')) for v in json.loads((chunk/'judge-contract.json').read_text())])
+h=json.loads((OUT/'HANDOFF.json').read_text());h.update(queue=str(OUT/'provider-queue.jsonl'),private_sidecar=str(OUT/'funding-sidecar-private.jsonl'),canonical_request_plan=str(OUT/'canonical-request-plan.jsonl'),manifest=str(OUT/'manifest.json'),sourceproof=str(OUT/'native-funding-validation.json'));dump(OUT/'HANDOFF.json',h)
+dump(OUT/'manifest.json',{'schema':1,'chunks':[{'queue':str(c/'provider-queue.jsonl'),'canonical_request_manifest':str(c/'judge-contract.json'),'private_sidecar':str(c/'funding-sidecar-private.jsonl'),'freeze':str(c/'freeze.json')} for c in sorted(OUT.glob('batch-*'))],'hashes':{n:sha((OUT/n).read_bytes()) for n in ['provider-queue.jsonl','funding-sidecar-private.jsonl','canonical-request-plan.jsonl']}})

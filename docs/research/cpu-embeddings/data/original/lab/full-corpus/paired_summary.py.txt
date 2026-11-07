@@ -1,0 +1,182 @@
+"""Pair-deduplicated, repository/family clustered conditional replication summaries."""
+
+import collections
+import json
+import random
+import statistics
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+
+def read(p):
+    return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+
+
+def percentile(xs, p):
+    return sorted(xs)[int((len(xs) - 1) * p)]
+
+
+def main(output=HERE, exclusions=None):
+    output.mkdir(parents=True, exist_ok=True)
+    rows = read(HERE / "paired-rows.jsonl")
+    exclusions = exclusions or []
+    excluded_accepted_ids = {
+        r["row_id"]
+        for r in rows
+        if r["accepted_gold"]
+        and any(
+            r["repository"] == e["repository"] and r["revision"] == e["revision"] and r["pair_id"] == e["pair_id"]
+            for e in exclusions
+        )
+    }
+    groups = collections.defaultdict(list)
+    for r in rows:
+        if any(
+            r["repository"] == e["repository"] and r["revision"] == e["revision"] and r["pair_id"] == e["pair_id"]
+            for e in exclusions
+        ):
+            continue
+        if r["status"] == "evaluated" and r["accepted_gold"] and r["label"] in ["duplicate", "drifted", "separate"]:
+            groups[(r["repository"], r["cohort_id"], r["pair_id"], r["profile"])].append(r)
+    pairs = []
+    for _key, lineage in groups.items():
+        labels = {r["label"] == "separate" for r in lineage}
+        families = {r["family_id"] for r in lineage if r["family_id"]}
+        r = lineage[0]
+        p = {
+            "repository": r["repository"],
+            "cohort_id": r["cohort_id"],
+            "pair_id": r["pair_id"],
+            "profile": r["profile"],
+            "lineage_rows": [x["row_id"] for x in lineage],
+            "family_ids": sorted(families),
+            "family_cluster": sorted(families)[0]
+            if len(families) == 1
+            else "unresolved-family-repository:" + r["repository"],
+            "family_known": len(families) == 1,
+            "label_conflict": len(labels) > 1,
+            "label_group": "disputed_scope" if len(labels) > 1 else "negative" if next(iter(labels)) else "positive",
+            "arms": {
+                arm: {stage: bool(r["arms"][arm][stage]) for stage in ["retrieved", "core_rule_allowed", "funded"]}
+                for arm in ["sparse", "embedding-only", "protected-sparse-plus-dense1"]
+            },
+        }
+        p["raw_ranks"] = {arm: [d.get("raw_rank") for d in r["arms"][arm]["directions"]] for arm in p["arms"]}
+        p["raw_scores"] = {arm: [d.get("score") for d in r["arms"][arm]["directions"]] for arm in p["arms"]}
+        p["first_loss"] = {arm: r["arms"][arm]["first_loss"] for arm in p["arms"]}
+        pairs.append(p)
+    (output / "paired-unique-pairs.jsonl").write_text("".join(json.dumps(p, sort_keys=True) + "\n" for p in pairs))
+    summaries = []
+    familyrows = []
+    for profile in sorted({r["profile"] for r in pairs}):
+        for arm in ["embedding-only", "protected-sparse-plus-dense1"]:
+            for label in ["positive", "negative", "disputed_scope"]:
+                selected = [r for r in pairs if r["profile"] == profile and r["label_group"] == label]
+                families = collections.defaultdict(list)
+                for r in selected:
+                    families[(r["repository"], r["family_cluster"])].append(r)
+                family_changes = []
+                for (repo, family), ps in families.items():
+                    base = any(r["arms"]["sparse"]["funded"] for r in ps)
+                    variant = any(r["arms"][arm]["funded"] for r in ps)
+                    entry = {
+                        "profile": profile,
+                        "arm": arm,
+                        "label_group": label,
+                        "repository": repo,
+                        "family_cluster": family,
+                        "known_family": all(r["family_known"] for r in ps),
+                        "pairs": len(ps),
+                        "sparse_funded_any": base,
+                        "variant_funded_any": variant,
+                        "delta": int(variant) - int(base),
+                        "new_pairs": [
+                            r["pair_id"] for r in ps if r["arms"][arm]["funded"] and not r["arms"]["sparse"]["funded"]
+                        ],
+                        "lost_pairs": [
+                            r["pair_id"] for r in ps if not r["arms"][arm]["funded"] and r["arms"]["sparse"]["funded"]
+                        ],
+                    }
+                    familyrows.append(entry)
+                    family_changes.append(entry)
+                repos = collections.defaultdict(list)
+                for f in family_changes:
+                    repos[f["repository"]].append(f["delta"])
+                boot = []
+                rng = random.Random(20261107)
+                if len(repos) >= 3:
+                    names = sorted(repos)
+                    for _ in range(1000):
+                        draws = []
+                        for _ in names:
+                            repo = rng.choice(names)
+                            values = repos[repo]
+                            draws.extend(rng.choice(values) for _ in values)
+                        boot.append(statistics.mean(draws))
+                summaries.append(
+                    {
+                        "profile": profile,
+                        "arm": arm,
+                        "label_group": label,
+                        "evaluated_unique_pairs": len(selected),
+                        "evaluated_family_clusters": len(families),
+                        "evaluated_repository_clusters": len(repos),
+                        "new_funded_pairs": sorted(
+                            r["pair_id"]
+                            for r in selected
+                            if r["arms"][arm]["funded"] and not r["arms"]["sparse"]["funded"]
+                        ),
+                        "lost_funded_pairs": sorted(
+                            r["pair_id"]
+                            for r in selected
+                            if not r["arms"][arm]["funded"] and r["arms"]["sparse"]["funded"]
+                        ),
+                        "family_gains": sum(f["delta"] > 0 for f in family_changes),
+                        "family_losses": sum(f["delta"] < 0 for f in family_changes),
+                        "mean_family_delta": statistics.mean(f["delta"] for f in family_changes)
+                        if family_changes
+                        else None,
+                        "conditional_cluster_bootstrap_95_interval": [percentile(boot, 0.025), percentile(boot, 0.975)]
+                        if boot
+                        else None,
+                        "interval_limit": "Conditional on evaluated source-supported subset only; no independence of directions, no whole-inventory significance claim. Interval withheld with fewer than3 repository clusters.",
+                        "first_losses": dict(collections.Counter(r["first_loss"][arm] or "funded" for r in selected)),
+                        "topk_pair_any_direction": {
+                            str(k): sum(
+                                any(rank is not None and rank <= k for rank in r["raw_ranks"][arm]) for r in selected
+                            )
+                            for k in [1, 3, 20]
+                        },
+                    }
+                )
+    (output / "paired-families.jsonl").write_text("".join(json.dumps(f, sort_keys=True) + "\n" for f in familyrows))
+    (output / "paired-summary.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "coverage": json.loads((HERE / "coverage.json").read_text()),
+                "unique_pair_policy": "repository+cohort+unordered pair+profile; retain all lineage rows; conflicting binary source-scope labels remain disputed; null or inconsistent families conservatively cluster by repository",
+                "summaries": summaries,
+                "status": "fixed-method conditional replication; source coverage is explicit, not general success/failure",
+                "sensitivity_exclusions": exclusions,
+                "original_accepted_binary_rows": json.loads((HERE / "coverage.json").read_text())[
+                    "accepted_binary_rows"
+                ],
+                "effective_accepted_binary_rows": json.loads((HERE / "coverage.json").read_text())[
+                    "accepted_binary_rows"
+                ]
+                - len(excluded_accepted_ids),
+                "excluded_accepted_row_ids": sorted(excluded_accepted_ids),
+                "physical_worker_judge_usd": 0,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n"
+    )
+    print("Paired summary", len(pairs), "unique evaluated pairs;", len(familyrows), "family-arm records")
+
+
+if __name__ == "__main__":
+    main()

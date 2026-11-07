@@ -1,0 +1,10 @@
+{
+  "files": {
+    "LICENSE-runtime": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "UPSTREAM-MANIFEST.json": "8b81fdd76622bf1890e3b0099420c7e81fa31596c5e1797e8042d95d77eb8547",
+    "reproduce.py": "eae610ab6eff41f9c844ed2f935c051f102fada234ce38e544f7425132f6a08a",
+    "requirements.txt": "4e81da77632e6b40881371cc8943e4e529eeca7f2538d90f0894992d1577252c",
+    "runtime.zip": "d98e8bb597cc2477e665ff1a9cc80698ccddda35dca834544331d6a7301c0bb6"
+  },
+  "scope": "Minimal pinned runtime and replay functions copied unchanged from PR115 helper-recovery/balanced; original complete upstream manifest retained."
+}

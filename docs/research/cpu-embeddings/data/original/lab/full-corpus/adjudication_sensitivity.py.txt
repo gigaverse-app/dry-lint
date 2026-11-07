@@ -1,0 +1,69 @@
+"""Named adjudication sensitivity from saved ranks/funding; no model/source refits."""
+
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+import paired_summary
+
+HERE = Path(__file__).resolve().parent
+OWNER = Path("LAB_ROOT/jobs/corpus-wide-evaluation/.lab-results/span-resolution")
+
+
+def main():
+    receipt = json.loads((OWNER / "ADJUDICATION-OVERLAY.json").read_text())
+    exclusions_path = Path(receipt["sensitivity_exclusions_path"])
+    exclusions = [json.loads(line) for line in exclusions_path.open()]
+    assert {r["sensitivity"] for r in exclusions} == {"exclude-reopened-CF-C02-v1"}
+    output = HERE / "adjudication/exclude-reopened-CF-C02-v1"
+    output.mkdir(parents=True, exist_ok=True)
+    for src in [OWNER / "ADJUDICATION-OVERLAY.json", exclusions_path, Path(receipt["summary_path"])]:
+        shutil.copy2(src, output / src.name)
+    paired_summary.main(output=output, exclusions=exclusions)
+    original = json.loads((HERE / "paired-summary.json").read_text())
+    new = json.loads((output / "paired-summary.json").read_text())
+    differences = []
+    for a, b in zip(original["summaries"], new["summaries"], strict=True):
+        fields = [
+            "evaluated_unique_pairs",
+            "new_funded_pairs",
+            "lost_funded_pairs",
+            "family_gains",
+            "family_losses",
+            "first_losses",
+            "topk_pair_any_direction",
+        ]
+        differences.append(
+            {
+                "profile": a["profile"],
+                "arm": a["arm"],
+                "label_group": a["label_group"],
+                "changes": {f: {"before": a[f], "after": b[f]} for f in fields if a[f] != b[f]},
+            }
+        )
+    binding = {
+        "schema": 1,
+        "name": "exclude-reopened-CF-C02-v1",
+        "original617_preserved": True,
+        "source_paired_rows_sha256": hashlib.sha256((HERE / "paired-rows.jsonl").read_bytes()).hexdigest(),
+        "overlay_receipt_sha256": hashlib.sha256((OWNER / "ADJUDICATION-OVERLAY.json").read_bytes()).hexdigest(),
+        "exclusions_sha256": hashlib.sha256(exclusions_path.read_bytes()).hexdigest(),
+        "expensive_vector_refits": 0,
+        "new_provider_calls": 0,
+        "policy_retunes": 0,
+        "deltas": [d for d in differences if d["changes"]],
+        "interpretation": "Exact reopened pair excluded across all arms/directions only for this separately named sensitivity. Original labels, raw ranks and policy outputs remain available. New wave3/4 rows are not inserted into617.",
+    }
+    (output / "receipt.json").write_text(json.dumps(binding, indent=2, sort_keys=True) + "\n")
+    print(
+        "Sensitivity",
+        len(exclusions),
+        "exact exclusions;",
+        len(binding["deltas"]),
+        "summary cells changed; no fits/providers",
+    )
+
+
+if __name__ == "__main__":
+    main()

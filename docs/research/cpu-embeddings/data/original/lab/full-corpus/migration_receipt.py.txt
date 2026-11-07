@@ -1,0 +1,191 @@
+"""Compact paired migration evidence; never invokes fitting or providers."""
+
+import collections
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import run_full as runner
+from experiment import dump, sha
+from experiment import read_rows as read
+
+HERE = Path(__file__).resolve().parent
+OUT = HERE / "span-migration/helper-v1"
+
+
+def keyed(path, fields):
+    return {tuple(r.get(f) for f in fields): r for r in read(path)} if path.exists() else {}
+
+
+def run():
+    ready, cohorts, _, _ = runner.inputs()
+    receipt = json.loads((OUT / "source-policy-receipt.json").read_text())
+    fixtures = json.loads((OUT / "actual-adapter-fixtures.json").read_text())
+    entries, changed_rows, changed_candidates = [], [], []
+    fields = ["cohort", "id", "profile", "arm"]
+    for c in cohorts:
+        f = runner.folder_for(c)
+        before = OUT / "before" / c["cohort_id"]
+        if not (f / "functions-policy-resolver-v1.jsonl").exists():
+            continue
+        raw = read(f / "functions.jsonl")
+        policy = read(f / "functions-policy-resolver-v1.jsonl")
+        old = keyed(before / "per-row.jsonl", fields)
+        new = keyed(f / "per-row.jsonl", fields)
+        common = old.keys() & new.keys()
+        changes = collections.Counter()
+        for k in sorted(common):
+            a, b = old[k], new[k]
+            diffs = {
+                field: [a.get(field), b.get(field)]
+                for field in ["retrieved", "core_rule_allowed", "funded", "first_loss", "report_emitted"]
+                if a.get(field) != b.get(field)
+            }
+            for da, db in zip(a["directions"], b["directions"], strict=True):
+                for field in [
+                    "score",
+                    "raw_rank",
+                    "cross_file_rank",
+                    "eligible_rank",
+                    "query_lines",
+                    "target_lines",
+                    "floor",
+                    "floor_failure",
+                    "size_floor_failure",
+                ]:
+                    if da.get(field) != db.get(field):
+                        changes["direction_" + field] += 1
+                        diffs.setdefault("directions", []).append(
+                            {"query": db.get("query"), "field": field, "before": da.get(field), "after": db.get(field)}
+                        )
+            for field in ["retrieved", "core_rule_allowed", "funded", "first_loss", "report_emitted"]:
+                changes[field] += a.get(field) != b.get(field)
+            if diffs:
+                changed_rows.append(
+                    {
+                        "cohort_id": c["cohort_id"],
+                        "key": list(k),
+                        "label": b["label"],
+                        "family_id": b["family_id"],
+                        "changes": diffs,
+                    }
+                )
+        ca = keyed(before / "candidates.jsonl", ["profile", "batch_id", "arm", "key"])
+        cb = keyed(f / "candidates.jsonl", ["profile", "batch_id", "arm", "key"])
+        for k in sorted(ca.keys() | cb.keys()):
+            a, b = ca.get(k), cb.get(k)
+            if bool(a and a["funded"]) != bool(b and b["funded"]) or (a is None) != (b is None):
+                changed_candidates.append(
+                    {
+                        "cohort_id": c["cohort_id"],
+                        "key": list(k),
+                        "before_present": a is not None,
+                        "after_present": b is not None,
+                        "before_funded": bool(a and a["funded"]),
+                        "after_funded": bool(b and b["funded"]),
+                    }
+                )
+        gold = read(f / "span-resolution-gold-v1.jsonl")
+        st = json.loads((f / "embedding-status.json").read_text()) if (f / "embedding-status.json").exists() else {}
+        vector_validated = False
+        if st.get("status") == "complete":
+            actual = sha((f / "embeddings.npy").read_bytes())
+            expected = st.get("embeddings_sha256", st.get("embedding_sha256"))
+            if expected is None:
+                original = json.loads((HERE.parent / "pilot-preserved/HANDOFF.json").read_text())
+                for name in ["openhands", "kaizen"]:
+                    manifest = json.loads((HERE.parent / name / "manifest.json").read_text())
+                    if manifest["repository"]["background_proof"]["sha256"] == c["background_sha256"]:
+                        expected = original["hashes"][name + "/embeddings.npy"]
+            assert actual == expected, (c["cohort_id"], list(st))
+            vector_validated = True
+        proofs = read(f / "source-proof.jsonl")
+        la = keyed(before / "ledger.jsonl", ["profile", "batch_id", "arm"])
+        lb = keyed(f / "ledger.jsonl", ["profile", "batch_id", "arm"])
+        ledger_delta = []
+        for k in sorted(la.keys() & lb.keys()):
+            a, b = la[k], lb[k]
+            d = {
+                x: [a[x], b[x]]
+                for x in ["candidate_count", "core_rule_allowed", "funded", "usd_estimated"]
+                if a[x] != b[x]
+            }
+            if d:
+                ledger_delta.append({"key": list(k), "changes": d})
+        entries.append(
+            {
+                "cohort_id": c["cohort_id"],
+                "repository": c["repository"],
+                "background_sha256": c["background_sha256"],
+                "competitors": len(policy),
+                "before_missing_actual_native_span": sum(
+                    r.get("line") is None or r.get("end_line") is None for r in raw
+                ),
+                "after_unresolved_native": sum(r["function"] is None for r in policy),
+                "after_categories": dict(collections.Counter(r["category"] for r in policy)),
+                "native_body_match_ambiguities": sum(r["matching_native_symbols"] > 1 for r in proofs),
+                "gold_endpoint_records": len(gold),
+                "gold_categories": dict(collections.Counter(r["category"] for r in gold)),
+                "gold_recovered_native_records": sum(
+                    r["span"]["provenance"] == "recovered_unique_native_span" for r in gold
+                ),
+                "common_policy_row_arm_profile_records": len(common),
+                "before_only_records": len(old.keys() - new.keys()),
+                "after_only_records": len(new.keys() - old.keys()),
+                "common_row_changes": dict(changes),
+                "ledger_deltas": ledger_delta,
+                "vectors_match_frozen_encoder_status": vector_validated,
+                "vector_sha256": actual if vector_validated else None,
+                "new_encoder_calls_for_migration": 0,
+            }
+        )
+        # First-match removal is distinct from duplicate frozen background IDs.
+        ids = collections.Counter(r["source_id"] for r in policy)
+        entries[-1]["native_ambiguities_without_duplicate_background_id"] = sum(
+            proofs[r["position"]]["matching_native_symbols"] > 1 and ids[r["source_id"]] == 1 for r in policy
+        )
+    runner.experiment.jsonl(OUT / "migration-row-deltas-v1.jsonl", changed_rows)
+    runner.experiment.jsonl(OUT / "migration-candidate-deltas-v1.jsonl", changed_candidates)
+    result = {
+        "schema": 1,
+        "helper_sha256": receipt["helper_sha256"],
+        "shared_helper_sha256": receipt["shared_helper_sha256"],
+        "index_v2_receipt_sha256": sha((runner.SHARED / "index-ready.json").read_bytes()),
+        "index_rows_sha256": ready["rows_sha256"],
+        "actual_adapter_fixtures": fixtures["count"],
+        "actual_adapter_all_pass": fixtures["all_pass"],
+        "cohorts": entries,
+        "changed_row_arm_profile_records": len(changed_rows),
+        "changed_candidate_arm_batch_records": len(changed_candidates),
+        "expensive_vector_refits": 0,
+        "new_provider_calls": 0,
+        "gold_relabels": 0,
+        "interpretation": "Recoveries count endpoint records, not independent gold pairs. Missing commits and ambiguous native symbols remain separate. No extra neighbors refill unresolved slots. Additional cohort coverage is not migration gain.",
+    }
+    dump(OUT / "migration-receipt-v1.json", result)
+    print(
+        json.dumps(
+            {
+                "fixtures": fixtures["count"],
+                "pass": fixtures["all_pass"],
+                "cohorts": len(entries),
+                "changed_rows": len(changed_rows),
+                "changed_candidates": len(changed_candidates),
+                "vector_refits": 0,
+                "providers": 0,
+            }
+        )
+    )
+    for e in entries:
+        print(
+            e["cohort_id"],
+            e["before_missing_actual_native_span"],
+            e["after_unresolved_native"],
+            e["native_ambiguities_without_duplicate_background_id"],
+            e["common_row_changes"],
+        )
+
+
+if __name__ == "__main__":
+    run()

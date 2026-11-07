@@ -1,0 +1,291 @@
+"""Freeze an initial12 diverse novel+4control batch from the full-source ranked inventory.
+Known labels do not enter retrieval or funding; all sampled audit cases are retained.
+"""
+
+import collections
+import random
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import experiment
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger
+from dry_lint.detector import why_skipped
+from dry_lint.models import Candidate, Function, pair_key
+from dry_lint.ranking import rank_candidates
+from dry_lint.settings import Settings
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+SOURCE = LAB / "openhands"
+BATCH = HERE / "novel-batch-v1"
+SHARED = Path(
+    "LAB_ROOT/jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v1-88f0f73927ce28d2"
+)
+read = experiment.read_rows
+sha = experiment.sha
+
+
+def main():
+    assert not BATCH.exists(), "Frozen batch already exists; use a new version for expansions"
+    repo = experiment.PROTOCOL["repositories"][0]
+    fs = [Function.model_validate(r) for r in read(SOURCE / "functions.jsonl")]
+    bg = BenchBackground.decode(Path(repo["background_proof"]["path"]).read_bytes())
+    index = bg.index()
+    settings = Settings(budget={"usd": 0.04}, patterns=[])
+    # Audit reverse baseline funding mechanically, without any labels or embedding thresholds being changed.
+    funded_base = {p: set() for p in experiment.PROTOCOL["profiles"]}
+    for i, f in enumerate(fs):
+        if not f.path.startswith("openhands/"):
+            continue
+        s = index.similar(bg.documents[i].tokens(), exclude={i})
+        for p, cfg in experiment.PROTOCOL["profiles"].items():
+            base = []
+            floor = cfg["sparse_small_floor"] if f.lines < 6 else cfg["sparse_floor"]
+            for j, score in s:
+                if score < floor:
+                    break
+                if (not cfg["same_file"] and fs[j].path == f.path) or fs[j].qualname == f.qualname:
+                    continue
+                base.append(
+                    Candidate(
+                        new=f,
+                        existing=fs[j],
+                        similarity=score,
+                        comparer="lab-cpu-minilm-sparse:1:" + repo["background_proof"]["sha256"][:16],
+                        filtered=why_skipped(f, fs[j], settings),
+                        similarity_reusable=False,
+                    )
+                )
+                if len(base) == cfg["k"]:
+                    break
+            allowed = [c for c in rank_candidates(base) if not c.filtered]
+            ledger = Ledger(settings)
+            judge = experiment.EstimateOnlySonnet()
+            ix = ledger.select(judge, allowed)
+            funded_base[p].update(allowed[n].key for n in ix)
+    known = set()
+    for r in read(SHARED / "rows.jsonl"):
+        if r.get("repository") == repo["repository"] and r.get("revision") == repo["revision"]:
+            for m in r["mappings"]:
+                if m["status"] == "mapped":
+                    known.add(pair_key(m["sources"]["new"]["source_id"], m["sources"]["existing"]["source_id"]))
+    for path in Path("LAB_ROOT/reports/candidate-first/frozen-review-batches").glob("*.jsonl"):
+        for r in read(path):
+            if (
+                r.get("repository") == repo["repository"]
+                and r.get("revision") == repo["revision"]
+                and r.get("candidate")
+            ):
+                known.add(Candidate.model_validate(r["candidate"]).key)
+    inventory = read(SOURCE / "discovery-extras-private.jsonl")
+    pool = []
+    excluded = []
+    seen = set()
+    for r in sorted(inventory, key=lambda r: (-r["candidate"]["similarity"], r["pair_key"], r["profile"])):
+        c = Candidate.model_validate(r["candidate"])
+        why = None
+        if not r["funded"]:
+            why = "not_funded_under_fixed_normal_ledger"
+        elif r["pair_key"] in known:
+            why = "exact_source_pair_already_reviewed_in_full_inventory_or_frozen_review_history"
+        elif r["pair_key"] in funded_base[r["profile"]]:
+            why = "same_profile_baseline_funded_pair_in_other_direction"
+        elif r["pair_key"] in seen:
+            why = "unordered_pair_repeated_reverse_or_profile"
+        if why:
+            excluded.append({"pair_key": r["pair_key"], "profile": r["profile"], "reason": why})
+            continue
+        seen.add(r["pair_key"])
+        pool.append(r)
+    BATCH.mkdir(parents=True)
+    experiment.jsonl(BATCH / "ranked-novel-inventory-private.jsonl", pool)
+    experiment.jsonl(BATCH / "exclusions-audit-private.jsonl", excluded)
+    # Four broad score/rank-disagreement strata, four middle-score, four lower-score/audit cases.
+    chosen = []
+    used = set()
+    domains = collections.Counter()
+
+    def take(rows, count, stratum):
+        n = 0
+        for r in rows:
+            c = r["candidate"]
+            key = r["pair_key"]
+            domain = tuple(sorted("/".join(c[s]["path"].split("/")[:4]) for s in ["new", "existing"]))
+            if key in used or domains[domain] >= 2:
+                continue
+            if not c["new"]["path"].startswith("openhands/") or not c["existing"]["path"].startswith("openhands/"):
+                continue
+            chosen.append(
+                (r, {"stratum": stratum, "status": "unjudged source hypothesis or audit case; not an assigned label"})
+            )
+            used.add(key)
+            domains[domain] += 1
+            n += 1
+            if n == count:
+                return
+        assert n == count, (stratum, n, count)
+
+    take(
+        [r for r in pool if r["candidate"]["similarity"] >= 0.78 and r["sparse_score"] < 0.35],
+        4,
+        "large_sparse_dense_disagreement",
+    )
+    take([r for r in pool if 0.70 <= r["candidate"]["similarity"] < 0.80], 4, "middle_dense_score_diverse")
+    take(
+        sorted(
+            [r for r in pool if r["candidate"]["similarity"] < 0.71],
+            key=lambda r: (r["candidate"]["similarity"], r["pair_key"]),
+        ),
+        4,
+        "lower_dense_score_and_mechanical_audit",
+    )
+    # Independent source-control hypotheses; no shared endpoints with the first12 where possible.
+    controlkeys = ["4dbfe0f3487714aa", "11bf9838054a9766", "4d6ef841390dfac6", "f9ed01a641dcae68"]
+    for key in controlkeys:
+        r = next(r for r in inventory if r["pair_key"] == key and r["funded"])
+        assert key not in used
+        chosen.append(
+            (
+                r,
+                {
+                    "stratum": "matched_independent_topical_control_hypothesis",
+                    "status": "source-reviewed distinction proposed privately, not gold; independent review required",
+                },
+            )
+        )
+        used.add(key)
+    random.Random(20261107).shuffle(chosen)
+    proof = {r["row"]: r for r in read(SOURCE / "source-proof.jsonl")}
+    queue = []
+    blind = []
+    private = []
+    for number, (r, selection) in enumerate(chosen, 1):
+        c = Candidate.model_validate(r["candidate"])
+        assert c.model_dump(mode="json") == r["candidate"]
+        endpoints = []
+        callers = []
+        for side, pos in [("new", r["query_row"]), ("existing", r["target_row"])]:
+            f = getattr(c, side)
+            raw = subprocess.check_output(["git", "-C", repo["git"], "show", repo["revision"] + ":" + f.path])
+            native = experiment.PythonExtractor().functions(f.path, raw.decode())
+            matches = [n for n in native if n.qualname == f.qualname]
+            assert len(matches) == 1 and matches[0].code == f.code
+            assert 1 <= f.line <= f.end_line
+            assert sha(raw) == proof[pos]["file_sha256"]
+            assert sha(f.code.encode()) == bg.documents[pos].source_sha256
+            lines = raw.decode().splitlines()
+            a = max(1, f.line - 8)
+            b = min(len(lines), f.end_line + 4)
+            endpoints.append(
+                {
+                    "side": side,
+                    "source_id": f.qualname,
+                    "revision": repo["revision"],
+                    "path": f.path,
+                    "line": f.line,
+                    "end_line": f.end_line,
+                    "body_sha256": sha(f.code.encode()),
+                    "full_source_sha256": sha(raw),
+                    "git_blob_sha1": proof[pos]["git_blob_sha1"],
+                    "full_source_file": proof[pos]["source_file"],
+                    "excerpt_start": a,
+                    "excerpt_end": b,
+                    "excerpt": "\n".join(lines[a - 1 : b]),
+                    "blob_url": f"https://github.com/{repo['repository']}/blob/{repo['revision']}/{f.path}#L{f.line}",
+                }
+            )
+            proc = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    repo["git"],
+                    "grep",
+                    "-n",
+                    "-E",
+                    re.escape(f.name) + r"\(",
+                    repo["revision"],
+                    "--",
+                    "openhands",
+                    "*.py",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            callers.extend(proc.stdout.splitlines()[:20])
+        ident = f"CPUF1-{number:02d}"
+        packet = {
+            "id": ident,
+            "repository": repo["repository"],
+            "revision": repo["revision"],
+            "candidate": r["candidate"],
+            "background_proof": repo["background_proof"],
+            "source_endpoints": endpoints,
+            "caller_evidence": {
+                "method": "Exact pinned git grep; syntactic references, not runtime binding inference",
+                "matches": sorted(set(callers)),
+            },
+            "wanted": {
+                "jev": {"model": "jev-1.14.0", "context": True},
+                "claude": {
+                    "model": "claude-sonnet-5-5",
+                    "prompt_policy": "shared-operations",
+                    "max_output_tokens": 1024,
+                },
+            },
+            "question": "Review the independently owned operation, caller/ownership boundary, drift and useful consolidation. Similarity and provider confidence are not labels.",
+        }
+        queue.append(packet)
+        blind.append(
+            {k: v for k, v in packet.items() if k != "candidate"}
+            | {"new": r["candidate"]["new"], "existing": r["candidate"]["existing"]}
+        )
+        private.append(
+            {
+                "id": ident,
+                **selection,
+                "funding": r,
+                "baseline_reverse_funding_same_profile": r["pair_key"] in funded_base[r["profile"]],
+                "mechanical_exclusion_applied_after_funding_only": True,
+            }
+        )
+    for name, rs in [
+        ("novel-review-queue.jsonl", queue),
+        ("novel-reviewer-packet-blind.jsonl", blind),
+        ("novel-review-sidecar-private.jsonl", private),
+    ]:
+        experiment.jsonl(BATCH / name, rs)
+        (BATCH / name).chmod(0o444)
+    experiment.dump(
+        BATCH / "freeze.json",
+        {
+            "schema": 1,
+            "version": "novel-batch-v1",
+            "novel": 12,
+            "control_hypotheses": 4,
+            "frozen_rows": len(queue),
+            "full_source_verified": True,
+            "all_actually_funded": True,
+            "root_provider_calls_only": True,
+            "worker_provider_calls": 0,
+            "strata": dict(collections.Counter(s["stratum"] for _, s in chosen)),
+            "reverse_and_known_exclusions": dict(collections.Counter(r["reason"] for r in excluded)),
+            "hashes": {
+                n: sha((BATCH / n).read_bytes())
+                for n in [
+                    "novel-review-queue.jsonl",
+                    "novel-reviewer-packet-blind.jsonl",
+                    "novel-review-sidecar-private.jsonl",
+                ]
+            },
+        },
+    )
+    print(BATCH / "novel-review-queue.jsonl", sha((BATCH / "novel-review-queue.jsonl").read_bytes()), flush=True)
+
+
+if __name__ == "__main__":
+    main()
