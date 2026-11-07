@@ -37,8 +37,8 @@ a separate, post-hoc balanced-budget check of those two queries; that check is n
 One public example is OpenHands' metrics snapshot: its tail repeats a projection that the 256-token prefix
 misses. Reuse must preserve whether mutable token usage is copied or retained by reference. A direct substitution
 of the existing helper changes that behavior. This is evidence for a carefully scoped shared operation, not
-interchangeable functions. The statement-view recipe remains research code in the linked study; the installed
-plugin described below still uses one prefix vector. Keep it opt-in: two useful reports justify the mechanism,
+interchangeable functions. The [complete-statement rank-fusion plugin](cpu-tail-rrf.md) now implements a separately measured successor. The
+`cpu-embedding` plugin described below still uses one prefix vector. Keep it opt-in: two useful reports justify the mechanism,
 but do not establish broad recall, and adding statement vectors increases cold encoding work.
 
 ```text

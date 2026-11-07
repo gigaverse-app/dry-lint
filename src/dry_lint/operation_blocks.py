@@ -8,6 +8,7 @@ import ast
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
+from itertools import islice
 
 from dry_lint.functions import _behaviour_nodes, _function_node, node_tokens
 from dry_lint.index import TfidfIndex
@@ -70,21 +71,52 @@ def _regions(body: list[ast.stmt], depth: int = 0) -> Iterator[tuple[str, list[a
         yield "straight_run", run
 
 
-def _block(function: Function, kind: str, statements: list[ast.stmt]) -> _Block | None:
+class _Preparation:
+    """Statement work shared only within one function's region construction.
+
+    node_tokens visits each top-level statement independently, in body order.
+    Concatenating those exact lists preserves token and floating-point sum order;
+    concatenating tokens from nested subtrees would not preserve its breadth-first
+    traversal. No AST or per-statement cache survives _representations.
+    """
+
+    def __init__(self) -> None:
+        self.counts: dict[ast.stmt, int] = {}
+        self.tokens: dict[ast.stmt, list[str]] = {}
+
+    def count(self, statement: ast.stmt) -> int:
+        if statement not in self.counts:
+            # Only the <=400 predicate matters, never the exact oversized count.
+            self.counts[statement] = sum(1 for _ in islice(_behaviour_nodes(statement), 401))
+        return self.counts[statement]
+
+    def statement_tokens(self, statement: ast.stmt) -> list[str]:
+        if statement not in self.tokens:
+            wrapper = ast.FunctionDef(
+                name="",
+                args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
+                body=[statement],
+                decorator_list=[],
+            )
+            self.tokens[statement] = [token for token in node_tokens(wrapper) if not token.startswith("fn:")]
+        return self.tokens[statement]
+
+
+def _block(
+    function: Function, kind: str, statements: list[ast.stmt], preparation: _Preparation | None = None
+) -> _Block | None:
     if not statements:
         return None
     start, end = statements[0].lineno, statements[-1].end_lineno
     assert end is not None  # parsed source, rather than a synthesized AST
-    nodes = sum(1 for statement in statements for _ in _behaviour_nodes(statement))
-    if not 4 <= end - start + 1 <= 80 or not 20 <= nodes <= 400:
+    # Reject by source span before walking possibly very large syntax trees.
+    if not 4 <= end - start + 1 <= 80:
         return None
-    wrapper = ast.FunctionDef(
-        name="",
-        args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
-        body=statements,
-        decorator_list=[],
-    )
-    tokens = [token for token in node_tokens(wrapper) if not token.startswith("fn:")]
+    preparation = preparation if preparation is not None else _Preparation()
+    nodes = sum(preparation.count(statement) for statement in statements)
+    if not 20 <= nodes <= 400:
+        return None
+    tokens = [token for statement in statements for token in preparation.statement_tokens(statement)]
     operations = frozenset(
         token
         for token in tokens
@@ -104,8 +136,11 @@ def _representations(function: Function) -> tuple[list[_Block], _Block | None]:
     node = _function_node(function.code)
     if node is None:
         return [], None
+    preparation = _Preparation()
     blocks = [
-        block for kind, statements in _regions(node.body) if (block := _block(function, kind, statements)) is not None
+        block
+        for kind, statements in _regions(node.body)
+        if (block := _block(function, kind, statements, preparation)) is not None
     ]
     original = sorted(blocks, key=lambda block: (block.line, block.end_line, block.kind))[:_MAX_BLOCKS]
     body = node.body
@@ -117,10 +152,20 @@ def _representations(function: Function) -> tuple[list[_Block], _Block | None]:
     ):
         body = body[1:]
     helper = None
-    if not any(isinstance(nested, _NESTED) for statement in body for nested in ast.walk(statement)):
-        helper = _block(function, "whole_helper", body)
-    if helper and any((block.line, block.end_line) == (helper.line, helper.end_line) for block in original):
-        helper = None
+    if body:
+        start, end = body[0].lineno, body[-1].end_lineno
+        assert end is not None
+        # A duplicate or out-of-span helper cannot survive the original rules;
+        # avoid its second node walk and tokenization without changing any region.
+        duplicate = any(
+            (block.line, block.end_line) == (function.line + start - 1, function.line + end - 1) for block in original
+        )
+        if (
+            not duplicate
+            and 4 <= end - start + 1 <= 80
+            and not any(isinstance(nested, _NESTED) for statement in body for nested in ast.walk(statement))
+        ):
+            helper = _block(function, "whole_helper", body, preparation)
     return original, helper
 
 
@@ -197,6 +242,11 @@ class OperationBlocksComparer:
         ]
         self._fallback_postings = _postings(self._fallback_parents)
         self._full_vectors: dict[int, dict[str, float]] = {}
+        # One standalone source, independent of object identity and discarded on
+        # reindex. Never retain a query AST or an unbounded history of source edits.
+        self._query_key: tuple | None = None
+        self._query_original: list[_Block] = []
+        self._query_fallback: list[_Block] = []
 
     def _prepare(self, block: _Block) -> _Block:
         block.vector = self.tfidf.vector(block.tokens)
@@ -216,14 +266,18 @@ class OperationBlocksComparer:
         position = self._positions.get(id(function))
         if position is not None and _source_key(function) == self._source_keys[position]:
             return (self._fallback_parents if fallback else self._parents)[position]
-        original, helper = _representations(function)
-        blocks = [self._prepare(block) for block in original]
-        if fallback and helper:
-            blocks.append(self._prepare(helper))
-        postings = self._fallback_postings if fallback else self._postings
-        for block in blocks:
-            block.retained = frozenset(token for token in block.anchors if token in postings)
-        return blocks
+        key = _source_key(function)
+        if key != self._query_key:
+            original, helper = _representations(function)
+            blocks = [self._prepare(block) for block in original]
+            extended = [*(replace(block) for block in blocks), *([self._prepare(helper)] if helper else [])]
+            # Retained anchors are route-specific even though immutable preparation
+            # is shared. Extra helper postings must never alter the first route.
+            for route, postings in ((blocks, self._postings), (extended, self._fallback_postings)):
+                for block in route:
+                    block.retained = frozenset(token for token in block.anchors if token in postings)
+            self._query_key, self._query_original, self._query_fallback = key, blocks, extended
+        return self._query_fallback if fallback else self._query_original
 
     def _pool(self, function: Function, blocks: list[_Block], *, fallback: bool = False) -> list[int]:
         mass: dict[int, float] = defaultdict(float)
@@ -237,17 +291,21 @@ class OperationBlocksComparer:
 
     @staticmethod
     def _best(left: list[_Block], right: list[_Block]) -> tuple[float, list[str]]:
-        best, shared = 0.0, []
+        best, shared = 0.0, frozenset()
         # Both lists are in source order, so equal scores retain the earliest regions.
         for a in left:
             for b in right:
+                # Most region pairs have no retained anchor in common. Check
+                # that necessary guard before allocating the larger intersections.
+                if not a.retained & b.retained or len(a.calls & b.calls) < 2:
+                    continue
                 common = a.operations & b.operations
-                if len(common) < 3 or len(a.calls & b.calls) < 2 or not a.retained & b.retained:
+                if len(common) < 3:
                     continue
                 score = _cosine(a.vector, b.vector)
                 if score > best:
-                    best, shared = score, sorted(common)
-        return best, shared
+                    best, shared = score, common
+        return best, sorted(shared)
 
     def neighbours(
         self, function: Function, k: int, allowed: Callable[[Function], bool]

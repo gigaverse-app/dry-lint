@@ -11,13 +11,21 @@ Start with the existing TF-IDF exploration route. Add one extra method for a mea
 | --- | --- | --- | --- |
 | A Python helper's work is repeated inside a larger workflow | [Operation blocks](operation-blocks.md) | Compares complete statement regions, so unrelated surrounding work has less influence | Needs several concrete shared operations; tiny helpers and other languages are outside its current scope |
 | Functions use different vocabulary, or useful descriptions accompany short implementations | [Offline CPU embeddings](cpu-embedding.md) | A pretrained model puts text into a learned vector space | The current encoder sees only the first 256 wordpieces; semantic similarity is not proof of duplicate behavior |
+| A useful operation occurs beyond a long function's embedding prefix | [Complete statements + rank fusion](cpu-tail-rrf.md) | Represents whole tail statements and combines eligible ranks | Narrow development gain; no demonstrated shared-campaign gain; extra cold CPU cost |
 | A candidate is found but never judged | Inspect the campaign budget and admission order | Another retrieval method cannot by itself fix budget loss | Extra candidates compete for the same allowance |
 | A judge identifies shared work but scores it below the reporting rule | Inspect the actual answer, policy and controls | This is a judging/reporting issue | Raising retrieval scores will not repair that answer |
 
-Neither extra method is enabled by default. The block route has a source-reviewed, diagnostic example of
-helper reuse beyond the explicit TF-IDF20 route. The tested CPU route has not demonstrated an additional useful
-report over that wider baseline. CPU embeddings are therefore an experimental option for a repository-specific
-comparison, not the recommended next step for every adopter.
+None of these extra methods is enabled by default. **Operation blocks are the better-supported next step for Python
+helper reuse.** The complete-helper fallback added nine net bounded useful reports in a selected balanced-policy
+comparison, alongside three net unsupported reports. That comparison used cold single-query campaigns; it does
+not establish the same gain on multi-function PRs. The [method guide](operation-blocks.md#complete-helper-follow-up)
+explains the additions, displaced reports and source-review limits.
+
+The prefix-only CPU plugin has not demonstrated an additional useful report over the wider TF-IDF baseline.
+The [complete-statement and rank-fusion route](cpu-tail-rrf.md) adds three independently supported useful reports
+across 66 selected single-function campaigns, with three tiny reports and no lost admissions. It found no gain
+in five shared campaigns, so it remains an explicit option for long-function misses. Cold encoding is expensive;
+use the existing vector cache and compare full-stack report additions and losses on your repository.
 
 ## Start with one extra route
 
@@ -41,6 +49,10 @@ To test CPU retrieval instead, replace the second entry with the CPU example in 
 list TF-IDF, blocks, then CPU, each extra with `neighbours = 1`. The first route to propose a pair owns its score;
 later routes skip it before consuming their extra slot. Two extras still share the same campaign allowance.
 This order is a configuration example, not a measured guarantee that combining them improves recall.
+Retrieval order also does **not** protect all earlier candidates' funding: the campaign scheduler orders the
+combined pool using lane, priority, query fairness and similarity. New exploration candidates can displace
+earlier exploration candidates. Evaluate the whole pool under the actual scheduler, not by reserving the old
+stack first in a separate experimental loop.
 
 Run detection without provider calls:
 

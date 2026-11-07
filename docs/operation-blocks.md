@@ -155,6 +155,11 @@ available native function occurrences. A separate Due/pytest extension reconstru
 and 115 labeled pair/background combinations: both original and helper routes retained their funded outcomes.
 These observations support bounded regression confidence, not a claim of zero future regressions.
 
+A subsequent [implementation optimization](operation-block-performance.md) reduced helper-enabled cold
+construction by 16–21% and standalone query time by 22–38% in three paired backgrounds. It preserves exact
+outputs in 24,135 recorded queries and 103 executable source edits. Indexed warm-query results were mixed;
+the optimization changes neither this route's recall nor its budget behavior.
+
 The [helper-recovery study](https://github.com/gigaverse-app/dry-lint/pull/115) supplies the frozen implementation,
 exact prompts and recorded answers, source-review boundaries, budgets, and provider-free reproduction. Full
 retrieval refitting requires the separately identified complete backgrounds; never fit IDF on just the selected
