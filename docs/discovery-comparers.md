@@ -5,7 +5,8 @@ operation inside otherwise different functions. A comparer proposes **two comple
 The configured judge decides whether there is an operation worth sharing, and the existing budget decides
 whether that question is asked.
 
-Start with the existing TF-IDF exploration route. Add one extra method for a measured gap:
+The `balanced` preset now includes TF-IDF exploration and one bounded Python operation-block candidate per
+changed function. Other judging presets keep their existing behavior. Choose an additional route for a measured gap:
 
 | Your problem | Method to try | Why it might help | Important limit |
 | --- | --- | --- | --- |
@@ -15,8 +16,8 @@ Start with the existing TF-IDF exploration route. Add one extra method for a mea
 | A candidate is found but never judged | Inspect the campaign budget and admission order | Another retrieval method cannot by itself fix budget loss | Extra candidates compete for the same allowance |
 | A judge identifies shared work but scores it below the reporting rule | Inspect the actual answer, policy and controls | This is a judging/reporting issue | Raising retrieval scores will not repair that answer |
 
-None of these extra methods is enabled by default. **Operation blocks are the better-supported next step for Python
-helper reuse.** The complete-helper fallback added nine net bounded useful reports in a selected balanced-policy
+**Operation blocks run automatically within `balanced` when its default TF-IDF comparer is used and no explicit
+discovery comparer list is supplied.** The complete-helper fallback added nine net bounded useful reports in a selected balanced-policy
 comparison, alongside three net unsupported reports. That comparison used cold single-query campaigns; it does
 not establish the same gain on multi-function PRs. The [method guide](operation-blocks.md#complete-helper-follow-up)
 explains the additions, displaced reports and source-review limits.
@@ -27,7 +28,13 @@ across 66 selected single-function campaigns, with three tiny reports and no los
 in five shared campaigns, so it remains an explicit option for long-function misses. Cold encoding is expensive;
 use the existing vector cache and compare full-stack report additions and losses on your repository.
 
-## Start with one extra route
+## Use balanced, or choose explicit routes
+
+For agent-reviewed discovery, start with `preset = "balanced"` in `.dry-lint.toml`. No comparer list is needed.
+The [activation and opt-out guide](operation-blocks.md#balanced-activation-and-opt-out) explains which explicit
+settings override the defaults. This chooses the balanced judge and reporting thresholds as well as discovery.
+
+To configure the same retrieval routes independently of a judging preset, use an explicit list.
 
 In the adopting repository's `.dry-lint.toml`:
 
@@ -45,8 +52,9 @@ previously unseen eligible block candidate per changed function. An explicit lis
 exploration**, so omitting its TF-IDF entry changes your baseline too. This example does not change the judge,
 reporting threshold or budget.
 
-To test CPU retrieval instead, replace the second entry with the CPU example in its setup guide. To test both,
-list TF-IDF, blocks, then CPU, each extra with `neighbours = 1`. The first route to propose a pair owns its score;
+For the complete evaluated CPU stack, use the [CPU recovery setting](cpu-recovery.md), supplying local model and
+cache paths. It enables both prefix and tail retrieval with shared resources. Prefix-only CPU retrieval remains
+an experimental option in its setup guide. The first route to propose a pair owns its score;
 later routes skip it before consuming their extra slot. Two extras still share the same campaign allowance.
 This order is a configuration example, not a measured guarantee that combining them improves recall.
 Retrieval order also does **not** protect all earlier candidates' funding: the campaign scheduler orders the

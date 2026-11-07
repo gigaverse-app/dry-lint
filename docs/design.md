@@ -71,6 +71,8 @@ Every run goes through the same six steps, whatever plugins it uses:
 `dry-lint check` runs all six. In CI they split into two jobs: `dry-lint detect` runs steps 1–4 and writes
 `candidates.json`; `dry-lint judge` runs steps 5–6 from that file and writes `report.json`.
 
+Discovery comparers may opt into generic resources owned by a single `Detector.candidates()` call. Core supplies construction/index hooks only; plugin code owns validation, exact keys and encoding. Prepared resources may be reused while mutable query state remains private. Concurrent calls have independent scopes, and no scope survives the call. See [plugin resource ownership](plugins.md#optional-run-resources).
+
 ## Two jobs in CI
 
 The detect job checks out and reads the pull request's code. It needs no secrets and touches no store, so it is

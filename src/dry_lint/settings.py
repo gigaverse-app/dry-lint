@@ -14,7 +14,7 @@ import tomllib
 from pathlib import Path
 from typing import Annotated, Any
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 from dry_lint.git import git
 from dry_lint.models import Consolidation, Verdict
@@ -81,8 +81,39 @@ class Budget(BaseModel):
     )
 
 
+class CpuRecovery(BaseModel):
+    """Explicit adopter-owned local artifacts for the frozen CPU recovery profile."""
+
+    model_config = ConfigDict(extra="forbid")
+    model_dir: str = Field(min_length=1)
+    cache_dir: str = Field(min_length=1)
+    threads: int = Field(default=2, ge=1, le=2, strict=True)
+
+    def comparers(self):
+        return [
+            {"use": "tfidf", "neighbours": 20, "min_similarity": 0.35, "min_similarity_small": 0.35},
+            {"use": "operation-blocks", "neighbours": 1},
+            {"use": "cpu-embedding", "neighbours": 1, **self.model_dump()},
+            {"use": "cpu-tail-rrf", "neighbours": 1, **self.model_dump()},
+        ]
+
+
 class Discovery(BaseModel):
     """Baseline first, then paced exploration, sharing a durable campaign allowance."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def expand_cpu_recovery(cls, value):
+        # Normalize the shorthand to the existing configuration contract. Round
+        # trips and detection/baseline identities are identical to explicit routes.
+        if isinstance(value, dict) and "cpu_recovery" in value:
+            value = dict(value)
+            profile = CpuRecovery.model_validate(value.pop("cpu_recovery"))
+            if "comparers" in value:
+                raise ValueError("Choose cpu_recovery or explicit discovery.comparers, not both.")
+            value["comparers"] = profile.comparers()
+            value.setdefault("enabled", True)
+        return value
 
     enabled: bool = False
     comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(default_factory=list)

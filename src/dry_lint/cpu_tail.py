@@ -19,8 +19,10 @@ class CompleteStatementComparer(CpuEmbeddingComparer):
 
     name = "cpu-complete-statements"
 
-    def __init__(self, model_dir, threads=2, cache_dir=None):
-        super().__init__(model_dir, min_similarity=TAIL_FLOOR, threads=threads, cache_dir=cache_dir)
+    def __init__(self, model_dir, threads=2, cache_dir=None, *, _resources=None):
+        super().__init__(
+            model_dir, min_similarity=TAIL_FLOOR, threads=threads, cache_dir=cache_dir, _resources=_resources
+        )
         self.recipe = StatementViews(self.encoder)
         self.version = (
             "1-"
@@ -112,8 +114,12 @@ class CpuTailRankFusionComparer:
     discovery_unseen = True
     similarity_reusable = False
 
-    def __init__(self, model_dir, threads=2, cache_dir=None):
-        self.tail = CompleteStatementComparer(model_dir, threads=threads, cache_dir=cache_dir)
+    @classmethod
+    def for_run(cls, resources, **options):
+        return cls(**options, _resources=resources)
+
+    def __init__(self, model_dir, threads=2, cache_dir=None, *, _resources=None):
+        self.tail = CompleteStatementComparer(model_dir, threads=threads, cache_dir=cache_dir, _resources=_resources)
         self.blocks = OperationBlocksComparer()
         self.functions = []
         self.position = {}
@@ -130,10 +136,19 @@ class CpuTailRankFusionComparer:
         }
         self.version = "1-" + hashlib.sha256(json.dumps(self.contract, sort_keys=True).encode()).hexdigest()
 
+    def index_for_run(self, functions, resources):
+        self._index(functions, resources)
+
     def index(self, functions):
+        self._index(functions, None)
+
+    def _index(self, functions, resources):
         # Fresh block state protects the old full index if either route fails.
         blocks = OperationBlocksComparer()
-        blocks.index(functions)
+        if resources is None:
+            blocks.index(functions)
+        else:
+            resources.index(blocks, functions)
         self.tail.index(functions)
         self.blocks = blocks
         self.functions = list(functions)

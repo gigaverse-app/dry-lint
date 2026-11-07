@@ -7,6 +7,7 @@ from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Declaration, LanguageAnalysis
 from dry_lint.operation_blocks import _blocks
 from dry_lint.plugins import load
+from dry_lint.presets import resolve
 from dry_lint.settings import PluginChoice, Settings
 
 from conftest import Repo, function
@@ -381,3 +382,26 @@ def test_documentation_without_executable_body_cannot_be_a_helper_candidate():
     assert comparer.neighbours(documented, 1, lambda f: True) == []
     assert comparer.similarity(documented, helper) == 0
     assert comparer.shared(documented, helper) == []
+
+
+def test_balanced_default_appends_one_unseen_pair_and_empty_list_restores_original(tmp_path):
+    repo = Repo(tmp_path / "balanced-default")
+    for i in range(25):
+        repo.write(f"copy{i:02}.py", "def deliver(owner, payload):\n" + OPERATION)
+    repo.write("noise.py", "\n".join(f.code + "\n" for f in background(2500)))
+    repo.commit()
+    previous = resolve(Settings(preset="balanced", exclude=[], discovery={"comparers": []}), {})
+    automatic = resolve(Settings(preset="balanced", exclude=[]), {})
+    old_detector = Detector.for_repository(repo.root, previous)
+    new_detector = Detector.for_repository(repo.root, automatic)
+    queries = [f for f in old_detector.functions if f.path in {"copy00.py", "copy01.py"}]
+    old = old_detector.candidates(queries)
+    new = new_detector.candidates(queries)
+    original = {c.key: c for c in old if c.lane != "relative"}
+    assert all(c == original[c.key] for c in new if c.key in original)
+    assert original.keys() <= {c.key for c in new}
+    additions = [c for c in new if c.key not in {c.key for c in old}]
+    assert 1 <= len(additions) <= len(queries)
+    assert len({c.new.qualname for c in additions}) == len(additions)
+    assert all(c.lane == "exploration" and c.comparer == "operation-blocks:2" for c in additions)
+    assert all(c.new.code in {f.code for f in queries} for c in additions)

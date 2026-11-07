@@ -10,6 +10,7 @@ import fnmatch
 import re
 from pathlib import Path
 
+from dry_lint.comparer_resources import ComparerResources
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
@@ -122,6 +123,7 @@ class Detector:
         cross_repository: bool = False,
         same_file: bool = False,
         discovery_keys: set[str] | None = None,
+        resources: ComparerResources | None = None,
     ) -> None:
         self.functions = functions
         self.settings = settings
@@ -134,7 +136,10 @@ class Detector:
         self.comparer_id = identity(comparer)
         self.file_extractors = {path: extractor_for(path, extractors) for path in {f.path for f in functions}}
         self.position = {f.qualname: i for i, f in enumerate(functions)}
-        comparer.index(functions)
+        if resources is None:
+            comparer.index(functions)
+        else:
+            resources.index(comparer, functions)
 
     @classmethod
     def for_repository(cls, root: Path, settings: Settings, *, strict: bool = False) -> "Detector":
@@ -285,6 +290,7 @@ class Detector:
             options.update(min_similarity=policy.min_similarity, min_similarity_small=policy.min_similarity)
             choices = [ExplorationComparer(use="tfidf", **options)]
         keys = {c.key for c in baseline}
+        resources = ComparerResources()
         for choice in choices if policy.enabled else []:
             # Independent indexes cannot displace baseline neighbours or consume their protected budget.
             wider = self.settings.model_copy(
@@ -294,7 +300,7 @@ class Detector:
                     "discovery": policy.model_copy(update={"enabled": False}),
                 }
             )
-            comparer = load("comparers", choice)
+            comparer = resources.load(choice)
             detector = Detector(
                 self.functions,
                 wider,
@@ -303,6 +309,7 @@ class Detector:
                 cross_repository=self.cross_repository,
                 same_file=True,
                 discovery_keys=keys if getattr(comparer, "discovery_unseen", False) else None,
+                resources=resources,
             )
             for candidate in detector.candidates(changed):
                 if candidate.lane == "baseline" and candidate.key not in keys:

@@ -36,21 +36,27 @@ def _dependencies():
     return numpy, onnxruntime, tokenizers
 
 
+def validate_artifacts(model_dir, threads):
+    """Recheck files even on a run-local encoder hit; paths are not evidence."""
+    if type(threads) is not int or not 1 <= threads <= 2:
+        raise ValueError("CPU embedding threads must be 1 or 2.")
+    folder = Path(model_dir)
+    for relative, expected in ARTIFACTS.items():
+        path = folder / relative
+        if not path.is_file():
+            raise ValueError(f"Supply the pinned offline {MODEL}@{REVISION} artifact: {path}")
+        with path.open("rb") as stream:
+            actual = hashlib.file_digest(stream, "sha256").hexdigest()
+        if actual != expected:
+            raise ValueError(f"CPU embedding artifact SHA256 mismatch: {path}")
+
+
 class MiniLMEncoder:
     """Only the pinned FP32 ONNX graph and complete tokenizer JSON are accepted."""
 
     def __init__(self, model_dir: str | Path, threads: int = 2):
-        if type(threads) is not int or not 1 <= threads <= 2:
-            raise ValueError("CPU embedding threads must be 1 or 2.")
+        validate_artifacts(model_dir, threads)
         folder = Path(model_dir)
-        for relative, expected in ARTIFACTS.items():
-            path = folder / relative
-            if not path.is_file():
-                raise ValueError(f"Supply the pinned offline {MODEL}@{REVISION} artifact: {path}")
-            with path.open("rb") as stream:
-                actual = hashlib.file_digest(stream, "sha256").hexdigest()
-            if actual != expected:
-                raise ValueError(f"CPU embedding artifact SHA256 mismatch: {path}")
         self.np, ort, tokens = _dependencies()
         self.contract = {
             "model": MODEL,
@@ -121,10 +127,29 @@ class CpuEmbeddingComparer:
     discovery_unseen = True  # Core excludes earlier routes before applying this route's neighbour cap.
     similarity_reusable = False
 
-    def __init__(self, model_dir: str, min_similarity: float = 0.65, threads: int = 2, cache_dir: str | None = None):
+    @classmethod
+    def for_run(cls, resources, **options):
+        return cls(**options, _resources=resources)
+
+    def __init__(
+        self,
+        model_dir: str,
+        min_similarity: float = 0.65,
+        threads: int = 2,
+        cache_dir: str | None = None,
+        *,
+        _resources=None,
+    ):
         if not math.isfinite(min_similarity) or not 0 <= min_similarity <= 1:
             raise ValueError("CPU embedding min_similarity must be finite and between 0 and 1.")
-        self.encoder = MiniLMEncoder(model_dir, threads)
+        if _resources is None:
+            self.encoder = MiniLMEncoder(model_dir, threads)
+        else:
+            validate_artifacts(model_dir, threads)
+            self.encoder = _resources.get(
+                (MiniLMEncoder, str(Path(model_dir).resolve()), threads),
+                lambda: MiniLMEncoder(model_dir, threads),
+            )
         self.np = self.encoder.np
         self.min_similarity = min_similarity
         self.cache_contract = hashlib.sha256(json.dumps(self.encoder.contract, sort_keys=True).encode()).hexdigest()
@@ -136,7 +161,13 @@ class CpuEmbeddingComparer:
         self.version = "1-" + hashlib.sha256(json.dumps(contract, sort_keys=True).encode()).hexdigest()
         self.functions: list[Function] = []
         self.vectors = self.np.empty((0, DIMENSIONS), dtype=self.np.float32)
-        self._bodies: dict[str, object] = {}
+        # An explicit shared disk cache preserves the old missing-input batches.
+        # Without it each route must encode its own original batch sequence.
+        self._bodies: dict[str, object] = (
+            _resources.get(("cpu-vectors", self.cache_contract, str(self.cache_dir.resolve())), dict)
+            if _resources is not None and self.cache_dir is not None
+            else {}
+        )
         self._ambiguous: set[str] = set()
 
     def _valid_vector(self, vector) -> bool:

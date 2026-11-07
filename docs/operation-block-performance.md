@@ -60,5 +60,5 @@ input identities, recorded runs and exact benchmark commands. Repeating the full
 requires those frozen backgrounds, native function indexes and query selections; the unit-test command above
 does not recreate it. Private background source is not distributed with the product.
 
-Keep the route opt-in as described in [the method guide](operation-blocks.md). Faster preparation does not
+See the later [scoped balanced enablement decision](enablement-results.md) and [activation guide](operation-blocks.md). Faster preparation alone does not
 remove its measured precision tradeoff or protect exploration candidates from budget displacement.

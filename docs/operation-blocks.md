@@ -9,6 +9,36 @@ resource handling or other multi-step helper operations. It is a poor fit for on
 or methods whose only resemblance is common library APIs. It currently supports Python, not TypeScript or model
 declarations. See [choosing a comparer](discovery-comparers.md) for the configuration and paired trial procedure.
 
+## Balanced activation and opt-out
+
+With `preset = "balanced"`, the default TF-IDF baseline now automatically explores its usual 20 neighbours
+at a 0.35 floor, then adds at most one previously unseen `operation-blocks:2` pair per changed query. The
+block route supports Python functions only. Both complete native functions reach the existing Haiku
+shared-operations judge; reporting thresholds and the cumulative $0.04 PR budget are unchanged.
+
+This applies when discovery is enabled, the baseline comparer is TF-IDF, and `discovery.comparers` is omitted.
+Explicit `discovery.depth`, `discovery.min_similarity` and baseline TF-IDF options still configure the first
+exploration route. Partial discovery settings inherit unspecified balanced defaults. Explicit comparer lists,
+including those produced by a CPU recovery profile, are retained exactly. A custom non-TFIDF baseline receives
+no automatic block route. Legacy `preset = "auto"` and its credential-selected presets are unchanged.
+
+To retain implicit TF-IDF exploration alone in `.dry-lint.toml`:
+
+```toml
+preset = "balanced"
+[discovery]
+comparers = []
+```
+
+Set `discovery.enabled = false` to disable discovery entirely. Explicit comparer lists also remain an escape
+hatch for repositories that want to choose their own routes. In `pyproject.toml`, use `[tool.dry-lint]` and
+`[tool.dry-lint.discovery]` for these settings.
+
+Original primary Candidates keep their source, score and comparer identity. This is retrieval preservation:
+the native scheduler still compares exploration candidates under its shared budget, so a new candidate can
+displace an earlier exploration report. Balanced remains agent-reviewed discovery, not a claim that every
+new report warrants consolidation or that all credential-selected presets have been validated.
+
 ## A concrete example
 
 These simplified functions contain the same packet-processing operation:
@@ -119,9 +149,9 @@ A later research-only filter removed regions already represented in an earlier n
 the token-error opportunity and a useful atomic-file commit helper report. **It is not included here.** An
 operation appearing elsewhere does not prove that this caller already delegates to the right helper.
 
-Keep the route opt-in for partial-operation exploration. Measure added useful reports, displaced reports and
-runtime in your repository before recommending it broadly. Neither the tested research judge settings nor the
-synthetic allowance should be silently substituted for an adopter's configured policy.
+That original experiment did not establish a default policy. The balanced activation above is scoped to its
+own judge and scheduler; neither these research judge settings nor a synthetic allowance substitutes for
+an adopter's configured policy.
 
 ## Complete-helper follow-up
 
@@ -136,8 +166,8 @@ A separate cold-campaign comparison used the actual balanced Haiku policy, a 2,0
 independent .04 ledgers. Across the full admission delta, 38 pairs became funded and 28 prior pairs lost funding.
 New reports included 10 bounded useful operations, 2 tiny ones and 5 source-unsupported reports. Lost prior
 reports included 1 bounded useful operation, 1 tiny one and 2 source-unsupported reports. Thus the selected
-panel gained **nine net bounded useful reports**, while adding three net unsupported reports. This supports an
-opt-in capability with a measured precision tradeoff, not a default-policy recommendation. Reports on common
+panel gained **nine net bounded useful reports**, while adding three net unsupported reports. This supports a
+capability with a measured precision tradeoff, not independent validation of historical PR gains. Reports on common
 admissions cancel in this delta comparison; this is not an overall precision/recall estimate.
 
 The balanced run is a native cold-query admission simulation using real pinned source, not observed historical

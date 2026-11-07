@@ -202,7 +202,7 @@ def _source_key(function: Function) -> tuple:
 
 
 class OperationBlocksComparer:
-    """Opt-in retrieval, not a duplication decision; scores are region cosines.
+    """Bounded discovery, not a duplication decision; scores are region cosines.
 
     The protected first route keeps its 12 regions × 8 anchors × 64 postings,
     selecting at most 64 parents. Only when it has no allowed winner, a second
@@ -224,6 +224,27 @@ class OperationBlocksComparer:
 
     def __init__(self) -> None:
         self.index([])
+
+    def index_for_run(self, functions, resources):
+        # Exact ordered inputs and native identities protect against edits and
+        # aliases. Only prepared index state shares; mutable query caches do not.
+        key = (type(self), self.version, tuple((id(f), f.qualname, _source_key(f), tuple(f.tokens)) for f in functions))
+
+        def prepare():
+            prepared = type(self)()
+            prepared.index(functions)
+            return {
+                k: v
+                for k, v in vars(prepared).items()
+                if k not in {"_full_vectors", "_query_key", "_query_original", "_query_fallback"}
+            }
+
+        state = resources.get(key, prepare)
+        self.__dict__.update(state)
+        self._full_vectors = {}
+        self._query_key = None
+        self._query_original = []
+        self._query_fallback = []
 
     def index(self, functions: list[Function]) -> None:
         self.functions = list(functions)

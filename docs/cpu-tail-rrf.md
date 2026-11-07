@@ -1,6 +1,6 @@
 # Recover operations beyond the embedding prefix
 
-Use `cpu-tail-rrf` as an **opt-in extra discovery route** when a long Python or TypeScript function repeats a complete operation that its first 256 wordpieces do not show. It combines complete-statement embeddings with operation-block ranks and proposes at most one extra pair of full functions. It is intended for a repository-specific trial with an existing vector cache; the cold CPU cost is substantial.
+Use the supported [CPU recovery profile](cpu-recovery.md), including `cpu-tail-rrf`, when a long Python or TypeScript function repeats a complete operation that its first 256 wordpieces do not show. It combines complete-statement embeddings with operation-block ranks and proposes at most one extra pair of full functions. Activation remains explicit, with adopter-supplied local weights and a persistent vector cache; the cold CPU cost is substantial.
 
 A measured example is T3's desktop portal registration. `LinuxCaptureConnection.backend` and `PortalCaptureShortcut.initialize` both construct a D-Bus request that registers the host application, behind different initialization workflows. The complete-statement route ranks the pair first at cosine .83356; the block route has no eligible match. Independent review supports sharing the registration operation while keeping caller-specific errors and initialization order local. The native judge reports it at .72. This is a bounded shared operation, not a recommendation to merge the whole functions.
 
@@ -40,20 +40,17 @@ The [CPU study](https://github.com/gigaverse-app/dry-lint/pull/116) contains the
 
 Install the optional `dry-lint[cpu-embedding]` dependencies and provide the exact pinned model files described in the [CPU setup guide](cpu-embedding.md#install-and-configure). Both CPU routes can share its validated disk vector cache. The plugin never downloads weights or acquires credentials.
 
-In `.dry-lint.toml`, retain the evaluated route order:
+Enable the complete evaluated stack with the [CPU recovery profile](cpu-recovery.md). In `.dry-lint.toml`:
 
 ```toml
-[discovery]
-enabled = true
-comparers = [
-  { use = "tfidf", neighbours = 20, min_similarity = 0.35, min_similarity_small = 0.35 },
-  { use = "operation-blocks", neighbours = 1 },
-  { use = "cpu-embedding", neighbours = 1, model_dir = ".dry-lint-local/minilm", cache_dir = ".dry-lint-local/vectors" },
-  { use = "cpu-tail-rrf", neighbours = 1, model_dir = ".dry-lint-local/minilm", cache_dir = ".dry-lint-local/vectors" },
-]
+preset = "balanced"
+
+[discovery.cpu_recovery]
+model_dir = ".dry-lint-local/minilm"
+cache_dir = ".dry-lint-local/vectors"
 ```
 
-Use `[tool.dry-lint.discovery]` in `pyproject.toml`. Paths are relative to the process working directory. The explicit comparer list replaces implicit exploration, so omitting TF-IDF changes the comparison. The normal baseline remains first. No judge, threshold, budget or default changes are required by the plugin itself.
+In `pyproject.toml`, put the preset under `[tool.dry-lint]` and the paths under `[tool.dry-lint.discovery.cpu_recovery]`. The CPU profile expands to TF-IDF20/.35, operation-blocks/top1, prefix CPU/top1 and tail fusion/top1 routes, after the normal baseline. It preserves scores, order and comparer identities. Do not also specify `discovery.comparers`. The example selects the balanced judge used in the measurements; the CPU setting alone does not select a judge or alter its thresholds or budget.
 
 ```bash
 dry-lint detect --root . --base origin/main --out candidates.json
@@ -61,4 +58,4 @@ dry-lint detect --root . --base origin/main --out candidates.json
 
 This detection command makes no provider calls. Compare treatment and baseline with the same base/head and budget; inspect full source and actual report additions/losses before adopting. Self and ambiguous identities are ineligible; discovery can include same-file pairs. The three useful additions measured here are cross-file. Missing source and unanswered questions remain unknown.
 
-Cold inference is the main cost. On two measured public snapshots, the standalone prefix comparer took 102.07s for 1,601 T3 functions and 178.00s for 2,349 OpenHands functions; the composite took 118.84s and 182.99s. These are single shared-host measurements, not repeated performance estimates. With all validated vectors cached, composite indexing took 5.15s and 7.06s with zero encodes. The actual configured stack also retains the earlier prefix and block indexes; a standalone comparison understates its total memory/time. Appending the warm composite while those earlier comparers remained loaded added 5.19s/7.60s and about 124.5 MiB of process peak RSS on these two snapshots. Full gain-sized cold inference and production PR latency were not measured. Keep a persistent cache and measure the complete stack on your repository.
+The following measurements predate run-local resource sharing; see the [current complete-stack comparison](cpu-recovery.md#complete-stack-cost-after-resource-sharing). Cold inference is the main cost. On two measured public snapshots, the standalone prefix comparer took 102.07s for 1,601 T3 functions and 178.00s for 2,349 OpenHands functions; the composite took 118.84s and 182.99s. These are single shared-host measurements, not repeated performance estimates. With all validated vectors cached, composite indexing took 5.15s and 7.06s with zero encodes. The actual configured stack also retains the earlier prefix and block indexes; a standalone comparison understates its total memory/time. Appending the warm composite while those earlier comparers remained loaded added 5.19s/7.60s and about 124.5 MiB of process peak RSS on these two snapshots. Full gain-sized cold inference and production PR latency were not measured. Keep a persistent cache and measure the complete stack on your repository.

@@ -180,6 +180,14 @@ optional local vector cache. It retrieves complete functions, requires the `cpu-
 and never downloads weights or judges candidates. Cold indexing is expensive; the measured benefit depends on
 the preceding retrieval routes. See the [measured profile comparison](benchmark.md#offline-cpu-discovery).
 
+### Optional run resources
+
+The detector creates a `ComparerResources` scope for the discovery routes in each `candidates()` call. A comparer may implement `for_run(resources, **options)` for construction and `index_for_run(functions, resources)` for indexing. Existing plugins need neither hook. `resources.get(key, factory)` publishes only successfully constructed values; core never inspects a value or calls an encoder itself.
+
+Plugins own exact reuse keys and must preserve source edits, native identity/order, validation and transactional reindex behavior. Share prepared resources only; query caches must stay private. The scope is confined to one synchronous detection call, never shared by concurrent calls. A plugin must not retain the scope globally or export it to concurrent query workers. This API does not make a comparer instance thread-safe. Built-in CPU recovery revalidates model files on each constructor and shares vectors only when the explicit cache path and complete encoder contract match. No file schema or verdict reuse rule changes.
+
+The [CPU recovery setting](cpu-recovery.md) supplies the evaluated stack without exposing its route limits as setup choices.
+
 ## Judge
 
 ```python

@@ -39,6 +39,7 @@ class Encoder:
 @pytest.fixture
 def fake_encoder(monkeypatch):
     monkeypatch.setattr(cpu, "MiniLMEncoder", Encoder)
+    monkeypatch.setattr(cpu, "validate_artifacts", lambda *args: None)
 
 
 def test_plugin_registration_and_stable_filtered_self_excluding_ranks(fake_encoder):
