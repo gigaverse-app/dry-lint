@@ -1,0 +1,69 @@
+{
+  "append_only_source_authority_sha256": "b7799bab3b28c057c81a4ccef72925bfa02a9b59a9a282abc08c83ccc01be16c",
+  "canonical_report": "README.md",
+  "derived_source_annotation_sha256": {
+    "metrics.json": "9f952a97de86aeffa352dea21ac53e9c59a23abb676e03b15ac698a47f728ea1",
+    "novel-outcomes.jsonl": "a7c7ba8cbf8b725e175681be31918be3c153d9f1fc996662697b7614620da4c7",
+    "source-outcomes.jsonl": "d52a42d1c6406273c10923bdff7224d03a14b517a172a17abd19b4aee3ee5360"
+  },
+  "documentation_version": 3,
+  "files": [
+    {
+      "bytes": 347,
+      "name": "DECISION.md",
+      "sha256": "0317088db1a3c866296aeefe2b9db57cf3629363b45df838b46acee1711b6e07"
+    },
+    {
+      "bytes": 8179,
+      "name": "README.md",
+      "sha256": "f2d5bf265e8d8f2652a7daf2b49d92a061bf886b0db3de1fcd847edd317ffad9"
+    },
+    {
+      "bytes": 10001,
+      "name": "default-four-losses.jsonl",
+      "sha256": "dca5100cff2b2301f29173579726c9cea966a75d280e1aa99aa20004d4228ef5"
+    },
+    {
+      "bytes": 30089,
+      "name": "metrics.json",
+      "sha256": "9f952a97de86aeffa352dea21ac53e9c59a23abb676e03b15ac698a47f728ea1"
+    },
+    {
+      "bytes": 68860,
+      "name": "novel-outcomes.jsonl",
+      "sha256": "a7c7ba8cbf8b725e175681be31918be3c153d9f1fc996662697b7614620da4c7"
+    },
+    {
+      "bytes": 704038,
+      "name": "paired-rows.jsonl.gz",
+      "sha256": "be7f6c29f7866005b7eda78b4c6379e05d5b07dd78c6edc1ff42f3eb0a842b06"
+    },
+    {
+      "bytes": 1359,
+      "name": "source-outcomes.jsonl",
+      "sha256": "d52a42d1c6406273c10923bdff7224d03a14b517a172a17abd19b4aee3ee5360"
+    },
+    {
+      "bytes": 3193,
+      "name": "verify_evidence.py",
+      "sha256": "366e71f15142d6b82ca46e0f52c2196be853cdf0e093bb2b8d9509a1aa9265cb"
+    }
+  ],
+  "frozen_scientific_evidence_sha256": {
+    "default-four-losses.jsonl": "dca5100cff2b2301f29173579726c9cea966a75d280e1aa99aa20004d4228ef5",
+    "paired-rows.jsonl.gz": "be7f6c29f7866005b7eda78b4c6379e05d5b07dd78c6edc1ff42f3eb0a842b06"
+  },
+  "pre_source_c_annotation_sha256": {
+    "metrics.json": "c4c3f197fc6aa1c307ff6fa1ac245ce5b59f694e3eeb936404836b17c0609a79",
+    "novel-outcomes.jsonl": "938614f71f5d68b18a69d86e0a9df1ebe68776413b7af09da5b7e97973dd11f6"
+  },
+  "qualification": "Only derived source annotations and explanatory writing updated. Root accepted2 related pairs, not binary negatives. Requests, provider observations, retrieval and cost evidence are unchanged.",
+  "schema": 1,
+  "verification": "python3 verify_evidence.py",
+  "verification_completed": {
+    "accepted_functions_raw": 580,
+    "paired_metric_checks": 96,
+    "paired_rows": 6920,
+    "uncertainty_intervals_reproduced": true
+  }
+}

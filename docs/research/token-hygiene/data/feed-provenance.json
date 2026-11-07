@@ -1,0 +1,10 @@
+[
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/token-hygiene/round1/f516eab7bdcbc013-9a335b7dc1e9/completed.jsonl",
+    "sha256": "38be724cbbf8ae9ff04aa7dd2e108a2fd82944d563ac897d27027b074f9ba97b"
+  },
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/token-hygiene/round2/2476eb38132323c9-4cbb628cfd97/completed.jsonl",
+    "sha256": "52cfd286f95501e3b6662fabdc18db21b39ede9a6d50ae103d266544ed125c3a"
+  }
+]

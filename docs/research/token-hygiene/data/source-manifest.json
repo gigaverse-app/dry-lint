@@ -1,0 +1,4667 @@
+[
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-342656dc066f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "45fa34304549d9ae28a5e34d87400a73409503574a6e4b4da6b5946b809d1325",
+        "request_key": "df32be434ab5d139ecf7ad6df38e8346fcd37940fc39a9bcaa57751385d92142"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "f2043f076a0e4eaa2151c965492e14c77aa15d40226e2079e00986068f9fb2f3",
+        "request_key": "95b1b7ae0226a035a4d0917fbd3b83193caa4b93d4337d0faa8fc36acb11152d"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "4d8def8dd482345779db72c4aaca9cf077bb8840b2a224f2f5302c34d8ff6b4f",
+        "file_sha256": "8e24bee90c8d057faa431c1a7424f3859c90d9292c49a066e6f1d66d45de6418",
+        "path": "litellm/responses/litellm_completion_transformation/transformation.py",
+        "source_id": "litellm/responses/litellm_completion_transformation/transformation.py::LiteLLMCompletionResponsesConfig._should_drop_derived_web_search_options"
+      },
+      {
+        "body_sha256": "7f64df628ab3330261d77efda1df4c9f61d134d1afda8ea510a442c35589fdbf",
+        "file_sha256": "c84df12bec296e425ce01cadaf696d4b1759ecdbd809fa38f6074f3f2c547c28",
+        "path": "litellm/utils.py",
+        "source_id": "litellm/utils.py::_build_model_info"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R1-378bc11ecb5f",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "57522df064b915ee43e3d2ce1e64a61cc9fb63d20dab0e66294b0f588f3aec25",
+        "request_key": "65869c86e9269edf3816aed655ac7a90d9ec9420b656a2aa0ae51d808bd0e4b5"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "cde1b609c8c0a9d6a8bf39cd74825567d896d4fd485bd69357a6fa3349422169",
+        "request_key": "61c35f55fd840614b2d0c0e53c5ac8e434339a68028e9b9d1592d9e696abf379"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "cd4c0f6632cfbdb0588e3f60a73bcae47ba295daf08b379ae4dac2d802c0e113",
+        "file_sha256": "ea35094d1b78fead6394d9da0d13eb75a4fd1842171d1814c1faea28ecb43705",
+        "path": "src/e2e/enforce-plan-stored.test.ts",
+        "source_id": "src/e2e/enforce-plan-stored.test.ts::hookEnv"
+      },
+      {
+        "body_sha256": "f8c64fd710e6321be42933f1825286c7a52b52eaf63e3c3ea1e00d97e34860fb",
+        "file_sha256": "3796380a2a80906311fe6264a6bcf0a0779ec815a41352b31e1d0608e985ef7c",
+        "path": "src/e2e/hook-wrapper-live.test.ts",
+        "source_id": "src/e2e/hook-wrapper-live.test.ts::baseEnv"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-e2848a26e3c7",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "07017d6f0cc9f157e9b241013295eb1da25013a1528aa1cac1fb7e13bf59cc97",
+        "request_key": "b9f52d82bbe207f244a065f820a55c4cf5338bb921de3bc7839793f400ee13ce"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "3d9633d1bb56ade233ace3fda326e2fcdab957b1e84fe89ef1a7b2c86fbb4d5b",
+        "request_key": "fe8ef4eeae0fcba7a5bfe555a45e6a68271f43bc396eb77d0d2683829186d1a8"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "cef8444898564a372688f758201ee1c1a9acdd76071e239b2f7f62686f0de835",
+        "file_sha256": "8ee4c97c26043360f3d86c9d0bd0b2b4a96d5a165ba9a40fe9181371e531b825",
+        "path": "tests/tools/browser_use/test_browser_observation.py",
+        "source_id": "tests/tools/browser_use/test_browser_observation.py::test_browser_observation_agent_observation_text_only"
+      },
+      {
+        "body_sha256": "98ce5bf0adc6bf483a7574a7ad62cf55afb209cf82c6f3b415a52911db4caca1",
+        "file_sha256": "8ee4c97c26043360f3d86c9d0bd0b2b4a96d5a165ba9a40fe9181371e531b825",
+        "path": "tests/tools/browser_use/test_browser_observation.py",
+        "source_id": "tests/tools/browser_use/test_browser_observation.py::test_browser_observation_screenshot_data_url_conversion"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-31d87bc03b7f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "4b3e61a4e76586682685e3daef6d79a2b4e465834b3b54e1b9efd2c592190464",
+        "request_key": "801546f03917a88f8193354d994fe98053462136baf2cc94628ce8fe2f872573"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "1c00c10e6c23ba8533133e274b8f0e5684255f0e2e38eb826811341749a6197d",
+        "request_key": "a256496eb91df782e2f9c6d289d255aefa78d2d66e11bdd8ba4e839d9678a0eb"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "b42bc9dfc192def39e0cd95a3a24a7b93e3798774dd9d3f066b59482d34f355f",
+        "file_sha256": "69ac52d89a1fdbf298903608ef44593dcb9f82497b3375e624ecc2aa19c01a9f",
+        "path": "packages/tui/src/mini/scrollback.writer.tsx",
+        "source_id": "packages/tui/src/mini/scrollback.writer.tsx::entryWriter"
+      },
+      {
+        "body_sha256": "596bf72d63daaff92ffa7dd6d9c4cbe92407d7c73cb2dcb4905c0a7791da66e4",
+        "file_sha256": "69ac52d89a1fdbf298903608ef44593dcb9f82497b3375e624ecc2aa19c01a9f",
+        "path": "packages/tui/src/mini/scrollback.writer.tsx",
+        "source_id": "packages/tui/src/mini/scrollback.writer.tsx::turnSummaryWriter"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-b97f98482b48",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "9efadaf3a8512197b2a33e3e95146f73bffaa5211e5eaeda1f523d3465974401",
+        "request_key": "689e2f3700d7e4e1723835815c0d4c90e7d40622fcf3ddd33b684935d86a2ffb"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "6b0660e84c25e1103ef590753429e46ea544feb77e0bde15c962e49161f3a446",
+        "request_key": "14eb50ac8758608efa764092b5b63dc617962755c35eeb3aa6767b5788f6a271"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "96ef60a7d0324de458969140d6a1710e977bd16355cc1230f83a51435ea18cf9",
+        "file_sha256": "06f2f40b30261536630e58f5cefd8bbe4791dbef1db3944f33e7198bdaf0f373",
+        "path": "litellm/proxy/health_check.py",
+        "source_id": "litellm/proxy/health_check.py::_should_inject_health_check_max_tokens"
+      },
+      {
+        "body_sha256": "d6f29918e186c30f41835402bd66283463f71887146b4bf1a9050fa42c6e688f",
+        "file_sha256": "cf879e9c38982b38709ce73097bdaa8c1b1e9f86568da02a33e191ca14b4711b",
+        "path": "litellm/llms/ollama/common_utils.py",
+        "source_id": "litellm/llms/ollama/common_utils.py::OllamaModelInfo._get_max_tokens"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R1-7461ceb70d1b",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "c4dcb03fd60c35a6dc6b388cf079b4fea7eda1363770d0e9d53caaaa68c95589",
+        "request_key": "2518fd8f2789d2854622eab9c2ed45f860ec6c86b8651d3eb20e784268d0ef0b"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "dc8e8835f5f1a6b71bc5b7c7067c64e39559a60685b602b651d9df5418029897",
+        "request_key": "0e8031704ba70bfbb346e39b29b28196a17bb3f37e85b50688929db796af9ba1"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6a6a491fd6925f11d339cc82813f7e1a2edde6d5641d98be146ab4e7b7bb6595",
+        "file_sha256": "23ef6b9e5cd040e50528992570561b7bbf0689cdfd546a809bfd506d1db1eda5",
+        "path": "src/e2e/session-simulator.ts",
+        "source_id": "src/e2e/session-simulator.ts::SessionSimulator.get timeoutCount"
+      },
+      {
+        "body_sha256": "275a2f2134e3a80680a4bb5c6944515383631fc067efeb7d34312b56848bc002",
+        "file_sha256": "23ef6b9e5cd040e50528992570561b7bbf0689cdfd546a809bfd506d1db1eda5",
+        "path": "src/e2e/session-simulator.ts",
+        "source_id": "src/e2e/session-simulator.ts::SessionSimulator.get allStderr"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R1-1c51ddb71fa1",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "fd92550ce2498f04ab027bb7c2db3f29cd701b60ede93eddb1f7e94fc203787e",
+        "request_key": "a0b42cafa34b8737dc70afa2f81ebb5c5214a6301d172f092f8c9692ee90331a"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "f4f35709bed12c1d294f0e219c51b3f0efb10214150c3d904175b74eb5ee783a",
+        "request_key": "0dc4c1f643af57e4be715857eddd6d17c670b264f075ef20714b774f60cf8089"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "7be80d13a77a587966ee4609e3f61f9ee603d091958012f5eb1a18677971497d",
+        "file_sha256": "f718f49c7b9b88aba16f153e7ade1bcd4c52c3cdd6f560cf2bc02cc7e14990bd",
+        "path": "scripts/auto-dent-events.ts",
+        "source_id": "scripts/auto-dent-events.ts::EventEmitter.emitAt"
+      },
+      {
+        "body_sha256": "0d3c1fe0ea3904c0b04756901785f1e2d35940567b0ce82d5fefa2977839426d",
+        "file_sha256": "f718f49c7b9b88aba16f153e7ade1bcd4c52c3cdd6f560cf2bc02cc7e14990bd",
+        "path": "scripts/auto-dent-events.ts",
+        "source_id": "scripts/auto-dent-events.ts::EventEmitter.emit"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-67cbfb8fa246",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "6f1cc639b1f7f3aa4730cd6a3ea17518fd9ae7ab8c22ed4b647a106d79bc212c",
+        "request_key": "b48977989e830eab7447d3244e913a29cf8872dbb340443d584e185e9524fad7"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "34e80e0fca6efe63e696c30947548803d68f81748a140d8a1f0b74482a996f1b",
+        "request_key": "390f50d4cabd174f108c123beb4fea669f638cfa1f0ad2bafb3f840f0341d7e9"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "c67b4e7933acad435dc6e13bc2e532a3a44a1e28de512bc60add36b9afb49125",
+        "file_sha256": "8313a46cd570ba2bdc79f922097065e6cd71e53db71e39650126c66352676819",
+        "path": "openhands/sdk/context/view.py",
+        "source_id": "openhands/sdk/context/view.py::View._should_keep_event"
+      },
+      {
+        "body_sha256": "41324884bdae6f5a86a1be9fa84d22c3b94c35a8af5adf119a9f31abb966605e",
+        "file_sha256": "f5f8a374acabccafb9f36449f2eeb7c2944b1f4e53e124e446654f528d2d2ff7",
+        "path": "tests/sdk/context/test_view.py",
+        "source_id": "tests/sdk/context/test_view.py::test_get_observation_tool_call_ids"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-52422f3dc94c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "c89beb01f693a8b19789819a8599a080c9bb4a6a3e3fc65cd90cc3211607696c",
+        "request_key": "fe6570d2ca1471b2430a1b0163f4083ada26da46329b74d26dbcc4575539e471"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "283715c8179599b9100283533ded4cab7d98e97ad7314865f473025343aae3d1",
+        "request_key": "756e1ec376c67c19bad29fa5f3b1420f8e2a7b957578f7c165c98276a6d9b1a3"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "de114817aeec3cd2cb9b9b089a5513887f5dd20872a9d6b5060c5f3cdfdf1e77",
+        "file_sha256": "387559bf723b1ff51376fda51bbea5b583e2f595fe4fe8537830b8df180e6d25",
+        "path": "packages/stats/app/src/routes/model-catalog.ts",
+        "source_id": "packages/stats/app/src/routes/model-catalog.ts::fetchCatalogPayload"
+      },
+      {
+        "body_sha256": "483fbd1752e6c1c3ec46b2586d697acd1c12c77a9b302660ff31e20b5e1aa41b",
+        "file_sha256": "eb724dc84248a79fa7a0c130d2f346a5739d22ea7ddee260ee453bb612df1184",
+        "path": "packages/ui/vite.config.ts",
+        "source_id": "packages/ui/vite.config.ts::fetchProviderIcons"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-1313c1b227e0",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a01fb810da0330d2d16469561de44218d4123c655ae4c02c209d60ffb3af88d7",
+        "request_key": "18c57f4874d164556d2cb0de35dab93a48f755518080f74bb74edc5bf645f567"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "7b3c55489fdc99a44f4d4c59345081f7bc8e29578be63e7d10404c2f83b8d8f8",
+        "request_key": "1c591e75c6a0accce6dda7b336bddbd4f6116f1910d01f6344819208f44df5f0"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "5208de73c5793147a683e6a6492be4663bf7363f60019296098ac98413e3c20d",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set promptPulse"
+      },
+      {
+        "body_sha256": "dee151d109575cfc3d697acccd93e40f972d5fb106d30b2d1e54060725be5b9f",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::PulseState.setPromptPulse"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-8ca97d90a72a",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "5c3a01999467cd5affc852559c44906385e6b9456ddb20ce050a6eacde591128",
+        "request_key": "7b70939cdbb9f2ef04315c14a84b13f5019ef4906061a7a880adffc698dc9da8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "e8ddc378c1bcda105963853381a77323194923b7bfd5b4433d5a20bd49b28a56",
+        "request_key": "66162d23f6235254521eda8bd6b717ca7532cb0df20a64bd3d899d5a8e5e2459"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "5a5d32d29a004a0d2648924b61e6ac22986262746da7d05b6b0be6fe4f253173",
+        "file_sha256": "df98c62b3645319953fa4a4c331cbfb57cf18cf1c85c539d9a6a3bbd7d3582d5",
+        "path": "packages/app/src/runtime/server/global-sync/bootstrap.ts",
+        "source_id": "packages/app/src/runtime/server/global-sync/bootstrap.ts::loadProjectsQuery"
+      },
+      {
+        "body_sha256": "1d84dd5e9cbd319e67cb8090a4b0389fd054ba53ec564e661b91b9cb5a38d63d",
+        "file_sha256": "e3105b19d38ead6e536960e383bc6c025e8826a7e8d59f32d52bb3656f8f8d84",
+        "path": "packages/app/src/settings/workspaces/queries.ts",
+        "source_id": "packages/app/src/settings/workspaces/queries.ts::workspaceInventoryQuery"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R1-912f7fac25d1",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "2372c3d4ce5969ab40c449784641d3ccec9c33182779949b31d27a97e586e0bc",
+        "request_key": "6690aa80a661271ee862f3f33d24db4e47aa8838f5d3ac66d867dfb0bbeb6f36"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "373269101459d7843b775d2f6e64da4f1e1796da5b01f4ddc987161fa802a691",
+        "request_key": "40e269b2d4886673fedc540810461e37ea9c19a31ac8e9e3e701a3a05ea483d0"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d71b315cb8c738dfd27ac7c5d2a0fc8635992d36fda60b46d1a3ae281476b1d0",
+        "file_sha256": "47443e3725c37880da6a3c55395cd78e950b83e3d133fb08224004afc1d8d44d",
+        "path": "apps/server/src/device/DeviceService.ts",
+        "source_id": "apps/server/src/device/DeviceService.ts::DeviceHostAmbiguousError.get message"
+      },
+      {
+        "body_sha256": "bcc160c50661e6df3d4ef8553e07c244f6fd8caebff298c6a7d9842931f22dd1",
+        "file_sha256": "73f8c8435af496ff8a3e1e6d6627efe8f044a179e8093739dfaf1661cc71be99",
+        "path": "packages/contracts/src/editor.ts",
+        "source_id": "packages/contracts/src/editor.ts::ExternalLauncherBrowserSpawnError.get message"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R1-4c13857a8a64",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "863be285c8bee48f1ecc757e420245d36436c65d6757012daf96006c6843b056",
+        "request_key": "52aed53c0b556f6352c2842e4cdd52bcb3d71e6ab6c48807b6d4a1a3dada44f4"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "613ce98a69c1a55cb550f8ef8aacfc6c0677333bad38bffa55a2db09426d720d",
+        "request_key": "8020fe98bddf3199c30d5acd1d88205670d90e36b49afa7aba2460e559c290a7"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d161db0d2c948ae7f6a0625f5517205915171826f05935eb275218bd6fcce1e2",
+        "file_sha256": "daaae831a25c527245c55f81c4e4b5134ced1ae31e8cecf6125754dd9f37e541",
+        "path": "apps/server/src/process/externalLauncher.ts",
+        "source_id": "apps/server/src/process/externalLauncher.ts::fileManagerCommandForPlatform"
+      },
+      {
+        "body_sha256": "04e62a29c98e6830fa8c997577793d597238eaeb58bc92e2a88d76d32b30c4c2",
+        "file_sha256": "5e9cb673245b0e28cdc26d3b5dd661d4565487f12a50ad58346e8094f9369fa6",
+        "path": "packages/tailscale/src/tailscale.ts",
+        "source_id": "packages/tailscale/src/tailscale.ts::tailscaleCommandForPlatform"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-888fe6f4b492",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "5bcffdcd6dccf889f2cca289aa492f23b3a0139bbef7e379dbe99222326469fb",
+        "request_key": "852e4b956bd7283e333d32267c967aa0fb8ba08822bb5cbb33c78a7f84e9573d"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "12057e7d56bfbc005e27850b19613e6db11d7d95569de3cd1cfa277526b98684",
+        "request_key": "5ef489c90d1870ebfb566198787a41847c57955cfcad2adebcc346dad463289b"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "bc3847efc3667eef4819dae2b02cd01aea7d50597c5bd4d55a949b1d037332f0",
+        "file_sha256": "8f311dc287b9ed7f6419855f5da289736f038b78c653b731c1e16902f7a8dbff",
+        "path": "litellm/router_rust/steps/callbacks.py",
+        "source_id": "litellm/router_rust/steps/callbacks.py::OptionalChecks.build"
+      },
+      {
+        "body_sha256": "0845594d94f6c2fcc83e61cf26fa11aec47318169cd7c71839d8249688b18eee",
+        "file_sha256": "8f311dc287b9ed7f6419855f5da289736f038b78c653b731c1e16902f7a8dbff",
+        "path": "litellm/router_rust/steps/callbacks.py",
+        "source_id": "litellm/router_rust/steps/callbacks.py::OptionalChecks.add"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R1-eef8333d3295",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "e64a80edada39a2d32bc88ac07bcb95f650de04e6b0e7dbc12eda4da48cb96ac",
+        "request_key": "22f4f17fbef4fd06a11fcfc143866669c3e2fd9e3231b4e725af2283b24235f2"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "2ef02769568cd7bdda64835656d49be234dd26bad5977e48efb0a8b184b44003",
+        "request_key": "606848648909cd74e9c3b30386c547b0014697e0764703850a8f9326bcddc21b"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "a8cafbf3835da5c67380a91ff02697e983f1402f606e3419f5a60b94363eee15",
+        "file_sha256": "3589508010c26c94312b022e7a3415c54f1f0b7acc3c388c345faa9f71c5f8d7",
+        "path": "src/review-battery.ts",
+        "source_id": "src/review-battery.ts::loadDimensionMetas"
+      },
+      {
+        "body_sha256": "695c656a8cfec7b92e1593779f5235171e9305755a433dcda1541bc1bb0f28d0",
+        "file_sha256": "60611aad93cf12f3c0fe278ce0569d724aed9c3eb5657e4bd77b2d5f01388097",
+        "path": "src/cli-dimensions.ts",
+        "source_id": "src/cli-dimensions.ts::cmdShow"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-3b68317e877b",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "e48c495065d6fbab49e5994bb6548ae300cfe2ee0abf16773d1c5298e2528e6d",
+        "request_key": "2483ab5a3756ed6cc20debfd6f958be4b817cae07cff0ae0a4e9cb084af51541"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "103d4b13a4589b086f308caf3485e89a8f1de3fe9f2470b83c91883ecccedfd8",
+        "request_key": "598966a1a9f498076d9172df8323fdd95e94f924affdde7448fd6c8b9eeba726"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "c69430d615bd088bdfad4ab61ef655b831e98ceb6fddcf914b9650e31e17d7e9",
+        "file_sha256": "ae2319d1fb035f76792fd82b88fa97eb8579b3b2d34defaeec5661c71b7a98a1",
+        "path": "tests/sdk/context/condenser/test_llm_summarizing_condenser.py",
+        "source_id": "tests/sdk/context/condenser/test_llm_summarizing_condenser.py::test_should_condense"
+      },
+      {
+        "body_sha256": "76c3711a92c65cad60b21e7bb13e3d1d0f8f4c1a6be00d97f2ee659bd925fdd4",
+        "file_sha256": "f5f8a374acabccafb9f36449f2eeb7c2944b1f4e53e124e446654f528d2d2ff7",
+        "path": "tests/sdk/context/test_view.py",
+        "source_id": "tests/sdk/context/test_view.py::test_no_condensation_events"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-9b3166b63283",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "6bc1d7edf689d072300254cf5f09d9d0c44007907f3cc59f019130c416f0b715",
+        "request_key": "d4bc23f26ceb1186a37c242653f00b93a9e86cd6c1e89a0387969457c5fa55e0"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "89ba57c3311845d736add17d523357ddfc4ddf1cc05a035014ba65ce52309031",
+        "request_key": "68cfb7ecbebce6ddbb302b198830c0d72f68ba0ffaa8a7c699e958c89aa1aad4"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "1067e25521db187f00980ce7eb9ff0524736dddb8abde0620c31b4f450083d8c",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set outerGlowTail"
+      },
+      {
+        "body_sha256": "2fad59673c4dfb5bab552ce3b2b4eda91b0cb628cf7f6d7527e2d9396e51cc4c",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set outerFlashColor"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-eb02c34836ec",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "86820bbc0cbf49ed7180fbc59a07c00670fd646abf2730bb6a1ef1c18dcd09ec",
+        "request_key": "022b91f7c2e1fcb608367fe9aebdc40d4097b7095935067ef8b613e63bbdaabd"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "336c11f54c3d31866bd3d0a61537afa078f53d32eb784679a636517a49c89335",
+        "request_key": "c167eaf4c52c25d53e90eb2c68212ef6c85d22129c0e48d1a981c8e665bb4fad"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "f64b2026cf4501f472abaf0e3648b7678c43728203a26fbe081d968a80c355d3",
+        "file_sha256": "0a5450b1eeaa2dbdf5223f47b6ab86a297a33f32167d8b9da6a5fb0e4aad94bf",
+        "path": "packages/desktop/src/renderer/api.ts",
+        "source_id": "packages/desktop/src/renderer/api.ts::api.storeItems"
+      },
+      {
+        "body_sha256": "69eaaae26a3f89fd41c1fec3f6fcc325413c1805133ee87c11551559f23b6fe7",
+        "file_sha256": "a34a0f31f75ed5aa8be8e635c03d109e94f274657c055d38407fc14b064c0d34",
+        "path": "packages/desktop/src/main/storage/legacy.ts",
+        "source_id": "packages/desktop/src/main/storage/legacy.ts::isStoreFile"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R1-77c7bd31be7c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a2cc40e2558d7c4856ba274e30bf21cedcc830d98cf979e968f53b14fac6d457",
+        "request_key": "da4921a1f3937629156e360e7b5755d0fa17d9bc6bb1444c828aa792af44f7f7"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "77bfe414b184bfd698b905a7eab597cf45c3bdd5ccb07d1da2fc6d000a24b1eb",
+        "request_key": "038b42beac6c77890681f3ef0f448cda80ec47c40cb5092db12811aeff9cbb01"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "55b8b1caa85f1fc91c3065b023950a2ea9549b92e2d64431660806258cb08f02",
+        "file_sha256": "79757958349714f10aed3a009120cb2a52241c6caac133a596251dba013b3698",
+        "path": "apps/server/src/preview/PreviewBrowserHost.ts",
+        "source_id": "apps/server/src/preview/PreviewBrowserHost.ts::PreviewBrowserLibrariesError.get message"
+      },
+      {
+        "body_sha256": "bcc160c50661e6df3d4ef8553e07c244f6fd8caebff298c6a7d9842931f22dd1",
+        "file_sha256": "73f8c8435af496ff8a3e1e6d6627efe8f044a179e8093739dfaf1661cc71be99",
+        "path": "packages/contracts/src/editor.ts",
+        "source_id": "packages/contracts/src/editor.ts::ExternalLauncherBrowserSpawnError.get message"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R1-a0e582998e3f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "21d640110b0b314dcf5bd3ecdb0f6347e3388df00705af4aef37c5b9c144405e",
+        "request_key": "6f138bef492cbb4283531b34013af4204d0be7869471b20dc3b499a1aaaf3322"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "c3190c316cf7e7163dc5f43ebb7e1fef20f0012c2c01ae305fd5ac59a2b951e3",
+        "request_key": "9689dfc10a9c628d285133df44c9d0997764a2d8253694c847cc24243f483497"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d161db0d2c948ae7f6a0625f5517205915171826f05935eb275218bd6fcce1e2",
+        "file_sha256": "daaae831a25c527245c55f81c4e4b5134ced1ae31e8cecf6125754dd9f37e541",
+        "path": "apps/server/src/process/externalLauncher.ts",
+        "source_id": "apps/server/src/process/externalLauncher.ts::fileManagerCommandForPlatform"
+      },
+      {
+        "body_sha256": "6cde11840fc24efb4b5b80d79196d82acf0f09316a56317fed17d4aa7741e0f9",
+        "file_sha256": "a559c90d66f7790bbced32f85d7032bffd3e742e4b1580a292dffe732ea5637a",
+        "path": "apps/server/src/environment/ServerEnvironment.ts",
+        "source_id": "apps/server/src/environment/ServerEnvironment.ts::platformOs"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-7586d82085c7",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "1f29dfc4bb7cc1d56d2839e21e3db9401201cc84dc528990dee17e4e64714e0f",
+        "request_key": "021d693858cc3ebcfa5bc0a611e755d1a01f7abefca5157833a910d8ad6219ac"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "152f8e68fdc6f049425dce420e9e36a8532cadfeef092633a13f779120231f29",
+        "request_key": "a50df638cb9851abe31c7d8d65ca2fe77829bd2e7de7a54331afab0467349752"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "9f9842f1bdbb935b10a87219132e8dc997ac1d1b58871e15c7d0208353a693fb",
+        "file_sha256": "1c937244df5decd29bb01427adf75154cd0bba9c0789c130ee2d5d0ba1ec8bf3",
+        "path": "litellm/proxy/utils.py",
+        "source_id": "litellm/proxy/utils.py::ProxyLogging._should_use_guardrail_load_balancing"
+      },
+      {
+        "body_sha256": "67d67046f83aefd82ef754e80c5056c9a78f22e27e6ca4ee64f6c1bebda91a1a",
+        "file_sha256": "fd2daf0a6a72c34b072428c0b5aefedf6da91c6cd35bbd66754c3bb298d356c7",
+        "path": "litellm/router_deprecated.py",
+        "source_id": "litellm/router_deprecated.py::DeprecatedRouterMembers.get_available_guardrail"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R1-ea0dda1368e0",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "b51dd728b1968b82b092dd7ac2464bd014e61297e45a2102a01d3a24c579ddaf",
+        "request_key": "09d45a5bf2ba1848725c2c6760cdf3002ad0b6b3d9edcccbcc9c7aaebc68684d"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "07482ea98be6dec17d6d7e813aa86d86c611c93450b92bf823d37bc1bebdf5c5",
+        "request_key": "4393f95903a0809e10e50a5fd6592dfb1654436d72a7b9448aa4f31a9e162a27"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ee57f332c43cc1e207ff6ec6332d6f71320f71634a91d89a97a8b090f63f0ece",
+        "file_sha256": "3ed89d0085fbace5cb71e2fa8b258c846832f3c8f350e586b1a81781a169c9e3",
+        "path": "scripts/auto-dent-plan.ts",
+        "source_id": "scripts/auto-dent-plan.ts::selectPlanningProvider"
+      },
+      {
+        "body_sha256": "c5ead7f502b694811eebf13e63c217ee61150b4db790aed01d404068e7556c49",
+        "file_sha256": "e23563b1dc93afcf873695242d1720261327076e4e776703f3da10210a3ad462",
+        "path": "scripts/auto-dent-run.ts",
+        "source_id": "scripts/auto-dent-run.ts::shouldRunCodexProvider"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-f3d44c37fbb3",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "0d27eda5e386ad09cb1cad966cff122c058b3e19a9ea2faa946956fdd5ed797a",
+        "request_key": "0d421be12b1718b2ed99da48fab9166c11e951c357d94a5138c87b639c39815e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "fa2546ea25c47b00554abdb7a8751b58d927c9c2ded4835eb32644197b6981d5",
+        "request_key": "6d44f9c9ae49a89472489c3593a5e73620c59376a7771e21d4e91358bed57c59"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "2b1be08907eece6db492a89befbd1679e50d27667e07d54c9b0af9150e659128",
+        "file_sha256": "ae2319d1fb035f76792fd82b88fa97eb8579b3b2d34defaeec5661c71b7a98a1",
+        "path": "tests/sdk/context/condenser/test_llm_summarizing_condenser.py",
+        "source_id": "tests/sdk/context/condenser/test_llm_summarizing_condenser.py::test_condense_returns_condensation_when_needed"
+      },
+      {
+        "body_sha256": "3596ab47537aa833e9c11391100e42df6382962e12f23ec19d08dc493c537101",
+        "file_sha256": "770075460d24ac82b6239a671af61ea223c0e2cf37a20d778d1948c3d19fc00f",
+        "path": "openhands/tools/preset/default.py",
+        "source_id": "openhands/tools/preset/default.py::get_default_condenser"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-20cff825883c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "808a8390973a3898af527ad49a4e4ce18da6174405dcdd08e46416140a2259aa",
+        "request_key": "aa7a8afe5023db392b76a357273a8e299d050c3cd49f40b33cb76a3c7ac79b99"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "c1b29d425bbc6f95615401923c181fae014e7780f1c3a6b1cb1a1015dc5a132b",
+        "request_key": "21a7a211474fb5c11005f9722e6f9b456b0d87209d1dd57170f4f24f2d66b1ff"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "efd65f15230273dffe4fbcbbc1608497d0523cfd855e028dbfe0546048eb8160",
+        "file_sha256": "585de001274ce4d4f1cbf7c8583b648e66186d4ebc97c515b0abcffba3935e37",
+        "path": "packages/tui/src/component/fade-in-text.tsx",
+        "source_id": "packages/tui/src/component/fade-in-text.tsx::FadeInTextRenderable.set sweepWidth"
+      },
+      {
+        "body_sha256": "1542b2da6ebec27cb27b59bb497f7d1ece2bf26d640111760fa11524534167a8",
+        "file_sha256": "3bf7ffae10ab9efc9ae95a8b0068a84b70364ae0a376b888de9444bae0be4c6a",
+        "path": "packages/core/test/location.test.ts",
+        "source_id": "packages/core/test/location.test.ts::sweep"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-e61d656f666c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "e61091f82bff8ff6e0f969d703d549c61e62349fe9bd7a307211685b082d25d9",
+        "request_key": "707e3216e166ca11f2523d4de5f0238f55a67930a997c85ae7d6379a7d34921f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "c79464eebe2babcd6ba71afa5d1c2ba026f0b6afbeb9b489e0a061bcc6904e89",
+        "request_key": "10050385da35ef4d49ff4e5caba4f7430649328cd6f1673f2e7211329e2f4386"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6702853e81a6b47569c13f9178071672bd3d6c48a4f90681deb83c3edd8f232d",
+        "file_sha256": "af0366debbef02d5d47531d2b71d2283c3652b47805adcfc4684ddbf64fa1ab7",
+        "path": "packages/tui/test/session-dialog-resync.test.tsx",
+        "source_id": "packages/tui/test/session-dialog-resync.test.tsx::openDialogThenResync"
+      },
+      {
+        "body_sha256": "50108011857d3b0f3c48f3f6a1a833a3868ca8f2bfcc7328abc4f97bb9b0b6cf",
+        "file_sha256": "8702b5090fbf2d91977cd63db828732cb7582a40819c64f959cd574d97e2a75c",
+        "path": "packages/tui/test/clear-session.test.tsx",
+        "source_id": "packages/tui/test/clear-session.test.tsx::render"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R1-13d00457f85e",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "551c18f572cf97586a9ce1197e7de615e949ea4e52ff7d06a54f7b3a42b502f4",
+        "request_key": "3b46fb27f25467c1d846f2cc94093606f3fbaf1b0aad5f15e6a8c57c0c9c348b"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "b2279fba06f9c5dbdddb5a22a710cbd60abde2e113c68d731a4f623475de0b0f",
+        "request_key": "bdeb94b5882f7c2bf896bee48f336b8170139bc839481f9a03dd64a4db55ad2c"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "c03f6f9e5ee6544cafa8469f392449e58674127bf80505644e6c5167fbb7c1f6",
+        "file_sha256": "3d90e5e7f42815e369f10c08d7fb82ddc8220ab2a7b6e2033071d7cae7f01792",
+        "path": "apps/web/src/components/ChatView.logic.ts",
+        "source_id": "apps/web/src/components/ChatView.logic.ts::optimisticMessageAttachments"
+      },
+      {
+        "body_sha256": "10fd02dc00a362a25e0e9c0b72494de697f0b40ef28270a4a03fa38237c9e84a",
+        "file_sha256": "2cf1740603704fce97ebe31ce29a9539a238156093c5edc2556c8018a09ece79",
+        "path": "apps/web/src/lib/attachmentUploadQueue.ts",
+        "source_id": "apps/web/src/lib/attachmentUploadQueue.ts::releaseDraftAttachments"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-be5187e0d6a2",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "2a800b7748a6ee766a549cb6c0a45e81bb55da6c12d70a30d6daac25b4bdf57c",
+        "request_key": "f0c98a4660ff2a66ad321350574376764fa0a7d49c0fe63df6c0599a0d440eb8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "d0ce5b32f9f0ae1b520c9b99aa8ac12ed88cf7dca33747e61513460f3c338b69",
+        "request_key": "4ce157a0dcbe8f50b8e4736d3d44e7b9dc374647d41d3c5c00aa7f290fddf28d"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "cd3c4610165e23831676fd77087616231dfd97b56fdb46b7a47cfb8e5f2b88fb",
+        "file_sha256": "beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca",
+        "path": "litellm/caching/redis_cache.py",
+        "source_id": "litellm/caching/redis_cache.py::RedisCircuitBreaker._should_open"
+      },
+      {
+        "body_sha256": "d3a22e14693ec181ec21c87c04efd1fa029a0b6229db9659c6ddfe7a8fffda50",
+        "file_sha256": "beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca",
+        "path": "litellm/caching/redis_cache.py",
+        "source_id": "litellm/caching/redis_cache.py::RedisCircuitBreaker.is_open"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-2db2e87f29b7",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "05ba055ffcf6c707c168ba659335f90a9308dbde6050309d154ee2e3ed92630f",
+        "request_key": "393ad144115958c3885de6d7fafa1f014d09586d6a6a07fb1921971339c5ac8b"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "20fb36dc0288fdb66842d94220c3cbd370b25ad69ca580a46581185bcfeffff2",
+        "request_key": "be7bcd54cea843e68852a5e484b5e58ec09217612aecbcf306ebe168fcf694e5"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d0c4c8bf2fa8fb527dc06ac220d1a53944691a24201804867dcbfa7c2a1a8e80",
+        "file_sha256": "4d6d867eb45ecc7559f77ceae0d2bbc2bafd157ea0bbb65743f08855923e0dea",
+        "path": "tests/agent_server/test_api.py",
+        "source_id": "tests/agent_server/test_api.py::TestStaticFilesServing.test_static_files_mounted_when_directory_exists"
+      },
+      {
+        "body_sha256": "afe2e1a5aaa093127d3e00d4564344a706b2e508e1259911fcfadb102f7c019a",
+        "file_sha256": "4d6d867eb45ecc7559f77ceae0d2bbc2bafd157ea0bbb65743f08855923e0dea",
+        "path": "tests/agent_server/test_api.py",
+        "source_id": "tests/agent_server/test_api.py::TestStaticFilesServing.test_static_files_serve_subdirectory"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-080b44fc9689",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "ed3735a6e30fb0c7e6c64787a526efc771cc8c891a2b0a012c2f5a760bbb3483",
+        "request_key": "2ff566a5b42fe3cdd106358f91efc7254789b3e8b251e5135fe0975b49076d1e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "f30ec9c123973a20209e591a61d44610556873439bdf264f2a5fbe34babf0961",
+        "request_key": "e70906a7aa0e4aa582e7b0350bb289adacdc43ab762ddd90b9c47ed4beb65a45"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "5208de73c5793147a683e6a6492be4663bf7363f60019296098ac98413e3c20d",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set promptPulse"
+      },
+      {
+        "body_sha256": "5146b90af0698adfbf1450bc14558bec52ff4693a92d6f7c649d7a798c93f206",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set complete"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-24ef7f00eee7",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "49601c57e5d6adae65827a764a74a2bab47ffd647beb234989aca414f56f9184",
+        "request_key": "6d9e26ac0beb17c43e42782da3df52b90f53e2cd1c227b228fd74ca201132d0f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "d12f15638dd3f05711139f309544c59b8eb8e5a77636931351631eb4f48e0916",
+        "request_key": "c876818c3f8efc114f5d7f633aec6f78c47583d068a57e7539de96197e1d012e"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "b8f7916eae4658cd7f4bf2b0773b56e91268c221618d695455945da4bbc01bbf",
+        "file_sha256": "2f9c77680b79c3421212dcd4643411d3668fa046eb8d943ced25bdda504f9dc8",
+        "path": "packages/tui/src/mini/stream-v2.transport.ts",
+        "source_id": "packages/tui/src/mini/stream-v2.transport.ts::resolveSelectedModel"
+      },
+      {
+        "body_sha256": "370c2203d13c191d336982d6feb2a05e2e6bfdfd655428d0a3ea25807d217444",
+        "file_sha256": "6d8f67a943e827adba207fc571b4ff50c0aa517514f144df4e82751f378a6e10",
+        "path": "packages/app/src/session/composer/selection.ts",
+        "source_id": "packages/app/src/session/composer/selection.ts::resolveSessionComposerSelection"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-e3b23425b44b",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "666569fe4a925eff9aab5f2ffbf88e72123d28257bba65a3606e699d4ed602e5",
+        "request_key": "3a66d3b35f795c3fb4178a33ef7bed0dab34df1b541116dfe3a698c660df0461"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "fa44ae6dff807ab6956ea6a5b877fa8aced52808f1ddac788e2e69edf45e81f8",
+        "request_key": "42cd3f6c5c2b7b79d54dc7c0817a0fe498697d867865f947b32017ae4605ee9d"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ce89edcc6b681b5da9f6684f17c120c0cac4dade08aa027925f22c885459e9d3",
+        "file_sha256": "fc3a423cba6ebd9434d21dbf401d1727ad6f3a9effd37f61af07528372b83eaa",
+        "path": "litellm/integrations/generic_prompt_management/generic_prompt_manager.py",
+        "source_id": "litellm/integrations/generic_prompt_management/generic_prompt_manager.py::GenericPromptManager.should_run_prompt_management"
+      },
+      {
+        "body_sha256": "7185250d1b101596cbed238d036ead3c445ba66d310574b4b5d7bc28fa821817",
+        "file_sha256": "fc3a423cba6ebd9434d21dbf401d1727ad6f3a9effd37f61af07528372b83eaa",
+        "path": "litellm/integrations/generic_prompt_management/generic_prompt_manager.py",
+        "source_id": "litellm/integrations/generic_prompt_management/generic_prompt_manager.py::GenericPromptManager.async_fetch_prompt_from_api"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-986696f46c98",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "787344bea7d55e926e3828e91a6b295180e47c58b26827c069d56d6fc6d99868",
+        "request_key": "ec6d52f7f09c42f6c95208cb06ddb741955777b038a1458d356d006aa593f42d"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "cbd95cbdf5c593fbd2b4598295f3eb568c1b0ff6b1970564162ddd9e31717385",
+        "request_key": "cc68d4fd8c00954d3be2bb1efa769a151d6caf5ccef53cab4d4729c06ae72d21"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "2db2a42070a252c35e8280c6fecd6885b894dd9fb2f07a061a0332bd9f7bc870",
+        "file_sha256": "c9df85aca8f84e4195568f7ebb7202fc43a6b0a341f7122e5e35957e4f089d27",
+        "path": "openhands/sdk/security/analyzer.py",
+        "source_id": "openhands/sdk/security/analyzer.py::SecurityAnalyzerBase.should_require_confirmation"
+      },
+      {
+        "body_sha256": "d784faa93d1414aee9c305f362d6dac6d713d82ddc30dbe59d8d7c34ad90b471",
+        "file_sha256": "0b3b751eaf0919b390aa451a5ab7139e2afb889e30fcd3b813718838fd1c5249",
+        "path": "tests/sdk/security/test_security_risk.py",
+        "source_id": "tests/sdk/security/test_security_risk.py::test_security_risk_enum_values"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-3f0170d41e3b",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a01f7bc387c0dcbd0e22cdf6b50b2c820431d75a8183285cc088d0b97dacdac8",
+        "request_key": "62b7d278ac37f3783639b61c9993ae6c89a3515d7dc0c8c2d4da856dc24602a8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "d8e96f2966dad38677e8db21bb07ca10e727481cfab66cb7bc23444f0446881f",
+        "request_key": "4cbc7632482d4c7a797b836ce521cde41ec69bc932dad8c3fd43c9130452048b"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ad9370ff74a634f0a4efe237b3741ac3e00b26352f259f33f3d62d1ccdc62a10",
+        "file_sha256": "59c519269554ac65de5f0763a07d94cbc8a2a11fc6ac7ed9aaf621fae3013868",
+        "path": "packages/script/src/index.ts",
+        "source_id": "packages/script/src/index.ts::Script.get preview"
+      },
+      {
+        "body_sha256": "a85ec6aaf9ea181fdc0119dc79b99bec629e48e981b5296c3adc0647b74ac44f",
+        "file_sha256": "8dec1a3e586ba55530efbe279df727bfb5f0c89eae9dea7b26e995ad0c2492a5",
+        "path": "packages/session-ui/src/v2/components/session-review-file-preview-v2.tsx",
+        "source_id": "packages/session-ui/src/v2/components/session-review-file-preview-v2.tsx::selectionPreview"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R1-b8c7f5c4d56c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a2e176c2475d8580ad7b092f581fbb1a6060b9ef7cb2b962ee48c75bf0a7dc8d",
+        "request_key": "692c245bbd8e30d769547221d119f1825c4639c063bcdd5d4088f1f1af23f2bb"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "7510c96b78dce2a2817ecf3329c9b2b42aac3974813d326dbdbbc660a1f06d14",
+        "request_key": "eae7466d10369bb19d431b2a71b3a87a7a4d2caf7003cc41d4c05e8280a529f7"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "2b3b39976f1fd37ad9d6fc2a8a1eaa0090998c5e6a97d9ec87ded772d2914141",
+        "file_sha256": "62df0dc5fde80cc049c7460d3f9e7790a579aef23ffe8199f8e3433bf122aa76",
+        "path": "apps/desktop/src/snapShot/SnapShotAccessibility.ts",
+        "source_id": "apps/desktop/src/snapShot/SnapShotAccessibility.ts::windowsForPid"
+      },
+      {
+        "body_sha256": "f5acbcabf0b9dd98c42de5d158c99befaad33ca24e0cbb1053038b98deb54b75",
+        "file_sha256": "8d3ade740aecd9441ad6a7bceea78efcb374bb51d2eebb508d2b00fda4cb2cf0",
+        "path": "apps/server/src/terminal/NodePtyAdapter.ts",
+        "source_id": "apps/server/src/terminal/NodePtyAdapter.ts::NodePtyProcess.get pid"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-2bc3d54b4120",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "b9446f87d9c25c1c902171cd16c6846d25457a55336a42cfdcfcd35732671964",
+        "request_key": "6fc719de72f7976b25dc87e2489666873749688be3eed89e42bc939f140f8c1f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "4c74097e712b6a61a4047bee711762c740a92f57d202f7286e112c3e3287a8d8",
+        "request_key": "6c4916fbe85ccbcaa62376fe6113bd9ae5c9b122e03404577a02af950def1095"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "96ef60a7d0324de458969140d6a1710e977bd16355cc1230f83a51435ea18cf9",
+        "file_sha256": "06f2f40b30261536630e58f5cefd8bbe4791dbef1db3944f33e7198bdaf0f373",
+        "path": "litellm/proxy/health_check.py",
+        "source_id": "litellm/proxy/health_check.py::_should_inject_health_check_max_tokens"
+      },
+      {
+        "body_sha256": "9019ac87d7e8f4334c7963e4bd9619bf4cda5a0855f9f70f56e3554db66c5c20",
+        "file_sha256": "191b63ab391d8d68f2c9fcf6e098675183cbd7980310e3420bc975a756f0c5b4",
+        "path": "litellm/llms/ollama/completion/transformation.py",
+        "source_id": "litellm/llms/ollama/completion/transformation.py::OllamaConfig._get_max_tokens"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-84e01775b4bb",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "d39aaf4c3f36cfba2c7e5cb4360a48f4fb40e94bc5b502956cae7e691bb28574",
+        "request_key": "982041e2065eaf33d6cc50b9609b9c804851780abda3072888b2bc059c6593f7"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "a6541417b564a03c7a6241a14851ea41596c79d213aed0c1c1e9572fe39458bd",
+        "request_key": "0e093ed284aef5d5729a62163840358c68e0e28c5a5a178e60fff00ea1cb7f0d"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "7d96a8ece278e6479da7552b54c2b5e1b7de6430e08de5cef1da72a08461cbeb",
+        "file_sha256": "31253f663a6b96a693475b3b2da0640e46efec7159b364887c61568f862807e0",
+        "path": "tests/sdk/conversation/local/test_confirmation_mode.py",
+        "source_id": "tests/sdk/conversation/local/test_confirmation_mode.py::TestConfirmationMode.test_action_then_confirm_or_reject"
+      },
+      {
+        "body_sha256": "c590aeeba1d58a2cf6bb14a44f0a50cd9390b146afde9ff7ecc6cd261501336a",
+        "file_sha256": "a72b697afb51ef247730b0ee3b67cdf8bffe9bf03fbe9a63cf5f3c485e8c00bf",
+        "path": "tests/sdk/conversation/local/test_conversation_pause_functionality.py",
+        "source_id": "tests/sdk/conversation/local/test_conversation_pause_functionality.py::TestPauseFunctionality.test_pause_basic_functionality"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-07f7ae5a88ec",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "caa8486d52989b82d993bd8c08a237d646e363f5e54d6275ced8f2a5212fa0dc",
+        "request_key": "e4c7bdda3e96d65b4d314f28a71c7175c4ffab90f59c0fbe3159363658362cba"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "81b5447eec58cd7d6997d0e86b3ab913121219f6419554492b94e610014af56f",
+        "request_key": "095121e59fa182d9d030314782fe60de1db5813dcdbede3f8fb6a0454fab7d80"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "873479fac88e4c2ad714f108ffc6a7c0aa969208de1e5dbc17aa9e5cbe451a20",
+        "file_sha256": "8613c856375269827cd7aba530a2ecbeafc525737859a638d505f87e0c8ca8b2",
+        "path": "packages/tui/src/component/spinner-renderable.ts",
+        "source_id": "packages/tui/src/component/spinner-renderable.ts::SpinnerRenderable.set backgroundColor"
+      },
+      {
+        "body_sha256": "dda14f6176d2b6d3f427fbf9f0f78f4a63206f149ff00c50796568fca38262d6",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set color"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-5847160d0d9e",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "4b043b6fcc5a05ec9b76456ccaad4b91562a8ca66311075a86a181391de1f21a",
+        "request_key": "fe722ea26b26816b62a518e765f26a260ccb6d6cac9166567d92f02ea325d14b"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "dd06f16d8efd2d463e74ab616cae2a07204540442872e682434d0812f13f4744",
+        "request_key": "267d14b4603c1fd698ec32f58150214753185c4fcc2b43fb4488f89daf1a598e"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "78c7eb4176cb434571e306dcbccc2d8379b3dcbe219dadabaa98adab82d3f39e",
+        "file_sha256": "0936445257f2c059bb44fc9e8320132f8dc59c1846c826a06ea786a64ff3e665",
+        "path": "litellm/llms/bedrock/realtime/transformation.py",
+        "source_id": "litellm/llms/bedrock/realtime/transformation.py::BedrockRealtimeConfig._should_close_response"
+      },
+      {
+        "body_sha256": "fb0573fff52fb710f67f13cd018d2576a297159b5212661440d80eb15182f6cd",
+        "file_sha256": "5864d0f1886a3aa51a43727ffd6ab0c0ccadb60c1a45fd1a50ad9f79af3cd6df",
+        "path": "litellm/llms/soniox/realtime/transformation.py",
+        "source_id": "litellm/llms/soniox/realtime/transformation.py::SonioxRealtimeBackend.close"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-c9246294fa15",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "553af8b4be0c5f0c333c6769b14699c4fe4858a5f6fc016668da2eb0469a9d41",
+        "request_key": "cb402547bf412b9d959f5ea54f790ec85b39300232a3b43445c00597912cf4bb"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "e81e81d9dde383fd802b9df272ef04f3e014ae5a03ea4319231f6ef55f77e7d5",
+        "request_key": "3c3a0e5aa7454675343958592b8ab20e396b24a860ebd5ead7d4aec4f256a799"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8cff64fcf9f7be99aecabd63c2d751a5672fc8b77dac7b8694e3217d066a302b",
+        "file_sha256": "f5f8a374acabccafb9f36449f2eeb7c2944b1f4e53e124e446654f528d2d2ff7",
+        "path": "tests/sdk/context/test_view.py",
+        "source_id": "tests/sdk/context/test_view.py::test_summary_event_index_none_when_no_summary"
+      },
+      {
+        "body_sha256": "1493eb947b70e333852184f83b050609cb7eaa24aef025079b26df2eb017f99d",
+        "file_sha256": "f5f8a374acabccafb9f36449f2eeb7c2944b1f4e53e124e446654f528d2d2ff7",
+        "path": "tests/sdk/context/test_view.py",
+        "source_id": "tests/sdk/context/test_view.py::test_view_forgets_events"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-28c7c0344cef",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "89c9045a900ba299700b0973412c7846fde379491d36099fcc67b97f59cda970",
+        "request_key": "41bb7d956e32d74ed4983806ceaea7ba1efd3c9dd7960cd4dc481d936043d2ff"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "edd869d51c103a67c9a5339b17b2c5e8f72f523a494169c99462f6ca776e8b8c",
+        "request_key": "62d62109c86225832a2239f95546264a14942890f8eaa66e32c3522479bbd831"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "b677588a73e17eedd30e03740703e5aff29e84b8054c7864804758f63b3efbea",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set completionColor"
+      },
+      {
+        "body_sha256": "6b9fd0d858344dddce116cee22ae7358cfc8e5a7e3569df02c377c204419c245",
+        "file_sha256": "8613c856375269827cd7aba530a2ecbeafc525737859a638d505f87e0c8ca8b2",
+        "path": "packages/tui/src/component/spinner-renderable.ts",
+        "source_id": "packages/tui/src/component/spinner-renderable.ts::SpinnerRenderable.set color"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-0cb747bd100d",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "792c151377619eb5b6f95c50fbbc1ad4291bdbbd9e9e4b4f195392697c3480c0",
+        "request_key": "9cfcf39f6f3bb2568e8909578c41e0866bab357cee56a00973d88c4c6c433c44"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "5d46d61afcd6b9f9da96fb6d5ee1cb601e4ae312197b60c5593fedcc47204c2b",
+        "request_key": "cf18d8606ab95be2d8ef08497060186547eb4e5ea1c8216f880fad7f8cebe289"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6b3f109cc0ade5d93a09d6157aec813f932da6e003b110a08bed4b3bdba25b26",
+        "file_sha256": "696951967f8d2cf161ecd4753767ac530b1782dded746c148562306f4c601fa8",
+        "path": "litellm/caching/caching_handler.py",
+        "source_id": "litellm/caching/caching_handler.py::LLMCachingHandler._retrieve_from_cache"
+      },
+      {
+        "body_sha256": "0802e3ea6bb2af761bac5d75c23e997fe3fe85bcefb589e18940c88f31ded763",
+        "file_sha256": "78b3168c7151af777a299d96dff6d4958afa37469e637663196ad461a95a6df8",
+        "path": "litellm/caching/caching.py",
+        "source_id": "litellm/caching/caching.py::Cache.async_get_cache"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-467c6676db0f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "ae67e67053cf7c3761a2102f3090ca29fe7f6240fd7e1f02120b9b25fe180cbe",
+        "request_key": "a3880ebf691a2d0153f4bba57b0dcb6febc44b24b3671e128a452b830cf12e49"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "ec18696fe60e73c1d56b0c418150d6d8e2031f9086ca5dab9fa4c01de1d0ca4d",
+        "request_key": "819ad39d8a4e8b5dfe3996db87547dd12db6409292d06192daaed3c779268138"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "2db2a42070a252c35e8280c6fecd6885b894dd9fb2f07a061a0332bd9f7bc870",
+        "file_sha256": "c9df85aca8f84e4195568f7ebb7202fc43a6b0a341f7122e5e35957e4f089d27",
+        "path": "openhands/sdk/security/analyzer.py",
+        "source_id": "openhands/sdk/security/analyzer.py::SecurityAnalyzerBase.should_require_confirmation"
+      },
+      {
+        "body_sha256": "f66241e7f44442f8012249bbc1b3a5008cf4b3b81982c309add604fdb7483008",
+        "file_sha256": "e08d733c241af8f2e57b3eeca3c218a98f1b4afa87af1bbe8736e2c7b1abc481",
+        "path": "openhands/sdk/security/risk.py",
+        "source_id": "openhands/sdk/security/risk.py::SecurityRisk.get_color"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-8d922bea8fb3",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "686b872f81319f352533312eb39cd186291fe82c1f07fda4261f53468f6e2bd7",
+        "request_key": "f5eb671cd32d5ad81e360d5c30cee1c0fe72bc4b68efd23c8a47bef4b275c7e1"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "8203a0fdc3566565a96d799aef84b250651eda82faf61283b5ac4dcaf97f70a7",
+        "request_key": "e866155d337da1fa39895bfc72e59a42e873e427dbd4a8e23a6ba14b45ea1755"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "fd8ced243a93049380914c8e4aeb3d9dfbc2793f0b285106397d893ea4742065",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set active"
+      },
+      {
+        "body_sha256": "5146b90af0698adfbf1450bc14558bec52ff4693a92d6f7c649d7a798c93f206",
+        "file_sha256": "02f2518861115296e7c7dd8f280b5c0f640f5286e904681f6b0cbaa88f265d92",
+        "path": "packages/tui/src/component/tab-pulse.tsx",
+        "source_id": "packages/tui/src/component/tab-pulse.tsx::TabPulseRenderable.set complete"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-7fdaf94fdcac",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "086ff206b2787c7f0462be158823bf8903906d0123705dba0820c366bf8f713f",
+        "request_key": "8360e6cf76129c691e1aaa8c5e3e2e66c4267c14103193268fe20d3c7fca8af2"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "bfd4ab515be62a5476078bffbda9773edecc65a0c63c633bcd5a9a68e718ef46",
+        "request_key": "45cdff81ffdbd5404a679cc04c4e6e704151fa61ef0d4cdd1319c2ee6aebb36b"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "a52f201bb7e51555e3c6b4c24dfd62468777bcc1aec3d5bb85a5d442802c6783",
+        "file_sha256": "775e49f230ff0f970cbefc2fab7daa411472f65db7090df26e73385efeac47ab",
+        "path": "litellm/litellm_core_utils/chat_completion_agentic_loop.py",
+        "source_id": "litellm/litellm_core_utils/chat_completion_agentic_loop.py::maybe_run_chat_completion_agentic_loop"
+      },
+      {
+        "body_sha256": "f297394c291fbff6db73fc6c464e11a1e9b78a7dfe5194553e39ef90ee2447c2",
+        "file_sha256": "775e49f230ff0f970cbefc2fab7daa411472f65db7090df26e73385efeac47ab",
+        "path": "litellm/litellm_core_utils/chat_completion_agentic_loop.py",
+        "source_id": "litellm/litellm_core_utils/chat_completion_agentic_loop.py::_execute_chat_completion_agentic_plan"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-80760fd38280",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "b4ddd099153be32b1ecf9e00e4626389194f95a6f157022c1f430a7593317504",
+        "request_key": "ec45b793ea763d14b47c1afe127563608c760d4117bace0eb2552a9f515dc6ad"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "1fea0216e5dbf16e0caaa96a400089ea534814451be230f8cc0ac3a9e4795ac9",
+        "request_key": "285bffef97cd72387f0ec674293ec9dec079131c4889324034aab11b6848b679"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "c501c9f3224207a9827f80805d5b57e2b28e4c8332bd393ff4e077e30e5f98a8",
+        "file_sha256": "44e66d0ce37e528d8f5bcb525a5cae2bf881e691ac53f2bc5766e45f077ffc69",
+        "path": "openhands/sdk/security/confirmation_policy.py",
+        "source_id": "openhands/sdk/security/confirmation_policy.py::NeverConfirm.should_confirm"
+      },
+      {
+        "body_sha256": "f66241e7f44442f8012249bbc1b3a5008cf4b3b81982c309add604fdb7483008",
+        "file_sha256": "e08d733c241af8f2e57b3eeca3c218a98f1b4afa87af1bbe8736e2c7b1abc481",
+        "path": "openhands/sdk/security/risk.py",
+        "source_id": "openhands/sdk/security/risk.py::SecurityRisk.get_color"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R1-03514908e111",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a4bedcd1348e5e4103bae069299b8047596b8403768a63bb879e57aca72e3f5f",
+        "request_key": "43fc122802976afcc61452b53c13c7bd7121f0206ae4fe03f710f2425101696e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "e5e441ff9bb4981d2601b411a1050d8d42546e3d431963c3c89276f375e7d926",
+        "request_key": "1459b723d2a85f1341034a91a1a00a75aceba78c53de0fbb4ce6d5c026c9ebc7"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6b9fd0d858344dddce116cee22ae7358cfc8e5a7e3569df02c377c204419c245",
+        "file_sha256": "8613c856375269827cd7aba530a2ecbeafc525737859a638d505f87e0c8ca8b2",
+        "path": "packages/tui/src/component/spinner-renderable.ts",
+        "source_id": "packages/tui/src/component/spinner-renderable.ts::SpinnerRenderable.set color"
+      },
+      {
+        "body_sha256": "91c01dcd64ab1ddbf04088bf7c7754edd5add7d51edb478bc71e7ef874aff8bf",
+        "file_sha256": "c359c45a057e5774f0d0ff9e7cb913b50ddc08999670751c3b361642bfee642d",
+        "path": "packages/merman/src/markdown.ts",
+        "source_id": "packages/merman/src/markdown.ts::color"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R1-de71a2f63858",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "e3da006daabd3929047f1e5b7952738f2af93073a0ad1069ff12e05c2b1aea57",
+        "request_key": "44df1dbadadaa863a32d48d407aaa9f6db0ce65f2ec91ac8aa019a327557f6fc"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "6299903e65efafead37604f930dab647ed6e2f75771eabdcb43b7fc6de068bb3",
+        "request_key": "048aa2b0320850c44a3cbd6ec3aab8a1a71126a4e90fcdba7232772756ae92c9"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8bb60ff0a3585f764c52eabcf4a1768f8bb0bbaa8309729e77739fbf8ff7689f",
+        "file_sha256": "76f941f60409aff99aa54ddbd6ccc5eee77464dd17fda4732a0cefa406057c16",
+        "path": "litellm/proxy/hooks/parallel_request_limiter_v3.py",
+        "source_id": "litellm/proxy/hooks/parallel_request_limiter_v3.py::_PROXY_MaxParallelRequestsHandler_v3._release_request_capacity_when_admitted"
+      },
+      {
+        "body_sha256": "45b384a61c4bf0ad01c9752009563cb97f1be0c7e6feff93e24ce50c8012cb6c",
+        "file_sha256": "723c4dde578ced822765a9d38e30ae9778c5dafe9fcf9a639b3174cc0bb14cec",
+        "path": "litellm/proxy/mcp_server/subscriptions.py",
+        "source_id": "litellm/proxy/mcp_server/subscriptions.py::_admitted"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R1-f97b4e226656",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "5a4d16fb8cc962574e190b59d98c9f8d5dacbf942489d45805caabdebbb0503b",
+        "request_key": "04115d73511c12d6e0cdc4c360423bc27a78cc0571bd5907df5c99c08b22ce98"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "a4525b471be9e332c707038dd5335f43224969c070bedaafc0169b4f14858b95",
+        "request_key": "683397c39b820d3c684c3906c75d0804f69500a87d3e41faee1f7459dace4495"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "a77d755f2cef7d9664aeb9d4082da0400fa3514b2822f248e720a954bbaa3b40",
+        "file_sha256": "44e66d0ce37e528d8f5bcb525a5cae2bf881e691ac53f2bc5766e45f077ffc69",
+        "path": "openhands/sdk/security/confirmation_policy.py",
+        "source_id": "openhands/sdk/security/confirmation_policy.py::ConfirmRisky.should_confirm"
+      },
+      {
+        "body_sha256": "f66241e7f44442f8012249bbc1b3a5008cf4b3b81982c309add604fdb7483008",
+        "file_sha256": "e08d733c241af8f2e57b3eeca3c218a98f1b4afa87af1bbe8736e2c7b1abc481",
+        "path": "openhands/sdk/security/risk.py",
+        "source_id": "openhands/sdk/security/risk.py::SecurityRisk.get_color"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-46bfc24bd439",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "237f39280251fe089357c8d498dc46ddaaff16eea1000fad8cbca4e478514ffa",
+        "request_key": "78e01be94fbd835f2565ac0ad829de693ab968d5c2d531dd879ed2948b719cff"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "63891f33272166d5e88946e1339b7b75d3046d0ecf8dd4170062bf34f8b2d1e3",
+        "request_key": "af13985500b8b29e0c7847f29e21258b9478107f60a8561b3e1c05ca552327ac"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "21bf8672d19085de95714ef843766e504e61e422a15f10083d8beaac891da856",
+        "file_sha256": "85dbfaf2e8607463ad8394d9ca5b156e4feba1184aacce9e22c5dc7cb00564c8",
+        "path": "litellm/litellm_core_utils/logging_utils.py",
+        "source_id": "litellm/litellm_core_utils/logging_utils.py::_get_parent_otel_span_from_logging_obj"
+      },
+      {
+        "body_sha256": "639b22888a23cc0316b6e48559d40ad69ccd144783e9b6709cae07fc57976111",
+        "file_sha256": "deeee935ec13588ebc49387b22d6be17355e7e00e0559a7fed097357f39f6f89",
+        "path": "litellm/_internal_context.py",
+        "source_id": "litellm/_internal_context.py::set_request_parent_otel_span"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-6b2735242af0",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "babdb1eebb8bb193a9b954d2c1d419065e1e2f69deaf29bc149e5a48198864c2",
+        "request_key": "f99b0674bc222a5bde8d9ed2f459f6cc2e4d5a1e977426a0fb7af6f39233516f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "298b56b3e88973c3cb01eb1113e4adcaba66acc792f1e42205f919e28da2f789",
+        "request_key": "813df1f330e4436484d7027c7eb97f05560fd34dd77c007785f1ab358f7671d1"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "361d1dd7f5dda4c185eea357b18bebf263507f39ddb0eec0fec480d1774a97d1",
+        "file_sha256": "999872c0bd3569fa30c31b25d8f0856256859c42d09097abd1f7cd572bc72cbd",
+        "path": "src/issue-backend.ts",
+        "source_id": "src/issue-backend.ts::CustomCliBackend.reopen"
+      },
+      {
+        "body_sha256": "30f835ff364e00065336bc4d2241f93167b05a2dc8fce8ad3a44dfa353d80844",
+        "file_sha256": "999872c0bd3569fa30c31b25d8f0856256859c42d09097abd1f7cd572bc72cbd",
+        "path": "src/issue-backend.ts",
+        "source_id": "src/issue-backend.ts::CustomCliBackend.view"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-deddbd71964f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "450b30abacee4ba5cd0ec7d5ec70b6a24f302234f970b30d6d3ac7a1e450e2f0",
+        "request_key": "2470ca5b82db70ca023e6bb3d52638577861edcea9ad274fa656d53942cac466"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "8ebc75fa5d788ae4e33f8eecaec12c46becc9a1d043efe4a457b3b7446a6e66e",
+        "request_key": "45120de4437520a0e7c9c09fac69f6202184b4ffd118dddeb5ede6322544381a"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "9de20012cd6f35a493be23eff954d3a1a35bbc0c49932ea8ca2c9a6198d7e382",
+        "file_sha256": "cef1a4c0cf24a7465bda683b73f2db18a72dc433466576229a4c9e714f9390a8",
+        "path": "tests/tools/str_replace_editor/test_exceptions.py",
+        "source_id": "tests/tools/str_replace_editor/test_exceptions.py::test_tool_error"
+      },
+      {
+        "body_sha256": "0ed6fc70f86851a24a8c7da6fc439c8818d8d5aa0d4af6d69e1bf22bf668f22b",
+        "file_sha256": "f831b00a6e4a2481230b8ddbb7ef799f494f5a29aa8b1096ef94d8680b281a31",
+        "path": "tests/tools/str_replace_editor/test_basic_operations.py",
+        "source_id": "tests/tools/str_replace_editor/test_basic_operations.py::test_str_replace_error_multiple_occurrences"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-ba75f40ddaae",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "c57468143abd110b86d9459c4f2182fbbcc62734d95d78737844dd6ad1b27f61",
+        "request_key": "2578e3716dca6be68bd9829c295664ce8eded35231fda9292de203d83c8f8c9a"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "7c0e6cad20160ef1e581a2403048fce0ebc5a8c8675989698476d1a47edc2f3f",
+        "request_key": "b94b4fc1a37819a321e6197450437df5b33264148f5ae40fd1f5dbfea297170d"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "4c9978d731c56a5872475570acdf92754b0f0a8d15797d9b9d0161d55b9af200",
+        "file_sha256": "52ca2867e17054658eabc7af0bea569d9b7d9811004ac18c8b3afedc43982cac",
+        "path": ".opencode/tool/github-pr-search.ts",
+        "source_id": ".opencode/tool/github-pr-search.ts::githubFetch"
+      },
+      {
+        "body_sha256": "0d0e994d8918ecb91bbbd4590cd4b4c5fba10872f026f0dfbea93f330055d6f0",
+        "file_sha256": "e80e6d535b48cedbb31e4c3463102d3911016e726ff538530e92ea0fe8e2a06e",
+        "path": "packages/core/src/codemode/web.ts",
+        "source_id": "packages/core/src/codemode/web.ts::fetch"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-f111c4a60a3a",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "55d052421960393027ad40d0d48d5d12988de6798ff1d8ace105fbce8b968ea9",
+        "request_key": "bf2f237047ad0c9b049fb3f920279029e8dda5a4a3cb56a43c6666b989423197"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "6f140f66deeb0ca55c6dcbf2cb7992c7d6e07d9ee1ac881f17d4d299f0b62a6c",
+        "request_key": "14ea910307b81f13bba0ad9b510d4a2f7902a91fc4fdc07e8c5e221bf1292555"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "256d36b21402eb87ec544ded82d5397c02556a1ac45bdc15faeddab5cb603a23",
+        "file_sha256": "1a049dbb890cbff6e26b6a2688ca75a90ee26c8771576bb3ac3a9faa1cf864e9",
+        "path": "litellm/integrations/code_interpreter_interception/handler.py",
+        "source_id": "litellm/integrations/code_interpreter_interception/handler.py::CodeInterpreterInterceptionLogger._agentic_tool_calls"
+      },
+      {
+        "body_sha256": "3566249d0a9579013e23646739094fb7cbbed84710fbcd88d4b172788b9427f5",
+        "file_sha256": "f53b69bcd2aab5bf711e8580fbc0e5ba47f5cda2e51ccc71916386be1ca56615",
+        "path": "litellm/proxy/guardrails/guardrail_hooks/ovalix/ovalix_extraction.py",
+        "source_id": "litellm/proxy/guardrails/guardrail_hooks/ovalix/ovalix_extraction.py::_message_tool_calls"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-7fcef2999303",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "999c4b1f491813f7d198f6b2f534f74148337067e737126c211c7b66dfb8f2b1",
+        "request_key": "3fe924f8dfc0f56be8150eec035316df2e5c8ae48d069b342f4867953e1dd52b"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "4f9506296db164349044b01c21d1829cb4ce0d12cd985dab21bfc15d21dc4e78",
+        "request_key": "e48ddc4f79f81b08470c2bf5e421d9cedcffa3eb0b90de0e7cacc446668e946b"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6cb84d9f25d80bd08c2a27f4e1ee4e4074c2f9d43b3c14327a1d07078f6ce9d2",
+        "file_sha256": "3c8229b6f6de52ed121748188048918bdf2b8c6fa8b65adce596cd837d1e0f9e",
+        "path": "src/hooks/enforce-plan-stored.ts",
+        "source_id": "src/hooks/enforce-plan-stored.ts::checkSubstance"
+      },
+      {
+        "body_sha256": "48bafdc0476aa0c56e60009f9568dd8477d48cf59e1792f52d2bbb61c898a9e3",
+        "file_sha256": "3c8229b6f6de52ed121748188048918bdf2b8c6fa8b65adce596cd837d1e0f9e",
+        "path": "src/hooks/enforce-plan-stored.ts",
+        "source_id": "src/hooks/enforce-plan-stored.ts::checkImpactProofBeforePr"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-f0e74cc51011",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "58b0033bdc6065f016bcfa8eb7f1372f9e5a0f9e31316a68e0826d39da3c0ac8",
+        "request_key": "9c0d9b4984f67f6d66a0b46ece0510c48b0472ec5088199a77a8b2ab0e9c14ae"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "45866595c85fb82c1f7dd6be86233d3a6334b2b3b2a3a906fb0a3b9f8a56e306",
+        "request_key": "f60a7dad56ac07adfc759e793ff8c7c4a14715d4ac41a5ce03ba21cb1b185e3c"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "bfaa6cf5391a16cddd716b08fd7eb3f233afaed52a2c31485376ae92f7f3e790",
+        "file_sha256": "f4a512ab3111a15c0c4d61e65c9ea130728427b9973a87b944e9fa311fa9d4c5",
+        "path": "tests/agent_server/test_webhook_subscriber.py",
+        "source_id": "tests/agent_server/test_webhook_subscriber.py::TestWebhookSubscriberPostEvents.test_post_events_max_retries_exceeded"
+      },
+      {
+        "body_sha256": "af8f70828eb97d3004148f1b6a6df7e097f43c66df017e9a9fd60471d91c312d",
+        "file_sha256": "f4a512ab3111a15c0c4d61e65c9ea130728427b9973a87b944e9fa311fa9d4c5",
+        "path": "tests/agent_server/test_webhook_subscriber.py",
+        "source_id": "tests/agent_server/test_webhook_subscriber.py::TestWebhookSubscriberFlushDelay.test_flush_delay_triggers_post"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-0da0a0d331b7",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "5e29b6aead5d43792d101bdd0714d6700438f321fd6965f334e43da34afd5cc8",
+        "request_key": "60c92cd748058c8ec94b2325e4a30dd5e8520f810590f378458a7d001f953f4b"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "ad03140f0f2986465ae6fe7bdf88d84c9d957af1e4767815c9ba521ba43e6349",
+        "request_key": "79da192bd7b48ac659f55488b19c626a52760927c92b8404fcab01ac7c765260"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "324756ab090fd879e7cd6b97dae976a4b4d68f36443e0921f4d75e4e9f912b5f",
+        "file_sha256": "138b2e88b484916d72ff559723ebeda07c11792dcb76c0a8799a9c2b5a676664",
+        "path": "packages/ai/test/effort-updates.test.ts",
+        "source_id": "packages/ai/test/effort-updates.test.ts::anthropic"
+      },
+      {
+        "body_sha256": "8892c06ef097b663227b5c4aa78ca4df6990da0ac039589413c0bccfad4930b8",
+        "file_sha256": "fc9488200251ecfd4eca8505388d215cb2b9883a66ad7410618814360379493e",
+        "path": "packages/ai/src/providers/zai-coding-plan.ts",
+        "source_id": "packages/ai/src/providers/zai-coding-plan.ts::configure"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R2-c9c39d3e94d4",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "0aefd2090521fca1e097e1ee6ec6178787be5984b1735e7ba57839510316b64d",
+        "request_key": "889c5b3a7209e0a5e0a1a08e9df8db74bc2e53d7f8bbf0b8d07b1e0e71fe78be"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "0f996dd66a111260b530603ac02dcabc35b18b9db00ee7c6db1801bb649f3586",
+        "request_key": "783a70ddc70940e4862228e1ad45ba7dc664d504b4279450f241178d4ed75be3"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "e90bd020c9439853fe92320de4d23be5a73aeb4c70e5b277621cc89dc6af78de",
+        "file_sha256": "4ea48b2c6920f320451e7d519f4155ab56c69583fbc48ba9cd8390d079c394c6",
+        "path": "apps/web/src/components/search/HighlightedSearchLine.tsx",
+        "source_id": "apps/web/src/components/search/HighlightedSearchLine.tsx::normalizeRanges"
+      },
+      {
+        "body_sha256": "a853c4d5de238ddc8ff04e81e32912d3c8af4e640798bbf6797963ff139bf4fe",
+        "file_sha256": "5436f0082471532f99b775110b31e2ea3ddd2969ffa7edf5eb1e4de37a562092",
+        "path": "apps/web/src/speech/useEnvironmentSpeechInput.ts",
+        "source_id": "apps/web/src/speech/useEnvironmentSpeechInput.ts::cleanupContext"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-0919b2610aad",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "4bef502b9cf1f309612aa5ed486f754d363c6e0520e0d6879f89a5fac0c52249",
+        "request_key": "257d2ac92b848a33f18359ceb905bb9ab83aa517a742a8cbfd317662f2304dab"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "201f5cfc8a78d5b068e8e54925774b9bc00193e9f682889f880961aef224227f",
+        "request_key": "8fdd683f88632c3e5b721b100d7eddb71aea43767215fc5f7203d6aa2f530208"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "893a3d10548a8a2e8b83242efac556ac5e9eb447151e03cad25444403270b3f4",
+        "file_sha256": "de8f8c4220e2510e0f2908c87316847626aa64fdb68da669f49972e9034f54f2",
+        "path": "litellm/llms/bedrock_mantle/passthrough/transformation.py",
+        "source_id": "litellm/llms/bedrock_mantle/passthrough/transformation.py::BedrockMantlePassthroughConfig.get_bedrock_bearer_token"
+      },
+      {
+        "body_sha256": "e40b8530013b7b0991fbeea94c764aa5c8e73c2e2bac90d7a3c8912cbaed2840",
+        "file_sha256": "9993b2b0013c529389b01a8a7b986c3ce3944132bff79b0d66c8f98f01f8d8a5",
+        "path": "litellm/llms/openai/workload_identity.py",
+        "source_id": "litellm/llms/openai/workload_identity.py::resolve_openai_bearer_token_async"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-05b2e6666146",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "b27bcd30d8cb3d3cc732cc72b7fb3b77be5619e9a45da4bdb1240edb7af3b197",
+        "request_key": "a28b6e2e9cb0f7f9d4755e440ed1048e67134159ddfcfbe37ee0b4b999b09780"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "3bbab1f938ac02c9196e8f5576a3caec6958d2402ee2cb56385c2d6751c75bc6",
+        "request_key": "a25758d92c3ba88ebbe9052e2ae432670ea1b359d7ede3cd4bc7a86b952d6173"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "9e126a6d34ff1c24057fb34a5b54ba6dc0d6cac69c85792c26c44b9c226dbcef",
+        "file_sha256": "3d1b8d32e5a20a42cce0b90c30c4efb6607ae2ba6c7787aab7ea5b29b6984d40",
+        "path": "scripts/hook-gym-validate.ts",
+        "source_id": "scripts/hook-gym-validate.ts::formatValidationReport"
+      },
+      {
+        "body_sha256": "4ff77d9d4a0b2c8a7e8a98f1f7c27db4e17d9f8e1e0d29c206ea7a525b73bb9f",
+        "file_sha256": "3d1b8d32e5a20a42cce0b90c30c4efb6607ae2ba6c7787aab7ea5b29b6984d40",
+        "path": "scripts/hook-gym-validate.ts",
+        "source_id": "scripts/hook-gym-validate.ts::validateAgainstScenario"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-b81a7229da3e",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "24b1781a5d5df223e843fadcfafb5bd0889a664091020e95a46bb1ca2f2ba2ab",
+        "request_key": "eb24420980b5cfda96bb46ca02825d5a8c5c8a22d12214c6efcb5f2225773c82"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "928f8f561ea9b5362ff3d7399bc5b9d2ae21ddb889db4dcc8be2d22d8ea97d6f",
+        "request_key": "6c609b61f622e8b3ae9f6797171633af14832a10379f3f4d53e8663bc3cbf1ad"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "4ec9a879bc1bbdde4de5a38bde15ebdaa05fceca398b7199f389be1709d7b462",
+        "file_sha256": "39a0a67af3b7dde528de34f0897066437b93dce36ee3eb6a8017d8a595ab1d20",
+        "path": "openhands/agent_server/desktop_router.py",
+        "source_id": "openhands/agent_server/desktop_router.py::get_desktop_url"
+      },
+      {
+        "body_sha256": "68ea2cdafb62a826babc2de1ae9837101910393c2d2c6ffda40f81d8bb618edb",
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "source_id": "openhands/agent_server/file_router.py::download_file"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R2-faccb8de38d2",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "14620bca768a77b45a4a71361fd4bd607376d8674ed67b43315eff89ebac586c",
+        "request_key": "f5e5996a5c73a8bcf0ea49aa79c4fe923ec1adb583ed740a81fa00fca03f5eef"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "7809f5db60d02cd222fc555aacdd16dc512f019dce453dd99c48ef15b5826974",
+        "request_key": "b1cbc9bbd6ce4620bbd05571033df329de1ded4de98128f42f9dd08b2d549b49"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "87b585de9e995f2eaa32f989f42919df7e0dd35960f7915684301ca5d76d6315",
+        "file_sha256": "7a9bee465e0258cfc7e8bf5d89378b543777984d8f2071f1d91b485df4d1875d",
+        "path": "packages/shared/src/toolActivity.ts",
+        "source_id": "packages/shared/src/toolActivity.ts::asTrimmedString"
+      },
+      {
+        "body_sha256": "a8d725e313857c49e93e4be3bc0001079da748b163f0599738016c7173efee5b",
+        "file_sha256": "dc033d1215c3f56d029facdc3ab8f906ffa8a2b157cf16cb8140d3f15ac98983",
+        "path": "apps/desktop/src/app/DesktopConfig.ts",
+        "source_id": "apps/desktop/src/app/DesktopConfig.ts::trimmedString"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-3337dbe1ae62",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "74bc4b80da8b2cc0885b09b194153b4ec51ccedf92938589092a6718de13c814",
+        "request_key": "2ba317b6e016fefdd63cec06a6f035eaea7e3769c300c4f57d2a1aa9f9cd1097"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "bf63d803b6674a566aad827d804289fe66769b7611ab0770edddb395c711057f",
+        "request_key": "1ea276764479a6adfdb47dc0a4af938781b6d0afbe73349c221c8a71bea1e11e"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "64e21520b04c48433280f5c9211353e1a6858d772f16e13c7432368eeb511b93",
+        "file_sha256": "480cd5904fa8e9011820b94f25b4c909b8f31d5d6f69a2a97013c3e604157b12",
+        "path": "litellm/tracing/exporter.py",
+        "source_id": "litellm/tracing/exporter.py::_is_sequence"
+      },
+      {
+        "body_sha256": "05c4aeec1760cb16e577fa6a299d25d37b1034e8768e223def004c3692c4921f",
+        "file_sha256": "ae7b647323e764a338fe6b62ff46deeac2bf555925aa32035a6c1328b661b389",
+        "path": "litellm/litellm_core_utils/sensitive_data_masker.py",
+        "source_id": "litellm/litellm_core_utils/sensitive_data_masker.py::_redact_sequence"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-de9734a4dcc4",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "920acac486bcab3983d14b3da2b572146a9fc22a2eb2b7373487246979acaa0d",
+        "request_key": "4c57319a9f71eac27c6f828686c6144d732c34a322efac40a8aebc0ec47a87ef"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "57ce3f31a369c93cbb3961aa19d99a7c4fba8a9fe4a73b8f3eca749317ae3e79",
+        "request_key": "62d9eb2e447e6f5e2ea70a89c79e807049819f2bfc6426f718e6178562046d28"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6ddb452f99c7830a156b63d56909bddf6b361677e27944f8b8f408fde5045a98",
+        "file_sha256": "b7d217cc35f04f6e3cf08af2ca442cae56497b2d68910d64c298401033b87e9c",
+        "path": "src/review-sentinel.ts",
+        "source_id": "src/review-sentinel.ts::serializeReviewSentinel"
+      },
+      {
+        "body_sha256": "01ce6dad37bdfb6a4c2ecdab67b1d015dc97daecb4cd27b2b4440acce359417f",
+        "file_sha256": "b7d217cc35f04f6e3cf08af2ca442cae56497b2d68910d64c298401033b87e9c",
+        "path": "src/review-sentinel.ts",
+        "source_id": "src/review-sentinel.ts::reviewSentinelStateKey"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-681f82c21447",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a2e2af66fa734f8e218a1673e3c05261ec048fd71e63fbac4519879c3a6ccc59",
+        "request_key": "8de54cb0577ffada5c557d3173f45bac2bbd2e8b8edfa72fbff5f9c125da0421"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "dd74f5933404c81d5bbfd0b49de074f07f14493ef7c9ad4c1838f644c10421b9",
+        "request_key": "7d4b4966235138d613f4a2b4f3ab26f465919f6bcb0bc0e0ee47ed570006fb71"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "f08ff01076e302ba14067b6749da9d7e4f65f48ba0c7e72f54bd4deb20d84a32",
+        "file_sha256": "2202c4dd051140e7ca5b6655f0bf9d47a9a924dacb32879ec3d22992993d5fe9",
+        "path": "tests/sdk/llm/test_api_key_validation.py",
+        "source_id": "tests/sdk/llm/test_api_key_validation.py::test_empty_api_key_string_converted_to_none"
+      },
+      {
+        "body_sha256": "63601093466b09f872b2bd0ac646fe22d068c7f2c667a95c41e12824f6cf93c1",
+        "file_sha256": "a09c77c6e6e9998158a8d6a0926267d016f1f21392b3522dfe2751de1d6c5112",
+        "path": "tests/agent_server/test_api_authentication.py",
+        "source_id": "tests/agent_server/test_api_authentication.py::test_api_empty_key_list"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-a5729171d8f2",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "156aaeacc92d5bb86ec0580ba7c880ad264d702605470de60eb5b02855b2ed4e",
+        "request_key": "76821a1c57facd6c315c4fbc069a64dc81689e39ed29108a3ec5563d1b9b9102"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "af8c4ffae1ef674c21441956de2310bdf0820cadd7f0732edf612465bd18a81e",
+        "request_key": "52835cce2d5c594fd2e37dc1c727c8dc88e5bd85452eb9d8ef1057090ff3fabf"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "e08b35daa3940f8ff603ecd1026e775af62ad0ca9ca5d935eaac55a56d4044d2",
+        "file_sha256": "acc6b543c5d1629b4c537405135eb49a6345628806a43de156b03a9506debdef",
+        "path": "packages/core/src/session/runner/to-llm-message.ts",
+        "source_id": "packages/core/src/session/runner/to-llm-message.ts::toolInput"
+      },
+      {
+        "body_sha256": "a021d050c5135e7590e6a61626149a1a32b0467a774d3cf8adac8a397cc6d661",
+        "file_sha256": "ef9d709730ae94eb49596aa80dc77196106f75ff76f5167ca72a14791116a511",
+        "path": "packages/cli/src/acp/directories.ts",
+        "source_id": "packages/cli/src/acp/directories.ts::list"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R2-1d1bd340563f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "f9ece84e4f0e334832ff47e8e48cf0d746ad6b54988f099b9febc4c904a310ce",
+        "request_key": "79616a9172f72b8007f7b10ef8c14a8bf5651199967b552b756dc73ff275f510"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "a3e00df9333c087d4067215921b835c0be82396bacfe50b21776fc790c5147ca",
+        "request_key": "1820ef8e4a2a6fc9b3eda57ff13f1ff5dc13ec7cc2a5b3c2db2e67554c0f14e7"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "31dddf69822b58b644129a110ee5646879274c0fe95a504aef4ee2f293adce2c",
+        "file_sha256": "745123cdf2343aa5540f2abe6ab47cab18beeda0cb3661222a6522b538e7492e",
+        "path": "apps/mobile/src/state/use-model-option-memory.ts",
+        "source_id": "apps/mobile/src/state/use-model-option-memory.ts::lookupModelOptionsInState"
+      },
+      {
+        "body_sha256": "6a668a0a269c3f3632c985787574dbd00b362a2c6ba08fdfb5f1db49f521c4cf",
+        "file_sha256": "f39f1ae4290fec81bc1e4d0af55c216664c80cc1929147060f4c560d37fd43d3",
+        "path": "apps/server/src/usage/usagePricing.ts",
+        "source_id": "apps/server/src/usage/usagePricing.ts::lookupRate"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-841117fc4fdf",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "3278569832727300e9ef2e97c83c6daa5ee5666e02b6be4e98225d0bb5ee32e1",
+        "request_key": "f5a6763b5291358d0ff9e22b43d828def0b1d9cb79f88d88cb684ef7c6dc4f36"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "6d983d67a7eb2c8b5d7f6142e98ef6cddf886a9af29f62cfebb4d09311bc6d38",
+        "request_key": "d0ea7f7ba6c83ffc1eedf76222c1fe8d2dadae27a74b43c45266f4f16824e017"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "a876547c240f602378b04bb187ca0b85fa8f1ab788d70a3ea201507d8669728a",
+        "file_sha256": "38c931fbd361ef8648f742af3fa794fdc8734222e62907ad6256aba0a2390fe8",
+        "path": "litellm/router_utils/pre_call_checks/deployment_affinity_check.py",
+        "source_id": "litellm/router_utils/pre_call_checks/deployment_affinity_check.py::DeploymentAffinityCheck._pinned_model_id"
+      },
+      {
+        "body_sha256": "1512e6ce1691a9adccccc278fd66341f817bd63e212cdd27d498f27330e9f931",
+        "file_sha256": "ff55b62418278f2ce8c07eec86a47cc852ce8f7451e3040b2bd9839c0f22463b",
+        "path": "litellm/proxy/mcp_server/mcp_server_manager.py",
+        "source_id": "litellm/proxy/mcp_server/mcp_server_manager.py::_pinned_config_server_id"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-60c2fb43816f",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "05f0a70ff69a24ff03b006872b244bcd7a11833b656426e1bf5995bdd1e8ae9b",
+        "request_key": "464e737d3afd5316840f596250408b20e37180ae450a7720493f40c54a926c64"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "cc6ea94506e2d3e408743115a07bd0713686dbe69ee5b574073a5f05f18d5b8a",
+        "request_key": "68342c520af2edfeb5f7832be9501d76b604c6ec0a7f9262a02c9c4d9733a808"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "31671a2e04bb17ee067cb1a64f354ee5dc1acd4cf4d7ea775f84c906fafe9c1c",
+        "file_sha256": "69cf8a5ebe57e5300e0987979af01e14b27a805debd0784d05a299efb94864aa",
+        "path": "src/hooks/pre-push.ts",
+        "source_id": "src/hooks/pre-push.ts::main"
+      },
+      {
+        "body_sha256": "1a6f39b297141a5fa9becf1ac6e564a9eebf5188503ac0f31699b260bbefae97",
+        "file_sha256": "0a8d239e9165aecefb5cb9a35308aacc8bcadd4828b7320911937d7eba6e4a6a",
+        "path": "src/hooks/pr-quality-checks.ts",
+        "source_id": "src/hooks/pr-quality-checks.ts::main"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-77bc67f3169b",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "c87da83584fd02b1a3e8eaed026877541fbd6d9e350f858d2535133d2392a030",
+        "request_key": "66b3837bd3071de79d61ad7a345d100f6692f69cb364f3d8500b48abd50ba3b9"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "2dfa47c6b7a4be9599cee986b656031886053a1a09ce24e8907fcdfdb85a85c1",
+        "request_key": "3edc45f6f7c68fcff50b23f9900c04f89cb76417e66cf04550c9e295a310c535"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "0d3eeac494c27403aeea7df3fe77854a446f25f7d232eb10013f6aebf92d8d38",
+        "file_sha256": "9a3936907fcfe4718481a41663537c776f9dbad2911559a48cfa82347f4407dd",
+        "path": "tests/sdk/mcp/test_mcp_tool_immutability.py",
+        "source_id": "tests/sdk/mcp/test_mcp_tool_immutability.py::TestMCPToolImmutability.test_mcp_tool_meta_field_immutability"
+      },
+      {
+        "body_sha256": "5135642d5071fa624bf578fd286715ece0eccd053636cbca59048ca84655a520",
+        "file_sha256": "9a3936907fcfe4718481a41663537c776f9dbad2911559a48cfa82347f4407dd",
+        "path": "tests/sdk/mcp/test_mcp_tool_immutability.py",
+        "source_id": "tests/sdk/mcp/test_mcp_tool_immutability.py::TestMCPToolImmutability.test_mcp_tool_extra_fields_immutability"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-58d9d91a97b3",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "78bff6db15905f196ea39a1af9628df71f36a07b7572b2784b45343ed01a742f",
+        "request_key": "56a181237222b1cb534d13cf02f32641df98d0c41ee71bbf2ee499577b14d9d9"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "3e708655cbb1df61b98ca06002ef4e1c57a50eeaff90657d401158196dc128cf",
+        "request_key": "f5f4a6fcbb3da35561a68e27dd6793209cdadafe1c6a7e13b7d57c10fe8872eb"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "38f2c800574ee671386da81d3502a20d61c4ff70a0e9f852ab3ff96eab01762d",
+        "file_sha256": "f87f7f3365cb0d9400275aa21f61922fb63bbcc0a422b8e46257c47faf5a73f2",
+        "path": "packages/ai/src/schema/events.ts",
+        "source_id": "packages/ai/src/schema/events.ts::LLMResponse.usage"
+      },
+      {
+        "body_sha256": "cecf3fc4b187382ea08eef397415a9e2b6442030e8f145316738e564036c82fa",
+        "file_sha256": "d3afee896176d45643cc56d486269e28ae62476460c52ef6c99e05748edbe599",
+        "path": "packages/stats/core/src/domain/home.ts",
+        "source_id": "packages/stats/core/src/domain/home.ts::modelUsageValue"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R2-27a2bb8ea776",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "507e6518a49e96acfd4d6fbd673be5463456018982fc8a03fbdaf7759b7780e4",
+        "request_key": "dab59ac47681414872c795d4356f5ffa6883905dc58e9180ab49ebdc870a18e8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "22c294c4e4784889227941c2ddd892b8f1d971f587c57bc2612e757b2ce603f3",
+        "request_key": "1e712baee36380466b7184c7cee10b3c0a0f8f339bc1e91f94de311cddf8f5fa"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "218ce2a2085ae7ea9464c523f5ff76b14ec483b60072a28f82c896c17dd06ca8",
+        "file_sha256": "ff0618b21dd2a0fbcdbf9ec7f9ed1cd2b27b1a0282f9bd4a73f19e2c8513ae76",
+        "path": "apps/web/src/terminal/ghostty/core.ts",
+        "source_id": "apps/web/src/terminal/ghostty/core.ts::GhosttyTerminalCore.selectAt"
+      },
+      {
+        "body_sha256": "5dc783a13b0d3d774f9d91108633ba3056ddbb970066d89d84c8b316cd2e314c",
+        "file_sha256": "ff0618b21dd2a0fbcdbf9ec7f9ed1cd2b27b1a0282f9bd4a73f19e2c8513ae76",
+        "path": "apps/web/src/terminal/ghostty/core.ts",
+        "source_id": "apps/web/src/terminal/ghostty/core.ts::GhosttyTerminalCore.scroll"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-979a0571ac6f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "b979cfe0f79d7c4b94cf48f7feb4234cad2a9f24534478e573ce1859bd0b5584",
+        "request_key": "1cf1400cdf5c7a02847c115c47f623d3d3e4539a509b2892088420077511b516"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "dfeeab3077b317990adc1ccb1cbd4039e40d5a03e18c889e41d30c71732e63b3",
+        "request_key": "f32e5bc572a3589742246a386938bcf981dac37a512ba85c21e0334ae6933511"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ea3dce86a33bfa60e6023f5561295e9ceab1255d5d4eb8f66ec6f78b744c343e",
+        "file_sha256": "b1300266a6922db77aaad3abb0a70962b8f78bd8136b0d21ea32149d8f110dc0",
+        "path": "litellm/anthropic_beta_headers_manager.py",
+        "source_id": "litellm/anthropic_beta_headers_manager.py::resolve_beta_provider"
+      },
+      {
+        "body_sha256": "2a2fc4ad0cf4e9f7b56b917268cfaa4b17d1bd2af260aff722812256db7f5126",
+        "file_sha256": "a5d0523469da2e5d7099ee4bba48cf4c732317cf964cc599ac605898beeb86ce",
+        "path": "litellm/integrations/otel/model/semconv.py",
+        "source_id": "litellm/integrations/otel/model/semconv.py::resolve_provider"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-b469fd4b35b4",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "f436ee151795f3450f9b9a989ed27113da723c89699e54bd9eef7aa000c4488c",
+        "request_key": "9db2c5c8c60f944c7409852c99367519661e375f4369893a76d3ce7c813ad1d6"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "53d092baa0b1677da5af98069d9f158e14b3131096cb72f526e4fc4ff026194c",
+        "request_key": "9fcae038c469ff1aed4dac2d713ae6eaafec1553be72610087d41484dd17d7b1"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "a733447ed72813c88224081cf90aa86d26ad355d2538b30eae42525e75aa5621",
+        "file_sha256": "f5631a600a860ea0e9f167cf608488ed2bbcd0120ad652e243821a5d5d561c03",
+        "path": "scripts/auto-dent-explore-conversion.ts",
+        "source_id": "scripts/auto-dent-explore-conversion.ts::issueKey"
+      },
+      {
+        "body_sha256": "f2fcce7deb7378bb4b072eee4c820b482da6b637d998da37a719bb0ee7b60081",
+        "file_sha256": "bf0bed213fb16af7c7e1ec3e311070a95814044d6047e9135444e002d061e3c7",
+        "path": "src/section-editor.ts",
+        "source_id": "src/section-editor.ts::cacheKey"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-e0029eb190b3",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "bfd1ada6326252d68eafc5877dfb73cee1145c78f672f69d96631a6f48ce63d7",
+        "request_key": "16445a6e517a0a280a83be58e9619efab5a0136f363a5a10ec8691400b6e09b3"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "c8dc4228be8e764779288298109b3da0c6212bc9d8839c1bdec03e40a55adb24",
+        "request_key": "e2529b278df8a8b7d9cebf1cdff821be33a7fda24a8ccb1dcf1508d8ed4c9b12"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "4abc2519c49c74b6aff21e28a8e7cd9451936883e32f2f9c29e56d3d456bbaca",
+        "file_sha256": "44391522754b969b6d8a70334a070da7b2f75642c6740ab1b193df45eed416f6",
+        "path": "tests/sdk/llm/test_reasoning_content.py",
+        "source_id": "tests/sdk/llm/test_reasoning_content.py::test_message_without_reasoning_content"
+      },
+      {
+        "body_sha256": "6f18a289a7fd885984c9a0a8e0d5f9341205689dda5b31afcde0c5d85b818af6",
+        "file_sha256": "44391522754b969b6d8a70334a070da7b2f75642c6740ab1b193df45eed416f6",
+        "path": "tests/sdk/llm/test_reasoning_content.py",
+        "source_id": "tests/sdk/llm/test_reasoning_content.py::test_action_event_with_reasoning_content"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-17d2e0c9caec",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "8bb5d49dbe83849d7936a4b5bbf5e3c6cd362a56cb7c7c39e3af4d9e3882030d",
+        "request_key": "3a118ae674d0dc9af8a056a8295526602ebf25f10ad104b25ae596fca2d987ec"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "c1df1eb38f0d5c4d61e374b5951b6d0e79f7f3995caa8b2451fc4f4c72eb981d",
+        "request_key": "94e37216088e3390cf8da320685958bc8c0ed3ff9b7c8a4adf307d4b5e413b3b"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d5a211c05c6b80f438ddae42797adc789c44d7e73180bd6ea7b76a555a842ffa",
+        "file_sha256": "6002813cdb2f7112272c3af766530f70050e941015d5eacac26043d853bfe711",
+        "path": "packages/desktop/src/main/windows/defaults.ts",
+        "source_id": "packages/desktop/src/main/windows/defaults.ts::titlebarOverlay"
+      },
+      {
+        "body_sha256": "0a5396308383945a238cb65426f33a1c7e570686a68882730026aa00918e20fd",
+        "file_sha256": "acc4e9bc6f1cc5571d0047da14c3007c09c1a72d39a674e9d78196b08d6d7ece",
+        "path": "packages/cli/dev/refresh.ts",
+        "source_id": "packages/cli/dev/refresh.ts::configureErrorOverlay"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R2-7d247158cb9d",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "3f0f93f35f1ff65c14e7eb2e53c0c4d1108ac8c6fa40f94fd755c41fea73ca16",
+        "request_key": "35bfebf30c201bf7d38ec5c8dc68bc0a9a90188974b19c5496def20f3a033008"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "83177372632e3a5e899e63176ab1f7f3e666ea53abc923fcb2204c5a0036506e",
+        "request_key": "02b72a8c9e64f318912506dc806258ba24772a42b78b8faa584bec7bb942d848"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "099d2b6ccc5ccb8bf49abcd1ee89841428bb7c24da526c4cc1263d7f4854fc39",
+        "file_sha256": "40a2076bb32fe746f18870bae86ce317d3357a0331423932996a3c87681969bc",
+        "path": "apps/server/src/cloud/http.ts",
+        "source_id": "apps/server/src/cloud/http.ts::ManagedPolicyRefusedError"
+      },
+      {
+        "body_sha256": "931c8e274d0a958174cc90d2484b626a389c12e2f3756ad413720d190bac46a3",
+        "file_sha256": "a553aec9e6e6cf100e7f4fc4f76870b6bcfc7a989c52eeb9fadf7c9f129b6a99",
+        "path": "apps/web/src/state/managedPolicy.ts",
+        "source_id": "apps/web/src/state/managedPolicy.ts::useManagedPolicy"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-30ffc09beaf2",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "0d483f3334dc409683f7c3474d957ecf4478248abd97c5d31ba3bc75e11fbe24",
+        "request_key": "42ad2bcf71678ae604c28740cafcccd2e099ecc84f215575197b2f73c79df1f3"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "1f03c8610796c8258efbf50263d87955ce27c70feefb1bc5c9f76bc7762114b8",
+        "request_key": "1bf4db1dea5a55f151b5ff32085b054712818d935d8186ff29ec5e359bc258ec"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "893a3d10548a8a2e8b83242efac556ac5e9eb447151e03cad25444403270b3f4",
+        "file_sha256": "de8f8c4220e2510e0f2908c87316847626aa64fdb68da669f49972e9034f54f2",
+        "path": "litellm/llms/bedrock_mantle/passthrough/transformation.py",
+        "source_id": "litellm/llms/bedrock_mantle/passthrough/transformation.py::BedrockMantlePassthroughConfig.get_bedrock_bearer_token"
+      },
+      {
+        "body_sha256": "a6005ff2cbc990e39878e7fea3a7cceadc11abebee4cb89c296ae60b370fb9a4",
+        "file_sha256": "9993b2b0013c529389b01a8a7b986c3ce3944132bff79b0d66c8f98f01f8d8a5",
+        "path": "litellm/llms/openai/workload_identity.py",
+        "source_id": "litellm/llms/openai/workload_identity.py::resolve_openai_bearer_token"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-af18e67048b3",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "1b09236593a86bd302e5ff0ff61c417943b4612e684205168ed15ca9a1661cc3",
+        "request_key": "0c57eaec6c1b8035471a9fcad44ebc4aecaa522e9910f514e7d38313040b5e24"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "8a5a189a7d6e59073a3bc9049ee3b7d09f56f3500d14725abf8a5af24248553b",
+        "request_key": "1a6a9eb17ad1c8a509a305b6bcf7086c6cb9585220cc456fc0e16256778e7ecc"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "4836f0b71318868685a3f2ec523d4884880df99333c9facc2c932dc5275a4786",
+        "file_sha256": "990d52dd004c1aa7df09cec0b682e2953a4fecefc6a392ec2983833265eb7f01",
+        "path": "scripts/staleness-audit.ts",
+        "source_id": "scripts/staleness-audit.ts::fileExists"
+      },
+      {
+        "body_sha256": "3ddf64789a5b11c2ee3a7810fd4218b2af5511569f802adb314fbca15cf2fa82",
+        "file_sha256": "ee9739c550cad2023e48854fcf15772cb5b293620d2f6e990eeb1a80ca1d5347",
+        "path": "src/hooks/pr-kaizen-clear-outcome.test.ts",
+        "source_id": "src/hooks/pr-kaizen-clear-outcome.test.ts::stateExists"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-786225bd5ca6",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "7a1188ab4e65f585c4149921ceaac82fc43df39802bb10bf23cef24ac6889f26",
+        "request_key": "16b329402fe1bf5816873aa7d4df12bf9aaf5406af6f194a293d580b0b1d8fc5"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "12798c0b43140bcc89da9e88c8200baf9e7226ba149da73b978524e4e1326f36",
+        "request_key": "f9970f648ca7a776eb32691721b3399f4fab2d8d19709d23242720700f55f4f9"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "e007476297acdc6b5e97589755922f8c7f25009623429e8364b331f6e1b765de",
+        "file_sha256": "d17b35b655f370ef08068606c9c5a8d4b119bfa655bcfca4f4d7edd06d467c0c",
+        "path": "tests/sdk/agent/test_security_policy_integration.py",
+        "source_id": "tests/sdk/agent/test_security_policy_integration.py::test_security_policy_in_system_message"
+      },
+      {
+        "body_sha256": "053e760381336aca220ca5e100a53c7093884e3abb4c1e2979b20727447e41a9",
+        "file_sha256": "4af252f248dfdf179432c646f6d2fe4887893aaeaa288952860537db6d88167c",
+        "path": "tests/sdk/conversation/remote/test_api_key_functionality.py",
+        "source_id": "tests/sdk/conversation/remote/test_api_key_functionality.py::create_test_agent"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-e58744ad1289",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "ec0b3ff329aa95dc59f2e18a78ad92f6ca84792650fa5bf15648d0decc751d6e",
+        "request_key": "30d8b7209604e33b8cc0a06cc1c40c068abe4616bcfd01cfb479ca3f5a99b5c6"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "affa82270c9a259f62e4b666b4f60eb3a54eda94f385934ea6a9733a05a3a345",
+        "request_key": "1b32d87d2a0aea207eb535b1bf5988dee40fea8da0f323e1c1ad58ae2e7eafa0"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "da964a05bfed11675cbf5caa4d4170c40949fddf6ca33b8e1751db65365aa8c2",
+        "file_sha256": "4aef90490ee8bb6442f7929f48f08f4e26912e77f01f5477c662ee5fe36ce423",
+        "path": "packages/ai/src/protocols/utils/media-input.ts",
+        "source_id": "packages/ai/src/protocols/utils/media-input.ts::refID"
+      },
+      {
+        "body_sha256": "0c3945e1cb1aeda7ddd41af97f25e4ebf31dd14b2ed267b5d97a45a9b8c5c3f2",
+        "file_sha256": "039910006fd6f7794b48ff74bab995461760fbc36065b3a90389fdf795f2e836",
+        "path": "script/raw-changelog.ts",
+        "source_id": "script/raw-changelog.ts::ref"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R2-4797e813120e",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "4c4b38e7ae6ea7e466875b281378ce3f4146b24eb10f5a263a149b57778840c2",
+        "request_key": "5f92d287382731ffeabd60b4a90ad9e9d8dfc6a8ee3a4b3f1de77a93f5a710e8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "73e46ef7217df9e3d744967182c718f9a1825fdc79319c816a54c35dc95bb60d",
+        "request_key": "da69eb278abdada35a45425a4be2f19cfe37b1c3796c87c31c1971660fe67bf3"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "099d2b6ccc5ccb8bf49abcd1ee89841428bb7c24da526c4cc1263d7f4854fc39",
+        "file_sha256": "40a2076bb32fe746f18870bae86ce317d3357a0331423932996a3c87681969bc",
+        "path": "apps/server/src/cloud/http.ts",
+        "source_id": "apps/server/src/cloud/http.ts::ManagedPolicyRefusedError"
+      },
+      {
+        "body_sha256": "74239a19fc622690e7b9a4016047abe84ca3a4167cebbcca0148742b76097395",
+        "file_sha256": "a553aec9e6e6cf100e7f4fc4f76870b6bcfc7a989c52eeb9fadf7c9f129b6a99",
+        "path": "apps/web/src/state/managedPolicy.ts",
+        "source_id": "apps/web/src/state/managedPolicy.ts::usePrimaryManagedPolicy"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-f7d4c3e5b847",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "3f46ffd0ee8955548cc8f04971b27f2bbca328896592b706569a25af53cc3665",
+        "request_key": "1e2e0b62bdb666dff02ff2eaaeea085945f948f340a296d1208062453ea5ec14"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "41bfacd12adac2ce8419d8f813a6133863b48df8ddaf1a2573649cae667075f8",
+        "request_key": "6087aefc4b0f7240be6b75f2491d0bd5d99773bfa1d570c3928e4f3ec4fb3876"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "bc85a99320f0eb187bc5110c37b33c29d17d2f947917edf147ae9ee665aff202",
+        "file_sha256": "28f692f153a08f6e3f9d9d2715ae302dbc952e324129525e1dc9c3b1b72d1d97",
+        "path": "litellm/litellm_core_utils/ptu_shares.py",
+        "source_id": "litellm/litellm_core_utils/ptu_shares.py::_deployment_shares"
+      },
+      {
+        "body_sha256": "4687ba08f2f7ba887d4d968229c68ce272104cb977da0daa597f4d0d8f3a5e1d",
+        "file_sha256": "6e59d17d659a094c1f7b494c2d3a12bea3b2e4a3a072e8266adec7cec2b77549",
+        "path": "litellm/litellm_core_utils/ptu_pricing.py",
+        "source_id": "litellm/litellm_core_utils/ptu_pricing.py::declares_ptu_shares"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-8a37e2ee53ba",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "369d327d8779762c05994487887b85b386a4f5ebdd5dbdedbe34d2abf57aebb3",
+        "request_key": "816841d3af66b139d611089a3c537cfbc7fea701c1112087810f12d5156808c6"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9243dfda9a3569aff267e1f2c5ea3a49cecefaf4047a4a74d20e1c6fc1e920fa",
+        "request_key": "1b4e9b4b102e0c2d3f44fa604173e7d5bf5c4f14962302054c0745534599f36b"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "84af294fc55c61f03dca271077e5f9e93b1b53266340298bf3e721580b44495c",
+        "file_sha256": "79cc223c57bde1b7f7f500b3cf5df88cab57b0779c742b04bd28d457892c5423",
+        "path": "src/hooks/enforce-plan-stored.test.ts",
+        "source_id": "src/hooks/enforce-plan-stored.test.ts::ghPrCreate"
+      },
+      {
+        "body_sha256": "153d86345cd05cc507080efc0b23b9ea599b555904c4bf00d4f340141d8bdb8b",
+        "file_sha256": "8283adcd788a77d3d5de9fdc0c3572c90f91b4391bc7c70008e21a5f0979c240",
+        "path": "src/hooks/lib/gate-manager.test.ts",
+        "source_id": "src/hooks/lib/gate-manager.test.ts::createState"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-2346f1da84fb",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "56f2deed252beb838d3dedaeb860c4c93ddb4dde517c020d8517dac2b4d60c30",
+        "request_key": "a9f70b39799a486beb7090dfa2c3ed1e28637db14ed5919c03dc1b40b1d71f3b"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "a7785821486397206d6350c72d742f9930cff86acab110a42a5f1ffadcd196ed",
+        "request_key": "89059c18fd6fe18121ab08563180948a970a00b9c6f4a6038d5ed28df21225b4"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "9feebdd5fdf80963cbb4138259d57973308d0919642fcb7b900e8a4e3561a53c",
+        "file_sha256": "fab704d0d9ca2a8bbe3f24522d110d62a206097c8e899dcf458585c176c1b67a",
+        "path": "openhands/agent_server/bash_service.py",
+        "source_id": "openhands/agent_server/bash_service.py::BashEventService._get_event_filename"
+      },
+      {
+        "body_sha256": "cc262be93f8dd4d16786f04a640ac089b4d76dee7a95a8ad17ec39a5059743bc",
+        "file_sha256": "fab704d0d9ca2a8bbe3f24522d110d62a206097c8e899dcf458585c176c1b67a",
+        "path": "openhands/agent_server/bash_service.py",
+        "source_id": "openhands/agent_server/bash_service.py::BashEventService.search_bash_events"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-07e15b393883",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "37a185f8ccfbfb336406e56fd923477925a6eb6b816fab63063e7c35a231d7ee",
+        "request_key": "946e21a7ae704657c2bda1f3f065ccac330771c72e08f17eed5a9bb73d9173d6"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "b12db6d121fdf99e8a8103dd8d04492831e3dab9c5d591be34756083cecb22bf",
+        "request_key": "5fe7ac95ac75be51ca4fd958a42add0543673d4cf94bb4a9ad50bc366f43ffc7"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "f944245c1b098c7f7f1666dfc785280c8220c6ce37ffaf96c277886d48d98247",
+        "file_sha256": "a9afefee0d9586d5de755f6e6970457e7dceb6f16efa66d47db6f46c56c45f75",
+        "path": "packages/cli/src/commands/handlers/pair.ts",
+        "source_id": "packages/cli/src/commands/handlers/pair.ts::isLoopback"
+      },
+      {
+        "body_sha256": "e86e040d0804a2f655a468aba46a52553bd63271bc1bdbe29bce283b07e23283",
+        "file_sha256": "0b5bd2e51ca4d468763a2212c25771f259197e527667125e4944b1e5251c2a26",
+        "path": "packages/console/app/src/lib/stats-proxy.ts",
+        "source_id": "packages/console/app/src/lib/stats-proxy.ts::isDataBypassPath"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R2-7e8c206178fa",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "6a4072c5723b9f8c6a6e96e0cbc4b3e1756cf6785ff15b0b84de64c56e3245a6",
+        "request_key": "b57c09509eb5409bd185438b03757d6c257e5ab0e8c5a9574e96ab634d769ee8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "e8ca5d85363ca106e53e62295f64f7f88611205f9d6f923031e59660147e8c0f",
+        "request_key": "5099812644d33406a393666da0c73ef0a3269bde3298680214789fc02f68a1d4"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "a448959bed68840aa6aab679c7b4189107ac809404933e030189db88774f51dd",
+        "file_sha256": "935e38ea6dd4748715bf6f0a61502f6f3ded54d8fc47d3f181a51a63350f4335",
+        "path": "apps/web/src/types.ts",
+        "source_id": "apps/web/src/types.ts::isVideoAttachment"
+      },
+      {
+        "body_sha256": "1d86712239d2340b5cb141762f77d5b9ca6a97582928f0e6167575b5af6ebf21",
+        "file_sha256": "d79f072ac15195eee5efcee0bc040df79e95baaafc841cf1762842399a44be1d",
+        "path": "apps/mobile/src/lib/composerContext.ts",
+        "source_id": "apps/mobile/src/lib/composerContext.ts::composerDocumentAttachmentRecord"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-ec823a2e6807",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "28821c7617bc71ac8422a41a6b9e8a4a7b82bc3cb1a122307b35165779da735a",
+        "request_key": "db8fab5b5083d95dcc79ff9da2383c2786cc3d4040e13fb5e87502cd1a4b63fc"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "026942f597b39fc5c3d4248d6e25c61b48add60bfb65f1922905dbc5310f98de",
+        "request_key": "afda767d31658ea799b02f0ca70861096ebe753fc5e43771618c63cb6b207d1f"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "7bca6aa5dbbc810c9ed0eb17dfff40f724e73964bbf4e2cdf33c8a803eed43fd",
+        "file_sha256": "7718e02350d42e48ef6fb250862ab38ae578773de32fefbfc01e644c9ca41e53",
+        "path": "litellm/llms/aws_polly/text_to_speech/transformation.py",
+        "source_id": "litellm/llms/aws_polly/text_to_speech/transformation.py::AWSPollyTextToSpeechConfig.get_complete_url"
+      },
+      {
+        "body_sha256": "fdc8ede682b7eb4ea93647c0b67e05961d3bfd549e93e1a902bf81776b38bb5a",
+        "file_sha256": "1febe217bf8961525b934846e1ae05281ba44eabbfec7f906a4896ad9afa3ce9",
+        "path": "litellm/llms/a2a/chat/transformation.py",
+        "source_id": "litellm/llms/a2a/chat/transformation.py::A2AConfig.get_complete_url"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-b7462ae9992f",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "de36321e3ede92a6d7d1dde09b3a080e6c0ebd1d71809f8b5b8ac93af1b53b34",
+        "request_key": "53a510b54c68a13c2bb32d64d6644f8f7334d812b0455d72cc26060e0e6541e0"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "54554550d2b94a6c70318ab01a17d60475145347564e5502e7bdac062cf639ae",
+        "request_key": "3b7af706b587eaf039851b74819f98043bf117ab775d7d3c14e2480a3fa30ede"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "a733447ed72813c88224081cf90aa86d26ad355d2538b30eae42525e75aa5621",
+        "file_sha256": "f5631a600a860ea0e9f167cf608488ed2bbcd0120ad652e243821a5d5d561c03",
+        "path": "scripts/auto-dent-explore-conversion.ts",
+        "source_id": "scripts/auto-dent-explore-conversion.ts::issueKey"
+      },
+      {
+        "body_sha256": "54507617f2b1f8dde72524c58e582b1ef65c8708196a9685a991ed2be91efe68",
+        "file_sha256": "c2349c27da22c9331ee01051cfb5ef840ad4b05e67301acefd1946e2d15bfa4d",
+        "path": "scripts/auto-dent.ts",
+        "source_id": "scripts/auto-dent.ts::readStateKey"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-814ce9a1c307",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "03e02ff1ebbca708dca9fae9946ac03af663e706262ef2c68fcd4ecccd345c15",
+        "request_key": "8850358a03421960bc9a5b775108c465d33e594932c723668162e9d17b7bf818"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "aa991cda0846545d27fc12dadc6f1c1684a084d1e3f4753e25550321f1aeb21d",
+        "request_key": "fdd03b6607e6fc5432dd3fb92a96dc31b28fd251f6ea2fa6891fee60d4c2b45a"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "682d8bec88590ceb7332197309ea4696d3aeff82f5beaa6d1dce918921ea71cf",
+        "file_sha256": "5ae77e7c1269bd47744ec2d7191e6b884f2f0e59a0782e26b7de37fa5b1197ab",
+        "path": "tests/agent_server/test_pub_sub.py",
+        "source_id": "tests/agent_server/test_pub_sub.py::TestPubSubEventIsolation.test_resubscribe_after_unsubscribe"
+      },
+      {
+        "body_sha256": "31031076155e2db2e8abc56bc3f7e5dbad6077c540f8be7dca5b2e550a649eb2",
+        "file_sha256": "5ae77e7c1269bd47744ec2d7191e6b884f2f0e59a0782e26b7de37fa5b1197ab",
+        "path": "tests/agent_server/test_pub_sub.py",
+        "source_id": "tests/agent_server/test_pub_sub.py::TestPubSubUnsubscribe.test_unsubscribe_already_unsubscribed"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-b8c07c636004",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "159d018308570835e63e0e1b0ed5c66fdc17ca25d6498d3b77ebbb06daaf1114",
+        "request_key": "470c8929bac52060afa7287b2bdee47f638c468bbefe9809ed6778e807c10ca0"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "d006da6d10e3bc1375a59b668a108ba9b96063f71d23e8ff2a2f2c12349af720",
+        "request_key": "7493aa65c95fac1e12d5658b7fb49992c92e2b5a47b72385b3096e01708eaa34"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8fdc6164216e4f73879f953d32cae60802517e2c8970419c02686e903115a92d",
+        "file_sha256": "85f3ec339606ea299937fed70729761a2b091f22f1119d3ebfc9f49a97d6e53f",
+        "path": "packages/tui/src/context/log.tsx",
+        "source_id": "packages/tui/src/context/log.tsx::LogProvider"
+      },
+      {
+        "body_sha256": "484e604acce0b8dd259eb655ffbd8e3f5a0beb41fb9ff4d8ca03ef6b384c4d28",
+        "file_sha256": "ea3e404b10aa8134bf6c354f99e959aadc18503cb4fc4275886120329988fbe8",
+        "path": "packages/core/src/v1/config/migrate.ts",
+        "source_id": "packages/core/src/v1/config/migrate.ts::providerID"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-0efb9ecd764f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "5d59b8dc91953a567cd7835bc3fa7a5a249842c47efebff025ca0566d10fb591",
+        "request_key": "fae1fece80ec1af41c9d0d574166d6f6cf421ca3cde77e64105a4fe449caa772"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "7a6837f9c0ff21b4696cebd976d62dd6b791dc7784c2e0e5601098d9b80640e0",
+        "request_key": "0e03514ccbad344f39787b52d08f8451327ac361e2f3b528974d31273681faa8"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "1185b1c6bff6b023bc0ce10a9caf6eb3c72019ea68a4ba038c2667452923c2b0",
+        "file_sha256": "c67b1f60e5144bb82ff20d5be72a308acf756b78293c659dce8df1163b078257",
+        "path": "litellm/types/responses/streaming_websocket.py",
+        "source_id": "litellm/types/responses/streaming_websocket.py::ResponsesWebSocketRequestDefaults.merged_into"
+      },
+      {
+        "body_sha256": "f6e50cc8455b69a007bbfc7930c7d9a51260a5372433640fff6a20c94fcb74ba",
+        "file_sha256": "27800f7e1c923606c5f0b8ec170068575fbe23ea0e46345d035e01a270064de3",
+        "path": "litellm/proxy/guardrails/usage_tracking.py",
+        "source_id": "litellm/proxy/guardrails/usage_tracking.py::_merged_keys"
+      }
+    ]
+  },
+  {
+    "background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+    "id": "TH-R2-74d24f16e6d5",
+    "redistribution": "held; local hydration only",
+    "repository": "Garsson-io/kaizen",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "ff9301725d052f7175a4aef590793e889429a86eff064306fcb80d98c7a32aef",
+        "request_key": "94d933a20d698255c4b31dc28260671172eae70ea9631cd0a0953440a4a3e19a"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "5872e5e9d07f561f0139364d063a8fce76cfb660644888f80d025729be60a759",
+        "request_key": "173f9ee0f470ffdb4a100518bb01e9791a1172250d80373118927d4a1e72c8b9"
+      }
+    ],
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "src/review-battery.test.ts",
+        "src/spawn-claude.test.ts"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8d36af1870ad380bc1331318a4c9b24f2d16e56f23848b2b6dc76e780051273e",
+        "file_sha256": "a0a0edce9fea9754fd2f9a82b6d4e88bee01bb2af0354e705c8fca46a76a7377",
+        "path": "src/hooks/lib/post-merge-workflows.ts",
+        "source_id": "src/hooks/lib/post-merge-workflows.ts::repoArg"
+      },
+      {
+        "body_sha256": "e18a716d6dae8733f854f847ba297f70e79d990aabd3b851300729c312c1e3ba",
+        "file_sha256": "93f59c4a1db562b1b806f20a1498eaa715b3aca136ac6111d7b44412e8f7a518",
+        "path": "scripts/review-verdict-status.ts",
+        "source_id": "scripts/review-verdict-status.ts::readArg"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "TH-R2-5c45550fa6bd",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "28e136992b39b635b0abe382c03abff744dc7cbbde67b0f75e00acb3f5faf85e",
+        "request_key": "6081a4a5d2e88a243fd806dd319dfafc11ff66347d1bce9b24c4bd26e211989f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "243a42a5ac36fe667bbe14f64f0be5d44801711a4e00a6847875e35a3647bc56",
+        "request_key": "d0c2d9e9f93b6128f2056e07bdc5dacede834aabb2fa347139b32e0903a3a83d"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "c26c1d3eda93def2d340bcec71d659b5a678848c3e98b33d6331917c56c02b18",
+        "file_sha256": "5caa46d87cd3f854d3ac4494ba9500b10f11c878b812c7d4af518861497cd4c5",
+        "path": "openhands/tools/execute_bash/terminal/terminal_session.py",
+        "source_id": "openhands/tools/execute_bash/terminal/terminal_session.py::TerminalSession._is_special_key"
+      },
+      {
+        "body_sha256": "6a13709032d2365ded2876114fef2c3bbed8b1c58f26ebd499f3d0b96156257a",
+        "file_sha256": "af76cade321cfb2ab5a42c3a9a6d3fbd213286c765116e31e45b70abcb8fc2b6",
+        "path": "openhands/sdk/llm/llm.py",
+        "source_id": "openhands/sdk/llm/llm.py::LLM._validate_api_key"
+      }
+    ]
+  },
+  {
+    "background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+    "id": "TH-R2-b024a4d9c867",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "anomalyco/opencode",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "e003595ccd92cbedc757f7c8bd302024b95c110a20bf02466d7493a960907b1f",
+        "request_key": "13076424672fec4723a69cd6071934e0a9c72d913800a67ef1861b1e3cf9330f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "5f1d3b0e77b39b1f9da516d48e5c7492a2d2fe2481bb95e79f46f4500553b889",
+        "request_key": "335677da73db505d5e51fce4737056675ede8f5edb290cdffa2a1a933aabc6b0"
+      }
+    ],
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "31be9fddc51e061be424bf84887f5008288a1c4c3e1883b851b917691308c492",
+        "file_sha256": "d7ebbf6758ee2f235b6cd7b3f2ef3c88cf249cf3d08736641c62a5e9d0080a56",
+        "path": "packages/core/src/variant.ts",
+        "source_id": "packages/core/src/variant.ts::openResponses"
+      },
+      {
+        "body_sha256": "a59f0d1f89942bc72498310a75bc265b3f520c7ddff7c011e35ca959eaa2ef2f",
+        "file_sha256": "7aadd0fb2a1276a1c4d3a21566824749f7d8ff1ef9e0dcf589f7063eae269a17",
+        "path": "packages/ai/src/providers/amazon-bedrock-mantle.ts",
+        "source_id": "packages/ai/src/providers/amazon-bedrock-mantle.ts::responsesModel"
+      }
+    ]
+  },
+  {
+    "background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+    "id": "TH-R2-f77f0c998d03",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "pingdotgg/t3code",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "4875db7c3f4093283a31db9817ecc62c8e1e5b9b5313d78064117afc8e317b5f",
+        "request_key": "8f78fe7dd975cebddea411d2582c381908de8d139a66b44dfdf9e88683f7fab0"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "58dd83d87e959ec0d1c6f655574d047eb10c98aaf0f1fd4aefde55bd4db1d149",
+        "request_key": "37d04b4489b532fe842a623296a4dfcd8e53cfe30a8d874b1d3bcf7fc09d6450"
+      }
+    ],
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/node_modules/*",
+        "*/dist/*",
+        "*/build/*",
+        "*/generated/*",
+        "*/_generated/*",
+        "*/__generated__/*",
+        "*/fixtures/*",
+        "*/__fixtures__/*",
+        "*/snapshots/*",
+        "*/__snapshots__/*",
+        "*/tests/*",
+        "*/test/*",
+        "*/__tests__/*",
+        "*/spec/*",
+        "*/specs/*",
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "*.test-d.ts",
+        "*.spec-d.ts",
+        "*.snap.ts",
+        "*.snap.tsx",
+        "*.gen.ts",
+        "*.gen.tsx",
+        "*.generated.ts",
+        "*.generated.tsx",
+        "*.d.ts"
+      ],
+      "include": [
+        "apps/*.ts",
+        "apps/*.tsx",
+        "packages/*.ts",
+        "packages/*.tsx"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "4161f633fdd2acbe54c09e7fc7c0a923047e5ac2fcd0b2fbb9d7cc97b63e2db8",
+        "file_sha256": "7d418ba20bf10116b58fb3285be6ad5316eae32a1b82ad41212e1961c86f699b",
+        "path": "packages/shared/src/shell.ts",
+        "source_id": "packages/shared/src/shell.ts::normalizePathEntryForComparison"
+      },
+      {
+        "body_sha256": "fcfaf6010f6248e815c35164cc5873ac65488b5279b9b87c20f782ade5d20745",
+        "file_sha256": "3401b304a09f53ba890044e180a37b6bbc32907e4c5a41225a3084787479a2dd",
+        "path": "packages/source-control-core/src/server/pullRequestUtils.ts",
+        "source_id": "packages/source-control-core/src/server/pullRequestUtils.ts::normalizeHost"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "TH-R2-73ee3f7bd8d3",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "3c354c794a99c647508c559975562703303111c3446bfff3ea4dac806f728930",
+        "request_key": "31b7f42789bc7fa190bdce0eb486646b89f7b05a9a515506630e892b65f27007"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "0a09b8a50a1314c396d6bca8778cfabebb964b38e7bac6e98d4546b43a72a9df",
+        "request_key": "f1df874a5e2b24d7e47d9581bb974189ee48d27350d98ac7d78265e7adf5ab06"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "2431111cacb8109dadcfe007984ac1cf6a1e6a07f99528ec017f97b551fb5679",
+        "file_sha256": "018c80283918e98cad94ce43feac18eb30380b9528bbccb7c89437547d1cb47a",
+        "path": "litellm/proxy/guardrails/guardrail_hooks/cisco_ai_defense/cisco_ai_defense.py",
+        "source_id": "litellm/proxy/guardrails/guardrail_hooks/cisco_ai_defense/cisco_ai_defense.py::CiscoAIDefenseGuardrail._extract_inspect_messages_from_request"
+      },
+      {
+        "body_sha256": "1abdc68ece8442b4576bb9b7dd116d4b70741b4625501e05edad9614dd2a6ecf",
+        "file_sha256": "81dc851baa105c7408e9686ee42d045547dbff6a8ef61bf3d3742fdd32c4d349",
+        "path": "litellm/proxy/guardrails/guardrail_hooks/promptguard/promptguard.py",
+        "source_id": "litellm/proxy/guardrails/guardrail_hooks/promptguard/promptguard.py::PromptGuardGuardrail._extract_texts_from_messages"
+      }
+    ]
+  }
+]

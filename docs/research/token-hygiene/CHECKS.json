@@ -1,0 +1,215 @@
+{
+  "status": "PASS",
+  "clean_copy_without_lab_imports": true,
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "commands": [
+    {
+      "command": "python3 transform.py",
+      "exit_code": 0,
+      "stdout_sha256": "b41ba1b52d5292b4033614ebce755c5d542f4508d83d8d768685b03a89b26b04",
+      "result": [
+        {
+          "id": "TH-R2-f111c4a60a3a",
+          "before_cosine": 0.2864499681122553,
+          "after_cosine": 0.4066816573921655,
+          "background_functions": 37604,
+          "scope": "Exact selected-vector transformation with frozen full-background IDF/edges; no full-corpus fit or candidate ranking replay."
+        },
+        {
+          "id": "TH-R2-faccb8de38d2",
+          "before_cosine": 0.5076745713357599,
+          "after_cosine": 0.6347336991205705,
+          "background_functions": 18892,
+          "scope": "Exact selected-vector transformation with frozen full-background IDF/edges; no full-corpus fit or candidate ranking replay."
+        }
+      ]
+    },
+    {
+      "command": "python3 reproduce.py replay",
+      "exit_code": 0,
+      "stdout_sha256": "fea185973939cd0920c7a22c485fbbe1d04e1aaafd046d8149aed9502278d888",
+      "result": {
+        "limits": "Replays final answers and fixed admission records; does not refit whole-corpus retrieval or independently prove source truth. Primary feed costs exclude separately attributed current-phase usage. Jev and Claude remain separate.",
+        "policy_counts": [
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 1,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 1,
+            "unknown": 12,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 1,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 1,
+            "unknown": 0,
+            "variant": 1
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 1,
+            "unknown": 12,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 2,
+            "unknown": 4,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 1,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 2,
+            "unknown": 4,
+            "variant": 1
+          }
+        ],
+        "primary_feeds": [
+          {
+            "primary_feed_actual_usd": "0.17449224",
+            "requests_in_primary_feed": 96,
+            "round": 1,
+            "successful": 72,
+            "unknown": 24
+          },
+          {
+            "primary_feed_actual_usd": "0.21569280",
+            "requests_in_primary_feed": 96,
+            "round": 2,
+            "successful": 88,
+            "unknown": 8
+          }
+        ],
+        "selected_answers": [
+          {
+            "id": "TH-R2-f111c4a60a3a",
+            "kind": "jev",
+            "label": "duplicate",
+            "reportable": false,
+            "score": 0.69
+          },
+          {
+            "id": "TH-R2-f111c4a60a3a",
+            "kind": "claude",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.15
+          },
+          {
+            "id": "TH-R2-faccb8de38d2",
+            "kind": "jev",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.8
+          },
+          {
+            "id": "TH-R2-faccb8de38d2",
+            "kind": "claude",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.2
+          }
+        ],
+        "selected_raw_answers_reparsed": 4
+      }
+    },
+    {
+      "command": "python3 reproduce.py audit",
+      "exit_code": 0,
+      "stdout_sha256": "554ea292bdf3d0baf7a64626552e5879d7402e893738a314b5e0b0ea1aaeb632",
+      "result": {
+        "compressed_archives_opened": 4,
+        "credential_or_private_identifier_matches": 0,
+        "files_scanned": 41,
+        "limit": "Pattern scan plus allowlisted response/source export; not a universal secret detector.",
+        "relative_links_checked": 21,
+        "source_files_verified": 4,
+        "status": "PASS"
+      }
+    },
+    {
+      "command": "python3 acquire.py --corpus /home/researcher/dry-lint-round/jobs/corpus-migration/.lab-results/corpus-migration/standalone",
+      "exit_code": 0,
+      "stdout_sha256": "4b21cd4fd155f8d2493abed42796f35ab2c98e43d62d41bee1688bb09aa850e2",
+      "result": {
+        "status": "PASS",
+        "exact_background_catalog_bindings": 10,
+        "scope": "Catalog hash lookup; run corpus.py verify for stored object bytes. Missing/private study inputs remain missing/private."
+      }
+    },
+    {
+      "command": "python3 data/evidence/verify_evidence.py",
+      "exit_code": 0,
+      "stdout_sha256": "bc8a7a573f23d0063296bb6bee2bf9ba11a48171b42cf0b93796a5ec43339d24",
+      "result": {
+        "status": "verified",
+        "paired_rows": 6920,
+        "accepted_function_rows_raw": 580,
+        "paired_metric_checks": 96,
+        "provider_calls": 0
+      }
+    }
+  ],
+  "held_exact_request_hydrations": 30,
+  "provider_calls": 0,
+  "full_corpus_refits": 0,
+  "external_fetches": 0,
+  "source_safety": "Selected source allowlisted to licensed pinned public repositories; held source/prose omitted; decompressed archive and literal credential/private-identifier patterns scanned; original hashes retained. Not a universal secret detector.",
+  "tests_not_run": "Production suite, live providers, full-corpus refitting and independent source adjudication are outside this evidence-only publication."
+}

@@ -1,0 +1,134 @@
+"""One frozen word-presence revision; shared mappings/resolver and cached baseline gold."""
+import gc,gzip,hashlib,importlib.util,json,math,resource,sys,time
+from collections import Counter,defaultdict
+from pathlib import Path
+O=Path(__file__).resolve().parent;F=O.parents[1]/'full-corpus'
+def load(name,path):
+ s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);sys.modules[name]=m;s.loader.exec_module(m);return m
+a=load('r2_policy',F/'migrate_shared_policy_v2.py');b=a.b;h=load('r2_shared',F/'shared-resolver-v1/resolver.py')
+S=b.ROOT/'jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2';ARM='word-presence'
+jl=lambda p:[json.loads(x) for x in Path(p).read_text().splitlines() if x.strip()]
+sha=b.sha
+def dump(p,x):p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+def jsonl(p,rs):p.parent.mkdir(parents=True,exist_ok=True);p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+def family(f):return f['path'],f.get('owner')
+def main():
+ registration=sha((O/'EXPERIMENT.json').read_bytes());configs={r['repository']:r for r in json.loads(b.lab['REPOS'].read_bytes())}
+ canonical=jl(S/'rows.jsonl');cohorts=jl(S/'cohorts.jsonl');old=defaultdict(list)
+ for r in jl(F/'shared-policy-v3-inferred-diagnostics/rows.jsonl'):
+  if r['arm']=='baseline':old[r['cohort_id']].append(r)
+ excluded_modules=set();excluded_owners=set();family_records=[]
+ for path in [*sorted((O.parent/'round1').glob('chunk-v1-*/novel-review-queue.jsonl')),F/'novel-review-queue.batch-01.jsonl',F/'novel-review-queue.batch-00.jsonl']:
+  for r in jl(path):
+   for side in ['new','existing']:
+    f=r['candidate'][side];excluded_modules.add((r['repository'],r['revision'],f['path']))
+    if f.get('owner'):excluded_owners.add((r['repository'],r['revision'],f['owner']))
+    family_records.append(dict(id=r['id'],repository=r['repository'],revision=r['revision'],path=f['path'],owner=f.get('owner'),basis='round1/prior scored-or-frozen source module; conservative exclusion'))
+ jsonl(O/'round1-family-exclusions.jsonl',family_records)
+ def disjoint(c,d):
+  path,qual=d.id.split('::',1);owner=qual.rpartition('.')[0]
+  return (c['repository'],c['revision'],path) not in excluded_modules and (not owner or (c['repository'],c['revision'],owner) not in excluded_owners)
+ packaged={}
+ for row in canonical:
+  es=row['input_record']['row'].get('endpoints');ds={'public-gold-v1':'public-gold','candidate-first-gold-v1':'candidate-first-gold','candidate-first-scaled-v1':'scaled-v1'}.get(row['dataset'])
+  if not es or not ds:continue
+  for e in es.values() if isinstance(es,dict) else es:
+   artifact=e.get('source_artifact');src=e.get('source') or {};p=b.PANELS/ds/(artifact['package_path'] if artifact else src['path']) if artifact or src.get('path') else None
+   if p is None:continue
+   raw=p.read_bytes()
+   if artifact:assert sha(raw)==artifact['sha256']
+   env=json.loads(gzip.decompress(raw));text=env['source'];digest=sha(text.encode());assert digest==e.get('file_sha256',src.get('source_sha256'))
+   key=(row['repository'],row['revision'],e['path']);packaged[key]=dict(repository=key[0],revision=key[1],path=key[2],status='available',source=text,sha256=digest)
+   if env.get('git_blob_sha1'):packaged[key]['git_blob_sha1']=env['git_blob_sha1']
+ matrices=[];query_manifests=[]
+ for cohort in cohorts:
+  cid=cohort['cohort_id'];folder=O/'regression'/cid
+  if (folder/'DONE.json').exists():
+   matrices.append(json.loads((folder/'metadata.json').read_text()));continue
+  started=time.perf_counter();raw=Path(cohort['background_path']).read_bytes();assert sha(raw)==cohort['background_sha256'];bg=b.BenchBackground.decode(raw)
+  docs=[d.model_copy(update={'counts':{t:1 if t.startswith('w:') else n for t,n in d.counts.items()}}) for d in bg.documents]
+  variant=bg.model_copy(update={'documents':docs,'extraction_contract':'lab-token-hygiene-word-presence:2'})
+  assert variant.document_frequency==bg.document_frequency and variant.max_df==bg.max_df
+  assert [(d.id,d.source_sha256) for d in docs]==[(d.id,d.source_sha256) for d in bg.documents]
+  assert all({t:n for t,n in x.counts.items() if not t.startswith('w:')}=={t:n for t,n in y.counts.items() if not t.startswith('w:')} for x,y in zip(docs,bg.documents))
+  folder.mkdir(parents=True,exist_ok=True);(folder/'word-presence.json.gz').write_bytes(variant.encode());idx=variant.index()
+  expected={t:math.log((1+len(docs))/(1+df))+1 for t,df in bg.document_frequency.items() if df<=bg.max_df*len(docs)};assert idx.idf==expected
+  fit=time.perf_counter()-started;native_cache={};result_cache={};source_cache={};resolver=h.Resolver(cohort,bg.documents);source_calls=[]
+  old_helper=F/'shared-policy-v2'/cid/'resolver-results.jsonl'
+  for r in jl(old_helper) if old_helper.exists() else []:
+   if r.get('position') is not None:
+    if r['status']=='resolved_native' or r['position'] not in result_cache:result_cache[r['position']]=r
+  def native(pos):
+   if pos not in native_cache:
+    d=bg.documents[pos];rr=result_cache.get(pos)
+    if rr is None:
+     path=d.id.split('::')[0];key=(cohort['repository'],cohort['revision'],path)
+     if path not in source_cache:
+      root=b.REPO_GIT.get(cohort['repository']);source_cache[path]=packaged.get(key) or (h.read_git_source(root,cohort['repository'],cohort['revision'],path) if root else None)
+     row=dict(row_id='r2:'+cid+':'+str(pos),repository=cohort['repository'],revision=cohort['revision'],record_kind='function',sources={'new':dict(source_id=d.id)})
+     m=dict(cohort_id=cid,sources={'new':dict(source_id=d.id,position=pos,source_sha256=d.source_sha256,status='present')})
+     rr,f=a.consume_endpoint(resolver,row,m,'new',source_cache[path]);result_cache[pos]=rr;source_calls.append(rr)
+    f=None
+    if rr['status']=='resolved_native':
+     f=b.Function.model_validate(rr['function']);ex=b.PythonExtractor() if f.path.endswith('.py') else b.TypeScriptExtractor();f=f.model_copy(update={'hash':ex.structure_hash(f),'context_digest':f.context_digest or rr.get('file_sha256','')})
+     assert f.qualname==d.id and sha(f.code.encode())==d.source_sha256
+    native_cache[pos]=f
+   return native_cache[pos]
+  rows=[];byquery=defaultdict(list)
+  for base in old[cid]:
+   r=dict(base,arm=ARM,directions=[dict(d) for d in base['directions']]);rows.append(r)
+   for d in r['directions']:
+    if d.get('evaluated'):byquery[d['query_position']].append((r,d))
+  public=cohort['repository'] in configs and cohort['revision']==configs[cohort['repository']]['revision']
+  discovery=sorted((i for i,d in enumerate(bg.documents) if disjoint(cohort,d)),key=lambda i:sha(('round2-query-v1:'+bg.revision+':'+bg.documents[i].id+':'+str(i)).encode()))[:256] if public else []
+  query_manifests.append(dict(cohort_id=cid,gold_queries=sorted(byquery),discovery_queries=discovery,discovery_family_rule='module/owner disjoint; full corpus retained'))
+  campaigns=[];exposures=[];baseline_idx=None;baseline_fit=0.;nq=0
+  def campaign(query,arm,near,f,floor):
+   complete=f is not None and floor is not None;cs=[];filters={}
+   for j,score in near:
+    other=native(j)
+    if other is None:complete=False;filters[j]=None;continue
+    c=b.lab['candidate']([f,other],0,1,score,arm,b.Settings()) if f else None
+    if c is not None:
+     if arm==ARM:c=c.model_copy(update={'comparer':'lab-token-hygiene-word-presence:2'})
+     filters[j]=c.filtered
+     if c.filtered is None:cs.append(c)
+   cs.sort(key=lambda c:(-c.similarity,c.key));ledger=b.Ledger(b.Settings(budget=b.Budget(usd=.04)));chosen=ledger.select(b.lab['JUDGE'],cs) if complete else []
+   funded={cs[k].key for k in chosen};cost=b.estimate(b.lab['JUDGE'],[cs[k] for k in chosen],b.Settings()) if complete else None
+   assert cost is None or cost<=.04+1e-12
+   return dict(complete_source=complete,candidates=len(cs),funded_keys=sorted(funded),estimated_usd=cost,filters=filters)
+  for query in sorted(set(byquery)|set(discovery)):
+   nq+=1;ranking=idx.similar(docs[query].tokens(),exclude={query});f=native(query);qr=result_cache.get(query)
+   size=f.lines if f else next((d['query_lines'] for _,d in byquery[query] if d.get('query_lines') is not None),None)
+   basis=qr['span']['provenance'] if f and qr else 'inferred_from_shared_production_as_function_snippet' if size is not None else 'unknown'
+   raw_lookup={j:(rank,score) for rank,(j,score) in enumerate(ranking,1)};baseline_ranking=None
+   for profile in ['laboratory-default','standalone-balanced']:
+    same=profile=='standalone-balanced';k=20 if same else 3;floor=.35 if same else .3 if size is not None and size<6 else .5 if size is not None else None
+    allowed=[(j,s) for j,s in ranking if b.same_language(bg.documents[j].id,bg.documents[query].id) and bg.documents[j].id!=bg.documents[query].id and (same or bg.documents[j].id.split('::')[0]!=bg.documents[query].id.split('::')[0])]
+    allowed_lookup={j:rank for rank,(j,_) in enumerate(allowed,1)};near=[(j,s) for j,s in allowed if floor is not None and s>=floor][:k];info=campaign(query,ARM,near,f,floor)
+    campaigns.append(dict(batch=cid+':'+ARM+':'+profile+':'+str(query),cohort_id=cid,arm=ARM,profile=profile,query=query,cap_usd=.04,synthetic=True,query_lines=size,query_lines_provenance=basis,**{x:v for x,v in info.items() if x!='filters'},normal_cost_even_cached=True))
+    for r,d in byquery[query]:
+     if r['profile']!=profile:continue
+     j=d['target_position'];rank,score=raw_lookup.get(j,(None,0.));arank=allowed_lookup.get(j);other=native(j);support=f is not None and other is not None;filt=b.why_skipped(f,other,b.Settings()) if support else None
+     is_same=bg.documents[j].id.split('::')[0]==bg.documents[query].id.split('::')[0];pre=not(is_same and not same) and score>=floor and arank is not None and arank<=k if floor is not None else None;pair=b.pair_key(bg.documents[query].id,bg.documents[j].id)
+     loss='same_file' if is_same and not same else 'span_unknown' if floor is None else 'score_floor' if score<floor else 'rank' if not pre else 'source_filter_unknown' if not support else 'filter' if filt else 'source_budget_unknown' if not info['complete_source'] else 'budget' if pair not in info['funded_keys'] else None
+     d.update(raw_rank=rank,score=score,allowed_rank=arank,top1=rank is not None and rank<=1,top3=rank is not None and rank<=3,top20=rank is not None and rank<=20,query_lines=size,query_lines_provenance=basis,floor=floor,pre_filter_admitted=pre,same_file=is_same,filter_supported=support,filtered=filt,retrieved=pre and not filt if support and floor is not None else None,funded=pair in info['funded_keys'] if info['complete_source'] else None,first_loss=loss,raw_score_ties=sum(s==score for _,s in ranking) if rank else 0)
+    if query in discovery:
+     if baseline_ranking is None:
+      if baseline_idx is None:
+       st=time.perf_counter();baseline_idx=bg.index();baseline_fit+=time.perf_counter()-st
+      baseline_ranking=baseline_idx.similar(bg.documents[query].tokens(),exclude={query})
+     ballowed=[(j,s) for j,s in baseline_ranking if b.same_language(bg.documents[j].id,bg.documents[query].id) and bg.documents[j].id!=bg.documents[query].id and (same or bg.documents[j].id.split('::')[0]!=bg.documents[query].id.split('::')[0])];bnear=[(j,s) for j,s in ballowed if floor is not None and s>=floor][:k];bi=campaign(query,'baseline',bnear,f,floor)
+     campaigns.append(dict(batch=cid+':baseline:'+profile+':'+str(query),cohort_id=cid,arm='baseline',profile=profile,query=query,cap_usd=.04,synthetic=True,query_lines=size,query_lines_provenance=basis,**{x:v for x,v in bi.items() if x!='filters'},normal_cost_even_cached=True))
+     for arm,nn,ii in [(ARM,near,info),('baseline',bnear,bi)]:
+      for j,score in nn:
+       pair=b.pair_key(bg.documents[query].id,bg.documents[j].id)
+       exposures.append(dict(arm=arm,profile=profile,q=query,j=j,key=pair,score=score,filtered=ii['filters'].get(j),funded=pair in ii['funded_keys'] if ii['complete_source'] else None,target_family_disjoint=disjoint(cohort,bg.documents[j]),baseline_same_query_funded=pair in bi['funded_keys'] if bi['complete_source'] else None,query_lines=size,synthetic=True))
+   if nq%100==0:print(cid,'queries',nq,flush=True)
+  jsonl(folder/'rows.jsonl',rows);jsonl(folder/'ledgers.jsonl',campaigns);jsonl(folder/'exposures.jsonl',exposures);jsonl(folder/'resolver-new-calls.jsonl',source_calls)
+  meta=dict(cohort_id=cid,repository=cohort['repository'],revision=cohort['revision'],background_sha256=cohort['background_sha256'],registration_sha256=registration,variant_snapshot_sha256=sha((folder/'word-presence.json.gz').read_bytes()),documents=len(docs),changed_documents=sum(x.counts!=y.counts for x,y in zip(docs,bg.documents)),original_idf_equal=True,protected_token_counts_equal=True,original_order_equal=True,original_df_equal=True,representation_fit_seconds=fit,new_discovery_baseline_fit_seconds=baseline_fit,queries=nq,discovery_queries=len(discovery),gold_rows=len(rows),wall_seconds=time.perf_counter()-started,rss_peak_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,source_resolution_new_calls=len(source_calls),native_resolution_categories=dict(Counter(r['category'] for r in source_calls)))
+  dump(folder/'metadata.json',meta);dump(folder/'DONE.json',dict(rows=len(rows),rows_sha256=sha((folder/'rows.jsonl').read_bytes()),registration_sha256=registration));matrices.append(meta)
+  print('DONE',cid,'rows',len(rows),'discovery',len(discovery),'seconds',round(meta['wall_seconds'],2),flush=True)
+  del idx,baseline_idx,variant,docs,bg,rows;gc.collect()
+ jsonl(O/'representation-metadata.jsonl',matrices);jsonl(O/'query-manifest.jsonl',query_manifests);dump(O/'REGRESSION-STATUS.json',dict(status='ALL_BACKGROUND_COMPARISONS_EXECUTED',backgrounds=len(matrices),records=len(canonical),accepted_functions=sum(r['accepted_gold'] and r['record_kind']=='function' for r in canonical),models_separate=sum(r['accepted_gold'] and r['record_kind']=='model' for r in canonical),baseline_gold_reused=True,registration_sha256=registration,helper_sha256=sha((F/'shared-resolver-v1/resolver.py').read_bytes()),shared_index_receipt_sha256=sha((S/'index-ready.json').read_bytes()),provider_calls=0))
+if __name__=='__main__':main()
