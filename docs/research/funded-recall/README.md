@@ -11,3 +11,5 @@ The research protocol requires at least $0.20 of fresh usage-priced judging per 
 The folder contains matched outcomes, costs, source pins, exact request/output hashes, and checksums. It excludes source code, prompts, credentials, and private adopter identities. Full private replay artifacts remain archived in the lab. Hash receipts establish artifact identity but do not make omitted artifacts independently reproducible from this repository alone.
 
 Other funded directions remain in progress and are not rejected by this decision. This evidence changes no production configuration, judge policy, or CI behavior.
+
+Run `python3 docs/research/funded-recall/context/audit.py` from the repository root to verify the published hashes and recompute costs and paired report changes without provider calls. This checks the published evidence; it does not substitute for inspecting the archived source and prompts.
