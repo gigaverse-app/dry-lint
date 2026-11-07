@@ -156,6 +156,12 @@ def test_resolved_calls_with_extra_work_settle(language: Extractor, python_body:
     assert why_skipped(target, wrapper, Settings()) == "one calls the other"
 
 
+def test_python_keyword_unpacking_is_a_call_not_a_forward() -> None:
+    target, wrapper = store_pair(PythonExtractor(), "return self.normalize(**key)", "")
+    assert wrapper.analysis is not None and wrapper.analysis.forward_target is None
+    assert why_skipped(wrapper, target, Settings()) == "one calls the other"
+
+
 def test_parameter_initializers_do_not_hide_the_call(language: Extractor) -> None:
     target, wrapper = store_pair(
         language, "return self.normalize(key)", "return this.normalize(key);",

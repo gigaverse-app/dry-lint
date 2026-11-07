@@ -133,7 +133,7 @@ def test_equal_region_scores_prefer_the_closest_whole_function():
     comparer = fitted(query, distant, sibling)
     (best, score), *_ = comparer.neighbours(query, 2, lambda _: True)
     # Both share the identical prologue region (score 1.0); the name order alone would pick `alpha`.
-    assert score == 1.0 and best is sibling
+    assert score == pytest.approx(1.0) and best is sibling
 
 
 @pytest.mark.parametrize(

@@ -391,7 +391,9 @@ class OperationBlocksComparer:
                 ranked.append((parent, score, whole))
         # Equal region scores are common (identical regions score 1.0): the closest whole function is the most
         # useful sibling for whoever consolidates the operation, so it wins before any name order.
-        ranked.sort(key=lambda row: (-row[1], -row[2], self.functions[row[0]].qualname, row[0]))
+        # Identical regions differ only by float summation order (1.0000000000000007 vs 1.0), so compare
+        # rounded region scores; otherwise rounding noise, not the whole function, would break the tie.
+        ranked.sort(key=lambda row: (-round(row[1], 9), -row[2], self.functions[row[0]].qualname, row[0]))
         found, seen = [], set()
         for parent, score, _ in ranked:
             other = self.functions[parent]
