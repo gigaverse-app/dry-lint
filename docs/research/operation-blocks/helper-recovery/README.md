@@ -57,3 +57,7 @@ The frozen 22-file R1 package includes actual implementation/configuration, sele
 All 53 saved Candidates and Claude questions contain full native functions. Seven historical Jev questions truncate a body at 8,000 characters; the replay exposes those partial inputs, including two Jev positives. Claude omits Function.context; Jev includes the historical file-prefix context. Complete saved Candidates are not evidence that every provider received complete input.
 
 Selected LiteLLM and OpenHands source is distributed under its retained MIT license texts; dry-lint's exact Apache 2.0 license is retained separately. No whole backgrounds or private source are bundled. Full retrieval refitting still requires the pinned complete backgrounds and source caches; selected cases cannot reproduce the original IDF fit. The [balanced replay](balanced/README.md) covers exact answers and native admissions, including the answered extra gain.
+
+## Performance follow-up
+
+[Sharing operation-block preparation](performance/README.md) reduces cold construction 16–21% and standalone query time 22–38% with exact output parity on 24,135 queries. It changes runtime, not this study's recall or precision results. The follow-up includes the implementation argument, actual benchmark/parity scripts, repetitions and input-availability limits.
