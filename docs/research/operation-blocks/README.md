@@ -1,5 +1,7 @@
 # Recovering shared operations without mistaking coverage for reuse
 
+**Current implementation decision (7 November 2026):** [PR109](https://github.com/gigaverse-app/dry-lint/pull/109) now enables bounded operation blocks automatically only within explicitly agent-reviewed `balanced`, with an explicit TF-IDF-only escape hatch. This is a coordinator decision to accept the earlier development tradeoff (+9 net bounded-useful / +3 net unsupported reports), not a claim of broad validated recall. A new native chronological replay of 10 PRs / 47 revisions adds **zero new bounded-useful pairs and one unsupported pair**, loses no prior reports, and reports one already-found tiny operation earlier. Detection on a 10,319-function snapshot rises from 1.73 to 12.68 seconds. The [enablement study](https://github.com/gigaverse-app/dry-lint/blob/feat/research-recall-promotion/docs/enablement-results.md) explains this cost, the decision and exact reproduction. Legacy automatic presets stay unchanged. Earlier opt-in recommendations below describe their frozen study stage; the residual veto remains rejected.
+
 **New follow-up:** [complete-helper recovery](helper-recovery/README.md) tests a different, narrower repair:
 add one complete helper representation only when the original block route abstains. The first new diagnostic
 batch adds three source-supported Sonnet reports; the separately measured balanced Haiku admission delta adds
