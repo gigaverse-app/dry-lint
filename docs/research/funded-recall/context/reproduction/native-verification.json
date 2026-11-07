@@ -1,0 +1,29 @@
+{
+  "native_parser_replay": {
+    "status": "PASS",
+    "native_functions": 42,
+    "full_anchor_recipes": 10,
+    "packages": {
+      "pydantic": "2.14.2",
+      "pydantic-core": "2.50.2",
+      "tree-sitter": "0.25.2",
+      "tree-sitter-typescript": "0.23.2"
+    },
+    "historical_metadata_differences": "18 endpoints: context/context_digest and six originally empty structure hashes; exposed by native.py."
+  },
+  "held_hydration": {
+    "status": "PASS",
+    "network_calls": 0,
+    "provider_calls": 0,
+    "local_git_objects": true,
+    "exact_wire_hashes": [
+      "4b43d29bb4743c2962e4dea6dfbe1b5abcb69afd69d626d65ffe231e758b8da3",
+      "3acd581fd117134eb27efb1de88a2773473c650c5d0523f29080d82d5cdb8459",
+      "c4fac6543cb811a3fd5ea685b418e7f7789f8bf94bd4a0d0c0054f4ffc4f8a89",
+      "bfbe498137d50e9a51c8f4042f920984a7a9e04b7f9b65c73f60b6344ffd030f"
+    ],
+    "local_source_bearing_outputs_removed_after_verification": true
+  },
+  "target_code_executed": false,
+  "external_judge_calls": 0
+}

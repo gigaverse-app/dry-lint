@@ -1,0 +1,32 @@
+[
+  {
+    "file": "trace_followup.py",
+    "original_archive_path": "lab/trace_followup.py",
+    "sha256": "5f6b5a083768e602427fa8b45e290b1c05f89d47218ffe6f50d9e817b9551a7f"
+  },
+  {
+    "file": "coverage_round2.py",
+    "original_archive_path": "lab/coverage_round2.py",
+    "sha256": "fc2a1f902b1eb8523b2f64cd07b5f1c49a7c03363e06e8507d2ca1f229f7e201"
+  },
+  {
+    "file": "trace_evaluate.py",
+    "original_archive_path": "lab/trace_evaluate.py",
+    "sha256": "8f28c4036ac752aef4457330816d4d80e7b3133a3029227b7e4b07b491cb7295"
+  },
+  {
+    "file": "score_coverage_round2.py",
+    "original_archive_path": "lab/score_coverage_round2.py",
+    "sha256": "5f358c704eaed66d3aaffabc7c0b136bd2df790c2a8419010a68b18184c0662a"
+  },
+  {
+    "file": "anthropic.py",
+    "original_archive_path": "src/dry_lint/judges/anthropic.py",
+    "sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f"
+  },
+  {
+    "file": "jev.py",
+    "original_archive_path": "src/dry_lint/judges/jev.py",
+    "sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2"
+  }
+]
