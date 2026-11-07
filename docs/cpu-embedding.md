@@ -1,5 +1,47 @@
 # Offline CPU embedding discovery
 
+Use CPU embeddings as an experimental secondary route when vocabulary, naming or short natural-language
+descriptions may connect functions that lexical matching misses. It maps source text into a pretrained vector
+space: nearby vectors suggest similar text or behavior for the existing judge to inspect. It does not learn
+your repository's ownership rules, and similar purpose can still require separate implementations.
+
+For example, an `inspect_active_cache_entries` function and a differently named `list_live_cache_state` function
+might express the same inventory operation with different identifiers. An encoder can propose that comparison
+without an exact token overlap. However, a cache inventory and cache eviction routine may also look similar;
+reading and deleting are different contracts. These names illustrate the hypothesis, not measured discoveries.
+
+The current implementation encodes only the **first 256 wordpieces**, including special tokens, of each full
+function. Long handlers can therefore look alike because of their setup while an important tail is invisible.
+The judge still receives complete functions. Prefer a repository-specific experiment on short, well-described
+functions; do not assume this implementation fixes long-function partial-operation misses. For Python operations
+inside longer workflows, also consider [operation blocks](operation-blocks.md).
+
+The completed wide-baseline evaluation found **no added known positive contexts and three added negative
+contexts** over TF-IDF20; its sole later Claude report was also baseline-funded and source-reviewed as related.
+This route is not a demonstrated default recall upgrade. Its practical implementation benefit is reusable
+offline encoding: 100 supplied bodies took **6.623 seconds cold versus 0.440 seconds with the cache**, while the
+original 37,604-function LiteLLM cold encoding took about **2,496 seconds**. These are development measurements,
+not guarantees for your hardware. Start with the [paired trial guide](discovery-comparers.md), persist the cache,
+and judge the additional candidates against independent controls.
+
+## How it works
+
+```text
+Full native function -> first 256 wordpieces -> pinned MiniLM on CPU -> 384-number vector
+                                                                      |
+                                             attention-mask mean pool + normalize
+                                                                      |
+Changed function vector -> cosine against indexed vectors -> unseen full-function pair
+```
+
+MiniLM was trained before this run. Detection performs inference, not fitting or fine-tuning. The current
+representation has one vector per function: it does not combine code and documentation as independently
+weighted fields, split the body into chunks, or resolve called helpers. Exact cosine ranking then supplies
+at most the configured number of eligible new parents. The normal scope, settling, budget and judging rules
+still apply. A vector cache saves inference; it cannot supply or authorize a judge's verdict.
+
+## Install and configure
+
 `cpu-embedding` is an optional candidate comparer. It adds local MiniLM neighbours through the existing discovery
 lane, preserving the baseline and earlier routes. It does not judge, acquire a model, read credentials, contact a
 provider or change budgets. TF-IDF remains the default. Installation and model acquisition are explicit adopter

@@ -128,6 +128,10 @@ can replace protected baseline candidates or transfer its score to an earlier ro
 
 ### Bounded Python operation blocks
 
+Start with the [worked operation-block example](operation-blocks.md) for why this method can find a helper inside
+a larger workflow, when to use it, and the measured limits. The [comparer selection guide](discovery-comparers.md)
+explains route ordering and how to run a fair repository trial. This section specifies the plugin contract.
+
 `operation-blocks:1` retrieves complete native Python functions by shared operation regions. It supports Python
 functions with parseable source and valid source coordinates, not model declarations or other languages. Candidates
 retain their complete signature, documentation, source, hashes and context. Region cosine is a retrieval score,
