@@ -1,0 +1,1 @@
+research: Sparse vector expansion adds one small polling report; keep raw retrieval

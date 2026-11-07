@@ -1,0 +1,83 @@
+"""One frozen source-only sparse expansion. Uses original index/features; no label inputs."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import hashlib,json,math,time
+from collections import Counter,defaultdict
+from pathlib import Path
+from itertools import combinations
+import numpy as np
+from scipy.sparse import csr_matrix,save_npz,load_npz
+from vector_engine import matrix
+
+O=Path(__file__).resolve().parent
+ALGORITHM='herdr-source-pmi-onehop-r2-v1'
+sha=lambda b:hashlib.sha256(b).hexdigest()
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+
+def build(bg,bgsha,folder):
+ start=time.perf_counter();folder.mkdir(parents=True,exist_ok=True)
+ index,X,terms=matrix(bg);identity=dict(algorithm=ALGORITHM,preregistration_sha256=sha((O/'EXPERIMENT.json').read_bytes()),
+  background_sha256=bgsha,feature_order_sha256=sha(json.dumps(terms).encode()),hashseed=os.environ.get('PYTHONHASHSEED'))
+ assert identity['hashseed']=='0'
+ if (folder/'fit.json').exists():
+  info=json.loads((folder/'fit.json').read_text());assert info['identity']==identity
+  Y=load_npz(folder/'expanded.npz');return index,X,Y,dict(info,cache_hit=True,load_seconds=time.perf_counter()-start)
+ n,m=X.shape;df=np.asarray(X.getnnz(axis=0));idf=np.array([index.idf[t] for t in terms]);upper=min(128,math.floor(.05*n))
+ rare=(df>=3)&(df<=upper);pathcodes={p:i for i,p in enumerate(sorted({d.id.split('::')[0] for d in bg.documents}))}
+ counts=Counter();firstfile={};multifile=set();anchors=[]
+ for row,d in enumerate(bg.documents):
+  lo,hi=X.indptr[row:row+2];ii=X.indices[lo:hi];vv=X.data[lo:hi]
+  pool=[(int(j),float(v)) for j,v in zip(ii,vv) if rare[j]]
+  pool.sort(key=lambda p:(-idf[p[0]],-p[1],terms[p[0]]));picked=pool[:8];anchors.append(picked)
+  file=pathcodes[d.id.split('::')[0]]
+  for a,b in combinations(sorted(j for j,v in picked),2):
+   key=(a<<32)|b;counts[key]+=1
+   if key not in firstfile:firstfile[key]=file
+   elif firstfile[key]!=file:multifile.add(key)
+ edges=defaultdict(list)
+ for key,count in counts.items():
+  if count<3 or key not in multifile:continue
+  a,b=key>>32,key&0xffffffff;pmi=math.log2(n*count/(int(df[a])*int(df[b])))
+  if pmi<3:continue
+  for src,dst in [(a,b),(b,a)]:edges[src].append((dst,pmi,count))
+ retained={}
+ for src,values in edges.items():
+  values.sort(key=lambda p:(-p[1],-p[2],terms[p[0]]));retained[src]=values[:2]
+ added_i=[];added_j=[];added_v=[];expanded_rows=0
+ for row,picked in enumerate(anchors):
+  eligible=[(j,v) for j,v in picked if j in retained][:2]
+  if eligible:expanded_rows+=1
+  for src,v in eligible:
+   for dst,pmi,count in retained[src]:added_i.append(row);added_j.append(dst);added_v.append(.5*v*min(pmi/8,1))
+ addition=csr_matrix((added_v,(added_i,added_j)),shape=X.shape,dtype=np.float64);Y=(X+addition).tocsr();Y.sum_duplicates();Y.sort_indices()
+ norms=np.sqrt(np.asarray(Y.multiply(Y).sum(axis=1)).ravel());Y=Y.multiply(1/np.where(norms>0,norms,1)[:,None]).tocsr()
+ assert np.isfinite(Y.data).all() and (Y.data>=0).all()
+ assert np.allclose(np.asarray(Y.multiply(Y).sum(axis=1)).ravel()[norms>0],1,atol=1e-12)
+ save_npz(folder/'expanded.npz',Y)
+ with (folder/'association-edges.jsonl').open('w') as out:
+  for src in sorted(retained):
+   for dst,pmi,count in retained[src]:out.write(json.dumps(dict(anchor=terms[src],target=terms[dst],anchor_df=int(df[src]),target_df=int(df[dst]),
+    function_support=count,distinct_file_support_at_least=2,log2_PMI=pmi,weight=.5*min(pmi/8,1)),sort_keys=True)+'\n')
+ info=dict(identity=identity,cache_hit=False,seconds=time.perf_counter()-start,shape=X.shape,raw_nnz=X.nnz,expanded_nnz=Y.nnz,
+  rare_anchors=int(rare.sum()),df_upper=upper,source_cooccurrence_pairs=len(counts),retained_directed_edges=sum(len(v) for v in retained.values()),
+  functions_expanded=expanded_rows,added_contributions=len(added_v),max_added_contributions_per_function=4,
+  distinct_file_support_qualification='Exact >=2 predicate retained; larger distinct-file counts not estimated.',no_label_inputs=True)
+ dump(folder/'fit.json',info);return index,X,Y,info
+
+def order(Y,q,ids,id_order=None):
+ """Posting expansion precedes scoring. Sparse query; never a dense full pair matrix."""
+ product=(Y[q]@Y.T).tocsr();positions=product.indices;values=product.data
+ keep=(positions!=q)&(values>0);positions=positions[keep];values=values[keep]
+ ranks=id_order if id_order is not None else np.array(ids)
+ sort=np.lexsort((positions,ranks[positions],-values));return positions[sort],values[sort]
+
+def direction(Y,q,t,ids,lines,id_order):
+ positions,values=order(Y,q,ids,id_order);scores={int(j):float(s) for j,s in zip(positions,values)}
+ ranks={int(j):rank+1 for rank,j in enumerate(positions)};cross=[int(j) for j in positions if ids[j].split('::')[0]!=ids[q].split('::')[0]]
+ r=ranks.get(t);score=scores.get(t,0.);same=ids[q].split('::')[0]==ids[t].split('::')[0];cr=cross.index(t)+1 if t in cross else None
+ result=dict(score=score,cosine=score,raw_rank=r,cross_file_rank=cr,same_file=same,reciprocal_rank=1/r if r else 0.,
+  top1=r is not None and r<=1,top3=r is not None and r<=3,top20=r is not None and r<=20)
+ for profile,k,floor,rank in [('default',1,.3 if lines and lines<6 else .5 if lines else None,cr),('balanced',20,.35,r)]:
+  loss='same_file' if profile=='default' and same else 'query_length_missing' if floor is None else 'score_floor' if score<floor else 'top_k' if rank is None or rank>k else 'retrieved'
+  result[profile]=dict(floor=floor,retrieved=None if loss=='query_length_missing' else loss=='retrieved',first_loss=loss)
+ return result
