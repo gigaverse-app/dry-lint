@@ -1,12 +1,11 @@
 """Real extractors and pinned local tokenizer; controlled unit vectors, no model calls."""
 
 import hashlib
-import os
 from pathlib import Path
 
 import numpy as np
 import pytest
-from test_cpu_embedding import Encoder, unit
+from test_cpu_embedding import Encoder, minilm_dir, unit
 
 from dry_lint import cpu_embedding
 from dry_lint.cpu_tail import CompleteStatementComparer, CpuTailRankFusionComparer
@@ -21,9 +20,7 @@ from dry_lint.typescript import TypeScriptExtractor
 @pytest.fixture
 def encoder(monkeypatch):
     tokens = pytest.importorskip("tokenizers")
-    folder = os.environ.get("DRY_LINT_TEST_MINILM_DIR")
-    if not folder:
-        pytest.skip("Supply pinned offline tokenizer with DRY_LINT_TEST_MINILM_DIR; never downloaded")
+    folder = minilm_dir()
 
     class TokenEncoder(Encoder):
         def __init__(self, *args, **kwargs):

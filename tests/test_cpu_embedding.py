@@ -2,6 +2,7 @@
 
 import builtins
 import hashlib
+import os
 from types import SimpleNamespace
 
 import numpy as np
@@ -12,6 +13,14 @@ from dry_lint.detector import Detector
 from dry_lint.models import Function
 from dry_lint.plugins import load
 from dry_lint.settings import PluginChoice, Settings
+
+
+def minilm_dir() -> str:
+    """The pinned local MiniLM artifacts CI fetches; tests never download them."""
+    folder = os.environ.get("DRY_LINT_TEST_MINILM_DIR")
+    if not folder:
+        pytest.skip("Supply pinned local MiniLM artifacts with DRY_LINT_TEST_MINILM_DIR; tests never download")
+    return folder
 
 
 def function(name, code=None):
@@ -289,11 +298,7 @@ def test_similarity_clamps_negative_cosine_and_empty_source_fails(fake_encoder):
 
 
 def test_real_optional_runtime_disables_telemetry_before_session(tmp_path, monkeypatch):
-    import os
-
-    model_dir = os.environ.get("DRY_LINT_TEST_MINILM_DIR")
-    if not model_dir:
-        pytest.skip("Explicit local pinned artifacts required; this test never downloads.")
+    model_dir = minilm_dir()
     ort = pytest.importorskip("onnxruntime")
     pytest.importorskip("tokenizers")
     calls = []

@@ -252,7 +252,7 @@ class CpuEmbeddingComparer:
     ) -> list[tuple[Function, float]]:
         if k <= 0 or not self.functions or function.qualname in self._ambiguous or not self._source_known(function):
             return []
-        scores = self.vectors @ self._vectors([function.code])[0]
+        scores = self.scores(function)
         found = []
         for position in self.np.argsort(-scores, kind="stable"):
             score, other = float(scores[position]), self.functions[position]
@@ -268,6 +268,10 @@ class CpuEmbeddingComparer:
                 if len(found) == k:
                     break
         return found
+
+    def scores(self, function: Function):
+        """Similarity of `function` to every indexed function, in index order; subclasses change the views."""
+        return self.vectors @ self._vectors([function.code])[0]
 
     def similarity(self, a: Function, b: Function) -> float:
         vectors = self._vectors([a.code, b.code])

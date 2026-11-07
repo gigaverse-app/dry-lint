@@ -2,13 +2,13 @@
 
 import gc
 import hashlib
-import os
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
 import numpy as np
 import pytest
+from test_cpu_embedding import minilm_dir
 from test_cpu_tail import extracted
 
 from dry_lint import cpu_embedding as cpu
@@ -24,10 +24,7 @@ from dry_lint.settings import PluginChoice, Settings
 
 @pytest.fixture
 def model():
-    folder = os.environ.get("DRY_LINT_TEST_MINILM_DIR")
-    if not folder:
-        pytest.skip("Supply pinned local artifacts; no download")
-    return folder
+    return minilm_dir()
 
 
 def choice(model, cache, use="cpu-embedding", **options):

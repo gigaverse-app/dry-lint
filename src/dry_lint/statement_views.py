@@ -5,10 +5,6 @@ import hashlib
 import textwrap
 
 
-def sha(data):
-    return hashlib.sha256(data).hexdigest()
-
-
 class StatementViews:
     """Clone the validated encoder tokenizer without its inference truncation/padding."""
 
@@ -108,8 +104,8 @@ class StatementViews:
                     "absolute_end_line": f.line + b - 1,
                     "operation_wordpieces": count,
                     "input_wordpieces": self.token_count(text),
-                    "input_sha256": sha(text.encode()),
-                    "function_body_sha256": sha(f.code.encode()),
+                    "input_sha256": hashlib.sha256(text.encode()).hexdigest(),
+                    "function_body_sha256": hashlib.sha256(f.code.encode()).hexdigest(),
                     "function_id": f.qualname,
                     "identity_prefix": identity,
                     "tail_beyond_prefix": True,

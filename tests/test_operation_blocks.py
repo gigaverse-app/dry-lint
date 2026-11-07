@@ -2,10 +2,11 @@
 
 import pytest
 
+from dry_lint.comparer_resources import ComparerResources
 from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Declaration, LanguageAnalysis
-from dry_lint.operation_blocks import _blocks
+from dry_lint.operation_blocks import OperationBlocksComparer, _Block, _blocks
 from dry_lint.plugins import load
 from dry_lint.presets import resolve
 from dry_lint.settings import PluginChoice, Settings
@@ -73,6 +74,25 @@ def test_revised_same_qualname_uses_actual_query_and_reindex_clears_state():
     assert not comparer._postings and not comparer._full_vectors
     comparer.index([old, target, *background()])
     assert comparer.neighbours(old, 1, allowed=lambda f: True)[0][0] is target
+
+
+def test_index_for_run_shares_exactly_the_prepared_fields():
+    functions = [job(), job("b.py", "deliver_copy"), *background()]
+    alone = OperationBlocksComparer()
+    alone.index(functions)
+    query_caches = {"_full_vectors", "_query_key", "_query_original", "_query_fallback"}
+    # Every field `index` sets is either shared prepared state or a per-instance query cache.
+    assert set(vars(alone)) == set(OperationBlocksComparer._PREPARED) | query_caches
+
+    resources = ComparerResources()
+    first, second = OperationBlocksComparer(), OperationBlocksComparer()
+    resources.index(first, functions)
+    resources.index(second, functions)
+    for name in OperationBlocksComparer._PREPARED:
+        assert getattr(first, name) is getattr(second, name)
+    for name in query_caches - {"_query_key"}:
+        assert getattr(first, name) is not getattr(second, name)
+    assert first.neighbours(functions[0], 1, lambda _: True) == alone.neighbours(functions[0], 1, lambda _: True)
 
 
 @pytest.mark.parametrize(
@@ -186,6 +206,22 @@ def test_two_distinct_shared_calls_are_required_even_with_shared_attributes():
     assert len(left.calls & right.calls) == 1
     assert left.retained & right.retained
     assert comparer.neighbours(query, 3, allowed=lambda f: True) == []
+
+
+def test_two_shared_calls_without_a_third_shared_operation_do_not_score():
+    def block(*operations):
+        calls = frozenset(token for token in operations if token.startswith("call:"))
+        return _Block(1, 4, "straight_run", list(operations), frozenset(operations), calls,
+                      vector={token: 0.5 for token in operations}, retained=frozenset({"call:decode"}))  # fmt: skip
+
+    left = block("call:decode", "call:encode", "attr:left_only")
+    right = block("call:decode", "call:encode", "attr:right_only")
+    assert OperationBlocksComparer._best([left], [right]) == (0.0, [])
+    assert OperationBlocksComparer._best([left], [block("call:decode", "call:encode", "attr:left_only")])[1] == [
+        "attr:left_only",
+        "call:decode",
+        "call:encode",
+    ]
 
 
 def test_duplicate_parent_dedup_allowed_filter_and_deterministic_ties():

@@ -10,6 +10,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from itertools import islice
 
+from dry_lint.comparers import sparse_cosine
 from dry_lint.functions import _behaviour_nodes, _function_node, node_tokens
 from dry_lint.index import TfidfIndex
 from dry_lint.models import Function
@@ -105,8 +106,8 @@ class _Preparation:
 def _block(
     function: Function, kind: str, statements: list[ast.stmt], preparation: _Preparation | None = None
 ) -> _Block | None:
-    if not statements:
-        return None
+    # Callers pass only non-empty spans: `_regions` yields runs of at least two
+    # statements or one compound, and the helper route requires a body.
     start, end = statements[0].lineno, statements[-1].end_lineno
     assert end is not None  # parsed source, rather than a synthesized AST
     # Reject by source span before walking possibly very large syntax trees.
@@ -187,10 +188,6 @@ def _postings(parents: list[list[_Block]]) -> dict[str, list[int]]:
     return kept
 
 
-def _cosine(left: dict[str, float], right: dict[str, float]) -> float:
-    return sum(weight * right.get(token, 0.0) for token, weight in left.items())
-
-
 def _source_key(function: Function) -> tuple:
     return (
         function.code,
@@ -225,26 +222,44 @@ class OperationBlocksComparer:
     def __init__(self) -> None:
         self.index([])
 
+    # INVARIANT: only these fields are shared between comparers of one run, and
+    # they are read-only once `index` returns. Everything else (the query caches
+    # `_reset_queries` creates) stays per instance; a new field is private until
+    # it is listed here. `test_index_for_run_shares_exactly_the_prepared_fields`
+    # pins the split.
+    _PREPARED = (
+        "functions",
+        "tfidf",
+        "_frequency",
+        "_anchor_df",
+        "_positions",
+        "_source_keys",
+        "_parents",
+        "_postings",
+        "_fallback_parents",
+        "_fallback_postings",
+    )
+
     def index_for_run(self, functions, resources):
-        # Exact ordered inputs and native identities protect against edits and
-        # aliases. Only prepared index state shares; mutable query caches do not.
+        # Exact ordered inputs and native identities protect against edits and aliases.
         key = (type(self), self.version, tuple((id(f), f.qualname, _source_key(f), tuple(f.tokens)) for f in functions))
 
         def prepare():
             prepared = type(self)()
             prepared.index(functions)
-            return {
-                k: v
-                for k, v in vars(prepared).items()
-                if k not in {"_full_vectors", "_query_key", "_query_original", "_query_fallback"}
-            }
+            return {name: getattr(prepared, name) for name in self._PREPARED}
 
-        state = resources.get(key, prepare)
-        self.__dict__.update(state)
-        self._full_vectors = {}
-        self._query_key = None
-        self._query_original = []
-        self._query_fallback = []
+        for name, value in resources.get(key, prepare).items():
+            setattr(self, name, value)
+        self._reset_queries()
+
+    def _reset_queries(self) -> None:
+        self._full_vectors: dict[int, dict[str, float]] = {}
+        # One standalone source, independent of object identity and discarded on
+        # reindex. Never retain a query AST or an unbounded history of source edits.
+        self._query_key: tuple | None = None
+        self._query_original: list[_Block] = []
+        self._query_fallback: list[_Block] = []
 
     def index(self, functions: list[Function]) -> None:
         self.functions = list(functions)
@@ -262,12 +277,7 @@ class OperationBlocksComparer:
             for blocks, (_, helper) in zip(self._parents, representations, strict=True)
         ]
         self._fallback_postings = _postings(self._fallback_parents)
-        self._full_vectors: dict[int, dict[str, float]] = {}
-        # One standalone source, independent of object identity and discarded on
-        # reindex. Never retain a query AST or an unbounded history of source edits.
-        self._query_key: tuple | None = None
-        self._query_original: list[_Block] = []
-        self._query_fallback: list[_Block] = []
+        self._reset_queries()
 
     def _prepare(self, block: _Block) -> _Block:
         block.vector = self.tfidf.vector(block.tokens)
@@ -323,7 +333,7 @@ class OperationBlocksComparer:
                 common = a.operations & b.operations
                 if len(common) < 3:
                     continue
-                score = _cosine(a.vector, b.vector)
+                score = sparse_cosine(a.vector, b.vector)
                 if score > best:
                     best, shared = score, common
         return best, sorted(shared)
@@ -349,7 +359,7 @@ class OperationBlocksComparer:
                 continue
             if parent not in self._full_vectors:
                 self._full_vectors[parent] = self.tfidf.vector(other.tokens)
-            if _cosine(full, self._full_vectors[parent]) < 0.1:
+            if sparse_cosine(full, self._full_vectors[parent]) < 0.1:
                 continue
             score, _ = self._best(blocks, parents[parent])
             if score >= 0.65:
@@ -366,7 +376,7 @@ class OperationBlocksComparer:
         return found
 
     def _pair_evidence(self, a: Function, b: Function) -> tuple[float, list[str]]:
-        if _cosine(self.tfidf.vector(a.tokens), self.tfidf.vector(b.tokens)) < 0.1:
+        if sparse_cosine(self.tfidf.vector(a.tokens), self.tfidf.vector(b.tokens)) < 0.1:
             return 0.0, []
         # Retain original pair evidence whenever it qualifies; otherwise inspect
         # the extra complete-body representation with the same guards and floor.

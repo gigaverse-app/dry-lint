@@ -70,26 +70,6 @@ class CompleteStatementComparer(CpuEmbeddingComparer):
             self._query, self._scores = key, scores
         return self._scores
 
-    def neighbours(self, function, k, allowed):
-        if k <= 0 or not self.functions or function.qualname in self._ambiguous or not self._source_known(function):
-            return []
-        scores = self.scores(function)
-        found = []
-        for i in self.np.argsort(-scores, kind="stable"):
-            other, score = self.functions[i], float(scores[i])
-            if score < TAIL_FLOOR:
-                break
-            if (
-                other.qualname != function.qualname
-                and other.qualname not in self._ambiguous
-                and self._source_known(other)
-                and allowed(other)
-            ):
-                found.append((other, min(1.0, score)))
-                if len(found) == k:
-                    break
-        return found
-
     def similarity(self, a, b):
         # Standalone source edits are evaluated against current text, never a stale qualname.
         left = self._vectors([a.code, *[v["text"] for v in self.recipe.views(a)[0]]])
