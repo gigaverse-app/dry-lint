@@ -26,6 +26,20 @@ and judge the additional candidates against independent controls.
 
 ## How it works
 
+A later [complete-statement experiment](https://github.com/gigaverse-app/dry-lint/pull/116) tested the tail
+that this plugin cannot see. It kept the original routes first, encoded at most two complete tail statements,
+and appended at most one unseen candidate at cosine >= .80. The first version ran only when the original CPU
+route abstained and produced no new reports in five funded novel pairs. Removing that gate yielded two
+source-supported reports among 47 novel pairs, with no reports among 16 controls. The two reports also survived
+a separate, post-hoc balanced-budget check of those two queries; that check is not overall precision or recall.
+
+One public example is OpenHands' metrics snapshot: its tail repeats a projection that the 256-token prefix
+misses. Reuse must preserve whether mutable token usage is copied or retained by reference. A direct substitution
+of the existing helper changes that behavior. This is evidence for a carefully scoped shared operation, not
+interchangeable functions. The statement-view recipe remains research code in the linked study; the installed
+plugin described below still uses one prefix vector. Keep it opt-in: two useful reports justify the mechanism,
+but do not establish broad recall, and adding statement vectors increases cold encoding work.
+
 ```text
 Full native function -> first 256 wordpieces -> pinned MiniLM on CPU -> 384-number vector
                                                                       |
