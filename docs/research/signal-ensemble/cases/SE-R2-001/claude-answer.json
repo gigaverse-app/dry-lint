@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.006976,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "eb47583b911897cb2ba201bb2aa8dfb5ba6bc2edf642010e2b953332906de1ac",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoFPMhxH4vUBNR73mokb\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"separate\\\",\\\"score\\\":0.05,\\\"why\\\":\\\"The only overlap is calling `with_raw_response.create(**data, timeout=timeout)` and then `parse()`. That is the standard OpenAI SDK call pattern, and it targets different endpoints: `chat.completions` in NEW (sync) and `completions` in EXISTING (async). The rest differs. NEW also extracts headers and handles output-token-limit BadRequestError by building a fallback response. EXISTING handles client creation, pre-call logging, conversion to a chat model response, and mapping errors to AzureOpenAIError. There is no shared policy or sequence that would justify a common helper.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":2393,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":2393,\"output_tokens\":219,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":219,\"output_tokens_details\":{\"thinking_tokens\":0},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "7c766d83f688a8cfd57f6fe76a0f1104f54a0e803b11b8e2b406b149fa4f05bd",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 2393,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2393,
+        "model": null,
+        "output_tokens": 219,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 219,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "separate",
+    "model_assessment": null,
+    "owner": "",
+    "score": 0.05,
+    "second_opinion": null,
+    "why": "The only overlap is calling `with_raw_response.create(**data, timeout=timeout)` and then `parse()`. That is the standard OpenAI SDK call pattern, and it targets different endpoints: `chat.completions` in NEW (sync) and `completions` in EXISTING (async). The rest differs. NEW also extracts headers and handles output-token-limit BadRequestError by building a fallback response. EXISTING handles client creation, pre-call logging, conversion to a chat model response, and mapping errors to AzureOpenAIError. There is no shared policy or sequence that would justify a common helper."
+  }
+}

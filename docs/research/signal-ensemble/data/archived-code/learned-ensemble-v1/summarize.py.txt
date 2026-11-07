@@ -1,0 +1,59 @@
+"""Matched funding outcomes, all617 coverage, and descriptive grouped uncertainty."""
+import collections,hashlib,json,random
+from pathlib import Path
+P=Path(__file__).resolve().parent;B=P.parent/'full-corpus'
+def jl(p):return [json.loads(l) for l in p.open()]
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+inventory=jl(B/'inputs/rows.jsonl');meta={r['row_id']:r for r in inventory};rows=jl(P/'paired-rows.jsonl');reg=json.loads((P/'EXPERIMENT.json').read_text());arms=reg['arms'];train=jl(P/'training-rows.jsonl');coverage=jl(P/'coverage-rows.jsonl')
+eligible={r['row_id'] for r in inventory if r['accepted_gold'] and r['record_kind']=='function' and r['id']!='CF-C02'}
+rs=[r for r in rows if r['row_id'] in eligible];look={(r['row_id'],r['cohort_id'],r['profile'],r['arm']):r for r in rs}
+def known(r):
+ if not r['supported'] or not r['evaluated']:return None
+ return False if r['retrieved'] is False else r['funded']
+def counts(a):return dict(scope_units=len(a),lineage_records=len({r['row_id'] for r in a}),canonical_pairs=len({r['pair_id'] for r in a}),families=len({r['family_id'] for r in a}))
+def ci(m):
+ clusters=collections.defaultdict(lambda:collections.defaultdict(list))
+ for r,b in m:clusters[r['repository']][r['component']].append(int(known(r))-int(known(b)))
+ rng=random.Random(20261107);samples=[];repos=list(clusters)
+ if not repos:return None
+ for _ in range(1000):
+  vals=[]
+  for repo in rng.choices(repos,k=len(repos)):
+   groups=list(clusters[repo].values())
+   for gg in rng.choices(groups,k=len(groups)):vals.extend(gg)
+  samples.append(sum(vals)/len(vals) if vals else 0)
+ samples.sort();return [samples[24],samples[974]]
+summary=[];changes=[];families=collections.defaultdict(list)
+for profile in ['default','balanced']:
+ for label in ['positive','negative']:
+  for reference in ['production-baseline','rrf4-matched-cap']:
+   for intersection in ['arm-reference','all-eight-arms']:
+    for arm in arms:
+     rr=[r for r in rs if r['profile']==profile and r['arm']==arm and (r['label'] in ['duplicate','drifted'])==(label=='positive')];matched=[]
+     for r in rr:
+      key=r['row_id'],r['cohort_id'],profile;b=look[(*key,reference)]
+      if known(r) is None or known(b) is None:continue
+      if intersection=='all-eight-arms' and any(known(look[(*key,a)]) is None for a in arms):continue
+      matched.append((r,b))
+     win=[r for r,b in matched if known(r) and not known(b)];loss=[r for r,b in matched if known(b) and not known(r)]
+     summary.append(dict(profile=profile,label=label,arm=arm,reference=reference,intersection=intersection,available=counts(rr),matched=counts([r for r,b in matched]),reference_funded=counts([b for r,b in matched if known(b)]),arm_funded=counts([r for r,b in matched if known(r)]),wins=counts(win),losses=counts(loss),unknown_unsupported_units=len(rr)-len(matched),descriptive_repository_component_net_fraction_p025_p975=ci(matched),emitted_report_new_confirmed=0,emission_unknown=True))
+     if reference=='production-baseline' and intersection=='arm-reference':
+      for change,cc in [('win',win),('loss',loss)]:
+       for r in cc:
+        b=look[r['row_id'],r['cohort_id'],profile,reference];c={k:r[k] for k in ['row_id','cohort_id','repository','revision','scope','pair_id','family_id','label','profile','arm','component']};c.update(change=change,reference_first_loss=b['first_loss'],arm_first_loss=r['first_loss'],estimated_pair_usd=r['estimated_pair_usd'] or b['estimated_pair_usd']);changes.append(c)
+      for r,b in matched:families[profile,label,arm,r['family_id']].append(dict(cohort_id=r['cohort_id'],row_id=r['row_id'],pair_id=r['pair_id'],reference=known(b),arm=known(r)))
+familyrows=[dict(profile=k[0],label=k[1],arm=k[2],family_id=k[3],matched_scope_units=len(v),canonical_pairs=len({r['pair_id'] for r in v}),wins=sum(r['arm'] and not r['reference'] for r in v),losses=sum(r['reference'] and not r['arm'] for r in v),scope_outcomes=v) for k,v in families.items()]
+lines(P/'per-family-outcomes.jsonl',familyrows);lines(P/'paired-changes.jsonl',changes)
+cov=[]
+for r in inventory:
+ mapped=[c for c in coverage if c['row_id']==r['row_id']];pred=[t for t in train if t['row_id']==r['row_id']]
+ reason='declaration_separate' if r['record_kind']!='function' else 'named_reopened_CF-C02_overlay' if r['id']=='CF-C02' else 'unresolved_not_training_negative' if not r['accepted_gold'] else 'mapped' if pred else 'no_eligible_native_mapping'
+ cov.append(dict(row_id=r['row_id'],pair_id=r['pair_id'],family_id=r['family_id'],repository=r['repository'],accepted_gold=r['accepted_gold'],record_kind=r['record_kind'],label=r['label'],status=reason,input_mappings=len(r['mappings']),mapped_scope_profiles=len(mapped),training_scope_profiles=len(pred),profile_counts=dict(collections.Counter(t['profile'] for t in pred)),mapping_failures=[dict(cohort_id=m['cohort_id'],status=m['status'],reasons=m.get('reasons',[])) for m in r['mappings'] if m['status']!='mapped']))
+lines(P/'all-row-coverage.jsonl',cov)
+fc={}
+for profile in ['default','balanced']:
+ tr=[r for r in train if r['profile']==profile];fc[profile]={f:dict(available_scope_units=sum(r['features'][f] is not None for r in tr),total_scope_units=len(tr),available_canonical_pairs=len({r['pair_id'] for r in tr if r['features'][f] is not None}),total_canonical_pairs=len({r['pair_id'] for r in tr})) for f in reg['features']}
+dump(P/'RESULTS.json',dict(schema=1,conclusion='Funding pilot on seen DEVELOPMENT/REGRESSION, not deployment evidence. No newly source-confirmed reportable family yet; provider/source review not inferred from probabilities.',records=summary,coverage=dict(inventory_records=len(inventory),eligible_accepted_function_records=len(eligible),eligible_canonical_pairs=len({meta[k]['pair_id'] for k in eligible}),eligible_families=len({meta[k]['family_id'] for k in eligible}),mapped_eligible_records=len({t['row_id'] for t in train}),mapped_eligible_canonical_pairs=len({t['pair_id'] for t in train}),status_counts=dict(collections.Counter(c['status'] for c in cov))),feature_coverage=fc,uncertainty='1000 descriptive repository/source-component bootstrap samples; development reuse, few measured source-complete campaigns, no fresh-holdout or significance claim',emissions='Unknown for unjudged leads. Root intake labels kept separately; no provider agreement promoted to source truth.',profiles_pooled=False))
+for r in summary:
+ if r['label']=='positive' and r['reference']=='production-baseline' and r['intersection']=='arm-reference':print(json.dumps({k:r[k] for k in ['profile','arm','matched','reference_funded','arm_funded','wins','losses']}))

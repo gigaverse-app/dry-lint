@@ -1,0 +1,725 @@
+[
+  {
+    "byte_identical": true,
+    "bytes": 32344,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/experiment.py",
+    "published_path": "data/archived-code/experiment.py.txt",
+    "published_sha256": "90b7c23a6278350b3ac85e95fc3aa999edf08f2079df86dc7105d989d5657280",
+    "purpose": "original experiment implementation",
+    "sha256": "90b7c23a6278350b3ac85e95fc3aa999edf08f2079df86dc7105d989d5657280"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 40223,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/span-resolution-original-run.py",
+    "published_path": "data/archived-code/span-resolution-original-run.py.txt",
+    "published_sha256": "5b7567d142c0a4c9680feb59d126191d898832a171ac50fb72f64ff32fdd0e7b",
+    "purpose": "original experiment implementation",
+    "sha256": "5b7567d142c0a4c9680feb59d126191d898832a171ac50fb72f64ff32fdd0e7b"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 8410,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/register.py",
+    "published_path": "data/archived-code/register.py.txt",
+    "published_sha256": "e82a3d327b906bb133b539803ebf40550c6132cec9fffed025cbbd4781c5c669",
+    "purpose": "original experiment implementation",
+    "sha256": "e82a3d327b906bb133b539803ebf40550c6132cec9fffed025cbbd4781c5c669"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 7790,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/make_queue.py",
+    "published_path": "data/archived-code/make_queue.py.txt",
+    "published_sha256": "af21bbc591b4afdff5161e0b146446b566a62438026565d6282bea43c256267f",
+    "purpose": "original experiment implementation",
+    "sha256": "af21bbc591b4afdff5161e0b146446b566a62438026565d6282bea43c256267f"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 39513,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/full-corpus/run.py",
+    "published_path": "data/archived-code/full-corpus/run.py.txt",
+    "published_sha256": "44b27143970a023fec63a2695ac98136d4f206b5a493f6a8097ad49f8ed9530b",
+    "purpose": "original experiment implementation",
+    "sha256": "44b27143970a023fec63a2695ac98136d4f206b5a493f6a8097ad49f8ed9530b"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 10954,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/full-corpus/resolver.py",
+    "published_path": "data/archived-code/full-corpus/resolver.py.txt",
+    "published_sha256": "4bc11eabe4926579959cdae0103e9b548bf9ff2cf8da9422c6387f44d551eedc",
+    "purpose": "original experiment implementation",
+    "sha256": "4bc11eabe4926579959cdae0103e9b548bf9ff2cf8da9422c6387f44d551eedc"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 14840,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/promotion-combination/run.py",
+    "published_path": "data/archived-code/promotion-combination/run.py.txt",
+    "published_sha256": "4991ab50c5cd2ad906da9a4696fad6938f6e15126aa327b22c0825507380351e",
+    "purpose": "original experiment implementation",
+    "sha256": "4991ab50c5cd2ad906da9a4696fad6938f6e15126aa327b22c0825507380351e"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 1859,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/promotion-combination/product_selection.py",
+    "published_path": "data/archived-code/promotion-combination/product_selection.py.txt",
+    "published_sha256": "38c093a6b29c001c51278df95cfac6d504b32ac2589c94e3e52fe392cfebef06",
+    "purpose": "original experiment implementation",
+    "sha256": "38c093a6b29c001c51278df95cfac6d504b32ac2589c94e3e52fe392cfebef06"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 16538,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/promotion-combination/native-order-v2/run.py",
+    "published_path": "data/archived-code/promotion-combination/native-order-v2/run.py.txt",
+    "published_sha256": "0024c2f7c852c9170d3a8b4bd674dd4736776dfc4622706e9807d82782bf798d",
+    "purpose": "original experiment implementation",
+    "sha256": "0024c2f7c852c9170d3a8b4bd674dd4736776dfc4622706e9807d82782bf798d"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 10895,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/promotion-combination/native-order-v2/answers_and_intake.py",
+    "published_path": "data/archived-code/promotion-combination/native-order-v2/answers_and_intake.py.txt",
+    "published_sha256": "58e3c8bafd3bf42d9ca72a7b3caa07c9d32feaebf68f426386eee850b8c36da3",
+    "purpose": "original experiment implementation",
+    "sha256": "58e3c8bafd3bf42d9ca72a7b3caa07c9d32feaebf68f426386eee850b8c36da3"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 9954,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/promotion-combination/reconcile_block1.py",
+    "published_path": "data/archived-code/promotion-combination/reconcile_block1.py.txt",
+    "published_sha256": "d7b898706fd8ee27c848042d2021ae0a83fbfe1806309bd27719639e0d1f8756",
+    "purpose": "original experiment implementation",
+    "sha256": "d7b898706fd8ee27c848042d2021ae0a83fbfe1806309bd27719639e0d1f8756"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 12759,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/prepare_features.py",
+    "published_path": "data/archived-code/learned-ensemble-v1/prepare_features.py.txt",
+    "published_sha256": "42352bbaa3f79387cd028d3aa9048c4cec12781836721ec4d3eb87a2e255dce8",
+    "purpose": "original experiment implementation",
+    "sha256": "42352bbaa3f79387cd028d3aa9048c4cec12781836721ec4d3eb87a2e255dce8"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 6525,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/fit_oof.py",
+    "published_path": "data/archived-code/learned-ensemble-v1/fit_oof.py.txt",
+    "published_sha256": "da5ee4d097731a67d82652a35e993e9cbc2e75910ede77b94d8a78c8c0359080",
+    "purpose": "original experiment implementation",
+    "sha256": "da5ee4d097731a67d82652a35e993e9cbc2e75910ede77b94d8a78c8c0359080"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 8171,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/evaluate.py",
+    "published_path": "data/archived-code/learned-ensemble-v1/evaluate.py.txt",
+    "published_sha256": "69816ac3abf05fb8daa29a3b38297ae7d07a96161dc3b57e36bf1a46d4b68987",
+    "purpose": "original experiment implementation",
+    "sha256": "69816ac3abf05fb8daa29a3b38297ae7d07a96161dc3b57e36bf1a46d4b68987"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 12959,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/finalize.py",
+    "published_path": "data/archived-code/learned-ensemble-v1/finalize.py.txt",
+    "published_sha256": "5a57d334f4e50db84c19efac7655efdd7a9f250ceb7408b5b87de5a7eed42930",
+    "purpose": "original experiment implementation",
+    "sha256": "5a57d334f4e50db84c19efac7655efdd7a9f250ceb7408b5b87de5a7eed42930"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 6706,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/summarize.py",
+    "published_path": "data/archived-code/learned-ensemble-v1/summarize.py.txt",
+    "published_sha256": "dee152bae03bec7dae7e2ea5e478352f83e1e01e67755692a872651162f6e3fc",
+    "purpose": "original experiment implementation",
+    "sha256": "dee152bae03bec7dae7e2ea5e478352f83e1e01e67755692a872651162f6e3fc"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 3309,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/audit_fixed.py",
+    "published_path": "data/archived-code/learned-ensemble-v1/audit_fixed.py.txt",
+    "published_sha256": "f38b668cc8aa445a9e6ddef98b4cdbc3c6a4f304238ca305a09e1f4ea432d933",
+    "purpose": "original experiment implementation",
+    "sha256": "f38b668cc8aa445a9e6ddef98b4cdbc3c6a4f304238ca305a09e1f4ea432d933"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 4988,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/verify.py",
+    "published_path": "data/archived-code/learned-ensemble-v1/verify.py.txt",
+    "published_sha256": "b55518947a99b8972ab8e32dc07602f6acdef711efd527c0e1a19b2269c32a3e",
+    "purpose": "original experiment implementation",
+    "sha256": "b55518947a99b8972ab8e32dc07602f6acdef711efd527c0e1a19b2269c32a3e"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 4715,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/complementarity_receipt.py",
+    "published_path": "data/archived-code/learned-ensemble-v1/complementarity_receipt.py.txt",
+    "published_sha256": "2d5aaa8a5484297f371cd21d8e1eb24fb48f6635b8670e822f7903816e4b87e3",
+    "purpose": "original experiment implementation",
+    "sha256": "2d5aaa8a5484297f371cd21d8e1eb24fb48f6635b8670e822f7903816e4b87e3"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 21186,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/prepare.py",
+    "published_path": "data/archived-code/funded-rounds/round1/prepare.py.txt",
+    "published_sha256": "8d447eee5d61563130afa64cd331467f9a67250efdc0a47f1449cc34e0683c4c",
+    "purpose": "original experiment implementation",
+    "sha256": "8d447eee5d61563130afa64cd331467f9a67250efdc0a47f1449cc34e0683c4c"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 5075,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/build_canonical_plans.py",
+    "published_path": "data/archived-code/funded-rounds/round1/build_canonical_plans.py.txt",
+    "published_sha256": "aae0c301e533da488f29bdb011f95461513ae5bed9c234bbaba9b8986196edbe",
+    "purpose": "original experiment implementation",
+    "sha256": "aae0c301e533da488f29bdb011f95461513ae5bed9c234bbaba9b8986196edbe"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 6893,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/validate_active.py",
+    "published_path": "data/archived-code/funded-rounds/round1/validate_active.py.txt",
+    "published_sha256": "1643e90e82ca0b40140fc2e7ba10804af06d244fc8b8467f65e0227414a4d439",
+    "purpose": "original experiment implementation",
+    "sha256": "1643e90e82ca0b40140fc2e7ba10804af06d244fc8b8467f65e0227414a4d439"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 22538,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/prepare.py",
+    "published_path": "data/archived-code/funded-rounds/round2/prepare.py.txt",
+    "published_sha256": "f9eab87eca7fe11bf230f7c097eeabe89330d12abec7eb0c19d797ea65ff90cd",
+    "purpose": "original experiment implementation",
+    "sha256": "f9eab87eca7fe11bf230f7c097eeabe89330d12abec7eb0c19d797ea65ff90cd"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 5060,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/build_canonical_plans.py",
+    "published_path": "data/archived-code/funded-rounds/round2/build_canonical_plans.py.txt",
+    "published_sha256": "bc50aef74ce95611838b386371699ac7c11972eb81fb0b6950eb5c47a7f1a2ba",
+    "purpose": "original experiment implementation",
+    "sha256": "bc50aef74ce95611838b386371699ac7c11972eb81fb0b6950eb5c47a7f1a2ba"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 6902,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/validate_active.py",
+    "published_path": "data/archived-code/funded-rounds/round2/validate_active.py.txt",
+    "published_sha256": "58b495be8fd71d8760e7e53ddbf755a5e0f045f88017e1f5bbba687a3497effe",
+    "purpose": "original experiment implementation",
+    "sha256": "58b495be8fd71d8760e7e53ddbf755a5e0f045f88017e1f5bbba687a3497effe"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 2168,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/operation_gate.py",
+    "published_path": "data/archived-code/funded-rounds/round2/operation_gate.py.txt",
+    "published_sha256": "582598285ef09edf3a0a470b822373edb5694a6b1a5b97ad467788d35120d8e3",
+    "purpose": "original experiment implementation",
+    "sha256": "582598285ef09edf3a0a470b822373edb5694a6b1a5b97ad467788d35120d8e3"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 10710,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/gold_regression.py",
+    "published_path": "data/archived-code/funded-rounds/round2/gold_regression.py.txt",
+    "published_sha256": "c58ecdfb9d71acbde2277b5e40e5f46c2ff2133bd82c6ba287c28199db389a19",
+    "purpose": "original experiment implementation",
+    "sha256": "c58ecdfb9d71acbde2277b5e40e5f46c2ff2133bd82c6ba287c28199db389a19"
+  },
+  {
+    "bytes": 13663,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/model_shapes.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c"
+  },
+  {
+    "bytes": 2754,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/policies.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0"
+  },
+  {
+    "bytes": 2293,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/index.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7"
+  },
+  {
+    "bytes": 28413,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/ledger.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82"
+  },
+  {
+    "bytes": 7492,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/costs.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba"
+  },
+  {
+    "bytes": 17423,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/detector.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "40f99912282e5e08b80b8faea45d8fa8df026ef9fc4b1d0c6f7c1314966b556a"
+  },
+  {
+    "bytes": 9937,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/presets.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba"
+  },
+  {
+    "bytes": 1783,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/ranking.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e"
+  },
+  {
+    "bytes": 17782,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/typescript.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7"
+  },
+  {
+    "bytes": 129,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/__init__.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "eb2ffeb6be174449e0a36371f3cefb78c096f3a0a7b7d519e731db6cffb84fbb"
+  },
+  {
+    "bytes": 2938,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/comparison_helpers.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063"
+  },
+  {
+    "bytes": 13740,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/comparison.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22"
+  },
+  {
+    "bytes": 29895,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/action.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4"
+  },
+  {
+    "bytes": 8475,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/function_index.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd"
+  },
+  {
+    "bytes": 16310,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/sticky.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1"
+  },
+  {
+    "bytes": 355,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/github.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce"
+  },
+  {
+    "bytes": 2949,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/source_context.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e"
+  },
+  {
+    "bytes": 7868,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/index_github.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0"
+  },
+  {
+    "bytes": 17189,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/baseline.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68"
+  },
+  {
+    "bytes": 16246,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/functions.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae"
+  },
+  {
+    "bytes": 7420,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/commits.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d"
+  },
+  {
+    "bytes": 4739,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/python_schemas.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34"
+  },
+  {
+    "bytes": 5590,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/model_review.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d"
+  },
+  {
+    "bytes": 8631,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/replay.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4"
+  },
+  {
+    "bytes": 1836,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/feedback.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c"
+  },
+  {
+    "bytes": 38695,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/report.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105"
+  },
+  {
+    "bytes": 4288,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/dryer.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd"
+  },
+  {
+    "bytes": 3687,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/bench_background.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f"
+  },
+  {
+    "bytes": 2876,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/comparers.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608"
+  },
+  {
+    "bytes": 2105,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/evidence.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e"
+  },
+  {
+    "bytes": 4871,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/plugins.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "08da90980b1a96d05928ed5dd9d74b469158e2f10b8889bf5b2da200e1436f72"
+  },
+  {
+    "bytes": 18058,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/labelling.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "7b6fc95c25e05f299a19cc36401f5596a13007083d819ecbaa0358bce22c9731"
+  },
+  {
+    "bytes": 49519,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/cli.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "d88d3ff97d41d4e80d2fb1d8f69ad4e38a8abf7bd7db7ab03b38de8c48936409"
+  },
+  {
+    "bytes": 7265,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/discovery.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684"
+  },
+  {
+    "bytes": 10744,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/models.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3"
+  },
+  {
+    "bytes": 12892,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/bench.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece"
+  },
+  {
+    "bytes": 9194,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/settings.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9"
+  },
+  {
+    "bytes": 10216,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/schema_policy.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110"
+  },
+  {
+    "bytes": 10099,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/store.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e"
+  },
+  {
+    "bytes": 15240,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judging.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac"
+  },
+  {
+    "bytes": 1048,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/git.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a"
+  },
+  {
+    "bytes": 60,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/__main__.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff"
+  },
+  {
+    "bytes": 3350,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/extractors.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32"
+  },
+  {
+    "bytes": 5996,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judges/model_jev.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9"
+  },
+  {
+    "bytes": 3420,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judges/subscription.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e"
+  },
+  {
+    "bytes": 1260,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judges/__init__.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7"
+  },
+  {
+    "bytes": 1079,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judges/gemini.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5"
+  },
+  {
+    "bytes": 4930,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judges/anthropic.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f"
+  },
+  {
+    "bytes": 14796,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judges/command.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317"
+  },
+  {
+    "bytes": 2069,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judges/http.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76"
+  },
+  {
+    "bytes": 11012,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/src/dry_lint/judges/jev.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2"
+  },
+  {
+    "bytes": 2656,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/pyproject.toml",
+    "purpose": "dependency lock/license",
+    "sha256": "af67435fe407353355171697fd765d1cda28b842741a54fc49a3b79bee2100dc"
+  },
+  {
+    "bytes": 208597,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/uv.lock",
+    "purpose": "dependency lock/license",
+    "sha256": "84566976085c54d6abe44d82217d27186ad6261f687b4093fcdb48c09d4507cf"
+  },
+  {
+    "bytes": 11358,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/LICENSE",
+    "purpose": "dependency lock/license",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "bytes": 8775,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "e7cf91191d6f7c05d015bb69293b860a6bbb5093f4c5f62fa5e69e3276dd3fa5"
+  },
+  {
+    "bytes": 4707,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/full-corpus/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "7f473203da06c12af5c42cdf3127216d41a5cb802647b784efea41f0810cab71"
+  },
+  {
+    "bytes": 5815,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "11a157f6710e71bb6d45b1a3b5bb90b61380d8f71394d503440cf98a981985e1"
+  },
+  {
+    "bytes": 3946,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/promotion-combination/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "97bb8d1a5243d4828d0a0ab0394ea0fd29c83ea2c093af82f6ecf27c71b7d490"
+  },
+  {
+    "bytes": 4255,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "bc470a1e000b404f3e4b273440745cc52a2c9417f6f7db20ee364cc9b7e19e88"
+  },
+  {
+    "bytes": 3745,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "d01b258f838ec978772a81933c0533d192372b65a9267d12291f9b0aeb9cbf3e"
+  },
+  {
+    "bytes": 4142,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/DECISION.json",
+    "purpose": "current conclusion",
+    "sha256": "41eaf42701d163e1effafda90d318a8636b0b041a10cc3b4ded2cfda21724710"
+  },
+  {
+    "bytes": 2903,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/supported-regression.json",
+    "purpose": "recorded regression or representative result",
+    "sha256": "a0f829746f1b15b795722962668ef4338966f2793081a67f976e68742886338a"
+  },
+  {
+    "bytes": 4552,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/block-cap-comparison.json",
+    "purpose": "recorded regression or representative result",
+    "sha256": "6ceb1b2d40e3ddf3a991d34c6ca87313aa04cc85e36a4d04922a1ed9c860278c"
+  },
+  {
+    "bytes": 4637,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/learned-comparison.json",
+    "purpose": "recorded regression or representative result",
+    "sha256": "b2daf3c0c9a274b347e5f3d533a251fcf9ba4e52c5c1cd9ff15469b58b0ebc97"
+  },
+  {
+    "bytes": 1093,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/recommended-config.json",
+    "purpose": "recorded regression or representative result",
+    "sha256": "d791978585f2a5960cd42307f37e52b8576d123e7f3d1828426f6936053d80d0"
+  },
+  {
+    "bytes": 2907,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/runtime.json",
+    "purpose": "recorded regression or representative result",
+    "sha256": "3831df679cf0800f98431e08c3d7061153110406fc8e05e98fc9afc3a097275f"
+  },
+  {
+    "bytes": 972,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/reviewed-writeback-case.json",
+    "purpose": "recorded regression or representative result",
+    "sha256": "c1613e57c5f7e012086348906f2718fedf27f18ddd90f7955cb34f4d52085fc2"
+  },
+  {
+    "bytes": 197774,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/matched-regression-rows.jsonl",
+    "purpose": "source-safe static paired projection",
+    "sha256": "1b1b9f9c157fecdd52a46a6380c1f448aa438b1ff50cf935fba6b7a56cdfa466"
+  },
+  {
+    "bytes": 695680,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/regression-scope-rows.jsonl",
+    "purpose": "source-safe static paired projection",
+    "sha256": "2715abd603778cbec2be82046b561535be8ae7b9358eabbcd8adc2f90b0ae6ad"
+  },
+  {
+    "bytes": 332029,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/conclusion/block-cap-comparison-rows.jsonl",
+    "purpose": "source-safe static paired projection",
+    "sha256": "59f8e36e1ea5472695b00162dbee927466e9ba5446824dfdc2aa3fbc7b63c816"
+  },
+  {
+    "bytes": 3484955,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/final-supported-evidence/prior-current-phase-completed.jsonl",
+    "purpose": "frozen completed provider ledger",
+    "sha256": "a3f6d7d1a4196a00c9dd40bf81dbd469f037df6402d39b52cb8f5bc5f61368f2"
+  },
+  {
+    "bytes": 4947362,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/final-supported-evidence/new-round1-completed.jsonl",
+    "purpose": "frozen completed provider ledger",
+    "sha256": "51b138f0085d9f3b4346b9daa81bd896e6bff15466deb01f2eb2aa1590bf7933"
+  },
+  {
+    "bytes": 4223891,
+    "lab_relative_path": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/final-supported-evidence/new-round2-completed.jsonl",
+    "purpose": "frozen completed provider ledger",
+    "sha256": "5dc94dd227a42d58fb9624b25229ee1659693586d665a5c97c00726fc9c5d600"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9",
+    "published_path": "data/archived-code/src/dry_lint/settings.py.txt",
+    "published_sha256": "d82138ad711e04341a347b34aae277ed42599f4d75c24d1759d405865f43a3ae",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba",
+    "published_path": "data/archived-code/src/dry_lint/presets.py.txt",
+    "published_sha256": "7494a9eb2975812bb9493fffe707d2fff6f0e03024c99f4054013e4f11190c63",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "d88d3ff97d41d4e80d2fb1d8f69ad4e38a8abf7bd7db7ab03b38de8c48936409",
+    "published_path": "data/archived-code/src/dry_lint/cli.py.txt",
+    "published_sha256": "a5fd2efdf6f333e967315d17d1cc6d0e77d603b3aa48d98635fc3985575d6c68",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+    "published_path": "data/archived-code/src/dry_lint/costs.py.txt",
+    "published_sha256": "ce36c41417acc3950cf21dde0273fcb97099427b495bc78421e2f839075e32cb",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "7b6fc95c25e05f299a19cc36401f5596a13007083d819ecbaa0358bce22c9731",
+    "published_path": "data/archived-code/src/dry_lint/labelling.py.txt",
+    "published_sha256": "f7e0b89be6f98567ddd1e8f59b840b616eb78de0968dc480e7dd1e49f9a22595",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2",
+    "published_path": "data/archived-code/src/dry_lint/judges/jev.py.txt",
+    "published_sha256": "b4c203faff385c7ea8b0f576c41faf9055bdf6126abca45adf72d5e3f6948a80",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  }
+]

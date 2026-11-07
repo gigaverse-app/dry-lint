@@ -1,0 +1,243 @@
+"""Exact endpoint/span resolution over a frozen identity catalog; no providers or fitting.
+
+Callers supply an immutable cohort/document catalog and an exact-pin file envelope.
+No caller's presentation ID, supplied span, or snippet can replace native body proof.
+"""
+
+import hashlib
+import os
+import re
+import subprocess
+from collections import defaultdict
+from pathlib import PurePosixPath
+
+from dry_lint.bench import GoldFunction, as_function
+from dry_lint.extractors import PythonExtractor
+from dry_lint.typescript import TypeScriptExtractor
+
+SCHEMA = 1
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def language(path):
+    if path.endswith(".py"):
+        return "python"
+    if path.endswith((".ts", ".tsx", ".mts", ".cts")):
+        return "typescript"
+    return None
+
+
+def extractor(path):
+    return PythonExtractor() if language(path) == "python" else TypeScriptExtractor()
+
+
+def valid_span(start, end):
+    return type(start) is int and type(end) is int and 1 <= start <= end
+
+
+def snippet_span(endpoint, identity):
+    """Length only; absolute coordinates never follow from an isolated excerpt."""
+    code = endpoint.get("code")
+    if not isinstance(code, str) or not code.strip() or not language(identity.split("::")[0]):
+        return None
+    return as_function(GoldFunction(id=identity, code=code), extractor(identity.split("::")[0])).lines
+
+
+def read_git_source(root, repository, revision, path):
+    """Read only this exact commit/blob. Missing commits and blobs stay distinct."""
+    base = dict(repository=repository, revision=revision, path=path)
+    if not re.fullmatch("[a-f0-9]{40}", revision or ""):
+        return dict(base, status="wrong_pin", detail="full 40-character commit required")
+    if PurePosixPath(path).is_absolute() or ".." in PurePosixPath(path).parts or "\\" in path:
+        return dict(base, status="wrong_path", detail="repository-relative POSIX path required")
+
+    def git(*args):
+        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=30, env={**os.environ, "GIT_NO_LAZY_FETCH": "1", "GIT_TERMINAL_PROMPT": "0"})
+
+    origin = git("config", "--get", "remote.origin.url")
+    origin_url = origin.stdout.decode().strip()
+    if "github.com" in origin_url:
+        actual = origin_url.split("github.com", 1)[1].lstrip(":/").removesuffix(".git").strip("/")
+        if actual.casefold() != repository.casefold():
+            return dict(base, status="wrong_repository", detail=origin_url)
+    commit = git("rev-parse", "--verify", revision + "^{commit}")
+    if commit.returncode or commit.stdout.decode().strip() != revision:
+        return dict(base, status="missing_commit", detail=commit.stderr.decode(errors="replace")[:300])
+    blob = git("rev-parse", "--verify", revision + ":" + path)
+    if blob.returncode:
+        return dict(base, status="missing_blob", detail=blob.stderr.decode(errors="replace")[:300])
+    raw = git("cat-file", "blob", blob.stdout.decode().strip())
+    if raw.returncode:
+        return dict(base, status="missing_blob", detail=raw.stderr.decode(errors="replace")[:300])
+    try:
+        text = raw.stdout.decode("utf-8")
+    except UnicodeDecodeError:
+        return dict(base, status="unsupported_encoding")
+    return dict(
+        base,
+        status="available",
+        source=text,
+        sha256=digest(raw.stdout),
+        git_blob_sha1=blob.stdout.decode().strip(),
+        git_root=str(root),
+        origin_url=origin_url,
+    )
+
+
+class Resolver:
+    """One cohort's lightweight catalog; native extraction is cached per verified file."""
+
+    def __init__(self, cohort, documents):
+        self.cohort = cohort
+        self.documents = []
+        self.by_id = defaultdict(list)
+        self.native_cache = {}
+        for i, doc in enumerate(documents):
+            d = doc if isinstance(doc, dict) else dict(source_id=doc.id, source_sha256=doc.source_sha256, position=i)
+            self.documents.append(d)
+            self.by_id[d["source_id"]].append(d)
+
+    def resolve(self, row, mapping, side, source=None):
+        c = self.cohort
+        endpoint = row.get("sources", {}).get(side, {})
+        bound = mapping.get("sources", {}).get(side, {})
+        identity = bound.get("source_id")
+        start = endpoint.get("line", endpoint.get("start_line"))
+        end = endpoint.get("end_line")
+        span = dict(
+            provenance="unknown",
+            start_line=None,
+            end_line=None,
+            lines=None,
+            native_lines=None,
+            snippet_lines=None,
+            supplied_start_line=start,
+            supplied_end_line=end,
+            supplied_span_status="unverified_valid_numbers" if valid_span(start, end) else "missing_or_invalid",
+        )
+        result = dict(
+            schema=SCHEMA,
+            row_id=row.get("row_id"),
+            cohort_id=c["cohort_id"],
+            side=side,
+            repository=c["repository"],
+            revision=c["revision"],
+            source_id=identity,
+            position=bound.get("position"),
+            expected_body_sha256=bound.get("source_sha256"),
+            status="unknown",
+            category="resolver_input_error",
+            reasons=[],
+            function=None,
+            span=span,
+        )
+
+        def stop(category, reason):
+            result.update(category=category, status="unresolved")
+            result["reasons"].append(reason)
+            return result
+
+        if (row.get("repository"), row.get("revision")) != (c["repository"], c["revision"]):
+            return stop("resolver_input_error", "wrong_repository_or_revision")
+        if mapping.get("cohort_id") != c["cohort_id"]:
+            return stop("resolver_input_error", "wrong_cohort")
+        if row.get("record_kind") == "model":
+            return stop("unsupported_record_kind", "model_declaration_separate_inventory")
+        if row.get("record_kind") != "function":
+            return stop("resolver_input_error", "explicit_shared_record_kind_required")
+        if not isinstance(identity, str) or "::" not in identity:
+            return stop("resolver_input_error", "canonical_source_id_missing_use_mapping_sources")
+        path = identity.split("::", 1)[0]
+        if not language(path):
+            return stop("unsupported_language", "no_production_function_extractor")
+        matches = self.by_id.get(identity, [])
+        if len(matches) > 1:
+            return stop("ambiguous_identity", "duplicate_frozen_source_id")
+        if not matches:
+            return stop(
+                "scope_exclusion" if bound.get("status") == "outside_scope" else "source_incompatible",
+                bound.get("status", "source_id_absent_from_frozen_extraction"),
+            )
+        doc = matches[0]
+        if bound.get("position") != doc["position"] or bound.get("source_sha256") != doc["source_sha256"]:
+            return stop("resolver_input_error", "mapping_position_or_body_digest_disagrees_with_frozen_document")
+        inferred = snippet_span(endpoint, identity)
+        span["snippet_lines"] = inferred
+        result["supplied_code_sha256"] = (
+            digest(endpoint["code"].encode()) if isinstance(endpoint.get("code"), str) else None
+        )
+        result["supplied_code_matches_frozen_body"] = result["supplied_code_sha256"] == doc["source_sha256"]
+        if source is None:
+            if inferred is not None:
+                span.update(provenance="snippet_derived_production_as_function", lines=inferred)
+                result.update(status="snippet_only", category="missing_source")
+                result["reasons"].append("native_absolute_span_unknown; snippet_length_is_diagnostic_only")
+                return result
+            return stop("missing_source", "no_exact_pin_file_supplied; valid_span_numbers_are_not_source_proof")
+        if source.get("status", "available") != "available":
+            category = (
+                source["status"] if source["status"] in ["missing_commit", "missing_blob"] else "resolver_input_error"
+            )
+            return stop(category, source["status"])
+        if (source.get("repository"), source.get("revision"), source.get("path")) != (
+            c["repository"],
+            c["revision"],
+            path,
+        ):
+            return stop("resolver_input_error", "source_envelope_wrong_repository_pin_or_path")
+        if not isinstance(source.get("source"), str):
+            return stop("resolver_input_error", "source_text_missing")
+        raw = source["source"].encode()
+        file_sha = digest(raw)
+        if source.get("sha256") != file_sha:
+            return stop("source_incompatible", "file_sha256_mismatch")
+        if endpoint.get("file_sha256") and endpoint["file_sha256"] != file_sha:
+            return stop("source_incompatible", "endpoint_file_sha256_mismatch")
+        git_sha = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+        if source.get("git_blob_sha1") and source["git_blob_sha1"] != git_sha:
+            return stop("source_incompatible", "git_blob_sha1_mismatch")
+        key = (path, file_sha)
+        if key not in self.native_cache:
+            ex = extractor(path)
+            warning = None
+            try:
+                ex.validate_source(path, source["source"])
+            except ValueError as exc:
+                warning = str(exc)
+            try:
+                functions = ex.functions(path, source["source"])
+            except (SyntaxError, ValueError) as exc:
+                return stop("source_incompatible", "native_extraction_error:" + str(exc))
+            self.native_cache[key] = (functions, warning)
+        functions, warning = self.native_cache[key]
+        named = [f for f in functions if f.qualname == identity]
+        if len(named) > 1:
+            return stop("ambiguous_identity", "duplicate_native_source_id")
+        if not named:
+            return stop("source_incompatible", "native_identity_absent_from_exact_file")
+        f = named[0]
+        if digest(f.code.encode()) != doc["source_sha256"]:
+            return stop("source_incompatible", "native_body_digest_differs_from_frozen_document")
+        if not valid_span(f.line, f.end_line):
+            return stop("source_incompatible", "native_extractor_invalid_span")
+        exact = start == f.line and end == f.end_line
+        span.update(
+            provenance="supplied_exact_native_span" if exact else "recovered_unique_native_span",
+            start_line=f.line,
+            end_line=f.end_line,
+            lines=f.lines,
+            native_lines=f.lines,
+            supplied_span_status="verified_exact" if exact else "stale_or_missing_recovered",
+        )
+        result.update(
+            status="resolved_native",
+            category="resolved",
+            function=f.model_dump(mode="json"),
+            file_sha256=file_sha,
+            git_blob_sha1=git_sha,
+            native_parse_warning=warning,
+        )
+        return result

@@ -1,0 +1,176 @@
+{
+  "comparison": [
+    {
+      "arm": "logistic-utility",
+      "arm_funded": {
+        "canonical_pairs": 39,
+        "families": 33,
+        "lineage_records": 39,
+        "scope_units": 39
+      },
+      "descriptive_repository_component_net_fraction_p025_p975": [
+        0.0,
+        0.0
+      ],
+      "intersection": "arm-reference",
+      "label": "positive",
+      "losses": {
+        "canonical_pairs": 0,
+        "families": 0,
+        "lineage_records": 0,
+        "scope_units": 0
+      },
+      "matched": {
+        "canonical_pairs": 111,
+        "families": 87,
+        "lineage_records": 113,
+        "scope_units": 130
+      },
+      "profile": "default",
+      "reference": "rrf4-matched-cap",
+      "reference_funded": {
+        "canonical_pairs": 39,
+        "families": 33,
+        "lineage_records": 39,
+        "scope_units": 39
+      },
+      "wins": {
+        "canonical_pairs": 0,
+        "families": 0,
+        "lineage_records": 0,
+        "scope_units": 0
+      }
+    },
+    {
+      "arm": "hgb-utility",
+      "arm_funded": {
+        "canonical_pairs": 38,
+        "families": 32,
+        "lineage_records": 38,
+        "scope_units": 38
+      },
+      "descriptive_repository_component_net_fraction_p025_p975": [
+        -0.03418803418803419,
+        0.0
+      ],
+      "intersection": "arm-reference",
+      "label": "positive",
+      "losses": {
+        "canonical_pairs": 1,
+        "families": 1,
+        "lineage_records": 1,
+        "scope_units": 1
+      },
+      "matched": {
+        "canonical_pairs": 109,
+        "families": 86,
+        "lineage_records": 111,
+        "scope_units": 126
+      },
+      "profile": "default",
+      "reference": "rrf4-matched-cap",
+      "reference_funded": {
+        "canonical_pairs": 39,
+        "families": 33,
+        "lineage_records": 39,
+        "scope_units": 39
+      },
+      "wins": {
+        "canonical_pairs": 0,
+        "families": 0,
+        "lineage_records": 0,
+        "scope_units": 0
+      }
+    },
+    {
+      "arm": "logistic-utility",
+      "arm_funded": {
+        "canonical_pairs": 63,
+        "families": 56,
+        "lineage_records": 63,
+        "scope_units": 63
+      },
+      "descriptive_repository_component_net_fraction_p025_p975": [
+        -0.0684931506849315,
+        0.0425531914893617
+      ],
+      "intersection": "arm-reference",
+      "label": "positive",
+      "losses": {
+        "canonical_pairs": 3,
+        "families": 3,
+        "lineage_records": 3,
+        "scope_units": 3
+      },
+      "matched": {
+        "canonical_pairs": 90,
+        "families": 75,
+        "lineage_records": 91,
+        "scope_units": 97
+      },
+      "profile": "balanced",
+      "reference": "rrf4-matched-cap",
+      "reference_funded": {
+        "canonical_pairs": 64,
+        "families": 57,
+        "lineage_records": 64,
+        "scope_units": 64
+      },
+      "wins": {
+        "canonical_pairs": 2,
+        "families": 2,
+        "lineage_records": 2,
+        "scope_units": 2
+      }
+    },
+    {
+      "arm": "hgb-utility",
+      "arm_funded": {
+        "canonical_pairs": 63,
+        "families": 57,
+        "lineage_records": 63,
+        "scope_units": 63
+      },
+      "descriptive_repository_component_net_fraction_p025_p975": [
+        -0.057692307692307696,
+        0.02608695652173913
+      ],
+      "intersection": "arm-reference",
+      "label": "positive",
+      "losses": {
+        "canonical_pairs": 2,
+        "families": 2,
+        "lineage_records": 2,
+        "scope_units": 2
+      },
+      "matched": {
+        "canonical_pairs": 90,
+        "families": 75,
+        "lineage_records": 91,
+        "scope_units": 98
+      },
+      "profile": "balanced",
+      "reference": "rrf4-matched-cap",
+      "reference_funded": {
+        "canonical_pairs": 64,
+        "families": 57,
+        "lineage_records": 64,
+        "scope_units": 64
+      },
+      "wins": {
+        "canonical_pairs": 1,
+        "families": 1,
+        "lineage_records": 1,
+        "scope_units": 1
+      }
+    }
+  ],
+  "counting": "Pairs are deduplicated within each matched profile; scope units and families are not independent observations.",
+  "decision": "Do not ship the current learned replacement.",
+  "design": "Fixed 26-feature regularized logistic and shallow HistGradientBoostingClassifier; outer leave-one-repository-out across 15 repositories with family/source-component exclusions. Seen development/regression data, not pristine holdout.",
+  "eligible_accepted_function_records": 579,
+  "eligible_canonical_pairs": 561,
+  "positive_canonical_pairs": 185,
+  "positive_families": 103,
+  "positive_lineage_records": 200
+}

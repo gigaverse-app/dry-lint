@@ -1,0 +1,14 @@
+{
+  "accepted_operation_scope": "A transport-level copy_realtime_transform_state(read_field, write_field) copies exactly current_output_item_id, current_response_id, current_conversation_id, current_delta_chunks, current_item_chunks, current_delta_type and session_configuration_request. Adapters preserve receiver storage and missing-key behavior: returned_object.__getitem__ plus setattr for RealTimeStreaming; transformed_response.get plus session_state.__setitem__ for Bedrock. Do not put session state into the provider config.",
+  "canonical_reported": false,
+  "canonical_score": 0.62,
+  "case_id": "PEV2-022",
+  "description": "A shared seven-field realtime state writeback operation, preserving receiver storage and each adapter missing-key behavior.",
+  "first_loss": "judge_report_threshold",
+  "jev_score": 0.41,
+  "original_funded": true,
+  "report_at": 0.8,
+  "review_id": "RB02",
+  "source_label": "duplicate",
+  "whole_function_equivalence_claim": false
+}

@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "status": "READY",
+  "method": "signal-ensemble",
+  "proposed_branch": "research/study-signal-ensemble",
+  "destination": "docs/research/signal-ensemble/",
+  "source_bundle": "/home/researcher/dry-lint-round/jobs/publish-combined-studies/.lab-results/publications/signal-ensemble",
+  "root_actions": [
+    "copy complete bundle to destination on separate branch",
+    "validate offline commands",
+    "push and create PR using title/body files"
+  ],
+  "checks": [
+    "clean-copy original OperationalGate scoring",
+    "clean-copy 75-case replay",
+    "unknown preservation",
+    "source licensing and hashes",
+    "links",
+    "secrets including gzip",
+    "4 exact goldens hashes; 1 held/missing"
+  ],
+  "reproduction_scope": "Original operational gate on exact public background-state projection; 75-case public/held result replay plus isolated private aggregate. Not full-corpus or learned-fit reproduction.",
+  "source_policy": "72 licensed public payloads, 3 source-free holds; private case and static data only sanitized aggregates; no private per-case IDs.",
+  "providers_called": 0,
+  "ci_changes": false,
+  "limitations": [
+    "28 missing novel answers remain unknown",
+    "3 held payloads require exact local ledger hydration",
+    "All-scope static rows are not public; frozen aggregate table retained",
+    "Remote branch links pending root publication"
+  ]
+}

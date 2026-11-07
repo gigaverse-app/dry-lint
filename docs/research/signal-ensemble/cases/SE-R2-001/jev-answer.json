@@ -1,0 +1,25 @@
+{
+  "actual_usd": 0.00018648,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "556b02a920afd1e059019b688ce3afc01dc9ef08e97d0a69f57e5f20ab343ffe",
+    "text": "{\"model\":\"jev-1.14.0\",\"answers\":{\"same_concept\":{\"type\":\"noul\",\"noul\":0.42},\"behaves_differently\":{\"type\":\"noul\",\"noul\":0.47},\"owner\":{\"type\":\"choice\",\"choice\":\"none\",\"confidence\":0.43,\"probabilities\":{\"existing\":0.01,\"new\":0.2,\"shared\":0.22,\"none\":0.57}},\"separate_boundary\":{\"type\":\"noul\",\"noul\":0.65},\"reason\":{\"type\":\"choice\",\"choice\":\"different\",\"confidence\":0.34,\"probabilities\":{\"portable\":0.07,\"platform\":0.22,\"delegates\":0.02,\"contract\":0.22,\"boilerplate\":0.02,\"different\":0.43,\"uncertain\":0.02}}},\"usage\":{\"input_tokens\":4662,\"output_tokens\":173}}"
+  },
+  "request_key": "88ca7875a7e5116d7a50b25920ef340c17552933574b5b4310a9535171ecc311",
+  "usage": {
+    "input_tokens": 4662,
+    "output_tokens": 173
+  },
+  "verdict": {
+    "behaves_differently": 0.47,
+    "judge": "jev",
+    "judge_version": "reuse-context-v3:jev-1.14.0",
+    "label": "separate",
+    "model_assessment": null,
+    "owner": "none",
+    "score": 0.35,
+    "second_opinion": null,
+    "why": "The functions implement different concepts."
+  }
+}

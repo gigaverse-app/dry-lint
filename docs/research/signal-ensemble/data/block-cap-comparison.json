@@ -1,0 +1,149 @@
+{
+  "comparison": [
+    {
+      "added_ids_block1": [
+        "OB-e9edd1965bec18b1"
+      ],
+      "baseline_funded": {
+        "canonical_pairs": 63,
+        "families": 57,
+        "lineage_background_units": 63,
+        "pair_cohort_units": 63
+      },
+      "block1_funded": {
+        "canonical_pairs": 64,
+        "families": 58,
+        "lineage_background_units": 64,
+        "pair_cohort_units": 64
+      },
+      "block1_only": {
+        "canonical_pairs": 0,
+        "families": 0,
+        "lineage_background_units": 0,
+        "pair_cohort_units": 0
+      },
+      "block2_funded": {
+        "canonical_pairs": 64,
+        "families": 58,
+        "lineage_background_units": 64,
+        "pair_cohort_units": 64
+      },
+      "block2_only": {
+        "canonical_pairs": 0,
+        "families": 0,
+        "lineage_background_units": 0,
+        "pair_cohort_units": 0
+      },
+      "label": "positive",
+      "matched": {
+        "canonical_pairs": 80,
+        "families": 68,
+        "lineage_background_units": 83,
+        "pair_cohort_units": 83
+      }
+    },
+    {
+      "added_ids_block1": [],
+      "baseline_funded": {
+        "canonical_pairs": 49,
+        "families": 34,
+        "lineage_background_units": 51,
+        "pair_cohort_units": 51
+      },
+      "block1_funded": {
+        "canonical_pairs": 49,
+        "families": 34,
+        "lineage_background_units": 51,
+        "pair_cohort_units": 51
+      },
+      "block1_only": {
+        "canonical_pairs": 0,
+        "families": 0,
+        "lineage_background_units": 0,
+        "pair_cohort_units": 0
+      },
+      "block2_funded": {
+        "canonical_pairs": 49,
+        "families": 34,
+        "lineage_background_units": 51,
+        "pair_cohort_units": 51
+      },
+      "block2_only": {
+        "canonical_pairs": 0,
+        "families": 0,
+        "lineage_background_units": 0,
+        "pair_cohort_units": 0
+      },
+      "label": "negative",
+      "matched": {
+        "canonical_pairs": 107,
+        "families": 77,
+        "lineage_background_units": 127,
+        "pair_cohort_units": 127
+      }
+    }
+  ],
+  "coverage": {
+    "current_positive_canonical_pairs": 80,
+    "current_positive_scope_units": 83,
+    "matching_python_scope_units": 38,
+    "missing_original_backgrounds": 1,
+    "missing_reason": "One newly mapped background was absent from the consumed frozen 77-background block directory; baseline already funds its positive.",
+    "original_python_scope_units": 39
+  },
+  "original_concept_single_query_profile": {
+    "baseline_positive_units": 35,
+    "denominator": 39,
+    "extra_cap": 1,
+    "ledger": "Cold one-function query, concept prompt Sonnet; pair success ANY correlated direction; not shared-family campaign",
+    "variant_positive_units": 37
+  },
+  "production_validation": {
+    "extra_discrepancies": 0,
+    "funding_discrepancies": 0,
+    "query_checks": 148
+  },
+  "python_negative_intersection": {
+    "added_exposures": 0,
+    "canonical_pairs": 64,
+    "pair_cohort_units": 80,
+    "shared_baseline_funded": 30,
+    "shared_block1_funded": 30
+  },
+  "python_positive_intersection": {
+    "canonical_pairs": 38,
+    "named_families": 29,
+    "pair_cohort_units": 38,
+    "shared_baseline_funded": 30,
+    "shared_block1_funded": 31
+  },
+  "runtime": {
+    "checks": {
+      "baseline_protection": 176,
+      "campaign_budget": 480
+    },
+    "cpu_seconds": 1.8062857279999998,
+    "new_fits": 0,
+    "peak_rss_kib": 166948,
+    "provider_calls": 0,
+    "source_extractions": 0,
+    "wall_seconds": 1.806410698001855
+  },
+  "second_old_gain": {
+    "case_id": "OB-dd256789bb58cf2b",
+    "description": "Append URL query pairs in async_responses_websocket and _append_query_params",
+    "outcome": "Retrieved but unfunded at both caps under the shared family campaign; old concept single-query funding is a different comparison.",
+    "pair_sha256": "aa4eb423a9ee593489a01b9ff1283f917c2843692e488de8b628a075ba8715aa",
+    "shared_campaign_baseline_usd": 0.03849714285714286,
+    "shared_pair_charge_usd": 0.010721428571428571
+  },
+  "useful_pair": {
+    "baseline_usd": 0.026584285714285717,
+    "case_id": "OB-e9edd1965bec18b1",
+    "description": "Cache-gated alert emission shared by failed_tracking_alert and send_monthly_spend_report",
+    "extra_usd": 0.007054285714285714,
+    "outcome": "Source-useful candidate funded; this receipt alone does not establish a novel emitted report.",
+    "pair_sha256": "d6d3e5d144d88718dfe0fd0ff9ea3b34cd7daa6d315c5fe63036d70fe6edb988",
+    "total_usd": 0.033638571428571434
+  }
+}
