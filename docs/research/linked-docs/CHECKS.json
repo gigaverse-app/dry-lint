@@ -1,0 +1,532 @@
+{
+  "status": "PASS",
+  "clean_copy_without_lab_imports": true,
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "commands": [
+    {
+      "command": "python3 transform.py",
+      "exit_code": 0,
+      "stdout_sha256": "c5d3b47f208fa951c2eda4884d17bbaccd391c9448c2121bf89dd04052fd114f",
+      "result": {
+        "scope": "Three frozen exact ownership associations; replay original centered-window selection and word field. Full ownership discovery and whole-corpus ranking not rerun.",
+        "replayed_associations": [
+          {
+            "owner": "litellm/repositories/database.py::Database.open",
+            "anchor_start": 332,
+            "before_contains_reference": true,
+            "after_contains_reference": true,
+            "after_word_count": 32
+          },
+          {
+            "owner": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage",
+            "anchor_start": 509,
+            "before_contains_reference": false,
+            "after_contains_reference": true,
+            "after_word_count": 32
+          },
+          {
+            "owner": "litellm/proxy/common_utils/auth_cache_invalidation_pubsub.py::AuthCacheInvalidationSubscriber._run",
+            "anchor_start": 915,
+            "before_contains_reference": false,
+            "after_contains_reference": true,
+            "after_word_count": 32
+          }
+        ]
+      }
+    },
+    {
+      "command": "python3 reproduce.py replay",
+      "exit_code": 0,
+      "stdout_sha256": "99555dc5eecc2f2f15c7c07cd38e0be71e5856688bf1c692bc9ffb83a539bd85",
+      "result": {
+        "limits": "Replays final answers and fixed admission records; does not refit whole-corpus retrieval or independently prove source truth. Primary feed costs exclude separately attributed current-phase usage. Jev and Claude remain separate.",
+        "policy_counts": [
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 1,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 1,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 1,
+            "unknown": 8,
+            "variant": 1
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 1,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 1,
+            "unknown": 8,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "default",
+            "role": "control",
+            "round": 1,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "default",
+            "role": "novel",
+            "round": 1,
+            "unknown": 8,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "default",
+            "role": "control",
+            "round": 1,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "default",
+            "role": "novel",
+            "round": 1,
+            "unknown": 8,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 1,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 1
+          },
+          {
+            "added": 0,
+            "baseline": 1,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 2,
+            "unknown": 4,
+            "variant": 1
+          },
+          {
+            "added": 0,
+            "baseline": 1,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 1
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 2,
+            "unknown": 4,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "default",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 1,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "default",
+            "role": "novel",
+            "round": 2,
+            "unknown": 4,
+            "variant": 1
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "default",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "default",
+            "role": "novel",
+            "round": 2,
+            "unknown": 4,
+            "variant": 0
+          }
+        ],
+        "primary_feeds": [
+          {
+            "primary_feed_actual_usd": "0.17884384",
+            "requests_in_primary_feed": 64,
+            "round": 1,
+            "successful": 48,
+            "unknown": 16
+          },
+          {
+            "primary_feed_actual_usd": "0.23132376",
+            "requests_in_primary_feed": 64,
+            "round": 2,
+            "successful": 56,
+            "unknown": 8
+          }
+        ],
+        "round1_with_attributed_prior_phase": {
+          "historical_pilot_cost_excluded": true,
+          "primary_usd": "0.17884384",
+          "prior_current_phase_requests": 12,
+          "prior_current_phase_usd": "0.03779732000000000003",
+          "total_usd": "0.21664116"
+        },
+        "selected_answers": [
+          {
+            "id": "LINKED-R2-7de6eddfae2d5c02be41",
+            "kind": "jev",
+            "label": "duplicate",
+            "reportable": false,
+            "score": 0.64
+          },
+          {
+            "id": "LINKED-R2-7de6eddfae2d5c02be41",
+            "kind": "claude",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.8
+          },
+          {
+            "id": "LINKED-R2-8d68c45a593a06127b96",
+            "kind": "jev",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.26
+          },
+          {
+            "id": "LINKED-R2-8d68c45a593a06127b96",
+            "kind": "claude",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.06
+          },
+          {
+            "id": "LINKED-R2-6cb1c9ff4866c7d02b8e",
+            "kind": "jev",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.87
+          },
+          {
+            "id": "LINKED-R2-6cb1c9ff4866c7d02b8e",
+            "kind": "claude",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.8
+          }
+        ],
+        "selected_raw_answers_reparsed": 6
+      }
+    },
+    {
+      "command": "python3 reproduce.py audit",
+      "exit_code": 0,
+      "stdout_sha256": "ad80b636ead843d2f0b2c75fe2c3447ed20e7e9f008d76cc57dd7cafc6d25ae7",
+      "result": {
+        "compressed_archives_opened": 4,
+        "credential_or_private_identifier_matches": 0,
+        "files_scanned": 40,
+        "limit": "Pattern scan plus allowlisted response/source export; not a universal secret detector.",
+        "relative_links_checked": 22,
+        "source_files_verified": 10,
+        "status": "PASS"
+      }
+    },
+    {
+      "command": "python3 acquire.py --corpus /home/researcher/dry-lint-round/jobs/corpus-migration/.lab-results/corpus-migration/standalone",
+      "exit_code": 0,
+      "stdout_sha256": "4b21cd4fd155f8d2493abed42796f35ab2c98e43d62d41bee1688bb09aa850e2",
+      "result": {
+        "status": "PASS",
+        "exact_background_catalog_bindings": 10,
+        "scope": "Catalog hash lookup; run corpus.py verify for stored object bytes. Missing/private study inputs remain missing/private."
+      }
+    },
+    {
+      "command": "python3 aggregate.py",
+      "exit_code": 0,
+      "stdout_sha256": "7a8c89ea10e2d4ed582a4c7c428353a72e84670d478dc71082b7028672c4196b",
+      "result": {
+        "status": "PASS",
+        "paired_comparisons": [
+          {
+            "capture": "original",
+            "label": "duplicate",
+            "metric": "top1",
+            "supported_pairs": 31,
+            "baseline": 23,
+            "owner": 23,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "duplicate",
+            "metric": "top3",
+            "supported_pairs": 31,
+            "baseline": 26,
+            "owner": 26,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "duplicate",
+            "metric": "top20",
+            "supported_pairs": 31,
+            "baseline": 30,
+            "owner": 30,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "duplicate",
+            "metric": "default",
+            "supported_pairs": 31,
+            "baseline": 9,
+            "owner": 9,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "duplicate",
+            "metric": "balanced",
+            "supported_pairs": 31,
+            "baseline": 28,
+            "owner": 28,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "separate",
+            "metric": "top1",
+            "supported_pairs": 51,
+            "baseline": 11,
+            "owner": 11,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "separate",
+            "metric": "top3",
+            "supported_pairs": 51,
+            "baseline": 21,
+            "owner": 22,
+            "gains": 1,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "separate",
+            "metric": "top20",
+            "supported_pairs": 51,
+            "baseline": 42,
+            "owner": 42,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "separate",
+            "metric": "default",
+            "supported_pairs": 51,
+            "baseline": 2,
+            "owner": 3,
+            "gains": 1,
+            "losses": 0
+          },
+          {
+            "capture": "original",
+            "label": "separate",
+            "metric": "balanced",
+            "supported_pairs": 51,
+            "baseline": 20,
+            "owner": 26,
+            "gains": 6,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "duplicate",
+            "metric": "top1",
+            "supported_pairs": 31,
+            "baseline": 23,
+            "owner": 23,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "duplicate",
+            "metric": "top3",
+            "supported_pairs": 31,
+            "baseline": 26,
+            "owner": 26,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "duplicate",
+            "metric": "top20",
+            "supported_pairs": 31,
+            "baseline": 30,
+            "owner": 30,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "duplicate",
+            "metric": "default",
+            "supported_pairs": 31,
+            "baseline": 9,
+            "owner": 9,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "duplicate",
+            "metric": "balanced",
+            "supported_pairs": 31,
+            "baseline": 28,
+            "owner": 28,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "separate",
+            "metric": "top1",
+            "supported_pairs": 51,
+            "baseline": 11,
+            "owner": 11,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "separate",
+            "metric": "top3",
+            "supported_pairs": 51,
+            "baseline": 21,
+            "owner": 22,
+            "gains": 1,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "separate",
+            "metric": "top20",
+            "supported_pairs": 51,
+            "baseline": 42,
+            "owner": 42,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "separate",
+            "metric": "default",
+            "supported_pairs": 51,
+            "baseline": 2,
+            "owner": 3,
+            "gains": 1,
+            "losses": 0
+          },
+          {
+            "capture": "centered",
+            "label": "separate",
+            "metric": "balanced",
+            "supported_pairs": 51,
+            "baseline": 20,
+            "owner": 25,
+            "gains": 5,
+            "losses": 0
+          }
+        ]
+      }
+    }
+  ],
+  "held_exact_request_hydrations": 0,
+  "provider_calls": 0,
+  "full_corpus_refits": 0,
+  "external_fetches": 0,
+  "source_safety": "Selected source allowlisted to licensed pinned public repositories; held source/prose omitted; decompressed archive and literal credential/private-identifier patterns scanned; original hashes retained. Not a universal secret detector.",
+  "tests_not_run": "Production suite, live providers, full-corpus refitting and independent source adjudication are outside this evidence-only publication."
+}

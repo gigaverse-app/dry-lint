@@ -1,0 +1,50 @@
+"""One preregistered anchor-window revision over exact frozen backgrounds."""
+import collections,json,re,sys
+from pathlib import Path
+BASE=Path(__file__).resolve().parents[1];OLD=BASE/'full-corpus-followup';sys.path.insert(0,str(OLD))
+import run
+import shared_adapter
+from dry_lint.functions import words
+ROOT=BASE/'funded-rounds/round2';EVAL=ROOT/'evaluation';EVAL.mkdir(exist_ok=True)
+(EVAL/'cohorts').mkdir(exist_ok=True)
+PREREG=ROOT/'PREREGISTRATION.json';prereg_hash=run.sha(PREREG.read_bytes())
+original_configs=run.configs_available();old_runs={p.stem:json.loads(p.read_text()) for p in (OLD/'runs').glob('*.json')}
+configs=[c for c in original_configs if old_runs.get(c['background_proof']['sha256'][:16],{}).get('status')!='missing_pinned_source_blob']
+run.HERE=EVAL;run.SHARED=shared_adapter.V2
+class AnchorWindowSnapshot(shared_adapter.Snapshot):
+ def inventory(self):
+  old=OLD/'cohorts'/self.key/self.bg.repository.split('/')[1]
+  associations=run.rows(old/'associations.jsonl');field_terms=collections.defaultdict(list);audits=[];paragraph_cache={}
+  for association in associations:
+   path=association['markdown']
+   if path not in paragraph_cache:
+    source=self.source(path);assert run.sha(source.encode())==association['markdown_sha256']
+    paragraph_cache[path]=dict(run.frozen.paragraphs(source))
+   para=paragraph_cache[path].get(association['line'])
+   if para is None:raise RuntimeError('Exact associated paragraph line absent: '+path)
+   reference=association['reference'];anchor=para.find(reference)
+   if anchor<0:raise RuntimeError('Verified reference absent from exact paragraph: '+path+':'+reference)
+   start=max(0,min(anchor-256,max(0,len(para)-512)));window=para[start:start+512]
+   if reference not in window:raise RuntimeError('Reference not wholly inside centered bounded window')
+   clean=run.frozen.INLINE.sub(' ',run.frozen.LINK.sub(lambda m:m[1],window));clean=re.sub(r'https?://\S+|<[^>]+>',' ',clean)
+   terms=[]
+   for word in re.findall(r'[A-Za-z_]\w*',clean):
+    for token in words(word):
+     t='w:'+token
+     if t in self.index.idf and t not in terms:terms.append(t)
+   i=association['position'];field_terms[i].extend(t for t in terms if t not in field_terms[i])
+   audits.append({**association,'previous_passage':association['passage'],'passage':window,'anchor_start':anchor,'window_start':start,'previous_anchor_in_window':reference in association['passage'],'bounded_terms':terms[:32],'variant':'anchor-centered-window-v2'})
+  fields={i:t[:32]for i,t in field_terms.items()if t}
+  run.jsonl(self.root/'associations.jsonl',audits);run.jsonl(self.root/'markdown-fields.jsonl',[{'position':i,'id':self.bg.documents[i].id,'terms':t}for i,t in sorted(fields.items())])
+  for name in ['markdown-manifest.jsonl','link-inventory.jsonl']:
+   (self.root/name).write_bytes((old/name).read_bytes())
+  coverage=json.loads((old/'coverage.json').read_text());coverage.update({'covered_symbols':len(fields),'variant':'anchor-centered-window-v2','changed_passages':sum(r['passage']!=r['previous_passage']for r in audits),'old_reference_outside_head_windows':sum(not r['previous_anchor_in_window']for r in audits),'preregistration_sha256':prereg_hash})
+  return fields,coverage
+run.Snapshot=AnchorWindowSnapshot
+# Immutable mapper input, not a reconstruction; only variable output root changes.
+inv=run.inventory();results=[]
+for config in configs:
+ result=run.evaluate(config,inv);results.append(result)
+ run.write(EVAL/'progress.json',{'completed_cohorts':len(results),'compatible_source_complete_cohorts':len(configs),'preregistration_sha256':prereg_hash})
+run.write(EVAL/'runs-summary.json',{'variant':'anchor-centered-window-v2','cohorts':results,'preregistration_sha256':prereg_hash,'providers_called':0,'gold_inventory_records':len(inv),'code_representations_changed':False,'doc_fields_changed':True,'embedding_or_latent_refits':0})
+print(json.dumps({'status':'REVISED_DOC_FIELD_SCORING_COMPLETE','cohorts':len(results),'preregistration_sha256':prereg_hash}),flush=True)

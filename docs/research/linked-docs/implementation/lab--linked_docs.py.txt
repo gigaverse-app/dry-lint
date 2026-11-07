@@ -1,0 +1,361 @@
+"""Offline preregistered explicitly linked Markdown experiment. Never calls a provider."""
+from __future__ import annotations
+import argparse, hashlib, json, math, posixpath, random, re, resource, subprocess, time
+from collections import Counter, defaultdict
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger, estimate
+from dry_lint.detector import why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.functions import words
+from dry_lint.models import Candidate
+from dry_lint.judges.jev import JevJudge
+from dry_lint.settings import Settings
+
+LAB = Path('/home/researcher/dry-lint-round')
+OUT = Path(__file__).resolve().parent
+REPORTS = LAB / 'reports/candidate-first'
+CONFIG = LAB / 'jobs/review-automation/.lab-results/review-automation/repositories-five.json'
+ARMS = ['baseline', 'doc_removed', 'owner_zero_weight', 'owner_0.15', 'shuffled_0.15']
+LINK = re.compile(r'(?<!!)\[([^\]\n]*)\]\(([^\s)]+)(?:\s+"[^"]*")?\)')
+INLINE = re.compile(r'(?<!`)`([^`\n]+)`(?!`)')
+SYMBOL = re.compile(r'^(?:(?:[\w./-]+\.py)::)?[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\(\))?$')
+
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def write(path, data): path.write_text(json.dumps(data, indent=2, sort_keys=True)+'\n')
+def rows(path): return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+def jsonl(path, data): path.write_text(''.join(json.dumps(row, sort_keys=True)+'\n' for row in data))
+def dot(a,b): return sum(v*b.get(k,0) for k,v in a.items())
+def norm(v):
+    n=math.sqrt(sum(x*x for x in v.values())) or 1
+    return {k:x/n for k,x in v.items()}
+
+def git(config,*args):
+    return subprocess.check_output(['git','-C',config['git'],*args])
+
+def paragraphs(text):
+    # Keep physical line numbers, remove fenced examples without joining adjacent prose.
+    lines=text.splitlines(); block=[]; start=1; fence=None
+    for line_no,line in enumerate(lines,1):
+        marker=re.match(r'^\s*(`{3,}|~{3,})',line)
+        if marker:
+            if block: yield start,'\n'.join(block);block=[]
+            if fence is None: fence=marker[1][0]
+            elif marker[1][0]==fence: fence=None
+            continue
+        if fence is not None: continue
+        if not line.strip():
+            if block: yield start,'\n'.join(block);block=[]
+        else:
+            if not block:start=line_no
+            block.append(line)
+    if block:yield start,'\n'.join(block)
+
+class Snapshot:
+    def __init__(self, config):
+        self.config=config; self.pin=config['revision'];self.root=OUT/config['repository'].split('/')[1]
+        self.root.mkdir(exist_ok=True)
+        proof=config['background_proof']; raw=Path(proof['path']).read_bytes()
+        assert sha(raw)==proof['sha256']
+        t=time.perf_counter(); self.bg=BenchBackground.decode(raw); self.index=self.bg.index()
+        self.cold=time.perf_counter()-t
+        assert (self.bg.repository,self.bg.revision)==(config['repository'],self.pin)
+        assert all('enterprise' not in d.id.split('::')[0].split('/') for d in self.bg.documents)
+        t=time.perf_counter(); warm=self.bg.index();self.warm=time.perf_counter()-t
+        assert warm.idf==self.index.idf;del warm
+        self.ids=defaultdict(list); self.suffix=defaultdict(list);self.names=defaultdict(list);self.byfile=defaultdict(list)
+        for i,d in enumerate(self.bg.documents):
+            self.ids[d.id].append(i)
+            path,symbol=d.id.split('::');self.suffix[symbol].append(i);self.names[symbol.split('.')[-1]].append(i);self.byfile[path].append(i)
+        self.tree=set(git(config,'ls-tree','-r','--name-only',self.pin).decode().splitlines())
+        self.sources={};self.functions={};self.parse_errors={}
+        self.extractor=PythonExtractor()
+
+    def source(self,path):
+        assert 'enterprise' not in path.split('/') and path in self.tree
+        if path not in self.sources:self.sources[path]=git(self.config,'show',f'{self.pin}:{path}').decode('utf-8')
+        return self.sources[path]
+
+    def file_functions(self,path):
+        if path not in self.functions:
+            self.functions[path]={}
+            try:
+                source=self.source(path)
+                self.extractor.validate_source(path,source)
+                for f in self.extractor.functions(path,source):
+                    self.functions[path].setdefault(f.qualname,[]).append(f)
+            except (ValueError,UnicodeDecodeError) as e:self.parse_errors[path]=str(e)
+        return self.functions[path]
+
+    def function(self,i):
+        d=self.bg.documents[i];path=d.id.split('::')[0];found=self.file_functions(path).get(d.id,[])
+        if len(self.ids[d.id])!=1 or len(found)!=1:return None
+        f=found[0]
+        if sha(f.code.encode())!=d.source_sha256:return None
+        # Frozen source code proof is exact. Add only complete-file digest; no invented dependencies.
+        f=f.model_copy(update={'hash':self.extractor.structure_hash(f),'context_digest':sha(self.source(path).encode())})
+        return f
+
+    def symbol(self,ref):
+        original=ref.strip();ref=original.removesuffix('()')
+        if not SYMBOL.fullmatch(original):return []
+        if '::' in ref:return self.ids.get(ref,[])
+        if '.' in ref:return self.suffix.get(ref,[])
+        if original.endswith('()'):return self.names.get(ref,[])
+        return []
+
+    def inventory(self):
+        inventory=[];associations=[];md_manifest=[];fields=defaultdict(list)
+        md=sorted(p for p in self.tree if Path(p).suffix.lower() in {'.md','.mdx'} and 'enterprise' not in p.split('/'))
+        for path in md:
+            try:text=self.source(path)
+            except UnicodeDecodeError:
+                inventory.append({'markdown':path,'status':'non_utf8'});continue
+            md_manifest.append({'path':path,'sha256':sha(text.encode()),'bytes':len(text.encode())})
+            for line,para in paragraphs(text):
+                # Match associations throughout paragraph; field text is bounded separately.
+                matches=[]
+                for match in LINK.finditer(para):
+                    label,url=match.groups();u=urlsplit(unquote(url)); target=None;status='external_or_non_source'
+                    if not u.scheme and not u.netloc:
+                        target=posixpath.normpath(posixpath.join(posixpath.dirname(path),u.path))
+                        status='local_source' if target.endswith('.py') else 'non_source_link'
+                    elif u.netloc.lower()=='github.com':
+                        prefix='/'+self.config['repository']+'/blob/'
+                        if u.path.lower().startswith(prefix.lower()):
+                            rest=u.path[len(prefix):];revision,sep,target=rest.partition('/')
+                            if revision!=self.pin: status='unpinned_or_other_revision';target=None
+                            else:status='pinned_source' if target.endswith('.py') else 'non_source_link'
+                    if status in {'external_or_non_source','non_source_link'}:continue
+                    result={'kind':'source_link','reference':url,'label':label,'status':status,'target_path':target}
+                    owners=[]
+                    if target:
+                        if 'enterprise' in target.split('/'):result['status']='excluded_enterprise'
+                        elif target not in self.tree:result['status']='missing_file'
+                        elif target not in self.byfile:result['status']='outside_frozen_scope_or_no_function'
+                        else:
+                            anchor=re.fullmatch(r'L(\d+)(?:-L?(\d+))?',u.fragment)
+                            if anchor:
+                                lo=int(anchor[1]);hi=int(anchor[2] or anchor[1])
+                                owners=[i for i in self.byfile[target] if (f:=self.function(i)) and f.line<=lo<=hi<=f.end_line]
+                                result['line_range']=[lo,hi]
+                            else:
+                                labelref=label.strip('` ')
+                                owners=[i for i in self.symbol(labelref) if self.bg.documents[i].id.split('::')[0]==target]
+                            result['status']='resolved' if len(owners)==1 else 'ambiguous' if len(owners)>1 else 'file_only_or_unresolved_symbol'
+                    matches.append((result,owners))
+                for match in INLINE.finditer(para):
+                    ref=match[1].strip()
+                    if not SYMBOL.fullmatch(ref) or not ('::' in ref or '.' in ref or ref.endswith('()')):continue
+                    # Do not count file names / dotted prose as failed function references.
+                    if ref.endswith(('.py','.md','.json','.yaml','.toml','.ts','.tsx')):continue
+                    owners=self.symbol(ref)
+                    status='resolved' if len(owners)==1 else 'ambiguous' if owners else 'missing_or_not_extracted'
+                    witnesses=[]
+                    if len(owners)==1 and '.' not in ref and '::' not in ref:
+                        ownerpath=self.bg.documents[owners[0]].id.split('::')[0]
+                        # An explicitly named source file witnesses a bare function reference.
+                        for mention in re.findall(r'[\w./-]+\.py',para):
+                            candidate=posixpath.normpath(mention)
+                            relative=posixpath.normpath(posixpath.join(posixpath.dirname(path),mention))
+                            if ownerpath in {candidate,relative}:witnesses.append(mention)
+                        if not witnesses:status='unwitnessed_bare_symbol';owners=[]
+                    matches.append(({'kind':'symbol_reference','reference':ref,'status':status,'explicit_file_witnesses':witnesses},owners))
+                for result,owners in matches:
+                    result.update(markdown=path,line=line,markdown_sha256=md_manifest[-1]['sha256'],revision=self.pin)
+                    if len(owners)==1:
+                        i=owners[0]
+                        # Reject duplicate identity even if a mapping happened to produce one position.
+                        if len(self.ids[self.bg.documents[i].id])!=1:result['status']='ambiguous_frozen_id'
+                        else:
+                            result['owner']=self.bg.documents[i].id; result['position']=i
+                            passage=para[:512]
+                            clean=INLINE.sub(' ',LINK.sub(lambda m:m[1],passage))
+                            clean=re.sub(r'https?://\S+|<[^>]+>',' ',clean)
+                            terms=[]
+                            for word in re.findall(r'[A-Za-z_]\w*',clean):
+                                for w in words(word):
+                                    token='w:'+w
+                                    if token in self.index.idf and token not in terms:terms.append(token)
+                            fields[i].extend(t for t in terms if t not in fields[i])
+                            associations.append({**result,'passage':passage,'bounded_terms':terms[:32]})
+                    inventory.append(result)
+        fields={i:terms[:32] for i,terms in fields.items() if terms}
+        jsonl(self.root/'markdown-manifest.jsonl',md_manifest);jsonl(self.root/'link-inventory.jsonl',inventory)
+        jsonl(self.root/'associations.jsonl',associations)
+        jsonl(self.root/'markdown-fields.jsonl',[{'position':i,'id':self.bg.documents[i].id,'terms':terms} for i,terms in sorted(fields.items())])
+        return fields,{'tracked_markdown_files':len(md),'tracked_markdown_bytes':sum(r['bytes'] for r in md_manifest),'references':len(inventory),'statuses':dict(Counter(r['status'] for r in inventory)), 'resolved_associations':len(associations),'covered_symbols':len(fields),'denominator_functions':len(self.bg.documents),'ambiguous_frozen_ids':sum(len(v)>1 for v in self.ids.values()),'code_word_idf_terms':sum(k.startswith('w:') for k in self.index.idf)}
+
+
+def load_panels(config):
+    released=REPORTS/'corpus-remote-verification/candidate-first-gold'
+    panel=[];reviewed=set()
+    for filename in ['accepted-public-gold.jsonl','disputed.jsonl']:
+        for r in rows(released/filename):
+            c=Candidate.model_validate(r['candidate']); reviewed.add((r['repository'],r['revision'],tuple(sorted((c.new.qualname,c.existing.qualname)))))
+            if r['repository']==config['repository'] and r['revision']==config['revision']:
+                panel.append({'id':r['id'],'cohort':'released_'+filename.split('.')[0],'family':r['family_id'],'label':r.get('label','disputed'),'drifted':r.get('drifted',False),'candidate':c,'whole_function_equivalence':False})
+    decisions={r['id']:r for r in rows(REPORTS/'scaled-coordinator-decisions.jsonl')}
+    for short in ['t3','litellm','opencode','openhands','kaizen']:
+        for item in rows(REPORTS/f'{short}-scaled-completed.jsonl'):
+            p=item['packet'];c=Candidate.model_validate(p['candidate']);reviewed.add((p['repository'],p['revision'],tuple(sorted((c.new.qualname,c.existing.qualname)))))
+            if p['repository']==config['repository'] and p['revision']==config['revision']:
+                d=decisions[item['id']]
+                panel.append({'id':item['id'],'cohort':'scaled_development','family':d.get('family_id',item['id']),'label':d.get('label','unresolved'),'decision':d['decision'],'drifted':d.get('drifted',False),'retain_provider_dissent':d.get('retain_provider_dissent',False),'candidate':c,'whole_function_equivalence':False})
+    retained=REPORTS/'retained-candidates.jsonl'
+    for item in rows(retained):
+        proposal=item.get('proposal',{})
+        candidate=proposal.get('candidate')
+        if candidate:
+            c=Candidate.model_validate(candidate)
+            repository=item.get('repository',proposal.get('repository'))
+            revision=proposal.get('revision',config['revision'] if repository==config['repository'] else '')
+            reviewed.add((repository,revision,tuple(sorted((c.new.qualname,c.existing.qualname)))))
+    return panel,reviewed
+
+class Channels:
+    def __init__(self,snapshot,fields):
+        self.s=snapshot;self.codewords=[]
+        for d in snapshot.bg.documents:
+            self.codewords.append(norm({k:(1+math.log(n))*snapshot.index.idf[k] for k,n in d.counts.items() if k.startswith('w:') and k in snapshot.index.idf}))
+        self.owner={i:norm({t:snapshot.index.idf[t] for t in terms}) for i,terms in fields.items()}
+        positions=sorted(self.owner); rng=random.Random(1117); shuffled=positions[:]
+        if len(positions)>1:
+            while any(a==b for a,b in zip(positions,shuffled)):rng.shuffle(shuffled)
+        self.shuffle={a:self.owner[b] for a,b in zip(positions,shuffled)}
+        self.postings={}
+        for arm,fields_ in [('owner',self.owner),('shuffled',self.shuffle)]:
+            post=defaultdict(list)
+            for i,v in fields_.items():
+                for t,w in v.items():post[t].append((i,w))
+            self.postings[arm]=post
+        self.wordpost=defaultdict(list)
+        for i,v in enumerate(self.codewords):
+            for t,w in v.items():self.wordpost[t].append((i,w))
+        jsonl(snapshot.root/'shuffle-map.jsonl',[{'position':a,'receives_from':b} for a,b in zip(positions,shuffled)])
+
+    def scores(self,q):
+        s=self.s;baseline=dict(s.index.similar(s.bg.documents[q].tokens(),exclude={q}))
+        allscores={a:baseline for a in ARMS[:3]}
+        for arm,field,postkey in [('owner_0.15',self.owner,'owner'),('shuffled_0.15',self.shuffle,'shuffled')]:
+            dc=defaultdict(float);cd=defaultdict(float);dd=defaultdict(float)
+            for t,w in field.get(q,{}).items():
+                for i,v in self.wordpost[t]:dc[i]+=w*v
+                for i,v in self.postings[postkey][t]:dd[i]+=w*v
+            for t,w in self.codewords[q].items():
+                for i,v in self.postings[postkey][t]:cd[i]+=w*v
+            scores=baseline.copy()
+            for i in dc.keys()|cd.keys()|dd.keys():
+                if i!=q:
+                    b=baseline.get(i,0);scores[i]=b+.15*(1-b)*max(dc[i],cd[i],dd[i])
+            allscores[arm]=scores
+        assert allscores['baseline']==allscores['doc_removed']==allscores['owner_zero_weight']
+        return allscores
+
+
+def run(config,inventory_only=False):
+    s=Snapshot(config);fields,coverage=s.inventory();write(s.root/'coverage.json',coverage)
+    print(json.dumps({'repository':config['repository'],'coverage':coverage}),flush=True)
+    if inventory_only:return
+    panel,reviewed=load_panels(config);ch=Channels(s,fields); targets=defaultdict(list);panelrows=[]
+    for p in panel:
+        c=p['candidate']; meta={k:v for k,v in p.items() if k!='candidate'};meta['directions']=[]
+        for direction,qf,tf in [('new_to_existing',c.new,c.existing),('existing_to_new',c.existing,c.new)]:
+            qs=s.ids.get(qf.qualname,[]);ts=s.ids.get(tf.qualname,[])
+            problem=None
+            if len(qs)!=1 or len(ts)!=1:problem='missing_or_ambiguous_frozen_id'
+            elif qs==ts:problem='self'
+            elif any(sha(f.code.encode())!=s.bg.documents[pos].source_sha256 for f,pos in [(qf,qs[0]),(tf,ts[0])]):problem='source_sha_mismatch'
+            if problem:meta['directions'].append({'direction':direction,'status':problem});continue
+            targets[qs[0]].append((len(panelrows),direction,ts[0],qf,tf))
+        panelrows.append(meta)
+    queries=sorted(set(fields)|set(targets),key=lambda i:(s.bg.documents[i].id,i)); queryrows=[];exposures=[];rankrows=[]
+    settings=Settings();settings.budget.usd=.04
+    # Offline exact renderer; bypass credential-reading constructor. Never call _ask.
+    judge=object.__new__(JevJudge);judge.context=True;judge.guidance='';judge.model='jev-1.14.0'
+    started=time.perf_counter(); unavailable=[]
+    for query_number,qi in enumerate(queries,1):
+        if query_number%10==0:write(s.root/'progress.json',{'completed_queries':query_number-1,'total_queries':len(queries),'seconds':time.perf_counter()-started})
+        qf=s.function(qi)
+        if qf is None:unavailable.append({'position':qi,'id':s.bg.documents[qi].id,'reason':'source_parse_identity_or_sha_unavailable'});continue
+        scoresby=ch.scores(qi);rankedby={}
+        for arm,scores in scoresby.items():
+            ranked=sorted((i for i in range(len(s.bg.documents)) if i!=qi),key=lambda i:(-scores.get(i,0),s.bg.documents[i].id,i));rankedby[arm]=ranked
+            cross=[i for i in ranked if s.bg.documents[i].id.split('::')[0]!=qf.path]
+            ranks={i:n+1 for n,i in enumerate(ranked)};crossranks={i:n+1 for n,i in enumerate(cross)}
+            for rowi,direction,ti,qgold,tgold in targets.get(qi,[]):
+                score=scores.get(ti,0);same=qgold.path==tgold.path;floor=.3 if qgold.lines<6 else .5
+                filtered=why_skipped(qgold,tgold,settings)
+                loss='same_file' if same else 'score_floor' if score<floor else 'top_k' if crossranks[ti]>3 else 'rule' if filtered else None
+                bloss='score_floor' if score<.35 else 'top_k' if ranks[ti]>20 else 'rule' if filtered else None
+                panelrows[rowi]['directions'].append({'direction':direction,'arm':arm,'query':qgold.qualname,'target':tgold.qualname,'status':'scored','score':score,'raw_rank':ranks[ti],'cross_file_rank':crossranks.get(ti),'query_lines':qgold.lines,'target_lines':tgold.lines,'same_file':same,'default_floor':floor,'filtered':filtered,'default_loss':loss,'balanced_loss':bloss,'query_markdown':qi in fields,'target_markdown':ti in fields})
+            for profile,eligible,k,floor in [('current_default',cross,3,.3 if qf.lines<6 else .5),('balanced',ranked,20,.35)]:
+                selected=[i for i in eligible[:k] if scores.get(i,0)>=floor]; candidates=[];details=[]
+                for rank,ti in enumerate(selected,1):
+                    tf=s.function(ti)
+                    if tf is None:
+                        details.append({'position':ti,'id':s.bg.documents[ti].id,'rank':rank,'score':scores.get(ti,0),'stage':'unavailable_source'});continue
+                    c=Candidate(new=qf,existing=tf,similarity=round(scores.get(ti,0),3),comparer='tfidf:2' if arm in ARMS[:3] else 'lab-explicit-markdown-v1:'+arm,filtered=why_skipped(qf,tf,settings))
+                    details.append({'position':ti,'id':tf.qualname,'rank':rank,'score':scores.get(ti,0),'stage':'filtered' if c.filtered else 'exposed','filtered':c.filtered})
+                    if not c.filtered:candidates.append((ti,c,rank))
+                fund=set(Ledger(settings).select(judge,[c for _,c,_ in candidates]))
+                queryrows.append({'query':qf.qualname,'query_position':qi,'query_lines':qf.lines,'has_markdown':qi in fields,'arm':arm,'profile':profile,'neighbours':details,'exposed':len(candidates),'funded':len(fund),'estimated_usd':sum(estimate(judge,[c],settings) or 0 for j,(_,c,_) in enumerate(candidates) if j in fund),'budget_policy':'isolated synthetic changed-function .04USD, no PR/reports/cache replay'})
+                for j,(ti,c,rank) in enumerate(candidates):
+                    if arm in ['owner_0.15','shuffled_0.15','baseline'] and profile=='balanced' and j in fund:
+                        exposures.append({'qi':qi,'ti':ti,'arm':arm,'rank':rank,'score':scores.get(ti,0),'candidate':c,'estimated_usd':estimate(judge,[c],settings),'reviewed':(config['repository'],s.pin,tuple(sorted((c.new.qualname,c.existing.qualname)))) in reviewed})
+            # Store top20+all gold targets scores/ranks, preserving all competitor sourceIDs and positions relevant to losses.
+            for i in set(ranked[:20])|{t[2] for t in targets.get(qi,[])}:
+                rankrows.append({'query_position':qi,'query':qf.qualname,'target_position':i,'target':s.bg.documents[i].id,'arm':arm,'score':scores.get(i,0),'raw_rank':ranks[i],'cross_file_rank':crossranks.get(i)})
+    query_seconds=time.perf_counter()-started
+    jsonl(s.root/'panel-rows.jsonl',panelrows);jsonl(s.root/'query-rows.jsonl',queryrows);jsonl(s.root/'ranks.jsonl',rankrows);jsonl(s.root/'unavailable-queries.jsonl',unavailable)
+    summary={'repository':config['repository'],'revision':s.pin,'background_proof':config['background_proof'],'scope':s.bg.scope,'baseline_full_corpus_documents':len(s.bg.documents),'coverage':coverage,'panel_pairs':len(panelrows),'panel_families':len({p['family'] for p in panelrows}),'panel_labels':dict(Counter(p['label'] for p in panelrows)),'panel_covered_pairs':sum(any(d.get('query_markdown') or d.get('target_markdown') for d in p['directions']) for p in panelrows),'queries':len(queries),'unavailable_queries':len(unavailable),'zero_weight_exact_score_parity':True,'timing':{'process_cold_decode_index_seconds':s.cold,'warm_rebuild_index_seconds':s.warm,'query_and_source_seconds':query_seconds,'process_peak_rss_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'cold_os_cache':'uncontrolled'},'arms':{},'limitations':['development/regression scoped operation labels only','isolated changed-function funding is not PR-sequence replay or report recall','no provider calls or useful emitted report measurements','missing source identity does not equal retrieval failure']}
+    for arm in ARMS:
+        summary['arms'][arm]={}
+        for profile in ['default','balanced']:
+            bylabel={}
+            for label in sorted({p['label'] for p in panelrows}):
+                rr=[p for p in panelrows if p['label']==label]
+                valid=[p for p in rr if any(d.get('arm')==arm for d in p['directions'])]
+                retained=[p for p in valid if any(d.get('arm')==arm and d[profile+'_loss'] is None for d in p['directions'])]
+                bylabel[label]={'retrieved_pairs':len(retained),'denominator_pairs':len(valid),'families_retrieved':len({p['family'] for p in retained}),'families_denominator':len({p['family'] for p in valid}),'retained_ids':[p['id'] for p in retained],'first_direction_losses':dict(Counter(d[profile+'_loss'] or 'retrieved' for p in valid for d in p['directions'] if d.get('arm')==arm))}
+            summary['arms'][arm][profile]=bylabel
+    summary['novel_funded_exposure_counts']={arm:len({tuple(sorted((e['qi'],e['ti']))) for e in exposures if e['arm']==arm and not e['reviewed']}) for arm in ['baseline','owner_0.15','shuffled_0.15']}
+    # Queue later only owner-specific exposures, unlike baseline/shuffle, with exact complete-source proofs.
+    basepairs={tuple(sorted((e['qi'],e['ti']))) for e in exposures if e['arm']=='baseline'}
+    shufflepairs={tuple(sorted((e['qi'],e['ti']))) for e in exposures if e['arm']=='shuffled_0.15'}
+    eligible=[e for e in exposures if e['arm']=='owner_0.15' and not e['reviewed'] and tuple(sorted((e['qi'],e['ti']))) not in basepairs]
+    unique={}
+    for e in sorted(eligible,key=lambda e:(s.bg.documents[e['qi']].id,s.bg.documents[e['ti']].id)):
+        unique.setdefault(tuple(sorted((e['qi'],e['ti']))),e)
+    summary['owner_only_novel_funded_pairs']=len(unique)
+    queue=[]
+    for e in list(unique.values())[:8]:queue.append(make_packet(s,e,'owner_novel',fields,tuple(sorted((e['qi'],e['ti']))) in shufflepairs))
+    # Matched controls: closest endpoint length to novel mean; same floor profile; deterministic tie order.
+    if queue:
+        mean=sum(e['candidate'].new.lines+e['candidate'].existing.lines for e in list(unique.values())[:8])/len(queue)
+        controls=[e for e in exposures if e['arm']=='baseline' and not e['reviewed'] and tuple(sorted((e['qi'],e['ti']))) not in unique]
+        seen=set()
+        for e in sorted(controls,key=lambda e:(abs(e['candidate'].new.lines+e['candidate'].existing.lines-mean),s.bg.documents[e['qi']].id,s.bg.documents[e['ti']].id)):
+            key=tuple(sorted((e['qi'],e['ti'])))
+            if key in seen:continue
+            seen.add(key);queue.append(make_packet(s,e,'matched_baseline_control',fields,False))
+            if len(seen)==4:break
+    jsonl(s.root/'novel-review-queue.jsonl',queue);write(s.root/'summary.json',summary)
+    print(json.dumps({'summary':str(s.root/'summary.json'),'owner_only_novel_funded_pairs':len(unique),'queue':len(queue),'panel_covered_pairs':summary['panel_covered_pairs'],'runtime':summary['timing']}),flush=True)
+
+
+def make_packet(s,e,role,fields,inshuffle):
+    c=e['candidate'];proofs=[]
+    for f in [c.new,c.existing]:
+        source=s.source(f.path);target=s.root/'source-proofs'/f.path;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(source)
+        # Same-file lexical call evidence only; no caller identity or runtime resolution is inferred.
+        lexical=[{'line':n,'text':line[:400]} for n,line in enumerate(source.splitlines(),1) if re.search(r'\b'+re.escape(f.name)+r'\s*\(',line) and not f.line<=n<=f.end_line][:12]
+        proofs.append({'path':f.path,'revision':s.pin,'full_file_path':str(target),'full_file_sha256':sha(source.encode()),'function_code_sha256':sha(f.code.encode()),'line':f.line,'end_line':f.end_line,'caller_evidence':{'method':'same-file lexical name-call sites, not runtime resolution; full file supplied','matches':lexical}})
+    blind={'repository':s.config['repository'],'revision':s.pin,'new':c.new.model_dump(),'existing':c.existing.model_dump(),'source_proofs':proofs,'question':'Do these contain a useful independently owned common operation? Bound scope and inspect callers; related topic or an already shared implementation is insufficient. Unknown remains unknown.'}
+    blindpath=s.root/'blind-packets'/(c.key+'.json');blindpath.parent.mkdir(exist_ok=True);write(blindpath,blind)
+    return {'id':'LINKED-'+s.config['repository'].split('/')[1]+'-'+c.key,'repository':s.config['repository'],'revision':s.pin,'candidate':c.model_dump(),'background_proof':s.config['background_proof'],'source_proofs':proofs,'blind_packet':{'path':str(blindpath),'sha256':sha(blindpath.read_bytes())},'private_sidecar':{'role':role,'arm':e['arm'],'rank':e['rank'],'score':e['score'],'profile':'laboratory_balanced','budget_reason':'exposed unfiltered and selected by production Ledger from full top20 per-query candidates under isolated .04USD Jev estimate','estimated_usd':e['estimated_usd'],'owner_endpoint_positions':[i for i in (e['qi'],e['ti']) if i in fields],'also_funded_shuffle':inshuffle},'provider_calls':0}
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--repo',choices=['openhands','litellm'],required=True);parser.add_argument('--inventory-only',action='store_true');args=parser.parse_args()
+    configs=json.loads(CONFIG.read_text());run(next(c for c in configs if c['repository']=={'openhands':'OpenHands/software-agent-sdk','litellm':'BerriAI/litellm'}[args.repo]),args.inventory_only)

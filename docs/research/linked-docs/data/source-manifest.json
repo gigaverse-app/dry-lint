@@ -1,0 +1,3176 @@
+[
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-f8aa95f9425a611251b6",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "f2010707a16537dd81dbd1d0378668de1f434ae469907b976bf9aba2f3ea9ab3",
+        "request_key": "589a350368120bc6b8e82f7d93446a6560597f2e9f0f97ee4e0327a70334c6f2"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "5bc4d4c6c5cba52977d253d754a31f73a9a3d373978c387d3a8b3453795f33e4",
+        "request_key": "4fa2ce9a6a5fa440c13d0f6113a22d5c9e2eecc71643e0cc174958d5137e99a8"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d92afbe05f07930be04d9dda6b260c5ab123b7a3ccbce810ae0f670e86600282",
+        "file_sha256": "e343b4b9df5ceee5d6b144e8a120aa773258332dc371649aa998f215c77dbc5b",
+        "path": "litellm/llms/custom_httpx/aiohttp_transport.py",
+        "source_id": "litellm/llms/custom_httpx/aiohttp_transport.py::AiohttpTransport.aclose"
+      },
+      {
+        "body_sha256": "98c9811000d1a5ede856a258ce0858712276c2b2ebf176594e7a6ce100c5cd02",
+        "file_sha256": "2c758ceb8a59a785cf56a82edcc836892977779bb2c5fd39a117ccf55d6e4cf6",
+        "path": "litellm/repositories/database.py",
+        "source_id": "litellm/repositories/database.py::Database.aclose"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-6630b913613bc7698a70",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "070c148074b469a3c9687e847edf4b86130eee9255033049d5a253a204c96053",
+        "request_key": "f6d852200ae20d95444b43fffb1d424127ce470c58e47e8a07527c8a33b55f83"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "e1284436f135965eff97c832ccf4ed60a7ff165677fedb744c532c874d76c2d3",
+        "request_key": "55d89e98db89e1abcf9257c09c80fb4eb26f90ba14d1bf8436d417ea14dbb87b"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "4835af6ebf5c35b4bc820f65069fb1908d8d96ef9f0bd91e0ee034881846134a",
+        "file_sha256": "461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd",
+        "path": "litellm/proxy/proxy_server.py",
+        "source_id": "litellm/proxy/proxy_server.py::ProxyConfig._reschedule_spend_log_cleanup_job"
+      },
+      {
+        "body_sha256": "8e67561658856a0516f2b071ae51bfd0c0142377bdbb9531d898248079150504",
+        "file_sha256": "461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd",
+        "path": "litellm/proxy/proxy_server.py",
+        "source_id": "litellm/proxy/proxy_server.py::ProxyStartupEvent.initialize_scheduled_background_jobs"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-e448d25f1de8da6e089c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "487ef61eab55982d877fc7317d0d2c998d2a182c0ba6011b07a6d260ec29e056",
+        "request_key": "c1970e31d0c1466c5c76741bd9db580deb21e931c579b1b614a10f2b5003f7a7"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "3bd12112f349e77f167ffcb986eaa8b1a59b85c1ac7b78c2adb52ccdcd946e9d",
+        "request_key": "b5dd8f6d1b344311929b04fd8ac1e100ab7f503faaf7a451e4f82c41ae1ced95"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "bbeb5123bd11909ba85d1c14dfa7cbcb0dba1355b56c2ad9bd953a2d10eaac08",
+        "file_sha256": "3d78add579cc8e76b43dd0c74fa6276d1153dce560ce113cf7fdaa444d26e8c2",
+        "path": "litellm/rust_bridge/dispatch.py",
+        "source_id": "litellm/rust_bridge/dispatch.py::PublicDispatch.run"
+      },
+      {
+        "body_sha256": "d4703e2f5d5df83520193ce02bd36328e8a8488b5d7945a4a47a21332b544763",
+        "file_sha256": "d7d74a5d8ae87e7e81123c0877a0612ba904cc7e7b18d8bcddfba47f82ce2072",
+        "path": "litellm/rust_bridge/runtime.py",
+        "source_id": "litellm/rust_bridge/runtime.py::run"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-151295cee20a0ddb8e40",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "9bb11cb492ced16a06274ef6ec96990539d6ac538f46149a16b52a3f314d675d",
+        "request_key": "59067fe7608351668d1ec81ff45a83066fed98f8b8e0af097b82e0062c8fc409"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9d3b54b555259cd7fe16cdb1a2a040a0bb7914b60faf2d06a6d5946ee8f5275a",
+        "request_key": "0c23767e2bcb032b068d68adb4bf7ab6fccde4314e0c44a7da63458349924681"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "b5943825051e51311a5170b709f3c3f6335329553278e4ae5ae7bbb08f01d06d",
+        "file_sha256": "0ee37a3e21e08873305e4dee6f896aa6f53493618639ad001bdccd757932e0bc",
+        "path": "litellm/llms/bedrock/chat/agentcore/transformation.py",
+        "source_id": "litellm/llms/bedrock/chat/agentcore/transformation.py::AmazonAgentCoreConfig._calculate_usage"
+      },
+      {
+        "body_sha256": "1694fa8606c6adeef28713c2304e32b0afd9c9f0579c7da9b2168870fbf9e626",
+        "file_sha256": "0deaafb88dfc0a26cb85e20ac66fc8eae4320f38f8691c68586abf67442532a1",
+        "path": "litellm/llms/cohere/embed/transformation.py",
+        "source_id": "litellm/llms/cohere/embed/transformation.py::_prompt_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-a528703932b6fa22c65d",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "6133faed9a7b6137e1288ab012a05eca75d32877863e6e87994407f1e9c2b314",
+        "request_key": "86267f5b9c6747cd326bbdb8e00a1c82189bfb01dc23d744bacd7c1fc3ee183a"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "d755c1882c3456d4f97a86d2b45646e2d1a9bda81c2d85b4c64107d0061083bf",
+        "request_key": "57dc8ea458f9b53b307dbc359f5660c0bfffda28380af959f7f2343848fb3fea"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ad48a575975c73e34517bb78089ab43fcf326f22576d27a692fdfb8882e2dea7",
+        "file_sha256": "a3faed2ee96179266646ed39a0493b83a02b9bbdb77f1dda912a878ec96b4db5",
+        "path": "litellm/caching/dual_cache.py",
+        "source_id": "litellm/caching/dual_cache.py::DualCache.attach_redis_cache"
+      },
+      {
+        "body_sha256": "0823b3362107cea97c202d635eadb2610361443ceab0aaee7238a627e8eb233e",
+        "file_sha256": "15ef3ba579199c22e76f0be8a69cfa06055fc7706f1d4917aef0824a12628f10",
+        "path": "litellm/proxy/health_endpoints/_health_endpoints.py",
+        "source_id": "litellm/proxy/health_endpoints/_health_endpoints.py::_redis_configured"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-d2bffa957c74fa87ef6b",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "18a9932995a934ebc258757f6600ba5d216fc0a77d54127e5a4f6c64ac76c321",
+        "request_key": "a12f2932078adb230ada63d56674a431ad141928703f9b5b12b8a457bbfd7745"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "2be3a503fcb70d9589a56d75c5212ce6d7c91b72fc2f30f686fceb509db70d05",
+        "request_key": "0cbc1c799121b2b23e01626280d877a45bdcfb47ca2b20082897265b4d13c40c"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ad48a575975c73e34517bb78089ab43fcf326f22576d27a692fdfb8882e2dea7",
+        "file_sha256": "a3faed2ee96179266646ed39a0493b83a02b9bbdb77f1dda912a878ec96b4db5",
+        "path": "litellm/caching/dual_cache.py",
+        "source_id": "litellm/caching/dual_cache.py::DualCache.attach_redis_cache"
+      },
+      {
+        "body_sha256": "3fbc6fc6948d2361acc73e86b677eda3602b6b9192f035139807d38261b8745d",
+        "file_sha256": "793a6c0dc19f3a875d44743ceb298c54c094aae5d05ce5b4e7a85796e75d2184",
+        "path": "litellm/proxy/common_utils/user_api_key_cache.py",
+        "source_id": "litellm/proxy/common_utils/user_api_key_cache.py::UserApiKeyCache.attach_redis_cache"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-48a761e7800c01fb7e28",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "4ca73dbf2454b0b699ce2fb7f289db3c97323891aa7e3d4b15e6bd694c1eaae4",
+        "request_key": "45db916af73f9488c6b951d7d72b69288c8cc124355cbb6038340267d9402267"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "c3063cdf3c76b4d2f792208eca10834e46ee8508a41b4b7d14979ceb707836cd",
+        "request_key": "c18f6e5d639e5a5fc7be417590471cdea37f1e337b36b01a3bce396c214b7844"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "7c1626d85d1b2f7cd27e5fd7732cc5ddcbe635d9d68553da13dd4a640cb7fc38",
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "path": "litellm/integrations/otel/logger.py",
+        "source_id": "litellm/integrations/otel/logger.py::OpenTelemetryV2._emit_mcp_list_tools"
+      },
+      {
+        "body_sha256": "8116bce650fe5371be620ed22f601dec2f65e34f01c10585c3c71459358d273b",
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "path": "litellm/integrations/otel/logger.py",
+        "source_id": "litellm/integrations/otel/logger.py::OpenTelemetryV2.log_pre_api_call"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R1-367716a4560cba0cd6fb",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "067db8864e234ef9c969a188164d26137bd6329cc6444bcef3c29f3a6b9f6014",
+        "request_key": "fb5440c7fce49f945daba34b968fa7a9ed2797a765d1e95aefe108b62ecf5a7a"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "f194e804814bdde1b7b24685ce01577685a41f6321b54ece3e1e76c0641a78ec",
+        "request_key": "fd041e6c3edb615bf2078a6dfcd4867c8545e28c688db8084e0aae26d09ceb23"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "5d69278e3df1f6ec76e40a9b1faaa68d4c2e63256b75f66aacca5351f0bef2e1",
+        "file_sha256": "2f8150764a539f3b90040f08f02833ae45992c87873eb04d537380a46eab778e",
+        "path": "openhands/tools/task_tracker/definition.py",
+        "source_id": "openhands/tools/task_tracker/definition.py::TaskTrackerObservation.visualize"
+      },
+      {
+        "body_sha256": "324fade1e5482ebbeaa3cbb7538efe9c371ae3a30be1e2fbc72060d825359a1c",
+        "file_sha256": "8eaa0599f70f2a0797bae0c998b26095c95e6546f912562c4376cbc49f57fe05",
+        "path": "tests/sdk/conversation/test_visualizer.py",
+        "source_id": "tests/sdk/conversation/test_visualizer.py::TestVisualizerCustomAction.visualize"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-98489bf6ab6ae97d27ad",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "2ec6b8e1d2fb3991e009e67b3c2c56609b90a681db2454df0b36887b38ae0fc0",
+        "request_key": "5df2fe8f59e50db005cd69f2fc67e79cab7bb17d1eda71a0b1c985b097f69c84"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "8c8a9249fdd4a1b903c49659a8aa15a132731e8fb9d12160fa96dd642da7adbc",
+        "request_key": "8624c1a6b8f056f4fafbdb806809e92d4fd58dd37f82baed79fb236745f4ea5f"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "0802e3ea6bb2af761bac5d75c23e997fe3fe85bcefb589e18940c88f31ded763",
+        "file_sha256": "78b3168c7151af777a299d96dff6d4958afa37469e637663196ad461a95a6df8",
+        "path": "litellm/caching/caching.py",
+        "source_id": "litellm/caching/caching.py::Cache.async_get_cache"
+      },
+      {
+        "body_sha256": "0862c1c756311fa45900049076e6975435d7142c1311c9b9145933c4ba372836",
+        "file_sha256": "78b3168c7151af777a299d96dff6d4958afa37469e637663196ad461a95a6df8",
+        "path": "litellm/caching/caching.py",
+        "source_id": "litellm/caching/caching.py::Cache.get_cache"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-f4560b3d6b9835e83c38",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "96306f3f094fceba776bdbd376fe015a84265f88f00121951a158d0804facaf6",
+        "request_key": "be12d8f4718c07fffae5db47ee6c9c001ff6a6a0bebbd3ae437f67a0a569765e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "fa9505f1d5266cf62712a2ba28718f125deaddc9f54b15e285c8c2d02a73bdbc",
+        "request_key": "3c893464d2419f62f6c8a52f5b9eb738289554d0dd43bda1b3aa900df4d10452"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "caf1d00ae81457f934c2f24fb1daee2016f1f4ce4053690595fcaaa429ea21f1",
+        "file_sha256": "c84df12bec296e425ce01cadaf696d4b1759ecdbd809fa38f6074f3f2c547c28",
+        "path": "litellm/utils.py",
+        "source_id": "litellm/utils.py::ProviderConfigManager.get_provider_skills_api_config"
+      },
+      {
+        "body_sha256": "4170b0c80bd0ec90894d7a55627f4f1a7081bf7a21fd0d608e7cb177eb4218e6",
+        "file_sha256": "1ed99374f696918889a63d950895e5ebfd98ed76a4d8358961dd82d0c4fed368",
+        "path": "litellm/main.py",
+        "source_id": "litellm/main.py::_provider_config_items"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-428ea556fc35c2ee58e1",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "ebac0d58c87cd0704a7a2d4ffb9fa24f4c19d38ed3fc0bc8aeafb4106c704f9c",
+        "request_key": "56016dd07ac400812ede599460e5b92831cad7fc934c8bc38ec2ec9e2e9ed8ce"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "f1a11dd53a41f6e663fa74ea46e749623a552633cddc1d5a726a85ce6d236060",
+        "request_key": "a8dc55aeb092f1406479ec6da918103b8c0ae2441c2ad9810c2931bd39419e4e"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "9173454819c8ff006b20ce08e15f086d44e8578c4a9f68ede489e75efa3113a6",
+        "file_sha256": "c84df12bec296e425ce01cadaf696d4b1759ecdbd809fa38f6074f3f2c547c28",
+        "path": "litellm/utils.py",
+        "source_id": "litellm/utils.py::ProviderConfigManager.get_provider_responses_api_config"
+      },
+      {
+        "body_sha256": "7db499fa66a7310b83f1710812dbe7b3a66ede72d8d2bfda276855fb21fd4b87",
+        "file_sha256": "5f427cb0180ac7ce7cc61e3e7cd77ee7158b1bc384ca852cd3561a17dae4634b",
+        "path": "litellm/responses/litellm_completion_transformation/tool_search.py",
+        "source_id": "litellm/responses/litellm_completion_transformation/tool_search.py::provider_chat_config"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-4e881a5328418e50158f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "463a9116ae43c9b4bb6c1e60ea3d31f00f02bec9a1b4e23ec659f116b36fb971",
+        "request_key": "27c2da479e31ba31597c3bab92cfeaf37e8f964d8dd36b9e275959058882fcd0"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "0553710db047b60f75eab9a2ebf0dda2bfac7adfd9e45bbfccde33b2cae17223",
+        "request_key": "74f707c525f6ca04084666a28a11aa4e06e8d05fbdde57c609c834b7f1ef4ada"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "7bae90df29b597a3af3fa887667614b1b878b60a4ed30aa1fca8717f976a6c08",
+        "file_sha256": "461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd",
+        "path": "litellm/proxy/proxy_server.py",
+        "source_id": "litellm/proxy/proxy_server.py::_get_provider_token_counter"
+      },
+      {
+        "body_sha256": "4076a5ca64000e1a9147718095188642f8c9e4980e9a74fc4cb788999d57ac9a",
+        "file_sha256": "0ee2200b46394eee470fcdc57cd31e59c0ac0d2fb6d92fd4c1b0b70acf82a604",
+        "path": "litellm/litellm_core_utils/reasoning_effort_capability.py",
+        "source_id": "litellm/litellm_core_utils/reasoning_effort_capability.py::_provider_model"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-a4a1e8162d5dd85c6df6",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "c5bfa0fe0948730d6b99b4ea68f6feaf9d0db8980cd24c69da249259cb11a0e1",
+        "request_key": "e2ca9ab272740059ebfb19767f00fd41a84a84f1a9db0647b573398e9e8eacfc"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "fadc1d7d89f011ca97d7b6a49c4f32656fcbfc83ec879252a426fdb3d5a2de97",
+        "request_key": "a1d1f1a9f7c2f883f14b4061b01ff0a167f0844ab92e1c1c638b4e0a1a163f12"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "25abd8fb6e54626c583896a826cfc745bc24900f9f161aa43d79dec19be4d0b2",
+        "file_sha256": "6ab7337d129ad617ae7a37567771eda0f58d23f240046f544dd486384ee1bf13",
+        "path": "litellm/proxy/hooks/proxy_track_cost_callback.py",
+        "source_id": "litellm/proxy/hooks/proxy_track_cost_callback.py::_ProxyDBLogger.async_log_success_event"
+      },
+      {
+        "body_sha256": "cf117e007919e7ebd5c9a2cc4df9872c033e3a16f70992b1f3f859f21be49d27",
+        "file_sha256": "3136a3a870650102b2d567ea62acdf4daaa429bdbe3375a334590bf756945c54",
+        "path": "litellm/integrations/newrelic/newrelic.py",
+        "source_id": "litellm/integrations/newrelic/newrelic.py::NewRelicLogger.async_log_success_event"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-6371760e13f887944a23",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "3ed1b8697b7a15ed9c71d2c4a5079e9a5cb64bfb08163ee9fb885c9c71ad6cce",
+        "request_key": "d1a3833114db485477085d3efaad245bd3b2a44eb40132c6b1ac01f8c409ce79"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "248e807bcdfb82d8a97d705ce7c039c57cad7540026053a45c24b63d25732080",
+        "request_key": "c72206312922ce4b297927879a92463a43d5e43eb70509e64c753abf251aaf61"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "bbeb5123bd11909ba85d1c14dfa7cbcb0dba1355b56c2ad9bd953a2d10eaac08",
+        "file_sha256": "3d78add579cc8e76b43dd0c74fa6276d1153dce560ce113cf7fdaa444d26e8c2",
+        "path": "litellm/rust_bridge/dispatch.py",
+        "source_id": "litellm/rust_bridge/dispatch.py::PublicDispatch.run"
+      },
+      {
+        "body_sha256": "922482c13e3aba5a3d15580b2dc413af8a9f54143bd635b4a6a787c0c86eddbb",
+        "file_sha256": "d7d74a5d8ae87e7e81123c0877a0612ba904cc7e7b18d8bcddfba47f82ce2072",
+        "path": "litellm/rust_bridge/runtime.py",
+        "source_id": "litellm/rust_bridge/runtime.py::arun"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-2cb0ca300d5293f605ab",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "91510ecdeeeb8091dfad9454fb200e604f64e54643be6e2ff882f9af3eec4c6d",
+        "request_key": "8240b06dcc4b1dfb2df1307ef066ee8e7108cca72b947f43dec53c941f094140"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "d969a4410aa2b86800955ce736ac50857675c99f853dc39bff4943a68ba31e1c",
+        "request_key": "61d623d73aca060f763c812869eec03d495373b5e93f68961766766be00e8822"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ad48a575975c73e34517bb78089ab43fcf326f22576d27a692fdfb8882e2dea7",
+        "file_sha256": "a3faed2ee96179266646ed39a0493b83a02b9bbdb77f1dda912a878ec96b4db5",
+        "path": "litellm/caching/dual_cache.py",
+        "source_id": "litellm/caching/dual_cache.py::DualCache.attach_redis_cache"
+      },
+      {
+        "body_sha256": "e0f1fa695d45cddb8a9fc5ba59a9c819157a16042b03efab51f410ce190e9266",
+        "file_sha256": "1a960f1bac3bb299691b8c7b5d6240d7a0eef22d88493e260cf2d74b4c761573",
+        "path": "litellm/proxy/health_check_utils/shared_health_check_manager.py",
+        "source_id": "litellm/proxy/health_check_utils/shared_health_check_manager.py::SharedHealthCheckManager.__init__"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R1-b27c42dd6ca65dc3b24c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "c285e24e73e9942b823e770eadded9f5d035f96ee00e4981fc5c2e7010c053ee",
+        "request_key": "d625879f783464d6ece1da0f790b46934c01930b98e4d64fb41a6e1e12dd219e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "7c6000db7a63b3fc4f6afc9e25f740d52091f9f8f8e2e9ed65b37c52073c5d66",
+        "request_key": "5eb994d77a81729810eadf6a84ef2ec5bfbf6ad894b9b574e4b53bfce9f683c7"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "84e48ce7dccf9b85f3427207845b8af71b26cbfc7d4ea1c023780d1f33fee852",
+        "file_sha256": "e54e2ffb3e43f33843ac4d3b9c0503301e046cd81e6c12bddf78f1a468189ad4",
+        "path": "openhands/agent_server/event_service.py",
+        "source_id": "openhands/agent_server/event_service.py::EventService.search_events"
+      },
+      {
+        "body_sha256": "28bec40282fe615cf1381a0100fcc6149784075c3ee84e54d1dd704fb5ec515d",
+        "file_sha256": "e54e2ffb3e43f33843ac4d3b9c0503301e046cd81e6c12bddf78f1a468189ad4",
+        "path": "openhands/agent_server/event_service.py",
+        "source_id": "openhands/agent_server/event_service.py::EventService.count_events"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-e252f4368f87b355c8ef",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "1efc7ff3c9a80c0426a99069ba57c058a512f7c068e1f0080d0bdad82db8088f",
+        "request_key": "0c801de2d7d8bb3e3c94875c354596b63743059b3277a56c06aa72b1c55cee07"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "676e6c5b549fefae641714bace56a22f1ed43c424cf266f3f79525720d07e724",
+        "request_key": "3f352bdc7ed99103c001be4ed9d6209c9eb838db7858ec69069db8a7f308b971"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "9d41770588c21aab1cc8a19450f4bee0071438a1a8640f78ec5bcce78c4d84e6",
+        "file_sha256": "5119b33be8195256783174ddbe428342f4bd9146937e38ce0bc0ae9edcb030d7",
+        "path": "litellm/litellm_core_utils/litellm_logging.py",
+        "source_id": "litellm/litellm_core_utils/litellm_logging.py::Logging._failure_handler_body"
+      },
+      {
+        "body_sha256": "efd4531b67476193e0f3f764cecae14bd99757bf5d4601b1a1fc094e15ea02c8",
+        "file_sha256": "5119b33be8195256783174ddbe428342f4bd9146937e38ce0bc0ae9edcb030d7",
+        "path": "litellm/litellm_core_utils/litellm_logging.py",
+        "source_id": "litellm/litellm_core_utils/litellm_logging.py::Logging.pre_call"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-10daa36c877c294ce4ab",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "dbd36f1a0826f28ea88be810258734599aa3437433ef6e36f1cb0edfb1350b5e",
+        "request_key": "9adca21f0f86127a83335b6ef653fccb3bc16f2ced7fb30768df72d496c8effa"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "731f8229d212129f14db1f9ca7a530b7b23c4f4b2410c0c14e742891a65b33fb",
+        "request_key": "88ab5c91e178ea1a9474509746817ee41a56d2f908fec7cb9c40dcd88886a2c7"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "63cbbb573f962e6c5e357a1fada3deee9d549fb64edb2d2a70911fb2c31351c6",
+        "file_sha256": "2fb701435ad9a1ead76dfc4cb04d4a0691ab41606dc050818425330835e91d72",
+        "path": "litellm/integrations/otel/emitter.py",
+        "source_id": "litellm/integrations/otel/emitter.py::SpanEmitter.emit"
+      },
+      {
+        "body_sha256": "8116bce650fe5371be620ed22f601dec2f65e34f01c10585c3c71459358d273b",
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "path": "litellm/integrations/otel/logger.py",
+        "source_id": "litellm/integrations/otel/logger.py::OpenTelemetryV2.log_pre_api_call"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-cfb4c9a9e338d721733b",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "b5332b63a1086786a0a8e45d693cd46fb3cc8869996d4a3f90074d3016a84018",
+        "request_key": "b36e2fec36063029dc1dfabbcd9c0afefd4e9992b8aafac9cf7a2078a66f7d44"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "fc7d205b91063f8d3c40f27e8c6ac1964d3315d646fe3db6c1ec666caa9e468b",
+        "request_key": "f70ddae29eb0983eee7f5541de47fc9c4b9bf0d1bb8ed07cb1db285ffcf075db"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "9173454819c8ff006b20ce08e15f086d44e8578c4a9f68ede489e75efa3113a6",
+        "file_sha256": "c84df12bec296e425ce01cadaf696d4b1759ecdbd809fa38f6074f3f2c547c28",
+        "path": "litellm/utils.py",
+        "source_id": "litellm/utils.py::ProviderConfigManager.get_provider_responses_api_config"
+      },
+      {
+        "body_sha256": "1410a40b1ab73bfa04f5db41b8b56243d6ca4a2aec1196d79355fe8a638a6c0a",
+        "file_sha256": "c84df12bec296e425ce01cadaf696d4b1759ecdbd809fa38f6074f3f2c547c28",
+        "path": "litellm/utils.py",
+        "source_id": "litellm/utils.py::get_provider_info"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-c816de107855b8a2429c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "ff8bffa71adcb8355576f2623e26efb3bb61a36b62727b1520cdeb1b6b0e8ad8",
+        "request_key": "dfc91a853d829fc0e9dfbfa48a8de4c796f544b5099893c2f64d38a781cc0265"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "fac8b159871bfa6abcd1475c3c3ed47fd27cd3c64c4c5dd86156b6a00f0fee56",
+        "request_key": "ea0ea16d66c428208379d9a3c1715f958fd62de4811dcd9ce1611fa079509311"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "fa1b6a15b22279323250e406fb693095a9df699ff0b8c45f5b7e11284c584989",
+        "file_sha256": "ae1a4b1d54f9c957c0a1104329e1e6db5ea755bc721c5f44b9ff28c066247dac",
+        "path": "litellm/interactions/utils.py",
+        "source_id": "litellm/interactions/utils.py::get_provider_interactions_api_config"
+      },
+      {
+        "body_sha256": "9860e29fee51308d851357e3e6cfbc2dcaaba75f25e696bd732964242e9f3086",
+        "file_sha256": "dbb96c90aaf354e115ccac5be905269932aa24671f58fbd902c58fbd401d7211",
+        "path": "litellm/llms/openai/responses/transformation.py",
+        "source_id": "litellm/llms/openai/responses/transformation.py::_provider_name"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-f8b2e0fac7a22de5506a",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "aba405ab4f3c3fdcb99bdcd6fe156f0bed12821ecd4ed74b0e41075fe6824497",
+        "request_key": "900f414c0cdd4e29a66eb1f4ef930824c4cee62b9ef081fbd08fa4f750834240"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "c5fd59a7b7b7c8c4ce50f808e4e36e839ece2141f310c8505fdd2b2757eac1d3",
+        "request_key": "d8075a20d9a2decee7c7326b640bec6b3eb43ed683cb7286be4844a1944d983e"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "25abd8fb6e54626c583896a826cfc745bc24900f9f161aa43d79dec19be4d0b2",
+        "file_sha256": "6ab7337d129ad617ae7a37567771eda0f58d23f240046f544dd486384ee1bf13",
+        "path": "litellm/proxy/hooks/proxy_track_cost_callback.py",
+        "source_id": "litellm/proxy/hooks/proxy_track_cost_callback.py::_ProxyDBLogger.async_log_success_event"
+      },
+      {
+        "body_sha256": "227c8aa0edee47e34a7c68fda09d355222a504ad857a0ff00af4fb5c18ec29b6",
+        "file_sha256": "669b4aee8a481bf04402385c677755e0c6bc8a962b49447aafc02f25f63edbbe",
+        "path": "litellm/integrations/opentelemetry.py",
+        "source_id": "litellm/integrations/opentelemetry.py::OpenTelemetry.log_success_event"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-9dc68a13203fd5eeecab",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "8d37760a5574d3ff41e208cca3fc03e51e43be29c575600bd3cd65631a19586a",
+        "request_key": "d2939ad37bebb309fd756819f7eac758a07fef9d779d30ac031d77114910aba1"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "3cda70bde76fe4bd281d46e6315503e275905cd2d9649aa84e554ac131d1ec83",
+        "request_key": "d53cf2e4fdfa08e3ea4da57a5162e79b5fb9ec2f987788bc67326396a40f885d"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ad48a575975c73e34517bb78089ab43fcf326f22576d27a692fdfb8882e2dea7",
+        "file_sha256": "a3faed2ee96179266646ed39a0493b83a02b9bbdb77f1dda912a878ec96b4db5",
+        "path": "litellm/caching/dual_cache.py",
+        "source_id": "litellm/caching/dual_cache.py::DualCache.attach_redis_cache"
+      },
+      {
+        "body_sha256": "6d3969cda3a9963abb442188a7c5f3632f8105c957f888991c4331d7466e3a1b",
+        "file_sha256": "30cabde0508421b5a49cb4ecce1be496c1a5dd1cbd9156bc49fd7e58935b1f03",
+        "path": "litellm/redis/stores/spend_counters/__init__.py",
+        "source_id": "litellm/redis/stores/spend_counters/__init__.py::SpendCounterStore.attach_redis"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-a1410623295c519951bd",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "8fe044028b004c890cc46337617a86c64b14d2d710f3fb1782b7122e55299324",
+        "request_key": "941d444e9f99ec398fda871ecc6c2537ff108f10aee4f968b3a6186b97014aec"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9f454fefb9e1cea912390407ec6a52ff46b1b331d8e78523bd1b966f6ad01dfc",
+        "request_key": "a2533ad0faa60cc2bd9e59db3cfeee7d38e83c6e9b6dc3da47202f00be23d980"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "eb48b6a7c53c85782b13203be6cf9afa7cdec24e727cb2bcef01f748aee212d6",
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "path": "litellm/integrations/otel/logger.py",
+        "source_id": "litellm/integrations/otel/logger.py::OpenTelemetryV2._emit_mcp_tool_call"
+      },
+      {
+        "body_sha256": "8116bce650fe5371be620ed22f601dec2f65e34f01c10585c3c71459358d273b",
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "path": "litellm/integrations/otel/logger.py",
+        "source_id": "litellm/integrations/otel/logger.py::OpenTelemetryV2.log_pre_api_call"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R1-e5919bd78f0c403b3359",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "434627b267332137178e5d5d354f08ca59ad48a84f3e4d4529f3d464f6495631",
+        "request_key": "cabd08560d7151c21c35203bbdb0798a05a835c180f8fad30490061a0c6c0d5f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "87b6d6619ecc8fcd9b66b053fc6b6d6e3528b7914e2b113733b877e89297e8c7",
+        "request_key": "ff1199c34026c4fff3898f9c2d8f79086b3825aa7d0246a1ddb27c07080a14fa"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "1d1871750aa6703d65c204c3dfa3ad5e6227764f2c7ab459569b8f3608a60211",
+        "file_sha256": "5f783b91eb5a3b12c5e31ff2e867771925566ad515f130b6aef71ce49d9fe576",
+        "path": "openhands/agent_server/desktop_service.py",
+        "source_id": "openhands/agent_server/desktop_service.py::DesktopService.stop"
+      },
+      {
+        "body_sha256": "9e6b60046b1f2bac928bc8f1a1ba5c1652c490ec6a3f1de644ffd78e3c66dee7",
+        "file_sha256": "544fb30cca834ad36eb55c0a4d068316704c0b3c636c853676382e36db8f6cf3",
+        "path": "tests/integration/tests/t05_simple_browsing.py",
+        "source_id": "tests/integration/tests/t05_simple_browsing.py::SimpleBrowsingTest.teardown"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-92e61339b1e81aea96a4",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "f3529ded57a1908328cdcb0a108368009bfa3274c3d61bd02ee0d1f422a71cb6",
+        "request_key": "28c009d7b04fed2c86d19e7f9e633cdde395a90593ea6fe910e3c83a45de7f57"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "d3621e8204d147c7215236ceb3a9a39c5cd0e0d477e7a8b3599d382930835d0a",
+        "request_key": "9f718138350b1f29270598960f8f485a82f41344b60f7cd2bafbe28001c525d8"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "20c0e00dcd3244333c3accf2b694bc73fa41ce19cec3a5402fb9f47773c76118",
+        "file_sha256": "78b3168c7151af777a299d96dff6d4958afa37469e637663196ad461a95a6df8",
+        "path": "litellm/caching/caching.py",
+        "source_id": "litellm/caching/caching.py::Cache.async_add_cache"
+      },
+      {
+        "body_sha256": "0862c1c756311fa45900049076e6975435d7142c1311c9b9145933c4ba372836",
+        "file_sha256": "78b3168c7151af777a299d96dff6d4958afa37469e637663196ad461a95a6df8",
+        "path": "litellm/caching/caching.py",
+        "source_id": "litellm/caching/caching.py::Cache.get_cache"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-bb40613742743d7986fd",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "9e025047cc1bf1fbbc7db0a87f6c9d930b888aef8aa82ccffc07cfcbb73aff5b",
+        "request_key": "d8dfc485e8cbb0d88e8f1b9b81198e0ce184df8fbf180f937b3884f15b244cad"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "6ec9aaeb792807e4d03d22ebd245c84f7eb041585e896fe3a2289b2bd1808bc9",
+        "request_key": "7c63e5cfcc40a8f9e3a51b2c68d9d7f9f6a68cfcfd16c36b095304e68bf58bf7"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "1df309c1ff8a11981ae339f652f9e22ee44a8b90605e4d8c990c718e567a55e9",
+        "file_sha256": "ee01d88790ffaea65d5fc82d661e2ecde710ce4d912733246befd871ba5c4fe4",
+        "path": "litellm/responses/main.py",
+        "source_id": "litellm/responses/main.py::_resolve_responses_api_provider_config"
+      },
+      {
+        "body_sha256": "9173454819c8ff006b20ce08e15f086d44e8578c4a9f68ede489e75efa3113a6",
+        "file_sha256": "c84df12bec296e425ce01cadaf696d4b1759ecdbd809fa38f6074f3f2c547c28",
+        "path": "litellm/utils.py",
+        "source_id": "litellm/utils.py::ProviderConfigManager.get_provider_responses_api_config"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-32e2bb7f485fba0d600a",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "548f625854a174bb4fe09eb176dce01fd10c7880ff7424fc65d1944020efc45e",
+        "request_key": "faf3e74d913815bdb7a3d4bd701290ffc113c3506a1797f93025a0702d690772"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "5d3d8e3eada65842853b94e4fb079a42ac834acbb4764af216836a45216a0452",
+        "request_key": "a623ae55703b4153f49e172cfa919714b10eabcf0d3514eabbd9f0ea0e881d8e"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "25abd8fb6e54626c583896a826cfc745bc24900f9f161aa43d79dec19be4d0b2",
+        "file_sha256": "6ab7337d129ad617ae7a37567771eda0f58d23f240046f544dd486384ee1bf13",
+        "path": "litellm/proxy/hooks/proxy_track_cost_callback.py",
+        "source_id": "litellm/proxy/hooks/proxy_track_cost_callback.py::_ProxyDBLogger.async_log_success_event"
+      },
+      {
+        "body_sha256": "40e0d0783e9e9f2642fb6ce9426d1ab4d4a4844745f6fc442fdd5cf6c22b4c44",
+        "file_sha256": "3136a3a870650102b2d567ea62acdf4daaa429bdbe3375a334590bf756945c54",
+        "path": "litellm/integrations/newrelic/newrelic.py",
+        "source_id": "litellm/integrations/newrelic/newrelic.py::NewRelicLogger.log_success_event"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-179d2f42c9cfc4124109",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "d2d08cce0db59aeabb8df76ec42d6ac33877bcd86058eda42807f97f4de75b33",
+        "request_key": "cf71a717303f386f1ab0faeea1ec6d6bf135cc3f29033b5915f854284893cdd8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "92ed6bb72a2ac2d10e13772ffa813775e86498930a54473f98d52834742d1a17",
+        "request_key": "26aae57224df65e3901ab4d9f1241eee24888f13c68b9abd7f5d02a0b1a08d95"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6071b29c1e41716cdea699ddd28c57ab54b678554d0484e94053e418c5c35d83",
+        "file_sha256": "87ce85e61b30656d22f79b7f7e433bfac472d4cfbd4051128832aba53e9b759f",
+        "path": "litellm/llms/xai/chat/transformation.py",
+        "source_id": "litellm/llms/xai/chat/transformation.py::XAIChatConfig.fold_reasoning_tokens_into_completion"
+      },
+      {
+        "body_sha256": "1694fa8606c6adeef28713c2304e32b0afd9c9f0579c7da9b2168870fbf9e626",
+        "file_sha256": "0deaafb88dfc0a26cb85e20ac66fc8eae4320f38f8691c68586abf67442532a1",
+        "path": "litellm/llms/cohere/embed/transformation.py",
+        "source_id": "litellm/llms/cohere/embed/transformation.py::_prompt_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-ebb31a1694aff97978ea",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "b2ff635265950be35bf6f7c4e202185fdcc39ea3f6db51389bd2edfcc7d13913",
+        "request_key": "f50c9dba6ca4975d9b3c7fa0280018a5fa4de4050d25f5df7c80027be120f135"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "433e43c8847e121b29cb6d9506be916bf4a07c6e240902208d959bde95ac33d4",
+        "request_key": "535286ca889b6b3a40e9e1352f9a2fd3a035137e32e049afbb4f2d1b882675be"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "ad48a575975c73e34517bb78089ab43fcf326f22576d27a692fdfb8882e2dea7",
+        "file_sha256": "a3faed2ee96179266646ed39a0493b83a02b9bbdb77f1dda912a878ec96b4db5",
+        "path": "litellm/caching/dual_cache.py",
+        "source_id": "litellm/caching/dual_cache.py::DualCache.attach_redis_cache"
+      },
+      {
+        "body_sha256": "c57c0af777488b06193d3ab485ca91d03915a4dc1e85e6afc7b82910e51fc009",
+        "file_sha256": "bc8995f88f7e4169da5cfdfe68539767def1e527fcead9d18def1e5c206052b2",
+        "path": "litellm/proxy/common_utils/config_sync_pubsub.py",
+        "source_id": "litellm/proxy/common_utils/config_sync_pubsub.py::coordination_redis_cache"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-8d4ff5d979a3c13bde59",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "f644481f44786e7e92ffe67a9e2e046fbcb23a4d82f8dd9a481d70084160a18a",
+        "request_key": "89a5ab2417b001dd949e21d889726a0ba8cc655c141f6ae2d43c5d1d80cda760"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "a9d2b645f567c63e5c2e1bee1375781549d903a330eefb953763e6af1ac58ffb",
+        "request_key": "6355a82248f9189f5df575ddec90c8876ceed9e83c68224e72523e0923584c53"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "29a2fa6f3ee84bcddecf8944234050b362375084cfbc97fa42ec804004e0b897",
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "path": "litellm/integrations/otel/logger.py",
+        "source_id": "litellm/integrations/otel/logger.py::OpenTelemetryV2._finish_carrier"
+      },
+      {
+        "body_sha256": "8116bce650fe5371be620ed22f601dec2f65e34f01c10585c3c71459358d273b",
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "path": "litellm/integrations/otel/logger.py",
+        "source_id": "litellm/integrations/otel/logger.py::OpenTelemetryV2.log_pre_api_call"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R1-2e5e42da6ea7664628aa",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "8a8d7bdb9770ce8bcb0b3e6d8333e8a54cf88fd2c872b1c06d2d91cecf41d5c9",
+        "request_key": "ab9907a4d5dbe675483b948e0eea00d90b60f8657b6e27a101f02be5cc313242"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "3b480d6a8556b2e56b179805f8a0dbf7fe9cacd028544bd0fbaec315f9dbd212",
+        "request_key": "20cd9e14749c4501dd7e47080da1e08f0a99cb2b966937c18763e39b57256dd8"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d4ed8b6a734dc1005f3afdee889cbc2866fa9a99a2cdf4249ff0a18e9bd7459f",
+        "file_sha256": "2e76aefa63df96ca4e3abf7428355c2b8a9ebe8879fe02029673e2f0e0eea0a7",
+        "path": "litellm/router_rust/core.py",
+        "source_id": "litellm/router_rust/core.py::RustCore._core_arm_routing_read_prefetch"
+      },
+      {
+        "body_sha256": "2a2ebd3c52c97da4fab9a1444e77629de1fee60810994b81b405dc74df137a2e",
+        "file_sha256": "37610823a2ecf584ff0488e505645186e774cbbd07d3e4efc4c4bcb4f22341a7",
+        "path": "litellm/router_utils/routing_read_batch.py",
+        "source_id": "litellm/router_utils/routing_read_batch.py::RoutingPrefetch.arm"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R1-005535c828896225f6ae",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "dc0a1ce1fe9866d2f01a32b5bc6d08e95c8f38eb7ad3c179493c897e4c722ce6",
+        "request_key": "451824b52e1e84df332c3e0c31ee088b1fe63a52f4fa1b806d503f6f50a38c4e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "8b91d110fdc087aa19ebdfa55fa88d6f722b50a7033f09df6998939f7f1b1fc6",
+        "request_key": "846297583fc219bb484011b83b39a1826c6cfbca2c375c0dcf47ded43ff4a5b3"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 1,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "991c5c67582dbe72207f97c100c4fa49f34fa8bebc82318db1cb5936ec85f11b",
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "source_id": "openhands/agent_server/file_router.py::upload_file"
+      },
+      {
+        "body_sha256": "8dac528104ab7804e9223ee3cce2570fdda5460e2e346f010cca11be630e1041",
+        "file_sha256": "9146748ede2f076a46634404d28c4b135bb2d64b1f20463010b21b452e1a46d4",
+        "path": "openhands/agent_server/conversation_router.py",
+        "source_id": "openhands/agent_server/conversation_router.py::run_conversation"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-c79b6118ec0a1c503866",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "9519322ea6e99da882843cf29187a9029c4cdf7ec41ba021644fd230d5ce1cfc",
+        "request_key": "d5c0f7a919c9bc00c07156f27e19b3180c78162e5713fed2672604fa292cdd3a"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9a02b058444dd33aac9e44b37a0b1e723144eaeb500a3c9696cc86c66dd5686c",
+        "request_key": "9dc479a10ba9d951a57a14b0bd234db63e26810502755d1a042ac0568a6f3584"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "ff8767251d93e8809afbc2f61d7448844dc51864109f23cbaf9d15f9a19d39d6",
+        "file_sha256": "4ef1305e8e02556fc4021bbdccfdc480dd2df601085a55aa17f07c0c1ac001fb",
+        "path": "litellm/llms/anthropic/messages/adapters/transformation.py",
+        "source_id": "litellm/llms/anthropic/messages/adapters/transformation.py::LiteLLMAnthropicMessagesAdapter.translate_openai_usage_to_anthropic_usage_delta"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-7de6eddfae2d5c02be41",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "c0832a9b889ba70f3df43e9b26a1a6ad89df19a309b59bda6d39c617a0945152",
+        "request_key": "5ca26485212d5f55465a84334d0b27854eaa8bb55139bc1a9a300aead2b34185"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9ce3356166c9b5e11d92e77d50209692fc55a3c1e9f4ff97c620fe1d56d13dea",
+        "request_key": "d984a4e8c86e806d73abd5096aeae7ad29ffd42f9f12043544c3dc4f0e8b7266"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8475ae7ed50dd1f41f50b5d88b20126a301d64ecb1de97cc0ae4d46b168c00c4",
+        "file_sha256": "af2801739a8bd61ff4a98bcd1f019330587ce32a5d60263c653e13a2b1b97d23",
+        "path": "litellm/proxy/common_utils/auth_cache_invalidation_pubsub.py",
+        "source_id": "litellm/proxy/common_utils/auth_cache_invalidation_pubsub.py::AuthCacheInvalidationSubscriber._run"
+      },
+      {
+        "body_sha256": "17f5a9ab6d5fca1f84133fe6396bca8ad97d42eb64e14f844efed267c483dc3a",
+        "file_sha256": "bc8995f88f7e4169da5cfdfe68539767def1e527fcead9d18def1e5c206052b2",
+        "path": "litellm/proxy/common_utils/config_sync_pubsub.py",
+        "source_id": "litellm/proxy/common_utils/config_sync_pubsub.py::ConfigSyncSubscriber._run"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-843b31e344c0644195f9",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "4606f15381961015cb1b7300eec609753a9e274fc42de9a69ba3858cc213b5d4",
+        "request_key": "67f4072ab8865248b3da1371fdb79c0c7019d0f21bbaee52e9ca59c6144b8921"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "02290fef2679aebe6c188f68bbd6d0b5e7d741da0aa01291091592a9c01f6862",
+        "request_key": "370a4276e2fdc26ea666dbf896644a5e46e97ea117851fa7028b94c6ca802f49"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      },
+      {
+        "body_sha256": "f196205512d4f4545bc828c8b3262657cb8225fe0a130e4ccee700fc9dd6879e",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_should_run_chat_completion_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-097e95b8802ca02c2ba0",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "37b4856a638b19ce17a52676ef2cd9563a0b6c3f4737f144bef56a5028c24248",
+        "request_key": "49720fba73d3fd9ced69cfb7ba16607f628d56e04fd9ee6557c6b25ecba90cab"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9c10c7aab75a7b1dac5ed28ca68d1e53b111bb4327f1841949e50f420d17b8f2",
+        "request_key": "95b621fd17d2c6daab046f0302b168bcb08bbae244358c91abba7a89b923a20e"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6f11be50aa31bfb73e3190f6b516c03405a1a44ee81ac5a9061fe9f094e49457",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor._usage_chunk_calculation_helper"
+      },
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-72e765bfbae4368d3ba4",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a25c11edf755794aa4d3b926b8c453e5d788d214abf31f634d2f92e8e1f1762d",
+        "request_key": "b3ae04cca0b27c6bdd472181a6c8b25cabfaebe1837268c16a0b47d2693074e8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "f20db3235f871ecc74fe018fa3c2ab6eaca008cf4dfca078ad8334cd809057e4",
+        "request_key": "bc25255df2d194b7a21386503f0481c3610ee9645a0b8b0177c40dda0cd78b85"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "699288311de95b711d842e4ddb7642134c414a001ee614abc6ad3e495370cf97",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_build_chat_completion_agentic_loop_plan"
+      },
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-7699e15cd9dfc9dafa05",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "555f52b2d30023b38a1d8844be8ec920bc7a8b53963d9dbe5f6f3cb164b695c5",
+        "request_key": "ec30f8ab82e205996e1128b66866b70adbffa919d3a6825669a96e662985c787"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "7fe0739cb14ef551e565efad8f944a069e258468baa25a6ffdf3d3cb522da442",
+        "request_key": "914a95d0e714ae325406cc41ec41187acc243bac0495bdace58c031fee76552e"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "9e037ebac2d30d431c5ea115aabd40feec2bc7902a24a4f2cf2bfbcec57a1314",
+        "file_sha256": "dfaeebadac8112bbbb158b134bc6fe7e9ae38f5f5f9116b8620ff853e5749915",
+        "path": "litellm/llms/databricks/streaming_utils.py",
+        "source_id": "litellm/llms/databricks/streaming_utils.py::_usage_block"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-b49d971a76fef526e998",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "793d28fb1e04bc5c10ef96a39eeb08171a6ebdc06a25cbc1dff69a0a63bf0a02",
+        "request_key": "045db545cd33832ff9537fd48f56bb3ba963e157339726c6fd94810c9a47158e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "84ab24f7a8e6615f800bc50e730b34f16187d08eb44ce9509cc773f56ce4aa36",
+        "request_key": "eceb9bea09f99f6bd7428304018aaef7b1f1111be63d1a3caf6556713ca126b5"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      },
+      {
+        "body_sha256": "f5b710ca689bb06f1bfff53a31f3481027d447b7eeff2922adca606e193d3cb9",
+        "file_sha256": "2d08e00a9b4f52022c9b25f5f477f9e2ed35f2e6b5e18c832ee5913d8dc9f168",
+        "path": "litellm/proxy/guardrails/guardrail_hooks/compresr/compresr.py",
+        "source_id": "litellm/proxy/guardrails/guardrail_hooks/compresr/compresr.py::CompresrGuardrail.async_should_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-8e020912243d2469e0d2",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "be57a1bbda40d6d2f5942619f9aa730795df080fab9a795293425df436711485",
+        "request_key": "cbe1c1928ca208c388e1840694e91c5db61a609007996a7dc628f510aad80c13"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "60f9b4f576a444a511a860ef5d92c46e289cd0a9303a76177039343679852552",
+        "request_key": "f2a0f1c036d1525c98700fa409b435c3a90c89d455df711cec6e8f9ebc3337a0"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "e33977a1f85cadfba8137cadb47b24b8e41dc1a4092c3049bb8543242b5cafc7",
+        "file_sha256": "c48dc551fb0396b35fe6bbba31504d03396624fb278b2a4b2504043a6628151b",
+        "path": "litellm/llms/dashscope/cost_calculator.py",
+        "source_id": "litellm/llms/dashscope/cost_calculator.py::_extract_token_breakdown"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-ee2dbbb9affa01221fac",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "0b0ad69c297153c68811c9f97c4ac3997ebeb644f7cf3ab889a22c47ab2585fa",
+        "request_key": "114b767a130a53fbfa61cf89e1a02e44467dd3da2bfa51a5d338388538d8d635"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "358b58fc69c01a13ff9e3794766dfb97e598a39b85475ec683b2ea769ea1f0e9",
+        "request_key": "b2784297c3fc10a40116a9674538c0fb801fb97914f181856a4f9e36c1300eff"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "55a201599821c7181766d00e979d11372c48f6992a55a7986216e759e907fb9c",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger._execute_agentic_loop"
+      },
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-8ded65c56d74c7a10788",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "327f8a5d7ca1aadeec103a73efc42c9274283caf35e1e8eba7926b6bec576bf8",
+        "request_key": "0730cd5dce22c595e2e7c1d79a75d30e06b3058ba5a24852112f09f606d52e49"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9ef1ceed79bc318c85524d03d479bfaccf1539504b93bfc05b5a41898dff9832",
+        "request_key": "98f69c12c2d83ef583fb3d09a0d3efbc0463366bdeeb7ad4a4a90598a2753fb0"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "8b3b45bf13894b9d984adb7cef9d18eaf1e75ba6c80a6dfcfae323768e4aa5ef",
+        "file_sha256": "1bb69f8efee32778bee880613d1b9e619a0bd37800f52528287a1de47d88bb23",
+        "path": "litellm/llms/bedrock/chat/converse_transformation.py",
+        "source_id": "litellm/llms/bedrock/chat/converse_transformation.py::AmazonConverseConfig.transform_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-aee77f5d577b5a79a8be",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "42cb029e17e415e998818d89a88f378467585faea505c88ac174c323c1667dee",
+        "request_key": "d3a54d1ad6a5204813cf47066c9639a830f0f80400e92ee73bb5849f677bb8bb"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "a08774bdb7ad535127c2bbc670074f558e5e278fd0cd115dfa906f791c2ed3fe",
+        "request_key": "cf3df098e972207a047c9b48aa646a314148ea586f615f0632802313decdf05d"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "88c1fad3caab457c20ee5f1d9ec188b7822439d43357f3628e9917ddd67f763b",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_build_agentic_loop_plan"
+      },
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-b3796ba826d099f9349b",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "3ddf39347f86bc092abbe7db9c5dc3c2dd6e9eddf3fbe699923c5a57ed9eb6a6",
+        "request_key": "9647081484c906a59e48e866a7e50c106c1a2a90e7347f6779cca32e978afff1"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "c472422449faa88a935c13a405bab1806b83f5ca933e92e09f5eb6687f979d47",
+        "request_key": "c19a364e845b64e456a4ec9ad9dd7c703a133462864a8f8588d5dd4876f2bdf9"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "3fe27af6b8ae152ade01bfee7ffbf21c9107efa0e45c9d69f5c9904eb7dec4cd",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor._calculate_usage_per_chunk"
+      },
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-8d68c45a593a06127b96",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "cb72c3bbf8707d72e5f0dcd235fdb32673135729969402e56b3f26f3f30d2aef",
+        "request_key": "d12360294e42d5c6947f1fb158c2632eb3d729d8fa865e79fe7ee4cebe8f48e5"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "74f57f96bc0e6192e6171bfe03dd33052a73682081a1be7990017fea9cc3201a",
+        "request_key": "bd6501296c7a71983b0f6a29a15cbd3875a25856ad6f0e63e9d71663cbdc3044"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "0672387be1183cc97386ec68f77850260d02f1f419266ca7e0fe2d60e5a45396",
+        "file_sha256": "a564040e749add0a3fc84b34fee1541f24b0f7343220b0bd64a1aede38c0a21c",
+        "path": "litellm/proxy/guardrails/guardrail_hooks/headroom/headroom.py",
+        "source_id": "litellm/proxy/guardrails/guardrail_hooks/headroom/headroom.py::HeadroomGuardrail.async_build_agentic_loop_plan"
+      },
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-789195d50d241c9db2b3",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "2ae7d62149a965f8aecc15ba549dadb184199c2932a34b6072371da807492bbf",
+        "request_key": "41fe7613b94b0efd620396e3ae9ec5650509f9c2367543ff9656936554307ab8"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "fa66af6f79321d0e4c08b5dbe380f1f0b9d1e6997a84962cc41009bc84ffff97",
+        "request_key": "c95000947ea52d1edd9ea133960c9992e579dcd2c1eed5489079baa3a037b576"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "ca0af5347883cb04e35572f6a323d044438451f706c6f6b6d73a777558a5fd15",
+        "file_sha256": "d6441cfafe45d1136a7cdb06c83fcd4c269b4591ff6bf745f06002865c3335a4",
+        "path": "litellm/litellm_core_utils/llm_cost_calc/utils.py",
+        "source_id": "litellm/litellm_core_utils/llm_cost_calc/utils.py::calculate_image_response_cost_from_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-8b31238e27d7b5c06dd1",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "bfc61d0189436e7215fe9f05676680112cdbee5b699a9ff66f7df28618295517",
+        "request_key": "62324cb492e961fa1253ae33d49636100376df5bc242b2979651761d0b2a57c6"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "7cc659b1609c0712f6c2dd24d77d23bd340b096a620a870c09d8b5e1e8b08a72",
+        "request_key": "91c9670db32607999c46bf5bdc5ab289027e6f89a4510959a82a2c8502db39dd"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "5c48c93a1f7889d23bead4afc211952726687b6f3ef4e73b9bd1290597df5f29",
+        "file_sha256": "2d08e00a9b4f52022c9b25f5f477f9e2ed35f2e6b5e18c832ee5913d8dc9f168",
+        "path": "litellm/proxy/guardrails/guardrail_hooks/compresr/compresr.py",
+        "source_id": "litellm/proxy/guardrails/guardrail_hooks/compresr/compresr.py::CompresrGuardrail.async_build_agentic_loop_plan"
+      },
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-943fbada9835b17d7f92",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "dd90e543342d3ae3736519b63548fdfbc2bb50a36c72119769c4ecd1d63af2f0",
+        "request_key": "1413d27b919eba8d10f4bd8fb5d4518b00285eaf1ec2fbf51eb367fe3d4aa0ef"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "a6f96c7ee226754515232fb5b5a3686cfb12e703baa03659200a70f17e23ccc4",
+        "request_key": "15e159c8fe055037b6a52c487fa8dd5b290715f4cadd7bbbf82fd5f9c9b7023d"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "2e3d7b1cda50d810424713ffd81ed557f7290a1dd3256a7e5923910f0f597f5f",
+        "file_sha256": "29d2910fc7f65d540a6b2a231788d51b55fb799ec4467a2b3087f4f11ae97d4c",
+        "path": "litellm/integrations/compression_interception/handler.py",
+        "source_id": "litellm/integrations/compression_interception/handler.py::CompressionInterceptionLogger.async_build_agentic_loop_plan"
+      },
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-c047f36cbead572c5a4c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "d2e42cf3882dd6078feabbd91256b53fa8eded81a799c1d66c6a49189bf26209",
+        "request_key": "3486567cbd005368ae82fc24a3539ee142babcaf4f7aca7681e720a62bb871c9"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "2f6d43d2bbdc7729a6702540346aa8bb2f6b3e96fd74f9c4c4ebddd82dfc37d2",
+        "request_key": "8acd497a00c8491dc073f2a1313bcfae8e7744821408962fafd4a334e1499153"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      },
+      {
+        "body_sha256": "8d8888b6731e0c9b1218ae154d982d78d79cecf5138a4a530afb2879d3d81797",
+        "file_sha256": "a564040e749add0a3fc84b34fee1541f24b0f7343220b0bd64a1aede38c0a21c",
+        "path": "litellm/proxy/guardrails/guardrail_hooks/headroom/headroom.py",
+        "source_id": "litellm/proxy/guardrails/guardrail_hooks/headroom/headroom.py::HeadroomGuardrail.async_should_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-1c2f295ac04f9c12b31f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "6b9e566c0a1ebbfc39314e4bc3483ab83b47b0aec7e814eea82e58a62d488077",
+        "request_key": "4031cb6a4e0245b7e617eabac9ace7fb39fc1e14034953c9bce9dbf7a64f59df"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "56f21b6237f4586130690d54302feddd58ba250f00d78e7d85f07e104cf7d3eb",
+        "request_key": "5a65935b4d580779759c013990806013816eb50129dc46a32e535177200d2bb0"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "155ddf513aab6fbb63048648d9074b41580e76a27e827f2883ae324e88562063",
+        "file_sha256": "4fea4f114dc4622fb13edcb60f114cdc03ec7f16110a776abac7821d47309444",
+        "path": "litellm/llms/vertex_ai/gemini/vertex_and_google_ai_studio_gemini.py",
+        "source_id": "litellm/llms/vertex_ai/gemini/vertex_and_google_ai_studio_gemini.py::VertexGeminiConfig._calculate_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-8fde7f09f9950d980485",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "0bbaed0da09ee81201b5a630351525142138510772a151c20fa40c750be60600",
+        "request_key": "f70e12346c86bfad61a0522918cd46dec351587f09c7edc313e3c6aa01ea5ac7"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "dc978310532c8bb1c3dcfac113d5bd76cb9f674019db9826aa7e9fed17562d98",
+        "request_key": "fcde60c34b4e805e3a22b9ad071c7f447010439c21389f79e1c4c22ff3920485"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      },
+      {
+        "body_sha256": "83e757ebf2fd96b558dbbe77dac2832002023bd9d50857bc81b45924823bdb16",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_should_run_responses_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-430d310cc0bf43ecaf8f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "dc55cfa545b87dc6a8927d7a3fdc5366520fad5063fcf34ee2a4d2dab0bd01e0",
+        "request_key": "77e59ec4b0f693334300f2b3627f3e7e717150601603d2c93f8f1a8021dd94c0"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "1e8c0d2dd4ef234f66fc359544368b945a3a7060fd6838f4300c13826a83524e",
+        "request_key": "55de33636501aa8dce743ed72e7cc0c209ed3f5d7e8d049e9eb8c9360390e66c"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "054459869136baea3a856735dd7f5dbc2f0180efa18621bee78b28cafcd6d7cd",
+        "file_sha256": "e1a05789db8fff5033e4c58d01814af8a54d94805c696883d81f09e71b873a0e",
+        "path": "litellm/litellm_core_utils/streaming_handler.py",
+        "source_id": "litellm/litellm_core_utils/streaming_handler.py::calculate_total_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-59860077dea489966b0b",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a21b3fb84b2cac4295b033bcdd583af0b3a3bdf25d6c86e28b233abf95c971d6",
+        "request_key": "03008509a8bf459a3612c87a1645b5175a9f35df44b260d6dfd73fef11dc2edd"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "8008a68b6b7cc8ea82807a416e63e199a677e99fc8152dbf35215ecf16bca278",
+        "request_key": "f0d3c5e5ae36c3aaf6e1aa910c5ad1077eb15b5ad95a7270bd4bdcdb5caabb17"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "b96f790832b70dcbf473ba6a97a9d6b28fff8b4d220fa1868ec67b407f579a44",
+        "file_sha256": "29d2910fc7f65d540a6b2a231788d51b55fb799ec4467a2b3087f4f11ae97d4c",
+        "path": "litellm/integrations/compression_interception/handler.py",
+        "source_id": "litellm/integrations/compression_interception/handler.py::CompressionInterceptionLogger.async_should_run_agentic_loop"
+      },
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-fec0c743193bd326208c",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "7bb47527e743489a38fa095702a70762e5913e71b3cb49e1400f7521ad692465",
+        "request_key": "e8d5798a98b0267a9b7c69e68250af9c2b796ab9c7a56ec109ffb2cb293c5ba1"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "3a2c08d514dbc6e73702adcb7e6e817e0cd3911f0967d95f81fa599dfda5713b",
+        "request_key": "35410bcc94bb72478d59b8e0845ad636e420ae787abfc923bbfa30704f878408"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "3117cb636875f192a5942d052b9d68a481c2ccf4c6960ab002fbfd9d1d9af22f",
+        "file_sha256": "8c4fb50c6893a93635a1cc3a160279071a22404fba08cf868ead17ce6aa87b46",
+        "path": "litellm/llms/vertex_ai/agent_engine/transformation.py",
+        "source_id": "litellm/llms/vertex_ai/agent_engine/transformation.py::VertexAgentEngineConfig._calculate_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-804847110cb8a9eafe1f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "dc6a926620b5f5bbea8794aa3f7250bab570a5a02697b0f7a0f9cf96a8763bd5",
+        "request_key": "bc3009a632e5475d36fad2298d179c3b0635bd6194dffc507e292cbdcdc00695"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "1d96dc5a9c1f105e440ca8bc4d1e54696aabb5f2d0cf0683b8398eb7586a01d6",
+        "request_key": "a7eb86c13eed0e7c6e882e73a21aa7ab81f93d36493e395a99bb1333c350e627"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "dbe3684c05f01b6437c20d1c744f878136e70d5b17a2963581ddca227a4906dc",
+        "file_sha256": "3264785e9c0e76db78a343f29fc6b841434ede36bb5404ad41791db70cd2656c",
+        "path": "litellm/integrations/custom_logger.py",
+        "source_id": "litellm/integrations/custom_logger.py::CustomLogger.async_build_agentic_loop_plan"
+      },
+      {
+        "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+        "file_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+        "path": "litellm/integrations/websearch_interception/handler.py",
+        "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-4ad5f8cf0431727ed36e",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "8af90ec43a08c03628871bee34b0bff0a3f027b4662edfd3a32e518122f29387",
+        "request_key": "11d96a7dcff385b23fd501a105e805d4759cd2685287036eb32b187acb057ca3"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "d8a2aff402e363adbd7f860a74a70d287e0dec759174dcb38ea982bdf670a2dd",
+        "request_key": "2a85b245f01ae65e7293656e6c48e1408846cb029763915e92e129983ba62fc1"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "90a192ceb8b5ce0dbab2841a8ad36f2a06f80de6ddb3afaab06e6bb6dddd97df",
+        "file_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+        "path": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py",
+        "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage"
+      },
+      {
+        "body_sha256": "211a6dd2102afaeb0cd33ed5065daef8d0d50f14f84543371a88311e4b2aa990",
+        "file_sha256": "d8f07f7d49e6ced99c547dce2f03365a994016b603cc3b9d4fb8d06db78b370a",
+        "path": "litellm/types/utils.py",
+        "source_id": "litellm/types/utils.py::_batch_usage_from_chat_usage"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R2-f90b55e868ac685df86a",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "89c9b2b97d328184e8b67356fff33a6ec5b4003714929bb29643a303619f2962",
+        "request_key": "246484a704a9b7e1dabbd2c1067046a5ca69bf524e21913356c31bf5b377eb56"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "4aacc088755971a170cbbc997d93a2fc8edd7a8b39f43947c75b53ee1445b56f",
+        "request_key": "f9afd8c2611bfb3397addb23ba6de5e032bc345c32c8ec0c0896f681509b6d1c"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "4cc37921094c9620da550608623d13b492d65c330de60d0103852c1ea2b77981",
+        "file_sha256": "ccb110f44dc6565cd89ecf42f903c691160cf32bc7cc40b7f8663788cf170ff7",
+        "path": "openhands/agent_server/vscode_service.py",
+        "source_id": "openhands/agent_server/vscode_service.py::VSCodeService.stop"
+      },
+      {
+        "body_sha256": "5505b855f7f859449c66ab66c3739b1dc33dfc690136d02660b0991ade674d50",
+        "file_sha256": "25a6b9765a7d3a2c6544b7ce46baa25d5842d4e2f475819fcfb530ae77c1c2a2",
+        "path": "examples/22_hello_world_with_agent_server.py",
+        "source_id": "examples/22_hello_world_with_agent_server.py::ManagedAPIServer.__exit__"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R2-6cb1c9ff4866c7d02b8e",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "62d93b895e2a154f1204ed78ddba69fb27822b8d06e48d571024cac05920843a",
+        "request_key": "839e4f6f5af793a68a83643eef72836ffda7f694822c0d63915e9ee9fda24a0e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "a1685b056468d6119a1b7c2d3c86c49095a26c8df54fabcb397fb9dbebd97d88",
+        "request_key": "4d4e9c321ac5b340c7cdc0f08df5064f29fa115dec9e452a61cd7b24c88e9a76"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "15aa9dc55f822ff9008e0d8cac0939ba0a2e9a2b0576583bd400cdf9a8d35c93",
+        "file_sha256": "a2f44c4dcab19afb5baf845ea50b2e4502c801d4101c8fa8d3a419fe974015a4",
+        "path": "tests/sdk/llm/test_llm_metrics.py",
+        "source_id": "tests/sdk/llm/test_llm_metrics.py::test_metrics_add_token_usage_with_existing_accumulated"
+      },
+      {
+        "body_sha256": "613d8568fced24bec305ecef4b56b434434bbe9f51caa568d6c63f6ba33ffde6",
+        "file_sha256": "a2f44c4dcab19afb5baf845ea50b2e4502c801d4101c8fa8d3a419fe974015a4",
+        "path": "tests/sdk/llm/test_llm_metrics.py",
+        "source_id": "tests/sdk/llm/test_llm_metrics.py::test_metrics_add_token_usage_accumulate"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R2-294956f931f534f7bd6d",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "a30397575f96dd43b1f7ef67be576f6d8c63cbcae0a0062d7782682162503260",
+        "request_key": "566eea0f132dbab1ad02cbb8422da9aeea0827cdac5549d0b219daae1c9aedff"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "727b462afdec27654e4ac7e0fc1493d5cdae50602510fcaf49e9dd6719b3fac6",
+        "request_key": "34e2e37c5c717baff2da861f7c4401648de37257a1aa210ce43ca0f00a412f10"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d8a6724dc630499e6a2019546ef0f9ef4a305897dfd3c875c527884925a26483",
+        "file_sha256": "a287ffa68d91baf6504976e6e935dde735c70328dfd530c170cfbf0444e67a44",
+        "path": "openhands/sdk/utils/models.py",
+        "source_id": "openhands/sdk/utils/models.py::DiscriminatedUnionMixin.model_validate"
+      },
+      {
+        "body_sha256": "046485ab1d16c80e73ebc4159d0bed55673ec0c13c7013a5a34b9b9f1d6d7613",
+        "file_sha256": "a287ffa68d91baf6504976e6e935dde735c70328dfd530c170cfbf0444e67a44",
+        "path": "openhands/sdk/utils/models.py",
+        "source_id": "openhands/sdk/utils/models.py::OpenHandsModel.model_validate"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-0ff617fd65a445f78c86",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "ab875fd1c558b788e4716f8e4932e8b96bf86502962973d0cdde064b5f8504dc",
+        "request_key": "159f001eb8537c7eb2c5f12864283be6a3fbebe4353d473b449112ec05c80d6f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "5cc366fba4f1dbccc561894c7e2bc61af56ab87222eb6c5ef42b6d8c7045b0d3",
+        "request_key": "c63d7db90da8af3e3672505f4a347eb578fa9faac1fd8d5019c8f63d5c0c864b"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "b9f923a4dbface65648b01bbc205a8553062be72213874f232ee10111eb75bd8",
+        "file_sha256": "2fb701435ad9a1ead76dfc4cb04d4a0691ab41606dc050818425330835e91d72",
+        "path": "litellm/integrations/otel/emitter.py",
+        "source_id": "litellm/integrations/otel/emitter.py::SpanEmitter.start_span"
+      },
+      {
+        "body_sha256": "52fd4027ea39aaa02bad98d72a2b05f7b15a6375e0a76786a6b2c711fe36b421",
+        "file_sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+        "path": "litellm/integrations/otel/logger.py",
+        "source_id": "litellm/integrations/otel/logger.py::OpenTelemetryV2._emit_service"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R2-ff5d52e6ee33cf933caf",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "c5e1de6c3203d0758d42f38801d88f8840814030ad0db15f86f2ca891a9006b6",
+        "request_key": "f68480de48c39ac024dc5aa18ec0c89a545894e6f3eebb5077871f2b006c88f0"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "8232d4da7a9cf34bcbd2a9b3a5a705ccfd50d7335aeb7e39b8ba0aaa37b341b2",
+        "request_key": "be798643344d6e752d772bac8a7dd73faa021fe17864007deb665ea06835d9f8"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "6adb224a9bd26e558b161517529db778765990009ce02bcae8f774e37742602b",
+        "file_sha256": "d248f1bfc7d0f601af376a9670695e9a8cdeacce2d9ed1da255468e78575308a",
+        "path": "openhands/sdk/event/llm_convertible/observation.py",
+        "source_id": "openhands/sdk/event/llm_convertible/observation.py::ObservationEvent.to_llm_message"
+      },
+      {
+        "body_sha256": "1fbcd1a86ab6c2fd90ebdfa46babdcf946172432f066b79ca0774f8dd929f6ef",
+        "file_sha256": "3c387f135d5b988edd224c908e21a43d960f6055110b8a35fb74cef970c22533",
+        "path": "openhands/agent_server/models.py",
+        "source_id": "openhands/agent_server/models.py::SendMessageRequest.create_message"
+      }
+    ]
+  },
+  {
+    "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+    "id": "LINKED-R2-abfdeec56b30d0baa89f",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "BerriAI/litellm",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "72f65f3f977b81a6f0192c10f67545d02f97418d4803db6499c61cc5a65d9357",
+        "request_key": "17958b8aaabfb6d2c29ede7d833bc0d3a9c5a80c919bb2613f54c50559a8823e"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "e70c2ef503d68b9af87a80079a15ad0be4a57696d23302231c674b10e5354b06",
+        "request_key": "6f3a4ef138c7d87c9b4308bd8c7cb0014eedae6336c7de1fc4e4490afe1368c5"
+      }
+    ],
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/tests/*",
+        "*/test_*",
+        "*/migrations/*",
+        "*/generated/*",
+        "*/enterprise/*",
+        "*/_generated/*",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py",
+        "litellm/proxy/common_utils/load_config_utils.py",
+        "litellm/secret_managers/google_secret_manager.py"
+      ],
+      "include": [
+        "litellm/*.py"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "21f565513d6dc14481c7aa60b8c168dad2cfae2d32335f36687965e8afb1a9fb",
+        "file_sha256": "beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca",
+        "path": "litellm/caching/redis_cache.py",
+        "source_id": "litellm/caching/redis_cache.py::RedisCache.async_lpop"
+      },
+      {
+        "body_sha256": "56f9471a77f1f78b6640fa8fae9ffd2f0c336aa0f5fd53efb529303bc10798c2",
+        "file_sha256": "beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca",
+        "path": "litellm/caching/redis_cache.py",
+        "source_id": "litellm/caching/redis_cache.py::RedisCache.async_set_cache"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R2-15718d2abcada32ae80a",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "be97024b283cc164f4b432b3bbc50158bed10aae58b933389c6f8fe9a7d1b6a6",
+        "request_key": "0fa7dd1eceb8bf1ffc448a7555e311c3621f7bbd6eac899e37889b9af48d627f"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9ae4c7c6c006a931ec39092649910b71ed4f69b13c2bbc792cbf01f6f7629ede",
+        "request_key": "4cd094bdf8a90feeb21d31b973bb55fee74aa49a3dc219d054d72afc806b9a48"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "68ea2cdafb62a826babc2de1ae9837101910393c2d2c6ffda40f81d8bb618edb",
+        "file_sha256": "42a4105029e6cd9ad086c235ece1ee7038fa5dcfc627647b02fd08e2f9064847",
+        "path": "openhands/agent_server/file_router.py",
+        "source_id": "openhands/agent_server/file_router.py::download_file"
+      },
+      {
+        "body_sha256": "b5670bb72b4bdb001cfbd127ba3a8c0256dbff38cf3bf7b7bf78f427a605b314",
+        "file_sha256": "eebd9db7449a6e1fc9027cdeece82b41cf4d4e73456771b2abe7b4f5506092e2",
+        "path": "openhands/agent_server/vscode_router.py",
+        "source_id": "openhands/agent_server/vscode_router.py::get_vscode_url"
+      }
+    ]
+  },
+  {
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "id": "LINKED-R2-ae778132d67b1e5f528e",
+    "redistribution": "licensed; selected files bundled",
+    "repository": "OpenHands/software-agent-sdk",
+    "requests": [
+      {
+        "kind": "jev",
+        "rendered_sha256": "e7f021377a5c7bd37275935191f5bbf55fdd8949cca562fb5fc6c1f08e148bfe",
+        "request_key": "580ba83b4c05be471e13039dadebbba450f4ed2c335dc48746afb92c9810f918"
+      },
+      {
+        "kind": "claude",
+        "rendered_sha256": "9329078b21f8dbf2fdff0056c1cbbe59e1a333c07f7ba03e9b09296d1763760b",
+        "request_key": "a9fcc2d86cc067bbd46163f2530a04b90ff21f6338188c1502350d67bb8e86ea"
+      }
+    ],
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "round": 2,
+    "scope": {
+      "exclude": [
+        "*/migrations/*"
+      ],
+      "include": [
+        "*"
+      ]
+    },
+    "sources": [
+      {
+        "body_sha256": "d5b82b5b0233e34796db70e2cd2b7c0572f3ca6f6061b444ebf5f84e34638a1b",
+        "file_sha256": "8392ba32a556a806bf618073dcb5df50ed77e69b6679e60eea30ab27fc33f79c",
+        "path": "openhands/sdk/llm/utils/metrics.py",
+        "source_id": "openhands/sdk/llm/utils/metrics.py::Metrics.initialize_accumulated_token_usage"
+      },
+      {
+        "body_sha256": "3eef809f7ea9d4fd3e2c3e82c1eea752862d85b0f4c43b04e8a060b6c4464105",
+        "file_sha256": "a2f44c4dcab19afb5baf845ea50b2e4502c801d4101c8fa8d3a419fe974015a4",
+        "path": "tests/sdk/llm/test_llm_metrics.py",
+        "source_id": "tests/sdk/llm/test_llm_metrics.py::test_metrics_merge_accumulated_token_usage_none_self"
+      }
+    ]
+  }
+]
