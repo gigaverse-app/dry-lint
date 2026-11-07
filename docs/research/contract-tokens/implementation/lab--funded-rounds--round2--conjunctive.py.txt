@@ -1,0 +1,146 @@
+"""Conjunctive keys for the two frozen patterns. No synonym lists or providers."""
+import ast
+import copy
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
+import measured_contract_tokens as original
+
+
+class Abstain(ValueError):
+    pass
+
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+
+def literal_definitions(fn):
+    stores={}
+    for n in original.executable(fn):
+        if isinstance(n,ast.Name)and isinstance(n.ctx,(ast.Store,ast.Del)):
+            stores[n.id]=stores.get(n.id,0)+1
+    result={}
+    for n in original.executable(fn):
+        target=value=None
+        if isinstance(n,ast.Assign)and len(n.targets)==1:
+            target,value=n.targets[0],n.value
+        elif isinstance(n,ast.AnnAssign):
+            target,value=n.target,n.value
+        if isinstance(target,ast.Name)and stores.get(target.id)==1 and value is not None:
+            try:ast.literal_eval(value)
+            except (ValueError,TypeError):continue
+            result[target.id]=value
+    return result
+
+
+class Normalize(ast.NodeTransformer):
+    def __init__(self,resolver,handles=(),bound=(),constants=None,strict=False):
+        self.resolver=resolver
+        self.handles=set(handles)
+        self.bound={name:'ITEM'+str(i)for i,name in enumerate(bound)}
+        self.constants=constants or {}
+        self.strict=strict
+        self.names={}
+        self.calls=[]
+
+    def visit_Call(self,node):
+        chain=original.chain(node.func)
+        if isinstance(node.func,ast.Attribute)and isinstance(node.func.value,ast.Name)and node.func.value.id in self.handles:
+            if node.func.attr not in {'read','readline','readlines','write','writelines','flush'}:
+                raise Abstain('unresolved_owned_handle_payload_call')
+            api='owned_file_handle.'+node.func.attr
+        else:api=self.resolver.resolve(node.func)
+        if not api:raise Abstain('unresolved_payload_call')
+        self.calls.append(api)
+        return ast.Call(func=ast.Name(id='QUALIFIED:'+api,ctx=ast.Load()),
+            args=[self.visit(v)for v in node.args],keywords=[self.visit(v)for v in node.keywords])
+
+    def visit_Name(self,node):
+        if node.id in self.handles:name='OWNED_HANDLE'
+        elif node.id in self.bound:name=self.bound[node.id]
+        elif node.id in self.constants:return copy.deepcopy(self.constants[node.id])
+        elif self.strict:raise Abstain('unresolved_external_projection_or_filter_policy')
+        else:name=self.names.setdefault(node.id,'LOCAL'+str(len(self.names)))
+        return ast.Name(id=name,ctx=node.ctx)
+
+    def visit_FunctionDef(self,node):raise Abstain('nested_definition_payload')
+    def visit_AsyncFunctionDef(self,node):raise Abstain('nested_definition_payload')
+    def visit_ClassDef(self,node):raise Abstain('nested_definition_payload')
+    def visit_Lambda(self,node):raise Abstain('lambda_payload')
+
+
+def shape(nodes,normalizer):
+    return [ast.dump(normalizer.visit(copy.deepcopy(n)),include_attributes=False)for n in nodes]
+
+
+def signature(tree,fn,region):
+    resolver=original.Resolver(tree,fn)
+    contracts=region['contracts']
+    if region['operation']=='owned_file_cleanup':
+        if any(c.endswith(':dynamic')for c in contracts):raise Abstain('unknown_file_mode')
+        candidates=[n for n in original.executable(fn)if isinstance(n,ast.With)and n.lineno==region['line']and n.end_lineno==region['end_line']]
+        if region['syntax']=='with_owned_handle':
+            if len(candidates)!=1:raise Abstain('ambiguous_with_region')
+            node=candidates[0]
+            if len(node.items)!=1 or not isinstance(node.items[0].optional_vars,ast.Name):raise Abstain('multi_resource_policy')
+            handle=node.items[0].optional_vars.id
+            body=node.body
+        else:
+            found=[]
+            for stmts in original.statement_lists(fn):
+                for prev,n in zip(stmts,stmts[1:]):
+                    if prev.lineno==region['line']and isinstance(n,ast.Try)and n.end_lineno==region['end_line']:
+                        found.append((prev,n))
+            if len(found)!=1:raise Abstain('ambiguous_cleanup_region')
+            prev,node=found[0]
+            if node.handlers or node.orelse:raise Abstain('extra_exception_policy')
+            handle=prev.targets[0].id
+            body=node.body
+        norm=Normalize(resolver,handles=[handle])
+        payload=shape(body,norm)
+        if not norm.calls:raise Abstain('no_resolved_concrete_payload')
+        detail=dict(operation=region['operation'],contracts=contracts,acquisition_api=region['resolved_api'],
+                    ordered_calls=norm.calls,payload_shape=payload)
+    else:
+        nodes=[n for n in original.executable(fn)if getattr(n,'lineno',None)==region['line']and getattr(n,'end_lineno',None)==region['end_line']]
+        syntax=region['syntax'];predicates=[]
+        if syntax=='list_comprehension':
+            found=[n for n in nodes if isinstance(n,ast.ListComp)]
+            if len(found)!=1:raise Abstain('ambiguous_collect_region')
+            node=found[0];g=node.generators[0];target,iterator,projection=g.target,g.iter,node.elt;predicates=g.ifs
+        elif syntax=='materialized_map_lambda':
+            found=[n for n in nodes if isinstance(n,ast.Call)and resolver.resolve(n.func)=='builtins.list']
+            if len(found)!=1:raise Abstain('ambiguous_materialized_map')
+            inner=found[0].args[0];lam=inner.args[0]
+            target=ast.Name(id=lam.args.args[0].arg,ctx=ast.Store());iterator=inner.args[1];projection=lam.body
+        else:
+            found=[]
+            for stmts in original.statement_lists(fn):
+                for prev,n in zip(stmts,stmts[1:]):
+                    if prev.lineno==region['line']and isinstance(n,ast.For)and n.end_lineno==region['end_line']:found.append(n)
+            if len(found)!=1:raise Abstain('ambiguous_append_loop')
+            node=found[0];target,iterator=node.target,node.iter;body=node.body
+            if isinstance(body[0],ast.If):predicates=[body[0].test];body=body[0].body
+            projection=body[0].value.args[0]
+        if not original.expr_ok(iterator):raise Abstain('effectful_or_unresolved_iterator')
+        bound=list(dict.fromkeys(n.id for n in ast.walk(target)if isinstance(n,ast.Name)))
+        norm=Normalize(resolver,bound=bound,constants=literal_definitions(fn),strict=True)
+        payload=shape([projection,*predicates],norm)
+        iternorm=Normalize(resolver)
+        itershape=shape([iterator],iternorm)
+        detail=dict(operation=region['operation'],contracts=contracts,projection_and_predicates=payload,iterator_shape=itershape)
+    return 'cx2:'+region['operation']+':'+digest(detail),detail
+
+
+def derive(tree,fn,regions):
+    keys={};abstentions=[]
+    for r in regions:
+        try:key,detail=signature(tree,fn,r)
+        except Abstain as error:
+            abstentions.append(dict(line=r['line'],reason=str(error)));continue
+        keys.setdefault(key,dict(region=r,signature=detail))
+    return dict(sorted(keys.items())[:12]),abstentions

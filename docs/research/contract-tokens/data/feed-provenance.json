@@ -1,0 +1,10 @@
+[
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/contract-tokens/round1/6700ec174dbc3381-9a335b7dc1e9/completed.jsonl",
+    "sha256": "a6e48d4889dbae75a550ed8354305f18bd33977e58ab21bdd093cf2573de5c74"
+  },
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/contract-tokens/round2/86f90dfc5fe4ba8a-4cbb628cfd97/completed.jsonl",
+    "sha256": "db82c47d3dc4d3e2a47b3db5bd692bde9c38f31740109901dcc06e665ca2571b"
+  }
+]

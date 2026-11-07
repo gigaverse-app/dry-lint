@@ -1,0 +1,65 @@
+[
+  {
+    "origin": "jobs/experiment-contract-tokens/.lab-results/evidence-pr/contract-tokens/README.md",
+    "original_sha256": "41e783a80c70d7189c1a821530876948e3e561c0f7a14720ed5438fee1c2af28",
+    "published": "data/evidence/README.md",
+    "published_sha256": "41e783a80c70d7189c1a821530876948e3e561c0f7a14720ed5438fee1c2af28",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-contract-tokens/.lab-results/evidence-pr/contract-tokens/original-metrics.json",
+    "original_sha256": "c3ca80e4c251829d9844c527c88dc467e4efd8e836f20cfc7a5812c4b4184a6a",
+    "published": "data/evidence/original-metrics.json",
+    "published_sha256": "c3ca80e4c251829d9844c527c88dc467e4efd8e836f20cfc7a5812c4b4184a6a",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-contract-tokens/.lab-results/evidence-pr/contract-tokens/revised-metrics.json",
+    "original_sha256": "18cf21e18b96b39c1534c0410478e5d065c3505bafc9f33b46b97b33a16021e1",
+    "published": "data/evidence/revised-metrics.json",
+    "published_sha256": "18cf21e18b96b39c1534c0410478e5d065c3505bafc9f33b46b97b33a16021e1",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-contract-tokens/.lab-results/evidence-pr/contract-tokens/final-source-decision.json",
+    "original_sha256": "c8d045be5f75830419710a5d0da518c3182b191eb70d5f8f90d4f4b9ed90ef7d",
+    "published": "data/evidence/final-source-decision.json",
+    "published_sha256": "c8d045be5f75830419710a5d0da518c3182b191eb70d5f8f90d4f4b9ed90ef7d",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-contract-tokens/.lab-results/evidence-pr/contract-tokens/verify_evidence.py",
+    "original_sha256": "25101669559737e455ee011b78fdbf7a03e3cbd3cd72ace0082e6c53d4a59ff1",
+    "published": "data/evidence/verify_evidence.py",
+    "published_sha256": "25101669559737e455ee011b78fdbf7a03e3cbd3cd72ace0082e6c53d4a59ff1",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-contract-tokens/.lab-results/evidence-pr/contract-tokens/MANIFEST.json",
+    "original_sha256": "55bad013dd653fde5ac8aaa32979f9dca5b61d694395a3895bdedebd68dda78d",
+    "published": "data/evidence/MANIFEST.json",
+    "published_sha256": "55bad013dd653fde5ac8aaa32979f9dca5b61d694395a3895bdedebd68dda78d",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/research-evidence-publication/docs/research/funded-recall/context/reproduction/licenses/BerriAI--litellm.txt",
+    "original_sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "published": "licenses/BerriAI--litellm.txt",
+    "published_sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/research-evidence-publication/docs/research/funded-recall/context/reproduction/licenses/OpenHands--software-agent-sdk.txt",
+    "original_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "published": "licenses/OpenHands--software-agent-sdk.txt",
+    "published_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-contract-tokens/LICENSE",
+    "original_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "published": "licenses/dry-lint.txt",
+    "published_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "transformation": "none"
+  }
+]

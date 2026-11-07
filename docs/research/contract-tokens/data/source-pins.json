@@ -1,0 +1,16 @@
+[
+  {
+    "license_file": "licenses/BerriAI--litellm.txt",
+    "license_sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "url": "https://github.com/BerriAI/litellm.git"
+  },
+  {
+    "license_file": "licenses/OpenHands--software-agent-sdk.txt",
+    "license_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "url": "https://github.com/OpenHands/software-agent-sdk.git"
+  }
+]
