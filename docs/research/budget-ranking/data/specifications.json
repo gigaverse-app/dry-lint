@@ -1,0 +1,153 @@
+{
+  "EXPERIMENT.json": {
+    "arms": [
+      "current",
+      "fixed_feature",
+      "naive_cost",
+      "protected_cost"
+    ],
+    "baseline": {
+      "budget": "production costs.estimate + Ledger.select, .04 cumulative per family diagnostic batch; free external reuse charged normally per arm, exact repeated request within batch charged once",
+      "diagnostic_judge": "unchanged shared-operations Sonnet5.5 output1024 report .8; matches candidate-first cached packet contract",
+      "git": "442b17af38ff596605e8307910ba206c4d0614a0",
+      "ordering": "Production CampaignStore.order: lane, priority, least-used query, similarity, key; diagnostic starts zero query counts. Detector baseline top3 union balanced top20 stays fixed across arms.",
+      "retrieval": "BenchBackground.decode/index full-corpus IDF; fixed union default top3 cross-file floor .5/.3 plus balanced same-file top20 floor .35. Raw ties score/sourceID/documentposition."
+    },
+    "clarification_before_first_evaluation": "Historical normal estimated ledger censors at first funded missing exact answer. Native reserve/settle results separate. Synthetic diagnostic batches have fixed outcome-independent charges and tri-state unknown report observations; no historical claim.",
+    "controls": [
+      "retrieval union identical across ordering arms",
+      "prompts/thresholds/model/output cap/cache identity unchanged within each cohort",
+      "source SHA and pinned Git proof",
+      "per-query default/balanced scorefloor/topk/samefile stage losses",
+      "size and cost quartiles; explicit expensive positive displacement",
+      "unknown never negative"
+    ],
+    "corpora": [
+      "pingdotgg/t3code@6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+      "BerriAI/litellm@fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f, no enterprise"
+    ],
+    "experiment": "stage6-F-cost-aware-ordering-v1",
+    "fixed_features": {
+      "cost_aware": "utility / canonical estimated cost",
+      "forbidden": [
+        "judge scores",
+        "gold IDs",
+        "labels",
+        "future history"
+      ],
+      "grid": "single frozen weight vector; cost exponents0 and1 (feature-only ablation and cost-aware)",
+      "independent_owners": "1 iff (file, owner or module) differs; syntactic proxy not a semantic independence claim",
+      "learned_ranker": "none: inspected partial labels and small family sample do not justify fitting",
+      "operation": "Jaccard of distinct syntactic call/attr-call names longer than2 excluding fixed generic calls; tokens from frozen background; fallback regex call names for captured historical candidates",
+      "utility": ".60*original_similarity + .30*operation_jaccard + .10*independent_owners"
+    },
+    "historical": "Read production-discovery frozen manifests first; all13 captured configured histories with exact Haiku shared-operations output2048 report .5. Native scheduler .04 cumulative actual-usage settlement/max-output reservation supplementary to all-arm normal-estimate ledger comparison. Original retrieval union immutable and no historical IDF reconstruction from snippets. Exact missing answers stop native arm at first reserved question.",
+    "hypothesis": "A fixed interpretable utility per canonical estimated judge dollar can improve useful funded operation coverage with retrieval held fixed; it may instead displace valuable expensive baseline pairs.",
+    "novel_sampling": "Up to8 exposed funded missing novel exact pairs from naive/protected arms and up to4 current-funded controls, excluding exact previously reviewed pairs only. Stable hash sample, matched repository and size bucket when available. Full unchanged Candidate dump and separate blind score-free source packet. Native missing frontier only, no speculative suffix.",
+    "promotion_gate": "No promotion by worker. Require more independently useful emitted reports, zero lost established useful baseline reports, no increase in negatives/disputes, and fresh family-separated confirmation before coordinator proposal. Missing answers or retrieval-only gains cannot pass.",
+    "protection": "At each diagnostic batch fund the current-order affordable set first, then cost-rank remainder using same cap; an intentionally strict funding-preservation control. Historical native scheduler comparison keeps configured reservation/pacing and baseline lane first in protected arm; naive reorder changes order only, leaving admission rules unchanged. Measure later baseline losses rather than promise future preservation.",
+    "scope": "immutable coordinator background scope; no inferred adoption from defaults; no background recapture or union of revisions",
+    "split": "DEVELOPMENT/REGRESSION ONLY. All scaled coordinator labels observed already. Connected endpoint/family components grouped before scoring; stable SHA256 family lineage assigns dev-A/dev-B. No training or parameter selection across either split; no fresh holdout claim. Historical PR remains one lineage across all revisions.",
+    "stop": "One bounded run plus correctness fixes, then contrasting repo once; no retuning. Stop live requests after up to12 funded unknowns, central physical allowance1 USD; worker makes zero calls."
+  },
+  "funded-rounds/round1/EXPERIMENT.json": {
+    "baseline": {
+      "cap_per_synthetic_family_batch_usd": 0.04,
+      "code": "442b17af38ff596605e8307910ba206c4d0614a0",
+      "judge_model": "claude-sonnet-5-5",
+      "max_output_tokens": 1024,
+      "no_deployment_claim": true,
+      "policy": "shared-operations",
+      "rank_and_admission_artifact": "LAB_ROOT/jobs/experiment-budget-ranking/.lab-results/candidate-stages.jsonl",
+      "report_at": 0.8,
+      "sha256": "c8da4dea73f0440f91483adcce0bec23610c0040e148aadaa17100ab322cdce4"
+    },
+    "controls": "Previously unseen source pairs funded by current arm; tag baseline-only losses and common-funded controls privately. Match repository and original under40/40plus size stratum and use a distinct query lineage where possible. Controls are source-unknown, not assumed negatives.",
+    "evaluation": "Same full-corpus IDF, pinned backgrounds and ranks reused. Compare funded/emitted useful reports, source-confirmed new operations, lost useful prior reports, separate/related/disputed, cost/size/same-file strata, runtime. Candidate count alone is not benefit. All gold panels DEVELOPMENT/REGRESSION.",
+    "experiment": "stage6-F budget-ranking funded round1",
+    "judging": "Existing central paired Jev context+Claude shared-operations contracts, unchanged wording/output. Claude is the mechanism policy; Jev is separately funded independent diagnostic assessment, not a second charge attributed to the original synthetic .04 ledger. Root-only providers.",
+    "mechanism": "Frozen original current/fixed_feature/naive_cost/protected_cost on the identical cached public retrieval candidate union. Fixed utility .60 original similarity+.30 call-name operation evidence+.10 distinct syntactic owners; cost variants unchanged. No judge, gold ID or future history runtime feature.",
+    "native_recompute": false,
+    "round1_split": "Existing development dev-A family/lineage batches only. Exclude every exact pinned source pair already reviewed in shared index-v2 and every previously observed exact rendered paired request. No new holdout claim.",
+    "round2_reserve": "Existing dev-B query-lineage batches held out from new round1 judging; no shared exact pairs/endpoints to be falsely called disjoint operation families. Before round2 freeze, root-reconciled source families must be disjoint or new pinned-repo query families selected with original full-corpus baseline.",
+    "selection": "All eligible actually funded dev-A pairs, differential gains/lost-current first, then matched current-funded/common controls; stable hash/lineage round robin. No verdict/confidence/score threshold sampling. Freeze chunks32 pairs and separate canonical request chunks32 requests.",
+    "spend": {
+      "cached_cost_counts": false,
+      "expected_target_range_usd": [
+        0.25,
+        0.35
+      ],
+      "historical_older_spend": "Separate exact ledger; current-phase credit only when root accepts unique request attribution. Duplicate archived-failure repeat excluded by default.",
+      "historical_suballocation_usd": 1,
+      "minimum_new_physical_usd": 0.2,
+      "public_suballocation_coordinator_owned_usd": 19,
+      "repeats_to_fill_quota": false,
+      "request_global_phase_cap_usd": 20
+    },
+    "status": "PREREGISTERED_BEFORE_NEW_PUBLIC_JUDGING",
+    "stop_and_iteration": "No promotion/closure from tiny pilot or cached labels. Root evaluates after actual .20 and independent source review. If no useful benefit, preregister one error-justified revised mechanism before round2; judge another >=.20 on disjoint novel source families. Do not retune thresholds/prompts or reuse round1 evaluation labels as runtime features.",
+    "user_override": "At least .20 actual new paid judging, cache/repeats excluded; no closure until minimum or root-verified eligible exhaustion. Round2 if no useful benefit with one justified revision and disjoint novel lineages.",
+    "worker_providers": 0
+  },
+  "funded-rounds/round2/EXPERIMENT.json": {
+    "baseline": "Frozen historical current and original fixed arms in continuation-v57; do not rerun them.",
+    "development_errors": [
+      {
+        "case": "F-NATIVE-V23-07 / RP01",
+        "loss_stage": "native_call_limit_or_duplicate_attempt_bound",
+        "ordinal": 3,
+        "useful_operation": "destination validation policy"
+      },
+      {
+        "case": "F-NATIVE-V23-08 / RP02",
+        "loss_stage": "native_call_limit_or_duplicate_attempt_bound",
+        "ordinal": 3,
+        "useful_operation": "local user cleanup/retention policy"
+      }
+    ],
+    "evaluation": "Compare complete paired PR reports against frozen current; source-confirmed gains/lost priors, false/related/disputed, repeated revision families once, size/same-file and cost, elapsed/memory. Censored suffix unknown.",
+    "hypothesis": "Flat global fixed utility discards original baseline priority and per-query round robin, allowing one changed function to consume exploration call slots. Restore original admission scaffolding while using the same fixed utility to select peers; preserve useful broad-query coverage without a source-label runtime oracle.",
+    "mechanism": "fair_fixed_feature",
+    "method_count": 1,
+    "no_provider_worker": true,
+    "novel_questions": "Only actual native-reserved first missing exact requests, excluding every already-asked key and known paid failure. Preserve old failure and valid-new-answer receipts. Controls from existing reviewed old exact cases are cached, count0newspend.",
+    "one_variant": {
+      "baseline_lane": "Exact original CampaignStore.order baseline subsequence unchanged.",
+      "canonical_cost": "Original native reservation/settle/pacing/perPR cumulative .04. No cheapest-function scoring and no extra cheap-tail expansion.",
+      "exploration": "Original priority, then original per-(lane,new.qualname) attempted-count fairness, then unchanged fixed_feature utility. Update counts as each pending candidate is placed, exactly as original scheduler does.",
+      "fixed_utility": ".60 original similarity + .30 existing syntactic operation/call evidence + .10 distinct syntactic owner",
+      "no_future_history_features": true,
+      "no_judge_features": true,
+      "no_label_features": true,
+      "tie": "descending utility, existing sourceID, native source line/document position, new sourceID, candidate key"
+    },
+    "round1_public_intake": "LAB_ROOT/jobs/experiment-budget-ranking/.lab-results/funded-rounds/round1/HANDOFF.json",
+    "round2_condition": "Root assesses original direction after minimum spend/source review or verifies eligible historical supply exhaustion. Historical new-arm run is development/regression; it is not a disjoint-family holdout. Novel public dev-B families remain reserved for a paid round2 if required.",
+    "runtime_guards": "Original captures/settings/source pins, chronological isolated new-arm ledger, canonical prompt/model/output, source filters/thresholds and max calls unchanged. No normal or old native arm rerun.",
+    "schema": 1,
+    "source_error_receipt_sha256": "771a95536f4b501b09d071e97b850d8cdfaa88795d8221c1f36fcbfd113460bc",
+    "split": "All real PRs are inspected development/regression. Public new judging: dev-A round1, dev-B reserved. No claim historical errors and historical rerun are disjoint families.",
+    "status": "PREREGISTERED_SINGLE_ERROR_INFORMED_REVISION",
+    "stop": "All compatible new-arm histories complete or only source/known-paid-failure boundaries remain or root512/$1 historical cap. No invented requests for quota. Root decides further public dev-B paid source-family evaluation."
+  },
+  "funded-rounds/round2/PUBLIC-EXPERIMENT.json": {
+    "cached_or_repeated_cost_counts": false,
+    "controls": "Novel to source review; current-only losses and common-funded controls, never assumed negative. Matched source/cost strata privately where possible.",
+    "disjointness": "Exclude every exact reviewed source pair in shared index-v2; exclude every source endpoint present in R1 public queue; require frozen dev-B lineage IDs disjoint from R1 dev-A lineage IDs. Root semantic family reconciliation remains necessary before claiming novel operation-family independence.",
+    "error_basis": "Private historical source-reviewed RP01/RP02 lost under flat feature ordering at native call/duplicate-attempt cap. Historical revised arm completes12/12 with0eligible new questions; it does not spend toward round2 minimum.",
+    "gold_reuse": "Existing original400+scaled gold ranks/floors and all prior public comparisons preserved. No retrieval/index/embedding fit or representation change. Development/regression, not fresh gold holdout.",
+    "historical_revision_prereg_sha256": "9e4f7c82cd83665c31feb5b6b7a3cc94bfa080312455bce5481dd1e8a27267fa",
+    "historical_supply_proof": "LAB_ROOT/jobs/experiment-budget-ranking/.lab-results/funded-rounds/round2/replay-v1/HANDOFF.json",
+    "judging": "Unchanged central Jev context+Claude shared-operations Sonnet5.5/output1024. Sonnet arm admission is synthetic .04, Jev is separate physical diagnostic judging; neither is an actual PR claim.",
+    "method": "fair_fixed_feature",
+    "minimum_new_physical_usd": 0.2,
+    "no_paid_repeats_to_fill_quota": true,
+    "one_revised_mechanism": "Same original fixed utility; restore original baseline ordering, priorities and per-query round robin before fixed-feature peer ordering. No extra ranker/threshold/prompt variant.",
+    "preregistered_before_round2_provider_answers": true,
+    "round1_queue_sha256": "5bd81b3d2f64eb90a05643c6fbed843ddab5ae6615614f632d251d2709521fc6",
+    "schema": 1,
+    "scope": "Public explanatory round2; separate from real-PR regression replay and actual PR funding.",
+    "selection": "Use cached exact dev-B candidate unions and full-corpus original IDF/ranks. Compute only new fair_fixed_feature funding with original Sonnet normal-estimate Ledger .04 per synthetic family batch. Reuse old current funding as independent controls.",
+    "worker_provider_calls": 0
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.01194,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "4a3dca3957d228d7b14672cd29ab8469670c170de990dcd7924875fbce39b0a3",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoEq2sjXwdXScYtNhoSv\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"duplicate\\\",\\\"score\\\":0.82,\\\"owner\\\":\\\"shared\\\",\\\"why\\\":\\\"Both functions repeat the same operation of recording one resumed Claude query turn. That operation builds query options with the optional tool, permission, allowed and disallowed settings, and appends the query.open and prompt.offer expectations. It then opens the recording query, offers the message and closes the queue, records the inbound messages until the iterator is done, and appends a runtime_exit entry for success or error. On error it closes the prompt queue, serializes the error and rethrows. NEW's second-turn block is a near copy of EXISTING's loop body, and the tool-option construction is identical. EXISTING inlines the message-draining loop, while NEW calls recordMessagesUntilIteratorDone. A helper such as recordClaudeQueryTurn({index/labels, prompt, resume, ...toolOptions, entries, scenario}) would cover both. Each caller keeps its own variation: NEW's two-prompt validation and its interrupted first query, and EXISTING's loop over prompts. NEW also calls secondRuntime.close(), which EXISTING does not, so the helper would need to handle that small difference.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":4035,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":4035,\"output_tokens\":387,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":387,\"output_tokens_details\":{\"thinking_tokens\":0},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "a7537f12fdbedb4ff0cfa909489326746d02b9490a6207a8ab10194ab489eb8a",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 4035,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 4035,
+        "model": null,
+        "output_tokens": 387,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 387,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "duplicate",
+    "model_assessment": null,
+    "owner": "shared",
+    "score": 0.82,
+    "second_opinion": null,
+    "why": "Both functions repeat the same operation of recording one resumed Claude query turn. That operation builds query options with the optional tool, permission, allowed and disallowed settings, and appends the query.open and prompt.offer expectations. It then opens the recording query, offers the message and closes the queue, records the inbound messages until the iterator is done, and appends a runtime_exit entry for success or error. On error it closes the prompt queue, serializes the error and rethrows. NEW's second-turn block is a near copy of EXISTING's loop body, and the tool-option construction is identical. EXISTING inlines the message-draining loop, while NEW calls recordMessagesUntilIteratorDone. A helper such as recordClaudeQueryTurn({index/labels, prompt, resume, ...toolOptions, entries, scenario}) would cover both. Each caller keeps its own variation: NEW's two-prompt validation and its interrupted first query, and EXISTING's loop over prompts. NEW also calls secondRuntime.close(), which EXISTING does not, so the helper would need to handle that small difference."
+  }
+}

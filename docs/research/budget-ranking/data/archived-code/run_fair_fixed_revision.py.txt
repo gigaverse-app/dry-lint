@@ -1,0 +1,163 @@
+"""One preregistered new native arm; cached old arms are read-only controls.
+
+Root alone consumes/execut​es provider frontiers. No credentials, provider calls,
+representation fitting, threshold changes, or existing-arm reruns.
+"""
+import argparse
+import hashlib
+import importlib.util
+import json
+import resource
+import time
+from collections import Counter
+from pathlib import Path
+
+O=Path(__file__).resolve().parent
+D=O/'funded-rounds/round2'
+L=Path('/home/researcher/dry-lint-round')
+ARM='fair_fixed_feature'
+
+
+def read(p):return json.loads(p.read_text())
+def rows(p):return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def load(name,path):
+    spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+
+
+def fair_order(candidates,original,attempts,features):
+    baseline=[c for c in original if c.lane=='baseline']
+    pending=[c for c in candidates if c.lane!='baseline']
+    counts=Counter((a.lane,a.query) for a in attempts)
+    result=list(baseline)
+    while pending:
+        c=min(pending,key=lambda c:(-c.priority,counts[c.lane,c.new.qualname],
+            -features[c.key]['utility'],c.existing.qualname,c.existing.line,c.new.qualname,c.key))
+        pending.remove(c);result.append(c);counts[c.lane,c.new.qualname]+=1
+    return result
+
+
+def run(version,frontier_version):
+    assert (D/'EXPERIMENT.json').exists()
+    out=D/f'replay-v{version}';assert not out.exists(),'Keep old outputs immutable; select a new revision replay version'
+    started=time.perf_counter();out.mkdir()
+    c=load('fair_revision_contract',O/'continue_historical_512_v3.py')
+    w=load('fair_revision_loader',O/'continue_replay_normal_only_v2.py')
+    e=c.e;p=c.p
+    h=load('fair_revision_original_harness',L/'retrieval/.lab-results/historical-pr-replay/replay.py')
+    h.OUT=out/'loader';histories,inventory=h.load_histories()
+    anchors=read(O/'continuation-v23/input-hashes.json')
+    for path,digest in h.INPUT_HASHES.items():assert anchors.get(path)==digest,('Frozen source input changed',path)
+    for path in sorted((L/'retrieval/.lab-results/historical-pr-replay/provider/accepted-observations').glob('*.json')):
+        obs=read(path)
+        for history in histories:
+            if obs['key'] in history['bindings'] and obs['key'] not in history['answers']:history['answers'][obs['key']]=obs
+    normalized=[read(path) for path in sorted((O/'provider-observations').glob('*.json')) if not path.name.endswith('.response.json')]
+    resolutions=[]
+    for obs in normalized:
+        for history in histories:
+            if obs['key'] in history['bindings']:w.merge_observation(history,obs,h,resolutions)
+    frozen=read(O/'continuation-v23/native-history-results.json')
+    supported={(r['cohort'],r['history']) for r in frozen};assert len(supported)==12
+    baseline={(r['cohort'],r['history']):r for r in frozen if r['ordering_arm']=='current'}
+    old=read(D/f'replay-v{version-1}/results.json') if version>1 else []
+    complete_old={(r['cohort'],r['history']):r for r in old if not r['censored']}
+    original=h.AuditCampaignStore;results=[];frontier={};blocked=[];comparisons=[];reused=[]
+    for history in histories:
+        identity=(history['cohort'],history['name'])
+        if identity not in supported:continue
+        settings=history['settings'];judge=h.OfflineJudge(settings,history['answers']);judge.bindings=history['bindings']
+        h.OUT=out/'native'
+        folder=h.OUT/'runs'/history['cohort']/history['name']/'balanced'
+        if identity in complete_old:
+            parent=D/f'replay-v{version-1}/native/runs'/history['cohort']/history['name']/'balanced'
+            folder.parent.mkdir(parents=True,exist_ok=True);folder.symlink_to(parent.resolve(),target_is_directory=True)
+            result=dict(complete_old[identity]);reused.append(dict(cohort=identity[0],history=identity[1],source=str(parent)))
+        else:
+            class FairCampaign(original):
+                def order(self,candidates):
+                    current=super().order(candidates)
+                    fs={candidate.key:e.features(candidate,judge,settings) for candidate in candidates}
+                    return fair_order(candidates,current,self.snapshot().attempts,fs)
+            h.AuditCampaignStore=FairCampaign
+            result=h.evaluate(history,'balanced');result['ordering_arm']=ARM
+        results.append(result)
+        base=baseline[identity];a=base['reported_questions'];b=result['reported_questions'];complete=not result['censored']
+        comparisons.append(dict(history=history['name'],cohort=history['cohort'],complete=complete,
+            current_reports=len(a),revision_prefix_reports=len(b),
+            gains=[dict(question_key=k,**b[k]) for k in sorted(b.keys()-a.keys())] if complete else None,
+            losses=[dict(question_key=k,**a[k]) for k in sorted(a.keys()-b.keys())] if complete else None,
+            candidate_union_unchanged=True))
+        if not result['censored']:continue
+        ordinal=result['first_censored_ordinal'];snap,capture=history['steps'][ordinal]
+        ledger_rows=rows(folder/'candidate-stages.jsonl')
+        for event in read(folder/'observations.json'):
+            if event['status'] not in ['admitted_unknown','observed_failure']:continue
+            key=event['question_key'];candidates=[x for x in snap.candidates if judge.key(x)==key];assert len(candidates)==1
+            candidate=candidates[0];obs,availability=judge.lookup(candidate)
+            if obs is not None or key in history['answers'] or any(x['key']==key for x in normalized):
+                blocked.append(dict(history=history['name'],cohort=history['cohort'],ordinal=ordinal,question_key=key,
+                    status='unknown_failed_answer' if obs is not None and obs.get('verdict') is None else 'source_or_cached_identity_boundary',
+                    error=obs.get('error') if obs else None,lookup=availability,retry=False));continue
+            r=next(x for x in ledger_rows if x['ordinal']==ordinal and x['question_key']==key)
+            assert r['status']=='admitted_unknown' and r['budget_admitted'] is True
+            assert r['reservation_event']['decline'] is None
+            curve=next(x for x in read(folder/'curves.json') if x['ordinal']==ordinal)
+            ident=e.canonical(candidate,judge);assert p.digest([judge.version,ident['rendered_input']])==key
+            if key in frontier:
+                frontier[key]['also_funded_arms'].append(dict(history=history['name'],arm=ARM,ordinal=ordinal));continue
+            frontier[key]=dict(candidate=candidate,history=history,judge=judge,ordinal=ordinal,snapshot=snap,capture=capture,
+                ledger_row=r,ledger_path=folder/'candidate-stages.jsonl',curve=curve,identity=ident,
+                also_funded_arms=[dict(history=history['name'],arm=ARM,ordinal=ordinal)])
+    h.AuditCampaignStore=original
+    h.dump(out/'results.json',results);h.dump(out/'comparisons.json',comparisons);h.dump(out/'blocked-unknowns.json',blocked)
+    h.dump(out/'failure-to-answer-resolutions.json',resolutions)
+    h.dump(out/'input-hashes.json',h.INPUT_HASHES)
+    state=c.physical_state();assert state['maximum_fresh_observations']==512 and state['total_physical_usd_cap']==1.
+    dest=O/f'provider-frontier-v{frontier_version}.jsonl';manifest=dest.with_suffix('.manifest.json');requests=[];reserved=0.
+    assert not dest.exists() and not manifest.exists(),'Do not overwrite any existing frontier'
+    for n,(key,item) in enumerate(frontier.items(),1):
+        if len(requests)>=min(16,state['remaining_observations']):break
+        candidate=item['candidate'];judge=item['judge'];ident=item['identity'];history=item['history'];snap=item['snapshot'];r=item['ledger_row'];curve=item['curve']
+        maximum=e.usage_cost({'input':len(ident['rendered_input'].encode())+1024,'output':judge.max_tokens},e.PRICES[judge.model])
+        if state['actual_usd']+reserved+maximum>1.+1e-12:continue
+        proofs=c.source_proofs(candidate,snap.run.repository,snap.run.head,out/'frontier-evidence')
+        settings=history['settings'];options=judge.request_settings
+        req=dict(id=f'BR-FAIR-V{frontier_version}-{n:03d}',contract='budget-ranking-native-frontier-v1',repository=snap.run.repository,revision=snap.run.head,
+            candidate=candidate.model_dump(mode='json'),background_proof=None,background_limitation='Exact original configured historical capture; no new retrieval/index representation.',
+            source_proofs=proofs,caller_proofs=[],caller_evidence_caveat='Original native function context/full pinned source retained; no caller/judge-derived ranking feature.',
+            answer_key=key,canonical_identity=ident,rendered_prompt=ident['rendered_input'],prompt_sha256=p.sha(ident['rendered_input'].encode()),
+            effective_settings=settings.model_dump(mode='json'),effective_settings_sha256=judge.settings_sha256,
+            judge=dict(options,name=judge.name,version=judge.version,policy=judge.prompt_policy,template_version=e.PROMPT_POLICIES[judge.prompt_policy][0]),
+            funding=dict(actually_reserved=True,reservation_event=r['reservation_event'],reservation_estimate_usd=r['reservation_estimate_usd'],
+                ledger_usage_lower=curve['observed_replayed_usage_usd_lower'],ledger_reservation_upper=curve['conservative_accounted_usd_upper'],
+                cap_per_PR=.04,ledger_proof=str(item['ledger_path']),ledger_proof_sha256=sha(item['ledger_path']),source='Original native reserve/settle; one preregistered fair_fixed_feature arm.'),
+            private_sidecar=dict(policy=ARM,history=history['name'],arm=ARM,ordinal=item['ordinal'],also_funded_arms=item['also_funded_arms'],
+                capture_file=str(item['capture']),capture_sha256=sha(item['capture']),manifest=history['manifest_path'],manifest_sha256=sha(Path(history['manifest_path'])),
+                all_other_candidates_censored_after_this_question=True,round=2,development_regression_only=True),
+            observation_output=str(O/f'provider-responses-v{frontier_version}.jsonl'))
+        req['request_payload_sha256']=p.digest(req);requests.append(req);reserved+=maximum
+    summary=dict(method=ARM,round=2,revision_replay=version,source_preregistration=str(D/'EXPERIMENT.json'),
+        completed=sum(not r['censored'] for r in results),histories=len(results),distinct_new_first_funded_questions=len(frontier),exported_requests=len(requests),
+        known_failed_or_source_boundaries=blocked,existing_native_arms_recomputed=0,existing_normal_arms_recomputed=0,reused_completed_revision_histories=reused,
+        current_controls=str(O/'continuation-v23/native-history-results.json'),native_cap_per_PR=.04,physical=state,
+        no_representation_fit=True,no_provider_calls=True,elapsed_seconds=time.perf_counter()-started,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    if requests:
+        raw=''.join(json.dumps(r,sort_keys=True)+'\n' for r in requests).encode();dest.write_bytes(raw)
+        previous=max(O.glob('provider-frontier-v*.manifest.json'),key=lambda x:int(x.name.split('-v')[1].split('.')[0]))
+        h.dump(manifest,dict(version=frontier_version,path=str(dest),sha256=p.sha(raw),requests=len(requests),
+            method=ARM,round=2,replay=str(out),parent_frontier_sha256=read(previous)['sha256'],immutable_during_provider_execution=True,
+            prior_central_calls=state['fresh_observations'],prior_central_incremental_usd=state['actual_usd'],central_total_physical_usd_limit=1.,maximum_total_fresh_observations_before_review=512,
+            selected_maximum_reservation_usd=reserved,physical_total_if_all_at_max=state['actual_usd']+reserved,response_contract=str(O/'provider-response-contract-v6.json'),
+            response_output=str(O/f'provider-responses-v{frontier_version}.jsonl'),worker_provider_calls=0,
+            consume_command=f'{c.PYTHON} .lab-results/provider_contract_v5.py --frontier .lab-results/provider-frontier-v{frontier_version}.jsonl --consume RESPONSES_JSONL',
+            next_replay_command=f'{c.PYTHON} .lab-results/run_fair_fixed_revision.py --version {version+1} --frontier-version {frontier_version+1}'))
+        p.validate_frontier(dest)
+        summary.update(frontier=str(dest),frontier_sha256=sha(dest),selected_maximum_physical_reservation_usd=reserved)
+    else:summary['boundary']='no_eligible_unanswered_funded_questions' if not frontier else 'resource_reservation_boundary'
+    h.dump(out/'HANDOFF.json',summary)
+    print(json.dumps(summary,sort_keys=True))
+
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--version',type=int,required=True);p.add_argument('--frontier-version',type=int,required=True);a=p.parse_args();run(a.version,a.frontier_version)

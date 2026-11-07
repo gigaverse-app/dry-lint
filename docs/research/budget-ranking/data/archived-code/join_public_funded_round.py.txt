@@ -1,0 +1,116 @@
+"""Join paid paired provider observations to frozen admissions; no reranking or API."""
+import argparse
+import hashlib
+import importlib.util
+import json
+from collections import Counter
+from pathlib import Path
+
+O=Path(__file__).resolve().parent
+
+
+def read(p):return json.loads(p.read_text())
+def rows(p):return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def freeze(p,data):
+    raw=json.dumps(data,sort_keys=True,indent=2)+'\n'
+    if p.exists():assert p.read_text()==raw,'Preserve previous result; use a versioned output'
+    else:p.write_text(raw)
+
+
+def join(round_number,feed,output):
+    D=O/f'funded-rounds/round{round_number}'
+    spec=importlib.util.spec_from_file_location('public_frozen_report_policy',O/'run_experiment.py')
+    e=importlib.util.module_from_spec(spec);spec.loader.exec_module(e)
+    settings=e.Settings(judge={'use':'anthropic','model':'claude-sonnet-5-5','prompt_policy':'shared-operations','max_tokens':1024,'max_retries':0},escalate=None,budget={'usd':.04})
+    packets={r['id']:r for r in rows(D/'novel-review-queue.jsonl')}
+    private={r['id']:r for r in rows(D/'private-sidecar.jsonl')}
+    producer_requests={(r['case_id'],r['identity']['kind']):r for r in rows(D/'canonical-request-plan.jsonl')}
+    central=rows(feed);assert len({r['id'] for r in central})==len(central)
+    new_requests=set();provider_usd=0.;pair_records=[];blinded=[];review_mapping=[]
+    for case in central:
+        qid=case['id'];packet=packets[qid];side=private[qid]
+        assert case['packet']['candidate']==packet['candidate']
+        assert (case['packet']['repository'],case['packet']['revision'])==(packet['repository'],packet['revision'])
+        candidate=e.Candidate.model_validate(packet['candidate'])
+        decisions={};observations=[]
+        for obs in case['observations']:
+            kind=obs['kind'];wanted=producer_requests[qid,kind]
+            assert obs['request_key']==wanted['request_key']
+            assert obs['identity']==wanted['identity']
+            known=obs.get('verdict') is not None and not obs.get('error')
+            verdict=e.Verdict.model_validate(obs['verdict']) if known else None
+            report=bool(settings.duplicate_at(verdict,settings.report_at)) if known else None
+            if verdict:assert (verdict.judge,verdict.judge_version)==(obs['identity']['judge'],obs['identity']['version'])
+            decisions[kind]=report
+            observations.append(dict(kind=kind,request_key=obs['request_key'],reported=report,
+                verdict=obs.get('verdict'),cached=obs['cached'],error=obs.get('error'),usd=obs.get('usd'),
+                usage=obs.get('usage'),source_truth='not independently adjudicated'))
+            if not obs['cached']:
+                assert obs['request_key'] not in new_requests
+                new_requests.add(obs['request_key']);assert obs['usd'] is not None;provider_usd+=obs['usd']
+        assert set(decisions)=={'jev','claude'}
+        record=dict(id=qid,repository=packet['repository'],revision=packet['revision'],pair=candidate.key,
+            source_ids={'new':candidate.new.qualname,'existing':candidate.existing.qualname},
+            role=side['role'],stratum=side['stratum'],batch=side['batch'],lineage=side['lineage'],
+            size_stratum=side['size_stratum'],arm_funding_and_ranks=side['arm_rows'],
+            provider_report_decisions=decisions,observations=observations,
+            source_label='unknown_pending_independent_source_review',operation_family=None,
+            source_proof_reference=str(D/'source-blind.jsonl'))
+        pair_records.append(record)
+        if any(value is True for value in decisions.values()):
+            blind_id=f'BR-PUBLIC-R{round_number}-S{len(blinded)+1:03d}'
+            blinded.append(dict(id=blind_id,repository=packet['repository'],revision=packet['revision'],
+                new=candidate.new.model_dump(mode='json'),existing=candidate.existing.model_dump(mode='json'),
+                source_proofs=packet['source_proofs'],caller_evidence='Full pinned files, original native context and outgoing source evidence supplied. Inspect existing owners and distinct caller contracts.',
+                instruction='Judge concrete useful partial shared operation, separate ownership/caller policy and counterargument. Related/disputed/unknown allowed; no whole-function equivalence inferred.'))
+            review_mapping.append(dict(blind_id=blind_id,original_id=qid,role=side['role'],stratum=side['stratum'],
+                pair=candidate.key,repository=packet['repository'],revision=packet['revision'],provider_decisions=decisions,
+                arm_funding=side['arm_rows'],source_label='unknown'))
+    arms=['current','fixed_feature','naive_cost','protected_cost'] if round_number==1 else ['current','fair_fixed_feature']
+    summaries=[]
+    for arm in arms:
+        funded=[r for r in pair_records if r['arm_funding_and_ranks'][arm]['funded']]
+        gained=[r for r in funded if not r['arm_funding_and_ranks']['current']['funded']]
+        lost=[r for r in pair_records if r['arm_funding_and_ranks']['current']['funded'] and not r['arm_funding_and_ranks'][arm]['funded']]
+        summaries.append(dict(arm=arm,judged_eligible_pair_denominator=len(pair_records),funded_judged_pairs=len(funded),
+            gained_funded_pairs=len(gained),lost_current_funded_pairs=len(lost),
+            claude_emitted_reports=sum(r['provider_report_decisions']['claude'] is True for r in funded),
+            independent_jev_reports=sum(r['provider_report_decisions']['jev'] is True for r in funded),
+            claude_gained_reports=[r['id'] for r in gained if r['provider_report_decisions']['claude'] is True],
+            claude_lost_prior_reports=[r['id'] for r in lost if r['provider_report_decisions']['claude'] is True],
+            source_confirmed_useful_gains=0,source_reviewed_gain_denominator=0,
+            source_usefulness='Unknown until independent root source acceptance; model report gain is not a useful-operation gain.'))
+    agreement=Counter(tuple(r['provider_report_decisions'][k] for k in ['jev','claude']) for r in pair_records)
+    first=D/f'PUBLIC-R{round_number}-REPORT-PROPOSALS-SOURCE-BLIND.jsonl'
+    raw=''.join(json.dumps(r,sort_keys=True)+'\n' for r in blinded)
+    if first.exists():assert first.read_text()==raw
+    else:first.write_text(raw)
+    freeze(D/f'PUBLIC-R{round_number}-REPORT-PROPOSALS-PRIVATE.json',review_mapping)
+    root_summary=read(feed.parent/'execution-summary.json')
+    known_actual=root_summary.get('actual_new_usd',root_summary.get('new_physical_usd'))
+    assert known_actual is not None and abs(provider_usd-known_actual)<1e-10
+    result=dict(schema='budget-ranking-public-paid-join-v1',round=round_number,
+        scope='New source-pinned public synthetic arm cohort only, development/regression. Not authentic PR replay, whole-corpus report recall or a fresh source-family holdout claim.',
+        pairs=len(pair_records),roles=dict(Counter(r['role'] for r in pair_records)),new_paid_requests=len(new_requests),
+        actual_new_paid_usd=provider_usd,minimum_actual_usd=.20,minimum_met=provider_usd>=.20,
+        historical_cost_credited=0,cached_cost_credited=0,arms=summaries,
+        report_policy='Claude shared-operations Sonnet5.5/output1024 at original Settings.report_at=.8; Jev independently reported at same settings, never a veto.',
+        paired_report_agreement=[dict(jev=key[0],claude=key[1],pairs=count) for key,count in sorted(agreement.items())],
+        source_review=dict(report_positive_pairs=len(blinded),novel_report_positive_pairs=sum(r['role']=='novel' for r in review_mapping),
+            independent_accepted_source_labels=0,pending_source_cases=len(blinded),
+            blind_packet=str(first),private_mapping=str(D/f'PUBLIC-R{round_number}-REPORT-PROPOSALS-PRIVATE.json'),
+            all_independent_controls_available=str(D/'source-blind.jsonl'),
+            precision_or_useful_report_recall=None,confirmed_operation_families=None),
+        per_pair=pair_records,rank_and_funding_recomputed=False,no_idf_or_embedding_fit=True,
+        prior_gold_results='Immutable initial HANDOFF/public regression results reused separately; no 400-gold-row == historical PR equivalence.',
+        worker_provider_calls=0,promotion=False,
+        artifact_sha256={str(p):sha(p) for p in [feed,feed.parent/'execution-summary.json',D/'canonical-request-plan.jsonl',D/'novel-review-queue.jsonl',D/'private-sidecar.jsonl',D/'synthetic-arm-ledgers.jsonl',Path(__file__).resolve()]})
+    freeze(output,result)
+    print(json.dumps(dict(output=str(output),round=round_number,pairs=len(pair_records),new_paid_requests=len(new_requests),actual_new_usd=provider_usd,
+        minimum_met=provider_usd>=.20,arms=summaries,source_cases_pending=len(blinded),jev_claude_report_agreement=result['paired_report_agreement']),sort_keys=True))
+
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--round',type=int,required=True,choices=[1,2]);p.add_argument('--feed',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
+    join(a.round,a.feed.resolve(),a.output.resolve())

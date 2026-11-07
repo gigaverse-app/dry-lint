@@ -1,0 +1,41 @@
+{
+  "actual_usd": 0.038964,
+  "error": "ValueError",
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "8b1b9ef2b157a0f82a4cbce1602f164ddb1ba2722248265bf034c4d04b42b120",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoFst8pqipJJQuQCWj9a\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"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\"},{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"duplicate\\\",\\\"score\\\":0.68,\\\"owner\\\":\\\"shared\\\",\\\"why\\\":\\\"Only a sub-operation is shared: finalizing an assembled streaming response inside the success handlers. Both bodies run the same ordered sequence on a completed stream. They store the response under the complete-streaming key and call `_surface_response_headers_from_result`. They then compute `response_cost` via `response_cost_calculator`, using the provider transcription instead of the assembled response when one exists. Next they call `_add_failed_attempts_spend(_add_continued_partial_spend(...))` and `_merge_hidden_params_from_response_into_metadata`. Finally they build the client-facing response with `_client_facing_streaming_response(_as_served_chat_response(...))`, store it again, and build `standard_logging_object` from it (or from the transcription). A shared helper such as `_finalize_complete_streaming_response(response, provider_transcription, start, end, key)` could own this. The sync/async storage key, the async-only baseline-cache estimate, the payload emission policy and the error handling could stay as parameters or at the call sites. The copies have already drifted slightly: the async path zeroes cost on cache hit and wraps cost and payload building in non-blocking try/except, while the sync path does neither locally. The repeated logging-hook preamble (redact result, merge callbacks, guardrail `should_run_guardrail`, reset the shadow snapshot, run the hook) is a weaker second overlap. The callback deliv\"}],\"container\":null,\"stop_reason\":\"max_tokens\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":14362,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":14362,\"output_tokens\":1024,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":1024,\"output_tokens_details\":{\"thinking_tokens\":534},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "bdffd9bb3b5e56ce9b9ec208aea22318a992d7b4edee9f2bce43b4f730ca8c9d",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 14362,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 14362,
+        "model": null,
+        "output_tokens": 1024,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 1024,
+    "output_tokens_details": {
+      "thinking_tokens": 534
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": null
+}

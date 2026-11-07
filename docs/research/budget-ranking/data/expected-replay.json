@@ -1,0 +1,119 @@
+{
+  "actual_paid_usd_by_round": {
+    "1": 0.69653208,
+    "2": 0.5913536
+  },
+  "panels": {
+    "round1": {
+      "arms": {
+        "current": {
+          "funded": 55,
+          "known_reports": 2,
+          "related_reports": 0,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 2
+        },
+        "fixed_feature": {
+          "funded": 57,
+          "known_reports": 4,
+          "related_reports": 1,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 3
+        },
+        "naive_cost": {
+          "funded": 63,
+          "known_reports": 4,
+          "related_reports": 1,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 3
+        },
+        "protected_cost": {
+          "funded": 55,
+          "known_reports": 2,
+          "related_reports": 0,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 2
+        }
+      },
+      "cases": 74,
+      "known_claude": 74,
+      "novel_answers": 19,
+      "novel_reports": 2,
+      "novel_unknowns": 0,
+      "public_payloads": 74,
+      "source_categories": {
+        "related": 4,
+        "unknown": 66,
+        "useful": 4
+      },
+      "source_free_holds": 0,
+      "treatment_only_pairs": 19,
+      "treatment_only_reports": 2,
+      "unknown_claude": 0
+    },
+    "round2": {
+      "arms": {
+        "current": {
+          "funded": 46,
+          "known_reports": 5,
+          "related_reports": 0,
+          "source_unknown_reports": 5,
+          "unknown_funded": 1,
+          "useful_reports": 0
+        },
+        "fair_fixed_feature": {
+          "funded": 43,
+          "known_reports": 5,
+          "related_reports": 0,
+          "source_unknown_reports": 5,
+          "unknown_funded": 1,
+          "useful_reports": 0
+        },
+        "fixed_feature": {
+          "funded": 38,
+          "known_reports": 3,
+          "related_reports": 0,
+          "source_unknown_reports": 3,
+          "unknown_funded": 1,
+          "useful_reports": 0
+        },
+        "naive_cost": {
+          "funded": 34,
+          "known_reports": 2,
+          "related_reports": 0,
+          "source_unknown_reports": 2,
+          "unknown_funded": 0,
+          "useful_reports": 0
+        },
+        "protected_cost": {
+          "funded": 46,
+          "known_reports": 5,
+          "related_reports": 0,
+          "source_unknown_reports": 5,
+          "unknown_funded": 1,
+          "useful_reports": 0
+        }
+      },
+      "cases": 50,
+      "known_claude": 49,
+      "novel_answers": 4,
+      "novel_reports": 0,
+      "novel_unknowns": 0,
+      "public_payloads": 50,
+      "source_categories": {
+        "unknown": 50
+      },
+      "source_free_holds": 0,
+      "treatment_only_pairs": 4,
+      "treatment_only_reports": 0,
+      "unknown_claude": 1
+    }
+  },
+  "scope": "Recorded admissions and answers; no retrieval rebuild or provider execution. Held records replay numeric verdicts only.",
+  "separate_private_aggregates": {},
+  "unique_paid_requests": 248
+}

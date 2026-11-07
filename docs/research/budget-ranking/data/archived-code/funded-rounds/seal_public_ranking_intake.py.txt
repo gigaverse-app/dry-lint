@@ -1,0 +1,90 @@
+"""Seal <=32-pair worker chunks for the existing root parallel intake; no API."""
+import argparse
+import importlib.util
+import json
+import shutil
+import time
+from pathlib import Path
+
+HOME=Path(__file__).resolve().parent
+spec=importlib.util.spec_from_file_location('ranking_public_adapter',HOME/'public_ranking_intake.py')
+a=importlib.util.module_from_spec(spec);spec.loader.exec_module(a)
+q=a.q
+
+
+def ref(p):return dict(path=str(p.resolve()),sha256=q.sha(p.read_bytes()))
+def rendered_key(identity):
+    fields=['kind','judge','version','model','max_output_tokens','rendered_input','source_evidence','context_hash']
+    return q.sha(q.canonical({k:identity.get(k) for k in fields}))
+
+
+def seal(round_number,chunk_number):
+    original=HOME/f'round{round_number}'/'chunks'/f'chunk-{chunk_number:03d}'
+    out=HOME/f'round{round_number}'/'central'/f'chunk-{chunk_number:03d}'
+    if (out/'ROOT-READY.json').exists():
+        a.central.OUT=out;receipt,entries,requests,typed=a.central.validate();a.validate_funding(out,entries)
+        return dict(status='existing_immutable_seal',path=str(out),cases=len(entries),requests=len(requests))
+    assert original.exists()
+    out.mkdir(parents=True,exist_ok=False)
+    whole=HOME/f'round{round_number}'
+    entries=q.read_rows(original/'frozen-input.jsonl');requests=q.read_rows(original/'canonical-request-plan.jsonl')
+    old_pairs={r['pair_key'] for r in q.read_rows(a.central.PHASE/'frozen-input.jsonl')}
+    record_dirs=set(q.observation_directories(a.central.PHASE))|set(a.OPS.glob('*/observations'))|set(a.OPS.parent.glob('*/observations'))
+    records=q.observations(sorted(record_dirs));old_rendered={rendered_key(r['identity']) for p,r in records}
+    excluded=[];keep=[]
+    for e in entries:
+        reqs=[r for r in requests if r['case_id']==e['id']]
+        reason='source_pair_already_in_phase_v1' if e['pair_key'] in old_pairs else 'exact_rendered_question_already_observed_no_paid_repeat' if any(rendered_key(r['identity']) in old_rendered for r in reqs) else None
+        if reason:excluded.append(dict(id=e['id'],reason=reason,pair_key=e['pair_key'],source_label='unknown_not_negative'))
+        else:keep.append(e)
+    entries=keep;ids={e['id'] for e in entries};requests=[r for r in requests if r['case_id'] in ids]
+    assert 0<len(entries)<=32 and len(requests)==2*len(entries),'Empty eligible chunk: preserve proof and advance another supply chunk'
+    q.write_rows(out/'frozen-input.jsonl',entries);q.write_rows(out/'canonical-request-plan.jsonl',requests)
+    q.write_rows(out/'packets.jsonl',[e['packet'] for e in entries]);q.write_rows(out/'exclusions.jsonl',excluded)
+    q.write_rows(out/'original-arm-funding.jsonl',[dict(id=e['id'],funding=e['native_funding'],proof=e['packet']['funding_proof']) for e in entries])
+    blind=[r for r in q.read_rows(original/'source-blind.jsonl') if r['id'] in ids];q.write_rows(out/'source-blind.jsonl',blind)
+    verification=json.loads((original/'novel-review-queue.verification.json').read_text())
+    verification.update(rows=len(entries),frozen_sha256=q.sha((out/'packets.jsonl').read_bytes()),qualification='Source-native validation only; synthetic admission separately validated, no PR funding claim.')
+    q.atomic_json(out/'native-verification.json',verification)
+    inputs=[]
+    for e in entries:
+        proof=e['packet']['background_proof']
+        if any(r['path']==proof['path'] for r in inputs):continue
+        raw=Path(proof['path']).read_bytes();assert q.sha(raw)==proof['sha256']
+        cached=whole/'inputs'/(proof['sha256']+Path(proof['path']).suffix)
+        if not cached.exists():cached=out/'inputs'/(proof['sha256']+Path(proof['path']).suffix);cached.parent.mkdir(exist_ok=True);cached.write_bytes(raw)
+        inputs.append(dict(path=proof['path'],snapshot=str(cached.resolve()),sha256=proof['sha256']))
+    q.write_rows(out/'input-receipts.jsonl',inputs)
+    phase_events=q.read_rows(a.central.PHASE/'ledger.jsonl')
+    if any(r['event']=='response' and not r['accounted'] for r in phase_events):raise ValueError('Root phase usage unknown; no execution allowed')
+    expected=sum(a.central.old.normal_cost(r) for r in requests)
+    central_ready=json.loads((a.SEALED/'ROOT-READY.json').read_text())
+    dependencies=central_ready['implementation']+[ref(HOME/'public_ranking_intake.py'),ref(Path(__file__))]
+    artifacts={p.name:ref(p) for p in out.iterdir() if p.is_file()}
+    command=f'{a.LAB}/retrieval/.venv/bin/python {HOME}/public_ranking_intake.py --chunk {out.resolve()}'
+    receipt=dict(schema=1,status='ROOT_READY_EXISTING_PARALLEL_INTAKE',version=f'budget-ranking-public-r{round_number}-chunk{chunk_number}',
+        round=round_number,method='budget-ranking',cases=len(entries),requests=len(requests),artifacts=artifacts,implementation=dependencies,
+        native_verification=ref(out/'native-verification.json'),
+        synthetic_worker_ledger=ref(whole/'synthetic-arm-ledgers.jsonl'),original_candidate_stage=ref(HOME.parent/'candidate-stages.jsonl'),
+        budget_semantics='Original synthetic Sonnet-only .04 per family batch is source-arm admission, NOT PR/native/per-PR paired deployment funding. Root paired Jev/Claude physical diagnostic judging separately charged.',
+        new_synthetic_04_gate=False,expected_new_physical_usd=expected,minimum_actual_direction_round_usd=.20,
+        physical_promotion_phase_cap_usd=19.,overall_phase_cap_usd=20.,source_truth='unknown; root source reblind/acceptance required',
+        max_concurrent_requests=8,per_provider_max=4,phase_ledger=str(a.central.PHASE/'ledger.jsonl'),
+        preexisting_phase_response_keys=sorted(r['request_key'] for r in phase_events if r['event']=='response'),
+        root_reblind_required=True,review_packet=str(out/'source-blind.jsonl'),confidence_gate=None,
+        dry_run_command=command+' --dry-run',root_command=command+' --execute --global-room-usd 0.60',
+        allocation_note='Root verifies/allocates .60 of remaining promotion room before execute. It is a maximum allocation, not expected spend or a request to consume it.',
+        worker_provider_calls=0,worker_credentials_read=False)
+    if round_number==2:receipt['revised_rank_rows']=ref(whole/'revised-rank-rows.jsonl')
+    q.atomic_json(out/'ROOT-READY.json',receipt)
+    a.central.OUT=out;_,verified,plan,typed=a.central.validate();a.validate_funding(out,verified)
+    q.atomic_json(out/'WORKER-DRY-RUN.json',dict(all_pass=True,cases=len(verified),requests=len(plan),
+        strict_typed_requests=len(typed),native_funding_scope='synthetic only',provider_calls=0,
+        existing_parallel_executor_reused=True,concurrency=8,sealed_ready_sha256=q.sha((out/'ROOT-READY.json').read_bytes())))
+    return dict(status=receipt['status'],round=round_number,chunk=chunk_number,cases=len(entries),requests=len(requests),
+        expected_new_physical_usd=expected,excluded=len(excluded),root_command=receipt['root_command'],dry_run=receipt['dry_run_command'])
+
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--round',type=int,choices=[1,2],required=True);p.add_argument('--chunk',type=int,required=True);x=p.parse_args()
+    print(json.dumps(seal(x.round,x.chunk),sort_keys=True))

@@ -1,0 +1,32 @@
+{
+  "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+  "commit": "bb29c4b71987008d06c2381a68b6833b6d542e3e",
+  "catalog_sha256": "2d516a003e35bc265c86b50129f6348623b8cff2eb1f1c5c5024032b62cc7b34",
+  "scope": "Background hashes referenced by published paid case recordings only. Not all 79 historical inventory scopes are claimed present. Private/held backgrounds remain outside this corpus.",
+  "study_backgrounds": [
+    {
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+      "original_path": "LAB_ROOT/jobs/litellm-candidate-golds/.lab-results/litellm-candidates/background.json.gz",
+      "catalog_matches": [
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/litellm-fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f.json.gz",
+          "manifest_sha256": "6ec7eb9cf54c986c7e801ffbd52a343b7b58599e618de41d6f3c2d880d91879c"
+        }
+      ],
+      "status": "exact_published_match"
+    },
+    {
+      "sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+      "original_path": "LAB_ROOT/retrieval/.lab-results/recall-lab/t3/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25.json.gz",
+      "catalog_matches": [
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/t3code-6577c6b6185167c0e502fa01f9e8e8f2dee6ff25.json.gz",
+          "manifest_sha256": "6ec7eb9cf54c986c7e801ffbd52a343b7b58599e618de41d6f3c2d880d91879c"
+        }
+      ],
+      "status": "exact_published_match"
+    }
+  ]
+}
