@@ -1,0 +1,66 @@
+"""Synthetic-only checks for strict text parsing and opaque non-text payloads."""
+import copy
+import json
+import unittest
+
+import diagnostic_text_parser as d
+import harness as h
+
+
+class Source:
+    catalog = {'initial:new': {'path': 'fixture.py', 'start_line': 1, 'end_line': 5}}
+
+
+def response(**changes):
+    value = {'label': 'duplicate', 'score': .9, 'owner': 'shared', 'why': 'One bounded shared operation.',
+             'uncertainty': False, 'missing_evidence': [],
+             'citations': [{'evidence_id': 'initial:new', 'start_line': 1, 'end_line': 2}]}
+    value.update(changes)
+    return {'stop_reason': 'end_turn', 'content': [{'type': 'text', 'text': json.dumps(value)}]}
+
+
+class DiagnosticTests(unittest.TestCase):
+    def test_nontext_payload_is_opaque_and_original_response_unchanged(self):
+        class Opaque(dict):
+            def __getitem__(self, key):
+                if key != 'type':
+                    raise AssertionError('Non-text payload accessed')
+                return super().__getitem__(key)
+        r = response()
+        r['content'].insert(0, Opaque(type='thinking'))
+        self.assertEqual(h.final_decision(r, Source())[1], 'nontext_final')
+        self.assertEqual(d.parse_text_only(r, Source())['status'], 'complete')
+        self.assertEqual(len(r['content']), 2)
+
+    def test_word_limit_and_required_fields_are_not_relaxed(self):
+        r = response(why=' '.join(['word'] * 81))
+        result = d.parse_text_only(r, Source())
+        self.assertIsNone(result['reported'])
+        self.assertEqual(result['reasons'][0]['code'], 'why_word_limit')
+        result = d.parse_text_only(response(extra=True), Source())
+        self.assertEqual(result['reasons'][0]['code'], 'field_set_mismatch')
+
+    def test_unreturned_and_out_of_range_citations_remain_unknown(self):
+        for cite, reason in [({'evidence_id': 'missing', 'start_line': 1, 'end_line': 2}, 'citation_not_returned_or_initial'),
+                             ({'evidence_id': 'initial:new', 'start_line': 1, 'end_line': 6}, 'citation_outside_returned_range')]:
+            r = response(citations=[cite])
+            self.assertIsNone(h.final_decision(r, Source())[0])
+            diagnostic = d.parse_text_only(r, Source())
+            self.assertIsNone(diagnostic['reported'])
+            self.assertEqual(diagnostic['reasons'][0]['code'], reason)
+
+    def test_no_end_turn_and_invalid_json_remain_unknown(self):
+        r = response()
+        r['stop_reason'] = 'tool_use'
+        self.assertEqual(d.parse_text_only(r, Source())['reasons'][0]['code'], 'no_end_turn_final')
+        r = {'stop_reason': 'end_turn', 'content': [{'type': 'text', 'text': '{'}]}
+        self.assertEqual(d.parse_text_only(r, Source())['reasons'][0]['code'], 'invalid_json')
+
+    def test_uncertain_and_invalid_score_are_not_promoted(self):
+        self.assertIsNone(d.parse_text_only(response(uncertainty=True), Source())['reported'])
+        for score in (True, -1, 2, float('nan')):
+            self.assertIsNone(d.parse_text_only(response(score=score), Source())['reported'])
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

@@ -1,0 +1,21 @@
+{
+  "status": "READY",
+  "method": "agentic-judge",
+  "proposed_branch": "research/study-agentic-judge",
+  "destination": "docs/research/agentic-judge/",
+  "source_directory": "/home/researcher/dry-lint-round/jobs/publish-retrieval-judges/.lab-results/publications/agentic-judge",
+  "pr_title": "PR-title.txt",
+  "pr_body": "PR-body.md",
+  "root_owns_push_and_pr_creation": true,
+  "checks": [
+    "clean-copy reproduce.py",
+    "clean-copy native.py (18 original strict submissions)",
+    "clean-copy audit.py",
+    "pinned migration catalog manifest/hash lookup"
+  ],
+  "scope": "Nine corrected v3 pairs; source/report reproduction and original final algorithm; full source search not regenerated",
+  "provider_calls": 0,
+  "credentials_read": false,
+  "ci_changed": false,
+  "agents_spawned": 0
+}

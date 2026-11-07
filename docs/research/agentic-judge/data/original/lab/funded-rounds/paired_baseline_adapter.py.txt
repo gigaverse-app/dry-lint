@@ -1,0 +1,75 @@
+"""Offline request/response adapter for root's existing one-shot executor.
+
+No provider client, key lookup, source callback, retry, or target-code execution.
+Thinking and other non-tool blocks are opaque and never exported.
+"""
+import importlib.util
+import json
+from pathlib import Path
+
+from export_paired_baselines import canon, sha
+
+HERE = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location('_paired_strict_v3', HERE / 'round1/teacher_v3_adapter.py')
+v = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(v)
+
+
+def teacher_for(row):
+    path = HERE / ('round' + str(row['funded_round'])) / 'teacher-requests.jsonl'
+    teacher = next(x for x in v.h.lines(path) if x['id'] == row['id'])
+    assert teacher['request_key'] == row['teacher_request_key']
+    return teacher
+
+
+def validate_request(row):
+    teacher = teacher_for(row)
+    request = row['request_body']
+    expected = dict(teacher['request'])
+    expected['tools'] = [t for t in expected['tools'] if t['name'] == 'submit_verdict']
+    assert request == expected
+    assert [t['name'] for t in request['tools']] == ['submit_verdict']
+    assert row['exact_rendered_json'] == canon(request)
+    assert row['wire_sha256'] == sha(canon(request))
+    assert row['identity']['canonical_request_sha256'] == sha(canon(request))
+    assert row['request_id'] == sha(canon(row['identity']))
+    assert row['identity']['source_sha256'] == sha(canon(row['source_contract']))
+    assert row['identity']['prompt_sha256'] == sha(canon(row['prompt_contract']))
+    assert row['source_contract']['candidate_sha256'] == sha(canon(teacher['original']['candidate']))
+    assert row['source_contract']['endpoints'] == teacher['original']['source']
+    assert row['physical_call_policy']['max_attempts'] == 1
+    assert not row['counts_toward_teacher_minimum']
+    return teacher
+
+
+def parse_response(row, raw):
+    teacher = validate_request(row)
+    result = {'id': row['id'], 'request_id': row['request_id'], 'status': 'unknown',
+              'decision': None, 'reported': None, 'source_tools_available': False,
+              'semantic_policy_comparable': True}
+    if raw.get('stop_reason') != 'tool_use':
+        return {**result, 'reason': 'capped_or_no_submission'}
+    # Inspect only the observable tool-use protocol; never inspect thinking data.
+    calls = [b for b in raw.get('content', []) if b.get('type') == 'tool_use']
+    if len(calls) != 1 or calls[0].get('name') != 'submit_verdict':
+        return {**result, 'reason': 'unavailable_tool_or_missing_single_submission'}
+    source = v.h.validate_item(teacher['original'])
+    decision, status = v.strict_submit(calls[0].get('input'), source)
+    if decision is None:
+        return {**result, 'reason': 'invalid_final_submission'}
+    return {**result, 'status': status, 'reason': None, 'decision': decision,
+            'reported': (decision['label'] in ('duplicate', 'drifted') and decision['score'] >= .8
+                         and not decision['uncertainty'])}
+
+
+def parse_receipt(row, receipt):
+    """Check root receipt identity/output hashes before parsing an answer."""
+    assert receipt['request_id'] == row['request_id']
+    assert receipt['identity'] == row['identity']
+    assert receipt['request_sha256'] == row['identity']['canonical_request_sha256']
+    assert receipt['sent_wire_sha256'] == row['wire_sha256']
+    assert receipt['output_sha256'] == sha(canon(receipt['raw_response']))
+    if receipt.get('error') or not isinstance(receipt.get('http_status'), int) or not 200 <= receipt['http_status'] < 300:
+        return {'id': row['id'], 'request_id': row['request_id'], 'status': 'unknown',
+                'decision': None, 'reported': None, 'reason': 'physical_call_error'}
+    return parse_response(row, receipt['raw_response'])

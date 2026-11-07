@@ -1,0 +1,68 @@
+{
+  "accepted_positive_started": [
+    "AJ-R1-01df4515b3387c9a",
+    "AJ-R1-e0e09e30f70fb045",
+    "AJ-R1-252d6146fdd56664",
+    "AJ-R1-92702b5c40cb27a7"
+  ],
+  "accepted_tiny_convenience_started": [],
+  "api_seconds_body_sum": 38.41722829599894,
+  "api_seconds_teacher_sum": 62.77941835798265,
+  "body_baseline_actual_usd": 0.088006,
+  "disputed_teacher_reports": [],
+  "initial_body_lines_repeated": 9,
+  "interpretation": "Observed development. Within each case only source-tool availability differs; one model sample per arm. Body-only retains source-tool instructions but has no source tools: unavailable-tool requests remain unknown and cannot establish gain. No causal attribution of a changed verdict to a specific citation. Protocol versions across rounds are not matched accuracy comparisons. Teacher batch wall time includes controls; compare matched novel per-case API totals separately from CPU/source extraction.",
+  "new_source_lines_cited": 1,
+  "new_source_lines_returned": 104,
+  "no_pristine_population_holdout": true,
+  "novel_api_seconds_teacher_sum": 38.29439505598566,
+  "novel_baseline_statuses": {
+    "complete": 6,
+    "uncertain": 2
+  },
+  "novel_body_false_reports_on_source_separate": [],
+  "novel_comparisons": {
+    "both_report": 1,
+    "neither_reports": 5,
+    "unknown_or_not_paired": 2
+  },
+  "novel_source_confirmed_losses": [],
+  "novel_source_confirmed_recoveries": [],
+  "novel_started": 8,
+  "novel_teacher_actual_usd": 0.153436,
+  "novel_teacher_false_reports_on_source_separate": [],
+  "round": 1,
+  "schema": 1,
+  "source_confirmed_teacher_report_without_comparable_baseline": [
+    "AJ-R1-e0e09e30f70fb045"
+  ],
+  "source_confirmed_teacher_reports_excluding_disputes": [
+    "AJ-R1-e0e09e30f70fb045",
+    "AJ-R1-92702b5c40cb27a7"
+  ],
+  "source_disputed_started": [
+    "AJ-R1-3f310c0655076c00"
+  ],
+  "source_pending_started": [],
+  "source_supported_paired_recoveries_excluding_disputes": [],
+  "source_supported_paired_recoveries_including_disputed_prior_positives": [],
+  "started": 12,
+  "teacher_actual_usd": 0.356584,
+  "teacher_concurrency": 4,
+  "teacher_minimum_actual_met": true,
+  "teacher_reports_supported_if_disputed_prior_positives_counted": [
+    "AJ-R1-e0e09e30f70fb045",
+    "AJ-R1-92702b5c40cb27a7"
+  ],
+  "teacher_statuses": {
+    "capped_or_no_submission": 1,
+    "complete": 7,
+    "tool_error_or_cap": 2,
+    "uncertain": 2
+  },
+  "teacher_wall_seconds": 26.277239675997407,
+  "thinking_payloads_interpreted_or_exported": false,
+  "unknowns_preserved": true,
+  "unstarted_unknown": 8,
+  "worker_provider_calls": 0
+}

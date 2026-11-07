@@ -1,0 +1,1174 @@
+[
+  {
+    "id": "AJ-R1-01df4515b3387c9a",
+    "role": "control",
+    "teacher": {
+      "actual_cost_usd": 0.072002,
+      "api_seconds_sum": 14.051308406997123,
+      "case_wall_seconds": 20.045306154999707,
+      "decision": null,
+      "id": "AJ-R1-01df4515b3387c9a",
+      "known_cost_usd": 0.072002,
+      "provider_calls": 3,
+      "reported": null,
+      "source_line_occurrences_returned": 27,
+      "source_tool_kinds": {
+        "find_references": 2,
+        "inspect_imports": 2
+      },
+      "status": "capped_or_no_submission",
+      "tool_seconds_sum": 5.870393655000953,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 1,
+      "unique_new_source_lines": 26,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 28446,
+        "output_tokens": 1511
+      },
+      "valid_submission": false
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": true,
+    "source_disputed": false,
+    "source_label": "duplicate"
+  },
+  {
+    "id": "AJ-R1-3f310c0655076c00",
+    "role": "control",
+    "teacher": {
+      "actual_cost_usd": 0.014126,
+      "api_seconds_sum": 3.517556628998136,
+      "case_wall_seconds": 3.5645889890001854,
+      "decision": null,
+      "id": "AJ-R1-3f310c0655076c00",
+      "known_cost_usd": 0.014126,
+      "provider_calls": 1,
+      "reported": null,
+      "source_line_occurrences_returned": 0,
+      "source_tool_kinds": {
+        "find_references": 1,
+        "list_paths": 1
+      },
+      "status": "tool_error_or_cap",
+      "tool_seconds_sum": 0.0007627029990544543,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 0,
+      "unique_new_source_lines": 0,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 5468,
+        "output_tokens": 319
+      },
+      "valid_submission": false
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": true,
+    "source_label": "duplicate"
+  },
+  {
+    "id": "AJ-R1-4aecbc9eb4ba6bf3",
+    "role": "control",
+    "teacher": {
+      "actual_cost_usd": 0.014634,
+      "api_seconds_sum": 2.6000167509992025,
+      "case_wall_seconds": 2.638708411999687,
+      "decision": null,
+      "id": "AJ-R1-4aecbc9eb4ba6bf3",
+      "known_cost_usd": 0.014634,
+      "provider_calls": 1,
+      "reported": null,
+      "source_line_occurrences_returned": 0,
+      "source_tool_kinds": {
+        "find_references": 1,
+        "list_paths": 1
+      },
+      "status": "tool_error_or_cap",
+      "tool_seconds_sum": 0.0009386699966853485,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 0,
+      "unique_new_source_lines": 0,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 6092,
+        "output_tokens": 245
+      },
+      "valid_submission": false
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "related"
+  },
+  {
+    "id": "AJ-R1-e0e09e30f70fb045",
+    "role": "control",
+    "teacher": {
+      "actual_cost_usd": 0.0127,
+      "api_seconds_sum": 4.316141515002528,
+      "case_wall_seconds": 4.334675124002388,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 578,
+            "evidence_id": "initial:new",
+            "start_line": 574
+          },
+          {
+            "end_line": 599,
+            "evidence_id": "initial:existing",
+            "start_line": 596
+          }
+        ],
+        "label": "duplicate",
+        "missing_evidence": [],
+        "owner": "shared",
+        "score": 0.93,
+        "uncertainty": false,
+        "why": "Both implement the same URL operation: parse the URL, keep the existing query pairs (including blank values), append new pairs, re-encode, and rebuild the URL. The only variation is the input type: NEW takes a dict and uses .items(), EXISTING takes an iterable of tuples. One helper that accepts an iterable of tuples would cover both; NEW would pass params.items()."
+      },
+      "id": "AJ-R1-e0e09e30f70fb045",
+      "known_cost_usd": 0.0127,
+      "provider_calls": 1,
+      "reported": true,
+      "source_line_occurrences_returned": 0,
+      "source_tool_kinds": {},
+      "status": "complete",
+      "tool_seconds_sum": 0.0,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 0,
+      "unique_new_source_lines": 0,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 3555,
+        "output_tokens": 559
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": true,
+    "source_disputed": false,
+    "source_label": "duplicate"
+  },
+  {
+    "id": "AJ-R1-164d6ec41fc01da4",
+    "role": "novel",
+    "teacher": {
+      "actual_cost_usd": 0.0151,
+      "api_seconds_sum": 4.0092617830014206,
+      "case_wall_seconds": 4.03560153899889,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 262,
+            "evidence_id": "initial:new",
+            "start_line": 146
+          },
+          {
+            "end_line": 249,
+            "evidence_id": "initial:existing",
+            "start_line": 206
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.12,
+        "uncertainty": false,
+        "why": "Both adapters map provider JSON into SearchResult/SearchResponse, but the policies differ. DuckDuckGo handles abstract priority, max_results, nested topics and title/snippet splitting. SearchAPI maps organic_results fields directly. The shared parts are generic model construction and validation."
+      },
+      "id": "AJ-R1-164d6ec41fc01da4",
+      "known_cost_usd": 0.0151,
+      "provider_calls": 1,
+      "reported": false,
+      "source_line_occurrences_returned": 0,
+      "source_tool_kinds": {},
+      "status": "complete",
+      "tool_seconds_sum": 0.0,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 0,
+      "unique_new_source_lines": 0,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 5275,
+        "output_tokens": 455
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "actual_cost_usd": 0.012668,
+      "api_seconds": 3.115697250002995,
+      "concurrency": 4,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 262,
+            "evidence_id": "initial:new",
+            "start_line": 146
+          },
+          {
+            "end_line": 249,
+            "evidence_id": "initial:existing",
+            "start_line": 206
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.12,
+        "uncertainty": false,
+        "why": "Both adapters map provider JSON into SearchResult/SearchResponse, but the overlap is generic response construction. DuckDuckGo-specific policy (Abstract, RelatedTopics, nested Topics, title/snippet splitting, max_results) has no counterpart in SearchAPI's field-to-field organic_results mapping. Duplication inside the DuckDuckGo function is internal to NEW, not shared with EXISTING."
+      },
+      "id": "AJ-R1-164d6ec41fc01da4",
+      "observable_tool_names": [
+        "submit_verdict"
+      ],
+      "output_sha256": "4782d9bf8f530d353b3b555c03c3a96ff1afcfd3afffc985ac930cdafe80d1bb",
+      "reason": null,
+      "reported": false,
+      "request_id": "048e3c4a22cdecc11d9e4a1f5684fc37dac951e873f425d9a482493d5a6ca915",
+      "returned_model": "claude-sonnet-5-5",
+      "semantic_policy_comparable": true,
+      "source_tools_available": false,
+      "status": "complete",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 4389,
+        "output_tokens": 389,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      }
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  },
+  {
+    "id": "AJ-R1-0563034fdda4e47c",
+    "role": "novel",
+    "teacher": {
+      "actual_cost_usd": 0.01054,
+      "api_seconds_sum": 3.0763708819940803,
+      "case_wall_seconds": 3.095938173995819,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 85,
+            "evidence_id": "initial:new",
+            "start_line": 71
+          },
+          {
+            "end_line": 323,
+            "evidence_id": "initial:existing",
+            "start_line": 316
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.03,
+        "uncertainty": false,
+        "why": "NEW is an HTTP route adapter that looks up an event service, maps a missing one to 404, and delegates to count_events. EXISTING is a unit test that sets up a mock conversation and asserts a count of 5. They share no reusable executable operation. Both only call count_events."
+      },
+      "id": "AJ-R1-0563034fdda4e47c",
+      "known_cost_usd": 0.01054,
+      "provider_calls": 1,
+      "reported": false,
+      "source_line_occurrences_returned": 0,
+      "source_tool_kinds": {},
+      "status": "complete",
+      "tool_seconds_sum": 0.0,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 0,
+      "unique_new_source_lines": 0,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 3600,
+        "output_tokens": 334
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "actual_cost_usd": 0.008848,
+      "api_seconds": 2.7122810290020425,
+      "concurrency": 4,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 85,
+            "evidence_id": "initial:new",
+            "start_line": 71
+          },
+          {
+            "end_line": 323,
+            "evidence_id": "initial:existing",
+            "start_line": 316
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.03,
+        "uncertainty": false,
+        "why": "NEW is an HTTP route adapter: it looks up the event service, maps a missing service to 404, and delegates to count_events. EXISTING is a test that calls count_events on a mocked service and asserts 5. The test checks the delegated operation, so there is no repeated executable policy or reusable helper."
+      },
+      "id": "AJ-R1-0563034fdda4e47c",
+      "observable_tool_names": [
+        "submit_verdict"
+      ],
+      "output_sha256": "46886b42a6706eda26404a8dda8d0adf41e71abaad27c197d2f421cb2bc32ec0",
+      "reason": null,
+      "reported": false,
+      "request_id": "6fb859011b08be179cfa63553d9a466108295a5de25bc89bb4c256b4f3b5af0f",
+      "returned_model": "claude-sonnet-5-5",
+      "semantic_policy_comparable": true,
+      "source_tools_available": false,
+      "status": "complete",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2714,
+        "output_tokens": 342,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      }
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "related"
+  },
+  {
+    "id": "AJ-R1-11f2d7f36fc22a76",
+    "role": "novel",
+    "teacher": {
+      "actual_cost_usd": 0.010598,
+      "api_seconds_sum": 3.535415156999079,
+      "case_wall_seconds": 3.5514572510001017,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 69,
+            "evidence_id": "initial:new",
+            "start_line": 69
+          },
+          {
+            "end_line": 85,
+            "evidence_id": "initial:existing",
+            "start_line": 85
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.04,
+        "uncertainty": false,
+        "why": "Both are one-line lazy loaders for locale modules. Each resolves a different relative \"./i18n/zht\" file, in the debug and browser extensions. Only the syntax matches. There is no shared executable policy or reusable operation, and extracting a helper would add nothing."
+      },
+      "id": "AJ-R1-11f2d7f36fc22a76",
+      "known_cost_usd": 0.010598,
+      "provider_calls": 1,
+      "reported": false,
+      "source_line_occurrences_returned": 0,
+      "source_tool_kinds": {},
+      "status": "complete",
+      "tool_seconds_sum": 0.0,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 0,
+      "unique_new_source_lines": 0,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 3334,
+        "output_tokens": 393
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "actual_cost_usd": 0.008846,
+      "api_seconds": 7.140093239002454,
+      "concurrency": 4,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 69,
+            "evidence_id": "initial:new",
+            "start_line": 69
+          },
+          {
+            "end_line": 85,
+            "evidence_id": "initial:existing",
+            "start_line": 85
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.04,
+        "uncertainty": false,
+        "why": "Both are one-line lazy-import entries in each extension's i18n loader map. Each imports its own relative \"./i18n/zht\" module, so the targets differ. The matching shape is declarative configuration, not a shared executable operation or policy, and no helper is worth extracting."
+      },
+      "id": "AJ-R1-11f2d7f36fc22a76",
+      "observable_tool_names": [
+        "submit_verdict"
+      ],
+      "output_sha256": "c0de1404673fcea13a265348e157466577c9d4f7b85869b0531eae6eced45ffa",
+      "reason": null,
+      "reported": false,
+      "request_id": "533c5c8aace735ab2375cd96d14f26a7baf9bc16d64c98ce0e7b2f646b17c417",
+      "returned_model": "claude-sonnet-5-5",
+      "semantic_policy_comparable": true,
+      "source_tools_available": false,
+      "status": "complete",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2448,
+        "output_tokens": 395,
+        "output_tokens_details": {
+          "thinking_tokens": 62
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      }
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  },
+  {
+    "id": "AJ-R1-252d6146fdd56664",
+    "role": "novel",
+    "teacher": {
+      "actual_cost_usd": 0.038998,
+      "api_seconds_sum": 8.282963509998808,
+      "case_wall_seconds": 11.848023398000805,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 362,
+            "evidence_id": "initial:new",
+            "start_line": 360
+          },
+          {
+            "end_line": 68,
+            "evidence_id": "initial:existing",
+            "start_line": 66
+          }
+        ],
+        "label": "duplicate",
+        "missing_evidence": [
+          "No existing shared helper for this predicate was found, but the search was bounded and not exhaustive.",
+          "Not checked whether the contracts package is an acceptable home for the shared predicate."
+        ],
+        "owner": "shared",
+        "score": 0.6,
+        "uncertainty": true,
+        "why": "Both independently encode the Rosetta policy \"arm64 host running an x64 build\" as hostArch === \"arm64\" && appArch === \"x64\". The only differences are the null-state handling and the input type. A shared predicate in contracts, taking an {hostArch, appArch} pair, could serve both, with the web caller keeping its null guard. The predicate is small, which limits the value."
+      },
+      "id": "AJ-R1-252d6146fdd56664",
+      "known_cost_usd": 0.038998,
+      "provider_calls": 3,
+      "reported": null,
+      "source_line_occurrences_returned": 74,
+      "source_tool_kinds": {
+        "find_references": 2,
+        "read_source": 1
+      },
+      "status": "uncertain",
+      "tool_seconds_sum": 3.5054745829984313,
+      "uncertain": true,
+      "unique_initial_body_lines_repeated": 4,
+      "unique_new_source_lines": 70,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 15279,
+        "output_tokens": 844
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "actual_cost_usd": 0.01186,
+      "adapter_reported_preserved": false,
+      "api_seconds": 5.284225570001581,
+      "concurrency": 4,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 362,
+            "evidence_id": "initial:new",
+            "start_line": 360
+          },
+          {
+            "end_line": 68,
+            "evidence_id": "initial:existing",
+            "start_line": 66
+          }
+        ],
+        "label": "duplicate",
+        "missing_evidence": [
+          "Whether the desktop and web packages already share a contracts module where this helper could live",
+          "Definitions of DesktopRuntimeInfo and DesktopUpdateState"
+        ],
+        "owner": "shared",
+        "score": 0.66,
+        "uncertainty": true,
+        "why": "Both implement the same domain predicate: an arm64 host running an x64 (Intel) app build, using hostArch === \"arm64\" && appArch === \"x64\". The only differences are input type (DesktopRuntimeInfo vs DesktopUpdateState) and the null guard in the web caller. A shared helper could take { hostArch, appArch }. The null handling can stay in the web caller."
+      },
+      "id": "AJ-R1-252d6146fdd56664",
+      "observable_tool_names": [
+        "submit_verdict"
+      ],
+      "output_sha256": "1cacc73f9d306ff13fe361301b9e16b7cf0e547ccddfc2581651112e4314b92d",
+      "reason": null,
+      "report_interpretation": "Non-complete stays unknown, matching frozen teacher.",
+      "reported": null,
+      "request_id": "5944878e3369338113faeba1bc54e898a6e437623da290263d1e7c123c4a3576",
+      "returned_model": "claude-sonnet-5-5",
+      "semantic_policy_comparable": true,
+      "source_tools_available": false,
+      "status": "uncertain",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2600,
+        "output_tokens": 666,
+        "output_tokens_details": {
+          "thinking_tokens": 237
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      }
+    },
+    "source_confirmed_positive": true,
+    "source_disputed": false,
+    "source_label": "duplicate"
+  },
+  {
+    "id": "AJ-R1-25692deccefd5d46",
+    "role": "novel",
+    "teacher": {
+      "actual_cost_usd": 0.011668,
+      "api_seconds_sum": 3.0402980459984974,
+      "case_wall_seconds": 3.093706079002004,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 22,
+            "evidence_id": "initial:new",
+            "start_line": 18
+          },
+          {
+            "end_line": 1687,
+            "evidence_id": "initial:existing",
+            "start_line": 1680
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.1,
+        "uncertainty": false,
+        "why": "Both call the shared normalize_nonempty_secret_str(get_secret_str(...)) helper, so the normalization is already centralized. The remaining logic differs: NEW builds a Cloudflare URL from an account ID, while EXISTING prefers an explicit key and falls back to an env key. That is provider-specific variation, not a repeated operation."
+      },
+      "id": "AJ-R1-25692deccefd5d46",
+      "known_cost_usd": 0.011668,
+      "provider_calls": 1,
+      "reported": false,
+      "source_line_occurrences_returned": 0,
+      "source_tool_kinds": {},
+      "status": "complete",
+      "tool_seconds_sum": 0.0,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 0,
+      "unique_new_source_lines": 0,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 3614,
+        "output_tokens": 444
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "actual_cost_usd": 0.010306,
+      "api_seconds": 5.120972814998822,
+      "concurrency": 4,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 22,
+            "evidence_id": "initial:new",
+            "start_line": 18
+          },
+          {
+            "end_line": 1687,
+            "evidence_id": "initial:existing",
+            "start_line": 1680
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.12,
+        "uncertainty": false,
+        "why": "Both call get_secret_str and normalize_nonempty_secret_str, which already owns the blank-as-unset policy. The remaining code differs. NEW builds a Cloudflare account URL from one env var. EXISTING picks an explicit Anthropic API key over an env fallback. The shared pairing is too small to justify a new helper."
+      },
+      "id": "AJ-R1-25692deccefd5d46",
+      "observable_tool_names": [
+        "submit_verdict"
+      ],
+      "output_sha256": "d5e98eff0fc84361a8500f0451f00e4693449154c1cc0f17b9cde47388747061",
+      "reason": null,
+      "reported": false,
+      "request_id": "7deb11eab7f8169177fea756b220683789db8b30fd3cfbff1103046dcf2ca726",
+      "returned_model": "claude-sonnet-5-5",
+      "semantic_policy_comparable": true,
+      "source_tools_available": false,
+      "status": "complete",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2728,
+        "output_tokens": 485,
+        "output_tokens_details": {
+          "thinking_tokens": 128
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      }
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  },
+  {
+    "id": "AJ-R1-8209c285fae30aea",
+    "role": "novel",
+    "teacher": {
+      "actual_cost_usd": 0.010294,
+      "api_seconds_sum": 2.7623530159980874,
+      "case_wall_seconds": 2.7792763609977555,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 51,
+            "evidence_id": "initial:new",
+            "start_line": 47
+          },
+          {
+            "end_line": 68,
+            "evidence_id": "initial:existing",
+            "start_line": 61
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.03,
+        "uncertainty": false,
+        "why": "The tests cover different units. NEW checks that the service's binary availability check fails when the server root is missing. EXISTING checks that the router's status endpoint returns the mocked running state. They share only generic test shape, with no reusable operation or shared policy."
+      },
+      "id": "AJ-R1-8209c285fae30aea",
+      "known_cost_usd": 0.010294,
+      "provider_calls": 1,
+      "reported": false,
+      "source_line_occurrences_returned": 0,
+      "source_tool_kinds": {},
+      "status": "complete",
+      "tool_seconds_sum": 0.0,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 0,
+      "unique_new_source_lines": 0,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 3527,
+        "output_tokens": 324
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "actual_cost_usd": 0.008632,
+      "api_seconds": 3.150238583999453,
+      "concurrency": 4,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 51,
+            "evidence_id": "initial:new",
+            "start_line": 47
+          },
+          {
+            "end_line": 68,
+            "evidence_id": "initial:existing",
+            "start_line": 61
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [],
+        "owner": "",
+        "score": 0.03,
+        "uncertainty": false,
+        "why": "The two tests check different behavior. NEW checks that the service's binary availability check returns false for a nonexistent path. EXISTING checks that the router's status endpoint reports running and enabled with a mocked service. They share only test shape and the VSCode domain, with no common operation to extract."
+      },
+      "id": "AJ-R1-8209c285fae30aea",
+      "observable_tool_names": [
+        "submit_verdict"
+      ],
+      "output_sha256": "4ba30a3e2d72c68d8e66704f1a3c5d3958b6b2ac6c4401525a6d24abc6fdfe93",
+      "reason": null,
+      "reported": false,
+      "request_id": "af12025f4dca6bf0e8d1db4985937e212211ad2704c340921edaed9a58ff9eb1",
+      "returned_model": "claude-sonnet-5-5",
+      "semantic_policy_comparable": true,
+      "source_tools_available": false,
+      "status": "complete",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2641,
+        "output_tokens": 335,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      }
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  },
+  {
+    "id": "AJ-R1-3c005d7f6816298f",
+    "role": "novel",
+    "teacher": {
+      "actual_cost_usd": 0.0258,
+      "api_seconds_sum": 6.833795930004271,
+      "case_wall_seconds": 8.995340471999953,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 508,
+            "evidence_id": "initial:new",
+            "start_line": 497
+          },
+          {
+            "end_line": 22,
+            "evidence_id": "initial:existing",
+            "start_line": 9
+          }
+        ],
+        "label": "separate",
+        "missing_evidence": [
+          "Whether a shared relative-time helper exists in Locale or elsewhere",
+          "Whether the UI intends these two displays to match"
+        ],
+        "owner": "",
+        "score": 0.3,
+        "uncertainty": true,
+        "why": "Both are relative-time formatters, but they have different display contracts. timeAgo returns compact labels (\"now\", \"5m\", \"3mo\", \"2y\") with no suffix. getRelativeTime returns \"just now\" and \"5m ago\", and uses Locale.datetime after 7 days. These differences are presentation choices for each dialog. No shared owner was found, so the overlap isn't established as one reusable operation."
+      },
+      "id": "AJ-R1-3c005d7f6816298f",
+      "known_cost_usd": 0.0258,
+      "provider_calls": 2,
+      "reported": null,
+      "source_line_occurrences_returned": 4,
+      "source_tool_kinds": {
+        "find_references": 2
+      },
+      "status": "uncertain",
+      "tool_seconds_sum": 2.1171941759967012,
+      "uncertain": true,
+      "unique_initial_body_lines_repeated": 2,
+      "unique_new_source_lines": 2,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 9065,
+        "output_tokens": 767
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "actual_cost_usd": 0.014428,
+      "adapter_reported_preserved": false,
+      "api_seconds": 7.028676543995971,
+      "concurrency": 4,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 508,
+            "evidence_id": "initial:new",
+            "start_line": 497
+          },
+          {
+            "end_line": 22,
+            "evidence_id": "initial:existing",
+            "start_line": 9
+          }
+        ],
+        "label": "duplicate",
+        "missing_evidence": [
+          "Whether a shared relative-time helper already exists in Locale or elsewhere.",
+          "Whether the different output formats are intentional UI requirements."
+        ],
+        "owner": "shared",
+        "score": 0.55,
+        "uncertainty": true,
+        "why": "Both independently convert a past timestamp into elapsed minute/hour/day buckets from Date.now(). A shared relative-time helper could own the bucketing, with options for labels (\"now\" vs \"just now\", \"ago\" suffix), the day cutoff, and the fallback (months/years vs Locale.datetime). The output formats differ, which weakens the case."
+      },
+      "id": "AJ-R1-3c005d7f6816298f",
+      "observable_tool_names": [
+        "submit_verdict"
+      ],
+      "output_sha256": "df76c39cf259d3566d02bb4011c04a88b814edf545cd9ce2459700c8949daa00",
+      "reason": null,
+      "report_interpretation": "Non-complete stays unknown, matching frozen teacher.",
+      "reported": null,
+      "request_id": "8e0fbbb3e6e026cc8a9ca9207e911d9c26bacbe5b93415e228745249b44bd85f",
+      "returned_model": "claude-sonnet-5-5",
+      "semantic_policy_comparable": true,
+      "source_tools_available": false,
+      "status": "uncertain",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 2834,
+        "output_tokens": 876,
+        "output_tokens_details": {
+          "thinking_tokens": 466
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      }
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "related"
+  },
+  {
+    "id": "AJ-R1-92702b5c40cb27a7",
+    "role": "novel",
+    "teacher": {
+      "actual_cost_usd": 0.030438,
+      "api_seconds_sum": 6.753936731991416,
+      "case_wall_seconds": 8.85296685800131,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 51,
+            "evidence_id": "initial:new",
+            "start_line": 15
+          },
+          {
+            "end_line": 435,
+            "evidence_id": "initial:existing",
+            "start_line": 412
+          },
+          {
+            "end_line": 446,
+            "evidence_id": "source:97d6259e57b55bb4bd65ab4a",
+            "start_line": 446
+          }
+        ],
+        "label": "duplicate",
+        "missing_evidence": [],
+        "owner": "shared",
+        "score": 0.82,
+        "uncertainty": false,
+        "why": "Both derive the checkpoint diff query targets. They require non-null environmentId, threadId and from/toTurnCount. When fromTurnCount is 0 they build a full-thread input without fromTurnCount. Otherwise they build a turn input with it. Web inlines this in useCheckpointDiff, and its `enabled` option is a caller variation. Mobile has the same logic as a helper. A shared pure builder would fit, with web keeping its enabled gating and hooks."
+      },
+      "id": "AJ-R1-92702b5c40cb27a7",
+      "known_cost_usd": 0.030438,
+      "provider_calls": 2,
+      "reported": true,
+      "source_line_occurrences_returned": 9,
+      "source_tool_kinds": {
+        "find_references": 2
+      },
+      "status": "complete",
+      "tool_seconds_sum": 2.051283754997712,
+      "uncertain": false,
+      "unique_initial_body_lines_repeated": 2,
+      "unique_new_source_lines": 6,
+      "usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 11264,
+        "output_tokens": 791
+      },
+      "valid_submission": true
+    },
+    "body_only": {
+      "actual_cost_usd": 0.012418,
+      "api_seconds": 4.86504326499562,
+      "concurrency": 4,
+      "decision": {
+        "citations": [
+          {
+            "end_line": 51,
+            "evidence_id": "initial:new",
+            "start_line": 15
+          },
+          {
+            "end_line": 435,
+            "evidence_id": "initial:existing",
+            "start_line": 407
+          }
+        ],
+        "label": "duplicate",
+        "missing_evidence": [],
+        "owner": "shared",
+        "score": 0.86,
+        "uncertainty": false,
+        "why": "Both derive checkpoint diff query targets from CheckpointDiffTarget. Null ids or turn counts disable both. fromTurnCount 0 builds a full-thread target without fromTurnCount. Otherwise they build a turn target with fromTurnCount. A shared helper could take an optional enabled flag. Web hook execution and the mobile caller would stay separate."
+      },
+      "id": "AJ-R1-92702b5c40cb27a7",
+      "observable_tool_names": [
+        "submit_verdict"
+      ],
+      "output_sha256": "78420018ee0459c03fd63099fd2b1e6b553f2a1df3858615f09d3408e4af34ed",
+      "reason": null,
+      "reported": true,
+      "request_id": "f5b5925aaf9f9d5ebc3354384f59c2d104d3581fde5dfa3599271ff17c79b15a",
+      "returned_model": "claude-sonnet-5-5",
+      "semantic_policy_comparable": true,
+      "source_tools_available": false,
+      "status": "complete",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 3314,
+        "output_tokens": 579,
+        "output_tokens_details": {
+          "thinking_tokens": 207
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      }
+    },
+    "source_confirmed_positive": true,
+    "source_disputed": false,
+    "source_label": "duplicate"
+  },
+  {
+    "id": "AJ-R1-a17257e4e01e3bc2",
+    "role": "novel",
+    "teacher": {
+      "decision": null,
+      "reported": null,
+      "status": "not_started_unknown"
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "related"
+  },
+  {
+    "id": "AJ-R1-c3abb7352bb9908e",
+    "role": "novel",
+    "teacher": {
+      "decision": null,
+      "reported": null,
+      "status": "not_started_unknown"
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  },
+  {
+    "id": "AJ-R1-9a8fc65b8cebd1b4",
+    "role": "novel",
+    "teacher": {
+      "decision": null,
+      "reported": null,
+      "status": "not_started_unknown"
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "related"
+  },
+  {
+    "id": "AJ-R1-d5ee652d3c439be5",
+    "role": "novel",
+    "teacher": {
+      "decision": null,
+      "reported": null,
+      "status": "not_started_unknown"
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  },
+  {
+    "id": "AJ-R1-e142c42bfad633eb",
+    "role": "novel",
+    "teacher": {
+      "decision": null,
+      "reported": null,
+      "status": "not_started_unknown"
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "related"
+  },
+  {
+    "id": "AJ-R1-d70debe3e182f0bd",
+    "role": "novel",
+    "teacher": {
+      "decision": null,
+      "reported": null,
+      "status": "not_started_unknown"
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  },
+  {
+    "id": "AJ-R1-b1c2828ee9464793",
+    "role": "novel",
+    "teacher": {
+      "decision": null,
+      "reported": null,
+      "status": "not_started_unknown"
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  },
+  {
+    "id": "AJ-R1-e2c8c8357809beb7",
+    "role": "novel",
+    "teacher": {
+      "decision": null,
+      "reported": null,
+      "status": "not_started_unknown"
+    },
+    "body_only": {
+      "decision": null,
+      "reason": "no_paired_novel_baseline",
+      "reported": null,
+      "status": "unknown"
+    },
+    "source_confirmed_positive": false,
+    "source_disputed": false,
+    "source_label": "separate"
+  }
+]

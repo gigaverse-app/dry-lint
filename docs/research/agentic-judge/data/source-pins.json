@@ -1,0 +1,30 @@
+[
+  {
+    "license_file": "licenses/BerriAI--litellm.txt",
+    "license_sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "url": "https://github.com/BerriAI/litellm.git"
+  },
+  {
+    "license_file": "licenses/OpenHands--software-agent-sdk.txt",
+    "license_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "url": "https://github.com/OpenHands/software-agent-sdk.git"
+  },
+  {
+    "license_file": "licenses/anomalyco--opencode.txt",
+    "license_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "url": "https://github.com/anomalyco/opencode.git"
+  },
+  {
+    "license_file": "licenses/pingdotgg--t3code.txt",
+    "license_sha256": "935d8f2af0c703f9c39517ee57cc4930b19d02d533be930b63f0e82f93614b43",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "url": "https://github.com/pingdotgg/t3code.git"
+  }
+]

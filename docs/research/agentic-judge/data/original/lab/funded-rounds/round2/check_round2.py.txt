@@ -1,0 +1,106 @@
+"""Offline SDK serialization/source/funding verification for all distinct cases."""
+import copy
+import json
+import socket
+import tempfile
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import anthropic
+import httpx2
+import teacher_v4_adapter as v
+from run_round2 import budget_class, BUDGET_PATH
+
+h = v.h
+HERE = Path(__file__).resolve().parent
+
+
+def main():
+    frozen = h.load_json(HERE / 'REQUEST-FREEZE.json')
+    rows = h.lines(HERE / 'teacher-requests.jsonl')
+    assert h.sha((HERE / 'teacher-requests.jsonl').read_bytes()) == frozen['queue_sha256']
+    assert len(rows) == len({r['request_key'] for r in rows}) == 20
+    source = SimpleNamespace(catalog={'initial:new': {'path': 'fixture.py', 'start_line': 1, 'end_line': 3}})
+    payload = {'label': 'separate', 'score': .1, 'owner': '', 'uncertainty': False,
+        'missing_evidence': [], 'citations': [{'evidence_id': 'initial:new', 'start_line': 1, 'end_line': 2}],
+        'why': 'x' * 286}
+    assert v.runtime.submit(payload, source)[1] == 'complete'
+    assert v.runtime.submit({**payload, 'why': 'x' * 641}, source)[0] is None
+    assert v.runtime.submit({**payload, 'why': ' '.join(['x'] * 81)}, source)[0] is None
+    assert v.runtime.submit({**payload, 'citations': [{'evidence_id': 'absent', 'start_line': 1, 'end_line': 2}]}, source)[0] is None
+    seen, network = [], []
+
+    def forbid(*args, **kwargs):
+        network.append(True)
+        raise AssertionError('Real network forbidden')
+
+    def handler(request):
+        actual = json.loads(request.content)
+        assert actual['tools'][-1]['input_schema']['properties']['why']['maxLength'] == 640
+        assert 'temperature' not in actual and actual['max_tokens'] == 1024
+        f = current['original']['candidate']['new']
+        first = len(actual['messages']) == 1
+        if first:
+            assert actual == current['request']
+            content = [{'type':'tool_use','id':'search_fixture','name':'search_source',
+                        'input':{'query':'import','path_prefix':f['path'],'limit':2}}]
+        else:
+            assert len(actual['messages']) == 3
+            result = actual['messages'][-1]['content'][0]
+            assert not result['is_error']
+            found = json.loads(result['content'])
+            assert found['excluded_initial_function_regions']
+        answer = {**payload, 'why': 'Offline fixture only.', 'citations': [
+            {'evidence_id': 'initial:new', 'start_line': f['line'], 'end_line': f['end_line']}]}
+        if not first:
+            if found['matches']:
+                m = found['matches'][0]
+                answer['citations'] = [{'evidence_id':m['evidence_id'],'start_line':m['start_line'],'end_line':m['end_line']}]
+            content = [{'type':'tool_use','id':'submit_fixture','name':'submit_verdict','input':answer}]
+        seen.append(current['request_key'])
+        return httpx2.Response(200, json={'id': 'msg_offline', 'type': 'message', 'role': 'assistant',
+            'model': h.MODEL, 'content': content,
+            'stop_reason': 'tool_use', 'stop_sequence': None, 'usage': {'input_tokens': 100, 'output_tokens': 20}})
+
+    scratch = HERE / 'offline-check'
+    scratch.mkdir(exist_ok=True)
+    Budget = budget_class()
+    with tempfile.TemporaryDirectory(dir=scratch) as temp:
+        base = Path(temp)
+        ledger = base / 'synthetic-cap2.json'
+        prior = {'key': 'preserved-context-and-old-teacher', 'charged_usd': 1.33017984,
+                 'reserved_usd': 1.33017984, 'job': 'historical'}
+        h.save(ledger, {'schema': 1, 'limit_usd': 2, 'halted': False, 'entries': [prior]})
+        with patch.object(socket.socket, 'connect', side_effect=forbid), patch.object(httpx2.HTTPTransport, 'handle_request', side_effect=forbid):
+            with anthropic.Anthropic(api_key='offline-placeholder', max_retries=0,
+                  http_client=httpx2.Client(trust_env=False, transport=httpx2.MockTransport(handler))) as client:
+                for current in rows:
+                    v.validate_row(current)
+                    result = v.run_case(current, base / 'synthetic-runs', client,
+                                        Budget(ledger, current['request_key']))
+                    assert result['status'] == 'complete' and result['provider_calls'] == 2
+        data = h.load_json(ledger)
+        assert data['entries'][0] == prior
+        assert all(e['job'] == 'agentic-judge' and e['funded_round'] == 2 and e['direction'] == 'agentic-judge'
+                   for e in data['entries'][1:])
+        assert len(data['entries']) == 41 and all(e['charged_usd'] is not None for e in data['entries'])
+        # Test imported ceiling without copying or changing its accounting code.
+        budget = Budget(ledger, 'synthetic-admission')
+        assert budget.reserve('fits-cap2', .5)
+        assert not budget.reserve('exceeds-cap2', .3)
+    assert not network
+    report = {'schema': 1, 'passed': True, 'cases': 20, 'actual_sdk_mock_requests': len(seen),
+        'network_attempts': 0, 'real_provider_calls': 0, 'real_credentials_read': False,
+        'cap2_prior_charge_preserved_usd': 1.33017984, 'new_ledger_jobs_agentic': True,
+        'shared_budget_import': str(BUDGET_PATH), 'shared_budget_sha256': h.sha(BUDGET_PATH.read_bytes()),
+        'queue_sha256': frozen['queue_sha256'], 'distinct_initial_requests': 20,
+        'new_literal_tool_roundtrips_verified':20,
+        'source_pins_full_bodies_and_default_normal_funding_verified': True,
+        'strict_citations_and_80word_limit_preserved': True}
+    h.save(HERE / 'VALIDATION.json', report)
+    print(json.dumps(report, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,881 @@
+[
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/analyze_funded.py",
+    "original_sha256": "045b021c693fa899c427a89c4127832a781b69f2d6e8be65e63b50900de601b3",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/analyze_funded.py.txt",
+    "published_sha256": "045b021c693fa899c427a89c4127832a781b69f2d6e8be65e63b50900de601b3"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/check_paired_baselines.py",
+    "original_sha256": "8ce3074461b634c6473bf9466910251d4555e7b6371127927c5598ccf23ab9d9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/check_paired_baselines.py.txt",
+    "published_sha256": "8ce3074461b634c6473bf9466910251d4555e7b6371127927c5598ccf23ab9d9"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/check_root_paired_baselines.py",
+    "original_sha256": "f105b2aa9844694b72d52b228beb36705dd9c4c49da1b78ec7049c2316e87023",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/check_root_paired_baselines.py.txt",
+    "published_sha256": "f105b2aa9844694b72d52b228beb36705dd9c4c49da1b78ec7049c2316e87023"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/export_paired_baselines.py",
+    "original_sha256": "f2afe982e76f19df89bde714ac590506b0fde7a8429701e5e966d30c20247c65",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/export_paired_baselines.py.txt",
+    "published_sha256": "f2afe982e76f19df89bde714ac590506b0fde7a8429701e5e966d30c20247c65"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/join_round1_source.py",
+    "original_sha256": "931326550c6ed0337dadb071064fb2e47a98db03c57e8822922b8a35905f45f6",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/join_round1_source.py.txt",
+    "published_sha256": "931326550c6ed0337dadb071064fb2e47a98db03c57e8822922b8a35905f45f6"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/paired_baseline_adapter.py",
+    "original_sha256": "bf0f1bd4191807212b6b0f811f736938efa09e30df921a0877a7d699ee8fe21a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/paired_baseline_adapter.py.txt",
+    "published_sha256": "bf0f1bd4191807212b6b0f811f736938efa09e30df921a0877a7d699ee8fe21a"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/root_paired_baselines.py",
+    "original_sha256": "3400d16efff0fac7401a6583d4a1301576c76081fec214b9b2e4bd378e1d7834",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/root_paired_baselines.py.txt",
+    "published_sha256": "3400d16efff0fac7401a6583d4a1301576c76081fec214b9b2e4bd378e1d7834"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/analyze_round1.py",
+    "original_sha256": "dfecd5b533571cf9aa123588bcd3723fa2deb2c2e58e8d23ebb1e3ff40987622",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round1/analyze_round1.py.txt",
+    "published_sha256": "dfecd5b533571cf9aa123588bcd3723fa2deb2c2e58e8d23ebb1e3ff40987622"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/check_control_schedule.py",
+    "original_sha256": "bfad6b9e7508cdcacd70ed62d8715a661f8856f5ac15bb3bce796acd481c15af",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round1/check_control_schedule.py.txt",
+    "published_sha256": "bfad6b9e7508cdcacd70ed62d8715a661f8856f5ac15bb3bce796acd481c15af"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/check_topup.py",
+    "original_sha256": "52b0fa81a928f70e11868efd49a2708b10b189f3f1d6c89ce6b8dc3f241c73fa",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round1/check_topup.py.txt",
+    "published_sha256": "52b0fa81a928f70e11868efd49a2708b10b189f3f1d6c89ce6b8dc3f241c73fa"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/freeze_requests.py",
+    "original_sha256": "a53b58821456d42b338849fada4bac2afba964a607cd258c10950ea051c9b0a9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round1/freeze_requests.py.txt",
+    "published_sha256": "a53b58821456d42b338849fada4bac2afba964a607cd258c10950ea051c9b0a9"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/prepare_supply.py",
+    "original_sha256": "3f1702e640c33a2b63067bad5c2626d11482303445772e982acb388e044d991c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round1/prepare_supply.py.txt",
+    "published_sha256": "3f1702e640c33a2b63067bad5c2626d11482303445772e982acb388e044d991c"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/run_topup.py",
+    "original_sha256": "b5812e752b2ec514f13287dc8ea19bbf428db44ec6b20e437fc6e0de040cd3c9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round1/run_topup.py.txt",
+    "published_sha256": "b5812e752b2ec514f13287dc8ea19bbf428db44ec6b20e437fc6e0de040cd3c9"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/teacher_v3_adapter.py",
+    "original_sha256": "fe4ada54e003b66238d09d8d1e8a4fc2542fa785b06e5c73f60cd8e6c80f0320",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round1/teacher_v3_adapter.py.txt",
+    "published_sha256": "fe4ada54e003b66238d09d8d1e8a4fc2542fa785b06e5c73f60cd8e6c80f0320"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/check_control_schedule.py",
+    "original_sha256": "dfa01d595b0991cc003a6348791f50d65bd5d3f3e638981d84dd782f27c91ec6",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/check_control_schedule.py.txt",
+    "published_sha256": "dfa01d595b0991cc003a6348791f50d65bd5d3f3e638981d84dd782f27c91ec6"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/check_literal_search.py",
+    "original_sha256": "b502c560be3144a4253ff7184b83e239e854ffa3c1cbb5ddf2dc82e3905bfb46",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/check_literal_search.py.txt",
+    "published_sha256": "b502c560be3144a4253ff7184b83e239e854ffa3c1cbb5ddf2dc82e3905bfb46"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/check_round2.py",
+    "original_sha256": "f7dadad547ac60834b5226dc1632748c9c05a3f3216e9d53c6a764e838c5ab4f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/check_round2.py.txt",
+    "published_sha256": "f7dadad547ac60834b5226dc1632748c9c05a3f3216e9d53c6a764e838c5ab4f"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/freeze_requests.py",
+    "original_sha256": "a018637c3f81f567bab9d560b4a7b6794c4400e021374fcd4ac5c1980d3fa9a1",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/freeze_requests.py.txt",
+    "published_sha256": "a018637c3f81f567bab9d560b4a7b6794c4400e021374fcd4ac5c1980d3fa9a1"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/prepare_supply.py",
+    "original_sha256": "1bd3494f77e13392fdcbba1d32693f70129c09cb40985b64cb4815ac76322d0e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/prepare_supply.py.txt",
+    "published_sha256": "1bd3494f77e13392fdcbba1d32693f70129c09cb40985b64cb4815ac76322d0e"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/run_round2.py",
+    "original_sha256": "20ae083f17a79d7975071cc1dbb94e350d104dfa805086d94ce1029341a7c9e5",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/run_round2.py.txt",
+    "published_sha256": "20ae083f17a79d7975071cc1dbb94e350d104dfa805086d94ce1029341a7c9e5"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/teacher_v4_adapter.py",
+    "original_sha256": "1e0b2f8e78ef3fc739afe0fe390ce224f3c7f634c2dcfa27bad983b1c95e7c84",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/teacher_v4_adapter.py.txt",
+    "published_sha256": "1e0b2f8e78ef3fc739afe0fe390ce224f3c7f634c2dcfa27bad983b1c95e7c84"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/analyze_teacher_v2.py",
+    "original_sha256": "a4339b92bff0d578b4ee30eb565096983f3486ef8b1e34525f07a055f0fdf6a3",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/analyze_teacher_v2.py.txt",
+    "published_sha256": "a4339b92bff0d578b4ee30eb565096983f3486ef8b1e34525f07a055f0fdf6a3"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/attribute_teacher_failures.py",
+    "original_sha256": "756a7df77a7c4cf275c55fb1c19213e522644ab82a2952f6528aa0b6e61fca9c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/attribute_teacher_failures.py.txt",
+    "published_sha256": "756a7df77a7c4cf275c55fb1c19213e522644ab82a2952f6528aa0b6e61fca9c"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/check_parallel_teacher.py",
+    "original_sha256": "d5e6da39a5308fccd0cb8e1e7fe008689110186b2f88b215111bdb3551d4ae50",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/check_parallel_teacher.py.txt",
+    "published_sha256": "d5e6da39a5308fccd0cb8e1e7fe008689110186b2f88b215111bdb3551d4ae50"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/check_teacher_v2.py",
+    "original_sha256": "cc9b768bbdf9348b921fc04843a9e7824bd0a6961ca3f2f4408bc3b6e598c8b9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/check_teacher_v2.py.txt",
+    "published_sha256": "cc9b768bbdf9348b921fc04843a9e7824bd0a6961ca3f2f4408bc3b6e598c8b9"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/evaluate_followup.py",
+    "original_sha256": "ed460245a72d90871268794444c918d2fef4aa1da64b99c535b4ffaed7998eb5",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/evaluate_followup.py.txt",
+    "published_sha256": "ed460245a72d90871268794444c918d2fef4aa1da64b99c535b4ffaed7998eb5"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/run_teacher_v2_parallel.py",
+    "original_sha256": "228cfe50fc8a51100a55cb5a86b26e1c1d713ac21971d91338374403fc05355f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/run_teacher_v2_parallel.py.txt",
+    "published_sha256": "228cfe50fc8a51100a55cb5a86b26e1c1d713ac21971d91338374403fc05355f"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/source_novelty.py",
+    "original_sha256": "ef04fa17ff034c6d90a498d293da5b1bfc13999fd6cdbe57ab8709cf4f10f039",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/source_novelty.py.txt",
+    "published_sha256": "ef04fa17ff034c6d90a498d293da5b1bfc13999fd6cdbe57ab8709cf4f10f039"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/teacher_v2.py",
+    "original_sha256": "6f81870f99b6ee9d7deefe981c606857569ab732a5dd231af3e3a331999cb2a6",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/teacher_v2.py.txt",
+    "published_sha256": "6f81870f99b6ee9d7deefe981c606857569ab732a5dd231af3e3a331999cb2a6"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/test_followup_scoring.py",
+    "original_sha256": "ea75f3c8e76a379b855205ed7fa3af1b4b8798cdd20f90144e3ae2d9c5800f43",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/test_followup_scoring.py.txt",
+    "published_sha256": "ea75f3c8e76a379b855205ed7fa3af1b4b8798cdd20f90144e3ae2d9c5800f43"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/validate_followup.py",
+    "original_sha256": "be9ea01483b9ecf5642a0c1467cb5e113888fc185439d558e73f87718b5ccbe0",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/resolution/validate_followup.py.txt",
+    "published_sha256": "be9ea01483b9ecf5642a0c1467cb5e113888fc185439d558e73f87718b5ccbe0"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/analyze.py",
+    "original_sha256": "a8cb8519669b89e3e13d2a4d2ed2ae0a8485f9cb477e4a2dd68e1fe277a3d657",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/analyze.py.txt",
+    "published_sha256": "a8cb8519669b89e3e13d2a4d2ed2ae0a8485f9cb477e4a2dd68e1fe277a3d657"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/check_sdk_constructor.py",
+    "original_sha256": "9fe74997475ce87e446ddc3da7d8cc65baa5b7493c4489a056ec18083282480a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/check_sdk_constructor.py.txt",
+    "published_sha256": "9fe74997475ce87e446ddc3da7d8cc65baa5b7493c4489a056ec18083282480a"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/check_sdk_requests.py",
+    "original_sha256": "42b763f2b64556861cb45d2be982caab464ddbb34c31f97a2026aab3608637c9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/check_sdk_requests.py.txt",
+    "published_sha256": "42b763f2b64556861cb45d2be982caab464ddbb34c31f97a2026aab3608637c9"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/diagnostic_text_parser.py",
+    "original_sha256": "82dcb0df5045db74262a833505112fa8ed1bc9762f5b036df562528c85b8e754",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/diagnostic_text_parser.py.txt",
+    "published_sha256": "82dcb0df5045db74262a833505112fa8ed1bc9762f5b036df562528c85b8e754"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/finalize_prereg.py",
+    "original_sha256": "3cdd2d53973788fb7675b0a8b935c24da11fcdf77b1f5a56b9c5630a51f9101f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/finalize_prereg.py.txt",
+    "published_sha256": "3cdd2d53973788fb7675b0a8b935c24da11fcdf77b1f5a56b9c5630a51f9101f"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/harness.py",
+    "original_sha256": "337c8e45a11d27f4f7b659440e94181a3dfe54c7a06eba4da40f6146c5febc72",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/harness.py.txt",
+    "published_sha256": "337c8e45a11d27f4f7b659440e94181a3dfe54c7a06eba4da40f6146c5febc72"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/prepare.py",
+    "original_sha256": "484a39bd293bd54b65c4e0daf74947d28d7ade5198119554bf7eda4ab5ab009f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/prepare.py.txt",
+    "published_sha256": "484a39bd293bd54b65c4e0daf74947d28d7ade5198119554bf7eda4ab5ab009f"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/test_diagnostic_text_parser.py",
+    "original_sha256": "cbfc96cac465a84c3e113cc8bf7fd8d1a18760ecd4faab7c71390913940ed506",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/test_diagnostic_text_parser.py.txt",
+    "published_sha256": "cbfc96cac465a84c3e113cc8bf7fd8d1a18760ecd4faab7c71390913940ed506"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/test_harness.py",
+    "original_sha256": "9a4327caa7cba5efce2c83a9df1d982e74f740139ddc86059b58092e56f0034d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/agentic-claude/test_harness.py.txt",
+    "published_sha256": "9a4327caa7cba5efce2c83a9df1d982e74f740139ddc86059b58092e56f0034d"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v2/adapter.py",
+    "original_sha256": "98ed488777602b4035d37a4eb737efef19d77ea1fa5be0e9c19df04be1d4243a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v2/adapter.py.txt",
+    "published_sha256": "98ed488777602b4035d37a4eb737efef19d77ea1fa5be0e9c19df04be1d4243a"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v2/check.py",
+    "original_sha256": "225ad564d069e0adae657406650b16bea2f69b8aa509d16eb82913ba039150b8",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v2/check.py.txt",
+    "published_sha256": "225ad564d069e0adae657406650b16bea2f69b8aa509d16eb82913ba039150b8"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v2/prepare.py",
+    "original_sha256": "9d545edf6fc8f1dab452812cc74f0211221362cec31e88a6bbcabbdefed265da",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v2/prepare.py.txt",
+    "published_sha256": "9d545edf6fc8f1dab452812cc74f0211221362cec31e88a6bbcabbdefed265da"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v2/root_runner.py",
+    "original_sha256": "07d4172e39f882ed22ab0e2fd0332f8c8f09c1d7873d4e3c07a4a3c121881f6c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v2/root_runner.py.txt",
+    "published_sha256": "07d4172e39f882ed22ab0e2fd0332f8c8f09c1d7873d4e3c07a4a3c121881f6c"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/adapter.py",
+    "original_sha256": "5e35b823af57dcfc5f326cbfdde71a751c9d67825a475120069b56f87e3cc5bc",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v3/adapter.py.txt",
+    "published_sha256": "5e35b823af57dcfc5f326cbfdde71a751c9d67825a475120069b56f87e3cc5bc"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/analyze.py",
+    "original_sha256": "f15667e6be6d40717905cfd93e895473f6afaf2e56e70433d900e3da956f1fef",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v3/analyze.py.txt",
+    "published_sha256": "f15667e6be6d40717905cfd93e895473f6afaf2e56e70433d900e3da956f1fef"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/check.py",
+    "original_sha256": "a54363adbc20e7ebe39fc61314854d59eaa2979937d815f051fdc45221bb5348",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v3/check.py.txt",
+    "published_sha256": "a54363adbc20e7ebe39fc61314854d59eaa2979937d815f051fdc45221bb5348"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/repair_budget_runner.py",
+    "original_sha256": "fa5edcaf1dad9e2f185b7dbfef88a5a95079942a72f87099d71ebd5dbc359f18",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v3/repair_budget_runner.py.txt",
+    "published_sha256": "5e84fcd82c79a452dea29ae47ba9cfd6aa17f2487d3154e563d361e004c1f865"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/root_runner.py",
+    "original_sha256": "cc5942c8032d8ad54438c39c242958875630e7df22d62cfe7b20cb34bb6387ec",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v3/root_runner.py.txt",
+    "published_sha256": "cc5942c8032d8ad54438c39c242958875630e7df22d62cfe7b20cb34bb6387ec"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/__init__.py",
+    "original_sha256": "eb2ffeb6be174449e0a36371f3cefb78c096f3a0a7b7d519e731db6cffb84fbb",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/__init__.py.txt",
+    "published_sha256": "eb2ffeb6be174449e0a36371f3cefb78c096f3a0a7b7d519e731db6cffb84fbb"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/__main__.py",
+    "original_sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/__main__.py.txt",
+    "published_sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/action.py",
+    "original_sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/action.py.txt",
+    "published_sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/baseline.py",
+    "original_sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/baseline.py.txt",
+    "published_sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/bench.py",
+    "original_sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/bench.py.txt",
+    "published_sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/bench_background.py",
+    "original_sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/bench_background.py.txt",
+    "published_sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/cli.py",
+    "original_sha256": "d88d3ff97d41d4e80d2fb1d8f69ad4e38a8abf7bd7db7ab03b38de8c48936409",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/cli.py.txt",
+    "published_sha256": "0ac9caac3b63e0c5b53d0b8dd1648d01b886569a1d0985bc4e044c5184f4edb8"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/commits.py",
+    "original_sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/commits.py.txt",
+    "published_sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/comparers.py",
+    "original_sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparers.py.txt",
+    "published_sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/comparison.py",
+    "original_sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparison.py.txt",
+    "published_sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/comparison_helpers.py",
+    "original_sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparison_helpers.py.txt",
+    "published_sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/costs.py",
+    "original_sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/costs.py.txt",
+    "published_sha256": "284f037b5fe0dd34b7f79a603ef3fe9c99b05822b1fe8da9b281e2de562989d3"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/detector.py",
+    "original_sha256": "40f99912282e5e08b80b8faea45d8fa8df026ef9fc4b1d0c6f7c1314966b556a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/detector.py.txt",
+    "published_sha256": "40f99912282e5e08b80b8faea45d8fa8df026ef9fc4b1d0c6f7c1314966b556a"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/discovery.py",
+    "original_sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/discovery.py.txt",
+    "published_sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/dryer.py",
+    "original_sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/dryer.py.txt",
+    "published_sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/evidence.py",
+    "original_sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/evidence.py.txt",
+    "published_sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/extractors.py",
+    "original_sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/extractors.py.txt",
+    "published_sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/feedback.py",
+    "original_sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/feedback.py.txt",
+    "published_sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/function_index.py",
+    "original_sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/function_index.py.txt",
+    "published_sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/functions.py",
+    "original_sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/functions.py.txt",
+    "published_sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/git.py",
+    "original_sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/git.py.txt",
+    "published_sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/github.py",
+    "original_sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/github.py.txt",
+    "published_sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/index.py",
+    "original_sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/index.py.txt",
+    "published_sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/index_github.py",
+    "original_sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/index_github.py.txt",
+    "published_sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judges/__init__.py",
+    "original_sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/__init__.py.txt",
+    "published_sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judges/anthropic.py",
+    "original_sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/anthropic.py.txt",
+    "published_sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judges/command.py",
+    "original_sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/command.py.txt",
+    "published_sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judges/gemini.py",
+    "original_sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/gemini.py.txt",
+    "published_sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judges/http.py",
+    "original_sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/http.py.txt",
+    "published_sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judges/jev.py",
+    "original_sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/judges/jev.py.txt",
+    "published_sha256": "26246f465c6e1134ca7a982f8b81e3a1c2b9b803773b7b259dc3bc5ef08ba34f"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judges/model_jev.py",
+    "original_sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/model_jev.py.txt",
+    "published_sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judges/subscription.py",
+    "original_sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/subscription.py.txt",
+    "published_sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/judging.py",
+    "original_sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judging.py.txt",
+    "published_sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/labelling.py",
+    "original_sha256": "7b6fc95c25e05f299a19cc36401f5596a13007083d819ecbaa0358bce22c9731",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/labelling.py.txt",
+    "published_sha256": "0948aaf07f7e270e408aa19fadbcc5cf346266585d2018a0bf10857c8d72e9ad"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/ledger.py",
+    "original_sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/ledger.py.txt",
+    "published_sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/model_review.py",
+    "original_sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/model_review.py.txt",
+    "published_sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/model_shapes.py",
+    "original_sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/model_shapes.py.txt",
+    "published_sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/models.py",
+    "original_sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/models.py.txt",
+    "published_sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/plugins.py",
+    "original_sha256": "08da90980b1a96d05928ed5dd9d74b469158e2f10b8889bf5b2da200e1436f72",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/plugins.py.txt",
+    "published_sha256": "08da90980b1a96d05928ed5dd9d74b469158e2f10b8889bf5b2da200e1436f72"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/policies.py",
+    "original_sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/policies.py.txt",
+    "published_sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/presets.py",
+    "original_sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/presets.py.txt",
+    "published_sha256": "669e7a4edcd0b60897acd67f47552ace66805637d11ef0ebe105607b2e4dd132"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/python_schemas.py",
+    "original_sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/python_schemas.py.txt",
+    "published_sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/ranking.py",
+    "original_sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/ranking.py.txt",
+    "published_sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/replay.py",
+    "original_sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/replay.py.txt",
+    "published_sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/report.py",
+    "original_sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/report.py.txt",
+    "published_sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/schema_policy.py",
+    "original_sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/schema_policy.py.txt",
+    "published_sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/settings.py",
+    "original_sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/settings.py.txt",
+    "published_sha256": "a7b51d8614b5f2fd0e1f4b8390d110b6e0c273823f3bbd6b09a7d78e24613696"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/source_context.py",
+    "original_sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/source_context.py.txt",
+    "published_sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/sticky.py",
+    "original_sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/sticky.py.txt",
+    "published_sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/store.py",
+    "original_sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/store.py.txt",
+    "published_sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/src/dry_lint/typescript.py",
+    "original_sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/typescript.py.txt",
+    "published_sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/pyproject.toml",
+    "original_sha256": "af67435fe407353355171697fd765d1cda28b842741a54fc49a3b79bee2100dc",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/pyproject.toml.txt",
+    "published_sha256": "af67435fe407353355171697fd765d1cda28b842741a54fc49a3b79bee2100dc"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/uv.lock",
+    "original_sha256": "84566976085c54d6abe44d82217d27186ad6261f687b4093fcdb48c09d4507cf",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/uv.lock.txt",
+    "published_sha256": "84566976085c54d6abe44d82217d27186ad6261f687b4093fcdb48c09d4507cf"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/EXPERIMENT.json",
+    "original_sha256": "8415f679f16f99fa29b1dec0ad78d2390a0d1233a87f003fad5a537406a83a7a",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/EXPERIMENT.json.txt",
+    "published_sha256": "c6aefdf9db6da6a100b7083a01bafe4cc3217d98b3e48938c57c2875f8c7057b"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/EXPERIMENT.json",
+    "original_sha256": "fab47b9e973bcfb404297d67891eb70aab70930de195e217ce592a0c0aa7614c",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/round1/EXPERIMENT.json.txt",
+    "published_sha256": "af59a606706e08940f04b55932579e53e46b5cac2f243333a3ace5162bbe8f07"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/EXPERIMENT.json",
+    "original_sha256": "de3a2bb1ed72bb9885bb22b2cebb1ffaff0976600a4c4cfd29fdc6bff61768e2",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/round2/EXPERIMENT.json.txt",
+    "published_sha256": "3d5306f6aecba085216b383a7ceed46974616359827c0f6202300eec6752c3a7"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/EXPERIMENT.json",
+    "original_sha256": "cae447dbe102669f281b4541dd7c5e781778b8e012c15fad63ee1bdc24ef28bf",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/resolution/EXPERIMENT.json.txt",
+    "published_sha256": "1ac41bc4cbfeefd1c8316855e44553ec1e21225f01ff8c95545f44b07a25dd8a"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/commands.json",
+    "original_sha256": "252721137ef84553c0370c9af0e421072aac5bc67bea53ec7322e6a74bb19fd1",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/resolution/commands.json.txt",
+    "published_sha256": "0268ddcef0ead6e4ecdc3d937d0e30ba36d3fb02657ed6de213e20166b9ab29a"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/agentic-claude/commands.json",
+    "original_sha256": "d894735b100f0e1ae00aee7c696dcb85fc3afa0fd66d3d756e5b1cc6bbedd657",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/agentic-claude/commands.json.txt",
+    "published_sha256": "5ce8ccd9785d707952a6e73c2bc24b3df8183f6400f8912b5d6a053abe3202bb"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v2/EXPERIMENT.json",
+    "original_sha256": "a10552f566d90244ea45e8c538e726fe84c5e68dfb78a7d938a15accc0b00531",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v2/EXPERIMENT.json.txt",
+    "published_sha256": "a10552f566d90244ea45e8c538e726fe84c5e68dfb78a7d938a15accc0b00531"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v2/instruction-diff.txt",
+    "original_sha256": "a96fa8ca11079b5ae3412c2d55bf45b978dce86d324f8da34d26074cab1fe583",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v2/instruction-diff.txt.txt",
+    "published_sha256": "a96fa8ca11079b5ae3412c2d55bf45b978dce86d324f8da34d26074cab1fe583"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/EXPERIMENT.json",
+    "original_sha256": "58e7d957c94fd1f4d63af8aa3a92ebd071996c322522842d61eb58825cd5f329",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v3/EXPERIMENT.json.txt",
+    "published_sha256": "58e7d957c94fd1f4d63af8aa3a92ebd071996c322522842d61eb58825cd5f329"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/instruction-diff.txt",
+    "original_sha256": "2b20f4a97c88d14a1c8283076146b76c8b5cccfcb568648b3705ccd4f03019e8",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/paired-baselines-repair-v3/instruction-diff.txt.txt",
+    "published_sha256": "2b20f4a97c88d14a1c8283076146b76c8b5cccfcb568648b3705ccd4f03019e8"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/analysis/cases.jsonl",
+    "original_sha256": "82e71fb022a8531d2fe4bc333719d7a6fd8b5672c75c77ac7d8932a6bd7ab537",
+    "publication_action": "selected public source; provider IDs and hidden reasoning excluded, original hashes retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/requests.jsonl",
+    "original_sha256": "31aa3dd820c5520af7420e7155a95ee7042ee32b654271c6adef637c65ce13ab",
+    "publication_action": "selected public source; provider IDs and hidden reasoning excluded, original hashes retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/teacher-requests.jsonl",
+    "original_sha256": "218e3afa7fb9a5d0475163f83604c6168dd38440be84536cf9e6532f96d03063",
+    "publication_action": "selected public source; provider IDs and hidden reasoning excluded, original hashes retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/root-smoke-01/returned.jsonl",
+    "original_sha256": "7ce49a39235c0a878f687e091e918c9ae0f9be960a79272244dea1886679a5c4",
+    "publication_action": "selected public source; provider IDs and hidden reasoning excluded, original hashes retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/root-remaining-01/returned.jsonl",
+    "original_sha256": "317355e264c7456e4bf867477dc716c20f3945327f7ae65f1a0ddaa9b22d2e41",
+    "publication_action": "selected public source; provider IDs and hidden reasoning excluded, original hashes retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-503033a096d94361/events.jsonl",
+    "original_sha256": "b5c624197f27bba27bfdd0011b9ee771429b2654b7f9c109019646e65a4fbf23",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-1cc88d10487c8481/events.jsonl",
+    "original_sha256": "6efdbce2aff6d7ec6678dec657f3c8fb3c274a4486253eac63fd72e9b3059abf",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-442513c7a22764ab/events.jsonl",
+    "original_sha256": "4e4ed26864c27a2c972ab2f0776289d40e7cb4508791f5adfbff3e4ff197ff50",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-294585ab744e5e23/events.jsonl",
+    "original_sha256": "acfbb4b31b0d39f4cd940013ba5bd705847c89ee46cab5495e619d4d769200ca",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-7bb9525a018c2ebb/events.jsonl",
+    "original_sha256": "08ff9311d39113902f89e94a169c94f759dce72e879cd15b2c225c108a683401",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-79b342568fc7ba88/events.jsonl",
+    "original_sha256": "0aef6934525bac6ab895dc25dd90244ce58013817871139010dc48267bd7c372",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-54b6abcd0f86aeb6/events.jsonl",
+    "original_sha256": "aaae1509bf3ec9f66afc75ed3bc5241bde5f0eee04e9374fe5fa573a6ced0861",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-45053d42a5ba1263/events.jsonl",
+    "original_sha256": "49c86701011d39c1ee878fb5568f5a4b34f734cca22ba7bb5d8d963999e31529",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/root-round2-1/AJ-R2-9d94b5ed1e94eaf2/events.jsonl",
+    "original_sha256": "4c1713719a4c774531c1d66b312cea281de80d2255bcf1f7eedbb946898298a1",
+    "publication_action": "only observable source tool calls/results and sanitized API responses; full original event hash retained"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/final-join/metrics.json",
+    "original_sha256": "7c27f15f37be7c45254772e89d27fe0ed17bbf601c8367f822080f84f1c68692",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/analysis/metrics.json",
+    "original_sha256": "908259ed797eaf00563726c79242a9d113fbde6a39800ade36e60bb9902f0c4f",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/resolution/followup-results/summary.json",
+    "original_sha256": "90aae0803f8fb49dfc6e7887d866da8c52f0f3d944f6ec16c3dee5270565a336",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/conclusion/COMPARATOR-V3-AMENDMENT.json",
+    "original_sha256": "1d6ac4bb0c411350fcf01ddb7c7d2b38b554915d405da52a42e3aacdf06df093",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round1/final-join/cases.jsonl",
+    "original_sha256": "a1b8e4061d553a1ddc92855a79262d23a105e25062df019baaa603c1674cfbf2",
+    "publication_action": "public source-free round1 outcome summary"
+  }
+]

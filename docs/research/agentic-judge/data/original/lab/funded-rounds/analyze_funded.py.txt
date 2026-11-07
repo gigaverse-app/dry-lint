@@ -1,0 +1,174 @@
+"""Offline strict teacher/body/source join; provider blocks stay opaque.
+
+Replay only observable source requests/results. Preserve every selected case,
+including unstarted, uncertain, failures, source disputes and missing baselines.
+"""
+import argparse
+import importlib.util
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+from types import SimpleNamespace
+
+import paired_baseline_adapter as paired
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent / 'resolution'))
+from analyze_teacher_v2 import analyze_case
+
+
+def spans(value):
+    result = []
+    if isinstance(value, dict):
+        if all(k in value for k in ('evidence_id', 'path', 'start_line', 'end_line')):
+            result.append({k: value[k] for k in ('evidence_id', 'path', 'start_line', 'end_line')})
+        for child in value.values():
+            result += spans(child)
+    elif isinstance(value, list):
+        for child in value:
+            result += spans(child)
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--round', type=int, choices=(1, 2), required=True)
+    parser.add_argument('--source', type=Path)
+    args = parser.parse_args()
+    folder = HERE / f'round{args.round}'
+    spec = importlib.util.spec_from_file_location('_offline_funded_adapter', folder / ('teacher_v3_adapter.py' if args.round == 1 else 'teacher_v4_adapter.py'))
+    adapter = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(adapter)
+    h = adapter.h
+    checker = type(analyze_case)(analyze_case.__code__, {**analyze_case.__globals__,
+        'h': adapter.runtime.h, 'v': SimpleNamespace(submit=adapter.runtime.submit)}, 'offline_funded_case')
+    run = folder / ('root-topup-1' if args.round == 1 else 'root-round2-1')
+    execution = h.load_json(run / 'execution.json')
+    assert 'elapsed_seconds' in execution
+    private = {r['id']: r for r in h.lines(folder / 'selection-private.jsonl')}
+    queue = h.lines(folder / 'teacher-requests.jsonl')
+    body_queue = h.lines(folder / 'paired-baselines/actually-started-requests.jsonl')
+    receipts_path = folder / 'paired-baselines/root-attempt-01/returned.jsonl'
+    receipts = {r['request_id']: r for r in h.lines(receipts_path)} if receipts_path.exists() else {}
+    bodies = {}
+    for q in body_queue:
+        receipt = receipts.get(q['request_id'])
+        bodies[q['id']] = paired.parse_receipt(q, receipt) if receipt else {
+            'status': 'unknown', 'decision': None, 'reported': None, 'reason': 'baseline_not_returned'}
+        # Match the frozen teacher's report interpretation exactly. The separate
+        # baseline adapter's status is authoritative; uncertainty stays unknown,
+        # even though its convenience `reported` expression returns False.
+        if bodies[q['id']]['status'] != 'complete':
+            bodies[q['id']]['adapter_reported_preserved'] = bodies[q['id']]['reported']
+            bodies[q['id']]['reported'] = None
+            bodies[q['id']]['report_interpretation'] = 'Non-complete stays unknown, matching frozen teacher.'
+        if receipt:
+            bodies[q['id']].update(actual_cost_usd=receipt['physical_cost_usd'], api_seconds=receipt['seconds'],
+                request_id=q['request_id'], output_sha256=receipt['output_sha256'], concurrency=receipt['concurrency'],
+                usage=receipt.get('usage'), returned_model=receipt['raw_response'].get('model'),
+                observable_tool_names=[b.get('name') for b in receipt['raw_response'].get('content', []) if b.get('type') == 'tool_use'])
+    source_path = args.source or HERE.parents[3] / f'reports/research-experiments/promotion/agentic-round{args.round}-source/coordinator-decisions.jsonl'
+    source = {}
+    source_map_path = source_path.parent / 'private-map.jsonl'
+    source_map = {r['blind_id']: r['case_id'] for r in h.lines(source_map_path)} if source_map_path.exists() else {}
+    if source_path.exists():
+        for review in h.lines(source_path):
+            ident = review.get('case_id') or source_map[review['id']]
+            assert ident not in source
+            source[ident] = review
+    results = []
+    for row in queue:
+        ident = row['id']
+        started = (run / ident / 'events.jsonl').exists()
+        raw = checker(row, run) if started else {'status': 'not_started_unknown', 'reported': None, 'decision': None}
+        initial = {(f['path'], n) for f in row['original']['source'] for n in range(f['line'], f['end_line'] + 1)}
+        catalog = {'initial:' + side: {'path': row['original']['candidate'][side]['path'],
+            'start_line': row['original']['candidate'][side]['line'], 'end_line': row['original']['candidate'][side]['end_line']}
+            for side in ('new', 'existing')}
+        compact_facts = []
+        for fact in raw.get('observable_source_facts', []):
+            returned = spans(fact['result'])
+            catalog.update({s['evidence_id']: s for s in returned})
+            compact_facts.append({'tool': fact['tool'], 'input': fact['input'],
+                'result_sha256': fact['result_sha256'], 'returned_spans': returned,
+                'error': fact['result'].get('error'), 'truncated': fact['result'].get('truncated')})
+        used, outside = [], set()
+        for citation in (raw.get('decision') or {}).get('citations', []):
+            span = catalog[citation['evidence_id']]
+            used.append({**citation, 'path': span['path']})
+            outside |= {(span['path'], n) for n in range(citation['start_line'], citation['end_line'] + 1)} - initial
+        review = source.get(ident)
+        disputed = ident == 'AJ-R1-3f310c0655076c00' or bool(review and 'disputed' in review.get('root_acceptance', ''))
+        positive = bool(review and review.get('root_acceptance', '').startswith('accepted') and
+                        review.get('source_label') in ('duplicate', 'drifted') and not disputed)
+        body = bodies.get(ident, {'status': 'unknown', 'reported': None, 'decision': None, 'reason': 'no_paired_novel_baseline'})
+        comparison = 'unknown_or_not_paired'
+        if raw['reported'] is not None and body['reported'] is not None:
+            comparison = ('both_report' if raw['reported'] and body['reported'] else
+                          'teacher_only_report' if raw['reported'] else
+                          'body_only_report' if body['reported'] else 'neither_reports')
+        result = {'id': ident, 'round': args.round, 'role': private[ident]['role'], 'teacher_started': started,
+            'teacher': {k: val for k, val in raw.items() if k != 'observable_source_facts'},
+            'observable_tools': compact_facts, 'cited_evidence_used': used,
+            'cited_new_source_lines': len(outside), 'body_only': body, 'comparison': comparison,
+            'source_review_status': 'present' if review else 'pending',
+            'source_registry_sha256': h.sha(source_path.read_bytes()) if source else None,
+            'source_mapping_sha256': h.sha(source_map_path.read_bytes()) if source_map else None,
+            'source_row_id': review.get('id') if review else None,
+            'source_label': review.get('source_label') if review else None,
+            'source_assessment': review.get('label') if review else None,
+            'source_root_acceptance': review.get('root_acceptance') if review else None,
+            'source_scope': 'Partial operations only, not whole-function equivalence.',
+            'source_disputed': disputed, 'prior_source_registry_entry_preserved': private[ident].get('source_reference'),
+            'source_tiny_convenience': bool(review and review.get('tiny_convenience')),
+            'source_confirmed_positive': positive,
+            'source_confirmed_recovery': positive and comparison == 'teacher_only_report',
+            'source_confirmed_loss': positive and comparison == 'body_only_report',
+            'accuracy_gain_established': positive and comparison == 'teacher_only_report'}
+        results.append(result)
+    started = [r for r in results if r['teacher_started']]
+    novel = [r for r in started if r['role'] == 'novel']
+    certain_negative = lambda r: r['source_label'] == 'separate' and (r['source_root_acceptance'] or '').startswith('accepted') and not r['source_disputed']
+    prior_positive = lambda r: (r['prior_source_registry_entry_preserved'] or {}).get('label') in ('duplicate', 'drifted')
+    summary = {'schema': 1, 'round': args.round, 'started': len(started), 'unstarted_unknown': len(results)-len(started),
+        'teacher_statuses': dict(Counter(r['teacher']['status'] for r in started)),
+        'novel_started': len(novel), 'novel_baseline_statuses': dict(Counter(r['body_only']['status'] for r in novel)),
+        'novel_comparisons': dict(Counter(r['comparison'] for r in novel)),
+        'novel_source_confirmed_recoveries': [r['id'] for r in novel if r['source_confirmed_recovery']],
+        'novel_source_confirmed_losses': [r['id'] for r in novel if r['source_confirmed_loss']],
+        'novel_teacher_false_reports_on_source_separate': [r['id'] for r in novel if certain_negative(r) and r['teacher']['reported'] is True],
+        'novel_body_false_reports_on_source_separate': [r['id'] for r in novel if certain_negative(r) and r['body_only']['reported'] is True],
+        'source_pending_started': [r['id'] for r in started if r['source_review_status'] == 'pending'],
+        'source_disputed_started': [r['id'] for r in started if r['source_disputed']],
+        'accepted_positive_started': [r['id'] for r in started if r['source_confirmed_positive']],
+        'accepted_tiny_convenience_started': [r['id'] for r in started if r['source_confirmed_positive'] and r['source_tiny_convenience']],
+        'source_confirmed_teacher_reports_excluding_disputes': [r['id'] for r in started if r['source_confirmed_positive'] and r['teacher']['reported'] is True],
+        'teacher_reports_supported_if_disputed_prior_positives_counted': [r['id'] for r in started if (r['source_confirmed_positive'] or (r['source_disputed'] and prior_positive(r))) and r['teacher']['reported'] is True],
+        'source_supported_paired_recoveries_excluding_disputes': [r['id'] for r in started if r['source_confirmed_recovery']],
+        'source_supported_paired_recoveries_including_disputed_prior_positives': [r['id'] for r in started if (r['source_confirmed_positive'] or (r['source_disputed'] and prior_positive(r))) and r['comparison'] == 'teacher_only_report'],
+        'disputed_teacher_reports': [r['id'] for r in started if r['source_disputed'] and r['teacher']['reported'] is True],
+        'source_confirmed_teacher_report_without_comparable_baseline': [r['id'] for r in started if r['source_confirmed_positive'] and r['teacher']['reported'] is True and r['body_only']['reported'] is None],
+        'new_source_lines_returned': sum(r['teacher'].get('unique_new_source_lines', 0) for r in started),
+        'initial_body_lines_repeated': sum(r['teacher'].get('unique_initial_body_lines_repeated', 0) for r in started),
+        'new_source_lines_cited': sum(r['cited_new_source_lines'] for r in started),
+        'teacher_actual_usd': execution[f'known_round{args.round}_actual_usd'],
+        'teacher_minimum_actual_met': execution['minimum_reached'],
+        'body_baseline_actual_usd': round(sum(r['body_only'].get('actual_cost_usd', 0) for r in novel), 8),
+        'teacher_concurrency': execution['concurrency'], 'teacher_wall_seconds': execution['elapsed_seconds'],
+        'api_seconds_teacher_sum': sum(r['teacher'].get('api_seconds_sum') or 0 for r in started),
+        'novel_teacher_actual_usd': round(sum(r['teacher'].get('actual_cost_usd') or 0 for r in novel), 8),
+        'novel_api_seconds_teacher_sum': sum(r['teacher'].get('api_seconds_sum') or 0 for r in novel),
+        'api_seconds_body_sum': sum(r['body_only'].get('api_seconds') or 0 for r in novel),
+        'no_pristine_population_holdout': True, 'unknowns_preserved': True,
+        'thinking_payloads_interpreted_or_exported': False, 'worker_provider_calls': 0,
+        'interpretation': 'Observed development. Within each case only source-tool availability differs; one model sample per arm. Body-only retains source-tool instructions but has no source tools: unavailable-tool requests remain unknown and cannot establish gain. No causal attribution of a changed verdict to a specific citation. Protocol versions across rounds are not matched accuracy comparisons. Teacher batch wall time includes controls; compare matched novel per-case API totals separately from CPU/source extraction.'}
+    out = folder / 'final-join'
+    out.mkdir(exist_ok=True)
+    (out / 'cases.jsonl').write_bytes(b''.join(h.canonical(r) + b'\n' for r in results))
+    h.save(out / 'metrics.json', summary)
+    print(json.dumps(summary, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

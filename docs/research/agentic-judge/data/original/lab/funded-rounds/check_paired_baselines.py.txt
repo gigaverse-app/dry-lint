@@ -1,0 +1,61 @@
+"""Actual installed SDK serialization with mock transport only."""
+import copy
+import json
+import socket
+from unittest.mock import patch
+
+import anthropic
+import httpx2
+import paired_baseline_adapter as p
+
+
+def main():
+    rows = []
+    for n, name in [(1, 'actually-started-requests.jsonl'), (2, 'all-novel-recipes.jsonl')]:
+        rows += p.v.h.lines(p.HERE / f'round{n}/paired-baselines' / name)
+    seen = []
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Network forbidden')
+
+    def handler(request):
+        sent = json.loads(request.content)
+        assert sent == current['request_body']
+        assert len(sent['messages']) == 1 and [t['name'] for t in sent['tools']] == ['submit_verdict']
+        assert 'temperature' not in sent and sent['max_tokens'] == 1024
+        endpoint = teacher['original']['candidate']['new']
+        answer = {'label': 'separate', 'score': .1, 'owner': '', 'why': 'Offline fixture only.',
+                  'uncertainty': False, 'missing_evidence': [], 'citations': [
+                      {'evidence_id': 'initial:new', 'start_line': endpoint['line'], 'end_line': endpoint['end_line']}]}
+        raw = {'id': 'msg_offline', 'type': 'message', 'role': 'assistant', 'model': sent['model'],
+               'content': [{'type': 'tool_use', 'id': 'submit_offline', 'name': 'submit_verdict', 'input': answer}],
+               'stop_reason': 'tool_use', 'stop_sequence': None, 'usage': {'input_tokens': 100, 'output_tokens': 20}}
+        seen.append(current['request_id'])
+        return httpx2.Response(200, json=raw)
+
+    with patch.object(socket.socket, 'connect', side_effect=forbidden), patch.object(httpx2.HTTPTransport, 'handle_request', side_effect=forbidden):
+        with anthropic.Anthropic(api_key='offline-placeholder', max_retries=0,
+                http_client=httpx2.Client(trust_env=False, transport=httpx2.MockTransport(handler))) as client:
+            for current in rows:
+                teacher = p.validate_request(current)
+                raw = client.messages.create(**current['request_body']).model_dump(mode='json')
+                assert p.parse_response(current, raw)['status'] == 'complete'
+                wrong = copy.deepcopy(raw)
+                wrong['content'][0]['input']['citations'][0]['evidence_id'] = 'unreturned'
+                assert p.parse_response(current, wrong)['status'] == 'unknown'
+                capped = {**raw, 'stop_reason': 'max_tokens'}
+                assert p.parse_response(current, capped)['reported'] is None
+                unavailable = copy.deepcopy(raw)
+                unavailable['content'][0]['name'] = 'search_source'
+                assert p.parse_response(current, unavailable)['reported'] is None
+    result = {'schema': 1, 'passed': True, 'actual_sdk_mock_requests': len(seen),
+              'network_attempts': 0, 'real_provider_calls': 0, 'real_credentials_read': False,
+              'same_semantic_question_full_initial_bodies_and_final_schema': True,
+              'source_callbacks': False, 'invalid_capped_unavailable_tools_stay_unknown': True,
+              'teacher_runtime_or_queue_modified': False}
+    p.v.h.save(p.HERE / 'paired-baseline-validation.json', result)
+    print(json.dumps(result))
+
+
+if __name__ == '__main__':
+    main()

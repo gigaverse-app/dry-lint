@@ -1,0 +1,4 @@
+v2 → v3: system/user/model/output cap/final schema unchanged byte for byte.
+ONLY tool_choice: {"type":"tool","name":"submit_verdict","disable_parallel_tool_use":true} → {"type":"auto"}
+Version/context-envelope hashes and request keys are new. Source bytes and proofs are unchanged.
+SDK mock validates serialization, not provider/server capabilities.

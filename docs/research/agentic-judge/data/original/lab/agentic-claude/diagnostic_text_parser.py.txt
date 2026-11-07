@@ -1,0 +1,146 @@
+"""Post-run, offline text-block diagnostic. Never changes registered outcomes.
+
+Non-text content is treated as opaque and is never printed, interpreted, or
+exported. Only observable final text is passed to the original strict validator.
+This diagnostic has a separate identity and is not the preregistered score.
+"""
+import argparse
+import math
+from pathlib import Path
+
+import harness as h
+from analyze import verify_trace
+
+VERSION = 'offline-text-block-diagnostic-v1'
+FIELDS = {'label', 'score', 'owner', 'why', 'uncertainty', 'missing_evidence', 'citations'}
+ELIGIBLE = {'complete', 'uncertain', 'nontext_final', 'malformed_final'}
+
+
+def explain_failure(text, source):
+    """Explain rejection without emitting the response text or any non-text data."""
+    import json
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError as error:
+        return [{'code': 'invalid_json', 'line': error.lineno, 'column': error.colno}]
+    if not isinstance(value, dict):
+        return [{'code': 'json_not_object'}]
+    reasons = []
+    if set(value) != FIELDS:
+        reasons.append({'code': 'field_set_mismatch', 'missing_fields': sorted(FIELDS - set(value)),
+                        'unexpected_field_count': len(set(value) - FIELDS)})
+    if value.get('label') not in ('duplicate', 'drifted', 'separate'):
+        reasons.append({'code': 'invalid_label'})
+    if value.get('owner') not in ('', 'new', 'existing', 'shared'):
+        reasons.append({'code': 'invalid_owner'})
+    score = value.get('score')
+    if type(score) not in (int, float) or not math.isfinite(score) or not 0 <= score <= 1:
+        reasons.append({'code': 'invalid_score'})
+    if type(value.get('uncertainty')) is not bool:
+        reasons.append({'code': 'invalid_uncertainty'})
+    why = value.get('why')
+    if not isinstance(why, str):
+        reasons.append({'code': 'why_not_string'})
+    elif len(why.split()) > 80:
+        reasons.append({'code': 'why_word_limit', 'word_count': len(why.split()), 'limit': 80})
+    missing = value.get('missing_evidence')
+    if not isinstance(missing, list) or len(missing) > 3 or any(not isinstance(s, str) or len(s) > 300 for s in missing):
+        reasons.append({'code': 'invalid_missing_evidence'})
+    citations = value.get('citations')
+    if not isinstance(citations, list) or not 1 <= len(citations) <= 8:
+        reasons.append({'code': 'invalid_citation_count'})
+    else:
+        for n, citation in enumerate(citations):
+            if not isinstance(citation, dict) or set(citation) != {'evidence_id', 'start_line', 'end_line'}:
+                reasons.append({'code': 'invalid_citation_fields', 'index': n})
+                continue
+            evidence_id = citation['evidence_id']
+            if not isinstance(evidence_id, str) or evidence_id not in source.catalog:
+                reasons.append({'code': 'citation_not_returned_or_initial', 'index': n})
+                continue
+            if any(type(citation[k]) is not int for k in ('start_line', 'end_line')):
+                reasons.append({'code': 'invalid_citation_line_type', 'index': n})
+                continue
+            e = source.catalog[evidence_id]
+            if not e['start_line'] <= citation['start_line'] <= citation['end_line'] <= e['end_line']:
+                reasons.append({'code': 'citation_outside_returned_range', 'index': n,
+                                'allowed_start_line': e['start_line'], 'allowed_end_line': e['end_line']})
+    return reasons or [{'code': 'strict_validator_rejected'}]
+
+
+def parse_text_only(response, source):
+    import json
+    if response.get('stop_reason') != 'end_turn':
+        return {'status': 'unknown', 'decision': None, 'reported': None,
+                'reasons': [{'code': 'no_end_turn_final'}]}
+    # Look only at block type to select text; non-text payloads remain opaque.
+    blocks = [b for b in response.get('content', []) if isinstance(b, dict) and b.get('type') == 'text']
+    if not blocks:
+        return {'status': 'unknown', 'decision': None, 'reported': None,
+                'reasons': [{'code': 'no_final_text_blocks'}]}
+    filtered = {'stop_reason': 'end_turn', 'content': blocks}
+    try:
+        decision, status = h.final_decision(filtered, source)
+    except (TypeError, KeyError, AttributeError):
+        return {'status': 'unknown', 'decision': None, 'reported': None,
+                'reasons': [{'code': 'malformed_text_or_citation_shape'}]}
+    if decision is None:
+        text = ''.join(b['text'] for b in blocks)
+        return {'status': 'unknown', 'decision': None, 'reported': None,
+                'reasons': explain_failure(text, source), 'text_sha256': h.sha(text.encode())}
+    return {'status': status, 'decision': decision,
+            'reported': (decision['label'] in ('duplicate', 'drifted') and decision['score'] >= .8)
+                        if status == 'complete' else None,
+            'reasons': [{'code': 'valid_json_but_uncertain'}] if status == 'uncertain' else [],
+            'text_sha256': h.sha(''.join(b['text'] for b in blocks).encode())}
+
+
+def main():
+    import json
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--runs', default=str(h.HERE / 'runs/root-attempt-2'))
+    p.add_argument('--out', default=str(h.HERE / 'evidence/text-block-diagnostic'))
+    args = p.parse_args()
+    items = h.validate_prereg(h.HERE / 'queue.jsonl')
+    # Freeze hashes before reading so the report can prove preservation afterwards.
+    protected = [h.HERE / 'harness.py', h.HERE / 'queue.jsonl', h.HERE.parent / 'EXPERIMENT.json']
+    protected += list(Path(args.runs).glob('*/events.jsonl')) + list(Path(args.runs).glob('*/result.json'))
+    before = {str(path.resolve()): h.sha(path.read_bytes()) for path in protected}
+    rows = []
+    for item in items:
+        result, _ = verify_trace(item, args.runs)
+        source = h.validate_item(item)
+        events = h.lines(Path(args.runs) / item['id'] / 'events.jsonl')
+        for event in events:
+            if event['kind'] == 'after_tool':
+                source.register_evidence(event['data']['result'])
+        responses = [e['data']['response'] for e in events if e['kind'] == 'after_provider']
+        if result['status'] not in ELIGIBLE or not responses:
+            diagnostic = {'status': 'unknown', 'decision': None, 'reported': None,
+                          'reasons': [{'code': 'registered_tool_error_cap_or_missing_final',
+                                       'registered_status': result['status']}]}
+        else:
+            diagnostic = parse_text_only(responses[-1], source)
+        if result['status'] == 'complete':
+            assert diagnostic['decision'] == result['decision']
+        rows.append({'id': item['id'], 'split': item['split'], 'registered_status': result['status'],
+                     'registered_reported': result['reported'], 'registered_result_sha256': before[str((Path(args.runs) / item['id'] / 'result.json').resolve())],
+                     'diagnostic': diagnostic})
+    assert all(h.sha(Path(path).read_bytes()) == digest for path, digest in before.items())
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / 'cases.jsonl').write_bytes(b''.join(h.canonical(r) + b'\n' for r in rows))
+    summary = {'schema': 1, 'version': VERSION, 'script_sha256': h.sha(Path(__file__).read_bytes()),
+               'cases': len(rows), 'diagnostic_complete': sum(r['diagnostic']['status'] == 'complete' for r in rows),
+               'diagnostic_unknown': sum(r['diagnostic']['reported'] is None for r in rows),
+               'recovered_from_registered_unknown': [r['id'] for r in rows if r['registered_reported'] is None and r['diagnostic']['reported'] is not None],
+               'registered_results_unchanged': True, 'protected_artifact_hashes': before,
+               'semantic_and_citation_validator': 'unchanged harness.final_decision',
+               'reasoning_payloads_interpreted_or_exported': False, 'provider_calls': 0,
+               'interpretation': 'Post-run offline diagnostic only, not the preregistered arm or independent validation. No tool-error/capped result without a valid end-turn final is promoted.'}
+    h.save(out / 'summary.json', summary)
+    print(json.dumps({k: v for k, v in summary.items() if k != 'protected_artifact_hashes'}, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

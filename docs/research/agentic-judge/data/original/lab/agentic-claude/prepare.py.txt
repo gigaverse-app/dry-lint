@@ -1,0 +1,233 @@
+"""Freeze a small observed-development diagnostic. No provider SDK or credentials."""
+import gzip
+import hashlib
+import json
+import os
+import platform
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path('/home/researcher/dry-lint-round')
+HERE = Path(__file__).resolve().parent
+WORKTREE = HERE.parent.parent
+PILOT = {
+    'LL-C03': ('trace_learning', 'disagreement_claude_reports_jev_does_not'),
+    'OH-S071': ('trace_learning', 'disagreement_jev_reports_claude_does_not'),
+    'T3-F01': ('trace_learning', 'agreement_positive'),
+    'LL-C06': ('trace_learning', 'hard_separate_distinct_logging_contracts'),
+    'OC01': ('diagnostic_check', 'disagreement_claude_reports_jev_does_not'),
+    'T3-S023': ('diagnostic_check', 'disagreement_jev_reports_claude_does_not'),
+    'LL-S019': ('diagnostic_check', 'agreement_positive'),
+    'OC07': ('diagnostic_check', 'hard_separate_existing_delegation'),
+}
+
+
+def canonical(obj):
+    return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()
+
+
+def digest(obj):
+    return hashlib.sha256(obj if isinstance(obj, bytes) else canonical(obj)).hexdigest()
+
+
+def loadlines(path):
+    return [json.loads(s) for s in Path(path).read_text().splitlines() if s.strip()]
+
+
+def write(path, obj):
+    Path(path).write_bytes(json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False).encode() + b'\n')
+
+
+def main():
+    started = time.monotonic()
+    if (HERE.parent / 'EXPERIMENT.json').exists():
+        raise SystemExit('Preregistration exists: do not silently refreeze it.')
+    from dry_lint.models import Candidate
+    from dry_lint.judges.command import prompt
+    import harness
+
+    config_path = ROOT / 'jobs/review-automation/.lab-results/review-automation/repositories-five.json'
+    configs = json.loads(config_path.read_text())
+    # Do not acquire or expose private/enterprise/other corpora in this diagnostic.
+    configs = [c for c in configs if c['repository'] != 'Garsson-io/kaizen']
+    observations = {}
+    packets = {}
+    packet_origins = {}
+    for path in sorted((ROOT / 'reports/candidate-first/pilot-reviews').glob('*.json')):
+        obs = json.loads(path.read_text())
+        if 'identity' not in obs:
+            continue
+        ident = obs['packet_id']
+        packet_path = ROOT / obs['packet_file']
+        if packet_path not in packets:
+            packets[packet_path] = {p['id']: p for p in loadlines(packet_path)}
+        packet = packets[packet_path][ident]
+        observations.setdefault(ident, {})[obs['identity']['kind']] = {
+            'path': str(path), 'file_sha256': digest(path.read_bytes()), 'record': obs,
+        }
+        packet_origins[ident] = (packet_path, packet)
+    decision_paths = [
+        ROOT / 'reports/candidate-first/scaled-coordinator-decisions.jsonl',
+        ROOT / 'reports/research-experiments/review-wave1/coordinator-decisions.jsonl',
+    ]
+    decisions = {}
+    for path in decision_paths:
+        for d in loadlines(path):
+            decisions[d['id']] = {'path': str(path), 'file_sha256': digest(path.read_bytes()), 'record': d}
+    research_map = loadlines(ROOT / 'reports/research-experiments/review-wave1/private-map.jsonl')
+    for m in research_map:
+        pp = Path(m['frozen_packet'])
+        if pp not in packets:
+            packets[pp] = {p['id']: p for p in loadlines(pp)}
+        packet_origins[m['original_id']] = (pp, packets[pp][m['original_id']])
+
+    # Components use source family aliases, overlapping source intervals, identical
+    # endpoint identities, and exact body lineages, across the full observed pool.
+    entries = {}
+    for ident, (pp, p) in packet_origins.items():
+        if 'candidate' not in p or p.get('repository') == 'Garsson-io/kaizen':
+            continue
+        repo = p.get('repository')
+        if not repo:
+            origins = [p['candidate'][s].get('origin') or {} for s in ('new', 'existing')]
+            repo = next((o.get('repository') for o in origins if o.get('repository')), 'unknown')
+        ds = decisions.get(ident, {}).get('record', {})
+        family = [p.get('family_id'), p.get('provisional_family_id'), ds.get('family_id')]
+        entries[ident] = {'repository': repo, 'families': sorted({f'{repo}:{f}' for f in family if f}),
+                          'endpoints': [p['candidate'][s] for s in ('new', 'existing')]}
+    parent = {k: k for k in entries}
+
+    def find(k):
+        while parent[k] != k:
+            parent[k] = parent[parent[k]]
+            k = parent[k]
+        return k
+
+    def union(a, b):
+        parent[find(a)] = find(b)
+
+    ids = sorted(entries)
+    for n, a in enumerate(ids):
+        ea = entries[a]
+        for b in ids[n + 1:]:
+            eb = entries[b]
+            linked = bool(set(ea['families']) & set(eb['families']))
+            for fa in ea['endpoints']:
+                for fb in eb['endpoints']:
+                    linked |= digest(fa['code'].encode()) == digest(fb['code'].encode())
+                    linked |= (ea['repository'] == eb['repository'] and fa['path'] == fb['path'] and
+                               (max(fa['line'], fb['line']) <= min(fa['end_line'], fb['end_line']) or
+                                (fa['name'], fa.get('owner')) == (fb['name'], fb.get('owner'))))
+            if linked:
+                union(a, b)
+    groups = {}
+    for ident in ids:
+        groups.setdefault(find(ident), []).append(ident)
+    component = {i: digest(sorted(g))[:20] for g in groups.values() for i in g}
+    assignments = {}
+    for ident, (split, _) in PILOT.items():
+        cid = component[ident]
+        assert cid not in assignments or assignments[cid] == split, (ident, cid)
+        assignments[cid] = split
+    reserved = []
+    for review_id in ('RC01', 'RC08', 'RC17', 'RC21'):
+        m = next(m for m in research_map if m['review_id'] == review_id)
+        ident = m['original_id']
+        cid = component[ident]
+        if cid not in assignments:
+            reserved.append({'id': ident, 'review_id': review_id, 'component': cid,
+                             'role': 'later_recipe_evaluation_development_only'})
+            assignments[cid] = 'reserved_recipe_check'
+    split_record = {'method': 'source-family / overlapping endpoint / endpoint identity / exact-body connected components',
+                    'limitations': 'Known aliases only; unknown semantic lineages cannot be excluded. Entire known components withheld from recipe design. All data observed development.',
+                    'components': [{'id': digest(sorted(g))[:20], 'members': sorted(g),
+                                    'assignment': assignments.get(digest(sorted(g))[:20], 'unused')}
+                                   for g in sorted(groups.values(), key=lambda g: sorted(g))],
+                    'reserved': reserved}
+    write(HERE / 'split.json', split_record)
+    queue, source_labels = [], []
+    for ident, (split, stratum) in PILOT.items():
+        pp, packet = packet_origins[ident]
+        repo = packet['repository']
+        cfg = next(c for c in configs if c['repository'] == repo)
+        assert packet['revision'] == cfg['revision']
+        cand = Candidate.model_validate(packet['candidate'])
+        baseline = observations[ident]['claude']
+        rendered = prompt(cand, policy='shared-operations')
+        assert rendered == baseline['record']['identity']['rendered_input'], ident
+        assert baseline['record']['identity']['max_output_tokens'] == 1024
+        source = harness.SourceTools(cfg, cand.model_dump())
+        proofs = []
+        for side in ('new', 'existing'):
+            f = getattr(cand, side)
+            text = source.file(f.path)
+            proofs.append({'side': side, 'repository': repo, 'revision': cfg['revision'], 'path': f.path,
+                           'line': f.line, 'end_line': f.end_line, 'file_sha256': digest(text.encode()),
+                           'body_sha256': digest(f.code.encode()), 'structure_hash': f.hash,
+                           'exact_line_range_sha256': digest('\n'.join(text.splitlines()[f.line - 1:f.end_line]).encode())})
+        # Some extractor bodies normalize indentation; exact recorded body remains the baseline contract.
+        item = {'schema': 1, 'id': ident, 'split': split, 'stratum': stratum, 'component': component[ident],
+                'repository': repo, 'revision': cfg['revision'], 'candidate': cand.model_dump(),
+                'candidate_sha256': digest(cand.model_dump()), 'source': proofs,
+                'source_identity_sha256': digest(proofs), 'rendered_body_only_prompt': rendered,
+                'rendered_body_only_prompt_sha256': digest(rendered.encode()),
+                'packet': {'path': str(pp), 'file_sha256': digest(pp.read_bytes()), 'packet_sha256': digest(packet)},
+                'baselines': observations[ident], 'source_config': cfg}
+        item['initial_request'] = harness.initial_request(item)
+        item['request_identity'] = harness.request_identity(item)
+        item['request_key'] = digest(item['request_identity'])
+        item['estimated_initial_cost_usd'] = harness.estimated_cost(item['initial_request'])
+        item['initial_conservative_reservation_usd'] = harness.reservation(item['initial_request'])
+        queue.append(item)
+        if ident in decisions:
+            source_labels.append({'id': ident, 'reference': decisions[ident]})
+        else:
+            review = ROOT / f'reports/candidate-first/corpus-verification/candidate-first-gold/reviews/{ident}.json'
+            d = json.loads(review.read_text())
+            source_labels.append({'id': ident, 'reference': {'path': str(review), 'file_sha256': digest(review.read_bytes()),
+                                                           'record': d},
+                                  'accepted_gold': True, 'authority': 'first44_coordinator_source_review'})
+    for name, rows in [('queue.jsonl', queue), ('references.jsonl', source_labels)]:
+        (HERE / name).write_bytes(b''.join(canonical(row) + b'\n' for row in rows))
+    frozen = {
+        'schema': 1, 'experiment': 'bounded-agentic-claude-source-evidence-v1',
+        'worker': {'name': 'experiment-agentic-judge', 'requested_model': 'GPT-6.1-Sol', 'requested_effort': 'high',
+                   'note': 'Runtime identity is supplied by coordinator; script does not attest worker model.'},
+        'code_revision': '15567ee22a662208e8e6ad66b2439c10c08584cf',
+        'preregistered_at_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'selection': [{'id': i, 'split': s, 'stratum': t, 'component': component[i]} for i, (s, t) in PILOT.items()],
+        'split_sha256': digest((HERE / 'split.json').read_bytes()),
+        'queue_sha256': digest((HERE / 'queue.jsonl').read_bytes()),
+        'references_sha256': digest((HERE / 'references.jsonl').read_bytes()),
+        'repositories_config_sha256': digest(config_path.read_bytes()),
+        'model': harness.MODEL, 'version': harness.VERSION, 'limits': harness.LIMITS,
+        'output_cap_justification': '1024 matches exact prior body-only answers and constrains shared diagnostic spend. Earlier 1024 cap failures are known; capped answers remain unknown with no retry. No thinking requested.',
+        'price_basis': {'input_usd_per_million': 2, 'output_usd_per_million': 10,
+                        'authority': 'repository src/dry_lint/costs.py; root must validate current rates before physical execution',
+                        'separate_production_estimate_usd': 0.04},
+        'shared_spend': 'No independent allocation. Root must use one locked shared ledger with ceiling <=1 USD across this and Jev diagnostic, including failed/unknown calls. Each next call reserves conservative input bound plus output cap.',
+        'hypotheses': ['Agent-selected pinned evidence can resolve at least one source-supported disagreement without promoting either hard separate control.',
+                       'Observable returned-and-cited facts may motivate a deterministic one-shot extraction recipe. Agentic decisions are not truth.'],
+        'decision_rule': 'Descriptive eight-case diagnostic only. Threshold stays .8 (duplicate/drifted AND score>=.8). No tune-on-answers. Promote no production change. Compare all positives, negatives, disagreement and uncertain separately; a useful recipe needs later component-withheld development checks with no added false reports or lost supported reports.',
+        'scoring': 'Only independent coordinator source decisions; partial operation scopes and qualifications retained. Provider agreement, including both-negative, is never reference truth. Missing/malformed/capped/errors remain unknown, with attempted-case denominators and coverage.',
+        'comparison': ['exact historic body-only Claude shared-operations assessment', 'bounded agentic Claude same initial full bodies',
+                       'later new-identity one-shot replay with ONLY mechanically reproduced trace facts; not yet executed'],
+        'observability': 'tool requests/results, citations, concise final evidence/verdict only; no hidden chain-of-thought requested or inferred',
+        'cache': 'Production store never read/written. Experimental reuse only after canonical source/prompt/model/options/tool-schema/output hashes validate; initial physical execution requires fresh attempt. No automatic retries or prompt-cache controls.',
+        'latency': 'Serial concurrency=1; log per API round, tool time, case wall time; historic API timings are descriptive, not a concurrency/cache-controlled causal latency comparison. Offline extraction/setup measured separately.',
+        'limitations': ['All supplied datasets and older prompt trials are observed development; no pristine population holdout.',
+                        'Diagnostic check components are withheld from recipe design, not fresh population holdout.',
+                        'Root/coordinator has prior label exposure; source labels are model-assisted scoped judgments, not human ground truth.',
+                        'Selection excludes kaizen/private and enterprise code; Firecrawl/Curator untouched.'],
+        'interpreter': sys.executable, 'python_version': platform.python_version(),
+        'own_src_pythonpath': str(WORKTREE / 'src'), 'offline_prepare_seconds': time.monotonic() - started,
+        'actual_provider_calls': 0, 'actual_provider_cost_usd': None,
+    }
+    write(HERE.parent / 'EXPERIMENT.json', frozen)
+    print(json.dumps({'preregistered': str(HERE.parent / 'EXPERIMENT.json'), 'cases': len(queue),
+                      'reserved': len(reserved), 'provider_calls': 0}))
+
+
+if __name__ == '__main__':
+    main()
