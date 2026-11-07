@@ -10,9 +10,10 @@ import pytest
 
 from dry_lint import cpu_embedding as cpu
 from dry_lint.detector import Detector
-from dry_lint.models import Function
 from dry_lint.plugins import load
 from dry_lint.settings import PluginChoice, Settings
+
+from conftest import stub_function
 
 
 def minilm_dir() -> str:
@@ -24,7 +25,7 @@ def minilm_dir() -> str:
 
 
 def function(name, code=None):
-    return Function(path=name + ".py", name=name, line=1, end_line=2, code=code or name)
+    return stub_function(name + ".py", name, code or name, end_line=2)
 
 
 def unit(index=0):
