@@ -1,5 +1,7 @@
 # Combining retrieval signals: more funded candidates, no observed new reports
 
+**New implementable follow-up:** [complete-statement retrieval with raw rank fusion](raw-rank-followup/README.md) adds three useful reports without lost admissions in 66 selected single-function campaigns, while five shared campaigns show no gain. It uses the actual scheduler and differs from the original protected-first experiments below. The evidence supports representation and budget ordering, not an independently demonstrated fusion advantage.
+
 A repeated operation can occupy only a small part of a function and be diluted by whole-function token similarity. This study combined the existing sparse retriever with guarded operation blocks and dense embeddings, then tested learned ranking and a stricter operational gate. The question was whether complementary signals would produce more independently useful reports within the same judging budget.
 
 **Do not promote the learned replacement, universal two-slot combination, or revised gate.** Across the answered paid panels there were no incremental reports. Twenty-eight novel questions remain unanswered; they are unknown, not negative. The simpler one-block add-on after explicit TF-IDF20 remains supported by a small static funding gain, while cached dense retrieval remains opt-in for the small baseline. Neither recommendation establishes new paid report recall.

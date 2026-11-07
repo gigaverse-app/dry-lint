@@ -1,0 +1,59 @@
+{
+  "ledgers": {
+    "ledgers": 142,
+    "events": 1148,
+    "single_current109_admitted": 191,
+    "single_current109_holds_usd": 0.3615796,
+    "single_fixed_rrf_raw_admitted": 207,
+    "single_fixed_rrf_raw_holds_usd": 0.39545109999999994,
+    "single_campaigns": 66,
+    "single_gains": 16,
+    "single_losses": 0,
+    "shared_current109_admitted": 27,
+    "shared_current109_holds_usd": 0.046447199999999994,
+    "shared_fixed_rrf_raw_admitted": 27,
+    "shared_fixed_rrf_raw_holds_usd": 0.046447199999999994,
+    "shared_campaigns": 5,
+    "shared_gains": 0,
+    "shared_losses": 0
+  },
+  "questions": {
+    "schema": 1,
+    "root_proof_sha256": "7ebe073bcdf969f86ae25d990b9117dfab537f980aa8889c8cfe049d16a5b6e4",
+    "counts": {
+      "jev": 32,
+      "claude": 32
+    },
+    "claude_roles": {
+      "control": 16,
+      "candidate": 16
+    },
+    "all_64_question_identities_and_candidate_diffs_independently_verified": true,
+    "claude_full_prompts_regenerated": 32,
+    "claude_logical_reservation_sum": 2.452492,
+    "new_physical_calls": 0,
+    "jev_used_as_truth": false,
+    "notes": [
+      "64 matches include 32 Haiku primary and 32 Jev diagnostics; they are not 64 independent primary observations.",
+      "Reused exact questions are not new model observations; native admission costs are replayed independently.",
+      "shared-operations does not render Candidate context, but context/source evidence equality was verified nonetheless."
+    ]
+  },
+  "gains": {
+    "bounded": 3,
+    "alreadyshared": 6,
+    "separate": 1,
+    "tiny": 4,
+    "related": 2
+  },
+  "reported_gains": {
+    "bounded": 3,
+    "tiny": 3
+  },
+  "families": [
+    "anomalyco/opencode:extension panel entry discovery for a session region",
+    "anomalyco/opencode:manual-permission visibility after project auto-approval",
+    "pingdotgg/t3code:desktop portal host application registration"
+  ],
+  "scope": "Independent aggregate, detailed full private worktree artifacts retained by coordinator"
+}
