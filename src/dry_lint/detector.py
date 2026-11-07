@@ -80,11 +80,19 @@ def changed_functions(root: Path, settings: Settings, base: str | None) -> list[
     return found
 
 
-def delegates(caller: Function, callee: Function) -> bool:
-    """Only adapter-established forwarding bodies may settle a pair; call names alone are not evidence."""
-    return bool(
-        caller.analysis and caller.analysis.forward_target == f"{callee.path}::{qualified(callee.owner, callee.name)}"
-    )
+def call_relation(caller: Function, callee: Function) -> str | None:
+    """
+    How `caller` provably calls `callee`, from adapter-resolved facts only; call names alone are not evidence.
+    A whole-body forward is a "forwarding wrapper"; any other file-local direct call is "one calls the other".
+    """
+    if not caller.analysis:
+        return None
+    target = f"{callee.path}::{qualified(callee.owner, callee.name)}"
+    if caller.analysis.forward_target == target:
+        return "forwarding wrapper"
+    if target in caller.analysis.local_calls:
+        return "one calls the other"
+    return None
 
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
@@ -100,8 +108,10 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
         and a.analysis.convention == b.analysis.convention
     ):
         return f"language convention: {a.analysis.convention}"
-    if a.origin == b.origin and (delegates(a, b) or delegates(b, a)):
-        return "forwarding wrapper"
+    # INVARIANT: one shared rule for every route. `pair()` records it as `filtered`, and discovery routes that
+    # exclude settled pairs (`discovery_unseen`) never spend their slot on it; no comparer re-implements it.
+    if a.origin == b.origin and (relation := call_relation(a, b) or call_relation(b, a)):
+        return relation
     for pattern in settings.patterns:
         if fnmatch.fnmatch(a.qualname, pattern.members) and fnmatch.fnmatch(b.qualname, pattern.members):
             return f"declared pattern: {pattern.reason}"

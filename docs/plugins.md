@@ -71,6 +71,7 @@ judging, budgets, caching and reports; adapters own syntax and binding conventio
 | `language`, `version` | Identify the analysis contract; bump version when facts change | Included in cache evidence |
 | `convention` | A recognized language convention; Python emits `python-special-method` for class dunders | Only matching conventions in the same language settle a pair |
 | `forward_target` | `path::Owner.method` for a same-owner forwarding body with no additional policy | Settle only against that exact declaration in the same repository |
+| `local_calls` | `path::qualified` targets of direct calls that bind inside the file (own-class methods via `self`/`cls`/`this`; unshadowed Python module functions) | Settle "one calls the other" against those exact declarations; never verdict evidence, so excluded from `context_hash` |
 | `declared_override` | Explicit override syntax, without claiming a resolved runtime target | Evidence, never an automatic exclusion |
 | `Function.bases` | Syntactically named direct base references; unresolved imports may be absent | Evidence, never an automatic exclusion |
 
@@ -80,6 +81,10 @@ fields. Computed arguments, nested callbacks, decorators, parameter initializers
 (such as debounced fields) do not qualify. Bare/imported
 calls, inherited dispatch and TypeScript package/path aliases are not resolved. Function-valued object fields
 are not assumed to bind `this` like class arrow fields. No project dependencies are installed or executed.
+
+`local_calls = ()` likewise means unresolved. It is consulted only to settle a pair before lookup, so it stays out of
+`Candidate.context_hash`: adding or changing it never voids a stored verdict or an accepted baseline entry, and a
+changed call reopens or settles the pair through the rule instead.
 
 Legacy extractors keep working without analysis; their candidates reach the judge instead of core guessing
 relationships with regular expressions. `calls` remains syntax data for inspection. Candidate/report schema 9 and
