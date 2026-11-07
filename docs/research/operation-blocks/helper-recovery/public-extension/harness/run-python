@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2
+export TOKENIZERS_PARALLELISM=false ORT_DISABLE_TELEMETRY=1
+export PYTHONPATH=/home/researcher/dry-lint-round/jobs/public-pin-regressions/.lab-results/frozen-pr109/src:/home/researcher/dry-lint-round/jobs/experiment-cpu-embeddings/.lab-results/venv/lib/python3.14/site-packages
+exec /home/researcher/dry-lint-round/retrieval/.venv/bin/python "$@"

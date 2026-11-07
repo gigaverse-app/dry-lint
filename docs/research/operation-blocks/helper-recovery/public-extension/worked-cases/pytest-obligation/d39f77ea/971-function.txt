@@ -1,0 +1,8 @@
+def mongodb_reply_breaker(client: Any) -> Callable[[int | None], AbstractContextManager[MongoDBLostReplies]]:
+    @contextmanager
+    def breaker(lose_at: int | None) -> Iterator[MongoDBLostReplies]:
+        replies = MongoDBLostReplies(lose_at)
+        with _watching(client, lambda: None, replies.committed):
+            yield replies
+
+    return breaker

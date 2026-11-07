@@ -1,0 +1,16 @@
+{
+  "native_packages": {
+    "httpx": "0.28.1",
+    "httpx2": "2.16.0",
+    "numpy": "2.5.4",
+    "onnxruntime": "1.31.1",
+    "pydantic": "2.14.2",
+    "tokenizers": "0.23.3",
+    "tree-sitter": "0.25.2",
+    "tree-sitter-typescript": "0.23.2"
+  },
+  "native_rerun_python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "numeric_site_packages": "/home/researcher/dry-lint-round/jobs/experiment-cpu-embeddings/.lab-results/venv/lib/python3.14/site-packages",
+  "original_interpreter": "/home/researcher/dry-lint-round/retrieval/.venv/bin/python",
+  "recorded_replay": "Python 3.11+ standard library only"
+}

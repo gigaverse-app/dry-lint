@@ -1,5 +1,15 @@
 # Recovering shared operations without mistaking coverage for reuse
 
+**New follow-up:** [complete-helper recovery](helper-recovery/README.md) tests a different, narrower repair:
+add one complete helper representation only when the original block route abstains. The first new diagnostic
+batch adds three source-supported Sonnet reports; the separately measured balanced Haiku admission delta adds
+ten bounded useful reports and loses one, alongside a net increase of three unsupported reports. The new
+record includes exact prompts, recorded answers, independent source reviews and executable result replay.
+It supports opt-in recovery, with a precision/runtime tradeoff. The original experiments below remain frozen
+and distinct; their missing answers and prior authorization boundaries describe that earlier wave.
+
+## Original region and residual-veto experiments
+
 Keep the bounded operation-block comparer **opt-in**, and **do not promote the residual-coverage veto** tested here. Comparing small syntax regions recovered a useful helper-reuse opportunity that whole-function retrieval missed. The proposed veto then removed that opportunity and a second useful, actually reported opportunity. This record preserves both the working retrieval recipe and the counterexample to an apparently sensible optimization. It does not establish a gain for dry-lint’s default configuration or its balanced preset.
 
 The problem is a mismatch in granularity. A short helper and a long configuration function can contain the same operation while doing very different amounts of other work. Whole-function TF-IDF—similarity over behavior-token frequencies—can give that pair a low score. The hypothesis was that comparing complete syntax regions would recover actionable reuse inside different workflows, without replacing the existing retrieval baseline or sending fragments to judges. A result consisting only of already-retrieved pairs, nonactionable scaffolding, or unaffordable proposals would not establish added value.

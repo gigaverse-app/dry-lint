@@ -1,0 +1,2 @@
+def mongodb_reply_breaker(client: Any) -> Callable[[int | None], AbstractContextManager[MongoDBLostReplies]]:
+    return counted_reply_breaker(partial(_watching, client), MongoDBLostReplies)

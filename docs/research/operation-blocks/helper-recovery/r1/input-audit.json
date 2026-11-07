@@ -1,0 +1,357 @@
+{
+  "affected": [
+    {
+      "code_truncated": true,
+      "id": "OBH1-03b4016f1b95ae7d",
+      "native_characters": 29686,
+      "native_sha256": "46aedecf470f05bd26ac348ec32affc9226ff2c22094e0dfa3015c4577fa97bb",
+      "rendered_characters": 8000,
+      "rendered_sha256": "a802feafc6d7d230e7d5d7d2caa0ca62d575f10a9cc2ae1d79be5707adae0cfa",
+      "request_key": "15cb81414124f81e0164efef8a0c2eec8bd933e23a88cc1538fecd34d136c102",
+      "side": "existing",
+      "source_id": "litellm/proxy/proxy_cli.py::run_server"
+    },
+    {
+      "code_truncated": true,
+      "id": "OBH1-26b0607a243424b5",
+      "native_characters": 11670,
+      "native_sha256": "3af033852db2bb12e7a1af5bb25c700aac76de82a92000620f2a96635056b2ca",
+      "rendered_characters": 8000,
+      "rendered_sha256": "a4f0787d36dff32b6be7de038a9e696128e5f70f37537700e4b7600a3a73b955",
+      "request_key": "b3304ca911c5a6c05b545baaf7e26927cf4607381431355962ea391a1edb4a80",
+      "side": "new",
+      "source_id": "litellm/proxy/health_endpoints/_health_endpoints.py::test_model_connection"
+    },
+    {
+      "code_truncated": true,
+      "id": "OBH1-2e6bab6f47964e5b",
+      "native_characters": 8894,
+      "native_sha256": "2f0898432d93715e8ad32ec2fb6d1b666e537a6e145fdc0221a5d1148a668867",
+      "rendered_characters": 8000,
+      "rendered_sha256": "c5e3f532b36a1ee531aa045f8b5f3910209b29442e8ca6506e2dbbaf79b69058",
+      "request_key": "54a487b6efe37b460820b97c90ab134ab155e83d2e3aa7e121ae8ce15e17b1c8",
+      "side": "existing",
+      "source_id": "litellm/llms/custom_httpx/llm_http_handler.py::BaseLLMHTTPHandler.async_responses_websocket"
+    },
+    {
+      "code_truncated": true,
+      "id": "OBH1-49bf88df471f3dc8",
+      "native_characters": 8198,
+      "native_sha256": "715c480fcc5bf2fe97e478559b0cbb36880fba08bba7cd98ed7354402f8e8db1",
+      "rendered_characters": 8000,
+      "rendered_sha256": "25ec1b023ed93c142a0cddbc1f6e974d2bfac641adadb8a6ebf937046706a66d",
+      "request_key": "31cca7324e94b5378a86cd0e3fa286afec4834e7e24a19af820d359612315d76",
+      "side": "existing",
+      "source_id": "litellm/proxy/guardrails/guardrail_hooks/lakera_ai_v2.py::LakeraAIGuardrail.async_pre_call_hook"
+    },
+    {
+      "code_truncated": true,
+      "id": "OBH1-65f39dbf5c86eec2",
+      "native_characters": 9502,
+      "native_sha256": "318b7ca82abf392279386031085654cf0858ba85353628c48b65eaa15aab25d6",
+      "rendered_characters": 8000,
+      "rendered_sha256": "6df93903e283401574496d07f88a87d0d21dbb0adda8615dc6d79995210141e0",
+      "request_key": "3f397c1a655d019965daebd3f7cf3228df0ce5162459b3bddd33b7f53b51f2fa",
+      "side": "existing",
+      "source_id": "litellm/proxy/common_request_processing.py::ProxyBaseLLMRequestProcessing.async_streaming_data_generator"
+    },
+    {
+      "code_truncated": true,
+      "id": "OBH1-91d95d6cca97b36f",
+      "native_characters": 16514,
+      "native_sha256": "47649ccd9f36c40eb558dffad920235e7400afe1c024c86ae62fa875c7610ac9",
+      "rendered_characters": 8000,
+      "rendered_sha256": "ea80a31c473d8528fd5c10885d7d515a209ff738ee7496f43a02a0d08895d2c7",
+      "request_key": "7d58e2aa34ba02ae3684cdc0d7f361300b2e7ef40159c5cced6ad379e38b3d4a",
+      "side": "existing",
+      "source_id": "litellm/proxy/management_endpoints/key_management_endpoints.py::generate_key_fn"
+    },
+    {
+      "code_truncated": true,
+      "id": "OBH1-f403bf2980a17077",
+      "native_characters": 8120,
+      "native_sha256": "f0e587e1b93f37ad62ab9a093015950966d67489d003857bbbe872eed4d083fe",
+      "rendered_characters": 8000,
+      "rendered_sha256": "1cc6b05148b6e624e21fcfcbecb492a70c1be5d42f8c85b2caaa80e0968e4a61",
+      "request_key": "e6c4827b842f7269d433d09798bf6b12e6b9be691a23f9e383ae8894c9b6f58a",
+      "side": "existing",
+      "source_id": "litellm/proxy/db/db_transaction_queue/redis_update_buffer.py::RedisUpdateBuffer.store_in_memory_spend_updates_in_redis"
+    }
+  ],
+  "affected_cases": 7,
+  "affected_endpoints": 7,
+  "all_claude_full_native": true,
+  "claude_questions": [
+    {
+      "existing_complete": true,
+      "id": "OBH1-594c55c22cc65a00",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-00cab832e3f6b10e",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-18684b0d3a2facd8",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-830e393c7770f88a",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-00e43ef982c3a6dc",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-3fd86c250730242d",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-d902151feb7aa99e",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-03b4016f1b95ae7d",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-88627effbb9ee26e",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-0ade72006530293d",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-0ca8d18e28879389",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-1017654e151ff0a6",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-14dabba38245992c",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-26b0607a243424b5",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-2e6bab6f47964e5b",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-417a119ac344e7cc",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-442523bdfce52228",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-49bf88df471f3dc8",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-51af7c57d008299f",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-561b381b1020222f",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-65f39dbf5c86eec2",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-679550b1a6efa4b1",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-6f2d3ffbee056125",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-749905fe6e7c3502",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-79a0742cf5846a4f",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-890ee193b77d3c12",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-8dca5102c1da24d1",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-91d95d6cca97b36f",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-9c61e35a92a18474",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-a8dac54ae55875e1",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-b7a6bf6656e86c29",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-be89a4deb6178be8",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-cc2761e2e95febca",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-e814a7f9d0ce47c6",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-f1b38c9e70221ba3",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-f221fd64059c786d",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-f403bf2980a17077",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-0003957793d0a48f",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-00929d4d8d6b9875",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-000201f07834261b",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-00ca810581228a48",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-0000bcec7d86e399",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-0004f1623209c08c",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-00042cc165ac4d41",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-00fadadb416b55d2",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-0012b87e1a554c81",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-01469c5c6babdb91",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-000120472a8ef596",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-0023c4cdd007b386",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-00098df251f85a62",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-016ddbc05af57886",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-0015778b8708bd64",
+      "new_complete": true
+    },
+    {
+      "existing_complete": true,
+      "id": "OBH1-017263be26b994e2",
+      "new_complete": true
+    }
+  ],
+  "jev_total_cases": 53,
+  "not_a_retrieval_successor": true,
+  "provider_calls": 0,
+  "source_packets_complete": true,
+  "source_reviews_complete": true,
+  "status": "HISTORICAL_INPUT_LIMIT_RETAINED_EXPLICITLY"
+}

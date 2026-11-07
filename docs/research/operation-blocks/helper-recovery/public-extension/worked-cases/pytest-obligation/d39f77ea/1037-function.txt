@@ -1,0 +1,10 @@
+def redis_reply_breaker(client: Any) -> Callable[[int | None], AbstractContextManager[LostReplies]]:
+    """A reply breaker for every client and pipeline sharing ``client``'s connection pool."""
+
+    @contextmanager
+    def breaker(lose_at: int | None) -> Iterator[LostReplies]:
+        replies = LostReplies(lose_at)
+        with _watching(client, lambda: None, replies.committed):
+            yield replies
+
+    return breaker

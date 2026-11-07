@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "files": {
+    "LICENSE-litellm": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "LICENSE-runtime": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "LICENSE-software-agent-sdk": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "README.md": "dd970717f02e8120005b7acab175b09dafad55eddfb0655835c87b35ed3549c7",
+    "input-provenance.json": "2c337269e81aa3c5370f24728aed81b43a712a8a461ea3f888deb7c32dc35552",
+    "jev-truncation.json": "93d15e76e86645909dad1eea25e4ec4a494bc97604f62551d84e01e2b0d77bfb",
+    "native-deltas.json": "9e0784c76b510504c5570a3f92db957ec57b11fb1b5085f015dec49493e2aafe",
+    "native-snapshots.zip": "660602ca99a6b41b1e9abb3cff759aa5fb53d39120d603191bc0742228b0b553",
+    "recordings.json.gz": "f6c6275d6b274c48a73c2f392f69960aa2c89fdf3dbfc2ed27fd524a6ee113e6",
+    "reproduce.py": "eae610ab6eff41f9c844ed2f935c051f102fada234ce38e544f7425132f6a08a",
+    "requirements.txt": "4e81da77632e6b40881371cc8943e4e529eeca7f2538d90f0894992d1577252c",
+    "runtime.zip": "d98e8bb597cc2477e665ff1a9cc80698ccddda35dca834544331d6a7301c0bb6",
+    "selected-cases.json": "4d5032c6639b6b0e64004e47dbfc6c785cf3bd85a164225d7304426475147274",
+    "summary.json": "65ec83c4df29f4afabe311a49d92e405f6d1ec0b2fb2f9840b6f0a971979ed4a",
+    "test_reproduce.py": "8bba6fa828c95a834eef4ec0789c662ae4701bfc7ef174ae58db5a80062b809b",
+    "tests.txt": "4d378ecb958704b0454037abdcca087c561d285703eb68f8cbadbedaec85628a",
+    "verification.txt": "f2bf2fe7adbd528554e4a495b7f533742804e1edccc25a44866f520f80f97a8f"
+  }
+}

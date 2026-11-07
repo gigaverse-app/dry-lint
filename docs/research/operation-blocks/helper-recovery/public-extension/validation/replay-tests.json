@@ -1,0 +1,16 @@
+{
+  "dependencies": "standard library only",
+  "isolated_replay": {
+    "directions_per_method": 230,
+    "floor_rows": 22,
+    "replayed_row_backgrounds_per_method": 115,
+    "stage_rows": 132,
+    "table_rows": 44,
+    "verified": true
+  },
+  "mutation_changes_gained_pairs": true,
+  "mutation_fails_expected_comparison": true,
+  "network_or_provider_calls": 0,
+  "status": "passed",
+  "worked_functions_verified": 7
+}

@@ -1,0 +1,27 @@
+{
+  "canonical_publication": "One extension in PR115; link it from PR116 instead of duplicating the package.",
+  "commands": [
+    "python3 -I replay.py --out replayed --verify",
+    "python3 -I test_replay.py",
+    "python3 -I verify.py"
+  ],
+  "coordination": "Root owns final validation and publication; this followup did not edit a PR.",
+  "manifest_bytes": 21632,
+  "manifest_sha256": "4b51f5bd68c9ec8e540c4b258b3dccef9ab2734d5f63abae32b8022457c09dcd",
+  "native_rerun_requirements": "NATIVE-RERUN.md",
+  "old_outputs": {
+    "old_outputs_changed": 0,
+    "original_bytes_verified": 159762036,
+    "original_files_verified": 971,
+    "snapshot_sha256": "36cb3f1cbc0b4fbb8e02bc38a8c687be580d341d266e543e1d914a54c58e611c",
+    "status": "passed"
+  },
+  "package": "/home/researcher/dry-lint-round/jobs/public-pin-regressions/.lab-results/public-extension",
+  "payload_bytes": 2493494,
+  "payload_files": 121,
+  "quantified_tables": "TABLES.md",
+  "report": "README.md",
+  "row_units": "115 raw row/background records vs 87 lineage-deduplicated pair/background units per method; no implicit cohort pooling.",
+  "status": "READY",
+  "verification": "Relocated isolated-mode stdlib replay matches all expected tables; mutation changes gains and fails expected comparison; seven worked functions and licenses verified; native full-rerun preflight passed. Full inference not repeated."
+}
