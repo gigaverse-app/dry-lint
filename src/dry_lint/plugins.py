@@ -86,6 +86,9 @@ BUILT_IN = {
         "tfidf": "dry_lint.comparers:TfidfComparer",
         "dryer": "dry_lint.dryer:DryerComparer",
         "model-shape": "dry_lint.model_shapes:ModelComparer",
+        "operation-blocks": "dry_lint.operation_blocks:OperationBlocksComparer",
+        "cpu-embedding": "dry_lint.cpu_embedding:CpuEmbeddingComparer",
+        "cpu-tail-rrf": "dry_lint.cpu_tail:CpuTailRankFusionComparer",
     },
     "judges": {
         "jev": "dry_lint.judges.jev:JevJudge",
