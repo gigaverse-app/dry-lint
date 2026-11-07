@@ -1,0 +1,82 @@
+"""Seal derived policy results without changing any queued Candidate or reviewer packet."""
+
+import collections
+import hashlib
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def run():
+    for out, queue, feed in [
+        (
+            HERE / "novel-batch-v1",
+            HERE / "novel-batch-v1/novel-review-queue.jsonl",
+            HERE / "novel-batch-v1/provider-observations-v1.jsonl",
+        ),
+        (HERE / "pilot-policy-v1", LAB / "novel-review-queue.jsonl", HERE / "pilot-provider-relay.json"),
+    ]:
+        files = [out / "original-policy-projections-v1-private.jsonl", out / "policy-projection-summary-v1.json"]
+        rows = [json.loads(line) for line in files[0].read_text().splitlines()]
+        charges = collections.defaultdict(float)
+        for row in rows:
+            for arm, r in row["arms"].items():
+                charges[arm] += r["normal_estimated_usd"]
+        receipt = {
+            "schema": 1,
+            "projection_script_sha256": sha(HERE / "project_intake.py"),
+            "queue_sha256": sha(queue),
+            "provider_feed_sha256": sha(feed),
+            "files": {f.name: sha(f) for f in files},
+            "settings": "Frozen standalone direct Claude Sonnet, shared-operations, .04 per original synthetic query-batch/arm, report_at .8, drop_below .6; Jev observations do not gate truth or eligibility.",
+            "normal_estimated_usd_by_arm_even_with_cached_answers": dict(charges),
+            "source_gold_acceptances": 0,
+            "queue_candidates_regenerated": 0,
+            "worker_provider_calls": 0,
+            "unknown_cases": sum(not r["observed"] for r in rows),
+            "observed": [
+                {
+                    "id": r["id"],
+                    "claude_emission": r["arms"]["protected-sparse-plus-dense1"][
+                        "final_standalone_claude_policy_emission"
+                    ],
+                    "first_loss": r["arms"]["protected-sparse-plus-dense1"]["first_loss"],
+                }
+                for r in rows
+                if r["observed"]
+            ],
+            "source_review": "Independent root source review pending; observations and policy projections do not relabel accepted gold.",
+            "reproduce": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/project_intake.py "
+            + ("--pilot " if out.name == "pilot-policy-v1" else "")
+            + "--output .lab-results/full-corpus/replay-"
+            + out.name,
+        }
+        dest = out / "POLICY-FREEZE-v1.json"
+        data = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
+        if dest.exists():
+            assert dest.read_text() == data
+        else:
+            dest.write_text(data)
+        for f in files + [dest]:
+            f.chmod(0o444)
+        print(
+            out.name,
+            "sealed",
+            len(rows),
+            "cases,",
+            len(receipt["observed"]),
+            "observed,",
+            receipt["unknown_cases"],
+            "unknown;",
+            sha(dest),
+        )
+
+
+if __name__ == "__main__":
+    run()

@@ -1,0 +1,24 @@
+"""Exclude disputed source assessments from interpretation; leave frozen labels/ranks intact."""
+import hashlib
+import json
+from pathlib import Path
+C=Path(__file__).resolve().parent;LAB=C.parent
+SOURCE=Path('LAB_ROOT/reports/research-experiments/promotion/agentic-round2-source/coordinator-decisions.jsonl')
+read=lambda p:[json.loads(x) for x in p.open()]
+authority=next(r for r in read(SOURCE) if r['id']=='9697a6dcdfd4ab45b047')
+assert authority['root_acceptance']=='disputed_prior_positive' and authority['accepted_gold'] is False
+expected={'openhands/sdk/context/prompts/prompt.py::refine','openhands/sdk/llm/mixins/fn_call_converter.py::refine_prompt'}
+profiles={'original_narrow':LAB/'promotion/default3/production-paired-rows.jsonl','original_wide':LAB/'promotion/production-paired-rows.jsonl','revised_narrow':LAB/'funded-rounds/round2/regression/production-paired-rows.jsonl'}
+out={}
+for name,path in profiles.items():
+ rows=read(path);disputed=[r for r in rows if r['row_id']=='research-wave2-unpublished:CPUE04']
+ assert len(disputed)==1 and set(disputed[0]['source_ids'])==expected and disputed[0]['revision']==authority['revision']
+ levels={}
+ for scenario in ['frozen_labels','exclude_disputed_CPUE04','exclude_disputed_CPUE04_and_reopened_CF-C02']:
+  selected=[r for r in rows if not(scenario!='frozen_labels' and r['row_id']=='research-wave2-unpublished:CPUE04') and not(scenario.endswith('CF-C02') and r['row_id']=='candidate-first-gold-v1:CF-C02')];unique={}
+  for r in selected:unique.setdefault((r['cohort_id'],r['pair_id']),r)
+  levels[scenario]={'source_records':len({r['row_id'] for r in selected}),'pair_background_measurements':len(unique),'labels':{label:{'accepted_contexts':sum(r['accepted_gold'] and r['label']==label for r in unique.values()),'added_retrieval_contexts':sum(r['accepted_gold'] and r['label']==label and r['protected_retrieved'] and not r['control_retrieved'] for r in unique.values()),'lost_baseline_contexts':sum(r['accepted_gold'] and r['label']==label and r['control_retrieved'] and not r['protected_retrieved'] for r in unique.values())} for label in ['duplicate','separate']}}
+ out[name]={'input_path':str(path),'input_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'scenarios':levels,'disputed_pair_pooled_control_retrieved':disputed[0]['control_retrieved'],'disputed_pair_pooled_protected_retrieved':disputed[0]['protected_retrieved']}
+result={'schema':1,'authority':{'path':str(SOURCE),'sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'id':authority['id'],'root_acceptance':authority['root_acceptance'],'source_label':authority['source_label'],'prior_positive_preserved':True},'source_conflict':'Case-sensitive literal substring replacement versus case-insensitive token/underscore-aware rewriting; shared Windows guard does not establish one transformation policy.','profiles':out,'frozen_gold_relabels':0,'retrained_or_refitted_representations':0,'new_encodes':0,'new_provider_calls':0,'directional_note':'Nine-line query retrieval/funding/Claude.8 projection unchanged, but source-confirmed useful emission cannot be claimed. Reverse answer remains unknown.','interpretation':'Disputed pair was already retrieved by both arms in the pooled known panel; excluding it changes denominators, not added/lost contexts.'}
+(C/'disputed-source-sensitivity.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+print(json.dumps({name:{scenario:v['labels'] for scenario,v in value['scenarios'].items()} for name,value in out.items()},sort_keys=True))

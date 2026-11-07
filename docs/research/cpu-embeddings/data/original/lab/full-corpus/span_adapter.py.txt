@@ -1,0 +1,31 @@
+"""Actual CPU method adapter to the sole reviewed resolver; no independent remapping."""
+
+import importlib.util
+import sys
+from pathlib import Path
+
+from dry_lint.models import Function
+
+HERE = Path(__file__).resolve().parent
+p = HERE / "span-migration/helper-v1/resolver.py"
+spec = importlib.util.spec_from_file_location("cpu_shared_span_resolver_v1", p)
+shared = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = shared
+spec.loader.exec_module(shared)
+
+
+def endpoint(resolver, row, mapping, side, source=None):
+    result = resolver.resolve(row, mapping, side, source)
+    native = None
+    if result["status"] == "resolved_native":
+        native = Function.model_validate(result["function"])
+        assert 1 <= native.line <= native.end_line
+        native.hash = shared.extractor(native.path).structure_hash(native)
+        assert native.hash
+    result["cpu_native"] = native
+    result["cpu_funding_source_authorized"] = native is not None
+    result["cpu_default_floor_native"] = (
+        0.3 if native is not None and native.lines < 6 else 0.5 if native is not None else None
+    )
+    result["cpu_span_is_absolute"] = native is not None
+    return result

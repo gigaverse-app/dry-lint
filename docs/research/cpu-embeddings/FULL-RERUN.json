@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "method": "cpu-embeddings",
+  "portable_scope": "Four representative public cases with exact source, rendered input, answer parsing and report-policy replay; original selected algorithm executable separately. Not a full background ranking rerun.",
+  "public_background_acquisition": "data/background-acquisition.json",
+  "required_external": [
+    {
+      "location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/shared-inputs/9bfa15c84eb72dd2/",
+      "requires": [
+        "cohorts.jsonl",
+        "rows.jsonl",
+        "original registry mapping; private rows local only"
+      ]
+    },
+    {
+      "location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/cohorts/<exact-background-sha256>/",
+      "requires": [
+        "functions.jsonl",
+        "functions-policy-resolver-v1.jsonl",
+        "source-proof.jsonl",
+        "manifest.json",
+        "embeddings.npy (full original matrix, 384 float32 columns)"
+      ]
+    },
+    {
+      "location": "jobs/experiment-cpu-embeddings/.lab-results/promotion/",
+      "requires": [
+        "vector-cache/<contract>/*.npz",
+        "default3/production-paired-rows.jsonl",
+        "original product implementation"
+      ]
+    },
+    {
+      "location": "jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/",
+      "requires": [
+        "full native-original-query-ledgers.jsonl",
+        "central canonical request plan",
+        "full source proofs and recorded provider feed",
+        "original exclusion and family registries"
+      ]
+    },
+    {
+      "location": "model-cache/",
+      "requires": [
+        "exact pinned ONNX graph and tokenizer hashes; acquisition.json gives URLs; caller-acquired offline artifacts"
+      ]
+    }
+  ],
+  "exact_source_pins": "data/source-pins.json",
+  "held_sources": "data/holds.json",
+  "original_commands": "REPRODUCTION.md",
+  "dependencies": "data/original/product/uv.lock.txt",
+  "original_provenance": "data/provenance.json",
+  "no_new_provider_calls_or_refits": true,
+  "full_live_rerun": "New independently funded adopter-owned experiment only; original outputs immutable"
+}

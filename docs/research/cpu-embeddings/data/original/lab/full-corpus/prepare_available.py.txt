@@ -1,0 +1,32 @@
+"""Bootstrap all available pinned OSS backgrounds, then encode sequentially at <=2 threads."""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from prepare import prepare
+
+here = Path(__file__).resolve().parent
+repos = json.loads(
+    Path(
+        "LAB_ROOT/jobs/review-automation/.lab-results/review-automation/repositories-five.json"
+    ).read_text()
+)
+for repo in [repos[0], repos[2], repos[1]]:
+    folder = here / "cohorts" / repo["background_proof"]["sha256"]
+    folder.mkdir(parents=True, exist_ok=True)
+    manifest = (
+        prepare(repo, folder)
+        if not (folder / "manifest.json").exists()
+        else json.loads((folder / "manifest.json").read_text())
+    )
+    if manifest.get("status") == "complete":
+        status = (
+            json.loads((folder / "embedding-status.json").read_text())
+            if (folder / "embedding-status.json").exists()
+            else {}
+        )
+        if status.get("status") != "complete":
+            subprocess.run([str(here.parent / "venv/bin/python"), str(here / "encode.py"), str(folder)], check=True)

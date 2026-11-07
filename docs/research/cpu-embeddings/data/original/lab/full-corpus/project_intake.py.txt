@@ -1,0 +1,232 @@
+"""Frozen original-query policy projections; provider observations never become source labels."""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import experiment
+import numpy as np
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger
+from dry_lint.detector import why_skipped
+from dry_lint.models import Candidate, Function, Verdict
+from dry_lint.ranking import rank_candidates
+from dry_lint.settings import Settings
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+BATCH = HERE / "novel-batch-v1"
+read = experiment.read_rows
+dump = experiment.dump
+
+
+def main(batch=BATCH, feed_path=None, output=None):
+    output = output or batch
+    output.mkdir(parents=True, exist_ok=True)
+    feed_path = feed_path or batch / "provider-observations-v1.jsonl"
+    raw_feed = json.loads(feed_path.read_text()) if feed_path.suffix == ".json" else read(feed_path)
+    feed = raw_feed["rows"] if isinstance(raw_feed, dict) else raw_feed
+    queued = read(batch / "novel-review-queue.jsonl")
+    byid = {r["id"]: r for r in feed}
+    side = {r["id"]: r for r in read(batch / "novel-review-sidecar-private.jsonl")}
+    contracts = {(r["id"], r["kind"]): r for r in json.loads((batch / "judge-contract.json").read_text())}
+    repo = experiment.PROTOCOL["repositories"][0]
+    bg = BenchBackground.decode(Path(repo["background_proof"]["path"]).read_bytes())
+    index = bg.index()
+    fs = [Function.model_validate(r) for r in read(LAB / "openhands/functions.jsonl")]
+    dense = np.load(LAB / "openhands/embeddings.npy")
+    settings = Settings(budget={"usd": 0.04}, patterns=[])
+    projected = []
+    for packet in queued:
+        ident = packet["id"]
+        r = side[ident].get("funding", side[ident].get("funded_discovery_row"))
+        q = r["query_row"]
+        target = r["target_row"]
+        f = fs[q]
+        cfg = experiment.PROTOCOL["profiles"][r["profile"]]
+        s = index.similar(bg.documents[q].tokens(), exclude={q})
+        scores = dense @ dense[q]
+        d = [(int(j), float(scores[j])) for j in np.argsort(-scores, kind="stable") if j != q]
+
+        def candidates(ranks, channel, excluded=None, cfg=cfg, f=f):
+            floor = (cfg["sparse_small_floor"] if f.lines < 6 else cfg["sparse_floor"]) if channel == "sparse" else 0.65
+            out = []
+            for j, score in ranks:
+                if score < floor:
+                    break
+                if (not cfg["same_file"] and fs[j].path == f.path) or fs[j].qualname == f.qualname:
+                    continue
+                c = Candidate(
+                    new=f,
+                    existing=fs[j],
+                    similarity=score,
+                    comparer="lab-cpu-minilm-"
+                    + channel
+                    + ":1:"
+                    + (
+                        repo["background_proof"]["sha256"][:16]
+                        if channel == "sparse"
+                        else experiment.PROTOCOL["model"]["revision"][:16]
+                    ),
+                    filtered=why_skipped(f, fs[j], settings),
+                    similarity_reusable=False,
+                )
+                if excluded is not None and c.key in excluded:
+                    continue
+                out.append(c)
+                if len(out) == (1 if excluded is not None else cfg["k"]):
+                    break
+            return out
+
+        base = rank_candidates(candidates(s, "sparse"))
+        dc = rank_candidates(candidates(d, "dense"))
+        extra = candidates(d, "dense", {c.key for c in base})
+        arms = {"sparse": base, "embedding-only": dc, "protected-sparse-plus-dense1": base + extra}
+        key = Candidate.model_validate(packet["candidate"]).key
+        observed = byid.get(ident)
+        verdicts = {}
+        binding = []
+        if observed:
+            assert observed["packet"]["candidate"] == packet["candidate"]
+            for o in observed["observations"]:
+                expected = contracts[(ident, o["kind"])]["identity"]
+                actual = o["identity"]
+                matches = {
+                    k: expected[k] == actual[k]
+                    for k in ["rendered_input", "source_evidence", "context_hash", "model", "max_output_tokens"]
+                }
+                assert all(matches.values())
+                binding.append(
+                    {
+                        "kind": o["kind"],
+                        "canonical_request_key": o["request_key"],
+                        "input_binding_matches": matches,
+                        "cached": o["cached"],
+                        "provider_usd": o.get("usd"),
+                        "error": o.get("error"),
+                    }
+                )
+                verdicts[o["kind"]] = o.get("verdict")
+        arm_results = {}
+        for arm, cs in arms.items():
+            allowed = [c for c in cs if not c.filtered]
+            ledger = Ledger(settings)
+            judge = experiment.EstimateOnlySonnet()
+            ix = ledger.select(judge, allowed)
+            asked = [allowed[n] for n in ix]
+            funded = key in {c.key for c in asked}
+            ledger.charge(judge, asked, len(allowed) - len(asked))
+            retrieved = key in {c.key for c in cs}
+            admissible = key in {c.key for c in allowed}
+            v = verdicts.get("claude")
+            emission = (
+                None
+                if v is None or not funded
+                else settings.duplicate_at(Verdict.model_validate(v), settings.report_at)
+            )
+            first_loss = (
+                "retrieval"
+                if not retrieved
+                else "rule_filter"
+                if not admissible
+                else "budget"
+                if not funded
+                else "answer_missing"
+                if v is None
+                else "judge_separate"
+                if v["label"] == "separate"
+                else "report_threshold"
+                if not emission
+                else None
+            )
+            arm_results[arm] = {
+                "retrieved": retrieved,
+                "rule_allowed": admissible,
+                "funded": funded,
+                "candidate_count": len(cs),
+                "funded_candidates": len(asked),
+                "normal_estimated_usd": ledger.usd,
+                "final_standalone_claude_policy_emission": emission,
+                "first_loss": first_loss,
+            }
+        assert arm_results["protected-sparse-plus-dense1"]["funded"]
+        assert (
+            abs(arm_results["protected-sparse-plus-dense1"]["normal_estimated_usd"] - r["ledger_usd_estimated"]) < 1e-12
+        )
+        projected.append(
+            {
+                "id": ident,
+                "role_private": side[ident]["stratum"],
+                "profile": r["profile"],
+                "query": f.qualname,
+                "target": fs[target].qualname,
+                "actual_query_span": [f.line, f.end_line],
+                "actual_query_lines": f.lines,
+                "span_provenance": "verified pinned native extraction; no default span",
+                "sparse_raw_rank": next((n + 1 for n, (j, _) in enumerate(s) if j == target), None),
+                "sparse_score": next((score for j, score in s if j == target), 0.0),
+                "dense_raw_rank": next(n + 1 for n, (j, _) in enumerate(d) if j == target),
+                "dense_score": float(scores[target]),
+                "observed": observed is not None,
+                "source_truth": None,
+                "provider_verdicts": verdicts,
+                "canonical_bindings": binding,
+                "arms": arm_results,
+                "policy": "Original frozen direct-Sonnet normal ledger, raw Settings report_at0.8/drop_below0.6; not auto-preset deployment or Jev+Claude waterfall. Jev observation retained without eligibility/truth gate.",
+                "root_intake_synthetic_ledger": "Separate root observation ledger; does not change these original-query admissions.",
+            }
+        )
+    experiment.jsonl(output / "original-policy-projections-v1-private.jsonl", projected)
+    dump(
+        output / "policy-projection-summary-v1.json",
+        {
+            "schema": 1,
+            "queued": len(queued),
+            "provider_observed": len(feed),
+            "missing_provider_cases": len(queued) - len(feed),
+            "observed_ids": [r["id"] for r in feed],
+            "report_at_original_default": settings.report_at,
+            "emitted_protected_among_provider_observed": sum(
+                r["observed"]
+                and r["arms"]["protected-sparse-plus-dense1"]["final_standalone_claude_policy_emission"] is True
+                for r in projected
+            ),
+            "physical_root_usd_for_this_feed": sum(
+                o.get("usd", 0) for r in feed for o in r["observations"] if not o.get("cached")
+            ),
+            "worker_provider_calls": 0,
+            "source_labels_accepted": 0,
+            "gold_relabels": 0,
+            "root_global_intake_accounting": "Original pilot urgent12 relay; distinct from sealed intake seven."
+            if batch == LAB
+            else "48 fresh calls/$0.1088836 and6 exact cache hits across methods, supplied by root; not all attributed to CPU experiment.",
+            "provider_eligibility_truth_gate": False,
+            "original_ledger_replayed": True,
+            "novel_queue_sha256": experiment.sha((batch / "novel-review-queue.jsonl").read_bytes()),
+            "feed_sha256": experiment.sha(feed_path.read_bytes()),
+        },
+    )
+    for r in projected:
+        if r["observed"]:
+            print(
+                r["id"],
+                {k: (v["label"], v["score"]) for k, v in r["provider_verdicts"].items()},
+                "protected_first_loss",
+                r["arms"]["protected-sparse-plus-dense1"]["first_loss"],
+                "source_truth",
+                r["source_truth"],
+            )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pilot", action="store_true")
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args()
+    if args.pilot:
+        main(LAB, HERE / "pilot-provider-relay.json", args.output or HERE / "pilot-policy-v1")
+    else:
+        main(output=args.output)

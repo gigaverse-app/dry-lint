@@ -1,0 +1,46 @@
+"""Temporarily schedule our encoder behind another local <=2-thread task; always resume it."""
+
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+here = Path(__file__).resolve().parent
+paused = []
+start = time.time()
+for p in Path("/proc").iterdir():
+    if not p.name.isdigit():
+        continue
+    try:
+        a = (p / "cmdline").read_bytes().split(b"\0")
+        if len(a) > 1 and a[1].decode() == str(here / "encode.py"):
+            os.kill(int(p.name), signal.SIGSTOP)
+            paused.append(int(p.name))
+    except (OSError, UnicodeError):
+        pass
+try:
+    code = subprocess.call(sys.argv[1:])
+finally:
+    for pid in paused:
+        try:
+            os.kill(pid, signal.SIGCONT)
+        except ProcessLookupError:
+            pass
+    with (here / "resource-pause-receipts.jsonl").open("a") as out:
+        out.write(
+            json.dumps(
+                {
+                    "encoder_pids": paused,
+                    "start_epoch": start,
+                    "end_epoch": time.time(),
+                    "seconds": time.time() - start,
+                    "reason": "keep total worker compute <=2 threads while baseline/coverage adapter runs",
+                    "command": sys.argv[1:],
+                }
+            )
+            + "\n"
+        )
+raise SystemExit(code)

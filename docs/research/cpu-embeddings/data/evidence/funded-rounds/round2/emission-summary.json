@@ -1,0 +1,11 @@
+{
+  "feed": "LAB_ROOT/jobs/judge-operations/.lab-results/promotion-operations/intakes/cpu-embeddings/round2/97419b6a2d4e0fbf-4cbb628cfd97/completed.jsonl",
+  "feed_sha256": "c4ef52603ace8928a159346152e18da153243c262213c24c4919ea646c1fbedb",
+  "cases": 64,
+  "emitted": 1,
+  "not_emitted": 35,
+  "unknown": 28,
+  "normal_ledger": "frozen synthetic04 per single change, not central diagnostic paid spend",
+  "source_gold_relabels": 0,
+  "fresh_current_direction_usd_root_confirmed": 0.22441836
+}

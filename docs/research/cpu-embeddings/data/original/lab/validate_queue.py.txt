@@ -1,0 +1,200 @@
+"""Read-only frozen function queue/native source/funding verification and canonical request binding.
+
+Never changes a Candidate, context, or packet ID. No provider client or judge is instantiated.
+"""
+
+import json
+import subprocess
+from pathlib import Path
+
+import experiment
+import numpy as np
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger
+from dry_lint.detector import why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
+from dry_lint.judges.jev import CONTEXT_PROMPT_VERSION, CONTEXT_QUESTIONS, state
+from dry_lint.models import Candidate, Function, evidence
+from dry_lint.ranking import rank_candidates
+from dry_lint.settings import Settings
+
+HERE = Path(__file__).resolve().parent
+QUEUE_HASH = "e7504971920244ff85c8a4991635489dcc9c7818374f52dc89c368e9a3faf7bf"
+
+
+def write_or_verify(path, data):
+    encoded = json.dumps(data, indent=2, sort_keys=True) + "\n"
+    if path.exists():
+        assert path.read_text() == encoded, path
+    else:
+        path.write_text(encoded)
+
+
+def main():
+    experiment.verify_freeze()
+    assert experiment.sha((HERE / "novel-review-queue.jsonl").read_bytes()) == QUEUE_HASH
+    receipt = json.loads((HERE / "queue-receipt.json").read_text())
+    assert experiment.sha((HERE / "novel-reviewer-packet-blind.jsonl").read_bytes()) == receipt["blind_packet_sha256"]
+    assert experiment.sha((HERE / "novel-review-sidecar-private.jsonl").read_bytes()) == receipt["sidecar_sha256"]
+    queue = experiment.read_rows(HERE / "novel-review-queue.jsonl")
+    sidecars = {r["id"]: r for r in experiment.read_rows(HERE / "novel-review-sidecar-private.jsonl")}
+    repo = experiment.PROTOCOL["repositories"][0]
+    raw = Path(repo["background_proof"]["path"]).read_bytes()
+    assert experiment.sha(raw) == repo["background_proof"]["sha256"]
+    background = BenchBackground.decode(raw)
+    functions = [Function.model_validate(r) for r in experiment.read_rows(HERE / "openhands/functions.jsonl")]
+    sparse = background.index()
+    dense = np.load(HERE / "openhands/embeddings.npy")
+    settings = Settings(
+        budget={"usd": 0.04}, patterns=[], include=background.scope["include"], exclude=background.scope["exclude"]
+    )
+    contracts, checks = [], []
+    for packet in queue:
+        c = Candidate.model_validate(packet["candidate"])
+        sidecar = sidecars[packet["id"]]
+        assert packet["repository"] == repo["repository"] and packet["revision"] == repo["revision"]
+        assert c.model_dump(mode="json") == packet["candidate"] == sidecar["funded_discovery_row"]["candidate"]
+        assert not c.new.declaration and not c.existing.declaration, "This queue is ordinary functions only"
+        assert (
+            sidecar["funded_discovery_row"]["funded"]
+            and not sidecar["funded_discovery_row"]["already_reviewed_exact_pair"]
+        )
+        for f, endpoint in zip([c.new, c.existing], packet["source_endpoints"], strict=True):
+            source = subprocess.check_output(["git", "-C", repo["git"], "show", repo["revision"] + ":" + f.path])
+            assert experiment.sha(source) == endpoint["full_source_sha256"]
+            extractor = PythonExtractor()
+            extractor.validate_source(f.path, source.decode())
+            native = [n for n in extractor.functions(f.path, source.decode()) if n.qualname == f.qualname]
+            assert len(native) == 1 and native[0].code == f.code
+            assert native[0].line == f.line and native[0].end_line == f.end_line
+            assert extractor.structure_hash(native[0]) == f.hash
+            assert native[0].analysis == f.analysis and not f.context and not f.context_digest
+            matches = [d for d in background.documents if d.id == f.qualname]
+            assert (
+                len(matches) == 1
+                and matches[0].source_sha256 == experiment.sha(f.code.encode()) == endpoint["body_sha256"]
+            )
+        # Rebuild only temporary comparison objects; the frozen Candidate above remains untouched.
+        profile = sidecar["normal_ledger"]["profile"]
+        config = experiment.PROTOCOL["profiles"][profile]
+        i = sidecar["funded_discovery_row"]["query_row"]
+        f = functions[i]
+        floor = config["sparse_small_floor"] if f.lines < 6 else config["sparse_floor"]
+        baseline = []
+        for j, score in sparse.similar(background.documents[i].tokens(), exclude={i}):
+            if score < floor:
+                break
+            if (not config["same_file"] and functions[j].path == f.path) or functions[j].qualname == f.qualname:
+                continue
+            baseline.append(
+                Candidate(
+                    new=f,
+                    existing=functions[j],
+                    similarity=score,
+                    comparer="lab-cpu-minilm-sparse:1:" + repo["background_proof"]["sha256"][:16],
+                    filtered=why_skipped(f, functions[j], settings),
+                    similarity_reusable=False,
+                )
+            )
+            if len(baseline) == config["k"]:
+                break
+        baseline = rank_candidates(baseline)
+        baseline_keys = {b.key for b in baseline}
+        scores = dense @ dense[i]
+        extra = None
+        for row in np.argsort(-scores, kind="stable"):
+            j = int(row)
+            if float(scores[j]) < 0.65:
+                break
+            if j == i or functions[j].qualname == f.qualname or not config["same_file"] and functions[j].path == f.path:
+                continue
+            proposed = Candidate(
+                new=f,
+                existing=functions[j],
+                similarity=float(scores[j]),
+                comparer="lab-cpu-minilm-dense:1:" + experiment.PROTOCOL["model"]["revision"][:16],
+                filtered=why_skipped(f, functions[j], settings),
+                similarity_reusable=False,
+            )
+            if proposed.key not in baseline_keys:
+                extra = proposed
+                break
+        assert extra is not None and extra.model_dump(mode="json") == packet["candidate"]
+        allowed = [b for b in baseline + [extra] if not b.filtered]
+        ledger = Ledger(settings)
+        judge = experiment.EstimateOnlySonnet()
+        indexes = ledger.select(judge, allowed)
+        selected = [allowed[n] for n in indexes]
+        assert c.key in {b.key for b in selected}
+        ledger.charge(judge, selected, len(allowed) - len(selected))
+        assert abs(ledger.usd - sidecar["normal_ledger"]["spent_estimated"]) < 1e-12
+        checks.append(
+            {
+                "id": packet["id"],
+                "native_source": True,
+                "background": True,
+                "unchanged_candidate": True,
+                "actual_funding_replayed": True,
+                "ledger_usd_estimated": ledger.usd,
+                "object_kind": "ordinary_function",
+            }
+        )
+        for kind in ["jev", "claude"]:
+            if kind == "jev":
+                rendered = json.dumps(
+                    {"model": "jev-1.14.0", "state": state(c, True), "questions": CONTEXT_QUESTIONS}, ensure_ascii=True
+                )
+                identity = {
+                    "kind": kind,
+                    "judge": "jev",
+                    "version": CONTEXT_PROMPT_VERSION + ":jev-1.14.0",
+                    "model": "jev-1.14.0",
+                    "max_output_tokens": None,
+                    "rendered_input": rendered,
+                    "source_evidence": evidence(c),
+                    "context_hash": c.context_hash,
+                }
+            else:
+                rendered = prompt(c, policy="shared-operations")
+                identity = {
+                    "kind": kind,
+                    "judge": "anthropic-operations",
+                    "version": PROMPT_POLICIES["shared-operations"][0] + ":claude-sonnet-5-5:output=1024",
+                    "model": "claude-sonnet-5-5",
+                    "max_output_tokens": 1024,
+                    "rendered_input": rendered,
+                    "source_evidence": evidence(c),
+                    "context_hash": c.context_hash,
+                }
+            contracts.append(
+                {
+                    "id": packet["id"],
+                    "kind": kind,
+                    "identity": identity,
+                    "request_key": experiment.sha(json.dumps(identity, sort_keys=True).encode()),
+                    "packet_file_sha256": QUEUE_HASH,
+                    "function_policy": "ordinary functions; no model-declaration prompt",
+                }
+            )
+    write_or_verify(HERE / "judge-contract.json", contracts)
+    write_or_verify(
+        HERE / "queue-native-funding-validation.json",
+        {
+            "all_pass": True,
+            "queue_sha256": QUEUE_HASH,
+            "checks": checks,
+            "request_bindings": len(contracts),
+            "network_calls": 0,
+            "candidate_context_or_id_mutations": 0,
+            "model_declaration_inventory_applicable": False,
+        },
+    )
+    print(
+        "PASS:4 immutable ordinary function packets,8 native endpoints,4 funded batch replays,8 canonical request bindings; no provider client."
+    )
+
+
+if __name__ == "__main__":
+    main()

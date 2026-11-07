@@ -1,0 +1,179 @@
+"""Apply the frozen protected merge to full-repository production queries, then mark exact review history.
+
+Review-history fields never participate in retrieval, ordering, or funding.
+"""
+
+import json
+import resource
+import time
+from pathlib import Path
+
+import experiment
+import numpy as np
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger
+from dry_lint.detector import why_skipped
+from dry_lint.models import Candidate, Function
+from dry_lint.ranking import rank_candidates
+from dry_lint.settings import Settings
+
+HERE = Path(__file__).resolve().parent
+ROOT = Path("/home/researcher/dry-lint-round")
+
+
+def reviewed_pairs(repository, revision):
+    files = list((ROOT / "reports/candidate-first/frozen-review-batches").glob("*.jsonl"))
+    for cohort in experiment.PROTOCOL["cohorts"]:
+        files.append(Path(cohort["path"]))
+    files.extend((ROOT / "reports/candidate-first").glob("*-scaled-completed.jsonl"))
+    reviewed = set()
+    sources = []
+    for path in sorted(set(files)):
+        count = 0
+        for row in experiment.read_rows(path):
+            if row.get("repository") != repository or row.get("revision") != revision:
+                continue
+            payload = row.get("candidate")
+            if payload:
+                reviewed.add(Candidate.model_validate(payload).key)
+                count += 1
+        if count:
+            sources.append({"path": str(path), "sha256": experiment.sha(path.read_bytes()), "rows": count})
+    return reviewed, sources
+
+
+def main():
+    experiment.verify_freeze()
+    folder = HERE / "openhands"
+    repo = experiment.PROTOCOL["repositories"][0]
+    assert json.loads((folder / "embedding-status.json").read_text())["status"] == "complete"
+    fs = [Function.model_validate(x) for x in experiment.read_rows(folder / "functions.jsonl")]
+    background = BenchBackground.decode(Path(repo["background_proof"]["path"]).read_bytes())
+    dense = np.load(folder / "embeddings.npy")
+    sparse = background.index()
+    settings = Settings(
+        budget={"usd": 0.04}, patterns=[], include=background.scope["include"], exclude=background.scope["exclude"]
+    )
+    reviewed, history_sources = reviewed_pairs(repo["repository"], repo["revision"])
+    # Classify production/tooling by pinned source directory, never by review labels or model scores.
+    queries = [i for i, f in enumerate(fs) if f.path.startswith("openhands/")]
+    records, ledgers = [], []
+    start = time.perf_counter()
+    for i in queries:
+        f = fs[i]
+        s = sparse.similar(background.documents[i].tokens(), exclude={i})
+        scores = dense @ dense[i]
+        d = [(int(j), float(scores[j])) for j in np.argsort(-scores, kind="stable") if j != i]
+        for profile, config in experiment.PROTOCOL["profiles"].items():
+            baseline = []
+            floor = config["sparse_small_floor"] if f.lines < 6 else config["sparse_floor"]
+            for j, score in s:
+                if score < floor:
+                    break
+                if not config["same_file"] and fs[j].path == f.path or fs[j].qualname == f.qualname:
+                    continue
+                baseline.append(
+                    Candidate(
+                        new=f,
+                        existing=fs[j],
+                        similarity=score,
+                        comparer="lab-cpu-minilm-sparse:1:" + repo["background_proof"]["sha256"][:16],
+                        filtered=why_skipped(f, fs[j], settings),
+                        similarity_reusable=False,
+                    )
+                )
+                if len(baseline) == config["k"]:
+                    break
+            baseline = rank_candidates(baseline)
+            baseline_keys = {c.key for c in baseline}
+            extras = []
+            for raw_rank, (j, score) in enumerate(d, 1):
+                if score < 0.65:
+                    break
+                if not config["same_file"] and fs[j].path == f.path or fs[j].qualname == f.qualname:
+                    continue
+                c = Candidate(
+                    new=f,
+                    existing=fs[j],
+                    similarity=score,
+                    comparer="lab-cpu-minilm-dense:1:" + experiment.PROTOCOL["model"]["revision"][:16],
+                    filtered=why_skipped(f, fs[j], settings),
+                    similarity_reusable=False,
+                )
+                if c.key not in baseline_keys:
+                    extras.append((c, raw_rank, j))
+                    break
+            base_allowed = [c for c in baseline if not c.filtered]
+            allowed = base_allowed + [c for c, _, _ in extras if not c.filtered]
+            ledger = Ledger(settings)
+            judge = experiment.EstimateOnlySonnet()
+            indexes = ledger.select(judge, allowed)
+            funded = {allowed[n].key for n in indexes}
+            ledger.charge(judge, [allowed[n] for n in indexes], len(allowed) - len(indexes))
+            baseline_ledger = Ledger(settings)
+            baseline_indexes = baseline_ledger.select(judge, base_allowed)
+            assert {base_allowed[n].key for n in baseline_indexes} <= funded
+            ledgers.append(
+                {
+                    "profile": profile,
+                    "query_row": i,
+                    "query_id": f.qualname,
+                    "synthetic": True,
+                    "candidate_count": len(baseline) + len(extras),
+                    "funded": len(funded),
+                    "usd_estimated": ledger.usd,
+                    "baseline_funded": len(baseline_indexes),
+                    "baseline_preserved": True,
+                }
+            )
+            for c, raw_rank, j in extras:
+                records.append(
+                    {
+                        "profile": profile,
+                        "query_row": i,
+                        "target_row": j,
+                        "candidate": c.model_dump(mode="json"),
+                        "pair_key": c.key,
+                        "raw_dense_rank": raw_rank,
+                        "sparse_raw_rank": next((n for n, (x, _) in enumerate(s, 1) if x == j), None),
+                        "sparse_score": next((score for x, score in s if x == j), 0.0),
+                        "funded": c.key in funded,
+                        "already_reviewed_exact_pair": c.key in reviewed,
+                        "ledger_usd_estimated": ledger.usd,
+                        "synthetic_single_query_batch": True,
+                        "query_role": "production_or_tooling",
+                    }
+                )
+    experiment.jsonl(folder / "discovery-extras-private.jsonl", records)
+    experiment.jsonl(folder / "discovery-ledger.jsonl", ledgers)
+    experiment.dump(
+        folder / "discovery-summary.json",
+        {
+            "production_queries": len(queries),
+            "wall_seconds": time.perf_counter() - start,
+            "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            "review_history_sources": history_sources,
+            "reviewed_exact_pairs": len(reviewed),
+            "profiles": {
+                p: {
+                    "extra_directional_candidates": sum(r["profile"] == p for r in records),
+                    "funded_extra_directions": sum(r["profile"] == p and r["funded"] for r in records),
+                    "novel_funded_exact_pairs": len(
+                        {
+                            r["pair_key"]
+                            for r in records
+                            if r["profile"] == p and r["funded"] and not r["already_reviewed_exact_pair"]
+                        }
+                    ),
+                }
+                for p in experiment.PROTOCOL["profiles"]
+            },
+            "baseline_funded_losses": 0,
+            "physical_judge_usd": 0,
+        },
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,31 @@
+[
+  {
+    "accepted_gold": true,
+    "answers": "unknown unless separately canonical-bound by root",
+    "cohort_id": "bg-ebd0031534c954e5",
+    "control_retrieved": true,
+    "dense_raw_score": 0.7405609488487244,
+    "family_id": "openhands:windows-prompt-shell-normalization",
+    "label": "duplicate",
+    "native_spans": [
+      [
+        10,
+        18
+      ],
+      [
+        73,
+        76
+      ]
+    ],
+    "pair_id": "f9cf78df16c6039abd72b5357b4ee4beac170bf2dcc33de7725766abbb74f1e1",
+    "protected_retrieved": true,
+    "reported": null,
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "row_id": "research-wave2-unpublished:CPUE04",
+    "source_ids": [
+      "openhands/sdk/context/prompts/prompt.py::refine",
+      "openhands/sdk/llm/mixins/fn_call_converter.py::refine_prompt"
+    ]
+  }
+]

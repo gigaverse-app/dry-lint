@@ -1,0 +1,121 @@
+"""One frozen-source production-Detector comparison; no provider or full-corpus encoding."""
+import collections
+import hashlib
+import json
+import os
+import pathlib
+import sqlite3
+import sys
+import time
+
+P = pathlib.Path(__file__).resolve().parent
+LAB = P.parent
+RERANK = '--behavior-rerank' in sys.argv
+NARROW = '--default3' in sys.argv or RERANK
+OUT = LAB / 'funded-rounds/round2/regression' if RERANK else (P / 'default3' if NARROW else P)
+OUT.mkdir(exist_ok=True)
+SRC = P / 'implementation/src'
+sys.path.insert(0, str(SRC))
+from dry_lint.cpu_embedding import CpuEmbeddingComparer, MiniLMEncoder
+from dry_lint.bench_background import BenchBackground
+from dry_lint.comparers import TfidfComparer
+from dry_lint.detector import Detector
+from dry_lint.extractors import PythonExtractor
+from dry_lint.typescript import TypeScriptExtractor
+from dry_lint.models import Function
+from dry_lint.settings import Settings
+import numpy as np
+
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def rows(path): return [json.loads(line) for line in path.open()]
+def dump(path, data): path.write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
+def jsonl(path, data): path.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in data))
+
+index=LAB/'full-corpus/shared-inputs/9bfa15c84eb72dd2'
+cohorts=rows(index/'cohorts.jsonl')
+known=rows(LAB/'full-corpus/paired-rows.jsonl')
+reference_db=next((LAB/'full-corpus').glob('body-cache-*.sqlite3'))
+db=sqlite3.connect('file:'+str(reference_db)+'?mode=ro',uri=True)
+model=str(LAB/'model-cache')
+cache=str(P/'vector-cache')
+registration={'schema':1,'base':'272b63eb0aa042b6686380feb6f8060440ddf9fc','profile':('baseline3 + first-unseen-unsettled-cpu1-.65' if NARROW else 'baseline3 + original-tfidf20-.35 + first-unseen-unsettled-cpu1-.65'),
+ 'control':('baseline3' if NARROW else 'baseline3 + original-tfidf20-.35'),'route_order':(['ordinary baseline','cpu1'] if NARROW else ['ordinary baseline','tfidf20','cpu1']),
+ 'dataset':'all source-supported function records in frozen617 index-v2; full original frozen background order/max_df',
+ 'native':'Reviewed shared native snapshots; unresolved competitor spans explicitly0/-1 for indexing only, never source evidence or judging. Gold endpoints must be reviewed native.',
+ 'cold_warm':'Actual100body cold/warm cache measurement and fresh inference equivalence; remaining complete corpora use verified exact-body cached vectors, no full re-encoding.',
+ 'funding':'Candidate comparison only. Original frozen .04 funded4positive/7negative exposures remain separate; no inference of actual production campaign funding.',
+ 'worker_provider_calls':0}
+if RERANK: registration['revision'] = 'fixed-dense20-positive-behavior-tfidf-maxdf.3-rerank-v1'
+if not (OUT/'EXPERIMENT.json').exists():dump(OUT/'EXPERIMENT.json',registration)
+else:assert json.loads((OUT/'EXPERIMENT.json').read_text())==registration
+
+if NARROW:
+ def forbid_encoding(self, codes):
+  raise AssertionError("Default3 replay forbids encoding; missing verified vector cache entry")
+ MiniLMEncoder.encode = forbid_encoding
+ loader=CpuEmbeddingComparer(model,cache_dir=cache,behavior_rerank=RERANK)
+else:
+ # Decisive production runtime cold/warm and numerical equivalence on100 full source bodies.
+ first=next(c for c in cohorts if c['repository']=='OpenHands/software-agent-sdk' and c['background_sha256'].startswith('ebd003'))
+ folder=LAB/'full-corpus/cohorts'/first['background_sha256']
+ sample=[Function.model_validate(r) for r in rows(folder/'functions.jsonl')[:100]]
+ start=time.perf_counter(); cold=CpuEmbeddingComparer(model,cache_dir=str(P/'cold-warm-cache'));cold.index(sample);cold_seconds=time.perf_counter()-start
+ expected=np.asarray([np.frombuffer(db.execute('SELECT vector FROM embeddings WHERE body=?',(sha(f.code.encode()),)).fetchone()[0],dtype=np.float32) for f in sample])
+ max_abs=float(np.max(np.abs(cold.vectors-expected)));assert max_abs<1e-5,max_abs
+ start=time.perf_counter();warm=CpuEmbeddingComparer(model,cache_dir=str(P/'cold-warm-cache'));warm.index(sample);warm_seconds=time.perf_counter()-start
+ assert warm.cache_misses==0 and np.array_equal(cold.vectors,warm.vectors)
+ dump(P/'runtime.json',{'cold_wall_seconds':cold_seconds,'warm_wall_seconds':warm_seconds,'cold_cache_hits':cold.cache_hits,'cold_encoded':cold.cache_misses,'warm_cache_hits':warm.cache_hits,'warm_encoded':warm.cache_misses,'fresh_reference_max_abs':max_abs,'encoder_contract':cold.encoder.contract,'comparer_identity':cold.name+':'+cold.version})
+ print('cold/warm100',round(cold_seconds,3),round(warm_seconds,3),'hits',cold.cache_hits,warm.cache_hits,'parity',max_abs,flush=True)
+ 
+ # Import only verified unit vectors under the exact production contract; disk entries contain no source text.
+ loader=CpuEmbeddingComparer(model,cache_dir=cache,behavior_rerank=RERANK)
+ start=time.perf_counter();seeded=0
+ for key,blob in db.execute('SELECT body,vector FROM embeddings'):
+  vector=np.frombuffer(blob,dtype=np.float32)
+  assert loader._valid_vector(vector)
+  if not (loader.cache_dir/(key+'.npz')).exists():loader._save(key,vector);seeded+=1
+ dump(P/'cache-import-receipt.json',{'reference_cache_sha256':sha(reference_db.read_bytes()),'production_cache_contract':loader.cache_contract,'vectors_imported':seeded,'seconds':time.perf_counter()-start,'source':'Exact code SHA256 and matching pinned model/tokenizer/runtime/masked_mean/L2/256 contract; fresh100 parity verified','full_corpus_encodings':0})
+ 
+results=[];timings=[];cpue=[];outputs=OUT/'candidate-sets';outputs.mkdir(exist_ok=True)
+for cohort in cohorts:
+ folder=LAB/'full-corpus/cohorts'/cohort['background_sha256']
+ if not (folder/'summary.json').exists():continue
+ selected=[r for r in known if r['cohort_id']==cohort['cohort_id'] and r['status']=='evaluated' and r['profile']=='laboratory-default']
+ if not selected:continue
+ bg=BenchBackground.decode(pathlib.Path(cohort['background_path']).read_bytes())
+ assert len(bg.documents)==cohort['functions']
+ raw=rows(folder/'functions.jsonl');policy=rows(folder/'functions-policy-resolver-v1.jsonl')
+ fs=[];native=set()
+ for i,(item,pr,doc) in enumerate(zip(raw,policy,bg.documents,strict=True)):
+  if pr['function'] is not None:
+   f=Function.model_validate(pr['function']);native.add(f.qualname)
+  else:
+   f=Function.model_validate({**item,'line':0,'end_line':-1})
+  assert sha(f.code.encode())==doc.source_sha256 and f.qualname==doc.id
+  f.tokens=doc.tokens();fs.append(f)
+ query_positions=sorted({m['position'] for r in selected for m in r['mapping']['sources'].values()})
+ assert all(fs[i].qualname in native for i in query_positions)
+ changed=[fs[i] for i in query_positions]
+ choices=[] if NARROW else [{'use':'tfidf','neighbours':20,'min_similarity':.35,'min_similarity_small':.35,'max_df':bg.max_df}]
+ settings=Settings(include=bg.scope['include'],exclude=bg.scope['exclude'],discovery={'enabled':not NARROW,'comparers':choices})
+ start=time.perf_counter();before=Detector(fs,settings,TfidfComparer(max_df=bg.max_df),[PythonExtractor(),TypeScriptExtractor()]).candidates(changed);control_seconds=time.perf_counter()-start
+ choices=choices+[{'use':'cpu-embedding','neighbours':1,'model_dir':model,'cache_dir':cache,**({'behavior_rerank':True} if RERANK else {})}]
+ promoted=Settings(include=bg.scope['include'],exclude=bg.scope['exclude'],discovery={'enabled':True,'comparers':choices})
+ start=time.perf_counter();after=Detector(fs,promoted,TfidfComparer(max_df=bg.max_df),[PythonExtractor(),TypeScriptExtractor()]).candidates(changed);protected_seconds=time.perf_counter()-start
+ primary_before=[c for c in before if c.lane!='relative'];primary_after=[c for c in after if c.lane!='relative']
+ assert [c.model_dump() for c in primary_after[:len(primary_before)]]==[c.model_dump() for c in primary_before]
+ before_keys={c.key for c in primary_before};after_keys={c.key for c in primary_after}
+ jsonl(outputs/(cohort['cohort_id']+'.jsonl'),[{'arm':'control','candidate':c.model_dump(mode='json')} for c in before]+[{'arm':'protected','candidate':c.model_dump(mode='json')} for c in after])
+ for r in selected:
+  key=r['arms']['sparse']['pair_key'];a,b=[r['mapping']['sources'][s]['position'] for s in ['new','existing']]
+  result={'row_id':r['row_id'],'cohort_id':cohort['cohort_id'],'repository':r['repository'],'revision':r['revision'],'pair_id':r['pair_id'],'label':r['label'],'accepted_gold':r['accepted_gold'],'family_id':r['family_id'],'control_retrieved':key in before_keys,'protected_retrieved':key in after_keys,'source_ids':[fs[a].qualname,fs[b].qualname],'native_spans':[[fs[i].line,fs[i].end_line] for i in [a,b]],'dense_raw_score':float(loader.similarity(fs[a],fs[b])),'reported':None,'answers':'unknown unless separately canonical-bound by root'}
+  results.append(result)
+  if r['row_id'].endswith(':CPUE04'):cpue.append(result)
+ timings.append({'cohort_id':cohort['cohort_id'],'functions':len(fs),'changed_queries':len(changed),'control_wall_seconds':control_seconds,'protected_wall_seconds':protected_seconds,'control_candidates':len(before),'protected_candidates':len(after),'unsupported_competitor_spans':len(fs)-sum(p['function'] is not None for p in policy),'full_corpus_encodings':0})
+ print(cohort['cohort_id'],'rows',len(selected),'candidates',len(before),len(after),'seconds',round(protected_seconds,3),flush=True)
+jsonl(OUT/'production-paired-rows.jsonl',results);jsonl(OUT/'production-timings.jsonl',timings)
+dump(OUT/'CPUE04.json',cpue)
+unique={}
+for r in results:unique.setdefault((r['cohort_id'],r['pair_id']),r)
+summary={'schema':1,'profile':registration['profile'],'rows':len(results),'unique_input_rows':len({r['row_id'] for r in results}),'cohorts':len(timings),'all_previous_primary_candidates_unchanged':True,'worker_provider_calls':0,'full_corpus_encodings':0,'gold_manual_relabels':0,'labels':{label:{'pair_backgrounds':sum(r['accepted_gold'] and r['label']==label for r in unique.values()),'new_retrieved':sum(r['accepted_gold'] and r['label']==label and r['protected_retrieved'] and not r['control_retrieved'] for r in unique.values()),'lost_retrieved':sum(r['accepted_gold'] and r['label']==label and r['control_retrieved'] and not r['protected_retrieved'] for r in unique.values())} for label in ['duplicate','separate']},'policy_limit':'No authentic PR/campaign ledger supplied; this production candidate-set replay does not assert production funding or emitted-report gains. Legacy4positive/7negative normal.04 exposures separately frozen.'}
+dump(OUT/'production-summary.json',summary);print('SUMMARY',summary['unique_input_rows'],summary['cohorts'],summary['labels'],flush=True)

@@ -1,0 +1,228 @@
+"""Build the concise local report and machine-readable summary without touching frozen packets."""
+
+import json
+import statistics
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+
+def load(path):
+    return json.loads(path.read_text())
+
+
+def rows(path):
+    return [json.loads(x) for x in path.read_text().splitlines() if x.strip()]
+
+
+def main():
+    protocol = load(HERE / "EXPERIMENT.json")
+    metrics = []
+    for name in ["openhands", "kaizen"]:
+        folder = HERE / name
+        meta = load(folder / "manifest.json")
+        encoder = load(folder / "embedding-status.json")
+        sparse = load(folder / "sparse-only-cost.json")
+        ledger = rows(folder / "ledger.jsonl")
+        ds = load(folder / "stage-denominators.json")
+        arms = []
+        for profile in protocol["profiles"]:
+            for arm in protocol["arms"]:
+                relevant = [r for r in ledger if r["profile"] == profile and r["arm"] == arm]
+                arms.append(
+                    {
+                        "profile": profile,
+                        "arm": arm,
+                        "synthetic_family_batches": len(relevant),
+                        "candidate_rows": sum(r["candidate_count"] for r in relevant),
+                        "funded_candidate_rows": sum(r["funded"] for r in relevant),
+                        "estimated_usd_sum_across_batches": sum(r["usd_estimated"] for r in relevant),
+                        "estimated_usd_mean_per_batch": statistics.mean(r["usd_estimated"] for r in relevant),
+                        "maximum_batch_usd": max(r["usd_estimated"] for r in relevant),
+                        "known_rows": {
+                            group: {
+                                stage: sum(
+                                    r[stage]
+                                    for r in ds
+                                    if r["profile"] == profile and r["arm"] == arm and r["label_group"] == group
+                                )
+                                for stage in ["rows", "retrieved", "core_rule_allowed", "funded"]
+                            }
+                            for group in ["positive", "negative", "unknown"]
+                        },
+                    }
+                )
+        metrics.append(
+            {
+                "repository": meta["repository"]["repository"],
+                "revision": meta["repository"]["revision"],
+                "folder": name,
+                "functions": meta["functions"],
+                "source_files": meta["files"],
+                "gold_rows": meta["gold_rows"],
+                "sparse_index_seconds": sparse["index_seconds"],
+                "sparse_peak_rss_kib": sparse["peak_rss_kib"],
+                "sparse_query_mean_ms": statistics.mean(sparse["query_seconds"]) * 1000,
+                "encoder_preflight_seconds_100": encoder["preflight_seconds"],
+                "encoder_projected_full_index_seconds": encoder["projected_index_seconds"],
+                "encoder_full_index_seconds": encoder["full_index_seconds"],
+                "encoder_session_create_seconds": encoder["model_load_seconds"],
+                "encoder_token_count_seconds": encoder["length_count_seconds"],
+                "encoder_peak_rss_kib": encoder["peak_rss_kib"],
+                "warm_single_function_encode_mean_ms": statistics.mean(encoder["warm_update_seconds"]) * 1000,
+                "warm_exact_cosine_query_mean_ms": statistics.mean(encoder["warm_exact_query_seconds"]) * 1000,
+                "truncated_functions": encoder["truncated_functions"],
+                "discarded_wordpieces": encoder["discarded_wordpieces"],
+                "arms": arms,
+                "stage_denominators_by_cohort": ds,
+                "changes": load(folder / "paired-changes.json"),
+            }
+        )
+    summary = {
+        "schema": 1,
+        "experiment": protocol["experiment"],
+        "protocol_sha256": (HERE / "EXPERIMENT.sha256").read_text().split()[0],
+        "status": "offline_evaluation_complete_central_reviews_pending",
+        "repositories": metrics,
+        "physical_judge_usd_by_worker": 0,
+        "adoption_proposal": False,
+        "new_emitted_report_gain": None,
+        "novel_queue": load(HERE / "queue-receipt.json"),
+        "cold_acquisition_by_root": load(HERE / "acquisition.json"),
+        "initial_worker_infrastructure_failures_preserved": True,
+        "central_observations": load(HERE / "central-observations.json")
+        if (HERE / "central-observations.json").exists()
+        else None,
+    }
+    (HERE / "RESULTS.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+    lines = [
+        "Actual small CPU encoder: frozen development experiment cpu-minilm-reserved1-v1",
+        "",
+        "Decision: keep experimental. The registered small encoder ran successfully on both full frozen corpora.",
+        "Protected sparse+one dense neighbor gains no known positive in either repository or profile, while adding",
+        "funded candidates. Embedding-only loses one OpenHands balanced positive at funding. No emitted report gain",
+        "is established. Four frozen source-verified/funded pairs await root's provider observations and independent",
+        "blinded source review; missing answers remain unknown.",
+        "",
+        "Protocol frozen before evaluation: " + summary["protocol_sha256"],
+        "Code base: " + protocol["source_main"] + "; all edits/output under this worktree's .lab-results/.",
+        "OpenHands pin: " + metrics[0]["revision"],
+        "Kaizen contrast pin: " + metrics[1]["revision"],
+        "All 4,449 background rows matched native full pinned source (564 files). Frozen DF/order/max_df were",
+        "replayed using BenchBackground.decode/index, never snippet IDF. Each repository/revision/cohort/family and",
+        "lineage remains separate. All materialized evidence is observed DEVELOPMENT/REGRESSION, not holdout.",
+        "Scoped partial operations and drifted flags are preserved; enclosing functions are not relabeled equivalent.",
+        "No enterprise, Firecrawl, Curator, source/backend historical replay or adopter-configuration inference was used.",
+        "",
+        "Encoder: sentence-transformers/all-MiniLM-L6-v2 (22,713,728 parameters, Apache-2.0), official ONNX FP32.",
+        "Revision: " + protocol["model"]["revision"],
+        "Weight SHA256: " + protocol["model"]["artifact_sha256_official"],
+        "All eight downloaded artifact hashes are in acquisition.json. WordPiece uncased official tokenizer; masked",
+        "mean last-hidden-state pooling, L2 normalization, exact cosine. Input is unchanged whole-function code;",
+        "first 256 total wordpieces including special tokens, no chunks/overlap. ONNX Runtime 1.31.1 and tokenizers 0.23.3",
+        "run on AMD EPYC Genoa CPU with intra-op 2/inter-op 1/sequential execution; CPU provider only, no remote code.",
+        "This is a general text encoder with documented code-search training, not a code-specialist claim. Public",
+        "pretraining contamination is possible. Embedding and judging models are separate.",
+        "Official model/card: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
+        "Official CPU backend/pooling notes: https://www.sbert.net/docs/sentence_transformer/usage/efficiency.html",
+        "",
+        "Fixed profiles: laboratory-default=cross-file top 3 sparse 0.5 (0.3 when query <6 lines); standalone-balanced-",
+        "diagnostic=same-file allowed top 20 sparse 0.35. These are separate diagnostics, not deployed configuration.",
+        "Embedding-only uses the profile's k/same-file policy with fixed uncalibrated cosine floor 0.65. Protected",
+        "sparse-plus-dense1 ranks/funds the complete sparse batch first, then adds at most one highest qualifying",
+        "dense neighbor per query absent from its sparse list. It is not a default-plus20 route. No RRF or tuning.",
+        "Normal core rules apply; extraction minimum 2 lines, no new size-ratio floor. Self pairs are excluded.",
+        "",
+        "Known pair rows funded (positive / known separate / unresolved; sparse -> dense-only -> protected):",
+    ]
+    for metric in metrics:
+        for profile in protocol["profiles"]:
+            ordered = {r["arm"]: r for r in metric["arms"] if r["profile"] == profile}
+            counts = []
+            for arm in ["sparse", "embedding-only", "protected-sparse-plus-dense1"]:
+                counts.append(
+                    "/".join(str(ordered[arm]["known_rows"][g]["funded"]) for g in ["positive", "negative", "unknown"])
+                )
+            denoms = "/".join(
+                str(ordered["sparse"]["known_rows"][g]["rows"]) for g in ["positive", "negative", "unknown"]
+            )
+            lines.append(f"  {metric['folder']:10} {profile:30} {' -> '.join(counts)}; denominators {denoms}")
+    lines.extend(
+        [
+            "OpenHands cohorts separately: first wave 5 positive / 5 separate; scaled 3 positive / 4 separate / 1 unresolved.",
+            "Kaizen scaled: 11 positive / 9 separate. Per-cohort and directional stage denominators are in each corpus folder.",
+            "OpenHands default misses six positive rows at same-file eligibility. Balanced sparse retrieves 8/8 positives;",
+            "dense-only also retrieves 8/8 but funds 7/8. CF-OH03 is the funding loss: dense ranks 3/10, cosine 0.6815; sparse",
+            "ranks 1/2, cosine 0.595622. This is budget competition, not a size/score-floor failure. Protected funds it.",
+            "Kaizen dense-only removes exposures KZ-6b2c035e2f07c3bb and KZ-9caecdea13c6dada in both profiles; this",
+            "does not establish fewer emitted false reports. No protected known-positive or baseline candidate is lost.",
+            "",
+            "Candidate rows / funded rows / summed normal estimated USD across synthetic family batches:",
+        ]
+    )
+    for metric in metrics:
+        for profile in protocol["profiles"]:
+            for arm in ["sparse", "embedding-only", "protected-sparse-plus-dense1"]:
+                r = next(x for x in metric["arms"] if x["profile"] == profile and x["arm"] == arm)
+                lines.append(
+                    f"  {metric['folder']:10} {profile:30} {arm:29} {r['candidate_rows']:4}/{r['funded_candidate_rows']:3}/${r['estimated_usd_sum_across_batches']:.6f}"
+                )
+    lines.extend(
+        [
+            "These sums span 17 (OpenHands) / 19 (Kaizen) synthetic family+cohort change batches per arm/profile. Every",
+            "batch independently uses normal dry_lint.costs.Ledger.select/charge at $0.04, unchanged Sonnet list prices,",
+            "shared-operations rendered prompt and normal 150-token answer estimate. No real historical PR/cache replay",
+            "or two-stage Jev escalation is claimed. Cached answers still charge every arm's normal estimate.",
+            "All baseline funded candidates remain funded in protected, including the separate 733-query discovery run.",
+            "",
+            "Measured CPU costs (index excludes separately recorded session creation/token-length audit):",
+        ]
+    )
+    for metric in metrics:
+        m = metric
+        lines.extend(
+            [
+                f"  {m['folder']}:100 function preflight {m['encoder_preflight_seconds_100']:.3f}s, projected {m['encoder_projected_full_index_seconds']:.1f}s, actual full encoder index {m['encoder_full_index_seconds']:.3f}s.",
+                f"    Encoder peakRSS {m['encoder_peak_rss_kib'] / 1024:.1f}MiB; session creation {m['encoder_session_create_seconds']:.3f}s; length audit {m['encoder_token_count_seconds']:.3f}s.",
+                f"    Sparse-only index {m['sparse_index_seconds']:.3f}s, query {m['sparse_query_mean_ms']:.3f}ms, peakRSS {m['sparse_peak_rss_kib'] / 1024:.1f}MiB.",
+                f"    Warm single-function encoding/update {m['warm_single_function_encode_mean_ms']:.3f}ms plus exact cached-vector query {m['warm_exact_cosine_query_mean_ms']:.3f}ms.",
+                f"    Truncated {m['truncated_functions']}/{m['functions']} functions; discarded {m['discarded_wordpieces']} wordpieces.",
+            ]
+        )
+    lines.extend(
+        [
+            "Warm vector-cache loads (three observations, OS cache warm) and exact bytes are in cache-measurements.json.",
+            "Initial worker DNS/package failures are preserved separately, then root supplied unchanged pinned assets.",
+            f"Successful cold public download/install was root-measured: total {summary['cold_acquisition_by_root']['cold_total_seconds']:.3f}s, package install {summary['cold_acquisition_by_root']['install']['seconds']:.3f}s; no ONNX export/build.",
+            "Model session creation includes runtime graph initialization. Initial runtime import startup was not isolated.",
+            "",
+            "Novel search: 733 OpenHands production/tooling query functions against the full 2,348-function background.",
+            "Default: 545 directional extras, 492 funded, 438 novel exact pairs; balanced: 584/418/349. These counts are",
+            "exposure, not report gain. 253 of 492 default funded directions target tests; frozen scope includes test",
+            "competitors. Reviewed exact pairs were excluded only from review sampling, never retrieval or funding.",
+            "Four queue rows (two promising hypotheses and two independent matched controls) are frozen with full unchanged",
+            "Candidate dumps, full-source pins/hashes/excerpts, background proof, caller references and request bindings.",
+            "novel-reviewer-packet-blind.jsonl has no retrieval scores/variant/funding/putative labels. Controls and",
+            "operation/ownership hypotheses exist only in novel-review-sidecar-private.jsonl. Curated review is not a",
+            "repository precision estimator. No worker provider calls or credentials; worker physical judge spend=$0.",
+            "",
+            "Validation: 4,449 native bodies,152 prior directional/profile comparisons,216 independent normal-ledger",
+            "replays,72 repeat sparse queries and72 exact dense ranking checks passed. Four queued funding replays and",
+            "eight native endpoint checks passed; eight canonical Jev/Claude request bindings are in judge-contract.json.",
+            "OpenHands has one repeated corpus identity (RemoteState.agent_status, 2 rows); rows remain separate. Gold",
+            "mappings are all unique, no missing/self pairs. Ambiguous/missing mappings would remain unknown. Sparse",
+            "exact ties preserve native posting encounter order; dense ties use frozen corpus row index. No production",
+            "verdict stores are read/written; comparer/cache identities are experimental and source-bound.",
+            "",
+            "Limits: observed panels are small and balanced baselines already saturate known-positive recall. There is",
+            "no independent holdout, production deployment/config evidence, representative novel precision estimate,",
+            "or established emitted-report gain. The encoder is CPU-runnable, but about 2 minutes cold indexing and the fixed",
+            "truncation policy need appropriate caching; these measurements do not justify a production change.",
+            "Reproduce using reproduce.sh with explicit assigned-src PYTHONPATH. Exact commands/hashes: HANDOFF.json.",
+        ]
+    )
+    (HERE / "REPORT.txt").write_text("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,16 @@
+{
+  "baseline3": {
+    "rows": 64,
+    "retrieved": 0,
+    "funded": 0,
+    "emitted": 0,
+    "unknown_emission": 0
+  },
+  "baseline3+originalTFIDF20-.35": {
+    "rows": 64,
+    "retrieved": 46,
+    "funded": 45,
+    "emitted": 1,
+    "unknown_emission": 22
+  }
+}

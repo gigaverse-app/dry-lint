@@ -1,0 +1,174 @@
+"""Exact full-native-source reconstruction; parser warnings never silently exclude a cohort."""
+
+import collections
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import experiment
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.extractors import PythonExtractor
+from dry_lint.typescript import TypeScriptExtractor
+
+HERE = Path(__file__).resolve().parent
+sha = experiment.sha
+
+
+def prepare(repo, folder):
+    folder.mkdir(parents=True, exist_ok=True)
+    raw = Path(repo["background_proof"]["path"]).read_bytes()
+    assert sha(raw) == repo["background_proof"]["sha256"]
+    b = BenchBackground.decode(raw)
+    assert b.repository == repo["repository"] and b.revision == repo["revision"]
+    started = time.perf_counter()
+    by_key = collections.defaultdict(list)
+    files = {}
+    warnings = []
+    failures = []
+    source_folder = HERE / "source-files"
+    source_folder.mkdir(exist_ok=True)
+    for path in dict.fromkeys(d.id.split("::", 1)[0] for d in b.documents):
+        proc = subprocess.run(
+            ["git", "-C", repo["git"], "show", repo["revision"] + ":" + path],
+            capture_output=True,
+            env={**os.environ, "GIT_NO_LAZY_FETCH": "1", "GIT_TERMINAL_PROMPT": "0"},
+        )
+        if proc.returncode:
+            failures.append(
+                {"path": path, "reason": "pinned_git_file_missing", "error": proc.stderr.decode(errors="replace")[:300]}
+            )
+            continue
+        raw = proc.stdout
+        source = raw.decode()
+        extractor = PythonExtractor() if path.endswith(".py") else TypeScriptExtractor()
+        warning = None
+        try:
+            extractor.validate_source(path, source)
+        except ValueError as exc:
+            warning = str(exc)
+            warnings.append(
+                {
+                    "path": path,
+                    "reason": warning,
+                    "handling": "Accept only exact background body-digest/native-symbol matches; no partial competitor corpus.",
+                }
+            )
+        file_sha = sha(raw)
+        sp = source_folder / (file_sha + ".txt")
+        if not sp.exists():
+            sp.write_bytes(raw)
+        try:
+            fs = extractor.functions(path, source)
+        except Exception as exc:
+            failures.append({"path": path, "reason": "native_extraction_error", "error": str(exc)[:300]})
+            continue
+        for f in fs:
+            f.hash = extractor.structure_hash(f)
+            by_key[(f.qualname, sha(f.code.encode()))].append(f)
+        files[path] = {
+            "path": path,
+            "file_sha256": file_sha,
+            "git_blob_sha1": hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest(),
+            "bytes": len(raw),
+            "source_file": str(sp),
+            "native_parse_warning": warning,
+        }
+    functions = []
+    proof = []
+    for i, d in enumerate(b.documents):
+        found = by_key[(d.id, d.source_sha256)]
+        if not found:
+            failures.append(
+                {
+                    "row": i,
+                    "id": d.id,
+                    "body_sha256": d.source_sha256,
+                    "reason": "no_exact_native_full_source_body_match",
+                }
+            )
+            continue
+        # Body text may be unique while its native symbol/span is ambiguous. Never choose its first occurrence.
+        if len(found) == 1:
+            (f,) = found
+            unit = f.model_dump(mode="json")
+            unit_path = f.path
+            unit_code = f.code
+            line, end_line = f.line, f.end_line
+        else:
+            code_texts = {match.code for match in found}
+            assert len(code_texts) == 1
+            unit_code = next(iter(code_texts))
+            unit_path, qualified = d.id.split("::", 1)
+            owner, _, name = qualified.rpartition(".")
+            unit = {
+                "path": unit_path,
+                "name": name or qualified,
+                "owner": owner or None,
+                "line": None,
+                "end_line": None,
+                "code": unit_code,
+                "hash": "",
+                "context": "",
+                "context_digest": "",
+                "analysis": None,
+                "declaration": None,
+                "bases": [],
+                "origin": None,
+            }
+            line = end_line = None
+        functions.append(unit)
+        proof.append(
+            {
+                "row": i,
+                "id": d.id,
+                "source_sha256": sha(unit_code.encode()),
+                "background_sha256": d.source_sha256,
+                "matching_native_symbols": len(found),
+                "line": line,
+                "end_line": end_line,
+                **files[unit_path],
+            }
+        )
+    manifest = {
+        "repository": repo,
+        "functions": len(b.documents),
+        "matched_functions": len(functions),
+        "files": len(files),
+        "scope": b.scope,
+        "max_df": b.max_df,
+        "extraction_contract": b.extraction_contract,
+        "all_source_bodies_verified": len(functions) == len(b.documents),
+        "duplicate_ids": {k: v for k, v in collections.Counter(d.id for d in b.documents).items() if v > 1},
+        "source_load_extract_verify_seconds": time.perf_counter() - started,
+        "native_parse_warnings": warnings,
+        "failures": failures,
+        "status": "complete" if len(functions) == len(b.documents) else "full_competitor_source_incomplete",
+    }
+    if manifest["status"] == "complete":
+        experiment.jsonl(folder / "functions.jsonl", functions)
+        manifest["functions_jsonl_sha256"] = sha((folder / "functions.jsonl").read_bytes())
+    experiment.jsonl(folder / "source-proof.jsonl", proof)
+    experiment.dump(folder / "manifest.json", manifest)
+    print(
+        repo["repository"],
+        repo["revision"],
+        manifest["status"],
+        len(functions),
+        "/",
+        len(b.documents),
+        "warnings",
+        len(warnings),
+        flush=True,
+    )
+    return manifest
+
+
+if __name__ == "__main__":
+    repo = json.loads(Path(sys.argv[1]).read_text())
+    prepare(repo, Path(sys.argv[2]))
