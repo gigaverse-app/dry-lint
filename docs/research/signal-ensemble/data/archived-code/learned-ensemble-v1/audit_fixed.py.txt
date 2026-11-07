@@ -1,0 +1,26 @@
+"""Complementarity over frozen, accepted function cases; unknown funding is never negative."""
+import json,hashlib
+from collections import defaultdict
+from pathlib import Path
+P=Path(__file__).resolve().parent;B=P.parent/'full-corpus';S=B/'span-resolved-v1'
+rows=[json.loads(l) for l in (B/'inputs/rows.jsonl').open()];meta={r['row_id']:r for r in rows};allrows=[]
+for c in [json.loads(l) for l in (B/'inputs/cohorts.jsonl').open()]:
+ f=S/c['cohort_id']/'paired-rows.jsonl'
+ if f.exists():allrows.extend(json.loads(l) for l in f.open())
+eligible=[r for r in allrows if r['accepted_gold'] and r['record_kind']=='function' and meta[r['row_id']]['id']!='CF-C02']
+look={(r['row_id'],r['cohort_id'],r['profile'],r['arm']):r for r in eligible};arms=['baseline','half-name-only','csls-only','blocks-only','rrf60','protected-ensemble2','rrf60-half-csls','protected-half-csls2'];out=[]
+for panel in ['all','research-wave1-unpublished']:
+ for profile in ['default','balanced']:
+  for arm in arms:
+   rr=[r for r in eligible if r['profile']==profile and r['arm']==arm and r['label'] in ['duplicate','drifted'] and (panel=='all' or r['dataset']==panel)]
+   def ref(r,a):return look[r['row_id'],r['cohort_id'],profile,a]
+   retrievalwins=[r for r in rr if r['retrieved'] is True and ref(r,'baseline')['retrieved'] is False]
+   fundingwins=[r for r in rr if r['funded'] is True and ref(r,'baseline')['funded'] is False]
+   fundinglosses=[r for r in rr if r['funded'] is False and ref(r,'baseline')['funded'] is True]
+   unique=[r for r in rr if r['funded'] is True and all(ref(r,a)['funded'] is not True for a in ['baseline','half-name-only','csls-only','blocks-only'] if a!=arm)]
+   record=dict(panel=panel,profile=profile,arm=arm,positive_scope_units=len(rr),known_funding_denominator=sum(r['funded'] is not None for r in rr),retrieved=sum(r['retrieved'] is True for r in rr),funded=sum(r['funded'] is True for r in rr),retrieval_wins=[dict(row_id=r['row_id'],cohort_id=r['cohort_id'],family_id=r['family_id'],first_loss=ref(r,'baseline')['first_loss']) for r in retrievalwins],funding_wins=[dict(row_id=r['row_id'],family_id=r['family_id'],cohort_id=r['cohort_id']) for r in fundingwins],funding_losses=[dict(row_id=r['row_id'],family_id=r['family_id'],cohort_id=r['cohort_id'],estimated_pair_usd=r['estimated_pair_usd']) for r in fundinglosses],uniquely_funded_vs_individual_channels=[dict(row_id=r['row_id'],family_id=r['family_id'],cohort_id=r['cohort_id']) for r in unique])
+   out.append(record)
+(P/'COMPLEMENTARITY.json').write_text(json.dumps(dict(exclusion_overlay='reopened-CF-C02.json',units='exact background/row lineage; paired family denominators separate; unknown funding excluded from paired wins/losses',records=out),indent=2,sort_keys=True)+'\n')
+(P/'reopened-CF-C02.json').write_text(json.dumps(dict(schema=1,exclude_ids=['CF-C02'],reason='Explicit user/Root reopened source case; exclude from fitting/assessment until authority settles; underlying gold immutable',applies_to='all learned folds and learned screen metrics'),indent=2)+'\n')
+for r in out:
+ if r['panel']=='research-wave1-unpublished':print(r['profile'],r['arm'],'pos',r['positive_scope_units'],'retrieved',r['retrieved'],'funded',r['funded'],'wins',len(r['retrieval_wins']),len(r['funding_wins']),'fund_losses',len(r['funding_losses']))

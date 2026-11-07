@@ -1,0 +1,43 @@
+"""Independent integrity checks over the frozen results; no fitting or provider use."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import collections,gzip,hashlib,json,math,sys
+from pathlib import Path
+from dry_lint.costs import estimate,judging_input
+from dry_lint.models import Candidate
+from dry_lint.settings import Settings
+from types import SimpleNamespace
+P=Path(__file__).resolve().parent;B=P.parent/'full-corpus'
+sys.path.insert(0,str(P.parent/'lab-contracts'))
+from lab_contracts_v1 import FunctionCase,SourceIdentity,EstimatedFunding
+sha=lambda b:hashlib.sha256(b).hexdigest()
+def jl(p):return [json.loads(l) for l in p.open()]
+reg=json.loads((P/'EXPERIMENT.json').read_text());assert sha((P/'EXPERIMENT.json').read_bytes())==(P/'EXPERIMENT.sha256').read_text().strip()
+checks=collections.Counter();inventory={r['row_id']:r for r in jl(B/'inputs/rows.jsonl')};folds=json.loads((P/'FOLDS.json').read_text());train=jl(P/'training-rows.jsonl');oof=jl(P/'oof-predictions.jsonl');manifest=[]
+for f in folds['folds']:
+ assert not set(f['train_ids'])&set(f['test_ids']);assert not {folds['components'][i] for i in f['train_ids']}&set(f['test_components']);assert all(inventory[i]['repository']!=f['test_repository'] for i in f['train_ids']);checks['fold_source_component_isolation']+=1
+for row in train:
+ r=inventory[row['row_id']];assert r['accepted_gold'] and r['record_kind']=='function' and r['id']!='CF-C02' and r['label'] in ['duplicate','drifted','separate'];assert set(row['features'])==set(reg['features']);checks['eligible_feature_views']+=1
+assert len(oof)==len(train);assert {(r['row_id'],r['cohort_id'],r['profile']) for r in oof}=={(r['row_id'],r['cohort_id'],r['profile']) for r in train}
+for r in oof:assert r['fold_repository']==r['repository'];assert 0<=r['logistic_probability']<=1 and 0<=r['hgb_probability']<=1
+for c in jl(B/'inputs/cohorts.jsonl'):
+ cid=c['cohort_id'];fixed=jl(B/'span-resolved-v1'/cid/'paired-rows.jsonl');baseline={(r['row_id'],r['profile']):r for r in fixed if r['arm']=='baseline'}
+ for r in [r for r in train if r['cohort_id']==cid]:
+  old=baseline[r['row_id'],r['profile']];ds=old['directions']
+  for name,key in [('raw_cosine','raw_score'),('half_cosine','half_score'),('latent_cosine','latent_cosine'),('csls_affinity','csls_affinity')]:assert abs(r['features'][name]-max(d[key] for d in ds))<1e-12;checks['cached_gold_signal_parity']+=1
+ for name in ['training-rows.jsonl','candidate-features.jsonl','functions.json.gz','predictions-default.jsonl','predictions-balanced.jsonl','learned-paired-rows.jsonl','learned-ledger.jsonl']:
+  f=P/cid/name;raw=f.read_bytes();manifest.append(dict(path=str(f),sha256=sha(raw),bytes=len(raw)))
+for r in json.loads((B/'FIXED-COMPLETION-FROZEN.json').read_text())['artifacts']:
+ assert sha(Path(r['path']).read_bytes())==r['sha256'];checks['unchanged_fixed_artifacts']+=1
+queue=json.loads((P/'QUEUE-READY.json').read_text());folder=Path(queue['queue']).parent;packets=jl(folder/'packets.jsonl');typed=jl(folder/'typed-boundaries.jsonl');assert sha((folder/'packets.jsonl').read_bytes())==queue['sha256']
+judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False);settings=Settings(budget={'usd':.04})
+for p,t in zip(packets,typed,strict=True):
+ assert p['id']==t['id'];case=FunctionCase.model_validate_json(json.dumps(t['case']));source=SourceIdentity.model_validate_json(json.dumps(t['source']));funding=EstimatedFunding.model_validate_json(json.dumps(t['funding']));assert case.candidate.model_dump(mode='json')==p['candidate'];assert sha(json.dumps(p['candidate'],sort_keys=True).encode())==p['candidate_sha256'];assert sha(judging_input(judge,case.candidate).encode())==p['prompt_sha256'];assert abs(estimate(judge,[case.candidate],settings)-funding.estimated_charge_usd)<1e-12
+ for e in p['source_proof']:
+  assert sha(Path(e['source_snapshot']).read_bytes())==e['file_sha256'];assert sha(getattr(case.candidate,e['side']).code.encode())==e['body_sha256'];checks['queue_native_source_proofs']+=1
+ checks['typed_queue_boundary_roundtrips']+=1
+assert json.loads((folder/'INDEPENDENCE-RECEIPT.json').read_text())['control_component_overlaps']==0
+for name in ['EXPERIMENT.json','FOLDS.json','training-rows.jsonl','oof-predictions.jsonl','RESULTS.json','all-row-coverage.jsonl','paired-rows.jsonl','ledger.jsonl','FIT-READY.json','EVALUATION-READY.json']:
+ f=P/name;raw=f.read_bytes();manifest.append(dict(path=str(f),sha256=sha(raw),bytes=len(raw)))
+receipt=dict(schema=1,status='PASS',checks=dict(checks),manifest=manifest,queue_version=queue['version'],protocol_sha256=sha((P/'EXPERIMENT.json').read_bytes()),numerical_threads=2,provider_calls=0)
+(P/'INTEGRITY-RECEIPT.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');print(json.dumps({k:v for k,v in receipt.items() if k!='manifest'},indent=2))

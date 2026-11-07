@@ -1,0 +1,72 @@
+{
+  "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+  "commit": "bb29c4b71987008d06c2381a68b6833b6d542e3e",
+  "catalog_sha256": "2d516a003e35bc265c86b50129f6348623b8cff2eb1f1c5c5024032b62cc7b34",
+  "scope": "Background hashes referenced by published paid case recordings only. Not all 79 historical inventory scopes are claimed present. Private/held backgrounds remain outside this corpus.",
+  "study_backgrounds": [
+    {
+      "sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+      "original_path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-ebd0031534c954e5/background.json.gz",
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/software-agent-sdk/344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz",
+          "manifest_sha256": "6c466414f88a24d08ea8621e82b497246591d9b2f013e5867865b8950e7e2a26"
+        },
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/software-agent-sdk-344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz",
+          "manifest_sha256": "6ec7eb9cf54c986c7e801ffbd52a343b7b58599e618de41d6f3c2d880d91879c"
+        }
+      ],
+      "status": "exact_published_match"
+    },
+    {
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+      "original_path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-7489aa1946c16153/background.json.gz",
+      "catalog_matches": [
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/litellm-fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f.json.gz",
+          "manifest_sha256": "6ec7eb9cf54c986c7e801ffbd52a343b7b58599e618de41d6f3c2d880d91879c"
+        }
+      ],
+      "status": "exact_published_match"
+    },
+    {
+      "sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094",
+      "original_path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-faef200af37c7cb5/background.json.gz",
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/opencode/cc996eece172fc69e35662657ea6cea9c2c7db88.json.gz",
+          "manifest_sha256": "6c466414f88a24d08ea8621e82b497246591d9b2f013e5867865b8950e7e2a26"
+        },
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/opencode-cc996eece172fc69e35662657ea6cea9c2c7db88.json.gz",
+          "manifest_sha256": "6ec7eb9cf54c986c7e801ffbd52a343b7b58599e618de41d6f3c2d880d91879c"
+        }
+      ],
+      "status": "exact_published_match"
+    },
+    {
+      "sha256": "1269484b895f0e3a46dffb7b9c4f5bb72effbd499a7e1aa2d3f1fb23ba8897ce",
+      "original_path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-1269484b895f0e3a/background.json.gz",
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/t3code/876bbd715ae6aa8e1d663455747e17c92e0a287c.json.gz",
+          "manifest_sha256": "6c466414f88a24d08ea8621e82b497246591d9b2f013e5867865b8950e7e2a26"
+        }
+      ],
+      "status": "exact_published_match"
+    },
+    {
+      "sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3",
+      "original_path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-2700fdccdbdf9872/background.json.gz",
+      "catalog_matches": [],
+      "status": "not_in_pinned_catalog_no_substitution"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "actual_usd": 0.00020548000000000002,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "be23820f4dfdd9c6d3725ac6a97b6cd22bcd21fcceb03e855391b0d95a1565bb",
+    "text": "{\"model\":\"jev-1.14.0\",\"answers\":{\"same_concept\":{\"type\":\"noul\",\"noul\":0.4},\"behaves_differently\":{\"type\":\"noul\",\"noul\":0.3},\"owner\":{\"type\":\"choice\",\"choice\":\"none\",\"confidence\":0.49,\"probabilities\":{\"existing\":0.06,\"new\":0.01,\"shared\":0.31,\"none\":0.62}},\"separate_boundary\":{\"type\":\"noul\",\"noul\":0.14},\"reason\":{\"type\":\"choice\",\"choice\":\"boilerplate\",\"confidence\":0.45,\"probabilities\":{\"portable\":0.03,\"platform\":0.01,\"delegates\":0.12,\"contract\":0.02,\"boilerplate\":0.53,\"different\":0.29,\"uncertain\":0.0}}},\"usage\":{\"input_tokens\":5137,\"output_tokens\":175}}"
+  },
+  "request_key": "b9e93de63607d340ed04547f78d4ca3f22e6e703cd945b00867d49c217441d0b",
+  "usage": {
+    "input_tokens": 5137,
+    "output_tokens": 175
+  },
+  "verdict": {
+    "behaves_differently": 0.3,
+    "judge": "jev",
+    "judge_version": "reuse-context-v3:jev-1.14.0",
+    "label": "separate",
+    "model_assessment": null,
+    "owner": "none",
+    "score": 0.4,
+    "second_opinion": null,
+    "why": "The resemblance is generic boilerplate rather than duplicated domain behavior."
+  }
+}

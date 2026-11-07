@@ -1,0 +1,36 @@
+{
+  "adopter_settings": {
+    "budget": {
+      "usd": 0.04
+    },
+    "discovery": {
+      "comparers": [
+        {
+          "min_similarity": 0.35,
+          "min_similarity_small": 0.35,
+          "neighbours": 20,
+          "use": "tfidf"
+        },
+        {
+          "neighbours": 1,
+          "use": "operation-blocks"
+        }
+      ],
+      "depth": 20,
+      "enabled": true,
+      "min_similarity": 0.35
+    },
+    "neighbours": 3
+  },
+  "allocation": "Core discovery_unseen=True excludes complete prefix and prior-route pairs before the one-extra cap; not a new YAML option.",
+  "block_guards": {
+    "anchor": true,
+    "core_filters": "must pass before extra cap",
+    "cosine": 0.65,
+    "full_parent_cosine": 0.1,
+    "shared_calls": 2,
+    "shared_operations": 3
+  },
+  "ledger": "Shared-operations Sonnet5.5/output1024, normal150-output estimate, fully charge cache, same .04 campaign.",
+  "order": "Complete default3, complete explicit TFIDF20 exploration, then one guarded operation-block candidate per query; native query order; exact unordered native-parent dedup."
+}

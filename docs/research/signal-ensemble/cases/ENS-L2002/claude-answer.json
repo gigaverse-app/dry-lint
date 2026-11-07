@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.01481,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "1c4ca9d04b599c8e352dacd3085c375908a987af11f7cb019f90cf08d5eac7cc",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoBEAJ8zZURX2Mq7Hfgu\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"CAQS+woKEAgTGAI4AUIIdGhpbmtpbmcSDFiwU4WbP/TgSyZDUBoM8FHRz1JKuuVe6GssIjAdaVeRl9X8ep2HyU+5TeK7ZmAihDHSe+gapt7b+xFrpvSc1TgCufCd8aTk7eAkeEYqmAphKVuAnEwtalPZAtb+4WSANGfrojYFceFmwg3CBJ+Qlr0sS37sjrSEcYNHqMwlKIhmh7vzrdW5gt6IMZcUITqCj3ieGMCeIAcDYdFbWrPu5TkPtYPZLLhaSG1LYyqZvjIYYDJW/KLhncGuxdiD+ei1XFQu/jf2OWr5S+MThR2FfjkgXMVx1+YFFKeI47P11o4PIUvE9NRel2qfgchEHaP2FMIr3OYO75Lh7E5mDEfukZfRSI6aqwcQkV0/iLcZRlOqgLfkMPI9QXEn9tbFhDy3IAmB+RsMsNw9KJO2xRrWiXRYyIUbpuPf9wxqVAr9ijSrJ5eIFkacqVR//6NMwBF2nAR4HMUNNiIe5ATD/jemBSp7jCoNZN2GKlNIRaVbbfBfc391EnQPTryJ/4P4i69hn6j71dsaQRuZomec3aSozMVwkLtAJosBHJTSq9D/yrzYuvekU/GtPpfc+FWGlRDmsH8ckDyt1H2RJhYJfq4Nas18nCKCDm3S6Up5cJx4L/mCyOOINNv0qth8GigZkLs+AALq90u+YsMWflv9acgzkuEjKP0B1F359+d6coPSrwZHzHAz7EiDgIx6lw6yb9b5Dk4YL/z662Mt2jf4mXfJyD45A5aPOrHJLxvFJmwLydsyh6+d/N2xAyXuWTlkh7pVC42O97t4tA/eW+yeaul3cyTdxeqVLOWpQGb+eDYZAEXQ0a8m6mHsdyiOmK6pOSEDjPDoQDc6HdOXw4KHL9eDdFNIsNxckx6bUVNefJiQeg9qqqsL6rP7HV/+k48w6x3RVeNGjb+0c1CPW8KVtdogiWRU75BCgS5aPUzUlFpcWQYB4wm0nMcR44bxToVWqdBbT/23TlgdfvLRPI4eU8+hafVEHnSV03zY91l1hVgxA+YMHyBT4Hken6b0g0jyUNMqo1HLHPArzzVnFMZ8hF5CRzw46ws3nTl7jVq1J/9Gizg75laXzQYvGPbX+/uTM9khQEzAtzRQLdGu8ntu/dibvBUN1SesF2l2aOV0+/tjdfEajR18OtaKbw+ofJmtrLfs9PgbysHWYR6OLBmP0PYpBhwxQeyt8CHQv8yl4KXVx+7SZDzVDhSSHo5ygtx7tGzT8C3OkUqm/N/6npZdYSpQjOArbu6B7fsxxZMiVf8zcp2/IX61Jxl+2rqAMIPO+3OM2yLzssZMRmSeYpQAul4k5MWv+7swgd0nJwnvdd08DEKNBIvEF/OW91nMN3y1zTXoKAxpX+20UAId13AOpmObi7VYICbPOSzkb73zX4AUDiuRUfN2VBF2rApgXn4Qfr9NolJBvGMqT9T/KIbmyyiAnVhcU77tYWzCXrIMnlGo0GDbbLUgTncmtkkB52sb1BoAih5g72jOxSqz6RKH43zqP/7n+2aKHebqI3OzFMuhpEnFKCdBK5lQRB9yBK0A7Vw+6gkXbNkC0gQcsbo4ERknEYVvm/EtL32oCDUHxrWU/JjTbjsb3sEV6NvNJKItpf+e3DWN+4OwRAs3mnEY8da/6IBKlZjBcL/ZKLWx9yOF0CcpRQNJ3kwpe9mXiYuEuVBnA3KkDlWJe4L+OX7wAP7MfHNuvUpfwJQR6JN+NuAtx2aXr9XJ82NM9FXTEvMDerxtRmWsJMPx5B5Zdzl9rvJq9s4afdHSDO6dLh+4uLMEsF4n78Brapw7O02daiS39+hV5W3cNkHWjwdiHuK/3khWoJRlNENWCD64JWFb5rWnTXEqwfFL1qixcRgB\"},{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"duplicate\\\",\\\"score\\\":0.62,\\\"owner\\\":\\\"shared\\\",\\\"why\\\":\\\"Both functions repeat the same realtime provider-transform round trip. Each packs the seven session-state fields (output item id, response id, conversation id, delta chunks, item chunks, delta type, session_configuration_request) into `realtime_response_transform_input`. Each then calls `transform_realtime_response(message, model, logging_obj, ...)`, writes the same seven returned fields back into its session state, and normalizes `response` from a single item or a list into a list of events. A shared helper such as `transform_realtime_message(config, message, model, logging_obj, state) -> list[event]` would own that state marshaling and the list normalization. The state container is the only legitimate variation, since NEW keeps it as attributes on `self` and EXISTING keeps it in a `session_state` dict. A small adapter or a state dict would cover that. Everything after the transform stays in the callers. That includes NEW's guardrail, session.created and VAD handling, and EXISTING's send-to-client, end-of-stream and logging-filter handling. The overlap is only the transform-and-state-sync step, not the whole functions.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":4205,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":4205,\"output_tokens\":640,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":640,\"output_tokens_details\":{\"thinking_tokens\":254},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "397d222b304ce478eec3e6236d2c347b6b7dc6dc337207b19370934fa5986093",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 4205,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 4205,
+        "model": null,
+        "output_tokens": 640,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 640,
+    "output_tokens_details": {
+      "thinking_tokens": 254
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "duplicate",
+    "model_assessment": null,
+    "owner": "shared",
+    "score": 0.62,
+    "second_opinion": null,
+    "why": "Both functions repeat the same realtime provider-transform round trip. Each packs the seven session-state fields (output item id, response id, conversation id, delta chunks, item chunks, delta type, session_configuration_request) into `realtime_response_transform_input`. Each then calls `transform_realtime_response(message, model, logging_obj, ...)`, writes the same seven returned fields back into its session state, and normalizes `response` from a single item or a list into a list of events. A shared helper such as `transform_realtime_message(config, message, model, logging_obj, state) -> list[event]` would own that state marshaling and the list normalization. The state container is the only legitimate variation, since NEW keeps it as attributes on `self` and EXISTING keeps it in a `session_state` dict. A small adapter or a state dict would cover that. Everything after the transform stays in the callers. That includes NEW's guardrail, session.created and VAD handling, and EXISTING's send-to-client, end-of-stream and logging-filter handling. The overlap is only the transform-and-state-sync step, not the whole functions."
+  }
+}

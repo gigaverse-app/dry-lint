@@ -1,0 +1,41 @@
+"""Call the existing central provider-free planner; preserve frozen packet/prompt bytes."""
+import hashlib,json,sys
+from pathlib import Path
+P=Path(__file__).resolve().parent;ROOT=Path('/home/researcher/dry-lint-round');CENTRAL=ROOT/'jobs/judge-operations';BASE=CENTRAL/'.lab-results'
+# Use the same renderer/model/pricing code as the generic root intake. q.render
+# explicitly uses the dummy 'offline' key; q.request only builds dictionaries.
+sys.path[:0]=[str(CENTRAL/'src'),str(BASE/'judge-operations')]
+import queue_judges as q
+def jl(p):return [json.loads(l) for l in Path(p).open() if l.strip()]
+def sha(b):return hashlib.sha256(b).hexdigest()
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+hpath=P/'HANDOFF.json';h=json.loads(hpath.read_text());queue=Path(h['queue']);before=queue.read_bytes();packets=jl(queue);plans=[];keys=set();checks=0
+for p in packets:
+ c=q.Candidate.model_validate(p['candidate']);assert c.model_dump(mode='json')==p['candidate']
+ proofs={r['side']:r for r in p['source_proofs']};binding=dict(repository=p['repository'],revision=p['revision'],candidate_sha256=q.sha(q.canonical(p['candidate'])),source_files=[dict(source_id=getattr(c,name).qualname,path=getattr(c,name).path,file_sha256=proofs[name]['file_sha256'],body_sha256=proofs[name]['body_sha256']) for name in ['new','existing']],scope=p['scope'],background_sha256=p['background_proof']['sha256'],candidate_kind='function')
+ for kind in ['jev','claude']:
+  r=q.request(c,kind,binding)
+  if kind=='claude':assert sha(r['identity']['rendered_input'].encode())==p['prompt_sha256'];checks+=1
+  assert r['request_key']not in keys;keys.add(r['request_key']);r.update(case_id=p['id'],id=p['id'],method='signal-ensemble',round=2,packet=p,packet_file=str(queue.resolve()),packet_file_sha256=sha(before),cache=None,probe=False,state='new_request_pending_central_cache_check');plans.append(r)
+dest=P/'canonical-request-plan.jsonl'
+if dest.exists():assert jl(dest)==plans
+else:lines(dest,plans)
+ledger=(P/'ledger.jsonl').read_bytes()
+for chunk in h['chunks']:
+ cq=Path(chunk['queue']);raw=cq.read_bytes();ids={r['id'] for r in jl(cq)};cr=[]
+ for r in plans:
+  if r['case_id']in ids:cr.append(dict(r,packet_file=str(cq.resolve()),packet_file_sha256=sha(raw)))
+ cp=cq.parent/'canonical-request-plan.jsonl'
+ if cp.exists():assert jl(cp)==cr
+ else:lines(cp,cr)
+ lp=cq.parent/'ledger.jsonl'
+ if lp.exists():assert lp.read_bytes()==ledger
+ else:lp.write_bytes(ledger)
+ chunk.update(canonical_request_manifest=str(cp.resolve()),canonical_request_manifest_sha256=sha(cp.read_bytes()),request_plan=str(cp.resolve()),manifest=str(cp.resolve()),funding=str(Path(chunk['funding']).resolve()),private_sidecar=str(Path(chunk['private_sidecar']).resolve()),queue=str(cq.resolve()),ledger=str(lp.resolve()))
+assert queue.read_bytes()==before
+h.update(canonical_request_plan=str(dest.resolve()),canonical_request_plan_sha256=sha(dest.read_bytes()),input_manifest=str((P/'INPUT-MANIFEST.json').resolve()),manifest=str(dest.resolve()),queue=str(queue.resolve()),funding=str(Path(h['funding']).resolve()),private_sidecar=str(Path(h['private_sidecar']).resolve()),status='READY_CANONICAL64_EXPLICIT_ABSOLUTE_PATHS',canonical_planning_owner='Existing judge-operations queue_judges.request invoked offline, no provider/cache execution or new framework',packet_bytes_unchanged=True,claude_rendered_bytes_unchanged=checks,requests=len(plans))
+for name in ['queue','canonical_request_plan','manifest','funding','private_sidecar']:
+ assert isinstance(h[name],str) and Path(h[name]).is_absolute() and Path(h[name]).is_file(),name
+hpath.write_text(json.dumps(h,indent=2,sort_keys=True)+'\n')
+receipt=dict(schema=1,status='PASS',cases=len(packets),canonical_requests=len(plans),claude_original_prompt_byte_matches=checks,queue_bytes_unchanged=True,queue_sha256=sha(before),aggregate_request_plan=str(dest.resolve()),aggregate_request_plan_sha256=sha(dest.read_bytes()),chunk_request_counts=[len(jl(c['canonical_request_manifest'])) for c in h['chunks']],planner_source=str(Path(q.__file__).resolve()),planner_sha256=sha(Path(q.__file__).read_bytes()),required_paths={k:h[k] for k in ['queue','canonical_request_plan','manifest','funding','private_sidecar']},credentials_accessed=False,provider_calls=0,cache_lookup_owner='judge-operations root intake')
+(P/'CANONICAL-PLAN-RECEIPT.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');(P/'JUDGE-OPERATIONS-READY.json').write_text(json.dumps(dict(direction='signal-ensemble',round=2,status=h['status'],handoff=str(hpath.resolve()),**receipt['required_paths'],canonical_request_plan_sha256=receipt['aggregate_request_plan_sha256'],queue_sha256=sha(before),chunks=h['chunks'],actual_new_paid_observed_usd=0,minimum_actual_new_paid_usd=.2,minimum_topup_usd=.2,closed=False),indent=2,sort_keys=True)+'\n');print(json.dumps({k:receipt[k] for k in ['status','cases','canonical_requests','claude_original_prompt_byte_matches','queue_bytes_unchanged','chunk_request_counts','provider_calls','required_paths']},indent=2))
