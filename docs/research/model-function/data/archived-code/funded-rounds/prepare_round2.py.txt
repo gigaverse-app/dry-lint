@@ -1,0 +1,416 @@
+"""Freeze diverse normal-funded novel source pairs. No providers or credentials."""
+
+import argparse
+import collections
+import gzip
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+from dry_lint.extractors import PythonExtractor
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
+from dry_lint.judges.jev import JevJudge
+from dry_lint.judges.model_jev import ModelJevJudge
+from dry_lint.model_shapes import PythonModelExtractor, TypeScriptModelExtractor
+from dry_lint.models import Candidate, Function, evidence
+from dry_lint.typescript import TypeScriptExtractor
+
+OUT = Path(__file__).resolve().parents[1] / "full-corpus-followup"
+ROUND = Path(__file__).resolve().parent / "round2"
+ROOT = Path("/home/researcher/dry-lint-round")
+MAPPER = ROOT / "jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2"
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def rows(p):
+    return [json.loads(x) for x in p.read_text().splitlines() if x] if p.exists() else []
+
+
+def write(path, data):
+    with path.open("x") as f:
+        for r in data:
+            f.write(json.dumps(r, sort_keys=True) + "\n")
+
+
+def pair(repo, revision, kind, a, z):
+    return repo, revision, kind, *sorted((a, z))
+
+
+def known_pairs():
+    known = set()
+    for r in rows(MAPPER / "rows.jsonl"):
+        for m in r["mappings"]:
+            sources = m.get("sources", {})
+            if all(k in sources for k in ("new", "existing")):
+                known.add(
+                    pair(
+                        r["repository"],
+                        r["revision"],
+                        r["record_kind"],
+                        sources["new"]["source_id"],
+                        sources["existing"]["source_id"],
+                    )
+                )
+        if r["record_kind"] == "model" and all(s in r["sources"] for s in ("new", "existing")):
+            known.add(
+                pair(
+                    r["repository"],
+                    r["revision"],
+                    "model",
+                    r["sources"]["new"]["source_id"],
+                    r["sources"]["existing"]["source_id"],
+                )
+            )
+    files = [OUT.parent / "novel-review-queue.jsonl"]
+    files.extend((ROOT / "reports/candidate-first/frozen-review-batches").glob("*.jsonl"))
+    files.extend((OUT / "batches").glob("*/novel-review-queue.jsonl"))
+    files.extend((ROOT / "jobs/judge-operations/.lab-results").glob("promotion-evidence-*/frozen-input.jsonl"))
+    files.extend((ROOT / "jobs/judge-operations/.lab-results/judge-operations").glob("*/frozen-input.jsonl"))
+    files.extend(ROUND.glob("*/novel-review-queue.jsonl"))
+    files.extend((ROUND.parent / "round1").glob("*/novel-review-queue.jsonl"))
+    files.extend((ROOT / "jobs/judge-operations/.lab-results/promotion-operations/intakes").glob("*/*/*/frozen-input.jsonl"))
+    for p in files:
+        for r in rows(p):
+            r = r.get("packet", r)
+            if not r.get("candidate") or not r.get("repository") or not r.get("revision"):
+                continue
+            c = Candidate.model_validate(r["candidate"])
+            kind = "model" if c.new.declaration else "function"
+            known.add(pair(r["repository"], r["revision"], kind, c.new.qualname, c.existing.qualname))
+    return known
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch", default="batch-01")
+    args = parser.parse_args()
+    target = ROUND / args.batch
+    if (target / "FROZEN.json").exists():
+        raise SystemExit("Already frozen: never rewrite queue/context/IDs")
+    known = known_pairs()
+    cohorts = {c["cohort_id"]: c for c in rows(MAPPER / "cohorts.jsonl")}
+    audit = {c["cohort_id"]: c for c in json.loads((OUT / "full-source-audit.json").read_text())["cohorts"]}
+    pool = {}
+    inventories = []
+    public_configs = {r["repository"]: r for r in json.loads((ROOT / "jobs/review-automation/.lab-results/review-automation/repositories-five.json").read_text())}
+    for folder in sorted((ROUND / "runs-attempt-03").glob("*")):
+        if not (folder / "summary.json").exists():
+            continue
+        cid = folder.name
+        cohort = cohorts[cid]
+        if cohort["repository"] not in public_configs or cohort["revision"] != public_configs[cohort["repository"]]["revision"]:
+            continue
+        links = json.loads((folder / "links.json").read_text())
+        opportunities = collections.defaultdict(list)
+        for opportunity in rows(folder / "joined-opportunities.jsonl"):
+            if len(opportunity["shared_used_fields"]) >= 2 and opportunity["cosine"] >= .1 and min(opportunity["query_lines"], opportunity["target_lines"]) >= 6:
+                opportunities[tuple(sorted((opportunity["query"], opportunity["target"])))].append(opportunity)
+        cs = {r["candidate_id"]: r for r in rows(folder / "candidates.jsonl")}
+        funded = collections.defaultdict(list)
+        all_exposures = rows(folder / "candidate-exposures.jsonl")
+        baseline_funded_pairs = {tuple(cs[e["candidate_id"]]["endpoints"]) for e in all_exposures if e["arm"] == "function-only" and e["funded"]}
+        for e in all_exposures:
+            if e["funded"] and e["arm"] == "protected-contract-operation-join-v2":
+                funded[e["candidate_id"]].append(e)
+        for candidate_id, es in funded.items():
+            r = cs[candidate_id]
+            c = Candidate.model_validate(r["candidate"])
+            pk = pair(cohort["repository"], cohort["revision"], r["kind"], c.new.qualname, c.existing.qualname)
+            if pk in known:
+                continue
+            is_added = tuple(sorted((c.new.qualname, c.existing.qualname))) not in baseline_funded_pairs
+            joined = any(e["arm"] == "protected-contract-operation-join-v2" for e in es)
+            related = opportunities.get(tuple(sorted((c.new.qualname, c.existing.qualname))), [])
+            model_ids = sorted(set(links.get(c.new.qualname, {})) | set(links.get(c.existing.qualname, {}))) if r["kind"] == "function" else sorted((c.new.qualname, c.existing.qualname))
+            shared_model_ids = sorted(set(links.get(c.new.qualname, {})) & set(links.get(c.existing.qualname, {}))) if r["kind"] == "function" else []
+            if r["kind"] == "function" and not (joined and links.get(c.new.qualname) and links.get(c.existing.qualname)):
+                continue
+            if r["kind"] != "function" or not related or not any(x["disjoint_round1_family"] for x in related):
+                continue
+            low = c.similarity < 0.8
+            entry = dict(
+                cohort=cohort,
+                folder=str(folder),
+                candidate_id=candidate_id,
+                candidate=r["candidate"],
+                kind=r["kind"],
+                funding=es,
+                added=is_added,
+                low_score_audit=low,
+                pair_key=pk,
+                related=related,
+                shared_model_ids=shared_model_ids,
+                ownership_model_ids=model_ids,
+                ownership_family_key=sha(json.dumps([cohort["repository"], cohort["revision"], model_ids]).encode()),
+            )
+            if pk not in pool or (entry["added"], len(es)) > (pool[pk]["added"], len(pool[pk]["funding"])):
+                pool[pk] = entry
+    values = sorted(pool.values(), key=lambda r: (r["cohort"]["repository"], sha(json.dumps(r["pair_key"]).encode())))
+    # Exhaustive eligible novel supply within preregistered cached policy. Correlated
+    # novel pairs remain explicit; controls are endpoint-isolated across the WHOLE pool.
+    endpoint_frequency = collections.Counter((r["cohort"]["repository"], r["cohort"]["revision"], endpoint) for r in values for endpoint in r["pair_key"][-2:])
+    isolated = [r for r in values if all(endpoint_frequency[r["cohort"]["repository"], r["cohort"]["revision"], x] == 1 for x in r["pair_key"][-2:])]
+    control_count = min(12, len(values)//4, len(isolated))
+    controls = []; repo_counts = collections.Counter()
+    while len(controls) < control_count:
+        r = min((x for x in isolated if x not in controls), key=lambda x:(repo_counts[x["cohort"]["repository"]], x["cohort"]["repository"],sha(json.dumps(x["pair_key"]).encode())))
+        controls.append(r);repo_counts[r["cohort"]["repository"]]+=1
+    selected = [(r, "novel") for r in values if r not in controls] + [(r, "control-audit-unknown-label") for r in controls]
+    used = {r["pair_key"] for r in values}
+    if not selected:
+        raise SystemExit("Zero eligible funded unreviewed disjoint-family source pairs; root must verify exhaustion")
+    target.mkdir(parents=True, exist_ok=True)
+    queue = []
+    blind = []
+    sidecar = []
+    plan = []
+    checks = []
+    bindings = {}
+    for entry, stratum in selected:
+        cohort = entry["cohort"]
+        folder = Path(entry["folder"])
+        kind = entry["kind"]
+        c = Candidate.model_validate(entry["candidate"])
+        manifest = json.loads((folder / "source-manifest.json").read_text())
+        proofs = {r["path"]: r for r in manifest["files"]}
+        links = json.loads((folder / "links.json").read_text())
+        rid = "MF-FC-" + sha(json.dumps(entry["pair_key"]).encode())[:12]
+        review_id = "MF-R-" + sha((rid + "blind").encode())[:12]
+        source_proofs = []
+        caller_proofs = []
+        for f in (c.new, c.existing):
+            py = f.path.endswith(".py")
+            ex = (
+                (PythonModelExtractor() if py else TypeScriptModelExtractor())
+                if kind == "model"
+                else (PythonExtractor() if py else TypeScriptExtractor())
+            )
+            proof = proofs[f.path]
+            raw = gzip.decompress(Path(proof["source_file"]).read_bytes())
+            assert sha(raw) == proof["sha256"]
+            assert hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest() == proof["git_blob_sha1"]
+            native = [n for n in ex.functions(f.path, raw.decode()) if n.qualname == f.qualname]
+            assert len(native) == 1
+            native[0].hash = ex.structure_hash(native[0])
+            assert native[0].model_dump() == f.model_dump()
+            source_proofs.append(
+                dict(
+                    source_id=f.qualname,
+                    path=f.path,
+                    revision=cohort["revision"],
+                    full_source_sha256=proof["sha256"],
+                    git_blob_sha1=proof["git_blob_sha1"],
+                    source_sha256=sha(f.code.encode()),
+                    source_file=proof["source_file"],
+                    start_line=f.line,
+                    end_line=f.end_line,
+                    excerpt=f.code,
+                    extractor=ex.name,
+                    extractor_version=ex.version,
+                )
+            )
+            if kind == "model":
+                consumers = sorted(
+                    ((fid, v[f.qualname]) for fid, v in links.items() if f.qualname in v),
+                    key=lambda x: (-len(x[1]["fields"]), x[0]),
+                )
+                if consumers:
+                    fid, link = consumers[0]
+                    path = fid.split("::")[0]
+                    cp = proofs[path]
+                    src = gzip.decompress(Path(cp["source_file"]).read_bytes()).decode()
+                    lines = src.splitlines()
+                    site = next((s["line"] for s in link["sites"] if s.get("fields")), link["sites"][0]["line"])
+                    start = max(1, site - 8)
+                    end = min(len(lines), site + 22)
+                    excerpt = "\n".join(lines[start - 1 : end])
+                    caller_proofs.append(
+                        dict(
+                            source_id=fid,
+                            path=path,
+                            revision=cohort["revision"],
+                            full_source_sha256=cp["sha256"],
+                            git_blob_sha1=cp["git_blob_sha1"],
+                            source_file=cp["source_file"],
+                            start_line=start,
+                            end_line=end,
+                            excerpt=excerpt,
+                            excerpt_sha256=sha(excerpt.encode()),
+                            explicit_link_sites=link["sites"],
+                            note="Bounded unchanged full-source excerpt at resolved usage; full file available by hash.",
+                        )
+                    )
+        policy = "model-contracts" if kind == "model" else "shared-operations"
+        jev = (ModelJevJudge if kind == "model" else JevJudge)(
+            api_key="offline-render-only", model="jev-1.14.0", context=True, workers=1
+        )
+        wants = [
+            dict(kind=jev.name, model=jev.model, version=jev.version, context=True, max_output_tokens=None),
+            dict(kind="claude", model="claude-sonnet-5-5", prompt_policy=policy, max_output_tokens=1024),
+        ]
+        packet = dict(
+            schema=1,
+            id=rid,
+            repository=cohort["repository"],
+            revision=cohort["revision"],
+            candidate_kind=kind,
+            candidate=c.model_dump(),
+            source_git=audit[cohort["cohort_id"]]["git"],
+            source_proofs=source_proofs,
+            consumer_ownership_proofs=caller_proofs,
+            background_proof=dict(
+                path=cohort["background_path"], sha256=cohort["background_sha256"], scope=cohort["scope"]
+            ),
+            model_inventory_proof=dict(
+                path=str(folder / "models.json"), sha256=sha((folder / "models.json").read_bytes())
+            )
+            if kind == "model"
+            else None,
+            canonical_requests=wants,
+            status="unknown; ROOT provider allocation and independent source review required",
+        )
+        queue.append(packet)
+        blind.append(
+            dict(
+                schema=1,
+                id=review_id,
+                repository=packet["repository"],
+                revision=packet["revision"],
+                candidate_kind=kind,
+                policy=policy,
+                new=c.new.model_dump(),
+                existing=c.existing.model_dump(),
+                source_proofs=source_proofs,
+                consumer_ownership_proofs=caller_proofs,
+                instruction="Review useful ownership or shared operations from unchanged source. Preserve independent validation, defaults/null contracts, lifecycle and existing delegation. Unknown if evidence insufficient.",
+            )
+        )
+        sidecar.append(
+            dict(
+                id=rid,
+                review_packet_id=review_id,
+                private_stratum=stratum,
+                candidate_id=entry["candidate_id"],
+                cohort_id=cohort["cohort_id"],
+                candidate_file=str(folder / "candidates.jsonl"),
+                exposures_file=str(folder / "candidate-exposures.jsonl"),
+                ledger_file=str(folder / "ledger.jsonl"),
+                funding=entry["funding"],
+                added_to_function_only=entry["added"],
+                low_retrieval_score_audit=entry["low_score_audit"],
+                selection="Frozen round2; preregistered contract-operation signal; all eligible funded unreviewed disjoint-family pairs retained. Novel within-family correlation remains explicit; controls endpoint-isolated across the entire eligible pool; no provider labels used.",
+                source_review_label=None,
+                ownership_family_key=entry["ownership_family_key"],
+                ownership_model_ids=entry["ownership_model_ids"],
+                exact_join_opportunities=entry["related"],
+                shared_canonical_model_ids=entry["shared_model_ids"],
+                deployment_funding_status="original .04 combined both-pass ledger, unchanged",
+                diagnostic_judging_status="separate root actual-paid round2 allocation; no deployment regrouping",
+            )
+        )
+        for request_kind, name, version, model, cap, rendered in [
+            (jev.name, jev.name, jev.version, jev.model, None, jev.input_text(c)),
+            (
+                "claude",
+                "anthropic-models" if kind == "model" else "anthropic-operations",
+                PROMPT_POLICIES[policy][0] + ":claude-sonnet-5-5:output=1024",
+                "claude-sonnet-5-5",
+                1024,
+                prompt(c, policy=policy),
+            ),
+        ]:
+            ident = dict(
+                kind=request_kind,
+                judge=name,
+                version=version,
+                model=model,
+                max_output_tokens=cap,
+                rendered_input=rendered,
+                source_evidence=evidence(c),
+                context_hash=c.context_hash,
+            )
+            plan.append(
+                dict(
+                    id=rid,
+                    request_key=sha(json.dumps(ident, sort_keys=True).encode()),
+                    identity=ident,
+                    status="offline rendering only",
+                )
+            )
+        for path in (
+            folder / "candidates.jsonl",
+            folder / "candidate-exposures.jsonl",
+            folder / "ledger.jsonl",
+            folder / "models.json",
+            folder / "source-manifest.json",
+        ):
+            bindings[str(path)] = sha(path.read_bytes())
+        checks.append(
+            dict(
+                id=rid,
+                native_extractor=kind,
+                endpoints=2,
+                native_source_pass=True,
+                funded_occurrences=len(entry["funding"]),
+            )
+        )
+    blind.sort(key=lambda r: r["id"])
+    for name, data in [
+        ("novel-review-queue.jsonl", queue),
+        ("blind-review-packets.jsonl", blind),
+        ("private-funding-sidecar.jsonl", sidecar),
+        ("canonical-request-plan.jsonl", plan),
+    ]:
+        write(target / name, data)
+    # Keep whole ranked inventory for rejected/low-score audit and later adaptive batches.
+    write(
+        target / "ranked-novel-inventory.jsonl",
+        [
+            dict(
+                repository=r["cohort"]["repository"],
+                revision=r["cohort"]["revision"],
+                cohort_id=r["cohort"]["cohort_id"],
+                candidate_id=r["candidate_id"],
+                candidate_kind=r["kind"],
+                candidate_file=str(Path(r["folder"]) / "candidates.jsonl"),
+                added=r["added"],
+                low_score_audit=r["low_score_audit"],
+                funded_occurrences=len(r["funding"]),
+                selected=r["pair_key"] in used,
+            )
+            for r in values
+        ],
+    )
+    frozen = dict(
+        schema=1,
+        batch=args.batch,
+        immutable=True,
+        rows=len(queue),
+        novel=sum(s["private_stratum"] == "novel" for s in sidecar),
+        controls=sum(s["private_stratum"] != "novel" for s in sidecar),
+        candidate_kinds=dict(collections.Counter(q["candidate_kind"] for q in queue)),
+        repositories=dict(collections.Counter(q["repository"] for q in queue)),
+        queue=str(target / "novel-review-queue.jsonl"),
+        queue_sha256=sha((target / "novel-review-queue.jsonl").read_bytes()),
+        known_source_pair_exclusions=len(known),
+        protocol_sha256=sha((ROUND / "EXPERIMENT.json").read_bytes()),
+        ranked_funded_novel_inventory=len(values),
+        eligible_supply_smaller_than_target=len(values) < 48,
+        bounded_supply_exception_requires_root_verification=True,
+        provider_calls_worker=0,
+        request_bindings=len(plan),
+        checks=checks,
+        artifacts=[dict(path=str(p), sha256=sha(p.read_bytes())) for p in target.glob("*.jsonl")]
+        + [dict(path=p, sha256=h) for p, h in sorted(bindings.items())],
+        mapper_snapshot=str(MAPPER),
+    )
+    (target / "FROZEN.json").write_text(json.dumps(frozen, indent=2, sort_keys=True) + "\n")
+    print(json.dumps({k: v for k, v in frozen.items() if k not in ("artifacts", "checks")}, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

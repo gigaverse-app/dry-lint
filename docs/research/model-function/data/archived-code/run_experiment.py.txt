@@ -1,0 +1,860 @@
+"""Frozen offline model/function ownership experiment. No target imports or provider calls."""
+
+import ast
+import collections
+import gzip
+import hashlib
+import json
+import os
+import resource
+import subprocess
+import time
+from pathlib import Path
+from types import SimpleNamespace
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger, estimate
+from dry_lint.extractors import PythonExtractor
+from dry_lint.functions import function_nodes, selected_path
+from dry_lint.model_shapes import ModelComparer, PythonModelExtractor
+from dry_lint.models import Candidate, Function
+from dry_lint.python_schemas import type_references
+from dry_lint.settings import Settings
+
+ROOT = Path("/home/researcher/dry-lint-round")
+OUT = Path(__file__).resolve().parent
+FROZEN_SHA = "c0b24be0803b0a4ab269150ef28560100022e762a038e7605c003396f2ba4898"
+PROFILES = {"laboratory-default": (3, False), "standalone-balanced-diagnostic": (20, True)}
+ARMS = ("function-only", "model-only", "protected-ownership-join")
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def dump(path, obj):
+    path.write_text(json.dumps(obj, indent=2, sort_keys=True) + "\n")
+
+
+def write_rows(path, rows):
+    with path.open("w") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def git(meta, *args):
+    return subprocess.check_output(["git", "-C", meta["git"], *args])
+
+
+def module(path):
+    return path.removesuffix(".py").replace("/", ".").removesuffix(".__init__")
+
+
+def key(kind, a, b):
+    return kind + ":" + "\n".join(sorted((a, b)))
+
+
+def short(k):
+    return sha(k.encode())[:20]
+
+
+def own_walk(node):
+    """Nested functions/classes do not acquire their parent's typed locals."""
+    yield node
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            continue
+        yield from own_walk(child)
+
+
+class Resolver:
+    """Unique lexical symbols and explicit import/re-export chains, without target execution."""
+
+    def __init__(self, trees, models):
+        self.trees = trees
+        self.models = models
+        self.symbols = collections.defaultdict(lambda: collections.defaultdict(list))
+        self.module_paths = collections.defaultdict(list)
+        for path, tree in trees.items():
+            mod = module(path)
+            self.module_paths[mod].append(path)
+            for node in tree.body:
+                if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                    self.symbols[mod][node.name].append(("local", path + "::" + node.name))
+                elif isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            self.symbols[mod][target.id].append(("unknown", "assignment"))
+                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                    self.symbols[mod][node.target.id].append(("unknown", "annotated-assignment"))
+            # Top-level conditional imports include TYPE_CHECKING, but conflicting bindings abstain.
+            for node in self.import_nodes(tree):
+                for name, val in self.import_bindings(path, node).items():
+                    self.symbols[mod][name].append(val)
+
+    def import_nodes(self, tree):
+        for node in tree.body:
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                yield node
+            elif isinstance(node, (ast.If, ast.Try)):
+                for child in ast.walk(node):
+                    if isinstance(child, (ast.Import, ast.ImportFrom)):
+                        yield child
+
+    def import_bindings(self, path, node):
+        vals = {}
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                vals[alias.asname or alias.name.split(".")[0]] = (
+                    "module",
+                    alias.name if alias.asname else alias.name.split(".")[0],
+                )
+        elif isinstance(node, ast.ImportFrom):
+            parent = module(path).split(".") if path.endswith("__init__.py") else module(path).split(".")[:-1]
+            if node.level:
+                parent = parent[: len(parent) - node.level + 1]
+                target = ".".join(parent + ([node.module] if node.module else []))
+            else:
+                target = node.module or ""
+            for alias in node.names:
+                if alias.name != "*":
+                    vals[alias.asname or alias.name] = ("ref", target + "." + alias.name)
+        return vals
+
+    def absolute(self, ref, seen=()):
+        if ref in seen or len(seen) > 12:
+            return None, "cycle"
+        parts = ref.split(".")
+        # Only a unique exact module path establishes ownership; never search class-name suffixes.
+        for n in range(len(parts) - 1, 0, -1):
+            mod, tail = ".".join(parts[:n]), parts[n:]
+            if mod not in self.module_paths:
+                continue
+            if len(self.module_paths[mod]) != 1:
+                return None, "ambiguous-module"
+            vals = set(self.symbols[mod].get(tail[0], []))
+            if len(vals) > 1:
+                return None, "ambiguous-binding"
+            if not vals:
+                # Explicit imported module itself, not inferred export from an arbitrary sibling.
+                return None, "missing-symbol"
+            kind, value = next(iter(vals))
+            if kind == "local":
+                if len(tail) > 1:
+                    return None, "member-not-model"
+                return (value, "resolved-model") if value in self.models else (None, "unsupported-local-symbol")
+            if kind in ("ref", "module"):
+                return self.absolute(value + ("." + ".".join(tail[1:]) if len(tail) > 1 else ""), (*seen, ref))
+            return None, "dynamic-binding"
+        return None, "external-or-missing-module"
+
+    def resolve(self, path, ref, blocked=frozenset(), local_imports=None):
+        head, dot, tail = ref.partition(".")
+        if head in blocked:
+            return None, "shadowed-local"
+        if local_imports and head in local_imports:
+            kind, val = local_imports[head]
+            return self.absolute(val + (dot + tail if dot else ""))
+        return self.absolute(module(path) + "." + ref)
+
+
+def dotted(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        left = dotted(node.value)
+        return left + "." + node.attr if left else ""
+    return ""
+
+
+def resolve_links(trees, models, functions, path_nodes, destination):
+    resolver = Resolver(trees, models)
+    links = collections.defaultdict(lambda: collections.defaultdict(lambda: {"fields": set(), "sites": []}))
+    stats = collections.Counter()
+    receiver_fields = {}
+    with destination.open("w") as handle:
+
+        def record(fid, node, kind, ref, target, status, fields=()):
+            stats[kind + ":all"] += 1
+            stats[kind + ":" + status] += 1
+            row = dict(
+                function=fid,
+                line=node.lineno,
+                kind=kind,
+                reference=ref,
+                target=target,
+                status=status,
+                fields=sorted(fields),
+            )
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+            if target:
+                links[fid][target]["fields"].update(fields)
+                links[fid][target]["sites"].append(row)
+
+        for fid, f in functions.items():
+            node = path_nodes.get(fid)
+            if node is None:
+                stats["function:missing-ast"] += 1
+                continue
+            stats["function:all"] += 1
+            walked = list(own_walk(node))
+            args = [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]
+            if node.args.vararg:
+                args.append(node.args.vararg)
+            if node.args.kwarg:
+                args.append(node.args.kwarg)
+            binds = collections.Counter(
+                n.id for n in walked if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)
+            )
+            blocked = set(binds) | {a.arg for a in args}
+            # Function-local imports must themselves have one unambiguous declaration.
+            imports = collections.defaultdict(list)
+            for n in walked:
+                if isinstance(n, (ast.Import, ast.ImportFrom)):
+                    for name, val in resolver.import_bindings(f.path, n).items():
+                        imports[name].append(val)
+            local_imports = {n: vs[0] for n, vs in imports.items() if len(vs) == 1 and n not in blocked}
+            env = {}
+
+            def annotation(n, path=f.path, blocked=blocked, local_imports=local_imports, fid=fid):
+                found = set()
+                for ref in sorted(type_references(n)):
+                    target, status = resolver.resolve(path, ref, blocked, local_imports)
+                    record(fid, n, "annotation", ref, target, status)
+                    if target:
+                        found.add(target)
+                return found
+
+            for arg in args:
+                if arg.annotation:
+                    targets = annotation(arg.annotation)
+                    if len(targets) == 1:
+                        env[arg.arg] = next(iter(targets))
+            if node.returns:
+                annotation(node.returns)
+            own = f.path + "::" + (f.owner or "")
+            if own in models and args and args[0].arg in ("self", "cls"):
+                env[args[0].arg] = own
+            # Only directly annotated self attributes; no inferred constructor state or base expansion.
+            class_node = next(
+                (n for n in trees[f.path].body if isinstance(n, ast.ClassDef) and n.name == f.owner), None
+            )
+            if class_node:
+                for ann in class_node.body:
+                    if isinstance(ann, ast.AnnAssign) and isinstance(ann.target, ast.Name):
+                        targets = {resolver.resolve(f.path, r)[0] for r in type_references(ann.annotation)} - {None}
+                        if len(targets) == 1:
+                            env["self." + ann.target.id] = next(iter(targets))
+            constructors = {}
+            for n in walked:
+                if isinstance(n, ast.Call) and (ref := dotted(n.func)):
+                    target, status = resolver.resolve(f.path, ref, blocked, local_imports)
+                    fields = (
+                        {k.arg for k in n.keywords if k.arg} & set(models[target].declaration.fields)
+                        if target
+                        else set()
+                    )
+                    record(fid, n, "call-target", ref, target, status, fields)
+                    if target:
+                        constructors[id(n)] = target
+            # Conservative single binding local receiver inference; no control-flow/union guessing.
+            for n in walked:
+                if isinstance(n, ast.AnnAssign):
+                    targets = annotation(n.annotation)
+                    receiver = dotted(n.target)
+                    if len(targets) == 1 and receiver and binds.get(receiver, 0) <= 1:
+                        env[receiver] = next(iter(targets))
+                elif isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name):
+                    name = n.targets[0].id
+                    if binds[name] == 1 and id(n.value) in constructors:
+                        env[name] = constructors[id(n.value)]
+            for n in walked:
+                if isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Load):
+                    receiver = dotted(n.value)
+                    target = env.get(receiver)
+                    field = n.attr
+                    if target and field in models[target].declaration.fields:
+                        record(fid, n, "field-use", receiver + "." + field, target, "resolved-model", [field])
+                    else:
+                        record(fid, n, "field-use", receiver + "." + field, None, "unresolved-or-not-declared-field")
+            if links[fid]:
+                stats["function:linked"] += 1
+            else:
+                stats["function:unlinked"] += 1
+            receiver_fields[fid] = env
+    serial = {
+        fid: {m: {"fields": sorted(v["fields"]), "sites": v["sites"]} for m, v in ms.items()}
+        for fid, ms in links.items()
+        if ms
+    }
+    return serial, dict(stats)
+
+
+def load_cohorts(repo, revision):
+    folder = ROOT / "reports/candidate-first/corpus-verification"
+    rows = []
+    names = {
+        "public-gold": [
+            "accepted-public-gold.jsonl",
+            "unknown.jsonl",
+            "contrast-controls.jsonl",
+            "source-related.jsonl",
+        ],
+        "candidate-first-gold": ["accepted-public-gold.jsonl", "disputed.jsonl"],
+        "scaled-v1": ["accepted-public-gold.jsonl", "unresolved.jsonl"],
+    }
+    authority = {
+        r["id"]: r
+        for r in map(
+            json.loads, (ROOT / "reports/candidate-first/scaled-coordinator-decisions.jsonl").read_text().splitlines()
+        )
+    }
+    for cohort, files in names.items():
+        for name in files:
+            path = folder / cohort / name
+            for row in map(json.loads, path.read_text().splitlines()):
+                if row["repository"] != repo:
+                    continue
+                rev = row.get("revision") or row.get("new", {}).get("revision")
+                if rev != revision:
+                    continue
+                if cohort == "scaled-v1":
+                    dec = authority[row["id"]]
+                    assert row["coordinator_label"] == dec["label"]
+                rows.append(dict(row, input_cohort=cohort, input_path=str(path)))
+    return rows
+
+
+def endpoint(row, side):
+    if "candidate" in row:
+        return Function.model_validate(row["candidate"][side]).qualname
+    return row[side]["id"]
+
+
+def source_capture(meta, folder, background):
+    t = time.monotonic()
+    paths = git(meta, "ls-tree", "-r", "--name-only", meta["revision"]).decode().splitlines()
+    paths = [
+        p
+        for p in paths
+        if p.endswith(".py")
+        and selected_path(p, background.scope["include"], background.scope["exclude"])
+        and "enterprise" not in p.split("/")
+    ]
+    # Native git show per file pins content, even for bare mirrors; no checkout/target execution.
+    functions = collections.defaultdict(list)
+    models = collections.defaultdict(list)
+    sources, trees, nodes, proofs, errors = {}, {}, {}, [], []
+    ex, mex = PythonExtractor(), PythonModelExtractor()
+    store = folder / "sources"
+    store.mkdir(exist_ok=True)
+    for path in paths:
+        raw = git(meta, "show", meta["revision"] + ":" + path)
+        source = raw.decode("utf-8")
+        digest = sha(raw)
+        sources[path] = source
+        (store / (digest + ".py.gz")).write_bytes(gzip.compress(raw, mtime=0))
+        try:
+            tree = ast.parse(source, filename=path)
+        except SyntaxError as exc:
+            errors.append(dict(path=path, error=str(exc)))
+            continue
+        trees[path] = tree
+        fs = ex.functions(path, source)
+        for f in fs:
+            functions[f.qualname].append(f)
+        for f, n in function_nodes(source, path, 2):
+            nodes[f.qualname] = n
+        for m in mex.functions(path, source):
+            m.hash = mex.structure_hash(m)
+            models[m.qualname].append(m)
+        proofs.append(
+            dict(
+                path=path,
+                sha256=digest,
+                git_blob_sha1=git(meta, "rev-parse", meta["revision"] + ":" + path).decode().strip(),
+            )
+        )
+    ambiguous = {k: len(v) for k, v in functions.items() if len(v) != 1}
+    functions = {k: vs[0] for k, vs in functions.items() if len(vs) == 1}
+    models = {k: vs[0] for k, vs in models.items() if len(vs) == 1}
+    bydoc = collections.defaultdict(list)
+    for i, d in enumerate(background.documents):
+        bydoc[d.id].append((i, d))
+    positions, missing, mismatch = {}, [], []
+    for fid, docs in bydoc.items():
+        if len(docs) != 1:
+            ambiguous[fid] = len(docs)
+        elif fid not in functions:
+            missing.append(fid)
+        elif sha(functions[fid].code.encode()) != docs[0][1].source_sha256:
+            mismatch.append(fid)
+        else:
+            positions[fid] = docs[0][0]
+            # Replay frozen sparse tokens, no fresh token IDF.
+            functions[fid].tokens = docs[0][1].tokens()
+    functions = {fid: functions[fid] for fid in positions}
+    assert not mismatch, mismatch
+    dump(
+        folder / "source-manifest.json",
+        dict(
+            repository=meta["repository"],
+            revision=meta["revision"],
+            files=proofs,
+            syntax_errors=errors,
+            ambiguous=ambiguous,
+            missing_background_source=missing,
+            mismatch=mismatch,
+            source_functions=len(functions),
+            model_declarations=len(models),
+            seconds=time.monotonic() - t,
+        ),
+    )
+    return sources, trees, nodes, functions, models, positions
+
+
+def evaluate_repo(meta):
+    started = time.monotonic()
+    name = meta["repository"].split("/")[-1]
+    folder = OUT / name
+    folder.mkdir(exist_ok=True)
+    print("start", name, flush=True)
+    data = Path(meta["background_proof"]["path"]).read_bytes()
+    assert sha(data) == meta["background_proof"]["sha256"]
+    b = BenchBackground.decode(data)
+    assert b.revision == meta["revision"] and b.repository == meta["repository"]
+    source, trees, nodes, fs, ms, positions = source_capture(meta, folder, b)
+    print("source", name, len(fs), len(ms), flush=True)
+    links, resolution = resolve_links(trees, ms, fs, nodes, folder / "resolution-sites.jsonl")
+    dump(folder / "links.json", links)
+    dump(folder / "models.json", [m.model_dump() for m in ms.values()])
+    inverse = collections.defaultdict(set)
+    for fid, model_links in links.items():
+        for mid in model_links:
+            inverse[mid].add(fid)
+    t = time.monotonic()
+    index = b.index()
+    index_seconds = time.monotonic() - t
+    mindex = ModelComparer()
+    mindex.index(list(ms.values()))
+    mt = time.monotonic()
+    model_neighbours = {mid: mindex.neighbours(m, 3, lambda other: True) for mid, m in ms.items()}
+    model_seconds = time.monotonic() - mt
+    # Raw threshold-qualified model graph is used for joins, independently of top3 truncation.
+    graph = {}
+    for mid, m in ms.items():
+        graph[mid] = mindex.neighbours(m, len(ms), lambda other: True)
+    cohorts = load_cohorts(meta["repository"], meta["revision"])
+    batch_defs = collections.defaultdict(set)
+    row_batches = {}
+    for row in cohorts:
+        bid = "regression:" + row["input_cohort"] + ":" + row["family_id"]
+        row_batches[(row["input_cohort"], row["id"])] = bid
+        batch_defs[bid].update(endpoint(row, side) for side in ("new", "existing"))
+    selected = sorted(links, key=lambda fid: (sha(fid.encode()), fid))[:128]
+    for i in range(0, len(selected), 16):
+        batch_defs[f"discovery:{i // 16:02}"] = set(selected[i : i + 16])
+    query_ids = sorted(set.union(set(), *batch_defs.values()))
+    raw = {}
+    t = time.monotonic()
+    pos_to_fid = {i: d.id for i, d in enumerate(b.documents)}
+    raw_positions = {}
+    for fid in query_ids:
+        if fid not in fs:
+            continue
+        raw_positions[fid] = [(i, s) for i, s in index.similar(fs[fid].tokens) if pos_to_fid[i] != fid]
+        raw[fid] = [(pos_to_fid[i], s) for i, s in raw_positions[fid]]
+    query_seconds = time.monotonic() - t
+    raw_map = {fid: dict(pairs) for fid, pairs in raw.items()}
+    shared_identity = 0
+    join_options = collections.defaultdict(list)
+    for q in raw:
+        qf = fs[q]
+        seen = {}
+        for ma, evidence_a in links.get(q, {}).items():
+            # Identical schema is existing delegation, never an extra function proposal.
+            shared_identity += len(inverse[ma] - {q})
+            for mb_unit, dice in graph[ma]:
+                mb = mb_unit.qualname
+                for target in inverse[mb] - {q}:
+                    tf = fs[target]
+                    fields = (
+                        set(evidence_a["fields"])
+                        & set(links[target][mb]["fields"])
+                        & set(ms[ma].declaration.fields)
+                        & set(ms[mb].declaration.fields)
+                    )
+                    cosine = raw_map[q].get(target, 0.0)
+                    facts = dict(
+                        query=q,
+                        target=target,
+                        models=[ma, mb],
+                        shared_used_fields=sorted(fields),
+                        dice=dice,
+                        cosine=cosine,
+                        query_lines=qf.lines,
+                        target_lines=tf.lines,
+                        same_file=qf.path == tf.path,
+                    )
+                    score = (len(fields), dice, cosine)
+                    # Record linked opportunities even if a fixed eligibility gate excludes them.
+                    old = seen.get(target)
+                    if old is None or score > old[0] or score == old[0] and (ma, mb) < tuple(old[1]["models"]):
+                        seen[target] = (score, facts)
+        join_options[q] = sorted(
+            (facts for _, facts in seen.values()),
+            key=lambda x: (-len(x["shared_used_fields"]), -x["dice"], -x["cosine"], x["target"], x["models"]),
+        )
+    write_rows(folder / "joined-opportunities.jsonl", (v for values in join_options.values() for v in values))
+    candidates = {}
+    cmeta = {}
+
+    def candidate(kind, a, z, score, comparer):
+        k = key(kind, a, z)
+        if k not in candidates:
+            units = fs if kind == "function" else ms
+            left, right = sorted((a, z))
+            for unit in (units[left], units[right]):
+                if not unit.hash:
+                    unit.hash = PythonExtractor().structure_hash(unit)
+            candidates[k] = Candidate(
+                new=units[left], existing=units[right], similarity=score, comparer=comparer, similarity_reusable=False
+            )
+            cmeta[k] = dict(kind=kind, endpoints=[left, right])
+        return k
+
+    ledgers, exposures = [], []
+    funded_sets, retrieved_sets = {}, {}
+    # Budget-only static judges have no client or provider code path.
+    judges = {
+        kind: SimpleNamespace(
+            name="anthropic",
+            version="offline-normal-estimate-v1-" + kind,
+            model="claude-sonnet-5-5",
+            prompt_policy="shared-operations" if kind == "function" else "model-contracts",
+        )
+        for kind in ("function", "model")
+    }
+    settings = Settings(preset="none", budget={"usd": 0.04})
+    for profile, (k, samefile) in PROFILES.items():
+        for bid, query_set in sorted(batch_defs.items()):
+            baseline, model_keys, extras, evidence = set(), set(), set(), {}
+            direction_counts = collections.Counter()
+            for q in sorted(query_set):
+                if q not in fs:
+                    direction_counts["missing_query"] += 1
+                    continue
+                floor = 0.35 if samefile else (0.3 if fs[q].lines < 6 else 0.5)
+                neighbours = [(z, s) for z, s in raw[q] if samefile or z.split("::")[0] != fs[q].path]
+                for z, s in neighbours[:k]:
+                    if s >= floor and z in fs:
+                        baseline.add(candidate("function", q, z, s, "trial-function-frozen-tfidf:v1"))
+                for ma in links.get(q, {}):
+                    for mb, dice in model_neighbours[ma]:
+                        mk = candidate("model", ma, mb.qualname, dice, "trial-model-shape:v1")
+                        model_keys.add(mk)
+                valid = []
+                for v in join_options[q]:
+                    if len(v["shared_used_fields"]) < 2:
+                        direction_counts["join_fields_floor"] += 1
+                        continue
+                    if min(v["query_lines"], v["target_lines"]) < 6:
+                        direction_counts["join_size_floor"] += 1
+                        continue
+                    if v["cosine"] < 0.1:
+                        direction_counts["join_score_floor"] += 1
+                        continue
+                    if v["same_file"] and not samefile:
+                        direction_counts["join_samefile"] += 1
+                        continue
+                    valid.append(v)
+                    ev = (len(v["shared_used_fields"]), v["dice"], v["cosine"])
+                    mk = key("model", *v["models"])
+                    evidence[mk] = max(evidence.get(mk, (0, 0.0, 0.0)), ev)
+                for v in valid:
+                    fk = key("function", q, v["target"])
+                    if fk in baseline:
+                        continue
+                    fk = candidate("function", q, v["target"], v["cosine"], "trial-model-function-ownership:v1")
+                    extras.add(fk)
+                    evidence[fk] = max(
+                        evidence.get(fk, (0, 0.0, 0.0)), (len(v["shared_used_fields"]), v["dice"], v["cosine"])
+                    )
+                    break
+            base_order = sorted(baseline, key=lambda x: (-candidates[x].similarity, x))
+            model_order = sorted(model_keys, key=lambda x: (-candidates[x].similarity, x))
+            joined_extra = sorted(
+                model_keys | extras - baseline,
+                key=lambda x: (
+                    tuple(
+                        -v
+                        for v in evidence.get(x, (0, candidates[x].similarity if cmeta[x]["kind"] == "model" else 0, 0))
+                    )
+                    + (cmeta[x]["kind"], x)
+                ),
+            )
+            orders = {
+                "function-only": base_order,
+                "model-only": model_order,
+                "protected-ownership-join": base_order + joined_extra,
+            }
+            for arm, order in orders.items():
+                ledger = Ledger(settings)
+                funded = set()
+                for ordinal, ck in enumerate(order, 1):
+                    c, kind = candidates[ck], cmeta[ck]["kind"]
+                    judge = judges[kind]
+                    est = estimate(judge, [c], settings)
+                    admitted = bool(ledger.select(judge, [c]))
+                    if admitted:
+                        ledger.charge(judge, [c], 0)
+                        funded.add(ck)
+                    exposures.append(
+                        dict(
+                            repository=meta["repository"],
+                            profile=profile,
+                            batch=bid,
+                            arm=arm,
+                            candidate_id=short(ck),
+                            kind=kind,
+                            ordinal=ordinal,
+                            evidence=evidence.get(ck),
+                            cosine_or_dice=c.similarity,
+                            estimated_usd=est,
+                            funded=admitted,
+                            cumulative_usd=ledger.usd,
+                            synthetic=True,
+                            verdict="unknown",
+                        )
+                    )
+                funded_sets[(profile, bid, arm)] = funded
+                retrieved_sets[(profile, bid, arm)] = set(order)
+                ledgers.append(
+                    dict(
+                        repository=meta["repository"],
+                        revision=meta["revision"],
+                        profile=profile,
+                        batch=bid,
+                        arm=arm,
+                        candidate_count=len(order),
+                        funded_count=len(funded),
+                        function_candidates=sum(cmeta[x]["kind"] == "function" for x in order),
+                        model_candidates=sum(cmeta[x]["kind"] == "model" for x in order),
+                        funded_functions=sum(cmeta[x]["kind"] == "function" for x in funded),
+                        funded_models=sum(cmeta[x]["kind"] == "model" for x in funded),
+                        estimated_usd=ledger.usd,
+                        cap=0.04,
+                        synthetic=True,
+                        normal_estimate_cached_also_charged=True,
+                        counters=dict(direction_counts),
+                        baseline_retrieved_displacement=len(baseline - set(order))
+                        if arm == "protected-ownership-join"
+                        else None,
+                    )
+                )
+            assert (
+                funded_sets[(profile, bid, "function-only")] <= funded_sets[(profile, bid, "protected-ownership-join")]
+            )
+    write_rows(folder / "candidate-exposures.jsonl", exposures)
+    write_rows(folder / "ledger.jsonl", ledgers)
+    write_rows(
+        folder / "candidates.jsonl",
+        (dict(candidate_id=short(ck), **cmeta[ck], candidate=c.model_dump()) for ck, c in sorted(candidates.items())),
+    )
+    # Full raw ranks, keeping original corpus-order ties; both directions distinct.
+    directions = []
+    stages = []
+    for row in cohorts:
+        a, z = endpoint(row, "new"), endpoint(row, "existing")
+        bid = row_batches[(row["input_cohort"], row["id"])]
+        ck = key("function", a, z)
+        for profile, (k, samefile) in PROFILES.items():
+            ds = []
+            for q, target in ((a, z), (z, a)):
+                present = q in fs and target in fs
+                cosine = raw_map.get(q, {}).get(target, 0.0) if present else None
+                rank_all = next((i + 1 for i, (f, s) in enumerate(raw.get(q, [])) if f == target), None)
+                allowed = [(f, s) for f, s in raw.get(q, []) if samefile or f.split("::")[0] != fs[q].path]
+                rank_allowed = next((i + 1 for i, (f, s) in enumerate(allowed) if f == target), None)
+                floor = 0.35 if samefile else (0.3 if q in fs and fs[q].lines < 6 else 0.5)
+                first = (
+                    "missing-or-ambiguous-source"
+                    if not present
+                    else "same-file-policy"
+                    if not samefile and fs[q].path == fs[target].path
+                    else "score-floor"
+                    if cosine < floor
+                    else "topK"
+                    if rank_allowed is None or rank_allowed > k
+                    else "retrieved"
+                )
+                options = next((x for x in join_options.get(q, []) if x["target"] == target), None)
+                d = dict(
+                    repository=meta["repository"],
+                    revision=meta["revision"],
+                    input_cohort=row["input_cohort"],
+                    id=row["id"],
+                    family_id=row["family_id"],
+                    lineage=row.get("family_lineage", row.get("lineage_id")),
+                    label=row["label"],
+                    drifted=row.get("drifted", False),
+                    label_scope=row.get("label_scope"),
+                    narrow_operation=row.get("narrow_operation"),
+                    whole_function_label=row.get("whole_function_label"),
+                    profile=profile,
+                    query=q,
+                    target=target,
+                    present=present,
+                    cosine=cosine,
+                    rank_all=rank_all,
+                    rank_allowed=rank_allowed,
+                    floor=floor,
+                    query_lines=fs[q].lines if q in fs else None,
+                    target_lines=fs[target].lines if target in fs else None,
+                    baseline_first_loss=first,
+                    resolved_models_query=list(links.get(q, {})),
+                    resolved_models_target=list(links.get(target, {})),
+                    joined_evidence=options,
+                )
+                directions.append(d)
+                ds.append(d)
+            for arm in ARMS:
+                retrieved = ck in retrieved_sets[(profile, bid, arm)]
+                funded = ck in funded_sets[(profile, bid, arm)]
+                loss = (
+                    "funded-unknown-answer"
+                    if funded
+                    else "budget"
+                    if retrieved
+                    else "model-only-not-a-function-label"
+                    if arm == "model-only"
+                    else "retrieval"
+                    if arm == "protected-ownership-join"
+                    else min(
+                        (d["baseline_first_loss"] for d in ds),
+                        key=lambda x: [
+                            "retrieved",
+                            "topK",
+                            "score-floor",
+                            "same-file-policy",
+                            "missing-or-ambiguous-source",
+                        ].index(x),
+                    )
+                )
+                stages.append(
+                    dict(
+                        repository=meta["repository"],
+                        revision=meta["revision"],
+                        input_cohort=row["input_cohort"],
+                        id=row["id"],
+                        family_id=row["family_id"],
+                        label=row["label"],
+                        drifted=row.get("drifted", False),
+                        profile=profile,
+                        batch=bid,
+                        arm=arm,
+                        present=all(d["present"] for d in ds),
+                        retrieved=retrieved,
+                        funded=funded,
+                        first_loss=loss,
+                        emitted_report=None,
+                        candidate_kind="function",
+                    )
+                )
+    write_rows(folder / "directional-rows.jsonl", directions)
+    write_rows(folder / "gold-stages.jsonl", stages)
+    with gzip.GzipFile(filename="", mode="wb", fileobj=(folder / "query-ranks.jsonl.gz").open("wb"), mtime=0) as handle:
+        for q, pairs in raw_positions.items():
+            for rank, (pos, score) in enumerate(pairs, 1):
+                target = pos_to_fid[pos]
+                rank_row = dict(
+                    query=q,
+                    target=target,
+                    rank=rank,
+                    cosine=score,
+                    source_position=pos,
+                    same_file=fs[q].path == target.split("::")[0],
+                    source_unambiguous=target in fs,
+                )
+                handle.write((json.dumps(rank_row, sort_keys=True) + "\n").encode())
+    # Preserve any pre-existing uncompressed trace; archive output never deletes evidence.
+    totals = []
+    for profile in PROFILES:
+        for arm in ARMS:
+            subset = [r for r in stages if r["profile"] == profile and r["arm"] == arm]
+            labels = collections.defaultdict(collections.Counter)
+            for r in subset:
+                labels[r["label"]]["denominator"] += 1
+                labels[r["label"]]["present"] += r["present"]
+                labels[r["label"]]["retrieved"] += r["retrieved"]
+                labels[r["label"]]["funded"] += r["funded"]
+                labels[r["label"]]["first_loss:" + r["first_loss"]] += 1
+            total_ledgers = [r for r in ledgers if r["profile"] == profile and r["arm"] == arm]
+            totals.append(
+                dict(
+                    profile=profile,
+                    arm=arm,
+                    labels=dict(labels),
+                    batches=len(total_ledgers),
+                    funded_occurrences=sum(r["funded_count"] for r in total_ledgers),
+                    candidate_occurrences=sum(r["candidate_count"] for r in total_ledgers),
+                    estimated_usd=sum(r["estimated_usd"] for r in total_ledgers),
+                    funded_models=sum(r["funded_models"] for r in total_ledgers),
+                )
+            )
+    summary = dict(
+        repository=meta["repository"],
+        revision=meta["revision"],
+        background_proof=meta["background_proof"],
+        background_scope=b.scope,
+        background_documents=len(b.documents),
+        max_df=b.max_df,
+        functions=len(fs),
+        models=len(ms),
+        model_kind_counts=dict(collections.Counter(m.declaration.kind for m in ms.values())),
+        resolution=resolution,
+        linked_functions=len(links),
+        linked_models=len(inverse),
+        model_pairs_top3=len({key("model", a, m.qualname) for a, vs in model_neighbours.items() for m, _ in vs}),
+        same_model_consumer_opportunities_excluded=shared_identity,
+        query_functions=len(raw),
+        discovery_queries=len(selected),
+        cohort_rows=len(cohorts),
+        query_walltime_seconds=query_seconds,
+        index_walltime_seconds=index_seconds,
+        model_query_walltime_seconds=model_seconds,
+        walltime_seconds=time.monotonic() - started,
+        peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        summary=totals,
+        verdicts="No provider calls; all new exposures unknown; function labels do not label models",
+    )
+    dump(folder / "summary.json", summary)
+    print("done", name, "seconds", summary["walltime_seconds"], "models", len(ms), "linked", len(links), flush=True)
+    return summary
+
+
+def main():
+    assert sha((OUT / "EXPERIMENT.json").read_bytes()) == FROZEN_SHA, "Protocol changed"
+    os.environ.setdefault("OMP_NUM_THREADS", "2")
+    os.environ.setdefault("OPENBLAS_NUM_THREADS", "2")
+    metas = json.loads(
+        (ROOT / "jobs/review-automation/.lab-results/review-automation/repositories-five.json").read_text()
+    )
+    results = []
+    for repo in ("OpenHands/software-agent-sdk", "BerriAI/litellm"):
+        meta = next(r for r in metas if r["repository"] == repo)
+        results.append(evaluate_repo(meta))
+    dump(
+        OUT / "summary.json",
+        dict(
+            experiment_sha256=FROZEN_SHA,
+            script_sha256=sha(Path(__file__).read_bytes()),
+            repositories=results,
+            physical_spend_usd=0,
+            all_data_development=True,
+        ),
+    )
+
+
+if __name__ == "__main__":
+    main()

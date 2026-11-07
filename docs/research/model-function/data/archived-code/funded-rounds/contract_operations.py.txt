@@ -1,0 +1,127 @@
+"""Fixed static contract-operation signatures; consumes existing resolved links only."""
+import ast
+import hashlib
+import json
+import re
+import textwrap
+from dry_lint.typescript import TypeScriptExtractor, FUNCTIONS, TYPE_ONLY, has_syntax_error
+
+PY_COMPLEX=(ast.Call,ast.BinOp,ast.BoolOp,ast.Compare,ast.IfExp,ast.Subscript,ast.NamedExpr)
+TS_COMPLEX={'call_expression','new_expression','binary_expression','ternary_expression','subscript_expression','assignment_expression','augmented_assignment_expression','update_expression','await_expression'}
+TS_FALLBACK={'return_statement','pair','variable_declarator'}
+
+def digest(x):return hashlib.sha256(json.dumps(x,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+def compact(s):return re.sub(r'\s+','',s)
+def own_py(n):
+ yield n
+ for child in ast.iter_child_nodes(n):
+  if isinstance(child,(ast.FunctionDef,ast.AsyncFunctionDef,ast.ClassDef,ast.Lambda)):continue
+  yield from own_py(child)
+def walk_ts(n):
+ yield n
+ for c in n.children:yield from walk_ts(c)
+
+class Signatures:
+ def __init__(self):self.parsed={};self.cache={};self.counts={}
+ def get(self,f,mid,link,fields):
+  key=(f.qualname,f.hash,mid)
+  if key in self.cache:return self.cache[key]
+  if f.analysis and f.analysis.forward_target:
+   self.cache[key]={};return {}
+  try:r=self.python(f,link,fields) if f.path.endswith('.py') else self.typescript(f,link,fields)
+  except (SyntaxError,ValueError):r={};self.counts['operation_parse_unresolved']=self.counts.get('operation_parse_unresolved',0)+1
+  self.cache[key]=r;return r
+ def python(self,f,link,fields):
+  if f.qualname not in self.parsed:
+   tree=ast.parse(textwrap.dedent(f.code));fn=next((n for n in tree.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))),None)
+   if fn is None:raise ValueError('No native function body')
+   nodes=list(own_py(fn));parents={c:n for n in nodes for c in ast.iter_child_nodes(n)};self.parsed[f.qualname]=(fn,nodes,parents)
+  fn,nodes,parents=self.parsed[f.qualname]
+  body=[n for n in fn.body if not(isinstance(n,ast.Expr) and isinstance(n.value,ast.Constant) and isinstance(n.value.value,str))]
+  if len(body)<2:return {}
+  refs={compact(s['reference']):field for s in link['sites'] if s['kind']=='field-use' for field in s.get('fields',[]) if field in fields}
+  def norm(n):
+   if isinstance(n,ast.Attribute) and compact(ast.unparse(n)) in refs:return ('resolved-model-field',refs[compact(ast.unparse(n))])
+   if isinstance(n,ast.AST):return (type(n).__name__,tuple((k,norm(v)) for k,v in ast.iter_fields(n)))
+   if isinstance(n,list):return tuple(norm(v) for v in n)
+   if isinstance(n,bytes):return ('python-literal-bytes',n.hex())
+   if isinstance(n,complex):return ('python-literal-complex',n.real.hex(),n.imag.hex())
+   if n is Ellipsis:return ('python-literal-ellipsis',)
+   return n
+  out={}
+  def record(field,node,role,complex_):
+   signature=(field,role,digest(norm(node)));out[signature]={'field':field,'role':role,'context_sha256':signature[2],'nontrivial':complex_,'source_line':f.line+getattr(node,'lineno',1)-1}
+  for site in link['sites']:
+   allowed=set(site.get('fields',[]))&set(fields)
+   if site['kind']=='field-use':
+    ref=compact(site['reference'])
+    for n in nodes:
+     if not isinstance(n,ast.Attribute) or n.attr not in allowed or compact(ast.unparse(n))!=ref or f.line+n.lineno-1!=site['line']:continue
+     parent=parents.get(n);ctx=None
+     while parent is not None and parent is not fn:
+      if isinstance(parent,PY_COMPLEX):ctx=parent;break
+      if isinstance(parent,(ast.Return,ast.keyword)):ctx=parent;break
+      parent=parents.get(parent)
+     if ctx is not None:record(n.attr,ctx,type(ctx).__name__,isinstance(ctx,PY_COMPLEX))
+   elif site['kind']=='call-target' and allowed:
+    for n in nodes:
+     if not isinstance(n,ast.Call) or f.line+n.lineno-1!=site['line'] or compact(ast.unparse(n.func))!=compact(site['reference']):continue
+     for kw in n.keywords:
+      if kw.arg in allowed:record(kw.arg,kw.value,'construct',any(isinstance(x,PY_COMPLEX) for x in ast.walk(kw.value)))
+  return out
+ def typescript(self,f,link,fields):
+  if f.qualname not in self.parsed:
+   parser=TypeScriptExtractor().parser(f.path);raw=f.code.encode();root=parser.parse(raw).root_node;offset=0
+   if has_syntax_error(root):raw=b'class __DryLint {\n'+raw+b'\n}';root=parser.parse(raw).root_node;offset=1
+   if has_syntax_error(root):raise ValueError('Native snippet operation parse unresolved')
+   fn=next((n for n in walk_ts(root) if n.type in FUNCTIONS),None)
+   if fn is None:raise ValueError('No native callable body')
+   nodes=[]
+   def own(n):
+    nodes.append(n)
+    for c in n.children:
+     if c.type in FUNCTIONS:continue
+     own(c)
+   own(fn);parents={c.id:n for n in nodes for c in n.children};self.parsed[f.qualname]=(fn,nodes,parents,offset)
+  fn,nodes,parents,offset=self.parsed[f.qualname];body=fn.child_by_field_name('body')
+  if body is None or body.type!='statement_block' or len([x for x in body.named_children if x.type!='comment'])<2:return {}
+  refs={compact(s['reference']):field for s in link['sites'] if s['kind']=='field-use' for field in s.get('fields',[]) if field in fields}
+  def text(n):return n.text.decode()
+  def norm(n):
+   reference=compact(text(n))
+   if n.type=='member_expression' and reference in refs:return ('resolved-model-field',refs[reference])
+   if n.type in TYPE_ONLY or n.type in {'comment',';'}:return None
+   if not n.children:return (n.type,text(n))
+   return (n.type,tuple(x for c in n.children if (x:=norm(c)) is not None))
+  out={}
+  def line(n):return f.line+n.start_point.row-offset
+  def record(field,node,role,complex_):
+   signature=(field,role,digest(norm(node)));out[signature]={'field':field,'role':role,'context_sha256':signature[2],'nontrivial':complex_,'source_line':line(node)}
+  for site in link['sites']:
+   allowed=set(site.get('fields',[]))&set(fields)
+   if site['kind']=='field-use':
+    reference=compact(site['reference'])
+    for n in nodes:
+     if n.type!='member_expression' or compact(text(n))!=reference or line(n)!=site['line']:continue
+     prop=n.child_by_field_name('property')
+     if prop is None or text(prop) not in allowed:continue
+     p=parents.get(n.id);ctx=None
+     while p is not None and p.id!=fn.id:
+      if p.type in TS_COMPLEX or p.type in TS_FALLBACK:ctx=p;break
+      p=parents.get(p.id)
+     if ctx is not None:record(text(prop),ctx,ctx.type,ctx.type in TS_COMPLEX)
+   elif site['kind'] in {'typed-object','typed-return-object'} and allowed:
+    for n in nodes:
+     if n.type!='object' or line(n)!=site['line']:continue
+     for pair in n.named_children:
+      if pair.type!='pair':continue
+      key=pair.child_by_field_name('key');value=pair.child_by_field_name('value')
+      if key is None or value is None:continue
+      field=text(key).strip('\"\'')
+      if field in allowed:record(field,value,'construct',any(x.type in TS_COMPLEX for x in walk_ts(value)))
+  return out
+
+def match(engine,a,b,mid,la,lb,fields):
+ sa=engine.get(a,mid,la,fields);sb=engine.get(b,mid,lb,fields);common=sorted(set(sa)&set(sb));used=sorted({x[0] for x in common})
+ if len(used)<2 or not any(sa[x]['nontrivial'] and sb[x]['nontrivial'] for x in common):return None
+ return {'canonical_model':mid,'matched_operation_count':len(common),'matched_fields':used,'operations':[{'field':x[0],'role':x[1],'context_sha256':x[2],'new_source_line':sa[x]['source_line'],'existing_source_line':sb[x]['source_line'],'nontrivial':sa[x]['nontrivial'] and sb[x]['nontrivial']} for x in common]}

@@ -1,0 +1,312 @@
+"""Explicit TS static ownership extension, without target execution or name-only matching."""
+
+import collections
+import json
+import posixpath
+import re
+from pathlib import PurePosixPath
+
+from dry_lint.typescript import FUNCTIONS, TypeScriptExtractor, text
+
+
+def walk(node, skip_functions=False, root=True):
+    yield node
+    for child in node.named_children:
+        if skip_functions and child.type in FUNCTIONS:
+            continue
+        yield from walk(child, skip_functions, False)
+
+
+def module_candidates(path):
+    base = re.sub(r"\.(?:tsx?|mts|cts|jsx?|mjs)$", "", path)
+    return [base + ext for ext in (".ts", ".tsx", ".mts", ".cts", ".js")] + [
+        base + "/index" + ext for ext in (".ts", ".tsx", ".js")
+    ]
+
+
+class TSResolver:
+    def __init__(self, sources, models):
+        self.models = models
+        self.sources = sources
+        self.parser = TypeScriptExtractor()
+        self.roots = {p: self.parser.parser(p).parse(s.encode()).root_node for p, s in sources.items()}
+        self.bindings = collections.defaultdict(lambda: collections.defaultdict(list))
+        self.exports = collections.defaultdict(lambda: collections.defaultdict(list))
+        self.paths = {}
+        # Configured aliases only; absent or JSONC-unparseable configs remain unresolved.
+        for path, source in sources.items():
+            if PurePosixPath(path).name not in ("tsconfig.json", "jsconfig.json"):
+                continue
+            try:
+                config = json.loads(
+                    re.sub(r",\s*([}\]])", r"\1", re.sub(r"/\*[\s\S]*?\*/|^\s*//.*$", "", source, flags=re.M))
+                )
+                opts = config.get("compilerOptions", {})
+                base = posixpath.normpath(posixpath.join(posixpath.dirname(path), opts.get("baseUrl", ".")))
+                self.paths[path] = (base, opts.get("paths", {}))
+            except (ValueError, TypeError):
+                continue
+        for mid, m in models.items():
+            self.bindings[m.path][m.name].append(("local", mid))
+            exported = False
+            for statement in self.roots[m.path].named_children:
+                if statement.type != "export_statement":
+                    continue
+                declaration = statement.child_by_field_name("declaration")
+                if declaration is None:
+                    continue
+                declarations = (
+                    declaration.named_children
+                    if declaration.type in ("lexical_declaration", "variable_declaration")
+                    else [declaration]
+                )
+                if any(
+                    (name := n.child_by_field_name("name")) is not None and text(name) == m.name for n in declarations
+                ):
+                    exported = True
+            if exported:
+                self.exports[m.path][m.name].append(("local", mid))
+        for path, root in self.roots.items():
+            for node in root.named_children:
+                if node.type == "import_statement":
+                    source = node.child_by_field_name("source")
+                    if source is None:
+                        continue
+                    target = text(source).strip("\"'")
+                    for n in walk(node):
+                        if n.type == "import_specifier":
+                            name = n.child_by_field_name("name")
+                            alias = n.child_by_field_name("alias")
+                            if name is not None:
+                                self.bindings[path][text(alias or name)].append(("import", (target, text(name))))
+                        elif n.type == "namespace_import":
+                            self.bindings[path][text(n.named_children[-1])].append(("namespace", target))
+                        elif n.type == "import_clause":
+                            for child in n.named_children:
+                                if child.type == "identifier":
+                                    self.bindings[path][text(child)].append(("import", (target, "default")))
+                elif node.type == "export_statement":
+                    source = node.child_by_field_name("source")
+                    for n in walk(node):
+                        if n.type == "export_specifier":
+                            name = n.child_by_field_name("name")
+                            alias = n.child_by_field_name("alias")
+                            if name is not None:
+                                self.exports[path][text(alias or name)].append(
+                                    ("import", (text(source).strip("\"'"), text(name)))
+                                    if source is not None
+                                    else ("binding", text(name))
+                                )
+
+    def modules(self, path, spec):
+        stems = []
+        if spec.startswith("."):
+            stems = [posixpath.normpath(posixpath.join(posixpath.dirname(path), spec))]
+        else:
+            configs = [
+                (p, c)
+                for p, c in self.paths.items()
+                if path.startswith(posixpath.dirname(p) + "/") or posixpath.dirname(p) in ("", ".")
+            ]
+            if configs:
+                _, (base, aliases) = max(configs, key=lambda x: len(x[0]))
+                for pattern, targets in aliases.items():
+                    pat = "^" + re.escape(pattern).replace(r"\*", "(.*)") + "$"
+                    match = re.match(pat, spec)
+                    if match:
+                        for target in targets:
+                            stems.append(
+                                posixpath.normpath(
+                                    posixpath.join(base, target.replace("*", match.group(1) if match.groups() else ""))
+                                )
+                            )
+        found = set()
+        for stem in stems:
+            if stem in self.sources:
+                found.add(stem)
+            found.update(p for p in module_candidates(stem) if p in self.sources)
+        return sorted(found)
+
+    def resolve(self, path, name, blocked=frozenset(), seen=(), export=False):
+        key = (path, name, export)
+        if key in seen or len(seen) > 12:
+            return None, "cycle"
+        head, dot, tail = name.partition(".")
+        if head in blocked:
+            return None, "shadowed-local"
+        values = (self.exports if export else self.bindings)[path].get(head, [])
+        values = list(dict.fromkeys(values))
+        if len(values) != 1:
+            return None, "ambiguous-binding" if values else "missing-binding"
+        kind, value = values[0]
+        if kind == "local":
+            return (value, "resolved-model") if not dot else (None, "member-not-model")
+        if kind == "binding":
+            return self.resolve(path, value, blocked, (*seen, key))
+        spec, symbol = (value, tail) if kind == "namespace" else value
+        if kind == "namespace" and not dot:
+            return None, "namespace-not-model"
+        targets = self.modules(path, spec)
+        if len(targets) != 1:
+            return None, "ambiguous-module" if targets else "unresolved-import-module"
+        return self.resolve(targets[0], symbol, frozenset(), (*seen, key), True)
+
+
+def resolve_ts(sources, models, functions, destination):
+    resolver = TSResolver(sources, models)
+    links = collections.defaultdict(lambda: collections.defaultdict(lambda: {"fields": set(), "sites": []}))
+    stats = collections.Counter()
+    with destination.open("w") as output:
+
+        def record(fid, node, kind, ref, target, status, fields=()):
+            stats[kind + ":all"] += 1
+            stats[kind + ":" + status] += 1
+            r = dict(
+                function=fid,
+                line=node.start_point.row + 1,
+                kind=kind,
+                reference=ref,
+                target=target,
+                status=status,
+                fields=sorted(fields),
+            )
+            output.write(json.dumps(r, sort_keys=True) + "\n")
+            if target:
+                links[fid][target]["fields"].update(fields)
+                links[fid][target]["sites"].append(r)
+
+        bypath = collections.defaultdict(list)
+        for fid, f in functions.items():
+            bypath[f.path].append((fid, f))
+        for path, values in bypath.items():
+            root = resolver.roots[path]
+            function_nodes = [n for n in walk(root) if n.type in FUNCTIONS]
+            for fid, f in values:
+                matches = []
+                for n in function_nodes:
+                    parent = n.parent
+                    start = (
+                        (parent.start_point.row + 1)
+                        if parent is not None
+                        and parent.type in ("variable_declarator", "public_field_definition", "pair")
+                        else n.start_point.row + 1
+                    )
+                    end = (
+                        (parent.end_point.row + 1)
+                        if parent is not None
+                        and parent.type in ("variable_declarator", "public_field_definition", "pair")
+                        else n.end_point.row + 1
+                    )
+                    if start == f.line and end == f.end_line:
+                        matches.append(n)
+                if len(matches) != 1:
+                    stats["function:missing-or-ambiguous-ast"] += 1
+                    continue
+                node = matches[0]
+                stats["function:all"] += 1
+                nodes = list(walk(node, True))
+                env = {}
+                blocked = set()
+                for n in nodes:
+                    if n.type in ("required_parameter", "optional_parameter"):
+                        name = n.child_by_field_name("pattern")
+                        if name is not None and name.type == "identifier":
+                            blocked.add(text(name))
+                    elif n.type == "variable_declarator":
+                        name = n.child_by_field_name("name")
+                        if name is not None and name.type == "identifier":
+                            blocked.add(text(name))
+
+                def annotation(ann, path=path, blocked=blocked, fid=fid):
+                    found = set()
+                    refs = [
+                        text(n)
+                        for n in walk(ann)
+                        if n.type in ("type_identifier", "nested_type_identifier", "type_query")
+                    ]
+                    for ref in sorted(set(refs)):
+                        ref = re.sub(r"^typeof\s+", "", ref)
+                        target, status = resolver.resolve(path, ref, blocked)
+                        record(fid, ann, "annotation", ref, target, status)
+                        if target:
+                            found.add(target)
+                    return found
+
+                for n in nodes:
+                    if n.type in ("required_parameter", "optional_parameter", "variable_declarator"):
+                        name = (
+                            n.child_by_field_name("pattern")
+                            if n.type.endswith("parameter")
+                            else n.child_by_field_name("name")
+                        )
+                        ann = n.child_by_field_name("type")
+                        if name is not None and name.type == "identifier" and ann is not None:
+                            targets = annotation(ann)
+                            if len(targets) == 1:
+                                target = next(iter(targets))
+                                env[text(name)] = target
+                                value = n.child_by_field_name("value")
+                                if value is not None and value.type == "object":
+                                    fields = {
+                                        text(k).strip("\"'")
+                                        for p in value.named_children
+                                        if (k := p.child_by_field_name("key")) is not None
+                                    } & set(models[target].declaration.fields)
+                                    record(fid, value, "typed-object", text(name), target, "resolved-model", fields)
+                ann = node.child_by_field_name("return_type")
+                return_targets = annotation(ann) if ann is not None else set()
+                for n in nodes:
+                    if n.type == "return_statement" and len(return_targets) == 1:
+                        target = next(iter(return_targets))
+                        value = next(iter(n.named_children), None)
+                        if value is not None and value.type == "object":
+                            fields = {
+                                text(k).strip("\"'")
+                                for p in value.named_children
+                                if (k := p.child_by_field_name("key")) is not None
+                            } & set(models[target].declaration.fields)
+                            record(fid, n, "typed-return-object", "return", target, "resolved-model", fields)
+                    elif n.type == "member_expression":
+                        receiver = n.child_by_field_name("object")
+                        prop = n.child_by_field_name("property")
+                        ref = text(receiver) if receiver is not None else ""
+                        target = env.get(ref)
+                        field = text(prop) if prop is not None else ""
+                        if target and field in models[target].declaration.fields:
+                            record(fid, n, "field-use", ref + "." + field, target, "resolved-model", [field])
+                        else:
+                            record(fid, n, "field-use", ref + "." + field, None, "unresolved-or-not-declared-field")
+                    elif n.type == "call_expression":
+                        callee = n.child_by_field_name("function")
+                        if callee is None or callee.type != "member_expression":
+                            continue
+                        receiver = callee.child_by_field_name("object")
+                        prop = callee.child_by_field_name("property")
+                        if (
+                            receiver is None
+                            or prop is None
+                            or text(prop) not in ("parse", "safeParse", "parseAsync", "safeParseAsync")
+                        ):
+                            continue
+                        target, status = resolver.resolve(path, text(receiver), blocked)
+                        if target and models[target].declaration.kind != "zod":
+                            target, status = None, "not-zod-schema"
+                        args = n.child_by_field_name("arguments")
+                        obj = next(iter(args.named_children), None) if args is not None else None
+                        fields = (
+                            {
+                                text(k).strip("\"'")
+                                for p in obj.named_children
+                                if (k := p.child_by_field_name("key")) is not None
+                            }
+                            & set(models[target].declaration.fields)
+                            if target and obj is not None and obj.type == "object"
+                            else set()
+                        )
+                        record(fid, n, "schema-call", text(receiver), target, status, fields)
+                stats["function:linked" if links[fid] else "function:unlinked"] += 1
+    return {
+        fid: {m: {"fields": sorted(v["fields"]), "sites": v["sites"]} for m, v in ms.items()}
+        for fid, ms in links.items()
+        if ms
+    }, dict(stats)

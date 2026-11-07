@@ -1,0 +1,330 @@
+"""Build source-verified, funded-only requests; source reviews remain unknown pending ROOT."""
+
+import gzip
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+from dry_lint.extractors import PythonExtractor
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
+from dry_lint.judges.jev import JevJudge
+from dry_lint.judges.model_jev import ModelJevJudge
+from dry_lint.model_shapes import PythonModelExtractor
+from dry_lint.models import Candidate, Function, evidence
+
+OUT = Path(__file__).resolve().parent
+ROOT = Path("/home/researcher/dry-lint-round")
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def rows(p):
+    with p.open() as handle:
+        for line in handle:
+            yield json.loads(line)
+
+
+def endpoint(r, side):
+    if "candidate" in r:
+        return Function.model_validate(r["candidate"][side]).qualname
+    s = r.get(side)
+    if isinstance(s, dict):
+        return s.get("id") or s.get("source_id")
+    return None
+
+
+def exact_reviewed():
+    paths = []
+    base = ROOT / "reports/candidate-first/corpus-verification"
+    for folder in ("public-gold", "candidate-first-gold", "private-historical400", "scaled-v1"):
+        for file in (
+            "accepted-public-gold.jsonl",
+            "gold.jsonl",
+            "unknown.jsonl",
+            "source-related.jsonl",
+            "disputed.jsonl",
+            "contrast-controls.jsonl",
+            "unresolved.jsonl",
+        ):
+            p = base / folder / file
+            if p.exists():
+                paths.append(p)
+    paths.extend((ROOT / "reports/candidate-first/frozen-review-batches").glob("*.jsonl"))
+    reviewed = set()
+    for path in paths:
+        for r in rows(path):
+            a, b = endpoint(r, "new"), endpoint(r, "existing")
+            if a and b:
+                reviewed.add((r["repository"], tuple(sorted((a, b)))))
+    return reviewed, paths
+
+
+def main():
+    reviewed, reviewed_paths = exact_reviewed()
+    selected = [
+        (
+            "MF-M01",
+            "software-agent-sdk",
+            "4243db9d768eb44c2b51",
+            "promising",
+            "One integration runner TestResult is explicitly copied to TestResultData by ModelTestResults.from_eval_outputs; inspect whether one reusable result authority can replace field projection without changing serialization.",
+            [
+                "tests/integration/schemas.py::ModelTestResults.from_eval_outputs",
+                "tests/integration/run_infer.py::process_instance",
+            ],
+        ),
+        (
+            "MF-M02",
+            "litellm",
+            "4f681e5ae6723c7b5167",
+            "promising",
+            "KeySpendRow and UserSpendRow declare the same spend/token/request metric component. Typed endpoint adapters project those counters with differing identity dimensions and cache extensions; inspect meaningful metric ownership while retaining identity.",
+            [
+                "litellm/proxy/management_endpoints/daily_activity_routes.py::_key_activity_row",
+                "litellm/proxy/management_endpoints/daily_activity_routes.py::_user_activity_row",
+            ],
+        ),
+        (
+            "MF-C01",
+            "litellm",
+            "28f9d2aa969462e1491f",
+            "control",
+            "Source boundary to investigate: validated API update fields convert to repository column changes; omitted versus explicit null label uses KeepLabel/SetLabel and dates convert to strings. Similarity must preserve the validation and partial-update contract.",
+            [
+                "litellm/proxy/management_endpoints/subscription_accounts.py::_fee_changes",
+                "litellm/repositories/subscription_account_repository.py::SubscriptionAccountFeeChanges.columns",
+            ],
+        ),
+        (
+            "MF-C02",
+            "litellm",
+            "2930026e203d55d20699",
+            "control",
+            "Source boundary to investigate: frozen normalized SessionConfig is explicitly projected to mutable SessionContext with a new session_id and accumulated usage. Determine whether useful configuration composition exists while preserving lifecycle/state and validation.",
+            ["litellm/harness/runtime.py::_context_for", "litellm/harness/runtime.py::validate"],
+        ),
+        (
+            "MF-C03",
+            "litellm",
+            "31674555d73c6e2d24e7",
+            "control",
+            "Resolved similar call-record models connect Decisions preparation to Extraction sending. Compare actual steps: provider/request validation and record construction versus invoking an existing handler and formatting its response. Shared record fields alone do not establish repeated operations.",
+            ["litellm/decisions/call.py::prepare_call", "litellm/extraction/main.py::_send"],
+        ),
+        (
+            "MF-C04",
+            "software-agent-sdk",
+            "5f27f2581f72fc8b77c4",
+            "control",
+            "Production initialization versus a test that calls the shared Metrics.add_token_usage and asserts accumulated values. Both statically link to Metrics; inspect test independence and existing shared implementation before treating their schema use as duplication.",
+            ["openhands/sdk/llm/utils/metrics.py::Metrics.add_token_usage"],
+        ),
+    ]
+    queue = []
+    blind = []
+    sidecars = []
+    request_plan = []
+    skipped = []
+    metas = json.loads(
+        (ROOT / "jobs/review-automation/.lab-results/review-automation/repositories-five.json").read_text()
+    )
+    for rid, name, cid, stratum, note, callers in selected:
+        folder = OUT / name
+        manifest = json.loads((folder / "source-manifest.json").read_text())
+        proofs = {p["path"]: p for p in manifest["files"]}
+        repository = manifest["repository"]
+        meta = next(m for m in metas if m["repository"] == repository)
+        candidates = {r["candidate_id"]: r for r in rows(folder / "candidates.jsonl")}
+        r = candidates[cid]
+        funded = [e for e in rows(folder / "candidate-exposures.jsonl") if e["candidate_id"] == cid and e["funded"]]
+        assert funded, (rid, "not funded")
+        if (repository, tuple(r["endpoints"])) in reviewed:
+            skipped.append(dict(id=rid, candidate_id=cid, reason="exact previously reviewed pair"))
+            continue
+        c = Candidate.model_validate(r["candidate"])
+        assert c.model_dump() == r["candidate"]
+        ex = PythonModelExtractor() if r["kind"] == "model" else PythonExtractor()
+        sources = []
+        excerpts = []
+        captured = {}
+        for f in (c.new, c.existing):
+            proof = proofs[f.path]
+            raw = subprocess.check_output(["git", "-C", meta["git"], "show", manifest["revision"] + ":" + f.path])
+            assert sha(raw) == proof["sha256"]
+            assert raw == gzip.decompress((folder / "sources" / (proof["sha256"] + ".py.gz")).read_bytes())
+            native = [x for x in ex.functions(f.path, raw.decode()) if x.qualname == f.qualname]
+            assert len(native) == 1 and native[0].code == f.code
+            native[0].hash = ex.structure_hash(native[0])
+            assert native[0].model_dump() == f.model_dump()
+            sources.append(
+                dict(
+                    source_id=f.qualname,
+                    path=f.path,
+                    revision=manifest["revision"],
+                    full_source_sha256=proof["sha256"],
+                    git_blob_sha1=proof["git_blob_sha1"],
+                    source_sha256=sha(f.code.encode()),
+                    source_file=str(folder / "sources" / (proof["sha256"] + ".py.gz")),
+                    start_line=f.line,
+                    end_line=f.end_line,
+                    blob_url=f"https://github.com/{repository}/blob/{manifest['revision']}/{f.path}#L{f.line}",
+                    excerpt=f.code,
+                )
+            )
+            captured[f.path] = raw
+        for caller in callers:
+            path = caller.split("::")[0]
+            proof = proofs[path]
+            raw = captured.get(path)
+            if raw is None:
+                raw = subprocess.check_output(["git", "-C", meta["git"], "show", manifest["revision"] + ":" + path])
+            assert sha(raw) == proof["sha256"]
+            fs = [f for f in PythonExtractor().functions(path, raw.decode()) if f.qualname == caller]
+            assert len(fs) == 1, caller
+            f = fs[0]
+            excerpts.append(
+                dict(
+                    source_id=caller,
+                    path=path,
+                    revision=manifest["revision"],
+                    full_source_sha256=proof["sha256"],
+                    git_blob_sha1=proof["git_blob_sha1"],
+                    excerpt_sha256=sha(f.code.encode()),
+                    start_line=f.line,
+                    end_line=f.end_line,
+                    excerpt=f.code,
+                    source_file=str(folder / "sources" / (proof["sha256"] + ".py.gz")),
+                )
+            )
+        kind = r["kind"]
+        policy = "model-contracts" if kind == "model" else "shared-operations"
+        wants = [
+            dict(
+                kind="jev-models" if kind == "model" else "jev",
+                model="jev-1.14.0",
+                prompt_policy="model-ownership-v1" if kind == "model" else "reuse-context-v3",
+                context=True,
+                max_output_tokens=None,
+            ),
+            dict(kind="claude", model="claude-sonnet-5-5", prompt_policy=policy, max_output_tokens=1024),
+        ]
+        background_proof = dict(meta["background_proof"])
+        background_proof["role"] = (
+            "Frozen function sparse-corpus proof; model declarations have separate native model inventory, never function verdict reuse."
+        )
+        q = dict(
+            schema=1,
+            id=rid,
+            repository=repository,
+            revision=manifest["revision"],
+            candidate_kind=kind,
+            candidate=c.model_dump(),
+            source_proofs=sources,
+            consumer_ownership_proofs=excerpts,
+            background_proof=background_proof,
+            model_inventory_proof=dict(
+                path=str(folder / "models.json"), sha256=sha((folder / "models.json").read_bytes())
+            )
+            if kind == "model"
+            else None,
+            canonical_requests=wants,
+            status="unknown; ROOT allocation and independent review pending",
+            judge_answers=None,
+        )
+        queue.append(q)
+        jev = (ModelJevJudge if kind == "model" else JevJudge)(
+            api_key="offline-render-only", model="jev-1.14.0", context=True, workers=1
+        )
+        # Exact canonical rendering only: no client, _ask, judge or provider execution.
+        for request_kind, judge_name, version, model, limit, rendered in [
+            ("jev-models" if kind == "model" else "jev", jev.name, jev.version, jev.model, None, jev.input_text(c)),
+            (
+                "claude",
+                "anthropic-models" if kind == "model" else "anthropic-operations",
+                PROMPT_POLICIES[policy][0] + ":claude-sonnet-5-5:output=1024",
+                "claude-sonnet-5-5",
+                1024,
+                prompt(c, policy=policy),
+            ),
+        ]:
+            identity = dict(
+                kind=request_kind,
+                judge=judge_name,
+                version=version,
+                model=model,
+                max_output_tokens=limit,
+                rendered_input=rendered,
+                source_evidence=evidence(c),
+                context_hash=c.context_hash,
+            )
+            request_plan.append(
+                dict(
+                    id=rid,
+                    request_key=sha(json.dumps(identity, sort_keys=True).encode()),
+                    identity=identity,
+                    status="rendered-only; not executed",
+                )
+            )
+        # Independent reviewer input has no variant/comparer/similarity/rank/funding/selection rationale.
+        reviewer_id = "MF-R-" + sha((repository + "\n" + "\n".join(r["endpoints"])).encode())[:10]
+        blind.append(
+            dict(
+                schema=1,
+                id=reviewer_id,
+                repository=repository,
+                revision=manifest["revision"],
+                candidate_kind=kind,
+                policy=policy,
+                new=c.new.model_dump(),
+                existing=c.existing.model_dump(),
+                source_proofs=sources,
+                consumer_ownership_proofs=excerpts,
+                review_guidance="Review only established shared operations or model authority, preserve independent validation, defaults, omitted/null behavior, lifecycle, API exposure and test oracles. Unknown if insufficient evidence. Do not infer a label from inclusion.",
+            )
+        )
+        sidecars.append(
+            dict(
+                id=rid,
+                candidate_id=cid,
+                review_packet_id=reviewer_id,
+                selection_stratum=stratum,
+                source_inspection=note,
+                funding=funded,
+                independent_label=None,
+                matched_mechanism="explicit model use and source-established boundary; not a random sample or population precision estimator",
+            )
+        )
+    assert sum(s["selection_stratum"] == "promising" for s in sidecars) <= 8
+    assert sum(s["selection_stratum"] == "control" for s in sidecars) <= 4
+    blind.sort(key=lambda r: r["id"])
+    for file, rs in [
+        ("novel-review-queue.jsonl", queue),
+        ("blind-review-packets.jsonl", blind),
+        ("private-review-sidecar.jsonl", sidecars),
+        ("canonical-request-plan.jsonl", request_plan),
+    ]:
+        with (OUT / file).open("w") as handle:
+            for row in rs:
+                handle.write(json.dumps(row, sort_keys=True) + "\n")
+    manifest = dict(
+        queue=str(OUT / "novel-review-queue.jsonl"),
+        queue_sha256=sha((OUT / "novel-review-queue.jsonl").read_bytes()),
+        packets=len(queue),
+        kinds=dict(__import__("collections").Counter(r["candidate_kind"] for r in queue)),
+        actually_funded=True,
+        full_native_source_verified=True,
+        reviewed_pair_exclusion_count=len(reviewed),
+        exclusion_inputs=[dict(path=str(p), sha256=sha(p.read_bytes())) for p in reviewed_paths],
+        skipped=skipped,
+        physical_spend_usd=0,
+        root_coordination="Message tool automatically rejected approval-policy never; queue signaled in commentary/HANDOFF. No provider calls.",
+    )
+    (OUT / "queue-manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    print(json.dumps({k: v for k, v in manifest.items() if k != "exclusion_inputs"}, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,110 @@
+"""Reuse central intake/request contracts to seal offline round1 dispatch chunks."""
+import collections
+import datetime
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+WORK = Path(__file__).resolve().parents[2]
+ROOT = Path('/home/researcher/dry-lint-round')
+CENTRAL = ROOT / 'jobs/judge-operations/.lab-results'
+sys.path.insert(0, str(CENTRAL / 'judge-operations'))
+sys.path.insert(0, str(CENTRAL / 'lab-contracts'))
+from dry_lint.models import Candidate
+import queue_judges as q
+from parsers import adapt_intake_request
+
+ROUND = Path(__file__).resolve().parent / 'round2'
+OUT = ROUND / 'supplement-02'
+BATCH = ROUND / 'batch-02'
+
+def loadlines(p):
+    return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+
+def write(p, rows):
+    content=''.join(json.dumps(row,sort_keys=True)+'\n' for row in rows)
+    if p.exists():
+        assert p.read_text()==content, 'Frozen artifact differs: '+str(p)
+        return
+    with p.open('x') as stream:stream.write(content)
+
+def dump(p, obj):
+    content=json.dumps(obj,indent=2,sort_keys=True)+'\n'
+    if p.exists():
+        assert p.read_text()==content, 'Frozen artifact differs: '+str(p)
+        return
+    with p.open('x') as stream:stream.write(content)
+
+def receipt(p):
+    return {'path': str(p.resolve()), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
+
+def main():
+    OUT.mkdir(exist_ok=True)
+    if (OUT / 'HANDOFF.json').exists():
+        raise SystemExit('Round already sealed: append new batch/version, never rewrite')
+    checked = json.loads((ROUND / 'batch-02-validation.json').read_text())
+    assert checked['all_pass'] and checked['rows'] > 0
+    packets = loadlines(BATCH / 'novel-review-queue.jsonl')
+    sides = {r['id']: r for r in loadlines(BATCH / 'private-funding-sidecar.jsonl')}
+    legacy = {(r['id'], r['identity']['kind']): r for r in loadlines(BATCH / 'canonical-request-plan.jsonl')}
+    native = {'schema': 1, 'status': 'PASS', 'mixed_native_validation': receipt(ROUND / 'batch-02-validation.json'), 'checks': checked['results'], 'verification': 'Exact git-show full pin, native Python/TypeScript function/model extractor, full Candidate, source scope/background and original .04 combined ledger revalidated. No snippet coordinate inference.'}
+    dump(OUT / 'native-verification.json', native)
+    native_sha = receipt(OUT / 'native-verification.json')['sha256']
+    obsdirs = set(q.observation_directories(OUT))
+    obsdirs.update(CENTRAL.glob('promotion-evidence-*/observations'))
+    records = q.observations(sorted(obsdirs))
+    entries, requests, typed, costs, attribution = [], [], [], [], []
+    for packet in packets:
+        c = Candidate.model_validate(packet['candidate']); side = sides[packet['id']]
+        binding = dict(repository=packet['repository'], revision=packet['revision'], candidate_sha256=q.sha(q.canonical(packet['candidate'])), source_files=[dict(source_id=p['source_id'], path=p['path'], file_sha256=p['full_source_sha256'], body_sha256=p['source_sha256']) for p in packet['source_proofs']], scope=packet['background_proof']['scope'], background_sha256=packet['background_proof']['sha256'], candidate_kind=packet['candidate_kind'])
+        entry = dict(method='model-function', id=packet['id'], pair_key=q.sha(q.canonical([packet['repository'], packet['revision'], sorted([c.new.qualname, c.existing.qualname])])), role='control' if 'control' in side['private_stratum'] else 'novel', packet=packet, binding=binding, input=str(BATCH / 'novel-review-queue.jsonl'), sidecar=side, native_funding={'original_per_campaign_cap_usd': .04, 'native': side['funding'], 'ledger_file': side['ledger_file'], 'source_order_unchanged': True}, attribution=[{'method':'model-function','round':2,'original_candidate_id':side['candidate_id'],'original_cohort_id':side['cohort_id'],'ownership_family_key':side['ownership_family_key'],'added_to_function_only':side['added_to_function_only'],'kind':packet['candidate_kind']}])
+        entries.append(entry)
+        for kind in ('jev-models' if c.new.declaration else 'jev', 'claude'):
+            req = q.request(c, kind, binding)
+            assert req['legacy_identity'] == legacy[(packet['id'], kind)]['identity']
+            req.update(method='model-function', case_id=packet['id'], pair_key=entry['pair_key'], attribution=entry['attribution'], packet=packet, packet_file=str((BATCH / 'novel-review-queue.jsonl').resolve()), packet_file_sha256=receipt(BATCH / 'novel-review-queue.jsonl')['sha256'], cache=None, probe=False, state='new_request')
+            hit = q.lookup(req, packet, records) or q.prior_failure(req, packet, records)
+            if hit:
+                req['cache'] = hit
+                req['state'] = 'cache_hit' if q.known_usage(hit['record']) else 'unaccounted_prior_observation'
+            projection = adapt_intake_request(req, entry, native_verification_sha256=native_sha, location='model-function.round2.'+packet['id'])
+            requests.append(req); typed.append(projection.model_dump(mode='json'))
+            identity = req['identity']; rates = q.PRICES['jev' if kind.startswith('jev') else identity['model']]
+            normal = q.usage_cost(dict(input=len(identity['rendered_input'])/2.8, output=150), rates)
+            costs.append({'case_id':packet['id'],'request_key':req['request_key'],'kind':kind,'state':req['state'],'normal_estimate_usd':normal,'conservative_reservation_usd':req['reservation_usd'],'actual_new_paid_usd':None,'qualification':'Diagnostic request estimate; does not change any deployment .04 ledger. Cache hits count as zero NEW actual spend.'})
+        attribution.append({'id':packet['id'],'review_packet_id':side['review_packet_id'],'private_role':entry['role'],'ownership_family_key':side['ownership_family_key'],'ownership_model_ids':side['ownership_model_ids'],'source_function_endpoints':sorted([c.new.qualname,c.existing.qualname]) if packet['candidate_kind']=='function' else [],'repository':packet['repository'],'revision':packet['revision']})
+    assert len({r['request_key'] for r in requests}) == len(requests)
+    assert len({r['pair_key'] for r in entries}) == len(packets)
+    write(OUT / 'frozen-input.jsonl', entries)
+    write(OUT / 'intake-request-plan.jsonl', requests)
+    write(OUT / 'typed-requests.jsonl', typed)
+    write(OUT / 'diagnostic-cost-plan.jsonl', costs)
+    write(OUT / 'private-family-reservation.jsonl', attribution)
+    chunks = []
+    for i in range((len(entries)+15)//16):
+        folder = OUT / f'chunk-{i+1:02d}'; folder.mkdir(exist_ok=True)
+        es = entries[i*16:(i+1)*16]; ids = {e['id'] for e in es}
+        rs = [r for r in requests if r['case_id'] in ids]; ts = [r for r in typed if r['projection']['case_id'] in ids]
+        assert len(rs)==2*len(es)
+        write(folder / 'novel-review-queue.jsonl', [e['packet'] for e in es])
+        write(folder / 'frozen-input.jsonl', es)
+        write(folder / 'intake-request-plan.jsonl', rs)
+        write(folder / 'typed-requests.jsonl', ts)
+        write(folder / 'private-funding-sidecar.jsonl', [sides[e['id']] for e in es])
+        write(folder / 'blind-review-packets.jsonl', [p for p in loadlines(BATCH / 'blind-review-packets.jsonl') if p['id'] in {sides[e['id']]['review_packet_id'] for e in es}])
+        manifest = {'schema':1,'direction':'model-function','round':2,'chunk':i+1,'cases':len(es),'requests':len(rs),'novel':sum(e['role']=='novel' for e in es),'private_controls':sum(e['role']=='control' for e in es),'status':'FROZEN_ROOT_READY','artifacts':[receipt(p) for p in sorted(folder.glob('*.jsonl'))]}
+        dump(folder / 'FROZEN.json', manifest); chunks.append({'chunk':i+1,'cases':len(es),'requests':len(rs),'queue':str((folder/'novel-review-queue.jsonl').resolve()),'manifest':receipt(folder/'FROZEN.json'),'new_request_count':sum(r['state']=='new_request' for r in rs),'normal_estimated_diagnostic_usd':sum(x['normal_estimate_usd'] for x in costs if x['case_id'] in ids)})
+    state_counts = dict(collections.Counter(r['state'] for r in requests))
+    handoff = {'schema':1,'direction':'model-function','round':2,'status':'FROZEN_ROOT_READY_PENDING_PAID_JUDGING','earlier_stop_decision':'PROVISIONAL_USER_OVERRIDDEN; original evidence preserved','provider_owner':'root judge-operations only; worker has no credentials and makes no calls','minimum_new_actual_paid_usd':.20,'target_expected_actual_new_usd':[.25,.35],'root_overall_phase_cap_usd':20,'do_not_pay_repeats_to_fill_quota':True,'cache_counts_towards_actual_floor':False,'queue_cases':len(entries),'novel_cases':sum(e['role']=='novel' for e in entries),'independent_unknown_controls':sum(e['role']=='control' for e in entries),'candidate_kinds':dict(collections.Counter(p['candidate_kind'] for p in packets)),'incremental_to_function_only':dict(collections.Counter(p['candidate_kind'] for p in packets if sides[p['id']]['added_to_function_only'])),'requests':len(requests),'request_states':state_counts,'eligible_original_funded_inventory_at_seal':83,'remaining_inventory_before_additional_source_or_independence_filters':83-len(entries),'expected_actual_new_usd_empirical_anchor':len(entries)*(.01911308/3),'expected_actual_qualification':'Approximate using earlier three-pair sealed intake rate only; not spend or a guarantee. Dispatch32-request chunks and stop once root actual ledger >=.20; adaptively request next immutable batch if required.','normal_estimated_diagnostic_usd':sum(x['normal_estimate_usd'] for x in costs if x['state']=='new_request'),'normal_estimate_qualification':'150 output token canonical pricing; separate from conservative provider reservation and actual usage. Both passes remain charged under original single .04 synthetic deployment ledger.','deployment_budget_per_original_batch_usd':.04,'deployment_funding_path':str((BATCH/'private-funding-sidecar.jsonl').resolve()),'original_source_proof_queue':str((BATCH/'novel-review-queue.jsonl').resolve()),'original_funding_and_source_manifest':receipt(BATCH/'FROZEN.json'),'source_proof_validation':receipt(ROUND/'batch-02-validation.json'),'native_verification':receipt(OUT/'native-verification.json'),'queue':str((BATCH/'novel-review-queue.jsonl').resolve()),'queue_sha256':receipt(BATCH/'novel-review-queue.jsonl')['sha256'],'manifest':str((OUT/'intake-request-plan.jsonl').resolve()),'central_intake_schema':'Existing sealed-intake-request-v1 raw wire + lab-request-v1 LegacyProjection via central parsers.adapt_intake_request','typed_requests':str((OUT/'typed-requests.jsonl').resolve()),'funding':str((BATCH/'private-funding-sidecar.jsonl').resolve()),'sourceproof':str((BATCH/'novel-review-queue.jsonl').resolve()),'score_free_source_review':str((BATCH/'blind-review-packets.jsonl').resolve()),'private_ownership_families_reserved_for_round1':str((OUT/'private-family-reservation.jsonl').resolve()),'chunks':chunks,'canonical_policy':{'model':'model-contracts','function':'shared-operations','claude':'claude-sonnet-5-5; output1024','jev':'jev-1.14.0; contexttrue; native model/function judge identity'},'native_validator_command':'PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 PYTHONPATH='+str(WORK/'src')+' /home/researcher/dry-lint-round/retrieval/.venv/bin/python '+str(WORK/'.lab-results/full-corpus-followup/validate_novel_batch.py')+' '+str(BATCH)+' --out /tmp/model-function-round1-native-validation.json','validator_warning':'Use mixed native Python/TypeScript model and function validation. Ordinary function freezer and legacy Python-only mixed helper are unsuitable for TS/model declarations.','current_phase_actual_paid_credited_usd':.09918588,'remaining_round2_actual_paid_floor_usd':.10081412,'current_phase_attribution':'Root confirms first13 round2 cases/26 successful fresh requests cost.09918588. Supplemental queue frozen before reading those verdicts. Root stops new diagnostic dispatch once cumulative new round2 actual>=.20; caches/repeats do not count.','historical_actual_paid_usd_separate':{'pilot':.044103,'older_sealed_intake':.01911308,'round1_current_phase_separate':.20703060},'round2':'This IS the one preregistered revision. Root new paid floor .20 or root-verified eligible exhaustion is required. No third mechanism or paid repeats to fill quota.','existing_gold_comparisons':'Original final617 comparisons retained; revised static signal evaluated all16 cached native cohorts without index fits; cached-campaign row metrics separately qualified.','worker_provider_calls':0,'worker_credentials_read':False,'commands':['PYTHONPATH='+str(WORK/'src')+' /home/researcher/dry-lint-round/retrieval/.venv/bin/python '+str(Path(__file__).with_name('prepare_round2_supplement.py'))+' --batch batch-02','native_validator_command above','PYTHONPATH='+str(WORK/'src')+' /home/researcher/dry-lint-round/retrieval/.venv/bin/python '+str(Path(__file__))],'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    handoff['full_source_coverage']=receipt(ROUND/'full-source-coverage/SUMMARY.json')
+    handoff['coverage_addendum']=receipt(ROUND/'EXPERIMENT-COVERAGE-v2.json')
+    handoff['eligible_supply_warning']='No exhaustion claim: all supported public-source query coverage completed,83 eligible unreviewed funded signal pairs at seal,48 queued,35 retained reserve. Queue includes18 treatment-only function pairs absent baseline funding; other pairs test precision. Current round2 first13 precision cases cost.09918588; remaining actual floor.10081412. Root dispatch bounded32-request chunks until cumulative actual>=.20.'
+    handoff['artifacts']=[receipt(p) for p in sorted(OUT.glob('*.json*')) if p.name!='EXPERIMENT.json']+[receipt(ROUND/'EXPERIMENT.json'),receipt(Path(__file__)),receipt(Path(__file__).with_name('prepare_round2_supplement.py'))]
+    dump(OUT / 'HANDOFF.json', handoff)
+    status={'schema':1,'direction':'model-function','status':handoff['status'],'round':2,'handoff':receipt(OUT/'HANDOFF.json'),'queue_cases':len(entries),'requests':len(requests),'chunks32_requests':len(chunks),'minimum_actual_new_paid_usd':.20,'expected_actual_new_usd_empirical_anchor':handoff['expected_actual_new_usd_empirical_anchor'],'worker_provider_calls':0,'earlier_stop_decision':'PROVISIONAL_USER_OVERRIDDEN'}
+    (ROUND.parent/'STATUS.json').write_text(json.dumps(status,indent=2,sort_keys=True)+'\n')
+    print(json.dumps({'status':handoff['status'],'cases':len(entries),'requests':len(requests),'states':state_counts,'empirical_expected_new_usd':handoff['expected_actual_new_usd_empirical_anchor'],'normal_estimated_diagnostic_usd':handoff['normal_estimated_diagnostic_usd'],'chunks32_requests':len(chunks)}))
+
+if __name__=='__main__':
+    main()

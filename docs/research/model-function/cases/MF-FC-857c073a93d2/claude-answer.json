@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.006628,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "5c3c5ebc1deb1028f8438fbaff78676e0cfaa1e24cdb5c7995a0db07697c1972",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoGHS84JzZQm78ozsdwn\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"separate\\\",\\\"score\\\":0.04,\\\"owner\\\":\\\"\\\",\\\"why\\\":\\\"Both functions branch on StreamCommit kind and phase, but they compute different things. entryBody builds the content of a scrollback entry (text, markdown or reasoning bodies, mono handling, interrupted messages). entryLook only picks a foreground color and attributes from the theme. There is no shared executable operation, only a similar dispatch shape over the same input type. The overlapping conditions (kind === 'user', phase === 'final') are trivial checks with different outcomes for different purposes, so they do not amount to a reusable policy. Extracting a helper would only be generic branching syntax.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":2239,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":2239,\"output_tokens\":215,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":215,\"output_tokens_details\":{\"thinking_tokens\":0},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "6161a8b0dfeb78ebf389b05b4cfd75ccb398b8f9b9cc13273761f7028e3c16cc",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 2239,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2239,
+        "model": null,
+        "output_tokens": 215,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 215,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "separate",
+    "model_assessment": null,
+    "owner": "",
+    "score": 0.04,
+    "second_opinion": null,
+    "why": "Both functions branch on StreamCommit kind and phase, but they compute different things. entryBody builds the content of a scrollback entry (text, markdown or reasoning bodies, mono handling, interrupted messages). entryLook only picks a foreground color and attributes from the theme. There is no shared executable operation, only a similar dispatch shape over the same input type. The overlapping conditions (kind === 'user', phase === 'final') are trivial checks with different outcomes for different purposes, so they do not amount to a reusable policy. Extracting a helper would only be generic branching syntax."
+  }
+}
