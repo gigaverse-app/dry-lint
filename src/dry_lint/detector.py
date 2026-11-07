@@ -13,7 +13,7 @@ from pathlib import Path
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
-from dry_lint.models import Candidate, Function, Run, qualified
+from dry_lint.models import Candidate, Function, Run, pair_key, qualified
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
 from dry_lint.settings import ExplorationComparer, Settings
@@ -121,6 +121,7 @@ class Detector:
         *,
         cross_repository: bool = False,
         same_file: bool = False,
+        discovery_keys: set[str] | None = None,
     ) -> None:
         self.functions = functions
         self.settings = settings
@@ -128,6 +129,7 @@ class Detector:
         self.extractors = extractors
         self.cross_repository = cross_repository
         self.same_file = same_file
+        self.discovery_keys = discovery_keys
         self.repositories = sorted({f.origin.repository for f in functions if f.origin})
         self.comparer_id = identity(comparer)
         self.file_extractors = {path: extractor_for(path, extractors) for path in {f.path for f in functions}}
@@ -200,6 +202,15 @@ class Detector:
         extractor = extractor_for(function.path, self.extractors)
 
         def allowed(other: Function) -> bool:
+            if self.discovery_keys is not None and (
+                pair_key(function.qualname, other.qualname) in self.discovery_keys
+                or why_skipped(function, other, self.settings)
+                or any(
+                    policy.action == "discard" and policy.apply(function, other) is not None
+                    for policy in self.settings.policies
+                )
+            ):
+                return False
             different_repository = other.origin != function.origin
             return (
                 different_repository
@@ -283,13 +294,15 @@ class Detector:
                     "discovery": policy.model_copy(update={"enabled": False}),
                 }
             )
+            comparer = load("comparers", choice)
             detector = Detector(
                 self.functions,
                 wider,
-                load("comparers", choice),
+                comparer,
                 self.extractors,
                 cross_repository=self.cross_repository,
                 same_file=True,
+                discovery_keys=keys if getattr(comparer, "discovery_unseen", False) else None,
             )
             for candidate in detector.candidates(changed):
                 if candidate.lane == "baseline" and candidate.key not in keys:

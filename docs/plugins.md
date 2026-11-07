@@ -6,7 +6,7 @@ implements one; nothing needs to inherit from dry-lint.
 | Slot | Settings key | Built in | Entry-point group |
 | --- | --- | --- | --- |
 | Extractor | `extractors` (a list, one per language) | `python`, `typescript`, opt-in `python-models`, `typescript-models` | `dry_lint.extractors` |
-| Comparer | `comparer` | `tfidf`, optional `dryer`, opt-in `model-shape` | `dry_lint.comparers` |
+| Comparer | `comparer` | `tfidf`, optional `dryer`, opt-in `model-shape`, `operation-blocks` | `dry_lint.comparers` |
 | Judge | `judge`, `escalate` | `jev`, opt-in `jev-models`, `command` (and `auto`, `none`) | `dry_lint.judges` |
 | Store backend | `store` | `dir`, `s3` | `dry_lint.stores` |
 
@@ -108,7 +108,7 @@ class Comparer(Protocol):
 similar first and above the comparer's own floor. Similarities are only compared with stored ones of the same
 `name:version`, so a new version never reuses the "not closer" rule on old numbers. Comparers can opt into that rule with
 `similarity_reusable = True`; the safe default is false. Both the candidate and the stored record must permit it.
-Neither built-in comparer opts in: TF-IDF tokens and Dryer's normalization both leave out literals, so a changed
+The built-in comparers do not opt in: TF-IDF tokens and Dryer's normalization both leave out literals, so a changed
 literal can make two functions one concept without moving the score. An optional
 `shared(a, b) -> list[str]` feeds `dry-lint explain`.
 
@@ -120,6 +120,58 @@ options go to the comparer constructor. With discovery enabled, independent inde
 pairs to the exploration lane without replacing baseline pairs. The first route to retrieve a pair owns its
 score and comparer identity; scores from different comparers are not averaged. An empty list preserves legacy
 TF-IDF exploration. See the [model configuration](model-duplication.md) for bounded TF-IDF and wider Dice routes.
+
+A comparer may set `discovery_unseen = True` to apply its discovery cap after excluding pairs already owned by
+earlier routes and pairs settled by core rules. Core supplies these exclusions through `allowed`; the comparer
+must apply it before taking `k`. Without this opt-in, existing raw-neighbour caps remain unchanged. Neither route
+can replace protected baseline candidates or transfer its score to an earlier route.
+
+### Bounded Python operation blocks
+
+`operation-blocks:1` retrieves complete native Python functions by shared operation regions. It supports Python
+functions with parseable source and valid source coordinates, not model declarations or other languages. Candidates
+retain their complete signature, documentation, source, hashes and context. Region cosine is a retrieval score,
+not a duplication verdict, and cannot authorize reuse of stored verdicts.
+
+This opt-in configuration preserves the evaluated route order: the normal three-neighbour baseline, existing
+TF-IDF exploration at .35 with a raw cap of 20, then at most one unseen, unsettled block pair per changed function:
+
+```toml
+[discovery]
+enabled = true
+comparers = [
+  { use = "tfidf", min_similarity = 0.35, min_similarity_small = 0.35, neighbours = 20 },
+  { use = "operation-blocks", neighbours = 1 },
+]
+```
+
+An explicit comparer list replaces implicit TF-IDF exploration, so retain the first entry when adding blocks to
+that policy. Discovery permits same-file pairs. This example changes no budget or admission defaults; actual
+funding still depends on the adopter's ledger, pricing and configuration. Frozen synthetic budget diagnostics
+do not establish deployment report gains. Provider answers and source adjudication remain separate.
+
+Regions are whole compound statements or maximal consecutive straight runs of at least two statements. Nested
+functions/classes and string-expression boundaries split runs; no region includes a nested owner. Compound suites
+are visited through depth three. Regions must span 4–80 lines and 20–400 executable AST nodes, contain at least
+eight distinct behavior tokens and two distinct nongeneric calls. Oversized regions are rejected, never split into
+windows. At most 12 regions survive in source order.
+
+The complete indexed function-token background supplies TF-IDF (max document frequency .3) and anchor frequencies;
+blocks and standalone queries never refit it. Each region keeps at most eight concrete call/attribute/key anchors
+whose function frequency is at most `min(128, max(2, floor(.01 * functions)))`. An anchor with more than 64 region
+postings is dropped entirely. At most 6,144 posting visits select 64 parents. A region pair needs three shared
+concrete operations, two shared nongeneric calls and a retained shared anchor. Region cosine must reach .65 and
+whole-function cosine .1. Results deduplicate native parent identities and break score ties by qualified name,
+then original position. `similarity(a, b)` applies the same guards and floors directly; neighbour retrieval also
+requires membership in the bounded anchor pool. These scores have their own comparer identity and are never
+substituted for TF-IDF scores.
+
+### Offline CPU embeddings
+
+The optional [`cpu-embedding` comparer](cpu-embedding.md) uses adopter-supplied pinned MiniLM artifacts and an
+optional local vector cache. It retrieves complete functions, requires the `cpu-embedding` installation extra,
+and never downloads weights or judges candidates. Cold indexing is expensive; the measured benefit depends on
+the preceding retrieval routes. See the [measured profile comparison](benchmark.md#offline-cpu-discovery).
 
 ## Judge
 

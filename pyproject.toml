@@ -25,6 +25,7 @@ Repository = "https://github.com/gigaverse-app/dry-lint"
 Issues = "https://github.com/gigaverse-app/dry-lint/issues"
 
 [project.optional-dependencies]
+cpu-embedding = ["numpy>=2.2,<3", "onnxruntime>=1.31.1,<1.32", "tokenizers>=0.23.3,<0.24"]
 s3 = ["boto3>=1.35"]
 anthropic = ["anthropic>=1.0"]
 hooks = ["anthropic>=1.0", "python-dotenv>=1,<2"]
