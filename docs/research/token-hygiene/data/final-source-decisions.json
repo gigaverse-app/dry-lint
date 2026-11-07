@@ -1,0 +1,34 @@
+{
+  "decisions": [
+    {
+      "accepted_binary_gold": false,
+      "authority_sha256": "b7799bab3b28c057c81a4ccef72925bfa02a9b59a9a282abc08c83ccc01be16c",
+      "central_case_id": "token-hygiene-r2-0013",
+      "description": "String normalization versus effectful configuration reading.",
+      "downstream_only_positive_credit": false,
+      "id": "TH-R2-faccb8de38d2",
+      "label": "related",
+      "original_policy_emitted": true,
+      "rationale": "The configuration reader already delegates trimming and owns optional-value/Effect semantics; possible downstream-helper sharing does not duplicate these nominated bodies.",
+      "report_utility": "unsupported_useful_report",
+      "root_acceptance": "accepted_scoped_source_assessment",
+      "source_case_id": "RRC01",
+      "useful_nominated_body_consolidation": false
+    },
+    {
+      "accepted_binary_gold": false,
+      "authority_sha256": "b7799bab3b28c057c81a4ccef72925bfa02a9b59a9a282abc08c83ccc01be16c",
+      "central_case_id": "token-hygiene-r2-0005",
+      "description": "Typed tool-call adaptation versus generic message extraction.",
+      "downstream_only_positive_credit": false,
+      "id": "TH-R2-f111c4a60a3a",
+      "label": "related",
+      "original_policy_emitted": false,
+      "rationale": "Typed filtering/reconstruction and generic list extraction have distinct contracts; existing helpers own the reusable suboperations.",
+      "report_utility": "not_emitted",
+      "root_acceptance": "accepted_scoped_source_assessment",
+      "source_case_id": "RRC02",
+      "useful_nominated_body_consolidation": false
+    }
+  ]
+}
