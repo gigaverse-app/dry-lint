@@ -78,8 +78,9 @@ def _items_with_retry(service, key, batch_size, pacer=None):
     seen_ids = set()
     for attempt in range(RETRY_ATTEMPTS):
         try:
-            for item in service.iter_items(key, batch_size=min(batch_size, 100),
-                                           before_request=pacer.wait if pacer else None):
+            for item in service.iter_items(
+                key, batch_size=min(batch_size, 100), before_request=pacer.wait if pacer else None
+            ):
                 if item.id not in seen_ids:
                     seen_ids.add(item.id)
                     yield item
@@ -89,14 +90,16 @@ def _items_with_retry(service, key, batch_size, pacer=None):
                 raise
             time.sleep(max(BACKOFF * MULTIPLIER**attempt, retry_after_seconds(error)))
 
+
 def _inventory_keys(service, batch_size, pacer=None):
     """List both provider groups, including records absent from the database."""
     for group in GROUPS:
         cursor = None
         while True:
-            response = _retry(lambda: service.client.query(limit=min(batch_size, 100), next=cursor,
-                                                           filter={"group_id": group}),
-                              before_attempt=pacer.wait if pacer else None)
+            response = _retry(
+                lambda: service.client.query(limit=min(batch_size, 100), next=cursor, filter={"group_id": group}),
+                before_attempt=pacer.wait if pacer else None,
+            )
             ...
 ```
 

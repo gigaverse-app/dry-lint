@@ -90,6 +90,7 @@ def sync_projection(self, event, *, withdrawn=False, snapshot=None):  # 71 lines
         return
     ...
 
+
 def _delete_activity_tolerating_absence(self, owner, activity_id, *, operation):  # 20 lines
     try:
         self.client.feeds.delete_activity(id=activity_id)
