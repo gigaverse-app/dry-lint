@@ -1,0 +1,94 @@
+"""Exact native-source join of root-accepted operation assessments to paid reports."""
+import argparse
+import copy
+import hashlib
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+O=Path(__file__).resolve().parent
+sys.path.insert(0,str(O.parent/'src'))
+from dry_lint.models import Candidate
+
+
+def read(p):return json.loads(p.read_text())
+def rows(p):return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def freeze(p,value):
+    raw=json.dumps(value,sort_keys=True,indent=2)+'\n'
+    if p.exists():assert p.read_text()==raw,'Use a new version; never overwrite a source-truth result'
+    else:p.write_text(raw)
+
+
+def exact_assessment(packet,decision,path):
+    assert decision['root_acceptance']=='accepted_scoped_source_assessment'
+    assert (decision['repository'],decision['revision'])==(packet['repository'],packet['revision'])
+    candidate=Candidate.model_validate(packet['candidate'])
+    for endpoint in decision['endpoints']:
+        side=endpoint['side'];f=getattr(candidate,side);proof=endpoint['source_proof']
+        assert endpoint['fullname']==f.qualname and endpoint['packet_code']==f.code
+        assert (proof['path'],proof['line'],proof['end_line'])==(f.path,f.line,f.end_line)
+        assert proof['body_sha256']==hashlib.sha256(f.code.encode()).hexdigest()
+        original=next(x for x in packet['source_proofs'] if x['source_id']==f.qualname)
+        assert proof['file_sha256']==original['file_sha256']
+        assert (proof['repository'],proof['revision'])==(packet['repository'],packet['revision'])
+    label=decision['label']
+    category={'useful':'useful','duplicate':'useful','related':'related','separate':'separate','borderline':'disputed','disputed':'disputed'}.get(label,'unknown')
+    assert category!='unknown'
+    return dict(category=category,source_label=label,source_family=decision['source_family'],
+        review_id=decision['id'],root_acceptance=decision['root_acceptance'],summary=decision['summary'],
+        scope=decision['bounded_extractable_scope'],counterargument=decision['strongest_counterargument'],
+        novelty=decision['novelty'],whole_function_equivalence_claimed=False,
+        decisions_file=str(path),decisions_sha256=sha(path))
+
+
+def join(round_number,paid,decisions,output):
+    D=O/f'funded-rounds/round{round_number}'
+    result=copy.deepcopy(read(paid));packets={r['id']:r for r in rows(D/'novel-review-queue.jsonl')};truth={}
+    for path in decisions:
+        for r in rows(path):
+            attribution=r.get('attribution',{});qid=attribution.get('case_id')
+            if attribution.get('method')!='budget-ranking' or qid not in packets:continue
+            assessment=exact_assessment(packets[qid],r,path)
+            assert qid not in truth or truth[qid]['category']==assessment['category']
+            truth[qid]=assessment
+    pairs=result['per_pair']
+    for r in pairs:r['source_assessment']=truth.get(r['id'],dict(category='unknown',source_family=None,root_acceptance=None))
+    summaries=[]
+    for old in result['arms']:
+        arm=old['arm'];funded=[r for r in pairs if r['arm_funding_and_ranks'][arm]['funded']]
+        gains=[r for r in funded if not r['arm_funding_and_ranks']['current']['funded']]
+        losses=[r for r in pairs if r['arm_funding_and_ranks']['current']['funded'] and not r['arm_funding_and_ranks'][arm]['funded']]
+        known_reviewed=[r for r in funded if r['source_assessment']['category']!='unknown']
+        emissions=[r for r in funded if r['provider_report_decisions']['claude'] is True]
+        source_counts=dict(Counter(r['source_assessment']['category'] for r in emissions))
+        source_useful_emitted=[r for r in emissions if r['source_assessment']['category']=='useful']
+        def describe(rr):
+            return [dict(id=r['id'],source_assessment=r['source_assessment'],claude_report=r['provider_report_decisions']['claude'],jev_probe_report=r['provider_report_decisions']['jev']) for r in rr]
+        summaries.append(dict(arm=arm,funded_judged_pairs=len(funded),claude_emitted_reports=len(emissions),
+            source_categories_of_claude_emissions=source_counts,
+            independently_useful_gained_emitted_reports=describe([r for r in gains if r['provider_report_decisions']['claude'] is True and r['source_assessment']['category']=='useful']),
+            related_gained_emitted_reports=describe([r for r in gains if r['provider_report_decisions']['claude'] is True and r['source_assessment']['category']=='related']),
+            independently_useful_lost_prior_emitted_reports=describe([r for r in losses if r['provider_report_decisions']['claude'] is True and r['source_assessment']['category']=='useful']),
+            useful_lost_current_funded_candidates=describe([r for r in losses if r['source_assessment']['category']=='useful']),
+            unknown_source_lost_current_funded_candidates=[r['id'] for r in losses if r['source_assessment']['category']=='unknown'],
+            useful_funded_but_not_emitted=describe([r for r in funded if r['source_assessment']['category']=='useful' and r['provider_report_decisions']['claude'] is False]),
+            accepted_source_reviewed_funded_pairs=len(known_reviewed),
+            actionable_precision_on_emitted_cohort=dict(useful=len(source_useful_emitted),emitted=len(emissions),unknown_source=sum(r['source_assessment']['category']=='unknown' for r in emissions)),
+            distinct_review_named_useful_gained_families=sorted({r['source_assessment']['source_family'] for r in gains if r['provider_report_decisions']['claude'] is True and r['source_assessment']['category']=='useful'}),
+            globally_new_operation_family_count=None))
+    result.update(schema='budget-ranking-public-paid-source-join-v1',source_join= dict(
+        accepted_source_pairs=len(truth),pair_denominator=len(pairs),root_decisions=[dict(path=str(p),sha256=sha(p)) for p in decisions],
+        no_source_unknown_forced_negative=True,partial_operation_scope=True,whole_function_merges_not_inferred=True,
+        report_counts_require_matching_actual_provider_verdict=True,novel_global_families_require_root_reconciliation=True),
+        source_joined_arms=summaries)
+    freeze(output,result)
+    print(json.dumps(dict(output=str(output),round=round_number,source_reviewed_pairs=len(truth),pairs=len(pairs),
+        arms=[dict(arm=x['arm'],funded=x['funded_judged_pairs'],emitted=x['claude_emitted_reports'],emitted_source=x['source_categories_of_claude_emissions'],
+            useful_report_gains=len(x['independently_useful_gained_emitted_reports']),useful_report_losses=len(x['independently_useful_lost_prior_emitted_reports'])) for x in summaries]),sort_keys=True))
+
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--round',type=int,required=True,choices=[1,2]);p.add_argument('--paid',type=Path,required=True);p.add_argument('--decisions',type=Path,nargs='+',required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
+    join(a.round,a.paid.resolve(),[p.resolve() for p in a.decisions],a.output.resolve())

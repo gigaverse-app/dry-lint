@@ -1,0 +1,521 @@
+"""Bounded offline ordering experiment. Writes only alongside this script. No provider client."""
+import argparse
+import hashlib
+import importlib.util
+import json
+import re
+import resource
+import subprocess
+import sys
+import time
+from collections import Counter, defaultdict
+from pathlib import Path
+from types import SimpleNamespace
+
+OUT = Path(__file__).resolve().parent
+WORK = OUT.parent
+LAB = Path('/home/researcher/dry-lint-round')
+sys.path.insert(0, str(WORK / 'src'))
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger, estimate, usage_cost, PRICES
+from dry_lint.detector import why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.typescript import TypeScriptExtractor
+from dry_lint.judges.command import prompt, PROMPT_POLICIES
+from dry_lint.models import Candidate, CandidatesFile, Verdict, evidence
+from dry_lint.settings import Settings
+
+ARMS = ['current', 'fixed_feature', 'naive_cost', 'protected_cost']
+GENERIC = set('get set append extend items values keys len str int dict list isinstance cast none true false map filter reduce push pop join split strip lower upper add remove update print range enumerate zip sorted min max sum any all'.split())
+INPUTS = {}
+FILES = {}
+FUNCS = {}
+POOLS = []
+QUERY_ROWS = []
+STAGES = []
+BATCHES = []
+ALL_PACKETS = []
+ALL_DECISIONS = {}
+TIMING = []
+
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def digest(value): return sha(json.dumps(value, sort_keys=True, ensure_ascii=True).encode())
+def read(path):
+    raw = Path(path).read_bytes(); INPUTS[str(path)] = sha(raw); return raw
+
+def js(path): return json.loads(read(path))
+def rows(path): return [json.loads(x) for x in read(path).decode().splitlines() if x.strip()]
+def dump(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + '\n')
+def jsonl(path, data):
+    path.write_text(''.join(json.dumps(r, sort_keys=True, allow_nan=False) + '\n' for r in data))
+
+def judge_for(settings):
+    opts = settings.judge.options(); policy = opts['prompt_policy']; model = opts['model']; cap = opts['max_tokens']
+    version = PROMPT_POLICIES[policy][0] + ':' + model + (f':output={cap}' if cap != 8000 else '')
+    return SimpleNamespace(name='anthropic-operations' if policy != 'concept' else 'anthropic',
+        version=version, model=model, max_tokens=cap, prompt_policy=policy, subscription=False)
+
+def canonical(c, judge):
+    rendered = prompt(c, policy=judge.prompt_policy)
+    return dict(kind='claude', judge=judge.name, version=judge.version, model=judge.model,
+        max_output_tokens=judge.max_tokens, rendered_input=rendered, source_evidence=evidence(c), context_hash=c.context_hash)
+
+def operation(c, counts=None):
+    def names(f):
+        if counts is not None:
+            tokens = counts[f.qualname]
+            calls = {t.split(':', 1)[1] for t in tokens if t.startswith(('call:', 'acall:'))}
+        else:
+            calls = set(re.findall(r'\b([A-Za-z_$][\w$]*)\s*\(', f.code)) - {f.name}
+        return {n for n in calls if n.lower() not in GENERIC and len(n) > 2}
+    a, b = names(c.new), names(c.existing)
+    return len(a & b) / len(a | b) if a | b else 0.0
+
+def features(c, judge, settings, counts=None):
+    cost = estimate(judge, [c], settings)
+    assert cost is not None and cost > 0
+    op = operation(c, counts)
+    owner = float((c.new.path, c.new.owner) != (c.existing.path, c.existing.owner))
+    utility = .60 * c.similarity + .30 * op + .10 * owner
+    return dict(similarity=c.similarity, operation=op, independent_owners=owner, estimated_usd=cost,
+        utility=utility, cost_score=utility / cost, total_lines=c.new.lines + c.existing.lines,
+        same_file=c.new.path == c.existing.path)
+
+def feature_order(pool, arm, fs, positions):
+    if arm in ['current', 'protected_cost']:
+        # Production CampaignStore's ordering with no prior attempts: lanes, priority, fair query, similarity, key.
+        counts = Counter(); pending = list(pool); result = []
+        while pending:
+            c = min(pending, key=lambda c: (c.lane != 'baseline', -c.priority,
+                counts[c.lane, c.new.qualname], -c.similarity, c.key))
+            pending.remove(c); result.append(c); counts[c.lane, c.new.qualname] += 1
+        return result
+    field = 'utility' if arm == 'fixed_feature' else 'cost_score'
+    return sorted(pool, key=lambda c: (-fs[c.key][field], c.existing.qualname,
+        positions.get(c.existing.qualname, 0), c.new.qualname))
+
+def sources(repo, revision, gitroot, path):
+    key = (repo, revision, path)
+    if key not in FILES:
+        raw = subprocess.check_output(['git', '-C', str(gitroot), 'show', revision + ':' + path])
+        dest = OUT / 'source-files' / repo / revision / path
+        dest.parent.mkdir(parents=True, exist_ok=True); dest.write_bytes(raw)
+        extractor = PythonExtractor() if path.endswith('.py') else TypeScriptExtractor()
+        extractor.validate_source(path, raw.decode())
+        funcs = extractor.functions(path, raw.decode())
+        FILES[key] = dict(path=path, revision=revision, file_sha256=sha(raw), full_file_path=str(dest),
+            git_blob=subprocess.check_output(['git', '-C', str(gitroot), 'rev-parse', revision + ':' + path], text=True).strip())
+        for f in funcs:
+            f = f.model_copy(update={'hash': extractor.structure_hash(f)})
+            FUNCS[repo, revision, f.qualname] = f
+    return FILES[key]
+
+def function(repo, revision, gitroot, doc):
+    sources(repo, revision, gitroot, doc.id.split('::')[0])
+    f = FUNCS[repo, revision, doc.id]
+    assert sha(f.code.encode()) == doc.source_sha256, ('background source mismatch', doc.id)
+    return f
+
+def load_review_cache():
+    cache = {}
+    for p in sorted((LAB / 'reports/candidate-first/pilot-reviews').glob('*.json')):
+        r = js(p)
+        if 'identity' not in r or r['identity'].get('kind') != 'claude': continue
+        assert digest(r['identity']) == r['request_key'] == p.stem
+        if r.get('verdict') is None: continue
+        ident = r['identity']; v = Verdict.model_validate(r['verdict'])
+        assert (v.judge, v.judge_version) == (ident['judge'], ident['version'])
+        raw = r['raw_response']; assert raw.get('id') and raw.get('usage') == r['usage']
+        assert raw.get('model') == ident['model']
+        u = r['usage']; assert all(isinstance(u.get(k, 0), int) and u.get(k, 0) >= 0 for k in ['input_tokens','output_tokens'])
+        assert u.get('output_tokens', 0) <= ident['max_output_tokens']
+        cost = usage_cost(dict(input=u.get('input_tokens',0), output=u.get('output_tokens',0),
+            cache_creation_input_tokens=u.get('cache_creation_input_tokens',0) or 0,
+            cache_read_input_tokens=u.get('cache_read_input_tokens',0) or 0), PRICES[ident['model']])
+        assert abs(cost - r['usd']) < 1e-12
+        cache[digest(ident)] = dict(path=str(p), sha256=INPUTS[str(p)], verdict=v.model_dump(mode='json'),
+            physical_original_usd=cost, provider_request_id=raw['id'], identity=ident)
+    return cache
+
+def connected_groups(packets, decisions):
+    parent = {}
+    def find(k):
+        parent.setdefault(k,k)
+        if parent[k] != k: parent[k] = find(parent[k])
+        return parent[k]
+    def union(a,b): parent[find(b)] = find(a)
+    for p in packets:
+        c = Candidate.model_validate(p['packet']['candidate']); family = decisions[p['id']]['family_id']
+        union(c.new.qualname,c.existing.qualname); union(c.new.qualname,'family:'+family)
+    groups = defaultdict(list)
+    for p in packets:
+        c = Candidate.model_validate(p['packet']['candidate']); groups[find(c.new.qualname)].append(p)
+    return sorted(groups.values(), key=lambda g: min(p['id'] for p in g))
+
+def evaluate_batch(meta, pool, judge, settings, fs, positions, cache, labelmap, observations=None, cumulative=None):
+    # All estimated admissions are outcome-independent. Unknowns may coexist with later funded rows because cost is fixed.
+    results = {}; rowsets = {}; current_selected = None
+    for arm in ARMS:
+        state = cumulative.setdefault(arm, dict(spent=0.0, attempted=set(), counts=Counter())) if cumulative is not None else dict(spent=0., attempted=set(), counts=Counter())
+        ordered = feature_order(pool, arm, fs, positions)
+        if arm == 'current' and cumulative is not None:
+            pending=list(pool); ordered=[]; fair=state['counts'].copy()
+            while pending:
+                c=min(pending,key=lambda c:(c.lane!='baseline',-c.priority,fair[c.lane,c.new.qualname],-c.similarity,c.key))
+                pending.remove(c);ordered.append(c);fair[c.lane,c.new.qualname]+=1
+        if arm == 'protected_cost':
+            ordered = [c for c in ordered if c.key in current_selected] + [c for c in feature_order(pool,'naive_cost',fs,positions) if c.key not in current_selected]
+        ledger = Ledger(settings, spent=state['spent']); pending=[]; ids={}
+        for c in ordered:
+            ident = canonical(c, judge); qkey = digest(ident); ids[c.key] = (qkey, ident)
+            if qkey not in state['attempted']: pending.append(c)
+        chosen = {pending[i].key for i in ledger.select(judge,pending)}
+        if arm == 'current': current_selected = chosen | {c.key for c in ordered if ids[c.key][0] in state['attempted']}
+        ledger.charge(judge,[c for c in pending if c.key in chosen], len(pending)-len(chosen))
+        spent_before = state['spent']; state['spent'] += ledger.usd
+        assert state['spent'] <= .04 + 1e-12
+        rr=[]
+        for rank,c in enumerate(ordered,1):
+            qkey, ident = ids[c.key]; reused = qkey in state['attempted']; funded = c.key in chosen or reused
+            observation = cache.get(qkey)
+            if observation: assert observation['identity'] == ident
+            if observations is not None:
+                observation = observations.get(c.key)
+            label = labelmap.get(tuple(sorted((c.new.qualname,c.existing.qualname))))
+            verdict = observation['verdict'] if observation and funded else None
+            report = bool(settings.duplicate_at(Verdict.model_validate(verdict), settings.report_at)) if verdict else None
+            r=dict(**meta, arm=arm, pair=c.key, evidence=evidence(c), question_key=qkey,
+                new=c.new.qualname,existing=c.existing.qualname,lane=c.lane,rank=rank,**fs[c.key],
+                funded=funded, chronological_cache_hit=reused, estimated_charge_usd=fs[c.key]['estimated_usd'] if c.key in chosen else 0.,
+                cumulative_estimated_usd=state['spent'], pre_batch_estimated_usd=spent_before,
+                gold_id=label['id'] if label else None, label=label['label'] if label else None,
+                family=label['family_id'] if label else None, drifted=label.get('drifted') if label else None,
+                observation_path=observation.get('path') if observation and funded else None, verdict=verdict,
+                reported=report, stage='budget' if not funded else 'missing_answer' if not verdict else 'reported' if report else 'judge_or_threshold')
+            rr.append(r)
+            if c.key in chosen:
+                state['attempted'].add(qkey); state['counts'][c.lane,c.new.qualname]+=1
+        rowsets[arm]=rr; STAGES.extend(rr)
+        results[arm]=dict(arm=arm, **meta, pool=len(pool), funded=sum(r['funded'] for r in rr),
+            estimated_new_charge_usd=ledger.usd, cumulative_estimated_usd=state['spent'],
+            known_funded=sum(r['verdict'] is not None for r in rr), missing_funded=sum(r['funded'] and r['verdict'] is None for r in rr),
+            emitted_observed=sum(r['reported'] is True for r in rr),
+            funded_labels=dict(Counter(r['label'] or 'unlabeled' for r in rr if r['funded'])),
+            emitted_labels=dict(Counter(r['label'] or 'unlabeled' for r in rr if r['reported'] is True)))
+    baseline={r['pair']:r for r in rowsets['current']}
+    for arm in ARMS:
+        gained=[r for r in rowsets[arm] if r['funded'] and not baseline[r['pair']]['funded']]
+        lost=[r for r in rowsets[arm] if not r['funded'] and baseline[r['pair']]['funded']]
+        results[arm].update(gained_funded=[r['pair'] for r in gained], lost_current_funded=[r['pair'] for r in lost],
+            lost_current_observed_reports=[r['pair'] for r in lost if baseline[r['pair']]['reported'] is True],
+            lost_current_positive=[r['pair'] for r in lost if r['label'] in ['duplicate','drifted']],
+            lost_current_expensive_positive=[r['pair'] for r in lost if r['label'] in ['duplicate','drifted'] and r['estimated_usd'] >= sorted(fs[k]['estimated_usd'] for k in fs)[3*len(fs)//4]])
+    BATCHES.extend(results.values())
+    return rowsets
+
+def public_run(name, config, cache):
+    started=time.perf_counter(); repo=config['repository']; revision=config['revision']; gitroot=Path(config['git'])
+    packets=rows(LAB/f'reports/candidate-first/{name}-scaled-completed.jsonl'); ALL_PACKETS.extend(packets)
+    decisions={p['id']:ALL_DECISIONS[p['id']] for p in packets}
+    proof=config['background_proof']; raw=read(proof['path']); assert sha(raw)==proof['sha256']
+    bg=BenchBackground.decode(raw); assert (bg.repository,bg.revision)==(repo,revision)
+    assert not any(d.id.startswith('enterprise/') for d in bg.documents)
+    t=time.perf_counter(); index=bg.index(); cold=time.perf_counter()-t
+    positions_all=defaultdict(list)
+    for i,d in enumerate(bg.documents):positions_all[d.id].append(i)
+    ambiguous={k:v for k,v in positions_all.items() if len(v)!=1}
+    positions={k:v[0] for k,v in positions_all.items() if len(v)==1}
+    counts={d.id:d.counts for d in bg.documents}; lookup={d.id:d for d in bg.documents}
+    settings=Settings(judge={'use':'anthropic','model':'claude-sonnet-5-5','prompt_policy':'shared-operations','max_tokens':1024,'max_retries':0},escalate=None,budget={'usd':.04})
+    judge=judge_for(settings); querycache={}; excluded=[]
+    def query(q):
+        if q not in querycache:
+            qi=positions[q]; scores=dict(index.similar(bg.documents[qi].tokens(),exclude={qi}))
+            ranked=sorted(scores,key=lambda i:(-scores[i],bg.documents[i].id,i))
+            querycache[q]=(scores,ranked)
+        return querycache[q]
+    labelmap={}
+    for p in packets:
+        c=Candidate.model_validate(p['packet']['candidate']); labelmap[tuple(sorted((c.new.qualname,c.existing.qualname)))]=decisions[p['id']]
+        for a,b in [(c.new,c.existing),(c.existing,c.new)]:
+            if a.qualname not in positions or b.qualname not in positions:
+                excluded.append(dict(id=p['id'],query=a.qualname,reason='missing_background_endpoint'));continue
+            assert a.qualname!=b.qualname
+            assert sha(a.code.encode())==lookup[a.qualname].source_sha256
+            ss, ranked=query(a.qualname); ti=positions[b.qualname]; score=ss.get(ti,0.); cross=[i for i in ranked if bg.documents[i].id.split('::')[0]!=a.path]
+            rr=ranked.index(ti)+1 if ti in ranked else None; cr=cross.index(ti)+1 if ti in cross else None; floor=.3 if a.lines<6 else .5
+            QUERY_ROWS.append(dict(repository=repo,id=p['id'],family=decisions[p['id']]['family_id'],label=decisions[p['id']]['label'],
+                query=a.qualname,target=b.qualname,raw_score=score,raw_rank=rr,cross_rank=cr,short=a.lines<6,same_file=a.path==b.path,
+                default_stage='same_file' if a.path==b.path else 'score_floor' if score<floor else 'topk' if cr is None or cr>3 else 'retrieved',
+                balanced_stage='score_floor' if score<.35 else 'topk' if rr is None or rr>20 else 'retrieved',
+                rankings=[dict(source_id=bg.documents[i].id,position=i,score=ss[i],rank=n+1) for n,i in enumerate(ranked[:20])]))
+    for g in connected_groups(packets,decisions):
+        query_ids=sorted({f.qualname for p in g for f in [Candidate.model_validate(p['packet']['candidate']).new,Candidate.model_validate(p['packet']['candidate']).existing]} & positions.keys())
+        lineage=sorted(decisions[p['id']]['family_id'] for p in g); batch=digest(lineage)[:16]; pool={}
+        # Baseline and exploration are generated independently from the SAME immutable index.
+        for lane in ['baseline','exploration']:
+            for q in query_ids:
+                a=function(repo,revision,gitroot,lookup[q]); ss,ranked=query(q)
+                eligible=[i for i in ranked if bg.documents[i].id.split('::')[0] != a.path] if lane=='baseline' else ranked
+                floor=(.3 if a.lines<6 else .5) if lane=='baseline' else .35
+                selected=[i for i in eligible if ss[i]>=floor][:3 if lane=='baseline' else 20]
+                for i in selected:
+                    d=bg.documents[i]
+                    if d.id not in positions:
+                        excluded.append(dict(query=q,target=d.id,position=i,lane=lane,reason='ambiguous_source_ID_consumes_original_rank_slot_no_refill'));continue
+                    b=function(repo,revision,gitroot,d)
+                    c=Candidate(new=a,existing=b,similarity=round(ss[i],3),comparer='tfidf:2',similarity_reusable=True,
+                        lane=lane,filtered=why_skipped(a,b,settings))
+                    if c.filtered or c.key in pool: continue
+                    pool[c.key]=c
+        cs=list(pool.values()); fs={c.key:features(c,judge,settings,counts) for c in cs}
+        meta=dict(cohort='public-diagnostic',repository=repo,revision=revision,batch=batch,ordinal=0,
+            lineage=lineage,split='dev-A' if int(digest(lineage),16)%2==0 else 'dev-B')
+        if cs:
+            result=evaluate_batch(meta,cs,judge,settings,fs,positions,cache,labelmap)
+            POOLS.append(dict(meta=meta,pool=cs,judge=judge,settings=settings,proof=proof,gitroot=gitroot,rows=result,fs=fs))
+    t=time.perf_counter()
+    for q in sorted(querycache):
+        qi=positions[q]; index.similar(bg.documents[qi].tokens(),exclude={qi})
+    warm=time.perf_counter()-t
+    TIMING.append(dict(repository=repo,documents=len(bg.documents),background=proof,scope=bg.scope,max_df=bg.max_df,
+        index_cold_seconds=cold,warm_query_seconds=warm,warm_queries=len(querycache),seconds=time.perf_counter()-started,
+        process_peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,ambiguous_source_ids=ambiguous,excluded=excluded))
+    print(name,'batches',len(POOLS),'queries',len(querycache),'seconds',round(time.perf_counter()-started,2),flush=True)
+
+def historical_run():
+    """Reuse audited capture/identity/native replay implementation without editing shared files."""
+    path=LAB/'retrieval/.lab-results/historical-pr-replay/replay.py'
+    spec=importlib.util.spec_from_file_location('frozen_h02',path); h=importlib.util.module_from_spec(spec);spec.loader.exec_module(h)
+    h.OUT=OUT/'historical-loader'; histories, inventory=h.load_histories()
+    dump(OUT/'historical-inventory.json',inventory)
+    # Supplemental observations remain read-only, and still pass exact stamp/usage validation below.
+    for p in sorted((LAB/'retrieval/.lab-results/historical-pr-replay/provider/accepted-observations').glob('*.json')):
+        obs=js(p)
+        for history in histories:
+            if obs['key'] in history['bindings'] and obs['key'] not in history['answers']:
+                history['answers'][obs['key']]=obs
+    for p in sorted((WORK/'.lab-results/provider-observations').glob('*.json')):
+        if p.name.endswith('.response.json'):continue
+        obs=js(p)
+        for history in histories:
+            if obs['key'] in history['bindings']:
+                existing=history['answers'].get(obs['key'])
+                assert existing is None or existing==obs,'cannot replace an existing observation'
+                history['answers'][obs['key']]=obs
+    for k,v in h.INPUT_HASHES.items(): INPUTS[k]=v
+    Original=h.AuditCampaignStore
+    native_results=[]; native_missing=[]; excluded_histories=[]
+    for history in histories:
+        settings=history['settings']; judge=h.OfflineJudge(settings,history['answers']); judge.bindings=history['bindings']
+        # Authenticate all endpoint source bodies against exact captured head before comparison.
+        gitroot=LAB/'research-corpus/history-inputs/git'/(history['history']['repository'].split('/')[-1]+'.git')
+        verification_path=OUT/'historical-source-verification'/f"{history['cohort']}-{history['name']}.json"
+        unavailable=[]
+        if not verification_path.exists():
+            verification=[]
+            for snap,capture in history['steps']:
+                assert snap.run.head in history['history']['commits']
+                merge_result=subprocess.run(['git','-C',str(gitroot),'merge-base',snap.run.head,snap.run.base],capture_output=True,text=True)
+                verification.append(dict(head=snap.run.head,recorded_base=snap.run.base,computed_merge_base=merge_result.stdout.strip() or None,ancestry_status='verified' if merge_result.returncode==0 else 'incomplete ancestor objects; recorded capture only',stderr=merge_result.stderr[:300]))
+                for c in snap.candidates:
+                    for f in [c.new,c.existing]:
+                        try: proof=sources(snap.run.repository,snap.run.head,gitroot,f.path)
+                        except subprocess.CalledProcessError:
+                            unavailable.append(dict(head=snap.run.head,path=f.path));break
+                        exact=FUNCS.get((snap.run.repository,snap.run.head,f.qualname))
+                        assert exact and exact.code==f.code, ('historical source mismatch', f.qualname, snap.run.head)
+                        verification.append(dict(head=snap.run.head,id=f.qualname,body_sha256=sha(f.code.encode()),file_sha256=proof['file_sha256']))
+                    if unavailable:break
+                if unavailable:break
+            if not unavailable:dump(verification_path,verification)
+        if unavailable:
+            excluded_histories.append(dict(cohort=history['cohort'],history=history['name'],reason='exact pinned source objects unavailable; no provider question or result inferred',unavailable=unavailable))
+            continue
+        for arm in ARMS:
+            class OrderedCampaign(Original):
+                def order(self, candidates):
+                    if arm=='current': return super().order(candidates)
+                    ff={c.key:features(c,judge,settings) for c in candidates}
+                    fixed=feature_order(candidates,'fixed_feature' if arm=='fixed_feature' else 'naive_cost',ff,{})
+                    if arm=='protected_cost':
+                        # Preserve native baseline ordering; rank only exploration within its configured reserve.
+                        base=[c for c in super().order(candidates) if c.lane=='baseline']
+                        return base+[c for c in fixed if c.lane!='baseline']
+                    return fixed
+            h.AuditCampaignStore=OrderedCampaign; h.OUT=OUT/'native-history'/arm
+            saved=h.OUT/'runs'/history['cohort']/history['name']/'balanced'/'summary.json'
+            result=js(saved) if saved.exists() else h.evaluate(history,'balanced'); result['ordering_arm']=arm
+            native_results.append(result)
+            print('native',history['name'],arm,'censored',result['censored'],'calls',result['calls'],flush=True)
+            folder=h.OUT/'runs'/history['cohort']/history['name']/'balanced'
+            evs=js(folder/'observations.json')
+            for event in evs:
+                if event['status']!='admitted_unknown':continue
+                matches=[(snap,cap,c) for snap,cap in history['steps'] for c in snap.candidates if judge.key(c)==event['question_key']]
+                snap,cap,c=next((s,p,c) for s,p,c in matches if s.run.head==history['steps'][result['first_censored_ordinal']][0].run.head)
+                native_missing.append(dict(arm=arm,history=history['name'],cohort=history['cohort'],
+                    candidate=c.model_dump(mode='json'),repository=snap.run.repository,revision=snap.run.head,
+                    ordinal=result['first_censored_ordinal'],capture=str(cap),capture_sha256=sha(cap.read_bytes()),
+                    manifest=history['manifest_path'],manifest_sha256=sha(Path(history['manifest_path']).read_bytes()),
+                    effective_settings=settings.model_dump(mode='json'),effective_settings_sha256=judge.settings_sha256,
+                    canonical_answer_key=judge.key(c),canonical_identity=canonical(c,judge),
+                    judge_request_settings=judge.request_settings,ledger_event=event,
+                    ledger_proof=str(folder/'candidate-stages.jsonl'),curves=str(folder/'curves.json'),
+                    policy='native configured reservations/pacing, unchanged model/prompt/output; '+arm))
+        estimated_history(history,h)
+    h.AuditCampaignStore=Original
+    dump(OUT/'native-history-results.json',native_results)
+    dump(OUT/'historical-excluded.json',excluded_histories)
+    jsonl(OUT/'historical-funded-missing.jsonl',native_missing)
+    # Paired differences only on completed histories. Censored arms retain observed lower bounds only.
+    paired=[]
+    for history in histories:
+        rs={r['ordering_arm']:r for r in native_results if r['history']==history['name'] and r['cohort']==history['cohort']}
+        if not rs:continue
+        base=rs['current']
+        for arm in ARMS[1:]:
+            test=rs[arm]; a=base['reported_questions'];b=test['reported_questions']
+            complete=not base['censored'] and not test['censored']
+            paired.append(dict(cohort=history['cohort'],history=history['name'],arm=arm,complete=complete,
+                observed_gains=[dict(question_key=k,**b[k]) for k in b.keys()-a.keys()],
+                observed_losses=[dict(question_key=k,**a[k]) for k in a.keys()-b.keys()],
+                delta_interpretation='complete paired report difference' if complete else 'observed prefix only; downstream unknown, no net report gain claim',
+                current_frozen_positive_reports=sum(r['label']=='duplicate' for r in a.values()),
+                current_reports=len(a),arm_reports=len(b)))
+    dump(OUT/'native-history-paired.json',paired)
+    return native_results,native_missing
+
+
+def estimated_history(history,h):
+    """Same exact captures and judge; only NORMAL ESTIMATED .04 cumulative ledger, no native pacing."""
+    settings=history['settings']; judge=h.OfflineJudge(settings,history['answers']);judge.bindings=history['bindings']
+    perarm={arm:dict(spent=0.,attempted=set(),counts=Counter(),censored=False) for arm in ARMS}
+    allrows=[];curves=[];current_funded={}
+    for ordinal,(snap,capture) in enumerate(history['steps']):
+        pool=[c for c in snap.candidates if not c.filtered and c.lane!='relative']
+        ff={c.key:features(c,judge,settings) for c in pool}
+        for arm in ARMS:
+            state=perarm[arm]; counts=state['counts'].copy(); pending=list(pool); current=[]
+            while pending:
+                c=min(pending,key=lambda c:(c.lane!='baseline',-c.priority,counts[c.lane,c.new.qualname],-c.similarity,c.key))
+                pending.remove(c);current.append(c);counts[c.lane,c.new.qualname]+=1
+            fixed=feature_order(pool,'fixed_feature' if arm=='fixed_feature' else 'naive_cost',ff,{})
+            ordered=current if arm=='current' else fixed
+            if arm=='protected_cost': ordered=[c for c in current if c.key in current_funded.get(ordinal,set())]+[c for c in fixed if c.key not in current_funded.get(ordinal,set())]
+            funded=set(); reported=[]; missing=None
+            for rank,c in enumerate(ordered,1):
+                key=judge.key(c);obs,availability=judge.lookup(c); repeat=key in state['attempted']; cost=ff[c.key]['estimated_usd']
+                status='censored_unprocessed' if state['censored'] else 'chronological_exact_cache' if repeat else 'budget' if state['spent']+cost>.04+1e-12 else 'admitted'
+                charged=0.;verdict=None
+                if status in ['chronological_exact_cache','admitted']:
+                    funded.add(c.key)
+                    if not repeat:
+                        charged=cost;state['spent']+=cost;state['attempted'].add(key);state['counts'][c.lane,c.new.qualname]+=1
+                    if obs is None or obs.get('verdict') is None:
+                        status='admitted_unknown';state['censored']=True;missing=key
+                    else:verdict=obs['verdict'];status='known_answer'
+                report=bool(settings.duplicate_at(Verdict.model_validate(verdict),settings.report_at)) if verdict else None
+                ref=history['refs'].get((history['name'],evidence(c)),{});sup=history['supplement'].get((history['name'],evidence(c)),{})
+                r=dict(cohort=history['cohort'],history=history['name'],arm=arm,ordinal=ordinal,head=snap.run.head,
+                    pair=c.key,evidence=evidence(c),question_key=key,new=c.new.qualname,existing=c.existing.qualname,lane=c.lane,rank=rank,
+                    **ff[c.key],status=status,funded=c.key in funded,estimated_charge_usd=charged,cumulative_estimated_usd=state['spent'],
+                    exact_observation_availability=availability,verdict=verdict,reported=report,
+                    frozen_label=ref.get('label'),supplementary_label=sup.get('label'),family=None)
+                allrows.append(r)
+                if report:reported.append(key)
+            if arm=='current':current_funded[ordinal]=funded
+            curves.append(dict(history=history['name'],cohort=history['cohort'],arm=arm,ordinal=ordinal,
+                funded=len(funded),reported=reported,censored=state['censored'],missing=missing,estimated_usd=state['spent']))
+            assert state['spent']<=.04+1e-12
+    jsonl(OUT/f"estimated-history-{history['cohort']}-{history['name']}.jsonl",allrows)
+    dump(OUT/f"estimated-curves-{history['cohort']}-{history['name']}.json",curves)
+
+
+def queue_export(native_missing):
+    # Previously reviewed EXACT endpoint pairs only; families/endpoints are not blanket exclusions.
+    reviewed=set()
+    for name in ['t3','litellm','opencode','openhands','kaizen']:
+        for p in rows(LAB/f'reports/candidate-first/{name}-scaled-completed.jsonl'):
+            c=Candidate.model_validate(p['packet']['candidate']);reviewed.add((p['repository'],tuple(sorted((c.new.qualname,c.existing.qualname)))))
+    for p in sorted((LAB/'reports/candidate-first/frozen-review-batches').glob('*.jsonl')):
+        for r in rows(p):
+            if 'candidate' in r:
+                c=Candidate.model_validate(r['candidate']);reviewed.add((r['repository'],tuple(sorted((c.new.qualname,c.existing.qualname)))))
+    eligible={};controls={}
+    for item in POOLS:
+        bykey={c.key:c for c in item['pool']}
+        base={r['pair']:r for r in item['rows']['current']}
+        for arm in ['naive_cost','protected_cost']:
+            for r in item['rows'][arm]:
+                c=bykey[r['pair']];identity=(r['repository'],tuple(sorted((c.new.qualname,c.existing.qualname))))
+                if not r['funded'] or r['verdict'] is not None or identity in reviewed:continue
+                entry=(item,c,r)
+                (controls if base[c.key]['funded'] else eligible).setdefault(identity,entry)
+    def stable(entry):
+        item,c,r=entry;return digest([r['repository'],c.key])
+    picks=sorted(eligible.values(),key=stable)[:8]
+    # Match each control to a novel pair by repository and size bucket; deterministic without labels/scores.
+    controlpicks=[];available=sorted(controls.values(),key=stable)
+    for item,c,r in picks:
+        matches=[v for v in available if v[2]['repository']==r['repository'] and (v[2]['total_lines']<40)==(r['total_lines']<40)]
+        if matches and len(controlpicks)<4:
+            controlpicks.append(matches[0]); available.remove(matches[0])
+    if not picks:controlpicks=available[:4]
+    queue=[]; blind=[]
+    for n,(item,c,r) in enumerate(picks+controlpicks,1):
+        qid=f'BR-{n:03d}'; proofs=[]
+        for f in [c.new,c.existing]:
+            proof=sources(r['repository'],r['revision'],item['gitroot'],f.path)
+            proofs.append(dict(**proof,source_id=f.qualname,line=f.line,end_line=f.end_line,body_sha256=sha(f.code.encode()),
+                syntactic_call_evidence=sorted(set(re.findall(r'\b([A-Za-z_$][\w$]*)\s*\(',f.code))-{f.name})))
+        packet=dict(id=qid,repository=r['repository'],revision=r['revision'],candidate=c.model_dump(mode='json'),
+            background_proof=item['proof'],source_proofs=proofs,
+            caller_proofs=[],caller_evidence_caveat='Full files and canonical dependency context supplied; outgoing syntactic calls recorded; incoming caller scan in separate artifact.',
+            source_evidence=evidence(c),context_hash=c.context_hash,
+            canonical_identity=canonical(c,item['judge']),
+            private_sidecar=dict(arm=r['arm'],batch=r['batch'],rank=r['rank'],features=item['fs'][c.key],
+                budget_reason='Actually selected by normal-estimate Ledger under .04 family batch',
+                matched_control=n>len(picks),ledger_proof=str(OUT/'candidate-stages.jsonl')),
+            funding=dict(actually_funded=True,normal_estimated_usd=r['estimated_usd'],cumulative_estimated_usd=r['cumulative_estimated_usd'],cap=.04),
+            source_policy='synthetic diagnostic only; no actual PR/adopter configuration claim')
+        queue.append(packet)
+        blind.append(dict(id=qid,repository=r['repository'],revision=r['revision'],
+            new=c.new.model_dump(mode='json'),existing=c.existing.model_dump(mode='json'),source_proofs=proofs,
+            instruction='Assess actionable shared operation and independent policy/owner/caller differences; preserve drift and disputes. No whole-function equivalence assumed.'))
+    # Historical native requests have already stopped at exact first funded frontier; no speculative tail.
+    seen={}; historical=[]
+    for m in native_missing:
+        key=m['canonical_answer_key']
+        if key in seen:seen[key]['also_funded_arms'].append(m['arm']);continue
+        m=dict(m,also_funded_arms=[m['arm']]);seen[key]=m;historical.append(m)
+    jsonl(OUT/'novel-review-queue.jsonl',queue)
+    jsonl(OUT/'blind-review-packets.jsonl',blind)
+    jsonl(OUT/'historical-review-queue.jsonl',historical[:12])
+    return dict(novel=len(picks),controls=len(controlpicks),historical_unique_frontier=len(historical),historical_exported=min(12,len(historical)))
+
+
+def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--historical-only',action='store_true');parser.add_argument('--public-only',action='store_true');args=parser.parse_args()
+    start=time.perf_counter()
+    global ALL_DECISIONS
+    ALL_DECISIONS={r['id']:r for r in rows(LAB/'reports/candidate-first/scaled-coordinator-decisions.jsonl')}
+    native,missing=(js(OUT/'native-history-results.json'),rows(OUT/'historical-funded-missing.jsonl')) if args.public_only else historical_run()
+    if args.public_only and (OUT/'input-hashes.json').exists(): INPUTS.update(json.loads((OUT/'input-hashes.json').read_text()))
+    if not args.historical_only:
+        cache=load_review_cache()
+        configs={r['repository']:r for r in js(LAB/'jobs/review-automation/.lab-results/review-automation/repositories-five.json')}
+        for name,repo in [('t3','pingdotgg/t3code'),('litellm','BerriAI/litellm')]:public_run(name,configs[repo],cache)
+    jsonl(OUT/'candidate-stages.jsonl',STAGES);jsonl(OUT/'query-ranks.jsonl',QUERY_ROWS);dump(OUT/'diagnostic-batches.json',BATCHES)
+    dump(OUT/'timing.json',TIMING)
+    queue=queue_export(missing)
+    dump(OUT/'summary.json',dict(experiment='stage6-F',historical_runs=len(native),historical_censored=sum(r['censored'] for r in native),
+        public_batches=len(BATCHES)//4,public_query_directions=len(QUERY_ROWS),queue=queue,
+        total_seconds=time.perf_counter()-start,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        physical_worker_calls=0,physical_worker_usd=0,learned_ranker=None))
+    dump(OUT/'input-hashes.json',INPUTS)
+    print(json.dumps(js(OUT/'summary.json')),flush=True)
+
+if __name__=='__main__':main()

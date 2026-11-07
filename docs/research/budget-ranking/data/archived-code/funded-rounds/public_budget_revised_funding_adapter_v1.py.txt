@@ -1,0 +1,76 @@
+"""Root ordinary-intake funding adapter: original union versus revised admission.
+
+Same public_funding signature as root's reviewed public_budget_round_v1.py.
+No provider calls, root writes or mutable producer rewrites at import time.
+"""
+import json
+from pathlib import Path
+import sys
+
+ROOT=Path('/home/researcher/dry-lint-round')
+OPS=ROOT/'jobs/judge-operations/.lab-results/promotion-operations'
+sys.path.insert(0,str(OPS))
+import public_budget_round_v1 as original
+q=original.q
+
+
+def public_funding(i,method,row,side,queue,h,funds):
+    fp=row.get('funding_proof',{})
+    if method!='budget-ranking' or fp.get('arm')!='fair_fixed_feature':
+        return original.public_funding(i,method,row,side,queue,h,funds)
+    allowed={r['repository'] for r in json.loads(q.REPOS.read_bytes())}
+    if row['repository'] not in allowed or fp['ledger_kind']!='synthetic_diagnostic':
+        raise ValueError('Revised public scope/funding kind differs')
+    path=Path(fp['path'])
+    if q.sha(i.raw(path))!=fp['sha256']:raise ValueError('Revised synthetic ledger SHA differs')
+    ledger=[r for r in i.rows(path) if (r['repository'],r['revision'],r['arm'],r['batch'])==
+            (row['repository'],row['revision'],'fair_fixed_feature',fp['batch']) and fp['pair_key'] in r['funded_keys']]
+    if len(ledger)!=1:raise ValueError('Missing/ambiguous revised funded ledger')
+    ledger=ledger[0]
+    if ledger['ledger_kind']!='synthetic_diagnostic' or ledger['cap_usd']!=.04 or ledger['estimated_usd']>.04+1e-12:
+        raise ValueError('Revised synthetic cap differs')
+    source=Path(h['revised_funding_supplement'])
+    if q.sha(i.raw(source))!=h['revised_funding_supplement_sha256']:
+        raise ValueError('Supplement SHA differs')
+    supplied=[r for r in i.rows(source) if r['id']==row['id']]
+    if len(supplied)!=1:raise ValueError('Revised exact case supplement missing/ambiguous')
+    supplement=supplied[0];candidate=q.Candidate.model_validate(row['candidate'])
+    if supplement['candidate_sha256']!=q.sha(q.canonical(candidate.model_dump(mode='json'))):
+        raise ValueError('Supplement full Candidate differs')
+    if (supplement['repository'],supplement['revision'],supplement['pair'])!=(row['repository'],row['revision'],candidate.key):
+        raise ValueError('Supplement pinned pair differs')
+    source_ids={'new':candidate.new.qualname,'existing':candidate.existing.qualname}
+    if supplement['source_ids']!=source_ids:raise ValueError('Supplement source IDs differ')
+    oldproof=supplement['original_candidate_union_proof'];newproof=supplement['revised_stage_proof']
+    if oldproof['path']!=ledger['original_stage_path'] or oldproof['sha256']!=ledger['original_stage_sha256']:
+        raise ValueError('Original union proof differs from original-stage pointer')
+    for proof in [oldproof,newproof]:
+        if q.sha(i.raw(Path(proof['path'])))!=proof['sha256']:raise ValueError('Stage proof SHA differs')
+    before=[r for r in i.rows(Path(oldproof['path'])) if (r['arm'],r['batch'],r['pair'],r['repository'],r['revision'])==
+            ('current',fp['batch'],candidate.key,row['repository'],row['revision'])]
+    after=[r for r in i.rows(Path(newproof['path'])) if (r['arm'],r['batch'],r['pair'],r['repository'],r['revision'])==
+           ('fair_fixed_feature',fp['batch'],candidate.key,row['repository'],row['revision'])]
+    if len(before)!=1 or len(after)!=1:raise ValueError('Original/revised exact stage missing/ambiguous')
+    before=before[0];after=after[0]
+    if before['funded'] or not after['funded'] or after['estimated_charge_usd']<=0:
+        raise ValueError('Requires ORIGINAL UNFUNDED and REVISED FUNDED; no fabricated old funded bit')
+    if after['cumulative_estimated_usd']>.04+1e-12 or abs(after['cumulative_estimated_usd']-ledger['estimated_usd'])>1e-12:
+        raise ValueError('Revised batch cumulative cost differs')
+    for stage in [before,after]:
+        if (stage['new'],stage['existing'])!=(candidate.new.qualname,candidate.existing.qualname) or stage['evidence']!=q.evidence(candidate):
+            raise ValueError('Exact revised native endpoints/evidence differ')
+    for key in ['question_key','similarity','operation','independent_owners','utility','cost_score','estimated_usd','total_lines','same_file']:
+        if before[key]!=after[key]:raise ValueError('Revision changed more than ordering/admission: '+key)
+    for record,proof in [(before,oldproof),(after,newproof)]:
+        if any(record[k]!=v for k,v in proof['row'].items()):raise ValueError('Supplement stage projection differs')
+    # Snapshot adapter and preregistration as opaque input evidence; no wire rewrite.
+    i.raw(Path(__file__))
+    for proof in [supplement['preregistration'],supplement['revised_method']]:
+        if q.sha(i.raw(Path(proof['path'])))!=proof['sha256']:raise ValueError('Preregistered method bytes differ')
+    return dict(kind='normal_estimated_public_synthetic_revised_campaign',
+        original_candidate_present=True,original_current_funded=False,revised_funded=True,
+        original_ledger=ledger,original_candidate_stage=before,revised_funded_stage=after,
+        revised_stage_proof=newproof,original_stage_proof=oldproof,supplement_sha256=h['revised_funding_supplement_sha256'],
+        actual_pr_funding='not claimed',native_reserve_settle='not claimed',normal_cache_discount=0,
+        physical_diagnostic_judging='Separate paired root allocation; original synthetic Sonnet admission is not paired PR funding.',
+        older_historical_spend_credited=0)

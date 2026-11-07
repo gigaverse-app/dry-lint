@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "status": "READY",
+  "method": "budget-ranking",
+  "proposed_branch": "research/study-budget-ranking",
+  "destination": "docs/research/budget-ranking/",
+  "source_bundle": "/home/researcher/dry-lint-round/jobs/publish-combined-studies/.lab-results/publications/budget-ranking",
+  "root_actions": [
+    "copy complete bundle to destination on its separate branch",
+    "validate offline commands",
+    "push and create PR using PR-title.txt and PR-body.md"
+  ],
+  "checks": [
+    "clean-copy original algorithm",
+    "clean-copy raw-answer result replay",
+    "links",
+    "secrets including gzip",
+    "source licensing and hashes",
+    "exact goldens catalog matches"
+  ],
+  "reproduction_scope": "Original ordering/admission on one complete 25-candidate public campaign; full 124-pair public recorded-result replay. Not a full-corpus rerun.",
+  "source_policy": "Public R1/R2 only; private historical final-v2 aggregates sanitized; no private sources/prompts/IDs.",
+  "providers_called": 0,
+  "ci_changes": false,
+  "limitations": [
+    "Remote proposed branch links are pending root publication",
+    "Private histories excluded",
+    "Full retrieval rebuild needs original external inputs in DATA-CONTRACT.json"
+  ]
+}

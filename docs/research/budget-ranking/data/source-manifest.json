@@ -1,0 +1,738 @@
+[
+  {
+    "path": "litellm/caching/caching_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "696951967f8d2cf161ecd4753767ac530b1782dded746c148562306f4c601fa8",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/hooks/batch_redis_get.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "a59aa7f488946e0f0d2af13e95bef45099fb5329348d28b5e88f7cbf329a95b0",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/otel/logger.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1ea07433481cc5be20babd9969a43beefa77cc569b43cf7c5ac609af5388888d",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/layout/workspace/PullRequestToolbar.android.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "a35ed1fb7c0186b6bd817dda77e7cde4de9aa2770c9bc121ce5ad70c7f7dc9cf",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/layout/workspace/useSelectWorkspaceTab.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "fe385a18bda4163df9216b0f42f773d93e5badf1e65771cab70631067f7c7a7d",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/files/thread-file-navigator-pane.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "89c8fd2942679fe077ae59fd2e0ca4aa54e2e9493e0ebd0ead9773e603a99ded",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/threads/use-new-task-project-defaults.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "02a021820e3153fefbd32e415fd448d89fd2a2f577e589ac27e1df491aebcde7",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/anthropic_endpoints/gateway_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "3b56239d85c1daa5b2810b0e87b7d585a921e74b78d831dfb1a8c48a7051e626",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/mcp_server/byok_oauth_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "3ba900bee6a3c487a0b27fba3244179c997183d0dd0b71dad38270b4aeddff6e",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/litellm_core_utils/llm_cost_calc/utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "d6441cfafe45d1136a7cdb06c83fcd4c269b4591ff6bf745f06002865c3335a4",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/llms/vertex_ai/cost_calculator.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "a39d94e351bdec50934d8c6082c430c7c6f76f47adba70a2a88b5a67370d6bc8",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/pull-requests/usePullRequestAction.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "5d06a83429eccddea2d6c4da8473e4a2d7d4558f8b273aea0582a1c0ea4c09bb",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/pull-requests/usePullRequestMaintainerEdits.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "d0efd91de78c58cf1507a9f0894783eeaa5bb61bc09c1cd1c59ebd214ae8fd33",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/harness/sandbox/docker.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "0937bb50e7d264ca1967e8596de3d8c9a1f72f0e063776daa27e60c33183e1c9",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/server/src/orchestration-v2/Adapters/ClaudeAdapterV2.testkit.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "5fd6e83cc4a87eee960c28c891cf78224be224fe6dc8920cd4bbb5d8f646e287",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/state/filesystem.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "e722d3b8791406284914c294af7472ca0b657a60846c1c3f583d75533ff3cfbe",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/layout/workspace/WorkspaceListHeader.android.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "2f2a3e4b4ac49bac1528c4ab4361162f0a1c0dd515e766709fa3ae278057373a",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/layout/workspace/useAndroidWorkspaceNavigation.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "4a4e044b70b14b6aef20c837f8fd838f49835c017825692233c296410bce9cc9",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/otel/emitter.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "2fb701435ad9a1ead76dfc4cb04d4a0691ab41606dc050818425330835e91d72",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/llms/anthropic/cost_calculation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "8933ca469b5a1cc4bd69104541efd8ec877b2668e232274e8f0d623dd9be9d73",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/anthropic_endpoints/claude_code_endpoints/claude_code_marketplace.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1d99b9c07852f7d6df239c54fb4f733d3393de90fe05f3bd00b611bf69e8a3c7",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/cost_calculator.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "bbeb1f7f2f98ece263d913128242be041224c5414140ba8aaf2a0a6dd6686abe",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/llms/bedrock/cost_calculation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "b3b42b6be59e49d79c02febed225d7d92a4c01917c617919dec29a2cca09e005",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/pullRequest/usePullRequestActions.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "60a03a1baceefb8f3bd3e5f80a325f08ac77534332efee11702a1fce8ad098b0",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/layout/workspace/WorkspaceToolbar.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "5294d86da87d916a2b3c094a81a3c485743815cd63cb178611c0aec2535535a2",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/components/ui/AppBar.android.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "df26e437a02fefb90098be0bd5b474aa0cbb7708789514ad4536eef944c89904",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/ui_sso.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "8a51952335ab293b529fc335ba0660c782cd993dd7b82f91f6780f13a8af3d57",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/_logging.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e0028c23be4465315c827a0e54494c98b93ff8372535d19c86b1adf9b4c3617a",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/litellm_core_utils/secret_redaction.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "f37863f431fd6e6c2fc0c2546a72fb0455c9bc7e5bb96176f4fbce7be06fad38",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/threads/SecretRequestCard.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "14326ac2dfe768d44a744d20065477b0d9f78ce90a9a799d83a9841649f3ca24",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/threads/LinkRequestCard.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "8194e8a67eb06f49df86761e59e47f407ce1af152436faed4b08b28b522d3f6b",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/chat/useComposerResume.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "71942b87658cf2701d2f1831d72843a3866fa9cf8d6c6f30795ff21e8bee71c2",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/chat/useProposedPlanSend.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "843724e96ed44e9cc25b7b7cd055e334f4a6c18c9f2a8e68365b13d2f7a5c3f8",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/caching/redis_cache.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/device/DeviceSetup.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "c99dc5aaf9d4afe8e34cf8b76171473cac9026bdd9669e4492aaecfc212e9347",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/device/DeviceHostUpdates.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "d1b1e992bfb37cf0f5dd5c2d061a628d0b4075a91074a6d244c8563927935390",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/shortcuts/commandPaletteCommands.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "2831388f796defc12461bcc1280f7c35a58d40de9291eb365c1dd96eff30d687",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/AppSidebarLayout.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "1234d39ee5d1c26124a77799424eb2ab1c5c425b8c8891501cf62d39f0c1502c",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/harness/sandbox/local.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "3137bc2e7d6f2516b1a6b4a1d61cd55c11bb09b483162e1a3e6a19c610caa077",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/chat/SecretRequestCard.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "120bc18313d85e2b3b960b31a6c1f22d54a4304571a2ccc13679a129e5242813",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/shortcuts/chatRouteCommands.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "922260d5cc3695bda3d6938c534be41a3487ad6e683fca47b047369151e4b721",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/hooks/useHandleNewThread.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "032d219b83121142088ba2d1d057b8d39c0781c5f0dd7c7c1f8c70d20d27e6bb",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/settings/IntegrationsSettings.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "77962c97286df0a25fb5bbfd85a520ed13c7f72f17efd6d2e832beccedc39f4c",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/pull-requests/PullRequestReviewSheet.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "f664ee58de0f962b1fe17814d26ffd0dbb77ffc03b3d978613f2cd619a4319ab",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/state/queries.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "d157a24fff87064a953befddc1ca9dda38319058d1fe6973a06a49bf3d85be6f",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/guest/GuestPage.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "b0d1ba43588ec067fdc589b3da0bfb522647d7f3e7d28af64ee9683810c5ef40",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/llms/deepagents/harness/sandbox_backend.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "76d2b3c58cddf9bc426e7baa51bbd52929811480149c27d98997950f7fcaefde",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/mobile/src/features/pull-requests/usePullRequestListActions.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "2bc5e261d82d4ca6e11cc4fa02c3e8bcc100b7edfb0ec55288a6299b91797349",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/sso/saml_sso.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "321adfc36bee4331539b8894717bdff5d1e6aab5098d4dfcaf2842e8ac391d5a",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/discovery_endpoints/skill_hub_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "26772f7a5f6fe389d956c8dd59b298fbf365ac4301988e0cadf99b424ba3b834",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/mcp_server/discoverable_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "9eec2a4912e746fe946a3b882d43a405573f2ad3e56450044cdc59f00543186b",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/mcp_server/oauth_utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "9b5cfc7b9440f072648cdf8ba719642475e9dfad246de4a19fa1c24fc33d9761",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/team_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "6f2629e4166e88dc65172204b54e6aac792ef9705a6711ff38b127028123683d",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/organization_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e98371d1a23702b1305f2d5af652bd84903ebffc7c5433b9adfc564aea3106a2",
+    "source_snapshot": null
+  },
+  {
+    "path": "packages/client-runtime/src/state/server.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "bba919d24459f251c1ba2249cfbefbd469ba169e13a6b5914d83d7f98711048f",
+    "source_snapshot": null
+  },
+  {
+    "path": "packages/client-runtime/src/state/projectCommands.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "38f45edff7f853d5d636f25415a005d851b108140c94a3e0580fd0052a43cfd5",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/traceloop.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "f6d737bd8e7a427445c08ea7584cc160bc2abc6f4a25910fef4cbb7c75901ce6",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/BranchToolbar.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "e6e968cf716ecf34b98ba840cf4707482cda1214b088aaa7e901f17898da0fe2",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/chat/restingComposerControlsMeasurement.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "8dbc3689f53c5e7c284b1fae1974828fb3ef8699b8b3e4f73e36843a12074e1d",
+    "source_snapshot": null
+  },
+  {
+    "path": "packages/client-runtime/src/state/preview.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "eabcfdf4d619f8182e7d9cd6b98d58a654e555f10a62e89a0cbb9a132c5473b9",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/proxy_cli.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "76c54a73754e7a31394ca0dde7707371a5a82139f7c23a76029454217654e673",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/langtrace.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "cd3e4985b21d4c0a99a6b7f4ad774d1c8b20e7c42064aaebb76c99ad4a4782a0",
+    "source_snapshot": null
+  },
+  {
+    "path": "packages/client-runtime/src/state/outdatedServerUpdate.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "e737085ceede1ff8dec1fb22053e378ef099ad5a1b768ee2fea4c84a89fd7314",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/langfuse/langfuse_prompt_management.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "697d72aabbcbf0db9617b482dbc3e9a27a66cf228bf6d67957d6df4e4d1cdfc3",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/extraction/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "10e841b1973a2c56720316a3c3b8ba2856fe33683c71d22e3f784d349a3c2e88",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/realtime_api/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "5bee7977bddab43460fa3d7c50da20fb0455f0f7c0dfa4aaa2024142e6745c8a",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/files/office/sheet-paint.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "af6f8c2f9ecdec189589be8a18d6877067e7642367c8046bdc4554e373b19cce",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/files/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "f2894f71ef7e266952c5c1a8f1abb1c94474c72e3e53d4218e5edc79d1eb547f",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/batches/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1921d300a00ef89a35ffc2a409fbf357281a7578bedab4afe9e37e44cf0fec27",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/router_strategy/complexity_router/complexity_router.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "d45e5bfdab9ee12fc089acce04bfc96ab40a07a36284ae4297eb8a7def3b18cd",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/desktop/src/wsl/DesktopWslEnvironment.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "5fcf716de5cd2bb2317bb3e4b66ec470f704c037c677d01aaea6b48932ef855a",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/focus/destinations/s3_destination.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "0bbf93fb999d219a6632ac42dd7128550d8c75bbee757de24c089c5af4eb3250",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/focus/export_engine.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "5dd74cd10cb580443b2e10c0d5b11d346c8577ef2f0754cb8886541e7aa04850",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/litellm_core_utils/litellm_logging.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "5119b33be8195256783174ddbe428342f4bd9146937e38ce0bc0ae9edcb030d7",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/common_utils/reset_budget_job.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/settings/SourceControlWritingSettings.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "dd275a62e562cb97ca1b88bbcc523a234de3e5ccb2733ebdffe9822614a643b1",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/settings/SettingsPanels.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "6db8bed4fd74ecfdd58726eda6c0a2d9aad78c2f94d11f870bce909a6b251c02",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/assistants/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "89da81c9ab12504dba247fe6a0cedfd430165b1c8f9e4dcfbf4b495a0d1bc2aa",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/langfuse/langfuse.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1ef82b6c69940bd7758230b52fb14d3e30e4a3227d856ac67e99056fc81fd521",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/mcp_server/gateway_dcr_flow.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "8f2d0c9e9113924769518bef39bc0c4457d678a1c9ab88aa4a05874bc0fb5940",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/chat/ComposerBannerStack.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "f56387e43f89fcbb3c04837e2c1401b849b60059b5c3918d102f5b18ad7f5611",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/chat/useRestingComposerControlsLayout.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "a1169ba29670da161d8c56ed30df30d2e6fd9a9ae9d6a57beb2ece7fc5259d5c",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/arize/arize_phoenix.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "f35110f72c36bebc6d5f0547f9d14c38d8361df3c0605eed4bca1c609102bba1",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/opentelemetry.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "669b4aee8a481bf04402385c677755e0c6bc8a962b49447aafc02f25f63edbbe",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/files/office/sheet-frame.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "c4f000d4ecca07a81b30838b4aa36c36bc474d101108449e8252c73233f06da2",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/management_helpers/bulk_user_deletion.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "17ceae5add772d8239c9dc0ca73b72ea04ba3cd1586afa30d1f5aee48ad7adf3",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/integrations/weave/weave_otel.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "59769a4e999babd8dc568e895c0f7e49d0e7f95fed326f074b82d7c7212cb789",
+    "source_snapshot": null
+  },
+  {
+    "path": "apps/web/src/components/chat/useComposerMultilinePrompt.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "da891cdd3b34525e156ad76ec78ba12f3e50eea49ce7c41abaa3a88c973fb5c1",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/management_helpers/bulk_user_creation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "4ae93c2ba5be8f3f482ddb4625fc0609148e9485a76bfdb0346cc64eefe3d9db",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/router_rust/steps/plugins.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1ca32172fbbd578eb0a03d9b9d247a1d908d23e1e9eea020504c7154b5b6a4c9",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/llms/custom_httpx/llm_http_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "215f7396cb9f83f0aed7bf8382184f4639e243198c569e317f1a5278e473c9ac",
+    "source_snapshot": null
+  },
+  {
+    "path": "litellm/proxy/management_helpers/team_roster_sync.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "92bf6bf9189aa0ebf6a57d671c02701a5e919369401bf2573ee06960ea356a55",
+    "source_snapshot": null
+  }
+]

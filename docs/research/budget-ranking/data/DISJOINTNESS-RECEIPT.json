@@ -1,0 +1,25 @@
+{
+  "no_provider_calls": true,
+  "overlaps": {
+    "frozen_query_lineage_ids": 0,
+    "rendered_requests": 0,
+    "source_endpoints": 0,
+    "source_pairs": 0
+  },
+  "round1": {
+    "endpoints": 83,
+    "frozen_lineages": 17,
+    "pairs": 74,
+    "wire_requests": 148
+  },
+  "round1_queue_sha256": "5bd81b3d2f64eb90a05643c6fbed843ddab5ae6615614f632d251d2709521fc6",
+  "round2": {
+    "endpoints": 67,
+    "frozen_lineages": 16,
+    "pairs": 50,
+    "wire_requests": 100
+  },
+  "round2_queue_sha256": "36058faec46ccd8de71501ae6c4899f1d82cf20e841803e6abd5bf8892c1954c",
+  "semantic_novel_operation_family_claim": "Root source reconciliation required; source-separated development cohorts are not magically fresh historical holdout.",
+  "status": "PASS_FROZEN_SOURCE_LINEAGE_ENDPOINT_AND_WIRE_SEPARATION"
+}
