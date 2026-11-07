@@ -1,0 +1,378 @@
+{
+  "base_commit": "73709fdbe884c107b665400a186cb71caecc03f7",
+  "comparer_identity": "operation-blocks:2",
+  "default_enablement_changed": false,
+  "known_gold_exposure": {
+    "groups": [
+      {
+        "accepted": true,
+        "counts": {
+          "evaluated_pair_background_units": 39,
+          "gained": 0,
+          "lineage_rows": 267,
+          "lost": 0,
+          "missing_or_unsupported_units": 206,
+          "original_concept_funded": 37,
+          "original_paired_funded": 37,
+          "pair_background_units": 245,
+          "treatment_concept_funded": 37,
+          "treatment_paired_funded": 37
+        },
+        "first_losses": {
+          "bounded_anchor_pool": 3,
+          "eligible": 44,
+          "query_no_region": 14,
+          "region_floor": 7,
+          "shared_operation_guard": 6,
+          "target_no_region": 4
+        },
+        "label": "duplicate"
+      },
+      {
+        "accepted": true,
+        "counts": {
+          "evaluated_pair_background_units": 80,
+          "gained": 0,
+          "lineage_rows": 565,
+          "lost": 0,
+          "missing_or_unsupported_units": 479,
+          "original_concept_funded": 38,
+          "original_paired_funded": 38,
+          "pair_background_units": 559,
+          "treatment_concept_funded": 38,
+          "treatment_paired_funded": 38
+        },
+        "first_losses": {
+          "bounded_anchor_pool": 36,
+          "eligible": 16,
+          "filtered": 2,
+          "query_no_region": 65,
+          "region_floor": 4,
+          "shared_operation_guard": 12,
+          "target_no_region": 25
+        },
+        "label": "separate"
+      },
+      {
+        "accepted": false,
+        "counts": {
+          "evaluated_pair_background_units": 3,
+          "gained": 0,
+          "lineage_rows": 13,
+          "lost": 0,
+          "missing_or_unsupported_units": 10,
+          "original_concept_funded": 3,
+          "original_paired_funded": 3,
+          "pair_background_units": 13,
+          "treatment_concept_funded": 3,
+          "treatment_paired_funded": 3
+        },
+        "first_losses": {
+          "eligible": 2,
+          "query_no_region": 1,
+          "region_floor": 2,
+          "target_no_region": 1
+        },
+        "label": "borderline"
+      },
+      {
+        "accepted": false,
+        "counts": {
+          "evaluated_pair_background_units": 11,
+          "gained": 0,
+          "lineage_rows": 11,
+          "lost": 0,
+          "missing_or_unsupported_units": 0,
+          "original_concept_funded": 8,
+          "original_paired_funded": 7,
+          "pair_background_units": 11,
+          "treatment_concept_funded": 8,
+          "treatment_paired_funded": 7
+        },
+        "first_losses": {
+          "bounded_anchor_pool": 2,
+          "eligible": 10,
+          "query_no_region": 3,
+          "region_floor": 2,
+          "shared_operation_guard": 4,
+          "target_no_region": 1
+        },
+        "label": null
+      },
+      {
+        "accepted": false,
+        "counts": {
+          "evaluated_pair_background_units": 0,
+          "lineage_rows": 4,
+          "missing_or_unsupported_units": 4,
+          "pair_background_units": 4
+        },
+        "first_losses": {},
+        "label": "unknown"
+      },
+      {
+        "accepted": false,
+        "counts": {
+          "evaluated_pair_background_units": 0,
+          "lineage_rows": 1,
+          "missing_or_unsupported_units": 1,
+          "pair_background_units": 1
+        },
+        "first_losses": {},
+        "label": "separate"
+      },
+      {
+        "accepted": false,
+        "counts": {
+          "evaluated_pair_background_units": 1,
+          "gained": 0,
+          "lineage_rows": 4,
+          "lost": 0,
+          "missing_or_unsupported_units": 3,
+          "original_concept_funded": 1,
+          "original_paired_funded": 1,
+          "pair_background_units": 4,
+          "treatment_concept_funded": 1,
+          "treatment_paired_funded": 1
+        },
+        "first_losses": {
+          "query_no_region": 2
+        },
+        "label": "duplicate"
+      }
+    ],
+    "meaning": "Funded exposure, not emitted reports; known separate exposures are not false reports. Existing source labels are regression, never fresh holdout.",
+    "provider_calls": 0,
+    "stage": "complete"
+  },
+  "parity_and_runtime": {
+    "cohorts": [
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-39fae3b3a8cbef21",
+        "cold_index_new_seconds": 1.755460630003654,
+        "cold_index_old_seconds": null,
+        "counts": {
+          "full_gold_queries": 7,
+          "old_winners_exactly_preserved": 25,
+          "queries": 230
+        },
+        "direct_score_mismatches": [],
+        "documents": 1430,
+        "native": 1430,
+        "paired_warm_query_new_seconds": 0.31099420299142366,
+        "paired_warm_query_old_seconds": 0.13596814406628255,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-7489aa1946c16153",
+        "cold_index_new_seconds": 41.93876135000028,
+        "cold_index_old_seconds": 27.462860455001646,
+        "counts": {
+          "full_gold_queries": 93,
+          "old_winners_exactly_preserved": 214,
+          "queries": 529
+        },
+        "direct_score_mismatches": [],
+        "documents": 37604,
+        "native": 37460,
+        "paired_warm_query_new_seconds": 3.9746859930091887,
+        "paired_warm_query_old_seconds": 2.454583861937863,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-8eb6c8f6128ba76f",
+        "cold_index_new_seconds": 32.5657914389958,
+        "cold_index_old_seconds": null,
+        "counts": {
+          "full_gold_queries": 2,
+          "old_winners_exactly_preserved": 200,
+          "queries": 402
+        },
+        "direct_score_mismatches": [],
+        "documents": 31104,
+        "native": 31100,
+        "paired_warm_query_new_seconds": 2.1224752498601447,
+        "paired_warm_query_old_seconds": 1.2225893170179916,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-92afa0cbed059fb3",
+        "cold_index_new_seconds": 1.9211984599969583,
+        "cold_index_old_seconds": null,
+        "counts": {
+          "full_gold_queries": 7,
+          "old_winners_exactly_preserved": 14,
+          "queries": 217
+        },
+        "direct_score_mismatches": [],
+        "documents": 1302,
+        "native": 1302,
+        "paired_warm_query_new_seconds": 0.23355384707974736,
+        "paired_warm_query_old_seconds": 0.09627917892066762,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-a068703e185ee6a8",
+        "cold_index_new_seconds": 2.4468788449958083,
+        "cold_index_old_seconds": null,
+        "counts": {
+          "full_gold_queries": 2,
+          "old_winners_exactly_preserved": 39,
+          "queries": 241
+        },
+        "direct_score_mismatches": [],
+        "documents": 2349,
+        "native": 2347,
+        "paired_warm_query_new_seconds": 0.3580689420050476,
+        "paired_warm_query_old_seconds": 0.15788867200899404,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-a14b900df550841e",
+        "cold_index_new_seconds": 1.473946766993322,
+        "cold_index_old_seconds": null,
+        "counts": {
+          "full_gold_queries": 7,
+          "old_winners_exactly_preserved": 11,
+          "queries": 214
+        },
+        "direct_score_mismatches": [],
+        "documents": 1282,
+        "native": 1282,
+        "paired_warm_query_new_seconds": 0.237610648968257,
+        "paired_warm_query_old_seconds": 0.09647045400197385,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-b989dc3a47d648a0",
+        "cold_index_new_seconds": 12.37518510800146,
+        "cold_index_old_seconds": null,
+        "counts": {
+          "full_gold_queries": 40,
+          "old_winners_exactly_preserved": 200,
+          "queries": 438
+        },
+        "direct_score_mismatches": [],
+        "documents": 9907,
+        "native": 9905,
+        "paired_warm_query_new_seconds": 2.238979486064636,
+        "paired_warm_query_old_seconds": 1.5140121719741728,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-c6bdea064c4533a8",
+        "cold_index_new_seconds": 1.8961084920010762,
+        "cold_index_old_seconds": null,
+        "counts": {
+          "full_gold_queries": 7,
+          "old_winners_exactly_preserved": 22,
+          "queries": 228
+        },
+        "direct_score_mismatches": [],
+        "documents": 1410,
+        "native": 1410,
+        "paired_warm_query_new_seconds": 0.31812293104303535,
+        "paired_warm_query_old_seconds": 0.13349645400739973,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-dd01f33452ea0f76",
+        "cold_index_new_seconds": 32.395665321004344,
+        "cold_index_old_seconds": null,
+        "counts": {
+          "full_gold_queries": 2,
+          "old_winners_exactly_preserved": 200,
+          "queries": 402
+        },
+        "direct_score_mismatches": [],
+        "documents": 30734,
+        "native": 30730,
+        "paired_warm_query_new_seconds": 2.1097565449454123,
+        "paired_warm_query_old_seconds": 1.2446840710326796,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      },
+      {
+        "all_original_and_fallback_representations_exact": true,
+        "all_postings_exact": true,
+        "cohort_id": "bg-ebd0031534c954e5",
+        "cold_index_new_seconds": 2.8767125559970737,
+        "cold_index_old_seconds": 1.9458060569959343,
+        "counts": {
+          "full_gold_queries": 44,
+          "old_winners_exactly_preserved": 39,
+          "queries": 277
+        },
+        "direct_score_mismatches": [],
+        "documents": 2348,
+        "native": 2346,
+        "paired_warm_query_new_seconds": 0.452838530029112,
+        "paired_warm_query_old_seconds": 0.19874779201927595,
+        "source_sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+      }
+    ],
+    "meaning": "Every cached native original/helper representation and postings map compared; all supported gold queries, all53 selected campaign queries, and deterministic old-winner/abstention samples compared exactly. No labels affect selection.",
+    "new_discovery_sweep": false,
+    "provider_calls": 0,
+    "status": "PASS"
+  },
+  "privacy": "Aggregate cohort identifiers and metrics only; no private function, path or background source included.",
+  "provenance": {
+    "candidate_patch": {
+      "lab_relative_path": "patch/operation-helper-fallback.patch",
+      "sha256": "85a91b67101737348f3809b1b060c1eddf68c08be8c2159aa28db0c41b721d8d"
+    },
+    "frozen_preregistration": {
+      "lab_relative_path": "PREREGISTRATION.json",
+      "sha256": "62e6bfb122234bca4d79a879347e2587ab2806e3bfb04e2a703666afcdda08b7"
+    },
+    "frozen_recipe": {
+      "lab_relative_path": "helper_fallback_v1.py",
+      "sha256": "fdc63d34cedea827749f268612cc0386a3c76d91804be1616efb65c50c71d03a"
+    },
+    "full_supported_gold_receipt": {
+      "lab_relative_path": "gold-summary.json",
+      "sha256": "7a6053aa07a7f3e0d024c875d39572369e127af0fed8501612d46fd7ddf89276"
+    },
+    "parity_receipt": {
+      "lab_relative_path": "patch/PARITY.json",
+      "sha256": "f2b6362ca3fa9fb1c6b5f4ec6bd5d93987fcae0b102a371b0023e6994bb135b5"
+    },
+    "production_implementation": {
+      "lab_relative_path": "patch/src/dry_lint/operation_blocks.py",
+      "sha256": "206f228ad50dbe8c6587454889a9e1cd60005f380b48c7efe5bd5a04495d6306"
+    },
+    "production_tests": {
+      "lab_relative_path": "patch/tests/test_operation_blocks.py",
+      "sha256": "8d37b492f420379abd2bf85bbcb9257f1c75d3522bcd3e4c71ff95a6ebc88dec"
+    }
+  },
+  "runtime_scope": "One-run local CPU measurements. Warm query order original then candidate; query sample targets parity coverage. No memory or deployment cache-hit measurement. Original cold times absent in eight cohorts remain null.",
+  "schema": 1,
+  "validation": {
+    "comparer_tests": 21,
+    "covered_statements": 190,
+    "lint": "Passed with explicit dry_lint first-party classification matching PR109; test import order corrected, implementation unchanged.",
+    "partial_branches": 2,
+    "relevant_integration_tests": 139,
+    "root_integrated_suite": "Separate root-owned validation; not asserted from local evidence.",
+    "total_statements": 190
+  }
+}

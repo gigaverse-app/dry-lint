@@ -1,0 +1,728 @@
+[
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/controls.py",
+    "original_sha256": "7e53464e3fbb2deb1f4bf2408a4f03f143fb7adb06362c15ecc46a1ac9391136",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/controls.py.txt",
+    "published_sha256": "7e53464e3fbb2deb1f4bf2408a4f03f143fb7adb06362c15ecc46a1ac9391136"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/diagnostics.py",
+    "original_sha256": "0da01b53edeab99bc323c6a502cb59b22ca27113682f328e6346a2160ea24b3f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/diagnostics.py.txt",
+    "published_sha256": "0da01b53edeab99bc323c6a502cb59b22ca27113682f328e6346a2160ea24b3f"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/explicit_policies.py",
+    "original_sha256": "76c13792528da73835b828ad28b6e73f4e71cdec4fe0a7bdd356e803dd6d4977",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/explicit_policies.py.txt",
+    "published_sha256": "76c13792528da73835b828ad28b6e73f4e71cdec4fe0a7bdd356e803dd6d4977"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/finalize.py",
+    "original_sha256": "f5c43c0fbd7f656ff9136e45ba5a04ff031b4adcd057d6befb8fa5dc6c172662",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/finalize.py.txt",
+    "published_sha256": "f5c43c0fbd7f656ff9136e45ba5a04ff031b4adcd057d6befb8fa5dc6c172662"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/handoff.py",
+    "original_sha256": "33f56e5dafd3d563b85372f5fb3bb942f80a97d4af42763a7b366338b19fc9e6",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/handoff.py.txt",
+    "published_sha256": "33f56e5dafd3d563b85372f5fb3bb942f80a97d4af42763a7b366338b19fc9e6"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/observations.py",
+    "original_sha256": "31b7a4e092c8039e46d0c9c1631ce3d97279efb62d8407f164a48f3067bb60a9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/observations.py.txt",
+    "published_sha256": "31b7a4e092c8039e46d0c9c1631ce3d97279efb62d8407f164a48f3067bb60a9"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/operation_blocks.py",
+    "original_sha256": "ee62646e5cbcfddc3ad9effa06c567456220b7a80acb8004845bff359ca560ed",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/operation_blocks.py.txt",
+    "published_sha256": "ee62646e5cbcfddc3ad9effa06c567456220b7a80acb8004845bff359ca560ed"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/operation_blocks_capture_v1.py",
+    "original_sha256": "6a14b89d4edff8af9f3c3bb32f38b2c02c946530defa7a4281832e4364cc8f9a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/operation_blocks_capture_v1.py.txt",
+    "published_sha256": "6a14b89d4edff8af9f3c3bb32f38b2c02c946530defa7a4281832e4364cc8f9a"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/prompt_cost_compatibility.py",
+    "original_sha256": "7cf2b63a6e53861f8e26f1d48b972cf5bd6d37121d86a39453b391635710a3e2",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/prompt_cost_compatibility.py.txt",
+    "published_sha256": "7cf2b63a6e53861f8e26f1d48b972cf5bd6d37121d86a39453b391635710a3e2"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/validate.py",
+    "original_sha256": "4da951191ae73d30bc36be8a291b30a8802296a632757ae6c5b362cd7d990f94",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/validate.py.txt",
+    "published_sha256": "4da951191ae73d30bc36be8a291b30a8802296a632757ae6c5b362cd7d990f94"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/finalize_evidence.py",
+    "original_sha256": "c386f440d994c4741419ddd8513618a45b40a671be2a6262bbb810715a3fc4fa",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/finalize_evidence.py.txt",
+    "published_sha256": "c386f440d994c4741419ddd8513618a45b40a671be2a6262bbb810715a3fc4fa"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/verify_report.py",
+    "original_sha256": "e037655f527a15406749a7d889ce746b6c81f443dc2da8703d2bfaef4c7403b8",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/verify_report.py.txt",
+    "published_sha256": "e037655f527a15406749a7d889ce746b6c81f443dc2da8703d2bfaef4c7403b8"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round1/prepare.py",
+    "original_sha256": "3bbd57e8dd5f76ed797af4816bb47a2ac5e0c5dfb39f66130c234845a613337e",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/funded-rounds/round1/prepare.py.txt",
+    "published_sha256": "1e232a62f41f7c9a73ffe91c7e1137ed15e9f634513c78509aa514fd564c07ec"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/full_source_audit.py",
+    "original_sha256": "00242923840e3d515a4e832e7b12e03bbab8fe0df9a291c4c13755c3ad4c153e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/full_source_audit.py.txt",
+    "published_sha256": "00242923840e3d515a4e832e7b12e03bbab8fe0df9a291c4c13755c3ad4c153e"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/prepare.py",
+    "original_sha256": "70f3749529bad861523bf18e67ad8c0be13e7a738317ee698612559e6b8918c5",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/prepare.py.txt",
+    "published_sha256": "70f3749529bad861523bf18e67ad8c0be13e7a738317ee698612559e6b8918c5"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/prepare_rejection_audit.py",
+    "original_sha256": "db7e78f9ea5e9c8f6b68e04a66b0584b0bd1239a9f1fb46c18c41ab5c03f89fd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/prepare_rejection_audit.py.txt",
+    "published_sha256": "db7e78f9ea5e9c8f6b68e04a66b0584b0bd1239a9f1fb46c18c41ab5c03f89fd"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/residual_blocks.py",
+    "original_sha256": "685671495bb75b584ff8172b40d9167f76e2a9166a255e13e6a8e04f3b4971e8",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/residual_blocks.py.txt",
+    "published_sha256": "685671495bb75b584ff8172b40d9167f76e2a9166a255e13e6a8e04f3b4971e8"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/all_profile_intake.py",
+    "original_sha256": "abc07a7a11a3ff6fea97c03b7ca76cd689521d368b521da669fbdfc283a8cd3a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/all_profile_intake.py.txt",
+    "published_sha256": "abc07a7a11a3ff6fea97c03b7ca76cd689521d368b521da669fbdfc283a8cd3a"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/audit_proposals.py",
+    "original_sha256": "5944ac8d855c79edc0ab9ecca23b758c7a3b34534726258717ea659c94d78719",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/audit_proposals.py.txt",
+    "published_sha256": "5944ac8d855c79edc0ab9ecca23b758c7a3b34534726258717ea659c94d78719"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/audit_spans.py",
+    "original_sha256": "e9359dd50d20b4cb0f5ecf71b7a7e775a2b49ed555ddbbdc40371d25d75b3c3d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/audit_spans.py.txt",
+    "published_sha256": "e9359dd50d20b4cb0f5ecf71b7a7e775a2b49ed555ddbbdc40371d25d75b3c3d"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/consume_shared_spans.py",
+    "original_sha256": "2126c938926b072f3dd8711d9c2c45157524e3adbf4c628c8912a4927c9c4a8c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/consume_shared_spans.py.txt",
+    "published_sha256": "2126c938926b072f3dd8711d9c2c45157524e3adbf4c628c8912a4927c9c4a8c"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/coordinate_audit.py",
+    "original_sha256": "5f7d6d506ba03aee3ad3acf5d715b66b6565361ff1b7a46aef9e6e8a8a370311",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/coordinate_audit.py.txt",
+    "published_sha256": "5f7d6d506ba03aee3ad3acf5d715b66b6565361ff1b7a46aef9e6e8a8a370311"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/derive_v2.py",
+    "original_sha256": "39962929e38b4e0c515e4428578cd42f561b3b3cf9e3380a22e8be7171535646",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/derive_v2.py.txt",
+    "published_sha256": "39962929e38b4e0c515e4428578cd42f561b3b3cf9e3380a22e8be7171535646"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/finish.py",
+    "original_sha256": "ee3eaaca0af9c07878a32479f9c946558dac19e230b85310c7acb7294f9a2433",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/finish.py.txt",
+    "published_sha256": "ee3eaaca0af9c07878a32479f9c946558dac19e230b85310c7acb7294f9a2433"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/intake_outcomes.py",
+    "original_sha256": "e4c4931c676677744ee443186fef4d41d46859ad7fc6dc20178e87a38c4c4748",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/intake_outcomes.py.txt",
+    "published_sha256": "e4c4931c676677744ee443186fef4d41d46859ad7fc6dc20178e87a38c4c4748"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/migrate.py",
+    "original_sha256": "6b498b6eddd86759ae9b437dc8dc42c2a1983759bc28fec0738a1e795b320cf8",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/migrate.py.txt",
+    "published_sha256": "6b498b6eddd86759ae9b437dc8dc42c2a1983759bc28fec0738a1e795b320cf8"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/optimized_blocks.py",
+    "original_sha256": "cda42cc82a6a9612722bf7d90155195ef0f81a87f430f28cda09d0c4b3d8b09a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/optimized_blocks.py.txt",
+    "published_sha256": "cda42cc82a6a9612722bf7d90155195ef0f81a87f430f28cda09d0c4b3d8b09a"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/prepare.py",
+    "original_sha256": "190fc3d12b246ababb4b80855ef377f7544c76dcc5e661b0bbe9f8fcf13ab52c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/prepare.py.txt",
+    "published_sha256": "190fc3d12b246ababb4b80855ef377f7544c76dcc5e661b0bbe9f8fcf13ab52c"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/queue.py",
+    "original_sha256": "90821b80214ba6d3510e14099de2608d275c408200bcac6a82dd04bf9a8a70a9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/queue.py.txt",
+    "published_sha256": "90821b80214ba6d3510e14099de2608d275c408200bcac6a82dd04bf9a8a70a9"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/run.py",
+    "original_sha256": "d4788bad708e9213ff472df816af157cacdd6549dad9039e977bd6b429260986",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/run.py.txt",
+    "published_sha256": "d4788bad708e9213ff472df816af157cacdd6549dad9039e977bd6b429260986"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/summarize.py",
+    "original_sha256": "29af84b013ac715a14d66a9d2189768a25978e2aca1926b7eb74abea69300e88",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/summarize.py.txt",
+    "published_sha256": "29af84b013ac715a14d66a9d2189768a25978e2aca1926b7eb74abea69300e88"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/validate.py",
+    "original_sha256": "6b97c151e7e91ac21de7ebab6b3e1bf390a6f6da4bc9da4ef3aa39e637b247ac",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/validate.py.txt",
+    "published_sha256": "6b97c151e7e91ac21de7ebab6b3e1bf390a6f6da4bc9da4ef3aa39e637b247ac"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/span-v2-migration/shared_resolver_v1.py",
+    "original_sha256": "28dc9e01cfa4fc85215ef80ca4be3c564f2e4bc2ddabd88e9f5ab34d349330cd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/full-corpus-followup/span-v2-migration/shared_resolver_v1.py.txt",
+    "published_sha256": "28dc9e01cfa4fc85215ef80ca4be3c564f2e4bc2ddabd88e9f5ab34d349330cd"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/promotion/compare_frozen.py",
+    "original_sha256": "4254684ad8c6b664d43fbb47b826294c742bdbae57fa86245e6e1b99813c2a73",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/promotion/compare_frozen.py.txt",
+    "published_sha256": "4254684ad8c6b664d43fbb47b826294c742bdbae57fa86245e6e1b99813c2a73"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/__init__.py",
+    "original_sha256": "a61bbd251b9dfa7d519456f93bcd77076f798efa4276c9d90896190ac4bd5de1",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/__init__.py.txt",
+    "published_sha256": "a61bbd251b9dfa7d519456f93bcd77076f798efa4276c9d90896190ac4bd5de1"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/__main__.py",
+    "original_sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/__main__.py.txt",
+    "published_sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/action.py",
+    "original_sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/action.py.txt",
+    "published_sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/baseline.py",
+    "original_sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/baseline.py.txt",
+    "published_sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/bench.py",
+    "original_sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/bench.py.txt",
+    "published_sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/bench_background.py",
+    "original_sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/bench_background.py.txt",
+    "published_sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/cli.py",
+    "original_sha256": "d88d3ff97d41d4e80d2fb1d8f69ad4e38a8abf7bd7db7ab03b38de8c48936409",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/cli.py.txt",
+    "published_sha256": "0ac9caac3b63e0c5b53d0b8dd1648d01b886569a1d0985bc4e044c5184f4edb8"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/commits.py",
+    "original_sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/commits.py.txt",
+    "published_sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/comparers.py",
+    "original_sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparers.py.txt",
+    "published_sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/comparison.py",
+    "original_sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparison.py.txt",
+    "published_sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/comparison_helpers.py",
+    "original_sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/comparison_helpers.py.txt",
+    "published_sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/costs.py",
+    "original_sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/costs.py.txt",
+    "published_sha256": "284f037b5fe0dd34b7f79a603ef3fe9c99b05822b1fe8da9b281e2de562989d3"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/detector.py",
+    "original_sha256": "8c570d8f8d483da4ab657c76aa862acd29d7e9b4a7e0053971f0bebc44734126",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/detector.py.txt",
+    "published_sha256": "8c570d8f8d483da4ab657c76aa862acd29d7e9b4a7e0053971f0bebc44734126"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/discovery.py",
+    "original_sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/discovery.py.txt",
+    "published_sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/dryer.py",
+    "original_sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/dryer.py.txt",
+    "published_sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/evidence.py",
+    "original_sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/evidence.py.txt",
+    "published_sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/extractors.py",
+    "original_sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/extractors.py.txt",
+    "published_sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/feedback.py",
+    "original_sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/feedback.py.txt",
+    "published_sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/function_index.py",
+    "original_sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/function_index.py.txt",
+    "published_sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/functions.py",
+    "original_sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/functions.py.txt",
+    "published_sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/git.py",
+    "original_sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/git.py.txt",
+    "published_sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/github.py",
+    "original_sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/github.py.txt",
+    "published_sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/index.py",
+    "original_sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/index.py.txt",
+    "published_sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/index_github.py",
+    "original_sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/index_github.py.txt",
+    "published_sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judges/__init__.py",
+    "original_sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/__init__.py.txt",
+    "published_sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judges/anthropic.py",
+    "original_sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/anthropic.py.txt",
+    "published_sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judges/command.py",
+    "original_sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/command.py.txt",
+    "published_sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judges/gemini.py",
+    "original_sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/gemini.py.txt",
+    "published_sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judges/http.py",
+    "original_sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/http.py.txt",
+    "published_sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judges/jev.py",
+    "original_sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/judges/jev.py.txt",
+    "published_sha256": "26246f465c6e1134ca7a982f8b81e3a1c2b9b803773b7b259dc3bc5ef08ba34f"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judges/model_jev.py",
+    "original_sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/model_jev.py.txt",
+    "published_sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judges/subscription.py",
+    "original_sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judges/subscription.py.txt",
+    "published_sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/judging.py",
+    "original_sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/judging.py.txt",
+    "published_sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/labelling.py",
+    "original_sha256": "7b6fc95c25e05f299a19cc36401f5596a13007083d819ecbaa0358bce22c9731",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/labelling.py.txt",
+    "published_sha256": "0948aaf07f7e270e408aa19fadbcc5cf346266585d2018a0bf10857c8d72e9ad"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/ledger.py",
+    "original_sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/ledger.py.txt",
+    "published_sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/model_review.py",
+    "original_sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/model_review.py.txt",
+    "published_sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/model_shapes.py",
+    "original_sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/model_shapes.py.txt",
+    "published_sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/models.py",
+    "original_sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/models.py.txt",
+    "published_sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/operation_blocks.py",
+    "original_sha256": "4e46214dcab392e543a3b87f6fa2ceaad45c6c3b266d7a651faf8d36113463f0",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/operation_blocks.py.txt",
+    "published_sha256": "4e46214dcab392e543a3b87f6fa2ceaad45c6c3b266d7a651faf8d36113463f0"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/plugins.py",
+    "original_sha256": "8a74bc47edb7e027473ee5f811021f7f74584ddc64a4c76f2cf74f0f32d5b35e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/plugins.py.txt",
+    "published_sha256": "8a74bc47edb7e027473ee5f811021f7f74584ddc64a4c76f2cf74f0f32d5b35e"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/policies.py",
+    "original_sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/policies.py.txt",
+    "published_sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/presets.py",
+    "original_sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/presets.py.txt",
+    "published_sha256": "669e7a4edcd0b60897acd67f47552ace66805637d11ef0ebe105607b2e4dd132"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/python_schemas.py",
+    "original_sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/python_schemas.py.txt",
+    "published_sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/ranking.py",
+    "original_sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/ranking.py.txt",
+    "published_sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/replay.py",
+    "original_sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/replay.py.txt",
+    "published_sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/report.py",
+    "original_sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/report.py.txt",
+    "published_sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/schema_policy.py",
+    "original_sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/schema_policy.py.txt",
+    "published_sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/settings.py",
+    "original_sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/product/src/dry_lint/settings.py.txt",
+    "published_sha256": "a7b51d8614b5f2fd0e1f4b8390d110b6e0c273823f3bbd6b09a7d78e24613696"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/source_context.py",
+    "original_sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/source_context.py.txt",
+    "published_sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/sticky.py",
+    "original_sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/sticky.py.txt",
+    "published_sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/store.py",
+    "original_sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/store.py.txt",
+    "published_sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/src/dry_lint/typescript.py",
+    "original_sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/src/dry_lint/typescript.py.txt",
+    "published_sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/pyproject.toml",
+    "original_sha256": "adc8d648f658670af5258e3c0cb5bd538b2302468c3ec99fa9ae6863daf78c03",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/pyproject.toml.txt",
+    "published_sha256": "adc8d648f658670af5258e3c0cb5bd538b2302468c3ec99fa9ae6863daf78c03"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/uv.lock",
+    "original_sha256": "db41f8833e33518591c00b389c9035f6399271682ac1108c0d06b234319bd369",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/product/uv.lock.txt",
+    "published_sha256": "db41f8833e33518591c00b389c9035f6399271682ac1108c0d06b234319bd369"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/EXPERIMENT.json",
+    "original_sha256": "bb5c0fd447d4a8d727af54de8bde528a10b53363f0cb9916ccd3e7116d112727",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/EXPERIMENT.json.txt",
+    "published_sha256": "8c8e4bc9ec2fec95f7ade8c3e43ab9f07f9c38bf7569fbd9d134318ba188ad17"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/environment.json",
+    "original_sha256": "82564c0f9f7458b3951676f0ef62e42c80c66c90a7e65777ebcf2f49f9f6f50c",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/environment.json.txt",
+    "published_sha256": "9b7581f7d3c8bf87b03e136fb98305554aa4acbe0559b4687ecab9116aee62e2"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/commands.sh",
+    "original_sha256": "41d2771089476243a6edf777433fe6c15a33b85fe1429f8557a3acffe2c550af",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/commands.sh.txt",
+    "published_sha256": "25251d776dcb14397f5465a6a24da7310288636e5f4d669967105148befc6998"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/PREREGISTRATION.json",
+    "original_sha256": "1d86442da5ece7a996a50e8c2e6a5fc17579602e5408c3427c547b6d9d96b6db",
+    "publication_action": "byte-exact archive",
+    "published_path": "data/original/lab/funded-rounds/round2/PREREGISTRATION.json.txt",
+    "published_sha256": "1d86442da5ece7a996a50e8c2e6a5fc17579602e5408c3427c547b6d9d96b6db"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/commands.sh",
+    "original_sha256": "306ce4d8229031c1164c7c1716c14f964ae7032b5a92c328a65c423c71e481fe",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus-followup/commands.sh.txt",
+    "published_sha256": "c92c7df26c6f35dd768a48e7a3f71e88e0e016f5b9d6c0865da5976c221ce06e"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/span-v2-migration/commands.sh",
+    "original_sha256": "36421f024d7e92b9b7ec96fe91eea7b025de0e94d97705289b37f16cdb1a5af2",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/full-corpus-followup/span-v2-migration/commands.sh.txt",
+    "published_sha256": "f8525d43760b705c9b97f1fb96e049e71d64dafa131a504d5921c888108fe112"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/promotion/commands.sh",
+    "original_sha256": "0999cb8eac8127e077fc125af26dba9b216f2403a623f9471099cd2cffa44d2e",
+    "publication_action": "archive with explicit LAB_ROOT/private repository substitutions",
+    "published_path": "data/original/lab/promotion/commands.sh.txt",
+    "published_sha256": "42b3bb94e9ffa87064bfacd2671d603d328707c84abd165677356a9acfe803aa"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/provider-feed-snapshots/63883b2ae30165e0802c197fa9997196c8fd9d5feffc8c483af27d0e736b2430.jsonl",
+    "original_sha256": "63883b2ae30165e0802c197fa9997196c8fd9d5feffc8c483af27d0e736b2430",
+    "publication_action": "selected public cases; raw response allowlist removes provider IDs and hidden content"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/provider-feed-snapshots/89dc501a0340f6fbb9452d630db8334f43341e66ffc097649305228fb05f40a7.jsonl",
+    "original_sha256": "89dc501a0340f6fbb9452d630db8334f43341e66ffc097649305228fb05f40a7",
+    "publication_action": "selected public cases; raw response allowlist removes provider IDs and hidden content"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/full-source-stage-summary.json",
+    "original_sha256": "0205cb201b74977a10b8e0f10ad056e616891495ffaed6429f2138eea6144ae2",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/paired-selector-transitions.json",
+    "original_sha256": "54c5547790db9de873a90c3e9d7b7d02433d6645931d3e223c2a905eae7fb3c0",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/span-v2-migration/paired-summary.json",
+    "original_sha256": "5c072e190a81736953a2324cd8eb7cb705012d58dce0f90afe914c46bead763c",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/environment.json",
+    "original_sha256": "82564c0f9f7458b3951676f0ef62e42c80c66c90a7e65777ebcf2f49f9f6f50c",
+    "publication_action": "metadata path normalization; private mappings omitted"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/final-round2-observation-joins.jsonl",
+    "original_sha256": "7579c95effc7ab27e3fe4d9b2b5e4975f66ade494b80b3acd1cbf4e32877eecf",
+    "publication_action": "source-free response/admission projection"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/default3-rejection-audit-v1/prepare.py",
+    "original_sha256": "af76b87f1ae950c3b6b394228f967b67176d960cfa67fa03e549ff77214f3180",
+    "published_path": "data/original/lab/funded-rounds/round2/default3-rejection-audit-v1/prepare.py.txt",
+    "published_sha256": "af76b87f1ae950c3b6b394228f967b67176d960cfa67fa03e549ff77214f3180",
+    "publication_action": "Archive with explicit LAB_ROOT/private repository substitutions"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round1/outcomes-v1/join.py",
+    "original_sha256": "21d2d325036eabcfa82610ec3a0c8b94b561ced7d9042a5a35f399c37f2ccb7b",
+    "published_path": "data/original/lab/funded-rounds/round1/outcomes-v1/join.py.txt",
+    "published_sha256": "c1e51f355a38417abf5e0568fade5f0a66d9578d339eb7d0cc323eb8b5364e40",
+    "publication_action": "Archive with explicit LAB_ROOT/private repository substitutions"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round1/concept-topup-v1/prepare.py",
+    "original_sha256": "c8832bb9c338b900dabae4b591ad7cce79ebb4475062d74187c1e409d528f682",
+    "published_path": "data/original/lab/funded-rounds/round1/concept-topup-v1/prepare.py.txt",
+    "published_sha256": "a0c3b58c5dea0568a5404dc8622f709be1123a7ac3156631162c21fcf02b62bb",
+    "publication_action": "Archive with explicit LAB_ROOT/private repository substitutions"
+  },
+  {
+    "original_location": "jobs/experiment-operation-blocks/.lab-results/litellm/block-regions.jsonl",
+    "original_sha256": "a554a8b87bba5ed177deb61d24326440f748cd7c2d2b85551efb239fdbaf9a7f",
+    "publication_action": "Eight public selected-source region rows; no source or full corpus refit"
+  }
+]

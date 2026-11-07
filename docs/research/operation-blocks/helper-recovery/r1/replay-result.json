@@ -1,0 +1,41 @@
+{
+  "admissions": 735,
+  "bounded_useful_candidate_report_union": 4,
+  "campaigns": 103,
+  "candidate_report_union": 4,
+  "cases": 53,
+  "family_scope": "3 development/34 regression candidate pairs; no fresh confirmation candidate family",
+  "fresh_physical_usd": 0.44025052,
+  "full_native_candidates": 53,
+  "full_native_questions": 99,
+  "input_limitation": "Seven Jev questions truncate one body at 8,000 characters; all 53 Claude inputs and all 53 Candidates preserve full native functions. Raw historical observations retained; no claim all 106 questions meet full-function requirement.",
+  "questions": 106,
+  "reports": {
+    "candidate/claude/full_input_reports": 3,
+    "candidate/claude/reports": 3,
+    "candidate/claude/unknown": 0,
+    "candidate/jev/full_input_reports": 1,
+    "candidate/jev/reports": 3,
+    "candidate/jev/truncated_input_reports": 2,
+    "candidate/jev/unknown": 0,
+    "control/claude/unknown": 0,
+    "control/jev/unknown": 0
+  },
+  "semantics": "Original .04 concept admission; paired Jev/context and Sonnet/operations/.80 diagnostic reports, not Haiku or actual PR emissions.",
+  "source_counts": {
+    "candidate/already-shared/none": 8,
+    "candidate/already-shared/tiny": 4,
+    "candidate/related/too-generic/none": 1,
+    "candidate/related/too-generic/tiny": 4,
+    "candidate/separate/none": 3,
+    "candidate/separate/tiny": 1,
+    "candidate/useful-extractable/bounded": 11,
+    "candidate/useful-extractable/tiny": 5,
+    "control/already-shared/none": 4,
+    "control/already-shared/tiny": 1,
+    "control/related/too-generic/tiny": 6,
+    "control/separate/none": 2,
+    "control/useful-extractable/bounded": 3
+  },
+  "truncated_native_questions": 7
+}

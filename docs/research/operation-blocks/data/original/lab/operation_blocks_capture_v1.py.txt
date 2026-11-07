@@ -1,0 +1,484 @@
+#!/usr/bin/env python3
+"""Offline, single registered block retrieval mechanism. Never imports a provider client."""
+import argparse
+import ast
+import gzip
+import hashlib
+import json
+import math
+import resource
+import subprocess
+import sys
+import textwrap
+import time
+from collections import Counter, defaultdict
+from pathlib import Path
+from types import SimpleNamespace
+
+HERE = Path(__file__).resolve().parent
+WORK = HERE.parent
+ROOT = Path('/home/researcher/dry-lint-round')
+sys.path.insert(0, str(WORK / 'src'))
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger, estimate
+from dry_lint.detector import why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.functions import _behaviour_nodes, _function_node, node_tokens
+from dry_lint.models import Candidate, Function, evidence
+from dry_lint.settings import Settings
+
+GENERIC = set('get set append extend items values keys len str int float bool dict list tuple '
+              'isinstance getattr setattr hasattr cast enumerate range zip sorted reversed min max sum '
+              'any all print super object type exception valueerror typeerror runtimeerror '
+              'info debug warning error exception critical log assert mock magicmock asyncmock '
+              'raises fail patch sleep time utcnow now'.split())
+COMPOUND = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.Try, ast.TryStar,
+            ast.With, ast.AsyncWith, ast.Match)
+NESTED = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+JUDGE = SimpleNamespace(name='anthropic', model='claude-sonnet-5-5', prompt_policy='concept')
+SETTINGS = Settings(budget={'usd': .04})
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def readrows(path):
+    return [json.loads(x) for x in Path(path).read_text().splitlines() if x.strip()]
+
+
+def dump(path, obj):
+    Path(path).write_text(json.dumps(obj, sort_keys=True, indent=2) + '\n')
+
+
+def rows(path, items):
+    Path(path).write_text(''.join(json.dumps(x, sort_keys=True) + '\n' for x in items))
+
+
+def configuration(name):
+    configs = json.loads((ROOT / 'jobs/review-automation/.lab-results/review-automation/repositories-five.json').read_text())
+    repo = {'litellm': 'BerriAI/litellm', 'openhands': 'OpenHands/software-agent-sdk'}[name]
+    return next(c for c in configs if c['repository'] == repo)
+
+
+def concrete(token):
+    kind, _, leaf = token.partition(':')
+    return kind in {'call', 'attr', 'key'} and leaf.lower() not in GENERIC
+
+
+def make_blocks(function, position, rejects):
+    """Syntax boundaries only. Never truncate or slide an oversized statement/run."""
+    node = _function_node(function.code)
+    if node is None:
+        rejects['parse'] += 1
+        return []
+    regions = []
+
+    def suites(body, depth):
+        run = []
+
+        def flush():
+            if len(run) >= 2:
+                regions.append(('straight_run', depth, list(run)))
+            run.clear()
+
+        for statement in body:
+            if isinstance(statement, NESTED):
+                flush()
+                continue
+            if isinstance(statement, COMPOUND):
+                flush()
+                # Including a nested function would attribute another owner's operation to this block.
+                if not any(isinstance(n, NESTED) for n in ast.walk(statement)):
+                    regions.append((type(statement).__name__, depth, [statement]))
+                if depth < 3:
+                    for field in ('body', 'orelse', 'finalbody'):
+                        children = getattr(statement, field, [])
+                        if children:
+                            suites(children, depth + 1)
+                    for handler in getattr(statement, 'handlers', []):
+                        suites(handler.body, depth + 1)
+                    for case in getattr(statement, 'cases', []):
+                        suites(case.body, depth + 1)
+            elif isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant) and isinstance(statement.value.value, str):
+                flush()
+            else:
+                run.append(statement)
+        flush()
+
+    suites(node.body, 0)
+    blocks = []
+    for kind, depth, statements in regions:
+        start, end = statements[0].lineno, statements[-1].end_lineno
+        nodes = sum(1 for s in statements for _ in _behaviour_nodes(s))
+        if not 4 <= end - start + 1 <= 80 or not 20 <= nodes <= 400:
+            rejects['size'] += 1
+            continue
+        wrapper = ast.FunctionDef(name='', args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[],
+                                 kw_defaults=[], defaults=[]), body=statements, decorator_list=[])
+        tokens = [t for t in node_tokens(wrapper) if not t.startswith('fn:')]
+        ops = sorted(t for t in set(tokens) if concrete(t))
+        calls = sorted(t for t in ops if t.startswith('call:'))
+        if len(set(tokens)) < 8 or len(calls) < 2:
+            rejects['boilerplate_or_single_owner_call'] += 1
+            continue
+        # Function source starts at first decorator; AST positions are relative to that same source.
+        a, b = function.line + start - 1, function.line + end - 1
+        block_source = '\n'.join(function.code.splitlines()[start - 1:end])
+        blocks.append(dict(parent=position, source_id=function.qualname, start_line=a, end_line=b,
+                           start_column=statements[0].col_offset, end_column=statements[-1].end_col_offset,
+                           relative_start=start, relative_end=end, kind=kind, depth=depth,
+                           nodes=nodes, counts=dict(Counter(tokens)), ops=ops, calls=calls,
+                           region_sha256=sha(block_source.encode())))
+    blocks.sort(key=lambda b: (b['start_line'], b['end_line'], b['kind']))
+    rejects['parent_cap'] += max(0, len(blocks) - 12)
+    return blocks[:12]
+
+
+class Corpus:
+    def __init__(self, name, warm=False):
+        self.name, self.config = name, configuration(name)
+        self.out = HERE / name
+        self.out.mkdir(exist_ok=True)
+        self.started = time.perf_counter()
+        proof = self.config['background_proof']
+        raw = Path(proof['path']).read_bytes()
+        assert sha(raw) == proof['sha256']
+        self.bg = BenchBackground.decode(raw)
+        assert (self.bg.repository, self.bg.revision) == (self.config['repository'], self.config['revision'])
+        self.index = self.bg.index()
+        self.index_seconds = time.perf_counter() - self.started
+        self.duplicates = Counter(d.id for d in self.bg.documents)
+        self.positions = {d.id: i for i, d in enumerate(self.bg.documents) if self.duplicates[d.id] == 1}
+        self.functions, self.sources, self.blocks = {}, {}, []
+        self.rejects = Counter()
+        if warm:
+            payload = json.loads(gzip.decompress((self.out / 'candidate-index.json.gz').read_bytes()))
+            assert payload['background_proof'] == proof
+            assert payload['implementation_sha256'] == sha(Path(__file__).read_bytes())
+            self.functions = {int(k): Function.model_validate(f) for k, f in payload['functions'].items()}
+            self.sources, self.blocks = payload['sources'], payload['blocks']
+            self.rejects.update(payload['rejects'])
+            self.extraction_audit = payload['extraction_audit']
+        else:
+            self.recapture()
+            payload = dict(background_proof=proof, implementation_sha256=sha(Path(__file__).read_bytes()),
+                           functions={i: f.model_dump(mode='json') for i, f in self.functions.items()},
+                           sources=self.sources, blocks=self.blocks, rejects=dict(self.rejects),
+                           extraction_audit=self.extraction_audit)
+            (self.out / 'candidate-index.json.gz').write_bytes(gzip.compress(json.dumps(payload, sort_keys=True).encode(), mtime=0))
+        self.capture_seconds = time.perf_counter() - self.started - self.index_seconds
+        start = time.perf_counter()
+        self.parent_blocks = defaultdict(list)
+        self.vectors, postings = [], defaultdict(list)
+        anchor_df = min(128, max(2, int(.01 * len(self.bg.documents))))
+        for bi, block in enumerate(self.blocks):
+            self.parent_blocks[block['parent']].append(bi)
+            counts = block['counts']
+            self.vectors.append(self.index.vector([t for t, n in counts.items() for _ in range(n)]))
+            anchors = sorted((t for t in block['ops'] if t in self.index.idf and
+                              self.bg.document_frequency[t] <= anchor_df),
+                             key=lambda t: (self.bg.document_frequency[t], t))[:8]
+            block['anchors'] = anchors
+            for t in anchors:
+                postings[t].append(bi)
+        self.postings = {t: ids for t, ids in postings.items() if len(ids) <= 64}
+        self.posting_drops = sum(len(ids) > 64 for ids in postings.values())
+        self.block_index_seconds = time.perf_counter() - start
+        self.ranking_cache = {}
+
+    def recapture(self):
+        """Read exact Git blobs, scoped to background paths, no target code execution."""
+        ex = PythonExtractor()
+        paths = sorted({d.id.split('::')[0] for d in self.bg.documents})
+        assert all(p.endswith('.py') for p in paths)
+        assert not any('enterprise' in Path(p).parts for p in paths)
+        gitroot, rev = self.config['git'], self.config['revision']
+        assert subprocess.check_output(['git', '-C', gitroot, 'rev-parse', rev + '^{commit}']).decode().strip() == rev
+        proc = subprocess.Popen(['git', '-C', gitroot, 'cat-file', '--batch'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        source_dir = self.out / 'sources'
+        source_dir.mkdir(exist_ok=True)
+        audit = Counter()
+        for path in paths:
+            proc.stdin.write((rev + ':' + path + '\n').encode())
+            proc.stdin.flush()
+            header = proc.stdout.readline().split()
+            assert len(header) == 3 and header[1] == b'blob', path
+            raw = proc.stdout.read(int(header[2]))
+            assert proc.stdout.read(1) == b'\n'
+            text = raw.decode()
+            source_sha = sha(raw)
+            (source_dir / source_sha).write_bytes(raw)
+            self.sources[path] = dict(sha256=source_sha, git_blob=header[0].decode(), snapshot=str(source_dir / source_sha))
+            ex.validate_source(path, text)
+            fs = ex.functions(path, text)
+            counts = Counter(f.qualname for f in fs)
+            for f in fs:
+                position = self.positions.get(f.qualname)
+                if position is None or counts[f.qualname] != 1:
+                    audit['missing_or_ambiguous_native'] += 1
+                    continue
+                doc = self.bg.documents[position]
+                assert sha(f.code.encode()) == doc.source_sha256, f.qualname
+                assert dict(Counter(f.tokens)) == doc.counts, f.qualname
+                f.hash = ex.structure_hash(f)
+                # Same frozen context contract as existing review automation, independent of retrieval evidence.
+                f.context_digest = source_sha
+                f.context = 'Owning file source prefix (may be truncated; full file in source proof):\n' + text[:6000]
+                self.functions[position] = f
+                self.blocks.extend(make_blocks(f, position, self.rejects))
+                audit['exact_source_and_tokens'] += 1
+        proc.stdin.close()
+        assert proc.wait() == 0
+        audit['background_documents'] = len(self.bg.documents)
+        audit['unavailable_or_ambiguous_background_documents'] = len(self.bg.documents) - len(self.functions)
+        self.extraction_audit = dict(audit)
+
+    def ranking(self, qi):
+        if qi not in self.ranking_cache:
+            scores = dict(self.index.similar(self.bg.documents[qi].tokens(), exclude={qi}))
+            order = sorted((i for i in range(len(self.bg.documents)) if i != qi),
+                           key=lambda i: (-scores.get(i, 0), self.bg.documents[i].id, i))
+            self.ranking_cache[qi] = (scores, order)
+        return self.ranking_cache[qi]
+
+    def pair(self, qi, ti, score):
+        return Candidate(new=self.functions[qi], existing=self.functions[ti], similarity=score,
+                         comparer='tfidf:2', lane='exploration')
+
+    def block_candidates(self, qi, fullscores):
+        mass = defaultdict(float)
+        visits = 0
+        qbs = self.parent_blocks[qi]
+        for qb in qbs:
+            for token in self.blocks[qb]['anchors']:
+                for bi in self.postings.get(token, []):
+                    visits += 1
+                    parent = self.blocks[bi]['parent']
+                    if parent != qi:
+                        mass[parent] += self.index.idf[token]
+        pool = sorted(mass, key=lambda i: (-mass[i], self.bg.documents[i].id, i))[:64]
+        ranked, rejects = [], Counter()
+        for ti in pool:
+            best = None
+            for qb in qbs:
+                for tb in self.parent_blocks[ti]:
+                    a, b = self.blocks[qb], self.blocks[tb]
+                    shared = sorted(set(a['ops']) & set(b['ops']))
+                    shared_calls = sorted(set(a['calls']) & set(b['calls']))
+                    anchors = sorted(set(a['anchors']) & set(b['anchors']) & set(self.postings))
+                    if len(shared) < 3 or len(shared_calls) < 2 or not anchors:
+                        rejects['insufficient_shared_operation_or_anchor'] += 1
+                        continue
+                    score = sum(w * self.vectors[tb].get(t, 0) for t, w in self.vectors[qb].items())
+                    item = dict(target=ti, score=score, query_block=qb, target_block=tb,
+                                shared_ops=shared, shared_calls=shared_calls, anchors=anchors,
+                                full_score=fullscores.get(ti, 0))
+                    if best is None or (-score, a['start_line'], b['start_line'], qb, tb) < (
+                        -best['score'], self.blocks[best['query_block']]['start_line'],
+                        self.blocks[best['target_block']]['start_line'], best['query_block'], best['target_block']):
+                        best = item
+            if best:
+                best['block_floor_pass'] = best['score'] >= .65
+                best['full_floor_pass'] = best['full_score'] >= .1
+                best['filter'] = why_skipped(self.functions[qi], self.functions[ti], SETTINGS)
+                ranked.append(best)
+        ranked.sort(key=lambda x: (-x['score'], self.bg.documents[x['target']].id, x['target']))
+        for n, item in enumerate(ranked):
+            item['rank'] = n + 1
+        assert visits <= 12 * 8 * 64
+        return ranked, dict(posting_visits=visits, parents_touched=len(mass), pool_size=len(pool),
+                            pool=pool, pair_rejects=dict(rejects))
+
+
+def panels(corpus):
+    report = ROOT / 'reports/candidate-first'
+    decisions = {r['id']: r for r in readrows(report / 'scaled-coordinator-decisions.jsonl')}
+    items = []
+    for r in readrows(report / f'{corpus.name}-scaled-completed.jsonl'):
+        dec = decisions[r['id']]
+        items.append(dict(id=r['id'], candidate=r['packet']['candidate'], label=dec['label'],
+                          family=dec['family_id'], cohort='scaled-development', drifted=dec['drifted'],
+                          operation_contract=dec['operation_contract'], decision=dec))
+    pkg = report / 'corpus-remote-verification/candidate-first-gold'
+    for filename, cohort in [('accepted-public-gold.jsonl', 'released-development'), ('disputed.jsonl', 'released-dispute')]:
+        for r in readrows(pkg / filename):
+            if r['repository'] == corpus.config['repository']:
+                assert r['revision'] == corpus.config['revision']
+                items.append(dict(id=r['id'], candidate=r['candidate'], label=r['label'], family=r['family_id'],
+                                  drifted=r['drifted'], cohort=cohort, operation_contract=r['narrow_operation']))
+    return items
+
+
+def run(name, warm=False):
+    start = time.perf_counter()
+    corpus = Corpus(name, warm)
+    panel = panels(corpus)
+    queries = set()
+    for row in panel:
+        candidate = Candidate.model_validate(row['candidate'])
+        for f in (candidate.new, candidate.existing):
+            i = corpus.positions.get(f.qualname)
+            if i is not None:
+                assert sha(f.code.encode()) == corpus.bg.documents[i].source_sha256
+                if i in corpus.functions:
+                    queries.add(i)
+    sampled = sorted(corpus.parent_blocks, key=lambda i: sha(corpus.bg.documents[i].id.encode()))[:64]
+    queries.update(sampled)
+    query_rows, exposures = [], []
+    for qi in sorted(queries, key=lambda i: (corpus.bg.documents[i].id, i)):
+        qstart = time.perf_counter()
+        scores, order = corpus.ranking(qi)
+        qf = corpus.functions[qi]
+        cross = [i for i in order if corpus.bg.documents[i].id.split('::')[0] != qf.path]
+        default_floor = .3 if qf.lines < 6 else .5
+        default_raw = [i for i in cross if scores.get(i, 0) >= default_floor][:3]
+        current20_raw = [i for i in order if scores.get(i, 0) >= .35][:20]
+        def eligible(ids):
+            return [i for i in ids if i in corpus.functions and not why_skipped(qf, corpus.functions[i], SETTINGS)]
+        default = eligible(default_raw)
+        current20 = default + [i for i in eligible(current20_raw) if i not in default]
+        bstart = time.perf_counter()
+        blocks, work = corpus.block_candidates(qi, scores)
+        block_seconds = time.perf_counter() - bstart
+        allowed = [b for b in blocks if b['block_floor_pass'] and b['full_floor_pass'] and not b['filter']]
+        profiles = {}
+        for profile, baseline in [('default3', default), ('current20', current20)]:
+            samefile = profile == 'current20'
+            extra = next((b for b in allowed if b['target'] not in baseline and
+                          (samefile or corpus.functions[b['target']].path != qf.path)), None)
+            with_block = baseline + ([extra['target']] if extra else [])
+            candidates = [corpus.pair(qi, ti, scores.get(ti, 0)) for ti in with_block]
+            baseline_cs = candidates[:len(baseline)]
+            before_ledger, after_ledger = Ledger(SETTINGS), Ledger(SETTINGS)
+            before = before_ledger.select(JUDGE, baseline_cs)
+            after = after_ledger.select(JUDGE, candidates)
+            base_funded = [baseline[i] for i in before]
+            all_funded = [with_block[i] for i in after]
+            assert set(base_funded) <= set(all_funded)
+            data = dict(baseline=baseline, baseline_funded=base_funded,
+                        extra=extra, with_block=with_block, with_block_funded=all_funded,
+                        baseline_estimated_usd=estimate(JUDGE, [baseline_cs[i] for i in before], SETTINGS),
+                        with_block_estimated_usd=estimate(JUDGE, [candidates[i] for i in after], SETTINGS),
+                        extra_funded=bool(extra and extra['target'] in all_funded),
+                        excluded_topk=[i for i in (default_raw if profile == 'default3' else current20_raw)
+                                       if i not in corpus.functions])
+            profiles[profile] = data
+            for ti in all_funded:
+                c = corpus.pair(qi, ti, scores.get(ti, 0))
+                exposures.append(dict(repository=corpus.config['repository'], revision=corpus.config['revision'],
+                                      pair_key=c.key, query=qi, target=ti, profile=profile,
+                                      is_extra=bool(extra and ti == extra['target']),
+                                      candidate=c.model_dump(mode='json'), background_proof=corpus.config['background_proof'],
+                                      extra_evidence=extra if extra and ti == extra['target'] else None,
+                                      estimated_usd=estimate(JUDGE, [c], SETTINGS)))
+        query_rows.append(dict(query=qi, query_id=qf.qualname, query_lines=qf.lines,
+                               sampled=qi in sampled, default_floor=default_floor, profiles=profiles,
+                               block_candidates=blocks, block_work=work,
+                               raw_top20=[dict(position=i, source_id=corpus.bg.documents[i].id, score=scores.get(i, 0)) for i in order[:20]],
+                               raw_cross_top3=[dict(position=i, source_id=corpus.bg.documents[i].id, score=scores.get(i, 0)) for i in cross[:3]],
+                               block_seconds=block_seconds, query_seconds=time.perf_counter() - qstart))
+    byquery = {q['query']: q for q in query_rows}
+    row_results = []
+    for row in panel:
+        c = Candidate.model_validate(row['candidate'])
+        directions = []
+        for direction, qf, tf in [('new_to_existing', c.new, c.existing), ('existing_to_new', c.existing, c.new)]:
+            qi, ti = corpus.positions.get(qf.qualname), corpus.positions.get(tf.qualname)
+            if qi is None or ti is None or qi == ti or qi not in byquery:
+                directions.append(dict(direction=direction, status='missing_ambiguous_or_self',
+                                       default_retrieved=False, current20_retrieved=False))
+                continue
+            scores, order = corpus.ranking(qi)
+            cross = [i for i in order if corpus.bg.documents[i].id.split('::')[0] != qf.path]
+            q = byquery[qi]
+            score = scores.get(ti, 0)
+            bi = next((b for b in q['block_candidates'] if b['target'] == ti), None)
+            d = dict(direction=direction, query=qi, target=ti, status='measured', raw_score=score,
+                     raw_rank=order.index(ti) + 1, cross_rank=cross.index(ti) + 1 if ti in cross else None,
+                     same_file=qf.path == tf.path, query_lines=qf.lines, target_lines=tf.lines,
+                     default_floor=q['default_floor'], default_floor_failure=score < q['default_floor'],
+                     size_floor_rescue=qf.lines < 6 and .3 <= score < .5, current20_floor_failure=score < .35,
+                     target_has_blocks=bool(corpus.parent_blocks[ti]), query_has_blocks=bool(corpus.parent_blocks[qi]),
+                     block_pool_member=ti in q['block_work']['pool'], block_evidence=bi)
+            for profile in ['default3', 'current20']:
+                p = q['profiles'][profile]
+                d.update({f'{profile}_retrieved': ti in p['baseline'],
+                          f'{profile}_funded': ti in p['baseline_funded'],
+                          f'{profile}_block_retrieved': ti in p['with_block'],
+                          f'{profile}_block_funded': ti in p['with_block_funded']})
+                loss = ('self' if qi == ti else 'same_file' if profile == 'default3' and qf.path == tf.path
+                        else 'score_floor' if score < (q['default_floor'] if profile == 'default3' else .35)
+                        else 'top_k' if ti not in p['baseline'] else 'budget' if ti not in p['baseline_funded'] else 'funded')
+                d[f'{profile}_first_loss'] = loss
+            d['block_loss'] = ('query_no_block' if not d['query_has_blocks'] else 'target_no_block' if not d['target_has_blocks']
+                               else 'bounded_anchor_pool' if not d['block_pool_member'] else 'shared_operation_guard' if bi is None
+                               else 'block_floor' if not bi['block_floor_pass'] else 'full_floor' if not bi['full_floor_pass']
+                               else 'pair_filter' if bi['filter'] else 'eligible')
+            directions.append(d)
+        row_results.append({k: v for k, v in row.items() if k not in {'candidate', 'decision'}} | dict(directions=directions))
+    summary = summarize(corpus, query_rows, row_results)
+    # Timing is kept outside deterministic ranking artifacts.
+    timing = dict(mode='warm_candidate_snapshot' if warm else 'cold_source_recapture',
+                  seconds=time.perf_counter() - start, original_decode_index_seconds=corpus.index_seconds,
+                  source_or_snapshot_seconds=corpus.capture_seconds, block_index_seconds=corpus.block_index_seconds,
+                  query_seconds=sum(q['query_seconds'] for q in query_rows),
+                  block_query_seconds=sum(q['block_seconds'] for q in query_rows),
+                  process_peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    dump(corpus.out / ('warm-runtime.json' if warm else 'cold-runtime.json'), timing)
+    for q in query_rows:
+        q.pop('query_seconds')
+        q.pop('block_seconds')
+    if warm:
+        assert (corpus.out / 'per-query.jsonl').read_text() == ''.join(json.dumps(q, sort_keys=True) + '\n' for q in query_rows)
+        assert (corpus.out / 'per-row.jsonl').read_text() == ''.join(json.dumps(r, sort_keys=True) + '\n' for r in row_results)
+    else:
+        rows(corpus.out / 'per-query.jsonl', query_rows)
+        rows(corpus.out / 'per-row.jsonl', row_results)
+        rows(corpus.out / 'funded-exposures.jsonl', exposures)
+        rows(corpus.out / 'block-regions.jsonl', corpus.blocks)
+        dump(corpus.out / 'summary.json', summary)
+    print(json.dumps(dict(repository=name, summary=summary, runtime=timing)), flush=True)
+
+
+def summarize(corpus, queries, results):
+    bylabel = []
+    metrics = ['default3_retrieved', 'default3_funded', 'default3_block_retrieved', 'default3_block_funded',
+               'current20_retrieved', 'current20_funded', 'current20_block_retrieved', 'current20_block_funded']
+    for label in sorted({r['label'] for r in results}):
+        group = [r for r in results if r['label'] == label]
+        bylabel.append(dict(label=label, pairs=len(group), families=len({r['family'] for r in group}),
+                            metrics={k: dict(numerator=sum(any(d.get(k, False) for d in r['directions']) for r in group), denominator=len(group)) for k in metrics},
+                            direction_metrics={k: dict(numerator=sum(d.get(k, False) for r in group for d in r['directions']), denominator=2 * len(group)) for k in metrics},
+                            first_losses={p: dict(Counter(d.get(p + '_first_loss', d['status']) for r in group for d in r['directions'])) for p in ['default3', 'current20']},
+                            block_losses=dict(Counter(d.get('block_loss', d['status']) for r in group for d in r['directions'])),
+                            same_file_directions=sum(d.get('same_file', False) for r in group for d in r['directions']),
+                            size_floor_rescue_directions=sum(d.get('size_floor_rescue', False) for r in group for d in r['directions'])))
+    return dict(repository=corpus.config['repository'], revision=corpus.config['revision'],
+                background_proof=corpus.config['background_proof'], scope=corpus.bg.scope,
+                extraction_audit=corpus.extraction_audit, block_rejections=dict(corpus.rejects),
+                original_documents=len(corpus.bg.documents), parents_with_blocks=len(corpus.parent_blocks),
+                blocks=len(corpus.blocks), bounded_postings=len(corpus.postings), overfull_posting_terms_discarded=corpus.posting_drops,
+                queries=len(queries), max_posting_visits=max(q['block_work']['posting_visits'] for q in queries),
+                max_pool=max(q['block_work']['pool_size'] for q in queries),
+                funding={p: dict(baseline_candidates=sum(len(q['profiles'][p]['baseline']) for q in queries),
+                                 baseline_funded=sum(len(q['profiles'][p]['baseline_funded']) for q in queries),
+                                 extras_exposed=sum(q['profiles'][p]['extra'] is not None for q in queries),
+                                 extras_funded=sum(q['profiles'][p]['extra_funded'] for q in queries),
+                                 baseline_estimated_usd=sum(q['profiles'][p]['baseline_estimated_usd'] for q in queries),
+                                 variant_estimated_usd=sum(q['profiles'][p]['with_block_estimated_usd'] for q in queries),
+                                 lost_baseline_funded=0) for p in ['default3', 'current20']},
+                labels='development/regression scoped operation judgments; unknown/disputed separate; not holdout',
+                profile='synthetic cold one-query .04 Ledger/Sonnet concept; baseline order fixed, no cache or deployment claim',
+                by_label=bylabel, provider_calls=0, emitted_reports=None)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--repo', choices=['litellm', 'openhands'])
+    parser.add_argument('--warm', action='store_true')
+    parser.add_argument('--finalize', action='store_true')
+    args = parser.parse_args()
+    if args.finalize:
+        raise SystemExit('Use finalize.py after measured repositories complete')
+    run(args.repo, args.warm)

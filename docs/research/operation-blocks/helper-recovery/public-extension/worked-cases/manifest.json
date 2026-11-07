@@ -1,0 +1,116 @@
+[
+  {
+    "cohort_id": "bg-46e0cd67a6759423",
+    "functions": [
+      {
+        "end_line": 196,
+        "file_sha256": "0dc2c09664236832cc33d13c6d7b8aaf1c1e8d1019d18dc6b8dd054e4153a992",
+        "full_file": "worked-cases/pytest-obligation/389c5bb8/package/src/pytest_obligation/integrations/mongodb.py",
+        "full_function": "worked-cases/pytest-obligation/389c5bb8/969-function.txt",
+        "git_blob_sha1": "1cbd88e1f72103bb05ef30e69d21468937f8c6dc",
+        "license": "licenses/pytest-obligation-389c5bb8-LICENSE.txt",
+        "line": 195,
+        "position": 969,
+        "source_id": "package/src/pytest_obligation/integrations/mongodb.py::mongodb_reply_breaker",
+        "source_sha256": "99e116a575ee2f6266964a84c31e1440f84da243b58ad4bd2ea83b8d76d62d05"
+      },
+      {
+        "end_line": 184,
+        "file_sha256": "9dae8a6efe788421ab4cf0060f23d7c4cf28ec0749a44f65c407b288690a2c00",
+        "full_file": "worked-cases/pytest-obligation/389c5bb8/package/src/pytest_obligation/integrations/redis.py",
+        "full_function": "worked-cases/pytest-obligation/389c5bb8/1034-function.txt",
+        "git_blob_sha1": "88d2dfe0ad7d8035cf90f23035fae1d33396d0b6",
+        "license": "licenses/pytest-obligation-389c5bb8-LICENSE.txt",
+        "line": 181,
+        "position": 1034,
+        "source_id": "package/src/pytest_obligation/integrations/redis.py::redis_reply_breaker",
+        "source_sha256": "83c1253170e188544a3f39bd781691f9119c629c342fc3030642522d7a168991"
+      },
+      {
+        "end_line": 93,
+        "file_sha256": "bc019cedf23ef0fd62584ef0fe69a0df393c7fe3f7609b7cb1f98a94b59f8e04",
+        "full_file": "worked-cases/pytest-obligation/389c5bb8/package/src/pytest_obligation/worker_death.py",
+        "full_function": "worked-cases/pytest-obligation/389c5bb8/1622-function.txt",
+        "git_blob_sha1": "395789f5fe727ed0b6c6e96a40da03600aa27302",
+        "license": "licenses/pytest-obligation-389c5bb8-LICENSE.txt",
+        "line": 81,
+        "position": 1622,
+        "source_id": "package/src/pytest_obligation/worker_death.py::counted_reply_breaker",
+        "source_sha256": "ef5955bebd460914bcb317595ba7b3bb8d27ed7a91d81a4305efc1f709477993"
+      }
+    ],
+    "label": "separate",
+    "pair_id": "e69bbee6bbd86fe83788a07907bca5f354b300cab738e4d0505870fc0593a8fb",
+    "repository": "gigaverse-app/pytest-obligation",
+    "revision": "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4",
+    "row_id": "original-pytest-obligation:reply-lifetime-after"
+  },
+  {
+    "cohort_id": "bg-eceb1bd48b5a8bfa",
+    "functions": [
+      {
+        "end_line": 201,
+        "file_sha256": "79697f216cee2c3db5152aff3139eafdab6a01926d175842f6717599133c176b",
+        "full_file": "worked-cases/pytest-obligation/d39f77ea/package/src/pytest_obligation/integrations/mongodb.py",
+        "full_function": "worked-cases/pytest-obligation/d39f77ea/971-function.txt",
+        "git_blob_sha1": "8175efb820811e8a371be90db31c622ca7447feb",
+        "license": "licenses/pytest-obligation-d39f77ea-LICENSE.txt",
+        "line": 194,
+        "position": 971,
+        "source_id": "package/src/pytest_obligation/integrations/mongodb.py::mongodb_reply_breaker",
+        "source_sha256": "ddb7583f6ed980211d4129ff88553d6422f39467dccd388cbd0a8fe3be625a91"
+      },
+      {
+        "end_line": 189,
+        "file_sha256": "fcaa10e7bb41947d1a7e40ecd1b749fbc60870d976eaf9561f0552d86935b883",
+        "full_file": "worked-cases/pytest-obligation/d39f77ea/package/src/pytest_obligation/integrations/redis.py",
+        "full_function": "worked-cases/pytest-obligation/d39f77ea/1037-function.txt",
+        "git_blob_sha1": "80610f02afbce36e4fa04fd0d07377768d789a03",
+        "license": "licenses/pytest-obligation-d39f77ea-LICENSE.txt",
+        "line": 180,
+        "position": 1037,
+        "source_id": "package/src/pytest_obligation/integrations/redis.py::redis_reply_breaker",
+        "source_sha256": "9172cc624c267ca0af069b2538041e322ca086d9e01bb10b29a9a1ca1049bcda"
+      }
+    ],
+    "label": "duplicate",
+    "pair_id": "137aaaf8537c7174fe9d060223ef50c86b7a038401b59e6b28e90359c3ffe76a",
+    "repository": "gigaverse-app/pytest-obligation",
+    "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6",
+    "row_id": "original-pytest-obligation:reply-lifetime-before"
+  },
+  {
+    "cohort_id": "bg-fc5d60d9a7922b37",
+    "functions": [
+      {
+        "end_line": 340,
+        "file_sha256": "90acdb5621f5433483c7965b3b8474cb8db4cb91ed482b73919b32d9c526bc7d",
+        "full_file": "worked-cases/pytest-selective/ae130637/src/pytest_selective/pytest_expansion.py",
+        "full_function": "worked-cases/pytest-selective/ae130637/237-function.txt",
+        "git_blob_sha1": "f5cd1fc3e167d756453f378d97ef56f6561254c8",
+        "license": "licenses/pytest-selective-ae130637-LICENSE.txt",
+        "line": 327,
+        "position": 237,
+        "source_id": "src/pytest_selective/pytest_expansion.py::worktree_snapshot",
+        "source_sha256": "33cd09dd3252a16ba3ed36bfdb7ee94657c070b4be5744ea8c30fd99ebc04bd7"
+      },
+      {
+        "end_line": 43,
+        "file_sha256": "fad574762da420ab42bfb2c5fe7e856573bd50a21577f3211a0708331e2b9b1f",
+        "full_file": "worked-cases/pytest-selective/ae130637/src/pytest_selective/working_tree.py",
+        "full_function": "worked-cases/pytest-selective/ae130637/271-function.txt",
+        "git_blob_sha1": "4b67aa87b882eac18fb57d91da2f4525d6d23617",
+        "license": "licenses/pytest-selective-ae130637-LICENSE.txt",
+        "line": 10,
+        "position": 271,
+        "source_id": "src/pytest_selective/working_tree.py::snapshot_working_tree",
+        "source_sha256": "b2cd7674b031a6caa2a07290f9a217af9186393b6d625dbf91784dfc38e79dfc"
+      }
+    ],
+    "label": "duplicate",
+    "pair_id": "ae83a229a6e175806d26f7f2c7e0bb08aadc5a6553f16b1ff3dbef4f6a0eb81c",
+    "repository": "gigaverse-app/pytest-selective",
+    "revision": "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2",
+    "row_id": "original-pytest-selective:7"
+  }
+]

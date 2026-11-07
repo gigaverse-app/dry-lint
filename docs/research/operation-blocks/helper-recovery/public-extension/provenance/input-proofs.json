@@ -1,0 +1,88 @@
+{
+  "acquisition": [
+    {
+      "git": "/home/researcher/dry-lint-round/research-corpus/improvement-public-pins/due.git",
+      "pins": [
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "33857688849a481a794b46295f4080dca853cc0f"
+        },
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4"
+        },
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0"
+        },
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd"
+        },
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "d45977a85f1804d8c6cbc3b35d02fd61438f7531"
+        }
+      ],
+      "repository": "gigaverse-app/due"
+    },
+    {
+      "git": "/home/researcher/dry-lint-round/research-corpus/improvement-public-pins/pytest-selective.git",
+      "pins": [
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "4ab22f35385bb0e3225cf9d40877b559d45c23dc"
+        },
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2"
+        }
+      ],
+      "repository": "gigaverse-app/pytest-selective"
+    },
+    {
+      "git": "/home/researcher/dry-lint-round/research-corpus/improvement-public-pins/pytest-obligation.git",
+      "pins": [
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4"
+        },
+        {
+          "available": true,
+          "error": null,
+          "fetch_returncode": 0,
+          "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6"
+        }
+      ],
+      "repository": "gigaverse-app/pytest-obligation"
+    }
+  ],
+  "files": {
+    "/home/researcher/dry-lint-round/jobs/experiment-cpu-embeddings/.lab-results/full-corpus/shared-inputs/9bfa15c84eb72dd2/cohorts.jsonl": "d611c82a28e3c3b79e3abc68718a033f14e2a8104e7e9d6b98353a0158f2f4a8",
+    "/home/researcher/dry-lint-round/jobs/experiment-cpu-embeddings/.lab-results/full-corpus/shared-inputs/9bfa15c84eb72dd2/rows.jsonl": "9bfa15c84eb72dd2813b65f688c751cd043abfc4b4800d539b6dca8e3bf5ed11",
+    "/home/researcher/dry-lint-round/jobs/improve-cpu-retrieval/.lab-results/common.py": "70029b2af2db2937d390ddb070b241e45cfb9f5e4a3fda274fc8f8936dfb51a3",
+    "/home/researcher/dry-lint-round/jobs/improve-cpu-retrieval/.lab-results/source-coverage.jsonl": "812f9ef15c3f8a5f7e381fb02d03c85a8be52f1c3aae0c6d187218fe7d763c5b",
+    "/home/researcher/dry-lint-round/jobs/improve-operation-blocks/.lab-results/common.py": "97740eed00a2ff45bd5cd8a77e49424f76d06bc27366d2cadd7465162b7a7495",
+    "/home/researcher/dry-lint-round/jobs/recall-promotion/src/dry_lint/cpu_embedding.py": "1be10b5839f34387f9dd82b7baefc63e92a37eec3be337cab687210ee9a6c83b",
+    "/home/researcher/dry-lint-round/jobs/recall-promotion/src/dry_lint/extractors.py": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32",
+    "/home/researcher/dry-lint-round/jobs/recall-promotion/src/dry_lint/functions.py": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae",
+    "/home/researcher/dry-lint-round/jobs/recall-promotion/src/dry_lint/operation_blocks.py": "4e46214dcab392e543a3b87f6fa2ceaad45c6c3b266d7a651faf8d36113463f0",
+    "/home/researcher/dry-lint-round/reports/research-experiments/improvement-wave/public-pin-acquisition.json": "403c6c5cfd391529e688ef365298b8ced6c9a9ce17557b62b9e917a86a40496a"
+  }
+}

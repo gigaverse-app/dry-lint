@@ -1,0 +1,13 @@
+def counted_reply_breaker(
+    watch: Callable[[Callable[[], None], Callable[[], None]], AbstractContextManager[object]],
+    replies_factory: Callable[[int | None], _Replies],
+) -> Callable[[int | None], AbstractContextManager[_Replies]]:
+    """Keep the observer installed through the body, restoring it even when the reply is lost."""
+
+    @contextmanager
+    def breaker(lose_at: int | None) -> Iterator[_Replies]:
+        replies = replies_factory(lose_at)
+        with watch(lambda: None, replies.committed):
+            yield replies
+
+    return breaker

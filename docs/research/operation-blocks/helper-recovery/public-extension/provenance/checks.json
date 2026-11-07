@@ -1,0 +1,14 @@
+{
+  "background_function_occurrences": 21950,
+  "checks": [
+    "fallback gains complete cleanup helper while preserving full native evidence",
+    "allowed, zero limit and self exclusion",
+    "original winners and score order take precedence",
+    "retrieval retains distinct exception and cleanup contracts",
+    "nested and oversized helpers excluded without truncation; bounds preserved",
+    "all full native bodies, file objects, spans, frozen sparse token order verified"
+  ],
+  "provider_calls": 0,
+  "status": "passed",
+  "unique_source_files": 660
+}

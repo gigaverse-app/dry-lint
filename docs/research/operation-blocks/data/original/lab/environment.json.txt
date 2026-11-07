@@ -1,0 +1,24 @@
+{
+  "code_commit": "442b17af38ff596605e8307910ba206c4d0614a0",
+  "dependencies": {
+    "pydantic": "2.14.2",
+    "ruff": "0.17.3"
+  },
+  "interpreter": "LAB_ROOT/retrieval/.venv/bin/python",
+  "no_provider_calls_or_credentials": true,
+  "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.43",
+  "python": "3.14.4 (main, Jun 18 2026, 14:25:02) [GCC 15.2.0]",
+  "read_instructions_and_source_versions": {
+    "AGENTS.md": "8e8a4b93301b2a30edf2054a41f206098aa3339e24bba79ff1ebea7a292cb248",
+    "CONTRIBUTING.md": "ac685ad599f798049e142a941a9da5e37058cf643f1f1897444e13bbb4759381",
+    "docs/design.md": "23c09e2e99142d45e7b0e713c6c7aa158dd4632eab791d620383635b6ec7eebd",
+    "docs/research-plan.md": "08a05c913483aed04d85b38ee6712e17f12cff9be7deab09dfb0a17c12332603",
+    "docs/tfidf-enrichment-research.md": "d4180ee17ecd36033fa3578bfd5ae2b21000fb24b19bf517b5e13794cc9bb142",
+    "docs/work-in-progress/tickets/codex-protected-shared-operations-test-plan.md": "9d94db91f539d6ab6eff49fda007a1e92eec2ea1d3a34fea82ad42fe2600b270",
+    "src/dry_lint/bench_background.py": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f",
+    "src/dry_lint/costs.py": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+    "src/dry_lint/index.py": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7",
+    "src/dry_lint/judges/command.py": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317",
+    "src/dry_lint/models.py": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3"
+  }
+}

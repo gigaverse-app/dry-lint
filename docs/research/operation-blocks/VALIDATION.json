@@ -1,0 +1,90 @@
+{
+  "reproduce.py": {
+    "method": "operation-blocks",
+    "source_files": 8,
+    "selected_cases": 4,
+    "replayed_decisions": 8,
+    "scope": "Recorded source, rendered input, answer parsing, citation/report policy and row aggregation. No full-corpus rank regeneration or new model outputs.",
+    "round2_pairs": 29,
+    "round2_original_reporting_observations": 3,
+    "round2_residual_reporting_observations": 1,
+    "reviewed_useful_opportunities_lost": 2,
+    "lost_case_ids": [
+      "OBR1-cd803a8002adba3e",
+      "OBR2-AUDIT-0484f22cb559"
+    ],
+    "rf14_native_concept": null,
+    "balanced_matched_answers": 0
+  },
+  "native.py": {
+    "status": "PASS",
+    "original_algorithm": "_blocks/_regions/node_tokens (unchanged ASTs)",
+    "functions": 8,
+    "regions": 25,
+    "details": [
+      {
+        "case": "OBR1-cd803a8002adba3e",
+        "side": "new",
+        "regions": 1
+      },
+      {
+        "case": "OBR1-cd803a8002adba3e",
+        "side": "existing",
+        "regions": 3
+      },
+      {
+        "case": "OBR2-AUDIT-0484f22cb559",
+        "side": "new",
+        "regions": 1
+      },
+      {
+        "case": "OBR2-AUDIT-0484f22cb559",
+        "side": "existing",
+        "regions": 1
+      },
+      {
+        "case": "OBR2-AUDIT-519d0bb0d55e",
+        "side": "new",
+        "regions": 2
+      },
+      {
+        "case": "OBR2-AUDIT-519d0bb0d55e",
+        "side": "existing",
+        "regions": 1
+      },
+      {
+        "case": "OBR2-BASE-a47dd85172b0",
+        "side": "new",
+        "regions": 5
+      },
+      {
+        "case": "OBR2-BASE-a47dd85172b0",
+        "side": "existing",
+        "regions": 11
+      }
+    ],
+    "refits": 0,
+    "scope": "Native region extraction only; full-background IDF, anchor competition and selector ranking remain recorded, not re-fitted on selected sources."
+  },
+  "audit.py": {
+    "status": "PASS",
+    "files": 126,
+    "decompressed_archives": 1,
+    "local_markdown_links": 32,
+    "credential_pattern_matches": 0,
+    "limits": "Allowlisted OSS provenance and structured response sanitization plus pattern scan; regex is not a universal secret detector."
+  },
+  "materialize.py": {
+    "status": "PASS",
+    "restored_files": 89,
+    "nothing_executed": true
+  },
+  "csv_output": {
+    "status": "PASS",
+    "csv_exists": true
+  },
+  "original_provenance": {
+    "status": "PASS",
+    "unchanged_original_hashes_checked": 106
+  }
+}

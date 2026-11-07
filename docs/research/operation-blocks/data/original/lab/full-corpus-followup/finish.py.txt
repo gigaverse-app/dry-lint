@@ -1,0 +1,160 @@
+"""Final evidence handoff; scientific completion remains conditional on root source review."""
+
+import json
+from collections import Counter
+
+from prepare import LAB, OUT, ROOT, SHARED, dump, sha
+
+
+def main():
+    coverage = json.loads((OUT / "coverage.json").read_text())
+    validation = json.loads((OUT / "full-validation.json").read_text())
+    summary = json.loads((OUT / "paired-summary.json").read_text())
+    novel = json.loads((OUT / "novel-discovery-summary.json").read_text())
+    assert coverage["completed_cohorts"] == coverage["total_cohorts"] == 77
+    assert validation["all_pass"]
+    aggregate = [r for r in summary["summaries"] if r["cohort_id"] == "ALL_COHORTS_SEPARATE_FITS"]
+    assessments = Counter()
+    for audit in coverage["per_cohort"]:
+        source = audit["source_audit"]
+        if source.get("python_paths") == 0:
+            assessments["no_Python_paths_in_background"] += 1
+        elif source.get("exact_source_and_tokens", 0):
+            assessments["source_verified_Python_representation_evaluated"] += 1
+        elif source["mode"] == "blocked_missing_exact_git_source":
+            assessments["Python_source_missing_exact_commit"] += 1
+        else:
+            assessments["exact_source_native_body_token_or_extraction_exception"] += 1
+    stage = dict(
+        status="all77_immutable_cohorts_assessed; applicable_source_variants_executed; root_judging_and_shared_span_route_pending",
+        scientific_conclusion="Pilot-wide success/failure conclusions reopened. Conditional development retrieval effects only; source usefulness and report gains remain unknown.",
+        immutable_inputs=str(SHARED),
+        root_index_receipt=str(ROOT / "reports/research-experiments/full-corpus/coordinator-index-verification.json"),
+        denominator=coverage["accepted_function_denominators"],
+        inventory_records=617,
+        accepted_binary_records=584,
+        accepted_function_records=580,
+        accepted_model_records=4,
+        model_inventory=str(OUT / "model-inventory.jsonl"),
+        cohort_assessments=assessments,
+        validation=validation,
+        paired_aggregate=aggregate,
+        full_source_discovery=novel,
+        frozen_review_batch=dict(
+            version="v1",
+            queue=str(OUT / "novel-review-queue.jsonl"),
+            sha256=sha((OUT / "novel-review-queue.jsonl").read_bytes()),
+            novel=12,
+            controls=4,
+            archive=str(OUT / "review-batches/v1/manifest.json"),
+            cost_supplement=str(OUT / "review-batches/v1/funding-supplement.jsonl"),
+            selection_point="First completed full-source OpenHands cohort, before broader scan finished; no claim of corpus representativeness.",
+            judging="Pending root-owned providers and independent source review; unjudged remains unknown.",
+            root_notice=str(OUT / "ROOT-QUEUE-READY.json"),
+        ),
+        exact_source_exceptions=str(OUT / "exact-source-blockers.json"),
+        source_availability_audit=str(OUT / "source-availability-audit.json"),
+        resolver_owner="corpus-wide-evaluation",
+        span_input=str(LAB / "span-resolution-input.json"),
+        shared_span_migration=(
+            str(OUT / "shared-span-migration.json")
+            if (OUT / "shared-span-migration.json").exists()
+            else "Awaiting root route of reviewed helper; no parallel recovery implemented."
+        ),
+        query_size_floors="Only actual source-verified native spans used; no 0-0+1 fallback. Shared raw ranks retained independently.",
+        worker_provider_calls=0,
+        worker_physical_spend_usd=0,
+        promotion=False,
+        accepted_labels_changed=False,
+        pilot_preserved=True,
+        pilot_report="REPORT.md absent; immutable HANDOFF.json and RESULTS.txt were read.",
+        commands=str(OUT / "commands.sh"),
+        report=str(OUT / "REPORT.txt"),
+        communication_blocker="Thread-send tool rejected forwarding because approval is required while session policy is never. Root notice and frozen batch are in this worktree.",
+        runtime_qualification="Timing logs include superseded overlapping interrupted shell attempts; not isolated production overhead. Final deterministic query/source/funding checks are authoritative.",
+    )
+    dump(OUT / "HANDOFF.json", stage)
+    text = [
+        "Bounded operation blocks v1: full-corpus development follow-up",
+        "",
+        "The original two-repository pilot and all its artifacts are unchanged. Its small-panel negative conclusion is preliminary, not evidence of general method failure.",
+        "",
+        "Inventory: 617 records; 584 accepted binary rows, including 580 function rows and 4 separately recorded model declarations. Uses only the root-verified immutable 77-background snapshot. No backgrounds or revisions were concatenated.",
+        "Accepted function denominators: " + json.dumps(coverage["accepted_function_denominators"], sort_keys=True),
+        "Cohort assessments: " + json.dumps(assessments, sort_keys=True),
+        "",
+        "The frozen Python AST rules, anchors, bounds, floors and protected append-one policies were replicated across all applicable exact source cohorts. Missing source and unsupported TypeScript/model declarations remain visible. Exact exceptions are in exact-source-blockers.json and inventory-coverage.jsonl; no absent extraction is treated as scientific failure.",
+        "",
+    ]
+    for group in aggregate:
+        if group["label"] not in ("duplicate", "separate"):
+            continue
+        text.append(
+            group["label"]
+            + ": "
+            + json.dumps(
+                dict(
+                    denominators=group["accepted_denominators"],
+                    pair_cohort_units=group["evaluated_pair_cohort_units"],
+                    named_families=group["named_families"],
+                    missing_family_pairs=group["missing_family_pairs"],
+                ),
+                sort_keys=True,
+            )
+        )
+        for profile, data in group["profiles"].items():
+            m = data["funded"]
+            text.append(
+                f"  {profile}: funded {m['baseline']} -> {m['variant']} / {m['denominator']} pair/cohort units; "
+                f"gained {len(m['gained_pairs'])}, lost {len(m['lost_pairs'])} pairs; "
+                f"gained {len(m['gained_family_ids'])}, lost {len(m['lost_family_ids'])} named families."
+            )
+    text.extend(
+        [
+            "",
+            "Pair/cohort units preserve scope-specific fits and are not independent trials. Duplicate dataset rows retain lineage and do not create new pair units. Per-family effects and repository/family-clustered descriptive intervals are in per-family-paired.jsonl and paired-summary.json. Missing family IDs remain unknown. All seen data is development/regression; no pristine holdout, significance or population precision claim.",
+            "",
+            "Full-source discovery: "
+            + json.dumps(
+                {
+                    k: v
+                    for k, v in novel.items()
+                    if k
+                    in (
+                        "funded_extra_direction_profile_exposures",
+                        "unique_funded_extra_unordered_pin_pairs",
+                        "unannounced_unknown_unordered_pin_pairs",
+                    )
+                },
+                sort_keys=True,
+            ),
+            "Initial frozen batch v1: 12 novel funded pairs + 4 controls, selected from the first finished full-source cohort. Queue SHA256: "
+            + stage["frozen_review_batch"]["sha256"],
+            "Full Candidate, repository/pin/background and file proofs, private funding sidecar, and score-blind packets are preserved. A funding supplement corrects copied concept estimates for four controls without rewriting announced artifacts. All initial cases were funded under both concept and separately checked operations prompts.",
+            "Useful source-confirmed yield, false/disputed/lost reports, and physical provider usage are pending root. Unjudged is unknown. Jev>=.8 is neither eligibility nor truth. Broader reserves support adaptive further frozen batches after measured useful yield; twelve is not a final ceiling.",
+            "",
+            "The synthetic .04 USD cold one-function query ledger is an experimental diagnostic. It is not historical deployment, a real PR diff/ledger, an actual cache replay or a provider reservation. Default and balanced policy names do not infer adoption. Every evaluated paired baseline-funded candidate is preserved. Separate-control exposure is not a false report.",
+            "",
+            "Source-size floors use actual source-verified native spans. Missing native spans remain unknown; shared floor flags affected by the zero-span bug are excluded. Raw production scores/ranks stay valid and are retained separately. corpus-wide-evaluation owns reviewed span recovery; this worker exported unresolved inputs and has not invented a parallel resolver.",
+            "",
+            f"Validation: {validation['cohorts']} cohorts; {validation['total_queries']} full-source queries; {validation['total_source_regions']} exact hashed source regions; {validation['total_frozen_scorer_comparisons']} exact frozen/optimized scorer comparisons. All source, budget, posting/pool bound, deterministic coverage and pilot-preservation checks passed.",
+            "Runtimes include superseded overlapping interrupted shell attempts and are not isolated production overhead. The optimized implementation preserves the frozen scorer and uses sparse caches, without a dense N-by-N allocation.",
+            "",
+            "Outstanding: root-owned provider/source judging of frozen v1; reviewed shared span-helper route; explicitly listed unavailable exact commits/blobs/native extraction contracts. Forwarding through the thread-message tool was rejected because approval is required and session policy forbids approval. ROOT-QUEUE-READY.json is the concrete root handoff.",
+            "No production/CI/configuration changes, credential reads, worker provider calls, new agents, altered accepted labels or promotion.",
+        ]
+    )
+    (OUT / "REPORT.txt").write_text("\n".join(text) + "\n")
+    files = [
+        dict(path=str(p), sha256=sha(p.read_bytes()), bytes=p.stat().st_size)
+        for p in sorted(OUT.rglob("*"))
+        if p.is_file() and p.name != "artifact-hashes.json" and "__pycache__" not in p.parts
+    ]
+    dump(OUT / "artifact-hashes.json", files)
+    print(
+        json.dumps(dict(status=stage["status"], assessments=assessments, denominator=stage["denominator"])), flush=True
+    )
+
+
+if __name__ == "__main__":
+    main()

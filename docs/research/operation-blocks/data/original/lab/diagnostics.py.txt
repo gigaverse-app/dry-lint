@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""Registered source/floor/same-file diagnostics, without altering primary arms."""
+
+import gzip
+import json
+from collections import Counter
+from pathlib import Path
+
+from operation_blocks import HERE, JUDGE, SETTINGS, Candidate, Function, Ledger, dump, readrows, rows, sha, why_skipped
+
+NOTES = {
+    "LL-S010": "Block captures a coherent kwargs copy and positional-argument merge. It covers only the preparation prefix, not all metadata and cache-key steps in the accepted operation contract. Already retrieved by current20; no new positive credit.",
+    "LL-S052": "Complete event-type branches isolate transcript collection, storage, forwarding, guardrail execution and response.create. Preserve differences in store input, transcription usage condition and item_id binding. Accepted scoped subtype is drifted, not whole-function equality. Already current20-retrieved.",
+    "OH-S072": "Maximal straight runs include snippet/report construction but also different writes/history updates. Blocks over-cover the accepted reporting-only operation; useful retrieval evidence, not precise semantic equivalence boundaries. Already current20-retrieved.",
+    "OH-S034": "Negative control: similar try/wait/terminate blocks hide kill-first vs terminate-first ordering and timeout/reset policy. The winning Bash try block excludes the preceding kill. Full unchanged functions are essential; new funded negative is not a report.",
+    "OH-P003": "Same process-stop negative family as OH-S034, different endpoint pair. Preserve both candidates but count one operation family for these added separate controls.",
+}
+
+
+def main():
+    diagnostics, stage, selected = [], [], []
+    for name in ["litellm", "openhands"]:
+        out = HERE / name
+        snapshot = json.loads(gzip.decompress((out / "candidate-index.json.gz").read_bytes()))
+        fs = {int(i): Function.model_validate(f) for i, f in snapshot["functions"].items()}
+        queries = {q["query"]: q for q in readrows(out / "per-query.jsonl")}
+        panel = readrows(out / "per-row.jsonl")
+        effects = []
+        for q in queries.values():
+            # Isolate the same-file gate on block extras; neither pool nor floor is changed.
+            for profile in ["default3", "default_plus_current20"]:
+                p = q["profiles"][profile]
+                for allow_same_file in [False, True]:
+                    found = next(
+                        (
+                            b
+                            for b in q["block_candidates"]
+                            if b["block_floor_pass"]
+                            and b["full_floor_pass"]
+                            and not b["filter"]
+                            and b["target"] not in p["baseline"]
+                            and (allow_same_file or fs[b["target"]].path != fs[q["query"]].path)
+                        ),
+                        None,
+                    )
+                    selected_positions = p["baseline"] + ([found["target"]] if found else [])
+                    raw_scores = {x["position"]: x["score"] for x in [*q["raw_top20"], *q["raw_cross_top3"]]}
+                    if found:
+                        raw_scores[found["target"]] = found["full_score"]
+                    candidates = [
+                        Candidate(
+                            new=fs[q["query"]],
+                            existing=fs[ti],
+                            similarity=raw_scores[ti],
+                            comparer="tfidf:2",
+                            lane="exploration",
+                        )
+                        for ti in selected_positions
+                    ]
+                    funded = Ledger(SETTINGS).select(JUDGE, candidates)
+                    effects.append(
+                        dict(
+                            repository=name,
+                            query=q["query"],
+                            profile=profile,
+                            allow_same_file_extra=allow_same_file,
+                            candidate=found["target"] if found else None,
+                            extra_funded=bool(found and len(selected_positions) - 1 in funded),
+                            baseline_positions_unchanged=True,
+                            raw_pool_and_scores_unchanged=True,
+                            primary_arm=(allow_same_file == (profile == "default_plus_current20")),
+                        )
+                    )
+        rows(out / "same-file-extra-diagnostic.jsonl", effects)
+        for row in panel:
+            for d in row["directions"]:
+                if d["status"] != "measured":
+                    continue
+                q = queries[d["query"]]
+                ti = d["target"]
+                reason = why_skipped(fs[d["query"]], fs[ti], SETTINGS)
+                default_unfiltered = [x["position"] for x in q["raw_cross_top3"] if x["score"] >= q["default_floor"]]
+                exploration_unfiltered = [x["position"] for x in q["raw_top20"] if x["score"] >= 0.35]
+                item = dict(
+                    repository=name,
+                    id=row["id"],
+                    direction=d["direction"],
+                    label=row["label"],
+                    family=row["family"],
+                    raw_score=d["raw_score"],
+                    same_file=d["same_file"],
+                    query_lines=d["query_lines"],
+                    default_floor=d["default_floor"],
+                    ordinary_05_floor_pass=d["raw_score"] >= 0.5,
+                    size_adjusted_floor_pass=d["raw_score"] >= d["default_floor"],
+                    size_floor_rescue=d["size_floor_rescue"],
+                    balanced_035_floor_pass=d["raw_score"] >= 0.35,
+                    same_file_allowed_top3_with_same_size_floor=d["raw_score"] >= d["default_floor"]
+                    and d["raw_rank"] <= 3
+                    and not reason,
+                    cross_file_top3_with_same_size_floor=d["default3_retrieved"],
+                    pair_filter=reason,
+                    block_loss=d["block_loss"],
+                    original_first_losses={p: d[p + "_first_loss"] for p in ["default3", "default_plus_current20"]},
+                )
+                item["audited_first_losses"] = dict(item["original_first_losses"])
+                for profile, rawids in [
+                    ("default3", default_unfiltered),
+                    ("default_plus_current20", default_unfiltered + exploration_unfiltered),
+                ]:
+                    if ti in rawids and reason:
+                        item["audited_first_losses"][profile] = "pair_filter"
+                item["loss_annotation_corrected"] = item["original_first_losses"] != item["audited_first_losses"]
+                stage.append(item)
+            if row["id"] in NOTES:
+                d = next(x for x in row["directions"] if x.get("block_evidence"))
+                b = d["block_evidence"]
+                spans = []
+                for key in ["query_block", "target_block"]:
+                    block = snapshot["blocks"][b[key]]
+                    f = fs[block["parent"]]
+                    proof = snapshot["sources"][f.path]
+                    region = "\n".join(
+                        Path(proof["snapshot"]).read_text().splitlines()[block["start_line"] - 1 : block["end_line"]]
+                    )
+                    spans.append(
+                        dict(
+                            source_id=f.qualname,
+                            path=f.path,
+                            start_line=block["start_line"],
+                            end_line=block["end_line"],
+                            region_sha256=sha(region.encode()),
+                            file_sha256=proof["sha256"],
+                            source_snapshot=proof["snapshot"],
+                            code=region,
+                        )
+                    )
+                selected.append(
+                    dict(
+                        id=row["id"],
+                        existing_label=row["label"],
+                        existing_drifted_subtype=row["drifted"],
+                        family=row["family"],
+                        accepted_operation_contract=row["operation_contract"],
+                        worker_interpretation_not_new_gold=NOTES[row["id"]],
+                        full_cosine=d["raw_score"],
+                        block_cosine=b["score"],
+                        original_source_spans=spans,
+                        new_retrieval_win=False,
+                    )
+                )
+        for label in sorted({r["label"] for r in panel}):
+            ds = [x for x in stage if x["repository"] == name and x["label"] == label]
+            group_effects = []
+            for profile in ["default3", "default_plus_current20"]:
+                for samefile in [False, True]:
+                    ee = [e for e in effects if e["profile"] == profile and e["allow_same_file_extra"] == samefile]
+                    by_query = {e["query"]: e for e in ee}
+                    known = [r for r in panel if r["label"] == label]
+                    group_effects.append(
+                        dict(
+                            profile=profile,
+                            allow_same_file_extra=samefile,
+                            all_query_extra_exposures=sum(e["candidate"] is not None for e in ee),
+                            all_query_extra_funded=sum(e["extra_funded"] for e in ee),
+                            known_pairs_funded=dict(
+                                numerator=sum(
+                                    any(
+                                        d[profile + "_funded"]
+                                        or (
+                                            by_query[d["query"]]["extra_funded"]
+                                            and by_query[d["query"]]["candidate"] == d["target"]
+                                        )
+                                        for d in r["directions"]
+                                    )
+                                    for r in known
+                                ),
+                                denominator=len(known),
+                            ),
+                        )
+                    )
+            diagnostics.append(
+                dict(
+                    repository=name,
+                    label=label,
+                    directions=len(ds),
+                    metrics={
+                        k: dict(numerator=sum(x[k] for x in ds), denominator=len(ds))
+                        for k in [
+                            "same_file",
+                            "ordinary_05_floor_pass",
+                            "size_adjusted_floor_pass",
+                            "size_floor_rescue",
+                            "balanced_035_floor_pass",
+                            "same_file_allowed_top3_with_same_size_floor",
+                            "cross_file_top3_with_same_size_floor",
+                        ]
+                    },
+                    audited_first_losses={
+                        p: dict(Counter(x["audited_first_losses"][p] for x in ds))
+                        for p in ["default3", "default_plus_current20"]
+                    },
+                    block_losses=dict(Counter(x["block_loss"] for x in ds)),
+                    same_file_block_extra_effects_all_queries=group_effects,
+                )
+            )
+    rows(HERE / "stage-floor-size-samefile-per-direction.jsonl", stage)
+    rows(HERE / "semantic-block-examples.jsonl", selected)
+    dump(
+        HERE / "diagnostic-effects-summary.json",
+        dict(
+            groups=diagnostics,
+            stage_annotation_corrections=[x for x in stage if x["loss_annotation_corrected"]],
+            correction="LL-S030 __init__ pair was rule-filtered, not a rank miss. Primary scores, candidates and funding remain unchanged.",
+            no_new_method_tuning=True,
+            samefile_ablations="registered diagnostics on fixed block candidates; never added to central queue",
+            labels="Development operation scope only; selected blocks can over-cover or under-cover that scope.",
+        ),
+    )
+    print(
+        json.dumps(
+            dict(
+                directions=len(stage),
+                stage_annotation_corrections=sum(x["loss_annotation_corrected"] for x in stage),
+                semantic_examples=len(selected),
+            )
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

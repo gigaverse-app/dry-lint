@@ -1,0 +1,87 @@
+{
+  "baseline_commit": "5583bb1d3ad8deb22ab45642782988f6deae79e3",
+  "public_benchmark_inputs": [
+    {
+      "id": "bg-7489aa1946c16153",
+      "repository": "BerriAI/litellm",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "*/test_*",
+          "*/migrations/*",
+          "*/generated/*",
+          "*/enterprise/*",
+          "*/_generated/*",
+          "litellm/proxy/common_utils/load_config_utils.py",
+          "litellm/secret_managers/google_secret_manager.py",
+          "litellm/proxy/common_utils/load_config_utils.py",
+          "litellm/secret_managers/google_secret_manager.py"
+        ],
+        "include": [
+          "litellm/*.py"
+        ]
+      },
+      "max_df": 0.3,
+      "files": {
+        "background.json.gz": {
+          "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b",
+          "bytes": 5391440,
+          "lab_path": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime/inputs/bg-7489aa1946c16153/background.json.gz"
+        },
+        "candidate-index.json.gz": {
+          "sha256": "87870dc165ef1e1a446c1a92890951bce2966eef5a7552fd50d1565e9eca3fa7",
+          "bytes": 17357771,
+          "lab_path": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime/inputs/bg-7489aa1946c16153/candidate-index.json.gz"
+        },
+        "queries.jsonl": {
+          "sha256": "89510c86f003991e2f7245d616c2858614533747d1ddc61eb4f54a7f53cd7aed",
+          "bytes": 84731686,
+          "lab_path": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime/inputs/bg-7489aa1946c16153/queries.jsonl"
+        },
+        "gold-directions.jsonl": {
+          "sha256": "aadc9444dcbd3e6c01534ec752440fe7166745926d60b040c0de988eeff456a0",
+          "bytes": 88976,
+          "lab_path": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime/inputs/bg-7489aa1946c16153/gold-directions.jsonl"
+        }
+      }
+    },
+    {
+      "id": "bg-ebd0031534c954e5",
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "max_df": 0.3,
+      "files": {
+        "background.json.gz": {
+          "sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+          "bytes": 284030,
+          "lab_path": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime/inputs/bg-ebd0031534c954e5/background.json.gz"
+        },
+        "candidate-index.json.gz": {
+          "sha256": "03d4571d3fe1cd3fe4685d9312eee2b6842382e23cc945cb96ca4b98a55fea19",
+          "bytes": 929075,
+          "lab_path": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime/inputs/bg-ebd0031534c954e5/candidate-index.json.gz"
+        },
+        "queries.jsonl": {
+          "sha256": "3d59d3663acc73e528e92b8bc1e6a507986db21d86150d562686ad69c29b8d62",
+          "bytes": 7923126,
+          "lab_path": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime/inputs/bg-ebd0031534c954e5/queries.jsonl"
+        },
+        "gold-directions.jsonl": {
+          "sha256": "c00f0ae2159a0c20699a0cc6dbbd4490c8cfae1ca52ceb5ab0835dad8f66f03c",
+          "bytes": 40734,
+          "lab_path": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime/inputs/bg-ebd0031534c954e5/gold-directions.jsonl"
+        }
+      }
+    }
+  ],
+  "availability": "Full inputs remain in separate lab corpus; not bundled in this product repository. File hashes identify the exact required snapshots and query selection, not a download endpoint."
+}

@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Clarify policy names without changing a retrieval score, candidate or admission.
+
+The capture runner's historical internal alias `current20` always meant default3
+followed by nonduplicate same-file top20/.35, with default3 protected. Standalone
+balanced20 is separately reconstructed from the saved raw order and rule results.
+"""
+
+import json
+
+from operation_blocks import HERE, dump, readrows, rows, sha
+
+
+def rename(obj):
+    if isinstance(obj, dict):
+        return {
+            (("default_plus_" + k) if k == "current20" or k.startswith("current20_") else k): rename(v)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [rename(x) for x in obj]
+    if isinstance(obj, str):
+        return "default_plus_current20" if obj == "current20" else obj
+    return obj
+
+
+def main():
+    changes = []
+    for name in ["litellm", "openhands"]:
+        out = HERE / name
+        qs = [rename(q) for q in readrows(out / "per-query.jsonl")]
+        for q in qs:
+            allowed = set(q["profiles"]["default_plus_current20"]["baseline"])
+            q["standalone_balanced20_retrieved"] = [
+                r["position"] for r in q["raw_top20"] if r["score"] >= 0.35 and r["position"] in allowed
+            ]
+            q["standalone_balanced20_note"] = (
+                "same-file top20 at .35 after unchanged pair rules; no default3 union and no funding/report claim"
+            )
+        byquery = {q["query"]: q for q in qs}
+        rs = [rename(r) for r in readrows(out / "per-row.jsonl")]
+        for r in rs:
+            for d in r["directions"]:
+                d["standalone_balanced20_retrieved"] = bool(
+                    d.get("status") == "measured"
+                    and d["target"] in byquery[d["query"]]["standalone_balanced20_retrieved"]
+                )
+        s = rename(json.loads((out / "summary.json").read_text()))
+        for group in s["by_label"]:
+            members = [r for r in rs if r["label"] == group["label"]]
+            group["standalone_balanced20_retrieved_pairs"] = dict(
+                numerator=sum(any(d["standalone_balanced20_retrieved"] for d in r["directions"]) for r in members),
+                denominator=len(members),
+            )
+            group["standalone_balanced20_retrieved_directions"] = dict(
+                numerator=sum(d["standalone_balanced20_retrieved"] for r in members for d in r["directions"]),
+                denominator=2 * len(members),
+            )
+        s["policy_names"] = dict(
+            default3="cross-file top3 .5/.3 small-function floor",
+            default_plus_current20="default3 first, union with same-file-allowed top20/.35, then one protected block extra; synthetic cold .04 Ledger",
+            standalone_balanced20="same-file top20/.35 without default3 union; separate retrieval diagnostic, no funding claim",
+        )
+        exposures = [rename(r) for r in readrows(out / "funded-exposures.jsonl")]
+        for file, items in [("per-query.jsonl", qs), ("per-row.jsonl", rs), ("funded-exposures.jsonl", exposures)]:
+            old_sha = sha((out / file).read_bytes())
+            rows(out / file, items)
+            changes.append(
+                dict(path=str(out / file), before_sha256=old_sha, after_sha256=sha((out / file).read_bytes()))
+            )
+        dump(out / "summary.json", s)
+    dump(
+        HERE / "policy-name-clarification.json",
+        dict(
+            changes=changes,
+            scoring_or_funding_changed=False,
+            note="Alias clarification requested after preregistration review. Standalone diagnostic added; no pooling.",
+            capture_runner_sha256=sha((HERE / "operation_blocks_capture_v1.py").read_bytes()),
+        ),
+    )
+    print("Explicit policies saved; retrieval scores, pair sets and funding unchanged.")
+
+
+if __name__ == "__main__":
+    main()

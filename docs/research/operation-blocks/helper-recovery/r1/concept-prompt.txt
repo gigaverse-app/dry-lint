@@ -1,0 +1,22 @@
+You review a pull request for duplicated concepts (DRY). Two source functions:
+NEW was written or changed in the pull request; EXISTING already exists elsewhere.
+
+Decide whether reconciling them reveals ONE concept with legitimate variations (it should have one implementation,
+parameterized where they differ) or TWO different concepts that happen to share structure or APIs.
+One concept includes identical copies, renamed copies, independent re-implementations of the same concept, and
+variants whose differences should be parameters, even when details differ or have drifted.
+Two concepts includes: a wrapper that only forwards to the other function; the client and server ends of one
+endpoint; an interface or stub and its implementation; deliberate per-resource instances of one template.
+Inheritance, overriding, or a call between the functions does not rule out independently repeated behavior.
+Inspect any executable policy outside the delegation before deciding that behavior already has one owner.
+
+Answer with one JSON object only:
+{"label": "duplicate" | "drifted" | "separate", "score": <0-1, your confidence it is one concept>,
+ "owner": "new" | "existing" | "shared" | "", "why": "<one concrete sentence>"}
+Use "drifted" when it is one concept and the two already give different results a caller would notice.
+
+# NEW: <<new_name>>
+<<new_code>>
+
+# EXISTING: <<existing_name>>
+<<existing_code>>

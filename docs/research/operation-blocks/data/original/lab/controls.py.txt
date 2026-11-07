@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""Constructed mechanism controls, never credited as repository gold or reports."""
+
+from collections import Counter, defaultdict
+
+from operation_blocks import HERE, SETTINGS, BenchBackground, Corpus, PythonExtractor, dump, make_blocks, rows
+
+
+def main():
+    op = """    if entries:
+        parsed = parse_records(entries, schema=rules)
+        payload = build_payload(parsed, tenant=tenant)
+        validate_payload(payload, schema=rules)
+        persist_payload(payload, tenant=tenant)
+"""
+
+    def wrapped(name, prefix):
+        return (
+            f"def {name}(entries, rules, tenant, {prefix}input):\n"
+            + "".join(f"    {prefix}{i} = {prefix}operation{i}({prefix}input)\n" for i in range(28))
+            + op
+            + "".join(f"    {prefix}out{i} = {prefix}finish{i}({prefix}input)\n" for i in range(28))
+            + "    return tenant\n"
+        )
+
+    sources = {
+        "coherent_a.py": wrapped("publish_entries", "publisher"),
+        "coherent_b.py": wrapped("archive_entries", "archiver"),
+        "logging_a.py": """def observe_entries(entries, logger):
+    for entry in entries:
+        logger.info(entry)
+        logger.debug(entry)
+        logger.warning(entry)
+    return entries
+""",
+        "logging_b.py": """def record_entries(entries, logger):
+    for entry in entries:
+        logger.info(entry)
+        logger.debug(entry)
+        logger.warning(entry)
+    return entries
+""",
+        "delegation_a.py": """def route_entries(entries, logger):
+    for entry in entries:
+        logger.info(entry)
+        handle_entry(entry)
+        logger.debug(entry)
+    return entries
+""",
+        "delegation_b.py": """def dispatch_entries(entries, logger):
+    for entry in entries:
+        logger.info(entry)
+        handle_entry(entry)
+        logger.debug(entry)
+    return entries
+""",
+        "policy_a.py": """def admission_a(entries, credentials):
+    if entries:
+        valid = validate_credentials(credentials, tenant=entries)
+        audit_event(valid, credentials)
+        if valid:
+            return True
+    return False
+""",
+        "policy_b.py": """def admission_b(entries, credentials):
+    if entries:
+        valid = validate_credentials(credentials, tenant=entries)
+        audit_event(valid, credentials)
+        if valid:
+            return False
+    return True
+""",
+        "oversize.py": "def large_run(entries):\n"
+        + "".join(f"    x{i} = unique_action_{i}(entries)\n" for i in range(90))
+        + "    return entries\n",
+        "nested.py": """def wrapper(entries):
+    def inner(entries):
+        parsed = parse_records(entries)
+        payload = build_payload(parsed)
+        validate_payload(payload)
+        persist_payload(payload)
+    return inner(entries)
+""",
+    }
+    for i in range(192):
+        sources[f"noise{i}.py"] = (
+            f"def unrelated_{i}(unique_{i}):\n    thing = isolated_{i}(unique_{i})\n    return thing\n"
+        )
+    ex = PythonExtractor()
+    fs = [f for path, source in sources.items() for f in ex.functions(path, source)]
+    bg = BenchBackground.capture(fs, "constructed/controls", "0" * 40, SETTINGS)
+    corpus = Corpus.__new__(Corpus)
+    corpus.bg, corpus.index = bg, bg.index()
+    corpus.functions = dict(enumerate(fs))
+    corpus.blocks, rejects = [], Counter()
+    for i, f in enumerate(fs):
+        corpus.blocks.extend(make_blocks(f, i, rejects))
+    corpus.parent_blocks, corpus.vectors = defaultdict(list), []
+    postings = defaultdict(list)
+    for bi, b in enumerate(corpus.blocks):
+        corpus.parent_blocks[b["parent"]].append(bi)
+        corpus.vectors.append(corpus.index.vector([t for t, n in b["counts"].items() for _ in range(n)]))
+        b["anchors"] = sorted(
+            (t for t in b["ops"] if t in corpus.index.idf and bg.document_frequency[t] <= 2),
+            key=lambda t: (bg.document_frequency[t], t),
+        )[:8]
+        for token in b["anchors"]:
+            postings[token].append(bi)
+    corpus.postings = {t: ids for t, ids in postings.items() if len(ids) <= 64}
+    bypath = {f.path: i for i, f in enumerate(fs)}
+    results = []
+    for title, a, b, scope in [
+        (
+            "coherent_operation_in_different_wrappers",
+            "coherent_a.py",
+            "coherent_b.py",
+            "synthetic shared parse/build/validate/persist operation; wrapper calls unrelated",
+        ),
+        (
+            "logging_boilerplate",
+            "logging_a.py",
+            "logging_b.py",
+            "generic logging has no separate operation ownership claim",
+        ),
+        (
+            "already_owned_single_helper",
+            "delegation_a.py",
+            "delegation_b.py",
+            "same helper handles the operation; adapters add only logging",
+        ),
+        (
+            "same_APIs_opposite_policy",
+            "policy_a.py",
+            "policy_b.py",
+            "opposite admission result; retrieval cannot establish semantic equivalence or safe consolidation",
+        ),
+    ]:
+        qi, ti = bypath[a], bypath[b]
+        scores = dict(corpus.index.similar(bg.documents[qi].tokens(), exclude={qi}))
+        found, work = corpus.block_candidates(qi, scores)
+        item = next((x for x in found if x["target"] == ti), None)
+        results.append(
+            dict(
+                control=title,
+                scope=scope,
+                full_score=scores.get(ti, 0),
+                query_blocks=len(corpus.parent_blocks[qi]),
+                target_blocks=len(corpus.parent_blocks[ti]),
+                block_evidence=item,
+                block_work=work,
+                eligible=bool(item and item["block_floor_pass"] and item["full_floor_pass"] and not item["filter"]),
+            )
+        )
+    rows(HERE / "synthetic-controls.jsonl", results)
+    assert results[0]["eligible"] and results[0]["full_score"] < 0.35, results[0]
+    assert not results[1]["eligible"] and not results[2]["eligible"]
+    assert results[3]["eligible"], "Retain lexical collision; semantic judgment is required"
+    assert not corpus.parent_blocks[bypath["oversize.py"]], "Oversized straight run must never be window-split"
+    assert not corpus.parent_blocks[bypath["nested.py"]], "Nested implementation must never be attributed to wrapper"
+    rows(HERE / "synthetic-controls.jsonl", results)
+    rows(
+        HERE / "synthetic-control-sources.jsonl",
+        [dict(path=p, source=s) for p, s in sources.items() if not p.startswith("noise")],
+    )
+    dump(
+        HERE / "synthetic-control-summary.json",
+        dict(
+            all_assertions_pass=True,
+            no_gold_or_report_credit=True,
+            original_full_synthetic_corpus_idf=True,
+            real_bounded_posting_candidate_generation=True,
+            overlarge_not_split=True,
+            nested_owner_not_attributed=True,
+            block_rejections=dict(rejects),
+            controls=[
+                dict(
+                    control=x["control"],
+                    eligible=x["eligible"],
+                    full_score=x["full_score"],
+                    block_score=x["block_evidence"]["score"] if x["block_evidence"] else None,
+                )
+                for x in results
+            ],
+        ),
+    )
+    print("Constructed controls passed; retain opposite-policy collision as a semantic limitation.")
+
+
+if __name__ == "__main__":
+    main()

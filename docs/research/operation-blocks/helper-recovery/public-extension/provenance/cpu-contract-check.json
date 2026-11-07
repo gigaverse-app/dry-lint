@@ -1,0 +1,91 @@
+{
+  "backgrounds": [
+    {
+      "background": "0be1688db28aea6d0fbb9e2cfb32eaef07fb554aa9053ee063275ce679bc8a6a",
+      "cohort_id": "bg-0be1688db28aea6d",
+      "compatible": true,
+      "functions": 2368
+    },
+    {
+      "background": "1c9d034edbdcd322738556c283ac31b487d66be858f733d768fbadf9ec941ef1",
+      "cohort_id": "bg-1c9d034edbdcd322",
+      "compatible": true,
+      "functions": 2367
+    },
+    {
+      "background": "393753b9ef2fa032f3f15b2004e333f3d33e48056656b57f2044c562d11441c8",
+      "cohort_id": "bg-393753b9ef2fa032",
+      "compatible": true,
+      "functions": 1257
+    },
+    {
+      "background": "46e0cd67a6759423dcb6162c8f62eb3f6f02dbf20699b7824ceb50e818f9e0f8",
+      "cohort_id": "bg-46e0cd67a6759423",
+      "compatible": true,
+      "functions": 1656
+    },
+    {
+      "background": "4edc2f988654836c7ab1a887b6aba67d70b6f893acf5ca5a59870e4ccc329351",
+      "cohort_id": "bg-4edc2f988654836c",
+      "compatible": true,
+      "functions": 1271
+    },
+    {
+      "background": "7a250fd17ca113c76e5e893f1c0848754987aa05577010dae36b776edd2b9c72",
+      "cohort_id": "bg-7a250fd17ca113c7",
+      "compatible": true,
+      "functions": 270
+    },
+    {
+      "background": "80d2ae63aa96e4ba824e16094ffebecb33745efb87957501ef1a9a9bb1679d2e",
+      "cohort_id": "bg-80d2ae63aa96e4ba",
+      "compatible": true,
+      "functions": 1272
+    },
+    {
+      "background": "a35412534e3d42e7e10b78aee9e0a0fcf2b7fb42c436cda0e70af17a97735720",
+      "cohort_id": "bg-a35412534e3d42e7",
+      "compatible": true,
+      "functions": 1265
+    },
+    {
+      "background": "be1b38de21febc643bf194daffa937fa7063d4b263f3f5f93b9ff56524e076e0",
+      "cohort_id": "bg-be1b38de21febc64",
+      "compatible": true,
+      "functions": 2340
+    },
+    {
+      "background": "d1a8938133a6059a3add8869c8915aedc24697313f70599a757ec444c28e0f8b",
+      "cohort_id": "bg-d1a8938133a6059a",
+      "compatible": true,
+      "functions": 1258
+    },
+    {
+      "background": "d54104cc3e03c039fc62af6abbaae2ed9673e6d053497bc6c11017a19ed8fcaf",
+      "cohort_id": "bg-d54104cc3e03c039",
+      "compatible": true,
+      "functions": 2336
+    },
+    {
+      "background": "e8eb65099fbc8a4e0853da3bce62fc497f9c428331d05ce5c47f994290456b22",
+      "cohort_id": "bg-e8eb65099fbc8a4e",
+      "compatible": true,
+      "functions": 2361
+    },
+    {
+      "background": "eceb1bd48b5a8bfa6471ff19f5064ea65f9046511680256f746b6172eef31940",
+      "cohort_id": "bg-eceb1bd48b5a8bfa",
+      "compatible": true,
+      "functions": 1657
+    },
+    {
+      "background": "fc5d60d9a7922b37b69218a94f25b0e71a7596c65ad24a29dc4518ab2aaf3dfe",
+      "cohort_id": "bg-fc5d60d9a7922b37",
+      "compatible": true,
+      "functions": 272
+    }
+  ],
+  "sha256": "70029b2af2db2937d390ddb070b241e45cfb9f5e4a3fda274fc8f8936dfb51a3",
+  "source": "/home/researcher/dry-lint-round/jobs/improve-cpu-retrieval/.lab-results/common.py",
+  "status": "passed"
+}

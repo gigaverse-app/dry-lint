@@ -1,0 +1,9 @@
+{
+  "bench_original_sha256": "decaa04a0ca06e84f4c6d2511cb6e47c4daf69c150f69a6bd680e10d8db647d2",
+  "original_runtime": "/home/researcher/dry-lint-round/jobs/pr109-block-performance/.lab-results/runtime",
+  "derivation": "Formatting/import cleanup; parity predicates bind their immediately consumed query variables; no selection or scoring change. Published OpenHands benchmark, full parity and executable edits rerun.",
+  "additional_harnesses": {
+    "parity.py": "5f23c0a19a20cb761d54f4999d373776681923ec54d2dea2d346b273074b95b4",
+    "novel_edits.py": "433cb6b8bb3f99831b2bf269ea6db0025e7d4a7462856925b9846bdb568bba42"
+  }
+}
