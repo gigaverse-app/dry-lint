@@ -1,0 +1,30 @@
+[
+  {
+    "artifact": "summary.json",
+    "sha256": "5a0ab67bea7273502d688de339483398c87dd9cc67fe13acd73f1af9e100efad"
+  },
+  {
+    "artifact": "rows.jsonl",
+    "sha256": "0516d4c59464c931743d645a227efd0b78b4bc7d8ff7968b233fc2bd9b25b0ad"
+  },
+  {
+    "artifact": "aggregate.json",
+    "sha256": "ec3fc2f63df604b3f53dec5e8c3f8a9517b41ada7b35af08fef3d8006e7d1156"
+  },
+  {
+    "artifact": "cohort-summary.json",
+    "sha256": "6fe1201432d90263b450b25ce2707733a454e3c2073c1cd88b92f2970399597a"
+  },
+  {
+    "artifact": "coordinator-paired-deltas.json",
+    "sha256": "3a03fd60a6b6c039f8064cddadcd5b0c337055c40a66fb263bd2373bc33c294d"
+  },
+  {
+    "artifact": "h05-completed-evidence.json",
+    "sha256": "339f3519695dc5783a60f000b30335315a2d2ad9474143aeb4a84051879bedbc"
+  },
+  {
+    "artifact": "truth-matrix.json",
+    "sha256": "2239a7b35f8e832a6631a3c1eab5c21d5a76651bfafb0bc8bc6c1aa519b8b4bc"
+  }
+]

@@ -1,0 +1,126 @@
+[
+  {
+    "group": "legacy/legacy/legacy-development/duplicate",
+    "additional_pairs": 0,
+    "deployed20_pairs": 47,
+    "directional_losses": {
+      "floor": 2,
+      "none_retrieved_downstream_unknown": 94
+    },
+    "directions": 96,
+    "pairs": 48,
+    "protected_pairs": 47
+  },
+  {
+    "group": "legacy/legacy/legacy-development/separate",
+    "additional_pairs": 0,
+    "deployed20_pairs": 107,
+    "directional_losses": {
+      "floor": 6,
+      "none_retrieved_downstream_unknown": 212,
+      "rank": 2
+    },
+    "directions": 220,
+    "pairs": 110,
+    "protected_pairs": 107
+  },
+  {
+    "group": "mined/configured/development/duplicate",
+    "additional_pairs": 2,
+    "deployed20_pairs": 23,
+    "directional_losses": {
+      "floor": 14,
+      "none_retrieved_downstream_unknown": 46,
+      "scope": 36
+    },
+    "directions": 96,
+    "pairs": 48,
+    "protected_pairs": 25
+  },
+  {
+    "group": "mined/configured/development/separate",
+    "additional_pairs": 2,
+    "deployed20_pairs": 23,
+    "directional_losses": {
+      "floor": 140,
+      "none_retrieved_downstream_unknown": 46,
+      "scope": 70
+    },
+    "directions": 256,
+    "pairs": 128,
+    "protected_pairs": 25
+  },
+  {
+    "group": "mined/configured/holdout/duplicate",
+    "additional_pairs": 3,
+    "deployed20_pairs": 7,
+    "directional_losses": {
+      "floor": 10,
+      "none_retrieved_downstream_unknown": 14
+    },
+    "directions": 24,
+    "pairs": 12,
+    "protected_pairs": 10
+  },
+  {
+    "group": "mined/configured/holdout/separate",
+    "additional_pairs": 1,
+    "deployed20_pairs": 13,
+    "directional_losses": {
+      "floor": 78,
+      "none_retrieved_downstream_unknown": 26,
+      "scope": 4
+    },
+    "directions": 108,
+    "pairs": 54,
+    "protected_pairs": 14
+  },
+  {
+    "group": "mined/diagnostic/development/duplicate",
+    "additional_pairs": 1,
+    "deployed20_pairs": 36,
+    "directional_losses": {
+      "floor": 24,
+      "none_retrieved_downstream_unknown": 72
+    },
+    "directions": 96,
+    "pairs": 48,
+    "protected_pairs": 37
+  },
+  {
+    "group": "mined/diagnostic/development/separate",
+    "additional_pairs": 1,
+    "deployed20_pairs": 41,
+    "directional_losses": {
+      "floor": 174,
+      "none_retrieved_downstream_unknown": 82
+    },
+    "directions": 256,
+    "pairs": 128,
+    "protected_pairs": 42
+  },
+  {
+    "group": "mined/diagnostic/holdout/duplicate",
+    "additional_pairs": 3,
+    "deployed20_pairs": 7,
+    "directional_losses": {
+      "floor": 10,
+      "none_retrieved_downstream_unknown": 14
+    },
+    "directions": 24,
+    "pairs": 12,
+    "protected_pairs": 10
+  },
+  {
+    "group": "mined/diagnostic/holdout/separate",
+    "additional_pairs": 1,
+    "deployed20_pairs": 14,
+    "directional_losses": {
+      "floor": 80,
+      "none_retrieved_downstream_unknown": 28
+    },
+    "directions": 108,
+    "pairs": 54,
+    "protected_pairs": 15
+  }
+]

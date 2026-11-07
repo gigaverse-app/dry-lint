@@ -1,0 +1,178 @@
+[
+  {
+    "cohort": "historical-trial",
+    "prompt": "concept",
+    "limits": "primary004",
+    "arm": "fixed",
+    "calls": 0,
+    "usd": 0.0,
+    "true": 0,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "historical-trial",
+    "prompt": "concept",
+    "limits": "primary004",
+    "arm": "refill",
+    "calls": 0,
+    "usd": 0.0,
+    "true": 0,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "historical-trial",
+    "prompt": "concept",
+    "limits": "original",
+    "arm": "fixed",
+    "calls": 8,
+    "usd": 0.02136,
+    "true": 0,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "historical-trial",
+    "prompt": "concept",
+    "limits": "original",
+    "arm": "refill",
+    "calls": 72,
+    "usd": 0.24568999999999996,
+    "true": 3,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "limits": "primary004",
+    "arm": "fixed",
+    "calls": 15,
+    "usd": 0.036352,
+    "true": 2,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "limits": "primary004",
+    "arm": "protected",
+    "calls": 15,
+    "usd": 0.036352,
+    "true": 2,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "limits": "primary004",
+    "arm": "refill",
+    "calls": 18,
+    "usd": 0.054422,
+    "true": 2,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "limits": "original",
+    "arm": "fixed",
+    "calls": 18,
+    "usd": 0.045176,
+    "true": 2,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "limits": "original",
+    "arm": "protected",
+    "calls": 28,
+    "usd": 0.09352200000000001,
+    "true": 3,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "limits": "original",
+    "arm": "refill",
+    "calls": 42,
+    "usd": 0.147458,
+    "true": 4,
+    "false": 0,
+    "borderline": 1
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "limits": "primary004",
+    "arm": "fixed",
+    "calls": 7,
+    "usd": 0.03811199999999999,
+    "true": 2,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "limits": "primary004",
+    "arm": "protected",
+    "calls": 7,
+    "usd": 0.03811199999999999,
+    "true": 2,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "limits": "primary004",
+    "arm": "refill",
+    "calls": 7,
+    "usd": 0.03811199999999999,
+    "true": 2,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "limits": "original",
+    "arm": "fixed",
+    "calls": 18,
+    "usd": 0.091472,
+    "true": 2,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "limits": "original",
+    "arm": "protected",
+    "calls": 28,
+    "usd": 0.158968,
+    "true": 3,
+    "false": 0,
+    "borderline": 0
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "limits": "original",
+    "arm": "refill",
+    "calls": 42,
+    "usd": 0.26022199999999995,
+    "true": 4,
+    "false": 0,
+    "borderline": 1
+  }
+]

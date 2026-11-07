@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Summarize source-bound reports without interpreting censored suffixes as losses."""
+from collections import Counter,defaultdict
+import hashlib
+import json
+from pathlib import Path
+OUT=Path(__file__).resolve().parent
+results=json.loads((OUT/'results.json').read_text())
+def classification(reports):
+    answer=Counter()
+    for r in reports.values():
+        label=r['label'];supp=r['supplementary_label']
+        answer['frozen_'+label if label else 'supplementary_'+supp if supp else 'unknown']+=1
+    return dict(answer)
+deltas=[]
+for cohort in ['frozen','regression']:
+ for name in sorted({r['history'] for r in results if r['cohort']==cohort}):
+  arms={r['arm']:r for r in results if r['cohort']==cohort and r['history']==name}
+  for comparator in ['baseline','balanced']:
+   a=arms[comparator];b=arms['guarded'];ar=a['reported_questions'];br=b['reported_questions']
+   cutoff=min([r['first_censored_ordinal'] for r in [a,b] if r['first_censored_ordinal'] is not None],default=None)
+   gained={k:br[k] for k in br.keys()-ar.keys()};lost={k:ar[k] for k in ar.keys()-br.keys()}
+   # Only exact source versions present at fully processed steps can establish a known loss.
+   known_lost={};unknown_lost={}
+   guard_rows=[json.loads(x) for x in (OUT/'runs'/cohort/name/'guarded/candidate-stages.jsonl').read_text().splitlines()]
+   comparator_rows=[json.loads(x) for x in (OUT/'runs'/cohort/name/comparator/'candidate-stages.jsonl').read_text().splitlines()]
+   comparator_reported={(r['ordinal'],r['question_key']) for r in comparator_rows if r['reported'] is True}
+   for key,value in lost.items():
+    occurrences=[r for r in guard_rows if r['question_key']==key]
+    if any((cutoff is None or r['ordinal']<cutoff) and (r['ordinal'],key) in comparator_reported and r['reported'] is False and r['status'] not in ['admitted_unknown','censored_unprocessed'] for r in occurrences):
+     known_lost[key]=value
+    else:unknown_lost[key]=value
+   deltas.append(dict(cohort=cohort,history=name,comparison='guarded_vs_'+comparator,comparison_complete=cutoff is None,
+       first_censored_ordinal=cutoff,observed_prefix_reports_gained=gained,
+       observed_prefix_gained_classification=classification(gained),
+       known_lost_source_versions_before_censor=known_lost,known_loss_classification=classification(known_lost),
+       censored_or_unseen_source_versions=unknown_lost,unknown_loss_classification=classification(unknown_lost),
+       warning='prefix differences are not whole-history recall gains/regressions when censored; reference and supplementary denominators stay separate'))
+(OUT/'paired-deltas.json').write_text(json.dumps(deltas,indent=2,sort_keys=True)+'\n')
+firstloss=[]
+for r in results:
+ path=OUT/'runs'/r['cohort']/r['history']/r['arm']/'gold-first-loss.jsonl'
+ rows=[json.loads(x) for x in path.read_text().splitlines()]
+ for ev in sorted({x['evidence'] for x in rows}):
+  rs=[x for x in rows if x['evidence']==ev]
+  available=[x for x in rs if x['first_loss']!='outside_captured_diff_pool_or_different_source_version']
+  first=available[0] if available else rs[0]
+  firstloss.append(dict(cohort=r['cohort'],history=r['history'],arm=r['arm'],evidence=ev,label=first['label'],
+      first_available_ordinal=first['ordinal'] if available else None,first_available_stage=first['first_loss'],
+      first_reported_ordinal=next((x['ordinal'] for x in rs if x['first_loss']=='reported'),None),
+      last_recorded_stage=rs[-1]['first_loss'],history_censored=r['censored']))
+(OUT/'gold-first-loss-summary.json').write_text(json.dumps(firstloss,indent=2,sort_keys=True)+'\n')
+summary=[]
+for cohort in ['frozen','regression']:
+ for arm in ['baseline','balanced','guarded']:
+  rs=[r for r in results if r['cohort']==cohort and r['arm']==arm]
+  classes=Counter();stages=Counter()
+  for r in rs:
+   classes.update(classification(r['reported_questions']));stages.update(r['candidate_stage_counts'])
+  summary.append(dict(cohort=cohort,arm=arm,histories=len(rs),commits=sum(r['steps'] for r in rs),
+      censored_histories=sum(r['censored'] for r in rs),source_bound_report_classes=dict(classes),
+      usage_cost_lower=sum(r['observed_replayed_usage_usd_lower'] for r in rs),
+      new_provider_observation_replayed_usd=sum(r.get('new_observation_replayed_usd',0) for r in rs),
+      historical_observation_replayed_usd=sum(r.get('historical_observation_replayed_usd',r['observed_replayed_usage_usd_lower']) for r in rs),
+      conservative_accounted_upper=sum(r['conservative_accounted_usd_upper'] for r in rs),
+      max_PR_accounted_upper=max(r['conservative_accounted_usd_upper'] for r in rs),
+      source_observation_replay_calls=sum(r['calls'] for r in rs),
+      chronological_arm_store_cache_hits=sum(r['arm_local_cache_hit_occurrences'] for r in rs),
+      candidate_stage_occurrences=dict(stages),physical_new_provider_calls=0,
+      reference_row_denominator=sum(r['frozen_reference_denominator'] for r in rs)))
+(OUT/'cohort-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+missing=[]
+for r in results:
+ events=json.loads((OUT/'runs'/r['cohort']/r['history']/r['arm']/'observations.json').read_text())
+ for e in events:
+  if e['status']=='admitted_unknown':missing.append(dict(cohort=r['cohort'],history=r['history'],arm=r['arm'],
+      pair=e['pair'],question_key=e['question_key'],reason=e['reason'],first_censored_ordinal=r['first_censored_ordinal']))
+(OUT/'missing-requests.json').write_text(json.dumps(missing,indent=2,sort_keys=True)+'\n')
+physical_path=OUT/'provider/physical-diagnostic-costs.json'
+physical=json.loads(physical_path.read_text()) if physical_path.exists() else {}
+lines=['# Historical Recovery Experiments', '',
+'H02 — production frozen 11 PRs and two regression PRs only. Development arm selection on previously evaluated histories; this is not fresh validation. No legacy/protected-policy equivalence is assumed. No new mining cohort is evaluated here.', '',
+'Reproduce: `bash .lab-results/historical-pr-replay/commands.sh` from retrieval. Existing `.venv/bin/python`; read-only canonical inputs; outputs/stores/ledgers confined to this directory. No provider SDK/client, credentials, network, live judging, tracked/CI/config changes, target execution or dependency installation.', '',
+'## Method and frozen variant', '',
+'Chronological PR-diff candidate-capture replay, not static whole-tree ranking. Captures record immutable PR base/head/tree, changed-function count, indexed function count, complete ordered candidates and source/context. Captured source snippets/hashes and input files are retained by reference/hash; original Windows source roots are unavailable. Raw Git acquisition/configuration authentication is a separate audit; captured replay settings do not establish adopter deployment. No sparse name-weighting is invented from candidate snippets.', '',
+'All three arms use the native production `Judging.discover`, `CampaignStore`, report thresholds and recorded Haiku shared-operation settings: output2048, report/fail0.5, no escalation/retry, cumulative $0.04 per PR, baseline reserve62.5% ($0.025), $0.006 exploration credit per distinct tree, native call/pacing limits. Stores and SQLite ledgers are isolated by cohort/PR/arm. Baseline-only changes the pool, not request settings. Native balanced reproduces the captured current20 pool. The fixed guarded variant retains all captured baseline candidates in original order and appends only the first unfiltered captured exploration candidate per changed query/revision, using original scores/rules; native campaign ordering is unchanged. This is a bounded queue restriction, not a new representation.', '',
+'The guard was defined before outcomes. Its clear negative/inconclusive result does not justify tuning another cap to win these observed histories. An additive half-name/current20-preserving experiment belongs to the separate assigned worker. All conclusions below concern known reference retention/yield, never exhaustive corpus recall.', '',
+'## Exact offline answers and censorship', '',
+'External answer keys must equal SHA256 of JSON [exact judge version, exact oriented rendered prompt], with matching model, pair, judge/output/prompt version, provider request ID, nonnegative usage and recomputed price. Captured source/context/settings stamps are reconstructed for each request; ambiguous context/settings collisions fail closed. Original archives do not store full original provider-settings hashes: compatibility is established through recorded capture configuration plus exact request/output identity, not an invented historical settings hash. This provenance limit is explicit in every arm settings file. Any additional supplied evidence/settings/prompt fields must match.', '',
+'Every chronological arm-local reuse also requires an exact sidecar for oriented prompt, full effective Settings digest, source evidence and context, followed by production exact-source lookup. Thus reversing source orientation cannot reuse a verdict merely because production evidence is unordered. No warm verdicts are preloaded; the first selected external observation is charged independently to each counterfactual campaign, and only subsequent exact arm-local reuse is free. Physical new provider calls are zero.', '',
+'At the first admitted request lacking a compatible observation, a dedicated RuntimeError stops that arm. Production finally-accounting retains its conservative reservation, shown only as an upper bound. Observed cached usage remains a lower bound. No later admissions, report absence, actual spending or budget exhaustion are inferred from a censored suffix. Archived failures likewise stop without manufactured retry results.', '',
+'## Cohort results', '',
+'Costs below aggregate independent PR allowances; each PR remains at or below $0.04. Report classes count exact question/source versions, not independent refactoring tasks. Frozen labels and supplementary post-selection labels are separate. Regression references are unavailable in these production inputs, so regression reports remain unclassified; no regression truth claim is made.', '',
+'| Cohort | Arm | PRs / commits | Censored PRs | Replayed usage lower | Accounted upper | Frozen dup / separate / borderline | Supplementary dup / separate / borderline | Unknown reports |',
+'|---|---|---|---:|---:|---:|---|---|---:|']
+for r in summary:
+ c=r['source_bound_report_classes']
+ vals=lambda prefix:' / '.join(str(c.get(prefix+x,0)) for x in ['duplicate','separate','borderline'])
+ lines.append(f"| {r['cohort']} | {r['arm']} | {r['histories']} / {r['commits']} | {r['censored_histories']} | ${r['usage_cost_lower']:.7f} | ${r['conservative_accounted_upper']:.7f} | {vals('frozen_')} | {vals('supplementary_')} | {c.get('unknown',0)} |")
+lines += ['',
+'Baseline-only and native balanced reproduce every archived per-commit report set and cumulative cost across all 13 histories (verify script asserts this). The guard is evaluated against both baseline-only and current balanced; counts above are recomputed after every strict supplemental import. Its queue restriction is not an additive recall advance over current balanced. See exact source-version differences in `paired-deltas.json`; known pre-censor losses are separate from censored/unseen versions, and censored-prefix differences never establish whole-history regressions. Fresh-source controls and supplementary findings retain separate denominators.', '',
+'## Supplemental provider continuation', '',
+'Initial censored outputs are preserved under `pre-provider/`. Only actually reserved first-missing requests are exported to `provider/requests.jsonl`; append-only `request-history.jsonl` binds response identity across frontiers. `provider_support.py` strictly validates returned exact request/source/context/settings/version, provider usage and prices. Paid observations retain NEW provider provenance; historical archives remain untouched. Each arm pays its own normally selected observation. External physical diagnostic spend is deduplicated by provider request ID in `provider/physical-diagnostic-costs.json`: '+str(physical.get('unique_provider_requests',0))+' accepted provider requests, $'+format(physical.get('recorded_physical_usd',0),'.7f')+'. No provider client/credential/call is used in this worktree. Continuation reruns only previously censored arms with unchanged inputs/settings; final verification also performs a clean complete replay.', '',
+'## Per-PR cost and missing requests', '',
+'| Cohort / PR | Baseline usage | Balanced usage | Guard usage | Guard vs baseline gained/lost source versions | Guard vs balanced gained/lost source versions |',
+'|---|---:|---:|---:|---:|---:|']
+for cohort in ['frozen','regression']:
+ for name in sorted({r['history'] for r in results if r['cohort']==cohort}):
+  rs={r['arm']:r for r in results if r['cohort']==cohort and r['history']==name};g=rs['guarded']
+  gv={v['evidence'] for v in g['reported_questions'].values()}
+  bv={v['evidence'] for v in rs['baseline']['reported_questions'].values()}
+  cv={v['evidence'] for v in rs['balanced']['reported_questions'].values()}
+  lines.append(f"| {cohort} / {name} | ${rs['baseline']['observed_replayed_usage_usd_lower']:.7f} | ${rs['balanced']['observed_replayed_usage_usd_lower']:.7f} | ${g['observed_replayed_usage_usd_lower']:.7f} | +{len(gv-bv)}/−{len(bv-gv)} | +{len(gv-cv)}/−{len(cv-gv)} |")
+lines += ['', 'Missing exact requests (not negatives):', '']
+if not missing:lines += ['None. All 39 arms have completed without a missing-answer censor. Remaining deferred candidates, if any, follow native budget/pacing/call limits; they are not an instruction to buy the whole pool.']
+for r in missing:lines.append(f"- {r['cohort']} / {r['history']} / {r['arm']}, commit index {r['first_censored_ordinal']}: `{r['question_key']}` ({r['reason']}).")
+lines += ['',
+'## Source versions, references and families', '',
+'Per-PR gains/losses above count unordered exact source/context evidence versions, separately from oriented question keys and stable pair IDs in `per-PR-delta-counts.json`. None is an independent proposed-owner family. Reviewed operation/region family IDs are absent from these production inputs, so family denominators are unavailable and are not invented. Frozen reference labels remain distinct from supplementary post-selection review and newly judged but unreviewed reports. A provider duplicate verdict alone never becomes a gold-positive label. New observations are single draws at identical frozen request settings; no stochastic superiority or precision preservation is inferred.', '',
+'## Stage evidence and verification', '',
+'Per-arm `candidate-stages.jsonl` exposes full captured/arm/proposed/filter/status denominators, exact IDs, source hashes, settings identity, original rank/score/lane, compatible external answers, reservation estimates/events and admitted/funded distinctions, chronology cache hits, verdicts and tri-state reported status. `curves.json` records per-revision pool counts, admissions, known judgments, report sets, cached usage lower and reservation upper. `gold-first-loss.jsonl` traces every frozen positive/negative/borderline reference at each revision; `gold-first-loss-summary.json` identifies first available stage/report. An absent reference in a candidate-only capture cannot distinguish scope, extraction, diff touching, floor or depth; it is explicitly unresolved. Gold labels never select candidates or choose the guard.', '',
+'`input-inventory.json` and `input-hashes.json` enumerate canonical provenance and exclude the extracted duplicate. `results.json`, `cohort-summary.json`, `paired-deltas.json` and `missing-requests.json` hold machine-readable outcomes. `tests.txt` covers fail-closed answers, oriented/settings reuse, changed evidence, unknown reservation censorship, baseline-preserving guard and late baseline reserve. `verification.json` checks native reproduction, budget parity, candidate baseline protection, and semantic reproducibility on rerun. `artifact-hashes.json` freezes final files, including isolated records and SQLite ledgers; their timestamps/SQLite bytes are integrity artifacts rather than byte-identical rerun promises.']
+(OUT/'README.md').write_text('\n'.join(lines)+'\n')

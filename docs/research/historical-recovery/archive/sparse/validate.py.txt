@@ -1,0 +1,46 @@
+import json, math, sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from run import Half
+from dry_lint.index import TfidfIndex
+from types import SimpleNamespace
+# Independent hand calculation tests the weight (not count) transformation and original IDF.
+docs=[['fn:a','fn:a','call:b'],['fn:a','call:c'],['call:d'],['call:e'],['call:f'],['call:g'],['call:h'],['call:i']]
+base=TfidfIndex(docs)
+bg=SimpleNamespace(documents=[SimpleNamespace(tokens=lambda d=d:d) for d in docs])
+half=Half(bg,base)
+assert half.idf==base.idf
+weights={t:(1+math.log(docs[0].count(t)))*base.idf[t]*(.5 if t.startswith('fn:') else 1) for t in set(docs[0])}
+norm=math.sqrt(sum(v*v for v in weights.values()))
+assert all(abs(half.vector(docs[0])[t]-w/norm)<1e-14 for t,w in weights.items())
+root=Path(__file__).resolve().parent
+rows=[json.loads(l) for l in (root/'rows.jsonl').read_text().splitlines()]
+assert all(not r.get('deployed20') or r.get('protected') for r in rows)
+assert all(not r.get('additional') or (r.get('protected') and not r.get('deployed20')) for r in rows)
+assert all(r['budget']==r['judge']==r['cache']=='unknown' for r in rows)
+(root/'tests.json').write_text(json.dumps({'weight_formula':True,'baseline_protection':True,'unknown_downstream_preserved':True,'directions':len(rows)},indent=2)+'\n')
+print('PASS')
+# Independently reconstruct raw TF/IDF/L2 from sparse counts (no TfidfIndex vector method).
+from collections import defaultdict
+from run import INPUT, sha
+from dry_lint.bench_background import BenchBackground
+by=defaultdict(list)
+for r in rows:
+    if 'raw_rank' in r: by[r['background']].append(r)
+checked=0
+for name,rr in by.items():
+    bg=BenchBackground.decode((INPUT/'backgrounds'/name).read_bytes())
+    docs={d.id:d for d in bg.documents}
+    idf={t:math.log((1+len(bg.documents))/(1+n))+1 for t,n in bg.document_frequency.items() if n<=bg.max_df*len(bg.documents)}
+    def independent(d,factor):
+        w={t:(1+math.log(c))*idf[t]*(factor if t.startswith('fn:') else 1) for t,c in d.counts.items() if t in idf}
+        norm=math.sqrt(sum(x*x for x in w.values())) or 1
+        return {t:x/norm for t,x in w.items()}
+    for r in rr:
+        for factor,key in [(1,'score'),(.5,'half_score')]:
+            a=independent(docs[r['query']],factor); b=independent(docs[r['target']],factor)
+            score=sum(v*b.get(t,0) for t,v in a.items())
+            assert abs(score-r[key])<1e-12,(name,r['ordinal'],key,score,r[key])
+            checked+=1
+(root/'independent-scores.json').write_text(json.dumps({'scores_verified':checked,'absolute_tolerance':1e-12})+'\n')
+print('Independent scores PASS',checked)

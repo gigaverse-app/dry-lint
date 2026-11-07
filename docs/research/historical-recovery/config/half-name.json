@@ -1,0 +1,22 @@
+{
+  "experiment": "E03",
+  "frozen_mechanism": "Append at most one first half-name-weight candidate outside the CURRENT unweighted exploration20 per query; preserve the complete baseline and deployed exploration batch before the addition",
+  "weight": 0.5,
+  "weight_location": "multiply fn: TF-IDF vector weights before L2 renormalization, not token counts",
+  "idf": "original full pinned profile; max_df from capture",
+  "exploration_floor": 0.35,
+  "depth": 20,
+  "same_file": true,
+  "self": "exclude resolved source position only; duplicate IDs unresolved",
+  "ties": "production TfidfIndex.similar stable first-posting encounter, descending unrounded score",
+  "best_halfname": "first allowed half-name neighbor above 0.35, even when already within deployed20",
+  "first_outside20": "first allowed half-name neighbor above 0.35 absent from deployed20; chosen additive mechanism",
+  "protected_budget": "not established by candidate-set union; actual cumulative $0.04 replay requires H02 inputs",
+  "promotion": false,
+  "unknowns": [
+    "complete pinned detector/rule settings",
+    "full corpus function bodies/line metadata",
+    "actual changed-function provenance",
+    "historical exact cache/admission state and answers"
+  ]
+}

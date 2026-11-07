@@ -1,0 +1,67 @@
+# PUBLICATION COPY: private lab roots/identities redacted; algorithm otherwise unchanged.
+"""Strict H05 diagnostic response loader; settled H02 wire contract, real Git binding."""
+import json,sys
+from pathlib import Path
+import handoff as a
+import h02_support as h
+import settled_provider_support as settled
+from dry_lint.models import Candidate,Verdict,evidence
+from dry_lint.settings import Settings
+from dry_lint.costs import price,usage_cost
+
+def validate_request(r):
+ assert r['contract']=='h02-provider-handoff-v1' and r['experiment']=='H05','request_contract'
+ assert r['request_payload_sha256']==h.digest({k:v for k,v in r.items() if k!='request_payload_sha256'}),'request_payload_tampered'
+ c=Candidate.model_validate(r['candidate']);s=Settings.model_validate(r['effective_settings']);j=h.OfflineJudge(s,{})
+ assert s.model_dump(mode='json')==a.settings().model_dump(mode='json'),'effective_settings_changed'
+ assert r['effective_settings_sha256']==j.settings_sha256,'settings_hash_mismatch'
+ assert r['rendered_prompt']==j.input_text(c) and r['prompt_sha256']==h.sha(j.input_text(c).encode()),'canonical_prompt_mismatch'
+ assert r['answer_key']==j.key(c),'request_key_mismatch'
+ expected=dict(name=j.name,version=j.version,model=j.model,policy=j.prompt_policy,template=j.template,template_sha256=h.sha(j.template.encode()),template_version=h.PROMPT_POLICIES[j.prompt_policy][0],max_tokens=j.max_tokens,max_retries=0,effort=j.effort)
+ assert r['judge']==expected,'judge_config_mismatch'
+ assert r['identity']==a.identity(c,j),'evidence_context_controls_mismatch'
+ funding=r['funding'];assert funding['actually_reserved'] is True and funding['reservation_event']['admitted'] is True,'not_funded'
+ assert funding['per_PR_budget_usd']==s.budget.usd==.04 and s.discovery.baseline_fraction==.625,'budget_changed'
+ assert funding['reservation_estimate_usd']==a.reservation_cost(j,c,s)>0,'reservation_changed'
+ assert funding['arm_reservations'] and len({x['arm'] for x in funding['arm_reservations']})==len(funding['arm_reservations']),'arm_reservations_missing_or_duplicate'
+ assert all(x['arm'] in ['current20','protected_half_name'] for x in funding['arm_reservations']),'unknown_arm'
+ a.verify_frozen(r)
+ for arm in funding['arm_reservations']:
+  state=arm['state'];attempt=arm['attempt']
+  assert attempt in state['attempts'] and attempt['evidence']==evidence(c,j.name+':'+j.version),'funding_evidence_mismatch'
+  assert attempt['status']=='failed' and attempt['usd']==a.reservation_cost(j,c,s),'not_a_retained_unknown_reservation'
+  assert attempt['lane']==c.lane and attempt['query']==c.new.qualname,'funding_candidate_mismatch'
+  assert sum(x['usd'] for x in state['attempts'])+state['prior_usd']<=.04,'unfunded_overcap'
+ first=funding['arm_reservations'][0]['attempt']
+ assert funding['reservation_event']==dict(admitted=True,revision=first['revision'],evidence=first['evidence'],lane=first['lane'],query=first['query'],usd=first['usd']),'reservation_event_mismatch'
+ _,_,bindings=a.authenticate(r)
+ return c,s,bindings
+
+def load_new_responses(historical_answers,folder=None,response_path=None):
+ folder=Path(folder or a.P);response_path=Path(response_path or a.PUBLISHED)
+ requests=[json.loads(l) for l in (folder/'request-history.jsonl').read_text().splitlines() if l.strip()]
+ assert len({r['answer_key'] for r in requests})==len(requests),'duplicate_request_history_keys'
+ bindings={}
+ for r in requests:
+  _,_,b=validate_request(r);
+  for key,stamps in b.items():bindings.setdefault(key,set()).update(stamps)
+ # Isolated overlay: loader cannot mutate caller's historical dictionaries or archived files.
+ histories=[dict(cohort='pinned-git',name='private-repository-a-7001',bindings=bindings,answers=dict(historical_answers))]
+ g=dict(OUT=folder.parent,INPUT_HASHES={},sha=h.sha,digest=h.digest,Candidate=Candidate,Settings=Settings,OfflineJudge=h.OfflineJudge,evidence=evidence,Verdict=Verdict,price=price,usage_cost=usage_cost,dump=h.dump,PUBLISHED_RESPONSES_PATH=response_path)
+ # Settled loader resolves its own OUT/provider. Use a private working directory, never H02's queue.
+ import tempfile,shutil
+ work=Path(tempfile.mkdtemp(prefix='validated-',dir=folder));stage=work/'provider';stage.mkdir()
+ shutil.copyfile(folder/'request-history.jsonl',stage/'request-history.jsonl')
+ for sub in ['received-responses']:
+  if (folder/sub).exists():shutil.copytree(folder/sub,stage/sub)
+ g['OUT']=work
+ settled.load_supplemental(histories,g)
+ for name in ['response-rejections.json','physical-diagnostic-costs.json','accepted-observations','received-responses']:
+  src=stage/name;dst=folder/name
+  if src.exists():
+   if src.is_dir():shutil.copytree(src,dst,dirs_exist_ok=True)
+   else:shutil.copyfile(src,dst)
+ shutil.rmtree(work)
+ overlay={k:v for k,v in histories[0]['answers'].items() if k not in historical_answers}
+ h.dump(folder/'loader-input-hashes.json',g['INPUT_HASHES'])
+ return overlay,bindings

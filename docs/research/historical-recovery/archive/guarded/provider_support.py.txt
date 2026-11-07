@@ -1,0 +1,117 @@
+# PUBLICATION COPY: private lab roots/identities redacted; algorithm otherwise unchanged.
+"""Strict supplemental observation import. No SDK, credentials or network fallback."""
+import json
+import math
+from pathlib import Path
+
+def load_supplemental(histories,g):
+    out=g['OUT'];folder=out/'provider';folder.mkdir(parents=True,exist_ok=True)
+    history=folder/'request-history.jsonl'
+    if not history.exists():return
+    data=history.read_bytes()
+    catalog=folder/'request-catalogs'/(g['sha'](data)+'.jsonl')
+    catalog.parent.mkdir(parents=True,exist_ok=True)
+    if not catalog.exists():catalog.write_bytes(data)
+    g['INPUT_HASHES'][str(catalog)]=g['sha'](data)
+    requests={r['answer_key']:r for r in map(json.loads,data.decode().splitlines())}
+    published=g.get('PUBLISHED_RESPONSES_PATH',Path('/PRIVATE_LAB_ROOT/reports/historical-pr-replay/provider/responses.jsonl'))
+    paths=[published,folder/'responses.jsonl',*sorted((folder/'received-responses').glob('*.json'))]
+    responses={};rejected=[]
+    for path in paths:
+        if not path.exists():continue
+        raw=path.read_bytes()
+        if path.parent.name!='received-responses':
+            frozen=folder/'response-inputs'/(g['sha'](raw)+path.suffix)
+            frozen.parent.mkdir(parents=True,exist_ok=True)
+            if not frozen.exists():frozen.write_bytes(raw)
+            g['INPUT_HASHES'][str(frozen)]=g['sha'](raw)
+        try:rows=[json.loads(line) for line in raw.decode().splitlines() if line.strip()] if path.suffix=='.jsonl' else [json.loads(raw)]
+        except (ValueError,UnicodeError) as error:
+            rejected.append(dict(path=str(path),reason='invalid_response_json',detail=str(error)));continue
+        for row in rows:
+            if not isinstance(row,dict):
+                rejected.append(dict(path=str(path),reason='response_not_object'));continue
+            key=row.get('answer_key')
+            if not isinstance(key,str):
+                rejected.append(dict(path=str(path),reason='answer_key_not_string'));continue
+            responses.setdefault(key,[]).append((row,path))
+    accepted={};physical={};required=['contract','answer_key','request_payload_sha256','prompt_sha256','effective_settings_sha256',
+        'evidence','context_hash','judge','judge_version','model','request_id','verdict','usage','usd','seconds','provenance']
+    for key,copies in responses.items():
+        row,path=copies[0]
+        try:
+            assert key in requests,'unrequested_answer_key'
+            assert len({g['digest'](r) for r,p in copies})==1,'conflicting_responses_for_one_request'
+            assert all(field in row for field in required),'missing_response_fields'
+            request=requests[key]
+            payload={k:v for k,v in request.items() if k!='request_payload_sha256'}
+            assert request['request_payload_sha256']==g['digest'](payload),'request_payload_tampered'
+            c=g['Candidate'].model_validate(request['candidate']);settings=g['Settings'].model_validate(request['effective_settings'])
+            judge=g['OfflineJudge'](settings,{})
+            canonical=judge.input_text(c)
+            assert judge.key(c)==key==request['answer_key'],'canonical_answer_key_mismatch'
+            assert canonical==request['rendered_prompt'],'canonical_prompt_mismatch'
+            assert judge.template==request['judge']['template'],'canonical_template_mismatch'
+            assert judge.request_settings['template_sha256']==request['judge']['template_sha256'],'template_hash_mismatch'
+            assert judge.settings_sha256==request['effective_settings_sha256'],'request_settings_mismatch'
+            assert judge.name==request['judge']['name'] and judge.version==request['judge']['version'],'request_judge_mismatch'
+            assert judge.effort==request['judge']['effort'] and judge.max_tokens==request['judge']['max_tokens'],'request_options_mismatch'
+            assert judge.request_settings['max_retries']==request['judge']['max_retries']==0,'retry_policy_mismatch'
+            assert request['funding']['actually_reserved'] is True,'request_not_funded'
+            assert request['funding']['reservation_event']['admitted'] is True,'reservation_not_admitted'
+            assert request['funding']['reservation_estimate_usd']>0,'invalid_reservation'
+            assert request['identity']['evidence']==g['evidence'](c),'request_evidence_mismatch'
+            assert request['identity']['context_hash']==c.context_hash,'request_context_mismatch'
+            for field,expected in [('contract','h02-provider-response-v1'),('provenance','new_provider_diagnostic'),
+                ('request_payload_sha256',request['request_payload_sha256']),('prompt_sha256',g['sha'](canonical.encode())),
+                ('effective_settings_sha256',judge.settings_sha256),('evidence',g['evidence'](c)),('context_hash',c.context_hash),
+                ('judge',judge.name),('judge_version',judge.version),('model',judge.model)]:
+                assert row[field]==expected,field+'_mismatch'
+            assert isinstance(row['request_id'],str) and row['request_id'],'missing_provider_request_id'
+            assert isinstance(row['seconds'],(int,float)) and math.isfinite(row['seconds']) and row['seconds']>=0,'invalid_seconds'
+            usage=row['usage']
+            for field in ['input_tokens','output_tokens','cache_creation_tokens','cache_read_tokens']:
+                assert type(usage.get(field)) is int and usage[field]>=0,'invalid_usage_'+field
+            assert usage['output_tokens']<=judge.max_tokens,'output_limit_exceeded'
+            priced=judge.usage(usage)
+            cost=g['usage_cost'](priced,g['price'](judge,settings))
+            assert isinstance(row['usd'],(int,float)) and math.isfinite(row['usd']) and abs(cost-row['usd'])<=1e-12,'price_mismatch'
+            verdict=None
+            if row['verdict'] is not None:
+                verdict=g['Verdict'].model_validate(row['verdict'])
+                assert verdict.judge==judge.name and verdict.judge_version==judge.version,'verdict_identity_mismatch'
+                assert not row.get('error'),'error_cannot_supply_success_verdict'
+            else:assert row.get('error'),'null_verdict_needs_explicit_paid_error'
+            assert row['request_id'] not in physical or physical[row['request_id']]['answer_key']==key,'provider_request_id_collision'
+            physical[row['request_id']]=dict(answer_key=key,usd=cost,usage=usage)
+            obs=dict(key=key,pair=c.key,model=judge.model,request_id=row['request_id'],**usage,usd=cost,
+                seconds=row['seconds'],verdict=verdict.model_dump(mode='json') if verdict else None,error=row.get('error'),
+                settings_sha256=judge.settings_sha256,request_settings=judge.request_settings,evidence=g['evidence'](c),
+                context_hash=c.context_hash,prompt_sha256=g['sha'](canonical.encode()),
+                observation_provenance=dict(kind='new_provider_diagnostic',request_payload_sha256=request['request_payload_sha256'],
+                    response_sha256=g['digest'](row)))
+            # Strict original-cohort source/context/settings binding also applies to new observations.
+            origin=request['request_source'];hs=[h for h in histories if h['cohort']==origin['cohort'] and h['name']==origin['history']]
+            assert len(hs)==1,'response_history_missing'
+            bindings=hs[0]['bindings']
+            assert len(bindings.get(key,set()))==1 and g['digest'](judge.stamp(c)) in bindings[key],'capture_binding_mismatch'
+            existing=hs[0]['answers'].get(key)
+            assert existing is None or existing==obs,'cannot_replace_historical_observation'
+            accepted[key]=obs
+            g['dump'](folder/'received-responses'/f'{key}.json',row)
+            received=folder/'received-responses'/f'{key}.json'
+            g['INPUT_HASHES'][str(received)]=g['sha'](received.read_bytes())
+            g['dump'](folder/'accepted-observations'/f'{key}.json',obs)
+        except (AssertionError,KeyError,ValueError,TypeError) as error:
+            rejected.append(dict(answer_key=key,path=str(path),reason=str(error)))
+            # Failed validation is unknown, never an invented negative or a paid replay attempt.
+            if row.get('request_id') in physical and physical[row['request_id']]['answer_key']==key:physical.pop(row['request_id'])
+    for h in histories:
+        # Cohorts retain their own archive; requests identify original cohort explicitly.
+        for key,obs in accepted.items():
+            if requests[key]['request_source']['cohort']==h['cohort']:h['answers'][key]=obs
+    g['dump'](folder/'response-rejections.json',rejected)
+    g['dump'](folder/'physical-diagnostic-costs.json',dict(provenance='NEW provider diagnostic observations; external actual usage, not physical calls by H02 worker',
+        accepted_requests=len(accepted),unique_provider_requests=len(physical),recorded_physical_usd=sum(x['usd'] for x in physical.values()),
+        requests=physical,rejected_records=len(rejected),physical_calls_by_retrieval_worker=0,
+        note='Counterfactual arms charge selected new observations normally; do not add each arm charge to physical spend. Rejected response claims are unverified, not priced as actual spending.'))
