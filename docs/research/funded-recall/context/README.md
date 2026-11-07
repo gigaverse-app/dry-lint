@@ -36,13 +36,22 @@ Independent source review found two useful **partial operations** among the 12 n
 
 All requested answers and source assessments were obtained. This is a small development experiment, not an estimate of production-wide accuracy. In particular, the historical control comparison cannot distinguish input effects from model variation over time. The zero recovery result on the newly paired cases does not have that historical-baseline limitation.
 
-## Two misses explain the limitation
+## Why the changes failed to produce a report
 
-**T3's per-thread action reservation.** Two hooks independently reserve a thread ID, suppress a concurrent action, await a job and release the reservation after normal completion. Source review found a small common operation worth sharing. A correct extraction must preserve the existing behavior on rejection: it must not introduce `finally` cleanup that changes the reservation policy. Both models still missed the report. The useful region that was hidden in a long body remained between the fixed windows. [Pinned source](https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/mobile/src/features/home/useThreadListActions.ts#L86) · evidence ID `JCTX-R2-08b01303638b8b9d`.
+The recorded answers distinguish **recognizing an overlap** from **emitting a report**. Claude described a useful partial extraction in both representative cases, both before and after windowing. It assigned 0.60 each time, so neither answer crossed the unchanged 0.80 reporting rule. The direct observed loss is at that reporting threshold. We did not test a lower threshold here, and a lower threshold cannot be assumed safe without checking negatives.
 
-**LiteLLM's repeated error construction.** The router's failure handler and pre-call checks construct matching unsupported-parameter and context-window errors. Those error builders can be shared while preserving each caller's selection and raising/returning behavior. Whole-function consolidation would be wrong. The second recipe omitted a previously visible relevant region, and neither model emitted a useful report. [Failure handler](https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/router_rust/core.py#L3682), [pre-call checks](https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/router_rust/steps/precall.py#L317) · evidence ID `JCTX-R2-2f2794c9ff5b2164`.
+| Independently useful partial operation | Jev score: original → windows | Claude score: original → windows | First observed loss in this judging comparison |
+| --- | ---: | ---: | --- |
+| T3: suppress concurrent work on the same thread, then release its reservation after normal completion | 0.68 → 0.73, duplicate in both | 0.60 → 0.60, duplicate in both | Both recognize duplication but neither reaches 0.80 |
+| LiteLLM: construct the same unsupported-parameter and context-window errors | 0.29 → 0.27, separate in both | 0.60 → 0.60, duplicate in both | Jev rejects the concept; Claude identifies the overlap but stays below 0.80 |
 
-These cases demonstrate a concrete weakness: distributing a fixed character budget across a function does not ensure that a complete useful operation is visible. The experiment does **not** establish that visibility was the only cause of each model's miss. It also does not establish that mechanical context cannot help; the first recipe's bounded lexical references were not a full caller or helper-ownership analysis.
+**T3's action reservation.** The executor and the larger action hook independently check and reserve an in-flight thread key, await a job, and remove the key after normal completion. The useful extraction must preserve the current behavior on rejection: adding unconditional `finally` cleanup would change the policy. Claude's answers identify a shared mutation runner, but describe the overlap as partial and assign moderate confidence. That is narrower than “the model could not see the operation.” Its proposed broader cleanup also needs checking against the actual failure behavior. [Pinned source](https://github.com/pingdotgg/t3code/blob/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25/apps/mobile/src/features/home/useThreadListActions.ts#L86) · `JCTX-R2-08b01303638b8b9d`.
+
+**LiteLLM's error builders.** The failure handler and pre-call checks independently construct matching exception messages and fields. They should retain their separate decisions about which error applies, parameter sorting, and whether to raise or return it. Claude describes essentially these error-builder helpers in both answers, yet scores both 0.60. Jev continues to classify the larger functions as separate concepts. [Failure handler](https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/router_rust/core.py#L3682), [pre-call checks](https://github.com/BerriAI/litellm/blob/fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f/litellm/router_rust/steps/precall.py#L317) · `JCTX-R2-2f2794c9ff5b2164`.
+
+**What the evidence explains.** Adding context did not raise the relevant scores enough to produce a report. Claude's explicit answers suggest that confidence in a useful partial extraction is a separate bottleneck even when it can describe one. This is a hypothesis about its scoring behavior, not a calibrated causal finding. Its prompt already asks it to score confidence in the repeated operation rather than code size. Jev's question instead asks whether the two functions implement one concept. Consequently this is a within-model input comparison, not a controlled Jev-versus-Claude capability test.
+
+**What windowing demonstrably risks.** The saved source-to-window mappings show accepted operation fragments that remain hidden and others that were visible before but are omitted afterward. Fixed positions do not guarantee complete operation coverage. Those omissions are observable; claiming that they caused the two misses would go beyond the evidence, because Claude still identified the overlaps. A useful successor must address both evidence selection and the meaning/calibration of the reporting score, with negative controls.
 
 ## Decision and useful next boundary
 
@@ -54,10 +63,36 @@ A worthwhile successor would have to select complete semantic operations or reso
 
 The first attempt cost **$0.24912180** and the second **$0.45707392**, totaling **$0.70619572 for 80 fresh calls**. Cached control baselines and older pilot spending do not count toward this total. The second attempt's 12 novel pairs cost Jev $0.00276296 before versus $0.00261040 after, and Claude $0.219142 before versus $0.167578 after. Smaller inputs saved some provider cost but bought no recovered report.
 
-The repository contains [paired results](paired-results.csv), [aggregate evidence](evidence.json), [exact source pins](source-pins.json), and [request/output hash and cost receipts](request-hash-receipts.jsonl). From the repository root:
+The [reproduction kit](reproduction/README.md) now contains the **actual code, inputs and answers**, rather than only their hashes:
+
+| Inspect | Included evidence |
+| --- | --- |
+| Actual implementation | [Original source-anchor recipe](implementation/trace_followup.py), [body-window recipe](implementation/coverage_round2.py), [scoring](implementation/score_coverage_round2.py), [Claude renderer/parser](implementation/anthropic.py), [Jev renderer/parser](implementation/jev.py); complete dependency archive and lockfile |
+| Exact question and settings | [Prompt contracts](reproduction/prompts.json), complete rendered request payloads, model/version/output caps, source and request identities |
+| Source used | Complete licensed native Candidates, signatures/context, pinned full Git files, source-to-window maps, licenses; native parsing can be rerun separately |
+| What the providers answered | 88 sanitized recorded observations with final answers and token usage: 80 fresh calls plus eight historical control baselines |
+| How results were calculated | [Portable replay](reproduction/reproduce.py) recomputes transformations, labels, scores, report changes, costs and synthetic budget admissions; compares against [published paired rows](paired-results.csv) |
+
+From the repository root, reproduce the recorded selected-case result **offline**, using only Python's standard library:
 
 ```bash
-python3 docs/research/funded-recall/context/audit.py
+cd docs/research/funded-recall/context/reproduction
+python3 reproduce.py verify
+python3 reproduce.py metrics > /tmp/context-metrics.json
+python3 -m unittest discover -s . -p test_kit.py -v
 ```
 
-This verifies file hashes and recomputes published costs and report changes without a provider call. Raw rendered requests and full source-review records remain in the lab archive; the hashes identify them but do not make the full experiment reproducible from this PR alone. The experiment used a separate diagnostic judging allowance. It does not establish what an adopter's $0.04 historical PR budget would have admitted.
+Inspect the T3 case directly, including the exact answer rather than a prose summary:
+
+```bash
+python3 kit.py inspect-case JCTX-R2-08b01303638b8b9d --kind claude --arm baseline --part answer
+python3 kit.py inspect-case JCTX-R2-08b01303638b8b9d --kind claude --arm treatment --part answer
+```
+
+`--part original`, `git`, `input` and `prompt` expose the native function, pinned file, selected text and actual question respectively. The kit also provides the original selection/scoring code, optional pinned native-extractor replay, immutable Git acquisition and **dry-run-by-default live playback**. Live playback creates new observations in a new directory; it cannot promise the same model answers. The [instructions](reproduction/README.md) distinguish each operation and its dependencies.
+
+One first-round Kaizen case remains under its existing redistribution hold. Its source-free results and hashes are included, so numeric replay covers every case. Its four source-bearing requests require the supplied local hydration command; they are not silently replaced or approximated. The other 21 cases include their full licensed source and payloads. Eight historical control payloads are canonical reconstructions from retained inputs; original fresh-call wire hashes are preserved separately.
+
+This package reproduces the **selected-case extraction, input transformations and recorded judging comparison**. It does not rebuild the earlier whole-corpus nomination campaign, whose full backgrounds and family graph are outside this package. Historical native metadata differences are explicitly reported; stored Candidates and current re-extraction are not asserted identical. Source assessments remain supplied, reviewable judgments rather than facts proved by arithmetic.
+
+The experiment used a separate diagnostic judging allowance. Its synthetic $0.04 calculation is reproducible but does not establish what an adopter's actual historical PR budget would have admitted. The outer `context/audit.py` remains a lightweight consistency check; the reproduction kit is the executable study record.

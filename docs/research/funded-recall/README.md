@@ -42,7 +42,7 @@ The motivation was straightforward: Jev costs less than Claude, and may miss use
 | Add imports, nearby source, and bounded name references | Six source families; same model with and without added context | No recovered report for either model; all four accepted partial-operation positives still missed | Stop this source-bundle recipe |
 | Show start/middle/end windows of long functions | 12 new pairs plus four controls; same questions and reporting rule | Neither model reported either of the two independently confirmed novel operations; one prior Claude positive control report was lost | Stop fixed-position body windows |
 
-The second result is informative because source inspection exposed the mechanism's weakness: a useful operation can fall between windows, and a windowed input can omit evidence the baseline contained. It does not prove that every missed verdict was caused by truncation. The two rounds used 80 fresh provider calls costing $0.70619572. Full details and comparison limits are in the [study](context/README.md).
+The exact answers make the result more specific: Claude identified both novel useful partial operations in both inputs but scored each at 0.60, below the 0.80 reporting rule. Better coverage did not produce a report. Source mappings also show that windows can omit useful fragments, but those omissions are not proven causes of these verdicts. The two rounds used 80 fresh provider calls costing $0.70619572. Full details and comparison limits are in the [study](context/README.md).
 
 ## How to read the evidence
 
@@ -50,10 +50,12 @@ The second result is informative because source inspection exposed the mechanism
 
 Source reviewers inspect complete pinned functions, signatures, documentation, callers and existing helpers. They may accept a small shared operation while rejecting a whole-function merge. Related code, already-shared implementations, disputed utility and missing answers remain visible. “Reported” means the configured model rule fired; “useful” means the source assessment supports the proposed action.
 
-Each completed direction should provide a readable report, paired outcome data, cost receipts, and a verification command. The [research-output skill](../../../.agents/skills/research-output/SKILL.md) describes this writing standard. For the published context evidence:
+Each completed direction should provide a readable report, paired outcome data, cost receipts, and a verification command. The [research-output skill](../../../.agents/skills/research-output/SKILL.md) describes this writing standard. For the published context evidence, [the reproduction kit](context/reproduction/README.md) includes original source, exact prompts/settings, pinned input code and recorded answers:
 
 ```bash
-python3 docs/research/funded-recall/context/audit.py
+cd docs/research/funded-recall/context/reproduction
+python3 reproduce.py verify
+python3 reproduce.py metrics
 ```
 
-The audit recomputes costs and report changes and checks the published file hashes. Full rendered requests and source-review archives remain in the lab; this repository's hash receipts cannot reproduce omitted artifacts. These are observed development results, not pristine population holdout measurements. Publication of an experiment records a decision; it does not itself change production defaults.
+This replays the selected-case transformations and recorded results offline. Optional commands separately rerun native extraction or issue new live requests. A held Kaizen case needs local source hydration for its four exact payloads; all cases remain in numeric results. Earlier whole-corpus nomination is outside this package's scope. These are observed development results, not pristine population holdout measurements. Publication of an experiment records a decision; it does not itself change production defaults.

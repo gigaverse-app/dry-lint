@@ -23,6 +23,10 @@ Use a connected narrative with this information, adapting its order and length t
 
 For a research PR, its opening explains both the research conclusion and the value of merging the record. It is not a lab status update. The README is the coherent entry point; the PR body is a shorter version of the same story. Apply the repository's PR-writing rules when available. Link to one canonical report per direction instead of maintaining several competing conclusions.
 
+When publishing an experiment for others to reproduce, provide the actual implementation, selected inputs, selection/configuration recipe, and recorded outputs, or identify the exact unavailable component. For model studies, include rendered prompts, model/version/output settings, answer parsing and reporting rules. Offer a provider-free command that recomputes the result from recordings and a separately authorized live-rerun command that writes new results. Test the package outside the lab checkout. A checksum auditor is useful but is not an experiment reproducer; do not present it as one. Source licenses and access boundaries determine which inputs can be redistributed.
+
+Explain a negative result by tracing a representative case through input, actual answer, score, and final decision. If a model correctly describes an overlap but scores it below the reporting threshold, call that a reporting failure rather than a failure to recognize the overlap. A missing source fragment proves an omission, not that the omission caused the verdict. Separate causal tests from post-hoc diagnostics and identify the next discriminating experiment only when it is warranted.
+
 For recall and model experiments, keep these distinctions explicit wherever they affect the decision:
 
 - Repositories, revisions, background scope, and data splits must match the comparison. A large inventory does not mean every row was evaluated. State supported and missing coverage without pooling incompatible cohorts.
