@@ -1,0 +1,16 @@
+[
+  {
+    "license_file": "licenses/anomalyco--opencode.txt",
+    "license_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "url": "https://github.com/anomalyco/opencode.git"
+  },
+  {
+    "license_file": "licenses/OpenHands--software-agent-sdk.txt",
+    "license_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "url": "https://github.com/OpenHands/software-agent-sdk.git"
+  }
+]

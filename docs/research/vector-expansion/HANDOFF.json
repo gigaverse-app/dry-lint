@@ -1,0 +1,15 @@
+{
+  "status": "READY",
+  "method": "vector-expansion",
+  "proposed_branch": "research/study-vector-expansion",
+  "destination": "docs/research/vector-expansion/",
+  "source_directory": "/home/researcher/dry-lint-round/jobs/publish-sparse-studies/.lab-results/publications/vector-expansion",
+  "root_owns_push_and_pr_creation": true,
+  "conclusion": "Stop the latent and sparse-association recipes. Latent compression worsens retrieval. Sparse expansion retains 182/227 positive top-three results and 13/78 known funded positives; it adds one source-accepted SMALL polling-helper report, not a substantial gain. Raw already ranks that lead fourth, so the extra slot may explain the result.",
+  "ready_for_root_validation": true,
+  "checks": "CHECKS.json",
+  "root_copy_instruction": "Copy this complete directory to docs/research/vector-expansion/ on research/study-vector-expansion; root creates/pushes PR.",
+  "publication_files": 40,
+  "no_new_experiments": true,
+  "provider_calls": 0
+}
