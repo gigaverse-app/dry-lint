@@ -1,0 +1,1186 @@
+[
+  {
+    "path": "litellm/llms/deepgram/audio_transcription/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "700d3bbc9d73c07a14dbe67bd83cccb0c6f137836f5429d178bc582523b69a47",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/700d3bbc9d73c07a14dbe67bd83cccb0c6f137836f5429d178bc582523b69a47.source.gz"
+  },
+  {
+    "path": "litellm/llms/ovhcloud/audio_transcription/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "be10cab0492c4ceda5b6265d285826a3c96648c2a023a2de25f36b8ca749dbc7",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/be10cab0492c4ceda5b6265d285826a3c96648c2a023a2de25f36b8ca749dbc7.source.gz"
+  },
+  {
+    "path": "litellm/caching/redis_cache.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca.source.gz"
+  },
+  {
+    "path": "litellm/proxy/anthropic_endpoints/gateway_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "3b56239d85c1daa5b2810b0e87b7d585a921e74b78d831dfb1a8c48a7051e626",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/3b56239d85c1daa5b2810b0e87b7d585a921e74b78d831dfb1a8c48a7051e626.source.gz"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/scim/scim_v2.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "61d21940a39b577cd7cc0ac2845506d23f13d1fd0da3860eb926653e8dfaaee5",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/61d21940a39b577cd7cc0ac2845506d23f13d1fd0da3860eb926653e8dfaaee5.source.gz"
+  },
+  {
+    "path": "litellm/integrations/langfuse/langfuse_sdk.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/22c1b4e7014a7a4e6d38baf26831b5dec97fc9bb4c9c4a2bd061a9a4b177f08e.source.gz"
+  },
+  {
+    "path": "litellm/integrations/otel/plumbing/routing.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "da116725b8eb0dd83958b84f3b98f6fa984624ff3017f8279096d6159886d47d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/da116725b8eb0dd83958b84f3b98f6fa984624ff3017f8279096d6159886d47d.source.gz"
+  },
+  {
+    "path": "scripts/hook-gym-replay.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "9438e52886efb067532082ac4dcce78db878c2b8644cf1eda71f8d036ab9f1ed",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/9438e52886efb067532082ac4dcce78db878c2b8644cf1eda71f8d036ab9f1ed.source.gz"
+  },
+  {
+    "path": "src/e2e/check-dirty-files-host-plugin.test.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "7ed2a6837d3bcf3432585b7b3f369b77e533ccd43d6effce281a41fd93db1eda",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/7ed2a6837d3bcf3432585b7b3f369b77e533ccd43d6effce281a41fd93db1eda.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-score.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "8d9f79f7cd2ecf759995df42f0b0b527481818e26a87801ec85a444e9145bb9e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/8d9f79f7cd2ecf759995df42f0b0b527481818e26a87801ec85a444e9145bb9e.source.gz"
+  },
+  {
+    "path": "scripts/batch-outcome.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "27dfe7ec423f309b1f4f0b4d6f146ed99b2e2bbb1f1f207ced207e2ef5eef2db",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/27dfe7ec423f309b1f4f0b4d6f146ed99b2e2bbb1f1f207ced207e2ef5eef2db.source.gz"
+  },
+  {
+    "path": "litellm/decisions/call.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "041f61a9e245a0625ae9445120e1c95e403c0dd01814e564f804c59a349171e6",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/041f61a9e245a0625ae9445120e1c95e403c0dd01814e564f804c59a349171e6.source.gz"
+  },
+  {
+    "path": "litellm/extraction/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "10e841b1973a2c56720316a3c3b8ba2856fe33683c71d22e3f784d349a3c2e88",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/10e841b1973a2c56720316a3c3b8ba2856fe33683c71d22e3f784d349a3c2e88.source.gz"
+  },
+  {
+    "path": "src/e2e/hook-runner.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "c9e11dce96652c40803d1bed05891933c17248adc621f44109ceed4def680ca3",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/c9e11dce96652c40803d1bed05891933c17248adc621f44109ceed4def680ca3.source.gz"
+  },
+  {
+    "path": "scripts/review-round.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "033edb1b907e09bff15d5e7f7d1e5e5d65cc8474dc550292261d2b0187e67ae3",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/033edb1b907e09bff15d5e7f7d1e5e5d65cc8474dc550292261d2b0187e67ae3.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/footer.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "121d13f3e48c75c7a3cb3ec414338a92b44fca52cbd4adda77252f10aa712dc9",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/121d13f3e48c75c7a3cb3ec414338a92b44fca52cbd4adda77252f10aa712dc9.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/runtime.lifecycle.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "d7d265e3d5ae6e93a950b827ac8147e69e3635bfcc78668440a468245607e313",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/d7d265e3d5ae6e93a950b827ac8147e69e3635bfcc78668440a468245607e313.source.gz"
+  },
+  {
+    "path": "packages/app/src/home/sessions/records.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "797e4eb1c7024c36f211136636d1dca67b8a343fca9eaf8a4d2d9cbe8894726d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/797e4eb1c7024c36f211136636d1dca67b8a343fca9eaf8a4d2d9cbe8894726d.source.gz"
+  },
+  {
+    "path": "packages/client/src/solid/data.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "04afb5c1670e113ca266c941d8d57e1a56195599ab0c457669e53e81e8b11c3d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/04afb5c1670e113ca266c941d8d57e1a56195599ab0c457669e53e81e8b11c3d.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/features/review/reviewCommentSelection.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "6aea1e0733f6f278a0232e02042004005c3341d81d93baafeb42eb04109d7253",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/6aea1e0733f6f278a0232e02042004005c3341d81d93baafeb42eb04109d7253.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/pullRequest/pullRequestDetail.logic.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "73cf224ae16dec1d433f7779255b5ea39d7a3feb8c26c645a12cfa66ed8e1dd0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/73cf224ae16dec1d433f7779255b5ea39d7a3feb8c26c645a12cfa66ed8e1dd0.source.gz"
+  },
+  {
+    "path": "apps/web/src/composer-logic.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "6c53c79f574990ac14b264d19e8d927a00079d825221482a03a1ae58f7d51909",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/6c53c79f574990ac14b264d19e8d927a00079d825221482a03a1ae58f7d51909.source.gz"
+  },
+  {
+    "path": "packages/shared/src/composerTrigger.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "26a4eb53ce8cb8cc38ba1c4e9be42c4f58143b2e82a3210d26cb1b508a534aee",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/26a4eb53ce8cb8cc38ba1c4e9be42c4f58143b2e82a3210d26cb1b508a534aee.source.gz"
+  },
+  {
+    "path": "litellm/models/plugin_upload.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "58eb919dfb8648b491d784eb21f9b5407b7e306c79f45eb64be4718a7593a24b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/58eb919dfb8648b491d784eb21f9b5407b7e306c79f45eb64be4718a7593a24b.source.gz"
+  },
+  {
+    "path": "src/review-finding-contract.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "64204489af3cd4b437d9e3b0c6621e40091296597f80515d1b36c49edb40296a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/64204489af3cd4b437d9e3b0c6621e40091296597f80515d1b36c49edb40296a.source.gz"
+  },
+  {
+    "path": "packages/gui-extensions/src/microsoft-office/sheet-paint.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "6f2d8cab97e8245a69cdc36644f4dbd74130d94ed47aa0720266803c4f53077c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/6f2d8cab97e8245a69cdc36644f4dbd74130d94ed47aa0720266803c4f53077c.source.gz"
+  },
+  {
+    "path": "packages/merman/src/flowchart/routing.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "2e30bc6e56d9550baea4e98df5bc13feb56764255b3b86182f3e03ed47b95906",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/2e30bc6e56d9550baea4e98df5bc13feb56764255b3b86182f3e03ed47b95906.source.gz"
+  },
+  {
+    "path": "litellm/integrations/focus/destinations/gcs_destination.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "0b1af5f3161f02fb400879c485ef02d520a1a61fd47599df225ce68e1e7966ac",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/0b1af5f3161f02fb400879c485ef02d520a1a61fd47599df225ce68e1e7966ac.source.gz"
+  },
+  {
+    "path": "litellm/integrations/focus/export_engine.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "5dd74cd10cb580443b2e10c0d5b11d346c8577ef2f0754cb8886541e7aa04850",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/5dd74cd10cb580443b2e10c0d5b11d346c8577ef2f0754cb8886541e7aa04850.source.gz"
+  },
+  {
+    "path": "litellm/proxy/client/cli/commands/pkce_login.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "eea882d8db26f437f1c1e40c48de9ddc08d9fce2175bdf590120270c1355b294",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/eea882d8db26f437f1c1e40c48de9ddc08d9fce2175bdf590120270c1355b294.source.gz"
+  },
+  {
+    "path": "src/cli-structured-data.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "647136c322a3d12da00a0daf6d2ba181de220c968ad747657d1d3cbe26ea7249",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/647136c322a3d12da00a0daf6d2ba181de220c968ad747657d1d3cbe26ea7249.source.gz"
+  },
+  {
+    "path": "src/kaizen-setup.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "9ce5c5be3b3351d5355caa3fa25d530e25b72e9ca9ef8584db328fe648354f7a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/9ce5c5be3b3351d5355caa3fa25d530e25b72e9ca9ef8584db328fe648354f7a.source.gz"
+  },
+  {
+    "path": "packages/core/src/database/sqlite.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "4dbb48d49da7b4e4143232c2c875b5d4d26e035125b998b71489b23b9292a331",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/4dbb48d49da7b4e4143232c2c875b5d4d26e035125b998b71489b23b9292a331.source.gz"
+  },
+  {
+    "path": "packages/core/src/database/sqlite.workerd.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "f0612f903da88ba4dce048dd611b6337118665d68dba03f55faa1ce8cdd9e081",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f0612f903da88ba4dce048dd611b6337118665d68dba03f55faa1ce8cdd9e081.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/chat/ComposerUsageLimits.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "efd8c1add19f86d3eb4eb4e4b75583781d0ec5cc668b2c8251ecfa232d7a4f5e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/efd8c1add19f86d3eb4eb4e4b75583781d0ec5cc668b2c8251ecfa232d7a4f5e.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/chat/ThreadActivityBanners.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "19c5576dbf25e9b0c9b187b2ea342e8012fb6550b2a6f5f6e9815f1f976d764a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/19c5576dbf25e9b0c9b187b2ea342e8012fb6550b2a6f5f6e9815f1f976d764a.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/features/threads/provider-catalog-refresh.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "9f2851bcd56b482d735a81eb225aa0349d060c3f458788610e2a2891d174d263",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/9f2851bcd56b482d735a81eb225aa0349d060c3f458788610e2a2891d174d263.source.gz"
+  },
+  {
+    "path": "packages/client-runtime/src/state/assets.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "2e3ea8c9abf68bc1af1ac9eb95eb43287ecfe2ab96d0aa216ea0e92600e3ed13",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/2e3ea8c9abf68bc1af1ac9eb95eb43287ecfe2ab96d0aa216ea0e92600e3ed13.source.gz"
+  },
+  {
+    "path": "litellm/proxy/client/cli/commands/pi.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "71bcb9e29b62eff9e8e14f328961d8c20eed009570e8cf15d1d82c43708039a8",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/71bcb9e29b62eff9e8e14f328961d8c20eed009570e8cf15d1d82c43708039a8.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-context-delegation.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "bd96cb35ad88b1bd1403851fd0b63ca46fda8226a8e76fa48a56cade4740259d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/bd96cb35ad88b1bd1403851fd0b63ca46fda8226a8e76fa48a56cade4740259d.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-ctl.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "e6daa8bddafa096a905d77ea1aac7a26498f4f00caae70de3e2c1642af4f9cf9",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/e6daa8bddafa096a905d77ea1aac7a26498f4f00caae70de3e2c1642af4f9cf9.source.gz"
+  },
+  {
+    "path": "packages/gui-extensions/src/microsoft-office/sheet-frame.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "08a5483dacd14931cd9b0e10c9453eb35da3038b0adb9f695366446e26d695f4",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/08a5483dacd14931cd9b0e10c9453eb35da3038b0adb9f695366446e26d695f4.source.gz"
+  },
+  {
+    "path": "packages/app/src/settings/servers/inventory.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "8a76abaa1620b3fb67e242b468acd6c0f936b8aaf60ad23484e2f29064656f2a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/8a76abaa1620b3fb67e242b468acd6c0f936b8aaf60ad23484e2f29064656f2a.source.gz"
+  },
+  {
+    "path": "packages/httpapi-codegen/src/index.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "89b387c305ff36dc1ff66bdc95b1d17a445fe3c2533523c8cd208750329e9f66",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/89b387c305ff36dc1ff66bdc95b1d17a445fe3c2533523c8cd208750329e9f66.source.gz"
+  },
+  {
+    "path": "apps/web/src/themePalette.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "671aad7f55bf9bd49626436fc02de3b24a16e4931ef0ba346457934366d3ccef",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/671aad7f55bf9bd49626436fc02de3b24a16e4931ef0ba346457934366d3ccef.source.gz"
+  },
+  {
+    "path": "apps/web/src/vscodeThemeImport.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "f416858abbbe725ae27801b46b6f7c3c06681c17ff9defd927ac031a1810de06",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f416858abbbe725ae27801b46b6f7c3c06681c17ff9defd927ac031a1810de06.source.gz"
+  },
+  {
+    "path": "apps/desktop/src/preview/FaviconCapture.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "1bc16f87fdc91b4dc71d8b1197d4e17403b3fe1ce7ba9bfca63a3be805a9649c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/1bc16f87fdc91b4dc71d8b1197d4e17403b3fe1ce7ba9bfca63a3be805a9649c.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/files/office/sheet-paint.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "af6f8c2f9ecdec189589be8a18d6877067e7642367c8046bdc4554e373b19cce",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/af6f8c2f9ecdec189589be8a18d6877067e7642367c8046bdc4554e373b19cce.source.gz"
+  },
+  {
+    "path": "litellm/repositories/subscription_account_repository.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "6350f35e1c559a03a1e4c35e8e0f005ddc262a1ceffe7aa59711d23004b9f292",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/6350f35e1c559a03a1e4c35e8e0f005ddc262a1ceffe7aa59711d23004b9f292.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-display.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "e0574f1e14d4ccc7e68aff3b3354719171b64ab5a6b2ff39af3b382aa4182810",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/e0574f1e14d4ccc7e68aff3b3354719171b64ab5a6b2ff39af3b382aa4182810.source.gz"
+  },
+  {
+    "path": "scripts/workflow-gate-ledger.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "f50b8af86270b3ab3b2a5651adc68a71b24a70810e43e8dd4e2450893bf9c2a4",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f50b8af86270b3ab3b2a5651adc68a71b24a70810e43e8dd4e2450893bf9c2a4.source.gz"
+  },
+  {
+    "path": "packages/client/src/promise/generated/types.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "748a38f2c9fa7fcc723f353f54d2096b70d63f49643b25b0053aa252e820de0d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/748a38f2c9fa7fcc723f353f54d2096b70d63f49643b25b0053aa252e820de0d.source.gz"
+  },
+  {
+    "path": "packages/tui/src/util/tool-display.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "07d3a0cf620b437a0da227e5870f379f531d40042ca72e607487e6ed8028b9c3",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/07d3a0cf620b437a0da227e5870f379f531d40042ca72e607487e6ed8028b9c3.source.gz"
+  },
+  {
+    "path": "tests/sdk/llm/test_llm.py",
+    "redistribution": "permissive-public",
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "sha256": "c1fb27d6a26f52824c1d0f40b87fd3703d0ebccac8a9d47a90aaf0456e47610a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/c1fb27d6a26f52824c1d0f40b87fd3703d0ebccac8a9d47a90aaf0456e47610a.source.gz"
+  },
+  {
+    "path": "tests/sdk/llm/test_llm_completion.py",
+    "redistribution": "permissive-public",
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "sha256": "7da53ca2d2d5ccc8b5562a56af12d2ca600f49a4a4634bf9b302473b20fe709a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/7da53ca2d2d5ccc8b5562a56af12d2ca600f49a4a4634bf9b302473b20fe709a.source.gz"
+  },
+  {
+    "path": "packages/tui/src/routes/session/index.tsx",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "ed4c493caa4ecd1b339f9e6e368f7eab01cdd5d9ba016fdfa7ab93c5a3e885fa",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/ed4c493caa4ecd1b339f9e6e368f7eab01cdd5d9ba016fdfa7ab93c5a3e885fa.source.gz"
+  },
+  {
+    "path": "packages/app/src/session/timeline/message-timeline.tsx",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "147ec9bc8290ea2fa1a7aa902d09c71a1b460f3deb2084043e354aa1db8a9649",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/147ec9bc8290ea2fa1a7aa902d09c71a1b460f3deb2084043e354aa1db8a9649.source.gz"
+  },
+  {
+    "path": "packages/app/src/session/timeline/virtualizer.tsx",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "9f6259529ca6aaf9c3c8fa071722d6de27e1e93ed7dd47f876ea1fd92bdf7c1b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/9f6259529ca6aaf9c3c8fa071722d6de27e1e93ed7dd47f876ea1fd92bdf7c1b.source.gz"
+  },
+  {
+    "path": "apps/web/src/rpc/requestLatencyState.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "05223c06f0d1b60139b7cabf7f39986ee3cf6fd4a8ba19aab31949d0a346be1c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/05223c06f0d1b60139b7cabf7f39986ee3cf6fd4a8ba19aab31949d0a346be1c.source.gz"
+  },
+  {
+    "path": "apps/desktop/src/snapShot/snapShot.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "96888ea1fc019a34703c3d1229836b4c9c0b4920045dab92d515e54186c32dd0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/96888ea1fc019a34703c3d1229836b4c9c0b4920045dab92d515e54186c32dd0.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/preview/ThreadPreviewMiniPlayer.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "21126b9bcd9773c2665efa0e37bd2429db1f4868ef4bd4fa2d29da319db1688e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/21126b9bcd9773c2665efa0e37bd2429db1f4868ef4bd4fa2d29da319db1688e.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/features/pull-requests/usePullRequestDiff.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "7b000709f132a626bd16f6d99e6d08bf9e65cf83d5b7a2f4a61d494e9f2713bb",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/7b000709f132a626bd16f6d99e6d08bf9e65cf83d5b7a2f4a61d494e9f2713bb.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/pullRequest/usePullRequestIntentPrefetch.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "ddd36d0fce9bcb059b88d0229d0f1c443c09dbcc8deaac6977f33e3174985998",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/ddd36d0fce9bcb059b88d0229d0f1c443c09dbcc8deaac6977f33e3174985998.source.gz"
+  },
+  {
+    "path": "litellm/litellm_core_utils/audio_utils/subtitle_utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "26c2f37ce409652db55892679d2538dfacfa289fa19f0808b37eb7929b58b008",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/26c2f37ce409652db55892679d2538dfacfa289fa19f0808b37eb7929b58b008.source.gz"
+  },
+  {
+    "path": "src/review-sentinel.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "b7d217cc35f04f6e3cf08af2ca442cae56497b2d68910d64c298401033b87e9c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/b7d217cc35f04f6e3cf08af2ca442cae56497b2d68910d64c298401033b87e9c.source.gz"
+  },
+  {
+    "path": "packages/gui-extensions/src/microsoft-office/presentation.worker.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "1bc16c704445d52138132d90059e6c74c137790267d598e4103aae1860aab923",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/1bc16c704445d52138132d90059e6c74c137790267d598e4103aae1860aab923.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/state/environments.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "8e8c3c4e7e4c71e9fb977d0188022f6d6c9a80bf72aa56b2b9ae2903c4b3d990",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/8e8c3c4e7e4c71e9fb977d0188022f6d6c9a80bf72aa56b2b9ae2903c4b3d990.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/settings/EnvironmentRow.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "8738f089abb8ae2d6e18624e39b0c95783a4c1f92d4e0f5d69428a73697d70d3",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/8738f089abb8ae2d6e18624e39b0c95783a4c1f92d4e0f5d69428a73697d70d3.source.gz"
+  },
+  {
+    "path": "apps/desktop/src/wsl/DesktopWslEnvironment.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "5fcf716de5cd2bb2317bb3e4b66ec470f704c037c677d01aaea6b48932ef855a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/5fcf716de5cd2bb2317bb3e4b66ec470f704c037c677d01aaea6b48932ef855a.source.gz"
+  },
+  {
+    "path": "packages/source-control-core/src/server/discovery.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "2bd0e4c346d7df41f05cfabdb3ee9d7c4d69ac9399b62586766545a3ee456ef1",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/2bd0e4c346d7df41f05cfabdb3ee9d7c4d69ac9399b62586766545a3ee456ef1.source.gz"
+  },
+  {
+    "path": "litellm/llms/databricks/agent/responses_output.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "560c3cdee00e0496bb3053f0d2895847bde1806b0b7b423fe938c07cda12fa8d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/560c3cdee00e0496bb3053f0d2895847bde1806b0b7b423fe938c07cda12fa8d.source.gz"
+  },
+  {
+    "path": "litellm/types/utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "d8f07f7d49e6ced99c547dce2f03365a994016b603cc3b9d4fb8d06db78b370a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/d8f07f7d49e6ced99c547dce2f03365a994016b603cc3b9d4fb8d06db78b370a.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-dashboard-contract.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "cb0e5ea2e274b379312fdc57c6e55e45a8f40fd158ed2f78854ce984848a3865",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/cb0e5ea2e274b379312fdc57c6e55e45a8f40fd158ed2f78854ce984848a3865.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-progress.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "8a73d8b2c4b5c44de9004694cf29cbd7d3e2b969c69b5a5be7b4bd72348c7d1a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/8a73d8b2c4b5c44de9004694cf29cbd7d3e2b969c69b5a5be7b4bd72348c7d1a.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/runtime.boot.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "12e3a9d57a55d59d88dc7526353118dfa7d0909765a0c18bb1ebf409f9a67cb0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/12e3a9d57a55d59d88dc7526353118dfa7d0909765a0c18bb1ebf409f9a67cb0.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/session.shared.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "10695f7fe52e1a273001411242f4ca0a88c0d105efbf34bb6ca061b67337528d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/10695f7fe52e1a273001411242f4ca0a88c0d105efbf34bb6ca061b67337528d.source.gz"
+  },
+  {
+    "path": "apps/web/src/state/sourceControlActions.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "1fe76c2517ef776797a55c9ce510f11bdcc35b89865aef2d811c1a01a10444bb",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/1fe76c2517ef776797a55c9ce510f11bdcc35b89865aef2d811c1a01a10444bb.source.gz"
+  },
+  {
+    "path": "packages/client-runtime/src/state/vcsAction.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "ca5fca768c0a5d83a019c38414d42c7130ce0e0d660d7b7daba74741a18b0285",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/ca5fca768c0a5d83a019c38414d42c7130ce0e0d660d7b7daba74741a18b0285.source.gz"
+  },
+  {
+    "path": "apps/desktop/src/snapShot/RegionSnapShot.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "966c99788594c4d2b3f52300e38000e0954fe6aea608050baaf07ce21da410af",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/966c99788594c4d2b3f52300e38000e0954fe6aea608050baaf07ce21da410af.source.gz"
+  },
+  {
+    "path": "apps/desktop/src/snapShot/SnapShotAccessibilityProcess.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/36b6dfa4dbfceffe3e6c692bceab5abd261297135fd3053b1be06a378b13152c.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/lib/mediaActionsSource.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "7ee4ac54762b4409e13d8842eb904bf8f2e996d72e382b2ede007281f0844692",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/7ee4ac54762b4409e13d8842eb904bf8f2e996d72e382b2ede007281f0844692.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/media/AttachmentImage.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "25f533a226edf83537018275b38c8072e47469b948b4e789692178f163faa49c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/25f533a226edf83537018275b38c8072e47469b948b4e789692178f163faa49c.source.gz"
+  },
+  {
+    "path": "litellm/interactions/background_cost_polling.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "876b33118bd8d1ac3c68aaec6ae4e0244bb080829629b5dd0732d90c1d79c5c7",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/876b33118bd8d1ac3c68aaec6ae4e0244bb080829629b5dd0732d90c1d79c5c7.source.gz"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/team_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "6f2629e4166e88dc65172204b54e6aac792ef9705a6711ff38b127028123683d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/6f2629e4166e88dc65172204b54e6aac792ef9705a6711ff38b127028123683d.source.gz"
+  },
+  {
+    "path": "litellm/proxy/management_helpers/bulk_user_creation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "4ae93c2ba5be8f3f482ddb4625fc0609148e9485a76bfdb0346cc64eefe3d9db",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/4ae93c2ba5be8f3f482ddb4625fc0609148e9485a76bfdb0346cc64eefe3d9db.source.gz"
+  },
+  {
+    "path": "litellm/llms/opencode/harness/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "f65dfe978789045e91d13c86b63fd2e34dfb7900895974f0ef824660135f5c59",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f65dfe978789045e91d13c86b63fd2e34dfb7900895974f0ef824660135f5c59.source.gz"
+  },
+  {
+    "path": "litellm/llms/pi/harness/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "21463601dd075fcef6a5fb9c004a95dbd0d5f09f1003d275d35c09148bb7a119",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/21463601dd075fcef6a5fb9c004a95dbd0d5f09f1003d275d35c09148bb7a119.source.gz"
+  },
+  {
+    "path": "litellm/llms/claude_code/harness/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "b6a4945238809bbea6d85154c851228858673527a4590008a8d4f60182960e32",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/b6a4945238809bbea6d85154c851228858673527a4590008a8d4f60182960e32.source.gz"
+  },
+  {
+    "path": "src/issue-backend.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "999872c0bd3569fa30c31b25d8f0856256859c42d09097abd1f7cd572bc72cbd",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/999872c0bd3569fa30c31b25d8f0856256859c42d09097abd1f7cd572bc72cbd.source.gz"
+  },
+  {
+    "path": "src/setup-git-hooks.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "73544b358cc81a181cfd631cb8edbc96102001f93b6ce5cd06db71c26fac6c98",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/73544b358cc81a181cfd631cb8edbc96102001f93b6ce5cd06db71c26fac6c98.source.gz"
+  },
+  {
+    "path": "tests/agent_server/test_webhook_subscriber.py",
+    "redistribution": "permissive-public",
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "sha256": "f4a512ab3111a15c0c4d61e65c9ea130728427b9973a87b944e9fa311fa9d4c5",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f4a512ab3111a15c0c4d61e65c9ea130728427b9973a87b944e9fa311fa9d4c5.source.gz"
+  },
+  {
+    "path": "packages/core/src/aisdk-native.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "b6f6cab0f8cb2e2feeeb986af5143aa5bc332b5f0f1ae5b4f790bb56d6c3521f",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/b6f6cab0f8cb2e2feeeb986af5143aa5bc332b5f0f1ae5b4f790bb56d6c3521f.source.gz"
+  },
+  {
+    "path": "apps/server/src/orchestration-v2/Adapters/ClaudeAdapterV2.testkit.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "5fd6e83cc4a87eee960c28c891cf78224be224fe6dc8920cd4bbb5d8f646e287",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/5fd6e83cc4a87eee960c28c891cf78224be224fe6dc8920cd4bbb5d8f646e287.source.gz"
+  },
+  {
+    "path": "packages/schema/src/event.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "f39ab332fe69fcb85adeda95bcf4af608e13fc7e32d9dca5887fc35c51390fa9",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f39ab332fe69fcb85adeda95bcf4af608e13fc7e32d9dca5887fc35c51390fa9.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/entry.body.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "217946c560afdb7b912a7feea2d79ba6ffba4e3b1d498b17b9ca5b6e63a9e765",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/217946c560afdb7b912a7feea2d79ba6ffba4e3b1d498b17b9ca5b6e63a9e765.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/scrollback.shared.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "e7a394f1a4fea4660150655284033a0f46725812d696808604746d5a2ccc93b4",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/e7a394f1a4fea4660150655284033a0f46725812d696808604746d5a2ccc93b4.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/widgets/SubscriptionUsage.android.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "7d831d8c386b159767982d7ae49aedb24f79c3eb66764d265d2608edd2659bf1",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/7d831d8c386b159767982d7ae49aedb24f79c3eb66764d265d2608edd2659bf1.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/widgets/SubscriptionUsage.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "f1dce463a3fab447b1932f7a464040ef8f2e2a2cfeab52afd1dd4d624e19616c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f1dce463a3fab447b1932f7a464040ef8f2e2a2cfeab52afd1dd4d624e19616c.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-run.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "e23563b1dc93afcf873695242d1720261327076e4e776703f3da10210a3ad462",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/e23563b1dc93afcf873695242d1720261327076e4e776703f3da10210a3ad462.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "c2349c27da22c9331ee01051cfb5ef840ad4b05e67301acefd1946e2d15bfa4d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/c2349c27da22c9331ee01051cfb5ef840ad4b05e67301acefd1946e2d15bfa4d.source.gz"
+  },
+  {
+    "path": "packages/merman/src/state/layout.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "df6ac4528cc2b88f5fae80cb5955796f224ce978f13ee9853ef738008c76b556",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/df6ac4528cc2b88f5fae80cb5955796f224ce978f13ee9853ef738008c76b556.source.gz"
+  },
+  {
+    "path": "packages/merman/src/state/routing.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "38f7169c2669ce1ebf4080f557eb4c4b6f47fd8bdd57e7510f65a6651dc89385",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/38f7169c2669ce1ebf4080f557eb4c4b6f47fd8bdd57e7510f65a6651dc89385.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/sidebar/SidebarUpdateCapsule.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "1352a18a18fd2b897bd2f89e28ce00a0b6c7b2bc2190566e3a19ae20fe72287e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/1352a18a18fd2b897bd2f89e28ce00a0b6c7b2bc2190566e3a19ae20fe72287e.source.gz"
+  },
+  {
+    "path": "apps/web/src/components/sidebar/updateEverything.logic.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "f320db5f913d33a614fcca11a20244501c7b68aca23802d29759b01996fe74c8",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f320db5f913d33a614fcca11a20244501c7b68aca23802d29759b01996fe74c8.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-stream.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "b362076fefee34251e5499d21900337cdcc0df632c219778b916f5d0f053f78a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/b362076fefee34251e5499d21900337cdcc0df632c219778b916f5d0f053f78a.source.gz"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/outbound_credentials/authz_code_refresher.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "3c6cd06601b8435b43435c7917c05c56eefb6522bcec1fdd917531bf5471a0d9",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/3c6cd06601b8435b43435c7917c05c56eefb6522bcec1fdd917531bf5471a0d9.source.gz"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/outbound_credentials/client_credentials.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "b6435c5a619d82c8d00958b0a6dfcd77efeaf8ac7ae562b3f288b855e79df359",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/b6435c5a619d82c8d00958b0a6dfcd77efeaf8ac7ae562b3f288b855e79df359.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/components/ui/SplitButton.android.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "ea41884684e6601a9d8f292980dfe8468d433d49bbbc66d59570d30b96f95591",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/ea41884684e6601a9d8f292980dfe8468d433d49bbbc66d59570d30b96f95591.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/components/ui/SplitButton.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "d2d5f2ea4ef742fb64a558ae891ba4f1997002326c8802d236f65b40c105759c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/d2d5f2ea4ef742fb64a558ae891ba4f1997002326c8802d236f65b40c105759c.source.gz"
+  },
+  {
+    "path": "src/hooks/kaizen-reflect.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "2047e9ca82778ed183bc165ee8208e0666e8c4b2e2226bbb3fc5d8a69a42ded0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/2047e9ca82778ed183bc165ee8208e0666e8c4b2e2226bbb3fc5d8a69a42ded0.source.gz"
+  },
+  {
+    "path": "src/hooks/pr-review-loop.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "6b22826a98b191b9935888753b770bd310ecf57bae5c300eb51bdb13942f633f",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/6b22826a98b191b9935888753b770bd310ecf57bae5c300eb51bdb13942f633f.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/components/ui/NumberField.android.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "4b472925ce5cb252812597ff5f33ac8153ecfa43fe8c61b273e1e8b3c9f5723e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/4b472925ce5cb252812597ff5f33ac8153ecfa43fe8c61b273e1e8b3c9f5723e.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/components/ui/NumberField.tsx",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "f423afef63d30220d3a060ac99a7ff5acad900e258fb2c1e7c2b4fc18accfef0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f423afef63d30220d3a060ac99a7ff5acad900e258fb2c1e7c2b4fc18accfef0.source.gz"
+  },
+  {
+    "path": "src/structured-data.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "8e164a801b4d8e34555175ed11237ce46cf8c1374292e996222d8a79ebc22b3a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/8e164a801b4d8e34555175ed11237ce46cf8c1374292e996222d8a79ebc22b3a.source.gz"
+  },
+  {
+    "path": "litellm/proxy/client/cli/commands/autoroute/commands.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "949c61046f340589437a47267ca9e4e4eb45be9f2799b452e5fa9fef8112e4b2",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/949c61046f340589437a47267ca9e4e4eb45be9f2799b452e5fa9fef8112e4b2.source.gz"
+  },
+  {
+    "path": "litellm/proxy/client/cli/commands/up.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "8b6d8d8cd2975b4f2e46ab9a5ba6c6f7a07777d3a9d6630f12a7accff3e30c01",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/8b6d8d8cd2975b4f2e46ab9a5ba6c6f7a07777d3a9d6630f12a7accff3e30c01.source.gz"
+  },
+  {
+    "path": "src/worktree-du.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "51f701a20688ac0630312bc7af74d79cc234d8bf54dec51160bef95ac9ab215d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/51f701a20688ac0630312bc7af74d79cc234d8bf54dec51160bef95ac9ab215d.source.gz"
+  },
+  {
+    "path": "tests/sdk/llm/test_llm_metrics.py",
+    "redistribution": "permissive-public",
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "sha256": "a2f44c4dcab19afb5baf845ea50b2e4502c801d4101c8fa8d3a419fe974015a4",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/a2f44c4dcab19afb5baf845ea50b2e4502c801d4101c8fa8d3a419fe974015a4.source.gz"
+  },
+  {
+    "path": "packages/stats/core/src/domain/inference.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "f1a5d24de8e96b8f15245aa1da4f7846befd05557c8661dedd15bca918a7ed11",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/f1a5d24de8e96b8f15245aa1da4f7846befd05557c8661dedd15bca918a7ed11.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/state/recover-failed-thread-draft.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "84ef66035849246f582a2c59af7494809d9609f34cec178d61ddee5ab28e8dcb",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/84ef66035849246f582a2c59af7494809d9609f34cec178d61ddee5ab28e8dcb.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/state/threadOutboxDelivery.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "55e51b2400b6fcff48534e8822baf045e0ccc6a5928c2db522a9b7478e3fa357",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/55e51b2400b6fcff48534e8822baf045e0ccc6a5928c2db522a9b7478e3fa357.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/scrollback.writer.tsx",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "69ac52d89a1fdbf298903608ef44593dcb9f82497b3375e624ecc2aa19c01a9f",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/69ac52d89a1fdbf298903608ef44593dcb9f82497b3375e624ecc2aa19c01a9f.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/scrollback.surface.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "a2f97805010e9e8fa7e607a168a63b326f193b5797ed74abc30d6ed83b10ba1a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/a2f97805010e9e8fa7e607a168a63b326f193b5797ed74abc30d6ed83b10ba1a.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-plan.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "3ed89d0085fbace5cb71e2fa8b258c846832f3c8f350e586b1a81781a169c9e3",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/3ed89d0085fbace5cb71e2fa8b258c846832f3c8f350e586b1a81781a169c9e3.source.gz"
+  },
+  {
+    "path": "litellm/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1ed99374f696918889a63d950895e5ebfd98ed76a4d8358961dd82d0c4fed368",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/1ed99374f696918889a63d950895e5ebfd98ed76a4d8358961dd82d0c4fed368.source.gz"
+  },
+  {
+    "path": "litellm/proxy/common_utils/reset_budget_job.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/ddb381bd873a6ed685cb7e1f95cfb1825049a89a87d26dcf4769e933ef789a66.source.gz"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/tool_search.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "37eec3b77c367efe7f7b904e7858222c3ce58d46d8a4f771740e8cf6691a799f",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/37eec3b77c367efe7f7b904e7858222c3ce58d46d8a4f771740e8cf6691a799f.source.gz"
+  },
+  {
+    "path": "packages/tui/src/ui/spinner.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "d20ea2ca5f0ac1ceb60dbc05fbddc4fab581fc4477133be1afdd1a0b0f7eb7a1",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/d20ea2ca5f0ac1ceb60dbc05fbddc4fab581fc4477133be1afdd1a0b0f7eb7a1.source.gz"
+  },
+  {
+    "path": "litellm/litellm_core_utils/llm_cost_calc/utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "d6441cfafe45d1136a7cdb06c83fcd4c269b4591ff6bf745f06002865c3335a4",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/d6441cfafe45d1136a7cdb06c83fcd4c269b4591ff6bf745f06002865c3335a4.source.gz"
+  },
+  {
+    "path": "litellm/llms/dashscope/cost_calculator.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "c48dc551fb0396b35fe6bbba31504d03396624fb278b2a4b2504043a6628151b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/c48dc551fb0396b35fe6bbba31504d03396624fb278b2a4b2504043a6628151b.source.gz"
+  },
+  {
+    "path": "apps/desktop/src/snapShot/MacSnapShot.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "e7e9b364fd5253c399df7490cb3d0f1528b2c4aeb9eb7813b4fc38a67e3f9faf",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/e7e9b364fd5253c399df7490cb3d0f1528b2c4aeb9eb7813b4fc38a67e3f9faf.source.gz"
+  },
+  {
+    "path": "litellm/llms/anthropic/chat/guardrail_translation/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "4aa9bb7222cd694b9781b008794cd56be59b9f4499c7fb758dd208bd0d5a864b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/4aa9bb7222cd694b9781b008794cd56be59b9f4499c7fb758dd208bd0d5a864b.source.gz"
+  },
+  {
+    "path": "scripts/hook-gym-format.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "be73c4fd19d75ee09f45a3377f708750849c99377e3975244275cfc2a7d5338c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/be73c4fd19d75ee09f45a3377f708750849c99377e3975244275cfc2a7d5338c.source.gz"
+  },
+  {
+    "path": "packages/core/src/shell/scan.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "625317f6388019dbfd27a44db14033d69e09516323d9f9cc0aaf125b82efdcd1",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/625317f6388019dbfd27a44db14033d69e09516323d9f9cc0aaf125b82efdcd1.source.gz"
+  },
+  {
+    "path": "apps/web/src/composer-rich-text-doc.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "38c0e7515ba5b05d704112cd6378f242dbe31f086d00f8050c4f8c6121af1142",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/38c0e7515ba5b05d704112cd6378f242dbe31f086d00f8050c4f8c6121af1142.source.gz"
+  },
+  {
+    "path": "litellm/proxy/common_utils/semantic_text_index.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "53e441cd8e895f29bac821a92ec82e96b9e0d2296b23515faf1a3c4fe15fe2f3",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/53e441cd8e895f29bac821a92ec82e96b9e0d2296b23515faf1a3c4fe15fe2f3.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/demo.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "07d04a208eebb6aa938c0579b4a38c4200e3354aae3af150556d29b02011abff",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/07d04a208eebb6aa938c0579b4a38c4200e3354aae3af150556d29b02011abff.source.gz"
+  },
+  {
+    "path": "packages/client-runtime/src/state/terminalOutput.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "212346eba3e3ace96f55aa87110184d2b1f08de5509c8773c0bd6d42a43c6c19",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/212346eba3e3ace96f55aa87110184d2b1f08de5509c8773c0bd6d42a43c6c19.source.gz"
+  },
+  {
+    "path": "litellm/router_api.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "aaf69bf3c97411a3aa51ff02ef5b15ccb6955303a1fe775521c1f8bf73fd0cd2",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/aaf69bf3c97411a3aa51ff02ef5b15ccb6955303a1fe775521c1f8bf73fd0cd2.source.gz"
+  },
+  {
+    "path": "litellm/router_rust/core.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "2e76aefa63df96ca4e3abf7428355c2b8a9ebe8879fe02029673e2f0e0eea0a7",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/2e76aefa63df96ca4e3abf7428355c2b8a9ebe8879fe02029673e2f0e0eea0a7.source.gz"
+  },
+  {
+    "path": "packages/tui/src/mini/tool.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "b69e190c3b8706df82dcf887403d8919f077111705d852d4abeff187eda69e0e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/b69e190c3b8706df82dcf887403d8919f077111705d852d4abeff187eda69e0e.source.gz"
+  },
+  {
+    "path": "src/hooks/state-utils.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "d45d2ca33f60f9ccd9a3f277ceb75f8e17e28c104dedfc3fd0e944727d0360e3",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/d45d2ca33f60f9ccd9a3f277ceb75f8e17e28c104dedfc3fd0e944727d0360e3.source.gz"
+  },
+  {
+    "path": "packages/merman/src/core/drawing.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "fcb242840cd6ae3b1160b4a5b7dd0bbc3bd81e97ceb436230c529b6a3ef102ac",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/fcb242840cd6ae3b1160b4a5b7dd0bbc3bd81e97ceb436230c529b6a3ef102ac.source.gz"
+  },
+  {
+    "path": "apps/mobile/src/features/updates/app-updates.ts",
+    "redistribution": "permissive-public",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "sha256": "e527efe59d7e39bab4b2fbcd27aba1091cce2de2ef969ec7a9f2d1a6b5726967",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/e527efe59d7e39bab4b2fbcd27aba1091cce2de2ef969ec7a9f2d1a6b5726967.source.gz"
+  },
+  {
+    "path": "litellm/repositories/daily_activity_repository.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "9997d193b776bca5ceb89074ae7f967a5a71a167c9c85fdad1ac52e179731d9c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/9997d193b776bca5ceb89074ae7f967a5a71a167c9c85fdad1ac52e179731d9c.source.gz"
+  },
+  {
+    "path": "litellm/repositories/daily_activity_sql.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "dd74b7ac461ff1c3f3700e9bc47801ce58dcd37e9bdf1bf86d94ff80db13a189",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/dd74b7ac461ff1c3f3700e9bc47801ce58dcd37e9bdf1bf86d94ff80db13a189.source.gz"
+  },
+  {
+    "path": "scripts/auto-dent-harness.ts",
+    "redistribution": "held",
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "sha256": "9b7f60cde1eca05b6af5fa0796a5a445d8cb469b6266de9f337b869ef9f520df",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/9b7f60cde1eca05b6af5fa0796a5a445d8cb469b6266de9f337b869ef9f520df.source.gz"
+  },
+  {
+    "path": "packages/merman/src/core/canvas.ts",
+    "redistribution": "permissive-public",
+    "repository": "anomalyco/opencode",
+    "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+    "sha256": "5e39a2ac15bcba15ab27bf41a6407ddc0bb087a4584998b2fd3c89ef579d30b2",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-model-function/.lab-results/full-corpus-followup/source-objects/5e39a2ac15bcba15ab27bf41a6407ddc0bb087a4584998b2fd3c89ef579d30b2.source.gz"
+  }
+]

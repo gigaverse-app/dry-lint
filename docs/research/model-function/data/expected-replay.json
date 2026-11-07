@@ -1,0 +1,168 @@
+{
+  "actual_paid_usd_by_round": {
+    "1": 0.2070306,
+    "2": 0.5160992
+  },
+  "panels": {
+    "precision13": {
+      "arms": {
+        "function-only": {
+          "funded": 13,
+          "known_reports": 1,
+          "related_reports": 0,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 1
+        },
+        "protected-contract-operation-join-v2": {
+          "funded": 13,
+          "known_reports": 1,
+          "related_reports": 0,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 1
+        }
+      },
+      "cases": 13,
+      "known_claude": 13,
+      "novel_answers": 10,
+      "novel_reports": 1,
+      "novel_unknowns": 0,
+      "public_payloads": 10,
+      "source_categories": {
+        "related": 1,
+        "unknown": 6,
+        "useful": 6
+      },
+      "source_free_holds": 3,
+      "treatment_only_pairs": 0,
+      "treatment_only_reports": 0,
+      "unknown_claude": 0
+    },
+    "supplement48": {
+      "arms": {
+        "function-only": {
+          "funded": 30,
+          "known_reports": 7,
+          "related_reports": 1,
+          "source_unknown_reports": 1,
+          "unknown_funded": 0,
+          "useful_reports": 5
+        },
+        "protected-contract-operation-join-v2": {
+          "funded": 48,
+          "known_reports": 7,
+          "related_reports": 1,
+          "source_unknown_reports": 1,
+          "unknown_funded": 0,
+          "useful_reports": 5
+        }
+      },
+      "cases": 48,
+      "known_claude": 48,
+      "novel_answers": 36,
+      "novel_reports": 5,
+      "novel_unknowns": 0,
+      "public_payloads": 36,
+      "source_categories": {
+        "already_shared": 1,
+        "bounded_extraction": 5,
+        "negative": 1,
+        "related": 4,
+        "tiny_convenience": 1,
+        "unknown": 36
+      },
+      "source_free_holds": 12,
+      "treatment_only_pairs": 18,
+      "treatment_only_reports": 0,
+      "unknown_claude": 0
+    },
+    "topup": {
+      "arms": {
+        "function-only": {
+          "funded": 10,
+          "known_reports": 0,
+          "related_reports": 0,
+          "source_unknown_reports": 0,
+          "unknown_funded": 1,
+          "useful_reports": 0
+        },
+        "model-only": {
+          "funded": 29,
+          "known_reports": 1,
+          "related_reports": 0,
+          "source_unknown_reports": 1,
+          "unknown_funded": 22,
+          "useful_reports": 0
+        },
+        "protected-ownership-join": {
+          "funded": 43,
+          "known_reports": 1,
+          "related_reports": 0,
+          "source_unknown_reports": 1,
+          "unknown_funded": 27,
+          "useful_reports": 0
+        }
+      },
+      "cases": 48,
+      "known_claude": 16,
+      "novel_answers": 4,
+      "novel_reports": 1,
+      "novel_unknowns": 32,
+      "public_payloads": 37,
+      "source_categories": {
+        "unknown": 48
+      },
+      "source_free_holds": 11,
+      "treatment_only_pairs": 9,
+      "treatment_only_reports": 0,
+      "unknown_claude": 32
+    },
+    "v3": {
+      "arms": {
+        "function-only": {
+          "funded": 2,
+          "known_reports": 0,
+          "related_reports": 0,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 0
+        },
+        "model-only": {
+          "funded": 3,
+          "known_reports": 1,
+          "related_reports": 0,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 1
+        },
+        "protected-ownership-join": {
+          "funded": 6,
+          "known_reports": 1,
+          "related_reports": 0,
+          "source_unknown_reports": 0,
+          "unknown_funded": 0,
+          "useful_reports": 1
+        }
+      },
+      "cases": 6,
+      "known_claude": 6,
+      "novel_answers": 6,
+      "novel_reports": 1,
+      "novel_unknowns": 0,
+      "public_payloads": 4,
+      "source_categories": {
+        "related": 3,
+        "separate": 1,
+        "useful": 2
+      },
+      "source_free_holds": 2,
+      "treatment_only_pairs": 1,
+      "treatment_only_reports": 0,
+      "unknown_claude": 0
+    }
+  },
+  "scope": "Recorded admissions and answers; no retrieval rebuild or provider execution. Held records replay numeric verdicts only.",
+  "separate_private_aggregates": {},
+  "unique_paid_requests": 166
+}

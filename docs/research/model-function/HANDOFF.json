@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "status": "READY",
+  "method": "model-function",
+  "proposed_branch": "research/study-model-function",
+  "destination": "docs/research/model-function/",
+  "source_bundle": "/home/researcher/dry-lint-round/jobs/publish-combined-studies/.lab-results/publications/model-function",
+  "root_actions": [
+    "copy complete bundle to destination on separate branch",
+    "validate offline commands",
+    "push and create PR with title/body files"
+  ],
+  "checks": [
+    "clean-copy original Python operation matcher with 15 exact hashes",
+    "115-case original answer/admission replay",
+    "source-D five bounded plus one tiny all baseline-cofunded",
+    "unknown preservation",
+    "source licensing/hashes",
+    "links",
+    "secrets including gzip",
+    "4 exact goldens catalog hashes; 1 held/missing"
+  ],
+  "reproduction_scope": "Original Python operation matcher on native selected source and frozen ownership links; public/held recorded-result replay. Not full-corpus retrieval or ownership reconstruction.",
+  "source_policy": "87 licensed public payload records; 28 source-free holds; no private adopter source/prompts/IDs.",
+  "providers_called": 0,
+  "ci_changes": false,
+  "limitations": [
+    "32 R1 novel answers missing",
+    "16 of 18 treatment-only pairs source-unknown; all 18 have zero incremental original-policy reports",
+    "28 held payloads require exact local ledger hydration",
+    "Remote branch links pending root publication"
+  ]
+}

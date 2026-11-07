@@ -1,0 +1,165 @@
+{
+  "EXPERIMENT.json": {
+    "arms": [
+      "function-only",
+      "model-only",
+      "protected-ownership-join"
+    ],
+    "base_commit": "15567ee22a662208e8e6ad66b2439c10c08584cf",
+    "batches": "Diagnostic gold families at same repo/pin, both endpoints as synthetic changed functions; preserve partial-operation labels/subtypes and lineage. Additional discovery: first128 resolved-link functions by SHA256(qualname), in chunks16; excludes no known endpoint families, only exact reviewed pairs at queue time. Discovery independent of labels.",
+    "budget": "One production costs.Ledger per arm/profile/change-batch, TOTAL .04 for BOTH passes, charged even cached. claude-sonnet-5-5 normal estimate, shared-operations function policy, model-contracts model policy; 150 estimated answer tokens, 1024 requested output cap. Synthetic cold diagnostic, not historical PR/cache/provider bill. No live provider calls.",
+    "contrast": "Run LiteLLM as a fixed contrasting larger Python corpus with production-only background; never merge corpora/revisions/scopes.",
+    "data_status": "All supplied cohorts DEVELOPMENT/REGRESSION; no fresh holdout. Firecrawl/Curator untouched. No enterprise.",
+    "decision": "Research only. Require source-reviewed novel actionable pairs, no baseline losses, bounded combined cost; otherwise inconclusive/negative. Do not tune after evaluation.",
+    "evaluation": "Per-row both-direction raw cosine/ranks, size/same-file/floor/topK/link/funding first loss; known separate exposures, positive new/lost funding, union/dedup, unknown preserved. Function gold never labels models. Exact source identity and all resolution denominators; walltime/RSS. No emitted-report gain without canonical judge answer.",
+    "experiment": "model-function-ownership-v1",
+    "function_index": "BenchBackground.decode/index, original corpus IDF/order/max_df and sparse row tokens unchanged; ambiguous source IDs excluded and reported",
+    "hypothesis": "Exact static declaration ownership links and explicitly used overlapping fields can prioritize/discover useful operation and model ownership candidates; shared schemas alone often represent correct delegation or independent boundaries.",
+    "join": {
+      "function_edges": "For every query link to model A, consumers of distinct model B where model Dice >=.65 and >=2 fields; require >=2 shared explicitly declared fields accessed as typed receiver attributes or supplied constructor keywords on both consumer functions, cosine >=.1, each function >=6lines, profile same-file rule. At most1 extra per query.",
+      "identity": "trial-model-function-ownership:v1 (no verdict store)",
+      "model_edges": "Similar declared models from unchanged model pass. Model-only retrieves declarations linked to each batch query function. Joined uses exact same model pair union.",
+      "protection": "Fund complete baseline function candidates in unchanged cosine descending and canonical pair ties before ANY model or linked function extras. Append all joined model candidates and at most1 function extra/query sorted by fixed evidence tuple. Baseline report displacement must be zero. No default-plus20 route.",
+      "ranking": "Extras lexicographic descending shared used-field count, model Dice, function cosine; final kind and canonical pair identity ascending. Model extras use max supporting function evidence or (0,Dice,0) when absent. No score mixing, learned/judge/label/ID features.",
+      "resolution": "Only explicit lexical declarations/import aliases/re-exports resolving uniquely to exact modules, parameter/local annotations, constructors, typed receiver self fields and return annotations. Reject ambiguous bindings, shadowed names and dynamic/star imports. No global name matching; retain unresolved sites. Shared model identity is delegation evidence, not an extra candidate."
+    },
+    "limits": "2 compute threads max, no shared package/repo writes, no CI/config/production edits, no external judge calls or credentials, all output own .lab-results",
+    "model_pass": "PythonModelExtractor v3, only fields emitted by existing extractor, ModelComparer v1 Dice >=.65 and >=2 shared explicit fields, top3 per declaration, same-file allowed. Do not expand inherited/reference-derived fields.",
+    "novel_queue": "Source review only actually funded novel pairs, max8 promising +4 matched independent controls; keep full unchanged Candidate.model_dump plus source/caller/ownership/background proofs; ranking/funding separate private sidecar. No claim of independent labels. Root centrally allocates reviews and judge spend. Unknown if no answers.",
+    "profiles": {
+      "laboratory-default": "cross-file function top3, cosine >=.5 or >=.3 if query <6 lines; original stable corpus-order ties",
+      "standalone-balanced-diagnostic": "same-file function top20 cosine >=.35; original stable corpus-order ties"
+    },
+    "repositories": [
+      "OpenHands/software-agent-sdk",
+      "BerriAI/litellm"
+    ],
+    "repository_manifest": "LAB_ROOT/jobs/review-automation/.lab-results/review-automation/repositories-five.json",
+    "schema": 1,
+    "source": "git show exact full supplied pins; source SHA256 and git blob SHA1 retained. Parse static AST only. Python explicit models only; do not execute/import target source.",
+    "status": "frozen before source extraction, retrieval evaluation or label scoring",
+    "worker": "GPT-6.1-Sol high; experiment-model-function"
+  },
+  "funded-rounds/round1/EXPERIMENT.json": {
+    "benefit_assessment": "Separate source-confirmed and provider observations; report novel emitted reports under frozen deployment settings, false reports, baseline losses, original costs/runtime; exposure alone is not gain.",
+    "cache_hits_count_toward_paid_floor": false,
+    "deployment_funding": "Every selected pair must already be funded in an original unchanged .04 both-pass arm ledger; diagnostic provider allocation is separate and never retroactively funds deployment.",
+    "direction": "model-function",
+    "dispatch_chunk_requests": 32,
+    "earlier_STOP_THIS_VARIANT": "PROVISIONAL_USER_OVERRIDDEN",
+    "expected_spend_anchor": "previous sealed intake actual .01911308/3 pairs = .0063710266667 per pair; 48 new pairs approximately .30581, uncertain; root measures actual and dispatches more only if needed",
+    "frozen_existing_gold_comparisons_rerun": false,
+    "historical_spend": "Pilot .044103 and earlier sealed intake .01911308 listed separately, not automatically credited to this new phase; root may credit current-phase calls exactly once with provider-ledger attribution.",
+    "initial_supply_cases": 48,
+    "method": "unchanged protected-ownership-join plus native model-only diagnostic, full corpus comparisons reused",
+    "novel_and_controls": "36 novel plus12 unknown-label controls if endpoint-disjoint supply permits; private roles never in reviewer evidence",
+    "paid_repeats_for_quota": false,
+    "required_actual_new_paid_usd_round1": 0.2,
+    "root_judge_requests": "existing canonical Jev 1.14.0 context and Claude Sonnet 5.5 output1024; model-contracts for native models, shared-operations for functions; do not force Jev truth",
+    "root_only_providers": true,
+    "root_overall_cap_usd": 20,
+    "round2_trigger": "If no useful benefit after round1, inspect mechanism errors, preregister exactly one justified revised method on disjoint novel ownership families, then supply >=.20 new paid root judging. No round2 mechanism is chosen from labels now.",
+    "schema": 1,
+    "selection": "Unreviewed exact unordered source pairs; prioritize arm-added function pairs, then native model pairs and linked-function arm candidates; repository/kind round robin; endpoint-disjoint independent boundary audits matched by repo/kind. No judge outputs or evaluation labels as selection features.",
+    "source_population": "five exact public repository/pin/scope identities from review-automation repositories-five.json; native existing run caches only",
+    "status": "PREPARING_ROUND1",
+    "stopping": "No closure before root verifies >=.20 actual new phase spend or eligible supply exhaustion. Exact cache hits and previously paid repeats never count.",
+    "target_expected_new_spend_usd": [
+      0.25,
+      0.35
+    ],
+    "updated_utc": "2026-11-07T07:35:12.135423+00:00",
+    "worker_provider_calls": 0
+  },
+  "funded-rounds/round2/EXPERIMENT-ADDENDUM.json": {
+    "correction": "MF-FC-5643422cc704 / RN17 / PEV3-024 is ROOT-accepted USEFUL for bounded JSON/stdin/process/env harness extraction. It is NOT a source-negative; timeout, runtime, parsing and exit policies stay separate. The error is canonical judge-separate/report loss, not proof that the source pair lacks value.",
+    "frozen_protocol_sha256": "21ceb99a58710ee48bc1bdc0260a6bf12a1f0bd4203cf0be9413a787b15169c3",
+    "model_case": "MF-FC-099657956c05 / RN13 / PEV3-029 is useful shared-owner model contract; normally funded and policy emitting, also found by model-only. No causal function-join gain or global new-family credit claimed.",
+    "no_claim": "No claim that all distinct-schema pairs are false positives, or that revised signal repairs the useful harness pair.",
+    "revised_mechanism_unchanged": "Same resolved contract plus matching field-operation contexts; preserves semantics and abstains on guessed links. This is a bounded new discovery signal, not a fix or retune of judge thresholds.",
+    "root_source_receipt": "LAB_ROOT/jobs/experiment-model-function/.lab-results/funded-rounds/round1/source-update-v1/SUMMARY.json",
+    "round2_family_exclusions": "Both returned positives and ALL prior round1 reserved/unanswered families excluded from fresh discovery.",
+    "schema": 1,
+    "timing": "Before revised discovery execution; returned root source labels incorporated without changing preregistered algorithm"
+  },
+  "funded-rounds/round2/EXPERIMENT-COVERAGE-v2.json": {
+    "full_source_graph": "Reuse exact native extraction/source snapshots and resolved ownership graph. Cache static contract-operation signatures from all supported functions, including unsupported/parse reasons. No new type or span resolver.",
+    "index_reuse": "Reuse full-background fitted sparse postings when present; none were serialized in this worktree. Materialize BenchBackground.index once per exact public background for previously unqueried source and cache the resulting graph with background and implementation hashes. No embedding/vector refits, no tokenizer/IDF/order/max_df changes, no old gold comparisons rerun.",
+    "known_round2_provider_outcomes_seen": 0,
+    "mechanism": "UNCHANGED resolved-contract operation join v2",
+    "new_synthetic_batches": "Only previously unqueried eligible functions, sorted SHA identity and chunk16; never authentic historical PR claims. Baseline and model-only counterfactual arms each normal .04; combined arm both passes total .04. Cached answers charge normal estimated costs in every arm.",
+    "new_threshold_or_score_tuning": false,
+    "parent_protocol_sha256": "21ceb99a58710ee48bc1bdc0260a6bf12a1f0bd4203cf0be9413a787b15169c3",
+    "prior_reservations": "Exclude exact prior source pairs globally and ownership model identities/function endpoints from ALL first-round packets, prior broader16 and already frozen round-two13 precision cases. Keep full source targets as original sparse competitors; filtering affects experimental novel treatment admission only.",
+    "root_requested_utc": "2026-11-07T08:18:04.015486+00:00",
+    "schema": 1,
+    "scope_change_only": "Query ALL supported native functions with >=2 directly declared field operation signatures and a nontrivial context on an exactly resolved contract, at the five authorized public pins. No arbitrary old gold/query list cap. Previously cached queries reuse existing receipts; newly queried functions are evaluated from full background only.",
+    "status": "FROZEN_BEFORE_NEW_COVERAGE_OUTCOMES",
+    "supply": "Freeze additional treatment-priority novel queue in chunks<=32 requests and independent controls. Continue all supported query batches; cached subset ending is NOT exhaustion. Root actual>=.20 new round2 spend or genuine root-verified exhausted full-source eligibility required.",
+    "trace": "Save bounded raw top20 receipts plus selected baseline/treatment exact score/rank receipts; do not regenerate giant full rank archive.",
+    "unchanged": [
+      "same canonical native model relation",
+      "two matching directly declared fields + nontrivial operation context",
+      "preserve targets/operators/literals/defaults",
+      "native >=6 lines and cosine>=.1 extra floor",
+      "one extra function/query",
+      "default cross-file top3 .5 (.3 only valid native<6); balanced same-file top20 .35",
+      "baseline funding first, extras operation order, unchanged model-only order after",
+      "single combined .04 both-pass ledger/arm/synthetic batch",
+      "deterministic SHA query order,16 functions per change batch",
+      "policy-specific canonical function/model judging; no provider-based features"
+    ]
+  },
+  "funded-rounds/round2/EXPERIMENT.json": {
+    "control_selection": "Same arm-funded eligible population; repository round robin, endpoint independent, roles hidden from source reviewer. Unknown labels, never assumed negatives. Freeze smaller exact exhausted supply if fewer eligible; root must verify exhaustion before closure.",
+    "created_utc": "2026-11-07T07:58:21.369599+00:00",
+    "decision": "Compare source-confirmed novel emitted function join gains, negative reports, baseline funding losses, runtime and model-only evidence separately. No closure before actual-paid floor or root-verified eligible exhaustion. No third mechanism tuned from these labels.",
+    "direction": "model-function",
+    "error_evidence": [
+      {
+        "case_id": "MF-FC-ec30d9222693",
+        "providers": "both separate; source descriptions are worker mechanism audit, not accepted gold",
+        "source_observation": "_format_response decorates a response; _send performs request/exception handling. Common call-object fields do not establish common operations."
+      },
+      {
+        "case_id": "MF-FC-5643422cc704",
+        "providers": "both separate; independent source review ongoing",
+        "source_observation": "process launch overlap crosses production replay and live-hook test contracts; timeout/default/parse behavior differ."
+      }
+    ],
+    "expected_new_actual_target_usd": [
+      0.25,
+      0.35
+    ],
+    "families_disjoint": "Exclude every resolved model identity and function endpoint in ALL48 frozen round1 cases and previous16-case broader batch, even unanswered. Exclude exact previously reviewed/frozen source pairs across immutable full inventory and root queues. Hash canonical contract identities for family reservations; no cross-revision matching.",
+    "fixed_predicate": {
+      "context_selection": "For explicit field-use sites, match exact reference expression at exact site line, then choose nearest nontrivial expression ancestor (call, binary/boolean/conditional/comparison/subscript/assignment); otherwise nearest return/property pair. Constructor field mappings use exact explicit constructor/typed-object/typed-return site and property/keyword values; reference-derived or inherited fields never expanded.",
+      "contract": "both functions link to exactly the same canonical native model identity via previously frozen explicit import/annotation/constructor/use resolution; no guessed type names",
+      "delegation_guard": "Exclude native proved forwarding methods and functions with fewer than two meaningful body statements. Bare field reads/constructions without any nontrivial shared context are ineligible.",
+      "funding": "Original per-profile/per-batch function baseline is preserved first, then v2 extras in fixed ranking, then unchanged model-only candidate order. One combined .04 synthetic ledger for both passes; cached answers charge normally. This revised extra ordering is part of the single contract-operation replacement, and model-only findings remain separate.",
+      "gates": "valid native spans; both>=6 actual source lines; cosine>=.1; laboratory default cross-file; standalone balanced permits same-file; one extra/query not already in its original baseline candidate set",
+      "operations": "At least TWO directly declared field names have exactly matching model-field operation context signatures, including at least ONE nontrivial call/operator/subscript/assignment context. Normalize ONLY explicit resolved model-field references. Preserve other identifiers, call targets, literals, defaults, operators and optional syntax.",
+      "query_pool": "Reuse exact saved queries and bounded raw top20 neighbor receipts from full-background sparse indexing. Do not refit IDF or silently claim coverage beyond cached top20. Baseline candidates and ordering are reused independently, including any baseline targets beyond saved top20.",
+      "ranking": [
+        "descending matched field-operation signatures",
+        "descending distinct matched fields",
+        "descending original full-background cosine",
+        "deterministic source identity ties"
+      ]
+    },
+    "initial_queue_target_cases": 48,
+    "judging": "Root-only canonical shared-operations for function candidates; native model-contracts separate diagnostic. New immutable requests; no paid repeats to fill quota.",
+    "mechanism": "resolved-contract operation join v2",
+    "motivating_unexplored_stratum": "Original rule excluded identical shared-model ownership by construction (12 observed known-positive pairs had shared-model identity and no distinct edge). Sharing a model is a condition, never a duplicate verdict. No known gold label participates in scoring or candidate selection.",
+    "no_fits": "No sparse/vector refits, model downloads, or new ownership/span resolvers. Use saved native extractor cache and saved links. New static context computation only.",
+    "novel_source_leads": "Retain all provider-positive/source-useful leads including below.8. Frozen policy emission and source usefulness are separate outcomes.",
+    "one_revision": "Replace distinct-similar-model + shared-field overlap with SAME canonical resolved model + matching field-operation contexts. All other retrieval diagnostic profiles, native6-line size floor, cosine.1 extra floor, baseline protection and one-extra-function/query are fixed.",
+    "paid_floor_usd": 0.2,
+    "private_controls_target": 12,
+    "round": 2,
+    "schema": 1,
+    "source_population": "Native cached exact source cohorts; full617 inventory remains development/regression. Static revised pass runs all16 compatible native cohorts; discovery and paid packets restricted to existing five pinned PUBLIC corpora. Missing63 exact source backgrounds retained as exceptions.",
+    "status": "PREREGISTERED_BEFORE_DISCOVERY_EVALUATION",
+    "worker_provider_calls": 0
+  }
+}

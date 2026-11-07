@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.006188,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "337dd6bf25587693c3af10b8f9cfc853eda8ee9e7a09af5731145c64fbbd0d17",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoEtsL81ty5PUySgAxGH\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"duplicate\\\",\\\"score\\\":0.93,\\\"owner\\\":\\\"shared\\\",\\\"why\\\":\\\"The two tests are effectively identical. Both mock an async HTTP client whose response succeeds, build a WebhookSubscriber, add one event, and assert the queue length is 1. They then sleep for flush_delay + 0.05 and assert one request was made and the queue is empty. They check the same behavior (the flush-delay timer triggers a POST) with the same inputs and assertions, and only the docstring and comments differ. NEW is a redundant copy of EXISTING; it should be removed. If both are kept, the shared mock-client setup could go into a fixture or helper.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":2024,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":2024,\"output_tokens\":214,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":214,\"output_tokens_details\":{\"thinking_tokens\":0},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "0e3f133df2430dc489838eef1728ed988d2762d3e372fc9624c3de5f47bb0d5f",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 2024,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2024,
+        "model": null,
+        "output_tokens": 214,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 214,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "duplicate",
+    "model_assessment": null,
+    "owner": "shared",
+    "score": 0.93,
+    "second_opinion": null,
+    "why": "The two tests are effectively identical. Both mock an async HTTP client whose response succeeds, build a WebhookSubscriber, add one event, and assert the queue length is 1. They then sleep for flush_delay + 0.05 and assert one request was made and the queue is empty. They check the same behavior (the flush-delay timer triggers a POST) with the same inputs and assertions, and only the docstring and comments differ. NEW is a redundant copy of EXISTING; it should be removed. If both are kept, the shared mock-client setup could go into a fixture or helper."
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.011252,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "68647795c9f51d79d7cdd7e627981b1fb402e734471e9110e02a933e502bbd4d",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoGJCrNhVBaS6wEG5WpE\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"CAQSvQsKEAgTGAI4AUIIdGhpbmtpbmcSDJzy4x36nsZIq2ArdxoMo3khc8qIkpTwoDQhIjBxgn+e/m4gS9jrTDdD0zost0HIwavl/PK3dWkfdDgV28KQXJHU+sSTlDrdcSjAJ/Yq2goCtOVv00w0rbGEKfX/VWs5ZtNQBxgMWhuXvc9MztSnmbfn4OoBX3evS56UD7wfVW7LVEKQbPhOYUSQxYwngcyb05yWLuc9dV0APwXv7tz3SzNOGGUzWj/bNdCFSyydXLmz64SeM7uIBRxGcWdWEANnN0Dt3QKG4Wp+EZ0sUTGSAJ2iqEq+jLINZwg3FkLGNuC+1OugjBm+x2qFWTV48p1kRCchX3NZE0Qv5Q5FuFLv2gMEcwGbUN9Nn8F/0Ahbd3jkCnITaxjSaJd9EK9t05DTOS7gb0Qz4UtsaXQmryEJsgjrC84hjYoDargRxVmWYIY8Ruy1cp/Hrr51pVc5AoE9VDssga+WtFS5ap/HlSdDBx4InDvrpjij/grn6OY3RgIN+v4+Bcl+zK1wkB4i8BeCeZo5/JduqkCEC9Bg1+zWeWhbfSYy64MZsJDJoW/jZFZqH7nM5j8FGVRhorThdFhHO+metUYMl4/ikN/WSVtLddxMvJhUntRBet3Zlh3VR0GjpdB9A6SBoOVGOvx139yK/ROSE34Ptt8MmpSkTc8orUb1Tpuyky9wkw87SU1EprEd6vpw7SUnXgucZ9vwEWnXgpUw9nYlT81SoNEAZ44MSPVYVgXPq+MqDUtNvQxZM++KNWUxnGl60YmoOtm76MuXA1ygOGXN8LqYL/yX8XbumIVxm2fADhtreaJ+I3zGKhCX36LRueAE+E6OzA3SkOpz/l/Q+YhVDunyU/C17P9ylNq7vFFW6R7e/xIcBdIyxYb+oRzJf1ELrW5JnygAx57vl+FfRlRugW5Da9cVwdi7kdvqXfXZz7mXGMTLU7NqEaoDjgspYktFbypI3mz9QjXZUeucXzmOztqAIfcyZ0qAwlBxF2SsUdWIElV5+7IZP1u9HD3GFp5q03CN+h0faKiSC+fmQFrIyYv/Q3igL+/VTGDZv2wZpGBD57VeKYXSiuCZojOrmWHy73e51O402kbVFzN1OIOYlAS+MUwOMrH2j9ujLMRZXyyTjfn5OQwlGVZp8bZEglrCrmdqRScCLWYdVF7Tbs+Cf6j8q+xguNVENc8HlSwJ+CmtLgqB/+slCppc/qrSYCGHIxcJPvxJNjJm+NaRx7LOqNA2J5sjfj9nuKxkKR7CEnvQjv6RFQGzeiUoed9oD1wVK07bdY+KlUNd3tpqo9xtU+EIeWg9PuicoH+ds6MyTwaBsYNieonIATIC0DdjM16d3gYC9PDmjL3M7r3mEKLzu6Jx33jHXNdMcNkMuAeujl0JEZeKB6ADhUo5Mx98zIsMFucKhAg2r2HN/PDKKbX5V14I5nEtXeiLSz521wK9nJHNgGtMo4i18Emn3LkRZcfT6vNLi8bdakIuyaOW/MCMYt0cxSmq0R1XWZf7ihkrPoaFvcSbiCQoCZ6jdF9sWxdNDLKVIM+vR6iVT8XH5ayvSia94v2UvRaiGRkz0uys+6b4Fj4EZ6lhnEvDgKaylTk7nhr5DjNfL4ybBaFCXxlNysXR5yTb0bVO8Yx/cUrNVfiYWpOpNuT2s4S/JXwME6RC+rqGDOiC6reoNjHA54f+lfgzgN3xb9JpM//TnuejbtOGD9+0usLgZT4NrSeX/EX74RVqxGNO6hAnzyTG5nVTRqqCVtLQRbZfmtYntITSWzJihJMraQ9JclAepl1nTzwybgeFTQ7+8D75u+6ZcGkV0DjQVoLnGgMWiy/NIYw5m0IncUp8mVpVkFwnfhGLV5iwnoO+AUUmcd0801j3YOahRYWcVi5lLfRWx1NMcw3UA8SGocVrHZ/LyPdmDb/jO2zonIPqXguOVDYhB2QTJS0YDBpS5xgB\"},{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"duplicate\\\",\\\"score\\\":0.6,\\\"owner\\\":\\\"existing\\\",\\\"why\\\":\\\"Partial overlap only. Both functions independently derive the same local-restart status from an UpdateEverythingRun and UpdateRunLocalState. The shared steps are: (1) the countdown check `phase === \\\\\\\"countdown\\\\\\\" && restartAt !== null` with seconds computed as `Math.max(0, Math.ceil((restartAt - now) / 1000))`; (2) the `installing` phase meaning a restart is in progress; (3) the downloading label with an optional `Math.floor(percent)%` suffix when percent is non-null. A small helper in updateEverything.logic.ts, such as `restartCountdownSeconds(run, now)` and `downloadingSuffix(local)`, or a function returning a structured local status, would own this policy. Callers would keep their own wording and casing (\\\\\\\"restarts in Ns\\\\\\\" vs \\\\\\\"Restart in Ns\\\\\\\"), tone and action fields, and the machine-based slow/failed/progress logic that only describeUpdateCapsule has. The overlap is small and the two outputs are formatted differently, so confidence is moderate.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":2196,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":2196,\"output_tokens\":686,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":686,\"output_tokens_details\":{\"thinking_tokens\":310},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "57dc8d23707d3c0fb2575d02cb3be3598968f0945c596cacd9661a4ebddfc972",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 2196,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2196,
+        "model": null,
+        "output_tokens": 686,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 686,
+    "output_tokens_details": {
+      "thinking_tokens": 310
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "duplicate",
+    "model_assessment": null,
+    "owner": "existing",
+    "score": 0.6,
+    "second_opinion": null,
+    "why": "Partial overlap only. Both functions independently derive the same local-restart status from an UpdateEverythingRun and UpdateRunLocalState. The shared steps are: (1) the countdown check `phase === \"countdown\" && restartAt !== null` with seconds computed as `Math.max(0, Math.ceil((restartAt - now) / 1000))`; (2) the `installing` phase meaning a restart is in progress; (3) the downloading label with an optional `Math.floor(percent)%` suffix when percent is non-null. A small helper in updateEverything.logic.ts, such as `restartCountdownSeconds(run, now)` and `downloadingSuffix(local)`, or a function returning a structured local status, would own this policy. Callers would keep their own wording and casing (\"restarts in Ns\" vs \"Restart in Ns\"), tone and action fields, and the machine-based slow/failed/progress logic that only describeUpdateCapsule has. The overlap is small and the two outputs are formatted differently, so confidence is moderate."
+  }
+}

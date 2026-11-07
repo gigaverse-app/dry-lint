@@ -1,0 +1,204 @@
+{
+  "actual_fresh_spend_usd": {
+    "round1": 0.2070306,
+    "round1_plus_round2": 0.7231298,
+    "round2_initial13": 0.09918588,
+    "round2_supplement48": 0.41691332,
+    "round2_total": 0.5160992
+  },
+  "canonical_report": "DECISION.md",
+  "combined_per_synthetic_batch_cap_usd": 0.04,
+  "coverage": {
+    "accepted_binary_rows": 584,
+    "all_inventory_rows": 617,
+    "cohorts": 79,
+    "complete_native_source_cohorts": 16,
+    "distinct_accepted_evaluated_records": 186,
+    "distinct_evaluated_records": 211,
+    "function_records": 613,
+    "model_records": 4,
+    "paired_record_profile_scope_rows": 1738,
+    "source_missing_cohorts": 63
+  },
+  "decision": "STOP_THIS_VARIANT",
+  "decision_scope": "Do not promote either tested joined reporting recipe; retain independently useful model-contract and scoped developer/test findings. No whole-field dead-end claim.",
+  "evidence_status": "Observed DEVELOPMENT/REGRESSION, no fresh holdout; original frozen comparisons unchanged",
+  "family_repository_clusters": 141,
+  "full_source_public_pins": 5,
+  "funding_unit": "Unique unordered function pair, funded in any supported exact background scope under normal synthetic budget. Candidate exposure is not report gain.",
+  "global_novel_family_credit": null,
+  "historical_paid_spend_separate_usd": {
+    "older_sealed_intake": 0.01911308,
+    "pilot": 0.044103
+  },
+  "initial_round2_precision_pairs": {
+    "all_pairs_baseline_funded": true,
+    "answers_received": 26,
+    "incremental_join_reports": 0,
+    "independent_source_cases": 7,
+    "pairs": 13,
+    "projected_emitting_pairs": 1,
+    "provider_requests": 26,
+    "reported_useful_test_case": "MF-FC-7e77ae1ff789",
+    "source_related_cases": 1,
+    "source_useful_scoped_cases": 6
+  },
+  "machine_label_policy": "Provider verdicts remain observations. Root accepted bounded source assessments stay separate from full-function gold; tests are not production duplication.",
+  "new_full_source_query_count": 2545,
+  "new_variants_or_provider_calls_authorized": false,
+  "original_model_only_curated_diagnostic": {
+    "comparison": "Direct model-only diagnostic; no causal function-join gain claim; cached canonical answers still charge normal estimates.",
+    "funded": 4,
+    "labels": {
+      "duplicate": 3,
+      "separate": 1
+    },
+    "labels_never_applied_to_function_gold": true,
+    "normal_estimated_usd": 0.06349785714285715,
+    "retrieved": 4,
+    "rows": 4,
+    "worker_provider_calls": 0
+  },
+  "original_normal_estimated_costs_usd": {
+    "laboratory-default": {
+      "function-only": 5.637087857142856,
+      "model-only": 3.167350714285714,
+      "protected-ownership-join": 6.679797142857143
+    },
+    "standalone-balanced-diagnostic": {
+      "function-only": 10.191105,
+      "model-only": 3.167350714285714,
+      "protected-ownership-join": 10.33111
+    }
+  },
+  "original_positive_opportunity_denominators": {
+    "join_eligible_already_baseline_funded": 1,
+    "no_distinct_shape_edge": 6,
+    "no_resolved_model_on_one_or_both_sides": 59,
+    "shared_canonical_model_no_distinct_shape_edge": 12
+  },
+  "profiles": [
+    {
+      "function_only_funded": {
+        "positive": 32,
+        "separate": 16
+      },
+      "original_join_funded": {
+        "positive": 32,
+        "separate": 17
+      },
+      "original_positive_retrieval_record_background_count": 39,
+      "positive_funding_gained_original": 0,
+      "positive_funding_gained_revised": 0,
+      "positive_funding_lost_original": 0,
+      "positive_funding_lost_revised": 0,
+      "positive_pairs": 78,
+      "profile": "laboratory-default",
+      "revised_join_funded": {
+        "positive": 32,
+        "separate": 16
+      },
+      "separate_pairs": 104
+    },
+    {
+      "function_only_funded": {
+        "positive": 58,
+        "separate": 39
+      },
+      "original_join_funded": {
+        "positive": 58,
+        "separate": 39
+      },
+      "original_positive_retrieval_record_background_count": 73,
+      "positive_funding_gained_original": 0,
+      "positive_funding_gained_revised": 0,
+      "positive_funding_lost_original": 0,
+      "positive_funding_lost_revised": 0,
+      "positive_pairs": 78,
+      "profile": "standalone-balanced-diagnostic",
+      "revised_join_funded": {
+        "positive": 58,
+        "separate": 39
+      },
+      "separate_pairs": 104
+    }
+  ],
+  "round1": {
+    "answered_pairs": 22,
+    "incremental_function_report_pairs": 0,
+    "model_only_projected_report_pairs": 2,
+    "paid_fresh_requests": 44,
+    "source_status": "One model contract source-accepted; second projected model report source review pending. Harness useful scoped lead has no policy emission.",
+    "source_useful_bounded_function_cases": 1,
+    "source_useful_model_contract_cases": 1,
+    "unknown_novel_pairs": 32
+  },
+  "runtime": {
+    "full_source_new_query_seconds": 41.500077279917605,
+    "full_source_peak_rss_kib": 628212,
+    "full_source_sparse_graph_replay_seconds": 4.9785718850034755,
+    "full_source_sparse_graph_replays": 5,
+    "full_source_successful_cohort_seconds": 105.04708537700208,
+    "isolated_incremental_overhead_benchmark": false,
+    "original_all_native_cohort_harness_seconds": 345.922378134,
+    "original_indexing_seconds": 8.353098986,
+    "original_peak_rss_kib": 2597596,
+    "original_querying_seconds": 29.985343727,
+    "revised_cached_static_seconds": 29.63165697
+  },
+  "schema": 1,
+  "supplement": {
+    "all_emitting_pairs_already_baseline_funded": true,
+    "answers_received": 96,
+    "canonical_duplicate_treatment_leads_below_report_threshold": [
+      {
+        "id": "MF-FC-2d5d9ed80d16",
+        "label": "duplicate",
+        "score": 0.5
+      },
+      {
+        "id": "MF-FC-540f9bcdc2b2",
+        "label": "duplicate",
+        "score": 0.6
+      },
+      {
+        "id": "MF-FC-a3eb127604e8",
+        "label": "duplicate",
+        "score": 0.5
+      },
+      {
+        "id": "MF-FC-69af0f526521",
+        "label": "duplicate",
+        "score": 0.5
+      }
+    ],
+    "canonical_treatment_labels": {
+      "duplicate": 4,
+      "separate": 14
+    },
+    "incremental_function_report_pairs": 0,
+    "novel": 36,
+    "pairs": 48,
+    "private_controls": 12,
+    "projected_emitting_pairs": 7,
+    "provider_requests": 96,
+    "source_review_pending_pairs": 48,
+    "treatment_first_loss_occurrences": {
+      "budget": 57,
+      "judge-separate": 18,
+      "report-threshold": 6
+    },
+    "true_treatment_only_pairs": 18,
+    "unknown_provider_answers": 0
+  },
+  "synthetic_costs_are_not_paid_spend_or_deployed_configuration": true,
+  "unknown_family_pairs": 20,
+  "unresolved": {
+    "global_novel_family_count": null,
+    "new_source_usefulness_of_18_treatment_only_pairs": null,
+    "round1_unanswered_novel_pairs": 32,
+    "round2_supplement_source_review_pending_pairs": 48,
+    "source_reviewed_false_positive_rate_for_supplement": null
+  },
+  "worker_provider_calls": 0
+}

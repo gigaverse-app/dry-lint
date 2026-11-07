@@ -1,0 +1,113 @@
+"""Query-length receipts: valid spans or exact frozen-body inference, never default1."""
+
+import hashlib
+
+
+def span_receipt(source, expected_sha256):
+    start = source.get("line", source.get("start_line"))
+    end = source.get("end_line")
+    code = source.get("code")
+    matched = False
+    if isinstance(code, str) and code:
+        for native in (code, code.rstrip("\r\n"), code.replace("\r\n", "\n").rstrip("\n")):
+            if hashlib.sha256(native.encode()).hexdigest() == expected_sha256:
+                code = native
+                matched = True
+                break
+    if isinstance(start, int) and isinstance(end, int) and start >= 1 and end >= start:
+        length = end - start + 1
+        if matched and length != len(code.splitlines()):
+            return dict(
+                lines=len(code.splitlines()),
+                start_line=None,
+                end_line=None,
+                provenance="inferred exact production snippet; supplied span inconsistent",
+                source_sha256=expected_sha256,
+            )
+        return dict(
+            lines=length,
+            start_line=start,
+            end_line=end,
+            provenance="explicit valid supplied span"
+            + (" and exact production body" if matched else "; source absolute span not independently re-extracted"),
+            source_sha256=expected_sha256,
+        )
+    if matched:
+        return dict(
+            lines=len(code.splitlines()),
+            start_line=None,
+            end_line=None,
+            provenance="inferred from exact frozen production body",
+            source_sha256=expected_sha256,
+        )
+    return dict(
+        lines=None,
+        start_line=None,
+        end_line=None,
+        provenance="unknown; no valid span or digest-matched production body",
+        source_sha256=expected_sha256,
+    )
+
+
+def sanitize_baseline(direction, mapped_row):
+    # Shared raw score/order remain authoritative; re-establish only size-dependent policy metadata.
+    fields = (
+        "row_id",
+        "cohort_id",
+        "query",
+        "target",
+        "query_side",
+        "target_side",
+        "raw_rank",
+        "score",
+        "top1",
+        "top3",
+        "top20",
+        "same_file",
+        "compatible_language_rank",
+        "cross_file_rank",
+        "query_position",
+        "target_position",
+        "query_source_sha256",
+        "target_source_sha256",
+    )
+    result = {k: direction.get(k) for k in fields}
+    side = direction.get("query_side", "new")
+    source = mapped_row.get("sources", {}).get(side, {})
+    proof = span_receipt(source, direction.get("query_source_sha256"))
+    result["query_span_receipt"] = proof
+    floor = (0.3 if proof["lines"] < 6 else 0.5) if proof["lines"] is not None else None
+    result["default_floor"] = floor
+    result["default_floor_known"] = floor is not None
+    result["default_retrieved"] = (
+        (
+            not direction.get("same_file", True)
+            and direction.get("cross_file_rank") is not None
+            and direction["cross_file_rank"] <= 3
+            and direction.get("score", 0) >= floor
+        )
+        if floor is not None
+        else None
+    )
+    compatible = direction.get("compatible_language_rank")
+    result["balanced_retrieved"] = compatible is not None and compatible <= 20 and direction.get("score", 0) >= 0.35
+    result["policy_status"] = "experimental diagnostic, not inferred deployment"
+    return result
+
+
+def test():
+    source = {"line": 0, "end_line": 0}
+    r = span_receipt(source, "x")
+    assert r["lines"] is None
+    code = "def f():\n    return 1\n"
+    digest = hashlib.sha256(code.encode()).hexdigest()
+    r = span_receipt(dict(source, code=code), digest)
+    assert r["lines"] == 2 and r["provenance"].startswith("inferred")
+    r = span_receipt(dict(line=10, end_line=11, code=code), digest)
+    assert r["lines"] == 2 and r["start_line"] == 10
+    assert span_receipt({"code": code}, "wrong")["lines"] is None
+    print("query span controls passed: missing0-0 unknown, exact-body inference, valid span, wrong digest abstains")
+
+
+if __name__ == "__main__":
+    test()

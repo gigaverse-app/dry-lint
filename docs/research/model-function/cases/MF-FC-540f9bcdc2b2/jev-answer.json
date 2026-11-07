@@ -1,0 +1,25 @@
+{
+  "actual_usd": 0.00011036,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "5127139eb084aff86d3b433a2cf448befb406d4946de8a73846e1de9d0b80c87",
+    "text": "{\"model\":\"jev-1.14.0\",\"answers\":{\"same_concept\":{\"type\":\"noul\",\"noul\":0.84},\"behaves_differently\":{\"type\":\"noul\",\"noul\":0.82},\"owner\":{\"type\":\"choice\",\"choice\":\"existing\",\"confidence\":0.41,\"probabilities\":{\"existing\":0.56,\"new\":0.06,\"shared\":0.24,\"none\":0.14}},\"separate_boundary\":{\"type\":\"noul\",\"noul\":0.08},\"reason\":{\"type\":\"choice\",\"choice\":\"portable\",\"confidence\":0.35,\"probabilities\":{\"portable\":0.44,\"platform\":0.01,\"delegates\":0.02,\"contract\":0.15,\"boilerplate\":0.0,\"different\":0.32,\"uncertain\":0.06}}},\"usage\":{\"input_tokens\":2759,\"output_tokens\":174}}"
+  },
+  "request_key": "66d0f1fe5e436a067c36666ddd3d9fe8bd090dfafaccc931f8ee41193bd31ab6",
+  "usage": {
+    "input_tokens": 2759,
+    "output_tokens": 174
+  },
+  "verdict": {
+    "behaves_differently": 0.82,
+    "judge": "jev",
+    "judge_version": "reuse-context-v3:jev-1.14.0",
+    "label": "drifted",
+    "model_assessment": null,
+    "owner": "existing",
+    "score": 0.84,
+    "second_opinion": null,
+    "why": "One portable domain concept can share an implementation; review behavior differences before moving it."
+  }
+}
