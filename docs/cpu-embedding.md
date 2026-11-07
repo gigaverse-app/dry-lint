@@ -55,6 +55,69 @@ weighted fields, split the body into chunks, or resolve called helpers. Exact co
 at most the configured number of eligible new parents. The normal scope, settling, budget and judging rules
 still apply. A vector cache saves inference; it cannot supply or authorize a judge's verdict.
 
+## What an embedding catches that TF-IDF misses
+
+TF-IDF compares *behaviour tokens*: the calls, attributes, literal keys and control flow a function uses. It drops
+docstrings, string literals and the function's own name, and weights rare call names heavily. Two functions that do
+the same job through different calls (a hand-written loop versus a shared helper) share few behaviour tokens. MiniLM
+reads the raw text of the first 256 wordpieces instead: names, parameter lists, docstrings and phrasing. It can rank
+such a pair highly, and for the same reason it also ranks same-domain functions that do different things.
+
+**Beyond the prefix (public, measured).** T3's desktop portal registration: `LinuxCaptureConnection.backend` and
+`PortalCaptureShortcut.initialize` both build the D-Bus request that registers the host application. Full-background
+TF-IDF ranks the pair first but at 0.305, under the 0.35 floor; the prefix embedding reaches 0.608, under 0.65,
+because the registration happens late in both functions. A complete-statement view of that code scores 0.834, and the
+native judge reports it at 0.72. See [tail recovery](cpu-tail-rrf.md).
+
+**Within the prefix (adopter repository, identifiers shortened).** A maintenance command re-implements the
+repository's provider retry policy as a hand-written loop:
+
+```python
+def _items_with_retry(service, key, batch_size, pacer=None):
+    """On a transient page error, restart the cursor scan and deduplicate IDs."""
+    seen_ids = set()
+    for attempt in range(RETRY_ATTEMPTS):
+        try:
+            for item in service.iter_items(key, batch_size=min(batch_size, 100),
+                                           before_request=pacer.wait if pacer else None):
+                if item.id not in seen_ids:
+                    seen_ids.add(item.id)
+                    yield item
+            return
+        except Exception as error:
+            if status_code(error) not in TRANSIENT_STATUSES or attempt == RETRY_ATTEMPTS - 1:
+                raise
+            time.sleep(max(BACKOFF * MULTIPLIER**attempt, retry_after_seconds(error)))
+
+def _inventory_keys(service, batch_size, pacer=None):
+    """List both provider groups, including records absent from the database."""
+    for group in GROUPS:
+        cursor = None
+        while True:
+            response = _retry(lambda: service.client.query(limit=min(batch_size, 100), next=cursor,
+                                                           filter={"group_id": group}),
+                              before_attempt=pacer.wait if pacer else None)
+            ...
+```
+
+| Partner of `_items_with_retry`, full 6,886-function background | TF-IDF | MiniLM prefix |
+| --- | ---: | ---: |
+| `_inventory_keys` (same file, already uses the shared `_retry`) | 0.330, under 0.35 | **0.691, rank 1** |
+| `_retry` (owner of the retry policy) | 0.256, rank 5 | 0.555, rank 49 |
+
+TF-IDF sees `sleep`, `max`, `status_code`, `iter_items` on one side and `_retry`, `query`, a lambda on the other. The
+embedding sees the same signature (`service, batch_size, pacer`), the same `min(batch_size, 100)` and
+`pacer.wait if pacer else None` phrasing, and provider-listing docstrings. The partner is useful because it shows the
+helper the loop should call. It is still a pointer to the duplicate, not the duplicate: the policy owner itself stays
+below the floor.
+
+**How often this happens.** On 32 recent pull requests of that adopter, the CPU profile added 553 candidates over
+TF-IDF and blocks (534 once caller/helper pairs are settled by rule). Source review of all 553 found this one
+borderline embedding-only case. Most added pairs were
+same-domain functions with different operations, caller/helper pairs (now settled by rule, see
+[design](design.md)), or functions whose real twin TF-IDF had already proposed. Measure on your own history before
+enabling the route.
+
 ## Install and configure
 
 `cpu-embedding` is an optional candidate comparer. It adds local MiniLM neighbours through the existing discovery

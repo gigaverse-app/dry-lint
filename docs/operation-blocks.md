@@ -12,7 +12,7 @@ declarations. See [choosing a comparer](discovery-comparers.md) for the configur
 ## Balanced activation and opt-out
 
 With `preset = "balanced"`, the default TF-IDF baseline now automatically explores its usual 20 neighbours
-at a 0.35 floor, then adds at most one previously unseen `operation-blocks:2` pair per changed query. The
+at a 0.35 floor, then adds at most one previously unseen `operation-blocks:3` pair per changed query. The
 block route supports Python functions only. Both complete native functions reach the existing Haiku
 shared-operations judge; reporting thresholds and the cumulative $0.04 PR budget are unchanged.
 
@@ -72,6 +72,51 @@ Contrast two wrappers that both already call `make_packet`: they share an implem
 functions that both log, loop and close something but apply different ownership or cancellation rules. Shared
 syntax is insufficient; the judge must inspect the actual contracts and existing helper ownership.
 
+## An example from an adopter repository
+
+Adapted from a private Python adopter; identifiers are shortened and unrelated lines elided. A 71-line projection
+method inlines "delete the activity, treat not-found as success" in one branch, while the same class already has a
+helper for exactly that:
+
+```python
+def sync_projection(self, event, *, withdrawn=False, snapshot=None):  # 71 lines in total
+    ...  # read the activity, compute audience and tags, add or update it
+    if withdrawn:
+        try:
+            self.client.feeds.delete_activity(id=activity_id_for(event.id))
+        except Exception as error:
+            if not self._is_activity_not_found(error):
+                raise FeedException("Could not remove event activity") from error
+        return
+    ...
+
+def _delete_activity_tolerating_absence(self, owner, activity_id, *, operation):  # 20 lines
+    try:
+        self.client.feeds.delete_activity(id=activity_id)
+    except Exception as error:
+        if self._is_activity_not_found(error):
+            logger.info("Activity feed item was already absent", extra={...})
+            return
+        capture_exception(error)
+        raise FeedException(f"... {activity_id} ...") from error
+```
+
+| Route, full 7,189-function background | Score | Rank for the query | Outcome |
+| --- | ---: | ---: | --- |
+| TF-IDF, whole functions | 0.254 | 26 | below the 0.35 exploration floor |
+| MiniLM prefix, whole functions | 0.553 | 247 | below the 0.65 floor |
+| Operation blocks, best region pair | **0.712** | 1 | shared `delete_activity`, `_is_activity_not_found`, `client.feeds`, `id` |
+
+The duplicated operation is six lines of a 71-line function, so both whole-function representations are dominated
+by the other 65. Comparing complete regions isolates it. The fix this pair suggests is concrete: call the existing
+helper (and decide whether its log line and error message should now apply to this branch).
+
+What blocks used to get wrong on the same repository: three near-identical "start a session" views share a
+community-lookup → 404 → permission prologue with about 45 other views. TF-IDF already paired the three views with
+each other (0.955–0.961), so the block route's one unseen slot went to the prologue — and, with every holder of that
+prologue scoring 1.0, to the alphabetically first view, an unrelated moderation endpoint. Steps 6 and 7 below remove
+both effects: the prologue is an idiom (family > 8, whole functions below 0.5), and ties prefer the closest function.
+
 ## What the comparer does
 
 ```text
@@ -103,12 +148,20 @@ Changed full function  -> complete syntax regions -> rare operation anchors
    Its independently capped postings preserve the original route and scores. The fallback has at most 13
    regions, 6,656 posting visits and 10,816 region comparisons. Scores and ties are deterministic.
    The returned Candidate preserves both native functions, signatures, documentation, coordinates and context.
+6. **Idioms do not pick partners.** When the two whole functions score below TF-IDF's default floor (0.5), the
+   region is the pair's only evidence. Then a matched operation that more than eight indexed functions hold is a
+   codebase idiom, not one duplicate, and cannot win; a rarer region of the same pair still can. Above that floor
+   (copies and siblings) the family size does not matter.
+7. **The closest sibling wins ties.** Identical regions all score 1.0, so equal region scores rank by
+   whole-function similarity before name order. The partner an agent sees is the function most like the query,
+   not the alphabetically first holder of the operation.
 
 The implementation is [`operation_blocks.py`](../src/dry_lint/operation_blocks.py); exact frequency and tie
 rules are also documented in the [plugin contract](plugins.md#bounded-python-operation-blocks). These bounds
 make work predictable, but they also create misses: a useful operation may be too small, occur after the first
 12 regions, use different call names or lack a rare anchor. A zero block score does not establish different
-behavior. The comparer identity is `operation-blocks:2`, and its score does not permit changed-code verdict reuse.
+behavior. The comparer identity is `operation-blocks:3` (steps 6–7 changed ranking), and its score does not
+permit changed-code verdict reuse.
 
 ## Why the complete-helper fallback matters
 

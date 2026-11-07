@@ -137,7 +137,7 @@ Start with the [worked operation-block example](operation-blocks.md) for why thi
 a larger workflow, when to use it, and the measured limits. The [comparer selection guide](discovery-comparers.md)
 explains route ordering and how to run a fair repository trial. This section specifies the plugin contract.
 
-`operation-blocks:2` retrieves complete native Python functions by shared operation regions. It supports Python
+`operation-blocks:3` retrieves complete native Python functions by shared operation regions. It supports Python
 functions with parseable source and valid source coordinates, not model declarations or other languages. Candidates
 retain their complete signature, documentation, source, hashes and context. Region cosine is a retrieval score,
 not a duplication verdict, and cannot authorize reuse of stored verdicts.
