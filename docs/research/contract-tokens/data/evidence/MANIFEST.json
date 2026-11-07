@@ -1,0 +1,38 @@
+{
+  "canonical_report": "README.md",
+  "decision": "STOP_THIS_VARIANT",
+  "files": {
+    "README.md": {
+      "bytes": 5573,
+      "sha256": "41e783a80c70d7189c1a821530876948e3e561c0f7a14720ed5438fee1c2af28"
+    },
+    "final-source-decision.json": {
+      "bytes": 7303,
+      "sha256": "c8d045be5f75830419710a5d0da518c3182b191eb70d5f8f90d4f4b9ed90ef7d"
+    },
+    "original-metrics.json": {
+      "bytes": 9971,
+      "sha256": "c3ca80e4c251829d9844c527c88dc467e4efd8e836f20cfc7a5812c4b4184a6a"
+    },
+    "revised-metrics.json": {
+      "bytes": 7564,
+      "sha256": "18cf21e18b96b39c1534c0410478e5d065c3505bafc9f33b46b97b33a16021e1"
+    },
+    "verify_evidence.py": {
+      "bytes": 2593,
+      "sha256": "25101669559737e455ee011b78fdbf7a03e3cbd3cd72ace0082e6c53d4a59ff1"
+    }
+  },
+  "frozen_data_changes": 0,
+  "frozen_machine_artifacts_preserved": 658,
+  "primary_outcome": "No substantial useful added report; one minor existing-helper reuse and one unchanged false baseline control retained.",
+  "publication": "Public-safe portable capsule; root owns integration; no commits or push",
+  "report_and_machine_bytes": 33004,
+  "schema": 1,
+  "source_cases_verified": 7,
+  "source_regions_verified": 14,
+  "status": "FINAL_CONTRACT_TOKENS_HANDOFF",
+  "unresolved": "23unstarted novel pairs/4unstarted controls, unreviewed nonemitting candidates, round1 extra attribution ledger binding, actual PR report recall and production overhead remain explicit.",
+  "verification_command": "python3 verify_evidence.py",
+  "worker_provider_calls": 0
+}
