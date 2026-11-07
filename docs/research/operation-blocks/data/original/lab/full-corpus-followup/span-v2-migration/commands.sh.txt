@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2
+python_task=LAB_ROOT/retrieval/.venv/bin/python
+root_task=.lab-results/full-corpus-followup
+# Existing exact fits are reused; only absent newly routed backgrounds get first fits.
+"$python_task" "$root_task/migrate.py"
+"$python_task" "$root_task/coordinate_audit.py"
+"$python_task" "$root_task/derive_v2.py"
+# Sealed intake only: reads observations, never calls providers.
+"$python_task" "$root_task/intake_outcomes.py"
+"$python_task" "$root_task/all_profile_intake.py"

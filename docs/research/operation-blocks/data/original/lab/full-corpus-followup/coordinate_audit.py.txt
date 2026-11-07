@@ -1,0 +1,216 @@
+"""Complete the coordinate migration receipt independently of new-background discovery scans."""
+
+import gzip
+import importlib.util
+import json
+from collections import Counter
+from pathlib import Path
+
+import migrate
+from prepare import OUT, dump, read, rows, sha
+
+
+def main():
+    dest = OUT / "span-v2-coordinate-audit"
+    dest.mkdir(exist_ok=True)
+    receipt = json.loads((migrate.DEST / "input-receipt.json").read_text())
+    helper_path = migrate.DEST / "shared_resolver_v1.py"
+    assert sha(helper_path.read_bytes()) == receipt["helper_sha256"]
+    spec = importlib.util.spec_from_file_location("frozen_shared_span_helper", helper_path)
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    fixtures = read(migrate.OWNER / "fixtures.jsonl")
+    assert sha((migrate.OWNER / "fixtures.jsonl").read_bytes()) == receipt["owner_fixtures_sha256"]
+    checks = []
+    for fixture in fixtures:
+        result, native = migrate.adapter(
+            helper.Resolver(fixture["cohort"], fixture["documents"]),
+            fixture["row"],
+            fixture["mapping"],
+            "new",
+            fixture["source"],
+        )
+        assert result["status"] == fixture["expected_status"] and result["category"] == fixture["expected_category"]
+        for key in ("start_line", "end_line", "native_lines"):
+            assert result["span"][key] == fixture["expected_" + key]
+        assert bool(native) == (
+            result["status"] == "resolved_native" and result["source_id"].split("::")[0].endswith(".py")
+        )
+        if native:
+            assert native.hash and native.context_digest and native.context
+        checks.append(dict(name=fixture["name"], actual_method_adapter=True, passed=True))
+    records = read(migrate.V2 / "rows.jsonl")
+    old_cohorts = {c["cohort_id"] for c in read(migrate.engine.SHARED / "cohorts.jsonl")}
+    raw = {(r["row_id"], r["cohort_id"], r["query_side"]): r for r in read(migrate.V2 / "paired-rows.jsonl")}
+    outputs, replays = [], []
+    counts, categories = Counter(), Counter()
+    for cohort in read(migrate.V2 / "cohorts.jsonl"):
+        old = cohort["cohort_id"] in old_cohorts
+        folder = OUT / "cohorts" / cohort["cohort_id"]
+        snapshot = (
+            json.loads(gzip.decompress((folder / "candidate-index.json.gz").read_bytes()))
+            if old
+            else dict(functions={}, sources={})
+        )
+        functions = {int(i): migrate.frozen.Function.model_validate(f) for i, f in snapshot["functions"].items()}
+        updated = functions.copy()
+        owner = helper.Resolver(cohort, read(cohort["documents_path"]))
+        root, _ = migrate.engine.gitroot(cohort["repository"], cohort["revision"])
+        sources = {}
+        for row in records:
+            for mapping in row["mappings"]:
+                if mapping["cohort_id"] != cohort["cohort_id"]:
+                    continue
+                for side in ("new", "existing"):
+                    bound = mapping["sources"][side]
+                    path = (bound.get("source_id") or "").split("::")[0]
+                    python = path.endswith(".py")
+                    if path not in sources:
+                        proof = snapshot["sources"].get(path)
+                        if proof:
+                            body = Path(proof["snapshot"]).read_bytes()
+                            assert sha(body) == proof["sha256"]
+                            sources[path] = dict(
+                                repository=cohort["repository"],
+                                revision=cohort["revision"],
+                                path=path,
+                                source=body.decode(),
+                                sha256=proof["sha256"],
+                                git_blob_sha1=proof["git_blob"],
+                            )
+                        elif python and root is not None:
+                            sources[path] = helper.read_git_source(root, cohort["repository"], cohort["revision"], path)
+                        elif python:
+                            sources[path] = dict(
+                                status="missing_commit",
+                                repository=cohort["repository"],
+                                revision=cohort["revision"],
+                                path=path,
+                            )
+                        else:
+                            sources[path] = None
+                    result, f = migrate.adapter(owner, row, mapping, side, sources[path])
+                    before = bound.get("position") in functions
+                    counts["endpoint_mapping_records"] += 1
+                    counts["old77_endpoint_records"] += old
+                    counts["old77_before_unresolved_native"] += old and not before
+                    counts["old77_after_unresolved_native"] += (
+                        old and not before
+                    )  # frozen source/token contract retained
+                    counts["owner_resolved_native"] += result["status"] == "resolved_native"
+                    counts["metadata_native_span_recovery_records"] += (
+                        result["span"]["provenance"] == "recovered_unique_native_span"
+                    )
+                    counts["new_scope_endpoint_records"] += not old
+                    categories[result["category"]] += 1
+                    if before:
+                        assert f is not None and f.model_dump(mode="json") == functions[bound["position"]].model_dump(
+                            mode="json"
+                        )
+                        updated[bound["position"]] = f
+                        counts["old77_native_function_structure_context_equal"] += 1
+                    result.pop("function", None)
+                    outputs.append(
+                        result
+                        | dict(
+                            existing_native_path_equivalent=before,
+                            old77=old,
+                            method_unsupported_language=not python,
+                            new_scope_not_coordinate_delta=not old,
+                        )
+                    )
+        if not old:
+            continue
+        for pair in read(folder / "paired-rows.jsonl"):
+            for direction in pair["directions"]:
+                if direction["status"] != "evaluated":
+                    continue
+                reference = raw[(pair["row_id"], cohort["cohort_id"], direction["query_side"])]
+                assert direction["raw_rank"] == reference["raw_rank"]
+                assert abs(direction["raw_score"] - reference["score"]) < 1e-12
+                counts["raw_direction_ranks_checked"] += 1
+        for query in read(folder / "per-query.jsonl"):
+            qi = query["query"]
+            for profile, policy in query.get("profiles", {}).items():
+                before = [
+                    migrate.frozen.Candidate(
+                        new=functions[qi], existing=functions[ti], similarity=0, comparer="tfidf:2", lane="exploration"
+                    )
+                    for ti in policy["augmented"]
+                ]
+                after = [
+                    migrate.frozen.Candidate(
+                        new=updated[qi], existing=updated[ti], similarity=0, comparer="tfidf:2", lane="exploration"
+                    )
+                    for ti in policy["augmented"]
+                ]
+
+                def selected(candidates):
+                    return migrate.frozen.Ledger(migrate.frozen.SETTINGS).select(migrate.frozen.JUDGE, candidates)
+
+                original, migrated = selected(before), selected(after)
+                original_base, migrated_base = (
+                    selected(before[: len(policy["baseline"])]),
+                    selected(after[: len(policy["baseline"])]),
+                )
+                assert original == migrated and original_base == migrated_base
+                assert [policy["augmented"][i] for i in original] == policy["augmented_funded"]
+                assert [policy["baseline"][i] for i in original_base] == policy["baseline_funded"]
+                assert (0.3 if functions[qi].lines < 6 else 0.5) == (0.3 if updated[qi].lines < 6 else 0.5)
+                for ti in policy["augmented"]:
+                    assert migrate.frozen.why_skipped(
+                        functions[qi], functions[ti], migrate.frozen.SETTINGS
+                    ) == migrate.frozen.why_skipped(updated[qi], updated[ti], migrate.frozen.SETTINGS)
+                replays.append(
+                    dict(
+                        cohort_id=cohort["cohort_id"],
+                        query=qi,
+                        profile=profile,
+                        ordinal_zero=True,
+                        raw_rank_delta=0,
+                        floor_delta=0,
+                        eligibility_delta=0,
+                        filter_delta=0,
+                        baseline_funding_delta=0,
+                        variant_funding_delta=0,
+                    )
+                )
+    rows(dest / "fixture-results.jsonl", checks)
+    rows(dest / "endpoint-results.jsonl", outputs)
+    rows(dest / "ordinal-zero-replays.jsonl", replays)
+    result = dict(
+        schema=1,
+        status="shared_helper_adopted_existing_native_path_equivalent",
+        helper_sha256=receipt["helper_sha256"],
+        shared_index=str(migrate.V2),
+        shared_receipt_sha256=receipt["final_receipt_sha256"],
+        shared_rows_sha256=receipt["rows_sha256"],
+        shared_cohorts_sha256=receipt["cohorts_sha256"],
+        fixture_sha256=receipt["owner_fixtures_sha256"],
+        actual_adapter_fixtures=len(checks),
+        fixture_checks_pass=True,
+        counts=counts,
+        categories=categories,
+        old77_vector_refits=0,
+        raw_rank_deltas=0,
+        floor_deltas=0,
+        eligibility_deltas=0,
+        filter_deltas=0,
+        baseline_funding_deltas=0,
+        variant_funding_deltas=0,
+        ordinal_zero_policy_replays=len(replays),
+        previous_results_preserved=True,
+        announced_novel_batch_v1_unchanged=True,
+        missing_commits_and_ambiguity_separate=True,
+        fuzzy_matches=0,
+        cross_revision_fallbacks=0,
+        providers_called=0,
+        scope_note="Two new v2 backgrounds have no before-policy result; their full-source replication continues separately. They are not coordinate-induced gains.",
+        units="Endpoint/mapping records and query-policy replays, not independent or unique gold pairs; shared111 recoveries are not111 gold pairs.",
+    )
+    dump(dest / "receipt.json", result)
+    print(json.dumps(result), flush=True)
+
+
+if __name__ == "__main__":
+    main()

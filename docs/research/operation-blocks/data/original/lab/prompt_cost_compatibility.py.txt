@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""Post-registration cost compatibility only. Frozen retrieval pools/order unchanged."""
+
+import gzip
+import json
+from types import SimpleNamespace
+
+from operation_blocks import HERE, SETTINGS, Candidate, Function, Ledger, dump, estimate, readrows, rows
+
+
+def main():
+    old_judge = SimpleNamespace(name="anthropic", model="claude-sonnet-5-5", prompt_policy="concept")
+    compatible = SimpleNamespace(
+        name="anthropic-operations", model="claude-sonnet-5-5", prompt_policy="shared-operations"
+    )
+    maps, output, summaries = {}, [], []
+    for name in ["litellm", "openhands"]:
+        out = HERE / name
+        snapshot = json.loads(gzip.decompress((out / "candidate-index.json.gz").read_bytes()))
+        repo = json.loads((out / "summary.json").read_text())["repository"]
+        functions = {int(i): Function.model_validate(f) for i, f in snapshot["functions"].items()}
+        qs = readrows(out / "per-query.jsonl")
+        for q in qs:
+            scores = {x["position"]: x["score"] for x in [*q["raw_top20"], *q["raw_cross_top3"]]}
+            for profile, p in q["profiles"].items():
+                if p["extra"]:
+                    scores[p["extra"]["target"]] = p["extra"]["full_score"]
+                candidates = [
+                    Candidate(
+                        new=functions[q["query"]],
+                        existing=functions[ti],
+                        comparer="tfidf:2",
+                        lane="exploration",
+                        similarity=scores[ti],
+                    )
+                    for ti in p["with_block"]
+                ]
+                baseline = candidates[: len(p["baseline"])]
+                old_base = Ledger(SETTINGS).select(old_judge, baseline)
+                old_variant = Ledger(SETTINGS).select(old_judge, candidates)
+                assert [p["baseline"][i] for i in old_base] == p["baseline_funded"]
+                assert [p["with_block"][i] for i in old_variant] == p["with_block_funded"]
+                assert (
+                    estimate(old_judge, [candidates[i] for i in old_variant], SETTINGS) == p["with_block_estimated_usd"]
+                )
+                base = Ledger(SETTINGS).select(compatible, baseline)
+                variant = Ledger(SETTINGS).select(compatible, candidates)
+                base_targets, targets = [p["baseline"][i] for i in base], [p["with_block"][i] for i in variant]
+                assert set(base_targets) <= set(targets)
+                item = dict(
+                    repository=repo,
+                    query=q["query"],
+                    query_id=q["query_id"],
+                    profile=profile,
+                    fixed_baseline_pool=p["baseline"],
+                    fixed_variant_pool=p["with_block"],
+                    registered_concept_baseline_funded=p["baseline_funded"],
+                    registered_concept_variant_funded=p["with_block_funded"],
+                    post_registration_sharedops_baseline_funded=base_targets,
+                    post_registration_sharedops_variant_funded=targets,
+                    registered_concept_estimated_usd=p["with_block_estimated_usd"],
+                    post_registration_sharedops_estimated_usd=estimate(
+                        compatible, [candidates[i] for i in variant], SETTINGS
+                    ),
+                    extra_exposed=p["extra"] is not None,
+                    registered_concept_extra_funded=p["extra_funded"],
+                    post_registration_sharedops_extra_funded=bool(p["extra"] and p["extra"]["target"] in targets),
+                )
+                output.append(item)
+                for ti, c in zip(p["with_block"], candidates, strict=True):
+                    maps[(repo, q["query"], ti, profile)] = dict(
+                        sharedops_funded=ti in targets,
+                        concept_funded=ti in p["with_block_funded"],
+                        candidate=c.model_dump(mode="json"),
+                        concept_estimated_usd=estimate(old_judge, [c], SETTINGS),
+                        sharedops_estimated_usd=estimate(compatible, [c], SETTINGS),
+                    )
+        for profile in ["default3", "default_plus_current20"]:
+            group = [r for r in output if r["repository"] == repo and r["profile"] == profile]
+            summaries.append(
+                dict(
+                    repository=repo,
+                    profile=profile,
+                    queries=len(group),
+                    same_fixed_pools_and_order=True,
+                    registered_concept_baseline_funded=sum(len(r["registered_concept_baseline_funded"]) for r in group),
+                    sharedops_baseline_funded=sum(len(r["post_registration_sharedops_baseline_funded"]) for r in group),
+                    registered_concept_extra_funded=sum(r["registered_concept_extra_funded"] for r in group),
+                    sharedops_extra_funded=sum(r["post_registration_sharedops_extra_funded"] for r in group),
+                    baseline_preserved_within_compatible_paired_arm=True,
+                    sharedops_estimated_aggregate_usd=sum(
+                        r["post_registration_sharedops_estimated_usd"] for r in group
+                    ),
+                )
+            )
+    queue = {r["id"]: r for r in readrows(HERE / "novel-review-queue.jsonl")}
+    checked = []
+    for sidecar in readrows(HERE / "review-private-sidecar.jsonl"):
+        p = queue[sidecar["id"]]
+        match = maps[(p["repository"], sidecar["query"], sidecar["target"], sidecar["profile"])]
+        assert p["candidate"] == match["candidate"]
+        assert match["concept_funded"]
+        checked.append(
+            dict(
+                id=sidecar["id"],
+                role=sidecar["role"],
+                profile=sidecar["profile"],
+                repository=p["repository"],
+                concept_funded=True,
+                sharedops_funded=match["sharedops_funded"],
+                concept_estimated_usd=match["concept_estimated_usd"],
+                sharedops_estimated_usd=match["sharedops_estimated_usd"],
+            )
+        )
+    rows(HERE / "prompt-cost-compatibility-per-query.jsonl", output)
+    rows(HERE / "prompt-cost-compatibility-queue.jsonl", checked)
+    dump(
+        HERE / "prompt-cost-compatibility-summary.json",
+        dict(
+            explicitly_post_registration=True,
+            reason="Coordinator identified concept funding versus shared-operations observation policy mismatch",
+            original_registered_diagnostic_unchanged=True,
+            retrieval_pools_order_parameters_threshold_unchanged=True,
+            budget_usd=0.04,
+            ledger="production Ledger and estimate; shared-operations text, Sonnet model, same 150-token answer estimate",
+            actual_central_output_cap=1024,
+            answer_estimate_is_not_physical_reservation=True,
+            not_an_end_to_end_arm=True,
+            no_provider_calls=True,
+            by_repo_profile=summaries,
+            queued_pairs=checked,
+            queued_novel_remaining_funded=dict(
+                numerator=sum(r["sharedops_funded"] for r in checked if r["role"] == "novel_block_extra"), denominator=8
+            ),
+            queued_control_remaining_funded=dict(
+                numerator=sum(r["sharedops_funded"] for r in checked if r["role"] == "matched_funded_baseline_control"),
+                denominator=4,
+            ),
+        ),
+    )
+    print(
+        json.dumps(
+            dict(
+                queued_novel_remaining_funded=sum(
+                    r["sharedops_funded"] for r in checked if r["role"] == "novel_block_extra"
+                ),
+                queued_control_remaining_funded=sum(
+                    r["sharedops_funded"] for r in checked if r["role"] == "matched_funded_baseline_control"
+                ),
+                queued_pairs=checked,
+            )
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

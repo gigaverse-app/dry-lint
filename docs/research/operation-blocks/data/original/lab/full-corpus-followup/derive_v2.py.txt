@@ -1,0 +1,177 @@
+"""Derive separately named 79-cohort outputs, reusing every immutable old fit."""
+
+import importlib.util
+import json
+
+import audit_spans
+import migrate
+import summarize
+from prepare import OUT, dump, read, rows, sha
+
+_spec = importlib.util.spec_from_file_location("full_corpus_source_validator", OUT / "validate.py")
+validate = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(validate)
+
+
+def first_loss(direction, query, profile):
+    target = direction["target"]
+    policy = query["profiles"][profile]
+    if target in policy["baseline"]:
+        return "funded" if target in policy["baseline_funded"] else "budget"
+    if profile == "default3" and direction["same_file"]:
+        return "same_file"
+    raw_ids = (
+        query["raw"]["default3"] if profile == "default3" else query["raw"]["default3"] + query["raw"]["current20"]
+    )
+    if target in raw_ids and direction["filter"]:
+        return "pair_filter"
+    default_floor = direction["query_size_floor"]
+    if profile == "default3":
+        below = direction["raw_score"] < default_floor
+    else:
+        # Protected small-query defaults can be funded below the standalone .35 exploration floor.
+        below = direction["raw_score"] < 0.35 and (direction["same_file"] or direction["raw_score"] < default_floor)
+    return "floor" if below else "top_k"
+
+
+def main():
+    dest = migrate.DEST
+    assert (dest / "receipt.json").exists(), "Finish shared-helper migration and both new cohorts first"
+    for cohort in read(migrate.engine.SHARED / "cohorts.jsonl"):
+        link = dest / "cohorts" / cohort["cohort_id"]
+        if not link.exists():
+            link.symlink_to(OUT / "cohorts" / cohort["cohort_id"], target_is_directory=True)
+    for name in (
+        "pilot-preservation.json",
+        "novel-review-queue.jsonl",
+        "blind-review-packets.jsonl",
+        "review-private-sidecar.jsonl",
+        "review-batches",
+    ):
+        link = dest / name
+        if not link.exists():
+            link.symlink_to(OUT / name, target_is_directory=(OUT / name).is_dir())
+    audit_spans.OUT, audit_spans.SHARED = dest, migrate.V2
+    audit_spans.main()
+    summarize.OUT, summarize.SHARED = dest, migrate.V2
+    summarize.RECORDS.clear()
+    summarize.main()
+    paired = read(dest / "paired-rows.jsonl")
+    grouped = {}
+    for pair in paired:
+        if pair["cohort_id"]:
+            grouped.setdefault(pair["cohort_id"], []).append(pair)
+    annotation_changes = []
+    for cohort_id, pairs in grouped.items():
+        queries = {q["query"]: q for q in read(dest / "cohorts" / cohort_id / "per-query.jsonl") if "profiles" in q}
+        for pair in pairs:
+            for direction in pair["directions"]:
+                if direction["status"] != "evaluated":
+                    continue
+                query = queries[direction["query"]]
+                for profile in summarize.PROFILES:
+                    previous = direction[profile]["first_loss"]
+                    derived = first_loss(direction, query, profile)
+                    direction[profile]["first_loss_before_annotation_audit"] = previous
+                    direction[profile]["first_loss"] = derived
+                    if previous != derived:
+                        annotation_changes.append(
+                            dict(
+                                row_id=pair["row_id"],
+                                cohort_id=cohort_id,
+                                query_side=direction["query_side"],
+                                profile=profile,
+                                previous=previous,
+                                derived=derived,
+                            )
+                        )
+    rows(dest / "paired-rows.jsonl", paired)
+    rows(dest / "first-loss-annotation-corrections.jsonl", annotation_changes)
+    # Verify the two annotation errors without changing the frozen method or a candidate/funding list.
+    example = dict(target=1, same_file=False, filter=None, query_size_floor=0.3, raw_score=0.32)
+    query = dict(
+        raw=dict(default3=[1], current20=[]),
+        profiles=dict(default_plus_current20=dict(baseline=[1], baseline_funded=[1])),
+    )
+    assert first_loss(example, query, "default_plus_current20") == "funded"
+    example = dict(target=1, same_file=False, filter="convention", query_size_floor=0.5, raw_score=0.1)
+    query = dict(raw=dict(default3=[], current20=[]), profiles=dict(default3=dict(baseline=[], baseline_funded=[])))
+    assert first_loss(example, query, "default3") == "floor"
+    summary = json.loads((dest / "paired-summary.json").read_text())
+    for entry in summary["summaries"]:
+        group = [
+            p
+            for p in paired
+            if str(p["label"]) == entry["label"]
+            and (entry["cohort_id"] == "ALL_COHORTS_SEPARATE_FITS" or p["cohort_id"] == entry["cohort_id"])
+        ]
+        entry.update(summarize.metrics(group))
+    summary.update(
+        shared_resolver_receipt=str(dest / "receipt.json"),
+        coordinate_audit=str(OUT / "span-v2-coordinate-audit/receipt.json"),
+        first_loss_annotation_corrections=len(annotation_changes),
+        actual_floor_threshold_deltas=0,
+        annotation_note="Audit puts actual baseline/funding membership before lane-loss labels, and filters only proposed targets. Candidate lists, ranks, floors and funding are unchanged.",
+    )
+    dump(dest / "paired-summary.json", summary)
+    families = []
+    for item in read(dest / "per-family-paired.jsonl"):
+        group = [
+            p
+            for p in paired
+            if (p["cohort_id"], p["label"], p["family_id"]) == (item["cohort_id"], item["label"], item["family_id"])
+        ]
+        item.update(summarize.metrics(group))
+        families.append(item)
+    rows(dest / "per-family-paired.jsonl", families)
+    validation_path = dest / "full-validation.json"
+    if validation_path.exists():
+        current_validation = json.loads(validation_path.read_text())
+        assert current_validation["all_pass"] and current_validation["cohorts"] == 79
+    else:
+        validate.OUT, validate.SHARED = dest, migrate.V2
+        old_ids = {r["cohort_id"] for r in read(migrate.engine.SHARED / "cohorts.jsonl")}
+        new_cohorts = [r for r in read(migrate.V2 / "cohorts.jsonl") if r["cohort_id"] not in old_ids]
+        original_read = validate.read
+        validate.read = lambda path: new_cohorts if path == migrate.V2 / "cohorts.jsonl" else original_read(path)
+        validate.main()
+        extra = json.loads(validation_path.read_text())
+        dump(dest / "new-cohorts-full-validation.json", extra)
+        prior = json.loads((OUT / "full-validation.json").read_text())
+        combined = dict(prior, cohorts=79, cohort_checks=prior["cohort_checks"] + extra["cohort_checks"])
+        for key in ("total_source_regions", "total_queries", "total_frozen_scorer_comparisons"):
+            combined[key] = prior[key] + extra[key]
+        combined["original77_validation_reused_sha256"] = sha((OUT / "full-validation.json").read_bytes())
+        combined["new2_validation_sha256"] = sha((dest / "new-cohorts-full-validation.json").read_bytes())
+        dump(validation_path, combined)
+    coverage = json.loads((dest / "coverage.json").read_text())
+    compact = dict(
+        status="79_exact_cohorts_assessed_shared_helper_adopted",
+        shared_index=str(migrate.V2),
+        helper_sha256=json.loads((dest / "receipt.json").read_text())["helper_sha256"],
+        accepted_function_denominators=coverage["accepted_function_denominators"],
+        original77_refits=0,
+        new_exact_background_fits=2,
+        coordinate_policy_deltas=0,
+        first_loss_annotation_corrections=len(annotation_changes),
+        first_loss_annotation_fixture_checks=2,
+        frozen_initial_queue_sha256=sha((OUT / "novel-review-queue.jsonl").read_bytes()),
+        old_outputs_preserved=True,
+        provider_calls=0,
+        external_remaining="Root provider/source review of frozen v1; remaining exact source/scope/language exceptions remain explicit.",
+    )
+    dump(dest / "HANDOFF.json", compact)
+    (dest / "REPORT.txt").write_text(
+        "Full-corpus version2 and shared-span migration\n\n"
+        + json.dumps(compact, indent=2, sort_keys=True)
+        + "\n\nOld77 results and announced v1 queue remain unchanged. No old representation refits. New exact backgrounds are distinct fits, not a union. "
+        "The native path agrees with the shared helper including structure/context and ordinal-zero funding. "
+        "Metadata span recoveries are records, not independent gold pairs. All seen data remains development/regression. "
+        "First-loss annotations were corrected separately without changing retrieval/funding. "
+        "Novel reserves are unknown pending root provider observations and independent source review; no Jev cutoff defines truth.\n"
+    )
+    print(json.dumps(compact), flush=True)
+
+
+if __name__ == "__main__":
+    main()

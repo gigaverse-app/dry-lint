@@ -1,0 +1,26 @@
+{
+  "status": "READY",
+  "method": "operation-blocks",
+  "proposed_branch": "research/study-operation-blocks",
+  "destination": "docs/research/operation-blocks/",
+  "source_directory": "/home/researcher/dry-lint-round/jobs/publish-retrieval-judges/.lab-results/publications/operation-blocks",
+  "pr_title": "PR-title.txt",
+  "pr_body": "PR-body.md",
+  "root_owns_push_and_pr_creation": true,
+  "validation": "VALIDATION.json",
+  "checks": [
+    "clean-copy recorded-source/report replay",
+    "clean-copy original selected algorithm",
+    "clean-copy archive restoration and explicit result export",
+    "links, exact spans, hashes, secret patterns including gzip",
+    "original experiment hashes unchanged",
+    "private historical repository/revision/background identifier scan"
+  ],
+  "scope": "Four selected cases; original selected algorithm; full evaluation programs and external input contract. Full corpus ranking not reproduced.",
+  "native_dependency": "Python standard library only",
+  "provider_calls": 0,
+  "credentials_read": false,
+  "ci_changed": false,
+  "agents_spawned": 0,
+  "frozen_experiments_modified": false
+}

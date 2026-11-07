@@ -1,0 +1,1307 @@
+[
+  {
+    "id": "OBR2-AUDIT-0484f22cb559",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00015924,
+        "kind": "jev",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": true,
+        "request_key": "cb2455537785e70e7a45f56770ccfb4ce7248297914f09a0111395dda4294eb3",
+        "residual_counterfactual_report": false,
+        "score": 0.85,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.005366,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": true,
+        "request_key": "f4fcfc8a261e474e2a82dc1e72177ddd3439093c728cff7df592a4ac3bf6aa82",
+        "residual_counterfactual_report": false,
+        "score": 0.8,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-519d0bb0d55e",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00019392000000000001,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "e50ca77daac4e5c4ae6d91dc31db27ef0ff21d8f58c854a288df23d0861393cb",
+        "residual_counterfactual_report": false,
+        "score": 0.25,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.006068,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "04fb06b0943b13afae19c177c2653a7f149f293cf89dabf8389cbd9c29c961c6",
+        "residual_counterfactual_report": false,
+        "score": 0.12,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-bb7d9c3675d7",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00018031999999999998,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "2effa59cf3b315e17ec13917046e32ab55ef22926664db72ab163d0f4eb77d49",
+        "residual_counterfactual_report": false,
+        "score": 0.37,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.011908,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "cb71bac81325833148e36531c2d96ca939fd97b08cc6a02ef744c360618da920",
+        "residual_counterfactual_report": false,
+        "score": 0.55,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-75cfa05313de",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00020112,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "8ca51b22eefac05a422132f460eb9fd131053490e602a9e95c30e0e6c5185382",
+        "residual_counterfactual_report": false,
+        "score": 0.54,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.006106,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "11707a1bb4d377f33e44f3f21987327e4a0d578e7f81d137db5f481ff027f28a",
+        "residual_counterfactual_report": false,
+        "score": 0.2,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-cef594f92ad6",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00021652000000000002,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "c473ee72ff366ddaff35578637b7e4f1c607c66040efa31c901b3b031190b3e4",
+        "residual_counterfactual_report": false,
+        "score": 0.06,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.007576,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "7857827d62b93cd6e29472adee7f22575a79642c6fb6ecce6e159b04ad338fc1",
+        "residual_counterfactual_report": false,
+        "score": 0.03,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-e5ae3fe9673b",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00026008,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "a6a073f9424bb5a3e52c04d7c47c36965ceb0edccacce1f55ad574335d33bc72",
+        "residual_counterfactual_report": false,
+        "score": 0.18,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.012676,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "22af9986a7d5985410c8bba5edf3ffaecc460b210cf9b257fc2df4a0d653020e",
+        "residual_counterfactual_report": false,
+        "score": 0.05,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-3d7df3115a4e",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00019456,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "272985f4d3c89c17a39ec9656a2012741d7e7459ed1ef259bdb495fe24076b7d",
+        "residual_counterfactual_report": false,
+        "score": 0.04,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.005802,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "62c3d2ccc195efe2740786cda5617137a0bdccc7b9850b556d9345f2c95dc15b",
+        "residual_counterfactual_report": false,
+        "score": 0.03,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-a8c735947e24",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00019332,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "ab0e1493af89229a16ac5de8b39587377310a2037949b2cadca24ef2ec867336",
+        "residual_counterfactual_report": false,
+        "score": 0.44,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.010066,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "06535ea50d1a9a44f8867cb0a00022a5a9fcc96940bffc2551f62c2e2f41c990",
+        "residual_counterfactual_report": false,
+        "score": 0.55,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-52f22d53444b",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00020208000000000002,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "ba49adf5581ce2dbddb2d478eb62e7b714882993a49d2646ed115f73911e3e6e",
+        "residual_counterfactual_report": false,
+        "score": 0.1,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.006786,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "a44db7e202bbc40805f29a34b84132e661aa2920e5a6d4aee56ac10a2f3078fc",
+        "residual_counterfactual_report": false,
+        "score": 0.2,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-4d8b6014d81e",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00018276,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "b7ef05fa45e6fc9cce1e7de6e03fa25d67693b35a1cf1aa1db4ae30d7a799157",
+        "residual_counterfactual_report": false,
+        "score": 0.04,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.004918,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "b67ae8362a017cac5f88beb16796f172346daf7c9252ec07a19cd310f77d913b",
+        "residual_counterfactual_report": false,
+        "score": 0.04,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-7bdd09494e48",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00019668,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "4dc13036a6ae27dffa36fcb27516e2341f33a5af6d1472b35d155a7b5e109333",
+        "residual_counterfactual_report": false,
+        "score": 0.13,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.005702,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "cad40322112abb7d40863c2eddc485cd95a30faebca88756741615818e35ccf0",
+        "residual_counterfactual_report": false,
+        "score": 0.12,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-4159e1e0ec53",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.0001994,
+        "kind": "jev",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "0470d96ab423dd5d20393f04d65b7774339a5157054d18b817e052b2431c99ab",
+        "residual_counterfactual_report": false,
+        "score": 0.6,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.007212,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "67e14800c24ebdebbbf06117b31fc37f64d31d3fe2589b6a0cb7f2a8b706d871",
+        "residual_counterfactual_report": false,
+        "score": 0.5,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-a47dd85172b0",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00029796,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "a8c7b20566e5c4ff1bd5624d790e3b90aa70c1ec99db4591297df9c5d623cb46",
+        "residual_counterfactual_report": false,
+        "score": 0.2,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.016158,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": true,
+        "request_key": "51fa1ff9cc2237c977d60fd16068255e415de820cd9295f11f20eaffd0ad1f4f",
+        "residual_counterfactual_report": true,
+        "score": 0.8,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-9a6ade20cd50",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00017348,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "759776cad2e77a3981c0da87b4c1be59e5e5d89a82efc7bc6fa70b3191ada89a",
+        "residual_counterfactual_report": false,
+        "score": 0.05,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.004794,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "445a454af51e26e6746340169c3ad0afdd6100d4669f66b87825a26b69bfe22a",
+        "residual_counterfactual_report": false,
+        "score": 0.03,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-2fdd1bd2bff4",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00018020000000000002,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "ced239e53b4533f2340cbde1c9e39a0685e7f2eb4e17bbd1dbabf282cadf6d1b",
+        "residual_counterfactual_report": false,
+        "score": 0.3,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.004546,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "7ac7d1216d7d413c5fc1f06f53bb12276129fb682d89d879ccbb193a4e17ccc7",
+        "residual_counterfactual_report": false,
+        "score": 0.03,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-22e77b320ed0",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00019924,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "5829179f6611c6a0798307014757821bdc14b10a035ce77b8b55f1e3317f3357",
+        "residual_counterfactual_report": false,
+        "score": 0.08,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.006336,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "f64ceb4d7fb58c9844827eace81ad132e5634af9a311274b1c7b1f5ce7f7ef94",
+        "residual_counterfactual_report": false,
+        "score": 0.12,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-f04e1b479532",
+    "profile": "default_plus_current20",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00024844,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "b83b2a4e185cc041fe88e62b07aea9023b29f72f2bd8a5c258a9484abd5fe64d",
+        "residual_counterfactual_report": false,
+        "score": 0.2,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.00959,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "f9eba1313e06f7a16e58a0d3ff578ae71c9d752e384311907c190ec526395344",
+        "residual_counterfactual_report": false,
+        "score": 0.12,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-4ea79c79b106",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00015028,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "cdecc1f15e5d9ac169b5fb5f0336ce348002740919523995d1ac41d6412b9f3e",
+        "residual_counterfactual_report": false,
+        "score": 0.1,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.004816,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "6d71f1976e95f294bae7970d23011898fc74220290c8269a8a6c12ffbcc9728a",
+        "residual_counterfactual_report": false,
+        "score": 0.03,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-6a4c44fa0da7",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00015308000000000002,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "1ac777e4505ed3110c70e929ae348c7303479b6db3773e8a54d2d7cd4bb29e98",
+        "residual_counterfactual_report": false,
+        "score": 0.07,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.00423,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "0d0779d348664f376137056f09b6c3c0191d8f0e6d29e4e71b7b70f4fd4ffb98",
+        "residual_counterfactual_report": false,
+        "score": 0.03,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-13b30984715d",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00017784,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "4a469ede6378f9d67e033b70a8dfa06a9a807e6bfdd0a3b8c723e980fc84b756",
+        "residual_counterfactual_report": false,
+        "score": 0.27,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.00498,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "aeb4927d22bcbd1de18af6a9f82393097dda1d99e0bcc3c9cba5f23903a66fad",
+        "residual_counterfactual_report": false,
+        "score": 0.1,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-b1673656a425",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00018831999999999999,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "7e5f7f1ce33122c3cedd525d36ba2177fe60efb217bb7cb61306b9031f294a64",
+        "residual_counterfactual_report": false,
+        "score": 0.09,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.005884,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "7292496516624d1c2f5d7d07092ab7d784d58b3dc9308a1d48497cbfb0982b54",
+        "residual_counterfactual_report": false,
+        "score": 0.04,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-36edc6378e52",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00025484,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "7eb798cde4934c0af8e3758a507c91e1bcf2dcea1d79b0915989c6f631deb6b8",
+        "residual_counterfactual_report": false,
+        "score": 0.17,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.010662,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "58c264c0ce847c0ec475b6b5b4a4ecbb35bcb34b67f72b521055e0497e9b43a8",
+        "residual_counterfactual_report": false,
+        "score": 0.12,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-b6eca64b3004",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00020268,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "f1263adc7f7f167b210c2dac7730fab120ff91d4719911ab43a996b94dd039dd",
+        "residual_counterfactual_report": false,
+        "score": 0.32,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.00644,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "31ba7566acdf20a1f6fa10f420973815f1d78839cd850fa331dcb644ae9f6fe1",
+        "residual_counterfactual_report": false,
+        "score": 0.05,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-c3a486c9c3f7",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.0001604,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "e867866f4d4618df5d0e6d285a11fcb9eb8ddb6884586c10697fbc1e8af1cd3d",
+        "residual_counterfactual_report": false,
+        "score": 0.1,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.004304,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "f3a64990b0ee15202c7cc2344fe6bf139664dc08c8ac6755fb860e61589bac9f",
+        "residual_counterfactual_report": false,
+        "score": 0.05,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-BASE-beb6f67abf92",
+    "profile": "default_plus_current20",
+    "arm": "baseline_control",
+    "original_normal_funding": true,
+    "residual_candidate_included": true,
+    "observations": [
+      {
+        "actual_usd": 0.00023656,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "f147c9e61072eb930d6254a199f8842e64dd01f26bdbcf7cb8e525c21c079e2c",
+        "residual_counterfactual_report": false,
+        "score": 0.43,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.013024,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "8bef8f8aba3fa52e6e5e3f9cfc324a8236b848f9cc6c802d35ba9520bb96ba42",
+        "residual_counterfactual_report": false,
+        "score": 0.72,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-d2009ae301a9",
+    "profile": "default3",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00022124000000000002,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "4cbce189eec4b92e41cd23308f34ba1803f3616a0895141be59329c1b48e3a43",
+        "residual_counterfactual_report": false,
+        "score": 0.28,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.010112,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "ebec96444862816263cdd6cc12182510d05a69e3fd3013769c314b4a4b1e7fc1",
+        "residual_counterfactual_report": false,
+        "score": 0.6,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-e81ab940cb9c",
+    "profile": "default3",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00022236,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "f59c9628ae09fd9b6e04ae4225dd7ba59fc6d7ef72f85e4d5b7d6d00b4321af4",
+        "residual_counterfactual_report": false,
+        "score": 0.15,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.00824,
+        "kind": "claude",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "e91a5e059dd69ccd9f3a77d6abdb00f0166b34a6093326a7009e5bda00e656cb",
+        "residual_counterfactual_report": false,
+        "score": 0.12,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-577952cd4fe4",
+    "profile": "default3",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00022716,
+        "kind": "jev",
+        "label": "separate",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "73c7a70d8e277128161672343b3b5225ed91e118af61dfb705214f83979aa581",
+        "residual_counterfactual_report": false,
+        "score": 0.24,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.010224,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "c34372ee58dbb1fe2f237c9d35b6f8e4bd9e13b429fb69ade1284ad910f88062",
+        "residual_counterfactual_report": false,
+        "score": 0.5,
+        "status": "success"
+      }
+    ]
+  },
+  {
+    "id": "OBR2-AUDIT-1899a3055b8b",
+    "profile": "default3",
+    "arm": "original_rejected_by_residual",
+    "original_normal_funding": true,
+    "residual_candidate_included": false,
+    "observations": [
+      {
+        "actual_usd": 0.00018272,
+        "kind": "jev",
+        "label": "drifted",
+        "matched_policy": {
+          "judge": "jev",
+          "model": "jev-1.14.0",
+          "output_tokens": null,
+          "report_at": 0.8,
+          "version": "reuse-context-v3:jev-1.14.0"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "62e31b0c21f1aaf88f571eaf69b9f20abc10b1dd448cc2027e3f287154c52665",
+        "residual_counterfactual_report": false,
+        "score": 0.61,
+        "status": "success"
+      },
+      {
+        "actual_usd": 0.007378,
+        "kind": "claude",
+        "label": "duplicate",
+        "matched_policy": {
+          "judge": "anthropic-operations",
+          "model": "claude-sonnet-5-5",
+          "output_tokens": 1024,
+          "report_at": 0.8,
+          "version": "dry-operations-v2:claude-sonnet-5-5:output=1024"
+        },
+        "new_residual_emission_credit": 0,
+        "original_diagnostic_report": false,
+        "request_key": "9f909a912cdf70ecb4652647f16b39213df763e1ff64278798f4ddf96d26d3f0",
+        "residual_counterfactual_report": false,
+        "score": 0.6,
+        "status": "success"
+      }
+    ]
+  }
+]

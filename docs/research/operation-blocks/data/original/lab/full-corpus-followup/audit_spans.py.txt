@@ -1,0 +1,92 @@
+"""Export actual native endpoint spans without borrowing defaulted mapper spans."""
+
+import gzip
+import json
+from collections import Counter
+from pathlib import Path
+
+from prepare import OUT, SHARED, dump, read, rows, sha
+
+
+def main():
+    records = read(SHARED / "rows.jsonl")
+    wanted = {}
+    for r in records:
+        if r["record_kind"] != "function":
+            continue
+        for m in r["mappings"]:
+            for side in ("new", "existing"):
+                source = m["sources"][side]
+                if source.get("position") is not None:
+                    key = (m["cohort_id"], source["position"])
+                    wanted.setdefault(key, []).append(
+                        dict(row_id=r["row_id"], side=side, source_id=source["source_id"])
+                    )
+    verified, missing = [], []
+    source_cache = {}
+    for folder in sorted((OUT / "cohorts").glob("*")):
+        p = folder / "candidate-index.json.gz"
+        if not p.exists():
+            continue
+        data = json.loads(gzip.decompress(p.read_bytes()))
+        for (cohort, position), lineages in wanted.items():
+            if cohort != folder.name:
+                continue
+            f = data["functions"].get(str(position))
+            if f is None:
+                missing.append(
+                    dict(
+                        cohort_id=cohort,
+                        position=position,
+                        lineages=lineages,
+                        status="actual_span_unknown_no_source_verified_native_function",
+                    )
+                )
+                continue
+            assert isinstance(f["line"], int) and isinstance(f["end_line"], int)
+            assert f["line"] >= 1 and f["end_line"] >= f["line"], f
+            source = data["sources"][f["path"]]
+            if source["snapshot"] not in source_cache:
+                raw = Path(source["snapshot"]).read_bytes()
+                assert sha(raw) == source["sha256"]
+                source_cache[source["snapshot"]] = raw.decode().splitlines()
+            lines = source_cache[source["snapshot"]]
+            assert f["end_line"] <= len(lines)
+            assert "\n".join(lines[f["line"] - 1 : f["end_line"]]) == f["code"]
+            verified.append(
+                dict(
+                    cohort_id=cohort,
+                    position=position,
+                    lineages=lineages,
+                    start_line=f["line"],
+                    end_line=f["end_line"],
+                    query_lines=f["end_line"] - f["line"] + 1,
+                    span_status="actual_pinned_native_source_span",
+                    inferred=False,
+                    file_sha256=source["sha256"],
+                    body_sha256=sha(f["code"].encode()),
+                    snapshot=source["snapshot"],
+                    query_size_floor=0.3 if f["end_line"] - f["line"] + 1 < 6 else 0.5,
+                )
+            )
+    rows(OUT / "verified-native-spans-for-mapper.jsonl", verified)
+    rows(OUT / "unknown-native-spans.jsonl", missing)
+    dump(
+        OUT / "query-size-floor-audit.json",
+        dict(
+            verified_spans=len(verified),
+            missing_native_spans=len(missing),
+            floor_counts=dict(Counter(r["query_size_floor"] for r in verified)),
+            no_zero_default=True,
+            production_snippet_inference_used=False,
+            policy="Actual native spans only for this variant; missing source never defaults to 0-0+1. Shared raw ranks remain usable.",
+            shared_metadata_coordination_file=str(OUT / "verified-native-spans-for-mapper.jsonl"),
+            direct_message_blocker="Thread send tool rejected by approval policy never; evidence available locally to coordinator.",
+            claims="Default and balanced policies are experimental diagnostics, never inferred historical deployment.",
+        ),
+    )
+    print(json.dumps(dict(verified=len(verified), unknown=len(missing))), flush=True)
+
+
+if __name__ == "__main__":
+    main()

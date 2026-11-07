@@ -1,0 +1,47 @@
+"""Full pinned-source stage census for the single frozen residual selector. Offline."""
+import importlib.util,json,time
+from collections import Counter
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.models import Candidate
+from dry_lint.settings import Settings
+from dry_lint.costs import Ledger
+from dry_lint.detector import why_skipped
+from residual_blocks import residual_neighbours
+OUT=Path(__file__).resolve().parent;R1=OUT.parent/'round1'
+s=importlib.util.spec_from_file_location('existing_export_utils',R1/'prepare.py');u=importlib.util.module_from_spec(s);s.loader.exec_module(u);u.OUT=OUT
+q=u.q;read=u.read;cohorts={r['cohort']['cohort_id']:r['cohort']for r in json.loads((u.OLD/'coverage.json').read_text())['per_cohort']}
+settings=Settings(budget={'usd':.04});judges=[SimpleNamespace(name='anthropic',model='claude-sonnet-5-5',prompt_policy='concept'),SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',prompt_policy='shared-operations')]
+counts=Counter();per=[];started=time.perf_counter();rows=OUT/'full-source-stage-rows.jsonl'
+assert not rows.exists(),'Stage census immutable; use a new output version'
+with rows.open('w')as out:
+ for cid in ['bg-7489aa1946c16153','bg-ebd0031534c954e5']:
+  m=u.production(cohorts[cid]);c=m['comparer'];native={int(k)for k in m['payload']['functions']};local=Counter();local['background_documents']=len(c.functions);local['native_source']=len(native);local['source_unavailable_or_ambiguous']=len(c.functions)-len(native)
+  for qi in sorted(native):
+   f=c.functions[qi];base={'cohort_id':cid,'query':qi,'source_id':f.qualname,'actual_native_span':[f.line,f.end_line]}
+   if f.line<1 or f.end_line<f.line:local['unknown_invalid_span']+=1;out.write(json.dumps(dict(base,stage='unknown_span'))+'\n');continue
+   local['valid_native_span']+=1;bs=c._parents[qi]
+   if not bs:local['no_eligible_cached_scoped_regions']+=1;out.write(json.dumps(dict(base,stage='no_eligible_scoped_regions'))+'\n');continue
+   local['eligible_query_regions']+=1
+   if not any(b.retained for b in bs):local['no_retained_rare_anchor']+=1;out.write(json.dumps(dict(base,stage='no_retained_rare_anchor'))+'\n');continue
+   local['retained_rare_anchor_query']+=1
+   if qi in m['queries']:baseline=m['queries'][qi]['profiles']['default_plus_current20']['baseline'];local['cached_baseline_reused']+=1
+   else:
+    ranked=c.tfidf.similar(f.tokens,exclude={qi});floor=.3 if f.lines<6 else .5
+    d=[i for i,score in ranked if score>=floor and c.functions[i].path!=f.path][:3];twenty=[i for i,score in ranked if score>=.35][:20]
+    baseline=[]
+    for i in d+twenty:
+     if i not in baseline and i in native and not why_skipped(f,c.functions[i],settings):baseline.append(i)
+    local['baseline_derived_from_exact_existing_index']+=1
+   before=c.neighbours(f,1,allowed=lambda other:other.qualname not in{c.functions[i].qualname for i in baseline}and not why_skipped(f,other,settings));result,w=residual_neighbours(c,f,baseline)
+   local['fully_baseline_covered_query'if w['residual_blocks']==0 else'has_residual_regions']+=1
+   local['residual_nonempty_anchor_pool']+=bool(w['pool_size']);local['original_rank_selected']+=bool(before);local['residual_rank_selected']+=bool(result)
+   record=dict(base,stage='ranked',baseline_count=len(baseline),regions=len(bs),residual_regions=w['residual_blocks'],covered_regions=len(w['covered']),posting_visits=w['posting_visits'],pool_size=w['pool_size'],original_target=before[0][0].qualname if before else None,residual_target=c.functions[result[0]['parent']].qualname if result else None)
+   if result:
+    target=result[0]['parent'];aug=baseline+[target];cs=[Candidate(new=f,existing=c.functions[t],similarity=0,comparer='tfidf:2',lane='exploration')for t in aug];funded=[len(cs)-1 in Ledger(settings).select(j,cs)for j in judges];record['normal_concept_funded'],record['normal_operations_funded']=funded;local['residual_normal_concept_funded']+=funded[0];local['residual_normal_operations_funded']+=funded[1];record['funded_replacement']=all(funded)and bool(before)and before[0][0].qualname!=c.functions[target].qualname;local['funded_replacement']+=record['funded_replacement']
+   out.write(json.dumps(record,sort_keys=True)+'\n')
+   if local['retained_rare_anchor_query']%500==0:
+    out.flush();print(json.dumps({'cohort_id':cid,'progress':dict(local),'elapsed_seconds':time.perf_counter()-started}),flush=True)
+  per.append({'cohort_id':cid,'repository':cohorts[cid]['repository'],'revision':cohorts[cid]['revision'],'counts':dict(local),'frozen_region_rejections':m['payload']['rejects']});counts.update(local)
+summary={'status':'COMPLETE_FULL_SOURCE_STAGE_CENSUS_FOR_TWO_PUBLIC_PINS','counts':dict(counts),'per_cohort':per,'elapsed_seconds':time.perf_counter()-started,'no_refits':True,'no_threshold_changes':True,'variant':'operation-blocks-residual:1','source_rows':str(rows),'scope':'All native source queries in these two exact backgrounds, not a claim that the full79-background corpus or all source families are exhausted. Token-only missing/ambiguous competitors retain index influence.','provider_calls':0}
+(OUT/'full-source-stage-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n');print(json.dumps({'status':summary['status'],'counts':summary['counts'],'elapsed_seconds':summary['elapsed_seconds']}),flush=True)

@@ -1,0 +1,12 @@
+{
+  "unit": "directional native query with retained rare anchor",
+  "counts": {
+    "neither": 12122,
+    "same_winner": 654,
+    "original_only": 442,
+    "changed_winner": 36,
+    "residual_only": 2
+  },
+  "not_independent_families": true,
+  "source_labels_not_inferred": true
+}

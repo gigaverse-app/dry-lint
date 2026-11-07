@@ -1,0 +1,79 @@
+"""Exact root-feed join and separate offline policy admission diagnostics; no calls."""
+import gzip,hashlib,json,pickle,sys
+from collections import Counter
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.models import Candidate,Run
+from dry_lint.costs import Ledger,estimate
+from dry_lint.discovery import CampaignStore,reservation_cost
+from dry_lint.presets import resolve
+from dry_lint.settings import Settings
+OUT=Path(__file__).resolve().parent;ROUND=OUT.parent;WORK=ROUND.parents[2]
+HELP=Path('LAB_ROOT/jobs/judge-operations/.lab-results/judge-operations');sys.path.insert(0,str(HELP))
+import queue_judges as q
+import intake_seven as old
+ROOT=Path('/home/researcher/dry-lint-round')
+FEED=ROOT/'jobs/judge-operations/.lab-results/promotion-operations/intakes/operation-blocks/round1/f57db554d84cf061-9a335b7dc1e9/completed.jsonl'
+def read(p):return [json.loads(l)for l in p.open()if l.strip()]
+def save(name,value):
+ p=OUT/name;raw=(''.join(json.dumps(r,sort_keys=True)+'\n'for r in value)if isinstance(value,list)else json.dumps(value,sort_keys=True,indent=2)+'\n').encode()
+ if p.exists():assert p.read_bytes()==raw,'Use a newly named outcome version'
+ else:p.write_bytes(raw)
+packets={r['id']:r for r in read(ROUND/'queue.jsonl')};side={r['id']:r for r in read(ROUND/'review-private-sidecar.jsonl')};plans={r['request_key']:r for f in sorted(ROUND.glob('batch-*/canonical-request-plan.jsonl'))for r in read(f)}
+funds={r['id']:r for r in read(ROUND/'funding.jsonl')};source={};source_files=[]
+for p in sorted((ROOT/'reports/research-experiments/promotion').glob('**/coordinator-decisions.jsonl')):
+ source_files.append({'path':str(p),'sha256':q.sha(p.read_bytes())})
+ for r in read(p):
+  if r.get('coordinator_status','').startswith('accepted')and r.get('pair_key'):source.setdefault(r['pair_key'],[]).append(r)
+models={}
+for p in(ROUND.parent/'cache').glob('*.pickle.gz'):
+ if not p.name.startswith(('bg-7489aa1946c16153','bg-ebd0031534c954e5')):continue
+ c=pickle.loads(gzip.decompress(p.read_bytes()));c._positions={id(f):i for i,f in enumerate(c.functions)};cid=p.name.split('-7553')[0]if'7553'in p.name else'bg-ebd0031534c954e5'
+ cid='bg-7489aa1946c16153'if'7489aa'in p.name else'bg-ebd0031534c954e5'
+ qs={r['query']:r for r in read(WORK/'.lab-results/full-corpus-followup/span-v2-migration/cohorts'/cid/'per-query.jsonl')if'profiles'in r};models[cid]=(c,qs)
+settings=Settings(budget={'usd':.04});concept=SimpleNamespace(name='anthropic',model='claude-sonnet-5-5',prompt_policy='concept');balanced=resolve(Settings(preset='balanced'),environ={});bj=SimpleNamespace(name='anthropic-operations',version='dry-operations-v2:claude-haiku-5-5:output=2048',model=balanced.judge.model,prompt_policy=balanced.judge.options()['prompt_policy'],max_tokens=balanced.judge.options()['max_tokens'])
+def balanced_admit(cs,session,zero=False):
+ run=Run(repository='diagnostic/operation-blocks',revision='1'*40,session=session);store=CampaignStore(OUT/'balanced-cold-diagnostic.sqlite3',run);store.advance(balanced)
+ admitted=[];deferred=[]
+ for c in store.order(cs):
+  r=store.reserve(c,bj,balanced,reservation_cost(bj,c,balanced))
+  if isinstance(r,int):
+   admitted.append(c.key)
+   if zero:store.settle(r,0,True) # explicitly optimistic accounting bound, never claimed as actual paid usage
+  else:deferred.append({'key':c.key,'reason':r or'call_or_repeat_limit'})
+ return admitted,deferred
+rows=[];blind=[];review_map=[];stats=Counter();total=0.;novel_observed=[]
+for r in read(FEED):
+ packet=packets[r['id']];assert r['packet']==packet;candidate=Candidate.model_validate(packet['candidate']);s=side[r['id']];c,qs=models[s['cohort_id']];qi,ti=s['query'],s['target'];policy=qs[qi]['profiles']['default_plus_current20'];gold=source.get(old.packet_pair(packet),[])
+ observations=[]
+ for o in r['observations']:
+  status=o['response_state'];key=o['request_key'];expected=plans[key];assert expected['packet']==packet and o['identity']==expected['identity'];assert key==q.sha(q.canonical(o['identity']));verdict=o.get('verdict');success=status=='success'and not o.get('error')and verdict is not None
+  physical=o.get('usd')or 0
+  if not o.get('cached'):total+=physical
+  stats[status]+=1
+  emitted=(verdict['label']in('duplicate','drifted')and verdict['score']>=.8)if success else None
+  observations.append({'kind':o['kind'],'request_key':key,'identity_exact':True,'judge':o['identity']['judge'],'version':o['identity']['version'],'model':o['identity']['model'],'max_output_tokens':o['identity']['max_output_tokens'],'label':verdict['label']if success else None,'score':verdict['score']if success else None,'diagnostic_report_at_08':emitted,'status':status,'error':o.get('error'),'cached':o.get('cached'),'actual_usd':physical,'source_label_inferred':False})
+ fquery=c.functions[qi];queryv=c.tfidf.vector(fquery.tokens)
+ before=[]
+ default3=qs[qi]['profiles']['default3']['baseline']
+ for t in policy['baseline']:
+  other=c.functions[t];v=c.tfidf.vector(other.tokens);score=sum(w*v.get(tok,0)for tok,w in queryv.items());before.append(Candidate(new=fquery,existing=other,similarity=round(score,3),comparer='tfidf:2',lane='baseline'if t in default3 else'exploration'))
+ after=list(before)
+ if ti not in policy['baseline']:after.append(candidate)
+ idx_before=Ledger(settings).select(concept,before);idx_after=Ledger(settings).select(concept,after)
+ baseline_funded={before[i].key for i in idx_before};variant_funded={after[i].key for i in idx_after};assert baseline_funded<=variant_funded
+ balanced_rows={}
+ for tag,zero in [('held_reservations',False),('zero_usage_upper_bound',True)]:
+  b,bd=balanced_admit(before,r['id']+'-before-'+tag,zero);a,ad=balanced_admit(after,r['id']+'-after-'+tag,zero)
+  baselinekeys={p.key for p in before if p.lane=='baseline'};assert baselinekeys&set(b)<=set(a)
+  balanced_rows[tag]={'before_admitted':b,'after_admitted':a,'target_before_admitted':candidate.key in b,'target_after_admitted':candidate.key in a,'lost_exploration_keys':sorted(set(b)-set(a)),'new_admitted_keys':sorted(set(a)-set(b)),'after_deferred':ad}
+ complete=all(o['status']=='success'for o in observations);stats['observed_'+r['role']]+=complete;stats['total_'+r['role']]+=1
+ row={'id':r['id'],'role':r['role'],'pair_key':old.packet_pair(packet),'query':qi,'target':ti,'cohort_id':s['cohort_id'],'full_candidate_exact':True,'funding_source':str(ROUND/'funding.jsonl'),'source_proofs':packet['source_proofs'],'source_review_status':'accepted_exact_scoped_review'if gold else'unknown_no_exact_accepted_source_decision','accepted_source_reviews':gold,'observations':observations,'original_04_concept_replay':{'baseline_target_funded':candidate.key in baseline_funded,'variant_target_funded':candidate.key in variant_funded,'baseline_estimated_usd':estimate(concept,[before[i]for i in idx_before],settings),'variant_estimated_usd':estimate(concept,[after[i]for i in idx_after],settings),'concept_answer':None,'emitted':None,'first_loss':'exact_concept_answer_missing'if candidate.key in variant_funded else'normal_04_funding'},'production_default':{'discovery_enabled':False,'blocks_configured':False,'incremental_block_emitted':False,'first_loss':'operation_blocks_not_in_default_configuration'},'balanced_default':{'discovery_enabled':True,'implicit_route':'TF-IDF20 only; blocks not automatically configured','incremental_block_emitted':False},'balanced_with_explicit_operation_blocks':{'judge':{'model':bj.model,'policy':bj.prompt_policy,'max_tokens':bj.max_tokens,'report_at':balanced.report_at},'cold_synthetic_campaign_only':True,'real_revision_ledger_missing':True,'admission_bounds':balanced_rows,'matched_haiku_answer':None,'emission':None,'no_sonnet_or_jev_answer_substitution':True}}
+ rows.append(row)
+ if complete:
+  rid=f'OB-R1-SOURCE-{len(blind)+1:03d}';blind.append({'id':rid,'repository':packet['repository'],'revision':packet['revision'],'new':packet['candidate']['new'],'existing':packet['candidate']['existing'],'source_proofs':packet['source_proofs'],'consolidation':[],'policies':[]});review_map.append({'review_id':rid,'id':r['id'],'pair_key':row['pair_key'],'role':r['role'],'observations':observations})
+  if r['role']=='novel':novel_observed.append(row)
+save('joined-rows.jsonl',rows);save('observed-source-blind.jsonl',blind);save('source-review-private-map.jsonl',review_map)
+summary={'status':'ROUND1_PAID_MINIMUM_MET_SOURCE_AND_MATCHED_POLICY_OUTCOMES_PENDING','feed':str(FEED),'feed_sha256':q.sha(FEED.read_bytes()),'new_topup_actual_usd':round(total,10),'prior_owned_phase_actual_usd':.09867492,'round1_actual_owned_usd':round(total+.09867492,10),'minimum_actual_usd':.2,'minimum_met':total+.09867492>=.2,'counts':dict(stats),'novel_diagnostic_reports_at_08':{kind:sum(o['kind']==kind and o['diagnostic_report_at_08']is True for r in novel_observed for o in r['observations'])for kind in('jev','claude')},'control_diagnostic_reports_at_08':{kind:sum(r['role']=='control'and o['kind']==kind and o['diagnostic_report_at_08']is True for r in rows for o in r['observations'])for kind in('jev','claude')},'new_exact_source_reviews_joined':sum(bool(r['accepted_source_reviews'])for r in rows),'source_unknown_pairs':sum(not r['accepted_source_reviews']for r in rows),'matched_native_concept_answers':0,'matched_balanced_haiku_answers':0,'useful_incremental_native_reports':'not established; unknown source and exact configured-judge answers, not zero assumed from missing answers','unstarted_observations_remain_unknown':64,'no_provider_agreement_as_gold':True,'PEV024_025_incremental_credit':0,'PEV024_025_reason':'already funded by explicit TF-IDF20; two source pairs in one workspace-tools family; concept supplement pending','discovery_default_vs_balanced':'Defaults keep discovery off; balanced enables implicit TF-IDF20, uses Haiku shared-operations/2048/.5 and durable credit. Blocks require explicit configuration in either policy. Sonnet shared-operations/1024/.8 diagnostics establish neither native concept nor balanced reports.','balanced_scope':'two offline cold-campaign accounting bounds via actual CampaignStore/order/reserve; no real PR history or Haiku usages/answers fabricated','source_review_inputs':source_files,'source_review_request':str(OUT/'observed-source-blind.jsonl'),'provider_calls':0}
+save('summary.json',summary);save('SOURCE-REVIEW-REQUEST.json',{'status':'INDEPENDENT_SOURCE_REVIEW_REQUESTED','blind_packet':str(OUT/'observed-source-blind.jsonl'),'private_map':str(OUT/'source-review-private-map.jsonl'),'observed_pairs':16,'novel_pairs':4,'control_pairs':12,'unstarted_pairs_excluded_from_observed_precision':32,'provider_labels_not_truth':True})
+print(json.dumps({k:summary[k]for k in['status','round1_actual_owned_usd','counts','novel_diagnostic_reports_at_08','control_diagnostic_reports_at_08','new_exact_source_reviews_joined']}))

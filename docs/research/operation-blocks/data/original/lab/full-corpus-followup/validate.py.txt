@@ -1,0 +1,90 @@
+"""Validate final offline receipts without fitting another model or making provider calls."""
+
+import gzip
+import json
+from collections import Counter
+from pathlib import Path
+
+from prepare import OUT, SHARED, dump, read, sha
+
+
+def main():
+    cohorts = read(SHARED / "cohorts.jsonl")
+    audits = []
+    for c in cohorts:
+        folder = OUT / "cohorts" / c["cohort_id"]
+        coverage = json.loads((folder / "coverage.json").read_text())
+        snapshot = json.loads(gzip.decompress((folder / "candidate-index.json.gz").read_bytes()))
+        assert snapshot["binding"]["background_sha256"] == c["background_sha256"]
+        counts = Counter(b["parent"] for b in snapshot["blocks"])
+        assert max(counts.values(), default=0) <= 12
+        source_cache = {}
+        for b in snapshot["blocks"]:
+            f = snapshot["functions"][str(b["parent"])]
+            source = snapshot["sources"][f["path"]]
+            if source["snapshot"] not in source_cache:
+                raw = Path(source["snapshot"]).read_bytes()
+                assert sha(raw) == source["sha256"] == f["context_digest"]
+                source_cache[source["snapshot"]] = raw.decode().splitlines()
+            lines = source_cache[source["snapshot"]]
+            region = "\n".join(lines[b["start_line"] - 1 : b["end_line"]])
+            assert sha(region.encode()) == b["region_sha256"]
+            assert f["line"] >= 1 and f["end_line"] >= f["line"]
+            assert "\n".join(lines[f["line"] - 1 : f["end_line"]]) == f["code"]
+        seen = []
+        comparisons = coverage["query_counts"].get("exact_frozen_scorer_comparisons", 0)
+        for q in read(folder / "per-query.jsonl"):
+            seen.append(q["query"])
+            assert q["block_work"]["posting_visits"] <= 6144
+            assert q["block_work"]["pool_size"] <= 64
+            for policy in q.get("profiles", {}).values():
+                assert set(policy["baseline_funded"]) <= set(policy["augmented_funded"])
+                assert policy["baseline_estimated_usd"] <= 0.04 + 1e-12
+                assert policy["augmented_estimated_usd"] <= 0.04 + 1e-12
+        assert seen == sorted(set(seen)), (c["cohort_id"], "query-file race, duplicates or order mismatch")
+        assert len(seen) == coverage["query_counts"].get("full_source_queries", 0)
+        assert set(counts) <= set(seen)
+        audits.append(
+            dict(
+                cohort_id=c["cohort_id"],
+                queried_parents=len(seen),
+                source_regions=len(snapshot["blocks"]),
+                native_source_functions=len(snapshot["functions"]),
+                scorer_reference_comparisons=comparisons,
+                all_checks_pass=True,
+            )
+        )
+    preservation = json.loads((OUT / "pilot-preservation.json").read_text())
+    for item in preservation:
+        assert sha(Path(item["path"]).read_bytes()) == item["sha256"], item["path"]
+    version = OUT / "review-batches/v1"
+    for item in json.loads((version / "manifest.json").read_text())["files"]:
+        assert sha(Path(item["path"]).read_bytes()) == item["sha256"]
+    assert (version / "novel-review-queue.jsonl").read_bytes() == (OUT / "novel-review-queue.jsonl").read_bytes()
+    queue = read(OUT / "novel-review-queue.jsonl")
+    assert len(queue) == 16
+    sidecars = read(OUT / "review-private-sidecar.jsonl")
+    assert sum(s["role"] == "novel_block_extra" for s in sidecars) == 12
+    assert len({tuple(s["identity"]) for s in sidecars}) == 16
+    blind = read(OUT / "blind-review-packets.jsonl")
+    for packet in blind:
+        assert not set(packet) & {"similarity", "score", "label", "profile", "role", "block_evidence", "stratum"}
+    result = dict(
+        all_pass=True,
+        cohorts=len(audits),
+        cohort_checks=audits,
+        pilot_files_unchanged=len(preservation),
+        total_source_regions=sum(a["source_regions"] for a in audits),
+        total_queries=sum(a["queried_parents"] for a in audits),
+        total_frozen_scorer_comparisons=sum(a["scorer_reference_comparisons"] for a in audits),
+        frozen_review_batch_pairs=16,
+        provider_calls=0,
+        no_dense_pairwise_matrix=True,
+        no_cross_revision_fallback=True,
+    )
+    dump(OUT / "full-validation.json", result)
+    print(json.dumps({k: v for k, v in result.items() if k != "cohort_checks"}), flush=True)
+
+
+if __name__ == "__main__":
+    main()

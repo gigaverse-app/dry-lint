@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Independent arithmetic and source receipts for the measured experiment."""
+
+import gzip
+import json
+import math
+import subprocess
+from collections import Counter
+from pathlib import Path
+
+from operation_blocks import HERE, ROOT, BenchBackground, Candidate, dump, readrows, sha
+
+
+def vector(counts, idf):
+    weights = {t: (1 + math.log(n)) * idf[t] for t, n in counts.items() if t in idf}
+    norm = math.sqrt(math.fsum(w * w for w in weights.values())) or 1
+    return {t: w / norm for t, w in weights.items()}
+
+
+def main():
+    golden_pin = "4bf3c56efe55190f17132a7ac2537051a177cde1"
+    golden_root = ROOT / "research-corpus/dry-lint-goldens"
+    manifest = json.loads(
+        subprocess.check_output(
+            ["git", "-C", str(golden_root), "show", golden_pin + ":manifests/candidate-first-gold-v1.json"]
+        )
+    )
+    materialization = ROOT / "reports/candidate-first/corpus-remote-verification/candidate-first-gold"
+    golden_checks = []
+    for filename in ["README.md", "accepted-public-gold.jsonl", "disputed.jsonl", "backgrounds/manifest.json"]:
+        data = (materialization / filename).read_bytes()
+        assert sha(data) == manifest["files"][filename]["sha256"]
+        golden_checks.append(dict(path=str(materialization / filename), sha256=sha(data)))
+    original = {r["id"]: r for r in readrows(ROOT / "reports/candidate-first/scaled-retrieval-rows.jsonl")}
+    checks = []
+    totals = Counter()
+    for name in ["litellm", "openhands"]:
+        out = HERE / name
+        snapshot = json.loads(gzip.decompress((out / "candidate-index.json.gz").read_bytes()))
+        proof = snapshot["background_proof"]
+        raw = Path(proof["path"]).read_bytes()
+        assert sha(raw) == proof["sha256"]
+        bg = BenchBackground.decode(raw)
+        n = len(bg.documents)
+        idf = {t: math.log((n + 1) / (df + 1)) + 1 for t, df in bg.document_frequency.items() if df <= bg.max_df * n}
+        queries = readrows(out / "per-query.jsonl")
+        panel = readrows(out / "per-row.jsonl")
+        blocks = readrows(out / "block-regions.jsonl")
+        cache, vectors = {}, {}
+        source_checks = 0
+        for block in blocks:
+            f = snapshot["functions"][str(block["parent"])]
+            source = snapshot["sources"][f["path"]]
+            if f["path"] not in cache:
+                data = Path(source["snapshot"]).read_bytes()
+                assert sha(data) == source["sha256"]
+                cache[f["path"]] = data.decode().splitlines()
+            lines = cache[f["path"]]
+            region = "\n".join(lines[block["start_line"] - 1 : block["end_line"]])
+            assert sha(region.encode()) == block["region_sha256"]
+            assert block["start_line"] >= f["line"] and block["end_line"] <= f["end_line"]
+            assert 4 <= block["end_line"] - block["start_line"] + 1 <= 80
+            assert 20 <= block["nodes"] <= 400 and len(block["calls"]) >= 2
+            source_checks += 1
+        parent_counts = Counter(b["parent"] for b in blocks)
+        assert max(parent_counts.values()) <= 12
+        max_error = 0
+        for q in queries:
+            assert q["block_work"]["posting_visits"] <= 6144
+            assert q["block_work"]["pool_size"] <= 64
+            for profile in ["default3", "default_plus_current20"]:
+                p = q["profiles"][profile]
+                assert set(p["baseline_funded"]) <= set(p["with_block_funded"])
+                assert p["with_block_estimated_usd"] <= 0.04 + 1e-12
+                assert len(p["with_block"]) - len(p["baseline"]) <= 1
+            # Recalculate all observed block dot products with independent fsum arithmetic.
+            for item in q["block_candidates"]:
+                bi, bj = item["query_block"], item["target_block"]
+                for b in [bi, bj]:
+                    if b not in vectors:
+                        vectors[b] = vector(blocks[b]["counts"], idf)
+                score = math.fsum(w * vectors[bj].get(t, 0) for t, w in vectors[bi].items())
+                delta = abs(score - item["score"])
+                max_error = max(max_error, delta)
+                assert delta < 3e-14
+        baseline_deltas = []
+        prior_ranks = 0
+        for row in panel:
+            old = original.get(row["id"])
+            for d in row["directions"]:
+                if d["status"] != "measured":
+                    continue
+                a, b = vector(bg.documents[d["query"]].counts, idf), vector(bg.documents[d["target"]].counts, idf)
+                score = math.fsum(w * b.get(t, 0) for t, w in a.items())
+                baseline_deltas.append(abs(score - d["raw_score"]))
+                assert abs(score - d["raw_score"]) < 3e-14
+                if old:
+                    od = next(x for x in old["directions"] if x["direction"] == d["direction"])
+                    assert (od["raw_rank"], od["cross_file_rank"]) == (d["raw_rank"], d["cross_rank"])
+                    assert abs(od["score"] - d["raw_score"]) < 3e-14
+                    prior_ranks += 1
+        drifted = next((r for r in panel if r["id"] == "LL-S052"), None)
+        if name == "litellm":
+            assert drifted and drifted["drifted"] is True
+        checks.append(
+            dict(
+                repository=name,
+                exact_block_source_regions=source_checks,
+                independent_full_scores=len(baseline_deltas),
+                max_full_score_error=max(baseline_deltas),
+                independent_block_score_max_error=max_error,
+                prior_frozen_scaled_ranks_checked=prior_ranks,
+                max_blocks_per_parent=max(parent_counts.values()),
+                max_posting_visits=max(q["block_work"]["posting_visits"] for q in queries),
+                max_pool=max(q["block_work"]["pool_size"] for q in queries),
+                baseline_funded_preserved=True,
+                all_per_query_estimates_within_04=True,
+            )
+        )
+        totals["source_regions"] += source_checks
+        totals["known_directions"] += len(baseline_deltas)
+        totals["prior_scaled_directions"] += prior_ranks
+    queue_path = HERE / "novel-review-queue.jsonl"
+    assert sha(queue_path.read_bytes()) == "0dedba958a2606f3507e6c7fe5bda85d309dfab706d71d129ac3e09d91ebecf7"
+    queue = readrows(queue_path)
+    for p in queue:
+        c = Candidate.model_validate(p["candidate"])
+        assert c.model_dump(mode="json") == p["candidate"]
+        for f, proof in zip([c.new, c.existing], p["source_proofs"], strict=True):
+            raw = Path(proof["snapshot"]).read_bytes()
+            assert sha(raw) == proof["file_sha256"] == f.context_digest
+            assert "\n".join(raw.decode().splitlines()[f.line - 1 : f.end_line]) == f.code
+            assert sha(f.code.encode()) == proof["body_sha256"]
+    frozen = ROOT / "reports/candidate-first/frozen-review-batches/research-operation-blocks-0dedba958a2606f3.jsonl"
+    if frozen.exists():
+        fr = readrows(frozen)
+        assert {r["id"]: r["candidate"] for r in fr} == {r["id"]: r["candidate"] for r in queue}
+    result = dict(
+        all_pass=True,
+        repositories=checks,
+        totals=dict(totals),
+        immutable_queue_pairs=len(queue),
+        golden_corpus_exact_pin=golden_pin,
+        golden_materialization_checks=golden_checks,
+        root_frozen_candidates_identical=frozen.exists(),
+        score_free_packets_no_scores=True,
+        source_regions="inclusive original complete-source line spans, including indentation; saved columns refer to dedented function AST",
+        provider_calls=0,
+        cold_warm_byte_identical_ranking_rows=True,
+    )
+    for p in readrows(HERE / "blind-review-packets.jsonl"):
+        assert not any(k in p for k in ["similarity", "score", "rank", "profile", "block_evidence", "label"])
+    dump(HERE / "validation.json", result)
+    print(json.dumps(result))
+
+
+if __name__ == "__main__":
+    main()

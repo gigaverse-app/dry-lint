@@ -1,0 +1,214 @@
+"""Replay sealed provider observations through unchanged frozen ledgers/settings, never source-label them."""
+
+import gzip
+import importlib.util
+import json
+import sys
+from collections import Counter
+from types import SimpleNamespace
+
+from prepare import LAB, OUT, ROOT, dump, read, rows, sha
+
+sys.path.insert(0, str(LAB))
+import operation_blocks as frozen
+
+from dry_lint.models import Verdict
+
+FEED = ROOT / "reports/research-experiments/intake-seven/operation-blocks-provider-feed.jsonl"
+DEST = OUT / "intake-seven-policy-replay"
+OPS = SimpleNamespace(name="anthropic-operations", model="claude-sonnet-5-5", prompt_policy="shared-operations")
+
+
+def main():
+    DEST.mkdir(exist_ok=True)
+    raw = FEED.read_bytes()
+    digest = sha(raw)
+    existing = DEST / "receipt.json"
+    if existing.exists():
+        assert json.loads(existing.read_text())["feed_sha256"] == digest, (
+            "Sealed feed changed; use a newly named replay version"
+        )
+    sealed = DEST / ("provider-feed-" + digest[:16] + ".jsonl")
+    if sealed.exists():
+        assert sealed.read_bytes() == raw
+    else:
+        sealed.write_bytes(raw)
+    cache_code = ROOT / "jobs/judge-operations/scripts/research_mining/exact_cache.py"
+    spec = importlib.util.spec_from_file_location("validated_canonical_cache_utility", cache_code)
+    cache = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cache)
+    packets = {p["id"]: p for p in read(OUT / "review-batches/v1/novel-review-queue.jsonl")}
+    sidecars = {s["id"]: s for s in read(OUT / "review-batches/v1/review-private-sidecar.jsonl")}
+    feed = {r["id"]: r for r in read(sealed)}
+    assert len(feed) == 3
+    snapshots, queries = {}, {}
+    for side in sidecars.values():
+        cohort = side["cohort_id"]
+        if cohort not in snapshots:
+            snapshots[cohort] = json.loads(
+                gzip.decompress((OUT / "cohorts" / cohort / "candidate-index.json.gz").read_bytes())
+            )
+            queries[cohort] = {
+                q["query"]: q for q in read(OUT / "cohorts" / cohort / "per-query.jsonl") if "profiles" in q
+            }
+    outputs, identities = [], []
+    for packet_id, packet in packets.items():
+        side = sidecars[packet_id]
+        candidate = frozen.Candidate.model_validate(packet["candidate"])
+        q = queries[side["cohort_id"]][side["query"]]
+        policy = q["profiles"][side["profile"]]
+        functions = snapshots[side["cohort_id"]]["functions"]
+        cs = [
+            frozen.Candidate(
+                new=functions[str(side["query"])],
+                existing=functions[str(t)],
+                similarity=0,
+                comparer="tfidf:2",
+                lane="exploration",
+            )
+            for t in policy["augmented"]
+        ]
+        baseline_count = len(policy["baseline"])
+        admissions = {}
+        for name, judge in (("registered_concept", frozen.JUDGE), ("separate_operations_cost_check", OPS)):
+            baseline = frozen.Ledger(frozen.SETTINGS).select(judge, cs[:baseline_count])
+            augmented = frozen.Ledger(frozen.SETTINGS).select(judge, cs)
+            bt = [policy["baseline"][i] for i in baseline]
+            at = [policy["augmented"][i] for i in augmented]
+            assert set(bt) <= set(at)
+            admissions[name] = dict(
+                baseline_target_exposed=side["target"] in policy["baseline"],
+                variant_target_exposed=side["target"] in policy["augmented"],
+                baseline_target_funded=side["target"] in bt,
+                variant_target_funded=side["target"] in at,
+                baseline_estimated_usd=frozen.estimate(judge, [cs[i] for i in baseline], frozen.SETTINGS),
+                variant_estimated_usd=frozen.estimate(judge, [cs[i] for i in augmented], frozen.SETTINGS),
+                ordinal_zero=True,
+                budget_usd=0.04,
+                cache_discount=False,
+            )
+        assert admissions["registered_concept"]["variant_target_funded"]
+        observed = feed.get(packet_id)
+        if observed:
+            assert observed["packet"]["candidate"] == packet["candidate"], (packet_id, "Candidate changed")
+            assert observed["packet"]["evidence"] == frozen.evidence(candidate)
+        bykind = {o["kind"]: o for o in observed["observations"]} if observed else {}
+        for kind in ("jev", "claude"):
+            observation = bykind.get(kind)
+            match = None
+            verdict = None
+            if observation:
+                identity = observation["identity"]
+                match = dict(
+                    canonical_request_key=observation["request_key"],
+                    canonical_key_matches=observation["request_key"] == cache.sha(cache.canonical(identity)),
+                    candidate_hash_matches=identity["candidate_sha256"]
+                    == cache.sha(cache.canonical(packet["candidate"])),
+                    context_hash_matches=identity["context_hash"] == candidate.context_hash,
+                    source_evidence_matches=identity["source_evidence"] == frozen.evidence(candidate),
+                    repository_pin_matches=(identity["repository"], identity["revision"])
+                    == (packet["repository"], packet["revision"]),
+                    background_hash_matches=identity["background_sha256"] == packet["background_proof"]["sha256"],
+                    rendered_input_sha256=sha(identity["rendered_input"].encode()),
+                    model=identity["model"],
+                    prompt_version=identity["prompt_version"],
+                    max_output_tokens=identity["max_output_tokens"],
+                )
+                assert all(v for k, v in match.items() if k.endswith("matches")), (packet_id, kind, match)
+                identities.append(dict(id=packet_id, kind=kind, **match))
+                if not observation["error"] and observation.get("verdict"):
+                    verdict = Verdict.model_validate(observation["verdict"])
+            reports = (
+                bool(verdict and frozen.SETTINGS.duplicate_at(verdict, frozen.SETTINGS.report_at)) if verdict else None
+            )
+
+            def arm(funded, exposed, verdict=verdict, reports=reports):
+                if not exposed:
+                    return dict(emitted=False, first_loss="not_in_frozen_candidate_arm")
+                if not funded:
+                    return dict(emitted=False, first_loss="frozen_ledger_budget")
+                if verdict is None:
+                    return dict(emitted=None, first_loss="missing_or_failed_exact_observation")
+                return dict(
+                    emitted=reports,
+                    first_loss="emitted"
+                    if reports
+                    else "judge_separate"
+                    if verdict.label == "separate"
+                    else "judge_below_original_report_bar",
+                )
+
+            original = admissions["registered_concept"]
+            output = dict(
+                id=packet_id,
+                role=side["role"],
+                profile=side["profile"],
+                kind=kind,
+                observation_status="observed" if verdict else "failed" if observation else "missing_answer",
+                verdict=observation.get("verdict") if observation else None,
+                error=observation.get("error") if observation else None,
+                cached=observation.get("cached") if observation else None,
+                root_measured_usd=observation.get("usd") if observation else None,
+                frozen_admissions=admissions,
+                report_at=frozen.SETTINGS.report_at,
+                observed_classifier_over_frozen_admission=dict(
+                    baseline=arm(original["baseline_target_funded"], original["baseline_target_exposed"]),
+                    variant=arm(original["variant_target_funded"], original["variant_target_exposed"]),
+                ),
+                original_concept_prompt_end_to_end=dict(
+                    baseline_emitted=None if original["baseline_target_funded"] else False,
+                    variant_emitted=None if original["variant_target_funded"] else False,
+                    first_loss="missing_exact_concept_prompt_answer" if original["variant_target_funded"] else "budget",
+                    reason="Original concept prompt funded the diagnostic; root supplied canonical Jev/context and Claude/shared-operations observations. No counterfactual concept answer inferred.",
+                ),
+                root_intake="Sealed independent paired intake, not a PR/campaign ledger replay.",
+                source_status="independent_source_review_pending",
+                accepted_gold=False,
+                policies_unchanged=True,
+                identity_receipt=match,
+                worker_provider_calls=0,
+            )
+            outputs.append(output)
+    rows(DEST / "canonical-identity-receipts.jsonl", identities)
+    rows(DEST / "policy-emission-and-first-loss.jsonl", outputs)
+    observed = [r for r in outputs if r["observation_status"] == "observed"]
+    report = dict(
+        status="sealed_provider_intake_replayed_source_decisions_pending",
+        feed_sha256=digest,
+        frozen_queue_sha256=sha((OUT / "novel-review-queue.jsonl").read_bytes()),
+        canonical_utility_sha256=sha(cache_code.read_bytes()),
+        canonical_key_checks=len(identities),
+        all_key_checks_pass=True,
+        sealed_pairs=len(feed),
+        sealed_novel_pairs=sum(r["role"] == "novel" for r in feed.values()),
+        sealed_control_pairs=sum(r["role"] == "control" for r in feed.values()),
+        provider_observations=len(observed),
+        fresh_observations=sum(not r["cached"] for r in observed),
+        exact_cache_observations=sum(bool(r["cached"]) for r in observed),
+        method_root_measured_usd=sum(r["root_measured_usd"] or 0 for r in observed),
+        still_missing_answer_slots=sum(r["observation_status"] == "missing_answer" for r in outputs),
+        unobserved_frozen_pairs=len(packets) - len(feed),
+        labels=dict(Counter(r["verdict"]["label"] for r in observed)),
+        observed_classifier_policy_emissions=dict(
+            baseline=sum(
+                r["observed_classifier_over_frozen_admission"]["baseline"]["emitted"] is True for r in observed
+            ),
+            variant=sum(r["observed_classifier_over_frozen_admission"]["variant"]["emitted"] is True for r in observed),
+        ),
+        original_concept_prompt_emissions="Unknown for funded cases: no exact concept prompt observations; no model/prompt substitution.",
+        source_confirmed_useful_yield=None,
+        source_false_reports=None,
+        disputed_source_cases=None,
+        accepted_gold_changes=0,
+        provider_agreement_is_not_gold=True,
+        worker_provider_calls=0,
+        source_review_pending=True,
+        no_policy_retune=True,
+        root_all_methods_totals="48 fresh calls/$0.1088836 plus6 exact cache hits; not attributed wholly to this method.",
+    )
+    dump(DEST / "receipt.json", report)
+    print(json.dumps(report), flush=True)
+
+
+if __name__ == "__main__":
+    main()

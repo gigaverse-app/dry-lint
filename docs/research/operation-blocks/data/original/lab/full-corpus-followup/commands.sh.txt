@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=2
+export OPENBLAS_NUM_THREADS=2
+export MKL_NUM_THREADS=2
+task_python=LAB_ROOT/retrieval/.venv/bin/python
+task_out=.lab-results/full-corpus-followup
+
+# Read/verify the root-routed immutable index only; no local mapping reconstruction.
+"$task_python" "$task_out/prepare.py"
+# This was the initial batch selection point. An existing v1 is never regenerated.
+"$task_python" "$task_out/run.py" --cohort bg-ebd0031534c954e5
+"$task_python" "$task_out/queue.py"
+# Complete remaining exact cohorts, with each background kept separate.
+"$task_python" "$task_out/run.py"
+# These are evidence audits over native extraction, never a recovery resolver.
+"$task_python" "$task_out/audit_spans.py"
+"$task_python" "$task_out/audit_proposals.py"
+"$task_python" "$task_out/summarize.py"
+"$task_python" "$task_out/validate.py"
+"$task_python" "$task_out/finish.py"
+# Once root routes the reviewed helper, invoke consume_shared_spans.py with its
+# exact --reviewed-helper-sha256, preserving current outputs and v1 Candidates.
+# Root alone executes paid judging and independent source review.
