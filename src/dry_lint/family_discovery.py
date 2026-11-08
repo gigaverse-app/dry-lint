@@ -33,24 +33,18 @@ class FamilyBackend:
 
 
 class FamilyAdmission:
-    """No separate dollar allowance: reservations and failures share the native pair ledger."""
+    """No separate dollar allowance: family questions share the pair judging's allowance and its spend record.
+
+    Subclasses decide whether a question fits (`admit`) and what it finally costs (`charge`); the spend record
+    the summary reports is kept here, once.
+    """
 
     def __init__(self, judging):
         self.judging = judging
         self.reservations = {}
 
     def reserve(self, request, judge, usd):
-        campaign = self.judging.campaign
-        if campaign is None:
-            raise ValueError("Family judging requires native campaign admission")
-        reserved = campaign.reserve_family(
-            family_key(request, judge),
-            request.key,
-            request.members[0].owner_id,
-            self.judging.settings,
-            usd,
-            subscription=getattr(judge, "subscription", False),
-        )
+        reserved = self.admit(request, judge, usd)
         spend = self.judging.ledger.spend.setdefault(
             identity(judge), Spend(judge=identity(judge), subscription=getattr(judge, "subscription", False))
         )
@@ -61,7 +55,7 @@ class FamilyAdmission:
         return reserved
 
     def settle(self, reservation, usd, success):
-        charged = self.judging.campaign.settle(reservation, usd, success)
+        charged = self.charge(reservation, usd, success)
         spend = self.reservations.pop(reservation)
         spend.calls += 1
         spend.usd += charged
@@ -69,6 +63,52 @@ class FamilyAdmission:
             spend.failed += 1
             spend.error = "Family judgment failed; its reservation remains accounted"
         return charged
+
+
+class CampaignFamilyAdmission(FamilyAdmission):
+    """`check`: reservations and failures share the native pair campaign's ledger."""
+
+    def admit(self, request, judge, usd):
+        return self.judging.campaign.reserve_family(
+            family_key(request, judge),
+            request.key,
+            request.members[0].owner_id,
+            self.judging.settings,
+            usd,
+            subscription=getattr(judge, "subscription", False),
+        )
+
+    def charge(self, reservation, usd, success):
+        return self.judging.campaign.settle(reservation, usd, success)
+
+
+class BudgetFamilyAdmission(FamilyAdmission):
+    """`scan`: no campaign, so a question fits what the run's pair budget has left, like any pair question.
+
+    The conservative reservation is held until the answer settles; unknown usage keeps it charged.
+    """
+
+    def __init__(self, judging):
+        super().__init__(judging)
+        self.held = {}
+
+    def admit(self, request, judge, usd):
+        ledger, budget = self.judging.ledger, self.judging.settings.budget
+        if getattr(judge, "subscription", False):
+            used = sum(spend.calls for spend in ledger.spend.values() if spend.subscription)
+            if used + len(self.held) >= budget.subscription_calls:
+                return None
+        if usd > budget.usd - ledger.spent - ledger.usd - sum(self.held.values()) + 1e-12:
+            return "budget"
+        reservation = len(self.reservations) + len(self.held) + 1
+        while reservation in self.held:
+            reservation += 1
+        self.held[reservation] = usd
+        return reservation
+
+    def charge(self, reservation, usd, success):
+        held = self.held.pop(reservation)
+        return held if usd is None else usd
 
 
 class FamilyDiscovery:
@@ -109,22 +149,12 @@ class FamilyDiscovery:
     def __call__(self, judging, protected_findings, source):
         if not self.requests or judging.judge is None:
             return
-        if any(finding.deferred and finding.candidate.lane == "baseline" for finding in protected_findings):
-            return
-        campaign = judging.campaign
-        state = campaign.snapshot()
-        current = [attempt for attempt in state.attempts if attempt.revision == campaign.revision]
-        sources = {"family:" + request.key for _, request in self.requests}
-        cached_work = any(
-            attempt.status == "answered" and attempt.source_evidence in sources for attempt in state.attempts
-        )
-        if not cached_work and (
-            any(attempt.status != "answered" for attempt in current)
-            or state.usd >= judging.settings.budget.usd
-            or not campaign.call_room(state, current, judging.settings, exploration=True)
-        ):
-            status = "budget" if state.usd >= judging.settings.budget.usd else "deferred"
-            self.findings = [FamilyFinding(request=request, status=status) for _, request in self.requests]
+        if judging.campaign is None:
+            # `scan`: the complete pair pass comes first; a pair the budget deferred leaves nothing for families.
+            if any(finding.budget_deferred for finding in protected_findings):
+                self.findings = [FamilyFinding(request=request, status="budget") for _, request in self.requests]
+                return
+        elif not self._campaign_ready(judging, protected_findings):
             return
         try:
             judge = load("judges", self.configuration.judge)
@@ -141,6 +171,27 @@ class FamilyDiscovery:
             if close is not None:
                 close()
 
+    def _campaign_ready(self, judging, protected_findings):
+        """`check`: the protected pair pass is complete and the campaign still has room, or the answer is cached."""
+        if any(finding.deferred and finding.candidate.lane == "baseline" for finding in protected_findings):
+            return False
+        campaign = judging.campaign
+        state = campaign.snapshot()
+        current = [attempt for attempt in state.attempts if attempt.revision == campaign.revision]
+        sources = {"family:" + request.key for _, request in self.requests}
+        cached_work = any(
+            attempt.status == "answered" and attempt.source_evidence in sources for attempt in state.attempts
+        )
+        if not cached_work and (
+            any(attempt.status != "answered" for attempt in current)
+            or state.usd >= judging.settings.budget.usd
+            or not campaign.call_room(state, current, judging.settings, exploration=True)
+        ):
+            status = "budget" if state.usd >= judging.settings.budget.usd else "deferred"
+            self.findings = [FamilyFinding(request=request, status=status) for _, request in self.requests]
+            return False
+        return True
+
     def _execute(self, judging, judge):
         if not hasattr(judge, "judge_family"):
             raise ValueError("discovery.families.judge must implement family judging")
@@ -152,7 +203,8 @@ class FamilyDiscovery:
             identity(judge), Spend(judge=identity(judge), subscription=getattr(judge, "subscription", False))
         )
         store = FamilyVerdictStore(FamilyBackend(judging.store))
-        execution = FamilyJudging(judge, store, FamilyAdmission(judging), rates)
+        admission = BudgetFamilyAdmission if judging.campaign is None else CampaignFamilyAdmission
+        execution = FamilyJudging(judge, store, admission(judging), rates)
         priced = []
         self.findings = []
         for benefit, request in self.requests:

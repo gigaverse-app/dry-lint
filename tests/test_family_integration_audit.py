@@ -197,7 +197,7 @@ def test_complete_protected_requests_and_reservations_match_without_family(setup
     assert len(family_judge.calls) == 1
 
 
-@pytest.mark.parametrize("command", ["detect", "judge", "scan", "sweep"])
+@pytest.mark.parametrize("command", ["detect", "judge", "sweep"])
 def test_unsupported_campaign_modes_reject_before_loading_judge(repo, command):
     repo.write(
         ".dry-lint.toml",
@@ -274,3 +274,16 @@ def test_cli_family_keeps_a_caller_and_callee_that_both_repeat_the_operation(rep
     assert not report.family_exclusions
     [family] = report.families
     assert {member.function.name for member in family.request.members} == {"callee", "caller", "other"}
+
+
+def test_scan_nominates_families_across_the_whole_repository(repo, tmp_path):
+    config = 'preset="none"\n[discovery]\nenabled=true\n[discovery.families]\njudge={use="anthropic-family",model="claude-haiku-5-5"}\n'
+    repo.write(".dry-lint.toml", config)
+    for i in range(3):
+        repo.write(f"jobs/{i}.py", f"def job{i}(codec, payload):\n{OPERATION}")
+    repo.commit("three unchanged copies")
+    target = tmp_path / "report.json"
+    with patch.object(family_module, "load", side_effect=AssertionError("no main judge")):
+        assert main(["scan", "--root", str(repo.root), "--report", str(target)]) == 0
+    [family] = Report.model_validate_json(target.read_text()).families
+    assert family.status == "unjudged" and len(family.request.members) == 3

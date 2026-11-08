@@ -172,6 +172,9 @@ class Judging:
         }
         relatives = [c for c in candidates if c.filtered is None and c.lane == "relative" and c.parent in reported]
         found += [f for f in self.assess(relatives, source, refresh, advisory=True) if not f.deferred]
+        if self.family_recovery is not None:
+            # After the complete pair pass, within what its budget left; recorded in the same spend.
+            self.family_recovery(self, found, source)
         self.store.add_spent(source, self.ledger.usd)
         return found
 

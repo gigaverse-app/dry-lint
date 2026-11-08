@@ -47,8 +47,18 @@ reported token usage settles the reservation.
 The adopter chooses the model/output ceiling and supplies its own credentials. These settings are an example,
 not a measured quality recommendation. There is no separate family allowance: conservative reservations,
 actual-usage settlement, retained failure holds, prior spending and all call caps share the native campaign.
-Only text, JSON, Markdown and check-run output are supported. Split detect/judge, scan and baseline sweep
-reject this opt-in before judging; they do not silently omit family coverage. No default or CI setup changes.
+Only text, JSON, Markdown and check-run output are supported. Split detect/judge and baseline sweep reject
+this opt-in before judging; they do not silently omit family coverage. No default or CI setup changes.
+
+## The backlog: families across the whole repository
+
+`check` asks only about families with a member the change touches. On gigaverse-backend that skipped about 105
+families with three or more owners in every pull request, so most repeated operations surface only in a
+whole-repository view. `dry-lint scan` with the same `[discovery.families]` table nominates every family in the
+repository. Its questions run after the complete pair pass and fit what the run's `budget.usd` has left, held
+conservatively and settled at actual usage like pair questions; a pair the budget deferred leaves nothing for
+families. A family question costs far more than a pair: about $0.13 each with Claude Sonnet 5.5 against the
+$0.04 default allowance, so pass `--budget-usd` sized for the backlog (roughly 30 families on gigaverse-backend).
 
 The family adapter uses the existing detector's pair rules and exact reviewed feedback to honor applicable
 human decisions. If a nominated family's owners contain a settled pair, it omits that whole nomination and
