@@ -20,8 +20,7 @@ import tempfile
 from pathlib import Path
 
 from dry_lint.family_models import FamilyRequest, FamilyResponse, FamilyUsage
-from dry_lint.judges.anthropic_family import MAX_INPUT_BYTES, check_family_bounds, family_prompt
-from dry_lint.judges.anthropic_family import PROMPT_VERSION as FAMILY_PROMPT_VERSION
+from dry_lint.judges.anthropic_family import MAX_INPUT_BYTES, FamilyPromptJudge
 from dry_lint.judges.command import PROMPT_VERSION, CommandJudge, parse_verdict, prompt
 from dry_lint.models import Candidate, Verdict
 
@@ -62,7 +61,7 @@ class ClaudeCodeJudge(CommandJudge):
         self.environment = subscription_environment()
 
 
-class ClaudeCodeFamilyJudge:
+class ClaudeCodeFamilyJudge(FamilyPromptJudge):
     """Operation-family questions through `claude -p` on the subscription the CLI is logged in with.
 
     The paid prompt is the same `family_prompt` the API judge sends; one call, no retries. In CI, log the CLI in
@@ -81,14 +80,9 @@ class ClaudeCodeFamilyJudge:
         max_input_bytes: int = MAX_INPUT_BYTES,
         timeout: float = 600,
     ) -> None:
-        check_family_bounds(model, max_tokens, max_input_bytes, timeout)
-        self.model, self.max_tokens, self.max_input_bytes, self.timeout = model, max_tokens, max_input_bytes, timeout
-        self.version = f"{FAMILY_PROMPT_VERSION}:claude-code:{model}:output={max_tokens}"
+        super().__init__(model, max_tokens, max_input_bytes, timeout, transport="claude-code")
         self.command = claude_command(cli, model, "json")
         self.available = shutil.which(shlex.split(cli)[0]) is not None
-
-    def input_text(self, request: FamilyRequest) -> str:
-        return family_prompt(request, max_input_bytes=self.max_input_bytes)
 
     def judge_family(self, request: FamilyRequest) -> FamilyResponse:
         environment = {**subscription_environment(), "CLAUDE_CODE_MAX_OUTPUT_TOKENS": str(self.max_tokens)}

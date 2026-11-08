@@ -70,15 +70,25 @@ def family_prompt(request: FamilyRequest, *, max_input_bytes: int = MAX_INPUT_BY
     return text
 
 
-def check_family_bounds(model: str, max_tokens: int, max_input_bytes: int, timeout: float) -> None:
-    """Every family judge bounds its model output, rendered prompt and wall time the same way."""
-    if not model.strip() or not 1 <= max_tokens <= 16000 or not 0 < timeout <= 600:
-        raise ValueError("Family judge needs a model, bounded output (1–16000) and timeout (0–600]")
-    if not isinstance(max_input_bytes, int) or not 1 <= max_input_bytes <= 1_048_576:
-        raise ValueError("Family judge max_input_bytes must be bounded to 1–1048576 bytes")
+class FamilyPromptJudge:
+    """What every family judge shares: the same bounded paid prompt, output ceiling and wall time.
+
+    Transports differ (API key, subscription CLI); the question, its bounds and its prompt identity do not.
+    """
+
+    def __init__(self, model: str, max_tokens: int, max_input_bytes: int, timeout: float, *, transport: str) -> None:
+        if not model.strip() or not 1 <= max_tokens <= 16000 or not 0 < timeout <= 600:
+            raise ValueError("Family judge needs a model, bounded output (1–16000) and timeout (0–600]")
+        if not isinstance(max_input_bytes, int) or not 1 <= max_input_bytes <= 1_048_576:
+            raise ValueError("Family judge max_input_bytes must be bounded to 1–1048576 bytes")
+        self.model, self.max_tokens, self.max_input_bytes, self.timeout = model, max_tokens, max_input_bytes, timeout
+        self.version = ":".join(part for part in (PROMPT_VERSION, transport, model) if part) + f":output={max_tokens}"
+
+    def input_text(self, request: FamilyRequest) -> str:
+        return family_prompt(request, max_input_bytes=self.max_input_bytes)
 
 
-class AnthropicFamilyJudge:
+class AnthropicFamilyJudge(FamilyPromptJudge):
     name = "anthropic-family"
     subscription = False
 
@@ -91,17 +101,11 @@ class AnthropicFamilyJudge:
         timeout: float = 120,
         http_client: Any = None,
     ) -> None:
-        check_family_bounds(model, max_tokens, max_input_bytes, timeout)
-        self.model, self.max_tokens, self.timeout = model, max_tokens, timeout
-        self.max_input_bytes = max_input_bytes
-        self.version = f"{PROMPT_VERSION}:{model}:output={max_tokens}"
+        super().__init__(model, max_tokens, max_input_bytes, timeout, transport="")
         self._key = os.environ.get("ANTHROPIC_API_KEY", "") if api_key is None else api_key
         self.available = bool(self._key.strip())
         self._http_client = http_client
         self._client: Any = None
-
-    def input_text(self, request: FamilyRequest) -> str:
-        return family_prompt(request, max_input_bytes=self.max_input_bytes)
 
     def judge_family(self, request: FamilyRequest) -> FamilyResponse:
         if not self.available:
