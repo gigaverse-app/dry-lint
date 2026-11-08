@@ -113,7 +113,7 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
     if a.origin == b.origin and (relation := call_relation(a, b) or call_relation(b, a)):
         return relation
     for pattern in settings.patterns:
-        if fnmatch.fnmatch(a.qualname, pattern.members) and fnmatch.fnmatch(b.qualname, pattern.members):
+        if pattern.matches(a.qualname) and pattern.matches(b.qualname):
             return f"declared pattern: {pattern.reason}"
     for x, y in ((a, b), (b, a)):
         for target in SUPPRESSION.findall(x.code):

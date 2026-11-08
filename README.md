@@ -22,6 +22,20 @@ Coding agents rarely copy and paste. They write *new* code for a job the codebas
 (pylint's `duplicate-code`, jscpd) look for repeated lines, so they miss this. Every rewrite is also a chance to
 drift: one version rounds, the other truncates, and callers get different answers to the same question.
 
+**Set it up with your coding agent.** Give Claude Code, Codex, Cursor or any coding agent in your repository this
+one prompt:
+
+```text
+Set up dry-lint in this repository. Fetch https://dry-lint.readthedocs.io/en/latest/agent-setup.md and follow it.
+```
+
+The agent reads how your repository works (default branch, action pinning, pull request template, existing
+secrets), writes the settings, accepts today's duplicates in a baseline, adds the workflows and hooks, proves the
+check catches a copied function, and opens a pull request. Repository settings and secrets stay with you: it stops
+and asks you to add a TypeSafe API key secret if there is none, to make the `dry-lint` check required, and to add a
+token for the weekly cleanup pull request. To do it by hand, follow the [first-run tutorial](docs/tutorials/first-run.md);
+[how CI runs dry-lint](docs/ci.md) explains the moving parts.
+
 dry-lint finds functions in a pull request that look like they re-implement something that already exists. A
 judge decides whether each pair really is one concept, and the result goes back as PR annotations and one comment
 ([see one](docs/comment-preview.md)):
@@ -30,7 +44,8 @@ judge decides whether each pair really is one concept, and the result goes back 
 src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_text (drifted)
     judge 0.91; the two already behave differently; call the existing function;
     similarity 0.71; if they are different concepts, add
-    `# dry-lint: distinct-from src/text.py::shorten_text`
+    `# dry-lint: distinct-from src/text.py::shorten_text`;
+    if they are one concept copied on purpose, add a [[patterns]] entry with a reason
 ```
 
 **You bring your own keys.** dry-lint never provides API keys, models or judge execution: judges run on the
@@ -72,8 +87,9 @@ uv tool update-shell
 
 ### Add it to GitHub Actions
 
-Save this as `.github/workflows/dry-lint.yml`. It works without a secret; add a `TYPESAFE_AI_API_KEY`
-repository secret when you want judged findings.
+Save this as `.github/workflows/dry-lint.yml`. It works without a secret. For judged findings, store your
+TypeSafe API key as a repository or organization secret and pass it to `typesafe-api-key:`. The secret can have any
+name; this example calls it `TYPESAFE_AI_API_KEY` (check `gh secret list` and your organization's secrets first).
 
 ```yaml
 name: dry-lint
@@ -111,8 +127,9 @@ is for people. A coding agent can check findings itself, so for agents a cheap j
 more for less ([who reads the findings](docs/judges.md#who-reads-the-findings-people-or-coding-agents)). Pull
 requests from forks get no secrets, so the default `mode: auto` runs dry-lint as two jobs for them: `detect` on the pull
 request, and `judge` in [a `workflow_run` job](examples/dry-lint-judge.yml) that keeps the key away from pull
-request code ([design](docs/design.md#two-jobs-in-ci)). For default-branch runs and rechecks when override
-labels change, use the [extended workflow](examples/dry-lint.yml); the [action guide](docs/github-action.md)
+request code ([design](docs/design.md#two-jobs-in-ci)). For default-branch runs, rechecks when override
+labels change, and a fork job named `dry-lint detect` so it can never satisfy a required `dry-lint` check, use
+the [extended workflow](examples/dry-lint.yml); the [action guide](docs/github-action.md)
 lists every option.
 
 ### pre-commit
@@ -135,6 +152,13 @@ untracked `.env`; nothing else is needed. `args: [--preset, agent+haiku]` adds C
 scores, for higher precision and some lost recall on TypeScript; `args: [--preset, auto]` gives a person committing
 by hand the same precision-first judging as CI
 ([who reads the findings](docs/judges.md#who-reads-the-findings-people-or-coding-agents)).
+
+Once the repository has a baseline, the hook must judge with the baseline's preset, because a baseline refuses any
+other: `args: [--preset, jev, --baseline, .dry-lint/baseline.json]`, naming the preset in `.dry-lint.toml`
+([one preset everywhere](docs/judges.md#one-preset-everywhere)).
+
+`rev: v1` follows dry-lint's 1.x releases, but pre-commit caches the first install and warns that `v1` is a mutable
+reference. To pick up a newer release, run `pre-commit clean && pre-commit install --install-hooks`.
 
 A blocked commit names the pair. Fix it by reusing the existing function, or record an intentional difference with
 `# dry-lint: distinct-from path::name` or `dry-lint feedback dismiss PAIR --reason ...`. For wider exploration with a
@@ -169,7 +193,7 @@ judges them; to use another judge, pass `--judge command --judge-command "your-l
 | To | Read |
 | --- | --- |
 | Fully adopt hooks, PR/README stickies and a shrinking backlog | [Adoption playbook](docs/adoption-playbook.md) |
-| Set it up with an agent | [skills/dry-lint/SKILL.md](skills/dry-lint/SKILL.md) |
+| Set it up with an agent | the one prompt above; the agent follows [skills/dry-lint/SKILL.md](skills/dry-lint/SKILL.md) |
 | See the PR comment before installing | [Example report](docs/comment-preview.md) |
 | Put judged findings on pull requests | [GitHub Action setup](docs/github-action.md) |
 | Add structural matching | [The optional Dryer comparer](docs/detectors.md) ([compared on gigaverse-backend](docs/dryer-comparison.md)) |
@@ -211,18 +235,29 @@ Some look-alikes are deliberate. Silence them where the decision belongs:
   to the code it explains, and moves or disappears with it.
 - **A whole function**: put `# dry-lint: ignore` in it (generated code, a deliberate copy). It is left out of
   every pair, on either side.
-- **Families**: declare a pattern of deliberate per-resource instances in `pyproject.toml`:
+- **Families, and copies kept on purpose**: declare a pattern in `.dry-lint.toml`, for deliberate per-resource
+  instances or for one concept a project keeps in two places (say, a module that vendors a helper so it imports
+  nothing):
 
 ```toml
-[tool.dry-lint]
+# .dry-lint.toml
 exclude = ["*/tests/*", "tests/*", "*/migrations/*"]
 
-[[tool.dry-lint.patterns]]
+[[patterns]]
 members = "src/*/api/*_api.py::create_router"
 reason = "one router per resource"
+
+[[patterns]]
+members = ["pkg/funcutils.py::_indent", "pkg/strutils.py::indent"]
+reason = "funcutils vendors strutils.indent so it imports nothing"
 ```
 
-Machine "not a duplicate" verdicts stay in the store and do not need to be checked in.
+A pair matches a pattern when **both** of its functions do: each side's `path::Qualified.name` is compared with
+fnmatch against `members`, one glob or a list. Keep globs narrow, since a broad one silences real duplicates too,
+and check each with `dry-lint explain A B`, which prints `rule: declared pattern: <reason>` for a match. Do not
+put copies kept on purpose in the baseline instead: a baseline entry accepts both functions exactly as they are, so
+the day someone fixes a bug in both copies, the changed pair fails as new debt. Machine "not a duplicate" verdicts
+stay in the store and do not need to be checked in.
 
 ## Measured
 
@@ -243,12 +278,16 @@ On 600 gigaverse-ai pull requests, against a 250-pair gold set labelled blind by
 
 ## Settings
 
-All settings live under `[tool.dry-lint]` in `pyproject.toml` or in a `.dry-lint.toml` file. Judges and
-thresholds come from the preset ([docs/judges.md](docs/judges.md)); anything set here wins over it:
+Settings live in `.dry-lint.toml` at the repository root, as top-level keys with tables such as `[budget]` and
+`[[patterns]]`. The same keys also work under `[tool.dry-lint]` in `pyproject.toml` (`[tool.dry-lint.budget]`,
+`[[tool.dry-lint.patterns]]`); when both files exist, `.dry-lint.toml` wins. Judges and thresholds come from the
+preset ([docs/judges.md](docs/judges.md)); anything set here wins over it. `dry-lint config` prints the result,
+including how many source files the scope covers:
 
 | Setting | Default | |
 | --- | --- | --- |
-| `include` / `exclude` | everything / tests, migrations, scripts | fnmatch over tracked paths |
+| `include` / `exclude` | everything / tests, migrations, scripts | fnmatch over tracked paths; setting `exclude` replaces the defaults |
+| `patterns` | none | `[[patterns]]` entries with `members` (a glob or a list) and a `reason`: [deliberate look-alikes](#when-it-is-right-not-to-merge-them) |
 | `neighbours` | 3 | candidates per changed function |
 | `preset` | `"auto"` | judges and their measured thresholds together: `jev+opus`, `jev+claude-code`, `jev+sonnet`, `jev+claude-code-sonnet`, `jev+codex`, `sonnet`, `claude-code`, `jev`, `none`; auto picks by the credentials present |
 | `drop_below` / `report_at` / `fail_at` | from the preset | separate below, reported at, failing at (`--fail-at` overrides it); `jev+opus` is 0.5 / 0.55 / 0.55, with Jev's answers that Opus did not see held to Jev's 0.8 |

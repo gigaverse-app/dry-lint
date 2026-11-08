@@ -64,7 +64,13 @@ extra:
     icon: docs/assets/icon.png
     banner: docs/assets/readme-hero-light.svg
     social: docs/assets/social-preview.png
+  # Copied verbatim into the built site for agents and crawlers (documentation/hooks.py on_post_build).
+  raw_files:
+    skills/dry-lint/SKILL.md: agent-setup.md
+  llms_txt: documentation/llms.txt
   published_sources:
+  - source: skills/dry-lint/SKILL.md
+    as: agent-setup.md
   - docs/why.md
   - docs/tutorials/first-run.md
   - docs/ci.md
@@ -92,6 +98,7 @@ extra:
 nav:
 - Home: index.md
 - Getting started:
+  - Set it up with a coding agent: agent-setup.md
   - Why dry-lint: docs/why.md
   - "Tutorial: first run to required check": docs/tutorials/first-run.md
   - How CI runs dry-lint: docs/ci.md

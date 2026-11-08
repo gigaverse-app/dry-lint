@@ -10,18 +10,23 @@ judged duplicate pairs and their logic hashes. Removing one allowance never crea
 ## Initialize once
 
 Choose the repository's judging preset and credentials as described in [judges.md](judges.md). For example,
-with the adopter's `ANTHROPIC_API_KEY` and the `anthropic` extra installed:
+with the adopter's TypeSafe key in `TYPESAFE_AI_API_KEY`:
 
 ```toml
 # .dry-lint.toml
-preset = "sonnet"
+preset = "jev"
 [budget]
-usd = 0.25
+usd = 0.04
 ```
 
 ```bash
-dry-lint sweep --init --budget-usd 5 --readme README.md --repository OWNER/NAME
+dry-lint sweep --init --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT
 ```
+
+`--budget-usd 1` is ample for Jev (273 pairs cost $0.010); a Claude preset such as `sonnet` needs about `5`.
+Without a judge key on the machine, the [bootstrap workflow](../examples/dry-lint-bootstrap.yml) runs this sweep in
+GitHub Actions and uploads the files to commit ([CI route](ci.md#no-judge-key-on-your-machine)). A later `sweep`
+without `--init` needs the committed baseline; without one it says so and points back to `--init`.
 
 Review and commit `.dry-lint/baseline.json`, `.dry-lint/progress.json`, the settings and README. `--init` refuses
 to overwrite an existing baseline. The larger one-off budget does not change the configured PR budget.
@@ -36,9 +41,9 @@ Unsupported or invalid source cannot silently disappear from a strict scan.
 ## Review the audit and clean up deliberately
 
 ```bash
-dry-lint sweep --budget-usd 5 --report audit.json --output audit.md
+dry-lint sweep --budget-usd 1 --report audit.json --output audit.md
 # A human or agent reviews the list, refactors selected code, and runs its tests.
-dry-lint sweep --update --budget-usd 5 --readme README.md --repository OWNER/NAME
+dry-lint sweep --update --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT
 ```
 
 The first command is read-only except for explicitly requested report files and the verdict cache. The second
@@ -59,8 +64,7 @@ Budget changes and human pattern decisions do not change that detection contract
 ```yaml
 - uses: gigaverse-app/dry-lint@v1
   with:
-    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-    plugins: anthropic==2.4.0
+    typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}   # your secret's name
     baseline: .dry-lint/baseline.json
     require-complete: 'true'
 ```

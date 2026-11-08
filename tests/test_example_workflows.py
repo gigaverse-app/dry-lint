@@ -25,3 +25,21 @@ def test_only_pull_request_runs_are_cancelled_never_the_runs_on_main() -> None:
     workflow = (EXAMPLES / "dry-lint.yml").read_text()
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in workflow
     assert "github.run_id" in workflow  # a push's group is its own run, so pushes never cancel each other
+
+
+def test_a_fork_run_never_reports_as_the_required_check() -> None:
+    """A fork's job only detects, so it must not be named `dry-lint`, the check a branch rule requires."""
+    workflow = (EXAMPLES / "dry-lint.yml").read_text()
+    name = " ".join(re.search(r"^    name: >-\n((?:      .*\n)+)", workflow, re.MULTILINE).group(1).split())
+    assert name == (
+        "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name "
+        "!= github.event.pull_request.base.repo.full_name && 'dry-lint detect' || 'dry-lint' }}"
+    )
+
+
+def test_the_bootstrap_initializes_once_from_a_push_and_ships_the_hidden_folder() -> None:
+    workflow = (EXAMPLES / "dry-lint-bootstrap.yml").read_text()
+    assert "paths: [.github/workflows/dry-lint-bootstrap.yml]" in workflow  # runs on the branch that adds it
+    assert "dry-lint sweep --init" in workflow and "contents: read" in workflow
+    assert "include-hidden-files: true" in workflow  # upload-artifact skips .dry-lint/ otherwise
+    assert "persist-credentials: false" in workflow

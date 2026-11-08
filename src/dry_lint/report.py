@@ -119,6 +119,7 @@ class Finding(BaseModel):
         if relatives:
             parts.append(self.kin(relatives))
         parts.append(f"if they are different concepts, add `{self.suppression()}`")
+        parts.append("if they are one concept copied on purpose, add a [[patterns]] entry with a reason")
         return "; ".join(parts)
 
     def kin(self, relatives: list["Finding"]) -> str:
@@ -753,7 +754,7 @@ def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list
         "| Scope | Decision |", "| :-- | :-- |",
         f"| this pair | `{prefix} dry-lint: distinct-from <qualified name>` in {where} |",
         f"| one {noun} | `{prefix} dry-lint: ignore` in that {noun} |",
-        "| a family of look-alikes | a `patterns` entry under `[tool.dry-lint]`, or in `.dry-lint.toml` |",
+        "| a family of look-alikes, or copies kept on purpose | a `[[patterns]]` entry with a `reason` in `.dry-lint.toml` |",
         *([] if audit else ["| this pull request only | the `dry-lint: override` label |"]),
         *(["", "In TypeScript and TSX, the comments start with `//`."] if any(typescript) and prefix == "#" else []),
     ]  # fmt: skip

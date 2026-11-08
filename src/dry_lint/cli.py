@@ -41,7 +41,8 @@ from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
 from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.discovery import CampaignStore
 from dry_lint.feedback import FILENAME, Decision, Feedback
-from dry_lint.functions import extractor_for
+from dry_lint.files import write_text
+from dry_lint.functions import extractor_for, tracked_files
 from dry_lint.git import git, worktree
 from dry_lint.github import github_event
 from dry_lint.judges import make_escalation, make_judge
@@ -331,6 +332,11 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     path = root / (args.baseline or Path(".dry-lint/baseline.json"))
     if args.init and path.exists():
         raise ValueError("Baseline already exists; rerun sweep without --init to ratchet it")
+    if not args.init and not path.exists():
+        raise ValueError(
+            f"No baseline at {path.relative_to(root).as_posix()}. Accept the existing backlog once with "
+            "`dry-lint sweep --init` (it needs a judge key; docs/sweeps.md), or pass --baseline PATH"
+        )
     baseline = None if args.init else Baseline.read(path, settings)
     detector, _ = detector_for(root, settings, args)
     candidates = baseline.candidates(detector) if baseline else detector.candidates(detector.functions)
@@ -359,10 +365,10 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if readme:
         content = progress_content(root, settings, args, updated)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
-    (path.parent / "progress.json").write_text(json.dumps(updated.badge(), indent=2) + "\n", encoding="utf-8")
+    write_text(path, updated.model_dump_json(indent=2) + "\n")
+    write_text(path.parent / "progress.json", json.dumps(updated.badge(), indent=2) + "\n")
     if readme and content is not None:
-        readme.write_text(content, encoding="utf-8")
+        write_text(readme, content)
     print(
         f"dry-lint: {updated.count('cleaned')} pairs cleaned, {updated.count('remaining')} remaining, "
         f"{updated.count('dismissed')} dismissed; wrote {path}"
@@ -403,15 +409,22 @@ def progress_content(
 def progress(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if not args.readme:
         raise ValueError("progress requires --readme, for example --readme README.md")
-    content = progress_content(root, settings, args)
-    (root / args.readme).write_text(content, encoding="utf-8")
+    write_text(root / args.readme, progress_content(root, settings, args))
     print(f"dry-lint: refreshed function and model debt in {args.readme}; baselines unchanged")
     return 0
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     detector, _ = detector_for(root, settings, args)
-    candidates = detector.scan()[: args.limit]
+    found = detector.scan()
+    candidates = found[: args.limit]
+    if len(found) > len(candidates):
+        # On stderr, so --format json and sarif stay parseable.
+        print(
+            f"dry-lint: showing the {len(candidates)} closest of {len(found)} look-alike pairs; "
+            "raise --limit to see more",
+            file=sys.stderr,
+        )
     report = judged(
         candidates,
         settings,
@@ -582,9 +595,9 @@ def model_baseline(root: Path, settings: Settings, args: argparse.Namespace) -> 
     if args.init or args.update:
         content = progress_content(root, settings, args, models=updated) if args.readme else None
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
+        write_text(path, updated.model_dump_json(indent=2) + "\n")
         if content is not None:
-            (root / args.readme).write_text(content, encoding="utf-8")
+            write_text(root / args.readme, content)
     print(
         f"dry-lint models: {updated.count('remaining')} reviewed pairs remaining, {updated.count('cleaned')} cleaned, {updated.count('dismissed')} dismissed"
     )
@@ -635,6 +648,23 @@ def pair_usd(choice: PluginChoice | None, settings: Settings) -> str:
     return f"${(TYPICAL_PAIR_CHARS / CHARS_PER_TOKEN * rates[0] + answer * rates[1]) / 1_000_000:.2g} per pair"
 
 
+def scope_lines(root: Path, settings: Settings) -> list[str]:
+    """Which tracked source files the settings put in scope, by top-level folder, so a wrong `include` shows."""
+    extractors = [load("extractors", choice) for choice in settings.extractors]
+    folders: dict[str, int] = {}
+    for path in tracked_files(root, settings.include, settings.exclude):
+        if extractor_for(path, extractors):
+            folder = path.split("/", 1)[0] if "/" in path else "."
+            folders[folder] = folders.get(folder, 0) + 1
+    ranked = sorted(folders.items(), key=lambda item: (-item[1], item[0]))
+    shown = ", ".join(f"{folder} {count}" for folder, count in ranked[:8]) + (", ..." if len(ranked) > 8 else "")
+    return [
+        f"scope: include {', '.join(settings.include)} - exclude {', '.join(settings.exclude) or 'nothing'}",
+        f"  {sum(folders.values())} source files in scope" + (f": {shown}" if folders else ""),
+        f"  {len(settings.patterns)} declared pattern(s)",
+    ]
+
+
 def config(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     """The resolved judging setup, the credentials that chose it (by name only), every preset, and the cost."""
     found = [
@@ -672,6 +702,7 @@ def config(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         f"budget: ${settings.budget.usd:g} per pull request at list price, subscriptions included; "
         f"{settings.budget.subscription_calls} "
         "subscription calls",
+        *scope_lines(root, settings),
         "",
         "presets:",
     ]

@@ -1,7 +1,8 @@
 # GitHub Action
 
-Use `gigaverse-app/dry-lint@v1`. Use published major-version tags
-for established Actions, such as `actions/checkout@v7`.
+Use `gigaverse-app/dry-lint@v1`, and published major-version tags for established Actions, such as
+`actions/checkout@v7`. If your repository pins actions to commit SHAs, follow that policy instead:
+`gigaverse-app/dry-lint@<sha> # v1`, with the SHA from `gh api repos/gigaverse-app/dry-lint/commits/v1 --jq .sha`.
 
 Create `.github/workflows/dry-lint.yml` using the [complete quick start](../README.md#add-it-to-github-actions)
 or copy [the extended workflow](../examples/dry-lint.yml), which also handles default-branch pushes and
@@ -18,8 +19,9 @@ override-label changes. To add dry-lint to an existing job, these are the only s
 ```
 
 Give that job `contents: read` and `pull-requests: write` permissions. You can run it before creating any
-secrets: it lists look-alikes without model calls, PR comments, or failures on findings. Add your own
-`TYPESAFE_AI_API_KEY` repository secret to enable judging. To start with advisory findings, set `warn-only: "true"`.
+secrets: it lists look-alikes without model calls, PR comments, or failures on findings. To enable judging, store
+your TypeSafe API key as a repository or organization secret and pass it to `typesafe-api-key:`; the secret can have
+any name, and the examples call it `TYPESAFE_AI_API_KEY`. To start with advisory findings, set `warn-only: "true"`.
 
 The action manages Python 3.13 and its dependencies in a separate environment, ignoring project uv settings
 in `pyproject.toml` and `uv.toml`. It does not install your application or change its virtual environment.
@@ -149,7 +151,7 @@ deployment rather than replacing it with the example publisher in `.github/workf
 
 ## When it fails, and false positives
 
-Two thresholds decide what a finding does: `report_at` and `fail_at`, both in `[tool.dry-lint]`. The `fail-at`
+Two thresholds decide what a finding does: `report_at` and `fail_at`, both in `.dry-lint.toml`. The `fail-at`
 action input (or `--fail-at` on the command line) overrides `fail_at` for one workflow.
 
 | Judge score | Finding | Check |
@@ -179,8 +181,8 @@ pairs are counted separately from confirmed duplicates in the text summary.
 | --- | --- | --- |
 | this pair | `# dry-lint: distinct-from src/text.py::shorten_text` in the new function | next to the code it explains |
 | this function | `# dry-lint: ignore` in the function | next to the code |
-| a family of deliberate look-alikes | a `patterns` entry (`members`, `reason`) in `[tool.dry-lint]` | configuration, reviewed |
-| whole paths | `exclude` in `[tool.dry-lint]` | configuration, reviewed |
+| a family of deliberate look-alikes, or copies kept on purpose | a `[[patterns]]` entry (`members`, `reason`) in `.dry-lint.toml` ([how patterns match](../README.md#when-it-is-right-not-to-merge-them)) | configuration, reviewed |
+| whole paths | `exclude` in `.dry-lint.toml` | configuration, reviewed |
 | this pull request only | the `dry-lint: override` label | the pull request; the comment says it was overridden |
 
 The code and configuration routes are permanent and reviewed like any change: the pair is never proposed again.
@@ -253,10 +255,10 @@ code 2 always fails the step, including subprocess crashes and report-rendering 
 error annotation and a job-summary message even with `comment: false` or `warn-only: true`. Each invocation
 discards its previous report before scanning, so a failed scan cannot reuse an earlier successful report.
 
-Thresholds and exclusions live in `[tool.dry-lint]` in `pyproject.toml`, or in a `.dry-lint.toml` at the repository
-root (which wins when both exist), so that the action, the pre-commit hook and the command line all agree
-([README](../README.md#settings)). Prefer `.dry-lint.toml` where editing `pyproject.toml` is expensive, for example
-when CI reruns every test on any change to it.
+Thresholds and exclusions live in a `.dry-lint.toml` at the repository root, or under `[tool.dry-lint]` in
+`pyproject.toml` (`.dry-lint.toml` wins when both exist), so that the action, the pre-commit hook and the command
+line all agree ([README](../README.md#settings)). Prefer `.dry-lint.toml`; it also avoids rerunning every test in
+repositories whose CI treats any `pyproject.toml` change as global.
 
 ## Verdict cache
 

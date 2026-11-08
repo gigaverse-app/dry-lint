@@ -1,0 +1,55 @@
+# .github/workflows/dry-lint-bootstrap.yml: accept the existing backlog in Actions, for when no judge key is at hand.
+#
+# Commit this file with .dry-lint.toml on the adoption branch and push. The push that adds it runs it on that branch
+# (a push needs no default-branch registration, unlike workflow_dispatch). It judges every candidate pair once and
+# uploads .dry-lint/, the README and the sweep report as the `dry-lint-baseline` artifact:
+#
+#   gh run list --workflow dry-lint-bootstrap.yml --branch "$(git branch --show-current)" --limit 1
+#   OUT=$(mktemp -d) && gh run download RUN_ID --name dry-lint-baseline --dir "$OUT"
+#
+# Copy .dry-lint/ and README.md from $OUT into the repository, delete this workflow, and commit. Nothing here writes
+# to the repository: the files arrive only through the commit you review.
+name: dry-lint bootstrap
+on:
+  push:
+    paths: [.github/workflows/dry-lint-bootstrap.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'  # the parser: use the newest Python syntax your code needs
+      - name: Install dry-lint
+        run: python -m pip install 'dry-lint>=1,<2'  # 'dry-lint[anthropic]>=1,<2' for a Claude preset
+      - name: Accept the existing backlog
+        env:
+          # Your secret can have any name; the CLI reads the key from TYPESAFE_AI_API_KEY.
+          TYPESAFE_AI_API_KEY: ${{ secrets.TYPESAFE_AI_API_KEY }}
+          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # presets jev+opus and sonnet
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          OUT: ${{ runner.temp }}/dry-lint-baseline
+        # --budget-usd: 1 is ample for Jev (273 pairs cost $0.010); use 5 for a Claude preset.
+        # Leave out --readme for a README that is not Markdown.
+        run: |
+          mkdir -p "$OUT"
+          dry-lint config
+          dry-lint sweep --init --budget-usd 1 --readme README.md --report "$OUT/sweep-report.json" \
+            --repository "$GITHUB_REPOSITORY" --branch "$DEFAULT_BRANCH"
+          cp -R .dry-lint README.md "$OUT/"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dry-lint-baseline
+          path: ${{ runner.temp }}/dry-lint-baseline
+          include-hidden-files: true  # .dry-lint/ starts with a dot
+          if-no-files-found: error
+          retention-days: 7

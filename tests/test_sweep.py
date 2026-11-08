@@ -524,3 +524,35 @@ def test_debt_the_target_already_records_as_cleaned_is_not_credited_again(
     repo.commit()
     assert run_cli(repo, tmp_path, *args) == 0
     assert backlog(tmp_path) == []
+
+
+def test_a_sweep_without_a_baseline_says_how_to_create_one(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
+    assert sweep(repo, tmp_path, twin_judge) == 2
+    error = capsys.readouterr().err
+    assert "No baseline at .dry-lint/baseline.json" in error and "dry-lint sweep --init" in error
+    assert "Errno" not in error
+
+
+def test_written_files_keep_the_repositorys_newlines_and_a_new_block_gets_a_heading(
+    repo: Repo, tmp_path: Path, twin_judge: str
+) -> None:
+    """INVARIANT: dry-lint rewrites only its own block; a CRLF README stays CRLF and an LF one stays LF."""
+    readme = repo.root / "README.md"
+    readme.write_bytes(b"# A library\r\n\r\nUseful introduction.\r\n")
+    repo.commit()
+    args = ("--readme", "README.md", "--repository", "acme/library")
+    assert sweep(repo, tmp_path, twin_judge, "--init", *args) == 0
+    data = readme.read_bytes()
+    assert data.count(b"\r\n") == data.count(b"\n")
+    assert data.startswith(b"# A library\r\n\r\nUseful introduction.\r\n\r\n## Duplicate code\r\n\r\n<!-- dry-lint")
+    for name in ("baseline.json", "progress.json"):  # new files are LF
+        assert b"\r\n" not in (repo.root / ".dry-lint" / name).read_bytes()
+    baseline = repo.root / ".dry-lint/baseline.json"
+    baseline.write_bytes(baseline.read_bytes().replace(b"\n", b"\r\n"))  # as a CRLF checkout has it
+    readme.write_bytes(data.replace(b"\r\n", b"\n").replace(b"## Duplicate code", b"## Our debt"))
+    repo.commit()
+    assert sweep(repo, tmp_path, twin_judge, *args) == 0
+    assert run_cli(repo, tmp_path, *args, command="progress") == 0
+    text = readme.read_bytes()
+    assert b"\r\n" not in text and text.count(b"## Our debt") == 1 and b"## Duplicate code" not in text
+    assert baseline.read_bytes().count(b"\r\n") == baseline.read_bytes().count(b"\n")

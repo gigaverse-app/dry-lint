@@ -111,6 +111,11 @@ B = function("b.py", "def load_account(store, key):\n    return store.read(key)\
      function("a.py", "def get(self, key):\n    return self.read(key)\n", owner="Store"), Settings(), None),
     (A, B, Settings(patterns=[Pattern(members="*::load_*", reason="one loader per resource")]),
      "declared pattern: one loader per resource"),
+    # A list names the members one by one; any two of them are the family, and both sides must be members.
+    (A, B, Settings(patterns=[Pattern(members=["a.py::load_user", "b.py::load_account"], reason="vendored copy")]),
+     "declared pattern: vendored copy"),
+    (A, B, Settings(patterns=[Pattern(members=["a.py::load_user", "c.py::load_account"], reason="vendored copy")]),
+     None),
     (A, function("b.py", "def load_account(store, key):\n    # dry-lint: distinct-from a.py::load_user\n    return store.read(key)\n"),
      Settings(), "inline distinct-from"),
     (A, B, Settings(), None),
