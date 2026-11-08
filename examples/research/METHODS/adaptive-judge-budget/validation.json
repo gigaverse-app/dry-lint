@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "method": "adaptive-judge-budget",
+  "implementation_files_ast_equivalent": 7,
+  "algorithm_changes": false,
+  "recorded_replay": {
+    "schema": 1,
+    "method": "adaptive-judge-budget",
+    "provider_calls": 0,
+    "encoder_calls": 0,
+    "scope": "Recompute settled usage and censoring from frozen events; no scheduler or provider execution",
+    "results": [
+      {
+        "input": "completion-final-measured/results.jsonl",
+        "sha256": "6e8aa6e53c7bc9d919b72da5d2e177401546835a1a64079cd8516af1542e8ee5",
+        "arms": [
+          {
+            "arm": "adaptive",
+            "accounting": "native",
+            "campaigns": 4,
+            "censored": 0,
+            "successful_attempts": 18,
+            "actual_settled_usd": 0.0076019,
+            "paid_failed_attempts": 0,
+            "reported_occurrences": 1
+          },
+          {
+            "arm": "adaptive",
+            "accounting": "normal",
+            "campaigns": 4,
+            "censored": 0,
+            "successful_attempts": 0,
+            "report_count_unavailable_campaigns": 4
+          },
+          {
+            "arm": "cost",
+            "accounting": "native",
+            "campaigns": 4,
+            "censored": 0,
+            "successful_attempts": 18,
+            "actual_settled_usd": 0.0076019,
+            "paid_failed_attempts": 0,
+            "reported_occurrences": 1
+          },
+          {
+            "arm": "cost",
+            "accounting": "normal",
+            "campaigns": 4,
+            "censored": 0,
+            "successful_attempts": 0,
+            "report_count_unavailable_campaigns": 4
+          },
+          {
+            "arm": "fixed",
+            "accounting": "native",
+            "campaigns": 4,
+            "censored": 0,
+            "successful_attempts": 6,
+            "actual_settled_usd": 0.0027141,
+            "paid_failed_attempts": 0,
+            "reported_occurrences": 1
+          },
+          {
+            "arm": "fixed",
+            "accounting": "normal",
+            "campaigns": 4,
+            "censored": 0,
+            "successful_attempts": 0,
+            "report_count_unavailable_campaigns": 4
+          },
+          {
+            "arm": "uniform",
+            "accounting": "native",
+            "campaigns": 4,
+            "censored": 0,
+            "successful_attempts": 18,
+            "actual_settled_usd": 0.0076019,
+            "paid_failed_attempts": 0,
+            "reported_occurrences": 1
+          },
+          {
+            "arm": "uniform",
+            "accounting": "normal",
+            "campaigns": 4,
+            "censored": 0,
+            "successful_attempts": 0,
+            "report_count_unavailable_campaigns": 4
+          }
+        ]
+      }
+    ]
+  },
+  "relocation": {
+    "passed": true,
+    "network_blocked": true,
+    "original_evidence_reads_blocked": true,
+    "scope": "Public replay code and minimal frozen inputs copied to new roots, executed from /tmp. Scientific runtime imports allowed."
+  },
+  "original_scheduler_replay": {
+    "passed": true,
+    "arms": 16,
+    "native_states_reports_usage_holds_identical": true,
+    "normal_ledgers_identical": true,
+    "network_blocked": true
+  }
+}
