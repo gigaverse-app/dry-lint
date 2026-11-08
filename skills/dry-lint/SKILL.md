@@ -21,7 +21,7 @@ Atomic scores prioritize candidates; coding agents trace ownership and usage bef
 ## 1. See what would run
 
 ```bash
-uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint config
+uvx dry-lint config
 ```
 
 It prints the preset in effect, the credentials it found (names only), the judges, the thresholds, the budget,
