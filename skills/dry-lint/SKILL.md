@@ -16,8 +16,10 @@ result is a required `dry-lint` check, annotations and one sticky comment. Old d
 
 **Ground rules**
 
-- Work on a new branch and open a draft pull request. Follow the repository's AGENTS.md, CONTRIBUTING and pull
-  request template; they win over this file on style.
+- Work on a new branch and open a draft pull request right after its first push (step 5's CI route, else step 8).
+  Follow the repository's AGENTS.md, CONTRIBUTING and pull request template; they win over this file on style. Fill
+  in every field of the template; for one that does not apply to a tooling change (an issue link, a changelog entry,
+  a test plan for code), write `N/A:` and the reason rather than deleting it.
 - Never print, log or commit a secret. Refer to secrets by name only.
 - Stop and tell the human, with the exact step, when something needs a secret or a repository setting. Do not change
   repository settings, rulesets or secrets yourself.
@@ -30,29 +32,32 @@ Run these and note the answers. Every later step uses them.
 
 ```bash
 REPO=OWNER/NAME     # the repository you will open the pull request in: check `git remote -v`; in a fork, the fork
-gh repo view --repo "$REPO" --json defaultBranchRef,visibility -q '"\(.defaultBranchRef.name) \(.visibility)"'
-gh api "repos/$REPO" --jq .id                                                # numeric id, for the README sign
+gh repo view "$REPO" --json defaultBranchRef,visibility -q '"\(.defaultBranchRef.name) \(.visibility)"'
 grep -rhE '^\s*-?\s*uses:' .github/workflows 2>/dev/null | sort | uniq -c    # how actions are pinned
-ls AGENTS.md CLAUDE.md CONTRIBUTING.md .github/pull_request_template.md .github/PULL_REQUEST_TEMPLATE* \
-   .pre-commit-config.yaml .dry-lint.toml .dry-lint/baseline.json 2>/dev/null
+ls AGENTS.md CLAUDE.md CONTRIBUTING* README* .pre-commit-config.yaml .dry-lint.toml .dry-lint/baseline.json 2>/dev/null
+git ls-files | grep -i pull_request_template                                 # the template, in any folder or case
 grep -n "tool.dry-lint" pyproject.toml 2>/dev/null; grep -rln "dry-lint" .github/workflows 2>/dev/null
 gh secret list --repo "$REPO"                                                # repository secrets
 gh api "repos/$REPO/actions/organization-secrets" --jq '.secrets[].name'     # organization secrets it can use
 ```
 
-Pass `--repo "$REPO"` to every `gh` command in this file. In a clone of a fork, `gh` otherwise picks the upstream
-repository, and runs, secrets and pull requests silently go to the wrong place.
+Name the repository in every `gh` command in this file: `--repo "$REPO"` for `gh pr`, `gh run`, `gh secret` and
+`gh workflow`, the positional argument for `gh repo view "$REPO"`, and the path for `gh api repos/$REPO/...`. In a
+clone of a fork, `gh` otherwise picks the upstream repository, and runs, secrets and pull requests silently go to
+the wrong place.
 
 - **Default branch.** Use it wherever this file says `DEFAULT`. Do not assume `main`.
 - **One version of dry-lint.** Everything you add uses dry-lint 1.x: the CLI as `'dry-lint>=1,<2'` (here and in
   the bootstrap workflow), the Action as `gigaverse-app/dry-lint@v1`, the hook as `rev: v1`, and the example
   workflows from the `v1` tag (the links below), so the examples match the CLI you installed.
-- **Pinning policy.** If the workflows pin actions to 40-character commit SHAs, pin every action you add the same
-  way, with the tag as a comment (`uses: OWNER/REPO@<sha> # TAG`). For an action the repository already uses, copy
-  its existing pin. For any other, resolve the tag to its commit:
-  `gh api repos/OWNER/REPO/commits/TAG --jq .sha` (for example `repos/gigaverse-app/dry-lint/commits/v1`). This
-  works for annotated tags too, where `git/ref/tags/TAG` returns the tag object rather than the commit. Otherwise
-  use the tags shown in this file.
+- **Pinning policy.** The repository's workflows decide, whatever this file's examples show:
+  - For an action the repository already uses, copy its existing reference exactly, tag or SHA. If it uses
+    `actions/setup-python@v6` and an example says `@v7`, write `@v6`.
+  - If the workflows pin actions to 40-character commit SHAs, pin every other action you add the same way, with the
+    tag as a comment (`uses: OWNER/REPO@<sha> # TAG`). Resolve the tag to its commit with
+    `gh api repos/OWNER/REPO/commits/TAG --jq .sha` (for example `repos/gigaverse-app/dry-lint/commits/v1`); this
+    works for annotated tags too, where `git/ref/tags/TAG` returns the tag object rather than the commit.
+  - Otherwise use the tags shown in this file.
 - **Judge key.** The judge needs a TypeSafe API key (the Jev judge) and optionally an Anthropic key. The secret
   can have any name. Look for one in both secret lists (names like `TYPESAFE_API_KEY` or `TYPESAFE_AI_API_KEY`). Call
   its name `KEY_SECRET` below. A 403 from the organization endpoint means you cannot see those secrets, not that
@@ -74,8 +79,10 @@ dry-lint scan --judge none --limit 30
 If the shell then says `dry-lint: command not found`, the tool folder is not on `PATH` yet: run
 `export PATH="$(uv tool dir --bin):$PATH"` (or `uv tool update-shell` and a new shell) and try again.
 
-Expected: a line `dry-lint: showing the 30 closest of N look-alike pairs; raise --limit to see more`, then pairs
-like the following, then a summary line. Nothing is judged and nothing fails.
+Expected: pairs like the following, then a summary line `dry-lint: N candidate pair(s), ...` and
+`judging: no judge · look-alikes are listed; nothing is judged, reported or failed`. When there are more than 30
+pairs, a first line `dry-lint: showing the 30 closest of N look-alike pairs; raise --limit to see more` says so;
+with 30 or fewer it is absent. Nothing is judged and nothing fails.
 
 ```text
 src/dry_lint/judges/http.py:49: HttpJudge.judge looks like src/dry_lint/judges/jev.py::JevJudge.judge (candidate)
@@ -152,23 +159,33 @@ reason = "funcutils vendors strutils.indent so it imports nothing (docs/architec
 
 ## 5. Accept the existing backlog
 
-This judges every candidate pair once and writes `.dry-lint/baseline.json`, `.dry-lint/progress.json` and a
-progress block in the README (Markdown READMEs only; leave out `--readme` otherwise).
+This judges every candidate pair once and writes `.dry-lint/baseline.json`, `.dry-lint/progress.json` and, for a
+Markdown `README.md`, a progress block in it. `progress.json` is the shields.io endpoint behind the backlog badge;
+commit it in every case, since the weekly audit keeps it current. A README in another format (`README.rst`) gets no
+block, and you leave it alone.
 
 **With a local key** (`TYPESAFE_AI_API_KEY`, and `ANTHROPIC_API_KEY` for a Claude preset, in the environment):
 
 ```bash
-dry-lint sweep --init --budget-usd 1 --readme README.md --repository OWNER/NAME --repository-id ID --branch DEFAULT
+ID=$(gh api "repos/$REPO" --jq .id)   # the README's counter sign is keyed by a hash of this id, never the name
+dry-lint sweep --init --budget-usd 1 --readme README.md --repository "$REPO" --repository-id "$ID" --branch DEFAULT
 ```
 
-`--repository-id` is the numeric id from step 1. The README's counter sign is keyed by a hash of it, never by the
-repository's name; without it the block shows only a backlog badge and table.
+Without a Markdown `README.md`, leave out `--readme README.md` and `--repository-id "$ID"`: the id serves only the
+README block.
 
 **Without a local key, in CI.** Fetch
 [examples/dry-lint-bootstrap.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint-bootstrap.yml)
-into `.github/workflows/`, set its secret to `KEY_SECRET`, commit it together with `.dry-lint.toml`, and push. It
-runs on every push that changes either file, on your branch; no default-branch registration is needed. It passes
-the repository id itself (`$GITHUB_REPOSITORY_ID`). Then:
+into `.github/workflows/`, set its secret to `KEY_SECRET`, apply the pinning policy, commit it together with
+`.dry-lint.toml`, and push. It runs on every push that changes either file, on your branch; no default-branch
+registration is needed. It passes the repository id itself and writes the README block only when there is a
+`README.md`. This is the first push: open the draft pull request now (the body can say "work in progress"):
+
+```bash
+gh pr create --repo "$REPO" --draft --base DEFAULT --head "$(git branch --show-current)" --title "..." --body "..."
+```
+
+Then:
 
 ```bash
 BRANCH=$(git branch --show-current)
@@ -178,10 +195,10 @@ gh run watch RUN_ID --repo "$REPO" --exit-status
 OUT=$(mktemp -d) && gh run download RUN_ID --repo "$REPO" --name dry-lint-baseline --dir "$OUT"
 ```
 
-Copy `.dry-lint/` and `README.md` from `$OUT` into the repository. Keep `sweep-report.json` out of Git; read it for
-the review below. To run it again, for example after adding a pattern, do not commit the downloaded files yet:
-commit and push the `.dry-lint.toml` change and the push starts a new run. Once the baseline is right, delete the
-bootstrap workflow and commit it together with the files.
+Copy `.dry-lint/`, and `README.md` if the artifact has one, from `$OUT` into the repository. Keep
+`sweep-report.json` out of Git; read it for the review below. To run it again, for example after adding a pattern,
+do not commit the downloaded files yet: commit and push the `.dry-lint.toml` change and the push starts a new run.
+Once the baseline is right, delete the bootstrap workflow and commit it together with the files.
 
 Expected, at the end of either route: `dry-lint: 0 pairs cleaned, N remaining, 0 dismissed; wrote .dry-lint/baseline.json`.
 
@@ -223,7 +240,13 @@ In each one:
    `name:` expression: it names a fork's unjudged job `dry-lint detect`, so it can never satisfy a required
    `dry-lint` check.
 4. Apply the pinning policy from step 1, and the parser version if it is not 3.13.
-5. Keep the triggers, permissions and concurrency as they are: the comments explain why.
+5. Keep the triggers, permissions and concurrency as they are: the comments explain why. The README handling
+   needs no edit: the audit, like the bootstrap, writes the progress block only when there is a `README.md`.
+
+Two of them cannot run on this pull request. `dry-lint-judge.yml` starts from `workflow_run`, which GitHub reads
+only from the default branch, so it first judges a fork's pull request after this one merges. The audit is
+scheduled or dispatched, which also needs it on the default branch (see Optional, after the pull request). Say so
+under "Not verified" in the report.
 
 Lint them, with the repository's own workflow linter if it has one, otherwise:
 
@@ -235,9 +258,14 @@ Expected: no output. (`uvx actionlint` does not work: the PyPI package is `actio
 
 ## 7. Add the hooks
 
-If the repository uses pre-commit, merge this into `.pre-commit-config.yaml`, keeping every existing hook. If it does
-not, add the file only when AGENTS.md or CONTRIBUTING welcomes new tooling; otherwise skip this step and say so in
-the report.
+Decide by the first rule that matches:
+
+1. The repository has `.pre-commit-config.yaml`: merge the block below into it, keeping every existing hook.
+2. It has no pre-commit config, but AGENTS.md or CONTRIBUTING invites new developer tooling or pre-commit: add the
+   file with the block below.
+3. Otherwise, including a repository with neither AGENTS.md nor CONTRIBUTING, or one whose README asks for no
+   automated or tooling-only changes: add no hook file. Write `Hooks: skipped: <which of these applied>` in the
+   report, and go to step 8.
 
 ```yaml
 default_install_hook_types: [pre-commit, prepare-commit-msg]
@@ -263,32 +291,46 @@ Check it: `uvx pre-commit validate-config` prints nothing and exits 0.
 
 ## 8. Open the pull request
 
-Commit settings, baseline, progress file, README, workflows and hooks, following the repository's commit style.
-Open a draft pull request that fills in the repository's template, or say what it adds, the accepted pairs with
-their scores, the patterns with their reasons, and what you verified. Then:
+Commit settings, baseline, progress file, README (if the sweep changed it), workflows and hooks, following the
+repository's commit style, and push. If step 5 did not already open the draft pull request, open it now:
+`gh pr create --repo "$REPO" --draft --base DEFAULT --head "$(git branch --show-current)" ...`. Its body fills in
+the repository's template, or says what it adds, the accepted pairs with their scores, the patterns with their
+reasons, and what you verified.
+
+Wait for the `dry-lint` run only. The repository's other workflows may take far longer, and nothing is required
+until step 10, so do not wait on them with `gh pr checks --watch`:
 
 ```bash
-gh pr checks PR_NUMBER --repo "$REPO" --watch
+for _ in $(seq 30); do   # the run appears a few seconds after the push
+  RUN=$(gh run list --repo "$REPO" --workflow dry-lint.yml --commit "$(git rev-parse HEAD)" --json databaseId \
+    --jq '.[0].databaseId')
+  [ -n "$RUN" ] && break; sleep 5
+done
+gh run watch "$RUN" --repo "$REPO" --exit-status
 ```
 
+Once `dry-lint` is a required check, `gh pr checks PR_NUMBER --repo "$REPO" --watch --required` does the same.
+
 Expected: a green `dry-lint` check and a sticky comment from dry-lint (with 0 changed functions it reports a clean
-run). A red check on the adoption pull request means the key's secret is missing or misnamed, or the baseline and
-settings disagree; read its log.
+run). The comment counts only the pushes dry-lint checked, so a push before `dry-lint.yml` existed is not in its
+history. A red check on the adoption pull request means the key's secret is missing or misnamed, or the baseline
+and settings disagree; read its log.
 
 ## 9. Prove it catches a copy
 
-Pick a function of ten or more lines and copy it into a **different** file under a new name, renaming a few local
-variables. Functions in the same file are never compared, so a same-file copy proves nothing.
+Pick a function of ten or more lines and copy it into a **different** file under a new name. Keep its body and its
+docstring exactly as they are, and rename only one or two local variables. Functions in the same file are never
+compared, so a same-file copy proves nothing. A copy with a shortened docstring and many renames looks like
+a different function: one such probe fell to similarity 0.36 and was never proposed.
 
-Before pushing, check that the detector proposes the pair at all; a heavily renamed copy can fall below its
-similarity floor and is then never judged:
+Before pushing, check that the detector proposes the pair at all:
 
 ```bash
 dry-lint explain path/to/new_file.py::new_name path/to/original.py::original_name
 ```
 
 Expected: `proposed: #1 of the N look-alike(s)` (or `#2`, `#3`) and `rule: none applies`. If it says
-`not among`, rename less (keep the original's calls and attribute names) and run it again.
+`not among`, undo renames until it is proposed, and do not push before it is.
 
 ```bash
 git switch -c dry-lint-probe
@@ -296,15 +338,22 @@ git switch -c dry-lint-probe
 git add -A && git commit -m "test: dry-lint probe (do not merge)" && git push -u origin dry-lint-probe
 gh pr create --repo "$REPO" --draft --base ADOPTION_BRANCH --head dry-lint-probe \
   --title "test: dry-lint probe (do not merge)" --body "Probe; will be closed."
-gh pr checks PROBE_NUMBER --repo "$REPO" --watch
+for _ in $(seq 30); do   # the run appears a few seconds after the push
+  RUN=$(gh run list --repo "$REPO" --workflow dry-lint.yml --commit "$(git rev-parse HEAD)" --json databaseId \
+    --jq '.[0].databaseId')
+  [ -n "$RUN" ] && break; sleep 5
+done
+gh run watch "$RUN" --repo "$REPO" --exit-status   # expected to exit non-zero: the check fails
 ```
 
 Expected: the `dry-lint` check fails and the sticky comment names the pair with a judge score at or above the
-preset's threshold. Then close it with `gh pr close PROBE_NUMBER --repo "$REPO" --delete-branch`, switch back to
-the adoption branch and delete the local probe branch.
+preset's threshold. The comment's "Functions" findings mark the pair 🔴 blocking, and its "History and check
+stats" list the same pair as 🟡 still reported: the latest checked push reports it. Then close the probe with
+`gh pr close PROBE_NUMBER --repo "$REPO" --delete-branch`, switch back to the adoption branch and delete the local
+probe branch.
 
-The pair the comment names may be another existing copy rather than the function you copied, and the advice may be
-to move callers to the new one: the judge picks the side it thinks should own the code, often the public one.
+The pair the comment names may be another existing copy rather than the function you copied. The advice names the
+function to keep: the judge picks the side it thinks should own the code, often the public one.
 
 ## 10. Stop for the human
 
@@ -329,9 +378,10 @@ Preset: <preset> (secret <KEY_SECRET>); scope: include <...>, <N> source files
 Baseline: <N> accepted pairs (<route: local | CI run URL>, $<cost>)
 Patterns: <each members list and reason>, each verified with dry-lint explain
 Checks: adoption PR dry-lint <green/red>; probe PR <URL> red at <score> against <pair>, closed
-Hooks: <added and validated | skipped because ...>
+Hooks: <added and validated | skipped: which step 7 rule applied>
 Left for you: <required check ruleset> <secret, if missing> <DRY_LINT_RATCHET_TOKEN>
-Not verified: <anything you could not run, with the command and error>
+Not verified: <anything you could not run, with the command and error>; the judge and audit workflows (run
+  only from DEFAULT)
 ```
 
 ## Optional, after the pull request
@@ -356,8 +406,9 @@ When a finding blocks, you are its final judge. Open both functions.
 - **One pull request only:** the `dry-lint: override` label. It never waives widening the baseline.
 
 To clean old debt: refactor a pair from the baseline, run the tests, then
-`dry-lint sweep --update --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT`, and commit the
-metadata with the refactor. Never edit the baseline by hand.
+`dry-lint sweep --update --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT` (without
+`--readme README.md` when there is no Markdown README), and commit the metadata with the refactor. Never edit the
+baseline by hand.
 
 Thresholds come from measurements; change `fail_at` only after measuring on your own code
 ([judges and presets](https://dry-lint.readthedocs.io/en/latest/docs/judges/),
