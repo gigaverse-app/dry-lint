@@ -473,6 +473,29 @@ def test_a_branch_that_returns_on_every_path_is_one_call_inside_a_loop():
     assert region.kind == "If" and region.replacement_statements == 1
 
 
+WITH_RETURNING = """\
+    for v in values:
+        with guard(v):
+            notify(v, strict=True)
+            return v.result
+    record(values)
+"""
+WITH_TAIL = """\
+    prepare(values)
+    with guard(values):
+        if values.missing:
+            notify(values, strict=True)
+            return Default.VALUE
+"""
+
+
+@pytest.mark.parametrize("body", [WITH_RETURNING, WITH_TAIL], ids=["returns-on-every-path", "ends-the-function"])
+def test_a_with_block_keeps_one_call_when_its_return_is_equivalent(body):
+    family = nominate(owners(body, signature="values")).nominations[0]
+    region = family.owners[0].regions[0]
+    assert region.kind == "With" and region.replacement_statements == 1
+
+
 def test_a_region_naming_only_its_own_locals_is_not_a_shared_operation():
     idiom = "    if item:\n        items.append(item)\n    finish(item, items)\n"
     batch = nominate(owners(idiom, count=6, signature="item, items"))
