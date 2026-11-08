@@ -11,6 +11,7 @@ from dry_lint.family_judging import record_family_response
 from dry_lint.family_models import FamilyUsage
 from dry_lint.judges import label_for, make_escalation, make_judge
 from dry_lint.judges.anthropic import AnthropicJudge
+from dry_lint.judges.anthropic_family import PROMPT_VERSION as FAMILY_PROMPT_VERSION
 from dry_lint.judges.anthropic_family import family_prompt
 from dry_lint.judges.command import PROMPT_VERSION, CommandJudge, parse_verdict
 from dry_lint.judges.gemini import API_URL as GEMINI_URL
@@ -407,7 +408,7 @@ def test_the_claude_code_family_judge_answers_on_the_subscription_with_the_api_p
     cli = claude_cli(tmp_path, {"result": answer, "stop_reason": "end_turn", "usage": usage, "session_id": "s1"})
     judge = load("judges", PluginChoice(use="claude-code-family", cli=cli, max_tokens=2048))
     assert judge.available and judge.subscription
-    assert judge.version == "dry-operation-family-v2:claude-code:claude-sonnet-5-5:output=2048"
+    assert judge.version == f"{FAMILY_PROMPT_VERSION}:claude-code:claude-sonnet-5-5:output=2048"
     response = judge.judge_family(request)
     seen = json.loads((tmp_path / "seen.json").read_text())
     assert seen["prompt"] == family_prompt(request) and not seen["api_key"] and seen["max_output"] == "2048"
