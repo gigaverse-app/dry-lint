@@ -1,12 +1,14 @@
 """Native parent retrieval, syntax boundaries and production discovery integration."""
 
+import ast
+
 import pytest
 
 from dry_lint.comparer_resources import ComparerResources
 from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Declaration, LanguageAnalysis
-from dry_lint.operation_blocks import OperationBlocksComparer, _Block, _blocks
+from dry_lint.operation_blocks import OperationBlocksComparer, _Block, _blocks, statement_regions
 from dry_lint.plugins import load
 from dry_lint.presets import resolve
 from dry_lint.settings import PluginChoice, Settings
@@ -485,3 +487,27 @@ def test_balanced_default_appends_one_unseen_pair_and_empty_list_restores_origin
     assert len({c.new.qualname for c in additions}) == len(additions)
     assert all(c.lane == "exploration" and c.comparer == "operation-blocks:3" for c in additions)
     assert all(c.new.code in {f.code for f in queries} for c in additions)
+
+
+DEEP = """\
+def deep(a, b, c, d, e):
+    if a:
+        if b:
+            if c:
+                if d:
+                    if e:
+                        first = a + b
+                        second = first * c
+"""
+
+
+def test_one_region_walk_serves_blocks_with_a_depth_cap_and_families_without():
+    node = ast.parse(DEEP).body[0]
+    capped = list(statement_regions(node.body, max_depth=3, whole_nested=False))
+    complete = list(statement_regions(node.body))
+    # Blocks keep the fourth compound whole but never descend into it; families walk every suite.
+    assert [kind for kind, *_ in capped] == ["If", "If", "If", "If"]
+    assert [kind for kind, *_ in complete] == ["If", "If", "If", "If", "If", "straight_run"]
+    run, enclosing = complete[-1][1], complete[-1][2]
+    assert [statement.lineno for statement in run] == [7, 8]
+    assert len(enclosing) == 5
