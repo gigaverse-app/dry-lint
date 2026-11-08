@@ -1,0 +1,117 @@
+{
+  "artifact_sha256": {
+    "existing_controls": "acb14388d65cbffda28cc032aa0338bbf68789b340b138d44be84018f0e11898",
+    "funding_receipt": "417df4c9e33c5f1066db7648141a6b560fc62d7762862499867dd62a05ce412a",
+    "round1_queue": "de471b846288301df71b5af0d99285f9c6ffbd26bae69d3b799362c1619edae2",
+    "round1_spec": "08f752140a2d92647c2fa9be223d901b9184704a4177ec3fe5354f1147fb0582",
+    "round2_queue": "39b068b9e0fc9991040665a7d400dde614d60598d1a2f2ee6c788a7aea93940c",
+    "round2_spec": "5f60226509d8f27b3c748cfae1c37721c6a83a6928b3fe80bbd8de40701da645",
+    "scored_results": "6a8bf8451ce83f1583c8b698f124d3a73de18a8a2bfb037f6469b4cda3907ca7",
+    "source_decisions": "5a17779abcc2a9c1fc66dbb6d665255af5724afaa362cb5c2c8829062ca96e12"
+  },
+  "both_required_actual_spend_floors_met": true,
+  "caveats": [
+    "Observed development evidence, not a pristine population holdout.",
+    "Full original native Candidates are retained; windowed provider inputs are explicitly partial transforms.",
+    "Model agreement is not truth. Source labels concern scoped operations.",
+    "Deployment .04 ledger is separate; cache hits retain logical cost, authentic historical PR funding remains unknown.",
+    "Full pinned-background TF-IDF nomination evidence reused; no vector refits or retrieval-policy retuning.",
+    "STOP concerns these two recipes, not every possible resolver or semantic context method."
+  ],
+  "counterexamples": [
+    "Jev changes one accepted separate control to duplicate at0.70; no false emission at the fixed0.8 gate.",
+    "Claude loses one historical control report at0.8->0.6; historical baselines are noncontemporaneous, so this is not a causal latency/model-variance estimate.",
+    "A verified previously hidden operation remains between deterministic windows; another previously visible source region is omitted."
+  ],
+  "decision": "STOP_TESTED_RECIPES",
+  "historical_spend_and_cache_excluded": true,
+  "paid_calls": 80,
+  "round1_new_usd": 0.2491218,
+  "round2": {
+    "binary_scored": {
+      "positive_operations": 4,
+      "separate_cases": 3
+    },
+    "contracts": [
+      "Reservation rejection remains reserved; the accepted operation does not centralize that policy.",
+      "Only repeated error builders qualify; no policy consolidation is accepted."
+    ],
+    "effects": {
+      "claude": {
+        "accepted_positives": 4,
+        "accepted_separate": 3,
+        "lost_positives": 1,
+        "n": 16,
+        "new_false_reports": 0,
+        "note": "Independent accepted decisions only; frozen-control analysis remains separately preserved, including disagreements.",
+        "recoveries": 0,
+        "removed_false_reports": 0,
+        "unscored": 9
+      },
+      "jev": {
+        "accepted_positives": 4,
+        "accepted_separate": 3,
+        "lost_positives": 0,
+        "n": 16,
+        "new_false_reports": 0,
+        "note": "Independent accepted decisions only; frozen-control analysis remains separately preserved, including disagreements.",
+        "recoveries": 0,
+        "removed_false_reports": 0,
+        "unscored": 9
+      }
+    },
+    "existing_controls": 4,
+    "explicit_uncertain_answers": 0,
+    "global_new_family_count": "not_established",
+    "missing_answers": 0,
+    "nonbinary_cases": 9,
+    "nonbinary_handling": "Six already-shared and three related cases remain nonbinary; neither is silently relabelled negative gold.",
+    "novel_accepted_useful_report_recall": {
+      "claude_baseline": [
+        0,
+        2
+      ],
+      "claude_revised": [
+        0,
+        2
+      ],
+      "jev_baseline": [
+        0,
+        2
+      ],
+      "jev_revised": [
+        0,
+        2
+      ]
+    },
+    "novel_pairs": 12,
+    "novel_source_assessments": {
+      "already_shared": 6,
+      "narrow_actionable_extraction": 2,
+      "negative": 1,
+      "related": 3
+    },
+    "pending_source_acceptances": 0,
+    "source_label_scope": "Bounded partial operations, never whole-function consolidation.",
+    "source_review_complete": true,
+    "whole_function_gold_promotions": 0
+  },
+  "round2_new_usd": 0.45707392,
+  "runtime": {
+    "extraction_and_acquisition_excluded": true,
+    "round1_concurrency": 8,
+    "round1_wall_seconds": 10.529584491996502,
+    "round2_concurrency": [
+      8,
+      8
+    ],
+    "round2_wall_seconds": 19.416607296996517
+  },
+  "schema": 1,
+  "tested_recipes": [
+    "source-anchors-v1",
+    "body-coverage-v1"
+  ],
+  "threshold": 0.8,
+  "total_new_usd": 0.70619572
+}

@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/gigaverse-app/dry-lint.git",
+  "worktree_base_commit": "15567ee22a662208e8e6ad66b2439c10c08584cf",
+  "authority": "Archived per-file bytes and hashes, including untracked lab scripts; base commit alone is not a source recipe.",
+  "archive": "implementation.json.gz",
+  "original_lab_script_paths": [
+    "trace_followup.py",
+    "coverage_round2.py",
+    "root_trace_run.py",
+    "export_final_evidence.py"
+  ],
+  "imports": "74 files: original lab scripts and transport/budget dependencies, full dry_lint Python source, research_mining Python source, pyproject.toml, uv.lock, LICENSE."
+}

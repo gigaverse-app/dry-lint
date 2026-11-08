@@ -1,0 +1,1 @@
+The canonical research report is [Can mechanically extracted source context make a cheap duplicate judge more reliable?](README.md). It explains the hypothesis, both implementations, paired results, representative misses, cost, and decision. Machine evidence in this directory remains the verification source.
