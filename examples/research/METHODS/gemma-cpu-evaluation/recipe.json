@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "method": "gemma-cpu-evaluation",
+  "mechanism": "Pin google/embeddinggemma-2 at f9972ac22e696a105c482202646979e33e4b5a1e. Use text-only towers, the symmetric sentence-similarity prefix, projected last-hidden-state mean pooling over nonpadding tokens and FP32 normalization. The selected CPU variant uses BF16/four threads. Limits include native BOS/EOS; cache identity binds actual token IDs, masks, model, runtime, precision and pooling.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/REPORT.md",
+      "sha256": "62989276270bbf91cca89403a8bf46adf26548008f7255d8d03911dd6633838d",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/encoder-contract.json",
+      "sha256": "eadbb9952d13ec8e36198e342049786d25065f7427320bc1e9d4ad2d9881e6c6",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/EFFICIENCY-DECISION.json",
+      "sha256": "d0c180fdd13c746ddc9a22d6b8d743e9de0453619cbadd225b20843291ab4c21",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/OPENHANDS-MATRICES.json",
+      "sha256": "4bcf7fd19fb0f3630fe274d1361f2e63ebbbfa84a5a0a35dc2e59e16fda9a233",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/runtime.lock.txt",
+      "sha256": "5dbaaefc65be0f0c140469331f105abf0a1006991f0ac1a45cc8373352c7935a",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/model-artifacts.json",
+      "sha256": "4028dabf6cd81d2c6467fef3fe93df14d3d79b1d40a3c2b5da14b1d33ca9ae5c",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/preflight-summary.json",
+      "sha256": "a3045e6b66664d9ad2de85ad430c474f10263f695397da79b67fd26ace971b4f",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/archive-progress-at-handoff.json",
+      "sha256": "e488935ea9d25b643799574760317f0768d1171309655a2f4204ec0d0dc7ad35",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/openhands/bfloat16-t4/bg-ebd0031534c954e5/receipt-1024.json",
+      "sha256": "d1bb49f4d7c67d7e2dd84ef1559a17a8021a138f995abe99a67244eb04dbd81b",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Replay a completed cached matrix only; no inference and no reading an incomplete matrix.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/openhands/bfloat16-t4/bg-ebd0031534c954e5/receipt-1024.json",
+      "sha256": "d1bb49f4d7c67d7e2dd84ef1559a17a8021a138f995abe99a67244eb04dbd81b",
+      "bytes": 5924
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/panels.jsonl",
+      "sha256": "d60f54bf5356cdc31b457b19901a21d409c07fae264f784ce33ae379e11b4840",
+      "bytes": 150852
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/documents/bg-ebd0031534c954e5.jsonl",
+      "sha256": "52abb71830d6eef73eb27c76fc940ace8ded2ad3bc24a0de7e7eb5292b8b14f6",
+      "bytes": 464992
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/ranks/gemma2-bf16-t4-symmetric-1024/bg-ebd0031534c954e5.jsonl",
+      "sha256": "c32f42ebd27a02fb8a92b40947c85b7c7f91f50662748ed4db0e76a8aa347e89",
+      "bytes": 355623
+    }
+  ]
+}
