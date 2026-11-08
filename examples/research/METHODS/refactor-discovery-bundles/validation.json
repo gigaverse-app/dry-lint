@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "method": "refactor-discovery-bundles",
+  "implementation_files_ast_equivalent": 6,
+  "algorithm_changes": false,
+  "original_tests": {
+    "passed": 26,
+    "scope": "Original offline source/state/native-integration tests with private source fixtures; not retrieval quality."
+  }
+}

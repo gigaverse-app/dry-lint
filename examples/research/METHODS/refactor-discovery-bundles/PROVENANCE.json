@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "refactor-discovery-bundles",
+      "original_path": "jobs/refactor-discovery-bundles/.lab-results/bundles.py",
+      "original_sha256": "574ae5b9d61c95ff1c727c638e31b133829747ff274b47fda005fbfbd0a510d4",
+      "public_path": "refactor-discovery-bundles/implementation/bundles.py",
+      "public_sha256": "4ae58a8437175b3b3dc8f9e9429a3ddd539b3a61abb703fdbe82fe95c8686f7a",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E402",
+        "E741",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "refactor-discovery-bundles",
+      "original_path": "jobs/refactor-discovery-bundles/.lab-results/graph_compare.py",
+      "original_sha256": "301182d0e2798e9160f1759df54bb2be5e8529395ed866c31847e16c1d4b54da",
+      "public_path": "refactor-discovery-bundles/implementation/graph_compare.py",
+      "public_sha256": "9652ab9edf5fd75a6c072b4fb55c7b5949fff485542f1066a7e0a5869492a368",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "E741",
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "refactor-discovery-bundles",
+      "original_path": "jobs/refactor-discovery-bundles/.lab-results/consolidation_controls.py",
+      "original_sha256": "80db1818844472bf77ccddf7747cd03b83405f55c91680fc63640236268c3f16",
+      "public_path": "refactor-discovery-bundles/implementation/consolidation_controls.py",
+      "public_sha256": "afd6e60fa2d7b5edef3293b1baa9446ae937643f5542c76259091d3187042235",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "refactor-discovery-bundles",
+      "original_path": "jobs/refactor-discovery-bundles/.lab-results/test_bundles.py",
+      "original_sha256": "ee4eeed7a3cf293e3ac8acc1e0205dfbfd722803dad34f112f26246a45d159f4",
+      "public_path": "refactor-discovery-bundles/implementation/test_bundles.py",
+      "public_sha256": "539b89c965e7e1b9b30ee7cb014ef673afbf3a7398a53bb5378f3a7f7dfe6851",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E741",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "refactor-discovery-bundles",
+      "original_path": "jobs/refactor-discovery-bundles/.lab-results/run_study.py",
+      "original_sha256": "6e45259d22b4952ad995d8d496e7d574fcac8f8addf2df22a717e995cfa1ae58",
+      "public_path": "refactor-discovery-bundles/implementation/run_study.py",
+      "public_sha256": "a39799db37ff6dfa2e174f11c94a02adb4b75d6193a622124054744152cc950b",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B007",
+        "B023",
+        "E741",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "refactor-discovery-bundles",
+      "original_path": "jobs/refactor-discovery-bundles/.lab-results/quest_demo.py",
+      "original_sha256": "c4863d9e0f5aa7ec4cb536cd88eb6ac7bb8b73a7d7217ef58ad4904b9afadd37",
+      "public_path": "refactor-discovery-bundles/implementation/quest_demo.py",
+      "public_sha256": "a43e91d10fe1cd43404b855e6963946577a1766e0462f929f9adfaefb5359ea2",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E741",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}
