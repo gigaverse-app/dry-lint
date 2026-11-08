@@ -1,0 +1,65 @@
+[
+  {
+    "origin": "jobs/experiment-linked-docs/.lab-results/conclusion/README.md",
+    "original_sha256": "03f2319afbfb5a55a5a239d5a1ecd174ced554da55abc5aeb8090d813c0cab1b",
+    "published": "data/evidence/README.md",
+    "published_sha256": "03f2319afbfb5a55a5a239d5a1ecd174ced554da55abc5aeb8090d813c0cab1b",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-linked-docs/.lab-results/conclusion/metrics.json",
+    "original_sha256": "a67cdd7256e92eeb2f76c2f4751f30b9be28da22be9563b532f1a7576b843db2",
+    "published": "data/evidence/metrics.json",
+    "published_sha256": "a67cdd7256e92eeb2f76c2f4751f30b9be28da22be9563b532f1a7576b843db2",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-linked-docs/.lab-results/conclusion/portable-public-requests.jsonl",
+    "original_sha256": "013e5688e89733285d21ef7881b65b833228d8a07ba5e057e4ffd7b1e48b82e2",
+    "published": "data/evidence/portable-public-requests.jsonl",
+    "published_sha256": "013e5688e89733285d21ef7881b65b833228d8a07ba5e057e4ffd7b1e48b82e2",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-linked-docs/.lab-results/conclusion/portable-public-prior-phase-attribution.jsonl",
+    "original_sha256": "389cab12a86d52ece9da8d6ed16b5760b47f83ff3395ec3019441e41d96b61b5",
+    "published": "data/evidence/portable-public-prior-phase-attribution.jsonl",
+    "published_sha256": "389cab12a86d52ece9da8d6ed16b5760b47f83ff3395ec3019441e41d96b61b5",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-linked-docs/.lab-results/conclusion/portable-source-review-v1.jsonl",
+    "original_sha256": "50ff8293cfe75037b90f557d3da7b7b158837a73b84041fe30c8547ebae0648b",
+    "published": "data/evidence/portable-source-review-v1.jsonl",
+    "published_sha256": "50ff8293cfe75037b90f557d3da7b7b158837a73b84041fe30c8547ebae0648b",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-linked-docs/.lab-results/conclusion/PR110-AUDIT.json",
+    "original_sha256": "c0e56c45e40338e1e6fbb025299937cd80d8e0afc53abb200bfd70a69c164b78",
+    "published": "data/evidence/PR110-AUDIT.json",
+    "published_sha256": "c0e56c45e40338e1e6fbb025299937cd80d8e0afc53abb200bfd70a69c164b78",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/research-evidence-publication/docs/research/funded-recall/context/reproduction/licenses/BerriAI--litellm.txt",
+    "original_sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "published": "licenses/BerriAI--litellm.txt",
+    "published_sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/research-evidence-publication/docs/research/funded-recall/context/reproduction/licenses/OpenHands--software-agent-sdk.txt",
+    "original_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "published": "licenses/OpenHands--software-agent-sdk.txt",
+    "published_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-linked-docs/LICENSE",
+    "original_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "published": "licenses/dry-lint.txt",
+    "published_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "transformation": "none"
+  }
+]

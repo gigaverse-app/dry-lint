@@ -1,0 +1,255 @@
+{
+  "decisions": [
+    {
+      "accepted_gold": false,
+      "accepted_record_sha256": "f0d472d2b75a6ca03ddf57bbff947034d9ed7e8e53084c425c6cba8bb47b8537",
+      "case_id": "LINKED-R2-430d310cc0bf43ecaf8f",
+      "incremental_funding": false,
+      "incremental_useful_emission": false,
+      "repository": "BerriAI/litellm",
+      "review_id": "RR01",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_acceptance": "accepted_scoped_source_assessment",
+      "schema": 1,
+      "scope": "Related or already-shared operation; no nominated-body positive credit.",
+      "scoped_decision": "related",
+      "source_label": "related",
+      "source_regions": [
+        {
+          "end_line": 1198,
+          "full_source_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+          "git_blob_sha1": "c87357122ceebb95924cf219202a416e91864598",
+          "side": "new",
+          "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage",
+          "start_line": 1178,
+          "within_nominated_body": true
+        },
+        {
+          "end_line": 1223,
+          "full_source_sha256": "ea4b40061119cf345086fc32011e6ebd0f2fbd472a1609f0e3d4d030fd29898d",
+          "git_blob_sha1": "c87357122ceebb95924cf219202a416e91864598",
+          "side": "new",
+          "source_id": "litellm/litellm_core_utils/streaming_chunk_builder_utils.py::ChunkProcessor.calculate_usage",
+          "start_line": 1200,
+          "within_nominated_body": true
+        },
+        {
+          "end_line": 3078,
+          "full_source_sha256": "e1a05789db8fff5033e4c58d01814af8a54d94805c696883d81f09e71b873a0e",
+          "git_blob_sha1": "aa6ce6ea99e08fab83e17d97e843c3ad516b1f7e",
+          "side": "existing",
+          "source_id": "litellm/litellm_core_utils/streaming_handler.py::calculate_total_usage",
+          "start_line": 3027,
+          "within_nominated_body": true
+        }
+      ],
+      "source_request_hashes": [
+        "77e59ec4b0f693334300f2b3627f3e7e717150601603d2c93f8f1a8021dd94c0",
+        "55de33636501aa8dce743ed72e7cc0c209ed3f5d7e8d049e9eb8c9360390e66c"
+      ],
+      "useful_partial_operation": false
+    },
+    {
+      "accepted_gold": false,
+      "accepted_record_sha256": "b3db5f9f5f6e1be00522400b5434da2a78fe3aad3afad250c3495f28446afbb6",
+      "case_id": "LINKED-R2-ee2dbbb9affa01221fac",
+      "incremental_funding": false,
+      "incremental_useful_emission": false,
+      "repository": "BerriAI/litellm",
+      "review_id": "RR04",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_acceptance": "accepted_scoped_source_assessment",
+      "schema": 1,
+      "scope": "Related or already-shared operation; no nominated-body positive credit.",
+      "scoped_decision": "already_shared",
+      "source_label": "related",
+      "source_regions": [
+        {
+          "end_line": 1419,
+          "full_source_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+          "git_blob_sha1": "d41647fe5f1c58251041e09a250a7cf57d304aa9",
+          "side": "new",
+          "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger._execute_agentic_loop",
+          "start_line": 1378,
+          "within_nominated_body": true
+        },
+        {
+          "end_line": 961,
+          "full_source_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+          "git_blob_sha1": "d41647fe5f1c58251041e09a250a7cf57d304aa9",
+          "side": "existing",
+          "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop",
+          "start_line": 947,
+          "within_nominated_body": true
+        }
+      ],
+      "source_request_hashes": [
+        "114b767a130a53fbfa61cf89e1a02e44467dd3da2bfa51a5d338388538d8d635",
+        "b2784297c3fc10a40116a9674538c0fb801fb97914f181856a4f9e36c1300eff"
+      ],
+      "useful_partial_operation": false
+    },
+    {
+      "accepted_gold": false,
+      "accepted_record_sha256": "82d25a471f81735c78fb654b257ab22368c2267f9cec1c6dcb9eb34d8ac4a08b",
+      "case_id": "LINKED-R2-7de6eddfae2d5c02be41",
+      "incremental_funding": false,
+      "incremental_useful_emission": false,
+      "repository": "BerriAI/litellm",
+      "review_id": "RR07",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_acceptance": "accepted_scoped_source_assessment",
+      "schema": 1,
+      "scope": "Reusable Redis subscription/reconnect lifecycle with config-only resync hook preserved; partial operation, baseline-funded.",
+      "scoped_decision": "narrow_actionable_extraction",
+      "source_label": "duplicate",
+      "source_regions": [
+        {
+          "end_line": 294,
+          "full_source_sha256": "af2801739a8bd61ff4a98bcd1f019330587ce32a5d60263c653e13a2b1b97d23",
+          "git_blob_sha1": "3665062930079ac2dffdd5e945e12479665dcf96",
+          "side": "new",
+          "source_id": "litellm/proxy/common_utils/auth_cache_invalidation_pubsub.py::AuthCacheInvalidationSubscriber._run",
+          "start_line": 273,
+          "within_nominated_body": true
+        },
+        {
+          "end_line": 318,
+          "full_source_sha256": "bc8995f88f7e4169da5cfdfe68539767def1e527fcead9d18def1e5c206052b2",
+          "git_blob_sha1": "e9aaa0e81e41c11b53324641c36c7e5915bc551e",
+          "side": "existing",
+          "source_id": "litellm/proxy/common_utils/config_sync_pubsub.py::ConfigSyncSubscriber._run",
+          "start_line": 293,
+          "within_nominated_body": true
+        }
+      ],
+      "source_request_hashes": [
+        "5ca26485212d5f55465a84334d0b27854eaa8bb55139bc1a9a300aead2b34185",
+        "d984a4e8c86e806d73abd5096aeae7ad29ffd42f9f12043544c3dc4f0e8b7266"
+      ],
+      "useful_partial_operation": true
+    },
+    {
+      "accepted_gold": false,
+      "accepted_record_sha256": "1a7f1ff0f619c19441c1c6bb907122df30e441780ba29295d65b6111dc44d3e9",
+      "case_id": "LINKED-R2-6cb1c9ff4866c7d02b8e",
+      "incremental_funding": false,
+      "incremental_useful_emission": false,
+      "repository": "OpenHands/software-agent-sdk",
+      "review_id": "RR08",
+      "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+      "root_acceptance": "accepted_scoped_source_assessment",
+      "schema": 1,
+      "scope": "Related or already-shared operation; no nominated-body positive credit.",
+      "scoped_decision": "related",
+      "source_label": "related",
+      "source_regions": [
+        {
+          "end_line": 763,
+          "full_source_sha256": "a2f44c4dcab19afb5baf845ea50b2e4502c801d4101c8fa8d3a419fe974015a4",
+          "git_blob_sha1": "f5e34e9dd06c40528dd19e9823d74709b348de65",
+          "side": "new",
+          "source_id": "tests/sdk/llm/test_llm_metrics.py::test_metrics_add_token_usage_with_existing_accumulated",
+          "start_line": 737,
+          "within_nominated_body": true
+        },
+        {
+          "end_line": 370,
+          "full_source_sha256": "a2f44c4dcab19afb5baf845ea50b2e4502c801d4101c8fa8d3a419fe974015a4",
+          "git_blob_sha1": "f5e34e9dd06c40528dd19e9823d74709b348de65",
+          "side": "existing",
+          "source_id": "tests/sdk/llm/test_llm_metrics.py::test_metrics_add_token_usage_accumulate",
+          "start_line": 359,
+          "within_nominated_body": true
+        }
+      ],
+      "source_request_hashes": [
+        "839e4f6f5af793a68a83643eef72836ffda7f694822c0d63915e9ee9fda24a0e",
+        "4d4e9c321ac5b340c7cdc0f08df5064f29fa115dec9e452a61cd7b24c88e9a76"
+      ],
+      "useful_partial_operation": false
+    },
+    {
+      "accepted_gold": false,
+      "accepted_record_sha256": "431071a6e0ea6c3871b87f8d031a1d0df39d150ed3e3306f991fb34b6060f517",
+      "case_id": "LINKED-R1-98489bf6ab6ae97d27ad",
+      "incremental_funding": false,
+      "incremental_useful_emission": false,
+      "repository": "BerriAI/litellm",
+      "review_id": "RF08",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_acceptance": "accepted_bounded_source_assessment",
+      "schema": 1,
+      "scope": "Related or already-shared operation; no nominated-body positive credit.",
+      "scoped_decision": "related",
+      "source_label": "related",
+      "source_regions": [],
+      "source_request_hashes": [
+        "5df2fe8f59e50db005cd69f2fc67e79cab7bb17d1eda71a0b1c985b097f69c84",
+        "8624c1a6b8f056f4fafbdb806809e92d4fd58dd37f82baed79fb236745f4ea5f"
+      ],
+      "useful_partial_operation": false
+    },
+    {
+      "accepted_gold": false,
+      "accepted_record_sha256": "b36ab0396d2f49e49f96303ad7c2cfb0ed52d26faa09f37084dfe8a6b56f64a1",
+      "case_id": "LINKED-R1-cfb4c9a9e338d721733b",
+      "incremental_funding": false,
+      "incremental_useful_emission": false,
+      "repository": "BerriAI/litellm",
+      "review_id": "RF09",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_acceptance": "accepted_bounded_source_assessment",
+      "schema": 1,
+      "scope": "Related or already-shared operation; no nominated-body positive credit.",
+      "scoped_decision": "related",
+      "source_label": "related",
+      "source_regions": [],
+      "source_request_hashes": [
+        "b36e2fec36063029dc1dfabbcd9c0afefd4e9992b8aafac9cf7a2078a66f7d44",
+        "f70ddae29eb0983eee7f5541de47fc9c4b9bf0d1bb8ed07cb1db285ffcf075db"
+      ],
+      "useful_partial_operation": false
+    },
+    {
+      "accepted_gold": false,
+      "case_id": "LINKED-R2-8d68c45a593a06127b96",
+      "incremental_funding": true,
+      "incremental_useful_emission": false,
+      "publication_interpretation_source": "data/evidence/README.md; earlier pending record retained unchanged",
+      "repository": "BerriAI/litellm",
+      "review_id": "RRS01",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "root_acceptance": "accepted_scoped_source_assessment",
+      "schema": 1,
+      "scope": "Final canonical report: root independently verified native endpoints and hashes; common operation is in a downstream helper outside the nominated body.",
+      "source_endpoints": [
+        {
+          "body_sha256": "0672387be1183cc97386ec68f77850260d02f1f419266ca7e0fe2d60e5a45396",
+          "end_line": 1010,
+          "full_source_sha256": "a564040e749add0a3fc84b34fee1541f24b0f7343220b0bd64a1aede38c0a21c",
+          "git_blob_sha1": "0b762b2d5fe7d4c8280dadc6a7afd500437f71fe",
+          "side": "new",
+          "source_id": "litellm/proxy/guardrails/guardrail_hooks/headroom/headroom.py::HeadroomGuardrail.async_build_agentic_loop_plan",
+          "start_line": 927
+        },
+        {
+          "body_sha256": "8556cd654b710ddf711238bdff9b9fa20ecc2eee47bd12e3af38ff998c55c780",
+          "end_line": 961,
+          "full_source_sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+          "git_blob_sha1": "d41647fe5f1c58251041e09a250a7cf57d304aa9",
+          "side": "existing",
+          "source_id": "litellm/integrations/websearch_interception/handler.py::WebSearchInterceptionLogger.async_run_agentic_loop",
+          "start_line": 929
+        }
+      ],
+      "source_label": "related",
+      "source_request_hashes": [
+        "d12360294e42d5c6947f1fb158c2632eb3d729d8fa865e79fe7ee4cebe8f48e5",
+        "bd6501296c7a71983b0f6a29a15cbd3875a25856ad6f0e63e9d71663cbdc3044"
+      ],
+      "supplementary_reviewer_label_reported_by_coordinator": "related",
+      "useful_partial_operation": null
+    }
+  ]
+}

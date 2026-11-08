@@ -1,0 +1,15 @@
+{
+  "status": "READY",
+  "method": "linked-docs",
+  "proposed_branch": "research/study-linked-docs",
+  "destination": "docs/research/linked-docs/",
+  "source_directory": "/home/researcher/dry-lint-round/jobs/publish-sparse-studies/.lab-results/publications/linked-docs",
+  "root_owns_push_and_pr_creation": true,
+  "conclusion": "Stop these two documentation recipes. Centering a 512-character window on its verified reference repairs the selected-text defect, but known positive funding stays 9/31 default and 28/31 balanced. The one emitted control is related; the useful Redis partial extraction was already baseline-funded.",
+  "ready_for_root_validation": true,
+  "checks": "CHECKS.json",
+  "root_copy_instruction": "Copy this complete directory to docs/research/linked-docs/ on research/study-linked-docs; root creates/pushes PR.",
+  "publication_files": 40,
+  "no_new_experiments": true,
+  "provider_calls": 0
+}
