@@ -53,6 +53,8 @@ omit = ["*/__main__.py"]
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+# docs/research holds frozen study evidence: its scripts are pinned by SHA256SUMS, so formatting them would break replay.
+extend-exclude = ["docs/research"]
 
 [tool.ruff.lint]
 # The same rule sets as gigaverse-app/due: pycodestyle, Pyflakes, isort, pyupgrade and bugbear.
@@ -65,7 +67,7 @@ known-local-folder = ["conftest"]
 
 [tool.dry-lint]
 # dry-lint checks its own tests too: duplicated fixtures and helpers are the drift it exists to catch.
-exclude = ["examples/*", "scripts/*"]
+exclude = ["docs/research/*", "examples/*", "scripts/*"]
 
 [[tool.dry-lint.patterns]]
 members = "tests/*::test_*"

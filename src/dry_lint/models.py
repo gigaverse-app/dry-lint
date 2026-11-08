@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 13
+SCHEMA = 14
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -193,6 +193,7 @@ class Candidate(BaseModel):
     consolidation: list[Consolidation] = Field(default_factory=list)
     policies: list[AppliedPolicy] = Field(default_factory=list)
     lane: Literal["baseline", "exploration", "relative"] = "baseline"
+    residual: bool = Field(default=False, description="Only eligible after the complete protected discovery pass.")
     parent: str = Field(default="", description="For a relative: the key of the pair whose fix would touch `new`.")
 
     @property
