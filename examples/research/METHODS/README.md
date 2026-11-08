@@ -21,26 +21,26 @@ The earlier vector/matrix, ensemble, CPU, model-function and other studies alrea
 
 ## Later directions recovered here
 
-Each directory is one independent method contribution. [ACCESS.md](ACCESS.md) records the pending corpus-publication gate. [Shared mapper](support/corpus-mapper/README.md) preserves the original full-background identity/floor correction used by the later studies.
+Each linked branch is one independent method contribution, prepared locally for review and publication. The canonical index lives on the shared infrastructure branch; a child checkout contains only its own method directory. [ACCESS.md](ACCESS.md) records the pending corpus-publication gate. [Shared mapper](support/corpus-mapper/README.md) preserves the original full-background identity/floor correction used by the later studies.
 
 | Direction | Main conclusion |
 |---|---|
-| [complementary-signal-learning](complementary-signal-learning/README.md) | Retain the candidate bank; reject replacement ordering and this under-supported fitted recipe. |
-| [learned-budget-policy](learned-budget-policy/README.md) | Do not promote the frozen recipe under its original new-family bar. |
-| [spectral-family-recovery](spectral-family-recovery/README.md) | Do not ship or tune from this saturated/unknown smoke. |
-| [confirmed-cluster-expansion](confirmed-cluster-expansion/README.md) | Keep this as optional source inspection. |
-| [cluster-calibration](cluster-calibration/README.md) | Keep outcome authority and inspection cost separate. |
-| [adaptive-judge-budget](adaptive-judge-budget/README.md) | Keep current policy. |
-| [encoder-corpus-evaluation](encoder-corpus-evaluation/README.md) | Retain the reusable rank/native harness and exact coverage. |
-| [coderank-cpu-evaluation](coderank-cpu-evaluation/README.md) | Preserve both the original setup snapshot and the later completion receipt. |
-| [gemma-cpu-evaluation](gemma-cpu-evaluation/README.md) | Preserve verified completed matrices and the exact contract. |
-| [refactor-discovery-bundles](refactor-discovery-bundles/README.md) | Retain bounded optional inspection and strict authority separation. |
-| [tfidf-blindspot-recovery](tfidf-blindspot-recovery/README.md) | Recover the structural generator and the failed variant rather than duplicating #122’s product implementation. |
-| [cross-repo-recall-audit](cross-repo-recall-audit/README.md) | Do not replace sparse ordering with fixed fusion. |
+| [complementary-signal-learning](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-complementary-signal-learning/examples/research/METHODS/complementary-signal-learning/README.md) | Retain the candidate bank; reject replacement ordering and this under-supported fitted recipe. |
+| [learned-budget-policy](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-learned-budget-policy/examples/research/METHODS/learned-budget-policy/README.md) | Do not promote the frozen recipe under its original new-family bar. |
+| [spectral-family-recovery](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-spectral-family-recovery/examples/research/METHODS/spectral-family-recovery/README.md) | Do not ship or tune from this saturated/unknown smoke. |
+| [confirmed-cluster-expansion](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-confirmed-cluster-expansion/examples/research/METHODS/confirmed-cluster-expansion/README.md) | Keep this as optional source inspection. |
+| [cluster-calibration](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-cluster-calibration/examples/research/METHODS/cluster-calibration/README.md) | Keep outcome authority and inspection cost separate. |
+| [adaptive-judge-budget](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-adaptive-judge-budget/examples/research/METHODS/adaptive-judge-budget/README.md) | Keep current policy. |
+| [encoder-corpus-evaluation](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-encoder-corpus-evaluation/examples/research/METHODS/encoder-corpus-evaluation/README.md) | Retain the reusable rank/native harness and exact coverage. |
+| [coderank-cpu-evaluation](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-coderank-cpu-evaluation/examples/research/METHODS/coderank-cpu-evaluation/README.md) | Preserve both the original setup snapshot and the later completion receipt. |
+| [gemma-cpu-evaluation](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-gemma-cpu-evaluation/examples/research/METHODS/gemma-cpu-evaluation/README.md) | Preserve verified completed matrices and the exact contract. |
+| [refactor-discovery-bundles](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-refactor-discovery-bundles/examples/research/METHODS/refactor-discovery-bundles/README.md) | Retain bounded optional inspection and strict authority separation. |
+| [tfidf-blindspot-recovery](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-tfidf-blindspot-recovery/examples/research/METHODS/tfidf-blindspot-recovery/README.md) | Recover the structural generator and the failed variant rather than duplicating #122’s product implementation. |
+| [cross-repo-recall-audit](https://github.com/gigaverse-app/dry-lint/blob/research/recovered-cross-repo-recall-audit/examples/research/METHODS/cross-repo-recall-audit/README.md) | Do not replace sparse ordering with fixed fusion. |
 
 ## Reproduction and commit structure
 
-The infrastructure change supplies `replay.py`, `stage_replay.py`, access instructions and the shared mapper. Each method commit adds its own implementation, original tests where present, frozen recipe, SHA256 provenance, report and validation receipt. For separate PRs, start each method branch at the infrastructure commit and cherry-pick only that method commit; the methods do not require earlier sibling commits. Target the infrastructure branch until it merges. The combined recovery branch provides this canonical overview of all directions. No PR has been created by this recovery.
+The infrastructure change supplies `replay.py`, `stage_replay.py`, access instructions and the shared mapper. Each method commit adds its own implementation, original tests where present, frozen recipe, SHA256 provenance, report and validation receipt. For separate PRs, start each method branch at the infrastructure commit and cherry-pick only that method commit; the methods do not require earlier sibling commits. Target the infrastructure branch until it merges. This overview links all prepared method branches; links become available after their publication. No PR has been created by this recovery.
 
 Eleven recorded-result modes passed after relocating code and twenty minimal inputs, with networking and original evidence reads blocked. The stronger checks reproduced 16 original native scheduler arms, 24 learned allocation orders across four campaigns, the spectral synthetic control, 26 bundle tests, three encoder harness tests and eight shared-mapper regression tests. Aggregating saved ranks/events is labeled separately from executing the original scheduler, learned prediction or matrix ranking. No new encoder inference or provider calls were made.
 
