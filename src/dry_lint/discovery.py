@@ -77,10 +77,18 @@ class CampaignStore:
     def advance(self, settings: Settings, prior_usd: float = 0.0) -> None:
         with self.transaction() as state:
             state.prior_usd = max(state.prior_usd, prior_usd)
-            cap = settings.budget.usd * (1 - settings.discovery.baseline_fraction)
-            if self.revision not in state.revisions:
-                state.revisions.append(self.revision)
-                state.credit = min(cap, state.credit + settings.discovery.exploration_per_revision)
+            self._enter(state, settings)
+
+    def _enter(self, state: Campaign, settings: Settings) -> float:
+        """Record this revision once, minting its exploration credit up to the cap; returns the cap.
+
+        INVARIANT: credit is minted once per revision, never above the exploration share of the budget.
+        """
+        cap = settings.budget.usd * (1 - settings.discovery.baseline_fraction)
+        if self.revision not in state.revisions:
+            state.revisions.append(self.revision)
+            state.credit = min(cap, state.credit + settings.discovery.exploration_per_revision)
+        return cap
 
     def recovery_ready(self, settings: Settings, sources: set[str]) -> bool:
         """Avoid constructing a recovery plugin when neither admission nor recovery cache work can run.
@@ -120,10 +128,7 @@ class CampaignStore:
             raise ValueError("Residual admission requires an explicitly configured residual phase")
         version = evidence(candidate, identity(judge))
         with self.transaction() as state:
-            exploration_cap = settings.budget.usd * (1 - policy.baseline_fraction)
-            if self.revision not in state.revisions:
-                state.revisions.append(self.revision)
-                state.credit = min(exploration_cap, state.credit + policy.exploration_per_revision)
+            exploration_cap = self._enter(state, settings)
             current = [a for a in state.attempts if a.revision == self.revision]
             # A concurrent/abandoned or failed attempt is not a completed protected pass.
             if residual and any(a.status != "answered" for a in current):
@@ -215,6 +220,10 @@ class CampaignStore:
     def settle(self, reservation: int, usd: float | None, success: bool) -> float:
         with self.transaction() as state:
             attempt = state.attempts[reservation]
+            # INVARIANT: a reservation settles exactly once. A second settle would refund exploration credit
+            # again and could turn an answered attempt into a failed one.
+            if attempt.status != "reserved":
+                raise ValueError(f"Reservation {reservation} is already settled ({attempt.status})")
             if usd is not None:
                 if attempt.lane == "exploration" and not attempt.residual:
                     state.credit += attempt.usd - usd

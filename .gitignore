@@ -12,3 +12,5 @@ site/
 
 # pytest-selective planner cache
 .test-impact/
+# Quint traces, logs and receipts from model-based contract runs.
+contracts/.artifacts/
