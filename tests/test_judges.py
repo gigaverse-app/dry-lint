@@ -5,15 +5,21 @@ from pathlib import Path
 
 import httpx
 import pytest
+from test_family_judging import family_answer, family_request
 
+from dry_lint.family_judging import record_family_response
+from dry_lint.family_models import FamilyUsage
 from dry_lint.judges import label_for, make_escalation, make_judge
 from dry_lint.judges.anthropic import AnthropicJudge
+from dry_lint.judges.anthropic_family import PROMPT_VERSION as FAMILY_PROMPT_VERSION
+from dry_lint.judges.anthropic_family import family_prompt
 from dry_lint.judges.command import PROMPT_VERSION, CommandJudge, parse_verdict
 from dry_lint.judges.gemini import API_URL as GEMINI_URL
 from dry_lint.judges.gemini import GeminiJudge
 from dry_lint.judges.http import HttpJudge
 from dry_lint.judges.jev import API_URL, QUESTIONS, JevJudge, state
 from dry_lint.models import Candidate
+from dry_lint.plugins import load
 from dry_lint.settings import Escalation, PluginChoice, Settings
 
 from conftest import claude, function
@@ -49,7 +55,7 @@ def test_make_judge_builds_a_command_judge_from_its_options_and_rejects_bad_choi
         make_judge(PluginChoice(use="command"))
     with pytest.raises(
         ValueError,
-        match="Unknown judge 'oracle'; available: anthropic, anthropic-family, claude-code, codex, command, gemini, jev",
+        match="Unknown judge 'oracle'; available: anthropic, anthropic-family, claude-code, claude-code-family, codex, command, gemini, jev",
     ):
         make_judge(PluginChoice(use="oracle"))
 
@@ -377,3 +383,53 @@ def test_the_anthropic_judge_says_how_to_install_the_sdk(monkeypatch: pytest.Mon
     monkeypatch.setitem(sys.modules, "anthropic", None)  # as if the optional extra were not installed
     with pytest.raises(ValueError, match="pip install 'dry-lint\\[anthropic\\]'"):
         AnthropicJudge(api_key="k")
+
+
+def claude_cli(tmp_path: Path, result: dict) -> str:
+    """A stub `claude -p --output-format json` that records its argv, environment and prompt."""
+    return script(
+        tmp_path,
+        (
+            "import json, os, pathlib, sys\n"
+            "prompt = sys.stdin.read()\n"
+            f"pathlib.Path({str(tmp_path / 'seen.json')!r}).write_text(json.dumps({{\n"
+            "    'argv': sys.argv[1:], 'prompt': prompt, 'api_key': 'ANTHROPIC_API_KEY' in os.environ,\n"
+            "    'max_output': os.environ.get('CLAUDE_CODE_MAX_OUTPUT_TOKENS')}))\n"
+            f"print(json.dumps({result!r}))\n"
+        ),
+    )
+
+
+def test_the_claude_code_family_judge_answers_on_the_subscription_with_the_api_prompt(tmp_path, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "would-bill-the-api")
+    request = family_request()
+    answer = family_answer(request).model_dump_json()
+    usage = {"input_tokens": 1200, "output_tokens": 300, "cache_read_input_tokens": 5, "cache_creation_input_tokens": 7}
+    cli = claude_cli(tmp_path, {"result": answer, "stop_reason": "end_turn", "usage": usage, "session_id": "s1"})
+    judge = load("judges", PluginChoice(use="claude-code-family", cli=cli, max_tokens=2048))
+    assert judge.available and judge.subscription
+    assert judge.version == f"{FAMILY_PROMPT_VERSION}:claude-code:claude-sonnet-5-5:output=2048"
+    response = judge.judge_family(request)
+    seen = json.loads((tmp_path / "seen.json").read_text())
+    assert seen["prompt"] == family_prompt(request) and not seen["api_key"] and seen["max_output"] == "2048"
+    assert "--output-format json" in " ".join(seen["argv"]) and "--tools" in seen["argv"]
+    assert (response.text, response.stop_reason, response.response_id) == (answer, "end_turn", "s1")
+    assert response.usage == FamilyUsage(
+        input=1200, output=300, cache_read_input_tokens=5, cache_creation_input_tokens=7
+    )
+    record = record_family_response(request, judge, response, (3.0, 15.0))
+    assert record.answer.decision == "consolidate"
+
+
+def test_the_claude_code_family_judge_fails_closed_on_a_cli_error_and_keeps_unknown_usage_unknown(tmp_path):
+    request = family_request()
+    failed = load(
+        "judges",
+        PluginChoice(use="claude-code-family", cli=claude_cli(tmp_path, {"is_error": True, "subtype": "error"})),
+    )
+    with pytest.raises(RuntimeError, match="did not answer"):
+        failed.judge_family(request)
+    unmetered = load("judges", PluginChoice(use="claude-code-family", cli=claude_cli(tmp_path, {"result": "x"})))
+    response = unmetered.judge_family(request)
+    assert response.usage is None and response.stop_reason == "unknown"
+    assert not load("judges", PluginChoice(use="claude-code-family", cli="no-such-claude-cli")).available

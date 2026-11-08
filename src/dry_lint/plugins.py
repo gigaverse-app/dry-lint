@@ -98,6 +98,7 @@ BUILT_IN = {
         "anthropic": "dry_lint.judges.anthropic:AnthropicJudge",
         "anthropic-family": "dry_lint.judges.anthropic_family:AnthropicFamilyJudge",
         "claude-code": "dry_lint.judges.subscription:ClaudeCodeJudge",
+        "claude-code-family": "dry_lint.judges.subscription:ClaudeCodeFamilyJudge",
         "codex": "dry_lint.judges.subscription:CodexJudge",
     },
     "stores": {"dir": "dry_lint.store:DirectoryStore", "s3": "dry_lint.store:S3Store"},
