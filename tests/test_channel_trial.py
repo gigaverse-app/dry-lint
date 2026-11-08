@@ -200,7 +200,7 @@ def test_calibrated_floor_keeps_the_requested_share_of_functions() -> None:
 
 def test_trial_cli_scores_every_variant_on_a_real_repository(repo, tmp_path, monkeypatch, harness) -> None:
     pytest.importorskip("dryer")  # every variant includes the optional Dryer channel; the Dryer CI job runs this
-    gold =tmp_path / "gold.jsonl"
+    gold = tmp_path / "gold.jsonl"
     gold.write_text(
         gold_line("src/widgets/caption.py::preview_caption_text", "src/text.py::shorten_text", "duplicate")
         + gold_line("src/widgets/caption.py::register_widget", "src/text.py::shorten_text", "borderline")
