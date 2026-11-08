@@ -536,7 +536,7 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     [body] = github.stickies()
     assert "Resolved" in body and "distinct-from src/text.py::shorten_text" not in body
     # The ledger remembers what the fix was worth: the run on the same commit was not a new push.
-    assert "**1 duplicate kept out of the codebase**" in body and "across 2 pushes" in body
+    assert "**1 duplicate kept out of the codebase**" in body and "across 2 checked pushes" in body
     assert "`preview_caption_text` ≈ `shorten_text` · found in push 1, kept out in push 2" in body
 
 
