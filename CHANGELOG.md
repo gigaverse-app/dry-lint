@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.1](https://github.com/gigaverse-app/dry-lint/compare/v1.6.0...v1.6.1) (2026-11-08)
+
+
+### Documentation
+
+* explain why, add a first-run tutorial and one CI guide ([#145](https://github.com/gigaverse-app/dry-lint/issues/145)) ([efd85f3](https://github.com/gigaverse-app/dry-lint/commit/efd85f36292bf1ce71f5c66f8c954548a1f578ec))
+* install the CLI from PyPI and show the PyPI version ([#144](https://github.com/gigaverse-app/dry-lint/issues/144)) ([d788dfc](https://github.com/gigaverse-app/dry-lint/commit/d788dfcfcacab11f965060f42640f0767ee73946))
+
 ## [1.6.0](https://github.com/gigaverse-app/dry-lint/compare/v1.5.0...v1.6.0) (2026-11-08)
 
 
