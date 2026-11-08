@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "method": "tfidf-blindspot-recovery",
+  "implementation_files_ast_equivalent": 7,
+  "algorithm_changes": false,
+  "recorded_replay": {
+    "schema": 1,
+    "method": "tfidf-blindspot-recovery",
+    "provider_calls": 0,
+    "encoder_calls": 0,
+    "scope": "Recompute settled usage and censoring from frozen events; no scheduler or provider execution",
+    "results": [
+      {
+        "input": "full12-original-r3/results.jsonl",
+        "sha256": "5403ddf1d648449884745bc74014c31247bc21ab38e5b3a808adf1175f69b35c",
+        "arms": [
+          {
+            "arm": "fixed",
+            "accounting": "native",
+            "campaigns": 48,
+            "censored": 0,
+            "successful_attempts": 225,
+            "actual_settled_usd": 0.16694749999999992,
+            "paid_failed_attempts": 0,
+            "reported_occurrences": 88
+          },
+          {
+            "arm": "fixed",
+            "accounting": "normal",
+            "campaigns": 48,
+            "censored": 0,
+            "successful_attempts": 0,
+            "report_count_unavailable_campaigns": 48
+          }
+        ]
+      },
+      {
+        "input": "full12-residual-r3/results.jsonl",
+        "sha256": "1fd1b0125ea0a5d3695108a255e38687ee21af6f1bd01e3c0ad021ff992344fb",
+        "arms": [
+          {
+            "arm": "deep_raw",
+            "accounting": "native",
+            "campaigns": 12,
+            "censored": 1,
+            "successful_attempts": 68,
+            "actual_settled_usd": 0.06742490000000002,
+            "paid_failed_attempts": 1,
+            "reported_occurrences": 26
+          },
+          {
+            "arm": "deep_raw",
+            "accounting": "normal",
+            "campaigns": 12,
+            "censored": 0,
+            "successful_attempts": 0,
+            "reported_occurrences": 33
+          },
+          {
+            "arm": "lower_floor_raw",
+            "accounting": "native",
+            "campaigns": 12,
+            "censored": 1,
+            "successful_attempts": 115,
+            "actual_settled_usd": 0.1038982,
+            "paid_failed_attempts": 1,
+            "reported_occurrences": 34
+          },
+          {
+            "arm": "lower_floor_raw",
+            "accounting": "normal",
+            "campaigns": 12,
+            "censored": 0,
+            "successful_attempts": 0,
+            "reported_occurrences": 74
+          },
+          {
+            "arm": "raw_tfidf",
+            "accounting": "native",
+            "campaigns": 12,
+            "censored": 1,
+            "successful_attempts": 68,
+            "actual_settled_usd": 0.06742490000000002,
+            "paid_failed_attempts": 1,
+            "reported_occurrences": 26
+          },
+          {
+            "arm": "raw_tfidf",
+            "accounting": "normal",
+            "campaigns": 12,
+            "censored": 0,
+            "successful_attempts": 0,
+            "reported_occurrences": 30
+          },
+          {
+            "arm": "recovery",
+            "accounting": "native",
+            "campaigns": 12,
+            "censored": 1,
+            "successful_attempts": 79,
+            "actual_settled_usd": 0.07965100000000001,
+            "paid_failed_attempts": 1,
+            "reported_occurrences": 35
+          },
+          {
+            "arm": "recovery",
+            "accounting": "normal",
+            "campaigns": 12,
+            "censored": 0,
+            "successful_attempts": 0,
+            "reported_occurrences": 40
+          }
+        ]
+      },
+      {
+        "input": "full12-hybrid-r1/results.jsonl",
+        "sha256": "de4fa5f2a9a46872a897eeef79d7750ffa864268223c20c8579d5807fd2c96f2",
+        "arms": [
+          {
+            "arm": "hybrid",
+            "accounting": "native",
+            "campaigns": 12,
+            "censored": 1,
+            "successful_attempts": 116,
+            "actual_settled_usd": 0.1053488,
+            "paid_failed_attempts": 1,
+            "reported_occurrences": 37
+          },
+          {
+            "arm": "hybrid",
+            "accounting": "normal",
+            "campaigns": 12,
+            "censored": 0,
+            "successful_attempts": 0,
+            "reported_occurrences": 75
+          }
+        ]
+      }
+    ]
+  },
+  "relocation": {
+    "passed": true,
+    "network_blocked": true,
+    "original_evidence_reads_blocked": true,
+    "scope": "Public replay code and minimal frozen inputs copied to new roots, executed from /tmp. Scientific runtime imports allowed."
+  }
+}
