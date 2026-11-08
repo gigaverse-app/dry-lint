@@ -468,6 +468,9 @@ def test_config_shows_explicit_settings_subscriptions_and_unknown_prices(repo: R
     assert "(set explicitly: escalate, fail_at, judge)" in out
     assert main(["config", "--root", str(repo.root), "--preset", "none", "--judge", "none"]) == 0
     assert "judge: none (-)" in capsys.readouterr().out
+    (repo.root / ".dry-lint.toml").unlink()
+    assert main(["config", "--root", str(repo.root), "--judge", "none"]) == 0
+    assert capsys.readouterr().out.startswith("preset: none - no judge")
 
 
 def test_config_shows_which_source_files_the_scope_covers(repo: Repo, capsys) -> None:

@@ -25,9 +25,12 @@ MARKER = "<!-- dry-lint -->"
 REASON_LIMIT = 300
 OWNERS = {
     "existing": "call the existing function",
-    "new": "move callers of the existing function to the new one",
+    "new": "keep {new} and move callers of {existing} to it",
     "shared": "extract a shared helper both can call",
 }
+# A repository-wide audit (`scan`, `sweep`) compares two functions that both exist already: its pairs are ordered
+# by name, so neither side is new and the advice names the side to keep.
+AUDIT_OWNERS = {**OWNERS, "existing": "keep {existing} and move callers of {new} to it"}
 
 
 def plain(text: str, limit: int = REASON_LIMIT) -> str:
@@ -85,7 +88,8 @@ class Finding(BaseModel):
         kind = "review required" if self.review_required else self.verdict.label if self.verdict else "candidate"
         return f"{new.qualname.split('::')[1]} looks like {existing.qualname} ({kind})"
 
-    def advice(self, relatives: list["Finding"] = ()) -> str:
+    def advice(self, relatives: list["Finding"] = (), *, audit: bool = False) -> str:
+        """What to do about the pair; `audit` for a repository-wide report, where neither function is new."""
         parts = []
         if self.review_required:
             parts.append(
@@ -100,8 +104,12 @@ class Finding(BaseModel):
             parts.append(f"judge {self.verdict.score:.2f}" + (" (cached)" if self.cached else ""))
             if self.verdict.label == "drifted":
                 parts.append("the two already behave differently")
-            if self.kind == "function" and self.verdict.owner in OWNERS and not self.candidate.consolidation:
-                parts.append(OWNERS[self.verdict.owner])
+            owners = AUDIT_OWNERS if audit else OWNERS
+            if self.kind == "function" and self.verdict.owner in owners and not self.candidate.consolidation:
+                new, existing = self.candidate.new.qualname, self.candidate.existing.qualname
+                # A check's finding sits on the changed function, so its own name suffices there.
+                new = new if audit else new.split("::", 1)[1]
+                parts.append(owners[self.verdict.owner].format(new=new, existing=existing))
             if self.verdict.why:
                 parts.append(plain(self.verdict.why))
             if self.verdict.label != "separate" and self.candidate.consolidation:
@@ -166,8 +174,10 @@ class JudgingSummary(BaseModel):
         return sum(s.skipped for s in self.spend)
 
     def line(self, *, ranking: bool = False) -> str:
-        """One line: judges, thresholds, and the bill."""
-        judges = self.judge or "no judge"
+        """One line: judges, thresholds, and the bill; with no judge, only that, since nothing is judged or fails."""
+        if not self.judge:
+            return "no judge · look-alikes are listed; nothing is judged, reported or failed"
+        judges = self.judge
         if self.escalation and self.band:
             judges += f" > {self.escalation} on [{self.band[0]:g}, {self.band[1]:g})"
         if self.campaign:
@@ -317,6 +327,10 @@ class Report(Versioned):
         """The reported relatives of `finding`: copies its fix touches, closest first."""
         return [f for f in self.findings if f.related and f.candidate.parent == finding.candidate.key]
 
+    def advice(self, finding: Finding) -> str:
+        """The finding's advice in this report: with its relatives, and side-neutral in a repository-wide audit."""
+        return finding.advice(self.relatives(finding), audit=self.repository_wide)
+
     @property
     def deferred(self) -> int:
         return sum(f.deferred for f in self.findings)
@@ -397,8 +411,7 @@ def as_text(report: Report) -> str:
 
 def text_lane(report: Report, *, kind: str = "function") -> str:
     lines = [
-        f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {f.advice(report.relatives(f))}"
-        for f in report.visible
+        f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {report.advice(f)}" for f in report.visible
     ]
     stats = report.stats
     judge = f"judge {report.judge}" if report.judge else "no judge"
@@ -447,7 +460,7 @@ def as_github(report: Report) -> str:
         new = f.candidate.new
         lines.append(
             f"::{level(f)} file={new.path},line={new.line},endLine={new.end_line},title=dry-lint::"
-            f"{escape(f.headline() + ': ' + f.advice(report.relatives(f)))}"
+            f"{escape(f.headline() + ': ' + report.advice(f))}"
         )
     return "\n".join(lines)
 
@@ -478,7 +491,7 @@ BADGES = "https://img.shields.io/badge"
 RED, ORANGE, AMBER, GREEN, BLUE, GRAY = "CF222E", "EA580C", "BF8700", "2EA043", "2563EB", "6E7781"
 ACTIONS = {
     "existing": "call the existing one",
-    "new": "keep the new one; move callers",
+    "new": "keep the changed one; move callers to it",
     "shared": "extract a shared helper",
 }
 AUDIT_ACTIONS = {"existing": "keep the second copy", "new": "keep the first copy", "shared": "extract a shared helper"}
@@ -812,7 +825,7 @@ def as_sarif(report: Report) -> str:
         kind = f.verdict.label if f.verdict else "candidate"
         results.append({
             "ruleId": f"dry-lint/{kind}", "level": level(f) if f.verdict else "note",
-            "message": {"text": f"{f.headline()}: {f.advice(report.relatives(f))}"},
+            "message": {"text": f"{f.headline()}: {report.advice(f)}"},
             "locations": [location(new.path, new.line, new.end_line)],
             "relatedLocations": [{"id": 1, **location(existing.path, existing.line, existing.end_line),
                                   "message": {"text": existing.qualname}}],
@@ -855,7 +868,7 @@ def as_check_run(
     annotations = [{
         "path": f.candidate.new.path, "start_line": f.candidate.new.line, "end_line": f.candidate.new.end_line,
         "annotation_level": "failure" if level(f) == "error" else "warning", "title": f.headline(),
-        "message": f.advice(report.relatives(f)),
+        "message": report.advice(f),
     } for f in reported[:50]]  # fmt: skip
     body = {
         "name": "dry-lint",
