@@ -4,7 +4,8 @@
 # (a push needs no default-branch registration, unlike workflow_dispatch). It judges every candidate pair once and
 # uploads .dry-lint/, the README and the sweep report as the `dry-lint-baseline` artifact:
 #
-#   gh run list --workflow dry-lint-bootstrap.yml --branch "$(git branch --show-current)" --limit 1
+#   gh run list --branch "$(git branch --show-current)" --json databaseId,name,status \
+#     --jq '.[] | select(.name == "dry-lint bootstrap")'
 #   OUT=$(mktemp -d) && gh run download RUN_ID --name dry-lint-baseline --dir "$OUT"
 #
 # Copy .dry-lint/ and README.md from $OUT into the repository, delete this workflow, and commit. Nothing here writes

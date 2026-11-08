@@ -1,6 +1,6 @@
 ---
 name: dry-lint
-description: Set up and tune dry-lint, the pull-request check that flags new code re-implementing a concept the codebase already has. Use to adopt it in a repository end to end (settings, baseline, CI workflows, hooks, README), to choose the judge and thresholds (presets), to set a cost budget, to declare deliberate copies, or to silence false positives.
+description: Set up and tune dry-lint, the pull-request check that flags new code re-implementing a concept the codebase already has. Use to adopt it in a repository end to end (settings, baseline, CI workflows, hooks, README), to choose the judge and thresholds (presets), to pay with API keys or a Claude or ChatGPT subscription, to set a cost budget, to declare deliberate copies, to silence false positives, or to measure a change with a gold set.
 license: Apache-2.0
 ---
 
@@ -60,6 +60,9 @@ gh api "repos/$REPO/actions/organization-secrets" --jq '.secrets[].name'     # o
 uv tool install --no-config --python 3.13 'dry-lint>=1,<2'   # or: pipx install 'dry-lint>=1,<2'
 dry-lint scan --judge none --limit 30
 ```
+
+If the shell then says `dry-lint: command not found`, the tool folder is not on `PATH` yet: run
+`export PATH="$(uv tool dir --bin):$PATH"` (or `uv tool update-shell` and a new shell) and try again.
 
 Expected: a line `dry-lint: showing the 30 closest of N look-alike pairs; raise --limit to see more`, then pairs
 like the following, then a summary line. Nothing is judged and nothing fails.
@@ -148,7 +151,8 @@ into `.github/workflows/`, set its secret to `KEY_SECRET`, commit it together wi
 that adds the file runs it on your branch; no default-branch registration is needed. Then:
 
 ```bash
-gh run list --workflow dry-lint-bootstrap.yml --branch "$(git branch --show-current)" --limit 1
+gh run list --branch "$(git branch --show-current)" --json databaseId,name,status \
+  --jq '.[] | select(.name == "dry-lint bootstrap")'
 gh run watch RUN_ID --exit-status
 OUT=$(mktemp -d) && gh run download RUN_ID --name dry-lint-baseline --dir "$OUT"
 ```

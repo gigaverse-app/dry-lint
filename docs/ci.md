@@ -133,7 +133,8 @@ rarely have one locally. Run it in Actions instead with
 1. Commit it to `.github/workflows/` with `.dry-lint.toml`, using your secret's name, and push.
    The push that adds the file runs it on that branch; unlike `workflow_dispatch`, a push
    needs no copy of the workflow on the default branch.
-2. `gh run list --workflow dry-lint-bootstrap.yml --branch BRANCH --limit 1`, then
+2. `gh run list --branch BRANCH --json databaseId,name --jq '.[] | select(.name == "dry-lint bootstrap")'`
+   (the workflow is not on the default branch yet, so select the run by name), then
    `gh run download RUN_ID --name dry-lint-baseline --dir OUT`.
 3. Copy `.dry-lint/` and `README.md` from `OUT`, delete the bootstrap workflow, review the
    accepted pairs and commit.
