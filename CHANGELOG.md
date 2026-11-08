@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0](https://github.com/gigaverse-app/dry-lint/compare/v1.6.1...v1.7.0) (2026-11-08)
+
+
+### Features
+
+* **action:** opt-in share-goldens keeps merged pull requests' settled pairs for the benchmark ([#149](https://github.com/gigaverse-app/dry-lint/issues/149)) ([966c0a0](https://github.com/gigaverse-app/dry-lint/commit/966c0a085b85116de5e389f9340ba4f16a03a71c))
+* one-prompt agent setup, and fixes from a real adoption trial ([#151](https://github.com/gigaverse-app/dry-lint/issues/151)) ([5d198bb](https://github.com/gigaverse-app/dry-lint/commit/5d198bbd024790e6859a4838b4d514b2f6d35385))
+
 ## [1.6.1](https://github.com/gigaverse-app/dry-lint/compare/v1.6.0...v1.6.1) (2026-11-08)
 
 
