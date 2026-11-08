@@ -1,0 +1,27 @@
+{
+  "mapped_row_backgrounds": 115,
+  "methods": {
+    "blocks": {
+      "bytes": 549534,
+      "directions": 230,
+      "funded_direction_losses": 0,
+      "rows": 115,
+      "sha256": "cb61c2d9c3337f8d8bce46b6ee57c2222d96a11534cc67e202a0f7c5fda2a237"
+    },
+    "cpu": {
+      "bytes": 866878,
+      "directions": 230,
+      "funded_direction_losses": 0,
+      "rows": 115,
+      "sha256": "9930a584711bad00dc761352ef2fbd92d4fa42b93e401f8603f1e81dfe1fcdf2"
+    }
+  },
+  "provider_calls": 0,
+  "source_backgrounds": 14,
+  "status": "passed",
+  "unchanged_historical_inputs": [
+    "/home/researcher/dry-lint-round/jobs/experiment-cpu-embeddings/.lab-results/full-corpus/shared-inputs/9bfa15c84eb72dd2/cohorts.jsonl",
+    "/home/researcher/dry-lint-round/jobs/experiment-cpu-embeddings/.lab-results/full-corpus/shared-inputs/9bfa15c84eb72dd2/rows.jsonl",
+    "/home/researcher/dry-lint-round/jobs/improve-cpu-retrieval/.lab-results/source-coverage.jsonl"
+  ]
+}

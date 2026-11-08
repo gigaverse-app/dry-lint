@@ -1,0 +1,111 @@
+{
+  "harness": [
+    {
+      "bytes": 2332,
+      "modified": false,
+      "path": "harness/common.py",
+      "source_sha256": "08769cda8f8f612f862f4528fdcf00d06e0fbe94cc11278aeb979ef6a1678c0e"
+    },
+    {
+      "bytes": 8728,
+      "modified": false,
+      "path": "harness/materialize.py",
+      "source_sha256": "10921ea9929fc5ad3c81f11a1e07600b51cb40309a1d92bd488d002b00de377e"
+    },
+    {
+      "bytes": 9995,
+      "modified": false,
+      "path": "harness/blocks.py",
+      "source_sha256": "df47b4add1cd4373c3a2db210747688b84def532e475e20aadbc41792c762709"
+    },
+    {
+      "bytes": 10176,
+      "modified": false,
+      "path": "harness/cpu.py",
+      "source_sha256": "a38c1c3776d7c3bd7b0ea24120d90484e3266a26c0acc944394e01a1a0529cc2"
+    },
+    {
+      "bytes": 5098,
+      "modified": false,
+      "path": "harness/helper_fallback_v1.py",
+      "source_sha256": "fdc63d34cedea827749f268612cc0386a3c76d91804be1616efb65c50c71d03a"
+    },
+    {
+      "bytes": 1894,
+      "modified": false,
+      "path": "harness/trace.py",
+      "source_sha256": "8baffbdd73631989a49fbcd40665ae7f6fb349e93f50b7b93c3412279cc8c598"
+    },
+    {
+      "bytes": 9884,
+      "modified": false,
+      "path": "harness/harness.py",
+      "source_sha256": "07555f5828b7087df734ed928373ac04ca029fdfb09b152488298a5d241ab617"
+    },
+    {
+      "bytes": 3443,
+      "modified": false,
+      "path": "harness/views.py",
+      "source_sha256": "fc01645561aa165c0172965b056ec9555dea815a7f0417a897fc11d4e4f96cb8"
+    },
+    {
+      "bytes": 5170,
+      "modified": false,
+      "path": "harness/checks.py",
+      "source_sha256": "9ec83cfc8c3b36d47ed7980da8edf396ae5ddd3c41de28d767f58d97d5da206d"
+    },
+    {
+      "bytes": 2657,
+      "modified": false,
+      "path": "harness/final_check.py",
+      "source_sha256": "d86d7c83c08cc0d59248b17256e78c2e7235f2e165d315f55b5a7b9d9db5c88b"
+    },
+    {
+      "bytes": 1036,
+      "modified": false,
+      "path": "harness/verify_contract.py",
+      "source_sha256": "aa73627d2ba7473712fdc4fc03fea5d538e0586ae9b3fcce8c30b8a6820bd16f"
+    },
+    {
+      "bytes": 1673,
+      "modified": false,
+      "path": "harness/freeze_inputs.py",
+      "source_sha256": "520e869d3c1b2d8746252e45356994cd86f0dc097620491b8e739e8749a923b0"
+    },
+    {
+      "bytes": 16340,
+      "modified": false,
+      "path": "harness/summarize.py",
+      "source_sha256": "1bbf024dd1d209ca8460cda3f6d2382c6dc9d2f536301fc2c14687e7eb4a8087"
+    },
+    {
+      "bytes": 503,
+      "modified": false,
+      "path": "harness/reproduce.sh",
+      "source_sha256": "47cf9a6077211f075dda35ab64df597bcd5678cdff8b797fa8b29c73f1fa742e"
+    },
+    {
+      "bytes": 484,
+      "modified": false,
+      "path": "harness/run-python",
+      "source_sha256": "254942aa7aeba55c79f513b17660dad9ad8778c96c096a66e2ffedfd1a124af2"
+    }
+  ],
+  "historical_labels": "Inherited observed labels; no new judging. Private-historical400 aliases preserve lineage of public-source panel rows; no private source payload or broader private corpus is exported.",
+  "omitted": "Full BenchBackground sparse rows, native corpus caches, model weights, vectors and SQLite cache. CPU source views removed from recordings; worked-case full source is separately licensed.",
+  "source_results": [
+    {
+      "export_sha256": "cb61c2d9c3337f8d8bce46b6ee57c2222d96a11534cc67e202a0f7c5fda2a237",
+      "original_sha256": "cb61c2d9c3337f8d8bce46b6ee57c2222d96a11534cc67e202a0f7c5fda2a237",
+      "source": "blocks-regression.jsonl",
+      "transformation": "byte-exact"
+    },
+    {
+      "export_sha256": "ee3a59745c07c07512c0ee9dbdbebb42787f47ab0f7f516b7055a6af4feccad9",
+      "original_sha256": "9930a584711bad00dc761352ef2fbd92d4fa42b93e401f8603f1e81dfe1fcdf2",
+      "source": "cpu-regression.jsonl",
+      "transformation": "Only CPU query_views/target_views removed; labels, mappings, scores, ranks, first losses and funding unchanged."
+    }
+  ],
+  "source_revision": "73709fdbe884c107b665400a186cb71caecc03f7"
+}

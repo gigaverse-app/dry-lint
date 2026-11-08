@@ -1,0 +1,34 @@
+[
+  {
+    "export_path": "licenses/pytest-obligation-389c5bb8-LICENSE.txt",
+    "license": "Apache-2.0",
+    "repository": "gigaverse-app/pytest-obligation",
+    "revision": "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source_path": "package/LICENSE"
+  },
+  {
+    "export_path": "licenses/pytest-obligation-d39f77ea-LICENSE.txt",
+    "license": "Apache-2.0",
+    "repository": "gigaverse-app/pytest-obligation",
+    "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source_path": "package/LICENSE"
+  },
+  {
+    "export_path": "licenses/pytest-selective-ae130637-LICENSE.txt",
+    "license": "Apache-2.0",
+    "repository": "gigaverse-app/pytest-selective",
+    "revision": "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source_path": "LICENSE"
+  },
+  {
+    "export_path": "licenses/dry-lint-LICENSE.txt",
+    "license": "Apache-2.0",
+    "repository": "gigaverse-app/dry-lint",
+    "revision": "73709fdbe884c107b665400a186cb71caecc03f7",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source_path": "LICENSE"
+  }
+]

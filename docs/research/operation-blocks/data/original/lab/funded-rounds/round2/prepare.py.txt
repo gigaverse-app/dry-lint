@@ -1,0 +1,123 @@
+"""Bounded preregistered residual run, cached representation, central intake export."""
+import hashlib,importlib.util,itertools,json,sys,time
+from collections import Counter
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.models import Candidate,evidence
+from dry_lint.costs import Ledger,estimate
+from dry_lint.settings import Settings
+from residual_blocks import residual_neighbours
+OUT=Path(__file__).resolve().parent;R1=OUT.parent/'round1';WORK=OUT.parents[2]
+spec=importlib.util.spec_from_file_location('existing_round1_export_utilities',R1/'prepare.py');u=importlib.util.module_from_spec(spec);spec.loader.exec_module(u);u.OUT=OUT
+q=u.q;old=u.intake;read=u.read;write=u.write;sha=u.sha
+assert not(OUT/'HANDOFF.json').exists(),'Published batch immutable'
+write(OUT/'IMPLEMENTATION-FREEZE.json',{'preregistration_sha256':sha((OUT/'PREREGISTRATION.json').read_bytes()),'selector_sha256':sha((OUT/'residual_blocks.py').read_bytes()),'selection_export_sha256':sha(Path(__file__).read_bytes()),'before_any_round2_selector_run':True,'no_parameter_search':True})
+cohorts={r['cohort']['cohort_id']:r['cohort']for r in json.loads((u.OLD/'coverage.json').read_text())['per_cohort']};ids=['bg-7489aa1946c16153','bg-ebd0031534c954e5'];models={cid:u.production(cohorts[cid])for cid in ids}
+settings=Settings(budget={'usd':.04});concept=SimpleNamespace(name='anthropic',model='claude-sonnet-5-5',prompt_policy='concept');ops=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',prompt_policy='shared-operations')
+def group(repo,pin,f):return(repo,pin,f.path,f.owner or'<module>')
+def pairs(calls):return set(itertools.combinations(sorted(calls),2))
+def pairkey(repo,pin,a,b):return old.pair(repo,pin,[a.qualname,b.qualname])
+seen=set();held_groups=set();held_calls=set()
+for path in [R1/'queue.jsonl',WORK/'.lab-results/full-corpus-followup/review-batches/v1/novel-review-queue.jsonl',WORK/'.lab-results/novel-review-queue.jsonl']:
+ for p in read(path):
+  c=Candidate.model_validate(p['candidate']);seen.add(old.packet_pair(p));held_groups.update(group(p['repository'],p['revision'],f)for f in(c.new,c.existing))
+for r in read(R1/'review-private-sidecar.jsonl'):
+ ev=r.get('block_evidence')or{};held_calls.update((r['repository'],*p)for p in pairs(ev.get('shared_calls',[])))
+root=u.CENTRAL
+for path in list(root.glob('promotion-evidence-v*/canonical-request-plan.jsonl'))+list((root/'promotion-operations/intakes').glob('**/canonical-request-plan.jsonl')):
+ for r in read(path):
+  if r.get('pair_key'):seen.add(r['pair_key'])
+used_endpoints=set();used_groups=set();chosen=[];work_rows=[];reasons=Counter();query_count=0;started=time.perf_counter()
+queries=[(cid,qi,p)for cid,m in models.items()for qi,p in m['queries'].items()if p['profiles']['default_plus_current20'].get('extra')]
+queries.sort(key=lambda t:sha(q.canonical(['residual-round2-query-v1',t[0],t[1]])))
+
+def campaign(m,qi,target,score,cid):
+ c=m['comparer'];p=m['queries'][qi]['profiles']['default_plus_current20'];candidate=m['detector'].pair(c.functions[qi],c.functions[target],score).model_copy(update={'comparer':cid,'lane':'exploration'})
+ augmented=p['baseline']+([target]if target not in p['baseline']else[])
+ cs=[Candidate(new=c.functions[qi],existing=c.functions[t],similarity=0,comparer='tfidf:2',lane='exploration')for t in augmented];cs[augmented.index(target)]=candidate
+ a=Ledger(settings).select(concept,cs);b=Ledger(settings).select(ops,cs)
+ if augmented.index(target)not in a or augmented.index(target)not in b:return None
+ return candidate,dict(augmented=augmented,concept_targets=[augmented[i]for i in a],operations_targets=[augmented[i]for i in b],concept_estimate=estimate(concept,[cs[i]for i in a],settings),operations_estimate=estimate(ops,[cs[i]for i in b],settings))
+
+for cid,qi,query in queries:
+ if query_count>=1800 or time.perf_counter()-started>180:break
+ m=models[cid];c=m['comparer'];repo,pin=cohorts[cid]['repository'],cohorts[cid]['revision'];f=c.functions[qi];g=group(repo,pin,f)
+ if g in held_groups or g in used_groups:reasons['round1_or_selected_source_owner_group']+=1;continue
+ p=query['profiles']['default_plus_current20'];oi=p['extra']['target'];of=c.functions[oi]
+ if group(repo,pin,of)in held_groups or pairkey(repo,pin,f,of)in seen:reasons['old_arm_pair_or_owner_seen']+=1;continue
+ query_count+=1;t=time.perf_counter();found,w=residual_neighbours(c,f,p['baseline']);work_rows.append({'cohort_id':cid,'query':qi,**w,'elapsed_seconds':time.perf_counter()-t})
+ if query_count%50==0:print(json.dumps({'queries':query_count,'paired_groups':len(chosen),'elapsed_seconds':time.perf_counter()-started}),flush=True)
+ if not found:reasons['no_eligible_residual_parent']+=1;continue
+ new=found[0];ni=new['parent'];nf=c.functions[ni]
+ if ni==oi:reasons['residual_winner_unchanged_no_repetition']+=1;continue
+ gs={g,group(repo,pin,nf),group(repo,pin,of)};endpoints={(repo,pin,x.qualname)for x in(f,nf,of)}
+ if gs&held_groups or endpoints&used_endpoints:reasons['heldout_or_current_endpoint_group_overlap']+=1;continue
+ cp={(repo,*pair)for pair in pairs(new['query_block'].calls&new['target_block'].calls)}
+ if cp&held_calls:reasons['round1_concrete_call_pair_family_signature']+=1;continue
+ nk=pairkey(repo,pin,f,nf);ok=pairkey(repo,pin,f,of)
+ if nk in seen or ok in seen:reasons['exact_prior_owned_pair']+=1;continue
+ oldscore=c.similarity(f,of);a=campaign(m,qi,ni,new['score'],'operation-blocks-residual:1');b=campaign(m,qi,oi,oldscore,'operation-blocks:1')
+ if a is None or b is None:reasons['unfunded_under_unchanged_04_concept_or_operations']+=1;continue
+ ident='OBR2-G'+sha(q.canonical([repo,pin,f.qualname]))[:12]
+ chosen.append({'group_id':ident,'cohort_id':cid,'query':qi,'new':ni,'old':oi,'new_candidate':a[0],'old_candidate':b[0],'new_funding':a[1],'old_funding':b[1],'residual_work':w,'shared_calls':sorted(new['query_block'].calls&new['target_block'].calls),'new_block_spans':{'query':[new['query_block'].line,new['query_block'].end_line],'target':[new['target_block'].line,new['target_block'].end_line]},'operational_family_keys':[list(v)for v in sorted(cp)]})
+ used_endpoints.update(endpoints);used_groups.update(gs);seen.update([nk,ok])
+ if len(chosen)==18:break
+write(OUT/'bounded-run.json',{'queries_run':query_count,'cached_eligible_query_pool':len(queries),'matched_groups':len(chosen),'elapsed_seconds':time.perf_counter()-started,'selection_reasons':dict(reasons),'no_refits':True,'heldout_source_groups':len(held_groups),'heldout_concrete_call_pair_signatures':len(held_calls),'provider_calls':0})
+write(OUT/'query-work.jsonl',work_rows,lines=True)
+assert len(chosen)>=12,f'Only {len(chosen)} new paired groups under fixed split; inspect measured supply without relaxing mechanism'
+# 12..18 paired groups are enough to stage data; primary target remains 18.
+controls=[]
+control_rows=[r for cid in ids for r in read(u.OLD/'cohorts'/cid/'control-inventory.jsonl')if r['profile']=='default_plus_current20'and not r['known_exact_pair']]
+control_rows.sort(key=lambda r:sha(q.canonical(['residual-round2-control',r['identity']])))
+for r in control_rows:
+ cid=r['cohort_id'];m=models[cid];c=m['comparer'];repo,pin=r['repository'],r['revision'];qi,ti=r['query'],r['target'];f,t=c.functions[qi],c.functions[ti];gs={group(repo,pin,f),group(repo,pin,t)};ep={(repo,pin,x.qualname)for x in(f,t)};key=pairkey(repo,pin,f,t)
+ if gs&held_groups or gs&used_groups or ep&used_endpoints or key in seen:continue
+ if ti not in m['queries'][qi]['profiles']['default_plus_current20']['baseline']:continue
+ qv,tv=c.tfidf.vector(f.tokens),c.tfidf.vector(t.tokens);score=sum(w*tv.get(tok,0)for tok,w in qv.items());pack=campaign(m,qi,ti,score,'tfidf:2')
+ if pack is None:continue
+ controls.append({'cohort_id':cid,'query':qi,'target':ti,'candidate':pack[0],'funding':pack[1]});used_endpoints.update(ep);used_groups.update(gs);seen.add(key)
+ if len(controls)==12:break
+assert len(controls)==12,'Need 12 independent controls; preserve split and fetch more cached inventory'
+items=[]
+for number,g in enumerate(chosen):
+ for arm in ['new','old']:
+  items.append({'id':g['group_id']+'-'+arm,'cohort_id':g['cohort_id'],'query':g['query'],'target':g[arm],'candidate':g[arm+'_candidate'],'funding':g[arm+'_funding'],'role':'novel_residual_block_extra'if arm=='new'else'paired_original_arm_exposure','group_id':g['group_id'],'arm':arm,'mechanism_changed':arm=='new','group':g})
+ # Four independent controls after each six paired groups: <=32 requests per chunk.
+ if(number+1)%6==0:
+  offset=((number+1)//6-1)*4
+  for control in controls[offset:offset+4]:items.append(dict(control,id='OBR2-BASE-'+sha(q.canonical([control['cohort_id'],control['query'],control['target']]))[:12],role='matched_funded_baseline_control',arm='baseline_control',group_id=None,mechanism_changed=False))
+# Complete any unassigned controls if the bounded supply yielded fewer than18 groups.
+used_controls={x['id']for x in items if x['arm']=='baseline_control'}
+for control in controls:
+ ident='OBR2-BASE-'+sha(q.canonical([control['cohort_id'],control['query'],control['target']]))[:12]
+ if ident not in used_controls:items.append(dict(control,id=ident,role='matched_funded_baseline_control',arm='baseline_control',group_id=None,mechanism_changed=False))
+packets=[];sides=[];funds=[];proofrows=[];blind=[];entries=[];plans=[];groups=[]
+requested=[{'kind':'claude','model':'claude-sonnet-5-5','policy':'shared-operations','max_output_tokens':1024,'report_threshold':.8},{'kind':'jev','model':'jev-1.14.0','policy':'reuse-context-v3','report_threshold':.8}]
+for item in items:
+ cid=item['cohort_id'];m=models[cid];cohort=cohorts[cid];c=item['candidate'];proofs=[]
+ for f in(c.new,c.existing):
+  s=m['payload']['sources'][f.path];raw=Path(s['snapshot']).read_bytes();assert sha(raw)==s['sha256']==f.context_digest;assert'\n'.join(raw.decode().splitlines()[f.line-1:f.end_line])==f.code
+  proofs.append({'source_id':f.qualname,'path':f.path,'line':f.line,'end_line':f.end_line,'body_sha256':sha(f.code.encode()),'file_sha256':sha(raw),'git_blob_sha1':s['git_blob'],'snapshot':s['snapshot'],'blob_url':f"https://github.com/{cohort['repository']}/blob/{cohort['revision']}/{f.path}#L{f.line}-L{f.end_line}"})
+ packet={'schema':1,'format':'dry-lint/lab-review-packet','id':item['id'],'repository':cohort['repository'],'revision':cohort['revision'],'candidate':c.model_dump(mode='json'),'background_proof':{'path':cohort['background_path'],'sha256':cohort['background_sha256']},'source_proofs':proofs,'evidence':evidence(c),'status':'unknown','requested_judging':requested,'truth':'Independent source adjudication; diagnostic providers do not define gold.'}
+ binding={'repository':packet['repository'],'revision':packet['revision'],'candidate_sha256':sha(q.canonical(packet['candidate'])),'source_files':[{k:p[k]for k in ['source_id','path','file_sha256','body_sha256']}for p in proofs],'scope':m['bg'].scope,'background_sha256':cohort['background_sha256'],'candidate_kind':'function'}
+ f=item['funding'];side={'id':item['id'],'role':item['role'],'arm':item['arm'],'matched_group':item['group_id'],'profile':'default_plus_current20','query':item['query'],'target':item['target'],'cohort_id':cid,'actually_funded':True,'shared_operations_funded':True,'concept_budget_usd':.04,'shared_operations_query_estimated_usd':f['operations_estimate'],'query_total_estimated_usd':f['concept_estimate'],'funding':f,'new_selector':'operation-blocks-residual:1','candidate_comparer':c.comparer,'source_groups':[list(group(packet['repository'],packet['revision'],x))for x in(c.new,c.existing)],'round1_source_group_overlap':False,'root_semantic_family_validation':'required before interpreting families as independently new','observed_deployment_campaign':False,'provider_calls':0}
+ if item['arm']=='new':side.update(shared_calls=item['group']['shared_calls'],block_spans=item['group']['new_block_spans'],family_keys=item['group']['operational_family_keys'],coverage_work=item['group']['residual_work'])
+ entry={'id':item['id'],'method':'operation-blocks','role':'control'if'control'in item['role']else'novel','packet':packet,'binding':binding,'pair_key':old.packet_pair(packet),'attribution':[{'method':'operation-blocks','original_id':item['id'],'round':2,'arm':item['arm'],'matched_group':item['group_id']}],'native_funding':{'arm':'default_plus_current20','native':side}}
+ reqs=[q.request(c,kind,binding)for kind in ['jev','claude']]
+ packets.append(packet);sides.append(side);entries.append(entry);plans.append(reqs);proofrows.append({'id':item['id'],'source_proofs':proofs,'binding':binding});funds.append({'schema_version':'promotion-funding-evidence-v1','id':item['id'],'method':'operation-blocks','original_cap_usd':.04,'original_funding':entry['native_funding'],'central_diagnostic_cap_usd':20.,'diagnostic_answers_not_native_default_or_balanced':True,'physical_cache_discount_to_original_ledger':0});blind.append({'id':item['id'],'repository':packet['repository'],'revision':packet['revision'],'new':packet['candidate']['new'],'existing':packet['candidate']['existing'],'source_proofs':proofs,'consolidation':[],'policies':[]})
+for g in chosen:groups.append({'group_id':g['group_id'],'new_id':g['group_id']+'-new','old_id':g['group_id']+'-old','cohort_id':g['cohort_id'],'query':g['query'],'residual_target':g['new'],'original_target':g['old'],'same_query_not_independent_trials':True,'root_complete_both_cases_for_paired_interpretation':True})
+for name,rows in [('queue.jsonl',packets),('review-private-sidecar.jsonl',sides),('funding.jsonl',funds),('source-proofs.jsonl',proofrows),('source-blind.jsonl',blind),('matched-groups.jsonl',groups)]:write(OUT/name,rows,lines=True)
+chunks=[];flat=[]
+for start in range(0,len(items),16):
+ folder=OUT/f'batch-{start//16+1:03d}';queue=folder/'queue.jsonl';write(queue,packets[start:start+16],lines=True);rs=[]
+ for j in range(start,min(start+16,len(items))):
+  entries[j]['input']=str(queue);entries[j]['attribution'][0]['input']=str(queue)
+  for r in plans[j]:r.update(packet=packets[j],packet_file=str(queue),packet_file_sha256=sha(queue.read_bytes()),method='operation-blocks',case_id=items[j]['id'],pair_key=entries[j]['pair_key'],attribution=entries[j]['attribution'],cache=None,probe=False,state='new_request');rs.append(r)
+ write(folder/'frozen-input.jsonl',entries[start:start+16],lines=True);write(folder/'canonical-request-plan.jsonl',rs,lines=True);flat+=rs
+ chunks.append({'batch':start//16+1,'queue':str(queue),'queue_sha256':sha(queue.read_bytes()),'request_plan':str(folder/'canonical-request-plan.jsonl'),'canonical_request_manifest':str(folder/'canonical-request-plan.jsonl'),'canonical_request_manifest_sha256':sha((folder/'canonical-request-plan.jsonl').read_bytes()),'private_sidecar':str(OUT/'review-private-sidecar.jsonl'),'pairs':len(packets[start:start+16]),'requests':len(rs),'estimated_new_usd':sum(old.normal_cost(r)for r in rs)})
+assert len({r['request_key']for r in flat})==len(flat)
+files=[OUT/n for n in ['queue.jsonl','review-private-sidecar.jsonl','funding.jsonl','source-proofs.jsonl','source-blind.jsonl','matched-groups.jsonl','bounded-run.json','query-work.jsonl','IMPLEMENTATION-FREEZE.json','PREREGISTRATION.json']]+[Path(c[k])for c in chunks for k in ['queue','request_plan']]
+write(OUT/'manifest.json',{'status':'SEALED_ROOT_INTAKE_READY','files':{str(p):sha(p.read_bytes())for p in files},'requests':len(flat),'paired_groups':len(chosen),'independent_controls':len(controls),'chunks':chunks})
+h={'schema':1,'direction':'operation-blocks','method':'operation-blocks','round':2,'status':'READY_ROOT_INTAKE_ONE_REVISED_MECHANISM','variant':'operation-blocks-residual:1','queue':str(OUT/'queue.jsonl'),'manifest':str(OUT/'manifest.json'),'funding':str(OUT/'funding.jsonl'),'source_proofs':str(OUT/'source-proofs.jsonl'),'private_sidecar':str(OUT/'review-private-sidecar.jsonl'),'source_blind':str(OUT/'source-blind.jsonl'),'chunks':chunks,'matched_groups':str(OUT/'matched-groups.jsonl'),'paired_query_groups':len(chosen),'novel_residual_cases':len(chosen),'old_arm_comparison_cases':len(chosen),'independent_controls':len(controls),'requests':len(flat),'estimated_new_spend_usd':sum(old.normal_cost(r)for r in flat),'required_actual_new_usd':.2,'round1_actual_new_spend_usd':.22461896,'round1_decision':'No demonstrated incremental production gain after explicit TF-IDF20. PEV024/025 concept confirms baseline-covered family; other .8 lead is independently unreviewed. Missing cases stay unknown; not a general method-failure conclusion.','mechanism':json.loads((OUT/'PREREGISTRATION.json').read_text())['mechanism'],'representation_changed':False,'index_refits':0,'full_corpus_gold_receipt_reused':str(WORK/'.lab-results/full-corpus-followup/FINAL_RECEIPT.json'),'runtime_receipt':str(OUT/'bounded-run.json'),'newfamily_split':'Novel source owner/path groups and shared concrete-call-pair signatures exclude all published round1 source groups/signatures. Independent semantic family confirmation remains root-owned; structural proxy is not accepted gold.','root_pairing_note':'Old/new exposures are both novel questions on new families, not mandatory controls. Complete both per matched group for paired comparisons; 12 separately sampled baseline controls are independent of these endpoints.','judge_contract':'Existing paired Jev/context + Sonnet/shared-operations/1024/.8; not default concept or balanced Haiku/2048/.5. No report substitution.','diagnostic_vs_deployment':'Normal .04 cold-query admission retained separately. Discovery defaults off, balanced default TF-IDF20 only; explicitly configured variant remains experimental.','provider_calls':0,'credentials_read':False,'no_paid_repeats_or_cache_spend_credit':True,'no_further_mechanism_retune':True,'round1_source_completion_not_blocking':True,'adaptive_supply':'Use cached indexes and same frozen selector for more disjoint cases if actual fresh paid <.20; never repeat keys to fill quota.'}
+write(OUT/'HANDOFF.json',h);write(OUT/'JUDGE-OPERATIONS-READY.json',{'status':h['status'],'handoff':str(OUT/'HANDOFF.json'),'handoff_sha256':sha((OUT/'HANDOFF.json').read_bytes()),'manifest':h['manifest'],'paired_groups':len(chosen),'requests':len(flat),'required_actual_new_usd':.2,'estimated_new_spend_usd':h['estimated_new_spend_usd'],'source_review_must_not_block_experiment':True})
+print(json.dumps({k:h[k]for k in ['status','paired_query_groups','independent_controls','requests','estimated_new_spend_usd','index_refits']}),flush=True)

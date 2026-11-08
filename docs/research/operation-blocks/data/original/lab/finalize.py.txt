@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""Source-verifiable funded queue; never contacts a provider or reads credentials."""
+
+import gzip
+import json
+from collections import Counter
+from pathlib import Path
+
+from operation_blocks import HERE, ROOT, Candidate, dump, evidence, readrows, rows, sha
+
+
+def ident(repository, revision, candidate):
+    return (repository, revision, *sorted([candidate.new.qualname, candidate.existing.qualname]))
+
+
+def reviewed():
+    report = ROOT / "reports/candidate-first"
+    observed = set()
+    keys = set()
+    files = []
+    for path in sorted((report / "pilot-reviews").glob("*.json")):
+        r = json.loads(path.read_text())
+        ev = r.get("identity", {}).get("source_evidence")
+        if ev:
+            observed.add(ev)
+            files.append(dict(path=str(path), sha256=sha(path.read_bytes())))
+    for path in sorted((report / "frozen-review-batches").glob("*.jsonl")):
+        if path.name == "research-operation-blocks-0dedba958a2606f3.jsonl":
+            continue  # This experiment's CURRENT frozen queue is never prior judged data.
+        for r in readrows(path):
+            c = Candidate.model_validate(r["candidate"])
+            if evidence(c) in observed:
+                keys.add(ident(r["repository"], r["revision"], c))
+    # Accepted released pairs and completed scaled pairs are all previously inspected exact pairs.
+    for name in ["litellm", "openhands"]:
+        for r in readrows(report / f"{name}-scaled-completed.jsonl"):
+            p = r["packet"]
+            keys.add(ident(p["repository"], p["revision"], Candidate.model_validate(p["candidate"])))
+    pkg = report / "corpus-remote-verification/candidate-first-gold"
+    for filename in ["accepted-public-gold.jsonl", "disputed.jsonl"]:
+        for r in readrows(pkg / filename):
+            keys.add(ident(r["repository"], r["revision"], Candidate.model_validate(r["candidate"])))
+    dump(
+        HERE / "prior-review-exclusions.json",
+        dict(
+            exact_pairs=[list(k) for k in sorted(keys)],
+            provider_observation_files=files,
+            scope="unordered exact repo+fullpin+source pair, never endpoints/families",
+        ),
+    )
+    return keys
+
+
+def main():
+    if (HERE / "novel-review-queue.jsonl").exists():
+        print("Preserving immutable current queue; no IDs or Candidates regenerated.")
+        return
+    excluded = reviewed()
+    all_exposures = []
+    snapshots = {}
+    for name in ["litellm", "openhands"]:
+        snapshots[name] = json.loads(gzip.decompress((HERE / name / "candidate-index.json.gz").read_bytes()))
+        for row in readrows(HERE / name / "funded-exposures.jsonl"):
+            if row["profile"] == "current20":
+                row["profile"] = "default_plus_current20"
+            c = Candidate.model_validate(row["candidate"])
+            row["repo_short"] = name
+            row["identity"] = ident(row["repository"], row["revision"], c)
+            row["previously_reviewed_exact_pair"] = row["identity"] in excluded
+            row["selection_hash"] = sha(json.dumps(row["identity"]).encode())
+            all_exposures.append(row)
+    novel = [r for r in all_exposures if r["is_extra"] and not r["previously_reviewed_exact_pair"]]
+    # Prefer protected extras exposed beyond the complete default-plus-current20 lane.
+    novel.sort(key=lambda r: (r["profile"] != "default_plus_current20", r["selection_hash"], r["query"], r["target"]))
+    selected, selected_identities, filepairs = [], set(), set()
+    for pass_number in [0, 1]:
+        for row in novel:
+            if len(selected) == 8:
+                break
+            c = Candidate.model_validate(row["candidate"])
+            fp = (row["repository"], *sorted([c.new.path, c.existing.path]))
+            if row["identity"] in selected_identities or (pass_number == 0 and fp in filepairs):
+                continue
+            selected.append(row)
+            selected_identities.add(row["identity"])
+            filepairs.add(fp)
+    controls = []
+    used_queries = set()
+    for extra in selected:
+        if len(controls) == 4:
+            break
+        key = (extra["repository"], extra["query"])
+        if key in used_queries:
+            continue
+        choices = [
+            r
+            for r in all_exposures
+            if not r["is_extra"]
+            and not r["previously_reviewed_exact_pair"]
+            and (r["repository"], r["query"]) == key
+            and r["profile"] == extra["profile"]
+            and r["identity"] not in selected_identities
+        ]
+        if choices:
+            row = min(choices, key=lambda r: r["selection_hash"])
+            row["matched_extra_identity"] = extra["identity"]
+            controls.append(row)
+            selected_identities.add(row["identity"])
+            used_queries.add(key)
+    queue, blind, sidecars, verification = [], [], [], []
+    for row in selected + controls:
+        c = Candidate.model_validate(row["candidate"])
+        short = row["repo_short"]
+        snapshot = snapshots[short]
+        proofs, caller_evidence = [], []
+        for f in [c.new, c.existing]:
+            source = snapshot["sources"][f.path]
+            raw = Path(source["snapshot"]).read_bytes()
+            assert sha(raw) == source["sha256"] == f.context_digest
+            text = raw.decode()
+            source_body = "\n".join(text.splitlines()[f.line - 1 : f.end_line])
+            assert source_body == f.code
+            native = snapshot["functions"][str(row["query"] if f.qualname == c.new.qualname else row["target"])]
+            assert native == f.model_dump(mode="json")
+            proofs.append(
+                dict(
+                    source_id=f.qualname,
+                    path=f.path,
+                    line=f.line,
+                    end_line=f.end_line,
+                    body_sha256=sha(f.code.encode()),
+                    file_sha256=source["sha256"],
+                    git_blob_sha1=source["git_blob"],
+                    snapshot=source["snapshot"],
+                    blob_url=f"https://github.com/{row['repository']}/blob/{row['revision']}/{f.path}#L{f.line}",
+                )
+            )
+            # Caller sightings are bounded lexical evidence only; unresolved callers stay unresolved.
+            sightings = []
+            for line_number, line in enumerate(text.splitlines(), 1):
+                if f.name + "(" in line and not f.line <= line_number <= f.end_line:
+                    sightings.append(dict(path=f.path, line=line_number, text=line))
+            caller_evidence.append(
+                dict(
+                    source_id=f.qualname,
+                    resolution="owning-file lexical call sightings; not resolved runtime ownership",
+                    sightings=sightings[:12],
+                    total_sightings=len(sightings),
+                    file_sha256=source["sha256"],
+                    snapshot=source["snapshot"],
+                )
+            )
+        packet_id = "OB-" + row["selection_hash"][:16]
+        packet = dict(
+            schema=1,
+            format="dry-lint/lab-review-packet",
+            id=packet_id,
+            repository=row["repository"],
+            revision=row["revision"],
+            candidate=c.model_dump(mode="json"),
+            background_proof=row["background_proof"],
+            source_proofs=proofs,
+            caller_evidence=caller_evidence,
+            evidence=evidence(c),
+            status="unknown",
+        )
+        # No scores, mechanism, lane, labels, expected answer or winning block shown to source reviewers.
+        blind.append(
+            dict(
+                id=packet_id,
+                repository=row["repository"],
+                revision=row["revision"],
+                new=c.new.model_dump(mode="json"),
+                existing=c.existing.model_dump(mode="json"),
+                consolidation=[x.model_dump(mode="json") for x in c.consolidation],
+                policies=[x.model_dump(mode="json") for x in c.policies],
+                source_proofs=proofs,
+                caller_evidence=caller_evidence,
+                instruction="Assess actionable repeated operation, existing owner, caller contracts and legitimate variation. Full functions and original context are unchanged. Unknown if context is insufficient. No whole-function equivalence assumption.",
+            )
+        )
+        sidecar = dict(
+            id=packet_id,
+            role="novel_block_extra" if row["is_extra"] else "matched_funded_baseline_control",
+            profile=row["profile"],
+            query=row["query"],
+            target=row["target"],
+            estimated_usd=row["estimated_usd"],
+            actually_funded=True,
+            candidate_evidence_sha256=evidence(c),
+            identity=row["identity"],
+            matched_extra_identity=row.get("matched_extra_identity"),
+            block_evidence=row["extra_evidence"],
+            selection_hash=row["selection_hash"],
+        )
+        if row["extra_evidence"]:
+            blocks = snapshot["blocks"]
+            sidecar["selected_blocks"] = [blocks[row["extra_evidence"][k]] for k in ["query_block", "target_block"]]
+            for block, f in zip(sidecar["selected_blocks"], [c.new, c.existing], strict=True):
+                source = Path(snapshot["sources"][f.path]["snapshot"]).read_text()
+                region = "\n".join(source.splitlines()[block["start_line"] - 1 : block["end_line"]])
+                assert sha(region.encode()) == block["region_sha256"]
+        queue.append(packet)
+        sidecars.append(sidecar)
+        verification.append(
+            dict(
+                id=packet_id,
+                full_candidate_roundtrip=True,
+                both_exact_source_regions=True,
+                original_full_candidate_sha256=sha(json.dumps(row["candidate"], sort_keys=True).encode()),
+                queued_candidate_sha256=sha(json.dumps(packet["candidate"], sort_keys=True).encode()),
+                previously_reviewed_exact_pair=False,
+            )
+        )
+    rows(HERE / "novel-review-queue.jsonl", queue)
+    rows(HERE / "blind-review-packets.jsonl", blind)
+    rows(HERE / "review-private-sidecar.jsonl", sidecars)
+    rows(HERE / "queue-source-verification.jsonl", verification)
+    rows(
+        HERE / "funded-novel-unselected.jsonl",
+        [
+            dict(
+                repository=r["repository"],
+                revision=r["revision"],
+                pair=r["identity"],
+                profile=r["profile"],
+                query=r["query"],
+                target=r["target"],
+                selection_hash=r["selection_hash"],
+            )
+            for r in novel
+            if r["identity"] not in selected_identities
+        ],
+    )
+    summary = dict(
+        queue_path=str(HERE / "novel-review-queue.jsonl"),
+        queue_sha256=sha((HERE / "novel-review-queue.jsonl").read_bytes()),
+        novel_pairs=len(selected),
+        matched_control_pairs=len(controls),
+        actually_funded_exposure_count=len(all_exposures),
+        novel_extra_exposures=len(novel),
+        novel_extra_unique_pairs=len({r["identity"] for r in novel}),
+        profiles=dict(Counter(r["profile"] for r in selected)),
+        complete_source_proofs_ready=True,
+        judge_full_original_candidate=True,
+        score_free_source_packets=str(HERE / "blind-review-packets.jsonl"),
+        private_sidecar=str(HERE / "review-private-sidecar.jsonl"),
+        provider_calls=0,
+        physical_spend_usd=0,
+        central_review_status="pending",
+        emitted_reports=None,
+        useful_confirmed_operation_families=None,
+    )
+    dump(HERE / "queue-summary.json", summary)
+    print(json.dumps(summary))
+
+
+if __name__ == "__main__":
+    main()

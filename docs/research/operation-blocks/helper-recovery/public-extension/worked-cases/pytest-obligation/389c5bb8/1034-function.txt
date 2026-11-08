@@ -1,0 +1,4 @@
+def redis_reply_breaker(client: Any) -> Callable[[int | None], AbstractContextManager[LostReplies]]:
+    """A reply breaker for every client and pipeline sharing ``client``'s connection pool."""
+
+    return counted_reply_breaker(partial(_watching, client), LostReplies)

@@ -1,0 +1,1 @@
+Preflight passed: all external full-corpus inputs, exact Git pins, dependencies and cached model artifacts present. No writes or inference.

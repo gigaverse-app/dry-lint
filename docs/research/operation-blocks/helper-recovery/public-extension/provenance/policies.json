@@ -1,0 +1,75 @@
+{
+  "baseline_revision": "73709fdbe884c107b665400a186cb71caecc03f7",
+  "blocks": {
+    "added_neighbours": 1,
+    "behaviour_nodes": [
+      20,
+      400
+    ],
+    "max_anchors": 8,
+    "max_parents": 64,
+    "max_postings": 64,
+    "max_region_lines": 80,
+    "min_region_lines": 4,
+    "min_shared_calls": 2,
+    "min_shared_operations": 3,
+    "native_source": "harness/frozen-pr109/src/dry_lint/operation_blocks.py",
+    "original_max_regions": 12,
+    "region_floor": 0.65,
+    "whole_function_floor": 0.1
+  },
+  "cpu": {
+    "added_neighbours": 1,
+    "encoder": {
+      "artifacts": {
+        "onnx/model.onnx": "6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452",
+        "tokenizer.json": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037"
+      },
+      "backend": [
+        "2.5.4",
+        "1.31.1",
+        "0.23.3"
+      ],
+      "batch_size": 8,
+      "dimensions": 384,
+      "max_length": 256,
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "pooling": "attention-mask-mean-float32-l2-epsilon1e-9-v1",
+      "provider": "CPUExecutionProvider",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "threads": 2,
+      "tokenization": "unchanged-code-specials-serial-dynamic-right-padding-v1"
+    },
+    "fallback_floor": 0.8,
+    "prefix_floor": 0.65,
+    "recipe": "harness/views.py + harness/harness.py; fallback only when original prefix has no new eligible pair",
+    "views": "At most two complete native statement spans beyond truncated prefix; 48..180 wordpieces; function name prefix; input <=256 tokens; largest then largest disjoint; stable source order."
+  },
+  "fit": "Frozen full-background sparse counts, order, document frequencies and max_df=.3. Self excluded; unavailable-native competitors retain sparse rows. All native sources available here.",
+  "funding": {
+    "per_query_cap_usd": 0.04,
+    "pricing_source": "harness/frozen-pr109/src/dry_lint/costs.py",
+    "simulation": "Cold single-function change; normal fixed price estimates, no physical cache discounts. Paired uses shared-operations Sonnet 5.5 plus contextual Jev; concept standalone also retained in blocks recordings. Exact charge implementation and prompt policy in archived harness/frozen source. Not a live PR ledger or an emitted verdict."
+  },
+  "helper": {
+    "recipe": "harness/helper_fallback_v1.py",
+    "rule": "One bounded complete body, excluding nested owners; use original winners first; fallback only after original abstention. Research recipe v1, not unmeasured production version2.",
+    "sha256": "fdc63d34cedea827749f268612cc0386a3c76d91804be1616efb65c50c71d03a"
+  },
+  "schema": 1,
+  "scope": "14 exact backgrounds; 9 pins; 75 lineage rows; 115 row/background mappings; 230 directions per method. Do not combine scopes into an IDF fit or call correlated mappings independent cases.",
+  "table_units": "Pair units deduplicate lineage at (method, background, label, pair_id). Direction units retain both query directions for each pair unit. Inventory labels retain all 75 rows; evaluated recordings retain all 115 row/background mappings.",
+  "tfidf_baseline": {
+    "floor_below_6_lines": 0.3,
+    "floor_otherwise": 0.5,
+    "neighbours": 3,
+    "same_file": false,
+    "size_ratio_filter": null
+  },
+  "tfidf_wide": {
+    "first_route_ownership": true,
+    "floor": 0.35,
+    "neighbours": 20,
+    "same_file": true
+  }
+}

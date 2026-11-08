@@ -1,0 +1,89 @@
+"""Apply a root-routed, hash-pinned shared helper; never implements a second resolver."""
+
+import argparse
+import gzip
+import importlib.util
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+from prepare import LAB, OUT, ROOT, SHARED, dump, read, rows, sha
+
+sys.path.insert(0, str(LAB.parent / "src"))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reviewed-helper-sha256", required=True)
+    args = parser.parse_args()
+    path = ROOT / "jobs/corpus-wide-evaluation/.lab-results/span-resolution/resolver.py"
+    assert sha(path.read_bytes()) == args.reviewed_helper_sha256
+    spec = importlib.util.spec_from_file_location("owner_shared_span_resolver", path)
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    records = read(SHARED / "rows.jsonl")
+    output = []
+    for cohort in read(SHARED / "cohorts.jsonl"):
+        folder = OUT / "cohorts" / cohort["cohort_id"]
+        snapshot = json.loads(gzip.decompress((folder / "candidate-index.json.gz").read_bytes()))
+        documents = read(cohort["documents_path"])
+        owner = helper.Resolver(cohort, documents)
+        sources = {}
+        for r in records:
+            for mapping in r["mappings"]:
+                if mapping["cohort_id"] != cohort["cohort_id"]:
+                    continue
+                for side in ("new", "existing"):
+                    bound = mapping["sources"][side]
+                    identity = bound.get("source_id") or ""
+                    file_path = identity.split("::")[0]
+                    proof = snapshot["sources"].get(file_path)
+                    envelope = None
+                    if proof:
+                        if file_path not in sources:
+                            raw = Path(proof["snapshot"]).read_bytes()
+                            assert sha(raw) == proof["sha256"]
+                            sources[file_path] = dict(
+                                repository=cohort["repository"],
+                                revision=cohort["revision"],
+                                path=file_path,
+                                source=raw.decode(),
+                                sha256=proof["sha256"],
+                                git_blob_sha1=proof["git_blob"],
+                            )
+                        envelope = sources[file_path]
+                    resolved = owner.resolve(r, mapping, side, source=envelope)
+                    f = snapshot["functions"].get(str(bound.get("position")))
+                    if f is not None:
+                        assert resolved["status"] == "resolved_native", (r["row_id"], resolved)
+                        assert resolved["span"]["start_line"] == f["line"]
+                        assert resolved["span"]["end_line"] == f["end_line"]
+                        assert resolved["expected_body_sha256"] == sha(f["code"].encode())
+                    # Keep function text in the existing bound snapshot; this receipt needs identity/provenance only.
+                    resolved.pop("function", None)
+                    output.append(resolved)
+    rows(OUT / "shared-span-results.jsonl", output)
+    dump(
+        OUT / "shared-span-migration.json",
+        dict(
+            helper=str(path),
+            helper_sha256=args.reviewed_helper_sha256,
+            mapping_snapshot=str(SHARED),
+            endpoint_mapping_opportunities=len(output),
+            statuses=dict(Counter(r["status"] for r in output)),
+            categories=dict(Counter(r["category"] for r in output)),
+            all_existing_native_spans_unchanged=True,
+            raw_ranks_unchanged=True,
+            floor_filter_funding_changes=0,
+            inferred_snippet_spans_authorize_native_funding=False,
+            original_outputs_preserved=True,
+            novel_batch_v1_unchanged=True,
+            worker_provider_calls=0,
+        ),
+    )
+    print(json.dumps(dict(results=len(output), counts=dict(Counter(r["status"] for r in output)))), flush=True)
+
+
+if __name__ == "__main__":
+    main()

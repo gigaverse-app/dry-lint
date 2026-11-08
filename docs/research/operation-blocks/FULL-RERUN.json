@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "method": "operation-blocks",
+  "portable_scope": "Four representative public cases with exact source, rendered input, answer parsing and report-policy replay; original selected algorithm executable separately. Not a full background ranking rerun.",
+  "public_background_acquisition": "data/background-acquisition.json",
+  "required_external": [
+    {
+      "location": "jobs/experiment-operation-blocks/.lab-results/{litellm,openhands}/",
+      "requires": [
+        "candidate-index.json.gz",
+        "block-regions.jsonl",
+        "native source snapshots",
+        "complete per-query/source proof records"
+      ]
+    },
+    {
+      "location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/",
+      "requires": [
+        "original shared cohort mappings and scope manifests",
+        "span-v2-migration paired rows and mapping authority; private rows local only"
+      ]
+    },
+    {
+      "location": "jobs/experiment-operation-blocks/.lab-results/funded-rounds/round{1,2}/",
+      "requires": [
+        "original query-work/funding/source-proofs",
+        "complete candidate queues and exclusion registries",
+        "provider feed snapshots and original source-decision receipts"
+      ]
+    },
+    {
+      "location": "public backgrounds",
+      "requires": [
+        "exact LiteLLM 7489aa... and SDK ebd003... compressed sparse backgrounds from the pinned catalog; no combined-revision index"
+      ]
+    }
+  ],
+  "exact_source_pins": "data/source-pins.json",
+  "held_sources": "data/holds.json",
+  "original_commands": "REPRODUCTION.md",
+  "dependencies": "data/original/product/uv.lock.txt",
+  "original_provenance": "data/provenance.json",
+  "no_new_provider_calls_or_refits": true,
+  "full_live_rerun": "New independently funded adopter-owned experiment only; original outputs immutable"
+}

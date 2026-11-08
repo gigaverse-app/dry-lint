@@ -1,0 +1,312 @@
+"""Freeze the first diverse funded review batch and preserve reserves for adaptation."""
+
+import gzip
+import json
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+from prepare import LAB, OUT, ROOT, SHARED, dump, read, rows, sha
+
+sys.path.insert(0, str(LAB))
+import operation_blocks as frozen
+
+OPS = SimpleNamespace(name="anthropic-operations", model="claude-sonnet-5-5", prompt_policy="shared-operations")
+
+
+def complete_lines(path):
+    if not path.exists():
+        return []
+    result = []
+    for line in path.read_text().splitlines():
+        try:
+            result.append(json.loads(line))
+        except json.JSONDecodeError:
+            break  # live producer's last line is not yet complete
+    return result
+
+
+def main():
+    target = OUT / "novel-review-queue.jsonl"
+    if target.exists() and target.stat().st_size:
+        print("Preserving frozen initial queue. Adaptive reserves remain in novel inventory.")
+        return
+    inventories = []
+    snapshots, querysets = {}, {}
+    for folder in sorted((OUT / "cohorts").glob("*")):
+        if not (folder / "candidate-index.json.gz").exists():
+            continue
+        inventory = complete_lines(folder / "novel-candidate-inventory.jsonl")
+        if not inventory:
+            continue
+        snapshots[folder.name] = json.loads(gzip.decompress((folder / "candidate-index.json.gz").read_bytes()))
+        querysets[folder.name] = {r["query"]: r for r in complete_lines(folder / "per-query.jsonl") if "profiles" in r}
+        inventories.extend(r for r in inventory if not r["known_exact_pair"])
+    unique = {}
+    for item in inventories:
+        identity = tuple(item["identity"])
+        item["selection_hash"] = sha(json.dumps(identity).encode())
+        item["stratum"] = (
+            "low_full_score"
+            if item["full_score"] < 0.35
+            else "outside_current20"
+            if item["profile"] == "default_plus_current20"
+            else "default3_disagreement"
+        )
+        if identity not in unique or item["profile"] == "default_plus_current20":
+            unique[identity] = item
+    all_unique = list(unique.values())
+    all_unique.sort(
+        key=lambda r: (r["stratum"] != "low_full_score", r["profile"] != "default_plus_current20", r["selection_hash"])
+    )
+    choices = []
+    rejected = []
+    for r in all_unique:
+        key = r["cohort_id"]
+        q = querysets[key].get(r["query"])
+        if not q:
+            continue
+        snap = snapshots[key]
+        fs = snap["functions"]
+        p = q["profiles"][r["profile"]]
+        cs = [
+            frozen.Candidate(
+                new=fs[str(r["query"])],
+                existing=fs[str(ti)],
+                comparer="tfidf:2",
+                lane="exploration",
+                similarity=r["full_score"] if ti == r["target"] else 0,
+            )
+            for ti in p["augmented"]
+        ]
+        selected = frozen.Ledger(frozen.SETTINGS).select(OPS, cs)
+        funded = [p["augmented"][i] for i in selected]
+        r["shared_operations_funded"] = r["target"] in funded
+        r["shared_operations_query_estimated_usd"] = frozen.estimate(OPS, [cs[i] for i in selected], frozen.SETTINGS)
+        r["shared_operations_estimated_usd"] = frozen.estimate(
+            OPS, [cs[p["augmented"].index(r["target"])]], frozen.SETTINGS
+        )
+        if r["shared_operations_funded"]:
+            choices.append(r)
+        else:
+            rejected.append(r | dict(exclusion="operations_prompt_budget_unfunded; original concept arm retained"))
+    # First pass balances repository and score/disagreement strata, then file pairs.
+    selected = []
+    used, buckets, files = set(), set(), set()
+    for mode in (0, 1, 2):
+        for r in choices:
+            if len(selected) >= 12:
+                break
+            identity = tuple(r["identity"])
+            snapshot = snapshots[r["cohort_id"]]
+            fp = (
+                r["repository"],
+                *sorted(
+                    (snapshot["functions"][str(r["query"])]["path"], snapshot["functions"][str(r["target"])]["path"])
+                ),
+            )
+            bucket = (r["repository"], r["stratum"])
+            if identity in used or (mode == 0 and bucket in buckets) or (mode < 2 and fp in files):
+                continue
+            selected.append(r)
+            used.add(identity)
+            buckets.add(bucket)
+            files.add(fp)
+    if len(selected) < 12:
+        dump(
+            OUT / "queue-progress.json",
+            dict(
+                unique_funded_novel=len(choices),
+                requested=12,
+                selected_so_far=len(selected),
+                awaiting="additional cohort discovery; no arbitrary negative rejection",
+            ),
+        )
+        print(json.dumps(dict(ready=False, eligible=len(choices))), flush=True)
+        return
+    known = set()
+    for packet_file in (ROOT / "reports/candidate-first/frozen-review-batches").glob("*.jsonl"):
+        for packet in read(packet_file):
+            try:
+                c = frozen.Candidate.model_validate(packet["candidate"])
+                known.add((packet["repository"], packet["revision"], *sorted((c.new.qualname, c.existing.qualname))))
+            except (KeyError, ValueError):
+                pass
+    controls = []
+    for extra in selected:
+        key = extra["cohort_id"]
+        fs = snapshots[key]["functions"]
+        q = querysets[key][extra["query"]]
+        policy = q["profiles"][extra["profile"]]
+        for ti in policy["baseline_funded"]:
+            identity = (
+                extra["repository"],
+                extra["revision"],
+                *sorted(
+                    (
+                        fs[str(extra["query"])]["path"]
+                        + "::"
+                        + ((fs[str(extra["query"])].get("owner") + ".") if fs[str(extra["query"])].get("owner") else "")
+                        + fs[str(extra["query"])]["name"],
+                        fs[str(ti)]["path"]
+                        + "::"
+                        + ((fs[str(ti)].get("owner") + ".") if fs[str(ti)].get("owner") else "")
+                        + fs[str(ti)]["name"],
+                    )
+                ),
+            )
+            if identity in used or identity in known:
+                continue
+            control = extra | dict(
+                target=ti,
+                identity=identity,
+                is_extra=False,
+                block_evidence=None,
+                full_score=0,
+                matched_extra_identity=extra["identity"],
+                selection_hash=sha(json.dumps(identity).encode()),
+                stratum="matched_baseline_control",
+            )
+            cs = [
+                frozen.Candidate(
+                    new=fs[str(extra["query"])],
+                    existing=fs[str(t)],
+                    similarity=0,
+                    comparer="tfidf:2",
+                    lane="exploration",
+                )
+                for t in policy["augmented"]
+            ]
+            ix = policy["augmented"].index(ti)
+            if ix not in frozen.Ledger(frozen.SETTINGS).select(OPS, cs):
+                continue
+            control["shared_operations_estimated_usd"] = frozen.estimate(OPS, [cs[ix]], frozen.SETTINGS)
+            control["estimated_usd"] = frozen.estimate(frozen.JUDGE, [cs[ix]], frozen.SETTINGS)
+            controls.append(control)
+            used.add(identity)
+            break
+        if len(controls) == 4:
+            break
+    if len(controls) < 4:
+        dump(
+            OUT / "queue-progress.json",
+            dict(novel=12, controls=len(controls), awaiting="four unjudged matched baseline controls"),
+        )
+        return
+    cohorts = {r["cohort_id"]: r for r in read(SHARED / "cohorts.jsonl")}
+    packets, blind, sidecars = [], [], []
+    for item in selected + controls:
+        key = item["cohort_id"]
+        snapshot = snapshots[key]
+        cs = snapshot["functions"]
+        # Restore true full score for controls using the exact frozen background's sparse vector.
+        if not item["is_extra"]:
+            bg = frozen.BenchBackground.decode(Path(cohorts[key]["background_path"]).read_bytes())
+            index = bg.index()
+            vec = index.vector(bg.documents[item["query"]].tokens())
+            other = index.vector(bg.documents[item["target"]].tokens())
+            item["full_score"] = sum(w * other.get(t, 0) for t, w in vec.items())
+        c = frozen.Candidate(
+            new=cs[str(item["query"])],
+            existing=cs[str(item["target"])],
+            similarity=item["full_score"],
+            comparer="tfidf:2",
+            lane="exploration",
+        )
+        proofs = []
+        for f in (c.new, c.existing):
+            source = snapshot["sources"][f.path]
+            raw = Path(source["snapshot"]).read_bytes()
+            assert sha(raw) == source["sha256"] == f.context_digest
+            body = "\n".join(raw.decode().splitlines()[f.line - 1 : f.end_line])
+            assert body == f.code
+            proofs.append(
+                dict(
+                    source_id=f.qualname,
+                    path=f.path,
+                    line=f.line,
+                    end_line=f.end_line,
+                    body_sha256=sha(f.code.encode()),
+                    file_sha256=source["sha256"],
+                    git_blob_sha1=source["git_blob"],
+                    snapshot=source["snapshot"],
+                    blob_url=f"https://github.com/{item['repository']}/blob/{item['revision']}/{f.path}#L{f.line}",
+                )
+            )
+        packet_id = "OBF-" + item["selection_hash"][:16]
+        packet = dict(
+            schema=1,
+            format="dry-lint/lab-review-packet",
+            id=packet_id,
+            repository=item["repository"],
+            revision=item["revision"],
+            candidate=c.model_dump(mode="json"),
+            background_proof=dict(path=cohorts[key]["background_path"], sha256=cohorts[key]["background_sha256"]),
+            source_proofs=proofs,
+            evidence=frozen.evidence(c),
+            status="unknown",
+            requested_judging=[
+                dict(
+                    kind="claude",
+                    model="claude-sonnet-5-5",
+                    policy="shared-operations",
+                    max_output_tokens=1024,
+                    report_threshold=0.8,
+                ),
+                dict(kind="jev", model="jev-1.14.0", policy="reuse-context-v3", report_threshold=0.8),
+            ],
+            truth="Independent full-source decision required; threshold is report policy only.",
+        )
+        packets.append(packet)
+        blind.append(
+            dict(
+                id=packet_id,
+                repository=item["repository"],
+                revision=item["revision"],
+                new=c.new.model_dump(mode="json"),
+                existing=c.existing.model_dump(mode="json"),
+                consolidation=[],
+                policies=[],
+                source_proofs=proofs,
+                instruction="Review full owning source, actionable operation, caller contract and existing owner. Unknown if insufficient; legitimate policy differences remain explicit.",
+            )
+        )
+        sidecars.append(
+            item
+            | dict(
+                id=packet_id,
+                role="novel_block_extra" if item["is_extra"] else "matched_funded_baseline_control",
+                candidate_evidence_sha256=frozen.evidence(c),
+                concept_budget_usd=0.04,
+                funding="fixed baseline first; append one block extra; concept and operations both funded",
+                physical_spend_usd=0,
+                worker_provider_calls=0,
+            )
+        )
+    rows(target, packets)
+    rows(OUT / "blind-review-packets.jsonl", blind)
+    rows(OUT / "review-private-sidecar.jsonl", sidecars)
+    rows(OUT / "queue-budget-exclusions.jsonl", rejected)
+    rows(OUT / "funded-novel-reserves.jsonl", [r for r in choices if tuple(r["identity"]) not in used])
+    dump(
+        OUT / "ROOT-QUEUE-READY.json",
+        dict(
+            queue=str(target),
+            sha256=sha(target.read_bytes()),
+            novel=12,
+            controls=4,
+            private_sidecar=str(OUT / "review-private-sidecar.jsonl"),
+            blind_packets=str(OUT / "blind-review-packets.jsonl"),
+            status="awaiting_root_provider_batch_and_independent_source_review",
+            physical_spend_usd=0,
+            shared_new_discovery_tranche_usd=1,
+            estimated_operations_packet_usd=sum(r["shared_operations_estimated_usd"] for r in sidecars),
+            communication_blocker="send_message_to_thread rejected: tool requires approval but policy never",
+            adaptive_rule="Expand from funded-novel-reserves after coordinator useful-source yield and family coverage; no fixed final12 ceiling; unjudged remains unknown.",
+        ),
+    )
+    print(json.dumps(dict(ready=True, novel=12, controls=4, queue=str(target))), flush=True)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,77 @@
+"""Verify the immutable shared mapper authority and preserve pilot hashes.
+
+Reads immutable packaged objects; does not write outside this follow-up.
+"""
+
+import hashlib
+import json
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+LAB = OUT.parent
+ROOT = Path("/home/researcher/dry-lint-round")
+PACK = ROOT / "research-corpus/dry-lint-goldens"
+INVENTORY = ROOT / "reports/research-experiments/full-corpus/input-inventory.jsonl"
+SHARED = ROOT / "jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v1-88f0f73927ce28d2"
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def read(path):
+    return [json.loads(s) for s in Path(path).read_text().splitlines() if s.strip()]
+
+
+def dump(path, obj):
+    Path(path).write_text(json.dumps(obj, sort_keys=True, indent=2) + "\n")
+
+
+def rows(path, items):
+    Path(path).write_text("".join(json.dumps(x, sort_keys=True) + "\n" for x in items))
+
+
+def object_path(digest):
+    return PACK / "objects/sha256" / digest[:2] / digest[2:]
+
+
+def object_bytes(digest):
+    raw = object_path(digest).read_bytes()
+    assert sha(raw) == digest
+    return raw
+
+
+def main():
+    frozen = OUT / "pilot-preservation.json"
+    if not frozen.exists():
+        dump(
+            frozen,
+            [
+                dict(path=str(p), sha256=sha(p.read_bytes()), bytes=p.stat().st_size)
+                for p in sorted(LAB.rglob("*"))
+                if p.is_file() and OUT not in p.parents and "__pycache__" not in p.parts
+            ],
+        )
+    ready = json.loads((SHARED / "index-ready.json").read_text())
+    assert sha((SHARED / "rows.jsonl").read_bytes()) == ready["rows_sha256"]
+    assert sha((SHARED / "cohorts.jsonl").read_bytes()) == ready["cohorts_sha256"]
+    proof = ROOT / "reports/research-experiments/full-corpus/coordinator-index-verification.json"
+    assert json.loads(proof.read_text())["all_pass"]
+    dump(
+        OUT / "shared-authority-verification.json",
+        dict(
+            snapshot=str(SHARED),
+            root_receipt=str(proof),
+            root_receipt_sha256=sha(proof.read_bytes()),
+            rows_sha256=ready["rows_sha256"],
+            cohorts_sha256=ready["cohorts_sha256"],
+            rows=ready["records"],
+            cohorts=ready["cohorts"],
+            mapping_reconstruction=False,
+        ),
+    )
+    print("Verified immutable shared authority; no mapping reconstructed.", flush=True)
+
+
+if __name__ == "__main__":
+    main()

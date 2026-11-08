@@ -1,0 +1,9 @@
+{
+  "redistribution_hold": {
+    "repository": "Garsson-io/kaizen",
+    "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+    "status": "source, source-bearing prompts and answers omitted; exact local hydration only"
+  },
+  "private_historical_rows": "Only anonymous label/admission booleans and aggregates may be published; private bodies, prompts and identifiers are excluded.",
+  "selected_cases_are_licensed_public_oss": true
+}

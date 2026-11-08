@@ -1,0 +1,82 @@
+"""Offline check of canonical report counts, exact answered identities and source joins."""
+import hashlib
+import json
+from collections import Counter
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+
+
+def rows(path):
+    with path.open() as handle:
+        for line in handle:
+            if line.strip():
+                yield json.loads(line)
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, ensure_ascii=True, allow_nan=False).encode()
+
+
+evidence = json.loads((OUT / 'FINAL_SOURCE_JOINED_EVIDENCE.json').read_text())
+assert evidence['round1_fresh_owned_usd'] == .22461896
+assert evidence['round2_fresh_owned_usd'] == .2277608
+assert evidence['both_minima_met'] and evidence['no_more_calls']
+stages = Counter()
+transitions = Counter()
+for row in rows(OUT / 'round2/full-source-stage-rows.jsonl'):
+    stages['native'] += 1
+    if row['stage'] == 'no_eligible_scoped_regions':
+        stages['no_regions'] += 1
+    elif row['stage'] == 'no_retained_rare_anchor':
+        stages['no_anchor'] += 1
+    elif row['stage'] == 'ranked':
+        stages['rare_anchor'] += 1
+        stages['residual_winner'] += bool(row['residual_target'])
+        stages['original_winner'] += bool(row['original_target'])
+        stages['concept_funded'] += row.get('normal_concept_funded', False)
+        stages['operations_funded'] += row.get('normal_operations_funded', False)
+        stages['funded_replacement'] += row.get('funded_replacement', False)
+        a, b = row['original_target'], row['residual_target']
+        transitions['same_winner' if a == b else 'changed_winner'] += bool(a and b)
+        transitions['original_only'] += bool(a and not b)
+        transitions['residual_only'] += bool(b and not a)
+        transitions['neither'] += not a and not b
+assert stages == {'native': 39806, 'no_regions': 26112, 'no_anchor': 438,
+                  'rare_anchor': 13256, 'original_winner': 1132, 'residual_winner': 692,
+                  'concept_funded': 240, 'operations_funded': 187, 'funded_replacement': 1}
+assert {k: v for k, v in transitions.items() if v} == {
+    'same_winner': 654, 'changed_winner': 36, 'original_only': 442, 'residual_only': 2, 'neither': 12122}
+joined = list(rows(OUT / 'final-round2-observation-joins.jsonl'))
+assert len(joined) == 29
+assert sum(row['arm'] == 'baseline_control' for row in joined) == 12
+keys, paid = set(), 0.0
+for row in joined:
+    for obs in row['observations']:
+        assert obs['request_key'] not in keys and obs['status'] == 'success'
+        keys.add(obs['request_key'])
+        paid += obs['actual_usd']
+        assert obs['new_residual_emission_credit'] == 0
+        assert obs['residual_counterfactual_report'] == (
+            obs['original_diagnostic_report'] and row['residual_candidate_included'])
+assert len(keys) == 58 and round(paid, 8) == .2277608
+source = {row['review_id']: row for row in rows(OUT / 'final-round2-source-joins.jsonl')}
+assert source['RRC10']['useful'] and not source['RRC10']['residual_candidate_included']
+assert source['RRC11']['useful'] and source['RRC11']['residual_candidate_included']
+assert source['RRC12']['source_label'] == 'related' and not source['RRC12']['useful']
+assert any(o['original_diagnostic_report'] for o in source['RRC10']['observations'])
+assert any(o['residual_counterfactual_report'] for o in source['RRC11']['observations'])
+assert not any(o['original_diagnostic_report'] for o in source['RRC12']['observations'])
+rf14 = evidence['RF14']
+assert not rf14['matched_before_funded'] and rf14['original_block_after_funded']
+assert rf14['source_confirmed_utility_loss'] and rf14['residual_gate_rejects']
+assert rf14['concept_report'].startswith('unknown')
+source_snapshots = json.loads((OUT / 'source-snapshots/receipt.json').read_text())
+for receipt in source_snapshots['receipts']:
+    assert hashlib.sha256(Path(receipt['snapshot']).read_bytes()).hexdigest() == receipt['original_sha256']
+concept = list(rows(OUT / 'round1/concept-outcomes-v1/joined.jsonl'))
+assert len(concept) == 4
+assert sum(row['emitted_concept'] for row in concept) == 2
+assert not any(row['profile_outcomes']['default_plus_current20']['gained'] for row in concept)
+assert not any(row['source_label'] == 'separate' and row['emitted_concept'] for row in concept)
+print('PASS: stage census, paired transitions, fresh spend, scoped source joins, report preservation/loss, and concept distinction')

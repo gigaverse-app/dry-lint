@@ -1,0 +1,102 @@
+"""Retain all miner proposals as discovery opportunities, never as gold."""
+
+import gzip
+import json
+
+from prepare import OUT, ROOT, SHARED, dump, read, rows, sha
+
+
+def main():
+    config = ROOT / "jobs/review-automation/.lab-results/review-automation/repositories-five.json"
+    configs = json.loads(config.read_text())
+    cohorts = {c["background_sha256"]: c for c in read(SHARED / "cohorts.jsonl")}
+    result, summaries = [], []
+    for cfg in configs:
+        c = cohorts[cfg["background_proof"]["sha256"]]
+        assert (c["repository"], c["revision"]) == (cfg["repository"], cfg["revision"])
+        folder = OUT / "cohorts" / c["cohort_id"]
+        p = folder / "candidate-index.json.gz"
+        snapshot = json.loads(gzip.decompress(p.read_bytes())) if p.exists() else {}
+        native = {}
+        for position, f in snapshot.get("functions", {}).items():
+            source_id = f["path"] + "::" + ((f["owner"] + ".") if f.get("owner") else "") + f["name"]
+            native[source_id] = int(position)
+        parents = {b["parent"] for b in snapshot.get("blocks", [])}
+        exposed = set()
+        novel_path = folder / "novel-candidate-inventory.jsonl"
+        if novel_path.exists() and (folder / "coverage.json").exists():
+            exposed = {tuple(sorted(r["identity"][2:])) for r in read(novel_path)}
+        group = []
+        for ordinal, proposal in enumerate(read(cfg["proposals"]), 1):
+            a, b = proposal.get("a", proposal.get("query")), proposal.get("b", proposal.get("target"))
+            if not a or not b:
+                candidate = proposal.get("candidate", proposal.get("packet", {}).get("candidate", {}))
+
+                def endpoint(side, candidate=candidate):
+                    f = candidate.get(side, {})
+                    return f.get("source_id", f.get("id")) or (
+                        f["path"] + "::" + ((f["owner"] + ".") if f.get("owner") else "") + f["name"]
+                        if f.get("path")
+                        else None
+                    )
+
+                a, b = endpoint("new"), endpoint("existing")
+            python = bool(a and b and all(x.split("::")[0].endswith(".py") for x in (a, b)))
+            present = a in native and b in native
+            r = dict(
+                cohort_id=c["cohort_id"],
+                repository=c["repository"],
+                revision=c["revision"],
+                input=cfg["proposals"],
+                proposal_line=ordinal,
+                sources=[a, b],
+                gold=False,
+                supported_python_AST=python,
+                both_exact_native_source=present,
+                both_have_blocks=present and all(native[x] in parents for x in (a, b)),
+                exposed_as_funded_extra=bool(a and b and tuple(sorted((a, b))) in exposed),
+                disposition="missing_proposal_endpoint_identity"
+                if not a or not b
+                else "evaluated_full_source_discovery"
+                if present and python
+                else "unsupported_Python_AST_language"
+                if not python
+                else "missing_exact_source; proposal_retained_unknown",
+            )
+            group.append(r)
+        result.extend(group)
+        summaries.append(
+            dict(
+                repository=c["repository"],
+                revision=c["revision"],
+                cohort_id=c["cohort_id"],
+                proposals=len(group),
+                supported=sum(r["supported_python_AST"] for r in group),
+                both_exact_native_source=sum(r["both_exact_native_source"] for r in group),
+                both_have_blocks=sum(r["both_have_blocks"] for r in group),
+                exposed_as_funded_extra=sum(r["exposed_as_funded_extra"] for r in group),
+                input_sha256=sha(__import__("pathlib").Path(cfg["proposals"]).read_bytes()),
+            )
+        )
+    rows(OUT / "proposal-opportunities.jsonl", result)
+    dump(
+        OUT / "proposal-opportunities-summary.json",
+        dict(
+            total_proposals=len(result),
+            retained_four_repository_pool=sum(
+                s["proposals"] for s in summaries if s["repository"] != "Garsson-io/kaizen"
+            ),
+            additional_kaizen_raw_proposals=sum(
+                s["proposals"] for s in summaries if s["repository"] == "Garsson-io/kaizen"
+            ),
+            gold_proposals=0,
+            per_cohort=summaries,
+            source_config_sha256=sha(config.read_bytes()),
+            method="All source parents with blocks scanned; retained proposals joined as a discovery audit, never used as gold or silently rejected.",
+        ),
+    )
+    print(json.dumps(dict(proposals=len(result))), flush=True)
+
+
+if __name__ == "__main__":
+    main()

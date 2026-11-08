@@ -1,0 +1,490 @@
+"""Denominators, paired unordered-pair/family effects, and grouped uncertainty."""
+
+import json
+import random
+from collections import Counter, defaultdict
+from pathlib import Path
+
+from prepare import OUT, ROOT, SHARED, dump, read, rows, sha
+
+PROFILES = ("default3", "default_plus_current20")
+RECORDS = {}
+
+
+def source_ids(record):
+    return [record["sources"].get(s, {}).get("source_id", "") for s in ("new", "existing")]
+
+
+def supported(record):
+    return record["record_kind"] == "function" and all(
+        x and x.split("::")[0].endswith(".py") for x in source_ids(record)
+    )
+
+
+def unitize(group):
+    units = {}
+    for r in group:
+        key = (r["cohort_id"], r["pair_id"])
+        u = units.setdefault(
+            key,
+            dict(
+                cohort_id=r["cohort_id"],
+                pair_id=r["pair_id"],
+                repository=r["repository"],
+                revision=r["revision"],
+                label=r["label"],
+                families=set(),
+                lineage=[],
+                directions=[],
+            ),
+        )
+        u["lineage"].append(r["row_id"])
+        if r["family_id"]:
+            u["families"].add(r["family_id"])
+        # Duplicate dataset rows cannot create additional direction trials.
+        if not u["directions"]:
+            u["directions"] = r["directions"]
+    for u in units.values():
+        u["families"] = sorted(u["families"])
+    return list(units.values())
+
+
+def hit(unit, profile, metric, variant):
+    return any(
+        d.get(profile, {}).get(("variant_" if variant else "baseline_") + metric, False)
+        for d in unit["directions"]
+        if d["status"] == "evaluated"
+    )
+
+
+def cluster_interval(units, profile, metric):
+    # Unknown families are excluded from family uncertainty, never assigned fabricated independent IDs.
+    clusters = defaultdict(lambda: defaultdict(list))
+    for u in units:
+        if u["families"]:
+            # All aliases remain in per-pair/family files. Use one conservative canonical family per pair for resampling.
+            clusters[u["repository"]][u["families"][0]].append(
+                int(hit(u, profile, metric, True)) - int(hit(u, profile, metric, False))
+            )
+    repositories = sorted(clusters)
+    if not repositories:
+        return dict(status="unavailable_missing_family_identity", missing_family_pairs=len(units))
+    rng = random.Random(71603)
+    samples = []
+    for _ in range(2000):
+        values = []
+        for repo in rng.choices(repositories, k=len(repositories)):
+            families = sorted(clusters[repo])
+            for family in rng.choices(families, k=len(families)):
+                values.extend(clusters[repo][family])
+        samples.append(sum(values) / len(values))
+    samples.sort()
+    return dict(
+        status="descriptive_hierarchical_repository_then_family_bootstrap",
+        repeats=2000,
+        seed=71603,
+        paired_rate_delta_95_percentile=[samples[49], samples[1949]],
+        repositories=len(repositories),
+        family_clusters=sum(len(x) for x in clusters.values()),
+        missing_family_pairs=sum(not u["families"] for u in units),
+        warning="Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately.",
+        estimand="Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+    )
+
+
+def metrics(group):
+    accepted = [r for r in group if r["accepted_gold"]]
+    evaluated = [r for r in accepted if any(d["status"] == "evaluated" for d in r["directions"])]
+    units = unitize(evaluated)
+    result = dict(
+        lineage_records=len(group),
+        accepted_records=len(accepted),
+        evaluated_accepted_records=len(evaluated),
+        evaluated_pair_cohort_units=len(units),
+        evaluated_unique_source_pairs=len({u["pair_id"] for u in units}),
+        named_families=len({f for u in units for f in u["families"]}),
+        missing_family_pairs=sum(not u["families"] for u in units),
+        first_losses=dict(Counter(d.get("block_first_loss", d["status"]) for r in group for d in r["directions"])),
+    )
+    result["accepted_denominators"] = dict(
+        total=len(accepted),
+        supported=sum(supported(RECORDS[r["row_id"]]) for r in accepted),
+        mapped=sum(r["mapping_status"] == "mapped" for r in accepted),
+        evaluated=len(evaluated),
+        missing=sum(
+            supported(RECORDS[r["row_id"]]) and not any(d["status"] == "evaluated" for d in r["directions"])
+            for r in accepted
+        ),
+    )
+    result["block_opportunities"] = dict(
+        evaluated_pair_cohort_units=len(units),
+        both_endpoints_have_blocks=sum(
+            any(d.get("query_has_blocks") and d.get("target_has_blocks") for d in u["directions"]) for u in units
+        ),
+        bounded_anchor_pool_reaches_target=sum(any(d.get("block_pool_member") for d in u["directions"]) for u in units),
+        eligible_block_pair=sum(any(d.get("block_first_loss") == "eligible" for d in u["directions"]) for u in units),
+    )
+    result["raw_ranks"] = {
+        str(k): dict(
+            numerator=sum(any(d.get("raw_top" + str(k), False) for d in u["directions"]) for u in units),
+            denominator=len(units),
+        )
+        for k in (1, 3, 20)
+    }
+    result["profiles"] = {}
+    for profile in PROFILES:
+        by_family = defaultdict(list)
+        for u in units:
+            for family in u["families"]:
+                by_family[family].append(u)
+        result["profiles"][profile] = dict(
+            first_losses=dict(
+                Counter(d.get(profile, {}).get("first_loss", d["status"]) for r in group for d in r["directions"])
+            ),
+            **{
+                metric: dict(
+                    baseline=sum(hit(u, profile, metric, False) for u in units),
+                    variant=sum(hit(u, profile, metric, True) for u in units),
+                    denominator=len(units),
+                    gained_pairs=[
+                        u["pair_id"]
+                        for u in units
+                        if hit(u, profile, metric, True) and not hit(u, profile, metric, False)
+                    ],
+                    lost_pairs=[
+                        u["pair_id"]
+                        for u in units
+                        if hit(u, profile, metric, False) and not hit(u, profile, metric, True)
+                    ],
+                    gained_family_ids=[
+                        f
+                        for f, us in by_family.items()
+                        if any(hit(u, profile, metric, True) for u in us)
+                        and not any(hit(u, profile, metric, False) for u in us)
+                    ],
+                    lost_family_ids=[
+                        f
+                        for f, us in by_family.items()
+                        if any(hit(u, profile, metric, False) for u in us)
+                        and not any(hit(u, profile, metric, True) for u in us)
+                    ],
+                    uncertainty=cluster_interval(units, profile, metric),
+                )
+                for metric in ("retrieved", "funded")
+            },
+        )
+    return result
+
+
+def main():
+    records = read(SHARED / "rows.jsonl")
+    RECORDS.update({r["row_id"]: r for r in records})
+    cohorts = read(SHARED / "cohorts.jsonl")
+    paired, audits = [], []
+    for c in cohorts:
+        folder = OUT / "cohorts" / c["cohort_id"]
+        if (folder / "coverage.json").exists():
+            audits.append(json.loads((folder / "coverage.json").read_text()))
+            paired.extend(read(folder / "paired-rows.jsonl"))
+    completed = {a["cohort"]["cohort_id"] for a in audits}
+    raw_reference = read(SHARED / "paired-rows.jsonl")
+    raw_bykey = {(x["row_id"], x["cohort_id"], x["query_side"]): x for x in raw_reference}
+    verified_spans = {(r["cohort_id"], r["position"]): r for r in read(OUT / "verified-native-spans-for-mapper.jsonl")}
+    for r in paired:
+        for d in r["directions"]:
+            span = verified_spans.get((r["cohort_id"], d.get("query")))
+            d["actual_query_span"] = (
+                {
+                    k: span[k]
+                    for k in ("start_line", "end_line", "query_lines", "span_status", "inferred", "file_sha256")
+                }
+                if span
+                else None
+            )
+            d["query_size_floor"] = span["query_size_floor"] if span else None
+            if d["status"] == "evaluated":
+                assert span is not None, (r["row_id"], "evaluated query missing validated span")
+            raw = raw_bykey.get((r["row_id"], r["cohort_id"], d["query_side"]))
+            if raw:
+                d["production_raw_reference"] = {
+                    k: raw.get(k)
+                    for k in ("raw_rank", "score", "top1", "top3", "top20", "same_file", "cross_file_rank", "status")
+                }
+                d["shared_floor_diagnostics_used"] = False
+                if d["status"] == "evaluated" and raw.get("status") == "evaluated":
+                    assert d["raw_rank"] == raw["raw_rank"]
+                    assert abs(d["raw_score"] - raw["score"]) < 1e-12
+    raw_summaries = []
+    for cohort in [None] + sorted({x["cohort_id"] for x in raw_reference if x["cohort_id"] is not None}):
+        for label in ("duplicate", "separate"):
+            selected_raw = [
+                x
+                for x in raw_reference
+                if x["accepted_gold"]
+                and x["record_kind"] == "function"
+                and x["label"] == label
+                and (cohort is None or x["cohort_id"] == cohort)
+            ]
+            pairs = defaultdict(list)
+            for x in selected_raw:
+                pairs[(x["cohort_id"], x["pair_id"])].append(x)
+            if pairs:
+                raw_summaries.append(
+                    dict(
+                        cohort_id=cohort or "ALL_COHORTS_SEPARATE_FITS",
+                        label=label,
+                        unique_pair_cohort_units=len(pairs),
+                        topk={
+                            str(k): sum(any(x.get("top" + str(k), False) for x in ds) for ds in pairs.values())
+                            for k in (1, 3, 20)
+                        },
+                        actual_spans="Shared metadata not used for floors; reviewed shared span repair pending.",
+                        floor_diagnostics_used=False,
+                    )
+                )
+    dump(
+        OUT / "raw-baseline-summary.json",
+        dict(
+            source=str(SHARED / "paired-rows.jsonl"),
+            source_sha256=sha((SHARED / "paired-rows.jsonl").read_bytes()),
+            groups=raw_summaries,
+            policy="Raw scores/ranks only. Shared size-floor flags are excluded because of defaulted-span audit.",
+        ),
+    )
+    byrow = defaultdict(list)
+    for r in paired:
+        byrow[r["row_id"]].append(r)
+    inventory_coverage = []
+    for r in records:
+        statuses = Counter(d["status"] for x in byrow[r["row_id"]] for d in x["directions"])
+        inventory_coverage.append(
+            dict(
+                row_id=r["row_id"],
+                dataset=r["dataset"],
+                record_kind=r["record_kind"],
+                label=r["label"],
+                accepted_gold=r["accepted_gold"],
+                family_id=r["family_id"],
+                pair_id=r["pair_id"],
+                repository=r["repository"],
+                revision=r["revision"],
+                total=1,
+                supported=int(supported(r)),
+                mapped=int(any(m["status"] == "mapped" for m in r["mappings"])),
+                evaluated=int(bool(statuses["evaluated"])),
+                missing=int(supported(r) and not statuses["evaluated"]),
+                status_counts=statuses,
+                mapping_status=r["status"],
+                mapping_reasons=r["reasons"],
+                source_ids=source_ids(r),
+                cohort_ids=[m["cohort_id"] for m in r["mappings"]],
+                pending_cohorts=[m["cohort_id"] for m in r["mappings"] if m["cohort_id"] not in completed],
+            )
+        )
+        if not r["mappings"] and r["record_kind"] == "function":
+            paired.append(
+                dict(
+                    row_id=r["row_id"],
+                    cohort_id=None,
+                    pair_id=r["pair_id"],
+                    family_id=r["family_id"],
+                    repository=r["repository"],
+                    revision=r["revision"],
+                    dataset=r["dataset"],
+                    accepted_gold=r["accepted_gold"],
+                    label=r["label"],
+                    mapping_status=r["status"],
+                    mapping_reasons=r["reasons"],
+                    directions=[
+                        dict(
+                            query_side=s,
+                            status="unsupported_model_declaration_separate_inventory"
+                            if r["record_kind"] == "model"
+                            else "missing_verified_mapping",
+                        )
+                        for s in ("new", "existing")
+                    ],
+                )
+            )
+    paired = [r for r in paired if RECORDS[r["row_id"]]["record_kind"] == "function"]
+    rows(OUT / "paired-rows.jsonl", paired)
+    rows(
+        OUT / "model-inventory.jsonl",
+        [
+            dict(
+                row_id=r["row_id"],
+                accepted_gold=r["accepted_gold"],
+                label=r["label"],
+                repository=r["repository"],
+                revision=r["revision"],
+                family_id=r["family_id"],
+                supported=False,
+                reason="Frozen make_blocks uses _function_node and FunctionDef suites, not class/model declarations.",
+                input_record=r["input_record"],
+            )
+            for r in records
+            if r["record_kind"] == "model"
+        ],
+    )
+    rows(OUT / "inventory-coverage.jsonl", inventory_coverage)
+    accepted_function = [r for r in inventory_coverage if r["accepted_gold"] and r["record_kind"] == "function"]
+    per_label_coverage = []
+    for label in sorted({str(r["label"]) for r in inventory_coverage}):
+        group = [r for r in inventory_coverage if str(r["label"]) == label]
+        per_label_coverage.append(
+            dict(
+                label=label,
+                records=len(group),
+                accepted_function_records=sum(r["accepted_gold"] and r["record_kind"] == "function" for r in group),
+                **{key: sum(r[key] for r in group) for key in ("total", "supported", "mapped", "evaluated", "missing")},
+            )
+        )
+    coverage = dict(
+        inventory_records=len(records),
+        accepted_records=sum(r["accepted_gold"] for r in records),
+        accepted_function_records=len(accepted_function),
+        accepted_model_records=sum(r["accepted_gold"] and r["record_kind"] == "model" for r in records),
+        initial_mandatory_inventory=dict(records=566, accepted=539),
+        immutable_mapping_snapshot=str(SHARED),
+        root_index_verification=str(
+            ROOT / "reports/research-experiments/full-corpus/coordinator-index-verification.json"
+        ),
+        current_inventory_additions="Original37 public regressions and coordinator accepted wave2; exact shared receipt attached.",
+        accepted_function_denominators={
+            key: sum(r[key] for r in accepted_function)
+            for key in ("total", "supported", "mapped", "evaluated", "missing")
+        },
+        per_label=per_label_coverage,
+        completed_cohorts=len(completed),
+        total_cohorts=len(cohorts),
+        pending_cohorts=[c["cohort_id"] for c in cohorts if c["cohort_id"] not in completed],
+        per_cohort=audits,
+        eligibility="Frozen Python AST block representation; .ts/.tsx and model declarations unsupported, exact source gaps are missing, not failure.",
+        no_merge_revisions=True,
+        configured_numeric_threads_per_process=2,
+        runtime_isolated=False,
+        runtime_qualification="Superseded interrupted shell attempts overlapped; timings are not isolated production overhead.",
+        no_dense_N_by_N=True,
+        provider_calls=0,
+        provider_spend_usd=0,
+    )
+    dump(OUT / "coverage.json", coverage)
+    summaries = []
+    for cohort in [None] + sorted(completed):
+        for label in sorted({str(r["label"]) for r in paired}):
+            group = [r for r in paired if (cohort is None or r["cohort_id"] == cohort) and str(r["label"]) == label]
+            if group:
+                summaries.append(dict(cohort_id=cohort or "ALL_COHORTS_SEPARATE_FITS", label=label, **metrics(group)))
+    families = []
+    family_groups = defaultdict(list)
+    for r in paired:
+        if r["family_id"]:
+            family_groups[(r["cohort_id"], r["label"], r["family_id"])].append(r)
+    for (cohort, label, family), group in sorted(family_groups.items(), key=lambda kv: str(kv[0])):
+        families.append(
+            dict(
+                cohort_id=cohort, label=label, family_id=family, row_ids=[r["row_id"] for r in group], **metrics(group)
+            )
+        )
+    rows(OUT / "per-family-paired.jsonl", families)
+    dump(
+        OUT / "paired-summary.json",
+        dict(
+            status=(
+                "broader_fixed_replication_measured; source_judging_pending"
+                if len(completed) == len(cohorts)
+                else "partial_broader_replication; remaining_cohorts_running; source_judging_pending"
+            ),
+            summaries=summaries,
+            family_file=str(OUT / "per-family-paired.jsonl"),
+            budget="Frozen .04 USD synthetic cold one-function query, concept Sonnet; protected append-only extra. Shared-operations queue check is separate.",
+            production_raw_ties="BenchBackground.index.similar first-posting order; recorded independently from frozen source-ID pilot ties.",
+            judge="No Jev threshold gating or inferred truth. Source decisions and policy outcomes await coordinator.",
+            controls="Separate retrieval is exposure; never counted as false report.",
+            data_split="All seen development/regression; no pristine holdout or broad significance.",
+            missing_denominator_policy="Missing is visible and excluded from conditional evaluated effect denominator, never counted as method failure.",
+        ),
+    )
+    # Retain all ranked funded proposals and reserve query-level unfunded candidates in per-query files.
+    novel = []
+    for p in sorted((OUT / "cohorts").glob("*/novel-candidate-inventory.jsonl")):
+        if (p.parent / "coverage.json").exists():
+            novel.extend(read(p))
+    novel.sort(key=lambda r: (-r["block_evidence"]["score"], r["identity"], r["cohort_id"], r["profile"]))
+    rows(OUT / "novel-candidate-inventory.jsonl", [r | dict(inventory_rank=i + 1) for i, r in enumerate(novel)])
+    announced = {tuple(r["identity"]) for r in read(OUT / "review-private-sidecar.jsonl")}
+    reserves = {}
+    for r in novel:
+        identity = tuple(r["identity"])
+        if not r["known_exact_pair"] and identity not in announced:
+            reserves.setdefault(identity, r)
+    rows(OUT / "corpus-wide-funded-novel-reserves.jsonl", reserves.values())
+    dump(
+        OUT / "novel-discovery-summary.json",
+        dict(
+            funded_extra_direction_profile_exposures=len(novel),
+            unique_funded_extra_unordered_pin_pairs=len({tuple(r["identity"]) for r in novel}),
+            unannounced_unknown_unordered_pin_pairs=len(reserves),
+            known_exact_pair_exposures=sum(r["known_exact_pair"] for r in novel),
+            by_repository=dict(Counter(r["repository"] for r in novel)),
+            initial_frozen_batch=str(OUT / "review-batches/v1/manifest.json"),
+            initial_queue_sha256=sha((OUT / "novel-review-queue.jsonl").read_bytes()),
+            review_status="Unknown until coordinator provider observations and independent source decisions; no Jev cutoff.",
+            expansion="Adapt new frozen batches to useful-source yield and family coverage. Reserve is not a final12 ceiling.",
+            worker_provider_calls=0,
+            worker_physical_spend_usd=0,
+        ),
+    )
+    blockers = [
+        dict(
+            cohort_id=a["cohort"]["cohort_id"],
+            repository=a["cohort"]["repository"],
+            revision=a["cohort"]["revision"],
+            background_sha256=a["cohort"]["background_sha256"],
+            scope=a["cohort"]["scope"],
+            source_audit=a["source_audit"],
+        )
+        for a in audits
+        if a["source_audit"]["mode"] == "blocked_missing_exact_git_source"
+        or a["source_audit"].get("file_exceptions")
+        or a["source_audit"].get("function_exceptions")
+    ]
+    dump(OUT / "exact-source-blockers.json", blockers)
+    preservation = json.loads((OUT / "pilot-preservation.json").read_text())
+    changed = [x["path"] for x in preservation if sha(Path(x["path"]).read_bytes()) != x["sha256"]]
+    assert not changed, changed
+    dump(
+        OUT / "validation.json",
+        dict(
+            pilot_files_unchanged=len(preservation),
+            pilot_all_hashes_pass=True,
+            completed_cohorts=len(completed),
+            paired_baseline_funded_losses=sum(
+                len(x["profiles"][p]["funded"]["lost_pairs"]) for x in summaries for p in PROFILES
+            ),
+            queue_unknown=True,
+            worker_provider_calls=0,
+        ),
+    )
+    hashes = [
+        dict(path=str(p), bytes=p.stat().st_size, sha256=sha(p.read_bytes()))
+        for p in sorted(OUT.rglob("*"))
+        if p.is_file() and p.name != "artifact-hashes.json" and "__pycache__" not in p.parts
+    ]
+    dump(OUT / "artifact-hashes.json", hashes)
+    print(
+        json.dumps(
+            dict(
+                records=len(records),
+                cohorts=len(completed),
+                paired_records=len(paired),
+                novel_funded_exposures=len(novel),
+                accepted_function_denominators=coverage["accepted_function_denominators"],
+            )
+        ),
+        flush=True,
+    )
+
+
+if __name__ == "__main__":
+    main()

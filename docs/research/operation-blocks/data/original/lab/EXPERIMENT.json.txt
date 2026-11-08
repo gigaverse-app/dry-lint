@@ -1,0 +1,78 @@
+{
+  "baseline": {
+    "budget": "each query is an explicitly synthetic cold one-function batch; production Ledger with .04 USD, unchanged Sonnet concept estimate, default first then current20. Paired +block arm appends one extra after entire corresponding baseline. No caches/PR histories/scheduler replay claimed.",
+    "current20_diagnostic": "default baseline followed by nonduplicate same-file-allowed top20 at .35; no deployed-config inference",
+    "default_diagnostic": "cross-file top3, .5 floor (.3 query lines<6)",
+    "implementation": "production BenchBackground.decode/index; original full-corpus IDF and tokens immutable",
+    "raw": "all nonself documents sorted (-cosine, sourceID, documentposition)"
+  },
+  "central_frozen_current_queue": "LAB_ROOT/reports/candidate-first/frozen-review-batches/research-operation-blocks-0dedba958a2606f3.jsonl",
+  "controls": [
+    "original full-function cosine with identical token field restriction",
+    "same-file disallowed vs allowed",
+    ".5/.3 size floor vs .35 exploration vs block .65 with full cosine .1",
+    "scaled accepted separate/unresolved and released disputes",
+    "synthetic coherent operation in unrelated wrappers, logging boilerplate, single-owner delegation and topical APIs with divergent policy; diagnostic only, no corpus credit",
+    "inspect exact winning blocks plus full unchanged candidate/context for novelty queue"
+  ],
+  "corpus": {
+    "backgrounds": "map path+SHA verified; source recapture only for separate block index; require native body digest+token-count match",
+    "config_map": "LAB_ROOT/jobs/review-automation/.lab-results/review-automation/repositories-five.json",
+    "contrast": "OpenHands/software-agent-sdk@344ec8a9c30dff0a4ca200fc412510aad44e1bdc; diagnostic scope including tests/examples",
+    "first": "BerriAI/litellm@fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f; exact frozen production-only scope, NO enterprise",
+    "history": "No historical bare-root access planned",
+    "unseen": [
+      "Firecrawl",
+      "curator"
+    ]
+  },
+  "experiment": "bounded-operation-blocks-v1",
+  "fixed_parameters": {
+    "anchors": "8 rarest non-generic call/attr/key per block; global function DF <= min(128,max(2,floor(.01*N))); discard anchor when block posting exceeds64",
+    "ast_nodes": [
+      20,
+      400
+    ],
+    "block_lines": [
+      4,
+      80
+    ],
+    "block_tokens": "production node_tokens synthetic wrapper, remove fn:; use original background IDF and sublinear TF/L2",
+    "boundaries": "complete if/for/while/try/with/match statements and maximal consecutive simple statements (at least2); recurse suites to depth3; nested function/class bodies excluded; never size-split a boundary",
+    "delegation_guard": "Reject blocks with fewer than2 concrete calls and pairs with fewer than2 shared concrete calls; production why_skipped retained. Does not prove all shared compositions lack existing owners.",
+    "extra": "highest allowed nonbaseline parent, one per query, baseline batch fully protected",
+    "generic_calls": "fixed builtins/container operations/logging/assertion/mocking; implementation records exact list",
+    "grid": "single variant only",
+    "max_blocks_per_parent": 12,
+    "minimum_distinct_nongeneric_calls": 2,
+    "minimum_unique_tokens": 8,
+    "parent_pool": 64,
+    "parent_scoring": "max block cosine with >=3 shared concrete op features and >=2 distinct shared nongeneric call leaves; full-function cosine >=.1; block cosine >=.65",
+    "posting_visit_bound": 6144,
+    "tie_order": "descending score, sourceID, documentposition, then block region"
+  },
+  "hypothesis": "A complete Python control statement or maximal straight-line run can retain a coherent repeated operation diluted by full-function L2 normalization. Approximate block cosine, rather than exact fragments or whole-function containment, may expose useful parents.",
+  "novel_sampling": "Queries are both endpoints of frozen development panels plus 64 deterministic SHA256-sampled source parents with blocks per repo. Up to8 unique actually funded block extras (prefer outside current20, then default-only), up to4 matched funded baseline controls, exclude exact reviewed unordered repo+pin+pair only; diverse file-pair buckets and deterministic hash order. No endpoint/family blanket exclusion. Queue candidates carry full source proofs, original full bodies/context, no block/score injection. Private retrieval sidecar and score-free reviewer packet.",
+  "original_queue_sha256": "0dedba958a2606f3507e6c7fe5bda85d309dfab706d71d129ac3e09d91ebecf7",
+  "policy_name_amendment": {
+    "changed_scores_candidates_admission": false,
+    "default_plus_current20": "default3 first, union nonduplicate same-file top20 at .35, retain whole lane then append protected extra",
+    "original_preregistration_sha256": "44a68d0c4a06a03d7f9bd3f8fdc3c0816a8256e38876599f6531590887da5915",
+    "requested_by": "user after preregistration review",
+    "standalone_balanced20": "separate top20/.35 same-file diagnostic without default3 union; no funding claim"
+  },
+  "prior_negative_findings": {
+    "containment": "original IDF shared smaller-function mass: 141 vs 88 funded, no positive gain",
+    "distinction": "Use semantic syntax boundaries, approximate block similarity, two concrete calls, bounded rare-anchor parent discovery; no arbitrary windows, synonyms, prompt or label changes.",
+    "exact_fragments": "1-3 statement windows, 25-200 nodes, 64/function: seven funded extras, zero reports at .8 and no fixed-panel positive gain"
+  },
+  "production_commit": "442b17af38ff596605e8307910ba206c4d0614a0",
+  "registered_before_evaluation": true,
+  "spending": {
+    "central_allowance_usd": 1,
+    "global_remaining_at_request_usd": 4.7889404,
+    "worker_provider_calls": 0
+  },
+  "split": "All scaled 88 and released 41+3 pairs are development/regression; group by explicit operation family and repo lineage, no holdout or tuning. Preserve drifted subtype LL-S052. Only these two repositories used. Labels are scoped partial operations, never whole-function equivalence.",
+  "stop_gates": "No parameter retuning. If no funded extras, report budget failure and queue zero rather than unfunded questions. Unknown stays unknown; no direct provider calls or credentials. No claim of report gain without coordinator exact-input observations and independent source review. Stop/promotion requires baseline funded preservation, meaningful operation evidence beyond boilerplate/delegation, positive useful funded yield, no added confirmed false reports; worker never promotes."
+}

@@ -1,0 +1,74 @@
+"""Exact frozen scorer with cached bit sets; no changed representation or guard."""
+
+from collections import Counter, defaultdict
+
+
+def prepare(corpus):
+    vocabulary = sorted({t for b in corpus.blocks for t in b["ops"]})
+    bits = {t: 1 << i for i, t in enumerate(vocabulary)}
+    corpus.operation_masks = [sum(bits[t] for t in b["ops"]) for b in corpus.blocks]
+    corpus.call_masks = [sum(bits[t] for t in b["calls"]) for b in corpus.blocks]
+    corpus.anchor_masks = [sum(bits[t] for t in b["anchors"] if t in corpus.postings) for b in corpus.blocks]
+    corpus.operation_sets = [set(b["ops"]) for b in corpus.blocks]
+    corpus.call_sets = [set(b["calls"]) for b in corpus.blocks]
+    posting_tokens = set(corpus.postings)
+    corpus.anchor_sets = [set(b["anchors"]) & posting_tokens for b in corpus.blocks]
+
+
+def block_candidates(corpus, qi, fullscores):
+    from operation_blocks import SETTINGS, why_skipped
+
+    mass = defaultdict(float)
+    visits = 0
+    qbs = corpus.parent_blocks[qi]
+    for qb in qbs:
+        for token in corpus.blocks[qb]["anchors"]:
+            for bi in corpus.postings.get(token, []):
+                visits += 1
+                parent = corpus.blocks[bi]["parent"]
+                if parent != qi:
+                    mass[parent] += corpus.index.idf[token]
+    pool = sorted(mass, key=lambda i: (-mass[i], corpus.bg.documents[i].id, i))[:64]
+    ranked, rejects = [], Counter()
+    for ti in pool:
+        best = None
+        for qb in qbs:
+            for tb in corpus.parent_blocks[ti]:
+                if (
+                    (corpus.operation_masks[qb] & corpus.operation_masks[tb]).bit_count() < 3
+                    or (corpus.call_masks[qb] & corpus.call_masks[tb]).bit_count() < 2
+                    or not (corpus.anchor_masks[qb] & corpus.anchor_masks[tb])
+                ):
+                    rejects["insufficient_shared_operation_or_anchor"] += 1
+                    continue
+                a, b = corpus.blocks[qb], corpus.blocks[tb]
+                score = sum(w * corpus.vectors[tb].get(t, 0) for t, w in corpus.vectors[qb].items())
+                if best is None or (-score, a["start_line"], b["start_line"], qb, tb) < (
+                    -best["score"],
+                    corpus.blocks[best["query_block"]]["start_line"],
+                    corpus.blocks[best["target_block"]]["start_line"],
+                    best["query_block"],
+                    best["target_block"],
+                ):
+                    best = dict(
+                        target=ti,
+                        score=score,
+                        query_block=qb,
+                        target_block=tb,
+                        shared_ops=sorted(corpus.operation_sets[qb] & corpus.operation_sets[tb]),
+                        shared_calls=sorted(corpus.call_sets[qb] & corpus.call_sets[tb]),
+                        anchors=sorted(corpus.anchor_sets[qb] & corpus.anchor_sets[tb]),
+                        full_score=fullscores.get(ti, 0),
+                    )
+        if best:
+            best["block_floor_pass"] = best["score"] >= 0.65
+            best["full_floor_pass"] = best["full_score"] >= 0.1
+            best["filter"] = why_skipped(corpus.functions[qi], corpus.functions[ti], SETTINGS)
+            ranked.append(best)
+    ranked.sort(key=lambda x: (-x["score"], corpus.bg.documents[x["target"]].id, x["target"]))
+    for n, item in enumerate(ranked):
+        item["rank"] = n + 1
+    assert visits <= 12 * 8 * 64
+    return ranked, dict(
+        posting_visits=visits, parents_touched=len(mass), pool_size=len(pool), pool=pool, pair_rejects=dict(rejects)
+    )

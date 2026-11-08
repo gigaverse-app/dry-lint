@@ -1,0 +1,320 @@
+"""Export existing arm candidates to the central intake format. Offline only.
+
+No new retrieval mechanism, provider executor, resolver or verdict framework.
+The production indexes are cached here for adaptive follow-up, bound to exact inputs.
+"""
+
+import gzip
+import hashlib
+import importlib
+import json
+import pickle
+import sys
+from collections import Counter, defaultdict
+from pathlib import Path
+from types import SimpleNamespace
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger, estimate
+from dry_lint.detector import Detector, why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.models import Candidate, Function, evidence
+from dry_lint.operation_blocks import OperationBlocksComparer
+from dry_lint.settings import Settings
+
+OUT = Path(__file__).resolve().parent
+WORK = OUT.parents[2]
+OLD = WORK / ".lab-results/full-corpus-followup/span-v2-migration"
+CENTRAL = Path("LAB_ROOT/jobs/judge-operations/.lab-results")
+HELPERS = CENTRAL / "judge-operations"
+sys.path.insert(0, str(HELPERS))
+q = importlib.import_module("queue_judges")
+intake = importlib.import_module("intake_seven")
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def read(path):
+    with path.open() as handle:
+        for line in handle:
+            if line.strip():
+                yield json.loads(line)
+
+
+def write(path, value, lines=False):
+    raw = ("".join(json.dumps(row, sort_keys=True) + "\n" for row in value) if lines
+           else json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        assert path.read_bytes() == raw, "Already sealed: " + str(path)
+    else:
+        path.write_bytes(raw)
+
+
+def identity(packet):
+    c = Candidate.model_validate(packet["candidate"])
+    return tuple([packet["repository"], packet["revision"], *sorted([c.new.qualname, c.existing.qualname])])
+
+
+def production(cohort):
+    """One actual production index per full background; persist for later batches."""
+    directory = OLD / "cohorts" / cohort["cohort_id"]
+    raw = (directory / "candidate-index.json.gz").read_bytes()
+    payload = json.loads(gzip.decompress(raw))
+    bgraw = Path(cohort["background_path"]).read_bytes()
+    assert sha(bgraw) == cohort["background_sha256"] == payload["binding"]["background_sha256"]
+    bg = BenchBackground.decode(bgraw)
+    binding = dict(background_sha256=sha(bgraw), native_cache_sha256=sha(raw),
+                   production_sha256=sha((WORK / "src/dry_lint/operation_blocks.py").read_bytes()))
+    cached = OUT.parent / "cache" / (cohort["cohort_id"] + "-" + sha(q.canonical(binding))[:16] + ".pickle.gz")
+    if cached.exists():
+        comparer = pickle.loads(gzip.decompress(cached.read_bytes()))  # own trusted, input-bound cache
+        comparer._positions = {id(f): i for i, f in enumerate(comparer.functions)}
+    else:
+        native = {int(k): Function.model_validate(v) for k, v in payload["functions"].items()}
+        functions = []
+        for i, doc in enumerate(bg.documents):
+            if i in native:
+                f = native[i]
+                assert sha(f.code.encode()) == doc.source_sha256
+            else:
+                path, _, qualified = doc.id.partition("::")
+                owner, _, name = qualified.rpartition(".")
+                f = Function(path=path, owner=owner or None, name=name or qualified, line=0, end_line=0, code="")
+            f.tokens = doc.tokens()
+            assert f.qualname == doc.id
+            functions.append(f)
+        comparer = OperationBlocksComparer()
+        comparer.index(functions)
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        cached.write_bytes(gzip.compress(pickle.dumps(comparer, protocol=5), compresslevel=1, mtime=0))
+    # Reuse the real index instead of constructing a second Detector that refits it.
+    # Detector.pair is exercised here through its native object; index() is a no-op
+    # only during this constructor because the exact frozen index is already built.
+    class Indexed:
+        name, version = comparer.name, comparer.version
+        similarity_reusable = False
+        def index(self, functions):
+            assert all(a is b for a, b in zip(functions, comparer.functions, strict=True))
+        def neighbours(self, *args, **kwargs):
+            return comparer.neighbours(*args, **kwargs)
+        def similarity(self, *args):
+            return comparer.similarity(*args)
+    detector = Detector(comparer.functions, Settings(), Indexed(), [PythonExtractor()])
+    print(json.dumps(dict(cohort_id=cohort["cohort_id"], full_documents=len(comparer.functions),
+                          regions=sum(map(len, comparer._parents)), cache=str(cached))), flush=True)
+    return dict(comparer=comparer, detector=detector, payload=payload, bg=bg,
+                queries={r["query"]: r for r in read(directory / "per-query.jsonl") if "profiles" in r},
+                positions={id(f): i for i, f in enumerate(comparer.functions)}, binding=binding,
+                cache_path=str(cached))
+
+
+def main():
+    assert not (OUT / "HANDOFF.json").exists(), "Round input already published; use a new immutable batch version"
+    seen = set()
+    evidence_files = []
+    for path in sorted(CENTRAL.glob("promotion-evidence-*/*completed*.jsonl")):
+        evidence_files.append(dict(path=str(path), sha256=sha(path.read_bytes())))
+        for row in read(path):
+            if row.get("packet"):
+                seen.add(identity(row["packet"]))
+    for path in [WORK / ".lab-results/novel-review-queue.jsonl",
+                 WORK / ".lab-results/full-corpus-followup/review-batches/v1/novel-review-queue.jsonl",
+                 WORK / ".lab-results/promotion/review-requests-v1/gains-and-negatives.jsonl"]:
+        seen.update(identity(p) for p in read(path))
+    cohorts = {r["cohort"]["cohort_id"]: r["cohort"] for r in json.loads((OLD / "coverage.json").read_text())["per_cohort"]}
+    ids = ["bg-7489aa1946c16153", "bg-ebd0031534c954e5"]
+    pool = {"novel": [], "control": []}
+    for cid in ids:
+        for role, name in [("novel", "novel-candidate-inventory.jsonl"), ("control", "control-inventory.jsonl")]:
+            for row in read(OLD / "cohorts" / cid / name):
+                if row["profile"] != "default_plus_current20" or row["known_exact_pair"] or not row["actually_funded"]:
+                    continue
+                key = tuple(row["identity"])
+                if key in seen:
+                    continue
+                row = dict(row, round_role=role, selection_sha256=sha(q.canonical(["operation-blocks-round1", role, key])))
+                pool[role].append(row)
+    # Round-robin repositories and score strata within each role; no truth/model gate.
+    ordered = {}
+    for role, rows in pool.items():
+        groups = defaultdict(list)
+        for row in rows:
+            score = (row.get("block_evidence") or {}).get("score", 0)
+            groups[(row["repository"], "low" if score < .75 else "middle" if score < .9 else "high")].append(row)
+        for values in groups.values():
+            values.sort(key=lambda r: r["selection_sha256"])
+        ordered[role] = [row for n in range(max(map(len, groups.values()), default=0))
+                         for key in sorted(groups) if n < len(groups[key]) for row in [groups[key][n]]]
+    models = {cid: production(cohorts[cid]) for cid in ids}
+    settings = Settings(budget={"usd": .04})
+    concept = SimpleNamespace(name="anthropic", model="claude-sonnet-5-5", prompt_policy="concept")
+    operations = SimpleNamespace(name="anthropic-operations", model="claude-sonnet-5-5", prompt_policy="shared-operations")
+    used_endpoints, source_groups = set(), Counter()
+    selected, rejects, pending = [], [], {key: iter(value) for key, value in ordered.items()}
+    requested = [dict(kind="claude", model="claude-sonnet-5-5", policy="shared-operations", max_output_tokens=1024, report_threshold=.8),
+                 dict(kind="jev", model="jev-1.14.0", policy="reuse-context-v3", report_threshold=.8)]
+    obsdirs = q.observation_directories(HELPERS / "round1-read-only")
+    for slot in range(48):  # first 32 pairs + a further 16 eligible adaptive-supply pairs
+        role = "control" if slot % 4 == 3 else "novel"
+        for row in pending[role]:
+            key = tuple(row["identity"])
+            model = models[row["cohort_id"]]
+            comparer, detector = model["comparer"], model["detector"]
+            qi, ti = row["query"], row["target"]
+            query, target = comparer.functions[qi], comparer.functions[ti]
+            endpoint_keys = {(row["repository"], row["revision"], f.qualname) for f in (query, target)}
+            group = (row["repository"], query.path, query.owner or "<module>")
+            if key in seen or endpoint_keys & used_endpoints or source_groups[group] >= 2:
+                rejects.append(dict(identity=key, reason="prior_pair_or_endpoint_or_diversity_cap", role=role))
+                continue
+            policy = model["queries"][qi]["profiles"]["default_plus_current20"]
+            baseline = policy["baseline"]
+            if role == "novel":
+                found = comparer.neighbours(query, 1, allowed=lambda f: model["positions"][id(f)] not in baseline
+                    and not why_skipped(query, f, settings))
+                if not found or found[0][0] is not target:
+                    rejects.append(dict(identity=key, reason="production_top_unseen_does_not_match_inventory", role=role))
+                    continue
+                score, comparer_id = found[0][1], "operation-blocks:1"
+            else:
+                if ti not in baseline:
+                    rejects.append(dict(identity=key, reason="control_not_in_actual_arm_baseline", role=role))
+                    continue
+                left, right = comparer.tfidf.vector(query.tokens), comparer.tfidf.vector(target.tokens)
+                score, comparer_id = sum(w * right.get(t, 0) for t, w in left.items()), "tfidf:2"
+            candidate = detector.pair(query, target, score).model_copy(update={"comparer": comparer_id, "lane": "exploration"})
+            augmented = policy["augmented"]
+            campaign = [Candidate(new=query, existing=comparer.functions[t], similarity=0, comparer="tfidf:2", lane="exploration")
+                        for t in augmented]
+            campaign[augmented.index(ti)] = candidate
+            concept_selected = Ledger(settings).select(concept, campaign)
+            ops_selected = Ledger(settings).select(operations, campaign)
+            if augmented.index(ti) not in concept_selected or augmented.index(ti) not in ops_selected:
+                rejects.append(dict(identity=key, reason="unfunded_in_frozen_04_concept_or_operations_replay", role=role))
+                continue
+            proofs = []
+            for f in (query, target):
+                source = model["payload"]["sources"][f.path]
+                raw = Path(source["snapshot"]).read_bytes()
+                assert sha(raw) == source["sha256"] == f.context_digest
+                assert "\n".join(raw.decode().splitlines()[f.line - 1:f.end_line]) == f.code
+                proofs.append(dict(source_id=f.qualname, path=f.path, line=f.line, end_line=f.end_line,
+                    body_sha256=sha(f.code.encode()), file_sha256=sha(raw), git_blob_sha1=source["git_blob"],
+                    snapshot=source["snapshot"], blob_url=f"https://github.com/{row['repository']}/blob/{row['revision']}/{f.path}#L{f.line}-L{f.end_line}"))
+            packet_id = "OBR1-" + sha(q.canonical(key))[:16]
+            cohort = cohorts[row["cohort_id"]]
+            packet = dict(schema=1, format="dry-lint/lab-review-packet", id=packet_id,
+                repository=row["repository"], revision=row["revision"], candidate=candidate.model_dump(mode="json"),
+                background_proof=dict(path=cohort["background_path"], sha256=cohort["background_sha256"]),
+                source_proofs=proofs, evidence=evidence(candidate), status="unknown", requested_judging=requested,
+                truth="Independent source adjudication required; provider labels are observations, not accepted gold.")
+            binding = dict(repository=row["repository"], revision=row["revision"], candidate_sha256=sha(q.canonical(packet["candidate"])),
+                source_files=[{k:p[k] for k in ("source_id", "path", "file_sha256", "body_sha256")} for p in proofs],
+                scope=model["bg"].scope, background_sha256=cohort["background_sha256"], candidate_kind="function")
+            requests = [q.request(candidate, kind, binding) for kind in ("jev", "claude")]
+            if any((directory / (r["request_key"] + ".json")).exists() for directory in obsdirs for r in requests):
+                rejects.append(dict(identity=key, reason="exact_request_observation_already_exists_no_paid_repeat", role=role))
+                continue
+            side = dict(row, id=packet_id, role="novel_block_extra" if role == "novel" else "matched_funded_baseline_control",
+                production_comparer=comparer_id, production_score=score, production_pool_checked=role == "novel",
+                funding="historical cold-query .04 baseline-first replay; central diagnostic spend separate",
+                concept_budget_usd=.04, actually_funded=True, shared_operations_funded=True,
+                shared_operations_query_estimated_usd=estimate(operations, [campaign[i] for i in ops_selected], settings),
+                shared_operations_estimated_usd=estimate(operations, [candidate], settings),
+                concept_selected_targets=[augmented[i] for i in concept_selected],
+                operations_selected_targets=[augmented[i] for i in ops_selected],
+                deployment_claim="synthetic cold-query eligibility, not an observed real PR campaign or deployment report",
+                source_group=list(group), provider_calls=0, physical_spend_usd=0)
+            entry = dict(id=packet_id, method="operation-blocks", role=side["role"], packet=packet,
+                binding=binding, pair_key=intake.packet_pair(packet), attribution=[dict(method="operation-blocks", original_id=packet_id,
+                input=str(OUT / "queue.jsonl"), role=side["role"], round=1)], native_funding=dict(arm=row["profile"], native=side),
+                input=str(OUT / "queue.jsonl"))
+            selected.append(dict(packet=packet, side=side, entry=entry, requests=requests,
+                                 estimated_new_usd=sum(intake.normal_cost(r) for r in requests)))
+            seen.add(key)
+            used_endpoints.update(endpoint_keys)
+            source_groups[group] += 1
+            break
+        else:
+            print(json.dumps(dict(status="selection_supply_short", role=role, slot=slot)), flush=True)
+            break
+    assert len(selected) >= 32, f"Only {len(selected)} eligible pairs; preserve exclusions and reassess supply"
+    # 32 rendered requests per chunk, exactly 16 paired cases. Later chunks are adaptive supply.
+    artifacts, chunks = [], []
+    all_requests, blind, source_rows, funding, sidecars = [], [], [], [], []
+    for i in range(0, len(selected), 16):
+        number = i // 16 + 1
+        folder = OUT / f"batch-{number:03d}"
+        values = selected[i:i + 16]
+        queue = folder / "queue.jsonl"
+        write(queue, [v["packet"] for v in values], lines=True)
+        requests = []
+        for v in values:
+            entry = v["entry"]
+            entry["input"] = str(queue)
+            entry["attribution"][0]["input"] = str(queue)
+            for request in v["requests"]:
+                request.update(method="operation-blocks", case_id=v["packet"]["id"], pair_key=entry["pair_key"],
+                    packet=v["packet"], packet_file=str(queue), packet_file_sha256=sha(queue.read_bytes()),
+                    attribution=entry["attribution"], cache=None, probe=False, state="new_request")
+                requests.append(request)
+            blind.append(dict(id=v["packet"]["id"], repository=v["packet"]["repository"], revision=v["packet"]["revision"],
+                new=v["packet"]["candidate"]["new"], existing=v["packet"]["candidate"]["existing"],
+                source_proofs=v["packet"]["source_proofs"], consolidation=[], policies=[]))
+            source_rows.append(dict(id=v["packet"]["id"], background_proof=v["packet"]["background_proof"],
+                                    source_proofs=v["packet"]["source_proofs"], binding=v["entry"]["binding"]))
+            funding.append(dict(schema_version="promotion-funding-evidence-v1", id=v["packet"]["id"], method="operation-blocks",
+                original_campaign="frozen per-query .04 synthetic replay", original_cap_usd=.04,
+                original_funding=v["entry"]["native_funding"], central_diagnostic_cap_usd=20.,
+                paired_supplemental_adjudication=True, physical_cache_discount_to_original_ledger=0,
+                regrouping_as_one_method_campaign=False))
+            sidecars.append(v["side"])
+        write(folder / "frozen-input.jsonl", [v["entry"] for v in values], lines=True)
+        write(folder / "canonical-request-plan.jsonl", requests, lines=True)
+        chunks.append(dict(batch=number, queue=str(queue), frozen_input=str(folder / "frozen-input.jsonl"),
+            request_plan=str(folder / "canonical-request-plan.jsonl"), pairs=len(values), requests=len(requests),
+            novel=sum(v["side"]["round_role"] == "novel" for v in values),
+            controls=sum(v["side"]["round_role"] == "control" for v in values),
+            normal_expected_new_usd=sum(v["estimated_new_usd"] for v in values),
+            conservative_reservation_usd=sum(r["reservation_usd"] for r in requests),
+            admission="initial" if number <= 2 else "adaptive_supply_after_actual_and_useful_yield_check"))
+        all_requests.extend(requests)
+        artifacts.extend([queue, folder / "frozen-input.jsonl", folder / "canonical-request-plan.jsonl"])
+    for name, rows in [("queue.jsonl", [v["packet"] for v in selected]), ("source-blind.jsonl", blind),
+                       ("source-proofs.jsonl", source_rows), ("funding.jsonl", funding),
+                       ("review-private-sidecar.jsonl", sidecars), ("exclusions.jsonl", rejects)]:
+        write(OUT / name, rows, lines=True)
+        artifacts.append(OUT / name)
+    assert len({r["request_key"] for r in all_requests}) == len(all_requests)
+    write(OUT / "input-receipts.json", dict(prior_completed=evidence_files,
+        index_bindings={cid:m["binding"] for cid,m in models.items()},
+        production_caches={cid:m["cache_path"] for cid,m in models.items()},
+        central_renderer=str(Path(q.__file__)), central_renderer_sha256=sha(Path(q.__file__).read_bytes())))
+    artifacts.append(OUT / "input-receipts.json")
+    write(OUT / "manifest.json", dict(schema=1, method="operation-blocks", round=1, status="SEALED_ROOT_INTAKE_READY",
+        chunks=chunks, pairs=len(selected), requests=len(all_requests), initial_batches=[1,2],
+        files={str(p):sha(p.read_bytes()) for p in artifacts}, no_worker_provider_calls=True,
+        no_prior_observed_or_queued_pairs=True, no_duplicate_rendered_request_keys=True))
+    prior = json.loads((OUT / "PLAN.json").read_text())
+    handoff = dict(prior, status="ROUND1_OPEN_ROOT_JUDGING_REQUIRED", queue=str(OUT / "queue.jsonl"),
+        manifest=str(OUT / "manifest.json"), funding=str(OUT / "funding.jsonl"),
+        source_proofs=str(OUT / "source-proofs.jsonl"), source_blind=str(OUT / "source-blind.jsonl"),
+        chunks=chunks, initial_expected_new_usd=sum(c["normal_expected_new_usd"] for c in chunks[:2]),
+        total_expected_new_supply_usd=sum(c["normal_expected_new_usd"] for c in chunks),
+        current_phase_fresh_calls=30, current_phase_cache_hits_excluded=18,
+        cache_credit_usd=0, worker_actual_usd=0, worker_provider_calls=0,
+        signal_to="judge-operations: consume existing lab-review-packet/frozen-input/canonical-request-plan schema; root only",
+        intake_note="32 rendered requests per chunk (16 paired cases); original .04 replay admission retained separately; diagnostic allocation is root's shared $20",
+        next_action="Root verify prior .09867492 credit, admit chunk1 and continue chunk2/adaptive chunks until actual fresh >=.20; then assess source-confirmed benefit before round2 decision.",
+        no_mechanism_retune=True, no_gold_labels_changed=True, no_claim_of_eligible_supply_exhaustion=True)
+    write(OUT / "HANDOFF.json", handoff)
+    write(OUT / "STATUS.json", {k:handoff[k] for k in ["method","round","status","manifest","initial_expected_new_usd","current_phase_actual_usd_pending_root_credit","next_action"]})
+    print(json.dumps(dict(status=handoff["status"], batches=len(chunks), pairs=len(selected), requests=len(all_requests),
+        initial_expected_new_usd=handoff["initial_expected_new_usd"], total_expected_supply_usd=handoff["total_expected_new_supply_usd"])), flush=True)
+
+
+if __name__ == "__main__":
+    main()
