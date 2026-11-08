@@ -4,6 +4,8 @@ The earlier vector/matrix, ensemble, CPU, model-function and other studies alrea
 
 ## Existing public records
 
+PRs #110–#121, #123 and #124 are merged in main `11acf547a209f0361234ddd07da3949325f56631`. Those merges were performed outside this recovery; the earlier histories remain intact.
+
 | Direction | Research PR |
 |---|---|
 | Source context / Jev | [#110](https://github.com/gigaverse-app/dry-lint/pull/110) |
@@ -18,6 +20,8 @@ The earlier vector/matrix, ensemble, CPU, model-function and other studies alrea
 | Model-function joins | [#119](https://github.com/gigaverse-app/dry-lint/pull/119) |
 | Linked documentation | [#120](https://github.com/gigaverse-app/dry-lint/pull/120) |
 | Historical protected recovery | [#121](https://github.com/gigaverse-app/dry-lint/pull/121) |
+| Grounded operation claims | [#123](https://github.com/gigaverse-app/dry-lint/pull/123) |
+| Budget-family proof | [#124](https://github.com/gigaverse-app/dry-lint/pull/124) |
 
 ## Later directions recovered here
 
