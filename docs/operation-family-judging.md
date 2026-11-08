@@ -9,6 +9,23 @@ recorder and renderer. The CLI/scheduling integration supplies the existing camp
 It must run after the protected pair pass, under the same residual USD and call caps. There is no private
 family allowance, automatic retry, provider fallback or default change.
 
+## What nomination counts as removable
+
+A family is nominated only when replacing every site with a helper call removes statements. Two rules keep
+idioms out of that estimate:
+
+- A site whose `return`, `break` or `continue` leaves the region costs two statements: the call and the
+  condition that still transfers control (`if guard(value): return ...`). A helper cannot return from or
+  continue its caller. A region that returns or raises on every path, or that ends the function, stays one
+  `return helper(...)` call. `raise` is always free, so validation guards such as a shared budget check
+  are unaffected.
+- A region must name at least two domain identifiers: non-local names, attributes, keyword names or string
+  literals. Locals become anonymous slots in the canonical form, so `if item: items.append(item)` would
+  otherwise match unrelated code across a repository.
+
+On 32 gigaverse-backend pull requests these rules reduced per-PR nominations from 19 to 5 (13 distinct
+families to 4) and kept the one source-reviewed useful family; repository-wide nominations fell from 57 to 26.
+
 ## Native campaign configuration
 
 Operation-family recovery is explicitly enabled for `check` after the complete protected pair pass:

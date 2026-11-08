@@ -60,6 +60,10 @@ class OperationRegion(BaseModel):
     statements: int
     bindings: dict[str, str]
     enclosing: list[SourceSpan]
+    replacement_statements: int = Field(
+        default=1,
+        description="Statements a call site needs: 2 when a return/break/continue leaves the region.",
+    )
 
 
 class OperationOwner(BaseModel):
@@ -152,6 +156,30 @@ def _regions(body: list[ast.stmt]) -> Iterator[tuple[str, list[ast.stmt], tuple[
         pending.extend(reversed(children))
 
 
+_MIN_DOMAIN_NAMES = 2
+
+
+def _domain_names(statements: list[ast.stmt], locals_: set[str]) -> set[str]:
+    """What the region knows beyond its own variables: non-local names, attributes, keywords and strings.
+
+    Locals become anonymous slots in the canonical form, so `if x: items.append(x)` and `if not y: return 0`
+    match across unrelated code. A region that names fewer than two such identifiers carries no knowledge a
+    shared helper could own.
+    """
+    found: set[str] = set()
+    for statement in statements:
+        for node in ast.walk(statement):
+            if isinstance(node, ast.Name) and node.id not in locals_:
+                found.add(node.id)
+            elif isinstance(node, ast.Attribute):
+                found.add("." + node.attr)
+            elif isinstance(node, ast.keyword) and node.arg:
+                found.add(node.arg + "=")
+            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                found.add(repr(node.value))
+    return found
+
+
 def _canonical(statements: list[ast.stmt], locals_: set[str]) -> tuple[str, dict[str, str]]:
     """Names are alpha slots only when the Python symbol table proves them local.
 
@@ -206,6 +234,62 @@ def _slice(lines: list[bytes], span: SourceSpan, line: int) -> str:
     return b"".join([lines[start][span.column :], *lines[start + 1 : end], lines[end][: span.end_column]]).decode()
 
 
+def _terminates(suite: list[ast.stmt]) -> bool:
+    """Every path through the suite returns or raises, so its value can be returned from a helper."""
+    if not suite:
+        return False
+    last = suite[-1]
+    if isinstance(last, (ast.Return, ast.Raise)):
+        return True
+    if isinstance(last, ast.If):
+        return _terminates(last.body) and _terminates(last.orelse)
+    if isinstance(last, (ast.With, ast.AsyncWith)):
+        return _terminates(last.body)
+    return False
+
+
+def _tail_statements(body: list[ast.stmt]) -> set[ast.stmt]:
+    """Statements after which the function returns: a return there can become `return helper(...)`."""
+    tails: set[ast.stmt] = set()
+    pending = [body]
+    while pending:
+        suite = pending.pop()
+        if not suite:
+            continue
+        last = suite[-1]
+        tails.add(last)
+        if isinstance(last, ast.If):
+            pending += [last.body, last.orelse]
+        elif isinstance(last, (ast.With, ast.AsyncWith)):
+            pending.append(last.body)
+        elif isinstance(last, (ast.Try, ast.TryStar)):
+            # A finally clause may override the return; an else clause runs after a falling-through body.
+            if not last.finalbody:
+                pending += [last.orelse or last.body, *(handler.body for handler in last.handlers)]
+        elif isinstance(last, ast.Match):
+            pending += [case.body for case in last.cases]
+    return tails
+
+
+def _exits(statements: list[ast.stmt], *, tail: bool) -> bool:
+    """True when a return, break or continue transfers control out of the region.
+
+    A helper cannot return from or continue its caller, so such a site keeps a conditional transfer beside the
+    call. Returns are free when `return helper(...)` is equivalent: the region returns or raises on every path,
+    or it ends the function, where falling through already returns None.
+    """
+    pending = [(statement, False) for statement in statements]
+    while pending:
+        node, in_loop = pending.pop()
+        if isinstance(node, ast.Return) and not tail:
+            return True
+        if isinstance(node, (ast.Break, ast.Continue)) and not in_loop:
+            return True
+        loop = in_loop or isinstance(node, (ast.For, ast.AsyncFor, ast.While))
+        pending.extend((child, loop) for child in ast.iter_child_nodes(node) if not isinstance(child, _SCOPES))
+    return False
+
+
 def _overlaps(a: SourceSpan, b: SourceSpan) -> bool:
     return (a.line, a.column) < (b.end_line, b.end_column) and (b.line, b.column) < (a.end_line, a.end_column)
 
@@ -218,13 +302,14 @@ def _source_key(function: Function) -> tuple[str, str, str]:
 def _benefit(owners: list[OperationOwner]) -> FamilyBenefit:
     regions = [region for owner in owners for region in owner.regions]
     repeated = sum(region.statements for region in regions)
+    replacement = sum(region.replacement_statements for region in regions)
     shared = regions[0].statements
     return FamilyBenefit(
         repeated_statements=repeated,
-        replacement_statements=len(regions),
+        replacement_statements=replacement,
         shared_statements=shared,
         shared_owner_overhead=1,
-        removable_statements=repeated - len(regions) - shared - 1,
+        removable_statements=repeated - replacement - shared - 1,
     )
 
 
@@ -476,6 +561,7 @@ class PythonOperationFamilies:
             stats.scanned_functions += 1
             result = []
             source_lines = [line.encode() for line in lines]
+            tails = _tail_statements(node.body)
             raw = sorted(
                 _regions(node.body),
                 key=lambda item: (item[1][0].lineno, item[1][0].col_offset, -item[1][-1].end_lineno),
@@ -516,6 +602,9 @@ class PythonOperationFamilies:
                 if self._delegate(statements):
                     skipped["single_call_delegate"] += 1
                     continue
+                if len(_domain_names(statements, locals_)) < _MIN_DOMAIN_NAMES:
+                    skipped["local_only_idiom"] += 1
+                    continue
                 canonical, bindings = _canonical(statements, locals_)
                 result.append(
                     (
@@ -527,6 +616,9 @@ class PythonOperationFamilies:
                             statements=count,
                             bindings=bindings,
                             enclosing=[_span(parent, parent, function, indent) for parent in enclosing],
+                            replacement_statements=2
+                            if _exits(statements, tail=statements[-1] in tails or _terminates(statements))
+                            else 1,
                         ),
                     )
                 )

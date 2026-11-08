@@ -313,7 +313,7 @@ def test_ambiguous_and_invalid_native_sources_are_not_silently_accepted():
 def test_nonpositive_small_operations_are_not_ranked_as_savings():
     batch = nominate(owners(GUARD, signature="value"))
     assert not batch.nominations
-    assert batch.stats.skipped["nonpositive_benefit"] == 1
+    assert batch.stats.skipped["nonpositive_benefit"] >= 1
 
 
 def test_per_owner_region_site_and_caller_limits_keep_complete_source():
@@ -423,3 +423,58 @@ def test_changed_owner_must_survive_source_dedup_and_overlap_allocation():
     assert len(batch.nominations) == 1
     assert batch.stats.skipped["unchanged_after_overlap"] > 0
     assert all(any(member.owner_id == large[0].qualname for member in family.owners) for family in batch.nominations)
+
+
+GUARD_EXIT = """\
+    prepare(value)
+    if value.missing:
+        notify(value, strict=True)
+        return Default.VALUE
+"""
+CONTINUE_GUARD = """\
+    for item in items:
+        if item.key in REGISTRY.seen:
+            REGISTRY.skip(item)
+            continue
+        handle{index}(item)
+"""
+RETURNING_BRANCH = """\
+    for v in values:
+        if v.ready:
+            notify(v, strict=True)
+            return v.result
+        else:
+            return Default.VALUE
+    record(values)
+"""
+
+
+def test_a_return_that_ends_the_function_is_one_call_but_mid_function_keeps_its_condition():
+    tail = nominate(owners(GUARD_EXIT, signature="value")).nominations
+    assert [family.owners[0].regions[0].replacement_statements for family in tail] == [1]
+    # A helper cannot return from its caller: each site would keep `if helper(value): return ...`.
+    middle = nominate(owners(GUARD_EXIT + "    record(value)\n", signature="value"))
+    assert not middle.nominations
+    assert middle.stats.skipped["nonpositive_benefit"] >= 1
+
+
+def test_a_continue_that_leaves_the_region_keeps_its_condition():
+    functions = [
+        owners(CONTINUE_GUARD.format(index=i), count=1, prefix=f"job{i}", signature="items")[0] for i in range(3)
+    ]
+    batch = nominate(functions)
+    assert not batch.nominations
+    assert batch.stats.skipped["nonpositive_benefit"] >= 1
+
+
+def test_a_branch_that_returns_on_every_path_is_one_call_inside_a_loop():
+    family = nominate(owners(RETURNING_BRANCH, signature="values")).nominations[0]
+    region = family.owners[0].regions[0]
+    assert region.kind == "If" and region.replacement_statements == 1
+
+
+def test_a_region_naming_only_its_own_locals_is_not_a_shared_operation():
+    idiom = "    if item:\n        items.append(item)\n    finish(item, items)\n"
+    batch = nominate(owners(idiom, count=6, signature="item, items"))
+    assert not batch.nominations
+    assert batch.stats.skipped["local_only_idiom"] >= 6

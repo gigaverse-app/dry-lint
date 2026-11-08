@@ -167,7 +167,10 @@ def request_from_nomination(
                 source_id=owner.source_id,
                 function=owner.function,
                 operations=highlights,
-                operation_slices=[OperationSlice.model_validate(region.model_dump()) for region in owner.regions],
+                operation_slices=[
+                    OperationSlice.model_validate(region.model_dump(exclude={"replacement_statements"}))
+                    for region in owner.regions
+                ],
                 local_callers=owner.local_callers,
             )
         )
