@@ -12,16 +12,14 @@ from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Function, pair_key
 from dry_lint.settings import Settings
 
-from conftest import SCRIPTS, function, gold_line, run_main, run_script
+from conftest import SCRIPTS, function, gold_line, run_main, run_script, stub_function
 
 trial = runpy.run_path(str(SCRIPTS / "channel_trial.py"))
 CslsComparer, Floored, LsiComparer = trial["CslsComparer"], trial["Floored"], trial["LsiComparer"]
 
 
 def doc(path: str, *tokens: str, name: str = "run") -> Function:
-    return Function(
-        path=path, name=name, line=1, end_line=3, code=f"def {name}():\n    pass\n    pass", tokens=list(tokens)
-    )
+    return stub_function(path, name, f"def {name}():\n    pass\n    pass", end_line=3, tokens=tokens)
 
 
 def fillers(count: int = 30) -> list[Function]:
