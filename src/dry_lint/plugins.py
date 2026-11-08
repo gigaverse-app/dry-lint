@@ -96,6 +96,7 @@ BUILT_IN = {
         "command": "dry_lint.judges.command:CommandJudge",
         "gemini": "dry_lint.judges.gemini:GeminiJudge",
         "anthropic": "dry_lint.judges.anthropic:AnthropicJudge",
+        "anthropic-family": "dry_lint.judges.anthropic_family:AnthropicFamilyJudge",
         "claude-code": "dry_lint.judges.subscription:ClaudeCodeJudge",
         "codex": "dry_lint.judges.subscription:CodexJudge",
     },
