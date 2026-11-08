@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 13
+SCHEMA = 14
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -59,6 +59,16 @@ class LanguageAnalysis(BaseModel):
         default=None, description="File-local path::Owner.method for a body consisting only of forwarding a call."
     )
     declared_override: bool = False
+    local_calls: tuple[str, ...] = Field(
+        default=(),
+        description="File-local path::Owner.method targets the body calls directly, resolved by the adapter.",
+    )
+
+
+# INVARIANT: `local_calls` only settles a pair before any lookup ("one calls the other"); it is never verdict
+# evidence, so it stays out of `Candidate.context_hash`. Adding it therefore keeps every stored verdict and
+# accepted baseline entry valid. A changed call settles or reopens the pair through `why_skipped`, not the store.
+_UNHASHED_ANALYSIS = {"local_calls"}
 
 
 class Function(BaseModel):
@@ -183,6 +193,7 @@ class Candidate(BaseModel):
     consolidation: list[Consolidation] = Field(default_factory=list)
     policies: list[AppliedPolicy] = Field(default_factory=list)
     lane: Literal["baseline", "exploration", "relative"] = "baseline"
+    residual: bool = Field(default=False, description="Only eligible after the complete protected discovery pass.")
     parent: str = Field(default="", description="For a relative: the key of the pair whose fix would touch `new`.")
 
     @property
@@ -206,7 +217,13 @@ class Candidate(BaseModel):
             return ""
         payload = [
             sorted(
-                (f.qualname, f.context, f.context_digest, f.analysis.model_dump_json() if f.analysis else "", f.bases)
+                (
+                    f.qualname,
+                    f.context,
+                    f.context_digest,
+                    f.analysis.model_dump_json(exclude=_UNHASHED_ANALYSIS) if f.analysis else "",
+                    f.bases,
+                )
                 for f in (self.new, self.existing)
             ),
             [target.model_dump() for target in self.consolidation],

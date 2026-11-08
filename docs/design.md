@@ -55,12 +55,18 @@ Every run goes through the same six steps, whatever plugins it uses:
    A changed existing side brings none: its look-alikes are proposed directly.
 4. **Settle by rule.** Core consumes language facts from the existing extractor interface. A pair is `filtered`
    when both adapters identify the same convention in the same language (currently Python special methods),
-   one is a recognized forwarding wrapper for the other in the same repository, both match a declared `pattern`,
-   one carries `# dry-lint: distinct-from <qualified name suffix>`, or either carries `# dry-lint: ignore`.
-   A forwarding body consists only of a same-owner method call with unchanged parameter arguments. Additional
-   statements, computed arguments, decorators, parameter initializers and unresolved targets stay with the judge.
-   Calls and inheritance alone never exclude executable implementations. Core does not interpret receiver names,
-   base-module paths or naming syntax; unknown analysis never establishes an exemption.
+   one is a recognized forwarding wrapper for the other in the same repository, one calls the other through a
+   call the adapter resolved inside the file, both match a declared `pattern`, one carries
+   `# dry-lint: distinct-from <qualified name suffix>`, or either carries `# dry-lint: ignore`.
+   A forwarding body consists only of a same-owner method call with unchanged parameter arguments ("forwarding
+   wrapper"). Any other resolved direct call settles as "one calls the other": both judges already label such a pair
+   SEPARATE, and caller/helper pairs were the most common false report in agent review, so settling them first saves
+   judge budget and keeps discovery slots for unrelated functions. Only file-local targets resolve: a method of the
+   caller's own class through `self`/`cls`/`this`, or a Python module-level function the body does not rebind.
+   Imports, other receivers, computed members and inherited dispatch stay with the judge, and inheritance alone never
+   excludes a pair. Core does not interpret receiver names, base-module paths or naming syntax; unknown analysis
+   never establishes an exemption. This one rule (`why_skipped`) serves every route: `pair()` records it as
+   `filtered`, and discovery routes that ask for unseen pairs skip it before their cap, so no comparer re-implements it.
    Settled pairs remain in output with their rule. The extractor hashes both functions of every pair.
 5. **Look up.** Each remaining pair's record is read from the store and kept if it still holds (below).
 6. **Judge and report.** Pairs without a usable verdict go to the judge; scores in the escalation band go on to
@@ -70,6 +76,8 @@ Every run goes through the same six steps, whatever plugins it uses:
 
 `dry-lint check` runs all six. In CI they split into two jobs: `dry-lint detect` runs steps 1–4 and writes
 `candidates.json`; `dry-lint judge` runs steps 5–6 from that file and writes `report.json`.
+
+Discovery comparers may opt into generic resources owned by a single `Detector.candidates()` call. Core supplies construction/index hooks only; plugin code owns validation, exact keys and encoding. Prepared resources may be reused while mutable query state remains private. Concurrent calls have independent scopes, and no scope survives the call. See [plugin resource ownership](plugins.md#optional-run-resources).
 
 ## Two jobs in CI
 
@@ -93,6 +101,13 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 - A repository without outside contributors can run `dry-lint check` in one job instead. The files are the same.
 
 ## File formats
+
+Schema 14 adds optional candidate `residual` scheduling metadata, defaulting to false for older files. It marks
+recovery candidates after the complete adopter-configured discovery pass. It does not enter pair/context/exact
+verdict identity: the question and source are unchanged. The independent campaign schema becomes 2, recording
+which attempts borrowed residual capacity so their settlements cannot refill protected exploration credit.
+See [experimental residual recovery](production-discovery.md#experimental-residual-recovery) for scope and the
+tradeoff against future baseline evidence.
 
 Schema 12 separates model ownership reviews from confirmed function duplicates in hook journals, commit trailers,
 PR ledgers and backlog cleanup. Model reviews have their own resolved/dismissed counts and never enter the
@@ -129,7 +144,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 13`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 12 remain readable with conservative cache defaults. Schema 9 adds
+New files carry `"schema": 14`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 13 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds

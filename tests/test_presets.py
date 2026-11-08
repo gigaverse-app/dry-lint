@@ -100,3 +100,59 @@ def test_a_codex_login_is_never_assumed_so_its_preset_must_be_named() -> None:
     assert auto_preset({"TYPESAFE_AI_API_KEY": "k"}) == "jev"
     named = resolve(Settings(preset="jev+codex"), {})
     assert (named.escalate.use, named.report_at, named.fail_at) == ("codex", 0.7, 0.7)
+
+
+def test_balanced_adds_bounded_blocks_after_implicit_tfidf() -> None:
+    settings = resolve(Settings(preset="balanced"), {})
+    choices = settings.discovery.comparers
+    assert [(c.use, c.neighbours) for c in choices] == [("tfidf", 20), ("operation-blocks", 1)]
+    assert choices[0].options()["min_similarity"] == choices[0].options()["min_similarity_small"] == 0.35
+    assert settings.budget.usd == 0.04 and settings.report_at == settings.fail_at == 0.5
+    assert resolve(settings, {}).model_dump() == settings.model_dump()
+
+
+@pytest.mark.parametrize("comparers", [[], [{"use": "custom", "neighbours": 7, "option": "kept"}]])
+def test_balanced_preserves_explicit_comparer_lists_including_empty_opt_out(comparers) -> None:
+    settings = resolve(Settings(preset="balanced", discovery={"comparers": comparers}), {})
+    assert settings.discovery.enabled
+    assert [c.model_dump(exclude_none=True) for c in settings.discovery.comparers] == comparers
+
+
+def test_balanced_preserves_disabled_discovery_and_custom_baseline() -> None:
+    disabled = resolve(Settings(preset="balanced", discovery={"enabled": False}), {})
+    assert not disabled.discovery.enabled and not disabled.discovery.comparers
+    custom = resolve(Settings(preset="balanced", comparer="custom"), {})
+    assert custom.comparer.use == "custom" and not custom.discovery.comparers
+
+
+def test_balanced_explicit_depth_and_floors_still_go_to_tfidf() -> None:
+    settings = resolve(
+        Settings(
+            preset="balanced",
+            comparer={"use": "tfidf", "max_df": 0.2, "min_similarity": 0.8, "min_similarity_small": 0.7},
+            discovery={"depth": 12, "min_similarity": 0.45},
+        ),
+        {},
+    )
+    tfidf, blocks = settings.discovery.comparers
+    assert tfidf.neighbours == 12
+    assert tfidf.options()["max_df"] == 0.2
+    assert tfidf.options()["min_similarity"] == tfidf.options()["min_similarity_small"] == 0.45
+    assert blocks.use == "operation-blocks" and blocks.neighbours == 1
+
+
+@pytest.mark.parametrize("environment", [{}, {"ANTHROPIC_API_KEY": "presence"}, BOTH])
+def test_legacy_auto_does_not_enable_block_exploration(environment) -> None:
+    settings = resolve(Settings(), environment)
+    assert not settings.discovery.enabled and not settings.discovery.comparers
+
+
+def test_balanced_resolved_block_choice_cannot_mutate_preset_or_future_resolve() -> None:
+    first = resolve(Settings(preset="balanced"), {})
+    original = PRESETS["balanced"].discovery_append[0].neighbours
+    try:
+        first.discovery.comparers[-1].neighbours = 7
+        assert PRESETS["balanced"].discovery_append[0].neighbours == original == 1
+        assert resolve(Settings(preset="balanced"), {}).discovery.comparers[-1].neighbours == 1
+    finally:
+        PRESETS["balanced"].discovery_append[0].neighbours = original
