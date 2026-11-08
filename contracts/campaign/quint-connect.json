@@ -48,5 +48,14 @@
   "sources": [
     "src/dry_lint/discovery.py"
   ],
-  "limits": "One judge, two pairs, one family, two revisions, no subscription judge, providers billing within their reservation. Ordering (CampaignStore.order) and concurrency between processes are outside the model."
+  "limits": "One judge, two pairs, one family, two revisions, no subscription judge, providers billing within their reservation. Ordering (CampaignStore.order) and concurrency between processes are outside the model.",
+  "bugs_found": [
+    {
+      "summary": "settle() accepted an already settled reservation: an answered attempt could turn failed and protected exploration credit was refunded again",
+      "fixed_in": "gigaverse-app/dry-lint#157",
+      "found_by": "witness secondSettleIsRefusedTest",
+      "regression_test": "tests/test_discovery.py::test_a_reservation_settles_exactly_once",
+      "mutant": "double-settle"
+    }
+  ]
 }
