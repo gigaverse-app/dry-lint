@@ -121,6 +121,19 @@ class Discovery(BaseModel):
         default_factory=list,
         description="Opt-in recovery after the complete configured pass, borrowing future baseline capacity.",
     )
+    residual_judge: Choice | None = Field(
+        default=None, description="Optional judge used only for newly funded residual recovery questions."
+    )
+
+    @model_validator(mode="after")
+    def explicit_residual_judge(self):
+        if self.residual_judge is not None:
+            if not self.residual_comparers:
+                raise ValueError("residual_judge requires discovery.residual_comparers")
+            if self.residual_judge.use in {"none", "auto"}:
+                raise ValueError("residual_judge must name an explicit judge plugin")
+        return self
+
     depth: int = Field(default=20, ge=3, le=100)
     min_similarity: float = Field(default=0.35, ge=0, le=1)
     baseline_fraction: float = Field(default=0.625, ge=0, le=1)

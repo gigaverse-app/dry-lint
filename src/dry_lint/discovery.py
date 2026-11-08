@@ -23,10 +23,12 @@ class Attempt(BaseModel):
     usd: float
     status: str = "reserved"
     residual: bool = False
+    source_evidence: str = ""
+    subscription: bool = False
 
 
 class Campaign(BaseModel):
-    schema_version: int = 2
+    schema_version: int = 3
     revisions: list[str] = Field(default_factory=list)
     attempts: list[Attempt] = Field(default_factory=list)
     credit: float = 0.0
@@ -64,7 +66,7 @@ class CampaignStore:
             row = db.execute("SELECT state FROM campaigns WHERE key = ?", (self.key,)).fetchone()
             state = Campaign.model_validate_json(row[0]) if row else Campaign()
             yield state
-            state.schema_version = 2
+            state.schema_version = 3
             db.execute("INSERT OR REPLACE INTO campaigns VALUES (?, ?)", (self.key, state.model_dump_json()))
 
     def snapshot(self) -> Campaign:
@@ -78,6 +80,36 @@ class CampaignStore:
             if self.revision not in state.revisions:
                 state.revisions.append(self.revision)
                 state.credit = min(cap, state.credit + settings.discovery.exploration_per_revision)
+
+    def recovery_ready(self, settings: Settings, candidates: list[Candidate]) -> bool:
+        """Avoid constructing a recovery plugin when neither admission nor recovery cache work can run.
+
+        This is only a lazy-loading gate; reserve repeats the authoritative checks atomically.
+        """
+        state = self.snapshot()
+        current = [a for a in state.attempts if a.revision == self.revision]
+        sources = {evidence(c) for c in candidates}
+        # Cached successful recovery remains readable after a later failure or exhaustion. Loading the
+        # current plugin still verifies its exact version; an earlier policy cannot answer this one.
+        if any(a.residual and a.status == "answered" and a.source_evidence in sources for a in state.attempts):
+            return True
+        return (
+            all(a.status == "answered" for a in current)
+            and state.usd < settings.budget.usd
+            and self.call_room(state, current, settings, exploration=True)
+        )
+
+    @staticmethod
+    def call_room(state: Campaign, current: list[Attempt], settings: Settings, *, exploration: bool) -> bool:
+        policy = settings.discovery
+        limit = min(policy.calls_per_revision, settings.max_judgements or policy.calls_per_revision)
+        return (
+            len(current) < limit
+            and len(state.attempts) < policy.calls
+            and (
+                not exploration or sum(a.lane == "exploration" for a in current) < policy.exploration_calls_per_revision
+            )
+        )
 
     def reserve(
         self, candidate: Candidate, judge: Judge, settings: Settings, usd: float, *, residual: bool = False
@@ -96,16 +128,21 @@ class CampaignStore:
             if residual and any(a.status != "answered" for a in current):
                 return None
             # Repeated attempts on one tree do not mint calls or credit, including failed/abandoned requests.
-            if any(a.evidence == version for a in current):
+            if any(
+                a.evidence == version or ((residual or a.residual) and a.source_evidence == evidence(candidate))
+                for a in current
+            ):
                 return None
-            limit = min(policy.calls_per_revision, settings.max_judgements or policy.calls_per_revision)
-            if len(current) >= limit or len(state.attempts) >= policy.calls:
+            if not self.call_room(state, current, settings, exploration=candidate.lane == "exploration"):
+                return None
+            if (
+                getattr(judge, "subscription", False)
+                and sum(a.subscription for a in current) >= settings.budget.subscription_calls
+            ):
                 return None
             room = settings.budget.usd - state.usd
             if candidate.lane == "exploration":
                 explored = [a for a in state.attempts if a.lane == "exploration"]
-                if sum(a.lane == "exploration" for a in current) >= policy.exploration_calls_per_revision:
-                    return None
                 if not residual:
                     if len(explored) >= int(policy.calls * (1 - policy.baseline_fraction)):
                         return None
@@ -121,6 +158,8 @@ class CampaignStore:
                     query=candidate.new.qualname,
                     usd=usd,
                     residual=residual,
+                    source_evidence=evidence(candidate),
+                    subscription=getattr(judge, "subscription", False),
                 )
             )
             if candidate.lane == "exploration" and not residual:

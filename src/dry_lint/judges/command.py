@@ -22,6 +22,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Literal
 
+from dry_lint.judges.grounded import POLICY as GROUNDED_POLICY
+from dry_lint.judges.grounded import PROMPT_VERSION as GROUNDED_VERSION
+from dry_lint.judges.grounded import TEMPLATE as GROUNDED_PROMPT
 from dry_lint.models import Candidate, Verdict
 from dry_lint.settings import Settings
 
@@ -160,6 +163,7 @@ EXISTING CONTEXT:
 """
 
 PROMPT_POLICIES = {
+    GROUNDED_POLICY: (GROUNDED_VERSION, GROUNDED_PROMPT),
     "concept": (PROMPT_VERSION, PROMPT),
     "shared-operations": (OPERATIONS_VERSION, OPERATIONS_PROMPT),
     "shared-operations-compact": ("dry-operations-compact-v1", COMPACT_PROMPT),

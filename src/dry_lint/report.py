@@ -168,6 +168,10 @@ class JudgingSummary(BaseModel):
         judges = self.judge or "no judge"
         if self.escalation and self.band:
             judges += f" > {self.escalation} on [{self.band[0]:g}, {self.band[1]:g})"
+        if self.campaign:
+            recovery = [s.judge for s in self.spend if s.judge not in {self.judge, self.escalation}]
+            if recovery:
+                judges += "; recovery " + ", ".join(recovery)
         thresholds = (
             f"reports at {self.report_at:g}, fails at {self.fail_at:g}"
             if self.fail_at > self.report_at

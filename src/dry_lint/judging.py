@@ -106,6 +106,7 @@ class Judging:
         self.ledger = Ledger(settings)
         self.pull_request = False
         self.campaign: CampaignStore | None = None
+        self.residual_judge: Judge | None = None
 
     @classmethod
     def configured(cls, settings: Settings, store: VerdictStore) -> "Judging":
@@ -254,10 +255,38 @@ class Judging:
                 Finding(candidate=c, deferred=True, budget_deferred=all(f.budget_deferred for f in blocked))
                 for c in suffix
             ]
-        attempted = {a.evidence for a in campaign.snapshot().attempts if a.revision == campaign.revision}
+        choice = self.settings.discovery.residual_judge
+        attempted = {
+            a.evidence
+            for a in campaign.snapshot().attempts
+            if a.revision == campaign.revision and (choice is None or not a.residual or not a.source_evidence)
+        }
         pending = [f.candidate for f in found if f.deferred and evidence(f.candidate, identity(judge)) not in attempted]
+        already_attempted = []
+        if choice is not None:
+            # Schema-2 attempts lack source_evidence but were all made by the protected judge.
+            # Changing policy cannot turn those into a second paid question on the same revision.
+            already_attempted = [c for c in suffix if evidence(c, identity(judge)) in attempted]
+            suffix = [c for c in suffix if evidence(c, identity(judge)) not in attempted]
+            # Load only after the complete protected pass and its barriers. A missing main judge,
+            # empty recovery queue, failed/inflight prefix or exhausted cold campaign needs no plugin/key.
+            if not pending and not suffix or not campaign.recovery_ready(self.settings, pending + suffix):
+                self.ledger.spend[identity(judge)].skipped += len(suffix) + len(already_attempted)
+                state = campaign.snapshot()
+                budget_only = state.usd >= self.settings.budget.usd and all(
+                    a.status == "answered" for a in state.attempts if a.revision == campaign.revision
+                )
+                return (
+                    found
+                    + [Finding(candidate=c, deferred=True, budget_deferred=budget_only) for c in suffix]
+                    + [Finding(candidate=c, deferred=True) for c in already_attempted]
+                )
+            if self.residual_judge is None:
+                self.residual_judge = load("judges", choice)
         self.ledger.spend[identity(judge)].skipped -= len(pending)
         recovered = self.discovery_phase(pending + suffix, source, residual=True)
+        self.ledger.spend[identity(judge)].skipped += len(already_attempted)
+        recovered += [Finding(candidate=c, deferred=True) for c in already_attempted]
         replacements = {f.candidate.key: f for f in recovered}
         return [replacements.get(f.candidate.key, f) for f in found] + [f for f in recovered if f.candidate.residual]
 
@@ -266,13 +295,17 @@ class Judging:
     ) -> list[Finding]:
         """One ordered pass; both phases use the same reservations, settlements and exact verdict cache."""
         assert self.campaign is not None and self.judge is not None
-        judge, campaign = self.judge, self.campaign
-        spend = self.ledger.spend.setdefault(identity(judge), Spend(judge=identity(judge)))
+        judge = self.residual_judge if residual and self.residual_judge is not None else self.judge
+        campaign = self.campaign
+        store = self.store.scoped(f"residual:{identity(judge)}") if residual and self.residual_judge else self.store
+        spend = self.ledger.spend.setdefault(
+            identity(judge), Spend(judge=identity(judge), subscription=getattr(judge, "subscription", False))
+        )
         findings = []
         baseline_pending = False
         baseline_budget_only = True
         for candidate in campaign.order(candidates):
-            cached = self.store.lookup(
+            cached = store.lookup(
                 candidate, judge.name, self.settings.reopen_margin, judge.version, exact_source=True
             ).verdict
             if cached is not None:
@@ -315,7 +348,7 @@ class Judging:
                 spend.calls += 1
                 spend.usd += charged
             if verdict is not None:
-                self.store.remember(candidate, verdict, source)
+                store.remember(candidate, verdict, source)
             else:
                 if candidate.lane == "baseline":
                     baseline_pending = True
