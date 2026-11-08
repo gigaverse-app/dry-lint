@@ -53,7 +53,7 @@ from dry_lint.models import Candidate, CandidatesFile, Run, evidence
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
 from dry_lint.replay import replay
-from dry_lint.report import FORMATS, Report, as_json, render
+from dry_lint.report import FAMILY_FORMAT_ERROR, FAMILY_FORMATS, FORMATS, Report, as_json, render
 from dry_lint.settings import PluginChoice, Settings
 
 
@@ -188,9 +188,31 @@ def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[st
     return found
 
 
+def require_family_format(settings: Settings, args: argparse.Namespace) -> None:
+    """Refuse a family opt-in whose report format cannot show families, before any detection or plugin."""
+    if settings.discovery.families is not None and args.format not in FAMILY_FORMATS:
+        raise ValueError(FAMILY_FORMAT_ERROR)
+
+
+def family_discovery(root: Path, settings: Settings, detector: Detector, changed, run: Run, *, staged: bool):
+    """Nominate operation families among `changed` owners, settled by the same human and adopter decisions."""
+    from dry_lint.family_discovery import FamilyDiscovery
+
+    decisions = read_feedback(root, staged=staged, committed=not staged)
+    native = {f.model_copy(update={"origin": f.origin or run}).qualname: f for f in detector.functions}
+
+    def settled(a, b):
+        # Human and adopter decisions settle a family; a call between two members does not, since a caller
+        # and its callee can both repeat the operation.
+        candidate = detector.pair(native[a.qualname], native[b.qualname], 0, calls=False)
+        return decisions.apply([candidate])[0].filtered
+
+    assert settings.discovery.families is not None, "family_discovery needs the explicit families opt-in"
+    return FamilyDiscovery(detector.functions, changed, run, settings.discovery.families, settled=settled)
+
+
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    if settings.discovery.families is not None and args.format not in ("text", "json", "markdown", "check-run"):
-        raise ValueError("Operation families support text, json, markdown and check-run reports")
+    require_family_format(settings, args)
     detector, primary = detector_for(root, settings, args)
     changed = touched(
         [f for f in detector.functions if not f.origin or f.origin.repository == primary],
@@ -214,18 +236,7 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if settings.discovery.families is not None:
         if not settings.discovery.enabled:
             raise ValueError("Operation-family discovery requires discovery.enabled = true")
-        from dry_lint.family_discovery import FamilyDiscovery
-
-        decisions = read_feedback(root, staged=args.staged, committed=not args.staged)
-        native = {f.model_copy(update={"origin": f.origin or run}).qualname: f for f in detector.functions}
-
-        def settled(a, b):
-            # Human and adopter decisions settle a family; a call between two members does not, since a caller
-            # and its callee can both repeat the operation.
-            candidate = detector.pair(native[a.qualname], native[b.qualname], 0, calls=False)
-            return decisions.apply([candidate])[0].filtered
-
-        families = FamilyDiscovery(detector.functions, changed, run, settings.discovery.families, settled=settled)
+        families = family_discovery(root, settings, detector, changed, run, staged=args.staged)
     report = judged(
         candidates,
         settings,
@@ -450,8 +461,7 @@ def progress(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    if settings.discovery.families is not None:
-        raise ValueError("Operation-family discovery requires a change campaign; use check with an immutable base")
+    require_family_format(settings, args)
     detector, _ = detector_for(root, settings, args)
     found = detector.scan(settled=True)
     proposed = [c for c in found if c.filtered is None]
@@ -464,16 +474,24 @@ def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
             "raise --limit to see more",
             file=sys.stderr,
         )
+    run = run_info(root, None)
+    # The backlog view: every function is an owner, so every repeated operation in the repository is nominated.
+    families = (
+        family_discovery(root, settings, detector, detector.functions, run, staged=False)
+        if settings.discovery.families is not None
+        else None
+    )
     report = judged(
         candidates,
         settings,
         root,
         args,
-        run_info(root, None),
+        run,
         0,
         refresh=args.refresh,
         functions=len(detector.functions),
         scope="repository",
+        family_discovery=families,
     )
     return finish(report, settings, args)
 

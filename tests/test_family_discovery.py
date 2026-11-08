@@ -9,8 +9,14 @@ from test_family_judging import family_answer, family_request
 from test_operation_families import OPERATION, owners
 
 from dry_lint.baseline import require_complete
+from dry_lint.costs import Ledger
 from dry_lint.discovery import CampaignStore
-from dry_lint.family_discovery import FamilyAdmission, FamilyBackend, FamilyDiscovery
+from dry_lint.family_discovery import (
+    BudgetFamilyAdmission,
+    CampaignFamilyAdmission,
+    FamilyBackend,
+    FamilyDiscovery,
+)
 from dry_lint.family_models import FamilyResponse, FamilyUsage
 from dry_lint.judges.anthropic_family import family_prompt
 from dry_lint.judging import Judging
@@ -149,15 +155,36 @@ def test_family_reservation_rejects_invalid_cost_without_touching_ledger(setup, 
     assert not judging.campaign.snapshot().attempts
 
 
-def test_a_family_needs_native_admission_and_a_budget_refusal_counts_as_skipped():
+def test_a_campaign_budget_refusal_counts_as_skipped():
     request = family_request()
     judge = RecordedFamily()
-    with pytest.raises(ValueError, match="native campaign admission"):
-        FamilyAdmission(SimpleNamespace(campaign=None)).reserve(request, judge, 0.01)
     campaign = SimpleNamespace(reserve_family=lambda *args, **kwargs: "budget")
     judging = SimpleNamespace(campaign=campaign, settings=None, ledger=SimpleNamespace(spend={}))
-    assert FamilyAdmission(judging).reserve(request, judge, 0.01) == "budget"
+    assert CampaignFamilyAdmission(judging).reserve(request, judge, 0.01) == "budget"
     assert judging.ledger.spend[identity(judge)].skipped == 1
+
+
+def test_scan_admission_holds_each_question_against_the_pair_budget_and_settles_actual_usage(setup):
+    settings, *_ = setup
+    settings.budget.usd, settings.budget.subscription_calls = 0.30, 1
+    judging = SimpleNamespace(settings=settings, ledger=Ledger(settings, spent=0.05))
+    admission = BudgetFamilyAdmission(judging)
+    request, judge = family_request(), RecordedFamily()
+    first = admission.reserve(request, judge, 0.20)
+    # The held reservation counts: a second 0.20 question no longer fits 0.30 - 0.05 spent.
+    assert admission.reserve(request, judge, 0.20) == "budget"
+    assert admission.settle(first, 0.12, True) == 0.12
+    assert admission.reserve(request, judge, 0.10) is not None
+    unknown = admission.reserve(request, judge, 0.01)
+    assert admission.settle(unknown, None, False) == 0.01  # unknown usage keeps the reservation charged
+    spend = judging.ledger.spend[identity(judge)]
+    assert (spend.calls, spend.skipped, spend.failed) == (2, 1, 1)
+    subscription = RecordedFamily()
+    subscription.subscription = True
+    assert BudgetFamilyAdmission(judging).reserve(request, subscription, 0.0) is not None
+    capped = BudgetFamilyAdmission(judging)
+    capped.held[1] = 0.0
+    assert capped.reserve(request, subscription, 0.0) is None  # the subscription call cap is shared too
 
 
 def test_an_unrepresentable_nomination_is_a_visible_exclusion(setup, monkeypatch):
@@ -257,3 +284,25 @@ def test_family_reservation_obeys_opt_in_phase_repeat_and_budget(setup, tmp_path
         assert campaign.reserve_family("other", "source", "owner", settings, 0.0) is None
     else:
         assert campaign.reserve_family("key", "source", "owner", settings, settings.budget.usd * 2) == "budget"
+
+
+@pytest.mark.parametrize("budget", [0.04, 0.0])
+def test_scan_judges_families_after_the_pair_pass_within_the_same_budget(setup, tmp_path, monkeypatch, budget):
+    settings, judging, discovery, judge, _, run = configured(setup, tmp_path, monkeypatch)
+    judging.campaign = None  # `scan`: no change campaign
+    settings.budget.usd = budget
+    judging.findings([], run)
+    if budget:
+        assert [finding.status for finding in discovery.findings] == ["answered"] and len(judge.calls) == 1
+        assert judging.ledger.spend[f"{judge.name}:{judge.version}"].calls == 1
+    else:
+        assert [finding.status for finding in discovery.findings] == ["budget"] and not judge.calls
+
+
+def test_scan_runs_no_family_when_the_budget_deferred_a_pair(setup, tmp_path, monkeypatch):
+    _, judging, discovery, judge, _, run = configured(setup, tmp_path, monkeypatch)
+    judging.campaign = None
+    deferred = SimpleNamespace(budget_deferred=True)
+    monkeypatch.setattr("dry_lint.family_discovery.load", lambda *_: pytest.fail("Deferred pairs loaded a plugin"))
+    discovery(judging, [deferred], run)
+    assert [finding.status for finding in discovery.findings] == ["budget"] and not judge.calls

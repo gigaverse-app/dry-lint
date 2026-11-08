@@ -172,6 +172,9 @@ class Judging:
         }
         relatives = [c for c in candidates if c.filtered is None and c.lane == "relative" and c.parent in reported]
         found += [f for f in self.assess(relatives, source, refresh, advisory=True) if not f.deferred]
+        if self.family_recovery is not None:
+            # After the complete pair pass, within what its budget left; recorded in the same spend.
+            self.family_recovery(self, found, source)
         self.store.add_spent(source, self.ledger.usd)
         return found
 
@@ -275,7 +278,8 @@ class Judging:
             suffix = [c for c in suffix if evidence(c, identity(judge)) not in attempted]
             # Load only after the complete protected pass and its barriers. A missing main judge,
             # empty recovery queue, failed/inflight prefix or exhausted cold campaign needs no plugin/key.
-            if not pending and not suffix or not campaign.recovery_ready(self.settings, pending + suffix):
+            sources = {evidence(candidate) for candidate in pending + suffix}
+            if not pending and not suffix or not campaign.recovery_ready(self.settings, sources):
                 self.ledger.spend[identity(judge)].skipped += len(suffix) + len(already_attempted)
                 state = campaign.snapshot()
                 budget_only = state.usd >= self.settings.budget.usd and all(
