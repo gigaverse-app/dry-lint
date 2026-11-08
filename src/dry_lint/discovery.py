@@ -168,8 +168,14 @@ class CampaignStore:
             return len(state.attempts) - 1
 
     def reserve_family(
-        self, key: str, source_key: str, query: str, settings: Settings, usd: float,
-        *, subscription: bool = False,
+        self,
+        key: str,
+        source_key: str,
+        query: str,
+        settings: Settings,
+        usd: float,
+        *,
+        subscription: bool = False,
     ) -> int | Literal["budget"] | None:
         """A whole family consumes one residual question, with the same total caps and failure holds."""
         if settings.discovery.families is None or not settings.discovery.enabled:
@@ -193,8 +199,14 @@ class CampaignStore:
                 return "budget"
             state.attempts.append(
                 Attempt(
-                    revision=self.revision, evidence=key, lane="exploration", query=query,
-                    usd=usd, residual=True, source_evidence="family:" + source_key, subscription=subscription,
+                    revision=self.revision,
+                    evidence=key,
+                    lane="exploration",
+                    query=query,
+                    usd=usd,
+                    residual=True,
+                    source_evidence="family:" + source_key,
+                    subscription=subscription,
                 )
             )
             # Family recovery never mints protected exploration credit.

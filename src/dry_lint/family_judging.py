@@ -147,6 +147,14 @@ class FamilyFinding(FamilyFile):
         return self
 
     @property
+    def unresolved(self) -> bool:
+        return (
+            self.record is None
+            or self.record.answer.decision == "unknown"
+            or any(member.status == "unknown" for member in self.record.answer.members)
+        )
+
+    @property
     def reported(self) -> bool:
         return self.record is not None and self.record.answer.decision == "consolidate"
 
@@ -164,7 +172,11 @@ class FamilyJudging:
     def finding(self, request: FamilyRequest) -> FamilyFinding:
         if not self.judge.available:
             return FamilyFinding(request=request, status="no_key")
-        cached = self.store.lookup(request, self.judge)
+        try:
+            cached = self.store.lookup(request, self.judge)
+        except Exception as error:
+            # A cache outage cannot authorize a paid duplicate question or erase the protected report.
+            return FamilyFinding(request=request, status="failed", error=type(error).__name__)
         if cached is not None:
             return FamilyFinding(request=request, status="cached", record=cached)
         reserved = family_reservation_cost(request, self.judge, self.rates)

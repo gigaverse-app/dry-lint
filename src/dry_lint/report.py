@@ -363,12 +363,23 @@ class Report(Versioned):
 
 
 def family_summary(report: Report, *, markdown: bool = False) -> str:
-    if not report.families:
+    if not report.families and not report.family_exclusions:
         return ""
     from dry_lint.family_report import FamilyReport
 
     families = FamilyReport(findings=report.families)
-    return "\n\n" + (families.markdown() if markdown else families.text())
+    output = families.markdown() if markdown else families.text()
+    if report.family_exclusions:
+        clean = escaped if markdown else plain
+        output += (
+            "\nExcluded family nominations:\n"
+            + "\n".join(
+                f"- {clean(item.get('nomination_id', 'unknown'))}: {clean(item.get('reason', 'unspecified'))}"
+                for item in report.family_exclusions
+            )
+            + "\n"
+        )
+    return "\n\n" + output
 
 
 def as_text(report: Report) -> str:
@@ -833,10 +844,10 @@ def as_check_run(
     failed = any(f.blocking for f in reported) and not warn_only
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
     family_proposals = sum(finding.reported for finding in report.families)
-    family_unresolved = sum(
-        finding.record is None or finding.record.answer.decision == "unknown" for finding in report.families
+    family_unresolved = sum(finding.unresolved for finding in report.families) + sum(
+        item.get("kind") != "rule" for item in report.family_exclusions
     )
-    if report.families:
+    if report.families or report.family_exclusions:
         title = f"{len(reported)} pair report(s); {family_proposals} family proposal(s); {family_unresolved} unresolved"
     if report.review_required:
         title = f"{len(report.review_required)} pair(s): review required"
@@ -849,7 +860,11 @@ def as_check_run(
         "name": "dry-lint",
         "head_sha": report.run.head,
         "status": "completed",
-        "conclusion": "failure" if failed else "neutral" if reported or report.deferred or family_proposals or family_unresolved else "success",
+        "conclusion": "failure"
+        if failed
+        else "neutral"
+        if reported or report.deferred or family_proposals or family_unresolved
+        else "success",
         "output": {"title": title, "summary": as_markdown(report, max_findings, report_at), "annotations": annotations},
     }
     return json.dumps(body, indent=2)
@@ -859,7 +874,7 @@ FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
 
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
-    if report.families and form not in ("text", "json", "markdown", "check-run"):
+    if (report.families or report.family_exclusions) and form not in ("text", "json", "markdown", "check-run"):
         raise ValueError("Operation families support text, json, markdown and check-run reports")
     if form not in ("text", "json", "markdown") and any(
         finding.candidate.new.origin

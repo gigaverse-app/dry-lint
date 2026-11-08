@@ -3,6 +3,9 @@
 import json
 
 import pytest
+from test_discovery import setup as setup
+from test_family_judging import family_answer
+from test_operation_families import owners
 
 from dry_lint.baseline import require_complete
 from dry_lint.discovery import CampaignStore
@@ -15,9 +18,6 @@ from dry_lint.report import Report, as_check_run, as_json, as_markdown, as_text
 from dry_lint.settings import FamilyDiscovery as FamilyConfiguration
 
 from conftest import coverage_pair
-from test_discovery import setup  # noqa: F401
-from test_family_judging import family_answer
-from test_operation_families import owners
 
 
 class RecordedFamily:
@@ -39,6 +39,7 @@ class RecordedFamily:
         return FamilyResponse(
             text="bad json" if self.fail else family_answer(request).model_dump_json(),
             usage=FamilyUsage(input=100, output=50),
+            stop_reason="end_turn",
         )
 
 
@@ -105,7 +106,9 @@ def test_cold_blocked_phase_does_not_construct_family_plugin(setup, tmp_path, mo
         from dry_lint.discovery import Attempt
 
         with judging.campaign.transaction() as state:
-            state.attempts.append(Attempt(revision=run.revision, evidence="pending", lane="exploration", query="q", usd=0.001))
+            state.attempts.append(
+                Attempt(revision=run.revision, evidence="pending", lane="exploration", query="q", usd=0.001)
+            )
     monkeypatch.setattr("dry_lint.family_discovery.load", lambda *_: pytest.fail("Blocked phase loaded a plugin"))
     discovery(judging, [], run)
     assert not judge.calls

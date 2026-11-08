@@ -9,6 +9,37 @@ recorder and renderer. The CLI/scheduling integration supplies the existing camp
 It must run after the protected pair pass, under the same residual USD and call caps. There is no private
 family allowance, automatic retry, provider fallback or default change.
 
+## Native campaign configuration
+
+Operation-family recovery is explicitly enabled for `check` after the complete protected pair pass:
+
+```toml
+preset = "balanced"
+
+[discovery.families]
+judge = { use = "anthropic-family", model = "claude-haiku-5-5", max_tokens = 2048 }
+max_members = 8
+max_questions = 3
+```
+
+The adopter chooses the model/output ceiling and supplies its own credentials. These settings are an example,
+not a measured quality recommendation. There is no separate family allowance: conservative reservations,
+actual-usage settlement, retained failure holds, prior spending and all call caps share the native campaign.
+Only text, JSON, Markdown and check-run output are supported. Split detect/judge, scan and baseline sweep
+reject this opt-in before judging; they do not silently omit family coverage. No default or CI setup changes.
+
+The family adapter uses the existing detector's pair rules and exact reviewed feedback to honor applicable
+human decisions. If a nominated family's owners contain a settled pair, it omits that whole nomination and
+reports the reason rather than silently clipping members. These rule exclusions do not claim a model answer.
+Oversized or invalid source exclusions remain unresolved. Unknown members remain unresolved even when the
+answer rejects consolidation. Family proposals are advisory and do not become confirmed pair findings.
+
+Main reports write schema 15, carrying `families` and `family_exclusions`; old reports load with empty lists.
+The independent family envelopes still use schema 1. Exact family records occupy a separate physical namespace.
+Cache failures preserve the protected pair report: reads fail closed without a paid call, and writes settle the
+admitted call's known usage (or retain its unknown-usage hold). Cached-only summaries retain the family policy
+identity with zero new calls/charge. Clients close after the queue, including failure paths.
+
 ## Integration
 
 Load the opt-in judge with the existing plugin mechanism:

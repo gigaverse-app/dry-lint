@@ -188,6 +188,8 @@ def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[st
 
 
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None and args.format not in ("text", "json", "markdown", "check-run"):
+        raise ValueError("Operation families support text, json, markdown and check-run reports")
     detector, primary = detector_for(root, settings, args)
     changed = touched(
         [f for f in detector.functions if not f.origin or f.origin.repository == primary],
@@ -213,9 +215,22 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
             raise ValueError("Operation-family discovery requires discovery.enabled = true")
         from dry_lint.family_discovery import FamilyDiscovery
 
-        families = FamilyDiscovery(detector.functions, changed, run, settings.discovery.families)
+        decisions = read_feedback(root, staged=args.staged, committed=not args.staged)
+        native = {f.model_copy(update={"origin": f.origin or run}).qualname: f for f in detector.functions}
+
+        def settled(a, b):
+            candidate = detector.pair(native[a.qualname], native[b.qualname], 0)
+            return decisions.apply([candidate])[0].filtered
+
+        families = FamilyDiscovery(detector.functions, changed, run, settings.discovery.families, settled=settled)
     report = judged(
-        candidates, settings, root, args, run, len(changed), functions=len(detector.functions),
+        candidates,
+        settings,
+        root,
+        args,
+        run,
+        len(changed),
+        functions=len(detector.functions),
         family_discovery=families,
     )
     if debt:
@@ -344,6 +359,8 @@ def card_key(args: argparse.Namespace, readme: str) -> str:
 
 
 def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None:
+        raise ValueError("Operation-family discovery requires a change campaign; use check with an immutable base")
     path = root / (args.baseline or Path(".dry-lint/baseline.json"))
     if args.init and path.exists():
         raise ValueError("Baseline already exists; rerun sweep without --init to ratchet it")

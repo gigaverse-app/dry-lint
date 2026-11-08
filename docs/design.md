@@ -102,6 +102,11 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 15 adds optional operation-family findings and exclusion reasons to the main report. Family proposals
+remain separate advisory assessments, never a clique of pair verdicts. Unknown members and excluded source
+remain visible; applicable human-rule exclusions remain settled. Older reports load with empty family lists.
+See [operation-family judging](operation-family-judging.md#native-campaign-configuration).
+
 Campaign schema 3 adds exact source evidence independent of judge identity and a subscription marker to each
 attempt. When either attempt is recovery, changing judge policy cannot charge the same source twice on a revision.
 Older campaigns remain readable with their existing charges and failure barriers. Optional recovery judges use
