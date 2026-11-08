@@ -1,7 +1,9 @@
 # First run: from a local scan to a required check
 
 This tutorial takes one repository from "never ran dry-lint" to a judged check that
-blocks new duplicates, with the existing debt accepted once. It takes about fifteen
+blocks new duplicates, with the existing debt accepted once. A coding agent can do all
+of it from one prompt: `Set up dry-lint in this repository. Fetch
+https://dry-lint.readthedocs.io/en/latest/agent-setup.md and follow it.` It takes about fifteen
 minutes. You need [uv](https://docs.astral.sh/uv/getting-started/installation/) and a
 Git repository with Python, JavaScript or TypeScript.
 
@@ -18,24 +20,40 @@ Git repository with Python, JavaScript or TypeScript.
 From the repository root:
 
 ```bash
-uvx --no-config --python 3.13 --from git+https://github.com/gigaverse-app/dry-lint@v1 dry-lint scan --judge none --limit 30
+uvx --no-config --python 3.13 --from 'dry-lint>=1,<2' dry-lint scan --judge none --limit 30
 ```
 
 uv runs dry-lint in its own environment, so nothing is added to your project. This
 lists the 30 closest look-alike pairs across the repository. With `--judge none`
 nothing is judged and nothing fails, so you see the raw candidates. Most are not
-duplicates; that is what the judge is for.
+duplicates; that is what the judge is for. On dry-lint's own repository it prints:
+
+```text
+dry-lint: showing the 3 closest of 75 look-alike pairs; raise --limit to see more
+src/dry_lint/cpu_embedding.py:131: CpuEmbeddingComparer.for_run looks like src/dry_lint/cpu_tail.py::CpuTailRankFusionComparer.for_run (candidate)
+    similarity 1.00; pair a3249c447021f117; if they are different concepts, add `# dry-lint: distinct-from src/dry_lint/cpu_tail.py::CpuTailRankFusionComparer.for_run`; if they are one concept copied on purpose, add a [[patterns]] entry with a reason
+src/dry_lint/judges/http.py:49: HttpJudge.judge looks like src/dry_lint/judges/jev.py::JevJudge.judge (candidate)
+    similarity 0.98; pair 8b37533910fcfe44; if they are different concepts, add `# dry-lint: distinct-from src/dry_lint/judges/jev.py::JevJudge.judge`; if they are one concept copied on purpose, add a [[patterns]] entry with a reason
+src/dry_lint/judges/anthropic.py:100: AnthropicJudge.judge looks like src/dry_lint/judges/command.py::CommandJudge.judge (candidate)
+    similarity 0.93; pair b7925665b26ec9e3; if they are different concepts, add `# dry-lint: distinct-from src/dry_lint/judges/command.py::CommandJudge.judge`; if they are one concept copied on purpose, add a [[patterns]] entry with a reason
+dry-lint: 3 candidate pair(s), 0 skipped by rule, 0 from the store, 0 judged (no judge), 0 reported
+judging: preset custom · no judge · reports and fails at 0.8 · est. $0.000 of $0.04 budget
+Models: not checked in this run.
+```
+
+That was `--limit 3`. Each pair names a function, its closest look-alike in another
+file, and how similar the two look. Functions in the same file are never compared.
 
 To look only at your branch, compare it with your default branch:
 
 ```bash
-uvx --no-config --python 3.13 --from git+https://github.com/gigaverse-app/dry-lint@v1 dry-lint check --judge none --base origin/main
+uvx --no-config --python 3.13 --from 'dry-lint>=1,<2' dry-lint check --judge none --base origin/main
 ```
 
 For a permanent `dry-lint` command, install it once and open a new terminal:
 
 ```bash
-uv tool install --no-config --python 3.13 git+https://github.com/gigaverse-app/dry-lint@v1
+uv tool install --no-config --python 3.13 'dry-lint>=1,<2'
 uv tool update-shell
 ```
 
@@ -54,14 +72,21 @@ Each finding names both functions, the judge's score, whether they already behav
 differently and which side should own the code. `dry-lint explain` tells you why
 a particular pair was or was not reported.
 
-Write the preset you chose into `.dry-lint.toml` so CI and every contributor use the same judge:
+Write the preset you chose into `.dry-lint.toml` so CI, the hook and every contributor use the same
+judge, and limit the scope to the code you ship:
 
 ```toml
 # .dry-lint.toml
-preset = "agent"   # Jev only, recall first; "jev+opus" or "sonnet" put precision first
+preset = "agent"   # Jev only, recall first; "jev" puts precision first, "jev+opus" more so
+include = ["src/*"]
 [budget]
 usd = 0.25         # the per-pull-request cap; the one-off sweep below gets its own
 ```
+
+`dry-lint config` prints the scope with a count of source files per top-level folder, so a
+folder you did not mean to include shows. The baseline you write next records this preset:
+everything that checks against it, CI and the hook included, must use the same one
+([one preset everywhere](../judges.md#one-preset-everywhere)).
 
 ## 3. Accept the existing backlog once
 
@@ -69,13 +94,20 @@ A real repository already has duplicates. Accept them once, so CI only blocks ne
 ones, and so later cleanup can be counted:
 
 ```bash
-dry-lint sweep --init --budget-usd 5 --readme README.md --repository OWNER/NAME
+dry-lint sweep --init --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT
 ```
+
+`DEFAULT` is your default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`).
+`--budget-usd 1` is ample with Jev (273 pairs cost $0.010); use `5` with a Claude preset. No key
+on this machine? The [bootstrap workflow](../../examples/dry-lint-bootstrap.yml) runs the same
+sweep in GitHub Actions with your secret and uploads the files for you to commit
+([CI route](../ci.md#no-judge-key-on-your-machine)).
 
 This judges every candidate pair in the repository and writes:
 
 - `.dry-lint/baseline.json`, the accepted pairs. From now on it can only shrink.
-- `.dry-lint/progress.json` and a progress block in `README.md`.
+- `.dry-lint/progress.json` and a progress block under a `## Duplicate code` heading in `README.md`.
+  Move or rename the heading as you like; later runs only rewrite what sits between the block's markers.
 
 Read the accepted pairs before committing them; each is a refactoring opportunity.
 `--init` refuses to overwrite an existing baseline, and every pair must be judged

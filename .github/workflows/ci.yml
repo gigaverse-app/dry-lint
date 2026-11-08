@@ -139,6 +139,7 @@ jobs:
             examples/dry-lint.yml
             examples/dry-lint-judge.yml
             examples/dry-lint-audit.yml
+            examples/dry-lint-bootstrap.yml
           head-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: shellcheck scripts/install-action.sh
       # Each lane-gated job's condition, the gate's lane-jobs and .github/test-lanes.json must agree.

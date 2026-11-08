@@ -8,8 +8,10 @@ The records dry-lint passes between its steps, and between its two CI jobs. Thei
 Each file carries `schema`. Bump it, and keep reading the old one, whenever a field changes meaning.
 """
 
+import fnmatch
 import hashlib
 import json
+from collections.abc import Iterable
 from pathlib import PurePosixPath
 from typing import Literal
 
@@ -121,6 +123,11 @@ def qualified(owner: str | None, name: str) -> str:
 def module_of(path: str) -> str:
     """A file's module as a base-class reference names it: its path without the extension, a package by its folder."""
     return str(PurePosixPath(path).with_suffix("")).removesuffix("/__init__").removesuffix("/index")
+
+
+def matches_any(name: str, globs: Iterable[str]) -> bool:
+    """Whether a path or `path::Qualified.name` matches one of the fnmatch globs: scope, extractors and patterns."""
+    return any(fnmatch.fnmatch(name, glob) for glob in globs)
 
 
 def repository_path(value: str) -> bool:

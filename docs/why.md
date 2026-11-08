@@ -28,7 +28,8 @@ The answer comes back on the pull request, where the author, human or agent, can
 src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_text (drifted)
     judge 0.91; the two already behave differently; call the existing function;
     similarity 0.71; if they are different concepts, add
-    `# dry-lint: distinct-from src/text.py::shorten_text`
+    `# dry-lint: distinct-from src/text.py::shorten_text`;
+    if they are one concept copied on purpose, add a [[patterns]] entry with a reason
 ```
 
 ## What you get, with evidence
@@ -60,6 +61,29 @@ dry-lint turns "don't duplicate" from advice into checks a pull request must pas
 
 [How CI runs it](ci.md) shows the whole flow. To try it now, follow
 [the first-run tutorial](tutorials/first-run.md).
+
+## How is this different from jscpd, PMD CPD or Sonar duplication?
+
+Those tools find copy-paste. jscpd and PMD's CPD tokenize the source and report
+any run of tokens that appears twice. SonarQube's duplication metric does the same
+for repeated blocks of lines. They are fast, need no model, and are good at what
+they do: a pasted block, even with renamed variables, shows up.
+
+They do not find a rewrite. When an agent writes `preview_caption_text` instead of
+calling `shorten_text`, the names, the order of the statements and often the
+structure differ, so no token sequence repeats. That is the duplication coding
+agents produce, and it is the kind that drifts.
+
+dry-lint works on whole functions instead of token runs. Its detector compares what
+each function does: the functions it calls, the attributes it touches, the words in
+its identifiers, its loops and error handling. It proposes the few nearest look-alikes
+for each function a pull request changed. A judge then answers a question no token
+matcher can: are these two one concept that should have one implementation, and
+which side should own it? Accepted old debt sits in a baseline, so the check blocks
+only new copies.
+
+The tools do not compete. Keep a copy-paste detector for pasted blocks, in tests
+too if you like; add dry-lint for rewrites of concepts you already have.
 
 ## You bring your own keys
 

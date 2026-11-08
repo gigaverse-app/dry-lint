@@ -9,8 +9,10 @@ on:
   workflow_dispatch:
   workflow_call:
     secrets:
-      ANTHROPIC_API_KEY:
+      TYPESAFE_AI_API_KEY:
         required: true
+      # ANTHROPIC_API_KEY:   # presets jev+opus and sonnet
+      #   required: true
       DRY_LINT_RATCHET_TOKEN:
         required: true
 permissions:
@@ -31,11 +33,13 @@ jobs:
           mode: sweep
           base: HEAD
           python-version: '3.13'
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          plugins: anthropic==2.4.0
+          # The same judge as dry-lint.yml: your TypeSafe key's secret, under whatever name you gave it.
+          typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
+          # anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # presets jev+opus and sonnet
+          # plugins: anthropic==2.4.0
           baseline: .dry-lint/baseline.json
           require-complete: 'true'
-          budget-usd: '5'
+          budget-usd: '1'  # the whole repository: ample for Jev; use '5' for a Claude preset
       # The function sweep does not audit models. Preserve the complete candidate inventory for source review;
       # an atomic score must never accept or dismiss a model pair on the adopter's behalf.
       - name: Retire resolved reviewed model debt
@@ -68,17 +72,20 @@ jobs:
           HAS_RATCHET_TOKEN: ${{ secrets.DRY_LINT_RATCHET_TOKEN != '' }}
         run: |
           if [[ "$HAS_RATCHET_TOKEN" != "true" ]]; then
-            echo "::error::Configure the adopter-owned DRY_LINT_RATCHET_TOKEN with contents and pull-request write access."
+            echo "::error::Add a DRY_LINT_RATCHET_TOKEN secret (fine-grained or GitHub App token, contents and pull-requests write) so the ratchet pull request runs CI. The audit above already ran."
             exit 1
           fi
       # The Action's sweep mode only audits. The CLI records the ratchet, reusing the verdicts the audit just stored,
       # and the exact CLI environment installed by the Action. No second install or judge-version drift.
       - name: Record cleaned pairs
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TYPESAFE_AI_API_KEY: ${{ secrets.TYPESAFE_AI_API_KEY }}
+          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # A scheduled run's event names no repository, but it runs on the default branch, so its ref is that branch.
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch || github.ref_name }}
         run: |
-          dry-lint sweep --update --store "$RUNNER_TEMP/dry-lint/verdicts" --budget-usd 5 \
-            --readme README.md --repository "$GITHUB_REPOSITORY" --branch main
+          dry-lint sweep --update --store "$RUNNER_TEMP/dry-lint/verdicts" --budget-usd 1 \
+            --readme README.md --repository "$GITHUB_REPOSITORY" --branch "$DEFAULT_BRANCH"
       # One standing branch: a later run updates the open ratchet PR instead of stacking another. The adopter-owned
       # credential makes the PR run ordinary CI, including the required dry-lint check that refuses any widening.
       - uses: peter-evans/create-pull-request@v8

@@ -18,6 +18,22 @@ The **Documentation** workflow builds every PR and main revision with the same
 pinned documentation dependencies as Read the Docs. Review its site artifact
 before merging.
 
+## Files for agents
+
+Two raw files sit at the site root beside the pages, both copied by the `on_post_build` hook in
+`documentation/hooks.py`:
+
+- `agent-setup.md` is `skills/dry-lint/SKILL.md`, byte for byte (`extra.raw_files` in `mkdocs.yml`). The
+  one-prompt setup in the README tells a coding agent to fetch it. The same file is also published as the
+  rendered page `agent-setup/` (`published_sources`, with `as:` to give it that address). Its links must be absolute
+  URLs, because an agent reads the raw file where relative links lead nowhere.
+- `llms.txt` (<https://llmstxt.org/>) comes from `documentation/llms.txt` (`extra.llms_txt`), with
+  `https://dry-lint.readthedocs.io/en/latest/` replaced by the build's own site URL. `exclude_docs` keeps `*.txt`
+  out of the normal build, so the hook copies it. Read the Docs serves `/llms.txt` from the default version.
+
+`documentation/check_site.py` fails the build when either file is missing, when `agent-setup.md` differs from the
+skill, or when it carries a relative link.
+
 ## Read the Docs setup
 
 Import `https://github.com/gigaverse-app/dry-lint` into Read the Docs Community,
