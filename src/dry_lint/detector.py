@@ -301,32 +301,35 @@ class Detector:
             choices = [ExplorationComparer(use="tfidf", **options)]
         keys = {c.key for c in baseline}
         resources = ComparerResources()
-        for choice in choices if policy.enabled else []:
-            # Independent indexes cannot displace baseline neighbours or consume their protected budget.
-            wider = self.settings.model_copy(
-                update={
-                    "neighbours": choice.neighbours or policy.depth,
-                    "comparer": choice,
-                    "discovery": policy.model_copy(update={"enabled": False}),
-                }
-            )
-            comparer = resources.load(choice)
-            detector = Detector(
-                self.functions,
-                wider,
-                comparer,
-                self.extractors,
-                cross_repository=self.cross_repository,
-                same_file=True,
-                discovery_keys=keys if getattr(comparer, "discovery_unseen", False) else None,
-                resources=resources,
-            )
-            for candidate in detector.candidates(changed):
-                if candidate.lane == "baseline" and candidate.key not in keys:
-                    keys.add(candidate.key)
-                    baseline.append(candidate.model_copy(update={"lane": "exploration"}))
-        if not self.cross_repository:
-            baseline += self.relatives(changed, baseline)
+        for phase_choices, residual in ((choices, False), (policy.residual_comparers, True)):
+            for choice in phase_choices if policy.enabled else []:
+                # Independent indexes cannot displace baseline neighbours or consume their protected budget.
+                wider = self.settings.model_copy(
+                    update={
+                        "neighbours": choice.neighbours or policy.depth,
+                        "comparer": choice,
+                        "discovery": policy.model_copy(update={"enabled": False}),
+                    }
+                )
+                comparer = resources.load(choice)
+                detector = Detector(
+                    self.functions,
+                    wider,
+                    comparer,
+                    self.extractors,
+                    cross_repository=self.cross_repository,
+                    same_file=True,
+                    discovery_keys=keys if getattr(comparer, "discovery_unseen", False) else None,
+                    resources=resources,
+                )
+                for candidate in detector.candidates(changed):
+                    if candidate.lane == "baseline" and candidate.key not in keys:
+                        keys.add(candidate.key)
+                        baseline.append(candidate.model_copy(update={"lane": "exploration", "residual": residual}))
+            if not residual and not self.cross_repository:
+                # Complete the original artifact before appending recovery, including advisory relatives.
+                baseline += self.relatives(changed, baseline)
+                keys.update(c.key for c in baseline)
         return baseline
 
     def relatives(self, changed: list[Function], primaries: list[Candidate]) -> list[Candidate]:
