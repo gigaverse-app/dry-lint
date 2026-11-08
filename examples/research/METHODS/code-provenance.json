@@ -1,0 +1,1226 @@
+[
+  {
+    "method": "complementary-signal-learning",
+    "original_path": "jobs/complementary-signal-learning/.lab-results/build_bank_deterministic.py",
+    "original_sha256": "5a22b2d9cfe274ee16b0e1d248993c87c102a93363475d8330a7d73b6ccd8886",
+    "public_path": "complementary-signal-learning/implementation/build_bank_deterministic.py",
+    "public_sha256": "0e8f8ab36f7838046dd4df890be9e18725c548b8559b9fa22c44a16ffce743b5",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E401",
+      "E402",
+      "E741",
+      "F401",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "complementary-signal-learning",
+    "original_path": "jobs/complementary-signal-learning/.lab-results/bank_loader.py",
+    "original_sha256": "f18bae9d46f4b8804e014d0a9ccf0a068bd6cdb407bec5527ac9abb2d867c57e",
+    "public_path": "complementary-signal-learning/implementation/bank_loader.py",
+    "public_sha256": "e993e60a99b727a19d45aa21e6f20f0bdb5f7778768dc8d9f2b057a70ae725e5",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "E741",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "complementary-signal-learning",
+    "original_path": "jobs/complementary-signal-learning/.lab-results/fit_residual.py",
+    "original_sha256": "8c44ee6e25450ab9ee3e144932ccba180bad9d631ce828edb355fef31e163678",
+    "public_path": "complementary-signal-learning/implementation/fit_residual.py",
+    "public_sha256": "3dbd076f51d7368e527633de55cb0c14baaaeec9b8ad9d10c771ae110ca15224",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "E401",
+      "E402",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "complementary-signal-learning",
+    "original_path": "jobs/complementary-signal-learning/.lab-results/prepare_residual.py",
+    "original_sha256": "a4f327746414e306395eb987469c4a9e27e0f867cab0aa6834094b3c8fa39aa7",
+    "public_path": "complementary-signal-learning/implementation/prepare_residual.py",
+    "public_sha256": "7a65d3cf453a66e321ca5e631ef26b554fbcf86137c007c0db9d1576016f651a",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "E731",
+      "E741",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "complementary-signal-learning",
+    "original_path": "jobs/complementary-signal-learning/.lab-results/summarize_bank.py",
+    "original_sha256": "ea45f4a90f5c21c7727347b2b2fad006a8a44775a9fc5de167892e5b932cf656",
+    "public_path": "complementary-signal-learning/implementation/summarize_bank.py",
+    "public_sha256": "e2b0c26e61d5bc4c54a9150ee7a009b920c7e7831290e84b92b4d024d3896276",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E741",
+      "F401",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "complementary-signal-learning",
+    "original_path": "jobs/complementary-signal-learning/.lab-results/build_bank.py",
+    "original_sha256": "01ca8167974468e0d18cb82540c7b9530a8929de505d968c756c1a20c2f91c33",
+    "public_path": "complementary-signal-learning/implementation/build_bank.py",
+    "public_sha256": "d068f6472514e271e44c0c5e85c27d3194fa01a3d7dea97c6cb59be26a7f03c8",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E401",
+      "E402",
+      "E741",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "complementary-signal-learning",
+    "original_path": "jobs/complementary-signal-learning/.lab-results/transport_controls_v3.py",
+    "original_sha256": "07b4aee90e30d73930f5a00944c2c971c5ba1c775cbe8d3813ebe8ab59e9fd46",
+    "public_path": "complementary-signal-learning/implementation/transport_controls_v3.py",
+    "public_sha256": "cd9dfd4e8c140d1d910a4f4804d7a18d18ca057052b06c1a59ea51fa230be73c",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "F401",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/policy_common.py",
+    "original_sha256": "a9bd0c3c7eaf7bff6800d0731fdf38b3abcf2c277c20982ad93283f293138116",
+    "public_path": "learned-budget-policy/implementation/policy_common.py",
+    "public_sha256": "1e5e80899881da47b11685aef87e673c008d1bb59d46c085a14baed6905ae963",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/fit_policy.py",
+    "original_sha256": "3d16ebefb033e9a88ad084946d29f5b39985389651e5f6688265ded6222b4290",
+    "public_path": "learned-budget-policy/implementation/fit_policy.py",
+    "public_sha256": "b7cee2d3602fd5855cd96e7d39df43aa639a476064b57fa4f04f083b0aeac0a0",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "E401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/allocate_policy.py",
+    "original_sha256": "d61b461f713f17933b9a77a33bbee321c672f63ce44ea5e3b03ee9b1ef415ddc",
+    "public_path": "learned-budget-policy/implementation/allocate_policy.py",
+    "public_sha256": "b83795df83031223d266e08a85c5fd8a81e0abe7332b5c8ef2e2eb614e98236b",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E731",
+      "F403",
+      "F405",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/guard_policy.py",
+    "original_sha256": "4570092af7d1b93e01cb40b0cd79af9da74a861bb003978da03801e5de227b2d",
+    "public_path": "learned-budget-policy/implementation/guard_policy.py",
+    "public_sha256": "74416522fa5aea6ecc96f2880d65bb27fc48b93c935371dc688b88ec09cc49d0",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/dynamic_residual.py",
+    "original_sha256": "df3d59c32efca78093292f55f88295add1d565916806970eca3b1289a4b5dc15",
+    "public_path": "learned-budget-policy/implementation/dynamic_residual.py",
+    "public_sha256": "c08ea85a3afe9dc4878abcbadb36d1fd1841b04419667457937a6bc1936e5c06",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/reproduce_policy.py",
+    "original_sha256": "70f657bf62435fe99a24a514efffe8b6020e85c3e78fd487a0ec191ef3d83827",
+    "public_path": "learned-budget-policy/implementation/reproduce_policy.py",
+    "public_sha256": "910af22c5283d89f4e03885d0b16cc5394e6974810b0a90b933139176a2ef8a0",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/prepare_policy.py",
+    "original_sha256": "6d3449c03602652f5aa20ef677a15f94f558e7f871d3dc59f9b804c1e577bbc7",
+    "public_path": "learned-budget-policy/implementation/prepare_policy.py",
+    "public_sha256": "ead59630445238d069884f49361d3d845f5ba0c8a91958b35f4a01a7f5a9fd12",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E401",
+      "E402",
+      "E741",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/freeze_campaign.py",
+    "original_sha256": "02076c6377a1091e46f1063d0ecbf15697b68c640a99825c01f071a2a0f4074d",
+    "public_path": "learned-budget-policy/implementation/freeze_campaign.py",
+    "public_sha256": "49a876fd490d1640f44a1a02f02ed83ba7ad4a82ad3c99779ecfc9cfc1da7985",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/replay_campaigns.py",
+    "original_sha256": "da5e05187ed1bb89023ad83a470555b54da2d34d0f39c2af6d113275ec00e228",
+    "public_path": "learned-budget-policy/implementation/replay_campaigns.py",
+    "public_sha256": "fb622a0b10eff7623a00a20151b3825d3b834e7e322339bcdb7f510c6398c64b",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E401",
+      "E402",
+      "E731",
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/source_only.py",
+    "original_sha256": "e62d6548c26da922608a2ebf7a6ce1688b80c84eac494dee532b23784106c794",
+    "public_path": "learned-budget-policy/implementation/source_only.py",
+    "public_sha256": "deda52386cfa0f0630b2da67782b2d9fb380273e39a4b2ee71e56ef2817aa34c",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "learned-budget-policy",
+    "original_path": "jobs/learned-budget-policy/.lab-results/complete_subset.py",
+    "original_sha256": "c37f21996ad293f0acc78984a6d8674bb5d1be8c224f1f37aa454e04339a3399",
+    "public_path": "learned-budget-policy/implementation/complete_subset.py",
+    "public_sha256": "bf111234b207e245419d829753d5b97b347c9fbad6f5fb460bf0416deba6473f",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B007",
+      "E401",
+      "E402",
+      "F401",
+      "F403",
+      "F405",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "spectral-family-recovery",
+    "original_path": "jobs/spectral-family-recovery/.lab-results/spectral.py",
+    "original_sha256": "c8f39f0ecd936055d5bdb7eb3c41c2fd399796b3cbba6ea9e649838469a4c065",
+    "public_path": "spectral-family-recovery/implementation/spectral.py",
+    "public_sha256": "0b9f378279a73f5e09808aab9bbc2b8212f86419d94669c58412bc797a11fba3",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B007",
+      "B023",
+      "B905",
+      "E401",
+      "E402",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "spectral-family-recovery",
+    "original_path": "jobs/spectral-family-recovery/.lab-results/svd_control.py",
+    "original_sha256": "58f199f5fe54fc718829735c8b47e964c17942ceb88dc999aa49ec910a775e9a",
+    "public_path": "spectral-family-recovery/implementation/svd_control.py",
+    "public_sha256": "abf6445231763279384bf5e8ab733cc58aa1c728649eb3c378691b566c10e1e1",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E741",
+      "F403",
+      "F405"
+    ]
+  },
+  {
+    "method": "spectral-family-recovery",
+    "original_path": "jobs/spectral-family-recovery/.lab-results/freeze.py",
+    "original_sha256": "c67347275f99dcb75bf70ff68828e997112c92572bac6b67a664f9b018ff88dc",
+    "public_path": "spectral-family-recovery/implementation/freeze.py",
+    "public_sha256": "0b05edee22cfd7bf660ec816b62d95202463c45fd71e8afbefc5b20815e21254",
+    "path_literal_replacements": 2,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "F401",
+      "I001",
+      "UP017"
+    ]
+  },
+  {
+    "method": "spectral-family-recovery",
+    "original_path": "jobs/spectral-family-recovery/.lab-results/prepare_svd.py",
+    "original_sha256": "3da2e7cbf75a403a26340b0f906dedcaa22c0e000c99537e29cefda8c014e8cb",
+    "public_path": "spectral-family-recovery/implementation/prepare_svd.py",
+    "public_sha256": "0b7a070a6ace3950892a35d38157c32a60867b5fe79dabc77b8714aea9ff2109",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "I001"
+    ]
+  },
+  {
+    "method": "spectral-family-recovery",
+    "original_path": "jobs/spectral-family-recovery/.lab-results/continue.py",
+    "original_sha256": "37c5f9140ef30a76a308524d2e39e2ecd6a56ae0dced2dc5ec702c37a6d5d011",
+    "public_path": "spectral-family-recovery/implementation/continue.py",
+    "public_sha256": "c9896afb030cf7837a7d95c1a41af780ed64d38e2babd72b1b71d77cccb96ce9",
+    "path_literal_replacements": 2,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "spectral-family-recovery",
+    "original_path": "jobs/spectral-family-recovery/.lab-results/validate_native.py",
+    "original_sha256": "005b57d51252e65a5d6f9c0210544fb06d94f55794a0ffd95e007e6029c97f6b",
+    "public_path": "spectral-family-recovery/implementation/validate_native.py",
+    "public_sha256": "21d6f57bd8961681602a8bfae62a41c20f31dd2f25ef2d3aead7cb73dffdafce",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "confirmed-cluster-expansion",
+    "original_path": "jobs/confirmed-cluster-expansion/.lab-results/run_cluster.py",
+    "original_sha256": "1d47418348b216d4587448f1deb14eab5c4e2e0135b85c39a014373883582dd8",
+    "public_path": "confirmed-cluster-expansion/implementation/run_cluster.py",
+    "public_sha256": "912d639db3ed1215616f0a69812e5658bd113e80b47b1b654178b0b0544a47cd",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B007",
+      "B023",
+      "B905",
+      "E401",
+      "E402",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "confirmed-cluster-expansion",
+    "original_path": "jobs/confirmed-cluster-expansion/.lab-results/available_seed.py",
+    "original_sha256": "8f57977201a2ad18149a4b47f174f4b59bfe895345555e9410b5c815c0948fe5",
+    "public_path": "confirmed-cluster-expansion/implementation/available_seed.py",
+    "public_sha256": "1ebb406a89a3000a38d7a5ce0d95356b2250b12558a3c262a01e3408b2296933",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "E741",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "confirmed-cluster-expansion",
+    "original_path": "jobs/confirmed-cluster-expansion/.lab-results/extended_run.py",
+    "original_sha256": "e5725e3949d6658228b00d536e80c4c514977e1d1dd6da5a5b0ef0215e34637d",
+    "public_path": "confirmed-cluster-expansion/implementation/extended_run.py",
+    "public_sha256": "3d4df9f2cacf9a16bcc7693b113fbf013da811da1c96a054f1926037cb4719c4",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "B904",
+      "E401",
+      "E402",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "confirmed-cluster-expansion",
+    "original_path": "jobs/confirmed-cluster-expansion/.lab-results/controls.py",
+    "original_sha256": "06c3f7411f847b6adfedb1255a30a78d0686ccb4470612fd3e14b28017168e54",
+    "public_path": "confirmed-cluster-expansion/implementation/controls.py",
+    "public_sha256": "3ecc9fbe29482bc63a1a47e45f29ca076143cf9bc9f325184b4fe7b37de56501",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E741",
+      "F403",
+      "F405",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "confirmed-cluster-expansion",
+    "original_path": "jobs/confirmed-cluster-expansion/.lab-results/ledger_frontier.py",
+    "original_sha256": "6e28983a40c4ac7e9afe741370cdd9f6950742ff3e782d94be6ff7168617f9a2",
+    "public_path": "confirmed-cluster-expansion/implementation/ledger_frontier.py",
+    "public_sha256": "af5f6e108daa5dfc05bc4eadf2ff3328931190f88de47548a39eeaf94d919d94",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B007",
+      "E401",
+      "E402",
+      "E741",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "confirmed-cluster-expansion",
+    "original_path": "jobs/confirmed-cluster-expansion/.lab-results/status_fields.py",
+    "original_sha256": "04127f237e76e79444a54f52b9c9f26de37b0725eed7149d0a39431ac2b0f996",
+    "public_path": "confirmed-cluster-expansion/implementation/status_fields.py",
+    "public_sha256": "3d360bcac32a6a7272af04bd4d8a13e16f941f41563a71db71fa638c35d368a7",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "I001"
+    ]
+  },
+  {
+    "method": "cluster-calibration",
+    "original_path": "jobs/cluster-calibration/.lab-results/one_seed.py",
+    "original_sha256": "a1bef83d59e07af0a5d2355b869c523b92ab0a99bc6eade90619e453d4987b78",
+    "public_path": "cluster-calibration/implementation/one_seed.py",
+    "public_sha256": "ece6bfe9317f5a63f8bf653edd4d3aac653ded3c5ab43e6516aa65826921c1c7",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "E401",
+      "E402",
+      "E741",
+      "F401",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "cluster-calibration",
+    "original_path": "jobs/cluster-calibration/.lab-results/collect_milestone.py",
+    "original_sha256": "6554ac0a5614b20ecc36930d58825ae3deb9cd1b8265337d0fea43eeb61bccab",
+    "public_path": "cluster-calibration/implementation/collect_milestone.py",
+    "public_sha256": "bdf9a174e27bbe0f87e4fc1d9d7906bf7577a86030c92e5ac56d72aafcdd381e",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E741",
+      "I001",
+      "UP017"
+    ]
+  },
+  {
+    "method": "cluster-calibration",
+    "original_path": "jobs/cluster-calibration/.lab-results/analyze.py",
+    "original_sha256": "c2ff08e519da38c8d90a1b38acfd322945d289fb338679ce2832f80f7418208d",
+    "public_path": "cluster-calibration/implementation/analyze.py",
+    "public_sha256": "dba28d402b5776f323344443cbab630ae6a19f425c7ba4eb5311ab009147fae0",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B007",
+      "B905",
+      "E401",
+      "E402",
+      "E741",
+      "F401",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "cluster-calibration",
+    "original_path": "jobs/cluster-calibration/.lab-results/ingest_seeds.py",
+    "original_sha256": "826c52f29584057c3c1b4fe6f71cb32be6d68e0ad7a9e814415cb5033d7ddea8",
+    "public_path": "cluster-calibration/implementation/ingest_seeds.py",
+    "public_sha256": "d98ca2ea526ff8a05cf9094613e64890e56dcbff5e3b9138c09f35b8f674ab80",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "E741",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "cluster-calibration",
+    "original_path": "jobs/cluster-calibration/.lab-results/audit_history.py",
+    "original_sha256": "6e72c9df3d0798509b658405735124ac38d728d9892dfdeb1fe78689c6872942",
+    "public_path": "cluster-calibration/implementation/audit_history.py",
+    "public_sha256": "d0cc9ed27d5d8e75be8f32a82e9873cc69f27bee2db9e76e027806ee12da9ec4",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "E731",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "cluster-calibration",
+    "original_path": "jobs/cluster-calibration/.lab-results/graph_reference.py",
+    "original_sha256": "3507f4a4a3cae44df160e366bb5148d20f567c24c1cc369da48da5cf05563fdb",
+    "public_path": "cluster-calibration/implementation/graph_reference.py",
+    "public_sha256": "19abdb70cc623812bbdf251b64b99072774e955cb6c7ab78da6acecd107bf2f2",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "E401",
+      "E402",
+      "E731",
+      "E741",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "cluster-calibration",
+    "original_path": "jobs/cluster-calibration/.lab-results/prepare.py",
+    "original_sha256": "a8982836cbc49ebb2c312a47ae9a00c8e53051a5842cbe6b07aefae9cd2086ef",
+    "public_path": "cluster-calibration/implementation/prepare.py",
+    "public_sha256": "fd74bc693c612fe06a89789193166c1bb2360b3ca3e5584470d202347c914280",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E401",
+      "E402",
+      "E731",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "adaptive-judge-budget",
+    "original_path": "jobs/adaptive-judge-budget/.lab-results/policy.py",
+    "original_sha256": "409ecb864af4d8f26347a1d7dc15a6aa0d0d4c069c5aa796ff1e9467a421631f",
+    "public_path": "adaptive-judge-budget/implementation/policy.py",
+    "public_sha256": "b2293a17ebc69bec9f548c53685384baa02fa400d501a370137b69afd6f846ed",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E402",
+      "F401",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "adaptive-judge-budget",
+    "original_path": "jobs/adaptive-judge-budget/.lab-results/replay_captures.py",
+    "original_sha256": "49e640d45d51d533301f3643fbd5f470e5692459c6507731aa382941d21d3e35",
+    "public_path": "adaptive-judge-budget/implementation/replay_captures.py",
+    "public_sha256": "85baf5bb0250f8f30563083e782a51ab46dfee9ddfab14ec11b4154b175ca93b",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "adaptive-judge-budget",
+    "original_path": "jobs/adaptive-judge-budget/.lab-results/replay_completion.py",
+    "original_sha256": "ad8c1e6c1ef821e7f1106d5d47c3449355a6395c6d0c8f8bf337df2c77a0915f",
+    "public_path": "adaptive-judge-budget/implementation/replay_completion.py",
+    "public_sha256": "85dd10cf19b4b95ebb391136833940768db97a65dfde08fbe39e2036a66e9d0a",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "adaptive-judge-budget",
+    "original_path": "jobs/adaptive-judge-budget/.lab-results/core_receipt_costs.py",
+    "original_sha256": "8f65b80e72bb95c5eeaf827be1a4c7dcb176dc92246703811fb0e7a28ec2c11c",
+    "public_path": "adaptive-judge-budget/implementation/core_receipt_costs.py",
+    "public_sha256": "cca5bedb464c34709728ec1c14d0f1cc96acab6162551572c29a484cb3f56a48",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "adaptive-judge-budget",
+    "original_path": "jobs/adaptive-judge-budget/.lab-results/historical_regressions.py",
+    "original_sha256": "0b692d75fe8e996a6cf2d7d22c55afe187b5476cbc4daae874f27554c36d70e0",
+    "public_path": "adaptive-judge-budget/implementation/historical_regressions.py",
+    "public_sha256": "22845a4b46d26a846648401fb52829e75991af1a382a9b690f18947cb402d299",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B007",
+      "B023",
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "adaptive-judge-budget",
+    "original_path": "jobs/adaptive-judge-budget/.lab-results/compare_returned.py",
+    "original_sha256": "5e40775aa686c699ae2f79a8ae5c061a09c4138f2694387b052a6ea06556024c",
+    "public_path": "adaptive-judge-budget/implementation/compare_returned.py",
+    "public_sha256": "3d2051fd022c6317a5dfd7e06a77ce73b1a063c0702f41dd9c8ac782ecfdab84",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "adaptive-judge-budget",
+    "original_path": "jobs/adaptive-judge-budget/.lab-results/summarize_completed_core.py",
+    "original_sha256": "9cdbee0738e0aa2479454b09dc7f7379961f9225506b4b7d97e3711c5cfdceaf",
+    "public_path": "adaptive-judge-budget/implementation/summarize_completed_core.py",
+    "public_sha256": "35279b9ae2da56aca8b578a6dafb8d408926b0bea1c73a31a3676de2e1d6d2b2",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "encoder-corpus-evaluation",
+    "original_path": "jobs/encoder-corpus-evaluation/.lab-results/common.py",
+    "original_sha256": "97917766c885f44cd08b92f57c3a483c931b437f8305adc22e8829a4173c693a",
+    "public_path": "encoder-corpus-evaluation/implementation/common.py",
+    "public_sha256": "c7f77653a7019609a753c0e159ee1bbc4d1073ceae0f1debed99a58fa3f2d2c6",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "I001"
+    ]
+  },
+  {
+    "method": "encoder-corpus-evaluation",
+    "original_path": "jobs/encoder-corpus-evaluation/.lab-results/rank_harness.py",
+    "original_sha256": "975a0ccac8b5b137f6b6baadea2ab6acb566372f0a8b895790ff71894254bbfa",
+    "public_path": "encoder-corpus-evaluation/implementation/rank_harness.py",
+    "public_sha256": "5261cced06c7dbba951e8ac594deadaa8f0c578d2844c54aad3af556b2a8d95f",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E731",
+      "F401",
+      "F403",
+      "F405",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "encoder-corpus-evaluation",
+    "original_path": "jobs/encoder-corpus-evaluation/.lab-results/native_harness.py",
+    "original_sha256": "cbda5df1313f6b2a4fe9adaf25d63be19bf3b7fe9ff3d128b84c5aa2a2a13a7f",
+    "public_path": "encoder-corpus-evaluation/implementation/native_harness.py",
+    "public_sha256": "bf5764c5bb6e935a37d63e494f54da60c56a59f67cc868575ced0e79429a7e1d",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "E401",
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "encoder-corpus-evaluation",
+    "original_path": "jobs/encoder-corpus-evaluation/.lab-results/build_panel.py",
+    "original_sha256": "5c111a0cb77e3a7cec890cebe23dfc2e1f709f3d87816ae2befd421b2100f770",
+    "public_path": "encoder-corpus-evaluation/implementation/build_panel.py",
+    "public_sha256": "a098aca56c827ef2a35951157de911496c58fd0e1b8aaf19f78507f592eb9adb",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "F403",
+      "F405",
+      "F841",
+      "I001"
+    ]
+  },
+  {
+    "method": "encoder-corpus-evaluation",
+    "original_path": "jobs/encoder-corpus-evaluation/.lab-results/tail_cache.py",
+    "original_sha256": "42786a304faf3f97ff80fecd0a69cc1bec638435eac95a1424c0296ff626aa80",
+    "public_path": "encoder-corpus-evaluation/implementation/tail_cache.py",
+    "public_sha256": "666739d9fe8f9a635f088bff3a88fc4686538f5406a8cb5712efa260c80f3e79",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "I001"
+    ]
+  },
+  {
+    "method": "coderank-cpu-evaluation",
+    "original_path": "jobs/coderank-cpu-evaluation/.lab-results/coderank_adapter.py",
+    "original_sha256": "6e6ad2732bd2e7d354b59d6bdc5afe24a01471e96d6b476386dfa85bc03b13a8",
+    "public_path": "coderank-cpu-evaluation/implementation/coderank_adapter.py",
+    "public_sha256": "5ff958e5de7086308db2bcef230a2415f210012486f3056c45b05743eff5a230",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "I001"
+    ]
+  },
+  {
+    "method": "coderank-cpu-evaluation",
+    "original_path": "jobs/coderank-cpu-evaluation/.lab-results/cpu_variant.py",
+    "original_sha256": "0a6b996e70454709bf6800cc21c7dd6ecd53e874696b73ff9d2e9484e6afd04f",
+    "public_path": "coderank-cpu-evaluation/implementation/cpu_variant.py",
+    "public_sha256": "d83a096216a9a527d779688abf3072abb1b37e712041b3bee7e8bc791acfd3c4",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "I001"
+    ]
+  },
+  {
+    "method": "coderank-cpu-evaluation",
+    "original_path": "jobs/coderank-cpu-evaluation/.lab-results/cache_corpus.py",
+    "original_sha256": "948426d25efb7421995ef69590c01bc9af56f33f8ee78f81baa1cbeef452d18e",
+    "public_path": "coderank-cpu-evaluation/implementation/cache_corpus.py",
+    "public_sha256": "bce4c9160428cefb3c041f2843127e9fbbe48e82de2df548c97778553cab810c",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "I001"
+    ]
+  },
+  {
+    "method": "coderank-cpu-evaluation",
+    "original_path": "jobs/coderank-cpu-evaluation/.lab-results/batch_runner.py",
+    "original_sha256": "dc2ed5fdab89d27488a9ab50f3fd8c25b4ac101906f7a6e8784582d29e316f92",
+    "public_path": "coderank-cpu-evaluation/implementation/batch_runner.py",
+    "public_sha256": "de52aa6907853eb8ac2cdf65ff3569c881b1c89a37583f5a617b5a131c7e0891",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B904",
+      "F401",
+      "I001",
+      "UP017"
+    ]
+  },
+  {
+    "method": "coderank-cpu-evaluation",
+    "original_path": "jobs/coderank-cpu-evaluation/.lab-results/publish_matrices.py",
+    "original_sha256": "223f53b6b467c9e2be80328bfa4c2b19ce7a66ec29d2cb9e168844503bcf678b",
+    "public_path": "coderank-cpu-evaluation/implementation/publish_matrices.py",
+    "public_sha256": "51484f450fe6ab7b8b6771f7a9f2bd61ca658e7566e4683760cd566fefa6546a",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "coderank-cpu-evaluation",
+    "original_path": "jobs/coderank-cpu-evaluation/.lab-results/preflight.py",
+    "original_sha256": "b7ba21d295be7f21208e016e075a052dba62c7cb2ffcb7824ece3d712b26ad8c",
+    "public_path": "coderank-cpu-evaluation/implementation/preflight.py",
+    "public_sha256": "9efdb7538d40c6bf6cd6b30d6b1289f671992c313e7ca9c26d3bfefddeffbb60",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B007",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "gemma-cpu-evaluation",
+    "original_path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_adapter.py",
+    "original_sha256": "acf15b46189903f93c2aac7959af70238afe034f616f03631debd646f083ac99",
+    "public_path": "gemma-cpu-evaluation/implementation/gemma_adapter.py",
+    "public_sha256": "21cc2746fcce9285526c751d2ede7e15a74f912a11fbcf127a97412d1e209804",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "gemma-cpu-evaluation",
+    "original_path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_variants.py",
+    "original_sha256": "fd02dd6403f01610ee9ea03cab045d100594dfdb959c0e776d9cf2e6e9e953d9",
+    "public_path": "gemma-cpu-evaluation/implementation/gemma_variants.py",
+    "public_sha256": "7e2966a158932d91f04bf9e67723f742b8686c13b9e00cd76abf9dd23533ad8d",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": []
+  },
+  {
+    "method": "gemma-cpu-evaluation",
+    "original_path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_batch_adapter.py",
+    "original_sha256": "e102a52ced4eba4f4ea705b1b6ca2692a53da5fc1cc4e04e24ca72c673699037",
+    "public_path": "gemma-cpu-evaluation/implementation/gemma_batch_adapter.py",
+    "public_sha256": "bc76d4d6e0bc07f5e7287f0989f83d941fe55f5deb2676dc3c57a78afe3e84b6",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "I001"
+    ]
+  },
+  {
+    "method": "gemma-cpu-evaluation",
+    "original_path": "jobs/gemma-cpu-evaluation/.lab-results/full_openhands.py",
+    "original_sha256": "08c585c75f16a9164fa97b352d4ac67f6a195f0259e719380a070fd7825901f1",
+    "public_path": "gemma-cpu-evaluation/implementation/full_openhands.py",
+    "public_sha256": "511a21f65aff7e5f009176c2d124233d49d830aaacf854e8512f5297ed6fa492",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "E741",
+      "I001"
+    ]
+  },
+  {
+    "method": "gemma-cpu-evaluation",
+    "original_path": "jobs/gemma-cpu-evaluation/.lab-results/archive_runner.py",
+    "original_sha256": "7cb5a8131a92760f6bbaff1c74c9016fb8b7603a57bdf3754a1e3a02af79a909",
+    "public_path": "gemma-cpu-evaluation/implementation/archive_runner.py",
+    "public_sha256": "08e325964ca9f2f61e51565f6572caddcad1c8f1c8425acaaf3e938f45f20b6d",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "I001",
+      "UP017"
+    ]
+  },
+  {
+    "method": "gemma-cpu-evaluation",
+    "original_path": "jobs/gemma-cpu-evaluation/.lab-results/throughput.py",
+    "original_sha256": "bb373b98d0de17a2486884f2e9ba6cabee6c6c2f9f3a1809227085725959489f",
+    "public_path": "gemma-cpu-evaluation/implementation/throughput.py",
+    "public_sha256": "9c2db32105158b681c908fd4dffb0a43515d7513f32aaabb189bb8a11bf7273c",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "refactor-discovery-bundles",
+    "original_path": "jobs/refactor-discovery-bundles/.lab-results/bundles.py",
+    "original_sha256": "574ae5b9d61c95ff1c727c638e31b133829747ff274b47fda005fbfbd0a510d4",
+    "public_path": "refactor-discovery-bundles/implementation/bundles.py",
+    "public_sha256": "4ae58a8437175b3b3dc8f9e9429a3ddd539b3a61abb703fdbe82fe95c8686f7a",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E402",
+      "E741",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "refactor-discovery-bundles",
+    "original_path": "jobs/refactor-discovery-bundles/.lab-results/graph_compare.py",
+    "original_sha256": "301182d0e2798e9160f1759df54bb2be5e8529395ed866c31847e16c1d4b54da",
+    "public_path": "refactor-discovery-bundles/implementation/graph_compare.py",
+    "public_sha256": "9652ab9edf5fd75a6c072b4fb55c7b5949fff485542f1066a7e0a5869492a368",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B905",
+      "E741",
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "refactor-discovery-bundles",
+    "original_path": "jobs/refactor-discovery-bundles/.lab-results/consolidation_controls.py",
+    "original_sha256": "80db1818844472bf77ccddf7747cd03b83405f55c91680fc63640236268c3f16",
+    "public_path": "refactor-discovery-bundles/implementation/consolidation_controls.py",
+    "public_sha256": "afd6e60fa2d7b5edef3293b1baa9446ae937643f5542c76259091d3187042235",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "refactor-discovery-bundles",
+    "original_path": "jobs/refactor-discovery-bundles/.lab-results/test_bundles.py",
+    "original_sha256": "ee4eeed7a3cf293e3ac8acc1e0205dfbfd722803dad34f112f26246a45d159f4",
+    "public_path": "refactor-discovery-bundles/implementation/test_bundles.py",
+    "public_sha256": "539b89c965e7e1b9b30ee7cb014ef673afbf3a7398a53bb5378f3a7f7dfe6851",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E741",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "refactor-discovery-bundles",
+    "original_path": "jobs/refactor-discovery-bundles/.lab-results/run_study.py",
+    "original_sha256": "6e45259d22b4952ad995d8d496e7d574fcac8f8addf2df22a717e995cfa1ae58",
+    "public_path": "refactor-discovery-bundles/implementation/run_study.py",
+    "public_sha256": "a39799db37ff6dfa2e174f11c94a02adb4b75d6193a622124054744152cc950b",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B007",
+      "B023",
+      "E741",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "refactor-discovery-bundles",
+    "original_path": "jobs/refactor-discovery-bundles/.lab-results/quest_demo.py",
+    "original_sha256": "c4863d9e0f5aa7ec4cb536cd88eb6ac7bb8b73a7d7217ef58ad4904b9afadd37",
+    "public_path": "refactor-discovery-bundles/implementation/quest_demo.py",
+    "public_sha256": "a43e91d10fe1cd43404b855e6963946577a1766e0462f929f9adfaefb5359ea2",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E741",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "tfidf-blindspot-recovery",
+    "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/recover.py",
+    "original_sha256": "19789c96861b73590ecf784b3f5811d4342ca9dca60677d650723efcda750bd7",
+    "public_path": "tfidf-blindspot-recovery/implementation/recover.py",
+    "public_sha256": "7fbc2b47097b6256b98b09f803b2255547cafabe7737fbb98aa791a99c5f6370",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E401",
+      "E402",
+      "F401",
+      "F821",
+      "I001"
+    ]
+  },
+  {
+    "method": "tfidf-blindspot-recovery",
+    "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/residual_revision.py",
+    "original_sha256": "dc15c29f517706623bc41e4d8f3a72caefef684f602649548abf2ea33f2b9cff",
+    "public_path": "tfidf-blindspot-recovery/implementation/residual_revision.py",
+    "public_sha256": "3ae2d06824439da79245b5d8e915a8052cb7ee2f5b7abc72dbf36e8b42c92c6a",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "I001"
+    ]
+  },
+  {
+    "method": "tfidf-blindspot-recovery",
+    "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/hybrid_revision.py",
+    "original_sha256": "777973fea3878acd8f7727cd6f22b9288a324c131c20e423f63ab83bbce11a75",
+    "public_path": "tfidf-blindspot-recovery/implementation/hybrid_revision.py",
+    "public_sha256": "fd52fd7d39b43d04d7b77b47792cc0cf2a266c0a98f1d7eac4e940a9d932e876",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "tfidf-blindspot-recovery",
+    "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/complete_graph_scoring.py",
+    "original_sha256": "fdf07545ce58d8b4ce0641c6af469abc8908f3beb9f5126bc06876de8530a0b3",
+    "public_path": "tfidf-blindspot-recovery/implementation/complete_graph_scoring.py",
+    "public_sha256": "8eb786640ebd628323217d803271cbd63126edfa04b59c589629b443c653f079",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "F403",
+      "F405"
+    ]
+  },
+  {
+    "method": "tfidf-blindspot-recovery",
+    "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/dense_gate_ablation.py",
+    "original_sha256": "1158a109796ef9a46df7898c1ece58a1ea2acdeb4ecc9f9f6b3be03ad5a19a39",
+    "public_path": "tfidf-blindspot-recovery/implementation/dense_gate_ablation.py",
+    "public_sha256": "f87e5d02cc02004ac3f0ed6b705cfc3d4120540bb6a29887662cdc8ecd3e3be0",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "F401",
+      "F403",
+      "F405",
+      "I001"
+    ]
+  },
+  {
+    "method": "tfidf-blindspot-recovery",
+    "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/posthoc_original_curve.py",
+    "original_sha256": "8ba9810513383dc4aa483af84c1336325d13eac6d7e3a510bfa2ee28b7443cba",
+    "public_path": "tfidf-blindspot-recovery/implementation/posthoc_original_curve.py",
+    "public_sha256": "1c56fe4c62bcd85696dd28ccbad9930af830ba8ec2d6bbe9bff0c196c8d50444",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "tfidf-blindspot-recovery",
+    "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/replay_frontier.py",
+    "original_sha256": "902738b4c57473b177b570c56e3c9130b033e37658016cb14153e0f407eb26da",
+    "public_path": "tfidf-blindspot-recovery/implementation/replay_frontier.py",
+    "public_sha256": "1b0e32b3e18f25c20573cc134f8fcff89e0ea51ec5fcdbfd3b4bb6d513a0d654",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "cross-repo-recall-audit",
+    "original_path": "jobs/cross-repo-recall-audit/.lab-results/reference.py",
+    "original_sha256": "cb4226ea1be2838fd5cf53b443497a41e32e64d463899a8b717a21c4cbf921fa",
+    "public_path": "cross-repo-recall-audit/implementation/reference.py",
+    "public_sha256": "5c1b29e7a683d37637366ed2b88461733b7b0e680668f8b924ea91d326bcf164",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "E402",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "cross-repo-recall-audit",
+    "original_path": "jobs/cross-repo-recall-audit/.lab-results/summarize_reference.py",
+    "original_sha256": "52f0176e25b3cc337443121d9f893db02ceb1746b44d1e3c0e9a608fde54c654",
+    "public_path": "cross-repo-recall-audit/implementation/summarize_reference.py",
+    "public_sha256": "f924a594b26696ca3cab82008ac31450d2ea5c3931de10dc17735bc361cb876a",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E401",
+      "E731",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "cross-repo-recall-audit",
+    "original_path": "jobs/cross-repo-recall-audit/.lab-results/inventory.py",
+    "original_sha256": "3f6d035159c2e27778dce4ddc965b8833ff502591b7dc314bbe08be7b6382ef4",
+    "public_path": "cross-repo-recall-audit/implementation/inventory.py",
+    "public_sha256": "e3cc6475cf0e4b69a9708a8f59db65da515b48f09bec249f021898f6563d464f",
+    "path_literal_replacements": 1,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "I001"
+    ]
+  },
+  {
+    "method": "cross-repo-recall-audit",
+    "original_path": "jobs/cross-repo-recall-audit/.lab-results/audit_configuration.py",
+    "original_sha256": "720e1fe1310d61c2ce54d67e9adc23efe76ae5ff231cbdcaa23599d0b412826a",
+    "public_path": "cross-repo-recall-audit/implementation/audit_configuration.py",
+    "public_sha256": "a8333343fd455e34c79b3bb5dc41ea66bbecba29bc9a75116b62bdc78cd4f8f0",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "F401",
+      "I001"
+    ]
+  },
+  {
+    "method": "cross-repo-recall-audit",
+    "original_path": "jobs/cross-repo-recall-audit/.lab-results/verify_reference.py",
+    "original_sha256": "5f5ed3f8c11b3445f96b5f302cf356e7a38962c233d76471ff1f38457828a4fc",
+    "public_path": "cross-repo-recall-audit/implementation/verify_reference.py",
+    "public_sha256": "5ee6c3a0fdc6605cc5e445ebc85c36f6deca1495352b3192cbc0a960e679a12e",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+    "legacy_lint_exceptions": [
+      "B023",
+      "E401",
+      "E402",
+      "E731",
+      "I001"
+    ]
+  },
+  {
+    "method": "encoder-corpus-evaluation",
+    "original_path": "jobs/encoder-corpus-evaluation/.lab-results/test_rank_harness.py",
+    "original_sha256": "87ad3803d0f6163c46cee52964c0c06214bc475b88532e24925a4397acfeb64e",
+    "public_path": "encoder-corpus-evaluation/implementation/test_rank_harness.py",
+    "public_sha256": "1abc19af22fe4a79c896e0ee021a9ec869e2da5cf4f08e63192a27331300eada",
+    "path_literal_replacements": 0,
+    "algorithm_change": "none; formatting and documented original lint exceptions",
+    "legacy_lint_exceptions": [
+      "E401",
+      "I001"
+    ]
+  }
+]

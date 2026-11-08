@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "existing_regression_tests": 8,
+  "scope": "Original query-length/floor repair tests. Complete mapper workflow not rerun.",
+  "original_test_path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/test_floor_regression.py",
+  "original_test_sha256": "3713c6e66525f65157d82fa3337490aea774661d922164e909a3ed50cba975d0"
+}

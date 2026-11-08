@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "scope": "Smallest input closure for the eleven shared recorded-result replay modes. Does not include complete raw experiments, model weights, or the stronger original scheduler/model/test fixture closure.",
+  "files": [
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/deterministic-v2/outcomes.jsonl",
+      "sha256": "0ba4412047960591a5ef990bdc82e85938f354d36a69a94622ca5420da689ddd",
+      "bytes": 611273
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/dynamic-residual-v2/results.jsonl",
+      "sha256": "ef3c35d056cb7802fb8b61fdcadd09820d8e45329d41fa540c80e1a26ca78d46",
+      "bytes": 9549425
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/metrics.jsonl",
+      "sha256": "9c9cde718443d8c507a55d845ba700c5b5add7e1a8ae4a490d4452de86274de7",
+      "bytes": 2772194
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/metrics.jsonl",
+      "sha256": "e2f2992e13a9658f4c586a45e383aef5557d4c369b9451c17bdd00770fdccc3d",
+      "bytes": 2597805
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one-seed-queues.jsonl",
+      "sha256": "a6abde0f53ded439c6e0a3372411c3a7aeb466c31e14b5e347fe6ce4b756eeaa",
+      "bytes": 2346696
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/rows.jsonl",
+      "sha256": "b526bbb5e841c0f086a39945b7e90abf960c2a1b28fde890fcaf030baef3d6c4",
+      "bytes": 496918393
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one-seed-results.jsonl",
+      "sha256": "e94b40e65adcc22f70bda73141db9c327df679d9d7687adf9066755b2cf8e28a",
+      "bytes": 9797974
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/completion-final-measured/results.jsonl",
+      "sha256": "6e8aa6e53c7bc9d919b72da5d2e177401546835a1a64079cd8516af1542e8ee5",
+      "bytes": 1137152
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/openhands-ebd00315/matrix-1024.json",
+      "sha256": "2f44d1e8c8b1a927d2a9abbaa9d5b162a5513e8e6ea1443e9ce467aa36484f4a",
+      "bytes": 173031
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/panels.jsonl",
+      "sha256": "d60f54bf5356cdc31b457b19901a21d409c07fae264f784ce33ae379e11b4840",
+      "bytes": 150852
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/documents/bg-ebd0031534c954e5.jsonl",
+      "sha256": "52abb71830d6eef73eb27c76fc940ace8ded2ad3bc24a0de7e7eb5292b8b14f6",
+      "bytes": 464992
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/ranks/coderank-sdpa-bf16-t4-singleton-1024/bg-ebd0031534c954e5.jsonl",
+      "sha256": "06e8d10f9a931596ef56552b080f3da74cdba91c0b96b483dd01cd9d3b76f5f2",
+      "bytes": 360483
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/openhands/bfloat16-t4/bg-ebd0031534c954e5/receipt-1024.json",
+      "sha256": "d1bb49f4d7c67d7e2dd84ef1559a17a8021a138f995abe99a67244eb04dbd81b",
+      "bytes": 5924
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/ranks/gemma2-bf16-t4-symmetric-1024/bg-ebd0031534c954e5.jsonl",
+      "sha256": "c32f42ebd27a02fb8a92b40947c85b7c7f91f50662748ed4db0e76a8aa347e89",
+      "bytes": 355623
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-original-r3/results.jsonl",
+      "sha256": "5403ddf1d648449884745bc74014c31247bc21ab38e5b3a808adf1175f69b35c",
+      "bytes": 23543962
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-residual-r3/results.jsonl",
+      "sha256": "1fd1b0125ea0a5d3695108a255e38687ee21af6f1bd01e3c0ad021ff992344fb",
+      "bytes": 46567149
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-hybrid-r1/results.jsonl",
+      "sha256": "de4fa5f2a9a46872a897eeef79d7750ffa864268223c20c8579d5807fd2c96f2",
+      "bytes": 29822965
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/reference-pairs.jsonl",
+      "sha256": "3241522f6ff195f2b5bb5dcdc0110df0eb818aeea7eab4ad20ada8e0a44cf1df",
+      "bytes": 962342
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/openhands-ebd00315/embeddings-1024.npy",
+      "sha256": "f5e0f58557f8b0caba9ffe211f7bcafd3cd55689c9cda5df533ee72bae9be658",
+      "bytes": 7213184
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/openhands/bfloat16-t4/bg-ebd0031534c954e5/embeddings-1024.npy",
+      "sha256": "b0bb879ff117003020407f6469a37bc0ade56c31514021e006d0886f213d23e5",
+      "bytes": 7213184
+    }
+  ]
+}
