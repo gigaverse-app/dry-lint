@@ -19,7 +19,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from dry_lint.family_models import FamilyRequest, FamilyResponse, FamilyUsage
+from dry_lint.family_models import FamilyAnswer, FamilyRequest, FamilyResponse, FamilyUsage
 from dry_lint.judges.anthropic_family import MAX_INPUT_BYTES, FamilyPromptJudge
 from dry_lint.judges.command import PROMPT_VERSION, CommandJudge, parse_verdict, prompt
 from dry_lint.models import Candidate, Verdict
@@ -67,6 +67,10 @@ class ClaudeCodeFamilyJudge(FamilyPromptJudge):
     The paid prompt is the same `family_prompt` the API judge sends; one call, no retries. In CI, log the CLI in
     with CLAUDE_CODE_OAUTH_TOKEN. The CLI reports its stop reason and token usage, so admission settles exactly
     as it does for the API judge.
+
+    `schema=True` passes the answer's JSON Schema to `--json-schema`, so the CLI returns a schema-valid object
+    in `structured_output` instead of free text. A schema cannot say "a confirmed member needs all five
+    details", so the family validator still decides; the judge version records the different transport.
     """
 
     name = "claude-code-family"
@@ -79,9 +83,16 @@ class ClaudeCodeFamilyJudge(FamilyPromptJudge):
         max_tokens: int = 8192,
         max_input_bytes: int = MAX_INPUT_BYTES,
         timeout: float = 600,
+        schema: bool = False,
     ) -> None:
-        super().__init__(model, max_tokens, max_input_bytes, timeout, transport="claude-code")
+        super().__init__(
+            model, max_tokens, max_input_bytes, timeout, transport="claude-code+schema" if schema else "claude-code"
+        )
+        self.schema = schema
         self.command = claude_command(cli, model, "json")
+        if schema:
+            answer_schema = json.dumps(FamilyAnswer.model_json_schema(), separators=(",", ":"))
+            self.command += f" --json-schema {shlex.quote(answer_schema)}"
         self.available = shutil.which(shlex.split(cli)[0]) is not None
 
     def judge_family(self, request: FamilyRequest) -> FamilyResponse:
@@ -99,9 +110,17 @@ class ClaudeCodeFamilyJudge(FamilyPromptJudge):
         result = json.loads(out.stdout)
         if result.get("is_error"):
             raise RuntimeError(f"claude CLI did not answer: {result.get('terminal_reason') or result.get('subtype')}")
+        if self.schema:
+            structured = result.get("structured_output")
+            if structured is None:
+                # The CLI omits the field when the run ended without a schema-valid answer.
+                raise RuntimeError("claude CLI returned no schema-valid structured_output")
+            text = json.dumps(structured)
+        else:
+            text = result.get("result") or ""
         usage = result.get("usage") or {}
         return FamilyResponse(
-            text=result.get("result") or "",
+            text=text,
             usage=FamilyUsage(
                 input=usage.get("input_tokens", 0),
                 output=usage.get("output_tokens", 0),

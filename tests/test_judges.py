@@ -8,7 +8,7 @@ import pytest
 from test_family_judging import family_answer, family_request
 
 from dry_lint.family_judging import record_family_response
-from dry_lint.family_models import FamilyUsage
+from dry_lint.family_models import FamilyAnswer, FamilyUsage
 from dry_lint.judges import label_for, make_escalation, make_judge
 from dry_lint.judges.anthropic import AnthropicJudge
 from dry_lint.judges.anthropic_family import PROMPT_VERSION as FAMILY_PROMPT_VERSION
@@ -433,3 +433,20 @@ def test_the_claude_code_family_judge_fails_closed_on_a_cli_error_and_keeps_unkn
     response = unmetered.judge_family(request)
     assert response.usage is None and response.stop_reason == "unknown"
     assert not load("judges", PluginChoice(use="claude-code-family", cli="no-such-claude-cli")).available
+
+
+def test_the_claude_code_family_judge_can_require_a_schema_valid_answer(tmp_path):
+    request = family_request()
+    answer = family_answer(request).model_dump(mode="json")
+    cli = claude_cli(tmp_path, {"result": "", "structured_output": answer, "stop_reason": "end_turn"})
+    judge = load("judges", PluginChoice(use="claude-code-family", cli=cli, schema=True))
+    assert judge.version == f"{FAMILY_PROMPT_VERSION}:claude-code+schema:claude-sonnet-5-5:output=8192"
+    response = judge.judge_family(request)
+    argv = json.loads((tmp_path / "seen.json").read_text())["argv"]
+    assert json.loads(argv[argv.index("--json-schema") + 1]) == FamilyAnswer.model_json_schema()
+    assert record_family_response(request, judge, response, (3.0, 15.0)).answer.decision == "consolidate"
+    missing = load(
+        "judges", PluginChoice(use="claude-code-family", cli=claude_cli(tmp_path, {"result": "{}"}), schema=True)
+    )
+    with pytest.raises(RuntimeError, match="no schema-valid structured_output"):
+        missing.judge_family(request)
