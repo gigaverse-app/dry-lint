@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/gigaverse-app/dry-lint/compare/v1.7.0...v1.7.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* count pattern-settled pairs in scan and derive the default branch without origin/HEAD ([#153](https://github.com/gigaverse-app/dry-lint/issues/153)) ([30ced2a](https://github.com/gigaverse-app/dry-lint/commit/30ced2a2e5f017533ecb7a086da7192b7d9499b8))
+
 ## [1.7.0](https://github.com/gigaverse-app/dry-lint/compare/v1.6.1...v1.7.0) (2026-11-08)
 
 
