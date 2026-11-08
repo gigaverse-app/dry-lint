@@ -22,7 +22,6 @@ from dry_lint.family_models import (
     FamilyResponse,
     HelperInterface,
     MemberAssessment,
-    OperationSlice,
     SourceAnchor,
     request_from_nomination,
     validate_answer,
@@ -30,6 +29,7 @@ from dry_lint.family_models import (
 from dry_lint.family_report import FamilyReport
 from dry_lint.judges.anthropic_family import AnthropicFamilyJudge, family_prompt
 from dry_lint.models import Function
+from dry_lint.operation_families import OperationRegion
 from dry_lint.plugins import load
 from dry_lint.settings import PluginChoice
 from dry_lint.store import DirectoryStore
@@ -348,7 +348,7 @@ def test_nomination_adapter_retains_utf8_columns_and_deliberate_whole_lines():
         lines = function.code.splitlines()
         lines[2] = '    label = "é"; value = normalize(payload)'
         function.code = "\n".join(lines)
-        region = OperationSlice(
+        region = OperationRegion(
             span={
                 "line": function.line + 2,
                 "end_line": function.line + 2,
@@ -374,7 +374,7 @@ def test_nomination_adapter_retains_utf8_columns_and_deliberate_whole_lines():
     )
     adapted = request_from_nomination(nomination)
     assert adapted.members[0].operations[0].source == '    label = "é"; value = normalize(payload)'
-    assert adapted.members[0].operation_slices[0].code == "value = normalize(payload)"
+    assert adapted.members[0].regions[0].code == "value = normalize(payload)"
     assert adapted.members[0].local_callers == ["caller.py::caller"]
     assert adapted.canonical_operation == "canonical AST"
     assert "caller.py::caller" in family_prompt(adapted)
@@ -409,7 +409,7 @@ def test_nonconsolidation_classifies_all_members_without_promoting_membership():
 def test_multiline_nomination_slice_retains_original_line_endings():
     member = family_request().members[0]
     function = member.function.model_copy(update={"code": member.function.code.replace("\n", "\r\n")})
-    region = OperationSlice(
+    region = OperationRegion(
         span={"line": 3, "end_line": 6, "column": 4, "end_column": 24},
         code='value = normalize(payload)\r\n    if value is None:\r\n        raise ValueError("empty")\r\n    return encode(value)',
         kind="straight_run",
@@ -445,7 +445,7 @@ def test_invalid_or_oversized_questions_are_rejected_whole(mutation):
 @pytest.mark.parametrize("mutation", ["outside", "column", "source", "highlight"])
 def test_operation_slice_cannot_misstate_its_owner_source(mutation):
     member = family_request().members[0]
-    region = OperationSlice(
+    region = OperationRegion(
         span={"line": 3, "end_line": 3, "column": 4, "end_column": 30},
         code="value = normalize(payload)",
         kind="straight_run",
@@ -459,7 +459,7 @@ def test_operation_slice_cannot_misstate_its_owner_source(mutation):
         region.code = "invented()"
     # A valid single-line slice still needs a corresponding complete-line highlight.
     with pytest.raises(ValueError):
-        FamilyMember.model_validate({**member.model_dump(), "operation_slices": [region.model_dump()]})
+        FamilyMember.model_validate({**member.model_dump(), "regions": [region.model_dump()]})
 
 
 @pytest.mark.parametrize(

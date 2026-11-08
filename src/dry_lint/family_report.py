@@ -18,6 +18,9 @@ class FamilyReport(FamilyFile):
 
     @property
     def consolidations(self) -> int:
+        # Confirmed family proposals; the pair report counts pair findings, a different finding type.
+        # dry-lint: distinct-from src/dry_lint/report.py::Report.stats
+        # dry-lint: distinct-from src/dry_lint/report.py::Report.deferred
         return sum(finding.reported for finding in self.findings)
 
     def markdown(self) -> str:

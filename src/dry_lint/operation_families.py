@@ -10,18 +10,18 @@ import hashlib
 import json
 import symtable
 from collections import Counter, defaultdict
-from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dry_lint.functions import _parse
+from dry_lint.functions import _parse, docstring_statement
 from dry_lint.models import Function, Run
-from dry_lint.operation_blocks import _COMPOUND, _NESTED
+from dry_lint.operation_blocks import _NESTED, statement_regions
 
 GENERATOR = "python-operation-families:1"
 _SCOPES = (*_NESTED, ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+_STRICT = ConfigDict(extra="forbid", allow_inf_nan=False)
 
 
 class FamilyLimits(BaseModel):
@@ -47,26 +47,48 @@ class FamilyLimits(BaseModel):
 class SourceSpan(BaseModel):
     """Absolute lines and zero-based UTF-8 byte columns; end is exclusive."""
 
-    line: int
-    end_line: int
-    column: int
-    end_column: int
+    model_config = _STRICT
+    line: int = Field(ge=1)
+    end_line: int = Field(ge=1)
+    column: int = Field(ge=0)
+    end_column: int = Field(ge=0)
 
 
 class OperationRegion(BaseModel):
+    """One exact operation site. Family questions carry these same records and re-check them against source."""
+
+    model_config = _STRICT
     span: SourceSpan
-    code: str
-    kind: str
-    statements: int
-    bindings: dict[str, str]
-    enclosing: list[SourceSpan]
+    code: str = Field(min_length=1, max_length=32000)
+    kind: str = Field(min_length=1, max_length=6000)
+    statements: int = Field(ge=1)
+    bindings: dict[str, str] = Field(default_factory=dict)
+    enclosing: list[SourceSpan] = Field(default_factory=list)
+    # Nomination-only pricing: excluded from dumps, so the judge's request, key and prompt never see it.
     replacement_statements: int = Field(
         default=1,
+        exclude=True,
         description="Statements a call site needs: 2 when a return/break/continue leaves the region.",
     )
 
+    def check(self, function: Function) -> None:
+        span = self.span
+        if not function.line <= span.line <= span.end_line <= function.end_line:
+            raise ValueError("Operation slice lies outside its owner")
+        lines = function.code.splitlines(keepends=True)
+        selected = [
+            line.encode("utf-8") for line in lines[span.line - function.line : span.end_line - function.line + 1]
+        ]
+        if span.column > len(selected[0]) or span.end_column > len(selected[-1]):
+            raise ValueError("Operation byte columns lie outside source")
+        selected[-1] = selected[-1][: span.end_column]
+        selected[0] = selected[0][span.column :]
+        if b"".join(selected).decode("utf-8") != self.code:
+            raise ValueError("Operation slice does not match exact UTF8 source columns")
+
 
 class OperationOwner(BaseModel):
+    model_config = _STRICT
     owner_id: str
     source_id: str
     function: Function
@@ -118,42 +140,6 @@ class FamilyBatch(BaseModel):
 
 def _digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
-
-
-def _string_statement(node: ast.AST) -> bool:
-    return isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
-
-
-def _regions(body: list[ast.stmt]) -> Iterator[tuple[str, list[ast.stmt], tuple[ast.AST, ...]]]:
-    """The operation-block vocabulary, across ALL suites, without its depth/prefix cap.
-
-    An explicit stack bounds Python call depth. Nested owners and docstrings split
-    straight runs. Oversized compounds can still contain eligible complete children.
-    """
-    pending: list[tuple[list[ast.stmt], tuple[ast.AST, ...]]] = [(body, ())]
-    while pending:
-        suite, enclosing = pending.pop()
-        run: list[ast.stmt] = []
-        children = []
-        for node in suite:
-            if isinstance(node, (*_NESTED, *_COMPOUND)) or _string_statement(node):
-                if len(run) >= 2:
-                    yield "straight_run", run, enclosing
-                run = []
-                if isinstance(node, _COMPOUND):
-                    yield type(node).__name__, [node], enclosing
-                    for name in ("body", "orelse", "finalbody"):
-                        if nested := getattr(node, name, []):
-                            children.append((nested, (*enclosing, node)))
-                    for handler in getattr(node, "handlers", []):
-                        children.append((handler.body, (*enclosing, node, handler)))
-                    for case in getattr(node, "cases", []):
-                        children.append((case.body, (*enclosing, node)))
-            else:
-                run.append(node)
-        if len(run) >= 2:
-            yield "straight_run", run, enclosing
-        pending.extend(reversed(children))
 
 
 _MIN_DOMAIN_NAMES = 2
@@ -294,7 +280,10 @@ def _overlaps(a: SourceSpan, b: SourceSpan) -> bool:
     return (a.line, a.column) < (b.end_line, b.end_column) and (b.line, b.column) < (a.end_line, a.end_column)
 
 
-def _source_key(function: Function) -> tuple[str, str, str]:
+def _source_file(function: Function) -> tuple[str, str, str]:
+    # One physical file at one revision, so two aliases of a site never count as two owners. Unlike a validated
+    # SourceReference, it names no function and accepts unpinned (empty) origins.
+    # dry-lint: distinct-from src/dry_lint/evidence.py::SourceReference.of
     origin = function.origin or Run()
     return origin.repository, origin.head, function.path
 
@@ -447,7 +436,7 @@ class PythonOperationFamilies:
             family_sites: dict[tuple[str, str, str], list[SourceSpan]] = defaultdict(list)
             for key, regions in sorted(group.owners.items()):
                 disjoint: list[OperationRegion] = []
-                source_sites = family_sites[_source_key(selected[key])]
+                source_sites = family_sites[_source_file(selected[key])]
                 for region in sorted(regions, key=lambda r: (r.span.line, r.span.column, -r.statements)):
                     if not any(_overlaps(region.span, old) for old in source_sites):
                         disjoint.append(region)
@@ -479,7 +468,7 @@ class PythonOperationFamilies:
                 sites = [
                     region
                     for region in member.regions
-                    if not any(_overlaps(region.span, span) for span in occupied[_source_key(member.function)])
+                    if not any(_overlaps(region.span, span) for span in occupied[_source_file(member.function)])
                 ]
                 skipped["overlapping_sites"] += len(member.regions) - len(sites)
                 if sites:
@@ -514,7 +503,7 @@ class PythonOperationFamilies:
             )
             stats.output_source_bytes += size
             for member in remaining:
-                occupied[_source_key(member.function)].extend(region.span for region in member.regions)
+                occupied[_source_file(member.function)].extend(region.span for region in member.regions)
         stats.nominated_families = len(nominations)
         stats.nominated_owners = sum(len(family.owners) for family in nominations)
         stats.nominated_sites = sum(len(member.regions) for family in nominations for member in family.owners)
@@ -563,7 +552,9 @@ class PythonOperationFamilies:
             source_lines = [line.encode() for line in lines]
             tails = _tail_statements(node.body)
             raw = sorted(
-                _regions(node.body),
+                # The operation-block vocabulary across every suite: no depth cap, and an oversized
+                # compound still yields its eligible complete children.
+                statement_regions(node.body),
                 key=lambda item: (item[1][0].lineno, item[1][0].col_offset, -item[1][-1].end_lineno),
             )
             for kind, statements, enclosing in raw:
@@ -593,7 +584,7 @@ class PythonOperationFamilies:
                 if any(isinstance(child, _SCOPES) for child in nodes):
                     skipped["nested_binding_scope"] += 1
                     continue
-                count = sum(isinstance(child, ast.stmt) and not _string_statement(child) for child in nodes)
+                count = sum(isinstance(child, ast.stmt) and not docstring_statement(child) for child in nodes)
                 if count < 2:
                     skipped["single_statement"] += 1
                     continue

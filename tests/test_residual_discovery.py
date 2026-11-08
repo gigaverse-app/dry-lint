@@ -20,7 +20,7 @@ from dry_lint.presets import resolve
 from dry_lint.settings import Discovery, ExplorationComparer, Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
-from conftest import Repo, claude, coverage_pair
+from conftest import Repo, claude, coverage_pair, residual_pair
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ def test_native_prefix_is_protected_then_unattempted_exploration_borrows(residua
     settings, judge, store, calls = residual_setup
     baseline = coverage_pair(1)
     explore = coverage_pair(2).model_copy(update={"lane": "exploration"})
-    suffix = coverage_pair(3).model_copy(update={"lane": "exploration", "residual": True, "similarity": 1})
+    suffix = residual_pair(3).model_copy(update={"similarity": 1})
     deferred = coverage_pair(4).model_copy(update={"lane": "exploration"})
     settings.discovery.exploration_per_revision = reservation_cost(judge, explore, settings)
     control_settings = settings.model_copy(deep=True)
@@ -94,7 +94,7 @@ def test_residual_reservations_share_limits_and_cannot_mint_credit(residual_setu
     campaign = CampaignStore(path, run)
 
     def reserve(n):
-        candidate = coverage_pair(n).model_copy(update={"lane": "exploration", "residual": True})
+        candidate = residual_pair(n)
         return CampaignStore(path, run).reserve(candidate, judge, settings, 0.003, residual=True)
 
     with ThreadPoolExecutor(4) as pool:
@@ -175,7 +175,7 @@ def test_residual_uses_actual_settlement_but_keeps_prior_charges(residual_setup,
     settings, judge, store, _ = residual_setup
     run = Run(repository="owner/repo", pull_request=7, revision="tree")
     baseline = coverage_pair(1)
-    suffix = coverage_pair(2).model_copy(update={"lane": "exploration", "residual": True})
+    suffix = residual_pair(2)
     hold = reservation_cost(judge, baseline, settings)
     # Only one hold fits before settlement, but returned usage leaves room for another.
     prior = settings.budget.usd - hold - 0.0002
@@ -192,13 +192,13 @@ def test_residual_uses_actual_settlement_but_keeps_prior_charges(residual_setup,
 def test_unaffordable_baseline_still_bars_recovery(residual_setup, tmp_path):
     settings, _, _, calls = residual_setup
     settings.budget.usd = 0.0001
-    suffix = coverage_pair(2).model_copy(update={"lane": "exploration", "residual": True})
+    suffix = residual_pair(2)
     report, state = check(residual_setup, tmp_path, [suffix, coverage_pair(1)])
     assert report.deferred == 2 and not calls and not state.attempts
 
 
 def test_residual_exact_source_change_reopens_on_later_revision(residual_setup, tmp_path):
-    pair = coverage_pair(1).model_copy(update={"lane": "exploration", "residual": True})
+    pair = residual_pair(1)
     first, before = check(residual_setup, tmp_path, [pair])
     edited = pair.model_copy(update={"new": pair.new.model_copy(update={"code": pair.new.code + "\n# exact change"})})
     second, after = check(residual_setup, tmp_path, [edited], "tree2")
@@ -225,7 +225,7 @@ def test_failed_protected_call_blocks_suffix_and_repeat_keeps_hold(residual_setu
     )
     setup = (settings, judge, store, calls)
     prefix = coverage_pair(1).model_copy(update={"lane": lane})
-    suffix = coverage_pair(2).model_copy(update={"lane": "exploration", "residual": True})
+    suffix = residual_pair(2)
     first, state = check(setup, tmp_path, [prefix, suffix])
     assert len(calls) == len(state.attempts) == 1
     assert first.deferred == 2 and all(not f.budget_deferred for f in first.findings)
@@ -272,7 +272,7 @@ def test_example_resolves_complete_balanced_and_split_cli_reuses_campaign(repo, 
 
 def test_no_judge_only_lists_residual_candidates(residual_setup):
     settings, _, store, calls = residual_setup
-    pair = coverage_pair(1).model_copy(update={"lane": "exploration", "residual": True})
+    pair = residual_pair(1)
     findings = Judging(settings, None, None, store).findings([pair])
     assert len(findings) == 1 and findings[0].verdict is None and not calls
 
@@ -281,7 +281,7 @@ def test_no_judge_only_lists_residual_candidates(residual_setup):
 def test_campaign_api_cannot_bypass_phase_opt_in(residual_setup, tmp_path, opt_in):
     settings, judge, _, _ = residual_setup
     campaign = CampaignStore(tmp_path / "state.sqlite3", Run(session="feature", revision="tree"))
-    pair = coverage_pair(1).model_copy(update={"lane": "exploration", "residual": True})
+    pair = residual_pair(1)
     if not opt_in:
         settings.discovery.residual_comparers = []
     with pytest.raises(ValueError, match="explicitly configured residual phase"):

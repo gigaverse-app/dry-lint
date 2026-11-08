@@ -1,13 +1,12 @@
 """Exact family cache and execution; the caller supplies admission from the SAME native campaign cap."""
 
-import hashlib
-import json
 import math
 from typing import Literal, Protocol
 
 from pydantic import Field, model_validator
 
 from dry_lint.costs import usage_cost
+from dry_lint.discovery import conservative_cost
 from dry_lint.family_models import (
     FamilyAnswer,
     FamilyFile,
@@ -16,6 +15,7 @@ from dry_lint.family_models import (
     FamilyResponse,
     validate_answer,
 )
+from dry_lint.function_index import digest
 from dry_lint.plugins import StoreBackend, identity
 
 
@@ -44,14 +44,15 @@ class FamilyAdmission(Protocol):
 
 
 def family_key(request: FamilyRequest, judge: FamilyJudge) -> str:
+    # The question's own identity plus everything that changes the paid answer: policy, model, ceiling, prompt.
     payload = [
-        request.model_dump(mode="json"),
+        request.key,
         identity(judge),
         judge.model,
         judge.max_tokens,
         judge.input_text(request),
     ]
-    return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=True).encode()).hexdigest()
+    return digest(payload)
 
 
 def checked_rates(rates: tuple[float, float]) -> tuple[float, float]:
@@ -63,9 +64,10 @@ def checked_rates(rates: tuple[float, float]) -> tuple[float, float]:
 def family_reservation_cost(request: FamilyRequest, judge: FamilyJudge, rates: tuple[float, float]) -> float:
     if not isinstance(judge.max_tokens, int) or not 1 <= judge.max_tokens <= 16000:
         raise ValueError("Family admission requires a finite output ceiling")
-    text = judge.input_text(request)
-    # Same conservative reservation rule as native discovery: UTF8 bytes plus framing, bounded output.
-    return usage_cost({"input": len(text.encode()) + 1024, "output": judge.max_tokens}, checked_rates(rates))
+    # One admission rule (`conservative_cost`); a family question is priced from validated explicit rates and
+    # the judge's own rendered prompt, where a pair question looks up configured prices and the shared prompt.
+    # dry-lint: distinct-from src/dry_lint/discovery.py::reservation_cost
+    return conservative_cost(judge.input_text(request), judge.max_tokens, checked_rates(rates))
 
 
 def record_family_response(

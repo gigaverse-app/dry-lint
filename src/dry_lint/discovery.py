@@ -253,6 +253,9 @@ def reservation_cost(judge: Judge, candidate: Candidate, settings: Settings) -> 
     maximum = getattr(judge, "max_tokens", None)
     if rates is None or maximum is None and rates[1] != 0:
         raise ValueError("Discovery needs a priced judge with a maximum output token limit")
-    # Conservative input estimate plus the actual configured output ceiling; actual usage settles the charge.
-    text = judging_input(judge, candidate)
-    return usage_cost({"input": len(text.encode("utf-8")) + 1024, "output": maximum or 0}, rates)
+    return conservative_cost(judging_input(judge, candidate), maximum or 0, rates)
+
+
+def conservative_cost(text: str, output_tokens: int, rates: tuple[float, float]) -> float:
+    """An admission bound: UTF-8 bytes plus framing as input, and the full output ceiling; actual usage settles."""
+    return usage_cost({"input": len(text.encode("utf-8")) + 1024, "output": output_tokens}, rates)

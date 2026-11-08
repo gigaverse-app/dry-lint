@@ -1,12 +1,11 @@
 """Independent schema-1 family questions; nomination is never a duplicate verdict."""
 
-import hashlib
-import json
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from dry_lint.models import Function
+from dry_lint.function_index import digest
+from dry_lint.operation_families import OperationOwner, OperationRegion
 
 if TYPE_CHECKING:
     from dry_lint.operation_families import FamilyNomination
@@ -61,44 +60,15 @@ def check_anchor(anchor: SourceAnchor, member: "FamilyMember") -> None:
         raise ValueError("Source anchor does not exactly match owner source")
 
 
-class OperationSpan(FamilyModel):
-    line: int = Field(ge=1)
-    end_line: int = Field(ge=1)
-    column: int = Field(ge=0)
-    end_column: int = Field(ge=0)
+class FamilyMember(OperationOwner):
+    """A nominated owner plus the complete-line highlights the judge must quote, within bounded source."""
 
-
-class OperationSlice(FamilyModel):
-    span: OperationSpan
-    code: str = Field(min_length=1, max_length=32000)
-    kind: Text
-    statements: int = Field(ge=1)
-    bindings: dict[str, str] = Field(default_factory=dict)
-    enclosing: list[OperationSpan] = Field(default_factory=list)
-
-    def check(self, function: Function) -> None:
-        span = self.span
-        if not function.line <= span.line <= span.end_line <= function.end_line:
-            raise ValueError("Operation slice lies outside its owner")
-        lines = function.code.splitlines(keepends=True)
-        selected = [
-            line.encode("utf-8") for line in lines[span.line - function.line : span.end_line - function.line + 1]
-        ]
-        if span.column > len(selected[0]) or span.end_column > len(selected[-1]):
-            raise ValueError("Operation byte columns lie outside source")
-        selected[-1] = selected[-1][: span.end_column]
-        selected[0] = selected[0][span.column :]
-        if b"".join(selected).decode("utf-8") != self.code:
-            raise ValueError("Operation slice does not match exact UTF8 source columns")
-
-
-class FamilyMember(FamilyModel):
+    model_config = FamilyModel.model_config
     owner_id: Text
-    function: Function
-    operations: list[SourceAnchor] = Field(min_length=1, max_length=16)
     source_id: str = ""
+    regions: list[OperationRegion] = Field(default_factory=list, max_length=16)
     local_callers: list[str] = Field(default_factory=list)
-    operation_slices: list[OperationSlice] = Field(default_factory=list, max_length=16)
+    operations: list[SourceAnchor] = Field(min_length=1, max_length=16)
 
     @model_validator(mode="after")
     def grounded(self) -> Self:
@@ -111,7 +81,7 @@ class FamilyMember(FamilyModel):
             raise ValueError("Owner helper/delegate context exceeds the bounded contract")
         for anchor in self.operations:
             check_anchor(anchor, self)
-        for region in self.operation_slices:
+        for region in self.regions:
             region.check(function)
             if not any(
                 a.start_line == region.span.line and a.end_line == region.span.end_line for a in self.operations
@@ -140,7 +110,7 @@ class FamilyRequest(FamilyFile):
     @property
     def key(self) -> str:
         """Order and every source/context/operation field participate, including rejected siblings."""
-        return hashlib.sha256(json.dumps(self.model_dump(mode="json"), sort_keys=True).encode()).hexdigest()
+        return digest(self.model_dump(mode="json"))
 
 
 def request_from_nomination(
@@ -167,10 +137,7 @@ def request_from_nomination(
                 source_id=owner.source_id,
                 function=owner.function,
                 operations=highlights,
-                operation_slices=[
-                    OperationSlice.model_validate(region.model_dump(exclude={"replacement_statements"}))
-                    for region in owner.regions
-                ],
+                regions=[region.model_copy(deep=True) for region in owner.regions],
                 local_callers=owner.local_callers,
             )
         )
@@ -225,6 +192,8 @@ class CommonOperation(FamilyModel):
 
 
 class FamilyAnswer(FamilyFile):
+    # A judge's validated family verdict, not adopter configuration declaring deliberate look-alikes.
+    # dry-lint: distinct-from src/dry_lint/settings.py::Pattern
     decision: Literal["consolidate", "separate", "unknown"]
     reason: Text
     members: list[MemberAssessment] = Field(min_length=2, max_length=12)

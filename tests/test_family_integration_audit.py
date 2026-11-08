@@ -18,8 +18,8 @@ from dry_lint.discovery import CampaignStore
 from dry_lint.family_models import FamilyAnswer, FamilyResponse, MemberAssessment
 from dry_lint.judging import Judging
 from dry_lint.plugins import identity, load
-from dry_lint.report import Report, as_check_run, as_markdown, as_text
-from dry_lint.settings import PluginChoice
+from dry_lint.report import Report, as_check_run, as_markdown, as_text, render
+from dry_lint.settings import PluginChoice, Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
 from conftest import claude, coverage_pair
@@ -240,3 +240,18 @@ def test_native_family_uses_actual_plugin_contract_without_provider(setup, tmp_p
         assert discovery.findings[0].status == "no_key" and not requests
         assert not judging.campaign.snapshot().attempts
     assert "anthropic-family" in judging.summary().line()
+
+
+def test_family_opt_in_without_native_discovery_is_rejected_before_any_plugin(repo, capsys):
+    repo.write(".dry-lint.toml", '[discovery.families]\njudge={use="anthropic-family",model="claude-haiku-5-5"}\n')
+    repo.commit("family opt-in without discovery")
+    with patch.object(judging_module, "make_judge", side_effect=AssertionError("must validate before plugin")):
+        assert main(["check", "--root", str(repo.root), "--base", "main"]) == 2
+    assert "requires discovery.enabled = true" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("form", ["github", "sarif"])
+def test_a_report_with_families_refuses_formats_that_cannot_show_them(form):
+    report = Report(judge="test", family_exclusions=[{"nomination_id": "n", "reason": "oversized"}])
+    with pytest.raises(ValueError, match="Operation families support"):
+        render(report, form, Settings())
