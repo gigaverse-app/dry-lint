@@ -62,7 +62,7 @@ pre-commit environment still runs an older version, refresh it with `uvx pre-com
 Install the CLI in its own environment, outside the application's dependency resolution:
 
 ```bash
-uv tool install --no-config --python 3.13 'dry-lint[anthropic] @ git+https://github.com/gigaverse-app/dry-lint@v1'
+uv tool install --no-config --python 3.13 'dry-lint[anthropic]>=1,<2'
 dry-lint config
 dry-lint sweep --init --budget-usd 5 --readme README.md --repository OWNER/NAME --repository-id NUMERIC_ID
 ```

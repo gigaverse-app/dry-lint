@@ -1,0 +1,1229 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "merged_pin": "f430b9ade685a4125c8eb66ef785da32f9d1c30c",
+  "merge_status_authority": "Exact merged pin supplied by root; helper verifies committed content, not GitHub merge state",
+  "catalog_sha256": "baaa2524de3f3e3dc9d6168ed6c91b6acf191abdc66c63151d77fdb9ded878cc",
+  "dataset_manifests": {
+    "worker-evidence-v1": {
+      "path": "manifests/worker-evidence-v1.json",
+      "sha256": "47280ea9b78b9eca15c6c10d48ea3c02b229559d1b9d132bdfe2425a862c147d"
+    },
+    "worker-matrices-v1": {
+      "path": "manifests/worker-matrices-v1.json",
+      "sha256": "25eced2a05c844c13c86e0363cb377e1623733e4346fc1228ffb3096797a5667"
+    },
+    "worker-judgments-v1": {
+      "path": "manifests/worker-judgments-v1.json",
+      "sha256": "f9d53ab668a9515d51e16773cc2f1d60220d339a67552d5e2141db99f9631ae7"
+    },
+    "worker-replay-state-v1": {
+      "path": "manifests/worker-replay-state-v1.json",
+      "sha256": "3e313ac7584c9f3f0b47e54de046265de26a8c159fb2764ad5c95bfa8397cf70"
+    },
+    "grounded-product-replay-v1": {
+      "path": "manifests/grounded-product-replay-v1.json",
+      "sha256": "715db8e960191dbdbbd6bb4e6b564550a808790b49db85166f390cd6b6393981"
+    }
+  },
+  "minimum_inputs": [
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/deterministic-v2/outcomes.jsonl",
+      "sha256": "0ba4412047960591a5ef990bdc82e85938f354d36a69a94622ca5420da689ddd",
+      "bytes": 611273,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/dynamic-residual-v2/results.jsonl",
+      "sha256": "ef3c35d056cb7802fb8b61fdcadd09820d8e45329d41fa540c80e1a26ca78d46",
+      "bytes": 9549425,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/metrics.jsonl",
+      "sha256": "9c9cde718443d8c507a55d845ba700c5b5add7e1a8ae4a490d4452de86274de7",
+      "bytes": 2772194,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/metrics.jsonl",
+      "sha256": "e2f2992e13a9658f4c586a45e383aef5557d4c369b9451c17bdd00770fdccc3d",
+      "bytes": 2597805,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one-seed-queues.jsonl",
+      "sha256": "a6abde0f53ded439c6e0a3372411c3a7aeb466c31e14b5e347fe6ce4b756eeaa",
+      "bytes": 2346696,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/rows.jsonl",
+      "sha256": "b526bbb5e841c0f086a39945b7e90abf960c2a1b28fde890fcaf030baef3d6c4",
+      "bytes": 496918393,
+      "storage": "reassembled_chunk_objects",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one-seed-results.jsonl",
+      "sha256": "e94b40e65adcc22f70bda73141db9c327df679d9d7687adf9066755b2cf8e28a",
+      "bytes": 9797974,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/completion-final-measured/results.jsonl",
+      "sha256": "6e8aa6e53c7bc9d919b72da5d2e177401546835a1a64079cd8516af1542e8ee5",
+      "bytes": 1137152,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/openhands-ebd00315/matrix-1024.json",
+      "sha256": "2f44d1e8c8b1a927d2a9abbaa9d5b162a5513e8e6ea1443e9ce467aa36484f4a",
+      "bytes": 173031,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/panels.jsonl",
+      "sha256": "d60f54bf5356cdc31b457b19901a21d409c07fae264f784ce33ae379e11b4840",
+      "bytes": 150852,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/documents/bg-ebd0031534c954e5.jsonl",
+      "sha256": "52abb71830d6eef73eb27c76fc940ace8ded2ad3bc24a0de7e7eb5292b8b14f6",
+      "bytes": 464992,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/ranks/coderank-sdpa-bf16-t4-singleton-1024/bg-ebd0031534c954e5.jsonl",
+      "sha256": "06e8d10f9a931596ef56552b080f3da74cdba91c0b96b483dd01cd9d3b76f5f2",
+      "bytes": 360483,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/openhands/bfloat16-t4/bg-ebd0031534c954e5/receipt-1024.json",
+      "sha256": "d1bb49f4d7c67d7e2dd84ef1559a17a8021a138f995abe99a67244eb04dbd81b",
+      "bytes": 5924,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/ranks/gemma2-bf16-t4-symmetric-1024/bg-ebd0031534c954e5.jsonl",
+      "sha256": "c32f42ebd27a02fb8a92b40947c85b7c7f91f50662748ed4db0e76a8aa347e89",
+      "bytes": 355623,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-original-r3/results.jsonl",
+      "sha256": "5403ddf1d648449884745bc74014c31247bc21ab38e5b3a808adf1175f69b35c",
+      "bytes": 23543962,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-residual-r3/results.jsonl",
+      "sha256": "1fd1b0125ea0a5d3695108a255e38687ee21af6f1bd01e3c0ad021ff992344fb",
+      "bytes": 46567149,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-hybrid-r1/results.jsonl",
+      "sha256": "de4fa5f2a9a46872a897eeef79d7750ffa864268223c20c8579d5807fd2c96f2",
+      "bytes": 29822965,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/reference-pairs.jsonl",
+      "sha256": "3241522f6ff195f2b5bb5dcdc0110df0eb818aeea7eab4ad20ada8e0a44cf1df",
+      "bytes": 962342,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/openhands-ebd00315/embeddings-1024.npy",
+      "sha256": "f5e0f58557f8b0caba9ffe211f7bcafd3cd55689c9cda5df533ee72bae9be658",
+      "bytes": 7213184,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/openhands/bfloat16-t4/bg-ebd0031534c954e5/embeddings-1024.npy",
+      "sha256": "b0bb879ff117003020407f6469a37bc0ade56c31514021e006d0886f213d23e5",
+      "bytes": 7213184,
+      "storage": "evidence_object",
+      "verified_from_commit": "f430b9ade685a4125c8eb66ef785da32f9d1c30c"
+    }
+  ],
+  "minimum_files": 20,
+  "replay_summary_sha256": "9caf8b3088773dba106fd025ddfeefdc707d9c36ec2c806aa554f0b2767b1614",
+  "corpus_only_replays": 11,
+  "unavailable_minimum_inputs": [],
+  "legacy_paths_verified": 88,
+  "original_code_tests_verified": 86,
+  "legacy_byte_checks": [
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/ARTIFACTS.json",
+      "sha256": "4273feb08181767a544dc47290c3e7ace7e4242ce142e985b595269f5a390338",
+      "bytes": 1994,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/ARTIFACTS.json",
+      "sha256": "59b9559feaefe5688af29f63e654f899a4c461e154413dabd358991a56058f48",
+      "bytes": 5528,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/FROZEN-INPUTS.json",
+      "sha256": "311413f5f9d4d79cba7a853103e78cfbdb17dba4a5c6458b3ebfa98c242d7b74",
+      "bytes": 286042,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/RESIDUAL-INPUTS.json",
+      "sha256": "3928abba1d465c0bd6054c388aab79e6cb8d2f0156b01e6e309abe8ea4344e5c",
+      "bytes": 25094,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/INPUT-BINDINGS.json",
+      "sha256": "4907de4031357902eb033ac1f51d0ec6285ec7665303d172f95e88dda1175571",
+      "bytes": 1844,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/ARTIFACTS.json",
+      "sha256": "f136eee08d49e283fc13b3982d2a7a14c26c19e0a3e21de7179f4d1661d260d0",
+      "bytes": 17088,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/INPUTS.json",
+      "sha256": "0e655ffa4316648ef116ef9c3f3d013a9d3c67a1054cdb5eecf9ed31e9f55554",
+      "bytes": 2310,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/ARTIFACTS.json",
+      "sha256": "1faf0822bf6d5fa3999bbbc6afd027ce136330ada7ccec9232e477b06b9dc92b",
+      "bytes": 8103,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/AVAILABLE-SEED-SELECTION.json",
+      "sha256": "6b41dbbdeb8c2902b89cf5167b8345a5de4b3fb5f22ceeef2330f3bab02dd571",
+      "bytes": 137110,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/FROZEN-REPLAY.json",
+      "sha256": "b02af58907489c78b9e1a43568fced3be5e0bd4a6cdbe35e2369b96f83cf8089",
+      "bytes": 65926,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/FROZEN-RECORDINGS.json",
+      "sha256": "d4ac10767f9c0e95618d0b9c335bb3c49fd1f98b786798476c925ed35d6f412a",
+      "bytes": 10580,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/deterministic-v2/outcomes.jsonl",
+      "sha256": "0ba4412047960591a5ef990bdc82e85938f354d36a69a94622ca5420da689ddd",
+      "bytes": 611273,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/bundle.schema.json",
+      "sha256": "6cf984b5ea886d1054e738628c1b2501ba9f3fff2546c51a443c4bbcc4d6e5cb",
+      "bytes": 28305,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/quest.schema.json",
+      "sha256": "13d8ab31480a52a2ca40968a45ddbb4871af69ce233c1ed2835c5bacf1481cf8",
+      "bytes": 21463,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/outcomes.json",
+      "sha256": "3cb678e61af6860551df92f6c18846ef5e7d5ed7a5859cb170db045406263693",
+      "bytes": 29837,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/comparison.json",
+      "sha256": "93f7fe562e546edf23196ba5391dc7e349ae1576182268b0751097aad7923235",
+      "bytes": 9135,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/inputs/SNAPSHOT.json",
+      "sha256": "0fba5d4455a5695dbefa8b2f3d51be335f781d78182a534759224261ae137860",
+      "bytes": 4114,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/TOY.json",
+      "sha256": "fe20a161624ee0b3be4e7dd043f9c7f08881106e20a013c86cbe176525f78afb",
+      "bytes": 7574,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-residual-r3/results.jsonl",
+      "sha256": "1fd1b0125ea0a5d3695108a255e38687ee21af6f1bd01e3c0ad021ff992344fb",
+      "bytes": 46567149,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/selections.jsonl",
+      "sha256": "f08a140b0bd891b86e19a64e1ebf7e563fef6b2e21c673a4adcd9669ef0ce099",
+      "bytes": 44973836,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/guard-selections.jsonl",
+      "sha256": "a853016d0bcc73d70c8476fd3692679686b48d8a578127eaff5c5efef46d8ecd",
+      "bytes": 16117952,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/arrays/bg-7489aa1946c16153/data.npz",
+      "sha256": "4d94cc33b723e568101a1cb9ec8ddd851e0b5b5c3b73ad67242dbadaafb02c3a",
+      "bytes": 6521113,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/arrays/bg-7489aa1946c16153/scores.npy",
+      "sha256": "9df219bb1b085afd8b4b1e8dd69da878085dd2cf2166fada791e7afeb598d650",
+      "bytes": 1061824,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/arrays/bg-7489aa1946c16153/rows.jsonl",
+      "sha256": "c488a864c6cdf1bdca819b19a86ba1871bc4b6ef050fa539e80ee72f441a4c2e",
+      "bytes": 67882726,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/arrays/bg-62d8145fa0144191/data.npz",
+      "sha256": "f318a0a4a9c5d3f20cfab7dfc5cc99af5ef56f80ee3f164c996fca0aa705416e",
+      "bytes": 3176122,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/arrays/bg-62d8145fa0144191/scores.npy",
+      "sha256": "a3e51761177fd974603067f2756d9353331d2cc8c68f33224ce4133240021c85",
+      "bytes": 505488,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/arrays/bg-62d8145fa0144191/rows.jsonl",
+      "sha256": "33f4b95aedac9284ecd47e67a1770c95bc83b56bdd7bfd2c61fb7b52dd91ec6c",
+      "bytes": 34919191,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/completion-round4-receipts/RECORDINGS.json",
+      "sha256": "4a129142af6f5d15f17e99c8b3fb2712a01e12ed038c72a87d1c72a37b746ec2",
+      "bytes": 146821,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/returned-wave-v1/COMPLETION-CORE.json",
+      "sha256": "7cf8bf56c55b19867866948386efdbcf0db9dd4531aa52dbed465e198b28891d",
+      "bytes": 6936,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/matched-captures/INPUTS.json",
+      "sha256": "ebe76d4a791529387dfd698bb8e6d8081f529e1d607c793e45d94a249c18c1bf",
+      "bytes": 64285,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/matched-captures/deltas.jsonl",
+      "sha256": "b3f98338839523523b3e5861952bba326774b76c3abe5edce28491e90e348152",
+      "bytes": 261610,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/samples/after-consolidation-control.json",
+      "sha256": "f6baaf6ce2be8e19ac7e25b1a3d38c4957e7d245ff10800db516c601f049befb",
+      "bytes": 7336,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/samples/graph-graph-bounded_seed_diffusion.json",
+      "sha256": "29a9cc39eba9afc034da4c3d06c5c9f7808a3b7fa2145e51b41f07be254047c8",
+      "bytes": 41810,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/runtime/pyproject.toml",
+      "sha256": "65901311ec75722ac5ab79281f8b20b60c9dd9c5158534d5209c97b85237eff6",
+      "bytes": 2747,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/runtime/uv.lock",
+      "sha256": "c6456043e0cb3a30d150c9bd30f9a0240e03bf6456081015cb8d4d3dd0414659",
+      "bytes": 253288,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/__init__.py",
+      "sha256": "eb2ffeb6be174449e0a36371f3cefb78c096f3a0a7b7d519e731db6cffb84fbb",
+      "bytes": 129,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/__main__.py",
+      "sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff",
+      "bytes": 60,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/action.py",
+      "sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4",
+      "bytes": 29895,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/baseline.py",
+      "sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68",
+      "bytes": 17189,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/bench.py",
+      "sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece",
+      "bytes": 12892,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/bench_background.py",
+      "sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f",
+      "bytes": 3687,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/cli.py",
+      "sha256": "d88d3ff97d41d4e80d2fb1d8f69ad4e38a8abf7bd7db7ab03b38de8c48936409",
+      "bytes": 49519,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/commits.py",
+      "sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d",
+      "bytes": 7420,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/comparers.py",
+      "sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608",
+      "bytes": 2876,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/comparison.py",
+      "sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22",
+      "bytes": 13740,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/comparison_helpers.py",
+      "sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063",
+      "bytes": 2938,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/costs.py",
+      "sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+      "bytes": 7492,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/detector.py",
+      "sha256": "40f99912282e5e08b80b8faea45d8fa8df026ef9fc4b1d0c6f7c1314966b556a",
+      "bytes": 17423,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/discovery.py",
+      "sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684",
+      "bytes": 7265,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/dryer.py",
+      "sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd",
+      "bytes": 4288,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/evidence.py",
+      "sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e",
+      "bytes": 2105,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/extractors.py",
+      "sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32",
+      "bytes": 3350,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/feedback.py",
+      "sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c",
+      "bytes": 1836,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/function_index.py",
+      "sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd",
+      "bytes": 8475,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/functions.py",
+      "sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae",
+      "bytes": 16246,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/git.py",
+      "sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a",
+      "bytes": 1048,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/github.py",
+      "sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce",
+      "bytes": 355,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/index.py",
+      "sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7",
+      "bytes": 2293,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/index_github.py",
+      "sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0",
+      "bytes": 7868,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judges/__init__.py",
+      "sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7",
+      "bytes": 1260,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judges/anthropic.py",
+      "sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f",
+      "bytes": 4930,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judges/command.py",
+      "sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317",
+      "bytes": 14796,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judges/gemini.py",
+      "sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5",
+      "bytes": 1079,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judges/http.py",
+      "sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76",
+      "bytes": 2069,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judges/jev.py",
+      "sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2",
+      "bytes": 11012,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judges/model_jev.py",
+      "sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9",
+      "bytes": 5996,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judges/subscription.py",
+      "sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e",
+      "bytes": 3420,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/judging.py",
+      "sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac",
+      "bytes": 15240,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/labelling.py",
+      "sha256": "7b6fc95c25e05f299a19cc36401f5596a13007083d819ecbaa0358bce22c9731",
+      "bytes": 18058,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/ledger.py",
+      "sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82",
+      "bytes": 28413,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/model_review.py",
+      "sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d",
+      "bytes": 5590,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/model_shapes.py",
+      "sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c",
+      "bytes": 13663,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/models.py",
+      "sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3",
+      "bytes": 10744,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/plugins.py",
+      "sha256": "08da90980b1a96d05928ed5dd9d74b469158e2f10b8889bf5b2da200e1436f72",
+      "bytes": 4871,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/policies.py",
+      "sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0",
+      "bytes": 2754,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/presets.py",
+      "sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba",
+      "bytes": 9937,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/python_schemas.py",
+      "sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34",
+      "bytes": 4739,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/ranking.py",
+      "sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e",
+      "bytes": 1783,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/replay.py",
+      "sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4",
+      "bytes": 8631,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/report.py",
+      "sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105",
+      "bytes": 38695,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/schema_policy.py",
+      "sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110",
+      "bytes": 10216,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/settings.py",
+      "sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9",
+      "bytes": 9194,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/source_context.py",
+      "sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e",
+      "bytes": 2949,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/sticky.py",
+      "sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1",
+      "bytes": 16310,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/store.py",
+      "sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e",
+      "bytes": 10099,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/src/dry_lint/typescript.py",
+      "sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7",
+      "bytes": 17782,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/pyproject.toml",
+      "sha256": "af67435fe407353355171697fd765d1cda28b842741a54fc49a3b79bee2100dc",
+      "bytes": 2656,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/uv.lock",
+      "sha256": "84566976085c54d6abe44d82217d27186ad6261f687b4093fcdb48c09d4507cf",
+      "bytes": 208597,
+      "group": "closed_legacy_paths"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/build_bank_deterministic.py",
+      "sha256": "5a22b2d9cfe274ee16b0e1d248993c87c102a93363475d8330a7d73b6ccd8886",
+      "bytes": 16243,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/bank_loader.py",
+      "sha256": "f18bae9d46f4b8804e014d0a9ccf0a068bd6cdb407bec5527ac9abb2d867c57e",
+      "bytes": 3464,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/fit_residual.py",
+      "sha256": "8c44ee6e25450ab9ee3e144932ccba180bad9d631ce828edb355fef31e163678",
+      "bytes": 6511,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/prepare_residual.py",
+      "sha256": "a4f327746414e306395eb987469c4a9e27e0f867cab0aa6834094b3c8fa39aa7",
+      "bytes": 7532,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/summarize_bank.py",
+      "sha256": "ea45f4a90f5c21c7727347b2b2fad006a8a44775a9fc5de167892e5b932cf656",
+      "bytes": 5393,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/build_bank.py",
+      "sha256": "01ca8167974468e0d18cb82540c7b9530a8929de505d968c756c1a20c2f91c33",
+      "bytes": 15288,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/transport_controls_v3.py",
+      "sha256": "07b4aee90e30d73930f5a00944c2c971c5ba1c775cbe8d3813ebe8ab59e9fd46",
+      "bytes": 4994,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/policy_common.py",
+      "sha256": "a9bd0c3c7eaf7bff6800d0731fdf38b3abcf2c277c20982ad93283f293138116",
+      "bytes": 1816,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/fit_policy.py",
+      "sha256": "3d16ebefb033e9a88ad084946d29f5b39985389651e5f6688265ded6222b4290",
+      "bytes": 4842,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/allocate_policy.py",
+      "sha256": "d61b461f713f17933b9a77a33bbee321c672f63ce44ea5e3b03ee9b1ef415ddc",
+      "bytes": 6341,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/guard_policy.py",
+      "sha256": "4570092af7d1b93e01cb40b0cd79af9da74a861bb003978da03801e5de227b2d",
+      "bytes": 3338,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/dynamic_residual.py",
+      "sha256": "df3d59c32efca78093292f55f88295add1d565916806970eca3b1289a4b5dc15",
+      "bytes": 13051,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/reproduce_policy.py",
+      "sha256": "70f657bf62435fe99a24a514efffe8b6020e85c3e78fd487a0ec191ef3d83827",
+      "bytes": 4663,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/prepare_policy.py",
+      "sha256": "6d3449c03602652f5aa20ef677a15f94f558e7f871d3dc59f9b804c1e577bbc7",
+      "bytes": 6866,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/freeze_campaign.py",
+      "sha256": "02076c6377a1091e46f1063d0ecbf15697b68c640a99825c01f071a2a0f4074d",
+      "bytes": 9764,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/replay_campaigns.py",
+      "sha256": "da5e05187ed1bb89023ad83a470555b54da2d34d0f39c2af6d113275ec00e228",
+      "bytes": 8957,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/source_only.py",
+      "sha256": "e62d6548c26da922608a2ebf7a6ce1688b80c84eac494dee532b23784106c794",
+      "bytes": 4187,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/complete_subset.py",
+      "sha256": "c37f21996ad293f0acc78984a6d8674bb5d1be8c224f1f37aa454e04339a3399",
+      "bytes": 10037,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/spectral.py",
+      "sha256": "c8f39f0ecd936055d5bdb7eb3c41c2fd399796b3cbba6ea9e649838469a4c065",
+      "bytes": 21725,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/svd_control.py",
+      "sha256": "58f199f5fe54fc718829735c8b47e964c17942ceb88dc999aa49ec910a775e9a",
+      "bytes": 8078,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/freeze.py",
+      "sha256": "c67347275f99dcb75bf70ff68828e997112c92572bac6b67a664f9b018ff88dc",
+      "bytes": 4049,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/prepare_svd.py",
+      "sha256": "3da2e7cbf75a403a26340b0f906dedcaa22c0e000c99537e29cefda8c014e8cb",
+      "bytes": 1630,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/continue.py",
+      "sha256": "37c5f9140ef30a76a308524d2e39e2ecd6a56ae0dced2dc5ec702c37a6d5d011",
+      "bytes": 2681,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/validate_native.py",
+      "sha256": "005b57d51252e65a5d6f9c0210544fb06d94f55794a0ffd95e007e6029c97f6b",
+      "bytes": 4414,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/run_cluster.py",
+      "sha256": "1d47418348b216d4587448f1deb14eab5c4e2e0135b85c39a014373883582dd8",
+      "bytes": 32665,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/available_seed.py",
+      "sha256": "8f57977201a2ad18149a4b47f174f4b59bfe895345555e9410b5c815c0948fe5",
+      "bytes": 5899,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/extended_run.py",
+      "sha256": "e5725e3949d6658228b00d536e80c4c514977e1d1dd6da5a5b0ef0215e34637d",
+      "bytes": 20357,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/controls.py",
+      "sha256": "06c3f7411f847b6adfedb1255a30a78d0686ccb4470612fd3e14b28017168e54",
+      "bytes": 7132,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/ledger_frontier.py",
+      "sha256": "6e28983a40c4ac7e9afe741370cdd9f6950742ff3e782d94be6ff7168617f9a2",
+      "bytes": 9312,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/status_fields.py",
+      "sha256": "04127f237e76e79444a54f52b9c9f26de37b0725eed7149d0a39431ac2b0f996",
+      "bytes": 1887,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one_seed.py",
+      "sha256": "a1bef83d59e07af0a5d2355b869c523b92ab0a99bc6eade90619e453d4987b78",
+      "bytes": 6544,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/collect_milestone.py",
+      "sha256": "6554ac0a5614b20ecc36930d58825ae3deb9cd1b8265337d0fea43eeb61bccab",
+      "bytes": 9974,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/analyze.py",
+      "sha256": "c2ff08e519da38c8d90a1b38acfd322945d289fb338679ce2832f80f7418208d",
+      "bytes": 11300,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/ingest_seeds.py",
+      "sha256": "826c52f29584057c3c1b4fe6f71cb32be6d68e0ad7a9e814415cb5033d7ddea8",
+      "bytes": 5838,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/audit_history.py",
+      "sha256": "6e72c9df3d0798509b658405735124ac38d728d9892dfdeb1fe78689c6872942",
+      "bytes": 2203,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/graph_reference.py",
+      "sha256": "3507f4a4a3cae44df160e366bb5148d20f567c24c1cc369da48da5cf05563fdb",
+      "bytes": 6242,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/prepare.py",
+      "sha256": "a8982836cbc49ebb2c312a47ae9a00c8e53051a5842cbe6b07aefae9cd2086ef",
+      "bytes": 7066,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/policy.py",
+      "sha256": "409ecb864af4d8f26347a1d7dc15a6aa0d0d4c069c5aa796ff1e9467a421631f",
+      "bytes": 8186,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/replay_captures.py",
+      "sha256": "49e640d45d51d533301f3643fbd5f470e5692459c6507731aa382941d21d3e35",
+      "bytes": 20722,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/replay_completion.py",
+      "sha256": "ad8c1e6c1ef821e7f1106d5d47c3449355a6395c6d0c8f8bf337df2c77a0915f",
+      "bytes": 4578,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/core_receipt_costs.py",
+      "sha256": "8f65b80e72bb95c5eeaf827be1a4c7dcb176dc92246703811fb0e7a28ec2c11c",
+      "bytes": 2361,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/historical_regressions.py",
+      "sha256": "0b692d75fe8e996a6cf2d7d22c55afe187b5476cbc4daae874f27554c36d70e0",
+      "bytes": 10920,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/compare_returned.py",
+      "sha256": "5e40775aa686c699ae2f79a8ae5c061a09c4138f2694387b052a6ea06556024c",
+      "bytes": 5234,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/summarize_completed_core.py",
+      "sha256": "9cdbee0738e0aa2479454b09dc7f7379961f9225506b4b7d97e3711c5cfdceaf",
+      "bytes": 4735,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/common.py",
+      "sha256": "97917766c885f44cd08b92f57c3a483c931b437f8305adc22e8829a4173c693a",
+      "bytes": 1189,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/rank_harness.py",
+      "sha256": "975a0ccac8b5b137f6b6baadea2ab6acb566372f0a8b895790ff71894254bbfa",
+      "bytes": 7287,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/native_harness.py",
+      "sha256": "cbda5df1313f6b2a4fe9adaf25d63be19bf3b7fe9ff3d128b84c5aa2a2a13a7f",
+      "bytes": 11181,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/build_panel.py",
+      "sha256": "5c111a0cb77e3a7cec890cebe23dfc2e1f709f3d87816ae2befd421b2100f770",
+      "bytes": 11317,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/tail_cache.py",
+      "sha256": "42786a304faf3f97ff80fecd0a69cc1bec638435eac95a1424c0296ff626aa80",
+      "bytes": 1125,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/coderank_adapter.py",
+      "sha256": "6e6ad2732bd2e7d354b59d6bdc5afe24a01471e96d6b476386dfa85bc03b13a8",
+      "bytes": 9579,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/cpu_variant.py",
+      "sha256": "0a6b996e70454709bf6800cc21c7dd6ecd53e874696b73ff9d2e9484e6afd04f",
+      "bytes": 2667,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/cache_corpus.py",
+      "sha256": "948426d25efb7421995ef69590c01bc9af56f33f8ee78f81baa1cbeef452d18e",
+      "bytes": 6022,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/batch_runner.py",
+      "sha256": "dc2ed5fdab89d27488a9ab50f3fd8c25b4ac101906f7a6e8784582d29e316f92",
+      "bytes": 10782,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/publish_matrices.py",
+      "sha256": "223f53b6b467c9e2be80328bfa4c2b19ce7a66ec29d2cb9e168844503bcf678b",
+      "bytes": 2437,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/preflight.py",
+      "sha256": "b7ba21d295be7f21208e016e075a052dba62c7cb2ffcb7824ece3d712b26ad8c",
+      "bytes": 5923,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_adapter.py",
+      "sha256": "acf15b46189903f93c2aac7959af70238afe034f616f03631debd646f083ac99",
+      "bytes": 11635,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_variants.py",
+      "sha256": "fd02dd6403f01610ee9ea03cab045d100594dfdb959c0e776d9cf2e6e9e953d9",
+      "bytes": 980,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_batch_adapter.py",
+      "sha256": "e102a52ced4eba4f4ea705b1b6ca2692a53da5fc1cc4e04e24ca72c673699037",
+      "bytes": 4035,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/full_openhands.py",
+      "sha256": "08c585c75f16a9164fa97b352d4ac67f6a195f0259e719380a070fd7825901f1",
+      "bytes": 7814,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/archive_runner.py",
+      "sha256": "7cb5a8131a92760f6bbaff1c74c9016fb8b7603a57bdf3754a1e3a02af79a909",
+      "bytes": 12330,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/gemma-cpu-evaluation/.lab-results/throughput.py",
+      "sha256": "bb373b98d0de17a2486884f2e9ba6cabee6c6c2f9f3a1809227085725959489f",
+      "bytes": 4284,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/bundles.py",
+      "sha256": "574ae5b9d61c95ff1c727c638e31b133829747ff274b47fda005fbfbd0a510d4",
+      "bytes": 18730,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/graph_compare.py",
+      "sha256": "301182d0e2798e9160f1759df54bb2be5e8529395ed866c31847e16c1d4b54da",
+      "bytes": 7562,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/consolidation_controls.py",
+      "sha256": "80db1818844472bf77ccddf7747cd03b83405f55c91680fc63640236268c3f16",
+      "bytes": 1582,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/test_bundles.py",
+      "sha256": "ee4eeed7a3cf293e3ac8acc1e0205dfbfd722803dad34f112f26246a45d159f4",
+      "bytes": 12229,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/run_study.py",
+      "sha256": "6e45259d22b4952ad995d8d496e7d574fcac8f8addf2df22a717e995cfa1ae58",
+      "bytes": 15615,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/quest_demo.py",
+      "sha256": "c4863d9e0f5aa7ec4cb536cd88eb6ac7bb8b73a7d7217ef58ad4904b9afadd37",
+      "bytes": 7514,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/recover.py",
+      "sha256": "19789c96861b73590ecf784b3f5811d4342ca9dca60677d650723efcda750bd7",
+      "bytes": 13846,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/residual_revision.py",
+      "sha256": "dc15c29f517706623bc41e4d8f3a72caefef684f602649548abf2ea33f2b9cff",
+      "bytes": 12175,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/hybrid_revision.py",
+      "sha256": "777973fea3878acd8f7727cd6f22b9288a324c131c20e423f63ab83bbce11a75",
+      "bytes": 14283,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/complete_graph_scoring.py",
+      "sha256": "fdf07545ce58d8b4ce0641c6af469abc8908f3beb9f5126bc06876de8530a0b3",
+      "bytes": 7181,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/dense_gate_ablation.py",
+      "sha256": "1158a109796ef9a46df7898c1ece58a1ea2acdeb4ecc9f9f6b3be03ad5a19a39",
+      "bytes": 5085,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/posthoc_original_curve.py",
+      "sha256": "8ba9810513383dc4aa483af84c1336325d13eac6d7e3a510bfa2ee28b7443cba",
+      "bytes": 7863,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/replay_frontier.py",
+      "sha256": "902738b4c57473b177b570c56e3c9130b033e37658016cb14153e0f407eb26da",
+      "bytes": 6965,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/reference.py",
+      "sha256": "cb4226ea1be2838fd5cf53b443497a41e32e64d463899a8b717a21c4cbf921fa",
+      "bytes": 7989,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/summarize_reference.py",
+      "sha256": "52f0176e25b3cc337443121d9f893db02ceb1746b44d1e3c0e9a608fde54c654",
+      "bytes": 8448,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/inventory.py",
+      "sha256": "3f6d035159c2e27778dce4ddc965b8833ff502591b7dc314bbe08be7b6382ef4",
+      "bytes": 11190,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/audit_configuration.py",
+      "sha256": "720e1fe1310d61c2ce54d67e9adc23efe76ae5ff231cbdcaa23599d0b412826a",
+      "bytes": 5621,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/verify_reference.py",
+      "sha256": "5f5ed3f8c11b3445f96b5f302cf356e7a38962c233d76471ff1f38457828a4fc",
+      "bytes": 5219,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/test_rank_harness.py",
+      "sha256": "87ad3803d0f6163c46cee52964c0c06214bc475b88532e24925a4397acfeb64e",
+      "bytes": 2346,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/run_baseline.py",
+      "sha256": "11d6ca6d269159d41e67326286ccd95ab6e29103c7de886838bce57216ecdd99",
+      "bytes": 19204,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/test_floor_regression.py",
+      "sha256": "3713c6e66525f65157d82fa3337490aea774661d922164e909a3ed50cba975d0",
+      "bytes": 2407,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/finalize.py",
+      "sha256": "5d41250ed9a32665bae8b2d7e0537e3f901b17383c2e55e3e355c6785f744d69",
+      "bytes": 7510,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/build_index.py",
+      "sha256": "11d1abea21392042b7fd645df12af5cf52b1453624485568d1cd12ee9f356010",
+      "bytes": 20555,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/reconcile.py",
+      "sha256": "632cc5ba30ed4cd14aceab69e1d25690b0eb22a3d5a641e5a939c94915c186db",
+      "bytes": 3995,
+      "group": "original_implementations_and_tests"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/audit_and_queue.py",
+      "sha256": "5681ed618b9c3b49b853c861bffe3fadd643a6d2453d7bd2c9cb94eba67d578f",
+      "bytes": 12776,
+      "group": "original_implementations_and_tests"
+    }
+  ],
+  "full_legacy_workflow_relocation_tested": false,
+  "scope": "Twenty-file eleven-mode result replay closure plus 88 legacy logical paths and 86 original implementation/test byte checks. Complete execution of every relocated legacy workflow remains untested.",
+  "corpus_pr": "https://github.com/gigaverse-app/dry-lint-goldens/pull/11",
+  "tested_data_head": "1573260772a1e499a617a32ca841bb61dd13c588",
+  "merged_tree": "f08395a963f5db77e28e0eec76cb60d880b16671",
+  "tested_head_tree_identical": true
+}

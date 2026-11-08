@@ -6,12 +6,16 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/dry-lint/"><img alt="PyPI" src="https://img.shields.io/pypi/v/dry-lint?logo=pypi&logoColor=white&color=7E4FC9&labelColor=24292F"></a>
   <a href="https://github.com/gigaverse-app/dry-lint/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/gigaverse-app/dry-lint/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white&labelColor=24292F"></a>
   <a href="#the-counter"><img alt="Duplicates kept out" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dkept-out"></a>
   <a href="pyproject.toml"><img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-7E4FC9?logo=python&logoColor=white&labelColor=24292F"></a>
   <a href="docs/typescript.md"><img alt="TypeScript" src="https://img.shields.io/badge/typescript-supported-7E4FC9?logo=typescript&logoColor=white&labelColor=24292F"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-7E4FC9?labelColor=24292F"></a>
+  <a href="https://dry-lint.readthedocs.io/en/latest/"><img alt="Documentation" src="https://readthedocs.org/projects/dry-lint/badge/?version=latest"></a>
 </p>
+
+<p align="center"><a href="docs/why.md">Why dry-lint</a> · <a href="docs/tutorials/first-run.md">First-run tutorial</a> · <a href="docs/ci.md">How CI runs it</a> · <a href="https://dry-lint.readthedocs.io/en/latest/">Documentation</a> · <a href="https://dry-lint.readthedocs.io/en/latest/ecosystem/">Related tools</a></p>
 
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
@@ -52,7 +56,7 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/), open a te
 and run:
 
 ```bash
-uvx --no-config --python 3.13 --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --judge none --limit 30
+uvx --no-config --python 3.13 dry-lint scan --judge none --limit 30
 ```
 
 uv downloads Python and runs dry-lint in its own environment, so nothing is added to your project. This lists
@@ -62,7 +66,7 @@ look-alikes without calling a model or failing on findings. To inspect just your
 For a permanent `dry-lint` command, then open a new terminal:
 
 ```bash
-uv tool install --no-config --python 3.13 git+https://github.com/gigaverse-app/dry-lint
+uv tool install --no-config --python 3.13 dry-lint
 uv tool update-shell
 ```
 
