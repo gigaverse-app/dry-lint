@@ -46,3 +46,21 @@ def test_the_bootstrap_initializes_from_a_push_and_ships_the_hidden_folder() -> 
     assert "dry-lint sweep --init" in workflow and "contents: read" in workflow
     assert "include-hidden-files: true" in workflow  # upload-artifact skips .dry-lint/ otherwise
     assert "persist-credentials: false" in workflow
+
+
+@pytest.mark.parametrize("name", ["dry-lint-bootstrap.yml", "dry-lint-audit.yml"])
+def test_a_repository_without_a_markdown_readme_needs_no_edit(name: str) -> None:
+    """The progress block goes only into README.md; a README.rst repository runs the example unchanged."""
+    workflow = (EXAMPLES / name).read_text()
+    assert "if [[ -f README.md ]]; then readme=(--readme README.md); fi" in workflow
+    assert '"${readme[@]}"' in workflow and "--readme README.md --" not in workflow
+    assert "cp -R .dry-lint README.md" not in workflow
+
+
+def test_the_ratchet_commits_only_files_that_exist() -> None:
+    """`git add -- a missing` stages nothing, so a listed optional file that is absent would lose the whole ratchet."""
+    workflow = (EXAMPLES / "dry-lint-audit.yml").read_text()
+    assert "add-paths: ${{ steps.ratchet.outputs.paths }}" in workflow
+    listed = re.search(r"for path in (.*); do", workflow).group(1).split()
+    assert listed == [".dry-lint/baseline.json", ".dry-lint/progress.json", ".dry-lint/models.json", "README.md"]
+    assert 'if [[ -f "$path" ]]; then echo "$path"; fi' in workflow

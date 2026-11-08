@@ -83,9 +83,24 @@ jobs:
           # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # A scheduled run's event names no repository, but it runs on the default branch, so its ref is that branch.
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch || github.ref_name }}
+        # The progress block lives only in a Markdown README.md; without one, the sweep records just the files.
         run: |
+          readme=()
+          if [[ -f README.md ]]; then readme=(--readme README.md); fi
           dry-lint sweep --update --store "$RUNNER_TEMP/dry-lint/verdicts" --budget-usd 1 \
-            --readme README.md --repository "$GITHUB_REPOSITORY" --branch "$DEFAULT_BRANCH"
+            "${readme[@]}" --repository "$GITHUB_REPOSITORY" --branch "$DEFAULT_BRANCH"
+      # `git add` stages nothing at all when one listed path is missing, so the ratchet pull request would never
+      # open. List only the files that exist: models.json and README.md are optional.
+      - name: List the files the ratchet commits
+        id: ratchet
+        run: |
+          {
+            echo 'paths<<EOF'
+            for path in .dry-lint/baseline.json .dry-lint/progress.json .dry-lint/models.json README.md; do
+              if [[ -f "$path" ]]; then echo "$path"; fi
+            done
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
       # One standing branch: a later run updates the open ratchet PR instead of stacking another. The adopter-owned
       # credential makes the PR run ordinary CI, including the required dry-lint check that refuses any widening.
       - uses: peter-evans/create-pull-request@v8
@@ -93,11 +108,7 @@ jobs:
           token: ${{ secrets.DRY_LINT_RATCHET_TOKEN }}
           branch: dry-lint/ratchet
           delete-branch: true
-          add-paths: |
-            .dry-lint/baseline.json
-            .dry-lint/progress.json
-            .dry-lint/models.json
-            README.md
+          add-paths: ${{ steps.ratchet.outputs.paths }}
           commit-message: 'chore(dry-lint): record cleaned duplicate pairs in the baseline'
           title: 'chore(dry-lint): record cleaned duplicate pairs in the baseline'
           body: |
