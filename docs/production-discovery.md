@@ -94,6 +94,51 @@ No default profile is changed. The implementation has been tested against the co
 matched budgets, but promotion is held on **report quality**. TF-IDF-only ablations, additional emitted pairs and
 preservation tests do not establish independent useful-family gains or acceptance.
 
+### Optional recovery judge
+
+To keep the complete balanced pass on its original policy and use the measured grounded policy only for newly
+funded recovery questions, add this table alongside `residual_comparers`:
+
+```toml
+[discovery.residual_judge]
+use = "anthropic"
+model = "claude-haiku-5-5"
+prompt_policy = "shared-operations-grounded-claim-v1"
+max_tokens = 2048
+max_retries = 0
+retry_malformed = false
+```
+
+The [complete example](../examples/grounded-residual-discovery.toml) retains the original balanced judges,
+comparers, thresholds and $0.04 campaign cap. The plugin uses the adopter's existing `ANTHROPIC_API_KEY`.
+The optional field defaults to absent: the existing judge, verdict keys and protected pass are unchanged.
+It must name an explicit judge plugin, with residual comparers enabled; it is not an escalation or a second
+opinion on answered pairs. Arbitrary installed judge plugins use the same constructor-options contract.
+
+The frozen template is exactly the one measured in PR #123, SHA-256
+`bcec108a5d1c316c1557a12434b14c209fb1899b277da83b26ac5de5346933a1`. With the example's model and output limit,
+the exact judge version is `dry-grounded-claim-v1-bcec108a5d1c316c:claude-haiku-5-5:output=2048`.
+The template is frozen separately from the evolving shared-operations prompt; changing either cannot silently
+change this tested policy. There are no fallback requests or retries in this configuration. This wiring does
+not claim comparative usefulness or acceptance; matched comparative replay remains the acceptance gate.
+
+The complete original pass runs before the optional plugin is loaded. No main judge means no recovery judge;
+an empty queue, unresolved baseline, failed/inflight campaign or exhausted cold campaign does not initialize it.
+Previously answered recovery work can still load the current plugin to validate and read its exact-policy cache,
+even after exhaustion or a later failure. Every newly admitted pair gets one selected-judge call. Reservations
+use that judge's actual prompt, configured output ceiling and configured prices; known provider usage settles
+at those prices, while unknown usage retains the reservation. All campaign dollar and call caps remain shared.
+The summary names both full judge versions and records their separate calls, costs and failures in `spend`.
+
+Configured recovery uses a separate cache namespace keyed by the full judge identity. It neither reads nor
+overwrites original-policy verdict slots, even when both judges share a name. A rollback keeps the original
+cache keys. Exact source and version checks still apply within the recovery namespace. Campaign schema 3 adds
+judge-independent `source_evidence` and a subscription flag to attempts: switching policies cannot charge the
+same source twice on one revision when either attempt is recovery. Old campaigns remain readable and all holds
+remain charged; schema-2 attempts under the original judge also bar a second recovery question on that revision.
+A new revision may fund a new protected question under its original policy, subject to remaining capacity.
+Candidate/report schema 14 and the verdict record payload are unchanged; upgrade workers together before use.
+
 ### Measured residual behavior
 
 A provider-free replay on product base `2aab042c256141383c7c731b7ba6097dd2db53b3` compared the unchanged

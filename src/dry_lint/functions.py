@@ -148,6 +148,11 @@ def behaviour_tokens(function: Function) -> list[str]:
     return node_tokens(node) if node else [f"fn:{word}" for word in words(function.name)] * 2
 
 
+def docstring_statement(node: ast.AST) -> bool:
+    """A bare string expression statement: documentation, never behaviour."""
+    return isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
+
+
 class _Canonical(ast.NodeTransformer):
     """Drop docstrings, annotations and the function's own name; number local names in order of first use."""
 
@@ -168,9 +173,8 @@ class _Canonical(ast.NodeTransformer):
         node.returns = None
         node.decorator_list = []
         body = node.body
-        if body and isinstance(body[0], ast.Expr) and isinstance(getattr(body[0], "value", None), ast.Constant):
-            if isinstance(body[0].value.value, str):
-                node.body = body[1:] or [ast.Pass()]
+        if body and docstring_statement(body[0]):
+            node.body = body[1:] or [ast.Pass()]
         self.generic_visit(node)
         return node
 

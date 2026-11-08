@@ -110,8 +110,10 @@ def judged(
     refresh: bool = False,
     functions: int = 0,
     scope: str = "change",
+    family_discovery=None,
 ) -> Report:
     judging = Judging.configured(settings, open_store(settings, root, args.store))
+    judging.family_recovery = family_discovery
     if settings.discovery.enabled and scope == "change":
         if run.pull_request is None:
             run.session = args.session or run.session or git(root, "symbolic-ref", "--short", "-q", "HEAD", check=False)
@@ -122,7 +124,7 @@ def judged(
         campaign_run = run.model_copy(update={"repository": run.repository or local})
         judging.campaign = CampaignStore(path, campaign_run)
     findings = judging.findings(candidates, source=run, refresh=refresh)
-    return Report.build(
+    report = Report.build(
         findings,
         settings,
         filtered=[c for c in candidates if c.filtered],
@@ -133,6 +135,10 @@ def judged(
         scope=scope,
         judging=judging.summary(),
     )
+    if family_discovery is not None:
+        report.families = family_discovery.findings
+        report.family_exclusions = family_discovery.rejected
+    return report
 
 
 def prepare(report: Report, settings: Settings, args: argparse.Namespace) -> Report:
@@ -183,6 +189,8 @@ def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[st
 
 
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None and args.format not in ("text", "json", "markdown", "check-run"):
+        raise ValueError("Operation families support text, json, markdown and check-run reports")
     detector, primary = detector_for(root, settings, args)
     changed = touched(
         [f for f in detector.functions if not f.origin or f.origin.repository == primary],
@@ -202,7 +210,32 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         staged=args.staged,
         committed=settings.discovery.enabled and not args.staged,
     )
-    report = judged(candidates, settings, root, args, run, len(changed), functions=len(detector.functions))
+    families = None
+    if settings.discovery.families is not None:
+        if not settings.discovery.enabled:
+            raise ValueError("Operation-family discovery requires discovery.enabled = true")
+        from dry_lint.family_discovery import FamilyDiscovery
+
+        decisions = read_feedback(root, staged=args.staged, committed=not args.staged)
+        native = {f.model_copy(update={"origin": f.origin or run}).qualname: f for f in detector.functions}
+
+        def settled(a, b):
+            # Human and adopter decisions settle a family; a call between two members does not, since a caller
+            # and its callee can both repeat the operation.
+            candidate = detector.pair(native[a.qualname], native[b.qualname], 0, calls=False)
+            return decisions.apply([candidate])[0].filtered
+
+        families = FamilyDiscovery(detector.functions, changed, run, settings.discovery.families, settled=settled)
+    report = judged(
+        candidates,
+        settings,
+        root,
+        args,
+        run,
+        len(changed),
+        functions=len(detector.functions),
+        family_discovery=families,
+    )
     if debt:
         base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
         report.backlog = debt.cleared(report, removed(root, detector, debt, base))
@@ -329,6 +362,8 @@ def card_key(args: argparse.Namespace, readme: str) -> str:
 
 
 def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None:
+        raise ValueError("Operation-family discovery requires a change campaign; use check with an immutable base")
     path = root / (args.baseline or Path(".dry-lint/baseline.json"))
     if args.init and path.exists():
         raise ValueError("Baseline already exists; rerun sweep without --init to ratchet it")
@@ -415,6 +450,8 @@ def progress(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None:
+        raise ValueError("Operation-family discovery requires a change campaign; use check with an immutable base")
     detector, _ = detector_for(root, settings, args)
     found = detector.scan(settled=True)
     proposed = [c for c in found if c.filtered is None]
@@ -442,6 +479,8 @@ def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None:
+        raise ValueError("Operation-family discovery currently requires check; split detect/judge is not supported")
     detector, primary = detector_for(root, settings, args)
     if args.all:
         changed, candidates = detector.functions, detector.scan()
@@ -506,6 +545,8 @@ def judge_models(
 
 
 def judge(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None:
+        raise ValueError("Operation-family discovery currently requires check; split detect/judge is not supported")
     found = CandidatesFile.model_validate_json(args.candidates.read_text())
     if args.models is True and found.model_candidates is None:
         raise ValueError(

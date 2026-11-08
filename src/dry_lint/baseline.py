@@ -352,6 +352,10 @@ def require_complete(report: Report, *, check: bool = False, allow_review_tasks:
     """An unassessed pair is unknown, never evidence of a clean required check."""
     if report.judge is None:
         raise ValueError("Strict checking requires a configured judge; supply the adopter's credentials")
+    if any(finding.unresolved for finding in report.families) or any(
+        exclusion.get("kind") != "rule" for exclusion in report.family_exclusions
+    ):
+        raise ValueError("Operation-family judging is incomplete; unconfirmed owners are not cleared")
     unresolved = (
         f
         for f in report.findings

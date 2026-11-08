@@ -109,6 +109,15 @@ class CpuRecovery(BaseModel):
         ]
 
 
+class FamilyDiscovery(BaseModel):
+    """Explicit operation-family recovery; questions share the existing campaign allowance."""
+
+    model_config = ConfigDict(extra="forbid")
+    judge: Choice = Field(description="An explicit family judge plugin and adopter-selected model.")
+    max_members: int = Field(default=8, ge=3, le=12)
+    max_questions: int = Field(default=3, ge=1, le=20)
+
+
 class Discovery(BaseModel):
     """Baseline first, then paced exploration, sharing a durable campaign allowance."""
 
@@ -127,11 +136,25 @@ class Discovery(BaseModel):
         return value
 
     enabled: bool = False
+    families: FamilyDiscovery | None = None
     comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(default_factory=list)
     residual_comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(
         default_factory=list,
         description="Opt-in recovery after the complete configured pass, borrowing future baseline capacity.",
     )
+    residual_judge: Choice | None = Field(
+        default=None, description="Optional judge used only for newly funded residual recovery questions."
+    )
+
+    @model_validator(mode="after")
+    def explicit_residual_judge(self):
+        if self.residual_judge is not None:
+            if not self.residual_comparers:
+                raise ValueError("residual_judge requires discovery.residual_comparers")
+            if self.residual_judge.use in {"none", "auto"}:
+                raise ValueError("residual_judge must name an explicit judge plugin")
+        return self
+
     depth: int = Field(default=20, ge=3, le=100)
     min_similarity: float = Field(default=0.35, ge=0, le=1)
     baseline_fraction: float = Field(default=0.625, ge=0, le=1)

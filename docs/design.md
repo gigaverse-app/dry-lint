@@ -102,6 +102,18 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 15 adds optional operation-family findings and exclusion reasons to the main report. Family proposals
+remain separate advisory assessments, never a clique of pair verdicts. Unknown members and excluded source
+remain visible; applicable human-rule exclusions remain settled. Older reports load with empty family lists.
+See [operation-family judging](operation-family-judging.md#native-campaign-configuration).
+
+Campaign schema 3 adds exact source evidence independent of judge identity and a subscription marker to each
+attempt. When either attempt is recovery, changing judge policy cannot charge the same source twice on a revision.
+Older campaigns remain readable with their existing charges and failure barriers. Optional recovery judges use
+policy-specific verdict key namespaces, leaving original pair keys and verdict record payloads unchanged.
+The original judge owns the complete protected pass; only subsequently funded recovery work selects the optional
+plugin. See [recovery judge configuration](production-discovery.md#optional-recovery-judge).
+
 Schema 14 adds optional candidate `residual` scheduling metadata, defaulting to false for older files. It marks
 recovery candidates after the complete adopter-configured discovery pass. It does not enter pair/context/exact
 verdict identity: the question and source are unchanged. The independent campaign schema becomes 2, recording
