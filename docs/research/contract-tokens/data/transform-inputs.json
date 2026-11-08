@@ -1,0 +1,49 @@
+{
+  "CTR2-012": {
+    "new": {
+      "keys": [
+        "cx2:transform_collect:b53dfed931e080c8e28f6a1ceecf0e1b3cc0cc48816c7e945121b5ea5766ec15"
+      ],
+      "original_representation_sha256": "95ccde74650045046dfea37e2412c703a31709d079adbd0b2d1bfba07c96ac18",
+      "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    "existing": {
+      "keys": [
+        "cx2:transform_collect:b53dfed931e080c8e28f6a1ceecf0e1b3cc0cc48816c7e945121b5ea5766ec15"
+      ],
+      "original_representation_sha256": "95ccde74650045046dfea37e2412c703a31709d079adbd0b2d1bfba07c96ac18",
+      "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    }
+  },
+  "CTR2-030": {
+    "new": {
+      "keys": [
+        "cx2:transform_collect:6e6a9f171c3c0a638d04ef48311b9f39fe1ac34446556308a7199c7f62f3dc4d",
+        "cx2:transform_collect:8cd5a1e27a1f90bb18b3a8599cfce1eae1316e4b3f3efcfeebb4e83a995004f0"
+      ],
+      "original_representation_sha256": "95ccde74650045046dfea37e2412c703a31709d079adbd0b2d1bfba07c96ac18",
+      "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    "existing": {
+      "keys": [],
+      "original_representation_sha256": "95ccde74650045046dfea37e2412c703a31709d079adbd0b2d1bfba07c96ac18",
+      "background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    }
+  },
+  "CTR2-035": {
+    "new": {
+      "keys": [
+        "cx2:owned_file_cleanup:92b3eb54b1042f39e5c012ca277d20aa0e003da188f6d197ae0eee01ff0bf523"
+      ],
+      "original_representation_sha256": "9610b4fc3cc8770259c37f4f9a406dcfe2377967fd58d0cb7c4c756b737ecaa0",
+      "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842"
+    },
+    "existing": {
+      "keys": [
+        "cx2:owned_file_cleanup:9e064418753513f2593469229439dd27a2b843849ed7849d5d08026501faab87"
+      ],
+      "original_representation_sha256": "9610b4fc3cc8770259c37f4f9a406dcfe2377967fd58d0cb7c4c756b737ecaa0",
+      "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842"
+    }
+  }
+}

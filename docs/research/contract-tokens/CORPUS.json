@@ -1,0 +1,838 @@
+{
+  "backgrounds": [
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "88e7cd7f9f414c6199f902861293e02e03e49781ead1e7d87edb799a18868cf0"
+    },
+    {
+      "catalog_matches": [
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/litellm-fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f.json.gz"
+        }
+      ],
+      "local_lab_path": "reports/candidate-first/corpus-verification/candidate-first-gold/backgrounds/litellm-fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f.json.gz",
+      "repository": "BerriAI/litellm",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "*/test_*",
+          "*/migrations/*",
+          "*/generated/*",
+          "*/enterprise/*",
+          "*/_generated/*",
+          "litellm/proxy/common_utils/load_config_utils.py",
+          "litellm/secret_managers/google_secret_manager.py",
+          "litellm/proxy/common_utils/load_config_utils.py",
+          "litellm/secret_managers/google_secret_manager.py"
+        ],
+        "include": [
+          "litellm/*.py"
+        ]
+      },
+      "status": "exact_public_catalog_match",
+      "study_background_sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "54c07309d1b3d3e1a93606ab12dde4c959ca093f18a5aaf5d24d57a8dbad4e6b"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/selective-ae1306377dda82d1d0a6fa0b43dbb612d69d72b2-legacy.json.gz",
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "fc5d60d9a7922b37b69218a94f25b0e71a7596c65ad24a29dc4518ab2aaf3dfe"
+    },
+    {
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/opencode/cc996eece172fc69e35662657ea6cea9c2c7db88.json.gz"
+        },
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/opencode-cc996eece172fc69e35662657ea6cea9c2c7db88.json.gz"
+        }
+      ],
+      "local_lab_path": "reports/candidate-first/corpus-verification/public-gold/backgrounds/opencode/cc996eece172fc69e35662657ea6cea9c2c7db88.json.gz",
+      "repository": "anomalyco/opencode",
+      "revision": "cc996eece172fc69e35662657ea6cea9c2c7db88",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "exact_public_catalog_match",
+      "study_background_sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094"
+    },
+    {
+      "catalog_matches": [
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/t3code-6577c6b6185167c0e502fa01f9e8e8f2dee6ff25.json.gz"
+        }
+      ],
+      "local_lab_path": "reports/candidate-first/corpus-verification/candidate-first-gold/backgrounds/t3code-6577c6b6185167c0e502fa01f9e8e8f2dee6ff25.json.gz",
+      "repository": "pingdotgg/t3code",
+      "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+      "scope": {
+        "exclude": [
+          "*/node_modules/*",
+          "*/dist/*",
+          "*/build/*",
+          "*/generated/*",
+          "*/_generated/*",
+          "*/__generated__/*",
+          "*/fixtures/*",
+          "*/__fixtures__/*",
+          "*/snapshots/*",
+          "*/__snapshots__/*",
+          "*/tests/*",
+          "*/test/*",
+          "*/__tests__/*",
+          "*/spec/*",
+          "*/specs/*",
+          "*.test.ts",
+          "*.test.tsx",
+          "*.spec.ts",
+          "*.spec.tsx",
+          "*.test-d.ts",
+          "*.spec-d.ts",
+          "*.snap.ts",
+          "*.snap.tsx",
+          "*.gen.ts",
+          "*.gen.tsx",
+          "*.generated.ts",
+          "*.generated.tsx",
+          "*.d.ts"
+        ],
+        "include": [
+          "apps/*.ts",
+          "apps/*.tsx",
+          "packages/*.ts",
+          "packages/*.tsx"
+        ]
+      },
+      "status": "exact_public_catalog_match",
+      "study_background_sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/scaled-v1/evidence/2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3.json.gz",
+      "repository": "Garsson-io/kaizen",
+      "revision": "4941b4a8928054910b5053255a99c84ac32bf3c2",
+      "scope": {
+        "exclude": [
+          "src/review-battery.test.ts",
+          "src/spawn-claude.test.ts"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3"
+    },
+    {
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/software-agent-sdk/344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz"
+        },
+        {
+          "dataset": "candidate-first-gold-v1",
+          "path": "backgrounds/software-agent-sdk-344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz"
+        }
+      ],
+      "local_lab_path": "reports/candidate-first/corpus-verification/public-gold/backgrounds/software-agent-sdk/344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz",
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "exact_public_catalog_match",
+      "study_background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "1e02c004e3ceb31a1e48041c2416ea761c661e031f68e41e3acae8f7fcf887bb"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "b989dc3a47d648a09203862132f955a16eb028a287bc543eac8cc6f998463289"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-8d4d100b3a9ffb2ef259931508f0ccde87a968dd.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "1c9d034edbdcd322738556c283ac31b487d66be858f733d768fbadf9ec941ef1"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-8d4d100b3a9ffb2ef259931508f0ccde87a968dd-configured.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "4edc2f988654836c7ab1a887b6aba67d70b6f893acf5ca5a59870e4ccc329351"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "repo/examples/backgrounds/pytest-obligation/d39f77ea343a25bf0a065376ea7a50ed38c7b2f6.json.gz",
+      "repository": "gigaverse-app/pytest-obligation",
+      "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "eceb1bd48b5a8bfa6471ff19f5064ea65f9046511680256f746b6172eef31940"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-6a68131774a25b6a7b6a192ca578be9b7ab5e1d4-configured.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "393753b9ef2fa032f3f15b2004e333f3d33e48056656b57f2044c562d11441c8"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-6a68131774a25b6a7b6a192ca578be9b7ab5e1d4.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "d54104cc3e03c039fc62af6abbaae2ed9673e6d053497bc6c11017a19ed8fcaf"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "1d74a49ece190f6443314bfcfbbd8f3b11eb619a0623883f30c8448e68bc3d75"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "c6772e653a0763c51d162befcd71c4946c8996844d1bcf2bef993ce2f3da5f7c"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-33857688849a481a794b46295f4080dca853cc0f-configured.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "33857688849a481a794b46295f4080dca853cc0f",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "a35412534e3d42e7e10b78aee9e0a0fcf2b7fb42c436cda0e70af17a97735720"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-33857688849a481a794b46295f4080dca853cc0f.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "33857688849a481a794b46295f4080dca853cc0f",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "e8eb65099fbc8a4e0853da3bce62fc497f9c428331d05ce5c47f994290456b22"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "ceb91d69e72af342ee5a40f69ea5fac6721ff38102d972c9ad0a6f940f4e5774"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "32b09d818f53bd8878516932d36e2493eb8db06c24b379ffa0cd0ecea60d0e40"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "ec66caf9d22977b3cbe87dd806243ce384005c61d8b75aff9ce41c1e3b558481"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "894966b82cc49055237b155e48e8d6e604e6a10b6251f62cea4743f5a0229c99"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "f5dd74c220aacda927de13b97f40922d1615100f9d40271b65fd95a706bf19e5"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "b6a0a81cac2732a1da2d0e4698b208a445f5710744d88f2b63edce00f0f2ad4c"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "fb2e166253479293b7feda917ce3b60166434a57b6135df3422374b361c00f36"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "8cf9db3fdef74ee30b49996eae4e721d68e3840e2e419c41d0cadc4a7319d805"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "ed8641ceff6e78f9c1dfb6499700560fc55beee06656b80a65cbda86699ca20c"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "8975a6aa2530891aff005340ca45e781d32d288084c970f0b69433f73071bb88"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "71e56a5220331676a300d81312a96b48b4451a9716eb5344175f9f19f110a226"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "fb806e8c6be9ac74d12f90e272971a39d40cd30bc68ca8e4089c9eb36149e002"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "3ec6ce7ffa6932531cc84c84216bd46efc8db77929ec0993af930cf56e0f79ab"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "fbb3fb73019456aaf325421111091f5c37a769a752bc6b67ec21d3a458d31a22"
+    },
+    {
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/t3code/ac0d1f52a087c63819b2b032ac4535d18d3c23af.json.gz"
+        }
+      ],
+      "local_lab_path": "reports/candidate-first/corpus-verification/public-gold/backgrounds/t3code/ac0d1f52a087c63819b2b032ac4535d18d3c23af.json.gz",
+      "repository": "pingdotgg/t3code",
+      "revision": "ac0d1f52a087c63819b2b032ac4535d18d3c23af",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "exact_public_catalog_match",
+      "study_background_sha256": "9152f296e32b80293db3a3d36a058a7cd1504a726821f65f5c320289e5cd7346"
+    },
+    {
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/opencode/51626eee903ea31fde7f41deb6a3430c939d9d90.json.gz"
+        }
+      ],
+      "local_lab_path": "reports/candidate-first/corpus-verification/public-gold/backgrounds/opencode/51626eee903ea31fde7f41deb6a3430c939d9d90.json.gz",
+      "repository": "anomalyco/opencode",
+      "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "exact_public_catalog_match",
+      "study_background_sha256": "bf60fb3615061d02e74af05b44783ca01ed1dbd648608ef5bd827fe96d75f242"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "16ce8cacbf19af4f7d84a2144a3aafc87e1e4f6826ce882997151ee06028591f"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "8404b56ead73be02a359cbe33cef32a7461bf53612802393ede441e892cb8ca7"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "8eb6c8f6128ba76f26cbd73c7e0a5613551d08607072f0adc84a3b6c0c229fde"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "cdab44d47504532239df4dacf47e5d9df585a2d4fce3b8978cc69225aff9ed6d"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "895eaa1252e98b691106a8c961d5f3760b06d4119e3c982746dfe631bcb1204a"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "f7de02516d3f1b2aec616556cd569c80d8a38066b919a04d035080567b4bdffb"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "912cb1146e73ce277a06dbfbdd1f867af292be3acdf1c3219682313e0db752e3"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "978ff8d3d8223802d3295bb61cdb5d42f4d5dec92262b1badc7d851d0af7af81"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "4c5b55170bb6c47e467528cc48f9f80c216c867d6ba72a2ac82de21c097d2b25"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "9ea302abc5c77e3293c3a39a83b944df6f8b939ca6782193490d50d7b0d9fc2d"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "1cf5e88f839abf503f94bf2968ece8d1d14b6c5d9295d00e9c8d628ba0be51df"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "0b6da72700bde66e6f398df24a5df57af1bbe4529d20b172f441d38e387cc080"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "1bf07300c0af3452d7fb8463dd9da4e377b5a1c4f0717d792260c4d1c4eaf645"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/dry-lint-b6b8db3aecbf0ea9bccaef5eced516415ccbfd83.json.gz",
+      "repository": "gigaverse-app/dry-lint",
+      "revision": "b6b8db3aecbf0ea9bccaef5eced516415ccbfd83",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "39fae3b3a8cbef21e2de52c544ca36d2a9fb65e42ac0c18c52afb2742662959b"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/dry-lint-b6b8db3aecbf0ea9bccaef5eced516415ccbfd83-configured.json.gz",
+      "repository": "gigaverse-app/dry-lint",
+      "revision": "b6b8db3aecbf0ea9bccaef5eced516415ccbfd83",
+      "scope": {
+        "exclude": [
+          "examples/*",
+          "scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "92afa0cbed059fb3353bb1da97d43c961f623e5bbc3cdf1c822ed32a9968a9f1"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/dry-lint-50491cda9d58596369df45a86d5e83e2cb9445d9-configured.json.gz",
+      "repository": "gigaverse-app/dry-lint",
+      "revision": "50491cda9d58596369df45a86d5e83e2cb9445d9",
+      "scope": {
+        "exclude": [
+          "examples/*",
+          "scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "a14b900df550841ec099d7d9abe27c4aafce799a7b48d48ea62b4d193c839bf2"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/dry-lint-50491cda9d58596369df45a86d5e83e2cb9445d9.json.gz",
+      "repository": "gigaverse-app/dry-lint",
+      "revision": "50491cda9d58596369df45a86d5e83e2cb9445d9",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "c6bdea064c4533a86a9d1bb1fb010877634d2edba2bbdb6d43964a38cdc320b6"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "a5cfae8fd54f5982f59d049a575b0f1aa2a7eca93c367ffb27c5815d89f601af"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "334d8b8dbc46d7a2679bf6491be87a25a8bca361cb572eb5614097c74b6b29ff"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-d45977a85f1804d8c6cbc3b35d02fd61438f7531.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "d45977a85f1804d8c6cbc3b35d02fd61438f7531",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "be1b38de21febc643bf194daffa937fa7063d4b263f3f5f93b9ff56524e076e0"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-d45977a85f1804d8c6cbc3b35d02fd61438f7531-configured.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "d45977a85f1804d8c6cbc3b35d02fd61438f7531",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "d1a8938133a6059a3add8869c8915aedc24697313f70599a757ec444c28e0f8b"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "0be1688db28aea6d0fbb9e2cfb32eaef07fb554aa9053ee063275ce679bc8a6a"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "repo/examples/backgrounds/pytest-obligation/389c5bb84f7ab186fa9c7815c2e15cb9332b67a4.json.gz",
+      "repository": "gigaverse-app/pytest-obligation",
+      "revision": "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "46e0cd67a6759423dcb6162c8f62eb3f6f02dbf20699b7824ceb50e818f9e0f8"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/selective-after-4ab22f35385bb0e3225cf9d40877b559d45c23dc-legacy.json.gz",
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "4ab22f35385bb0e3225cf9d40877b559d45c23dc",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "7a250fd17ca113c76e5e893f1c0848754987aa05577010dae36b776edd2b9c72"
+    },
+    {
+      "catalog_matches": [],
+      "local_lab_path": "reports/candidate-first/corpus-verification/private-historical400/backgrounds/due-701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0-configured.json.gz",
+      "repository": "gigaverse-app/due",
+      "revision": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "tests/*",
+          "*/migrations/*",
+          "*/scripts/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "public_not_in_pinned_catalog",
+      "study_background_sha256": "80d2ae63aa96e4ba824e16094ffebecb33745efb87957501ef1a9a9bb1679d2e"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "8e7ab78200825cc3143e7311f7327404903059c85598792d62989987828a115e"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "a2c4a4ef78a3ce69b04534aeb95fbfdb9c199400dd38ab42ab87eadad61dd4aa"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "40df57500892399377d1fe742e0f0540e25b8e953af379d61e5d0c3d87f13457"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "58b23538b0db23dab676cf02463549625fc2eb0c2d00123e10a545ef8846ec58"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "5e5dbaabeedae76f5ad39cc1829b4584cdaca48ba43805db7877aa7e2b5c38e4"
+    },
+    {
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/t3code/876bbd715ae6aa8e1d663455747e17c92e0a287c.json.gz"
+        }
+      ],
+      "local_lab_path": "reports/candidate-first/corpus-verification/public-gold/backgrounds/t3code/876bbd715ae6aa8e1d663455747e17c92e0a287c.json.gz",
+      "repository": "pingdotgg/t3code",
+      "revision": "876bbd715ae6aa8e1d663455747e17c92e0a287c",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "exact_public_catalog_match",
+      "study_background_sha256": "1269484b895f0e3a46dffb7b9c4f5bb72effbd499a7e1aa2d3f1fb23ba8897ce"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "6874cbe44578c8c7840d09d9a86e9997bf8cf9b31831dfefe7956b4139de3014"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "7b9c40b2dfbc7b0e694cfa83ee19d96dbe4afdec3965c3530b7fc40ee08d1299"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "86d005bcadd97b1963429aaddeb2ee9e3ff4e535660c072f77757ec147a61cda"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "9137e39b4078cbec1b557f81b3da7bb8d54fafe58744997c338ac670d1554217"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "96ab0a80b441da9830913539b25c8b5fc21a4edc58eb2ae6e61c7fca7c4a715f"
+    },
+    {
+      "catalog_matches": [
+        {
+          "dataset": "public-gold-v1",
+          "path": "backgrounds/software-agent-sdk/cfae94d00e7addaa592ee7c9a92ebb4939b13034.json.gz"
+        }
+      ],
+      "local_lab_path": "reports/candidate-first/corpus-verification/public-gold/backgrounds/software-agent-sdk/cfae94d00e7addaa592ee7c9a92ebb4939b13034.json.gz",
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "cfae94d00e7addaa592ee7c9a92ebb4939b13034",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "status": "exact_public_catalog_match",
+      "study_background_sha256": "a068703e185ee6a85429f3de4f92c1e384196e8fb3f01bdd0d88ddd28ac2d424"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "b5ae09c2884821052fb0b49360d1da5cfb8ccff37e64e5bf50c1a26c097994fb"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "bb8fb69d8e3c2357d8730c93710e5bcb622ac1aab28ea966f4c34902b0944e48"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "c5997c9b2676a7f299b90b7a2eceb59796db5f735ee8e1449b3416646ed64e86"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "dd01f33452ea0f762874b620d8230bf221ca9f2dab34149e5fd94f7b91512cfe"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "9112b3fdf5ab52857bf4a29f9beb6f65a663497ec8365b18d60d558ecd547845"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "dae65cfbe4995b5a3cbf981eab8b0d4649680f110ab6af12bee92dc6925a5d78"
+    },
+    {
+      "catalog_matches": [],
+      "status": "private_not_public",
+      "study_background_sha256": "f2cab999c0b74130081f89307c417f5d4a900e3187214c3117151f629cf7ff8b"
+    }
+  ],
+  "catalog_sha256": "2d516a003e35bc265c86b50129f6348623b8cff2eb1f1c5c5024032b62cc7b34",
+  "corpus_commit": "bb29c4b71987008d06c2381a68b6833b6d542e3e",
+  "corpus_repository": "https://github.com/gigaverse-app/dry-lint-goldens.git",
+  "full_campaign_requires": [
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2/rows.jsonl",
+      "purpose": "617 historical development/regression records; contains private inputs, not public; use access-controlled original archive"
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2/cohorts.jsonl",
+      "purpose": "Exact 79-background and source mapping contract; public hash lookups listed above; private identities omitted here"
+    },
+    {
+      "path": "jobs/experiment-contract-tokens/.lab-results/",
+      "purpose": "Immutable source/cache and per-query ledgers required by archived original runners; source/refinement decisions are frozen input, not recomputed truth"
+    },
+    {
+      "path": "jobs/judge-operations/.lab-results/",
+      "purpose": "Original request renderer and existing observations; no live providers required for this package; live rerun would need adopter credentials and separate authorization"
+    }
+  ],
+  "method": "contract-tokens",
+  "portable_scope": "Selected source transformations and recorded answer/report replay, plus disclosed aggregate arithmetic. Complete original scripts retained as data, not claimed full campaign reproduction.",
+  "schema": 1,
+  "scope_warning": "79-background source inventory is a dependency manifest, never an evaluated denominator; use this method README and paired evidence for supported comparisons. Source files alone cannot reproduce full TF-IDF competitors."
+}

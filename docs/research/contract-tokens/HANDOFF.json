@@ -1,0 +1,15 @@
+{
+  "status": "READY",
+  "method": "contract-tokens",
+  "proposed_branch": "research/study-contract-tokens",
+  "destination": "docs/research/contract-tokens/",
+  "source_directory": "/home/researcher/dry-lint-round/jobs/publish-sparse-studies/.lab-results/publications/contract-tokens",
+  "root_owns_push_and_pr_creation": true,
+  "conclusion": "Stop both recipes. Known positive balanced funding stays 61/72; the conjunction channel adds one minor reuse of an existing enum-projection helper. Its .17225 code score bypasses the normal floor, so changed representation and admission are confounded.",
+  "ready_for_root_validation": true,
+  "checks": "CHECKS.json",
+  "root_copy_instruction": "Copy this complete directory to docs/research/contract-tokens/ on research/study-contract-tokens; root creates/pushes PR.",
+  "publication_files": 40,
+  "no_new_experiments": true,
+  "provider_calls": 0
+}

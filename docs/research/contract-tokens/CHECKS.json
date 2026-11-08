@@ -1,0 +1,394 @@
+{
+  "status": "PASS",
+  "clean_copy_without_lab_imports": true,
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "commands": [
+    {
+      "command": "python3 transform.py",
+      "exit_code": 0,
+      "stdout_sha256": "085d913323c506cb95b04f5c4b3acb9636e93126323720fbcc0573dd5c48a7f8",
+      "result": [
+        {
+          "id": "CTR2-012",
+          "new": {
+            "generic_tokens": [
+              "op:transform_collect",
+              "contract:eager",
+              "contract:input_iteration_order",
+              "contract:no_explicit_transform_calls",
+              "contract:unfiltered"
+            ],
+            "conjunctive_keys": [
+              "cx2:transform_collect:b53dfed931e080c8e28f6a1ceecf0e1b3cc0cc48816c7e945121b5ea5766ec15"
+            ],
+            "abstentions": []
+          },
+          "existing": {
+            "generic_tokens": [
+              "op:transform_collect",
+              "contract:eager",
+              "contract:input_iteration_order",
+              "contract:no_explicit_transform_calls",
+              "contract:unfiltered"
+            ],
+            "conjunctive_keys": [
+              "cx2:transform_collect:b53dfed931e080c8e28f6a1ceecf0e1b3cc0cc48816c7e945121b5ea5766ec15"
+            ],
+            "abstentions": []
+          },
+          "shared_exact_keys": [
+            "cx2:transform_collect:b53dfed931e080c8e28f6a1ceecf0e1b3cc0cc48816c7e945121b5ea5766ec15"
+          ]
+        },
+        {
+          "id": "CTR2-030",
+          "new": {
+            "generic_tokens": [
+              "op:transform_collect",
+              "contract:eager",
+              "contract:filtered",
+              "contract:input_iteration_order",
+              "contract:no_explicit_transform_calls"
+            ],
+            "conjunctive_keys": [
+              "cx2:transform_collect:6e6a9f171c3c0a638d04ef48311b9f39fe1ac34446556308a7199c7f62f3dc4d",
+              "cx2:transform_collect:8cd5a1e27a1f90bb18b3a8599cfce1eae1316e4b3f3efcfeebb4e83a995004f0"
+            ],
+            "abstentions": []
+          },
+          "existing": {
+            "generic_tokens": [
+              "op:transform_collect",
+              "contract:eager",
+              "contract:filtered",
+              "contract:input_iteration_order",
+              "contract:no_explicit_transform_calls"
+            ],
+            "conjunctive_keys": [],
+            "abstentions": [
+              {
+                "line": 525,
+                "reason": "unresolved_external_projection_or_filter_policy"
+              }
+            ]
+          },
+          "shared_exact_keys": []
+        },
+        {
+          "id": "CTR2-035",
+          "new": {
+            "generic_tokens": [
+              "op:owned_file_cleanup",
+              "contract:file_mode:wb",
+              "contract:lexical_cleanup",
+              "api:builtins.open"
+            ],
+            "conjunctive_keys": [
+              "cx2:owned_file_cleanup:92b3eb54b1042f39e5c012ca277d20aa0e003da188f6d197ae0eee01ff0bf523"
+            ],
+            "abstentions": []
+          },
+          "existing": {
+            "generic_tokens": [
+              "op:owned_file_cleanup",
+              "contract:file_mode:wb",
+              "contract:lexical_cleanup",
+              "api:builtins.open"
+            ],
+            "conjunctive_keys": [
+              "cx2:owned_file_cleanup:9e064418753513f2593469229439dd27a2b843849ed7849d5d08026501faab87"
+            ],
+            "abstentions": []
+          },
+          "shared_exact_keys": []
+        }
+      ]
+    },
+    {
+      "command": "python3 reproduce.py replay",
+      "exit_code": 0,
+      "stdout_sha256": "86f8a7789875e5aef33a1bd1030c8828567b4004077659fca6d223c93bd4d9dc",
+      "result": {
+        "limits": "Replays final answers and fixed admission records; does not refit whole-corpus retrieval or independently prove source truth. Primary feed costs exclude separately attributed current-phase usage. Jev and Claude remain separate.",
+        "policy_counts": [
+          {
+            "added": 0,
+            "baseline": 3,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 3
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 2,
+            "unknown": 11,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 1,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 1
+          },
+          {
+            "added": 1,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "balanced",
+            "role": "novel",
+            "round": 2,
+            "unknown": 11,
+            "variant": 1
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "default",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "default",
+            "role": "novel",
+            "round": 2,
+            "unknown": 11,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "default",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "default",
+            "role": "novel",
+            "round": 2,
+            "unknown": 11,
+            "variant": 0
+          }
+        ],
+        "primary_feeds": [
+          {
+            "primary_feed_actual_usd": "0.17597860",
+            "requests_in_primary_feed": 64,
+            "round": 1,
+            "successful": 64,
+            "unknown": 0
+          },
+          {
+            "primary_feed_actual_usd": "0.22040344",
+            "requests_in_primary_feed": 78,
+            "round": 2,
+            "successful": 56,
+            "unknown": 22
+          }
+        ],
+        "selected_answers": [
+          {
+            "id": "CTR2-012",
+            "kind": "jev",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.89
+          },
+          {
+            "id": "CTR2-012",
+            "kind": "claude",
+            "label": "duplicate",
+            "reportable": false,
+            "score": 0.6
+          },
+          {
+            "id": "CTR2-030",
+            "kind": "jev",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.29
+          },
+          {
+            "id": "CTR2-030",
+            "kind": "claude",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.8
+          },
+          {
+            "id": "CTR2-035",
+            "kind": "jev",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.83
+          },
+          {
+            "id": "CTR2-035",
+            "kind": "claude",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.2
+          }
+        ],
+        "selected_raw_answers_reparsed": 6
+      }
+    },
+    {
+      "command": "python3 reproduce.py audit",
+      "exit_code": 0,
+      "stdout_sha256": "19280bc6eede42a460a1d203ca9ebdbe3dfecdf7c2e5bb4451bed7e7146994a6",
+      "result": {
+        "compressed_archives_opened": 4,
+        "credential_or_private_identifier_matches": 0,
+        "files_scanned": 40,
+        "limit": "Pattern scan plus allowlisted response/source export; not a universal secret detector.",
+        "relative_links_checked": 18,
+        "source_files_verified": 3,
+        "status": "PASS"
+      }
+    },
+    {
+      "command": "python3 acquire.py --corpus /home/researcher/dry-lint-round/jobs/corpus-migration/.lab-results/corpus-migration/standalone",
+      "exit_code": 0,
+      "stdout_sha256": "4b21cd4fd155f8d2493abed42796f35ab2c98e43d62d41bee1688bb09aa850e2",
+      "result": {
+        "status": "PASS",
+        "exact_background_catalog_bindings": 10,
+        "scope": "Catalog hash lookup; run corpus.py verify for stored object bytes. Missing/private study inputs remain missing/private."
+      }
+    },
+    {
+      "command": "python3 data/evidence/verify_evidence.py",
+      "exit_code": 0,
+      "stdout_sha256": "84bd59c64037a5491edef7b4884fb5450e08d3bc56f3660f9d2128f35e5287cb",
+      "result": "PASS: snapshot hashes, matched denominators, scoped source labels, emission attribution, costs and unknowns"
+    },
+    {
+      "command": "python3 aggregate.py",
+      "exit_code": 0,
+      "stdout_sha256": "38786c78255e87077fb11e55052187a115f43b9e6ad89a4098443eb3e909b1d8",
+      "result": {
+        "status": "PASS",
+        "paired_comparisons": [
+          {
+            "label": "duplicate",
+            "profile": "default",
+            "metric": "retrieved",
+            "paired_supported_contexts": 91,
+            "baseline": 38,
+            "variant": 38,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "label": "duplicate",
+            "profile": "default",
+            "metric": "funded",
+            "paired_supported_contexts": 84,
+            "baseline": 31,
+            "variant": 31,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "label": "duplicate",
+            "profile": "balanced",
+            "metric": "retrieved",
+            "paired_supported_contexts": 91,
+            "baseline": 80,
+            "variant": 80,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "label": "duplicate",
+            "profile": "balanced",
+            "metric": "funded",
+            "paired_supported_contexts": 72,
+            "baseline": 61,
+            "variant": 61,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "label": "separate",
+            "profile": "default",
+            "metric": "retrieved",
+            "paired_supported_contexts": 131,
+            "baseline": 25,
+            "variant": 25,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "label": "separate",
+            "profile": "default",
+            "metric": "funded",
+            "paired_supported_contexts": 127,
+            "baseline": 21,
+            "variant": 21,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "label": "separate",
+            "profile": "balanced",
+            "metric": "retrieved",
+            "paired_supported_contexts": 131,
+            "baseline": 68,
+            "variant": 68,
+            "gains": 0,
+            "losses": 0
+          },
+          {
+            "label": "separate",
+            "profile": "balanced",
+            "metric": "funded",
+            "paired_supported_contexts": 114,
+            "baseline": 51,
+            "variant": 51,
+            "gains": 0,
+            "losses": 0
+          }
+        ],
+        "rows": 865
+      }
+    }
+  ],
+  "held_exact_request_hydrations": 0,
+  "provider_calls": 0,
+  "full_corpus_refits": 0,
+  "external_fetches": 0,
+  "source_safety": "Selected source allowlisted to licensed pinned public repositories; held source/prose omitted; decompressed archive and literal credential/private-identifier patterns scanned; original hashes retained. Not a universal secret detector.",
+  "tests_not_run": "Production suite, live providers, full-corpus refitting and independent source adjudication are outside this evidence-only publication."
+}
