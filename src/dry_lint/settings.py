@@ -98,6 +98,15 @@ class CpuRecovery(BaseModel):
         ]
 
 
+class FamilyDiscovery(BaseModel):
+    """Explicit operation-family recovery; questions share the existing campaign allowance."""
+
+    model_config = ConfigDict(extra="forbid")
+    judge: Choice = Field(description="An explicit family judge plugin and adopter-selected model.")
+    max_members: int = Field(default=8, ge=3, le=12)
+    max_questions: int = Field(default=3, ge=1, le=20)
+
+
 class Discovery(BaseModel):
     """Baseline first, then paced exploration, sharing a durable campaign allowance."""
 
@@ -116,6 +125,7 @@ class Discovery(BaseModel):
         return value
 
     enabled: bool = False
+    families: FamilyDiscovery | None = None
     comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(default_factory=list)
     residual_comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(
         default_factory=list,

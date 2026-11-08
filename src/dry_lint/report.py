@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from dry_lint import __version__
 from dry_lint.costs import Spend
+from dry_lint.family_judging import FamilyFinding
 from dry_lint.models import Candidate, Function, Run, Verdict, Versioned, qualified
 from dry_lint.settings import Settings
 
@@ -235,6 +236,8 @@ class Report(Versioned):
     judge: str | None = Field(default=None, description="The judge (and escalation judge), or None when unjudged.")
     judging: JudgingSummary | None = Field(default=None, description="Judges, thresholds, budget and cost.")
     findings: list[Finding] = Field(default_factory=list)
+    families: list[FamilyFinding] = Field(default_factory=list)
+    family_exclusions: list[dict[str, str]] = Field(default_factory=list)
     filtered: list[Candidate] = Field(default_factory=list, description="Pairs a rule settled, with the rule.")
     backlog: list[BacklogCleanup] | None = Field(
         default=None, description="Accepted baseline pairs this change cleaned up; None when no baseline was checked."
@@ -359,6 +362,15 @@ class Report(Versioned):
         )
 
 
+def family_summary(report: Report, *, markdown: bool = False) -> str:
+    if not report.families:
+        return ""
+    from dry_lint.family_report import FamilyReport
+
+    families = FamilyReport(findings=report.families)
+    return "\n\n" + (families.markdown() if markdown else families.text())
+
+
 def as_text(report: Report) -> str:
     if report.model_judging is not None:
         return "\n\n".join(
@@ -367,8 +379,8 @@ def as_text(report: Report) -> str:
                 "Models\n" + text_lane(report.lane("model"), kind="model"),
                 *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
             ]
-        )
-    return text_lane(report) + "\nModels: not checked in this run."
+        ) + family_summary(report)
+    return text_lane(report) + "\nModels: not checked in this run." + family_summary(report)
 
 
 def text_lane(report: Report, *, kind: str = "function") -> str:
@@ -506,7 +518,11 @@ def plural(count: int, noun: str) -> str:
 
 def as_markdown(report: Report, max_findings: int = 10, report_at: float | None = None) -> str:
     if report.model_judging is None:
-        return markdown_lane(report, max_findings, report_at) + "\n\n<sub>Models: not checked in this run.</sub>"
+        return (
+            markdown_lane(report, max_findings, report_at)
+            + "\n\n<sub>Models: not checked in this run.</sub>"
+            + family_summary(report, markdown=True)
+        )
     parts = [MARKER, "### dry-lint · Functions & models", "", NOTE_SLOT, ""]
     if not report.visible:
         parts.append(CLEAN)
@@ -524,7 +540,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
                 "repository policies before consolidating. Independently evolving contracts may need to stay separate.",
                 *model_summary(report),
             ]
-    return "\n\n".join(parts)
+    return "\n\n".join(parts) + family_summary(report, markdown=True)
 
 
 def markdown_lane(
@@ -816,6 +832,12 @@ def as_check_run(
     reported = [f for f in report.findings if f.reported or f.review_required]
     failed = any(f.blocking for f in reported) and not warn_only
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
+    family_proposals = sum(finding.reported for finding in report.families)
+    family_unresolved = sum(
+        finding.record is None or finding.record.answer.decision == "unknown" for finding in report.families
+    )
+    if report.families:
+        title = f"{len(reported)} pair report(s); {family_proposals} family proposal(s); {family_unresolved} unresolved"
     if report.review_required:
         title = f"{len(report.review_required)} pair(s): review required"
     annotations = [{
@@ -827,7 +849,7 @@ def as_check_run(
         "name": "dry-lint",
         "head_sha": report.run.head,
         "status": "completed",
-        "conclusion": "failure" if failed else "neutral" if reported or report.deferred else "success",
+        "conclusion": "failure" if failed else "neutral" if reported or report.deferred or family_proposals or family_unresolved else "success",
         "output": {"title": title, "summary": as_markdown(report, max_findings, report_at), "annotations": annotations},
     }
     return json.dumps(body, indent=2)
@@ -837,6 +859,8 @@ FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
 
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
+    if report.families and form not in ("text", "json", "markdown", "check-run"):
+        raise ValueError("Operation families support text, json, markdown and check-run reports")
     if form not in ("text", "json", "markdown") and any(
         finding.candidate.new.origin
         and (report.repository_wide or finding.candidate.new.origin.repository != report.run.repository)

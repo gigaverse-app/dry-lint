@@ -107,6 +107,7 @@ class Judging:
         self.pull_request = False
         self.campaign: CampaignStore | None = None
         self.residual_judge: Judge | None = None
+        self.family_recovery = None
 
     @classmethod
     def configured(cls, settings: Settings, store: VerdictStore) -> "Judging":
@@ -243,7 +244,7 @@ class Judging:
         self.pull_request = source is not None and source.pull_request is not None
         protected = [c for c in candidates if not c.residual]
         found = self.discovery_phase(protected, source)
-        if not self.settings.discovery.residual_comparers:
+        if not self.settings.discovery.residual_comparers and self.family_recovery is None:
             return found
         suffix = [c for c in candidates if c.residual]
         # Preserve the complete configured pass, including every exploration comparer. An unresolved baseline
@@ -255,6 +256,10 @@ class Judging:
                 Finding(candidate=c, deferred=True, budget_deferred=all(f.budget_deferred for f in blocked))
                 for c in suffix
             ]
+        if self.family_recovery is not None:
+            self.family_recovery(self, found, source)
+        if not self.settings.discovery.residual_comparers:
+            return found
         choice = self.settings.discovery.residual_judge
         attempted = {
             a.evidence

@@ -1,6 +1,7 @@
 """Durable admission for paid discovery. Reservations commit before a provider is contacted."""
 
 import hashlib
+import math
 import sqlite3
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
@@ -164,6 +165,39 @@ class CampaignStore:
             )
             if candidate.lane == "exploration" and not residual:
                 state.credit -= usd
+            return len(state.attempts) - 1
+
+    def reserve_family(
+        self, key: str, source_key: str, query: str, settings: Settings, usd: float,
+        *, subscription: bool = False,
+    ) -> int | Literal["budget"] | None:
+        """A whole family consumes one residual question, with the same total caps and failure holds."""
+        if settings.discovery.families is None or not settings.discovery.enabled:
+            raise ValueError("Operation-family admission requires explicit native discovery opt-in")
+        if not math.isfinite(usd) or usd < 0:
+            raise ValueError("Family reservation must be a finite nonnegative cost")
+        with self.transaction() as state:
+            if self.revision not in state.revisions:
+                raise ValueError("The protected campaign phase must run before family recovery")
+            current = [attempt for attempt in state.attempts if attempt.revision == self.revision]
+            if any(attempt.status != "answered" for attempt in current):
+                return None
+            # A changed policy cannot trigger a second paid assessment of the same complete family this revision.
+            if any(attempt.evidence == key or attempt.source_evidence == "family:" + source_key for attempt in current):
+                return None
+            if not self.call_room(state, current, settings, exploration=True):
+                return None
+            if subscription and sum(attempt.subscription for attempt in current) >= settings.budget.subscription_calls:
+                return None
+            if usd > settings.budget.usd - state.usd + 1e-12:
+                return "budget"
+            state.attempts.append(
+                Attempt(
+                    revision=self.revision, evidence=key, lane="exploration", query=query,
+                    usd=usd, residual=True, source_evidence="family:" + source_key, subscription=subscription,
+                )
+            )
+            # Family recovery never mints protected exploration credit.
             return len(state.attempts) - 1
 
     def settle(self, reservation: int, usd: float | None, success: bool) -> float:

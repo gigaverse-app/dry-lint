@@ -109,8 +109,10 @@ def judged(
     refresh: bool = False,
     functions: int = 0,
     scope: str = "change",
+    family_discovery=None,
 ) -> Report:
     judging = Judging.configured(settings, open_store(settings, root, args.store))
+    judging.family_recovery = family_discovery
     if settings.discovery.enabled and scope == "change":
         if run.pull_request is None:
             run.session = args.session or run.session or git(root, "symbolic-ref", "--short", "-q", "HEAD", check=False)
@@ -121,7 +123,7 @@ def judged(
         campaign_run = run.model_copy(update={"repository": run.repository or local})
         judging.campaign = CampaignStore(path, campaign_run)
     findings = judging.findings(candidates, source=run, refresh=refresh)
-    return Report.build(
+    report = Report.build(
         findings,
         settings,
         filtered=[c for c in candidates if c.filtered],
@@ -132,6 +134,10 @@ def judged(
         scope=scope,
         judging=judging.summary(),
     )
+    if family_discovery is not None:
+        report.families = family_discovery.findings
+        report.family_exclusions = family_discovery.rejected
+    return report
 
 
 def prepare(report: Report, settings: Settings, args: argparse.Namespace) -> Report:
@@ -201,7 +207,17 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         staged=args.staged,
         committed=settings.discovery.enabled and not args.staged,
     )
-    report = judged(candidates, settings, root, args, run, len(changed), functions=len(detector.functions))
+    families = None
+    if settings.discovery.families is not None:
+        if not settings.discovery.enabled:
+            raise ValueError("Operation-family discovery requires discovery.enabled = true")
+        from dry_lint.family_discovery import FamilyDiscovery
+
+        families = FamilyDiscovery(detector.functions, changed, run, settings.discovery.families)
+    report = judged(
+        candidates, settings, root, args, run, len(changed), functions=len(detector.functions),
+        family_discovery=families,
+    )
     if debt:
         base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
         report.backlog = debt.cleared(report, removed(root, detector, debt, base))
@@ -410,6 +426,8 @@ def progress(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None:
+        raise ValueError("Operation-family discovery requires a change campaign; use check with an immutable base")
     detector, _ = detector_for(root, settings, args)
     candidates = detector.scan()[: args.limit]
     report = judged(
@@ -427,6 +445,8 @@ def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None:
+        raise ValueError("Operation-family discovery currently requires check; split detect/judge is not supported")
     detector, primary = detector_for(root, settings, args)
     if args.all:
         changed, candidates = detector.functions, detector.scan()
@@ -491,6 +511,8 @@ def judge_models(
 
 
 def judge(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    if settings.discovery.families is not None:
+        raise ValueError("Operation-family discovery currently requires check; split detect/judge is not supported")
     found = CandidatesFile.model_validate_json(args.candidates.read_text())
     if args.models is True and found.model_candidates is None:
         raise ValueError(
