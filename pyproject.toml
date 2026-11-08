@@ -29,12 +29,11 @@ cpu-embedding = ["numpy>=2.2,<3", "onnxruntime>=1.31.1,<1.32", "tokenizers>=0.23
 s3 = ["boto3>=1.35"]
 anthropic = ["anthropic>=1.0"]
 hooks = ["anthropic>=1.0", "python-dotenv>=1,<2"]
-dryer = ["dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0"]
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [dependency-groups]
+# Dryer is not on PyPI (the PyPI "dryer" is an unrelated project), so it cannot be a published extra.
+# Develop and test it with `uv sync --group dryer`; users install it next to dry-lint (docs/detectors.md).
+dryer = ["dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0"]
 dev = ["pytest>=8", "pytest-cov>=6", "ruff>=0.14", "build>=1.2", "boto3>=1.35", "anthropic>=1.0", "numpy>=2.2", "python-dotenv>=1,<2"]
 
 [tool.hatch.build.targets.wheel]
@@ -48,7 +47,8 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 source = ["dry_lint"]
-omit = ["*/__main__.py"]
+# The optional Dryer comparer is measured by its own CI job, with Dryer installed.
+omit = ["*/__main__.py", "*/dry_lint/dryer.py"]
 
 [tool.ruff]
 line-length = 120

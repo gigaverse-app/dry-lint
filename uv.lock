@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'emscripten'",
@@ -273,9 +273,6 @@ cpu-embedding = [
     { name = "onnxruntime" },
     { name = "tokenizers" },
 ]
-dryer = [
-    { name = "dryer" },
-]
 hooks = [
     { name = "anthropic" },
     { name = "python-dotenv" },
@@ -296,13 +293,15 @@ dev = [
     { name = "python-dotenv" },
     { name = "ruff" },
 ]
+dryer = [
+    { name = "dryer" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=1.0" },
     { name = "anthropic", marker = "extra == 'hooks'", specifier = ">=1.0" },
     { name = "boto3", marker = "extra == 's3'", specifier = ">=1.35" },
-    { name = "dryer", marker = "extra == 'dryer'", git = "https://github.com/unclebob/dryer.git?rev=66ff6d21a42c04afcad89c78a80066176d1294b0" },
     { name = "httpx", specifier = ">=0.28,<1" },
     { name = "numpy", marker = "extra == 'cpu-embedding'", specifier = ">=2.2,<3" },
     { name = "onnxruntime", marker = "extra == 'cpu-embedding'", specifier = ">=1.31.1,<1.32" },
@@ -312,7 +311,7 @@ requires-dist = [
     { name = "tree-sitter", specifier = ">=0.25,<0.26" },
     { name = "tree-sitter-typescript", specifier = ">=0.23,<0.24" },
 ]
-provides-extras = ["cpu-embedding", "s3", "anthropic", "hooks", "dryer"]
+provides-extras = ["cpu-embedding", "s3", "anthropic", "hooks"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -325,6 +324,7 @@ dev = [
     { name = "python-dotenv", specifier = ">=1,<2" },
     { name = "ruff", specifier = ">=0.14" },
 ]
+dryer = [{ name = "dryer", git = "https://github.com/unclebob/dryer.git?rev=66ff6d21a42c04afcad89c78a80066176d1294b0" }]
 
 [[package]]
 name = "dryer"
