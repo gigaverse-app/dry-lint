@@ -1,0 +1,46 @@
+{
+  "backgrounds": [
+    {
+      "path": "LAB_ROOT/jobs/litellm-candidate-golds/.lab-results/litellm-candidates/background.json.gz",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    {
+      "path": "LAB_ROOT/retrieval/.lab-results/recall-lab/t3/6577c6b6185167c0e502fa01f9e8e8f2dee6ff25.json.gz",
+      "sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a"
+    }
+  ],
+  "dependency_install": "Archived pyproject.toml.txt and uv.lock.txt fix Python dependencies for an isolated reconstruction. Core source snapshot is archived alongside them.",
+  "full_corpus_status": "Requires original external inputs below; not a turnkey full-corpus experiment reproduction. Private inputs are not public dependencies.",
+  "held_input_hydration": "hydrate.py --case CASE --ledger EXACT_ORIGINAL_COMPLETED_JSONL --out LOCAL_FILE; each case.provenance fixes the original ledger path and SHA256. Restores exact original prompt/answer only from lawfully available local evidence. Redistribution remains held.",
+  "lab_root_alias": "LAB_ROOT",
+  "lab_root_original": "/home/researcher/dry-lint-round",
+  "live_rerun": "Not authorized or implemented here. A separately authorized adopter-owned judge runner must send the exact recorded identity/rendered_input/options using its own credentials and write new outputs. No key is included, read, proxied or used.",
+  "method": "budget-ranking",
+  "missing_results": "Missing original answers stay unknown; rerunning a model would create a new observation, not repair the historical record.",
+  "original_implementation": "data/archived-code; .txt files are inert readable originals. Privacy comment replacements have both hashes in data/provenance.json. Original scripts can have import-time writes and absolute paths: never import them during replay.",
+  "portable_command": "python3 replay.py",
+  "portable_scope": "Reparse public recorded Claude answers, preserve held numeric verdicts and unknowns, recompute reports from original admissions and aggregate paired arm counts/costs. No retrieval reconstruction.",
+  "producer_git_commit": "442b17af38ff596605e8307910ba206c4d0614a0",
+  "resources": [
+    {
+      "location": "jobs/experiment-budget-ranking/.lab-results/{candidate-stages.jsonl,query-ranks.jsonl,diagnostic-batches.json,timing.json}",
+      "purpose": "Original full public pools, rankings, campaign grouping and background bindings; selected campaign included in data/algorithm-input.json"
+    },
+    {
+      "location": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/round{1,2}/",
+      "purpose": "novel-review-queue.jsonl, synthetic-arm-ledgers.jsonl, private-sidecar.jsonl (public blind roles), revised-rank-rows.jsonl in R2, source-proofs, split/funding manifests"
+    },
+    {
+      "location": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2/rows.jsonl",
+      "purpose": "frozen reviewed-pair exclusions; not an evaluated denominator"
+    },
+    {
+      "location": null,
+      "purpose": "Private historical timelines, providers and source are intentionally unavailable publicly. Only sanitized final aggregates are included; they cannot be rerun from this kit."
+    }
+  ],
+  "schema": 1,
+  "source_acquisition": "hydrate.py reads an existing local Git checkout/bare repository at exact revision:path and verifies full-file SHA256. No fetch or fuzzy substitution.",
+  "published_background_acquisition": "python3 backgrounds.py --goldens /tmp/dry-lint-goldens --out /tmp/study-backgrounds; uses exact git objects at bb29c4b71987008d06c2381a68b6833b6d542e3e, never substitutes revision or scope.",
+  "background_catalog_lookup": "data/background-catalog-lookup.json"
+}

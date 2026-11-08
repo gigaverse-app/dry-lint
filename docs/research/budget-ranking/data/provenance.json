@@ -1,0 +1,530 @@
+[
+  {
+    "byte_identical": true,
+    "bytes": 36157,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/run_experiment.py",
+    "published_path": "data/archived-code/run_experiment.py.txt",
+    "published_sha256": "215c453e5a5054413cfb73d6a8336a4bbd2d9cdc9813427510e00578081e78b0",
+    "purpose": "original experiment implementation",
+    "sha256": "215c453e5a5054413cfb73d6a8336a4bbd2d9cdc9813427510e00578081e78b0"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 12856,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/run_fair_fixed_revision.py",
+    "published_path": "data/archived-code/run_fair_fixed_revision.py.txt",
+    "published_sha256": "da8eaf26ae56fbdba45b8f5d48e9512d97f8fee4eefd50c430b0562addcda2ad",
+    "purpose": "original experiment implementation",
+    "sha256": "da8eaf26ae56fbdba45b8f5d48e9512d97f8fee4eefd50c430b0562addcda2ad"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 20127,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/build_funded_round1.py",
+    "published_path": "data/archived-code/build_funded_round1.py.txt",
+    "published_sha256": "edfaeffc732f74ca7df0dd766c70951413fbc37f15d37adeaa8e72a5b576a648",
+    "purpose": "original experiment implementation",
+    "sha256": "edfaeffc732f74ca7df0dd766c70951413fbc37f15d37adeaa8e72a5b576a648"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 24163,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/build_funded_round2_public.py",
+    "published_path": "data/archived-code/build_funded_round2_public.py.txt",
+    "published_sha256": "26dad165c4b51d45c19415d5b0b4d6a1789f5130f2964cb8f9ea2be6db61c743",
+    "purpose": "original experiment implementation",
+    "sha256": "26dad165c4b51d45c19415d5b0b4d6a1789f5130f2964cb8f9ea2be6db61c743"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 9236,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/join_public_funded_round.py",
+    "published_path": "data/archived-code/join_public_funded_round.py.txt",
+    "published_sha256": "62c4854f7a68997340238220e4e777a92158871d95aac9a72f3275ae79688bb4",
+    "purpose": "original experiment implementation",
+    "sha256": "62c4854f7a68997340238220e4e777a92158871d95aac9a72f3275ae79688bb4"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 10339,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/join_public_funded_round_v2.py",
+    "published_path": "data/archived-code/join_public_funded_round_v2.py.txt",
+    "published_sha256": "0c8c703d9625c239f2b5f48d1cef80392a5abdd72850340d4b144d8724f2381e",
+    "purpose": "original experiment implementation",
+    "sha256": "0c8c703d9625c239f2b5f48d1cef80392a5abdd72850340d4b144d8724f2381e"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 7152,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/join_public_source_truth.py",
+    "published_path": "data/archived-code/join_public_source_truth.py.txt",
+    "published_sha256": "bb6946d2dfd2b0681732180c79947db4dbc1ffb8250afb8d7e73bbd7f4cfe6b2",
+    "purpose": "original experiment implementation",
+    "sha256": "bb6946d2dfd2b0681732180c79947db4dbc1ffb8250afb8d7e73bbd7f4cfe6b2"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 6818,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/public_ranking_intake.py",
+    "published_path": "data/archived-code/funded-rounds/public_ranking_intake.py.txt",
+    "published_sha256": "b3425fcb8796e1f13b40fbf05b0e804a49231a174c7151c1bd93535305124f45",
+    "purpose": "original experiment implementation",
+    "sha256": "b3425fcb8796e1f13b40fbf05b0e804a49231a174c7151c1bd93535305124f45"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 5521,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/public_budget_revised_funding_adapter_v1.py",
+    "published_path": "data/archived-code/funded-rounds/public_budget_revised_funding_adapter_v1.py.txt",
+    "published_sha256": "c5240d2c51c66b8b46a7fac8be4fdd44facdf3073a95a2143e550866d1b349d2",
+    "purpose": "original experiment implementation",
+    "sha256": "c5240d2c51c66b8b46a7fac8be4fdd44facdf3073a95a2143e550866d1b349d2"
+  },
+  {
+    "byte_identical": true,
+    "bytes": 7210,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/seal_public_ranking_intake.py",
+    "published_path": "data/archived-code/funded-rounds/seal_public_ranking_intake.py.txt",
+    "published_sha256": "8be9d8f87623d395291e7794764f39d923d8bddfac45b75fff6625a34b3ad849",
+    "purpose": "original experiment implementation",
+    "sha256": "8be9d8f87623d395291e7794764f39d923d8bddfac45b75fff6625a34b3ad849"
+  },
+  {
+    "bytes": 13663,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/model_shapes.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "55fb703488e58b3469a5445f9b96e14d8094395d463a422b0bbe6f7b8460840c"
+  },
+  {
+    "bytes": 2754,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/policies.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "fd05afeccee8483fb996fce5012ccbf5fe7dea0bd97d0e7569cdb99f575ef0c0"
+  },
+  {
+    "bytes": 2293,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/index.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7"
+  },
+  {
+    "bytes": 28413,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/ledger.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "31988fad96c3b441b2316bc6eed2b75926ecb728df9a6702e480a96399165f82"
+  },
+  {
+    "bytes": 7492,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/costs.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba"
+  },
+  {
+    "bytes": 17423,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/detector.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "40f99912282e5e08b80b8faea45d8fa8df026ef9fc4b1d0c6f7c1314966b556a"
+  },
+  {
+    "bytes": 9937,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/presets.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba"
+  },
+  {
+    "bytes": 1783,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/ranking.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "52559a7cfaeb05e63cbf6e83e0fac5e55ce542de5ebf6a439deaa51b8023157e"
+  },
+  {
+    "bytes": 17782,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/typescript.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "0cd747041264db2ce8acb4e722f7849fcc4b8b0add31cbc6b79de83a1c5dd6e7"
+  },
+  {
+    "bytes": 129,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/__init__.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "eb2ffeb6be174449e0a36371f3cefb78c096f3a0a7b7d519e731db6cffb84fbb"
+  },
+  {
+    "bytes": 2938,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/comparison_helpers.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "63cd956ac98a475871cde05ab1da476dfe3519f37057eac674af4dafe38de063"
+  },
+  {
+    "bytes": 13740,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/comparison.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "a4653a32f1cddd51f9333f4611884082f48870ae078144ad509cf63655081c22"
+  },
+  {
+    "bytes": 29895,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/action.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "5eb38b48b2d5b807b604421d00658db52dd543607312761ab7bfb2d1934f6dd4"
+  },
+  {
+    "bytes": 8475,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/function_index.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "0a3e2277217b308ff29931b222028f5de8a467d8663a90dbd6e526fcb1dcebbd"
+  },
+  {
+    "bytes": 16310,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/sticky.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "e6a0a9328c7944bf52996b6083161f0140b426aa0f140004a3583baa957c4bc1"
+  },
+  {
+    "bytes": 355,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/github.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "efc583b1a5aefb15f3faf164538616fd953335480c8cd7ce6f73ea1275e8bcce"
+  },
+  {
+    "bytes": 2949,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/source_context.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "d872b51237cc5976aa7d317b3c63329c708c6607abc87100c7e9f36b19516b6e"
+  },
+  {
+    "bytes": 7868,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/index_github.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "93c7283cacbc7144347fd8134137bf472264c48e085950726b0423b05cad71d0"
+  },
+  {
+    "bytes": 17189,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/baseline.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "00f2f1863406ac40f87fb9a13801858f97e036d34b644f1835f383f6a4adea68"
+  },
+  {
+    "bytes": 16246,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/functions.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "a3ca93054f2fb9c57ca50f1bde4a581352e822429674387d32c8ddb4f41216ae"
+  },
+  {
+    "bytes": 7420,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/commits.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "2d4ecf6c78810658328266c7b8bf93c172f1c98adf4be4289badb16a7d15bd4d"
+  },
+  {
+    "bytes": 4739,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/python_schemas.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "04f5fe9b53b5a6b06e1e7a590a226e6c9ff21aa93673a5b44d7cb9668a5b6e34"
+  },
+  {
+    "bytes": 5590,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/model_review.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "1380bc4d6af0c208e20be732e7f4877f30ece5fd4f757a30649ec7d31cd5067d"
+  },
+  {
+    "bytes": 8631,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/replay.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "5702e3360ce4c6ed5181358d05837df7db5342bb9d0c2ea50f33662ba11657e4"
+  },
+  {
+    "bytes": 1836,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/feedback.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "6ae5fda9395c16b6881eb47d2596864290450e608fb8b7712bf30e63bfb0168c"
+  },
+  {
+    "bytes": 38695,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/report.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "79c834b2cb576c3eefdf8cf16dca8194e09a04a52074b6dabee2f1ac9f9d8105"
+  },
+  {
+    "bytes": 4288,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/dryer.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "bf8c2926710947b11d55c55774a1df011c54fe975dbc508f293a813395d546bd"
+  },
+  {
+    "bytes": 3687,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/bench_background.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "8b16009cdd92133f72c33969edac40d4f8e80623b558c594809961fd77b4af2f"
+  },
+  {
+    "bytes": 2876,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/comparers.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608"
+  },
+  {
+    "bytes": 2105,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/evidence.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "ab43230a95de6380a4edd93f9c098dd29ddccd19df3eb2097cf4505bff29526e"
+  },
+  {
+    "bytes": 4871,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/plugins.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "08da90980b1a96d05928ed5dd9d74b469158e2f10b8889bf5b2da200e1436f72"
+  },
+  {
+    "bytes": 18058,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/labelling.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "7b6fc95c25e05f299a19cc36401f5596a13007083d819ecbaa0358bce22c9731"
+  },
+  {
+    "bytes": 49519,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/cli.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "d88d3ff97d41d4e80d2fb1d8f69ad4e38a8abf7bd7db7ab03b38de8c48936409"
+  },
+  {
+    "bytes": 7265,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/discovery.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "267b1b3058e8a87322929dda630269f2c771c05be4f54ff873ff6005c351b684"
+  },
+  {
+    "bytes": 10744,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/models.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "d8250c1af2aa07e23bfa094bd497307f79579f6b9e2c1c12196e05c4544302d3"
+  },
+  {
+    "bytes": 12892,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/bench.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "12e55de2d4b0b2655344486f7e499b2c22ed04694c39101cf95266f38862eece"
+  },
+  {
+    "bytes": 9194,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/settings.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9"
+  },
+  {
+    "bytes": 10216,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/schema_policy.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "ed01be5db83078a51aa43e4c5ae554b59c8eaea42c1aae5a9ff2cdbf17c46110"
+  },
+  {
+    "bytes": 10099,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/store.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "cbe9473ec2fe9eeb6eb27a6fc06f1d888635905c4259778cc5c59c0996e9fc4e"
+  },
+  {
+    "bytes": 15240,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judging.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "04f971212bad3d5e242f81b3af9f46aea874c3d5abf8a7c7611554515e9620ac"
+  },
+  {
+    "bytes": 1048,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/git.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "f5b3d7a4738297278930ec1af1f34aea852b27fadcc54de26bdc4a825c89dd5a"
+  },
+  {
+    "bytes": 60,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/__main__.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "534c51a3c2d68e6a06931b81200b9acd85a7a09d037ea72803eae3b96772d3ff"
+  },
+  {
+    "bytes": 3350,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/extractors.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "1c1f5c9620b2d0976a0816e93e964bf05ea631e0cc375ac978d166e9d813eb32"
+  },
+  {
+    "bytes": 5996,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judges/model_jev.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "0decb302bae7ab87ca70ac80ce8408e48a3e20d039c888190df1de03167f39f9"
+  },
+  {
+    "bytes": 3420,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judges/subscription.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "e0a6ca3c6ddc508f5aad55740325d1c4ed2902db5da42ce7acb747c052a3ee5e"
+  },
+  {
+    "bytes": 1260,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judges/__init__.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "8f640c1a9ff2fbb95b307589da1cd87e8352e899f7458356f83dc02ad28fefd7"
+  },
+  {
+    "bytes": 1079,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judges/gemini.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "74d7c817fd1bf0d20059519109e1d15323b06948898f8b3755051694fd9128a5"
+  },
+  {
+    "bytes": 4930,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judges/anthropic.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f"
+  },
+  {
+    "bytes": 14796,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judges/command.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317"
+  },
+  {
+    "bytes": 2069,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judges/http.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "6868ea75e77044748c6142c3af70c7b0edbe150df42a5ea20f3a412eea186b76"
+  },
+  {
+    "bytes": 11012,
+    "lab_relative_path": "jobs/experiment-budget-ranking/src/dry_lint/judges/jev.py",
+    "purpose": "core dependency snapshot",
+    "sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2"
+  },
+  {
+    "bytes": 2656,
+    "lab_relative_path": "jobs/experiment-budget-ranking/pyproject.toml",
+    "purpose": "dependency lock/license",
+    "sha256": "af67435fe407353355171697fd765d1cda28b842741a54fc49a3b79bee2100dc"
+  },
+  {
+    "bytes": 208597,
+    "lab_relative_path": "jobs/experiment-budget-ranking/uv.lock",
+    "purpose": "dependency lock/license",
+    "sha256": "84566976085c54d6abe44d82217d27186ad6261f687b4093fcdb48c09d4507cf"
+  },
+  {
+    "bytes": 11358,
+    "lab_relative_path": "jobs/experiment-budget-ranking/LICENSE",
+    "purpose": "dependency lock/license",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "bytes": 5076,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "d509061684e299ada7fc9a9d17e396bb12156934ed89102c38c6f4b572edc22a"
+  },
+  {
+    "bytes": 3582,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/round2/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "9e4f7c82cd83665c31feb5b6b7a3cc94bfa080312455bce5481dd1e8a27267fa"
+  },
+  {
+    "bytes": 3870,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/round1/EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "8d6f440cc3b56a952d3545ead2a57ee9d8ecb6a138a9f47618c72739234c4a53"
+  },
+  {
+    "bytes": 2338,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/round2/PUBLIC-EXPERIMENT.json",
+    "purpose": "tested specification",
+    "sha256": "aa53bda3fd4042e9c9977da6078d599273941251448d4f5a584bcdf8ee66ad36"
+  },
+  {
+    "bytes": 526653,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/round1/PUBLIC-R1-SOURCE-JOIN-B15.json",
+    "purpose": "current public paired join",
+    "sha256": "dc7482603efcbe111c8bec97adfa1d49aca9ad67d7fd701478cfe9b199da9712"
+  },
+  {
+    "bytes": 351629,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/round2/PUBLIC-R2-PAID-REPORT-JOIN-v2.json",
+    "purpose": "current public paired join",
+    "sha256": "2e4f962291c11237f02448a4134ea6c444e8fca24f4816d4e710835f5360c0eb"
+  },
+  {
+    "bytes": 4202,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/FINAL-HANDOFF-v2.json",
+    "purpose": "current final handoff",
+    "sha256": "fd1c554f22336daf135af41152d3b94558181c66cdcc2c2e389d4f3416c0a7c3"
+  },
+  {
+    "bytes": 6489,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/FINAL-SOURCE-UPDATE-v2.json",
+    "purpose": "current final source tier",
+    "sha256": "718f56e72d72dbd5e044cf1877c60c934399f8a11aeb8e579167ee00d3980967"
+  },
+  {
+    "bytes": 804,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/round2/DISJOINTNESS-RECEIPT.json",
+    "purpose": "public regression and split",
+    "sha256": "65f71b1538224a77d0618c604812e8e498b01b19eba969688975c7563d123042"
+  },
+  {
+    "bytes": 3679,
+    "lab_relative_path": "jobs/experiment-budget-ranking/.lab-results/funded-rounds/round2/GOLD-ADMISSION-REGRESSION.json",
+    "purpose": "public regression and split",
+    "sha256": "eb54a440d0cea17dae3884ba9f4c615a7fcf5f5e63bc05e9c54d62d1a7969b2f"
+  },
+  {
+    "bytes": 5936523,
+    "lab_relative_path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/budget-ranking/round1/3ba0bc8badca73f8-4cbb628cfd97/completed.jsonl",
+    "purpose": "frozen completed provider ledger",
+    "sha256": "9c932828bdab09de6c237786cc260a03247bfb707edf6326f66aca7f632f1310"
+  },
+  {
+    "bytes": 4456593,
+    "lab_relative_path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/budget-ranking/round2/62da678953e0fca5-4cbb628cfd97/completed.jsonl",
+    "purpose": "frozen completed provider ledger",
+    "sha256": "ebd49df88edbd2fae3dee79bfb0ae023e8707997d37a59326c480a608998e334"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9",
+    "published_path": "data/archived-code/src/dry_lint/settings.py.txt",
+    "published_sha256": "d82138ad711e04341a347b34aae277ed42599f4d75c24d1759d405865f43a3ae",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba",
+    "published_path": "data/archived-code/src/dry_lint/presets.py.txt",
+    "published_sha256": "7494a9eb2975812bb9493fffe707d2fff6f0e03024c99f4054013e4f11190c63",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "d88d3ff97d41d4e80d2fb1d8f69ad4e38a8abf7bd7db7ab03b38de8c48936409",
+    "published_path": "data/archived-code/src/dry_lint/cli.py.txt",
+    "published_sha256": "a5fd2efdf6f333e967315d17d1cc6d0e77d603b3aa48d98635fc3985575d6c68",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+    "published_path": "data/archived-code/src/dry_lint/costs.py.txt",
+    "published_sha256": "ce36c41417acc3950cf21dde0273fcb97099427b495bc78421e2f839075e32cb",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "7b6fc95c25e05f299a19cc36401f5596a13007083d819ecbaa0358bce22c9731",
+    "published_path": "data/archived-code/src/dry_lint/labelling.py.txt",
+    "published_sha256": "f7e0b89be6f98567ddd1e8f59b840b616eb78de0968dc480e7dd1e49f9a22595",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  },
+  {
+    "byte_identical": false,
+    "original_sha256": "0641debfb8dbb98e382895b8614633dc57e9e1da646ea7ac66cd0fcdb44362e2",
+    "published_path": "data/archived-code/src/dry_lint/judges/jev.py.txt",
+    "published_sha256": "b4c203faff385c7ea8b0f576c41faf9055bdf6126abca45adf72d5e3f6948a80",
+    "purpose": "privacy-only replacement of historical repository names in public core comments/docstrings"
+  }
+]

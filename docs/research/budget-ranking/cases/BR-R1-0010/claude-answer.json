@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.008072,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "ffb53697ec7a2c834e471b3275cef6fece4c4cc3ca6d5862ac58c0fd17e93237",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoEp4RE9DRWg7XK2yQhs\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"duplicate\\\",\\\"score\\\":0.86,\\\"owner\\\":\\\"shared\\\",\\\"why\\\":\\\"Both fetch the environment session state with useEnvironmentQuery(environmentSession.sessionStateAtom(id)), get useEnvironmentPresentation(id), and compose them into resolveFilesystemReadAccess with the same mapping (isCatalogReady, presentation?.connection ?? null, session.data, session.error). NEW inlines the sequence that EXISTING already owns as the useFilesystemReadAccess hook. Because resolveFilesystemReadAccess is shared, only the hook-level composition is duplicated. NEW could call useFilesystemReadAccess(props.environmentId), or the hook could move to a shared package that both apps import. The null environmentId handling is the only variation, and NEW always passes a non-null id. The file tree, query and UI logic in NEW stay in the component.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":2561,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":2561,\"output_tokens\":295,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":295,\"output_tokens_details\":{\"thinking_tokens\":0},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "e42a34b45356e7fae9f88d7630253a385b02f0cc33380b05f29c9fb801812467",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 2561,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2561,
+        "model": null,
+        "output_tokens": 295,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 295,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "duplicate",
+    "model_assessment": null,
+    "owner": "shared",
+    "score": 0.86,
+    "second_opinion": null,
+    "why": "Both fetch the environment session state with useEnvironmentQuery(environmentSession.sessionStateAtom(id)), get useEnvironmentPresentation(id), and compose them into resolveFilesystemReadAccess with the same mapping (isCatalogReady, presentation?.connection ?? null, session.data, session.error). NEW inlines the sequence that EXISTING already owns as the useFilesystemReadAccess hook. Because resolveFilesystemReadAccess is shared, only the hook-level composition is duplicated. NEW could call useFilesystemReadAccess(props.environmentId), or the hook could move to a shared package that both apps import. The null environmentId handling is the only variation, and NEW always passes a non-null id. The file tree, query and UI logic in NEW stay in the component."
+  }
+}
