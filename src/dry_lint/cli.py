@@ -416,12 +416,14 @@ def progress(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     detector, _ = detector_for(root, settings, args)
-    found = detector.scan()
-    candidates = found[: args.limit]
-    if len(found) > len(candidates):
+    found = detector.scan(settled=True)
+    proposed = [c for c in found if c.filtered is None]
+    # The limit applies to the pairs to judge; pairs a rule settled are only counted ("N skipped by rule").
+    candidates = proposed[: args.limit] + [c for c in found if c.filtered is not None]
+    if len(proposed) > args.limit:
         # On stderr, so --format json and sarif stay parseable.
         print(
-            f"dry-lint: showing the {len(candidates)} closest of {len(found)} look-alike pairs; "
+            f"dry-lint: showing the {args.limit} closest of {len(proposed)} look-alike pairs; "
             "raise --limit to see more",
             file=sys.stderr,
         )

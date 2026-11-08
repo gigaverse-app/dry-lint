@@ -1,19 +1,20 @@
 # .github/workflows/dry-lint-bootstrap.yml: accept the existing backlog in Actions, for when no judge key is at hand.
 #
-# Commit this file with .dry-lint.toml on the adoption branch and push. The push that adds it runs it on that branch
-# (a push needs no default-branch registration, unlike workflow_dispatch). It judges every candidate pair once and
-# uploads .dry-lint/, the README and the sweep report as the `dry-lint-baseline` artifact:
+# Commit this file with .dry-lint.toml on the adoption branch and push. Every push that changes either file runs it
+# on that branch (a push needs no default-branch registration, unlike workflow_dispatch), so editing a pattern and
+# pushing runs it again. It judges every candidate pair once and uploads .dry-lint/, the README and the sweep report
+# as the `dry-lint-baseline` artifact:
 #
-#   gh run list --branch "$(git branch --show-current)" --json databaseId,name,status \
+#   gh run list --repo OWNER/NAME --branch "$(git branch --show-current)" --json databaseId,name,status,headSha \
 #     --jq '.[] | select(.name == "dry-lint bootstrap")'
-#   OUT=$(mktemp -d) && gh run download RUN_ID --name dry-lint-baseline --dir "$OUT"
+#   OUT=$(mktemp -d) && gh run download RUN_ID --repo OWNER/NAME --name dry-lint-baseline --dir "$OUT"
 #
-# Copy .dry-lint/ and README.md from $OUT into the repository, delete this workflow, and commit. Nothing here writes
-# to the repository: the files arrive only through the commit you review.
+# Copy .dry-lint/ and README.md from $OUT into the repository, and delete this workflow in the same commit. Nothing
+# here writes to the repository: the files arrive only through the commit you review.
 name: dry-lint bootstrap
 on:
   push:
-    paths: [.github/workflows/dry-lint-bootstrap.yml]
+    paths: [.github/workflows/dry-lint-bootstrap.yml, .dry-lint.toml]
   workflow_dispatch:
 
 permissions:
@@ -30,6 +31,7 @@ jobs:
         with:
           python-version: '3.13'  # the parser: use the newest Python syntax your code needs
       - name: Install dry-lint
+        # The same major version as gigaverse-app/dry-lint@v1 and the hook's rev: v1.
         run: python -m pip install 'dry-lint>=1,<2'  # 'dry-lint[anthropic]>=1,<2' for a Claude preset
       - name: Accept the existing backlog
         env:
@@ -39,12 +41,13 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           OUT: ${{ runner.temp }}/dry-lint-baseline
         # --budget-usd: 1 is ample for Jev (273 pairs cost $0.010); use 5 for a Claude preset.
+        # --repository-id: the README's counter sign is keyed by a hash of this numeric id, never by the name.
         # Leave out --readme for a README that is not Markdown.
         run: |
           mkdir -p "$OUT"
           dry-lint config
           dry-lint sweep --init --budget-usd 1 --readme README.md --report "$OUT/sweep-report.json" \
-            --repository "$GITHUB_REPOSITORY" --branch "$DEFAULT_BRANCH"
+            --repository "$GITHUB_REPOSITORY" --repository-id "$GITHUB_REPOSITORY_ID" --branch "$DEFAULT_BRANCH"
           cp -R .dry-lint README.md "$OUT/"
       - uses: actions/upload-artifact@v7
         if: always()

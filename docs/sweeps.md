@@ -32,8 +32,11 @@ Review and commit `.dry-lint/baseline.json`, `.dry-lint/progress.json`, the sett
 to overwrite an existing baseline. The larger one-off budget does not change the configured PR budget.
 Every proposed pair must have a completed judgment before initialization writes anything.
 
-The sweep queries every extracted function using the same nearest-neighbour detector as PR checks. Its audit
-includes both warnings and blocking findings. Only pairs at the blocking threshold receive allowances.
+The sweep queries every extracted function using the same nearest-neighbour detector as PR checks: each
+function's closest look-alikes, up to `neighbours` (3), plus every remaining baseline pair. `dry-lint scan` lists
+fewer: only pairs that are each other's single closest look-alike, a quick view of the backlog. So the sweep judges
+more pairs than `scan` shows, and both report how many pairs a declared pattern or inline decision settled
+("skipped by rule"). Its audit includes both warnings and blocking findings. Only pairs at the blocking threshold receive allowances.
 This is a detector's bounded candidate set, not exhaustive proof that all semantic duplication was found.
 The default scope excludes test and migration directories; inspect the include/exclude settings before adopting.
 Unsupported or invalid source cannot silently disappear from a strict scan.

@@ -551,3 +551,12 @@ def test_exhausted_judging_routes_to_agent_feedback_without_more_paid_calls(
         )
     assert run(repo, tmp_path, *args) == 0
     assert all(spend.calls == 0 for spend in report_data.judging.spend)
+
+
+def test_scan_reports_pattern_settled_pairs_as_skipped_by_rule(repo: Repo, capsys) -> None:
+    (repo.root / ".dry-lint.toml").write_text(
+        '[[patterns]]\nmembers = ["*text.py::*", "*caption.py::*"]\nreason = "kept on purpose"\n'
+    )
+    assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "5"]) == 0
+    out = capsys.readouterr().out
+    assert "preview_caption_text looks like" not in out and "1 skipped by rule" in out

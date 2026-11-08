@@ -131,13 +131,18 @@ rarely have one locally. Run it in Actions instead with
 [examples/dry-lint-bootstrap.yml](../examples/dry-lint-bootstrap.yml):
 
 1. Commit it to `.github/workflows/` with `.dry-lint.toml`, using your secret's name, and push.
-   The push that adds the file runs it on that branch; unlike `workflow_dispatch`, a push
+   Any push that changes either file runs it on that branch; unlike `workflow_dispatch`, a push
    needs no copy of the workflow on the default branch.
-2. `gh run list --branch BRANCH --json databaseId,name --jq '.[] | select(.name == "dry-lint bootstrap")'`
+2. `gh run list --repo OWNER/NAME --branch BRANCH --json databaseId,name --jq '.[] | select(.name == "dry-lint bootstrap")'`
    (the workflow is not on the default branch yet, so select the run by name), then
-   `gh run download RUN_ID --name dry-lint-baseline --dir OUT`.
-3. Copy `.dry-lint/` and `README.md` from `OUT`, delete the bootstrap workflow, review the
-   accepted pairs and commit.
+   `gh run download RUN_ID --repo OWNER/NAME --name dry-lint-baseline --dir OUT`.
+3. Copy `.dry-lint/` and `README.md` from `OUT` and review the accepted pairs. To change the
+   result, for example with a new pattern, commit and push only the `.dry-lint.toml` edit; that
+   push runs it again. When the baseline is right, commit the files and delete the bootstrap
+   workflow in the same commit.
+
+It passes `--repository-id "$GITHUB_REPOSITORY_ID"`, as the local route does: the README's
+counter sign is keyed by a hash of that numeric id, never by the repository's name.
 
 The workflow has read-only permissions; nothing reaches the repository except the commit you
 make. Budget it for the judge: `--budget-usd 1` is ample for Jev (273 pairs cost $0.010),

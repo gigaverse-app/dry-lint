@@ -198,6 +198,11 @@ copy placed next to its original pairs with another copy elsewhere, if there is 
 that copy's callers to the new function, although the right owner is the original beside it. Read both functions
 before following the advice.
 
+Scores are not perfectly repeatable: identical runs can differ by about 0.01, so a pair within a few hundredths
+of a threshold can be reported in one run and not the next. The verdict store keeps the first answer for each pair
+until either function changes, so a pull request's check does not flip between pushes. Do not tune a threshold to
+settle one such pair; decide it on its merits, as debt, a fix, or a recorded decision.
+
 The score is `same_concept × (1 − p(owner = none))`. Jev must think the two are one concept *and* that they should
 become one implementation. A pair is
 `drifted` when `behaves_differently ≥ drift_at`.
