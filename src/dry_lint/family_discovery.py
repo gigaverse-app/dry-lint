@@ -1,6 +1,6 @@
 """Nominate and judge operation families using the existing campaign's remaining allowance."""
 
-from itertools import combinations
+from itertools import combinations, count
 
 from dry_lint.costs import Spend, price
 from dry_lint.family_judging import (
@@ -91,6 +91,7 @@ class BudgetFamilyAdmission(FamilyAdmission):
     def __init__(self, judging):
         super().__init__(judging)
         self.held = {}
+        self.issued = count(1)
 
     def admit(self, request, judge, usd):
         ledger, budget = self.judging.ledger, self.judging.settings.budget
@@ -100,9 +101,7 @@ class BudgetFamilyAdmission(FamilyAdmission):
                 return None
         if usd > budget.usd - ledger.spent - ledger.usd - sum(self.held.values()) + 1e-12:
             return "budget"
-        reservation = len(self.reservations) + len(self.held) + 1
-        while reservation in self.held:
-            reservation += 1
+        reservation = next(self.issued)
         self.held[reservation] = usd
         return reservation
 

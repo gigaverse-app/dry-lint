@@ -108,15 +108,17 @@ def test_excluded_family_is_visible_and_cannot_claim_complete():
         require_complete(report)
 
 
+@pytest.mark.parametrize("command", ["check", "scan"])
 @pytest.mark.parametrize("mode", ["github", "sarif"])
-def test_unsupported_family_renderer_rejected_before_any_plugin(repo, monkeypatch, mode):
+def test_unsupported_family_renderer_rejected_before_any_plugin(repo, monkeypatch, mode, command):
     repo.write(
         ".dry-lint.toml",
         'preset="balanced"\n[discovery.families]\njudge={use="anthropic-family",model="claude-haiku-5-5"}\n',
     )
     repo.commit("family opt-in")
     with patch.object(judging_module, "make_judge", side_effect=AssertionError("must validate before plugin")):
-        assert main(["check", "--root", str(repo.root), "--base", "main", "--format", mode]) == 2
+        base = ["--base", "main"] if command == "check" else []
+        assert main([command, "--root", str(repo.root), *base, "--format", mode]) == 2
 
 
 @pytest.mark.parametrize("policy", ["ignore", "distinct", "pattern"])

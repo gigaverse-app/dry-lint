@@ -52,7 +52,7 @@ from dry_lint.models import Candidate, CandidatesFile, Run, evidence
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
 from dry_lint.replay import replay
-from dry_lint.report import FORMATS, Report, as_json, render
+from dry_lint.report import FAMILY_FORMAT_ERROR, FAMILY_FORMATS, FORMATS, Report, as_json, render
 from dry_lint.settings import PluginChoice, Settings
 
 
@@ -187,6 +187,12 @@ def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[st
     return found
 
 
+def require_family_format(settings: Settings, args: argparse.Namespace) -> None:
+    """Refuse a family opt-in whose report format cannot show families, before any detection or plugin."""
+    if settings.discovery.families is not None and args.format not in FAMILY_FORMATS:
+        raise ValueError(FAMILY_FORMAT_ERROR)
+
+
 def family_discovery(root: Path, settings: Settings, detector: Detector, changed, run: Run, *, staged: bool):
     """Nominate operation families among `changed` owners, settled by the same human and adopter decisions."""
     from dry_lint.family_discovery import FamilyDiscovery
@@ -205,8 +211,7 @@ def family_discovery(root: Path, settings: Settings, detector: Detector, changed
 
 
 def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    if settings.discovery.families is not None and args.format not in ("text", "json", "markdown", "check-run"):
-        raise ValueError("Operation families support text, json, markdown and check-run reports")
+    require_family_format(settings, args)
     detector, primary = detector_for(root, settings, args)
     changed = touched(
         [f for f in detector.functions if not f.origin or f.origin.repository == primary],
@@ -451,8 +456,7 @@ def progress(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    if settings.discovery.families is not None and args.format not in ("text", "json", "markdown", "check-run"):
-        raise ValueError("Operation families support text, json, markdown and check-run reports")
+    require_family_format(settings, args)
     detector, _ = detector_for(root, settings, args)
     candidates = detector.scan()[: args.limit]
     run = run_info(root, None)

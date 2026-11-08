@@ -871,11 +871,14 @@ def as_check_run(
 
 
 FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
+# Formats that can show an operation family: one proposal with its unconfirmed siblings, not pair annotations.
+FAMILY_FORMATS = ("text", "json", "markdown", "check-run")
+FAMILY_FORMAT_ERROR = "Operation families support text, json, markdown and check-run reports"
 
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
-    if (report.families or report.family_exclusions) and form not in ("text", "json", "markdown", "check-run"):
-        raise ValueError("Operation families support text, json, markdown and check-run reports")
+    if (report.families or report.family_exclusions) and form not in FAMILY_FORMATS:
+        raise ValueError(FAMILY_FORMAT_ERROR)
     if form not in ("text", "json", "markdown") and any(
         finding.candidate.new.origin
         and (report.repository_wide or finding.candidate.new.origin.repository != report.run.repository)
