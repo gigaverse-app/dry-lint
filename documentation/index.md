@@ -31,7 +31,7 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/), open a
 terminal in your Git repository, and run:
 
 ```bash
-uvx --no-config --python 3.13 --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --judge none --limit 30
+uvx --no-config --python 3.13 dry-lint scan --judge none --limit 30
 ```
 
 This lists look-alikes without calling a model or failing on findings. Python,

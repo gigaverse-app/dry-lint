@@ -23,4 +23,4 @@ changing the pipeline, a file format or the store, and [docs/plugins.md](docs/pl
 ## GitHub Actions versions
 
 - ALWAYS use published major-version tags for established GitHub Actions, for example `actions/checkout@v7` and `actions/upload-artifact@v7`, so compatible fixes arrive without per-commit maintenance. NEVER replace those tags with commit hashes unless the user explicitly requests that exact exception. If a publisher has no major-version tag, use its published release tag rather than inventing a ref or substituting a hash.
-- ALWAYS use the `v1` major-version tag for dry-lint: `gigaverse-app/dry-lint@v1` for Actions, `@v1` for CLI installs, and `rev: v1` for pre-commit hooks. Do not use commit SHAs or minor/patch release pins. Apply the same ref in workflow examples and adoption instructions.
+- ALWAYS use the `v1` major-version tag for dry-lint: `gigaverse-app/dry-lint@v1` for Actions, `rev: v1` for pre-commit hooks, and the PyPI package for CLI installs (`'dry-lint>=1,<2'` in adoption instructions). Do not use commit SHAs or minor/patch release pins. Apply the same ref in workflow examples and adoption instructions.
