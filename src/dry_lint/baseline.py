@@ -367,8 +367,14 @@ def require_complete(report: Report, *, check: bool = False, allow_review_tasks:
         raise ValueError("Judging is incomplete; resolve agent review tasks or restore the judge and rerun")
 
 
+HEADING = "## Duplicate code"
+
+
 def update_readme(text: str, block: str) -> str:
-    """Replace only our block; preserve malformed/unrelated content by appending a fresh block."""
+    """
+    Replace only our block; preserve malformed/unrelated content by appending a fresh block. A first block gets a
+    visible heading, outside the markers, so a maintainer can rename or move it and later updates leave it alone.
+    """
     if START in text and END in text and text.index(START) < text.index(END):
         return text[: text.index(START)] + block + text[text.index(END) + len(END) :]
-    return text.rstrip() + "\n\n" + block + "\n"
+    return text.rstrip() + f"\n\n{HEADING}\n\n" + block + "\n"

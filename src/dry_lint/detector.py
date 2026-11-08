@@ -6,7 +6,6 @@ pairs. Whether a pair really is a duplicate is the judge's question (judging.py)
 store has no usable answer (store.py). The extractors and the comparer are plugins; the rules here are core.
 """
 
-import fnmatch
 import re
 from pathlib import Path
 
@@ -14,7 +13,8 @@ from dry_lint.comparer_resources import ComparerResources
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
-from dry_lint.models import Candidate, Function, Run, pair_key, qualified
+from dry_lint.github import github_event
+from dry_lint.models import Candidate, Function, Run, matches_any, pair_key, qualified
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
 from dry_lint.settings import ExplorationComparer, Settings
@@ -24,9 +24,19 @@ IGNORE = re.compile(r"(?:#|//)\s*dry-lint:\s*ignore\b")
 
 
 def default_base(root: Path) -> str:
-    """The remote's default branch (origin/HEAD), or origin/main when the clone does not record one."""
+    """
+    The remote's default branch: origin/HEAD when the clone records it; else, in GitHub Actions, whose checkouts do
+    not record it, the event's default branch; else origin/main or origin/master, whichever exists; else origin/main.
+    """
     remote_head = git(root, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD", check=False)
-    return remote_head.removeprefix("refs/remotes/") or "origin/main"
+    if remote_head:
+        return remote_head.removeprefix("refs/remotes/")
+    if branch := (github_event().get("repository") or {}).get("default_branch"):
+        return f"origin/{branch}"
+    for branch in ("main", "master"):
+        if git(root, "rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}", check=False):
+            return f"origin/{branch}"
+    return "origin/main"
 
 
 def given(base: str | None) -> bool:
@@ -118,7 +128,7 @@ def why_skipped(a: Function, b: Function, settings: Settings, *, calls: bool = T
     if calls and a.origin == b.origin and (relation := call_relation(a, b) or call_relation(b, a)):
         return relation
     for pattern in settings.patterns:
-        if fnmatch.fnmatch(a.qualname, pattern.members) and fnmatch.fnmatch(b.qualname, pattern.members):
+        if matches_any(a.qualname, pattern.members) and matches_any(b.qualname, pattern.members):
             return f"declared pattern: {pattern.reason}"
     for x, y in ((a, b), (b, a)):
         for target in SUPPRESSION.findall(x.code):
@@ -265,10 +275,7 @@ class Detector:
         targets = [
             target
             for target in self.settings.consolidation
-            if all(
-                any(fnmatch.fnmatch(f.qualname.split("::")[0], pattern) for pattern in target.sources)
-                for f in (new, existing)
-            )
+            if all(matches_any(f.qualname.split("::")[0], target.sources) for f in (new, existing))
         ]
         policies = [applied for policy in self.settings.policies if (applied := policy.apply(new, existing))]
         discarded = next((p for p in policies if p.action == "discard"), None)
@@ -358,8 +365,12 @@ class Detector:
                 found.append(relative.model_copy(update={"lane": "relative", "parent": parent.key}))
         return found
 
-    def scan(self) -> list[Candidate]:
-        """Every pair in the repository that are each other's nearest neighbour across files: the backlog."""
+    def scan(self, *, settled: bool = False) -> list[Candidate]:
+        """
+        Every pair in the repository that are each other's nearest neighbour across files: the backlog. With
+        `settled`, the pairs a rule settles (a declared pattern, an inline decision) follow, carrying the rule in
+        `filtered`, so a report can count them.
+        """
         if self.cross_repository:
             best = {}
             for function in self.functions:
@@ -374,10 +385,8 @@ class Detector:
                 function = self.functions[self.position[name]]
                 reverse = best.get((other.qualname, function.origin.repository))
                 if reverse and reverse[0].qualname == name:
-                    pair = self.pair(function, other, similarity)
-                    if pair.filtered is None:
-                        pairs.append(pair)
-            return rank_candidates(pairs)
+                    pairs.append(self.pair(function, other, similarity))
+            return rank_candidates([p for p in pairs if p.filtered is None]) + self.settled(pairs, settled)
         best: dict[str, tuple[str, float]] = {}
         for function in self.functions:
             near = self.neighbours(function)
@@ -386,7 +395,17 @@ class Detector:
         pairs = []
         for name, (other, similarity) in best.items():
             if name < other and best.get(other, ("",))[0] == name:
-                pair = self.pair(self.functions[self.position[name]], self.functions[self.position[other]], similarity)
-                if pair.filtered is None:
-                    pairs.append(pair)
-        return rank_candidates(pairs) if self.settings.consolidation else sorted(pairs, key=lambda c: -c.similarity)
+                pairs.append(
+                    self.pair(self.functions[self.position[name]], self.functions[self.position[other]], similarity)
+                )
+        open_pairs = [p for p in pairs if p.filtered is None]
+        ranked = (
+            rank_candidates(open_pairs)
+            if self.settings.consolidation
+            else sorted(open_pairs, key=lambda c: -c.similarity)
+        )
+        return ranked + self.settled(pairs, settled)
+
+    @staticmethod
+    def settled(pairs: list[Candidate], wanted: bool) -> list[Candidate]:
+        return sorted((p for p in pairs if p.filtered is not None), key=lambda c: -c.similarity) if wanted else []

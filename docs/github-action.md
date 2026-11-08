@@ -1,7 +1,8 @@
 # GitHub Action
 
-Use `gigaverse-app/dry-lint@v1`. Use published major-version tags
-for established Actions, such as `actions/checkout@v7`.
+Use `gigaverse-app/dry-lint@v1`, and published major-version tags for established Actions, such as
+`actions/checkout@v7`. If your repository pins actions to commit SHAs, follow that policy instead:
+`gigaverse-app/dry-lint@<sha> # v1`, with the SHA from `gh api repos/gigaverse-app/dry-lint/commits/v1 --jq .sha`.
 
 Create `.github/workflows/dry-lint.yml` using the [complete quick start](../README.md#add-it-to-github-actions)
 or copy [the extended workflow](../examples/dry-lint.yml), which also handles default-branch pushes and
@@ -18,8 +19,9 @@ override-label changes. To add dry-lint to an existing job, these are the only s
 ```
 
 Give that job `contents: read` and `pull-requests: write` permissions. You can run it before creating any
-secrets: it lists look-alikes without model calls, PR comments, or failures on findings. Add your own
-`TYPESAFE_AI_API_KEY` repository secret to enable judging. To start with advisory findings, set `warn-only: "true"`.
+secrets: it lists look-alikes without model calls, PR comments, or failures on findings. To enable judging, store
+your TypeSafe API key as a repository or organization secret and pass it to `typesafe-api-key:`; the secret can have
+any name, and the examples call it `TYPESAFE_AI_API_KEY`. To start with advisory findings, set `warn-only: "true"`.
 
 The action manages Python 3.13 and its dependencies in a separate environment, ignoring project uv settings
 in `pyproject.toml` and `uv.toml`. It does not install your application or change its virtual environment.
@@ -149,7 +151,7 @@ deployment rather than replacing it with the example publisher in `.github/workf
 
 ## When it fails, and false positives
 
-Two thresholds decide what a finding does: `report_at` and `fail_at`, both in `[tool.dry-lint]`. The `fail-at`
+Two thresholds decide what a finding does: `report_at` and `fail_at`, both in `.dry-lint.toml`. The `fail-at`
 action input (or `--fail-at` on the command line) overrides `fail_at` for one workflow.
 
 | Judge score | Finding | Check |
@@ -179,8 +181,8 @@ pairs are counted separately from confirmed duplicates in the text summary.
 | --- | --- | --- |
 | this pair | `# dry-lint: distinct-from src/text.py::shorten_text` in the new function | next to the code it explains |
 | this function | `# dry-lint: ignore` in the function | next to the code |
-| a family of deliberate look-alikes | a `patterns` entry (`members`, `reason`) in `[tool.dry-lint]` | configuration, reviewed |
-| whole paths | `exclude` in `[tool.dry-lint]` | configuration, reviewed |
+| a family of deliberate look-alikes, or copies kept on purpose | a `[[patterns]]` entry (`members`, `reason`) in `.dry-lint.toml` ([how patterns match](../README.md#when-it-is-right-not-to-merge-them)) | configuration, reviewed |
+| whole paths | `exclude` in `.dry-lint.toml` | configuration, reviewed |
 | this pull request only | the `dry-lint: override` label | the pull request; the comment says it was overridden |
 
 The code and configuration routes are permanent and reviewed like any change: the pair is never proposed again.
@@ -240,6 +242,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment` | `true` | Keep the sticky comment. |
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `share-totals` | `true` | On the default branch, add each merged pull request's counts to [the global counter](#the-global-counter); `false` opts out. |
+| `share-goldens` | `false` | Opt in to [dry-lint's benchmark](#sharing-goldens-opt-in): keep each merged pull request's settled pairs as a `dry-lint-goldens` artifact for collection. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; failure for blocking findings, neutral for advisory findings. |
 | `sticky-key` | | Legacy marker label, and the suffix that tells apart the verdict saves of several steps in one job; all keys share one PR comment. |
 | `fail-at` | the preset's (0.55 with `jev+opus`, 0.8 with `jev`) | Judge score at or above which a duplicate fails the check. |
@@ -253,10 +256,10 @@ code 2 always fails the step, including subprocess crashes and report-rendering 
 error annotation and a job-summary message even with `comment: false` or `warn-only: true`. Each invocation
 discards its previous report before scanning, so a failed scan cannot reuse an earlier successful report.
 
-Thresholds and exclusions live in `[tool.dry-lint]` in `pyproject.toml`, or in a `.dry-lint.toml` at the repository
-root (which wins when both exist), so that the action, the pre-commit hook and the command line all agree
-([README](../README.md#settings)). Prefer `.dry-lint.toml` where editing `pyproject.toml` is expensive, for example
-when CI reruns every test on any change to it.
+Thresholds and exclusions live in a `.dry-lint.toml` at the repository root, or under `[tool.dry-lint]` in
+`pyproject.toml` (`.dry-lint.toml` wins when both exist), so that the action, the pre-commit hook and the command
+line all agree ([README](../README.md#settings)). Prefer `.dry-lint.toml`; it also avoids rerunning every test in
+repositories whose CI treats any `pyproject.toml` change as global.
 
 ## Verdict cache
 
@@ -341,6 +344,28 @@ rewrites rather than copies, and their lines) and the dry-lint version: no code,
   changes nothing. A send that fails waits in the repository's ledger (`outbox`) for the next push, and never
   fails the run.
 - **Bounded.** Counts are self-reported; the counter refuses a pull request claiming implausible figures.
+
+### Sharing goldens (opt-in)
+
+A pull request that settles a reported pair says something the benchmark wants to know: a duplicate the author
+**kept out** (a later push no longer reported it, usually because it now reuses the existing owner), or a pair
+**dismissed** after it was reported (typically a person's `# dry-lint: distinct-from` with a reason). With
+`share-goldens: "true"`, the fold keeps those outcomes for each merged pull request:
+
+- **Pointers, not code.** Each record holds the repository, the pinned revision, both functions' paths, names and
+  line spans, the judge's verdict, and how the label was learned. Model pairs, pairs settled by the pre-commit
+  hook, accepted-backlog cleanups and pairs still open at merge are left out.
+- **Nothing is sent.** The records stay in your repository as a 30-day `dry-lint-goldens-RUN-ATTEMPT` artifact.
+- **Collected only from registered public repositories.** dry-lint's maintainers run
+  [`scripts/collect_goldens.py`](../scripts/collect_goldens.py) over the repositories listed, by pull request, in
+  [`docs/goldens/adopters.toml`](goldens/adopters.toml), with the license that allows their code in a public
+  panel. It refuses a private repository and fetches each function at its pinned revision.
+- **Weak labels, staged.** "Kept out" is inferred and a dismissal can be wrong, so collected goldens become
+  diagnostic panels in the `examples/*-gold.toml` format, never part of the population estimates, which use blind
+  three-vendor labels.
+
+To opt in, set `share-goldens: "true"` on the dry-lint job that runs on pushes to your default branch, and add
+your repository to the registry in a pull request to dry-lint.
 
 ## Running it in a monorepo, or more than once
 

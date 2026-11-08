@@ -294,7 +294,7 @@ def test_markdown_labels_blocking_findings_first_and_lists_every_override() -> N
     for override in (
         "`# dry-lint: distinct-from <qualified name>` in the changed function",
         "`# dry-lint: ignore`",
-        "`patterns`",
+        "`[[patterns]]`",
         "`.dry-lint.toml`",
         "the `dry-lint: override` label",
     ):

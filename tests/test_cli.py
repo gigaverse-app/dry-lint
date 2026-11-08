@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -185,8 +186,20 @@ def test_staged_typescript_reads_the_index_and_excludes_unstaged_sources(repo, t
 
 def test_scan_lists_the_repository_backlog(repo: Repo, tmp_path: Path, capsys) -> None:
     assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "5"]) == 0
-    out = capsys.readouterr().out
-    assert "shorten_text" in out and "preview_caption_text" in out
+    captured = capsys.readouterr()
+    assert "shorten_text" in captured.out and "preview_caption_text" in captured.out
+    assert "raise --limit" not in captured.err  # everything was shown
+
+
+def test_scan_says_when_its_limit_hides_pairs_and_keeps_json_parseable(repo: Repo, capsys) -> None:
+    loader = "def load_{0}(store, key):\n    rows = store.read_rows(key)\n    return [row.decode() for row in rows]\n"
+    repo.write("src/users.py", loader.format("users"))
+    repo.write("src/accounts.py", loader.format("accounts"))
+    repo.commit()
+    assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "1", "--format", "json"]) == 0
+    captured = capsys.readouterr()
+    assert len(json.loads(captured.out)["findings"]) == 1
+    assert re.search(r"showing the 1 closest of [2-9]\d* look-alike pairs; raise --limit", captured.err)
 
 
 def test_scan_refresh_re_judges_answers_from_an_older_judge_version(
@@ -457,6 +470,23 @@ def test_config_shows_explicit_settings_subscriptions_and_unknown_prices(repo: R
     assert "judge: none (-)" in capsys.readouterr().out
 
 
+def test_config_shows_which_source_files_the_scope_covers(repo: Repo, capsys) -> None:
+    for folder in "abcdefghi":
+        repo.write(f"{folder}/module.py", "def f():\n    return 1\n")
+    repo.write("README.md", "# not source\n")
+    repo.write("top.py", "def g():\n    return 2\n")
+    repo.commit()
+    assert main(["config", "--root", str(repo.root)]) == 0
+    out = capsys.readouterr().out
+    assert "scope: include * - exclude */tests/*, tests/*, */migrations/*, */scripts/*" in out
+    assert "  13 source files in scope: src 3, . 1, a 1, b 1, c 1, d 1, e 1, f 1, ..." in out
+    assert "  0 declared pattern(s)" in out
+    (repo.root / ".dry-lint.toml").write_text('include = ["nowhere/*"]\nexclude = []\n')
+    assert main(["config", "--root", str(repo.root)]) == 0
+    out = capsys.readouterr().out
+    assert "scope: include nowhere/* - exclude nothing\n  0 source files in scope\n" in out
+
+
 def test_preset_and_budget_flags_shape_the_run(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
     assert (
         run(
@@ -521,3 +551,12 @@ def test_exhausted_judging_routes_to_agent_feedback_without_more_paid_calls(
         )
     assert run(repo, tmp_path, *args) == 0
     assert all(spend.calls == 0 for spend in report_data.judging.spend)
+
+
+def test_scan_reports_pattern_settled_pairs_as_skipped_by_rule(repo: Repo, capsys) -> None:
+    (repo.root / ".dry-lint.toml").write_text(
+        '[[patterns]]\nmembers = ["*text.py::*", "*caption.py::*"]\nreason = "kept on purpose"\n'
+    )
+    assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "5"]) == 0
+    out = capsys.readouterr().out
+    assert "preview_caption_text looks like" not in out and "1 skipped by rule" in out

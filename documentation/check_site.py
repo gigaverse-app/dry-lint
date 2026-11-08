@@ -1,6 +1,7 @@
 """Check the rendered publication contract, including canonical URLs and search."""
 
 import json
+import re
 import struct
 from hashlib import sha256
 from html.parser import HTMLParser
@@ -75,7 +76,20 @@ def main():
     search = json.loads((site / "search/search_index.json").read_text(encoding="utf-8"))
     assert len(search["docs"]) >= len(pages), "Search index does not cover the published pages"
     assert not any("/work-in-progress/" in url or "/plans/" in url for url in locations)
-    print(f"Validated {len(pages)} pages: canonical, descriptions, social metadata, sitemap, search")
+    # The one-prompt setup fetches this raw file: it must be the skill itself, byte for byte, beside its page.
+    raw = site / "agent-setup.md"
+    assert raw.is_file(), "agent-setup.md missing from the site root"
+    assert raw.read_bytes() == (root / "skills/dry-lint/SKILL.md").read_bytes(), "agent-setup.md differs from SKILL.md"
+    assert (site / "agent-setup/index.html").is_file(), "agent setup page missing"
+    links = re.findall(r"\]\((\S+?)\)", raw.read_text(encoding="utf-8"))
+    assert links and all(urlsplit(link).scheme == "https" or link.startswith("#") for link in links), (
+        "agent-setup.md needs absolute links"
+    )
+    # llms.txt (https://llmstxt.org/): an H1, a blockquote summary, and the agent setup file.
+    llms = (site / "llms.txt").read_text(encoding="utf-8")
+    assert llms.startswith("# dry-lint\n") and "\n> " in llms and "\n## Optional\n" in llms, "malformed llms.txt"
+    assert "agent-setup.md" in llms, "llms.txt does not point at the agent setup"
+    print(f"Validated {len(pages)} pages: canonical, descriptions, social metadata, sitemap, search, agent files")
 
 
 if __name__ == "__main__":

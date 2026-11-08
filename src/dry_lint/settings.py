@@ -22,10 +22,21 @@ from dry_lint.policies import PairPolicy
 from dry_lint.schema_policy import SchemaPolicy
 
 
-class Pattern(BaseModel):
-    """A declared family of deliberate look-alikes, never reported (e.g. one router per resource)."""
+def _globs(value: Any) -> Any:
+    return [value] if isinstance(value, str) else value
 
-    members: str = Field(description="fnmatch pattern over qualified names, e.g. 'src/api/*_api.py::create_router'.")
+
+class Pattern(BaseModel):
+    """
+    A declared family of deliberate look-alikes, never reported: one router per resource, or copies a project keeps
+    on purpose. A pair belongs to the family when each side's `path::Qualified.name` matches one of `members`.
+    """
+
+    members: Annotated[list[str], BeforeValidator(_globs)] = Field(
+        min_length=1,
+        description="fnmatch globs over qualified names, one or a list, e.g. 'src/api/*_api.py::create_router' or "
+        "['pkg/strutils.py::indent', 'pkg/funcutils.py::_indent'].",
+    )
     reason: str
 
 

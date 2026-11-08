@@ -38,6 +38,31 @@ preset's thresholds, and the first judge's answers that it did not see (outside 
 run out) meet the first judge's own bar, `escalate.first_at`: 0.8 for Jev. Without that, a large pull request that
 ran out of budget would fail on Jev scores of 0.55, where Jev alone is right about two times in three.
 
+## One preset everywhere
+
+A repository has one preset, named in `.dry-lint.toml` (`preset = "jev"`). CI, the pre-commit hook, the weekly
+audit and the baseline all use it. The baseline records the preset's judges and thresholds when `sweep --init`
+writes it, and any command that checks against the baseline refuses to run with a different preset
+(`Baseline detection/judging policy differs`). So:
+
+- leave the Action's `preset` input empty, so the workflows read the settings file;
+- give the hook the same preset with the baseline, `args: [--preset, jev, --baseline, .dry-lint/baseline.json]`,
+  because the hook's own default is `agent`;
+- choose the preset for whoever reads the findings, below. Without a baseline, the hook's `agent` default is the
+  recall-first choice for a coding agent.
+
+| Keys the repository has | Preset for the check and the baseline | Budget for a one-off `sweep --init` |
+| --- | --- | --- |
+| TypeSafe | `jev` | `--budget-usd 1` (273 pairs cost $0.010) |
+| TypeSafe and Anthropic | `jev+opus` | `--budget-usd 5` |
+| Anthropic only | `sonnet` | `--budget-usd 5` |
+| Mostly agent-written and agent-fixed pull requests, TypeSafe | `agent` | `--budget-usd 1` |
+
+The keys are the adopter's own. Store each as a repository or organization secret under any name and pass it to
+the Action's `typesafe-api-key:` or `anthropic-api-key:` input; a plain `run:` step passes it as the environment
+variable the CLI reads, `TYPESAFE_AI_API_KEY` or `ANTHROPIC_API_KEY`. Locally, set those variables or put them in an
+untracked `.env`.
+
 ## Who reads the findings: people, or coding agents
 
 Choose the judging for whoever reads the findings, not for the best score on a benchmark.
@@ -103,11 +128,12 @@ Jev's numbers. A failing first judge is still an error.
 ## Budget and cost
 
 ```toml
-[tool.dry-lint.budget]
+# .dry-lint.toml ([tool.dry-lint.budget] and [tool.dry-lint.prices] in pyproject.toml)
+[budget]
 usd = 0.04                 # most judging spends on one pull request, across all its pushes (--budget-usd overrides it)
 subscription_calls = 20    # most calls one run makes to subscription judges
 
-[tool.dry-lint.prices]     # USD per million input and output tokens, over the built-in table
+[prices]                   # USD per million input and output tokens, over the built-in table
 "my-model" = [1.0, 4.0]
 ```
 
@@ -164,6 +190,18 @@ It asks three questions:
 | `same_concept` | noul | One concept that should have a single implementation, parameterized where they differ? |
 | `behaves_differently` | noul | Would a caller notice a different result for some input? |
 | `owner` | choice | `existing`, `new`, `shared` or `none` |
+
+The `owner` answer is about the pair shown, and it becomes the advice: `existing` says to call the existing
+function, `new` to move the existing function's callers to the new one, `shared` to extract a helper both call. The
+judge often prefers a public function over a private helper. Because functions in the same file are never compared, a
+copy placed next to its original pairs with another copy elsewhere, if there is one; the advice can then be to move
+that copy's callers to the new function, although the right owner is the original beside it. Read both functions
+before following the advice.
+
+Scores are not perfectly repeatable: identical runs can differ by about 0.01, so a pair within a few hundredths
+of a threshold can be reported in one run and not the next. The verdict store keeps the first answer for each pair
+until either function changes, so a pull request's check does not flip between pushes. Do not tune a threshold to
+settle one such pair; decide it on its merits, as debt, a fix, or a recorded decision.
 
 The score is `same_concept × (1 − p(owner = none))`. Jev must think the two are one concept *and* that they should
 become one implementation. A pair is
