@@ -102,6 +102,13 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 14 adds optional candidate `residual` scheduling metadata, defaulting to false for older files. It marks
+recovery candidates after the complete adopter-configured discovery pass. It does not enter pair/context/exact
+verdict identity: the question and source are unchanged. The independent campaign schema becomes 2, recording
+which attempts borrowed residual capacity so their settlements cannot refill protected exploration credit.
+See [experimental residual recovery](production-discovery.md#experimental-residual-recovery) for scope and the
+tradeoff against future baseline evidence.
+
 Schema 12 separates model ownership reviews from confirmed function duplicates in hook journals, commit trailers,
 PR ledgers and backlog cleanup. Model reviews have their own resolved/dismissed counts and never enter the
 anonymous prevention counter. A skipped model pass cannot settle those reviews or erase earlier model debt
@@ -137,7 +144,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 13`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 12 remain readable with conservative cache defaults. Schema 9 adds
+New files carry `"schema": 14`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 13 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds

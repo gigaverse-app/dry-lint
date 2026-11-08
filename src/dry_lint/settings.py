@@ -117,6 +117,10 @@ class Discovery(BaseModel):
 
     enabled: bool = False
     comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(default_factory=list)
+    residual_comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(
+        default_factory=list,
+        description="Opt-in recovery after the complete configured pass, borrowing future baseline capacity.",
+    )
     depth: int = Field(default=20, ge=3, le=100)
     min_similarity: float = Field(default=0.35, ge=0, le=1)
     baseline_fraction: float = Field(default=0.625, ge=0, le=1)
