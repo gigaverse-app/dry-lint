@@ -53,5 +53,8 @@ def test_installed_plugins_are_found_by_their_entry_point(installed) -> None:
 
 
 def test_an_unknown_plugin_names_what_is_available(installed) -> None:
-    with pytest.raises(ValueError, match="Unknown comparer 'minhash'; available: dryer, model-shape, shingles, tfidf"):
+    with pytest.raises(
+        ValueError,
+        match="Unknown comparer 'minhash'; available: cpu-embedding, cpu-tail-rrf, dryer, model-shape, operation-blocks, shingles, tfidf",
+    ):
         plugin_class("comparers", "minhash")
