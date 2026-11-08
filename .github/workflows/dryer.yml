@@ -1,0 +1,60 @@
+# Dryer is an optional comparer, not on PyPI, whose tree-sitter-language-pack downloads parsers from GitHub release
+# assets on first use; those return 504 during release-host outages. So it runs here, outside the required CI gate:
+# an outage or an upstream change shows on this check without blocking dry-lint's own pull requests and releases.
+# It runs only when Python code or the environment changes, never for documentation.
+name: Dryer
+on:
+  pull_request:
+    paths: &inputs
+      - "src/**"
+      - "tests/**"
+      - "scripts/**/*.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
+      - ".github/workflows/dryer.yml"
+  push:
+    branches: [main]
+    paths: *inputs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dryer-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  dryer:
+    name: Optional Dryer comparer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@v1
+        with:
+          python-version: "3.13"
+          cache-environment: "false"
+          sync-args: --group dryer
+      # The Actions cache is a separate service, so a warm cache keeps the parser download off the release host.
+      - name: Restore tree-sitter parsers
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/tree-sitter-language-pack
+          key: tree-sitter-language-pack-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: tree-sitter-language-pack-${{ runner.os }}-
+      # The default run omits dryer.py from coverage; this run measures it alone, with Dryer installed.
+      - name: Dryer tests with full coverage of the comparer
+        env:
+          TREE_SITTER_LANGUAGE_PACK_CACHE_DIR: ${{ runner.temp }}/tree-sitter-language-pack
+        run: |
+          cat > "$RUNNER_TEMP/dryer.coveragerc" <<'RC'
+          [run]
+          source = dry_lint
+          [report]
+          include = */dry_lint/dryer.py
+          RC
+          uv run --no-sync python -c "import dryer"
+          uv run --no-sync pytest -q tests/test_sources.py tests/test_channel_trial.py tests/test_plugins.py --cov \
+            --cov-config "$RUNNER_TEMP/dryer.coveragerc" --cov-report=term-missing --cov-fail-under=100
+

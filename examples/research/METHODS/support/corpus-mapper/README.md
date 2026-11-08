@@ -1,0 +1,11 @@
+# Preserve the common exact-background mapper and its floor correction
+
+This is shared infrastructure used before the later twelve directions, not a thirteenth encoder or discovery experiment. It maps complete pinned backgrounds and source identities before producing raw sparse ranks. Model declarations remain outside function ranking; missing or ambiguous endpoints remain unresolved. The recovered scripts preserve the original mapping, baseline, audit/queue, reconciliation and regression checks.
+
+The corrected mapping has 617 input records and 584 accepted binary row occurrences: 580 function rows and four declarations. Eighteen exact-pair overlaps reduce these to 566 enclosing-source pair keys. They are not independent families; 192 accepted rows have unknown family membership.
+
+The v1-to-v2 correction preserves all 1,604 common raw rank/score/cross-file comparisons while changing 1,023 derived floors and 190 first-loss classifications. Missing spans formerly looked one line long. V2 requires complete valid spans, falls back to the production function conversion on supplied source, or leaves the length unknown. Earlier raw ranks remain valid; derived missing-span floors are superseded.
+
+Original inputs and both immutable indexes are required from the private recovery dataset under `jobs/corpus-wide-evaluation/.lab-results/full-corpus/`. `PROVENANCE.json` binds original and public code. No original private source or records are redistributed here.
+
+For legacy workflow execution, stage these scripts beside a writable copy of the original mapper evidence, set `DRY_LINT_EVIDENCE_ROOT` to the materialized evidence tree and `DRY_LINT_RUNTIME_ROOT` to dry-lint checkout `b74a6223b4b41b8bb881c445c86c2dba82d62dd2`. Then run `build_index.py`, `run_baseline.py`, `audit_and_queue.py`, and `reconcile.py` in that order using the frozen runtime. This reconstructs source mappings and proposes unjudged candidates; it does not call providers, change labels or reproduce native reports. The complete workflow was not rerun during recovery. Existing floor-regression tests are retained; source manifests with historical paths still need portable materialization before running from a different evidence root.

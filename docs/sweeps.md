@@ -89,6 +89,7 @@ Set the Action's `python-version: '3.14'` when the repository uses Python 3.14 s
 3.13, independent of the application's installed dependencies. Index publishers and consumers must use the
 same parser version; an incompatible index is rebuilt under the existing contract validation rules.
 
+[How CI runs dry-lint](ci.md) shows how the check, the fork judge and the ratchet fit together.
 For the full setup, including local hooks, PR accounting and a standing ratchet PR, use the
 [adoption playbook](adoption-playbook.md) and [audit workflow example](../examples/dry-lint-audit.yml).
 
