@@ -22,10 +22,11 @@ class Attempt(BaseModel):
     query: str
     usd: float
     status: str = "reserved"
+    residual: bool = False
 
 
 class Campaign(BaseModel):
-    schema_version: int = 1
+    schema_version: int = 2
     revisions: list[str] = Field(default_factory=list)
     attempts: list[Attempt] = Field(default_factory=list)
     credit: float = 0.0
@@ -63,6 +64,7 @@ class CampaignStore:
             row = db.execute("SELECT state FROM campaigns WHERE key = ?", (self.key,)).fetchone()
             state = Campaign.model_validate_json(row[0]) if row else Campaign()
             yield state
+            state.schema_version = 2
             db.execute("INSERT OR REPLACE INTO campaigns VALUES (?, ?)", (self.key, state.model_dump_json()))
 
     def snapshot(self) -> Campaign:
@@ -78,9 +80,11 @@ class CampaignStore:
                 state.credit = min(cap, state.credit + settings.discovery.exploration_per_revision)
 
     def reserve(
-        self, candidate: Candidate, judge: Judge, settings: Settings, usd: float
+        self, candidate: Candidate, judge: Judge, settings: Settings, usd: float, *, residual: bool = False
     ) -> int | Literal["budget"] | None:
         policy = settings.discovery
+        if residual and not policy.residual_comparers or candidate.residual and not residual:
+            raise ValueError("Residual admission requires an explicitly configured residual phase")
         version = evidence(candidate, identity(judge))
         with self.transaction() as state:
             exploration_cap = settings.budget.usd * (1 - policy.baseline_fraction)
@@ -88,6 +92,9 @@ class CampaignStore:
                 state.revisions.append(self.revision)
                 state.credit = min(exploration_cap, state.credit + policy.exploration_per_revision)
             current = [a for a in state.attempts if a.revision == self.revision]
+            # A concurrent/abandoned or failed attempt is not a completed protected pass.
+            if residual and any(a.status != "answered" for a in current):
+                return None
             # Repeated attempts on one tree do not mint calls or credit, including failed/abandoned requests.
             if any(a.evidence == version for a in current):
                 return None
@@ -99,18 +106,24 @@ class CampaignStore:
                 explored = [a for a in state.attempts if a.lane == "exploration"]
                 if sum(a.lane == "exploration" for a in current) >= policy.exploration_calls_per_revision:
                     return None
-                if len(explored) >= int(policy.calls * (1 - policy.baseline_fraction)):
-                    return None
-                # Exploration cannot borrow the capacity reserved for future baseline evidence.
-                room = min(room, exploration_cap - sum(a.usd for a in explored), state.credit)
+                if not residual:
+                    if len(explored) >= int(policy.calls * (1 - policy.baseline_fraction)):
+                        return None
+                    # Only an explicit residual phase may borrow future baseline capacity.
+                    room = min(room, exploration_cap - sum(a.usd for a in explored), state.credit)
             if usd > room + 1e-12:
                 return "budget"
             state.attempts.append(
                 Attempt(
-                    revision=self.revision, evidence=version, lane=candidate.lane, query=candidate.new.qualname, usd=usd
+                    revision=self.revision,
+                    evidence=version,
+                    lane=candidate.lane,
+                    query=candidate.new.qualname,
+                    usd=usd,
+                    residual=residual,
                 )
             )
-            if candidate.lane == "exploration":
+            if candidate.lane == "exploration" and not residual:
                 state.credit -= usd
             return len(state.attempts) - 1
 
@@ -118,7 +131,7 @@ class CampaignStore:
         with self.transaction() as state:
             attempt = state.attempts[reservation]
             if usd is not None:
-                if attempt.lane == "exploration":
+                if attempt.lane == "exploration" and not attempt.residual:
                     state.credit += attempt.usd - usd
                 attempt.usd = usd
             # Unknown usage stays charged at the reservation, even when a provider or process failed.

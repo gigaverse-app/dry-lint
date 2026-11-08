@@ -23,7 +23,7 @@ def extract(language: Extractor, python: str, typescript: str) -> list[Function]
 
 
 @pytest.mark.parametrize("extra", [False, True], ids=["forwarder", "additional-policy"])
-def test_only_forwarding_bodies_settle_call_pairs(language: Extractor, extra: bool) -> None:
+def test_resolved_direct_calls_settle_call_pairs(language: Extractor, extra: bool) -> None:
     python_extra = "        key = key.strip().lower()\n" if extra else ""
     ts_extra = "key = key.trim().toLowerCase();" if extra else ""
     target, wrapper = extract(
@@ -33,7 +33,9 @@ def test_only_forwarding_bodies_settle_call_pairs(language: Extractor, extra: bo
         "class Store { normalize(key: string) { return key.trim().toLowerCase(); }"
         f"read(key: string) {{ {ts_extra} return this.normalize(key); }} }}",
     )
-    expected = None if extra else "forwarding wrapper"
+    # A caller that adds policy before delegating is still "one calls the other": both judges label that SEPARATE,
+    # so every route settles it before spending judge budget or a discovery slot.
+    expected = "one calls the other" if extra else "forwarding wrapper"
     assert why_skipped(wrapper, target, Settings()) == expected
     assert why_skipped(target, wrapper, Settings()) == expected
 
@@ -112,38 +114,90 @@ def test_function_indexes_preserve_language_analysis(language: Extractor) -> Non
     assert function.bases == ["base::Base"]
 
 
+def store_pair(
+    language: Extractor, python_body: str, ts_body: str, python_params: str = "key", ts_params: str = "key: string"
+) -> list[Function]:
+    return extract(
+        language,
+        "class Store:\n    def normalize(self, key):\n        return key.strip()\n"
+        f"    def read(self, {python_params}):\n        {python_body}\n",
+        f"class Store {{ normalize(key: string) {{ return key.trim(); }} read({ts_params}) {{ {ts_body} }} }}",
+    )
+
+
+@pytest.mark.parametrize(
+    "python_body, ts_body",
+    [
+        ("return other.normalize(key)", "return other.normalize(key);"),
+        ("return normalize(key)", "return normalize(key);"),
+        ("return getattr(self, 'normalize')(key)", "return this['normalize'](key);"),
+        ("return 1", "return 1;"),
+    ],
+)
+def test_unresolved_calls_remain_candidates(language: Extractor, python_body: str, ts_body: str) -> None:
+    target, wrapper = store_pair(language, python_body, ts_body)
+    assert wrapper.analysis is not None and wrapper.analysis.local_calls == ()
+    assert why_skipped(wrapper, target, Settings()) is None
+
+
 @pytest.mark.parametrize(
     "python_body, ts_body",
     [
         ("return self.normalize(key.strip())", "return this.normalize(key.trim());"),
-        ("return other.normalize(key)", "return other.normalize(key);"),
-        ("return normalize(key)", "return normalize(key);"),
         ("return self.normalize(key).lower()", "return this.normalize(key).toLowerCase();"),
         ("return lambda: self.normalize(key)", "return () => this.normalize(key);"),
         ("return self.normalize(*key)", "return this.normalize(...key);"),
-        ("return self.normalize(**key)", "return this['normalize'](key);"),
-        ("return 1", "return 1;"),
     ],
 )
-def test_ambiguous_or_computed_calls_remain_candidates(language: Extractor, python_body: str, ts_body: str) -> None:
-    target, wrapper = extract(
-        language,
-        "class Store:\n    def normalize(self, key):\n        return key.strip()\n"
-        f"    def read(self, key):\n        {python_body}\n",
-        f"class Store {{ normalize(key: string) {{ return key.trim(); }} read(key: string) {{ {ts_body} }} }}",
-    )
-    assert why_skipped(wrapper, target, Settings()) is None
+def test_resolved_calls_with_extra_work_settle(language: Extractor, python_body: str, ts_body: str) -> None:
+    target, wrapper = store_pair(language, python_body, ts_body)
+    assert wrapper.analysis is not None and wrapper.analysis.forward_target is None
+    assert why_skipped(wrapper, target, Settings()) == "one calls the other"
+    assert why_skipped(target, wrapper, Settings()) == "one calls the other"
 
 
-def test_parameter_initializers_are_additional_policy(language: Extractor) -> None:
-    target, wrapper = extract(
-        language,
-        "class Store:\n    def normalize(self, key):\n        return key.strip()\n"
-        "    def read(self, key=normalize_default()):\n        return self.normalize(key)\n",
-        "class Store { normalize(key: string) { return key.trim(); }"
-        "read(key = normalizeDefault()) { return this.normalize(key); } }",
+def test_python_keyword_unpacking_is_a_call_not_a_forward() -> None:
+    target, wrapper = store_pair(PythonExtractor(), "return self.normalize(**key)", "")
+    assert wrapper.analysis is not None and wrapper.analysis.forward_target is None
+    assert why_skipped(wrapper, target, Settings()) == "one calls the other"
+
+
+def test_parameter_initializers_do_not_hide_the_call(language: Extractor) -> None:
+    target, wrapper = store_pair(
+        language, "return self.normalize(key)", "return this.normalize(key);",
+        "key=normalize_default()", "key = normalizeDefault()",
+    )  # fmt: skip
+    assert wrapper.analysis is not None and wrapper.analysis.forward_target is None
+    assert why_skipped(wrapper, target, Settings()) == "one calls the other"
+
+
+def test_python_bare_calls_resolve_only_to_unshadowed_module_functions() -> None:
+    source = (
+        "def normalize(key):\n    return key.strip()\n"
+        "def read(key):\n    return normalize(key)\n"
+        "def shadowed(key, normalize):\n    return normalize(key)\n"
+        "def rebound(key):\n    from text import normalize\n    return normalize(key)\n"
+        "def nested(key):\n    def normalize(value):\n        return value\n    return normalize(key)\n"
+        "def declared(key):\n    global normalize\n    normalize = normalize\n    return normalize(key)\n"
+        "class Store:\n    def normalize(self, key):\n        return key\n"
+        "    def bare(self, key):\n        return normalize(key)\n"
     )
-    assert why_skipped(wrapper, target, Settings()) is None
+    found = {f.qualname: f for f in PythonExtractor().functions("source.py", source)}
+    calls = {name: f.analysis.local_calls for name, f in found.items() if f.analysis}
+    assert calls["source.py::read"] == ("source.py::normalize",)
+    assert calls["source.py::shadowed"] == calls["source.py::rebound"] == calls["source.py::nested"] == ()
+    # `global` names the module binding even when the body assigns it.
+    assert calls["source.py::declared"] == ("source.py::normalize",)
+    # A bare name inside a method still means the module function, never the method.
+    assert calls["source.py::Store.bare"] == ("source.py::normalize",)
+
+
+def test_local_calls_never_change_the_context_hash() -> None:
+    target, wrapper = store_pair(PythonExtractor(), "return self.normalize(key.strip())", "")
+    assert wrapper.analysis is not None and wrapper.analysis.local_calls
+    pair = Candidate(new=wrapper, existing=target, similarity=1)
+    without = wrapper.model_copy(update={"analysis": wrapper.analysis.model_copy(update={"local_calls": ()})})
+    assert pair.context_hash == Candidate(new=without, existing=target, similarity=1).context_hash
 
 
 def test_typescript_static_arrow_fields_do_not_resolve_to_instance_members() -> None:
