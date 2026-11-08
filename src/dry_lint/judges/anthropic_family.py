@@ -68,6 +68,14 @@ def family_prompt(request: FamilyRequest, *, max_input_bytes: int = MAX_INPUT_BY
     return text
 
 
+def check_family_bounds(model: str, max_tokens: int, max_input_bytes: int, timeout: float) -> None:
+    """Every family judge bounds its model output, rendered prompt and wall time the same way."""
+    if not model.strip() or not 1 <= max_tokens <= 16000 or not 0 < timeout <= 600:
+        raise ValueError("Family judge needs a model, bounded output (1–16000) and timeout (0–600]")
+    if not isinstance(max_input_bytes, int) or not 1 <= max_input_bytes <= 1_048_576:
+        raise ValueError("Family judge max_input_bytes must be bounded to 1–1048576 bytes")
+
+
 class AnthropicFamilyJudge:
     name = "anthropic-family"
     subscription = False
@@ -81,10 +89,7 @@ class AnthropicFamilyJudge:
         timeout: float = 120,
         http_client: Any = None,
     ) -> None:
-        if not model.strip() or not 1 <= max_tokens <= 16000 or not 0 < timeout <= 600:
-            raise ValueError("Family judge needs a model, bounded output (1–16000) and timeout (0–600]")
-        if not isinstance(max_input_bytes, int) or not 1 <= max_input_bytes <= 1_048_576:
-            raise ValueError("Family judge max_input_bytes must be bounded to 1–1048576 bytes")
+        check_family_bounds(model, max_tokens, max_input_bytes, timeout)
         self.model, self.max_tokens, self.timeout = model, max_tokens, timeout
         self.max_input_bytes = max_input_bytes
         self.version = f"{PROMPT_VERSION}:{model}:output={max_tokens}"

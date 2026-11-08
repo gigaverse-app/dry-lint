@@ -39,6 +39,11 @@ max_members = 8
 max_questions = 3
 ```
 
+On a Claude subscription instead of an API key, use `judge = { use = "claude-code-family" }`. It sends the same
+prompt through `claude -p` with every tool off, and in CI the CLI logs in with `CLAUDE_CODE_OAUTH_TOKEN`.
+Subscription calls are charged at the model's list price, like the pair `claude-code` judge, and the CLI's
+reported token usage settles the reservation.
+
 The adopter chooses the model/output ceiling and supplies its own credentials. These settings are an example,
 not a measured quality recommendation. There is no separate family allowance: conservative reservations,
 actual-usage settlement, retained failure holds, prior spending and all call caps share the native campaign.
