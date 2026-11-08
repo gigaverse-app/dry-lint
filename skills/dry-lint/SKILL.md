@@ -29,21 +29,30 @@ result is a required `dry-lint` check, annotations and one sticky comment. Old d
 Run these and note the answers. Every later step uses them.
 
 ```bash
-REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)                   # OWNER/NAME
-gh repo view --json defaultBranchRef,visibility -q '"\(.defaultBranchRef.name) \(.visibility)"'
+REPO=OWNER/NAME     # the repository you will open the pull request in: check `git remote -v`; in a fork, the fork
+gh repo view --repo "$REPO" --json defaultBranchRef,visibility -q '"\(.defaultBranchRef.name) \(.visibility)"'
 gh api "repos/$REPO" --jq .id                                                # numeric id, for the README sign
 grep -rhE '^\s*-?\s*uses:' .github/workflows 2>/dev/null | sort | uniq -c    # how actions are pinned
 ls AGENTS.md CLAUDE.md CONTRIBUTING.md .github/pull_request_template.md .github/PULL_REQUEST_TEMPLATE* \
    .pre-commit-config.yaml .dry-lint.toml .dry-lint/baseline.json 2>/dev/null
 grep -n "tool.dry-lint" pyproject.toml 2>/dev/null; grep -rln "dry-lint" .github/workflows 2>/dev/null
-gh secret list                                                               # repository secrets
+gh secret list --repo "$REPO"                                                # repository secrets
 gh api "repos/$REPO/actions/organization-secrets" --jq '.secrets[].name'     # organization secrets it can use
 ```
 
+Pass `--repo "$REPO"` to every `gh` command in this file. In a clone of a fork, `gh` otherwise picks the upstream
+repository, and runs, secrets and pull requests silently go to the wrong place.
+
 - **Default branch.** Use it wherever this file says `DEFAULT`. Do not assume `main`.
+- **One version of dry-lint.** Everything you add uses dry-lint 1.x: the CLI as `'dry-lint>=1,<2'` (here and in
+  the bootstrap workflow), the Action as `gigaverse-app/dry-lint@v1`, the hook as `rev: v1`, and the example
+  workflows from the `v1` tag (the links below), so the examples match the CLI you installed.
 - **Pinning policy.** If the workflows pin actions to 40-character commit SHAs, pin every action you add the same
-  way, with the tag as a comment: `gh api repos/gigaverse-app/dry-lint/commits/v1 --jq .sha` gives the SHA for
-  `gigaverse-app/dry-lint@<sha> # v1`. Otherwise use the tags shown in this file.
+  way, with the tag as a comment (`uses: OWNER/REPO@<sha> # TAG`). For an action the repository already uses, copy
+  its existing pin. For any other, resolve the tag to its commit:
+  `gh api repos/OWNER/REPO/commits/TAG --jq .sha` (for example `repos/gigaverse-app/dry-lint/commits/v1`). This
+  works for annotated tags too, where `git/ref/tags/TAG` returns the tag object rather than the commit. Otherwise
+  use the tags shown in this file.
 - **Judge key.** The judge needs a TypeSafe API key (the Jev judge) and optionally an Anthropic key. The secret
   can have any name. Look for one in both secret lists (names like `TYPESAFE_API_KEY` or `TYPESAFE_AI_API_KEY`). Call
   its name `KEY_SECRET` below. A 403 from the organization endpoint means you cannot see those secrets, not that
@@ -58,6 +67,7 @@ gh api "repos/$REPO/actions/organization-secrets" --jq '.secrets[].name'     # o
 
 ```bash
 uv tool install --no-config --python 3.13 'dry-lint>=1,<2'   # or: pipx install 'dry-lint>=1,<2'
+dry-lint config                    # the scope: which folders' source files it reads
 dry-lint scan --judge none --limit 30
 ```
 
@@ -72,7 +82,10 @@ src/dry_lint/judges/http.py:49: HttpJudge.judge looks like src/dry_lint/judges/j
     similarity 0.98; pair 8b37533910fcfe44; if they are different concepts, add `# dry-lint: distinct-from ...`; ...
 ```
 
-Note which folders the pairs come from. Tests, examples, vendored or generated code usually do not belong in scope.
+Read `config`'s `N source files in scope: <folder> <count>, ...` line before the pairs: by default everything
+tracked is in scope except tests, migrations and scripts, so folders such as `misc/`, `docs/` (a Sphinx `conf.py`) or
+`examples/` show up there first. Note which folders the pairs come from, too. Tests, examples, docs, vendored or
+generated code usually do not belong in scope; step 3 narrows it.
 
 ## 3. Write the settings
 
@@ -125,9 +138,12 @@ reason = "funcutils vendors strutils.indent so it imports nothing (docs/architec
 
 - A pair is in the pattern when **both** sides match: each side's `path::Qualified.name` (as `scan` prints it)
   is checked with fnmatch against `members`, which is one glob or a list of globs.
-- Name the exact functions, or the narrowest glob that covers a whole vendored module
+- Name the exact functions, or the narrowest glob that covers a whole vendored class
   (`pkg/urlutils.py::OrderedMultiDict.*` with `pkg/dictutils.py::OrderedMultiDict.*`). A broad glob such as `*::*`
   silences real duplicates too.
+- A method is named after the class that defines it, so `Class.*` does not cover a subclass that overrides the same
+  methods: `FastIterOrderedMultiDict.__init__` is not `OrderedMultiDict.*`. If `scan` still pairs the copy with a
+  subclass, widen that side to `*OrderedMultiDict.*`, then `explain` one subclass pair as well.
 - Do not baseline these pairs instead. A baseline entry accepts the two functions exactly as they are today, so a
   later fix applied to both copies changes them and fails the check as new debt. A pattern keeps holding.
 - Verify each pattern: `dry-lint explain pkg/funcutils.py::_indent pkg/strutils.py::indent` must print
@@ -145,26 +161,42 @@ progress block in the README (Markdown READMEs only; leave out `--readme` otherw
 dry-lint sweep --init --budget-usd 1 --readme README.md --repository OWNER/NAME --repository-id ID --branch DEFAULT
 ```
 
+`--repository-id` is the numeric id from step 1. The README's counter sign is keyed by a hash of it, never by the
+repository's name; without it the block shows only a backlog badge and table.
+
 **Without a local key, in CI.** Fetch
-[examples/dry-lint-bootstrap.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/main/examples/dry-lint-bootstrap.yml)
-into `.github/workflows/`, set its secret to `KEY_SECRET`, commit it together with `.dry-lint.toml`, and push. A push
-that adds the file runs it on your branch; no default-branch registration is needed. Then:
+[examples/dry-lint-bootstrap.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint-bootstrap.yml)
+into `.github/workflows/`, set its secret to `KEY_SECRET`, commit it together with `.dry-lint.toml`, and push. It
+runs on every push that changes either file, on your branch; no default-branch registration is needed. It passes
+the repository id itself (`$GITHUB_REPOSITORY_ID`). Then:
 
 ```bash
-gh run list --branch "$(git branch --show-current)" --json databaseId,name,status \
-  --jq '.[] | select(.name == "dry-lint bootstrap")'
-gh run watch RUN_ID --exit-status
-OUT=$(mktemp -d) && gh run download RUN_ID --name dry-lint-baseline --dir "$OUT"
+BRANCH=$(git branch --show-current)
+gh run list --repo "$REPO" --branch "$BRANCH" --json databaseId,name,status,headSha \
+  --jq '.[] | select(.name == "dry-lint bootstrap")'          # take the run for your latest commit
+gh run watch RUN_ID --repo "$REPO" --exit-status
+OUT=$(mktemp -d) && gh run download RUN_ID --repo "$REPO" --name dry-lint-baseline --dir "$OUT"
 ```
 
-Copy `.dry-lint/` and `README.md` from `$OUT` into the repository, delete the bootstrap workflow, and commit.
-Keep `sweep-report.json` out of Git; read it for the review below.
+Copy `.dry-lint/` and `README.md` from `$OUT` into the repository. Keep `sweep-report.json` out of Git; read it for
+the review below. To run it again, for example after adding a pattern, do not commit the downloaded files yet:
+commit and push the `.dry-lint.toml` change and the push starts a new run. Once the baseline is right, delete the
+bootstrap workflow and commit it together with the files.
 
 Expected, at the end of either route: `dry-lint: 0 pairs cleaned, N remaining, 0 dismissed; wrote .dry-lint/baseline.json`.
 
 **Review the accepted pairs** before committing. Each is real debt someone will clean up later. If many come from
 one deliberate copy, go back to step 4, add the pattern, delete the uncommitted `.dry-lint/` and run the sweep again.
 That is allowed only while the baseline has never been merged. Do not refactor the pairs in this pull request.
+
+The sweep judges more pairs than `scan` listed: `scan` shows only pairs that are each other's closest look-alike,
+while a sweep asks about every function's three closest (the `neighbours` setting), so expect a larger count.
+
+**Judge scores vary slightly.** Two identical runs can differ by about 0.01, so a pair within a few hundredths of the
+preset's threshold can be reported in one run and not the next. Do not chase it: never change thresholds to settle
+one pair, and do not re-run the sweep hoping for a different answer. Decide such a pair on its merits, as you would
+any finding: it stays in the baseline as debt, or gets a pattern or `distinct-from` with a reason. Verdicts are cached
+per pair, so later checks reuse the same answer until the code changes.
 
 The README block gets a `## Duplicate code` heading. Move or rename the heading to fit the README; later sweeps
 only rewrite what is between the `dry-lint-progress` markers. dry-lint keeps each file's line endings.
@@ -175,21 +207,31 @@ Fetch the examples, adapt them as listed, and save them in `.github/workflows/`:
 
 | File | Purpose |
 | --- | --- |
-| [dry-lint.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/main/examples/dry-lint.yml) | the `dry-lint` check on every pull request and default-branch push |
-| [dry-lint-judge.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/main/examples/dry-lint-judge.yml) | judges pull requests from forks with secrets, never running fork code (public repositories) |
-| [dry-lint-audit.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/main/examples/dry-lint-audit.yml) | weekly audit; opens a `dry-lint/ratchet` pull request when old debt is cleaned |
+| [dry-lint.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint.yml) | the `dry-lint` check on every pull request and default-branch push |
+| [dry-lint-judge.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint-judge.yml) | judges pull requests from forks with secrets, never running fork code (public repositories) |
+| [dry-lint-audit.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint-audit.yml) | weekly audit; opens a `dry-lint/ratchet` pull request when old debt is cleaned |
 
 In each one:
 
-1. Replace `secrets.TYPESAFE_AI_API_KEY` with `secrets.KEY_SECRET`. The Action input is always `typesafe-api-key`;
-   a plain `run:` step passes the key as the environment variable `TYPESAFE_AI_API_KEY`, the only name the CLI reads.
-   For a Claude preset, uncomment the `anthropic-api-key` lines too.
+1. Replace every `secrets.TYPESAFE_AI_API_KEY` with `secrets.KEY_SECRET`, and in `dry-lint-audit.yml` also the
+   `TYPESAFE_AI_API_KEY:` name declared under `workflow_call: secrets:`. Leave the environment variable
+   `TYPESAFE_AI_API_KEY` in `run:` steps as it is: it is the only name the CLI reads. The Action input is always
+   `typesafe-api-key`. For a Claude preset, uncomment the `anthropic-api-key` lines too.
 2. Replace `main` in `branches:` with `DEFAULT`.
-3. In `dry-lint.yml`, uncomment `baseline: .dry-lint/baseline.json` and `require-complete: 'true'`. Keep its job
+3. In `dry-lint.yml` **and** `dry-lint-judge.yml`, uncomment `baseline: .dry-lint/baseline.json` and
+   `require-complete: 'true'`: both post the judged check, so both enforce the baseline. Keep `dry-lint.yml`'s job
    `name:` expression: it names a fork's unjudged job `dry-lint detect`, so it can never satisfy a required
    `dry-lint` check.
 4. Apply the pinning policy from step 1, and the parser version if it is not 3.13.
 5. Keep the triggers, permissions and concurrency as they are: the comments explain why.
+
+Lint them, with the repository's own workflow linter if it has one, otherwise:
+
+```bash
+uvx --from actionlint-py actionlint .github/workflows/dry-lint*.yml
+```
+
+Expected: no output. (`uvx actionlint` does not work: the PyPI package is `actionlint-py`.)
 
 ## 7. Add the hooks
 
@@ -226,7 +268,7 @@ Open a draft pull request that fills in the repository's template, or say what i
 their scores, the patterns with their reasons, and what you verified. Then:
 
 ```bash
-gh pr checks --watch
+gh pr checks PR_NUMBER --repo "$REPO" --watch
 ```
 
 Expected: a green `dry-lint` check and a sticky comment from dry-lint (with 0 changed functions it reports a clean
@@ -238,17 +280,28 @@ settings disagree; read its log.
 Pick a function of ten or more lines and copy it into a **different** file under a new name, renaming a few local
 variables. Functions in the same file are never compared, so a same-file copy proves nothing.
 
+Before pushing, check that the detector proposes the pair at all; a heavily renamed copy can fall below its
+similarity floor and is then never judged:
+
+```bash
+dry-lint explain path/to/new_file.py::new_name path/to/original.py::original_name
+```
+
+Expected: `proposed: #1 of the N look-alike(s)` (or `#2`, `#3`) and `rule: none applies`. If it says
+`not among`, rename less (keep the original's calls and attribute names) and run it again.
+
 ```bash
 git switch -c dry-lint-probe
 # add the copy, then:
 git add -A && git commit -m "test: dry-lint probe (do not merge)" && git push -u origin dry-lint-probe
-gh pr create --draft --base ADOPTION_BRANCH --title "test: dry-lint probe (do not merge)" --body "Probe; will be closed."
-gh pr checks --watch
+gh pr create --repo "$REPO" --draft --base ADOPTION_BRANCH --head dry-lint-probe \
+  --title "test: dry-lint probe (do not merge)" --body "Probe; will be closed."
+gh pr checks PROBE_NUMBER --repo "$REPO" --watch
 ```
 
 Expected: the `dry-lint` check fails and the sticky comment names the pair with a judge score at or above the
-preset's threshold. Then close it with `gh pr close --delete-branch`, switch back to the adoption branch and
-delete the local probe branch.
+preset's threshold. Then close it with `gh pr close PROBE_NUMBER --repo "$REPO" --delete-branch`, switch back to
+the adoption branch and delete the local probe branch.
 
 The pair the comment names may be another existing copy rather than the function you copied, and the advice may be
 to move callers to the new one: the judge picks the side it thinks should own the code, often the public one.
@@ -286,7 +339,7 @@ Not verified: <anything you could not run, with the command and error>
 - **History replay** (needs a key; cheap with `jev`): `dry-lint bench --replay 50` shows which recent commits would
   have failed or warned, and what judging would have cost. Without a key, skip it and say so.
 - **Audit before merge**: a new workflow cannot be dispatched until it is on the default branch, so the first audit
-  runs after merge (`gh workflow run dry-lint-audit.yml`). With no cleanup it passes and opens no pull request.
+  runs after merge (`gh workflow run dry-lint-audit.yml --repo "$REPO"`). With no cleanup it passes and opens no pull request.
 - **Models**: model review is on by default. Leave `models.baseline` unset unless a human reviewed real model
   duplicates ([model adoption](https://dry-lint.readthedocs.io/en/latest/docs/model-adoption/)).
 

@@ -507,3 +507,24 @@ def test_a_pair_a_rule_settles_brings_no_relatives() -> None:
     detector.settings = Settings(patterns=[Pattern(members="*recover*", reason="one recovery per surface")])
     candidates = detector.candidates([detector.find("recovered_delivery")])
     assert [(c.lane, c.filtered is not None) for c in candidates] == [("baseline", True)]
+
+
+def test_without_origin_head_the_base_is_the_events_default_branch_or_the_one_that_exists(
+    repo: Repo, tmp_path, monkeypatch
+) -> None:
+    """INVARIANT: a repository whose default branch is master never records origin/main as its base."""
+    repo.git("update-ref", "refs/remotes/origin/master", "main")  # as a checkout of a master repository has it
+    assert default_base(repo.root) == "origin/master"
+    event = tmp_path / "event.json"
+    event.write_text('{"repository": {"default_branch": "trunk"}}')
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event))  # Actions checkouts record no origin/HEAD
+    assert default_base(repo.root) == "origin/trunk"
+
+
+def test_a_scan_counts_the_pairs_a_pattern_settles_without_proposing_them(repo: Repo) -> None:
+    settings = Settings(patterns=[Pattern(members=["*text.py::*", "*caption.py::*"], reason="kept on purpose")])
+    found = Detector.for_repository(repo.root, settings).scan(settled=True)
+    settled = [c for c in found if c.filtered]
+    assert settled and all(c.filtered == "declared pattern: kept on purpose" for c in settled)
+    assert found[-len(settled) :] == settled  # settled pairs follow the ones to judge
+    assert Detector.for_repository(repo.root, settings).scan() == [c for c in found if not c.filtered]
