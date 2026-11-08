@@ -27,7 +27,7 @@ from dry_lint.family_models import (
     validate_answer,
 )
 from dry_lint.family_report import FamilyReport
-from dry_lint.judges.anthropic_family import AnthropicFamilyJudge, family_prompt
+from dry_lint.judges.anthropic_family import PROMPT, AnthropicFamilyJudge, family_prompt
 from dry_lint.models import Function
 from dry_lint.operation_families import OperationRegion
 from dry_lint.plugins import load
@@ -608,3 +608,10 @@ def test_actual_prompt_byte_ceiling_rejects_whole_source_before_client(tmp_path)
     assert judge._client is None
     with pytest.raises(ValueError, match="max_input_bytes"):
         AnthropicFamilyJudge(model=MODEL, max_input_bytes=1_048_577)
+
+
+def test_the_prompt_names_every_detail_a_confirmed_member_must_carry():
+    # The validator rejects a confirmed member missing any detail; a model only fills the keys it is told about.
+    details = [name for name, field in MemberAssessment.model_fields.items() if field.annotation == BoundClaim | None]
+    assert len(details) == 5
+    assert all(name in PROMPT for name in details)
