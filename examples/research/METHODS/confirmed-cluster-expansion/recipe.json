@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "method": "confirmed-cluster-expansion",
+  "mechanism": "Construct unchanged source-exact sparse/dense/block graphs. Compare pinned Detector.relatives, unseeded changed-endpoint retrieval, reciprocal anchored expansion and bounded seed diffusion. Preserve oracle seeds, intentional false seeds and exact recorded provider-positive seeds as separate authorities. Full functions remain unchanged; leads remain unreported, nonblocking and without confidence claims.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/README.md",
+      "sha256": "1905efeafd3e8605ac4d3624934052d2489b234195df79cb0e2ecda54cd8f8e4",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/CLUSTER-CONTRACT.json",
+      "sha256": "fbeb380b6b1d08da2bcd2c4401a78e1a01ca956399a106af8df8467d7dbe0a9e",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/EXTENDED-CONTRACT.json",
+      "sha256": "69f920a1d56b169dba872eaad72cd432e05b40ba5b3ca89225a23f5d3410aace",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/INPUT-BINDINGS.json",
+      "sha256": "4907de4031357902eb033ac1f51d0ec6285ec7665303d172f95e88dda1175571",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/ARTIFACT-MANIFEST.json",
+      "sha256": "62f7b27539d32dde98e732d024e12070ca3de66c2a3df99eb5901d3f61888687",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/FINAL-VERIFICATION.json",
+      "sha256": "3d7e62e4cb5c4fae4c2a94d0537aa3f6e7a1c564af67b7a2a3a646a2ed2513b8",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/RESULTS.json",
+      "sha256": "5168fd405e941ce615b21d58a4906fb36ec712878e35b6f9f3522a7d0344934a",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/metrics.jsonl",
+      "sha256": "e2f2992e13a9658f4c586a45e383aef5557d4c369b9451c17bdd00770fdccc3d",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/AVAILABLE-SEED-SELECTION.json",
+      "sha256": "6b41dbbdeb8c2902b89cf5167b8345a5de4b3fb5f22ceeef2330f3bab02dd571",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/RECOVERED-FAILURES.json",
+      "sha256": "a484c21480d3dc8c5a62c2e2e99a7709ff3fded42a7796dfc5104f6ab1bcff29",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Reaggregate complete frozen per-seed measurements; source graph reconstruction requires the full private graph/input closure.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/confirmed-cluster-expansion/.lab-results/metrics.jsonl",
+      "sha256": "e2f2992e13a9658f4c586a45e383aef5557d4c369b9451c17bdd00770fdccc3d",
+      "bytes": 2597805
+    }
+  ]
+}
