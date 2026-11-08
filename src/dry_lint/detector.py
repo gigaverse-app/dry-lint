@@ -10,10 +10,11 @@ import fnmatch
 import re
 from pathlib import Path
 
+from dry_lint.comparer_resources import ComparerResources
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
-from dry_lint.models import Candidate, Function, Run, qualified
+from dry_lint.models import Candidate, Function, Run, pair_key, qualified
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
 from dry_lint.settings import ExplorationComparer, Settings
@@ -79,11 +80,19 @@ def changed_functions(root: Path, settings: Settings, base: str | None) -> list[
     return found
 
 
-def delegates(caller: Function, callee: Function) -> bool:
-    """Only adapter-established forwarding bodies may settle a pair; call names alone are not evidence."""
-    return bool(
-        caller.analysis and caller.analysis.forward_target == f"{callee.path}::{qualified(callee.owner, callee.name)}"
-    )
+def call_relation(caller: Function, callee: Function) -> str | None:
+    """
+    How `caller` provably calls `callee`, from adapter-resolved facts only; call names alone are not evidence.
+    A whole-body forward is a "forwarding wrapper"; any other file-local direct call is "one calls the other".
+    """
+    if not caller.analysis:
+        return None
+    target = f"{callee.path}::{qualified(callee.owner, callee.name)}"
+    if caller.analysis.forward_target == target:
+        return "forwarding wrapper"
+    if target in caller.analysis.local_calls:
+        return "one calls the other"
+    return None
 
 
 def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
@@ -99,8 +108,10 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
         and a.analysis.convention == b.analysis.convention
     ):
         return f"language convention: {a.analysis.convention}"
-    if a.origin == b.origin and (delegates(a, b) or delegates(b, a)):
-        return "forwarding wrapper"
+    # INVARIANT: one shared rule for every route. `pair()` records it as `filtered`, and discovery routes that
+    # exclude settled pairs (`discovery_unseen`) never spend their slot on it; no comparer re-implements it.
+    if a.origin == b.origin and (relation := call_relation(a, b) or call_relation(b, a)):
+        return relation
     for pattern in settings.patterns:
         if fnmatch.fnmatch(a.qualname, pattern.members) and fnmatch.fnmatch(b.qualname, pattern.members):
             return f"declared pattern: {pattern.reason}"
@@ -121,6 +132,8 @@ class Detector:
         *,
         cross_repository: bool = False,
         same_file: bool = False,
+        discovery_keys: set[str] | None = None,
+        resources: ComparerResources | None = None,
     ) -> None:
         self.functions = functions
         self.settings = settings
@@ -128,11 +141,15 @@ class Detector:
         self.extractors = extractors
         self.cross_repository = cross_repository
         self.same_file = same_file
+        self.discovery_keys = discovery_keys
         self.repositories = sorted({f.origin.repository for f in functions if f.origin})
         self.comparer_id = identity(comparer)
         self.file_extractors = {path: extractor_for(path, extractors) for path in {f.path for f in functions}}
         self.position = {f.qualname: i for i, f in enumerate(functions)}
-        comparer.index(functions)
+        if resources is None:
+            comparer.index(functions)
+        else:
+            resources.index(comparer, functions)
 
     @classmethod
     def for_repository(cls, root: Path, settings: Settings, *, strict: bool = False) -> "Detector":
@@ -200,6 +217,15 @@ class Detector:
         extractor = extractor_for(function.path, self.extractors)
 
         def allowed(other: Function) -> bool:
+            if self.discovery_keys is not None and (
+                pair_key(function.qualname, other.qualname) in self.discovery_keys
+                or why_skipped(function, other, self.settings)
+                or any(
+                    policy.action == "discard" and policy.apply(function, other) is not None
+                    for policy in self.settings.policies
+                )
+            ):
+                return False
             different_repository = other.origin != function.origin
             return (
                 different_repository
@@ -274,29 +300,36 @@ class Detector:
             options.update(min_similarity=policy.min_similarity, min_similarity_small=policy.min_similarity)
             choices = [ExplorationComparer(use="tfidf", **options)]
         keys = {c.key for c in baseline}
-        for choice in choices if policy.enabled else []:
-            # Independent indexes cannot displace baseline neighbours or consume their protected budget.
-            wider = self.settings.model_copy(
-                update={
-                    "neighbours": choice.neighbours or policy.depth,
-                    "comparer": choice,
-                    "discovery": policy.model_copy(update={"enabled": False}),
-                }
-            )
-            detector = Detector(
-                self.functions,
-                wider,
-                load("comparers", choice),
-                self.extractors,
-                cross_repository=self.cross_repository,
-                same_file=True,
-            )
-            for candidate in detector.candidates(changed):
-                if candidate.lane == "baseline" and candidate.key not in keys:
-                    keys.add(candidate.key)
-                    baseline.append(candidate.model_copy(update={"lane": "exploration"}))
-        if not self.cross_repository:
-            baseline += self.relatives(changed, baseline)
+        resources = ComparerResources()
+        for phase_choices, residual in ((choices, False), (policy.residual_comparers, True)):
+            for choice in phase_choices if policy.enabled else []:
+                # Independent indexes cannot displace baseline neighbours or consume their protected budget.
+                wider = self.settings.model_copy(
+                    update={
+                        "neighbours": choice.neighbours or policy.depth,
+                        "comparer": choice,
+                        "discovery": policy.model_copy(update={"enabled": False}),
+                    }
+                )
+                comparer = resources.load(choice)
+                detector = Detector(
+                    self.functions,
+                    wider,
+                    comparer,
+                    self.extractors,
+                    cross_repository=self.cross_repository,
+                    same_file=True,
+                    discovery_keys=keys if getattr(comparer, "discovery_unseen", False) else None,
+                    resources=resources,
+                )
+                for candidate in detector.candidates(changed):
+                    if candidate.lane == "baseline" and candidate.key not in keys:
+                        keys.add(candidate.key)
+                        baseline.append(candidate.model_copy(update={"lane": "exploration", "residual": residual}))
+            if not residual and not self.cross_repository:
+                # Complete the original artifact before appending recovery, including advisory relatives.
+                baseline += self.relatives(changed, baseline)
+                keys.update(c.key for c in baseline)
         return baseline
 
     def relatives(self, changed: list[Function], primaries: list[Candidate]) -> list[Candidate]:
