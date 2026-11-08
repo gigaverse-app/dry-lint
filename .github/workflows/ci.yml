@@ -176,7 +176,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
       - name: Check the lane wiring
         run: >-
-          uvx --python 3.13 --from "ci-esta>=1.1.0,<2.0.0"
+          uvx --python 3.13 --from "ci-esta[selection]>=1.1.0,<2.0.0"
           ci-esta check-workflow --workflow .github/workflows/ci.yml --lanes .github/test-lanes.json
 
   dogfood:
