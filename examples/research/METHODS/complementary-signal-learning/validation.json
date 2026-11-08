@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "method": "complementary-signal-learning",
+  "implementation_files_ast_equivalent": 7,
+  "algorithm_changes": false,
+  "recorded_replay": {
+    "schema": 1,
+    "method": "complementary-signal-learning",
+    "provider_calls": 0,
+    "encoder_calls": 0,
+    "scope": "Known-positive pair-case rank aggregation; not native reports",
+    "results": [
+      {
+        "arm": "tfidf",
+        "cap": 4,
+        "hits": 134,
+        "denominator": 159,
+        "added": 0,
+        "lost": 0
+      },
+      {
+        "arm": "fixed_fusion",
+        "cap": 4,
+        "hits": 130,
+        "denominator": 159,
+        "added": 6,
+        "lost": 10
+      },
+      {
+        "arm": "conditional",
+        "cap": 4,
+        "hits": 132,
+        "denominator": 159,
+        "added": 7,
+        "lost": 9
+      },
+      {
+        "arm": "tfidf",
+        "cap": 20,
+        "hits": 153,
+        "denominator": 159,
+        "added": 0,
+        "lost": 0
+      },
+      {
+        "arm": "fixed_fusion",
+        "cap": 20,
+        "hits": 148,
+        "denominator": 159,
+        "added": 0,
+        "lost": 5
+      },
+      {
+        "arm": "conditional",
+        "cap": 20,
+        "hits": 150,
+        "denominator": 159,
+        "added": 1,
+        "lost": 4
+      }
+    ],
+    "inputs": [
+      {
+        "path": "deterministic-v2/outcomes.jsonl",
+        "sha256": "0ba4412047960591a5ef990bdc82e85938f354d36a69a94622ca5420da689ddd"
+      }
+    ]
+  },
+  "relocation": {
+    "passed": true,
+    "network_blocked": true,
+    "original_evidence_reads_blocked": true,
+    "scope": "Public replay code and minimal frozen inputs copied to new roots, executed from /tmp. Scientific runtime imports allowed."
+  }
+}
