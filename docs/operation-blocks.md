@@ -1,0 +1,250 @@
+# Operation blocks: find a helper's work inside a larger function
+
+The `operation-blocks` comparer targets Python functions that repeat a useful operation inside different
+surrounding workflows. Whole-function similarity can be low because one function contains much more unrelated
+work. Comparing complete syntax regions can recover that match while still giving the judge both full functions.
+
+Use it after TF-IDF exploration when you are looking for repeated parsing/validation, error translation,
+resource handling or other multi-step helper operations. It is a poor fit for one-line wrappers, generic logging,
+or methods whose only resemblance is common library APIs. It currently supports Python, not TypeScript or model
+declarations. See [choosing a comparer](discovery-comparers.md) for the configuration and paired trial procedure.
+
+## Balanced activation and opt-out
+
+With `preset = "balanced"`, the default TF-IDF baseline now automatically explores its usual 20 neighbours
+at a 0.35 floor, then adds at most one previously unseen `operation-blocks:3` pair per changed query. The
+block route supports Python functions only. Both complete native functions reach the existing Haiku
+shared-operations judge; reporting thresholds and the cumulative $0.04 PR budget are unchanged.
+
+This applies when discovery is enabled, the baseline comparer is TF-IDF, and `discovery.comparers` is omitted.
+Explicit `discovery.depth`, `discovery.min_similarity` and baseline TF-IDF options still configure the first
+exploration route. Partial discovery settings inherit unspecified balanced defaults. Explicit comparer lists,
+including those produced by a CPU recovery profile, are retained exactly. A custom non-TFIDF baseline receives
+no automatic block route. Legacy `preset = "auto"` and its credential-selected presets are unchanged.
+
+To retain implicit TF-IDF exploration alone in `.dry-lint.toml`:
+
+```toml
+preset = "balanced"
+[discovery]
+comparers = []
+```
+
+Set `discovery.enabled = false` to disable discovery entirely. Explicit comparer lists also remain an escape
+hatch for repositories that want to choose their own routes. In `pyproject.toml`, use `[tool.dry-lint]` and
+`[tool.dry-lint.discovery]` for these settings.
+
+Original primary Candidates keep their source, score and comparer identity. This is retrieval preservation:
+the native scheduler still compares exploration candidates under its shared budget, so a new candidate can
+displace an earlier exploration report. Balanced remains agent-reviewed discovery, not a claim that every
+new report warrants consolidation or that all credential-selected presets have been validated.
+
+## A concrete example
+
+These simplified functions contain the same packet-processing operation:
+
+```python
+def make_packet(owner, payload):
+    packet = owner.decode_packet(payload)
+    packet.validate_packet(owner.schema)
+    packet.attach_receipt(owner.receipt)
+    return owner.encode_packet(packet)
+
+
+def send_order(owner, payload, transport):
+    owner.authorize_delivery()
+    try:
+        packet = owner.decode_packet(payload)
+        packet.validate_packet(owner.schema)
+        packet.attach_receipt(owner.receipt)
+        encoded = owner.encode_packet(packet)
+    except PacketError:
+        owner.record_delivery_failure()
+        raise
+    return transport.send(encoded)
+```
+
+The useful question is whether `send_order` can call `make_packet` inside its existing `try` block. Authorization,
+failure recording, exception propagation and sending remain in the caller. This is an illustrative mechanism,
+not a measured corpus result or a recommendation to merge the whole functions.
+
+Contrast two wrappers that both already call `make_packet`: they share an implementation. Or contrast two
+functions that both log, loop and close something but apply different ownership or cancellation rules. Shared
+syntax is insufficient; the judge must inspect the actual contracts and existing helper ownership.
+
+## An example from an adopter repository
+
+Adapted from a private Python adopter; identifiers are shortened and unrelated lines elided. A 71-line projection
+method inlines "delete the activity, treat not-found as success" in one branch, while the same class already has a
+helper for exactly that:
+
+```python
+def sync_projection(self, event, *, withdrawn=False, snapshot=None):  # 71 lines in total
+    ...  # read the activity, compute audience and tags, add or update it
+    if withdrawn:
+        try:
+            self.client.feeds.delete_activity(id=activity_id_for(event.id))
+        except Exception as error:
+            if not self._is_activity_not_found(error):
+                raise FeedException("Could not remove event activity") from error
+        return
+    ...
+
+
+def _delete_activity_tolerating_absence(self, owner, activity_id, *, operation):  # 20 lines
+    try:
+        self.client.feeds.delete_activity(id=activity_id)
+    except Exception as error:
+        if self._is_activity_not_found(error):
+            logger.info("Activity feed item was already absent", extra={...})
+            return
+        capture_exception(error)
+        raise FeedException(f"... {activity_id} ...") from error
+```
+
+| Route, full 7,189-function background | Score | Rank for the query | Outcome |
+| --- | ---: | ---: | --- |
+| TF-IDF, whole functions | 0.254 | 26 | below the 0.35 exploration floor |
+| MiniLM prefix, whole functions | 0.553 | 247 | below the 0.65 floor |
+| Operation blocks, best region pair | **0.712** | 1 | shared `delete_activity`, `_is_activity_not_found`, `client.feeds`, `id` |
+
+The duplicated operation is six lines of a 71-line function, so both whole-function representations are dominated
+by the other 65. Comparing complete regions isolates it. The fix this pair suggests is concrete: call the existing
+helper (and decide whether its log line and error message should now apply to this branch).
+
+What blocks used to get wrong on the same repository: three near-identical "start a session" views share a
+community-lookup → 404 → permission prologue with about 45 other views. TF-IDF already paired the three views with
+each other (0.955–0.961), so the block route's one unseen slot went to the prologue — and, with every holder of that
+prologue scoring 1.0, to the alphabetically first view, an unrelated moderation endpoint. Steps 6 and 7 below remove
+both effects: the prologue is an idiom (family > 8, whole functions below 0.5), and ties prefer the closest function.
+
+## What the comparer does
+
+```text
+Full indexed functions -> corpus token frequencies and bounded region index
+Changed full function  -> complete syntax regions -> rare operation anchors
+                                                    |
+                                      bounded parent shortlist
+                                                    |
+                                guarded region-to-region comparison
+                                                    |
+                                      complete function candidate
+```
+
+1. Parse the function into whole compound statements and consecutive straight-line statement runs. A region
+   never includes a nested function or class body. Large regions are rejected rather than cut into arbitrary
+   windows; compound suites are visited through depth three.
+2. Keep at most 12 regions in source order. Each spans 4–80 lines and 20–400 executable syntax nodes, has at
+   least eight distinct behavior tokens and two nongeneric calls. Function-name tokens are excluded from the
+   region representation.
+3. Use frequencies from the **complete function background**, not just the query or gold snippets. Rare calls,
+   attributes and literal keys select potential matching parents. Common logging and collection operations
+   do not act as meaningful anchors.
+4. Bound lookup to eight anchors per region, 64 postings per anchor and 64 candidate parents. Oversubscribed
+   anchors are dropped. Each region match needs three shared concrete operations, two shared calls and a retained
+   shared anchor. Its cosine must reach 0.65 and the full-function cosine must reach 0.10.
+5. Deduplicate parents and return the best previously unseen eligible function. If the original region route
+   has no eligible winner, try a second index with at most one complete helper body added per function. This
+   body excludes its docstring, rejects nested owners, and passes the same size, operation and score guards.
+   Its independently capped postings preserve the original route and scores. The fallback has at most 13
+   regions, 6,656 posting visits and 10,816 region comparisons. Scores and ties are deterministic.
+   The returned Candidate preserves both native functions, signatures, documentation, coordinates and context.
+6. **Idioms do not pick partners.** When the two whole functions score below TF-IDF's default floor (0.5), the
+   region is the pair's only evidence. Then a matched operation that more than eight indexed functions hold is a
+   codebase idiom, not one duplicate, and cannot win; a rarer region of the same pair still can. Above that floor
+   (copies and siblings) the family size does not matter.
+7. **The closest sibling wins ties.** Identical regions all score 1.0, so equal region scores rank by
+   whole-function similarity before name order. The partner an agent sees is the function most like the query,
+   not the alphabetically first holder of the operation.
+
+The implementation is [`operation_blocks.py`](../src/dry_lint/operation_blocks.py); exact frequency and tie
+rules are also documented in the [plugin contract](plugins.md#bounded-python-operation-blocks). These bounds
+make work predictable, but they also create misses: a useful operation may be too small, occur after the first
+12 regions, use different call names or lack a rare anchor. A zero block score does not establish different
+behavior. The comparer identity is `operation-blocks:3` (steps 6–7 changed ranking), and its score does not
+permit changed-code verdict reuse.
+
+## Why the complete-helper fallback matters
+
+A helper can perform a single operation across a short setup, a `try`/`finally` and a return. Each region may
+be too small to qualify alone, so version 1 never retrieves it. Version 2 can compare the complete helper body
+while preserving its exception and cleanup boundaries in the returned source:
+
+```python
+def commit_staged(path):
+    token = acquire_staging(path)
+    try:
+        publish_staging(token)
+    finally:
+        release_staging(token)
+    return receipt_for(path)
+```
+
+The fallback adds a representation; it does not move `release_staging` out of `finally`, label the function a
+duplicate, or replace an original region winner. An earlier winner can still consume the available retrieval
+slot, and a later scheduler can still displace another candidate under a fixed budget. Retrieval preservation
+and report preservation therefore require separate checks.
+
+## What has been measured
+
+In the frozen Python source-supported panel, adding the original block route after baseline3 plus explicit
+TF-IDF20 increased positive pairs funded under a synthetic $0.04 allowance from **35/39 to 37/39**. It also
+increased separate pairs funded from **35/80 to 38/80**. These are candidate exposures, not production reports,
+and the source-supported subset is smaller than the complete historical label inventory.
+
+A useful concrete case was LiteLLM's existing access-token error helper versus a longer Responses configuration
+function repeating its error translation. Whole-function cosine **0.347608** missed the explicit exploration
+floor of **0.35**; region cosine **0.976964** exposed an affordable pair. A Sonnet shared-operations answer at
+**0.80** and independent source inspection supported reusing the helper while retaining caller-specific headers,
+credential choice and exception behavior. The exact original concept-policy answer was not obtained, so this
+is a diagnostic benefit, not proof of a default-production report gain.
+
+A later research-only filter removed regions already represented in an earlier neighbour. That filter lost
+the token-error opportunity and a useful atomic-file commit helper report. **It is not included here.** An
+operation appearing elsewhere does not prove that this caller already delegates to the right helper.
+
+That original experiment did not establish a default policy. The balanced activation above is scoped to its
+own judge and scheduler; neither these research judge settings nor a synthetic allowance substitutes for
+an adopter's configured policy.
+
+## Complete-helper follow-up
+
+The new helper representation was tested against the original block route, with the earlier TF-IDF routes
+preserved. On 37 newly funded candidate pairs, independent source review found 11 bounded useful extractions,
+5 tiny conveniences and 21 already-shared, related or separate pairs. Sonnet/shared-operations at the diagnostic
+.80 reporting rule emitted three bounded useful reports: TLS-context construction, streaming hook/text
+accumulation, and custom key-policy invocation. These are partial extractions with caller-specific guards,
+error handling and ownership retained.
+
+A separate cold-campaign comparison used the actual balanced Haiku policy, a 2,048-token output hold and
+independent .04 ledgers. Across the full admission delta, 38 pairs became funded and 28 prior pairs lost funding.
+New reports included 10 bounded useful operations, 2 tiny ones and 5 source-unsupported reports. Lost prior
+reports included 1 bounded useful operation, 1 tiny one and 2 source-unsupported reports. Thus the selected
+panel gained **nine net bounded useful reports**, while adding three net unsupported reports. This supports a
+capability with a measured precision tradeoff, not independent validation of historical PR gains. Reports on common
+admissions cancel in this delta comparison; this is not an overall precision/recall estimate.
+
+The balanced run is a native cold-query admission simulation using real pinned source, not observed historical
+PR traffic or a settlement-timing replay. Thirty-four of the initial 37 candidates overlap prior family proxies
+and three are development cases; there is no fresh confirmation candidate family. The ten bounded additions
+span nine frozen proxy components, which are not independently established semantic families. Seven canonical Jev questions
+truncate a body at 8,000 characters. All Claude questions and source reviews contain complete native functions;
+the partial Jev inputs remain explicitly marked in the records. Exact model, input and policy matches are required
+for cached answers, and each arm still pays its normal logical charge.
+
+The extra representation has a runtime cost. In the measured LiteLLM background, cold indexing rose from
+27.46 to 41.94 seconds; a paired warm query batch rose from 2.45 to 3.97 seconds. Original winners and scores
+were preserved in 964 sampled winning queries, and representation/posting parity was checked across 119,312
+available native function occurrences. A separate Due/pytest extension reconstructed 14 exact backgrounds
+and 115 labeled pair/background combinations: both original and helper routes retained their funded outcomes.
+These observations support bounded regression confidence, not a claim of zero future regressions.
+
+A subsequent [implementation optimization](operation-block-performance.md) reduced helper-enabled cold
+construction by 16–21% and standalone query time by 22–38% in three paired backgrounds. It preserves exact
+outputs in 24,135 recorded queries and 103 executable source edits. Indexed warm-query results were mixed;
+the optimization changes neither this route's recall nor its budget behavior.
+
+The [helper-recovery study](https://github.com/gigaverse-app/dry-lint/pull/115) supplies the frozen implementation,
+exact prompts and recorded answers, source-review boundaries, budgets, and provider-free reproduction. Full
+retrieval refitting requires the separately identified complete backgrounds; never fit IDF on just the selected
+source examples. See the [research index](research-results.md) for the other directions and their conclusions.
