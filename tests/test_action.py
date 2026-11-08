@@ -1404,3 +1404,25 @@ def test_recovered_judge_errors_are_annotated_in_advisory_mode(repo, github_env,
     assert action.main(["run"]) == 0
     assert "::warning title=dry-lint::Judging degraded:" in capsys.readouterr().out
     assert "failed" in (tmp_path / "summary").read_text()
+
+
+def test_share_goldens_keeps_each_merged_pull_requests_settled_pairs(github_env, tmp_path, monkeypatch) -> None:
+    from dry_lint.goldens import Golden
+
+    github_env("push", MAIN_PUSH)
+    github = FakeGitHub(
+        merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
+        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]},
+    )
+    report = tmp_path / "report.json"
+    action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github))
+    assert not (tmp_path / "goldens.jsonl").exists(), "share-goldens is opt-in"
+
+    action.ledger_path().unlink()
+    monkeypatch.setenv("INPUT_SHARE_GOLDENS", "true")
+    action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github))
+    [golden] = [Golden.model_validate_json(line) for line in (tmp_path / "goldens.jsonl").read_text().splitlines()]
+    assert (golden.repository, golden.pull_request, golden.label) == ("acme/shop", 3, "duplicate")
+    assert golden.label_source.startswith("kept out before merge (inferred")
+    assert golden.new.revision == "a" * 40 and golden.new.path and golden.new.end_line >= golden.new.line
+    assert "code" not in golden.model_dump_json(), "pointers only: the collector fetches code at the revision"

@@ -170,6 +170,8 @@ jobs:
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
           # Merged code was reviewed already, overrides included: on main, report but never fail.
           warn-only: ${{ github.event_name == 'push' }}
+          # dry-lint contributes its own settled pairs to its benchmark (registered in docs/goldens/adopters.toml).
+          share-goldens: 'true'
       - name: The action reports its mode and result
         env:
           MODE: ${{ steps.dry-lint.outputs.mode }}
