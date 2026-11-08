@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "name": "campaign",
+  "description": "The discovery campaign ledger: durable admission, settlement and revisions for paid judging.",
+  "module": "campaign",
+  "model": "campaign.qnt",
+  "invariant": "withinBudget",
+  "actions": {
+    "init": "a new CampaignStore on an empty ledger",
+    "push": "a new CampaignStore for the next immutable revision on the same ledger",
+    "advance": "CampaignStore.advance",
+    "reserve": "CampaignStore.reserve",
+    "reserveFamily": "CampaignStore.reserve_family",
+    "settle": "CampaignStore.settle",
+    "inspect": "read only"
+  },
+  "witnesses": [
+    "creditMintedOncePerRevisionTest",
+    "secondSettleIsRefusedTest",
+    "residualWaitsForTheProtectedPassTest",
+    "familyNeedsAnEnteredRevisionTest"
+  ],
+  "mutants": [
+    {
+      "name": "double-settle",
+      "description": "settle() accepts an already settled reservation and refunds its credit again"
+    },
+    {
+      "name": "credit-per-call",
+      "description": "every advance() mints exploration credit, not only a new revision's first"
+    },
+    {
+      "name": "residual-skips-pass",
+      "description": "residual reserve() does not wait for the revision's protected attempts to be answered"
+    },
+    {
+      "name": "no-dedupe",
+      "description": "reserve() admits the same pair twice on one revision"
+    }
+  ],
+  "bounds": {
+    "seed": 11,
+    "max_samples": 300,
+    "max_steps": 10,
+    "n_traces": 16
+  },
+  "root": "../..",
+  "sources": [
+    "src/dry_lint/discovery.py"
+  ],
+  "limits": "One judge, two pairs, one family, two revisions, no subscription judge, providers billing within their reservation. Ordering (CampaignStore.order) and concurrency between processes are outside the model."
+}

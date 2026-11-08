@@ -73,6 +73,18 @@ def test_exploration_is_paced_and_preserves_later_baseline(setup, tmp_path):
     assert state.usd <= settings.budget.usd
 
 
+def test_a_reservation_settles_exactly_once(setup, tmp_path):
+    settings, judge, _, _ = setup
+    campaign = CampaignStore(tmp_path / "ledger.sqlite3", Run(session="feature", revision="tree"))
+    reservation = campaign.reserve(coverage_pair(1), judge, settings, 0.003)
+    assert campaign.settle(reservation, 0.001, True) == 0.001
+    before = campaign.snapshot()
+    # A second settle would refund exploration credit again and could turn an answered attempt into a failed one.
+    with pytest.raises(ValueError, match="already settled"):
+        campaign.settle(reservation, 0.0, False)
+    assert campaign.snapshot() == before
+
+
 def test_atomic_reservations_and_abandoned_calls_stay_charged(setup, tmp_path):
     settings, judge, _, _ = setup
     settings.budget.usd = 0.004
