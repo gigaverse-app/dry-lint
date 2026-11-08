@@ -1,0 +1,102 @@
+{
+  "graph": {
+    "module_roots": [
+      "src",
+      "."
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "global_inputs": [
+      "pyproject.toml",
+      "uv.lock",
+      ".python-version"
+    ],
+    "pytest_policy": {
+      "pyproject.toml": "284bf26fe01f3ad5c963280abcc87ebe81d1997cdc52e1d488b3067edb57a45a"
+    }
+  },
+  "lanes": {
+    "tests": {
+      "roots": [
+        "tests"
+      ],
+      "inputs": [
+        "src/**",
+        "tests/**",
+        "scripts/*.py",
+        "scripts/**/*.py",
+        "scripts/*.sh",
+        "examples/*.py",
+        "examples/**/*.py",
+        "examples/*.toml",
+        "examples/**/*.toml",
+        "examples/*.json",
+        "examples/**/*.json",
+        "examples/*.yml",
+        "examples/**/*.yml",
+        "examples/*.yaml",
+        "examples/**/*.yaml",
+        "examples/*.gz",
+        "examples/**/*.gz",
+        "examples/*.patch",
+        "examples/**/*.patch",
+        "action.yml",
+        ".pre-commit-hooks.yaml",
+        "release-please-config.json",
+        ".release-please-manifest.json",
+        ".github/workflows/ci.yml#test"
+      ]
+    },
+    "counter": {
+      "roots": [],
+      "inputs": [
+        "counter/src/**",
+        "counter/test/**",
+        "counter/package.json",
+        "counter/package-lock.json",
+        "counter/wrangler.jsonc",
+        ".github/workflows/ci.yml#counter"
+      ]
+    },
+    "viewer": {
+      "roots": [],
+      "inputs": [
+        "viewer/**",
+        ".github/workflows/ci.yml#viewer"
+      ]
+    },
+    "package": {
+      "roots": [],
+      "inputs": [
+        "src/**",
+        "action.yml",
+        "scripts/install-action.sh",
+        "scripts/test_action_install.py",
+        ".github/workflows/ci.yml#consumer-install"
+      ]
+    },
+    "dogfood": {
+      "roots": [],
+      "inputs": [
+        "*.py",
+        "**/*.py",
+        "*.ts",
+        "**/*.ts",
+        "*.tsx",
+        "**/*.tsx",
+        "action.yml",
+        "scripts/install-action.sh",
+        ".dry-lint.toml",
+        ".dry-lint/**",
+        ".github/workflows/ci.yml#dogfood"
+      ]
+    }
+  },
+  "global_inputs": [
+    "pyproject.toml",
+    "uv.lock",
+    ".python-version",
+    ".github/test-lanes.json"
+  ]
+}
