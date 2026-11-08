@@ -10,7 +10,6 @@ The default thresholds were measured on gigaverse-ai (docs/benchmark.md): they a
 `dry-lint bench` is there to re-measure them on your own code.
 """
 
-import fnmatch
 import tomllib
 from pathlib import Path
 from typing import Annotated, Any
@@ -39,9 +38,6 @@ class Pattern(BaseModel):
         "['pkg/strutils.py::indent', 'pkg/funcutils.py::_indent'].",
     )
     reason: str
-
-    def matches(self, qualname: str) -> bool:
-        return any(fnmatch.fnmatch(qualname, glob) for glob in self.members)
 
 
 class PluginChoice(BaseModel):

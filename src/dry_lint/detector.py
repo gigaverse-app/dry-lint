@@ -6,7 +6,6 @@ pairs. Whether a pair really is a duplicate is the judge's question (judging.py)
 store has no usable answer (store.py). The extractors and the comparer are plugins; the rules here are core.
 """
 
-import fnmatch
 import re
 from pathlib import Path
 
@@ -14,7 +13,7 @@ from dry_lint.comparer_resources import ComparerResources
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
-from dry_lint.models import Candidate, Function, Run, pair_key, qualified
+from dry_lint.models import Candidate, Function, Run, matches_any, pair_key, qualified
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
 from dry_lint.settings import ExplorationComparer, Settings
@@ -113,7 +112,7 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
     if a.origin == b.origin and (relation := call_relation(a, b) or call_relation(b, a)):
         return relation
     for pattern in settings.patterns:
-        if pattern.matches(a.qualname) and pattern.matches(b.qualname):
+        if matches_any(a.qualname, pattern.members) and matches_any(b.qualname, pattern.members):
             return f"declared pattern: {pattern.reason}"
     for x, y in ((a, b), (b, a)):
         for target in SUPPRESSION.findall(x.code):
@@ -260,10 +259,7 @@ class Detector:
         targets = [
             target
             for target in self.settings.consolidation
-            if all(
-                any(fnmatch.fnmatch(f.qualname.split("::")[0], pattern) for pattern in target.sources)
-                for f in (new, existing)
-            )
+            if all(matches_any(f.qualname.split("::")[0], target.sources) for f in (new, existing))
         ]
         policies = [applied for policy in self.settings.policies if (applied := policy.apply(new, existing))]
         discarded = next((p for p in policies if p.action == "discard"), None)
