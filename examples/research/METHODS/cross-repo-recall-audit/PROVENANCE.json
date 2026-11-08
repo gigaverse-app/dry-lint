@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "cross-repo-recall-audit",
+      "original_path": "jobs/cross-repo-recall-audit/.lab-results/reference.py",
+      "original_sha256": "cb4226ea1be2838fd5cf53b443497a41e32e64d463899a8b717a21c4cbf921fa",
+      "public_path": "cross-repo-recall-audit/implementation/reference.py",
+      "public_sha256": "5c1b29e7a683d37637366ed2b88461733b7b0e680668f8b924ea91d326bcf164",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "cross-repo-recall-audit",
+      "original_path": "jobs/cross-repo-recall-audit/.lab-results/summarize_reference.py",
+      "original_sha256": "52f0176e25b3cc337443121d9f893db02ceb1746b44d1e3c0e9a608fde54c654",
+      "public_path": "cross-repo-recall-audit/implementation/summarize_reference.py",
+      "public_sha256": "f924a594b26696ca3cab82008ac31450d2ea5c3931de10dc17735bc361cb876a",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E401",
+        "E731",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "cross-repo-recall-audit",
+      "original_path": "jobs/cross-repo-recall-audit/.lab-results/inventory.py",
+      "original_sha256": "3f6d035159c2e27778dce4ddc965b8833ff502591b7dc314bbe08be7b6382ef4",
+      "public_path": "cross-repo-recall-audit/implementation/inventory.py",
+      "public_sha256": "e3cc6475cf0e4b69a9708a8f59db65da515b48f09bec249f021898f6563d464f",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "I001"
+      ]
+    },
+    {
+      "method": "cross-repo-recall-audit",
+      "original_path": "jobs/cross-repo-recall-audit/.lab-results/audit_configuration.py",
+      "original_sha256": "720e1fe1310d61c2ce54d67e9adc23efe76ae5ff231cbdcaa23599d0b412826a",
+      "public_path": "cross-repo-recall-audit/implementation/audit_configuration.py",
+      "public_sha256": "a8333343fd455e34c79b3bb5dc41ea66bbecba29bc9a75116b62bdc78cd4f8f0",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "cross-repo-recall-audit",
+      "original_path": "jobs/cross-repo-recall-audit/.lab-results/verify_reference.py",
+      "original_sha256": "5f5ed3f8c11b3445f96b5f302cf356e7a38962c233d76471ff1f38457828a4fc",
+      "public_path": "cross-repo-recall-audit/implementation/verify_reference.py",
+      "public_sha256": "5ee6c3a0fdc6605cc5e445ebc85c36f6deca1495352b3192cbc0a960e679a12e",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E401",
+        "E402",
+        "E731",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}
