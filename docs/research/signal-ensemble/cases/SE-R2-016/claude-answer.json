@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.008184,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "f927c7ca9c2815b1c93410e4dda287201bb9e16cfd183351ccf1bdf5ce7ed56a",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoFNWj9zSZ3Y2UQtiqnu\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"duplicate\\\",\\\"score\\\":0.8,\\\"owner\\\":\\\"shared\\\",\\\"why\\\":\\\"Both avideo_extension and avideo_status run the same async-wrapper sequence. They set kwargs['async_call']=True and build a partial of the sync function. They copy the contextvars context and run it in the default executor. If the result is a coroutine they await it. On any Exception they re-raise via litellm.exception_type with model='', the provider, and local_vars/kwargs. Only the target sync function and its specific arguments (prompt and seconds versus none) differ. This sequence is already repeated across the video module's async wrappers, so a shared helper makes sense, e.g. `_run_sync_in_executor_with_async_call(func, provider, local_vars, **kwargs)`. Each public function would keep its own signature, docstring and argument list. This is a partial overlap: the wrapper and error-mapping boilerplate, not the endpoint-specific parameters.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":2547,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":2547,\"output_tokens\":309,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":309,\"output_tokens_details\":{\"thinking_tokens\":0},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "6164bacf6d972875f782079c03249c279d20a870c51ca23064ab9818975b1d76",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 2547,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2547,
+        "model": null,
+        "output_tokens": 309,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 309,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "duplicate",
+    "model_assessment": null,
+    "owner": "shared",
+    "score": 0.8,
+    "second_opinion": null,
+    "why": "Both avideo_extension and avideo_status run the same async-wrapper sequence. They set kwargs['async_call']=True and build a partial of the sync function. They copy the contextvars context and run it in the default executor. If the result is a coroutine they await it. On any Exception they re-raise via litellm.exception_type with model='', the provider, and local_vars/kwargs. Only the target sync function and its specific arguments (prompt and seconds versus none) differ. This sequence is already repeated across the video module's async wrappers, so a shared helper makes sense, e.g. `_run_sync_in_executor_with_async_call(func, provider, local_vars, **kwargs)`. Each public function would keep its own signature, docstring and argument list. This is a partial overlap: the wrapper and error-mapping boilerplate, not the endpoint-specific parameters."
+  }
+}

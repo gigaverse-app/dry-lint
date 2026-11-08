@@ -1,0 +1,13 @@
+"""Preregistered operational rarity gate over immutable extracted tokens; no labels."""
+import collections,math
+GENERIC=set('get set append extend items values keys len str int float bool dict list tuple isinstance getattr setattr hasattr cast enumerate range zip sorted reversed min max sum any all print super object type exception valueerror typeerror runtimeerror info debug warning error exception critical log assert mock magicmock asyncmock raises fail patch sleep time utcnow now'.split())
+class OperationalGate:
+ def __init__(self,bg,index):
+  self.ids=[d.id for d in bg.documents];self.paths=[x.split('::')[0] for x in self.ids];self.idf=index.idf;self.ops=[frozenset(t for t in d.counts if t.partition(':')[0] in {'call','attr','key'} and t.partition(':')[2].lower() not in GENERIC and t in self.idf) for d in bg.documents];self.df=collections.Counter(t for ops in self.ops for t in ops);self.rare_max=min(64,max(2,math.ceil(.002*len(self.ids))));self.mass=[sum(self.idf[t] for t in ops) for ops in self.ops];self.memo={}
+ def stats(self,q,t):
+  if (q,t) in self.memo:return self.memo[q,t]
+  common=self.ops[q]&self.ops[t];calls={s for s in common if s.startswith('call:')};rare=sorted(s for s in common if self.df[s]<=self.rare_max);contain=sum(self.idf[s] for s in common)/max(1e-12,min(self.mass[q],self.mass[t]));a=self.ids[q].partition('::')[2];b=self.ids[t].partition('::')[2];ao,_,an=a.rpartition('.');bo,_,bn=b.rpartition('.');an=an or a;bn=bn or b
+  delegated=self.paths[q]==self.paths[t] and bool(ao) and ao==bo and (any(s.partition(':')[2].lower()==bn.lower() for s in self.ops[q] if s.startswith('call:')) or any(s.partition(':')[2].lower()==an.lower() for s in self.ops[t] if s.startswith('call:')))
+  out=dict(shared_operations=len(common),shared_calls=len(calls),rare_shared_operations=rare,rare_parent_df_max=self.rare_max,idf_weighted_operation_containment=contain,same_owner_callee_suspicion=delegated,operational_pass=len(common)>=3 and len(calls)>=2 and bool(rare) and contain>=.35 and not delegated);self.memo[q,t]=out;return out
+ def passing(self,q,t,raw,dense):
+  return raw>=.1 and dense>=.65 and self.stats(q,t)['operational_pass']

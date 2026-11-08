@@ -1,0 +1,15 @@
+{
+  "status": "READY",
+  "method": "token-hygiene",
+  "proposed_branch": "research/study-token-hygiene",
+  "destination": "docs/research/token-hygiene/",
+  "source_directory": "/home/researcher/dry-lint-round/jobs/publish-sparse-studies/.lab-results/publications/token-hygiene",
+  "root_owns_push_and_pr_creation": true,
+  "conclusion": "Keep the current matcher. The body-word presence revision improves positive top-three ranks from 182/227 to 189/227, but default funded positives fall from 39/77 to 35/77. Its one emitted novel report is source-confirmed related, not a useful nominated-body duplicate.",
+  "ready_for_root_validation": true,
+  "checks": "CHECKS.json",
+  "root_copy_instruction": "Copy this complete directory to docs/research/token-hygiene/ on research/study-token-hygiene; root creates/pushes PR.",
+  "publication_files": 41,
+  "no_new_experiments": true,
+  "provider_calls": 0
+}

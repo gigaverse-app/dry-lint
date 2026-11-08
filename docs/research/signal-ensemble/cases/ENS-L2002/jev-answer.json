@@ -1,0 +1,25 @@
+{
+  "actual_usd": 0.00026260000000000004,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "05f428dfa5988d5b420a93131c7c34a1cad0f6ce11e27a022177feadd59a829b",
+    "text": "{\"model\":\"jev-1.14.0\",\"answers\":{\"same_concept\":{\"type\":\"noul\",\"noul\":0.65},\"behaves_differently\":{\"type\":\"noul\",\"noul\":0.82},\"owner\":{\"type\":\"choice\",\"choice\":\"new\",\"confidence\":0.49,\"probabilities\":{\"existing\":0.01,\"new\":0.62,\"shared\":0.13,\"none\":0.24}},\"separate_boundary\":{\"type\":\"noul\",\"noul\":0.59},\"reason\":{\"type\":\"choice\",\"choice\":\"platform\",\"confidence\":0.38,\"probabilities\":{\"portable\":0.21,\"platform\":0.47,\"delegates\":0.07,\"contract\":0.13,\"boilerplate\":0.01,\"different\":0.1,\"uncertain\":0.01}}},\"usage\":{\"input_tokens\":6565,\"output_tokens\":173}}"
+  },
+  "request_key": "7cbf36bd0c7e914b421b53a709e1843e31c8c64c2003e9b925b8965e09701569",
+  "usage": {
+    "input_tokens": 6565,
+    "output_tokens": 173
+  },
+  "verdict": {
+    "behaves_differently": 0.82,
+    "judge": "jev",
+    "judge_version": "reuse-context-v3:jev-1.14.0",
+    "label": "separate",
+    "model_assessment": null,
+    "owner": "new",
+    "score": 0.41,
+    "second_opinion": null,
+    "why": "Platform SDK or provider boundaries should remain separate."
+  }
+}

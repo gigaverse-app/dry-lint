@@ -1,0 +1,469 @@
+"""Reuse frozen pilot mechanics across every verified exact-background cohort.
+
+No provider calls. All output stays under full-corpus-followup; pilot files are read only.
+"""
+
+import argparse
+import ast
+import collections
+import gc
+import gzip
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.extractors import PythonExtractor
+from dry_lint.functions import selected_path
+from dry_lint.model_shapes import PythonModelExtractor, TypeScriptModelExtractor
+from dry_lint.models import Function
+from dry_lint.typescript import TypeScriptExtractor
+
+from ts_ownership import resolve_ts
+
+OUT = Path(__file__).resolve().parent
+PILOT = OUT.parent
+ROOT = Path("/home/researcher/dry-lint-round")
+MAPPER = ROOT / "jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v1-88f0f73927ce28d2"
+CACHE = OUT / "cache"
+CACHE.mkdir(exist_ok=True)
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def dump(path, obj):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(obj, indent=2, sort_keys=True) + "\n")
+    tmp.replace(path)
+
+
+def rows(path):
+    return [json.loads(line) for line in path.read_text().splitlines() if line]
+
+
+def load_core(run_namespace="runs-index-v1"):
+    source = (PILOT / "run_experiment.py").read_text()
+    source = source.replace('name = meta["repository"].split("/")[-1]', 'name = meta["cohort_id"]')
+    source = source.replace(
+        "unit.hash = PythonExtractor().structure_hash(unit)",
+        'unit.hash = (PythonExtractor() if unit.path.endswith(".py") else TypeScriptExtractor()).structure_hash(unit)',
+    )
+    source = source.replace(
+        "for rank, (pos, score) in enumerate(pairs, 1):", "for rank, (pos, score) in enumerate(pairs[:20], 1):"
+    )
+    source = source.replace(
+        "from dry_lint.bench_background import BenchBackground",
+        "from dry_lint.typescript import TypeScriptExtractor\nfrom dry_lint.bench_background import BenchBackground",
+    )
+    # Preserve production language eligibility BEFORE topK; IDF and corpus order stay full.
+    source = source.replace(
+        'if samefile or z.split("::")[0] != fs[q].path',
+        'if z.endswith(".py")==q.endswith(".py") and (samefile or z.split("::")[0] != fs[q].path)',
+    )
+    source = source.replace(
+        'if samefile or f.split("::")[0] != fs[q].path',
+        'if f.endswith(".py")==q.endswith(".py") and (samefile or f.split("::")[0] != fs[q].path)',
+    )
+    source = source.replace(
+        "mindex.neighbours(m, 3, lambda other: True)",
+        'mindex.neighbours(m, 3, lambda other: other.path.endswith(".py")==m.path.endswith(".py"))',
+    )
+    source = source.replace(
+        "mindex.neighbours(m, len(ms), lambda other: True)",
+        'mindex.neighbours(m, len(ms), lambda other: other.path.endswith(".py")==m.path.endswith(".py"))',
+    )
+    path = OUT / "replication_core.py"
+    if not path.exists() or path.read_text() != source:
+        path.write_text(source)
+    spec = importlib.util.spec_from_file_location("replication_core", path)
+    core = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(core)
+    core.OUT = OUT / run_namespace
+    core.OUT.mkdir(exist_ok=True)
+    return core
+
+
+class SiteDestination:
+    def __init__(self, path):
+        self.path = path
+
+    def open(self, mode):
+        return gzip.open(self.path, "wt", compresslevel=1)
+
+
+def native_source_capture(meta, folder, b):
+    started = time.monotonic()
+    # Recursively list blobs, preserving exact Git tree order.
+    tree = subprocess.check_output(["git", "-C", meta["git"], "ls-tree", "-r", meta["revision"]]).decode().splitlines()
+    selected = []
+    for line in tree:
+        left, path = line.split("\t", 1)
+        mode, kind, blob = left.split()
+        if kind != "blob":
+            continue
+        code = path.endswith((".py", ".ts", ".tsx", ".mts", ".cts"))
+        config = Path(path).name in ("tsconfig.json", "jsconfig.json")
+        if (code and selected_path(path, b.scope["include"], b.scope["exclude"])) or config:
+            selected.append((path, blob, code))
+    # One native git cat-file process; no target-code import/execution.
+    proc = subprocess.Popen(
+        ["git", "-C", meta["git"], "cat-file", "--batch"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    sources = {}
+    trees = {}
+    nodes = {}
+    functions = collections.defaultdict(list)
+    models = collections.defaultdict(list)
+    proofs = []
+    errors = []
+    pyex = PythonExtractor()
+    tsex = TypeScriptExtractor()
+    pym = PythonModelExtractor()
+    tsm = TypeScriptModelExtractor()
+    source_store = OUT / "source-objects"
+    source_store.mkdir(exist_ok=True)
+    for path, blob, code in selected:
+        proc.stdin.write((blob + "\n").encode())
+        proc.stdin.flush()
+        header = proc.stdout.readline().decode().split()
+        length = int(header[2])
+        raw = proc.stdout.read(length)
+        assert proc.stdout.read(1) == b"\n"
+        assert hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest() == blob
+        try:
+            source = raw.decode("utf-8")
+        except UnicodeError:
+            errors.append(dict(path=path, reason="non-UTF8 source"))
+            continue
+        digest = sha(raw)
+        sources[path] = source
+        sp = source_store / (digest + ".source.gz")
+        if not sp.exists():
+            sp.write_bytes(gzip.compress(raw, compresslevel=1, mtime=0))
+        proofs.append(dict(path=path, sha256=digest, git_blob_sha1=blob, source_file=str(sp), code_in_scope=code))
+        if not code:
+            continue
+        ex, mex = (pyex, pym) if path.endswith(".py") else (tsex, tsm)
+        cache = CACHE / (sha((path + "\n" + digest + "\n" + ex.version + "\n" + mex.version).encode()) + ".json.gz")
+        try:
+            if cache.exists():
+                capture = json.loads(gzip.decompress(cache.read_bytes()))
+                fs = [Function.model_validate(f) for f in capture["functions"]]
+                ms = [Function.model_validate(m) for m in capture["models"]]
+            else:
+                ex.validate_source(path, source)
+                fs = ex.functions(path, source)
+                ms = mex.functions(path, source)
+                for m in ms:
+                    m.hash = mex.structure_hash(m)
+                cache.write_bytes(
+                    gzip.compress(
+                        json.dumps(
+                            dict(functions=[f.model_dump() for f in fs], models=[m.model_dump() for m in ms])
+                        ).encode(),
+                        compresslevel=1,
+                        mtime=0,
+                    )
+                )
+            for f in fs:
+                functions[f.qualname].append(f)
+            for m in ms:
+                models[m.qualname].append(m)
+            if path.endswith(".py"):
+                parsed = ast.parse(source, filename=path)
+                trees[path] = parsed
+                byline = collections.defaultdict(list)
+                for n in ast.walk(parsed):
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        byline[(n.lineno, n.name)].append(n)
+                for f in fs:
+                    matches = byline.get((f.line, f.name), [])
+                    if len(matches) == 1:
+                        nodes[f.qualname] = matches[0]
+        except (ValueError, SyntaxError) as exc:
+            errors.append(dict(path=path, reason=type(exc).__name__ + ": " + str(exc)))
+    proc.stdin.close()
+    assert proc.wait() == 0
+    ambiguous = {k: len(v) for k, v in functions.items() if len(v) != 1}
+    functions = {k: v[0] for k, v in functions.items() if len(v) == 1}
+    models = {k: v[0] for k, v in models.items() if len(v) == 1}
+    documents = collections.defaultdict(list)
+    for i, d in enumerate(b.documents):
+        documents[d.id].append((i, d))
+    positions = {}
+    missing = []
+    mismatch = []
+    for fid, ds in documents.items():
+        if len(ds) != 1:
+            ambiguous[fid] = len(ds)
+        elif fid not in functions:
+            missing.append(fid)
+        elif sha(functions[fid].code.encode()) != ds[0][1].source_sha256:
+            mismatch.append(fid)
+        else:
+            positions[fid] = ds[0][0]
+            functions[fid].tokens = ds[0][1].tokens()
+    functions = {f: functions[f] for f in positions}
+    dump(
+        folder / "source-manifest.json",
+        dict(
+            repository=meta["repository"],
+            revision=meta["revision"],
+            cohort_id=meta["cohort_id"],
+            files=proofs,
+            syntax_errors=errors,
+            ambiguous=ambiguous,
+            missing_background_source=missing,
+            mismatch=mismatch,
+            source_functions=len(functions),
+            model_declarations=len(models),
+            seconds=time.monotonic() - started,
+            scope=b.scope,
+            source_method="full git tree + native git cat-file --batch",
+        ),
+    )
+    return sources, trees, nodes, functions, models, positions
+
+
+def all_links(core, sources, trees, models, functions, nodes, folder):
+    pyfs = {k: f for k, f in functions.items() if f.path.endswith(".py")}
+    pyms = {k: m for k, m in models.items() if m.path.endswith(".py")}
+    pylinks, pystats = core.resolve_links(
+        trees, pyms, pyfs, nodes, SiteDestination(folder / "python-resolution-sites.jsonl.gz")
+    )
+    tsfs = {k: f for k, f in functions.items() if not f.path.endswith(".py")}
+    tsms = {k: m for k, m in models.items() if not m.path.endswith(".py")}
+    tssources = {p: s for p, s in sources.items() if not p.endswith(".py")}
+    tslinks, tsstats = (
+        resolve_ts(tssources, tsms, tsfs, SiteDestination(folder / "typescript-resolution-sites.jsonl.gz"))
+        if tsfs
+        else ({}, {})
+    )
+    dump(
+        folder / "language-resolution.json",
+        dict(
+            python=pystats,
+            typescript=tsstats,
+            method_variants=["python-frozen-pilot-replication", "typescript-explicit-ownership-v1"],
+        ),
+    )
+    return {**pylinks, **tslinks}, dict(collections.Counter(pystats) + collections.Counter(tsstats))
+
+
+def git_for(cohort):
+    repo = cohort["repository"]
+    base = repo.split("/")[-1]
+    options = [
+        ROOT / "research-corpus" / base,
+        ROOT / "research-corpus/gold-pins" / (base + ".git"),
+        ROOT / "research-corpus/history-inputs/git" / (base + ".git"),
+    ]
+    if base == "dry-lint":
+        options += [ROOT / "repo", WORK]
+    if base == "kaizen":
+        options += [ROOT / "jobs/kaizen-candidate-golds/.lab-results/kaizen-candidate-golds/source.git"]
+    for path in options:
+        if not path.exists():
+            continue
+        check = subprocess.run(
+            ["git", "-C", str(path), "cat-file", "-e", cohort["revision"] + "^{commit}"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if check.returncode == 0:
+            return str(path), None
+    return None, dict(
+        reason="exact full native Git commit unavailable",
+        revision=cohort["revision"],
+        checked_git_paths=[str(p) for p in options],
+        background_sha256=cohort["background_sha256"],
+        not_a_negative_result=True,
+    )
+
+
+WORK = OUT.parent.parent
+
+
+def adapted_rows(mapping_rows, cohort_id):
+    accepted = []
+    for row in mapping_rows:
+        for mapping in row.get("mappings", []):
+            if mapping["cohort_id"] != cohort_id or mapping["status"] != "mapped":
+                continue
+            sources = mapping["sources"]
+
+            def source_id(side):
+                if isinstance(sources, dict):
+                    return sources[side]["source_id"]
+                return next(s["source_id"] for s in sources if s["side"] == side)
+
+            known_family = row.get("family_id")
+            family = known_family or "__unknown-family__:" + row["dataset"] + ":" + str(
+                row["input_record"].get("row", {}).get("panel", "unresolved")
+            )
+            accepted.append(
+                dict(
+                    input_cohort=row["dataset"],
+                    id=row["row_id"],
+                    family_id=family,
+                    family_lineage=row.get("family_lineage"),
+                    label=row["label"] if row["accepted_gold"] else "unknown-context",
+                    accepted_gold=row["accepted_gold"],
+                    original_label=row["label"],
+                    label_scope=row["input_record"].get("row", {}).get("label_scope"),
+                    narrow_operation=row["input_record"]
+                    .get("row", {})
+                    .get("narrow_operation", row["input_record"].get("row", {}).get("operation_contract")),
+                    whole_function_label=row["input_record"].get("row", {}).get("whole_function_label"),
+                    new={"id": source_id("new")},
+                    existing={"id": source_id("existing")},
+                    drifted=row["input_record"].get("row", {}).get("drifted", False),
+                    mapper_pair_id=row.get("pair_id"),
+                )
+            )
+    return accepted
+
+
+def run(args):
+    global MAPPER
+    if args.mapper_root:
+        MAPPER=Path(args.mapper_root)
+    assert (
+        sha((OUT / "EXPERIMENT.json").read_bytes())
+        == "a0e52ac350e9d8ade5dfeae0c6a4df02a9ee8752eeb286617aebfbcebf91a9bd"
+    )
+    if not (MAPPER / "index-ready.json").exists():
+        dump(
+            OUT / "mapper-status.json",
+            dict(
+                status="awaiting atomic shared index; adapter and static source support implemented",
+                expected=str(MAPPER / "index-ready.json"),
+                inventory_records=sum(
+                    1 for _ in (ROOT / "reports/research-experiments/full-corpus/input-inventory.jsonl").open()
+                ),
+                pilot_unmodified=True,
+            ),
+        )
+        print("Mapper not published; use --preflight for language/source work, then rerun.", flush=True)
+        return
+    cohorts = rows(MAPPER / "cohorts.jsonl")
+    mapped = rows(MAPPER / "rows.jsonl")
+    dump(
+        OUT / ("input-bindings-"+args.run_namespace+".json"),
+        dict(
+            files=[
+                dict(path=str(MAPPER / n), sha256=sha((MAPPER / n).read_bytes()))
+                for n in ("index-ready.json", "cohorts.jsonl", "rows.jsonl")
+            ],
+            records=len(mapped),
+            cohorts=len(cohorts),
+            accepted=sum(r["accepted_gold"] for r in mapped),
+        ),
+    )
+    core = load_core(args.run_namespace)
+    coverage = []
+
+    # Most untested positive families first; complete all compatible cohorts, no repo shortlist.
+    def priority(c):
+        rr = [
+            r
+            for r in mapped
+            if r["accepted_gold"]
+            and r["label"] in ("duplicate", "drifted")
+            and any(m["cohort_id"] == c["cohort_id"] and m["status"] == "mapped" for m in r.get("mappings", []))
+        ]
+        return (-len({r.get("family_id") or r["repository"] for r in rr}), c["cohort_id"])
+
+    for c in sorted(cohorts, key=priority):
+        if args.cohort and c["cohort_id"] not in args.cohort:
+            continue
+        cid = c["cohort_id"]
+        folder = core.OUT / cid
+        associated = adapted_rows(mapped, cid)
+        path, blocker = git_for(c)
+        coverage_row = dict(
+            cohort_id=cid,
+            repository=c["repository"],
+            revision=c["revision"],
+            background_sha256=c["background_sha256"],
+            scope=c["scope"],
+            mapped_rows=len(associated),
+            accepted_mapped_rows=sum(r["accepted_gold"] for r in associated),
+            status="pending",
+            blocker=blocker,
+        )
+        if path is None:
+            coverage_row["status"] = "missing-full-source"
+            coverage.append(coverage_row)
+            dump(OUT / ("cohort-coverage-"+args.run_namespace+".json"), coverage)
+            continue
+        if (folder / "summary.json").exists() and not args.refresh:
+            coverage_row["status"] = "evaluated-cached"
+            coverage_row["summary"] = str(folder / "summary.json")
+            coverage.append(coverage_row)
+            continue
+        meta = dict(
+            repository=c["repository"],
+            revision=c["revision"],
+            cohort_id=cid,
+            git=path,
+            background_proof=dict(path=c["background_path"], sha256=c["background_sha256"]),
+        )
+        saved = {}
+
+        def capture(meta, folder, b):
+            result = native_source_capture(meta, folder, b)
+            saved["sources"] = result[0]
+            return result
+
+        core.source_capture = capture
+        native_py_links = core.resolve_links
+
+        def links(trees, models, fs, nodes, destination):
+            core.resolve_links = native_py_links
+            try:
+                return all_links(core, saved["sources"], trees, models, fs, nodes, folder)
+            finally:
+                core.resolve_links = links
+
+        core.resolve_links = links
+        core.load_cohorts = lambda repo, revision, associated=associated: associated
+        try:
+            result = core.evaluate_repo(meta)
+            coverage_row.update(
+                status="evaluated",
+                functions=result["functions"],
+                models=result["models"],
+                linked_functions=result["linked_functions"],
+                summary=str(folder / "summary.json"),
+            )
+        except Exception as exc:
+            coverage_row.update(status="error", blocker=dict(reason=type(exc).__name__ + ": " + str(exc)))
+            dump(folder / "error.json", coverage_row)
+            import traceback
+
+            traceback.print_exc()
+        finally:
+            core.resolve_links = native_py_links
+        coverage.append(coverage_row)
+        dump(OUT / ("cohort-coverage-"+args.run_namespace+".json"), coverage)
+        saved.clear()
+        gc.collect()
+    dump(OUT / ("cohort-coverage-"+args.run_namespace+".json"), coverage)
+
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--refresh", action="store_true")
+    p.add_argument("--run-namespace", default="runs-index-v1")
+    p.add_argument("--mapper-root")
+    p.add_argument("--cohort",action="append")
+    run(p.parse_args())

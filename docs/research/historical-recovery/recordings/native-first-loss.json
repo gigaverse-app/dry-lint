@@ -1,0 +1,162 @@
+[
+  {
+    "cohort": "historical-trial",
+    "prompt": "concept",
+    "budget": "primary004",
+    "arm": "fixed",
+    "positive_pair_first_stages": {
+      "native_fixed_retrieval": 7
+    }
+  },
+  {
+    "cohort": "historical-trial",
+    "prompt": "concept",
+    "budget": "primary004",
+    "arm": "refill",
+    "positive_pair_first_stages": {
+      "scheduler_or_budget:baseline_request_does_not_fit": 5,
+      "scheduler_or_budget:exploration_request_does_not_fit": 2
+    }
+  },
+  {
+    "cohort": "historical-trial",
+    "prompt": "concept",
+    "budget": "original",
+    "arm": "fixed",
+    "positive_pair_first_stages": {
+      "native_fixed_retrieval": 7
+    }
+  },
+  {
+    "cohort": "historical-trial",
+    "prompt": "concept",
+    "budget": "original",
+    "arm": "refill",
+    "positive_pair_first_stages": {
+      "reported": 3,
+      "judge_or_threshold": 4
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "budget": "primary004",
+    "arm": "fixed",
+    "positive_pair_first_stages": {
+      "reported": 2,
+      "native_fixed_retrieval": 9
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "budget": "primary004",
+    "arm": "protected",
+    "positive_pair_first_stages": {
+      "reported": 2,
+      "scheduler_or_budget:exploration_request_does_not_fit": 2,
+      "scheduler_or_budget:baseline_request_does_not_fit": 7
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "budget": "primary004",
+    "arm": "refill",
+    "positive_pair_first_stages": {
+      "reported": 2,
+      "scheduler_or_budget:exploration_request_does_not_fit": 1,
+      "scheduler_or_budget:baseline_request_does_not_fit": 8
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "budget": "original",
+    "arm": "fixed",
+    "positive_pair_first_stages": {
+      "reported": 2,
+      "native_fixed_retrieval": 9
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "budget": "original",
+    "arm": "protected",
+    "positive_pair_first_stages": {
+      "reported": 3,
+      "scheduler_or_budget:exploration_pacing": 8
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "concept",
+    "budget": "original",
+    "arm": "refill",
+    "positive_pair_first_stages": {
+      "reported": 4,
+      "scheduler_or_budget:run_calls": 7
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "budget": "primary004",
+    "arm": "fixed",
+    "positive_pair_first_stages": {
+      "reported": 2,
+      "native_fixed_retrieval": 9
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "budget": "primary004",
+    "arm": "protected",
+    "positive_pair_first_stages": {
+      "reported": 2,
+      "scheduler_or_budget:baseline_request_does_not_fit": 9
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "budget": "primary004",
+    "arm": "refill",
+    "positive_pair_first_stages": {
+      "reported": 2,
+      "scheduler_or_budget:baseline_request_does_not_fit": 9
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "budget": "original",
+    "arm": "fixed",
+    "positive_pair_first_stages": {
+      "reported": 2,
+      "native_fixed_retrieval": 9
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "budget": "original",
+    "arm": "protected",
+    "positive_pair_first_stages": {
+      "reported": 3,
+      "scheduler_or_budget:exploration_pacing": 8
+    }
+  },
+  {
+    "cohort": "protected-trial",
+    "prompt": "shared-operations",
+    "budget": "original",
+    "arm": "refill",
+    "positive_pair_first_stages": {
+      "reported": 4,
+      "scheduler_or_budget:run_calls": 7
+    }
+  }
+]

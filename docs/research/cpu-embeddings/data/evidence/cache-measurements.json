@@ -1,0 +1,28 @@
+{
+  "openhands": {
+    "cache_load_seconds_os_warm": [
+      0.0035838490002788603,
+      0.004057678997924086,
+      0.0037112379977770615
+    ],
+    "embedding_bytes": 3606656,
+    "shape": [
+      2348,
+      384
+    ],
+    "dtype": "float32"
+  },
+  "kaizen": {
+    "cache_load_seconds_os_warm": [
+      0.0030226059971028008,
+      0.00048034100109362043,
+      0.0004677620017901063
+    ],
+    "embedding_bytes": 3227264,
+    "shape": [
+      2101,
+      384
+    ],
+    "dtype": "float32"
+  }
+}

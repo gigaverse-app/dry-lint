@@ -1,0 +1,151 @@
+"""Score exact root-returned paired source-anchor observations, offline only."""
+import argparse
+import json
+import math
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent / 'agentic-claude'))
+import harness as h
+from dry_lint.judges.command import first_object
+from dry_lint.judges.jev import JevJudge
+from dry_lint.settings import Settings
+from validate_followup import FOLLOW, canon, digest
+
+
+def valid_number(value, lower=0, upper=1):
+    return type(value) in (int, float) and math.isfinite(value) and lower <= value <= upper
+
+
+def parse_response(q, raw):
+    if q['kind'] == 'claude':
+        if raw.get('stop_reason') != 'end_turn':
+            raise ValueError('nonfinal/capped response')
+        text = ''.join(b['text'] for b in raw.get('content', []) if b.get('type') == 'text')
+        answer = first_object(text, lambda x: 'label' in x)
+        if answer is None or not {'label', 'score', 'owner', 'why'} <= set(answer):
+            raise ValueError('missing answer fields')
+        if answer['label'] not in ('duplicate', 'drifted', 'separate') or not valid_number(answer['score']):
+            raise ValueError('invalid label/score')
+        if answer['owner'] not in ('new', 'existing', 'shared', '') or not isinstance(answer['why'], str):
+            raise ValueError('invalid owner/why')
+        if 'uncertainty' in answer and type(answer['uncertainty']) is not bool:
+            raise ValueError('invalid explicit uncertainty')
+        return {k: answer[k] for k in ('label', 'score', 'owner', 'why')}, answer.get('uncertainty', False)
+    answers = raw['answers']
+    for name in ('same_concept', 'behaves_differently', 'separate_boundary'):
+        if not valid_number(answers[name]['noul']):
+            raise ValueError('incomplete/invalid typed noul')
+    questions = q['request_body']['questions']
+    for name in ('owner', 'reason'):
+        answer = answers[name]
+        if answer['choice'] not in questions[name]['criteria']:
+            raise ValueError('unknown choice')
+        probabilities = answer['probabilities']
+        if not isinstance(probabilities, dict) or answer['choice'] not in probabilities:
+            raise ValueError('missing choice probabilities')
+        if any(k not in questions[name]['criteria'] or not valid_number(v) for k, v in probabilities.items()):
+            raise ValueError('invalid choice probabilities')
+    judge = object.__new__(JevJudge)  # no credential-reading constructor
+    judge.context, judge.version = True, q['model_version']
+    verdict = judge.verdict(answers, Settings(report_at=.8)).model_dump()
+    return verdict, answers['reason']['choice'] == 'uncertain'
+
+
+def validate_observation(q, matches):
+    if len(matches) != 1:
+        return {'status': 'unknown', 'error': 'missing' if not matches else 'duplicate observations', 'reported': None}
+    o = matches[0]
+    try:
+        if o.get('identity') != q['identity'] or o.get('request_sha256') != q['identity']['canonical_request_sha256']:
+            raise ValueError('source/prompt/request identity mismatch')
+        if o.get('sent_wire_sha256') != q['wire_sha256']:
+            raise ValueError('wire hash mismatch')
+        if o.get('fresh') is not True:
+            raise ValueError('paired followup requires fresh observations')
+        if o.get('error') or type(o.get('http_status')) is not int or not 200 <= o['http_status'] < 300:
+            raise ValueError('provider/HTTP error')
+        raw = o.get('raw_response')
+        if not isinstance(raw, dict) or o.get('output_sha256') != digest(raw):
+            raise ValueError('missing/output hash mismatch')
+        if raw.get('model') != q['model']:
+            raise ValueError('actual model mismatch')
+        for k in ('physical_cost_usd', 'seconds'):
+            if type(o.get(k)) not in (int, float) or not math.isfinite(o[k]) or o[k] < 0:
+                raise ValueError('unknown actual cost/latency')
+        verdict, uncertain = parse_response(q, raw)
+        reported = None if uncertain else verdict['label'] in ('duplicate', 'drifted') and verdict['score'] >= .8
+        return {'status': 'uncertain' if uncertain else 'observed', 'error': None,
+                'verdict': verdict, 'uncertain': uncertain, 'reported': reported,
+                'physical_cost_usd': o['physical_cost_usd'], 'seconds': o['seconds'],
+                'output_sha256': o['output_sha256'], 'raw_usage': {k: raw.get('usage', {}).get(k)
+                for k in ('input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens')}}
+    except (KeyError, TypeError, ValueError, AttributeError) as error:
+        return {'status': 'unknown', 'error': str(error), 'reported': None}
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--observations')
+    p.add_argument('--out', default=str(HERE / 'followup-results'))
+    args = p.parse_args()
+    spec = h.load_json(HERE / 'EXPERIMENT.json')
+    assert h.sha((FOLLOW / 'requests.jsonl').read_bytes()) == spec['followup_queue_sha256']
+    assert h.sha((FOLLOW / 'EXPERIMENT.json').read_bytes()) == spec['followup_recipe_sha256']
+    queue = h.lines(FOLLOW / 'requests.jsonl')
+    returned = h.lines(args.observations) if args.observations else []
+    indexed = defaultdict(list)
+    for o in returned:
+        indexed[o.get('request_id')].append(o)
+    cases = {r['id']: r for r in h.load_json(FOLLOW / 'cases.json')}
+    rows, by_case = [], defaultdict(dict)
+    for q in queue:
+        result = validate_observation(q, indexed[q['request_id']])
+        row = {'id': q['id'], 'variant': q['variant'], 'kind': q['kind'], 'request_id': q['request_id'],
+               'identity': q['identity'], 'source_reference': cases[q['id']], 'result': result}
+        rows.append(row)
+        by_case[q['id']][q['variant']] = result
+    contrasts = {}
+    for model in ('jev', 'claude'):
+        changes = []
+        for ident, arms in by_case.items():
+            baseline, augmented = arms[model + '_baseline'], arms[model + '_source_anchors']
+            paired = baseline['reported'] is not None and augmented['reported'] is not None
+            source = cases[ident]
+            label = source['source_label'] if source['accepted_gold'] else None
+            positive, separate = label in ('duplicate', 'drifted'), label == 'separate'
+            changes.append({'id': ident, 'accepted_gold': source['accepted_gold'], 'source_label': label,
+                'label_scope': source['label_scope'], 'paired_observed': paired,
+                'baseline_reported': baseline['reported'], 'augmented_reported': augmented['reported'],
+                'recovery': bool(paired and positive and augmented['reported'] and not baseline['reported']),
+                'lost_positive': bool(paired and positive and baseline['reported'] and not augmented['reported']),
+                'new_false_report': bool(paired and separate and augmented['reported'] and not baseline['reported']),
+                'removed_false_report': bool(paired and separate and baseline['reported'] and not augmented['reported']),
+                'unscored_source': not (positive or separate)})
+        contrasts[model] = {'rows': changes, 'paired_observed': sum(r['paired_observed'] for r in changes),
+             **{key: sum(r[key] for r in changes) for key in ('recovery', 'lost_positive', 'new_false_report', 'removed_false_report')}}
+    known_costs = [o['physical_cost_usd'] for o in returned if type(o.get('physical_cost_usd')) in (int, float) and
+                   math.isfinite(o['physical_cost_usd']) and o['physical_cost_usd'] >= 0]
+    summary = {'schema': 1, 'queue_sha256': spec['followup_queue_sha256'], 'cases': len(cases),
+        'expected_requests': len(queue), 'returned_requests': len(returned),
+        'observation_file': str(Path(args.observations).resolve()) if args.observations else None,
+        'observation_file_sha256': h.sha(Path(args.observations).read_bytes()) if args.observations else None,
+        'valid_observations': sum(r['result']['status'] == 'observed' for r in rows),
+        'unknown_or_uncertain': sum(r['result']['reported'] is None for r in rows),
+        'known_physical_cost_usd': sum(known_costs),
+        'complete_actual_cost_usd': sum(known_costs) if len(known_costs) == len(queue) == len(returned) else None,
+        'contrasts': contrasts, 'report_threshold': .8, 'worker_provider_calls': 0,
+        'production_budget_fit_claimed': False,
+        'interpretation': 'Separate teacher-learning families, observed development check. Within-model context contrast only, one fresh repetition; unknowns retained, no population or promotion claim.'}
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / 'cases.jsonl').write_bytes(b''.join(h.canonical(r) + b'\n' for r in rows))
+    h.save(out / 'summary.json', summary)
+    print(json.dumps({k: v for k, v in summary.items() if k != 'contrasts'}, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

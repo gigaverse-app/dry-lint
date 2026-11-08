@@ -1,0 +1,138 @@
+{
+  "backgrounds": [
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/candidate-first-gold/backgrounds/litellm-fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f.json.gz",
+      "scope": {
+        "exclude": [
+          "*/tests/*",
+          "*/test_*",
+          "*/migrations/*",
+          "*/generated/*",
+          "*/enterprise/*",
+          "*/_generated/*",
+          "litellm/proxy/common_utils/load_config_utils.py",
+          "litellm/secret_managers/google_secret_manager.py",
+          "litellm/proxy/common_utils/load_config_utils.py",
+          "litellm/secret_managers/google_secret_manager.py"
+        ],
+        "include": [
+          "litellm/*.py"
+        ]
+      },
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/scaled-v1/evidence/2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3.json.gz",
+      "scope": {
+        "exclude": [
+          "src/review-battery.test.ts",
+          "src/spawn-claude.test.ts"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3"
+    },
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/public-gold/backgrounds/opencode/cc996eece172fc69e35662657ea6cea9c2c7db88.json.gz",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094"
+    },
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/candidate-first-gold/backgrounds/t3code-6577c6b6185167c0e502fa01f9e8e8f2dee6ff25.json.gz",
+      "scope": {
+        "exclude": [
+          "*/node_modules/*",
+          "*/dist/*",
+          "*/build/*",
+          "*/generated/*",
+          "*/_generated/*",
+          "*/__generated__/*",
+          "*/fixtures/*",
+          "*/__fixtures__/*",
+          "*/snapshots/*",
+          "*/__snapshots__/*",
+          "*/tests/*",
+          "*/test/*",
+          "*/__tests__/*",
+          "*/spec/*",
+          "*/specs/*",
+          "*.test.ts",
+          "*.test.tsx",
+          "*.spec.ts",
+          "*.spec.tsx",
+          "*.test-d.ts",
+          "*.spec-d.ts",
+          "*.snap.ts",
+          "*.snap.tsx",
+          "*.gen.ts",
+          "*.gen.tsx",
+          "*.generated.ts",
+          "*.generated.tsx",
+          "*.d.ts"
+        ],
+        "include": [
+          "apps/*.ts",
+          "apps/*.tsx",
+          "packages/*.ts",
+          "packages/*.tsx"
+        ]
+      },
+      "sha256": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a"
+    },
+    {
+      "path": "LAB_ROOT/reports/candidate-first/corpus-verification/public-gold/backgrounds/software-agent-sdk/344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz",
+      "scope": {
+        "exclude": [
+          "*/migrations/*"
+        ],
+        "include": [
+          "*"
+        ]
+      },
+      "sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842"
+    }
+  ],
+  "dependency_install": "Archived pyproject.toml.txt and uv.lock.txt fix Python dependencies for an isolated reconstruction. Core source snapshot is archived alongside them.",
+  "full_corpus_status": "Requires original external inputs below; not a turnkey full-corpus experiment reproduction. Private inputs are not public dependencies.",
+  "held_input_hydration": "hydrate.py --case CASE --ledger EXACT_ORIGINAL_COMPLETED_JSONL --out LOCAL_FILE; each case.provenance fixes the original ledger path and SHA256. Restores exact original prompt/answer only from lawfully available local evidence. Redistribution remains held.",
+  "lab_root_alias": "LAB_ROOT",
+  "lab_root_original": "/home/researcher/dry-lint-round",
+  "live_rerun": "Not authorized or implemented here. A separately authorized adopter-owned judge runner must send the exact recorded identity/rendered_input/options using its own credentials and write new outputs. No key is included, read, proxied or used.",
+  "method": "model-function",
+  "missing_results": "Missing original answers stay unknown; rerunning a model would create a new observation, not repair the historical record.",
+  "original_implementation": "data/archived-code; .txt files are inert readable originals. Privacy comment replacements have both hashes in data/provenance.json. Original scripts can have import-time writes and absolute paths: never import them during replay.",
+  "portable_command": "python3 replay.py",
+  "portable_scope": "Reparse public recorded Claude answers, preserve held numeric verdicts and unknowns, recompute reports from original admissions and aggregate paired arm counts/costs. No retrieval reconstruction.",
+  "producer_git_commit": "15567ee22a662208e8e6ad66b2439c10c08584cf",
+  "resources": [
+    {
+      "location": "jobs/experiment-model-function/.lab-results/full-corpus-followup/",
+      "purpose": "original 79-scope inventory, source-objects, native functions/model inventories, frozen full-background sparse graphs and paired results"
+    },
+    {
+      "location": "jobs/experiment-model-function/.lab-results/funded-rounds/round2/{batch-02,supplement-02}/",
+      "purpose": "original 48-pair supplement, model resolution/field-use proofs, funding exposures and source/native verification"
+    },
+    {
+      "location": "jobs/experiment-model-function/.lab-results/funded-rounds/round1/",
+      "purpose": "frozen original model/function candidates, original exposures, 32 unanswered novel entries remain unknown"
+    },
+    {
+      "location": "reports/candidate-first/corpus-verification/",
+      "purpose": "exact input verification and accepted source decisions, including local-only/held components"
+    }
+  ],
+  "schema": 1,
+  "source_acquisition": "hydrate.py reads an existing local Git checkout/bare repository at exact revision:path and verifies full-file SHA256. No fetch or fuzzy substitution.",
+  "published_background_acquisition": "python3 backgrounds.py --goldens /tmp/dry-lint-goldens --out /tmp/study-backgrounds; uses exact git objects at bb29c4b71987008d06c2381a68b6833b6d542e3e, never substitutes revision or scope.",
+  "background_catalog_lookup": "data/background-catalog-lookup.json"
+}

@@ -1,0 +1,115 @@
+"""Thin root-only entry point to the existing sealed parallel central executor.
+
+Worker use: --dry-run only. No new provider or accounting implementation.
+Synthetic source-arm admission is checked separately from central physical spend.
+"""
+import argparse
+import importlib.util
+import json
+import math
+import sys
+import time
+from pathlib import Path
+
+HOME=Path(__file__).resolve().parent
+LAB=Path('/home/researcher/dry-lint-round')
+OPS=LAB/'jobs/judge-operations/.lab-results/judge-operations'
+CONTRACTS=OPS.parent/'lab-contracts'
+SEALED=OPS.parent/'promotion-evidence-v2'
+sys.path[:0]=[str(OPS.parent.parent/'src'),str(OPS),str(CONTRACTS),str(SEALED)]
+spec=importlib.util.spec_from_file_location('existing_promotion_v2',SEALED/'runner.py')
+central=importlib.util.module_from_spec(spec);spec.loader.exec_module(central)
+q=central.q
+# Native/extraction validation writes only to this worker's own directory.
+q.HOME=HOME/'central-cache'
+
+
+def artifact(path):return dict(path=str(path.resolve()),sha256=q.sha(path.read_bytes()))
+
+
+def validate_funding(chunk,entries):
+    receipt=json.loads((chunk/'ROOT-READY.json').read_text())
+    ledger_path=Path(receipt['synthetic_worker_ledger']['path'])
+    stage_path=Path(receipt['original_candidate_stage']['path'])
+    assert q.sha(ledger_path.read_bytes())==receipt['synthetic_worker_ledger']['sha256']
+    assert q.sha(stage_path.read_bytes())==receipt['original_candidate_stage']['sha256']
+    ledgers=q.read_rows(ledger_path);stages=q.read_rows(stage_path)
+    for entry in entries:
+        packet=entry['packet'];candidate=q.Candidate.model_validate(packet['candidate']);proof=packet['funding_proof']
+        match=[r for r in ledgers if r['repository']==packet['repository'] and r['revision']==packet['revision'] and
+               r['arm']==proof['arm'] and r['batch']==proof['batch'] and candidate.key in r['funded_keys']]
+        assert len(match)==1 and match[0]['ledger_kind']=='synthetic_diagnostic'
+        assert match[0]['cap_usd']==.04 and match[0]['estimated_usd']<=.04+1e-12
+        if proof['arm']=='fair_fixed_feature':
+            detail_path=Path(receipt['revised_rank_rows']['path'])
+            assert q.sha(detail_path.read_bytes())==receipt['revised_rank_rows']['sha256']
+            actual=q.read_rows(detail_path)
+        else:actual=stages
+        chosen=[r for r in actual if r['repository']==packet['repository'] and r['revision']==packet['revision'] and
+                r['arm']==proof['arm'] and r['batch']==proof['batch'] and r['pair']==candidate.key and r['funded']]
+        assert len(chosen)==1
+        assert chosen[0]['evidence']==q.evidence(candidate)
+        legacy=q.render(candidate,'claude')
+        assert q.sha(json.dumps(legacy,sort_keys=True).encode())==chosen[0]['question_key']
+    return len(entries)
+
+
+def round_attribution(chunk,entries,requests):
+    ready=json.loads((chunk/'ROOT-READY.json').read_text())
+    baseline=set(ready['preexisting_phase_response_keys'])
+    responses=[r for r in q.read_rows(central.PHASE/'ledger.jsonl') if r['event']=='response']
+    records=[]
+    for request in requests:
+        key=request['request_key'];events=[e for e in responses if e['request_key']==key]
+        assert len(events)<=1
+        p=central.PHASE/'observations'/(key+'.json')
+        obs=json.loads(p.read_bytes()) if p.exists() else None
+        owned=bool(obs and obs.get('packet_file')==request['packet_file'] and obs.get('packet_id')==request['packet']['id'])
+        eligible=bool(events and events[0]['accounted'] and key not in baseline and not request['cache'] and owned)
+        records.append(dict(case_id=request['case_id'],request_key=key,judge=request['identity']['kind'],
+            response_known=bool(obs and obs.get('verdict') is not None and not obs.get('error')),
+            usage_accounted=bool(events and events[0]['accounted']),cached_or_preexisting=key in baseline or bool(request['cache']),
+            attributed_to_this_direction_and_round=eligible,
+            new_physical_usd=events[0]['usd'] if eligible else 0,
+            observation=str(p) if p.exists() else None,
+            unknown_answer_not_negative=bool(obs is None or obs.get('verdict') is None or obs.get('error'))))
+    value=dict(method='budget-ranking',round=ready['round'],chunk=str(chunk),
+        actual_unique_new_paid_usd=sum(r['new_physical_usd'] for r in records),
+        new_paid_requests=sum(r['attributed_to_this_direction_and_round'] for r in records),
+        required_direction_round_minimum_usd=.20,source_truth='provider observations, not source-accepted labels',
+        cached_and_shared_other_direction_cost_excluded=True,records=records,
+        phase_ledger=str(central.PHASE/'ledger.jsonl'),phase_ledger_sha256=q.sha((central.PHASE/'ledger.jsonl').read_bytes()))
+    q.atomic_json(chunk/'round-spend-attribution.json',value)
+    return value
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--chunk',required=True,type=Path)
+    p.add_argument('--dry-run',action='store_true');p.add_argument('--execute',action='store_true')
+    p.add_argument('--global-room-usd',type=float);a=p.parse_args()
+    assert a.dry_run!=a.execute,'Choose exactly one: worker dry-run or root execute'
+    chunk=a.chunk.resolve();assert chunk.is_relative_to(HOME)
+    central.OUT=chunk
+    ready,entries,requests,typed=central.validate()
+    validate_funding(chunk,entries)
+    paid=central.phase_paid();spent=None
+    if a.execute:
+        assert a.global_room_usd is not None and math.isfinite(a.global_room_usd) and a.global_room_usd>=0
+        started=time.monotonic()
+        try:
+            # Unchanged eight-request central executor, shared process lock,
+            # durable intents/raw/usage and phase-wide exact request dedup.
+            record_dirs=set(q.observation_directories(central.PHASE))|set(OPS.glob('*/observations'))|set(OPS.parent.glob('*/observations'))
+            records=q.observations(sorted(record_dirs))
+            central.v1.parallel_execute(central.PHASE,requests,typed,room=min(19.,paid+a.global_room_usd),records=records)
+        finally:
+            central.export(entries,requests,typed,started,time.monotonic())
+            spent=round_attribution(chunk,entries,requests)
+    print(json.dumps(dict(status='existing_central_intake_validated',method='budget-ranking',round=ready['round'],
+        cases=len(entries),requests=len(requests),synthetic_admission_scope='Sonnet-only .04 family batch; NOT actual PR/native or paired-judge deployment funding',
+        phase_paid_usd=paid,actual_new_direction_paid_usd=spent['actual_unique_new_paid_usd'] if spent else None,
+        max_concurrency=8,provider_calls_by_worker=0 if a.dry_run else 'root only',
+        ready_sha256=q.sha((chunk/'ROOT-READY.json').read_bytes()))))
+
+
+if __name__=='__main__':main()

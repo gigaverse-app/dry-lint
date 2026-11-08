@@ -1,0 +1,23 @@
+{
+  "LiteLLM-LICENSE.txt": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+  "OpenHands-LICENSE.txt": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+  "README.md": "60f7e6329b56efe96547bfbe1b9170b50a2e73e2fd60ff61a9fb3ea2b7f97d95",
+  "admissions.jsonl.gz": "1ec84b7fdc5ac5279ce28a97ef849781044fd1e11e5cb32e555b4a8d94296311",
+  "answers.jsonl.gz": "54a82b956d4624c96ffcff8b5be8cbf003995394395dc8a47accca753fa77a1a",
+  "baseline_operation_blocks.py": "4e46214dcab392e543a3b87f6fa2ceaad45c6c3b266d7a651faf8d36113463f0",
+  "cases.jsonl.gz": "d0995920fe93ef718f7c3611453cf959c30b44a28fc36048ce6acc471e3f42a6",
+  "concept-prompt.txt": "e09e027841e9e7d3d5cdbf2fa651179d6b189cb6de35fbf523e01088b00135cd",
+  "configuration.json": "edd4531fcbe64726f8ab1c1148356ce31562bb798685592b2538742dd5cf18e1",
+  "dry-lint-LICENSE.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "helper_fallback_v1.py": "fdc63d34cedea827749f268612cc0386a3c76d91804be1616efb65c50c71d03a",
+  "input-audit.json": "3bb58774228a9776ec4b3286455bc0706b522b6e54ad918740bafc97da409a05",
+  "questions.jsonl.gz": "46f9317d3254afe1c54e2962284512a5bfd2ab8aa7ca75da7dee539e16b80201",
+  "recipe.json": "62e6bfb122234bca4d79a879347e2587ab2806e3bfb04e2a703666afcdda08b7",
+  "replay-result.json": "d43cf011330f722e5c71df4ac99d2acf96511a197511dc26e5224163e4e8c750",
+  "replay.py": "08bc2154e7e07aee523ae445002d631ec64f5cf96ba4d8acfa8b08db99665443",
+  "retrieval-recordings.jsonl.gz": "6a62a05ac7db320bf99a2892921c07aa324f726286366e737ad52a8f892bf643",
+  "shared-operations-prompt.txt": "d16aa74739f455d380262e448db3d28a68241c4af47c4f87549b2dc83df6474f",
+  "source-decisions.jsonl.gz": "5d8575f511e9d0f6df5971e77a4ca47bd6a8dc14259574ac112b8f53f12e256e",
+  "test_replay_policy.py": "3cd4534ab27111a57ea25213420fa6ba2dfe85004ffdffe1ee151cf0ae030871",
+  "verify_hashes.py": "edb75c710856b247a3861988ee06c16069a9c1bf4c812f0c058fa0cf85e80fd8"
+}

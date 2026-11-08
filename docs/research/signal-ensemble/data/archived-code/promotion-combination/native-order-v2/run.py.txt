@@ -1,0 +1,176 @@
+"""One frozen-list protected block/dense comparison; no extraction, fitting or providers."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import collections,fcntl,gzip,hashlib,json,resource,time
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger,estimate,judging_input
+from dry_lint.detector import why_skipped
+from dry_lint.models import Candidate,Function,evidence
+from dry_lint.settings import Settings
+P=Path(__file__).resolve().parent;L=P.parent.parent;B=L/'full-corpus';S=B/'span-resolved-v1';ROOT=Path('/home/researcher/dry-lint-round');CPU=ROOT/'jobs/experiment-cpu-embeddings/.lab-results/full-corpus/cohorts';BLOCK=ROOT/'jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/cohorts'
+lock=(P/'run.lock').open('w');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+sha=lambda b:hashlib.sha256(b).hexdigest()
+def jl(p):return [json.loads(l) for l in p.open() if l.strip()]
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+reg=json.loads((P/'EXPERIMENT.json').read_text());assert sha((P/'EXPERIMENT.json').read_bytes())==(P/'EXPERIMENT.sha256').read_text().strip();arms=reg['arms'];profiles=list(reg['profiles']);cohorts=jl(B/'inputs/cohorts.jsonl');inventory=jl(B/'inputs/rows.jsonl');meta={r['row_id']:r for r in inventory};manifest=[];allpaired=[];allledgers=[];allex=[];allcoverage=[];selection=[];runtime=[];nativeproofs={};start=time.perf_counter();cpu=time.process_time();checks=collections.Counter()
+settings=Settings(budget={'usd':.04});judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False)
+def project(path,dest,predicate):
+ before=path.stat();h=hashlib.sha256();out=[]
+ with path.open('rb') as f:
+  for raw in f:
+   h.update(raw)
+   if raw.strip():
+    r=json.loads(raw)
+    if predicate(r):out.append(r)
+ after=path.stat();assert (before.st_size,before.st_mtime_ns)==(after.st_size,after.st_mtime_ns),'producer file changed while consuming'
+ lines(dest,out);manifest.append(dict(source=str(path),source_sha256=h.hexdigest(),source_bytes=before.st_size,snapshot=str(dest),snapshot_sha256=sha(dest.read_bytes()),selected_records=len(out)));return out
+for c in cohorts:
+ cid=c['cohort_id'];tick=time.perf_counter();out=P/cid;out.mkdir(exist_ok=True);fixed=S/cid;bg=BenchBackground.decode((fixed/'background.json.gz').read_bytes());ids=[d.id for d in bg.documents];assert bg.repository==c['repository'] and bg.revision==c['revision'] and bg.scope==c['scope'];assert sha((fixed/'background.json.gz').read_bytes())==c['background_sha256']
+ pools={(q['query'],q['profile']):q for q in jl(fixed/'query-pools.jsonl')};baseled=[r for r in jl(fixed/'ledger.jsonl') if r['arm']=='baseline' and r['profile']=='default'];fixedrows=[r for r in jl(fixed/'paired-rows.jsonl') if r['arm']=='baseline' and r['profile']=='default'];queries={q for r in baseled for q in r['queries']}
+ with gzip.open(L/'learned-ensemble-v1'/cid/'functions.json.gz','rt') as f:fs={int(k):Function.model_validate(v) for k,v in json.load(f).items()}
+ own_fs=set(fs);dense={};sparse={};blocks={};cpu_dir=CPU/c['background_sha256'];block_dir=BLOCK/cid;dense_status='absent_published_neighbors';block_status='not_applicable_no_python_paths' if not any(d.id.split('::')[0].endswith('.py') for d in bg.documents) else 'missing_published_block_scores'
+ if (cpu_dir/'neighbors.jsonl').exists():
+  d=json.loads((cpu_dir/'manifest.json').read_text());rp=d['repository'];assert rp['repository']==c['repository'] and rp['revision']==c['revision'] and rp['background_proof']['sha256']==c['background_sha256'] and d['scope']==c['scope']
+  for r in project(cpu_dir/'neighbors.jsonl',out/'dense-neighbors.jsonl',lambda r:r['query_row'] in queries):
+   q=r['query_row'];assert r['query_id']==ids[q]
+   for t in r['dense_raw_top20']:assert ids[t['row']]==t['id']
+   dense[q]=r['dense_raw_top20'];sparse[q]=r['sparse_raw_top20']
+  dense_status='published_dense_top20'
+ if (block_dir/'per-query.jsonl').exists():
+  for r in project(block_dir/'per-query.jsonl',out/'block-lists.jsonl',lambda r:r['query'] in queries):
+   blocks[r['query']]=[t for t in r['block_candidates'] if t['block_floor_pass'] and t['full_floor_pass'] and not t['filter']]
+   for t in blocks[r['query']]:assert t['score']>=.65 and t['full_score']>=.1 and len(t['shared_ops'])>=3 and len(t['shared_calls'])>=2 and t['anchors']
+  if blocks:block_status='published_guarded_blocks'
+ # Production-order correction reuses recorded scores/ranks only.
+ native_cache=None;native_query={};native_adapter=[]
+ for q in queries:
+  if q not in sparse:continue
+  path=ids[q].split('::')[0]
+  for prof in ['default','balanced']:
+   old=pools[q,prof];floor=old['raw_floor'];cap=3 if prof=='default' else 20
+   allowed=lambda t:(prof=='balanced' or ids[t].split('::')[0]!=path) and ((path.endswith('.py'))==(ids[t].split('::')[0].endswith('.py'))) and ids[t]!=ids[q]
+   selected=[(t['row'],t['score']) for t in sparse[q] if t['score']>=floor and allowed(t['row'])][:cap]
+   truncated=len(selected)<cap and len(sparse[q])==20 and sparse[q][-1]['score']>=floor
+   if truncated and (fixed/'rank-cache.npz').exists():
+    if native_cache is None:
+     import numpy as np
+     with np.load(fixed/'rank-cache.npz') as cached:native_cache={k:cached[k] for k in ['queries','native_rank','raw']}
+     native_query={int(v):n for n,v in enumerate(native_cache['queries'])}
+    n=native_query[q];rr=native_cache['native_rank'][n];sc=native_cache['raw'][n];order=sorted((t for t in range(len(ids)) if rr[t]>0 and sc[t]>=floor and allowed(t)),key=lambda t:rr[t]);selected=[(t,float(sc[t])) for t in order[:cap]];truncated=False
+   before=old['arm_specs']['baseline'];after=[(t,'raw',score) for t,score in selected]
+   if before!=after:native_adapter.append(dict(query=q,profile=prof,before=before,after=after,truncated=truncated))
+   if not truncated:old['arm_specs']['baseline']=after;old['eligible_channels']['raw']=[t for t,s in selected]
+ dump(out/'native-baseline-adapter.json',dict(changes=native_adapter,scoring_calls=0))
+ needed=set(queries)
+ for (q,p),pool in pools.items():needed.update(pool['eligible_channels']['raw'])
+ for rs in dense.values():needed.update(r['row'] for r in rs if r['score']>=.65)
+ for rs in blocks.values():needed.update(r['target'] for r in rs)
+ # Canonical native cache is reused. New slots use published native-resolved Functions only.
+ newnative={};sourceproof={}
+ if (cpu_dir/'functions-policy-resolver-v1.jsonl').exists():
+  recs=project(cpu_dir/'functions-policy-resolver-v1.jsonl',out/'published-native-functions.jsonl',lambda r:r['position'] in needed and r['position'] not in fs)
+  for r in recs:
+   if r['status']=='resolved_native' and r.get('function'):
+    f=Function.model_validate(r['function']);assert f.qualname==ids[r['position']] and f.hash and f.line>0 and f.end_line>=f.line;newnative[r['position']]=f
+ if (cpu_dir/'source-proof.jsonl').exists():
+  for r in project(cpu_dir/'source-proof.jsonl',out/'published-source-proofs.jsonl',lambda r:r['row'] in needed):sourceproof[r['row']]=r
+ saved=json.loads((fixed/'sources.json').read_text())['files']
+ def source_file(i,f):
+  proof=sourceproof.get(i);a=saved.get(f.path);path=Path(a['snapshot']) if a else Path(proof['source_file']) if proof and proof.get('source_file') else None;digest=a['sha256'] if a else proof['file_sha256'] if proof else None
+  if path is None or not path.is_file():
+   alt=L/'learned-ensemble-v1'/cid/'sources'/f.context_digest
+   if f.context_digest and alt.is_file():path=alt;digest=f.context_digest
+  if path and path.is_file() and digest:
+   raw=path.read_bytes();assert sha(raw)==digest;target=P/'inputs/native'/digest;target.parent.mkdir(parents=True,exist_ok=True)
+   if not target.exists():target.write_bytes(raw)
+   return target,digest,raw
+  return None
+ for i,f in newnative.items():
+  sf=source_file(i,f)
+  if not sf:continue
+  path,digest,raw=sf;f.context=(f.context+'\n\n' if f.context else '')+'Owning file source prefix (may be truncated; full file in source proof):\n'+raw.decode()[:6000];f.context_digest=digest;fs[i]=f
+ for i in needed:
+  if i in fs:
+   sf=source_file(i,fs[i])
+   if sf:nativeproofs[cid,i]=dict(path=str(sf[0]),sha256=sf[1],source_id=fs[i].qualname,line=fs[i].line,end_line=fs[i].end_line,body_sha256=sha(fs[i].code.encode()))
+ with gzip.open(out/'functions.json.gz','wt') as f:json.dump({str(k):v.model_dump(mode='json') for k,v in fs.items() if k in needed},f,sort_keys=True)
+ # Lists retain frozen channel order. Candidate limits are not enlarged after seeing labels.
+ def candidates_for(q,profile,ch):
+  path=ids[q].split('::')[0]
+  if ch=='block':
+   if not path.endswith('.py'):return [],'not_applicable_non_python',False
+   if q not in blocks:return [],'missing_published_block_query',True
+   return [(r['target'],r['score']) for r in blocks[q] if profile!='default3' or ids[r['target']].split('::')[0]!=path],'available',False
+  if q not in dense:return [],'missing_published_dense_query',True
+  rr=[]
+  for r in dense[q]:
+   t=r['row'];other=ids[t].split('::')[0]
+   if r['score']<.65:continue
+   if (path.endswith('.py'))!=(other.endswith('.py')) or ids[t]==ids[q]:continue
+   if profile=='default3' and path==other:continue
+   rr.append((t,r['score']))
+  tail=bool(len(dense[q])==20 and dense[q][-1]['score']>=.65)
+  return rr,'available_top20_tail_unknown' if tail else 'available',False
+ def cand(q,t,score,lane,ch):
+  if q not in fs or t not in fs:return None
+  return Candidate(new=fs[q],existing=fs[t],similarity=score,comparer='promotion-protected-v1:'+ch,similarity_reusable=False,filtered=why_skipped(fs[q],fs[t],settings),lane=lane)
+ paired=[];ledgers=[];exposures=[];qrecords=[]
+ for baseline_campaign in baseled:
+  qq=baseline_campaign['queries'];batch=baseline_campaign['batch'];gold=[r for r in fixedrows if all(d['query_position'] in qq for d in r['directions'])]
+  for profile in profiles:
+   specs=[]
+   if profile in ['default3','default-plus-tfidf20']:
+    specs.extend((q,t,'baseline',score,'tfidf-default') for q in qq for t,_,score in pools[q,'default']['arm_specs']['baseline'])
+   if profile in ['balanced20','default-plus-tfidf20']:
+    lane='exploration' if profile=='default-plus-tfidf20' else 'baseline';specs.extend((q,t,lane,score,'tfidf20') for q in qq for t,_,score in pools[q,'balanced']['arm_specs']['baseline'])
+   seen=set();base=[]
+   for q,t,lane,score,ch in specs:
+    key=tuple(sorted((q,t)))
+    if key in seen:continue
+    seen.add(key);base.append((q,t,lane,score,ch))
+   for arm in arms:
+    ordered=base.copy();chosen=set(seen);support=True;states=[]
+    if arm!='baseline':
+     channels=['block'] if arm=='protected-block2' else ['dense'] if arm=='protected-dense2' else ['block','dense']
+     for q in qq:
+      ll={};unknown={};indices=collections.Counter();reasons={}
+      for ch in channels:
+       ll[ch],reasons[ch],unknown[ch]=candidates_for(q,profile,ch);support=support and not unknown[ch]
+      extra=[];exhausted=set();turn=0
+      while len(extra)<2 and len(exhausted)<len(channels):
+       ch=channels[turn%len(channels)];turn+=1
+       if ch in exhausted:continue
+       found=False
+       while indices[ch]<len(ll[ch]):
+        t,score=ll[ch][indices[ch]];indices[ch]+=1;key=tuple(sorted((q,t)))
+        if key in chosen:continue
+        chosen.add(key);extra.append((q,t,'exploration',score,ch));found=True;break
+       if not found:exhausted.add(ch)
+      if len(extra)<2 and 'dense' in channels and reasons['dense']=='available_top20_tail_unknown':support=False;reasons['dense']='missing_dense_beyond_frozen_top20'
+      assert len(extra)<=2;checks['query_extra_cap']+=1;ordered.extend(extra);states.append(dict(query=q,reasons=reasons,chosen=[dict(target=t,channel=ch,score=score) for _,t,_,score,ch in extra]));selection.append(dict(cohort_id=cid,batch=batch,profile=profile,arm=arm,**states[-1]))
+    native=[];missing=[]
+    for q,t,lane,score,ch in ordered:
+     candidate=cand(q,t,score,lane,ch)
+     if candidate is None:missing.append(dict(query=q,target=t,channel=ch));continue
+     native.append((q,t,ch,candidate))
+    allowed=[c for *_,c in native if not c.filtered];budget=Ledger(settings);selected=budget.select(judge,allowed) if not missing else [];funded=[allowed[i] for i in selected];keys={c.key for c in funded};budget.charge(judge,funded,len(allowed)-len(funded));assert budget.usd<=.04000000001;checks['campaign_budget']+=1
+    funded_positions={tuple(sorted((q,t))) for q,t,ch,candidate in native if candidate.key in keys};baseline_rec=next((r for r in reversed(ledgers) if r['profile']==profile and r['batch']==batch and r['arm']=='baseline'),None)
+    if baseline_rec and not missing and baseline_rec['source_complete']:
+     assert set(baseline_rec['funded_keys'])<=keys;checks['baseline_loss_invariant']+=1
+    rec=dict(cohort_id=cid,batch=batch,profile=profile,arm=arm,queries=qq,source_complete=not missing,channel_supported=support,missing_candidates=missing,channel_states=states,proposed=len(ordered),baseline_proposed=len(base),funded_keys=sorted(keys),funded_positions=[list(k) for k in sorted(funded_positions)],estimated_usd=budget.usd if not missing else None,baseline_lost_keys=sorted(set(baseline_rec['funded_keys'])-keys) if baseline_rec and not missing and baseline_rec['source_complete'] else None);ledgers.append(rec)
+    # The old complete default baseline uses the same functions/order/cost contract.
+    if arm=='baseline' and profile=='default3' and not missing and baseline_campaign['complete_candidate_source']:
+     checks['original_default_funding_parity' if set(baseline_campaign['funded_keys'])==keys and abs(baseline_campaign['estimated_usd']-budget.usd)<1e-12 else 'native_default_baseline_delta']+=1
+    local={}
+    for q,t,ch,candidate in native:
+     key=tuple(sorted((q,t)));value=candidate.key in keys if not missing else None;local[key]=(value,candidate.filtered,estimate(judge,[candidate],settings));exposures.append(dict(cohort_id=cid,batch=batch,profile=profile,arm=arm,query=q,target=t,channel=ch,key=candidate.key,funded=value,filtered=candidate.filtered,estimated_pair_usd=estimate(judge,[candidate],settings),source_supported_campaign=support,similarity=candidate.similarity,prompt_sha256=sha(judging_input(judge,candidate).encode()),source_evidence=evidence(candidate)))
+    for r in gold:
+     pp=tuple(sorted([r['directions'][0]['query_position'],r['directions'][0]['target_position']]));retrieved=pp in chosen;v=local.get(pp);fund=v[0] if v else None if retrieved else False
+     loss='retrieval' if not retrieved else 'missing_native_source' if v is None or fund is None else 'core_filter:'+str(v[1]) if v[1] else 'funded_judge_unknown' if fund else 'budget'
+     paired.append({k:r[k] for k in ['row_id','id','dataset','cohort_id','repository','revision','scope','pair_id','family_id','label','record_kind','accepted_gold']}|dict(batch=batch,profile=profile,arm=arm,retrieved=retrieved,funded=fund,supported=support,source_complete=not missing,estimated_pair_usd=v[2] if v else None,first_loss=loss,positions=list(pp),emitted_report=None))
+ for q in queries:allcoverage.append(dict(cohort_id=cid,query=q,native_function=q in fs,dense_query=q in dense,block_query=q in blocks,dense_status=dense_status,block_status=block_status))
+ lines(out/'paired-rows.jsonl',paired);lines(out/'ledger.jsonl',ledgers);lines(out/'exposures.jsonl',exposures);allpaired.extend(paired);allledgers.extend(ledgers);allex.extend(exposures);runtime.append(dict(cohort_id=cid,wall_seconds=time.perf_counter()-tick,new_native_cached_functions=len(set(fs)-own_fs),queries=len(queries)));print(json.dumps(runtime[-1]),flush=True)
+lines(P/'paired-rows.jsonl',allpaired);lines(P/'ledger.jsonl',allledgers);lines(P/'exposures.jsonl',allex);lines(P/'query-selections.jsonl',selection);lines(P/'coverage-queries.jsonl',allcoverage);dump(P/'INPUT-MANIFEST.json',manifest);dump(P/'NATIVE-PROOFS.json',[dict(cohort_id=k[0],position=k[1],**v) for k,v in nativeproofs.items()]);dump(P/'RUN-READY.json',dict(backgrounds=len(cohorts),checks=dict(checks),wall_seconds=time.perf_counter()-start,cpu_seconds=time.process_time()-cpu,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,new_model_fits=0,new_source_extractions=0,provider_calls=0,cohorts=runtime))

@@ -1,0 +1,179 @@
+# PUBLICATION COPY: private lab roots/identities redacted; algorithm otherwise unchanged.
+"""H05 adapter for the settled H02 contract. No provider client or keys."""
+import json,sys,subprocess,importlib.util,shutil
+from pathlib import Path
+from collections import defaultdict
+O=Path(__file__).resolve().parent;ROOT=O.parents[1];sys.path.insert(0,str(ROOT/'src'))
+import h02_support as h
+from dry_lint.models import Candidate,Run,Verdict,evidence
+from dry_lint.settings import Settings
+from dry_lint.detector import Detector,touched
+from dry_lint.discovery import CampaignStore,reservation_cost
+P=O/'provider-staging';PUBLISHED=Path('/PRIVATE_LAB_ROOT/reports/historical-pr-replay/provider/h05-responses.jsonl')
+CONTRACT=Path('/PRIVATE_LAB_ROOT/reports/historical-pr-replay/provider/response-contract.json')
+G=Path('/PRIVATE_LAB_ROOT/research-corpus/history-inputs/git/private-repository-a.git')
+MANIFEST=Path('/PRIVATE_LAB_ROOT/research-corpus/history-inputs/historical-trial/captures/private-repository-a-7001/manifest.json')
+def read(p):return json.loads(Path(p).read_text())
+def git(*a):return subprocess.check_output(['git','--git-dir',str(G),*a]).decode().strip()
+def settings():return Settings.model_validate(read(O/'config-source-audit.json')['experiment_settings'])
+def packet(ordinal):return read(O/f'candidates-{ordinal}.json')
+_SOURCE_POOLS={}
+def authenticate(request):
+ """Rebuild source/diff/native candidate from bare Git, independently of request bodies."""
+ origin=request['request_source'];ordinal=origin['ordinal'];m=read(MANIFEST);rev=m['revisions'][ordinal];pk=packet(ordinal);run=pk['run']
+ assert origin['source_binding_kind']=='authenticated_git_diff','source_binding_kind'
+ assert origin['manifest_sha256']==h.sha(MANIFEST.read_bytes()),'manifest_changed'
+ assert origin['candidate_packet_sha256']==h.sha((O/f'candidates-{ordinal}.json').read_bytes()),'packet_changed'
+ assert run['head']==rev['head']==origin['head'] and run['merge_base']==rev['merge_base']==origin['merge_base'],'source_pins_mismatch'
+ assert origin['tree']==git('rev-parse',run['head']+'^{tree}'),'source_tree_mismatch'
+ assert origin['base']==m['history']['base'] and origin['repository']==m['history']['repository'] and origin['pull_request']==7001,'run_identity_mismatch'
+ s=settings();assert request['effective_settings']==s.model_dump(mode='json'),'source_settings_mismatch'
+ source_digests={str(path.relative_to(ROOT)):h.sha(path.read_bytes()) for path in (ROOT/'src/dry_lint').rglob('*.py')}
+ assert source_digests==read(O/'implementation-provenance.json')['source_sha256'],'source_implementation_changed'
+ cache_key=h.digest([str(G),origin['head'],origin['merge_base'],origin['candidate_packet_sha256'],origin['manifest_sha256'],h.sha((O/f'diff-{ordinal}.patch').read_bytes()),s.model_dump(mode='json'),source_digests])
+ if cache_key not in _SOURCE_POOLS:
+  d=Detector.for_tree(G,run['head'],s,strict=True)
+  diff=git('diff','--no-ext-diff','-U0',run['merge_base'],run['head'],'--','*.py','*.js','*.jsx','*.ts','*.tsx')
+  assert diff==(O/f'diff-{ordinal}.patch').read_text().strip(),'source_diff_mismatch'
+  import re
+  lines={};path=None
+  for line in diff.splitlines():
+   if line.startswith('+++ '):path=None if line.endswith('/dev/null') else line[6:];lines.setdefault(path,set())
+   elif line.startswith('@@') and path:
+    match=re.search(r'\+(\d+)(?:,(\d+))?',line);start=int(match[1]);count=int(match[2] or 1);lines[path].update(range(start,start+max(count,1)))
+  changed=touched(d.functions,lines);assert pk['changed']==[f.qualname for f in changed],'changed_queries_mismatch'
+  native=d.candidates(changed);assert pk['candidates'][:len(native)]==[c.model_dump(mode='json') for c in native],'protected_candidate_changed'
+  expected=list(native)
+  # Reconstruct the same frozen half-name generator, retaining original IDF and renormalizing.
+  import math
+  vectors=[]
+  for f in d.functions:
+   v={t:w*(.5 if t.startswith('fn:') else 1) for t,w in d.comparer.tfidf.vector(f.tokens).items()};norm=math.sqrt(sum(w*w for w in v.values())) or 1;vectors.append({t:w/norm for t,w in v.items()})
+  seen={c.key for c in native}
+  for q in changed:
+   qi=d.position[q.qualname];v=vectors[qi]
+   raw=d.comparer.tfidf.similar(q.tokens,exclude={qi});top={i for i,score in [(i,sc) for i,sc in raw if sc>=s.discovery.min_similarity][:20]}
+   ranked=sorted(((i,sum(w*vectors[i].get(t,0) for t,w in v.items())) for i in range(len(vectors)) if i!=qi),key=lambda x:-x[1])
+   for i,score in ranked:
+    if score<s.discovery.min_similarity:break
+    if i in top:continue
+    extra=d.pair(q,d.functions[i],score).model_copy(update={'lane':'exploration'})
+    if extra.key in seen or extra.filtered:continue
+    expected.append(extra);seen.add(extra.key);break
+  assert pk['candidates']==[c.model_dump(mode='json') for c in expected],'frozen_variant_changed'
+
+  _SOURCE_POOLS[cache_key]=dict(expected=[c.model_dump(mode='json') for c in expected],native_keys={c.key for c in native})
+ cached=_SOURCE_POOLS[cache_key];expected=[Candidate.model_validate(raw) for raw in cached['expected']]
+ assert pk['candidates']==cached['expected'],'frozen_variant_changed'
+ if request['identity']['pair'] not in cached['native_keys']:
+  assert all(row['arm']=='protected_half_name' for row in request['funding']['arm_reservations']),'variant_candidate_not_in_current20'
+ matches=[c for c in expected if c.key==request['identity']['pair']];assert len(matches)==1 and matches[0].model_dump(mode='json')==request['candidate'],'source_candidate_mismatch'
+ c=matches[0];j=h.OfflineJudge(s,{})
+ assert request['identity']==identity(c,j),'identity_controls_mismatch'
+ assert request['funding']['reservation_event']['admitted'] is True,'not_admitted'
+ bindings={j.key(c):{h.digest(j.stamp(c))}}
+ return c,s,bindings
+
+def identity(c,j):return dict(pair=c.key,evidence=evidence(c),context_hash=c.context_hash,new=c.new.qualname,existing=c.existing.qualname,new_source_sha256=h.sha(c.new.code.encode()),existing_source_sha256=h.sha(c.existing.code.encode()),new_context_digest=c.new.context_digest,existing_context_digest=c.existing.context_digest,control_ids=[c.key,evidence(c),j.key(c)])
+def ledger_state(path):
+ import sqlite3,hashlib
+ from contextlib import closing
+ scope=hashlib.sha256(b'gigaverse-app/private-repository-a|pr:7001').hexdigest()
+ with closing(sqlite3.connect('file:'+str(Path(path).resolve())+'?mode=ro',uri=True)) as db:
+  row=db.execute('SELECT state FROM campaigns WHERE key = ?',(scope,)).fetchone()
+ assert row is not None,'funding_campaign_missing'
+ return json.loads(row[0])
+
+def frozen_dir(key):return P/'frozen-funding'/key
+
+def freeze(request,root):
+ """Freeze first provenance once; later ledger mutations cannot change a contract."""
+ key=request['answer_key'];folder=frozen_dir(key)
+ if folder.exists():
+  record=read(folder/'record.json');assert record['request_payload_sha256']==request['request_payload_sha256'],'frozen_contract_changed';return
+ folder.mkdir(parents=True);records=[]
+ for arm in request['funding']['arm_reservations']:
+  src=Path(arm['ledger_file']);assert src.is_file() and h.sha(src.read_bytes())==arm['ledger_sha256'],'funding_source_ledger_changed'
+  target=folder/(arm['arm']+'-ledger.sqlite3');shutil.copyfile(src,target)
+  state=arm['state'];assert ledger_state(target)==state,'funding_sqlite_state_mismatch';h.dump(folder/(arm['arm']+'-campaign.json'),state)
+  records.append(dict(arm=arm['arm'],contract_arm=arm,ledger_copy=str(target),ledger_sha256=h.sha(target.read_bytes())))
+ h.dump(folder/'source-contract.json',request)
+ h.dump(folder/'record.json',dict(answer_key=key,request_payload_sha256=request['request_payload_sha256'],root=str(root),arms=records))
+
+def verify_frozen(request):
+ folder=frozen_dir(request['answer_key']);record=read(folder/'record.json')
+ assert record['request_payload_sha256']==request['request_payload_sha256'],'frozen_contract_changed'
+ assert read(folder/'source-contract.json')==request,'frozen_source_contract_changed'
+ assert [r['contract_arm'] for r in record['arms']]==request['funding']['arm_reservations'],'frozen_funding_changed'
+ for row in record['arms']:
+  assert h.sha(Path(row['ledger_copy']).read_bytes())==row['ledger_sha256']==row['contract_arm']['ledger_sha256'],'frozen_ledger_changed'
+  assert read(folder/(row['arm']+'-campaign.json'))==row['contract_arm']['state']==ledger_state(row['ledger_copy']),'frozen_campaign_changed'
+ return record
+
+def get_frontiers(root):
+ s=settings();j=h.OfflineJudge(s,{});result=[]
+ for arm in ['current20','protected_half_name']:
+  events=read(root/arm/'observations.json');missing=[e for e in events if e['status']=='admitted_unknown']
+  assert len(missing)<=1,'more_than_first_unknown_exported'
+  if not missing:continue
+  event=missing[0];last_ordinal=len(read(MANIFEST)['revisions'])-1;state=read(root/arm/f'campaign-{last_ordinal}.json')
+  for ordinal in range(8):
+   pk=packet(ordinal);tree=git('rev-parse',pk['run']['head']+'^{tree}')
+   matches=[]
+   n=sum(read(O/'candidate-deltas.json')[ordinal]['current_counts'].values())
+   raws=pk['candidates'][:n] if arm=='current20' else pk['candidates']
+   for raw in raws:
+    c=Candidate.model_validate(raw)
+    if j.key(c)==event['question_key'] and j.stamp(c)==event['stamp']:matches.append(c)
+   if not matches:continue
+   assert len(matches)==1;c=matches[0]
+   attempts=[x for x in state['attempts'] if x['evidence']==evidence(c,j.name+':'+j.version) and x['revision']==tree and x['status']=='failed']
+   if not attempts:continue
+   assert len(attempts)==1 and attempts[0]['usd']==reservation_cost(j,c,s)>0,'missing_is_not_funded'
+   result.append(dict(arm=arm,ordinal=ordinal,candidate=c,packet=pk,state=state,attempt=attempts[0],event=event));break
+  else:raise AssertionError('unknown_request_has_no_matching_admitted_candidate')
+ return result
+
+def build_request(frontiers,root):
+ first=frontiers[0];ordinal=first['ordinal'];c=first['candidate'];pk=first['packet'];s=settings();j=h.OfflineJudge(s,{})
+ arms=[]
+ for f in frontiers:
+  assert j.stamp(f['candidate'])==j.stamp(c),'ambiguous_key_source_binding'
+  # A common prompt may have different ranking metadata on another tree. Freeze the first exact source/rank exposure; record all others separately.
+  if f['candidate'].model_dump(mode='json')!=c.model_dump(mode='json') or f['attempt']['revision']!=first['attempt']['revision']:continue
+  path=root/f['arm']/'ledger.sqlite3'
+  arms.append(dict(arm=f['arm'],ledger_file=str(path),ledger_sha256=h.sha(path.read_bytes()),state=f['state'],attempt=f['attempt']))
+ origin=dict(cohort='pinned-git',history='private-repository-a-7001',arm='+'.join(f['arm'] for f in frontiers),ordinal=ordinal,repository=pk['run']['repository'],pull_request=7001,base=pk['run']['base'],head=pk['run']['head'],tree=git('rev-parse',pk['run']['head']+'^{tree}'),merge_base=pk['run']['merge_base'],source_binding_kind='authenticated_git_diff',candidate_packet_file=str(O/f'candidates-{ordinal}.json'),candidate_packet_sha256=h.sha((O/f'candidates-{ordinal}.json').read_bytes()),manifest_file=str(MANIFEST),manifest_sha256=h.sha(MANIFEST.read_bytes()))
+ attempt=first['attempt'];state=first['state']
+ request=dict(contract='h02-provider-handoff-v1',experiment='H05',answer_key=j.key(c),candidate=c.model_dump(mode='json'),rendered_prompt=j.input_text(c),prompt_sha256=h.sha(j.input_text(c).encode()),judge=dict(name=j.name,version=j.version,model=j.model,policy=j.prompt_policy,template=j.template,template_sha256=h.sha(j.template.encode()),template_version=h.PROMPT_POLICIES[j.prompt_policy][0],max_tokens=j.max_tokens,max_retries=0,effort=j.effort),effective_settings=s.model_dump(mode='json'),effective_settings_sha256=j.settings_sha256,request_source=origin,identity=identity(c,j),funding=dict(actually_reserved=True,reservation_estimate_usd=reservation_cost(j,c,s),reservation_event=dict(admitted=True,revision=attempt['revision'],evidence=attempt['evidence'],lane=c.lane,query=c.new.qualname,usd=attempt['usd']),ledger_observed_usage_lower=sum(e['observed_usd'] or 0 for e in read(root/first['arm']/'observations.json')),ledger_conservative_upper=state['prior_usd']+sum(x['usd'] for x in state['attempts']),per_PR_budget_usd=.04,unknown_reservation_is_not_observed_spending=True,arm_reservations=arms),purpose='First genuinely admitted and funded missing H05 request of listed arm(s); diagnostic new provider observation, not historical evidence; no labels supplied')
+ request['request_payload_sha256']=h.digest(request);return request
+
+def export(root=None):
+ P.mkdir(exist_ok=True)
+ if root is None:root=Path(read(O/'continuation-latest.json')['path']) if (O/'continuation-latest.json').exists() else O
+ root=Path(root);frontiers=get_frontiers(root);groups=defaultdict(list);j=h.OfflineJudge(settings(),{})
+ for f in frontiers:groups[j.key(f['candidate'])].append(f)
+ history_path=P/'request-history.jsonl';old=[json.loads(x) for x in history_path.read_text().splitlines() if x.strip()] if history_path.exists() else []
+ previous={r['answer_key']:r for r in old};assert len(previous)==len(old),'duplicate_history_keys'
+ # Migrate the first already-issued contract to immutable copies without changing one byte of the contract.
+ for request in old:
+  if not frozen_dir(request['answer_key']).exists():freeze(request,Path(request['funding']['arm_reservations'][0]['ledger_file']).parent.parent)
+ queue=[];exposures=[]
+ for key,fs in groups.items():
+  if key in previous:
+   request=previous[key];assert j.stamp(Candidate.model_validate(request['candidate']))==j.stamp(fs[0]['candidate']),'historical_key_binding_changed';verify_frozen(request)
+  else:
+   request=build_request(fs,root);authenticate(request);freeze(request,root)
+   with history_path.open('a') as out:out.write(json.dumps(request,sort_keys=True)+'\n')
+   old.append(request);previous[key]=request
+  queue.append(request)
+  exposures.extend(dict(answer_key=key,arm=f['arm'],ordinal=f['ordinal'],root=str(root),head=f['packet']['run']['head'],tree=f['attempt']['revision'],candidate=f['candidate'].model_dump(mode='json'),request_stamp=j.stamp(f['candidate']),candidate_packet_sha256=h.sha((O/f"candidates-{f['ordinal']}.json").read_bytes()),attempt=f['attempt'],request_payload_sha256=request['request_payload_sha256']) for f in fs)
+ (P/'requests.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in queue))
+ path=P/'funding-exposures.jsonl';prior=[json.loads(x) for x in path.read_text().splitlines()] if path.exists() else [];seen={h.digest(x) for x in prior}
+ with path.open('a') as out:
+  for row in exposures:
+   if h.digest(row) not in seen:out.write(json.dumps(row,sort_keys=True)+'\n');seen.add(h.digest(row))
+ schema=read(CONTRACT);schema['output_stage']=str(PUBLISHED);h.dump(P/'response-contract.json',schema)
+ h.dump(P/'manifest.json',dict(experiment='H05',contract='h02-provider-handoff-v1',response_contract='h02-provider-response-v1',response_path=str(PUBLISHED),canonical_response_contract=str(CONTRACT),canonical_response_contract_sha256=h.sha(CONTRACT.read_bytes()),questions=[r['answer_key'] for r in queue],history_questions=len(old),frontier_exposures=exposures,latest_replay=str(root),local_staging_only=True,h02_queue_untouched=True,physical_provider_calls=0,source_binding='authenticated pinned Git, native pool plus exact frozen half-name generation; immutable per-request funding snapshots',new_observations='diagnostic only, normal independent per-arm usage charging; historical cache unchanged'))
+ print('H05 iterative frontier ready',len(queue),'keys',len(frontiers),'arms; history',len(old));return queue
+if __name__=='__main__':export()

@@ -1,0 +1,135 @@
+"""Root-only adaptive top-up using the exact imported cap2 budget implementation."""
+import argparse
+import importlib.util
+import json
+import threading
+import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from pathlib import Path
+
+import teacher_v3_adapter as v
+
+h = v.h
+HERE = Path(__file__).resolve().parent
+ROOT = v.WORK.parent.parent
+BUDGET_PATH = ROOT / 'jobs/experiment-jev-context/.lab-results/funded-rounds/round2/root_runner_v2.py'
+
+
+def budget_class():
+    spec = importlib.util.spec_from_file_location('_shared_cap2_frozen_import', BUDGET_PATH)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    class AgenticBudget(module.SharedBudget):
+        """Add attribution under the same lock; inherit all accounting/cap math."""
+        def __init__(self, path, question_key):
+            super().__init__(path)
+            self.question_key = question_key
+
+        def update(self, operation):
+            def attributed(data):
+                before = {e['key'] for e in data['entries']}
+                result = operation(data)
+                for entry in data['entries']:
+                    if entry['key'] not in before:
+                        entry.update(job='agentic-judge', direction='agentic-judge', funded_round=1,
+                                     method_version=v.VERSION, question_key=self.question_key)
+                return result
+            return super().update(attributed)
+    return AgenticBudget
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--queue', default=str(HERE / 'chunks/chunk-01.jsonl'))
+    p.add_argument('--shared-ledger', default=str(ROOT / 'reports/research-experiments/judge-research/shared-ledger.json'))
+    p.add_argument('--out', default=str(HERE / 'root-topup-1'))
+    p.add_argument('--workers', type=int, default=4)
+    p.add_argument('--execute', action='store_true')
+    args = p.parse_args()
+    frozen = h.load_json(HERE / 'REQUEST-FREEZE.json')
+    assert any(str(Path(args.queue).resolve()) == c['path'] and h.sha(Path(args.queue).read_bytes()) == c['sha256'] for c in frozen['chunks'])
+    assert h.sha((HERE / 'teacher-requests.jsonl').read_bytes()) == frozen['queue_sha256']
+    rows = h.lines(args.queue)
+    assert 1 <= len(rows) <= 32 and 1 <= args.workers <= 8
+    controls = {r['id'] for r in h.lines(HERE / 'selection-private.jsonl') if r['role'] == 'control'}
+    assert len(controls) == 4 and controls <= {r['id'] for r in rows}
+    assert {r['id'] for r in rows[:4]} == controls
+    for row in rows:
+        v.validate_row(row)
+    if not args.execute:
+        print(json.dumps({'valid': True, 'cases': len(rows), 'queue_sha256': h.sha(Path(args.queue).read_bytes()),
+                          'budget_module_sha256': h.sha(BUDGET_PATH.read_bytes()), 'provider_calls': 0})); return
+    execution_freeze = h.load_json(HERE / 'EXECUTION-FREEZE.json')
+    assert execution_freeze['entrypoint_sha256'] == h.sha(Path(__file__).read_bytes())
+    assert execution_freeze['budget_module_sha256'] == h.sha(BUDGET_PATH.read_bytes())
+    assert execution_freeze['selection_private_sha256'] == h.sha((HERE / 'selection-private.jsonl').read_bytes())
+    out = Path(args.out)
+    if any((out / r['id'] / 'events.jsonl').exists() for r in rows):
+        p.error('Existing attempt found: no automatic retry, overwrite or paid repeat.')
+    import anthropic
+    import httpx2
+    Budget = budget_class()
+    out.mkdir(parents=True, exist_ok=True)
+    paid = .089686  # exact settled frozen teacher-v2 contribution to round 1
+    results, errors = [], []
+    lock = threading.Lock()
+    stop = threading.Event()
+    started = time.monotonic()
+    metadata = {'schema': 1, 'direction': 'agentic-judge', 'round': 1, 'concurrency': args.workers,
+        'queue_sha256': h.sha(Path(args.queue).read_bytes()), 'prior_round1_actual_usd': paid,
+        'minimum_actual_new_usd': .2, 'budget_module': str(BUDGET_PATH),
+        'budget_module_sha256': h.sha(BUDGET_PATH.read_bytes()), 'ledger_reset': False,
+        'required_control_ids': sorted(controls),
+        'controls_execute_even_if_minimum_is_crossed': True,
+        'historical_pilot_excluded_usd': .252152, 'paid_retries': False}
+    h.save(out / 'execution.json', metadata)
+
+    def one(row):
+        with anthropic.Anthropic(max_retries=0, timeout=90, base_url='https://api.anthropic.com',
+                http_client=httpx2.Client(trust_env=False)) as client:
+            return v.run_case(row, out, client, Budget(args.shared_ledger, row['request_key']))
+
+    pending_rows = iter(rows)
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        running = {}
+        for _ in range(min(args.workers, len(rows))):
+            row = next(pending_rows)
+            running[pool.submit(one, row)] = row['id']
+        while running:
+            done, _ = wait(running, return_when=FIRST_COMPLETED)
+            for future in done:
+                ident = running.pop(future)
+                try:
+                    result = future.result()
+                    results.append({k: result[k] for k in ('id', 'status', 'provider_calls', 'cost_usd')})
+                    if result['cost_usd'] is None:
+                        stop.set()
+                    else:
+                        paid += result['cost_usd']
+                    if result['status'] in ('shared_budget_deferred', 'reservation_exceeded'):
+                        stop.set()
+                    print(json.dumps(results[-1]), flush=True)
+                except Exception as error:
+                    errors.append({'id': ident, 'error_type': type(error).__name__, 'status': 'unknown'})
+                    stop.set(); print(json.dumps(errors[-1]), flush=True)
+            while not stop.is_set() and len(running) < args.workers:
+                row = next(pending_rows, None)
+                if row is None:
+                    break
+                # Required controls are first. Quota stopping applies only to
+                # unstarted novel cases; all begun futures are always drained.
+                if paid >= .2 and row['id'] not in controls:
+                    break
+                running[pool.submit(one, row)] = row['id']
+    metadata.update(results=results, errors=errors, known_round1_actual_usd=round(paid, 8),
+                    minimum_reached=paid >= .2, elapsed_seconds=time.monotonic() - started,
+                    controls_finished=sorted(controls & {r['id'] for r in results}),
+                    all_controls_finished=controls <= {r['id'] for r in results},
+                    unstarted_cases=len(rows) - len(results) - len(errors),
+                    unknown_cost=bool(errors) or any(r['cost_usd'] is None for r in results))
+    h.save(out / 'execution.json', metadata)
+
+
+if __name__ == '__main__':
+    main()

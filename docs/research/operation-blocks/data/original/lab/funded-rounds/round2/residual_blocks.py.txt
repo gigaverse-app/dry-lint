@@ -1,0 +1,62 @@
+"""One preregistered selector change on the frozen production representation."""
+
+from dry_lint.detector import why_skipped
+from dry_lint.settings import Settings
+
+
+def residual_neighbours(comparer, query, baseline, k=1):
+    """Return native parents, region evidence and bounded coverage work."""
+    query_blocks = comparer._query_blocks(query)
+    residual, covered = [], []
+    checks = 0
+    for number, block in enumerate(query_blocks):
+        owner = None
+        for parent in baseline:
+            for other in comparer._parents[parent]:
+                checks += 1
+                if block.operations <= other.operations and comparer._best([block], [other])[0] >= .65:
+                    owner = parent
+                    break
+            if owner is not None:
+                break
+        if owner is None:
+            residual.append(block)
+        else:
+            covered.append(dict(query_block=number, baseline_parent=owner))
+    pool = comparer._pool(query, residual)
+    full = comparer.tfidf.vector(query.tokens)
+    found = []
+    settings = Settings()
+    for parent in pool:
+        other = comparer.functions[parent]
+        if parent in baseline or why_skipped(query, other, settings):
+            continue
+        if parent not in comparer._full_vectors:
+            comparer._full_vectors[parent] = comparer.tfidf.vector(other.tokens)
+        vector = comparer._full_vectors[parent]
+        if sum(w * vector.get(t, 0) for t, w in full.items()) < .1:
+            continue
+        score, _ = comparer._best(residual, comparer._parents[parent])
+        if score >= .65:
+            found.append((parent, score))
+    found.sort(key=lambda item: (-item[1], comparer.functions[item[0]].qualname, item[0]))
+    result, seen = [], set()
+    for parent, score in found:
+        target = comparer.functions[parent]
+        if target.qualname in seen:
+            continue
+        seen.add(target.qualname)
+        winner = None
+        for qb in residual:
+            for tb in comparer._parents[parent]:
+                s, _ = comparer._best([qb], [tb])
+                if winner is None or s > winner[0]:
+                    winner = (s, qb, tb)
+        assert winner is not None and winner[0] == score
+        result.append(dict(parent=parent, score=score, query_block=winner[1], target_block=winner[2]))
+        if len(result) == k:
+            break
+    visits = sum(len(comparer._postings.get(token, ())) for b in residual for token in b.anchors)
+    assert visits <= 12 * 8 * 64 and len(pool) <= 64
+    return result, dict(query_blocks=len(query_blocks), residual_blocks=len(residual), covered=covered,
+                        baseline_region_checks=checks, posting_visits=visits, pool_size=len(pool), pool=pool)

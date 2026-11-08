@@ -1,0 +1,38 @@
+"""Separate sparse-only process for indexing/query walltime and peak RSS (no dense runtime import)."""
+
+import json
+import resource
+import sys
+import time
+from pathlib import Path
+
+from dry_lint.bench_background import BenchBackground
+
+HERE = Path(__file__).resolve().parent
+protocol = json.loads((HERE / "EXPERIMENT.json").read_text())
+name = sys.argv[1]
+repo = protocol["repositories"][0] if name == "openhands" else protocol["contrast"]["repository"]
+folder = HERE / name
+started = time.perf_counter()
+background = BenchBackground.decode(Path(repo["background_proof"]["path"]).read_bytes())
+decode_seconds = time.perf_counter() - started
+started = time.perf_counter()
+index = background.index()
+index_seconds = time.perf_counter() - started
+timings = []
+for raw in (folder / "query-timings.jsonl").read_text().splitlines():
+    row = json.loads(raw)
+    i = row["query_row"]
+    started = time.perf_counter()
+    index.similar(background.documents[i].tokens(), exclude={i})
+    timings.append(time.perf_counter() - started)
+result = {
+    "repository": repo["repository"],
+    "background_decode_seconds": decode_seconds,
+    "index_seconds": index_seconds,
+    "query_seconds": timings,
+    "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+    "scope": "sparse-only standalone process; no dense runtime or embedding import",
+}
+(folder / "sparse-only-cost.json").write_text(json.dumps(result, indent=2) + "\n")
+print(name, index_seconds, result["peak_rss_kib"])

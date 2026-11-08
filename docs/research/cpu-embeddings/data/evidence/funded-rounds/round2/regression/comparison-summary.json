@@ -1,0 +1,49 @@
+{
+  "all_previous_primary_candidates_unchanged": true,
+  "cohorts": 16,
+  "full_corpus_encodings": 0,
+  "gold_manual_relabels": 0,
+  "labels": {
+    "duplicate": {
+      "lost_retrieved": 0,
+      "new_retrieved": 25,
+      "pair_backgrounds": 78
+    },
+    "separate": {
+      "lost_retrieved": 0,
+      "new_retrieved": 15,
+      "pair_backgrounds": 120
+    }
+  },
+  "model_scope_note": "The shared function backgrounds omit four model declarations. Those rows retain the exact separate-model-inventory-required status; this is not evidence that the encoder is incompatible with model bodies. This preregistered production function-background comparison does not merge in another extraction scope.",
+  "policy_limit": "No authentic PR/campaign ledger supplied; this production candidate-set replay does not assert production funding or emitted-report gains. Legacy4positive/7negative normal.04 exposures separately frozen.",
+  "profile": "baseline3 + first-unseen-unsettled-cpu1-.65",
+  "representation": "No dense fitting or encoding; one required lexical index per exact complete background for revised behavior ranking.",
+  "rows": 223,
+  "schema": 1,
+  "supported_inventory": {
+    "background_source_exceptions": 63,
+    "full_backgrounds": 79,
+    "function_records": 207,
+    "model_declarations_absent_from_original_function_background": 4,
+    "shared_records": 617,
+    "source_compatible_backgrounds": 16
+  },
+  "uncertainty": "2000 family-cluster resamples seed20261107 over fixed observed development/regression records; no fresh holdout claim.",
+  "unique_input_rows": 207,
+  "versus_round1_narrow": {
+    "duplicate": {
+      "family_cluster_net_pair_change_p025": 5,
+      "lost": 1,
+      "new": 11,
+      "p975": 16
+    },
+    "separate": {
+      "family_cluster_net_pair_change_p025": -6,
+      "lost": 4,
+      "new": 4,
+      "p975": 6
+    }
+  },
+  "worker_provider_calls": 0
+}

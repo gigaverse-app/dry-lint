@@ -1,0 +1,380 @@
+{
+  "backgrounds": 30,
+  "contexts": 338,
+  "groups": [
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 70,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 76,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 76
+        },
+        "fixed_rrf": {
+          "native_funded": 68,
+          "native_funded_gains": 0,
+          "native_funded_losses": 2,
+          "normal_funded": 76,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 76
+        },
+        "tail_append": {
+          "native_funded": 68,
+          "native_funded_gains": 0,
+          "native_funded_losses": 2,
+          "normal_funded": 76,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 76
+        }
+      },
+      "canonical_pairs": 78,
+      "declared_families": 67,
+      "effective_accepted_gold": true,
+      "group": "prior16",
+      "label": "duplicate",
+      "row_background_contexts": 78
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 59,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 65,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 66
+        },
+        "fixed_rrf": {
+          "native_funded": 60,
+          "native_funded_gains": 1,
+          "native_funded_losses": 0,
+          "normal_funded": 65,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 66
+        },
+        "tail_append": {
+          "native_funded": 60,
+          "native_funded_gains": 1,
+          "native_funded_losses": 0,
+          "normal_funded": 65,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 66
+        }
+      },
+      "canonical_pairs": 103,
+      "declared_families": 75,
+      "effective_accepted_gold": true,
+      "group": "prior16",
+      "label": "separate",
+      "row_background_contexts": 119
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 9,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 11,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 11
+        },
+        "fixed_rrf": {
+          "native_funded": 8,
+          "native_funded_gains": 0,
+          "native_funded_losses": 1,
+          "normal_funded": 11,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 11
+        },
+        "tail_append": {
+          "native_funded": 8,
+          "native_funded_gains": 0,
+          "native_funded_losses": 1,
+          "normal_funded": 11,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 11
+        }
+      },
+      "canonical_pairs": 11,
+      "declared_families": 10,
+      "effective_accepted_gold": false,
+      "group": "prior16",
+      "label": null,
+      "row_background_contexts": 11
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 9,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 9,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 9
+        },
+        "fixed_rrf": {
+          "native_funded": 9,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 9,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 9
+        },
+        "tail_append": {
+          "native_funded": 9,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 9,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 9
+        }
+      },
+      "canonical_pairs": 10,
+      "declared_families": 9,
+      "effective_accepted_gold": false,
+      "group": "prior16",
+      "label": "borderline",
+      "row_background_contexts": 10
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        },
+        "fixed_rrf": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        },
+        "tail_append": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        }
+      },
+      "canonical_pairs": 1,
+      "declared_families": 1,
+      "effective_accepted_gold": false,
+      "group": "prior16",
+      "label": "duplicate",
+      "row_background_contexts": 1
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        },
+        "fixed_rrf": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        },
+        "tail_append": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        }
+      },
+      "canonical_pairs": 2,
+      "declared_families": 2,
+      "effective_accepted_gold": false,
+      "group": "prior16",
+      "label": "separate",
+      "row_background_contexts": 2
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        },
+        "fixed_rrf": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        },
+        "tail_append": {
+          "native_funded": 1,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 1,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 1
+        }
+      },
+      "canonical_pairs": 2,
+      "declared_families": 2,
+      "effective_accepted_gold": false,
+      "group": "prior16",
+      "label": "unknown",
+      "row_background_contexts": 2
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 52,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 52,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 52
+        },
+        "fixed_rrf": {
+          "native_funded": 52,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 52,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 52
+        },
+        "tail_append": {
+          "native_funded": 52,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 52,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 52
+        }
+      },
+      "canonical_pairs": 24,
+      "declared_families": 8,
+      "effective_accepted_gold": true,
+      "group": "recovered14",
+      "label": "duplicate",
+      "row_background_contexts": 56
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 18,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 18,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 18
+        },
+        "fixed_rrf": {
+          "native_funded": 18,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 18,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 18
+        },
+        "tail_append": {
+          "native_funded": 18,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 18,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 18
+        }
+      },
+      "canonical_pairs": 30,
+      "declared_families": 8,
+      "effective_accepted_gold": true,
+      "group": "recovered14",
+      "label": "separate",
+      "row_background_contexts": 56
+    },
+    {
+      "arms": {
+        "current109": {
+          "native_funded": 3,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 3,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 3
+        },
+        "fixed_rrf": {
+          "native_funded": 3,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 3,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 3
+        },
+        "tail_append": {
+          "native_funded": 3,
+          "native_funded_gains": 0,
+          "native_funded_losses": 0,
+          "normal_funded": 3,
+          "normal_funded_gains": 0,
+          "normal_funded_losses": 0,
+          "retrieved": 3
+        }
+      },
+      "canonical_pairs": 3,
+      "declared_families": 0,
+      "effective_accepted_gold": false,
+      "group": "recovered14",
+      "label": "borderline",
+      "row_background_contexts": 3
+    }
+  ],
+  "note": "Two correlated directions per labeled row/background. Accepted legacy labels retain inherited qualification. CF-C02 reopened overlay excluded from effective accepted count; raw legacy accepted flag preserved.",
+  "unique_rows": 282,
+  "unknown_documents_preserved": 699,
+  "unknown_or_unaccepted_contexts": 29
+}

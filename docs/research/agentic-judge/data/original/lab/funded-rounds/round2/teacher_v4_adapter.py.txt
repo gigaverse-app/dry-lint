@@ -1,0 +1,142 @@
+"""One round2 revision: bounded literal supporting-source search, no old retries."""
+import copy
+import importlib.util
+import json
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+R1 = HERE.parent / 'round1'
+spec = importlib.util.spec_from_file_location('_r2_frozen_v3_format', R1 / 'teacher_v3_adapter.py')
+v3 = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(v3)
+h = v3.h
+WORK, BASE = v3.WORK, v3.BASE
+VERSION = 'agentic-funded-r2-literal-support-search-v4'
+SEARCH = h.schema('search_source',
+    'Search exact literal source text or identifiers (spaces/hyphens allowed) in bounded pinned source files, excluding the two supplied function regions. Returns exact source spans; lexical matches are not resolved calls or ownership. Empty/truncated searches prove no absence.',
+    {'query': {'type': 'string', 'minLength': 1, 'maxLength': 120},
+     'path_prefix': {'type': 'string', 'maxLength': 180},
+     'limit': {'type': 'integer', 'minimum': 1, 'maximum': 8}}, ['query'])
+
+
+class LiteralSource:
+    def __init__(self, source):
+        self.base = source
+
+    def __getattr__(self, name):
+        return getattr(self.base, name)
+
+    def call(self, name, args):
+        if name in {'list_paths', 'read_source', 'read_symbol', 'inspect_imports'}:
+            return self.base.call(name, args)
+        self.base.tool_calls += 1
+        if self.base.tool_calls > 20:
+            return {'error': 'tool_call_cap', 'unknown': True}
+        if name != 'search_source':
+            return {'error': 'unknown_tool', 'unknown': True}
+        try:
+            if not isinstance(args, dict) or set(args) - {'query', 'path_prefix', 'limit'}:
+                raise ValueError()
+            query, prefix, limit = args['query'], args.get('path_prefix', ''), args.get('limit', 5)
+            if not isinstance(query, str) or not query.strip() or len(query) > 120 or any(x in query for x in '\x00\n\r'):
+                raise ValueError()
+            if not isinstance(prefix, str) or len(prefix) > 180 or prefix.startswith(('/', '-')) or '..' in prefix.split('/') or any(c in prefix for c in '\\:\x00\n\r'):
+                raise ValueError()
+            if type(limit) is not int or not 1 <= limit <= 8:
+                raise ValueError()
+            roots = [str(Path(self.base.candidate[s]['path']).parent) for s in ('new', 'existing')]
+            paths = sorted((p for p in self.base.paths if p.startswith(prefix)),
+                           key=lambda p: (not any(p.startswith(r + '/') for r in roots), p))
+            chosen = paths[:160]
+            endpoint_lines = {(self.base.candidate[s]['path'], n) for s in ('new','existing')
+                for n in range(self.base.candidate[s]['line'], self.base.candidate[s]['end_line'] + 1)}
+            matches, scanned, unavailable, hits, omitted = [], 0, 0, 0, 0
+            result = {'repository': self.base.repo, 'revision': self.base.pin, 'matches': matches,
+                'literal_query': query, 'scanned_files': 0, 'available_files': len(paths),
+                'excluded_initial_function_regions': True, 'binding': 'literal syntax only; runtime ownership unresolved',
+                'absence_is_not_proof': True, 'truncated': len(chosen) < len(paths), 'omitted_hits': 0, 'unavailable_files': 0}
+            def fits(value):
+                raw = h.canonical(value)
+                return (len(raw.decode()) <= min(6000, 24000 - self.base.returned_chars) and
+                        len(raw) <= min(8000, 32000 - self.base.returned_bytes))
+            full = False
+            for path in chosen:
+                scanned += 1
+                try:
+                    lines = self.base.file(path).splitlines()
+                    for n, line in enumerate(lines, 1):
+                        if query not in line or (path, n) in endpoint_lines:
+                            continue
+                        hits += 1
+                        fact = self.base.region(path, max(1, n - 1), min(len(lines), n + 1))
+                        if len(fact['code']) > 1200:
+                            fact = self.base.region(path, n, n)
+                        if len(fact['code']) > 1200:
+                            omitted += 1; continue
+                        proposed = {**result, 'matches': matches + [fact], 'scanned_files': scanned}
+                        if not fits(proposed):
+                            omitted += 1; full = True; break
+                        matches.append(fact)
+                        if len(matches) >= limit:
+                            full = True; break
+                    if full:
+                        break
+                except (ValueError, UnicodeError, SyntaxError):
+                    unavailable += 1
+            result.update(scanned_files=scanned, matches=matches, omitted_hits=omitted,
+                          unavailable_files=unavailable, truncated=result['truncated'] or full or omitted > 0)
+            if not fits(result):
+                return {'error': 'source_output_cap', 'unknown': True}
+            raw = h.canonical(result)
+            h.source_safe(raw.decode())
+            self.base.returned_chars += len(raw.decode())
+            self.base.returned_bytes += len(raw)
+            self.base.register_evidence(result)
+            return result
+        except (ValueError, TypeError, KeyError):
+            return {'error': 'invalid_literal_search_arguments', 'unknown': True}
+
+
+spec = importlib.util.spec_from_file_location('_agentic_funded_round2_runtime', BASE)
+runtime = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(runtime)
+runtime.VERSION = VERSION
+runtime.h = SimpleNamespace(**vars(h))
+runtime.h.validate_item = lambda original: LiteralSource(h.validate_item(original))
+runtime.submit = v3.strict_submit
+
+
+def initial(original):
+    request = v3.initial(original)
+    request['tools'] = [copy.deepcopy(SEARCH if tool['name'] == 'find_references' else tool) for tool in request['tools']]
+    request['system'] += '\nUse search_source for identifiers or literal text, including UI strings and hyphenated component names. It searches outside the supplied functions and reports bounded lexical sightings, not resolved ownership.\n'
+    return request
+
+
+def identity(original):
+    return {**v3.identity(original), 'version': VERSION,
+        'request_sha256': h.sha(initial(original)), 'tool_schemas_sha256': h.sha(initial(original)['tools']),
+        'adapter_sha256': h.sha(Path(__file__).read_bytes()),
+        'frozen_v3_format_adapter_sha256': h.sha(Path(v3.__file__).read_bytes()),
+        'funded_round': 2, 'mechanism': 'literal_supporting_source_search_excluding_initial_bodies'}
+
+
+def make_row(original):
+    ident = identity(original)
+    return {'id': original['id'], 'original': original, 'request': initial(original), 'identity': ident,
+            'request_key': h.sha(ident), 'estimated_first_round_usd': h.estimated_cost(initial(original)),
+            'first_round_reservation_usd': h.reservation(initial(original))}
+
+
+def validate_row(row):
+    h.validate_item(row['original'])
+    assert row['request'] == initial(row['original']) and row['identity'] == identity(row['original'])
+    assert row['request_key'] == h.sha(row['identity'])
+
+
+def run_case(row, out, client, budget):
+    validate_row(row)
+    return runtime.run(row, out, client, budget)

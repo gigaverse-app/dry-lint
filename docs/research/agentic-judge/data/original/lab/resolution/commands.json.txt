@@ -1,0 +1,6 @@
+{
+  "validate_followup": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=LAB_ROOT/jobs/experiment-agentic-judge/src LAB_ROOT/retrieval/.venv/bin/python LAB_ROOT/jobs/experiment-agentic-judge/.lab-results/resolution/validate_followup.py",
+  "score_followup": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=LAB_ROOT/jobs/experiment-agentic-judge/src LAB_ROOT/retrieval/.venv/bin/python LAB_ROOT/jobs/experiment-agentic-judge/.lab-results/resolution/evaluate_followup.py --observations \"$ROOT_FOLLOWUP_OBSERVATIONS\"",
+  "validate_teacher_v2": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=LAB_ROOT/jobs/experiment-agentic-judge/src LAB_ROOT/retrieval/.venv/bin/python LAB_ROOT/jobs/experiment-agentic-judge/.lab-results/resolution/teacher_v2.py validate",
+  "execute_teacher_v2_root_only": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=LAB_ROOT/jobs/experiment-agentic-judge/src LAB_ROOT/retrieval/.venv/bin/python LAB_ROOT/jobs/experiment-agentic-judge/.lab-results/resolution/teacher_v2.py execute --shared-ledger LAB_ROOT/reports/research-experiments/judge-research/shared-ledger.json --out LAB_ROOT/jobs/experiment-agentic-judge/.lab-results/resolution/teacher-v2/root-attempt-1"
+}

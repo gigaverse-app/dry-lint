@@ -1,0 +1,23 @@
+{
+  "schema":1,
+  "direction":"improve-operation-blocks",
+  "round":1,
+  "variant":"operation-blocks-helper-fallback:1",
+  "base_commit":"73709fdbe884c107b665400a186cb71caecc03f7",
+  "hypothesis":"A complete helper spanning control-flow boundaries is absent from the original region vocabulary; one additional full-body representation can expose useful helper reuse without disturbing original plugin winners.",
+  "census_basis":"LiteLLM exact full background: 5292 whole-helper-eligible functions have zero original regions; 12852 add a boundary. Only 41 functions exceed first12. Duplicate postings exclude 45 anchors affecting1532 parents; that separate possible change is not included.",
+  "recipe":"Keep original first12 regions, postings, scores and original eligible unseen winner. Only on abstention query a separate original-regions-plus-one-complete-helper representation. Helper excludes docstring and nested-owner bodies and uses original 4..80-line,20..400-node,8-token,2-call guard. Original IDF, anchors8, repeated-postings64, parents64, .65 region and .1 whole floors unchanged. At most13 regions per parent/query; all comparisons<=64*13*13, posting visits<=13*8*64 for fallback. Return full native functions.",
+  "no_veto":true,
+  "threshold_search":false,
+  "family_split":"Before new answers, build connected components over shared nongeneric call-pair signatures among all eligible novel candidates/control pool, repository-scoped, and source owner/path groups. Components touching prior reviewed endpoints/signatures are regression only. Deterministically assign remaining component minimum stable signature by sha256('operation-helper-v1-split',signature) parity to development or confirmation. Publish split.json before queue. Do not call confirmation independent human truth until root source review verifies semantic families.",
+  "sampling":"Target40-80 eligible novel pairs plus16 independent baseline/original controls, hash ordered and repository/split stratified, at most one pair per source endpoint. Full pinned relevant source sweep first; no sample-based corpus claims.",
+  "primary_comparison":"baseline3 + explicitTFIDF20 + original operation-blocks1 versus identical ordered campaign plus fallback only on original abstention; preserve original concept .04 ledger and separate canonical paired Jev+Claude .04 logical ledger.",
+  "standalone_balanced":"Separately identified diagnostic and actual balanced admission simulation; never equated with original production comparison or emitted reports without matched policy answers.",
+  "judges":"Both canonical Jev and Claude on every selected case, no Jev score gating. Whole functions plus normal context. Root centrally executes unchanged queue_judges requests.",
+  "budget":{"initial_target_usd":2,"total_direction_cap_usd":4,"failed_round_minimum_fresh_usd":0.2},
+  "success_gate":"More newly funded useful emitted reports on independently source-reviewed confirmation families, no original useful loss, report known negatives and unknowns separately. Runtime/extra-work cost must be explicit. If unsupported, source-diagnose and freeze ONE justified successor; no postlabel edits to this variant.",
+  "sealed_exclusions":["firecrawl","curator"],
+  "private_policy":"Private adopter evidence stays in local artifacts, no redistribution or provider queue absent existing authorization.",
+  "provider_calls":0,
+  "new_labels_seen":false
+}

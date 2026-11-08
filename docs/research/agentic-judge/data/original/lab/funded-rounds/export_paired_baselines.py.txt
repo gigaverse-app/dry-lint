@@ -1,0 +1,90 @@
+"""Exact semantic/output-policy one-shot controls; no source-reading tools or API."""
+import argparse
+import copy
+import hashlib
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+
+def canon(value):
+    return json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(',', ':'), allow_nan=False)
+
+
+def sha(value):
+    return hashlib.sha256(value if isinstance(value, bytes) else value.encode()).hexdigest()
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--round', type=int, choices=[1,2], required=True)
+    p.add_argument('--run')
+    args = p.parse_args()
+    folder = HERE / ('round' + str(args.round))
+    rows = [json.loads(s) for s in (folder / 'teacher-requests.jsonl').read_text().splitlines()]
+    roles = {r['id']:r['role'] for r in [json.loads(s) for s in (folder / 'selection-private.jsonl').read_text().splitlines()]}
+    all_novel, started = [], []
+    run = Path(args.run) if args.run else folder / ('root-topup-1' if args.round == 1 else 'root-round2-1')
+    for teacher in rows:
+        if roles[teacher['id']] != 'novel':
+            continue
+        original, request = teacher['original'], copy.deepcopy(teacher['request'])
+        finals = [t for t in request['tools'] if t['name'] == 'submit_verdict']
+        assert len(finals) == 1
+        # Keep exact system, semantic question, full bodies/docs, model, output cap,
+        # tool_choice and final-output schema. Only source tools are unavailable.
+        request['tools'] = finals
+        source = {'repository':original['repository'],'revision':original['revision'],
+                  'candidate_sha256':sha(canon(original['candidate'])), 'endpoints':original['source']}
+        version = f'agentic-r{args.round}-paired-body-only-submit-v1'
+        contract = {'request':request,'model':request['model'],'version':version,'output_cap':request['max_tokens'],
+                    'semantic_policy':'exact teacher system and user question','source_tools':False,
+                    'output_tool':'submit_verdict only, never source access','retries':0,'fallbacks':False}
+        identity = {'source_sha256':sha(canon(source)), 'prompt_sha256':sha(canon(contract)),
+                    'canonical_request_sha256':sha(canon(request)), 'model':request['model'],
+                    'version':version,'output_cap':request['max_tokens']}
+        exact = canon(request)
+        row = {'schema':1,'experiment':version,'id':teacher['id'],'kind':'claude','variant':'paired_body_only',
+            'request_id':sha(canon(identity)),'identity':identity,'source_contract':source,'prompt_contract':contract,
+            'request_body':request,'exact_rendered_json':exact,'wire_sha256':sha(exact),
+            'url':'https://api.anthropic.com/v1/messages','method':'POST','model':request['model'],
+            'max_output_tokens':request['max_tokens'],'model_version':version,'fresh_required':True,
+            'physical_call_policy':{'concurrency':4,'max_attempts':1,'retries':0,'fallbacks':False},
+            'reservation_rates_per_million':[2.,10.],
+            'reservation_usd':((len(exact.encode())+4096)*2+request['max_tokens']*10)/1e6,
+            'estimate_usd':(len(exact)/2.8*2+512*10)/1e6,
+            'teacher_request_key':teacher['request_key'],'source_role':'novel',
+            'direction':'agentic-judge','funded_round':args.round,'funded_phase':'paired_body_baseline',
+            'counts_toward_teacher_minimum':False,
+            'comparability':{'semantic_question_identical':True,'system_bytes_identical':True,
+                'initial_full_bodies_identical':True,'final_output_contract_identical':True,
+                'settings_except_source_tool_availability_identical':True,
+                'source_reading_tools_available':False,'semantic_policy_incomparable':False},
+            'historical_reuse':'Only whole canonical source/request/model/outputcap/settings/output-hash proof. Ordinary old body-only prompts with a different system/tool/output contract do not match.',
+            'response_contract':'One HTTP call only. Parse only submit_verdict input, verify exact same final constraints and initial-source citation bounds. Nonfinal/capped/missing/unavailable-tool outputs remain unknown; no source callbacks or retry.'}
+        assert request['system'] == teacher['request']['system'] and request['messages'] == teacher['request']['messages']
+        all_novel.append(row)
+        if (run / teacher['id'] / 'events.jsonl').exists():
+            started.append(row)
+    out = folder / 'paired-baselines'
+    out.mkdir(exist_ok=True)
+    for name, selected in [('all-novel-recipes.jsonl',all_novel),('actually-started-requests.jsonl',started)]:
+        data = ''.join(canon(r)+'\n' for r in selected).encode()
+        path = out / name
+        if path.exists() and name == 'all-novel-recipes.jsonl' and path.read_bytes() != data:
+            raise ValueError('Frozen one-shot recipe changed')
+        path.write_bytes(data)
+    summary = {'schema':1,'round':args.round,'all_novel_recipes':len(all_novel),'actually_started_novel':len(started),
+        'actually_started_queue':str((out/'actually-started-requests.jsonl').resolve()),
+        'actually_started_queue_sha256':sha((out/'actually-started-requests.jsonl').read_bytes()),
+        'all_recipes_sha256':sha((out/'all-novel-recipes.jsonl').read_bytes()),
+        'estimated_started_baseline_usd':sum(r['estimate_usd'] for r in started),
+        'same_semantic_model_policy_and_full_initial_bodies':True,'source_callbacks_allowed':False,
+        'unknown_baseline_is_not_negative':True,'teacher_minimum_credit_usd':0,'worker_provider_calls':0}
+    (out/'PLAN.json').write_text(json.dumps(summary,indent=2)+'\n')
+    print(json.dumps(summary,sort_keys=True))
+
+
+if __name__=='__main__':
+    main()

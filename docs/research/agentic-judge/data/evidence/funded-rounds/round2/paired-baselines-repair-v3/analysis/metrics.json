@@ -1,0 +1,62 @@
+{
+  "body_actual_usd": 0.085286,
+  "body_api_seconds_sum": 32.11823359999835,
+  "body_false_reports_on_accepted_nonpositive": [],
+  "body_usage": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "input_tokens": 23498,
+    "output_tokens": 3829
+  },
+  "certain_paired_finals": 6,
+  "corrected_body_novel_reports": 1,
+  "corrected_body_statuses": {
+    "complete": 6,
+    "uncertain": 3
+  },
+  "evidence_sha256": {
+    "/home/researcher/dry-lint-round/jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/requests.jsonl": "31aa3dd820c5520af7420e7155a95ee7042ee32b654271c6adef637c65ce13ab",
+    "/home/researcher/dry-lint-round/jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/root-remaining-01/returned.jsonl": "317355e264c7456e4bf867477dc716c20f3945327f7ae65f1a0ddaa9b22d2e41",
+    "/home/researcher/dry-lint-round/jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/root-smoke-01/returned.jsonl": "7ce49a39235c0a878f687e091e918c9ae0f9be960a79272244dea1886679a5c4",
+    "/home/researcher/dry-lint-round/reports/research-experiments/promotion/agentic-round2-source/coordinator-decisions.jsonl": "87a0f62c03fb68d0a4b40ddb25747dd011bce7c4e3ff49203149f873d98b4310",
+    "/home/researcher/dry-lint-round/reports/research-experiments/promotion/agentic-round2-source/private-map.jsonl": "da747c0847fe4eb1399cc543bfd5d194795e4e0f5fc2492d704782bd673ad196",
+    "/home/researcher/dry-lint-round/reports/research-experiments/promotion/agentic-v3-observed.jsonl": "733eb53cde26786a034dff24a7800dbafd04294039eac7b409cf4809cd7546cc"
+  },
+  "invalid_body_submissions": 0,
+  "old_five_unavailable_tool_replies_still_unknown": true,
+  "pairs": 9,
+  "r1_uncertainty_unchanged": true,
+  "remaining_uncertain_pairs": [
+    "AJ-R2-294585ab744e5e23",
+    "AJ-R2-54b6abcd0f86aeb6",
+    "AJ-R2-9d94b5ed1e94eaf2"
+  ],
+  "report_changes_in_certain_pairs": 0,
+  "root_strict_observations_independently_matched": true,
+  "same_prompt_claim": false,
+  "schema": 1,
+  "source_decisions_unchanged": true,
+  "source_supported_nonreport_uncertainty_resolutions": [
+    "AJ-R2-54b6abcd0f86aeb6",
+    "AJ-R2-9d94b5ed1e94eaf2"
+  ],
+  "source_supported_report_losses": [],
+  "source_supported_report_recoveries": [],
+  "status": "COMPLETE_CORRECTED_COMPARATOR",
+  "teacher_false_reports_on_accepted_nonpositive": [],
+  "teacher_improvement_claim": false,
+  "teacher_novel_actual_usd": 0.233598,
+  "teacher_novel_api_seconds_sum": 52.72121828902891,
+  "teacher_novel_reports": 1,
+  "teacher_statuses": {
+    "complete": 8,
+    "uncertain": 1
+  },
+  "uncertain_in_both_arms": [
+    "AJ-R2-294585ab744e5e23"
+  ],
+  "v2_failed_actual_cost_usd": null,
+  "v2_failed_held_reservation_usd_separate": 0.127882,
+  "valid_body_final_submissions": 9,
+  "worker_provider_calls": 0
+}

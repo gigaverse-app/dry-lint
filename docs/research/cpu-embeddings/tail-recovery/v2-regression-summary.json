@@ -1,0 +1,29 @@
+{
+  "backgrounds": 16,
+  "pair_backgrounds": 223,
+  "paired_budget_diagnostic": {
+    "duplicate": {
+      "lost_funded": 0,
+      "new_funded": 0,
+      "original_funded": 71,
+      "pair_backgrounds": 78,
+      "treatment_funded": 71
+    },
+    "separate": {
+      "lost_funded": 0,
+      "new_funded": 0,
+      "original_funded": 62,
+      "pair_backgrounds": 120,
+      "treatment_funded": 62
+    },
+    "unknown_or_unaccepted": {
+      "lost_funded": 0,
+      "new_funded": 1,
+      "original_funded": 18,
+      "pair_backgrounds": 25,
+      "treatment_funded": 19
+    }
+  },
+  "unique_rows": 207,
+  "units": "observed regression pair-background contexts, not fresh heldout or provider reports"
+}

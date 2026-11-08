@@ -1,0 +1,103 @@
+"""Sparse implementation of the frozen pilot representation; no labels enter fitting."""
+import os
+for key in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[key]='2'
+import hashlib,json,time
+from collections import Counter
+from pathlib import Path
+import numpy as np
+from scipy.sparse import csr_matrix
+from dry_lint.bench_background import BenchBackground
+
+ALGORITHM='herdr-vector-fixed-r64-p2-seed0-csls10-sparse-v1'
+sha=lambda data:hashlib.sha256(data).hexdigest()
+def matrix(background):
+ index=background.index();terms=list(index.idf);positions={t:j for j,t in enumerate(terms)}
+ values=[];columns=[];indptr=[0]
+ for d in background.documents:
+  for token,value in index.vector(d.tokens()).items():columns.append(positions[token]);values.append(value)
+  indptr.append(len(values))
+ return index,csr_matrix((values,columns,indptr),shape=(len(background.documents),len(terms)),dtype=np.float64),terms
+
+def fit(X,cache,identity):
+ if cache.exists():
+  with np.load(cache) as data:
+   assert str(data['identity'])==identity
+   return data['Z'],data['components'],data['singular'],dict(cache_hit=True,seconds=0.)
+ start=time.perf_counter();rank=min(64,min(X.shape)-1);width=min(rank+10,min(X.shape))
+ if rank<1:raise ValueError('matrix shape cannot support rank>=1: '+str(X.shape))
+ Q,_=np.linalg.qr(X@np.random.default_rng(0).standard_normal((X.shape[1],width)),mode='reduced')
+ for _ in range(2):
+  P,_=np.linalg.qr(X.T@Q,mode='reduced');Q,_=np.linalg.qr(X@P,mode='reduced')
+ B=(X.T@Q).T
+ _,singular,V=np.linalg.svd(B,full_matrices=False);V=V[:rank];Y=X@V.T
+ norm=np.linalg.norm(Y,axis=1);Z=Y/np.where(norm>0,norm,1)[:,None]
+ np.savez(cache,Z=Z,components=V,singular=singular[:rank],identity=identity)
+ return Z,V,singular[:rank],dict(cache_hit=False,seconds=time.perf_counter()-start,rank=rank)
+
+def full_statistics(X,Z,ids,cache,identity):
+ if cache.exists():
+  with np.load(cache) as c:
+   assert str(c['identity'])==identity
+   return {k:c[k] for k in c.files if k!='identity'}
+ start=time.perf_counter();n=len(ids);counts=Counter(ids);unique=np.array([counts[x]==1 for x in ids]);indices=np.flatnonzero(unique)
+ paths=[x.split('::')[0] for x in ids];codes={p:i for i,p in enumerate(sorted(set(paths)))};pc=np.array([codes[p] for p in paths])
+ out={k:np.full(n,np.nan) for k in ['raw_cross_max','raw_all_max','latent_cross_max','latent_all_max','density10']}
+ # Complete sparse original corpus; no snippet IDF or N*N storage.
+ for offset in range(0,len(indices),32):
+  qs=indices[offset:offset+32];raw=(X[qs]@X.T).toarray();latent=Z[qs]@Z.T
+  for qi,i in enumerate(qs):
+   allmask=unique.copy();allmask[i]=False;cross=allmask&(pc!=pc[i]);r=raw[qi];l=latent[qi]
+   out['raw_all_max'][i]=float(np.max(r[allmask])) if np.any(allmask) else -2
+   out['raw_cross_max'][i]=float(np.max(r[cross])) if np.any(cross) else -2
+   out['latent_all_max'][i]=float(np.max(l[allmask])) if np.any(allmask) else -2
+   out['latent_cross_max'][i]=float(np.max(l[cross])) if np.any(cross) else -2
+   vals=l[cross];k=min(10,len(vals));out['density10'][i]=float(np.mean(np.partition(vals,-k)[-k:])) if k else 0.
+  if offset%2048==0:print(json.dumps(dict(stage='statistics',queries_done=min(offset+32,len(indices)),queries_total=len(indices),seconds=time.perf_counter()-start)),flush=True)
+ out['unique']=unique;out['path_codes']=pc
+ np.savez(cache,identity=identity,**out)
+ return out
+
+def calibrated_floors(stats,lengths):
+ usable=stats['unique'];raw=stats['raw_cross_max'];known=lengths>0
+ definite=((raw>=.5)|((raw>=.3)&known&(lengths<6)))&usable
+ possible=((raw>=.5)|((raw>=.3)&((known&(lengths<6))|~known)))&usable
+ low_count,high_count=int(np.sum(definite)),int(np.sum(possible))
+ def floor(values,count):return float(np.sort(values[usable])[::-1][count-1]) if count else 2.
+ bal=int(np.sum((stats['raw_all_max']>=.35)&usable))
+ return dict(default=dict(coverage_min=low_count,coverage_max=high_count,
+  cosine_floor_low=floor(stats['latent_cross_max'],high_count),cosine_floor_high=floor(stats['latent_cross_max'],low_count),
+  exact=low_count==high_count,unknown_length_functions=int(np.sum(usable&~known))),
+  balanced=dict(coverage_min=bal,coverage_max=bal,cosine_floor_low=floor(stats['latent_all_max'],bal),cosine_floor_high=floor(stats['latent_all_max'],bal),exact=True,unknown_length_functions=0))
+
+def raw_direction(index,bg,q,t,qlines):
+ scores=index.similar(bg.documents[q].tokens(),exclude={q});rank=next((k+1 for k,(j,_) in enumerate(scores) if j==t),None);score=next((s for j,s in scores if j==t),0.)
+ same=bg.documents[q].id.split('::')[0]==bg.documents[t].id.split('::')[0]
+ cross=[j for j,_ in scores if bg.documents[j].id.split('::')[0]!=bg.documents[q].id.split('::')[0]]
+ cross_rank=cross.index(t)+1 if t in cross else None
+ result=dict(score=score,raw_rank=rank,cross_file_rank=cross_rank,same_file=same,query_lines=qlines,
+  top1=rank is not None and rank<=1,top3=rank is not None and rank<=3,top20=rank is not None and rank<=20,reciprocal_rank=1/rank if rank else 0.)
+ for profile,k,floor,r in [('balanced',20,.35,rank),('default',3,.3 if qlines and qlines<6 else .5 if qlines else None,cross_rank)]:
+  if profile=='default' and same:loss='same_file'
+  elif floor is None:loss='query_length_missing'
+  elif score<floor:loss='score_floor'
+  elif r is None or r>k:loss='top_k'
+  else:loss='retrieved'
+  result[profile]=dict(floor=floor,retrieved=loss=='retrieved' if loss!='query_length_missing' else None,first_loss=loss)
+ return result
+
+def latent_direction(Z,stats,ids,q,t,arm,floors):
+ cosine=Z@Z[q];affinity=cosine if arm=='lsi64' else 2*cosine-stats['density10'][q]-np.nan_to_num(stats['density10'])
+ # Ambiguous IDs remain competitors for raw ranks; target eligibility handled separately.
+ order=np.lexsort((np.arange(len(ids)),np.array(ids),-affinity));order=order[order!=q]
+ cross=order[stats['path_codes'][order]!=stats['path_codes'][q]];same=stats['path_codes'][q]==stats['path_codes'][t]
+ rawrank=int(np.flatnonzero(order==t)[0])+1;cr=int(np.flatnonzero(cross==t)[0])+1 if not same else None
+ result=dict(score=float(affinity[t]),cosine=float(cosine[t]),raw_rank=rawrank,cross_file_rank=cr,same_file=bool(same),top1=rawrank<=1,top3=rawrank<=3,top20=rawrank<=20,reciprocal_rank=1/rawrank)
+ for profile,k,pool in [('balanced',20,order),('default',3,cross)]:
+  lo,hi=floors[profile]['cosine_floor_low'],floors[profile]['cosine_floor_high'];rr=list(pool).index(t) if t in pool else None
+  before=pool[:rr] if rr is not None else np.array([],dtype=int)
+  possible=rr is not None and cosine[t]>=lo and int(np.sum(cosine[before]>=min(hi,cosine[t])))<k
+  definite=rr is not None and cosine[t]>=hi and int(np.sum(cosine[before]>=lo))<k
+  retrieved=bool(definite) if definite or not possible else None
+  loss='same_file' if profile=='default' and same else 'retrieved' if definite else 'calibration_requires_full_source_lengths' if possible else 'score_floor' if cosine[t]<lo else 'top_k'
+  result[profile]=dict(floor_low=lo,floor_high=hi,exact_calibration=floors[profile]['exact'],retrieved=retrieved,retrieved_possible=bool(possible),retrieved_definite=bool(definite),first_loss=loss)
+ return result

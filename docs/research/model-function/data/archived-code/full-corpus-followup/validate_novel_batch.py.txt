@@ -1,0 +1,159 @@
+"""Read-only native source, .04 funding and policy request validator for frozen batches."""
+
+import argparse
+import gzip
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+from types import SimpleNamespace
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import estimate
+from dry_lint.extractors import PythonExtractor
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
+from dry_lint.judges.jev import JevJudge
+from dry_lint.judges.model_jev import ModelJevJudge
+from dry_lint.model_shapes import PythonModelExtractor, TypeScriptModelExtractor
+from dry_lint.models import Candidate, evidence
+from dry_lint.settings import Settings
+from dry_lint.typescript import TypeScriptExtractor
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def rows(p):
+    return [json.loads(x) for x in Path(p).read_text().splitlines() if x]
+
+
+def validate(folder):
+    frozen = json.loads((folder / "FROZEN.json").read_text())
+    assert sha(Path(frozen["queue"]).read_bytes()) == frozen["queue_sha256"]
+    for artifact in frozen["artifacts"]:
+        assert sha(Path(artifact["path"]).read_bytes()) == artifact["sha256"], artifact["path"]
+    sidecars = {r["id"]: r for r in rows(folder / "private-funding-sidecar.jsonl")}
+    requests = {(r["id"], r["identity"]["kind"]): r for r in rows(folder / "canonical-request-plan.jsonl")}
+    settings = Settings(preset="none", budget={"usd": 0.04})
+    results = []
+    files = {}
+    backgrounds = {}
+    for row in rows(folder / "novel-review-queue.jsonl"):
+        c = Candidate.model_validate(row["candidate"])
+        assert c.model_dump() == row["candidate"]
+        kind = row["candidate_kind"]
+        bgproof = row["background_proof"]
+        if bgproof["sha256"] not in backgrounds:
+            raw = Path(bgproof["path"]).read_bytes()
+            assert sha(raw) == bgproof["sha256"]
+            backgrounds[bgproof["sha256"]] = BenchBackground.decode(raw)
+        b = backgrounds[bgproof["sha256"]]
+        assert (b.repository, b.revision, b.scope) == (row["repository"], row["revision"], bgproof["scope"])
+        assert all(bool(f.declaration) == (kind == "model") for f in (c.new, c.existing))
+        for f in (c.new, c.existing):
+            proof = next(p for p in row["source_proofs"] if p["source_id"] == f.qualname)
+            filekey = (row["source_git"], row["revision"], f.path)
+            if filekey not in files:
+                files[filekey] = subprocess.check_output(
+                    ["git", "-C", row["source_git"], "show", row["revision"] + ":" + f.path]
+                )
+            raw = files[filekey]
+            assert sha(raw) == proof["full_source_sha256"]
+            assert raw == gzip.decompress(Path(proof["source_file"]).read_bytes())
+            assert hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest() == proof["git_blob_sha1"]
+            py = f.path.endswith(".py")
+            ex = (
+                (PythonModelExtractor() if py else TypeScriptModelExtractor())
+                if kind == "model"
+                else (PythonExtractor() if py else TypeScriptExtractor())
+            )
+            fs = [n for n in ex.functions(f.path, raw.decode()) if n.qualname == f.qualname]
+            assert len(fs) == 1
+            fs[0].hash = ex.structure_hash(fs[0])
+            assert fs[0].model_dump() == f.model_dump()
+            assert f.line >= 1 and f.end_line >= f.line
+            assert proof["excerpt"] == f.code and proof["source_sha256"] == sha(f.code.encode())
+            if kind == "function":
+                ds = [d for d in b.documents if d.id == f.qualname]
+                assert len(ds) == 1 and ds[0].source_sha256 == sha(f.code.encode())
+            else:
+                ip = row["model_inventory_proof"]
+                data = Path(ip["path"]).read_bytes()
+                assert sha(data) == ip["sha256"]
+                assert f.model_dump() in json.loads(data)
+        for proof in row["consumer_ownership_proofs"]:
+            raw = gzip.decompress(Path(proof["source_file"]).read_bytes())
+            assert sha(raw) == proof["full_source_sha256"]
+            excerpt = "\n".join(raw.decode().splitlines()[proof["start_line"] - 1 : proof["end_line"]])
+            assert excerpt == proof["excerpt"] and sha(excerpt.encode()) == proof["excerpt_sha256"]
+        side = sidecars[row["id"]]
+        cs = {r["candidate_id"]: r for r in rows(side["candidate_file"])}
+        assert cs[side["candidate_id"]]["candidate"] == row["candidate"]
+        es = rows(side["exposures_file"])
+        assert side["funding"]
+        for funded in side["funding"]:
+            assert funded in es and funded["funded"]
+            batch = [
+                e
+                for e in es
+                if (e["profile"], e["batch"], e["arm"]) == (funded["profile"], funded["batch"], funded["arm"])
+                and e["funded"]
+            ]
+            total = 0
+            for e in batch:
+                cc = Candidate.model_validate(cs[e["candidate_id"]]["candidate"])
+                policy = "model-contracts" if e["kind"] == "model" else "shared-operations"
+                judge = SimpleNamespace(name="anthropic", model="claude-sonnet-5-5", prompt_policy=policy)
+                cost = estimate(judge, [cc], settings)
+                assert cost == e["estimated_usd"]
+                total += cost
+            assert total <= 0.04 + 1e-12
+        jev = (ModelJevJudge if kind == "model" else JevJudge)(
+            api_key="offline-render-only", model="jev-1.14.0", context=True, workers=1
+        )
+        policy = "model-contracts" if kind == "model" else "shared-operations"
+        for rk, name, version, model, cap, rendered in [
+            (jev.name, jev.name, jev.version, jev.model, None, jev.input_text(c)),
+            (
+                "claude",
+                "anthropic-models" if kind == "model" else "anthropic-operations",
+                PROMPT_POLICIES[policy][0] + ":claude-sonnet-5-5:output=1024",
+                "claude-sonnet-5-5",
+                1024,
+                prompt(c, policy=policy),
+            ),
+        ]:
+            ident = dict(
+                kind=rk,
+                judge=name,
+                version=version,
+                model=model,
+                max_output_tokens=cap,
+                rendered_input=rendered,
+                source_evidence=evidence(c),
+                context_hash=c.context_hash,
+            )
+            request = requests[(row["id"], rk)]
+            assert request["identity"] == ident and request["request_key"] == sha(
+                json.dumps(ident, sort_keys=True).encode()
+            )
+        results.append(dict(id=row["id"], candidate_kind=kind, native_source_and_funding_pass=True, policy_bindings=2))
+    return dict(
+        all_pass=True,
+        queue_sha256=frozen["queue_sha256"],
+        rows=len(results),
+        results=results,
+        provider_calls=0,
+        credentials_read=False,
+    )
+
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("batch", type=Path)
+    p.add_argument("--out", type=Path, required=True)
+    a = p.parse_args()
+    result = validate(a.batch)
+    a.out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    print(json.dumps({k: v for k, v in result.items() if k != "results"}, sort_keys=True))

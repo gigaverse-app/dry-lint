@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "version": "agentic-r2-body-only-procedure-repair-v3-auto",
+  "kind": "comparator_infrastructure_amendment",
+  "reason": "Provider rejected forced tool_choice type tool/any with four HTTP400 responses. SDK mock proved serialization only, not server capability.",
+  "request_delta_vs_v2": "ONLY tool_choice restored to original {type:auto}. Corrected supplied-source-only system, user bodies/question, model, output cap and final schema unchanged.",
+  "selected_cases": [
+    "AJ-R2-503033a096d94361",
+    "AJ-R2-1cc88d10487c8481",
+    "AJ-R2-442513c7a22764ab",
+    "AJ-R2-294585ab744e5e23",
+    "AJ-R2-7bb9525a018c2ebb",
+    "AJ-R2-79b342568fc7ba88",
+    "AJ-R2-54b6abcd0f86aeb6",
+    "AJ-R2-45053d42a5ba1263",
+    "AJ-R2-9d94b5ed1e94eaf2"
+  ],
+  "all_nine_required": true,
+  "root_smoke_before_remaining_eight": true,
+  "new_ledger_cap_usd": 0.2,
+  "initial_seeded_spend_usd": 0,
+  "prior_spent_guard_usd": 0,
+  "v2_held_reservation_usd": 0.127882,
+  "old_cap2_ledger_unchanged_and_halted": true,
+  "unknown_reservations_not_zeroed": true,
+  "source_labels_unchanged": true,
+  "report_threshold": 0.8,
+  "r1_unchanged": true,
+  "no_new_teacher_or_candidates": true,
+  "cache": "New exact request identities only; smoke is excluded from remaining-eight queue, no paid repeats.",
+  "worker_provider_calls": 0
+}

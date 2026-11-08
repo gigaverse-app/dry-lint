@@ -1,0 +1,38 @@
+[
+  {
+    "id": "HYB1-021",
+    "repository": "pingdotgg/t3code",
+    "revision": "6577c6b6185167c0e502fa01f9e8e8f2dee6ff25",
+    "prefix_cosine": 0.6078358292579651,
+    "tfidf": {
+      "competitors": 18891,
+      "raw_nonself_rank": 1,
+      "score": 0.305149165198961
+    },
+    "full_evidence": "worked-examples/HYB1-021.json"
+  },
+  {
+    "id": "HYB1-044",
+    "repository": "anomalyco/opencode",
+    "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+    "prefix_cosine": 0.6496816873550415,
+    "tfidf": {
+      "competitors": 13894,
+      "raw_nonself_rank": 4,
+      "score": 0.29115645497137105
+    },
+    "full_evidence": "worked-examples/HYB1-044.json"
+  },
+  {
+    "id": "HYB1-055",
+    "repository": "anomalyco/opencode",
+    "revision": "51626eee903ea31fde7f41deb6a3430c939d9d90",
+    "prefix_cosine": 0.6490769386291504,
+    "tfidf": {
+      "competitors": 13894,
+      "raw_nonself_rank": 2,
+      "score": 0.4153554167499509
+    },
+    "full_evidence": "worked-examples/HYB1-055.json"
+  }
+]

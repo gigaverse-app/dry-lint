@@ -1,0 +1,10 @@
+[
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/linked-docs/round1/643600e519d40dbb-9a335b7dc1e9/completed.jsonl",
+    "sha256": "a0895ed7fdaa091a7450dedb7f13b946d599ff29fc5548abcf2f1e04fc69d534"
+  },
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/linked-docs/round2/cdc4b87d8143d8c8-4cbb628cfd97/completed.jsonl",
+    "sha256": "ec998a6c92b9b8cd2c5a90b44e5ea594bc4e7ecc8424c79d169182ea5690bfea"
+  }
+]

@@ -1,0 +1,119 @@
+"""Both preregistered profile views of the same sealed answers; no new observations or tuning."""
+
+import gzip
+import json
+import sys
+
+from prepare import LAB, OUT, dump, read, rows
+
+sys.path.insert(0, str(LAB))
+import operation_blocks as f
+
+from dry_lint.models import Verdict
+
+
+def main():
+    folder = OUT / "intake-seven-policy-replay"
+    observed = [
+        r for r in read(folder / "policy-emission-and-first-loss.jsonl") if r["observation_status"] == "observed"
+    ]
+    sidecars = {r["id"]: r for r in read(OUT / "review-private-sidecar.jsonl")}
+    cohort = "bg-ebd0031534c954e5"
+    snapshot = json.loads(gzip.decompress((OUT / "cohorts" / cohort / "candidate-index.json.gz").read_bytes()))
+    functions = {int(i): f.Function.model_validate(v) for i, v in snapshot["functions"].items()}
+    queries = {q["query"]: q for q in read(OUT / "cohorts" / cohort / "per-query.jsonl") if "profiles" in q}
+    results = []
+    for observation in observed:
+        side = sidecars[observation["id"]]
+        query = queries[side["query"]]
+        score = side["full_score"]
+        for profile, policy in query["profiles"].items():
+            cs = [
+                f.Candidate(
+                    new=functions[side["query"]],
+                    existing=functions[ti],
+                    similarity=0,
+                    comparer="tfidf:2",
+                    lane="exploration",
+                )
+                for ti in policy["augmented"]
+            ]
+            selected = f.Ledger(f.SETTINGS).select(f.JUDGE, cs)
+            funded = [policy["augmented"][i] for i in selected]
+            base_selected = f.Ledger(f.SETTINGS).select(f.JUDGE, cs[: len(policy["baseline"])])
+            base_funded = [policy["baseline"][i] for i in base_selected]
+            assert funded == policy["augmented_funded"] and base_funded == policy["baseline_funded"]
+            for arm, exposed, paid in (
+                ("baseline", policy["baseline"], base_funded),
+                ("plus_block", policy["augmented"], funded),
+            ):
+                target = side["target"]
+                samefile = functions[side["query"]].path == functions[target].path
+                if target in paid:
+                    emitted = f.SETTINGS.duplicate_at(
+                        Verdict.model_validate(observation["verdict"]), f.SETTINGS.report_at
+                    )
+                    loss = (
+                        "emitted"
+                        if emitted
+                        else "judge_separate"
+                        if observation["verdict"]["label"] == "separate"
+                        else "judge_below_report_bar"
+                    )
+                elif target in exposed:
+                    emitted, loss = False, "frozen_budget"
+                elif profile == "default3" and samefile:
+                    emitted, loss = False, "same_file"
+                else:
+                    emitted = False
+                    floor = 0.3 if functions[side["query"]].lines < 6 else 0.5
+                    below = score < floor if profile == "default3" else score < 0.35 and (samefile or score < floor)
+                    loss = "floor" if below else "top_k"
+                    if arm == "plus_block":
+                        block = next((b for b in query["block_candidates"] if b["target"] == target), None)
+                        loss = (
+                            "block_shared_guard_or_pool"
+                            if block is None
+                            else "block_floor"
+                            if not block["block_floor_pass"]
+                            else "full_floor"
+                            if not block["full_floor_pass"]
+                            else "pair_filter"
+                            if block["filter"]
+                            else "one_extra_priority"
+                        )
+                results.append(
+                    dict(
+                        id=observation["id"],
+                        sampled_role=side["role"],
+                        sampled_profile=side["profile"],
+                        evaluated_profile=profile,
+                        arm=arm,
+                        kind=observation["kind"],
+                        exposed=target in exposed,
+                        funded=target in paid,
+                        observed_classifier_emitted=emitted,
+                        first_loss=loss,
+                        original_concept_end_to_end_emission=None if target in paid else False,
+                        source_label=None,
+                        source_review_status="pending",
+                        paid_calls_added=0,
+                    )
+                )
+    rows(folder / "all-frozen-profile-views.jsonl", results)
+    dump(
+        folder / "all-profile-receipt.json",
+        dict(
+            observed_pairs=3,
+            reused_answers=6,
+            profile_arm_model_views=len(results),
+            emitted=sum(r["observed_classifier_emitted"] for r in results),
+            new_provider_calls=0,
+            warning="Repeated profile/arm views reuse the same six answers; neither extra calls nor independent trials. Concept-prompt counterfactual remains unknown.",
+        ),
+    )
+    print(json.dumps([r for r in results if r["kind"] == "claude"]), flush=True)
+
+
+if __name__ == "__main__":
+    main()

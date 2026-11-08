@@ -1,0 +1,51 @@
+{
+  "actual_usd": 0.007464,
+  "error": null,
+  "raw_provider": {
+    "encoding": "utf8",
+    "sha256": "7f26ac708af38027d12a4193d6e00fc7c758d97cc5704fe0f0724ba21f25faa5",
+    "text": "{\"model\":\"claude-sonnet-5-5\",\"id\":\"msg_011CgoGKfACBsxn97TZFMccu\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"label\\\":\\\"duplicate\\\",\\\"score\\\":0.8,\\\"owner\\\":\\\"shared\\\",\\\"why\\\":\\\"Both functions run the same provider-dispatch sequence. They resolve api_base and api_key from the provider config, with the ctx.api_key or litellm.api_key fallback. They then call base_llm_http_handler.completion with an identical argument mapping, and finally call logging.post_call with the same arguments and return the response. Only the config class (EdenAIChatConfig vs FalAIChatConfig) and the custom_llm_provider string differ. fal_ai also adds a streaming-rejection guard up front, which can stay in its caller. A shared helper such as _dispatch_base_http_completion(ctx, provider_name, config_cls, pre_validate=None) would own the common sequence, and each provider function would stay a thin adapter. This is the same executable policy repeated, not just a shared helper call: it composes config resolution, handler invocation and post-call logging. If other providers repeat it too, the case for extraction is stronger.\\\"}\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":2077,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"iterations\":[{\"input_tokens\":2077,\"output_tokens\":331,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"type\":\"message\",\"model\":null}],\"output_tokens\":331,\"output_tokens_details\":{\"thinking_tokens\":0},\"service_tier\":\"standard\",\"inference_geo\":\"global\",\"speed\":\"standard\"},\"diagnostics\":null}"
+  },
+  "request_key": "af0c5306ac1c22c4297abe920990bad0fe235fc66c471cc531723c13e7d1ade5",
+  "usage": {
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "inference_geo": "global",
+    "input_tokens": 2077,
+    "iterations": [
+      {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2077,
+        "model": null,
+        "output_tokens": 331,
+        "type": "message"
+      }
+    ],
+    "output_tokens": 331,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "speed": "standard"
+  },
+  "verdict": {
+    "behaves_differently": 0.0,
+    "judge": "anthropic-operations",
+    "judge_version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+    "label": "duplicate",
+    "model_assessment": null,
+    "owner": "shared",
+    "score": 0.8,
+    "second_opinion": null,
+    "why": "Both functions run the same provider-dispatch sequence. They resolve api_base and api_key from the provider config, with the ctx.api_key or litellm.api_key fallback. They then call base_llm_http_handler.completion with an identical argument mapping, and finally call logging.post_call with the same arguments and return the response. Only the config class (EdenAIChatConfig vs FalAIChatConfig) and the custom_llm_provider string differ. fal_ai also adds a streaming-rejection guard up front, which can stay in its caller. A shared helper such as _dispatch_base_http_completion(ctx, provider_name, config_cls, pre_validate=None) would own the common sequence, and each provider function would stay a thin adapter. This is the same executable policy repeated, not just a shared helper call: it composes config resolution, handler invocation and post-call logging. If other providers repeat it too, the case for extraction is stronger."
+  }
+}

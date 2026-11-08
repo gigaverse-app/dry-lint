@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="$PWD/src"
+# The archived capture runner is the exact implementation used for the measured
+# cold/warm runs. Its source hash binds the immutable candidate snapshots.
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/operation_blocks_capture_v1.py --repo litellm
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/operation_blocks_capture_v1.py --repo litellm --warm
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/operation_blocks_capture_v1.py --repo openhands
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/operation_blocks_capture_v1.py --repo openhands --warm
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/controls.py
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/explicit_policies.py
+# Existing queue is immutable: finalize.py preserves it on subsequent runs.
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/finalize.py
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/validate.py
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/diagnostics.py
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/prompt_cost_compatibility.py
+# Read already completed central observations; never runs providers.
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/observations.py
+LAB_ROOT/retrieval/.venv/bin/python .lab-results/handoff.py

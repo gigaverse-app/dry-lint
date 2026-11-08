@@ -1,0 +1,30 @@
+{
+  "claims": [
+    {
+      "comparison": "Same227 accepted positive pair/background conditions",
+      "decision": "Stop these recipes",
+      "interpretation": "Fixed latent recipes are worse replacements on seen regression evidence",
+      "mechanism": "64-dimensional normalized projection, optional10-neighbor density correction",
+      "observation": "MRR .7002 raw versus .5916/.5451; top20 loses20/22 with no gains",
+      "question": "Does latent compression improve duplicate ordering?"
+    },
+    {
+      "comparison": "All79 exact backgrounds; disjoint-file source discovery in two public snapshots",
+      "decision": "Do not ship the fixed recipe; preserve concrete leads",
+      "interpretation": "Reach extends; overall ordering not better. Emitted lead was raw rank4, so learned-edge causality is not established",
+      "mechanism": "Rare high-PMI source edges, bounded one-hop additions, raw-first protected ledger",
+      "observation": "Top20 positive +2/-0; no known funded-positive gains;1 novel emitted candidate on36 answered novel pairs",
+      "question": "Does sparse association preserve lexical detail while broadening retrieval?"
+    },
+    {
+      "comparison": "Two funded zero-posting cases selected and answered",
+      "decision": "No zero-posting duplicate recovery claimed",
+      "interpretation": "Correlated feature roles are not evidence of duplicated operations",
+      "mechanism": "Expanded postings connect feature roles absent from original posting intersection",
+      "observation": "Both providers say separate for each; no independent acceptance as duplicates",
+      "question": "Are zero-posting discoveries useful?"
+    }
+  ],
+  "schema": 1,
+  "source_truth": "Independent coordinator source assessments only; source D has one tiny useful novel polling extraction, one tiny baseline fixture control, two related and three negative cases. No global gold promotion."
+}

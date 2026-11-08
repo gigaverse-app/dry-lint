@@ -1,0 +1,92 @@
+"""Bounded preregistered residual run, cached representation, central intake export."""
+import hashlib,importlib.util,itertools,json,sys,time
+from collections import Counter
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.models import Candidate,evidence
+from dry_lint.costs import Ledger,estimate
+from dry_lint.settings import Settings
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
+from residual_blocks import residual_neighbours
+OUT=Path(__file__).resolve().parent;R1=OUT.parent.parent/'round1';WORK=OUT.parents[3]
+spec=importlib.util.spec_from_file_location('existing_round1_export_utilities',R1/'prepare.py');u=importlib.util.module_from_spec(spec);spec.loader.exec_module(u);u.OUT=OUT.parent
+q=u.q;old=u.intake;read=u.read;write=u.write;sha=u.sha
+assert not(OUT/'HANDOFF.json').exists(),'Published batch immutable'
+write(OUT/'AUDIT-IMPLEMENTATION-FREEZE.json',{'preregistration_sha256':sha((OUT.parent/'PREREGISTRATION.json').read_bytes()),'selector_sha256':sha((OUT.parent/'residual_blocks.py').read_bytes()),'selection_export_sha256':sha(Path(__file__).read_bytes()),'before_any_round2_selector_run':True,'no_parameter_search':True})
+cohorts={r['cohort']['cohort_id']:r['cohort']for r in json.loads((u.OLD/'coverage.json').read_text())['per_cohort']};ids=['bg-7489aa1946c16153','bg-ebd0031534c954e5'];models={cid:u.production(cohorts[cid])for cid in ids}
+settings=Settings(budget={'usd':.04});concept=SimpleNamespace(name='anthropic',model='claude-sonnet-5-5',prompt_policy='concept');ops=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',prompt_policy='shared-operations')
+def group(repo,pin,f):return(repo,pin,f.path,f.owner or'<module>')
+def pairs(calls):return set(itertools.combinations(sorted(calls),2))
+def pairkey(repo,pin,a,b):return old.pair(repo,pin,[a.qualname,b.qualname])
+seen=set();held_groups=set();held_calls=set()
+for path in [R1/'queue.jsonl',WORK/'.lab-results/full-corpus-followup/review-batches/v1/novel-review-queue.jsonl',WORK/'.lab-results/novel-review-queue.jsonl']:
+ for p in read(path):
+  c=Candidate.model_validate(p['candidate']);seen.add(old.packet_pair(p));held_groups.update(group(p['repository'],p['revision'],f)for f in(c.new,c.existing))
+for r in read(R1/'review-private-sidecar.jsonl'):
+ ev=r.get('block_evidence')or{};held_calls.update((r['repository'],*p)for p in pairs(ev.get('shared_calls',[])))
+root=u.CENTRAL
+for path in list(root.glob('promotion-evidence-v*/canonical-request-plan.jsonl'))+list((root/'promotion-operations/intakes').glob('**/canonical-request-plan.jsonl')):
+ for r in read(path):
+  if r.get('pair_key'):seen.add(r['pair_key'])
+used_endpoints=set();used_groups=set();chosen=[];work_rows=[];reasons=Counter();query_count=0;started=time.perf_counter()
+queries=[(cid,qi,p)for cid,m in models.items()for qi,p in m['queries'].items()if p['profiles']['default3'].get('extra')]
+queries.sort(key=lambda t:sha(q.canonical(['residual-round2-query-v1',t[0],t[1]])))
+
+def campaign(m,qi,target,score,cid):
+ c=m['comparer'];p=m['queries'][qi]['profiles']['default3'];candidate=m['detector'].pair(c.functions[qi],c.functions[target],score).model_copy(update={'comparer':cid,'lane':'exploration'})
+ augmented=p['baseline']+([target]if target not in p['baseline']else[])
+ cs=[Candidate(new=c.functions[qi],existing=c.functions[t],similarity=0,comparer='tfidf:2',lane='exploration')for t in augmented];cs[augmented.index(target)]=candidate
+ a=Ledger(settings).select(concept,cs);b=Ledger(settings).select(ops,cs)
+ if augmented.index(target)not in a or augmented.index(target)not in b:return None
+ return candidate,dict(augmented=augmented,concept_targets=[augmented[i]for i in a],operations_targets=[augmented[i]for i in b],concept_estimate=estimate(concept,[cs[i]for i in a],settings),operations_estimate=estimate(ops,[cs[i]for i in b],settings))
+
+for p in read(OUT.parent/'queue.jsonl'):
+ cc=Candidate.model_validate(p['candidate']);seen.add(old.packet_pair(p));held_groups.update(group(p['repository'],p['revision'],f)for f in(cc.new,cc.existing))
+for cid,qi,query in queries:
+ if query_count>=1800 or time.perf_counter()-started>180:break
+ m=models[cid];c=m['comparer'];repo,pin=cohorts[cid]['repository'],cohorts[cid]['revision'];f=c.functions[qi];g=group(repo,pin,f);p=query['profiles']['default3'];oi=p['extra']['target'];of=c.functions[oi];ep={(repo,pin,x.qualname)for x in(f,of)};gs={g,group(repo,pin,of)};key=pairkey(repo,pin,f,of)
+ if gs&held_groups or gs&used_groups or ep&used_endpoints or key in seen:reasons['prior_source_group_or_owned_pair']+=1;continue
+ cp={(repo,*pair)for pair in pairs(p['extra']['shared_calls'])}
+ if cp&held_calls:reasons['round1_call_pair_family_split']+=1;continue
+ query_count+=1;t=time.perf_counter();allfound,w=residual_neighbours(c,f,p['baseline'],k=64);found=[r for r in allfound if c.functions[r['parent']].path!=f.path][:1];work_rows.append({'cohort_id':cid,'query':qi,**w,'elapsed_seconds':time.perf_counter()-t})
+ if found and found[0]['parent']==oi:reasons['retained_not_rejection_audit']+=1;continue
+ funded=campaign(m,qi,oi,c.similarity(f,of),'operation-blocks:1')
+ if funded is None:reasons['original_arm_not_funded']+=1;continue
+ candidate,finance=funded;ident='OBR2-AUDIT-'+sha(q.canonical([repo,pin,f.qualname,of.qualname]))[:12]
+ chosen.append({'id':ident,'cohort_id':cid,'query':qi,'target':oi,'candidate':candidate,'funding':finance,'role':'rejection_audit_original_funded_exposure','arm':'original_rejected_by_residual','group_id':ident,'mechanism_changed':True,'revised_candidate_included':False,'revised_exclusion':'all_query_regions_covered'if not w['residual_blocks']else'residual_rerank_does_not_select_original_target','revised_winner':found[0]['parent']if found else None,'residual_work':w,'family_keys':[list(v)for v in sorted(cp)]})
+ seen.add(key);used_endpoints.update(ep);used_groups.update(gs)
+ if len(chosen)==24:break
+write(OUT/'default3-audit-run.json',{'queries_scored_for_audit':query_count,'cached_original_funded_query_pool':len(queries),'audit_pairs':len(chosen),'elapsed_seconds':time.perf_counter()-started,'selection_reasons':dict(reasons),'no_refits':True,'no_threshold_change':True,'source_exhaustion_claim':False,'full_source_census':'full-source-stage-summary.json (separate all-query scan)','selector_sha256':sha((OUT.parent/'residual_blocks.py').read_bytes()),'sampling_amendment_sha256':sha((OUT.parent/'SAMPLING-AMENDMENT-003.json').read_bytes())})
+write(OUT/'default3-audit-work.jsonl',work_rows,lines=True)
+assert len(chosen)>=12,f'Only {len(chosen)} independent rejection audits; preserve split and inspect full-source census'
+controls=[]
+items=chosen
+packets=[];sides=[];funds=[];proofrows=[];blind=[];entries=[];plans=[];groups=[]
+requested=[{'kind':'claude','model':'claude-sonnet-5-5','policy':'shared-operations','max_output_tokens':1024,'report_threshold':.8},{'kind':'jev','model':'jev-1.14.0','policy':'reuse-context-v3','report_threshold':.8}]
+for item in items:
+ cid=item['cohort_id'];m=models[cid];cohort=cohorts[cid];c=item['candidate'];proofs=[]
+ for f in(c.new,c.existing):
+  s=m['payload']['sources'][f.path];raw=Path(s['snapshot']).read_bytes();assert sha(raw)==s['sha256']==f.context_digest;assert'\n'.join(raw.decode().splitlines()[f.line-1:f.end_line])==f.code
+  proofs.append({'source_id':f.qualname,'path':f.path,'line':f.line,'end_line':f.end_line,'body_sha256':sha(f.code.encode()),'file_sha256':sha(raw),'git_blob_sha1':s['git_blob'],'snapshot':s['snapshot'],'blob_url':f"https://github.com/{cohort['repository']}/blob/{cohort['revision']}/{f.path}#L{f.line}-L{f.end_line}"})
+ packet={'schema':1,'format':'dry-lint/lab-review-packet','id':item['id'],'repository':cohort['repository'],'revision':cohort['revision'],'candidate':c.model_dump(mode='json'),'background_proof':{'path':cohort['background_path'],'sha256':cohort['background_sha256']},'source_proofs':proofs,'evidence':evidence(c),'status':'unknown','requested_judging':requested,'truth':'Independent source adjudication; diagnostic providers do not define gold.'}
+ binding={'repository':packet['repository'],'revision':packet['revision'],'candidate_sha256':sha(q.canonical(packet['candidate'])),'source_files':[{k:p[k]for k in ['source_id','path','file_sha256','body_sha256']}for p in proofs],'scope':m['bg'].scope,'background_sha256':cohort['background_sha256'],'candidate_kind':'function'}
+ f=item['funding'];side={'id':item['id'],'role':item['role'],'arm':item['arm'],'matched_group':item['group_id'],'profile':'default3','query':item['query'],'target':item['target'],'cohort_id':cid,'actually_funded':True,'shared_operations_funded':True,'concept_budget_usd':.04,'shared_operations_query_estimated_usd':f['operations_estimate'],'query_total_estimated_usd':f['concept_estimate'],'funding':f,'new_selector':'operation-blocks-residual:1','candidate_comparer':c.comparer,'source_groups':[list(group(packet['repository'],packet['revision'],x))for x in(c.new,c.existing)],'round1_source_group_overlap':False,'root_semantic_family_validation':'required before interpreting families as independently new','observed_deployment_campaign':False,'provider_calls':0}
+ if item['arm']!='baseline_control':side.update(rejection_audit=True,residual_candidate_included=False,revised_emission_credit=0,revised_exclusion=item['revised_exclusion'],residual_work=item['residual_work'],family_keys=item['family_keys'])
+ entry={'id':item['id'],'method':'operation-blocks','role':'control'if'control'in item['role']else'novel','packet':packet,'binding':binding,'pair_key':old.packet_pair(packet),'attribution':[{'method':'operation-blocks','original_id':item['id'],'round':2,'arm':item['arm'],'matched_group':item['group_id']}],'native_funding':{'arm':'default3','native':side}}
+ reqs=[q.request(c,kind,binding)for kind in ['jev','claude']]
+ packets.append(packet);sides.append(side);entries.append(entry);plans.append(reqs);proofrows.append({'id':item['id'],'source_proofs':proofs,'binding':binding});funds.append({'schema_version':'promotion-funding-evidence-v1','id':item['id'],'method':'operation-blocks','original_cap_usd':.04,'original_funding':entry['native_funding'],'central_diagnostic_cap_usd':20.,'diagnostic_answers_not_native_default_or_balanced':True,'physical_cache_discount_to_original_ledger':0});blind.append({'id':item['id'],'repository':packet['repository'],'revision':packet['revision'],'new':packet['candidate']['new'],'existing':packet['candidate']['existing'],'source_proofs':proofs,'consolidation':[],'policies':[]})
+for item in chosen:groups.append({'id':item['id'],'original_included':True,'original_normal_funded':True,'residual_included':False,'residual_emission_credit':0,'revised_exclusion':item['revised_exclusion'],'revised_winner':item['revised_winner'],'source_family_keys':item['family_keys'],'work':item['residual_work']})
+for name,rows in [('queue.jsonl',packets),('review-private-sidecar.jsonl',sides),('funding.jsonl',funds),('source-proofs.jsonl',proofrows),('source-blind.jsonl',blind),('matched-groups.jsonl',groups)]:write(OUT/name,rows,lines=True)
+chunks=[];flat=[]
+for start in range(0,len(items),16):
+ folder=OUT/f'batch-{start//16+1:03d}';queue=folder/'queue.jsonl';write(queue,packets[start:start+16],lines=True);rs=[]
+ for j in range(start,min(start+16,len(items))):
+  entries[j]['input']=str(queue);entries[j]['attribution'][0]['input']=str(queue)
+  for r in plans[j]:r.update(packet=packets[j],packet_file=str(queue),packet_file_sha256=sha(queue.read_bytes()),method='operation-blocks',case_id=items[j]['id'],pair_key=entries[j]['pair_key'],attribution=entries[j]['attribution'],cache=None,probe=False,state='new_request');rs.append(r)
+ write(folder/'frozen-input.jsonl',entries[start:start+16],lines=True);write(folder/'canonical-request-plan.jsonl',rs,lines=True);flat+=rs
+ chunks.append({'batch':start//16+1,'queue':str(queue),'queue_sha256':sha(queue.read_bytes()),'request_plan':str(folder/'canonical-request-plan.jsonl'),'canonical_request_manifest':str(folder/'canonical-request-plan.jsonl'),'canonical_request_manifest_sha256':sha((folder/'canonical-request-plan.jsonl').read_bytes()),'private_sidecar':str(OUT/'review-private-sidecar.jsonl'),'pairs':len(packets[start:start+16]),'requests':len(rs),'estimated_new_usd':sum(old.normal_cost(r)for r in rs)})
+assert len({r['request_key']for r in flat})==len(flat)
+files=[OUT/n for n in ['queue.jsonl','review-private-sidecar.jsonl','funding.jsonl','source-proofs.jsonl','source-blind.jsonl','matched-groups.jsonl','default3-audit-run.json','default3-audit-work.jsonl','AUDIT-IMPLEMENTATION-FREEZE.json']]+[OUT.parent/'PREREGISTRATION.json',OUT.parent/'SAMPLING-AMENDMENT-003.json']+[Path(c[k])for c in chunks for k in ['queue','request_plan']]
+write(OUT/'manifest.json',{'status':'SEALED_ROOT_INTAKE_READY','files':{str(p):sha(p.read_bytes())for p in files},'requests':len(flat),'rejection_audit_cases':len(chosen),'independent_controls':len(controls),'chunks':chunks})
+h={'schema':1,'direction':'operation-blocks','method':'operation-blocks','round':2,'status':'READY_ROOT_INTAKE_ADAPTIVE_DEFAULT3_REJECTION_AUDIT','variant':'operation-blocks-residual:1','queue':str(OUT/'queue.jsonl'),'manifest':str(OUT/'manifest.json'),'funding':str(OUT/'funding.jsonl'),'source_proofs':str(OUT/'source-proofs.jsonl'),'private_sidecar':str(OUT/'review-private-sidecar.jsonl'),'source_blind':str(OUT/'source-blind.jsonl'),'chunks':chunks,'matched_groups':str(OUT/'matched-groups.jsonl'),'rejection_audit_cases':len(chosen),'audit_profile':'original frozen default3 diagnostic; not discovery default or balanced','novel_residual_emission_cases':0,'independent_controls':len(controls),'requests':len(flat),'estimated_new_spend_usd':sum(old.normal_cost(r)for r in flat),'required_actual_new_usd':.2,'root_authorization':'Explicit user authorizes source judging relevant original actually-funded rejection audits plus controls; no random pairs or repeat payments.','mechanism_unchanged':True,'selector_sha256':sha((OUT.parent/'residual_blocks.py').read_bytes()),'sampling_amendment':str(OUT.parent/'SAMPLING-AMENDMENT-003.json'),'representation_changed':False,'index_refits':0,'new_revised_emission_credit':0,'revised_exclusions_preserved':True,'original_funding_true_revised_funding_not_claimed':True,'root_role_mapping':'Central binary role novel includes previously unseen ORIGINAL rejection-audit questions; NEVER credit these as residual proposals/emissions. Sidecar and matched-groups explicitly mark residual_included=false.','family_split':'Both endpoint source-owner/path groups and shared call-pair signatures exclude published round1; root semantic family verification remains necessary. Independent controls use disjoint endpoints.','full_source_stage_census':str(OUT.parent/'full-source-stage-summary.json'),'source_exhaustion_claim':False,'r1_useful_loss':'RF14 independently accepted useful bounded token-error helper reuse. Residual gate rejects it as covered; this is a confirmed utility loss, never tuned away. RF14 is not paid again in this audit and exact concept question is separately requested.','judge_contract':'Existing paired Jev/context and Sonnet/shared-operations/1024/.8; neither default concept nor balanced Haiku answers inferred.','full_corpus_gold_receipt_reused':str(WORK/'.lab-results/full-corpus-followup/FINAL_RECEIPT.json'),'provider_calls':0,'credentials_read':False,'no_paid_repeats_or_cache_spend_credit':True,'diagnostic_20_cap_separate_from_original_04_ledger':True,'adaptive_supply':'If actual fresh round2 spend<.20, expand original-funded rejection audits under same frozen selector and holdout; census is running across all native queries without thresholds changing.'}
+write(OUT/'HANDOFF.json',h);write(OUT/'JUDGE-OPERATIONS-READY.json',{'status':h['status'],'handoff':str(OUT/'HANDOFF.json'),'handoff_sha256':sha((OUT/'HANDOFF.json').read_bytes()),'manifest':h['manifest'],'rejection_audits':len(chosen),'requests':len(flat),'required_actual_new_usd':.2,'estimated_new_spend_usd':h['estimated_new_spend_usd'],'new_revised_emission_credit':0});print(json.dumps({k:h[k]for k in ['status','rejection_audit_cases','independent_controls','requests','estimated_new_spend_usd','index_refits']}),flush=True)

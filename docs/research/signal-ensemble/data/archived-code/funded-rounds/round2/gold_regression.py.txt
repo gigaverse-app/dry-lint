@@ -1,0 +1,97 @@
+"""Static replay of the registered gate on existing full-corpus candidate/matrix caches."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import collections,gzip,json,resource,time
+from pathlib import Path
+from types import SimpleNamespace
+import numpy as np
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger
+from dry_lint.detector import why_skipped
+from dry_lint.models import Candidate,Function
+from dry_lint.settings import Settings
+from operation_gate import OperationalGate
+P=Path(__file__).resolve().parent;L=P.parents[1];B=L/'full-corpus';OLD=L/'promotion-combination/native-order-v2';ROOT=Path('/home/researcher/dry-lint-round');CPU=ROOT/'jobs/experiment-cpu-embeddings/.lab-results/full-corpus/cohorts';BLOCK=ROOT/'jobs/experiment-operation-blocks/.lab-results/full-corpus-followup';O=P/'gold-regression';O.mkdir(exist_ok=True)
+def jl(p):return [json.loads(l) for l in p.open() if l.strip()]
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+settings=Settings(budget={'usd':.04});judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False);meta={r['row_id']:r for r in jl(B/'inputs/rows.jsonl')};allrows=[];coverage=[];checks=collections.Counter();start=time.perf_counter();cpu=time.process_time();ledger_rows=[]
+for cohort in jl(B/'inputs/cohorts.jsonl'):
+ cid=cohort['cohort_id'];folder=OLD/cid;cp=CPU/cohort['background_sha256'];rows=jl(folder/'paired-rows.jsonl');base=[r for r in rows if r['arm']=='baseline' and r['profile']in ['default3','default-plus-tfidf20']];led=[r for r in jl(folder/'ledger.jsonl') if r['arm']=='baseline' and r['profile']in ['default3','default-plus-tfidf20']];baseline_ex=collections.defaultdict(list)
+ for r in jl(folder/'exposures.jsonl'):
+  if r['arm']=='baseline' and r['profile']in ['default3','default-plus-tfidf20']:baseline_ex[r['batch'],r['profile']].append(r)
+ if not base:coverage.append(dict(cohort_id=cid,status='no_function_queries',row_scope_profiles=0));continue
+ if not(cp/'embeddings.npy').exists():
+  coverage.append(dict(cohort_id=cid,status='missing_frozen_dense_representation',row_scope_profiles=len(base)))
+  allrows.extend(dict(r,arm='profile-operation-gate1',funded=None,supported=False,first_loss='missing_frozen_dense_representation') for r in base);continue
+ bg=BenchBackground.decode((B/'span-resolved-v1'/cid/'background.json.gz').read_bytes());z=np.load(cp/'embeddings.npy',mmap_mode='r')
+ if len(z)!=len(bg.documents):
+  coverage.append(dict(cohort_id=cid,status='dense_row_mapping_not_exact',row_scope_profiles=len(base)));allrows.extend(dict(r,arm='profile-operation-gate1',funded=None,supported=False,first_loss='dense_row_mapping_not_exact') for r in base);continue
+ idx=bg.index();gate=OperationalGate(bg,idx);ids=gate.ids;counts=collections.Counter(ids);qq={q for x in led for q in x['queries']};blocks={};bf=BLOCK/'span-v2-migration/cohorts'/cid/'per-query.jsonl'
+ if not bf.exists():bf=BLOCK/'cohorts'/cid/'per-query.jsonl'
+ if bf.exists():
+  for r in jl(bf):
+   if r['query']in qq:blocks[r['query']]=[(b['target'],b['score']) for b in r['block_candidates'] if b['block_floor_pass'] and b['full_floor_pass'] and not b['filter']]
+ with gzip.open(folder/'functions.json.gz','rt') as f:fs={int(k):Function.model_validate(v) for k,v in json.load(f).items()}
+ # Rank only cached arrays/tokens. No encoder, extraction, model, parameter change or label features.
+ scores={q:dict(idx.similar(bg.documents[q].tokens(),exclude={q})) for q in qq};dense={q:np.asarray(z@z[q]) for q in qq};orders={q:np.argsort(-dense[q],kind='stable') for q in qq};plans=[];needed=set()
+ for b in led:
+  profile=b['profile'];prefix=baseline_ex[b['batch'],profile];seen={tuple(sorted([r['query'],r['target']])) for r in prefix};seen.update(tuple(sorted([r['query'],r['target']])) for r in b['missing_candidates']);extras=[];support=True
+  for q in b['queries']:
+   if profile=='default-plus-tfidf20':
+    if not gate.paths[q].endswith('.py'):continue # Specialized block route is explicitly inapplicable, not failure.
+    if q not in blocks:support=False;continue
+    candidates=blocks[q]
+   else:candidates=[(int(t),float(dense[q][t])) for t in orders[q] if dense[q][t]>=.65 and t!=q and ids[t]!=ids[q] and gate.paths[t]!=gate.paths[q]]
+   for t,s in candidates:
+    key=tuple(sorted([q,t]))
+    if key in seen or counts[ids[t]]!=1:continue
+    if gate.paths[q].endswith('.py')!=gate.paths[t].endswith('.py'):continue
+    if not gate.passing(q,t,scores[q].get(t,0),float(dense[q][t])):continue
+    seen.add(key);extras.append((q,t,s));needed.update([q,t]);break
+  plans.append((b,prefix,extras,support))
+ # Reuse native Functions from CPU's reviewed shared resolver for any new gated slot.
+ missing_needed=needed-set(fs)
+ nf=cp/'functions-policy-resolver-v1.jsonl'
+ if missing_needed and nf.exists():
+  native={}
+  for line in nf.open():
+   r=json.loads(line)
+   if r['position']in missing_needed and r['status']=='resolved_native' and r.get('function'):native[r['position']]=Function.model_validate(r['function'])
+  proofs={}
+  if (cp/'source-proof.jsonl').exists():
+   for line in (cp/'source-proof.jsonl').open():
+    r=json.loads(line)
+    if r['row']in native:proofs[r['row']]=r
+  for i,f in native.items():
+   proof=proofs.get(i)
+   if not proof or not Path(proof['source_file']).exists():continue
+   raw=Path(proof['source_file']).read_text();f.context=(f.context+'\n\n' if f.context else '')+'Owning file source prefix (may be truncated; full file in source proof):\n'+raw[:6000];f.context_digest=proof['file_sha256'];fs[i]=f
+ for b,prefix,extras,support in plans:
+  proposed=[];missing=bool(b['missing_candidates']);selected_positions=set();filtered={}
+  for e in prefix:
+   q,t=e['query'],e['target']
+   if q not in fs or t not in fs:missing=True;continue
+   c=Candidate(new=fs[q],existing=fs[t],similarity=e['similarity'],comparer='promotion-protected-v1:'+e['channel'],similarity_reusable=False,filtered=e['filtered'],lane='exploration' if b['profile']=='default-plus-tfidf20' and e['channel']=='tfidf20' else'baseline');proposed.append((q,t,c));selected_positions.add(tuple(sorted([q,t])))
+  for q,t,s in extras:
+   selected_positions.add(tuple(sorted([q,t])))
+   if q not in fs or t not in fs:missing=True;continue
+   c=Candidate(new=fs[q],existing=fs[t],similarity=s,comparer='signal-ensemble-profile-operation-gate1',similarity_reusable=False,filtered=why_skipped(fs[q],fs[t],settings),lane='exploration');proposed.append((q,t,c))
+  allowed=[c for q,t,c in proposed if not c.filtered];ledger=Ledger(settings);selected=ledger.select(judge,allowed)if not missing else[];funded=[allowed[i]for i in selected];keys={c.key for c in funded};ledger.charge(judge,funded,len(allowed)-len(funded));assert ledger.usd<=.04000000001;checks['campaign_budget']+=1
+  if not missing and b['source_complete']:assert set(b['funded_keys'])<=keys;checks['baseline_protection']+=1
+  fpos={tuple(sorted([q,t])) for q,t,c in proposed if c.key in keys};ledger_rows.append(dict(cohort_id=cid,batch=b['batch'],profile=b['profile'],arm='profile-operation-gate1',funded_keys=sorted(keys),estimated_usd=ledger.usd if not missing else None,source_complete=not missing,channel_supported=support,extra_positions=[[q,t]for q,t,s in extras]))
+  for r in base:
+   if r['batch']!=b['batch']or r['profile']!=b['profile']:continue
+   pp=tuple(r['positions']);retrieved=pp in selected_positions;value=pp in fpos if not missing else None if retrieved else False
+   allrows.append(dict(r,arm='profile-operation-gate1',supported=support,funded=value,retrieved=retrieved,source_complete=not missing,first_loss='funded_judge_unknown'if value else'missing_candidate_sources'if retrieved and value is None else'budget'if retrieved else'gate_or_retrieval'))
+ coverage.append(dict(cohort_id=cid,status='cached_gate_replayed',row_scope_profiles=len(base),source_native_functions=len(fs),queries=len(qq),baseline_protection_checks=checks['baseline_protection']));print(json.dumps(coverage[-1]),flush=True)
+ del bg,z,idx,gate,fs,scores,dense,orders
+lines(O/'paired-rows.jsonl',allrows);lines(O/'ledger.jsonl',ledger_rows);lines(O/'coverage-cohorts.jsonl',coverage)
+baseline={(r['row_id'],r['cohort_id'],r['profile']):r for r in jl(OLD/'paired-rows.jsonl')if r['arm']=='baseline'};summary=[];changes=[]
+for profile in ['default3','default-plus-tfidf20']:
+ for label in ['positive','negative']:
+  rr=[r for r in allrows if r['profile']==profile and r['accepted_gold']and r['id']!='CF-C02'and(r['label']in['duplicate','drifted'])==(label=='positive')];matched=[r for r in rr if r['supported']and r['funded']is not None and baseline[r['row_id'],r['cohort_id'],profile]['funded']is not None];wins=[r for r in matched if r['funded']and not baseline[r['row_id'],r['cohort_id'],profile]['funded']];loss=[r for r in matched if not r['funded']and baseline[r['row_id'],r['cohort_id'],profile]['funded']]
+  summary.append(dict(profile=profile,label=label,scope_units=len(matched),canonical_pairs=len({r['pair_id']for r in matched}),families=len({r['family_id']for r in matched}),baseline_funded=sum(baseline[r['row_id'],r['cohort_id'],profile]['funded']for r in matched),variant_funded=sum(r['funded']for r in matched),added_pairs=len({r['pair_id']for r in wins}),lost_pairs=len({r['pair_id']for r in loss}),missing_or_unsupported_units=len(rr)-len(matched)))
+  for change,rs in [('added',wins),('lost',loss)]:changes.extend({k:r[k]for k in ['row_id','cohort_id','pair_id','family_id','profile','label','first_loss']}|dict(change=change)for r in rs)
+lines(O/'paired-changes.jsonl',changes);dump(O/'paired-summary.json',dict(records=summary,profiles_pooled=False,unknown_never_negative=True));receipt=dict(status='COMPLETE_CACHED_REGRESSION',backgrounds_assessed=len(coverage),backgrounds_replayed=sum(r['status']=='cached_gate_replayed'for r in coverage),backgrounds_missing_or_no_queries=sum(r['status']!='cached_gate_replayed'for r in coverage),inventory_records=len(meta),declarations_separate=4,overlay='CF-C02excluded',checks=dict(checks),summary=summary,wall_seconds=time.perf_counter()-start,cpu_seconds=time.process_time()-cpu,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,new_heavy_representation_fits=0,new_source_extractions=0,provider_calls=0,baseline_loss_invariant=True,source_context='Existing native Function/source snapshots only; no new extraction',round2_queue_unchanged=True)
+dump(O/'RECEIPT.json',receipt);print(json.dumps(receipt,indent=2))

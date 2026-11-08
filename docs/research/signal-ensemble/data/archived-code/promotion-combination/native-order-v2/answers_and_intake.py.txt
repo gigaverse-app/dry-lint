@@ -1,0 +1,71 @@
+"""Replay only exact existing questions; freeze funded missing promotion questions."""
+import gzip,hashlib,json,sys
+from collections import defaultdict,Counter
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.costs import estimate,judging_input
+from dry_lint.models import Candidate,Function,Verdict,evidence
+from dry_lint.report import Report,Finding
+from dry_lint.settings import Settings
+P=Path(__file__).resolve().parent;L=P.parents[1];B=L/'full-corpus';ROOT=Path('/home/researcher/dry-lint-round');sys.path.insert(0,str(L/'lab-contracts'))
+from lab_contracts_v1 import FunctionCase,FunctionReviewScope,NativeSpan,PinnedEndpoint,SourceIdentity,EstimatedFunding
+sha=lambda b:hashlib.sha256(b).hexdigest()
+def jl(p):return [json.loads(l) for l in p.open() if l.strip()]
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+cohorts={c['cohort_id']:c for c in jl(B/'inputs/cohorts.jsonl')};ex=jl(P/'exposures.jsonl');ledger={(r['cohort_id'],r['batch'],r['profile'],r['arm']):r for r in jl(P/'ledger.jsonl')};gold=defaultdict(list)
+for r in jl(P/'paired-rows.jsonl'):
+ if r['accepted_gold'] and r['id']!='CF-C02':gold[r['cohort_id'],tuple(r['positions'])].append(r)
+archive=ROOT/'jobs/judge-operations/.lab-results/lab-contracts/root-verified-intake-v2';responses={r['projection']['request_key']:r['projection'] for r in jl(archive/'typed-responses.jsonl')};cache={};eligible_requests=0
+for raw in jl(archive/'typed-requests.jsonl'):
+ r=raw['projection'];j=r['judge'];wire=json.loads(r['wire_identity']['text'])
+ if r['case']['kind']!='function' or j['model']!='claude-sonnet-5-5' or j['version']!='dry-operations-v2:claude-sonnet-5-5:output=1024' or j['max_output_tokens']!=1024:continue
+ response=responses.get(r['request_key']);eligible_requests+=1
+ if response and response['state']=='success' and response['answer'].get('kind')=='verdict':cache[r['source']['repository'],r['source']['revision'],r['source']['background_sha256'],j['prompt_sha256'],wire['source_evidence']]=(r,response)
+settings=Settings(budget={'usd':.04});judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False);functions={}
+def candidate(e):
+ cid=e['cohort_id']
+ if cid not in functions:
+  with gzip.open(P/cid/'functions.json.gz','rt') as f:functions[cid]={int(k):Function.model_validate(v) for k,v in json.load(f).items()}
+ fs=functions[cid];lane='exploration' if e['channel'] in ['block','dense'] or e['profile']=='default-plus-tfidf20' and e['channel']=='tfidf20' else 'baseline';c=Candidate(new=fs[e['query']],existing=fs[e['target']],similarity=e['similarity'],comparer='promotion-protected-v1:'+e['channel'],similarity_reusable=False,filtered=e['filtered'],lane=lane);assert c.key==e['key'] and evidence(c)==e['source_evidence'];assert sha(judging_input(judge,c).encode())==e['prompt_sha256'];return c
+replay=[];missing={};keys_matched=set();known_positive_pairs=set()
+for e in ex:
+ if e['funded'] is not True:continue
+ m=cohorts[e['cohort_id']];key=m['repository'],m['revision'],m['background_sha256'],e['prompt_sha256'],e['source_evidence'];hit=cache.get(key);pair=e['cohort_id'],tuple(sorted([e['query'],e['target']]));gg=gold.get(pair,[])
+ positive=any(r['label'] in ['duplicate','drifted'] for r in gg)
+ if positive:known_positive_pairs.add(pair)
+ if hit:
+  request,response=hit;c=candidate(e);assert judging_input(judge,c)==request['rendered_input'];assert request['source']['scope_include']==m['scope']['include'] and request['source']['scope_exclude']==m['scope']['exclude'];v=Verdict.model_validate(response['answer']['verdict']);finding=Report.build([Finding(candidate=c,verdict=v)],settings).findings[0];keys_matched.add(request['request_key']);replay.append({k:e[k] for k in ['cohort_id','profile','arm','batch','query','target','key','prompt_sha256']}|dict(request_key=request['request_key'],status='exact_cached_answer',label=v.label,score=v.score,reported=finding.reported,normal_charge=e['estimated_pair_usd'],source_acceptance_changed=False))
+ elif e['channel'] in ['block','dense'] and e['source_supported_campaign']:
+  # Missing nomination priority is review-only, never candidate selection or deployment logic.
+  primary=e['profile']=='default-plus-tfidf20' and e['arm']=='protected-block2';tier=0 if primary and positive else 1 if positive else 2 if primary else 3
+  if not(primary or positive):continue
+  prior=missing.get(key)
+  item=dict(e,priority=tier,known_source_positive=positive,source_rows=sorted({r['row_id'] for r in gg}),source_families=sorted({r['family_id'] for r in gg}))
+  if prior is None or (tier,e['profile'],e['arm'])<(prior['priority'],prior['profile'],prior['arm']):missing[key]=item
+lines(P/'exact-answer-replay.jsonl',replay);dump(P/'exact-answer-replay.json',dict(schema=1,eligible_exact_policy_requests=eligible_requests,exact_matched_request_keys=len(keys_matched),matched_funded_exposures=len(replay),reported_exposures=sum(r['reported'] for r in replay),unanswered_unique_candidate_questions=len(missing),matching='Same repository,pin,background SHA,shared-operations Sonnet5.5 version/output1024,exact rendered prompt SHA+bytes,production source/context evidence and scope. Gold/source labels never substituted for judge answers.',provider_calls=0))
+items=sorted(missing.values(),key=lambda r:(r['priority'],sha(str((r['cohort_id'],r['key'],r['profile'])).encode())));selected=[];used_pairs=set();family_counts=Counter();upper=0.
+for r in items:
+ pair=r['cohort_id'],tuple(sorted([r['query'],r['target']]))
+ if pair in used_pairs:continue
+ # Keep a bounded diverse first intake; all other funded missing questions remain retained.
+ fam=tuple(r['source_families']) if r['source_families'] else (cohorts[r['cohort_id']]['repository'],)
+ if family_counts[fam]>=2:continue
+ reserve=r['estimated_pair_usd']+(1024-150)*10/1e6
+ if upper+reserve>1:continue
+ selected.append(r);used_pairs.add(pair);family_counts[fam]+=1;upper+=reserve
+ if len(selected)==12:break
+proof={(r['cohort_id'],r['position']):r for r in json.loads((P/'NATIVE-PROOFS.json').read_text())};packets=[];side=[];typed=[]
+for n,e in enumerate(selected,1):
+ id_=f'PROMO-COMB-{n:03d}';cid=e['cohort_id'];m=cohorts[cid];c=candidate(e);pp=[];endpoints=[]
+ for name,i in [('new',e['query']),('existing',e['target'])]:
+  p=proof[cid,i];f=getattr(c,name);assert sha(Path(p['path']).read_bytes())==p['sha256'];function_cache=P/cid/'functions.json.gz';cache_sha=sha(function_cache.read_bytes());pp.append(dict(side=name,path=f.path,source_id=f.qualname,line=f.line,end_line=f.end_line,code_sha256=sha(f.code.encode()),file_sha256=p['sha256'],source_snapshot=p['path'],native_cache=str(function_cache),native_cache_sha256=cache_sha,repository=m['repository'],revision=m['revision']))
+  span=NativeSpan(kind='native',coordinate_frame='repository_absolute',start_line=f.line,end_line=f.end_line,extractor='published-shared-native-function-cache',extractor_version='sha256:'+cache_sha,verification='Exact published shared-native Function, unchanged pin/background, real structure and cached full-file context',verification_sha256=cache_sha);endpoints.append(PinnedEndpoint(side=name,repository=m['repository'],revision=m['revision'],path=f.path,source_id=f.qualname,file_sha256=p['sha256'],body_sha256=sha(f.code.encode()),span=span))
+ src=SourceIdentity(schema_version='lab-source-v1',repository=m['repository'],revision=m['revision'],endpoints=tuple(endpoints),background_sha256=m['background_sha256'],scope_include=tuple(m['scope']['include']),scope_exclude=tuple(m['scope']['exclude']));case=FunctionCase(kind='function',candidate=c,scope=FunctionReviewScope(kind='function_review',question='whole_or_useful_suboperation',source_label='unknown'));led=ledger[cid,e['batch'],e['profile'],e['arm']];lf=P/cid/'ledger.jsonl';charge=estimate(judge,[c],settings);assert abs(charge-e['estimated_pair_usd'])<1e-12
+ funding=EstimatedFunding(ledger_kind='normal_estimated',actually_funded=True,cap_per_PR=.04,cumulative_estimated_usd=float(led['estimated_usd']),estimated_charge_usd=charge,normal_estimated_usd=charge,ledger_proof=str(lf),ledger_proof_sha256=sha(lf.read_bytes()),source='Original frozen synthetic family/source-component queries, unchanged production Ledger/canonical shared-operations150 normal estimate. Baseline complete batch first; cache fully charged.')
+ packets.append(dict(id=id_,repository=m['repository'],revision=m['revision'],scope=m['scope'],candidate=c.model_dump(mode='json'),candidate_sha256=sha(json.dumps(c.model_dump(mode='json'),sort_keys=True).encode()),background_proof=dict(path=str(B/'span-resolved-v1'/cid/'background.json.gz'),sha256=m['background_sha256']),source_proof=pp,prompt_sha256=e['prompt_sha256'],review_status='source_label_and_judge_unknown_in_blind_packet',judging_policy=dict(model=judge.model,version=judge.version,prompt_policy='shared-operations',max_output_tokens=1024,normal_estimated_output_tokens=150)))
+  # The following private nomination metadata never enters the rendered judge input.
+ side.append(dict(id=id_,**{k:v for k,v in e.items() if k!='similarity'},funding=funding.model_dump(mode='json'),provider_answer=None,physical_authority='Root promotion authorization1USD total shared; central coordinator controls remaining allocation'));typed.append(dict(id=id_,case=case.model_dump(mode='json'),source=src.model_dump(mode='json'),funding=funding.model_dump(mode='json')))
+raw=''.join(json.dumps(r,sort_keys=True)+'\n' for r in packets).encode();version='promotion-combination-native-v2-'+sha(raw)[:16];out=P/'intake'/version;out.mkdir(parents=True,exist_ok=True);assert not (out/'FROZEN.json').exists(),'Frozen batch cannot be rewritten';(out/'packets.jsonl').write_bytes(raw);lines(out/'private-sidecar.jsonl',side);lines(out/'typed-boundaries.jsonl',typed);lines(P/'funded-missing-questions.jsonl',items)
+ready=dict(schema=1,status='FROZEN_READY_FOR_AUTHORIZED_PROMOTION_INTAKE',version=version,queue=str(out/'packets.jsonl'),sha256=sha(raw),questions=len(packets),normal_estimated_usd=sum(r['funding']['normal_estimated_usd'] for r in side),max_output1024_reservation_upper_usd=upper,central_authorization=str(ROOT/'reports/research-experiments/promotion/authorization.json'),central_total_cap_usd=1.,shared_budget_not_worker_allocation=True,known_source_positive_nominations=sum(e['known_source_positive'] for e in selected),recommended_profile_nominations=sum(e['profile']=='default-plus-tfidf20' and e['arm']=='protected-block2' for e in selected),provider_calls=0,canonical_request_cache_batch_owner='judge-operations',profiles_kept_separate=True,source_labels_not_answers=True)
+dump(out/'FROZEN.json',ready);dump(P/'PROMOTION-INTAKE-READY.json',ready);print(json.dumps(ready,indent=2))

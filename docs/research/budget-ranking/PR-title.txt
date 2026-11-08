@@ -1,0 +1,1 @@
+research: preserve budget-ranking gains, failures, and reproducible public replay

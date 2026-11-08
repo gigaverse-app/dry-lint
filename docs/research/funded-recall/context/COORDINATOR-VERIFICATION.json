@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "checked_at": "2026-11-07T09:17:14.601139+00:00",
+  "portable_copy": true,
+  "python": "3.14",
+  "stdlib_replay_pass": true,
+  "tests_passed": 8,
+  "observations": 88,
+  "public_exact_request_parity": 84,
+  "hydrated_exact_request_parity": 4,
+  "held_source_kept_local": true,
+  "recorded_fresh_calls": 80,
+  "recorded_fresh_usd": 0.70619572,
+  "new_provider_calls": 0,
+  "native_functions_reextracted": 42,
+  "full_source_anchor_recipes": 10,
+  "historical_native_metadata_mismatches_disclosed": true,
+  "secret_scan_pass": true,
+  "live_dry_run_pass": true,
+  "scope": "Selected-case extraction/input/recorded-scoring reproduction; earlier corpus nomination is not bundled."
+}

@@ -1,0 +1,161 @@
+"""ROOT-only round2 runner: isolated copies of validated locked budget and execution loop.
+Isolated .20 repair ledger, PRIOR_SPENT0; original cap2 runner/ledger untouched.
+Default dry-run reads no credentials, makes no provider calls, and writes no ledger.
+"""
+import sys
+from pathlib import Path
+sys.path.insert(0, 'LAB_ROOT/jobs/experiment-jev-context/.lab-results')
+from root_trace_run import *
+from root_trace_run import initialize_transport, rest_call
+load_json=read
+save=atomic
+VERSION='agentic-r2-body-only-procedure-repair-v3-auto'
+PRIOR_SPENT=0.0
+DEST=Path(__file__).resolve().parent
+
+class SharedBudget:
+    """Root-created shared physical ledger. Lock spans each reservation/settlement.
+
+    Unknown usage keeps its full reservation outstanding and poisons further calls.
+    External Jev entries must use the same ledger or be reserved/debited by root first.
+    """
+    def __init__(self, path):
+        self.path = Path(path)
+        if not self.path.exists():
+            raise ValueError('root must create/validate shared budget first')
+
+    def update(self, operation):
+        with Path(str(self.path) + '.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            data = load_json(self.path)
+            if data.get('schema') != 1 or data['limit_usd'] != .20 or data.get('halted'):
+                raise ValueError('invalid or halted shared physical ledger')
+            value = operation(data)
+            save(self.path, data)
+            return value
+
+    def reserve(self, key, amount):
+        def op(data):
+            total = sum(e['charged_usd'] if e.get('charged_usd') is not None else e['reserved_usd'] for e in data['entries'])
+            if total + amount > data['limit_usd'] + 1e-10:
+                return False
+            if any(e['key'] == key for e in data['entries']):
+                raise ValueError('request attempt already reserved')
+            data['entries'].append({'key': key, 'reserved_usd': amount, 'charged_usd': None,
+                                    'job': VERSION, 'state': 'reserved'})
+            return True
+        return self.update(op)
+
+    def settle(self, key, cost):
+        def op(data):
+            entry = next(e for e in data['entries'] if e['key'] == key)
+            entry['charged_usd'] = cost
+            entry['state'] = 'usage_unknown' if cost is None else 'settled'
+            if cost is None or cost > entry['reserved_usd'] + 1e-10:
+                data['halted'] = True
+        self.update(op)
+
+def execute(queue, out, ledger_path, workers, credentials, caller=rest_call):
+    """Inject caller/credentials only for offline tests. Never retry an intent."""
+    if not 1 <= workers <= 8:
+        raise ValueError('concurrency_must_be_1_to_8')
+    out.mkdir(parents=True, exist_ok=True)
+    (out / 'responses').mkdir(exist_ok=True)
+    budget = SharedBudget(ledger_path)
+    mutex = threading.Lock()
+    stop = threading.Event()
+    with (out / 'execute.lock').open('a') as run_lock:
+        fcntl.flock(run_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        ledger = read(ledger_path)
+        if ledger.get('schema') != 1 or ledger.get('limit_usd') != .20 or ledger.get('halted'):
+            raise ValueError('shared_ledger_invalid_or_halted')
+        if ledger_total(ledger) + 1e-10 < PRIOR_SPENT:
+            raise ValueError('shared_ledger_cannot_reset_original_spend')
+        entries = {e['key']: e for e in ledger['entries']}
+        pending, cached = [], []
+        returns = rows(out / 'returned.jsonl') if (out / 'returned.jsonl').exists() else []
+        if len({r['request_id'] for r in returns}) != len(returns):
+            raise ValueError('duplicate_returned')
+        if {r['request_id'] for r in returns} - {q['request_id'] for q in queue}:
+            raise ValueError('foreign_returned_record')
+        existing = {r['request_id']: r for r in returns}
+        for q in queue:
+            key = digest({'experiment_queue_sha256': QUEUE_SHA, 'request_id': q['request_id'],
+                          'attempt_directory': str(out.resolve())})
+            path = out / 'responses' / (q['request_id'] + '.json')
+            if path.exists():
+                r = cached_result(q, read(path), entries.get(key))
+                if r['request_id'] in existing:
+                    if existing[r['request_id']] != r:
+                        raise ValueError('append_record_mismatch')
+                else:
+                    append(out / 'returned.jsonl', r)
+                cached.append(r['request_id'])
+            elif key in entries or q['request_id'] in existing:
+                raise ValueError('unaccounted_intent_requires_root_reconciliation_no_retry')
+            else:
+                pending.append((q, key, path))
+        then = time.monotonic()
+        def one(task):
+            q, key, path = task
+            if stop.is_set():
+                return 'halted_before_reservation'
+            try:
+                reserved = budget.reserve(key, q['reservation_usd'])
+            except ValueError:
+                stop.set()
+                return 'halted_before_reservation'
+            if not reserved:
+                stop.set()
+                return 'shared_budget_deferred'
+            with mutex:
+                append(out / 'events.jsonl', dict(stage='reserved', request_id=q['request_id'],
+                    execution_id=key, reservation_usd=q['reservation_usd'], wire_sha256=q['wire_sha256']))
+            start = time.monotonic()
+            raw, status, response_bytes_sha, error = {}, None, None, None
+            try:
+                status, raw, response_bytes_sha = caller(q, credentials)
+                if not isinstance(status, int) or not 200 <= status < 300:
+                    error = 'HTTPStatusError'
+            except Exception as exc:
+                error = type(exc).__name__  # Never serialize exception text or headers.
+            elapsed = time.monotonic() - start
+            cost = usage_cost(q, raw)
+            result = dict(request_id=q['request_id'], identity=q['identity'],
+                request_sha256=q['identity']['canonical_request_sha256'], sent_wire_sha256=q['wire_sha256'],
+                raw_response=raw, output_sha256=digest(raw), http_status=status, error=error,
+                fresh=True, seconds=elapsed, physical_cost_usd=cost, execution_id=key,
+                response_bytes_sha256=response_bytes_sha, usage=raw.get('usage'),
+                physical_cost_basis='usage-derived frozen rates; not invoice',
+                queue_sha256=QUEUE_SHA, concurrency=workers)
+            atomic(path, result)  # Durable response precedes settlement and append.
+            settlement = 'settled' if cost is not None else 'usage_unknown'
+            try:
+                budget.settle(key, cost)
+            except ValueError:
+                # A simultaneous unknown response may halt the shared class before
+                # this settlement. Preserve the full outstanding bound for ROOT.
+                if not read(ledger_path).get('halted'):
+                    raise
+                settlement = 'root_reconciliation_required_outstanding_reservation'
+                stop.set()
+            with mutex:
+                append(out / 'returned.jsonl', result)
+                append(out / 'events.jsonl', dict(stage='returned', request_id=q['request_id'],
+                    execution_id=key, physical_cost_usd=cost, seconds=elapsed, error=error,
+                    settlement=settlement))
+            if cost is None or cost > q['reservation_usd'] + 1e-10:
+                stop.set()
+            return 'observed' if not error and cost is not None else 'unknown'
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            states = list(pool.map(one, pending))
+        summary = dict(schema=1, requests=len(queue), fresh_this_invocation=states.count('observed'),
+            exact_resume_hits=len(cached), states=states, concurrency=workers,
+            invocation_wall_seconds=time.monotonic() - then,
+            shared_ledger=str(ledger_path), shared_total_usd=ledger_total(read(ledger_path)),
+            shared_limit_usd=read(ledger_path)['limit_usd'],
+            cache_policy='Exact same-queue completed local fresh calls only; preserve original physical cost/latency. No new charge on resume.',
+            note='Sum of per-call seconds differs from parallel wall time; extraction/model acquisition excluded.')
+        atomic(out / 'summary.json', summary)
+        return summary
+

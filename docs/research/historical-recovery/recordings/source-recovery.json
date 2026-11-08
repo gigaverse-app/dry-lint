@@ -1,0 +1,33 @@
+{
+  "completed": true,
+  "revisions": 8,
+  "reference_pair_denominators": {
+    "separate": 13,
+    "borderline": 1,
+    "duplicate": 5
+  },
+  "arms": {
+    "current20": {
+      "usage_usd": 0.0088656,
+      "report_labels": {
+        "duplicate": 3
+      },
+      "count_unit": "ever reported exact question/source versions across eight revisions; also distinct pairs in this result"
+    },
+    "protected_half_name": {
+      "usage_usd": 0.0109911,
+      "report_labels": {
+        "duplicate": 5
+      },
+      "count_unit": "ever reported exact question/source versions across eight revisions; also distinct pairs in this result"
+    }
+  },
+  "gained_pairs": 2,
+  "lost_pairs": 0,
+  "physical": {
+    "accepted_requests": 25,
+    "recorded_physical_usd": 0.0109911,
+    "rejected_records": 0
+  },
+  "pending": 0
+}

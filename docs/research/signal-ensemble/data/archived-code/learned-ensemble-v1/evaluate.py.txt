@@ -1,0 +1,80 @@
+"""Replay fixed .04 synthetic campaigns with OOF scores and unchanged production Ledger."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import collections,gzip,hashlib,json,math,resource,time
+from fractions import Fraction
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.costs import Ledger,estimate
+from dry_lint.detector import why_skipped
+from dry_lint.models import Candidate,Function
+from dry_lint.settings import Settings
+P=Path(__file__).resolve().parent;B=P.parent/'full-corpus';S=B/'span-resolved-v1'
+def jl(p):return [json.loads(l) for l in p.open()]
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+def dump(p,x):p.write_text(json.dumps(x,sort_keys=True,indent=2)+'\n')
+sha=lambda b:hashlib.sha256(b).hexdigest()
+reg=json.loads((P/'EXPERIMENT.json').read_text());assert sha((P/'EXPERIMENT.json').read_bytes())==(P/'EXPERIMENT.sha256').read_text().strip();assert (P/'FIT-READY.json').exists()
+meta={r['row_id']:r for r in jl(B/'inputs/rows.jsonl')};cohorts=jl(B/'inputs/cohorts.jsonl');folds=json.loads((P/'FOLDS.json').read_text())
+settings=Settings(budget={'usd':.04});judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False)
+allpaired=[];allledgers=[];exposure=[];start=time.perf_counter();cpu=time.process_time();invariants=collections.Counter()
+alias={'baseline':'production-baseline','rrf60':'frozen-rrf60','protected-ensemble2':'frozen-protected2'}
+for cohort in cohorts:
+ cid=cohort['cohort_id'];folder=P/cid;fixed=S/cid;features=jl(folder/'candidate-features.jsonl');feat={(r['query'],r['target'],r['profile']):r for r in features};pools={(r['query'],r['profile']):r for r in jl(fixed/'query-pools.jsonl')}
+ with gzip.open(folder/'functions.json.gz','rt') as f:funcs={int(k):Function.model_validate(v) for k,v in json.load(f).items()}
+ pred={}
+ for profile in ['default','balanced']:
+  for r in jl(folder/f'predictions-{profile}.jsonl'):pred[r['query'],r['target'],profile]=r
+ fixedpairs=jl(fixed/'paired-rows.jsonl');fixedledgers=jl(fixed/'ledger.jsonl');basepairs=[r for r in fixedpairs if r['arm']=='baseline'];paired=[];ledgers=[];expo=[]
+ for r in fixedpairs:
+  if r['arm'] in alias:
+   cp=dict(r,arm=alias[r['arm']],component=folds['components'][r['row_id']]);paired.append(cp)
+ for r in fixedledgers:
+  if r['arm'] in alias:ledgers.append(dict(r,arm=alias[r['arm']],cohort_id=cid))
+ specs={};candidate={}
+ def utility(q,t,profile,model):
+  p=pred[q,t,profile][model+'_probability'];cost=feat[q,t,profile]['features']['normal_estimated_usd'];return p/math.sqrt(max(cost if cost is not None else .005,.003)/.005)
+ def tie(q,t):
+  f=funcs.get(t);return (f.qualname if f else '',t)
+ for (q,profile),pool in pools.items():
+  raw=pool['eligible_channels']['raw'];universe=[r['target'] for r in features if r['query']==q and r['profile']==profile];rrf=collections.defaultdict(Fraction)
+  for ch in ['raw','half','csls','blocks']:
+   for rank,t in enumerate(pool['eligible_channels'][ch][:20],1):rrf[t]+=Fraction(1,60+rank)
+  for arm in reg['arms'][3:]:
+   model='logistic' if arm.startswith('logistic') else 'hgb';score=lambda t:float(rrf[t]) if arm=='rrf4-matched-cap' else utility(q,t,profile,model)
+   extra=sorted((t for t in universe if t not in raw),key=lambda t:(-score(t),tie(q,t)))[:2]
+   targets=list(raw)+extra;assert len(targets)<= (3 if profile=='default' else 20)+2;assert len(set(targets)-set(raw))<=2
+   invariants['query_arm_candidate_cap_checked']+=1;specs[q,profile,arm]=[(q,t,t in raw,score(t)) for t in targets]
+ for base in (r for r in fixedledgers if r['arm']=='baseline'):
+  profile=base['profile'];qq=base['queries'];batch=base['batch']
+  gold=[r for r in basepairs if r['profile']==profile and all(d['query_position'] in qq for d in r['directions'])]
+  for arm in reg['arms'][3:]:
+   ss=[s for q in qq for s in specs[q,profile,arm]]
+   if arm.endswith('protected2'):
+    # Complete baseline ordering is exactly its original query-major, native-rank order.
+    prefix=[s for s in ss if s[2]];tail=sorted((s for s in ss if not s[2]),key=lambda s:(-s[3],tie(s[0],s[1]),s[0]));ss=prefix+tail
+   else:ss.sort(key=lambda s:(-s[3],tie(s[0],s[1]),s[0]))
+   seen=set();ordered=[];missing=[];funding={}
+   for q,t,raw,score in ss:
+    key=tuple(sorted((q,t)))
+    if key in seen:continue
+    seen.add(key)
+    if q not in funcs or t not in funcs:missing.append(dict(query=q,target=t));continue
+    c=Candidate(new=funcs[q],existing=funcs[t],similarity=score,comparer='herdr-learned-ensemble-v1:'+arm,similarity_reusable=False,filtered=why_skipped(funcs[q],funcs[t],settings),lane='baseline' if raw else 'exploration')
+    ordered.append((q,t,raw,score,c))
+   allowed=[c for *_,c in ordered if not c.filtered];ledger=Ledger(settings);indices=ledger.select(judge,allowed) if not missing else [];funded=[allowed[i] for i in indices];keys={c.key for c in funded};ledger.charge(judge,funded,len(allowed)-len(funded));assert ledger.usd<=.04000000001;invariants['campaign_budget_checked']+=1
+   if arm.endswith('protected2') and not missing and base['complete_candidate_source']:
+    assert set(base['funded_keys'])<=keys,'protection regression';invariants['complete_baseline_funding_protected']+=1
+   rec=dict(cohort_id=cid,batch=batch,profile=profile,arm=arm,queries=qq,complete_candidate_source=not missing,missing_candidates=missing,proposed=len(seen),source_complete_candidates=len(ordered),funded_keys=sorted(keys),estimated_usd=ledger.usd if not missing else None,funding_status='evaluated' if not missing else 'unknown_missing_full_prompt_sources',complete_baseline_funded_keys=base['funded_keys'],baseline_displaced_keys=sorted(set(base['funded_keys'])-keys) if not missing and base['complete_candidate_source'] else None,new_funded_keys=sorted(keys-set(base['funded_keys'])) if not missing and base['complete_candidate_source'] else None);ledgers.append(rec)
+   for q,t,raw,score,c in ordered:
+    fr=dict(query=q,target=t,funded=c.key in keys if not missing else None,filtered=c.filtered,estimated_pair_usd=estimate(judge,[c],settings),candidate_key=c.key,utility=score,raw_member=raw)
+    funding[tuple(sorted((q,t)))]=fr;expo.append(dict(fr,cohort_id=cid,batch=batch,profile=profile,arm=arm))
+   for r in gold:
+    q=r['directions'][0]['query_position'];t=r['directions'][0]['target_position'];key=tuple(sorted((q,t)));retrieved=key in seen;fr=funding.get(key);value=fr['funded'] if fr else (None if retrieved else False)
+    reason='same_native_parent' if q==t else 'candidate_universe_or_selection' if not retrieved else 'missing_native_source' if fr is None or value is None else 'core_filter:'+str(fr['filtered']) if fr['filtered'] else 'funded_judge_unknown' if value else 'budget'
+    cp={k:r[k] for k in ['row_id','id','dataset','cohort_id','repository','revision','scope','pair_id','family_id','label','accepted_gold','record_kind','profile']};cp.update(arm=arm,supported=True,evaluated=True,retrieved=retrieved,funded=value,first_loss=reason,estimated_pair_usd=fr['estimated_pair_usd'] if fr else None,component=folds['components'][r['row_id']],batch=batch,emitted_report=None,judge_answer='unknown',positions=[q,t]);paired.append(cp)
+ lines(folder/'learned-paired-rows.jsonl',paired);lines(folder/'learned-ledger.jsonl',ledgers);lines(folder/'learned-exposures.jsonl',expo)
+ allpaired.extend(paired);allledgers.extend(ledgers);exposure.extend(expo)
+ print(json.dumps(dict(cohort_id=cid,paired=len(paired),campaign_arms=len(ledgers),funded=sum(r['funded'] is True for r in expo))),flush=True)
+lines(P/'paired-rows.jsonl',allpaired);lines(P/'ledger.jsonl',allledgers);lines(P/'exposures.jsonl',exposure)
+dump(P/'EVALUATION-READY.json',dict(backgrounds=len(cohorts),arms=reg['arms'],invariants=dict(invariants),scope_rows=len(allpaired),wall_seconds=time.perf_counter()-start,cpu_seconds=time.process_time()-cpu,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,provider_calls=0,heavy_representation_fits=0,profiles_pooled=False,reportable_families_confirmed=0))

@@ -1,0 +1,47 @@
+"""Directional default3 versus CPU1 admissions, with strict v2 answer binding."""
+import json
+from pathlib import Path
+import sys
+from unittest.mock import patch
+P=Path(__file__).resolve().parent;LAB=P.parent;sys.path[:0]=[str(P/'implementation/src'),str(LAB)]
+from dry_lint import detector as core
+from dry_lint.bench_background import BenchBackground
+from dry_lint.comparers import TfidfComparer
+from dry_lint.cpu_embedding import CpuEmbeddingComparer,MiniLMEncoder
+from dry_lint.extractors import PythonExtractor
+from dry_lint.typescript import TypeScriptExtractor
+from dry_lint.models import Candidate,Function,Verdict,evidence
+from dry_lint.settings import Settings
+from dry_lint.costs import Ledger
+from dry_lint.judges.command import prompt
+from experiment import EstimateOnlySonnet
+
+def read(p):return [json.loads(line) for line in p.open()]
+def forbid(*args):raise AssertionError('No encoding allowed')
+MiniLMEncoder.encode=forbid
+feed=read(Path('LAB_ROOT/jobs/judge-operations/.lab-results/promotion-evidence-v2/cpu-embeddings-completed.jsonl'))
+case=next(x for x in feed if x['central_case_id']=='PEV2-002');observed=next(o for o in case['observations'] if o['kind']=='claude')
+pkt=Candidate.model_validate(case['packet']['candidate']);folder=next((LAB/'full-corpus/cohorts').glob('ebd003*'));manifest=json.loads((folder/'manifest.json').read_text());bg=BenchBackground.decode(Path(manifest['repository']['background_proof']['path']).read_bytes())
+raw=read(folder/'functions.jsonl');policy=read(folder/'functions-policy-resolver-v1.jsonl');fs=[]
+for r,pr,doc in zip(raw,policy,bg.documents,strict=True):
+ f=Function.model_validate(pr['function'] or {**r,'line':0,'end_line':-1});f.tokens=doc.tokens();fs.append(f)
+cpu=CpuEmbeddingComparer(str(LAB/'model-cache'),cache_dir=str(P/'vector-cache'));cpu.index(fs);assert cpu.cache_misses==0
+cpu.index=lambda f:None
+oldload=core.load;result=[]
+for query_id in [pkt.new.qualname,pkt.existing.qualname]:
+ q=next(f for f in fs if f.qualname==query_id)
+ for arm in ['baseline3','baseline3+cpu1']:
+  settings=Settings(discovery={'enabled':arm.endswith('cpu1'),'comparers':[{'use':'cpu-embedding','model_dir':str(LAB/'model-cache'),'cache_dir':str(P/'vector-cache'),'neighbours':1}]})
+  with patch.object(core,'load',lambda slot,choice,**kw:cpu if slot=='comparers' and choice.use=='cpu-embedding' else oldload(slot,choice,**kw)):
+   candidates=core.Detector(fs,settings,TfidfComparer(max_df=bg.max_df),[PythonExtractor(),TypeScriptExtractor()]).candidates([q])
+  eligible=[c for c in candidates if c.lane!='relative' and not c.filtered and c.new.line>=1 and c.existing.line>=1]
+  ledger=Ledger(settings);judge=EstimateOnlySonnet();ix=ledger.select(judge,eligible);asked=[eligible[i] for i in ix];ledger.charge(judge,asked,len(eligible)-len(asked))
+  candidate=next((c for c in candidates if c.key==pkt.key and c.lane!='relative'),None)
+  funded=any(c.key==pkt.key for c in asked);compatible=False
+  if candidate:
+   identity=observed['identity'];compatible=(prompt(candidate,policy='shared-operations')==identity['rendered_input'] and evidence(candidate)==identity['source_evidence'] and candidate.context_hash==identity['context_hash'])
+  emitted=False if not funded else settings.duplicate_at(Verdict.model_validate(observed['verdict']),.8) if compatible else None
+  loss='retrieval' if candidate is None else 'rule_filter' if candidate.filtered else 'budget' if not funded else 'answer_request_identity_differs' if not compatible else None if emitted else 'judge_or_report_threshold'
+  result.append({'central_case':'PEV2-002','query_id':q.qualname,'native_lines':q.lines,'arm':arm,'retrieved':candidate is not None,'lane':candidate.lane if candidate else None,'funded_normal_synthetic04':funded,'normal_ledger_usd_estimated':ledger.usd,'strict_v2_request_binding':compatible,'emission_projection':emitted,'first_loss':loss,'funding_scope':'single-function synthetic change, not authentic deployment/campaign evidence','candidate':candidate.model_dump(mode='json') if candidate else None})
+(P/'CPUE04-directional-emissions.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in result))
+for r in result:print(r['arm'],r['query_id'],r['retrieved'],r['funded_normal_synthetic04'],r['strict_v2_request_binding'],r['emission_projection'],r['first_loss'])

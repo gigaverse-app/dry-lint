@@ -1,0 +1,609 @@
+{
+  "actual_floor_threshold_deltas": 0,
+  "annotation_note": "Audit puts actual baseline/funding membership before lane-loss labels, and filters only proposed targets. Candidate lists, ranks, floors and funding are unchanged.",
+  "budget": "Frozen .04 USD synthetic cold one-function query, concept Sonnet; protected append-only extra. Shared-operations queue check is separate.",
+  "controls": "Separate retrieval is exposure; never counted as false report.",
+  "coordinate_audit": "LAB_ROOT/jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/span-v2-coordinate-audit/receipt.json",
+  "data_split": "All seen development/regression; no pristine holdout or broad significance.",
+  "family_file": "LAB_ROOT/jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/span-v2-migration/per-family-paired.jsonl",
+  "first_loss_annotation_corrections": 4,
+  "judge": "No Jev threshold gating or inferred truth. Source decisions and policy outcomes await coordinator.",
+  "missing_denominator_policy": "Missing is visible and excluded from conditional evaluated effect denominator, never counted as method failure.",
+  "production_raw_ties": "BenchBackground.index.similar first-posting order; recorded independently from frozen source-ID pilot ties.",
+  "shared_resolver_receipt": "LAB_ROOT/jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/span-v2-migration/receipt.json",
+  "status": "broader_fixed_replication_measured; source_judging_pending",
+  "summaries": [
+    {
+      "accepted_denominators": {
+        "evaluated": 0,
+        "mapped": 0,
+        "missing": 0,
+        "supported": 0,
+        "total": 0
+      },
+      "accepted_records": 0,
+      "block_opportunities": {
+        "both_endpoints_have_blocks": 0,
+        "bounded_anchor_pool_reaches_target": 0,
+        "eligible_block_pair": 0,
+        "evaluated_pair_cohort_units": 0
+      },
+      "cohort_id": "ALL_COHORTS_SEPARATE_FITS",
+      "evaluated_accepted_records": 0,
+      "evaluated_pair_cohort_units": 0,
+      "evaluated_unique_source_pairs": 0,
+      "first_losses": {
+        "block_floor": 2,
+        "bounded_anchor_pool": 2,
+        "eligible": 10,
+        "query_no_block": 3,
+        "shared_operation_guard": 4,
+        "target_no_block": 1
+      },
+      "label": "None",
+      "lineage_records": 11,
+      "missing_family_pairs": 0,
+      "named_families": 0,
+      "profiles": {
+        "default3": {
+          "first_losses": {
+            "floor": 12,
+            "funded": 2,
+            "same_file": 8
+          },
+          "funded": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          },
+          "retrieved": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          }
+        },
+        "default_plus_current20": {
+          "first_losses": {
+            "budget": 2,
+            "floor": 10,
+            "funded": 10
+          },
+          "funded": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          },
+          "retrieved": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          }
+        }
+      },
+      "raw_ranks": {
+        "1": {
+          "denominator": 0,
+          "numerator": 0
+        },
+        "20": {
+          "denominator": 0,
+          "numerator": 0
+        },
+        "3": {
+          "denominator": 0,
+          "numerator": 0
+        }
+      }
+    },
+    {
+      "accepted_denominators": {
+        "evaluated": 0,
+        "mapped": 0,
+        "missing": 0,
+        "supported": 0,
+        "total": 0
+      },
+      "accepted_records": 0,
+      "block_opportunities": {
+        "both_endpoints_have_blocks": 0,
+        "bounded_anchor_pool_reaches_target": 0,
+        "eligible_block_pair": 0,
+        "evaluated_pair_cohort_units": 0
+      },
+      "cohort_id": "ALL_COHORTS_SEPARATE_FITS",
+      "evaluated_accepted_records": 0,
+      "evaluated_pair_cohort_units": 0,
+      "evaluated_unique_source_pairs": 0,
+      "first_losses": {
+        "block_floor": 2,
+        "eligible": 2,
+        "missing_exact_native_full_source_or_tokens": 6,
+        "query_no_block": 1,
+        "target_no_block": 1,
+        "unsupported_Python_AST_language": 14
+      },
+      "label": "borderline",
+      "lineage_records": 13,
+      "missing_family_pairs": 0,
+      "named_families": 0,
+      "profiles": {
+        "default3": {
+          "first_losses": {
+            "missing_exact_native_full_source_or_tokens": 6,
+            "same_file": 6,
+            "unsupported_Python_AST_language": 14
+          },
+          "funded": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          },
+          "retrieved": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          }
+        },
+        "default_plus_current20": {
+          "first_losses": {
+            "funded": 6,
+            "missing_exact_native_full_source_or_tokens": 6,
+            "unsupported_Python_AST_language": 14
+          },
+          "funded": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          },
+          "retrieved": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          }
+        }
+      },
+      "raw_ranks": {
+        "1": {
+          "denominator": 0,
+          "numerator": 0
+        },
+        "20": {
+          "denominator": 0,
+          "numerator": 0
+        },
+        "3": {
+          "denominator": 0,
+          "numerator": 0
+        }
+      }
+    },
+    {
+      "accepted_denominators": {
+        "evaluated": 39,
+        "mapped": 249,
+        "missing": 169,
+        "supported": 208,
+        "total": 267
+      },
+      "accepted_records": 267,
+      "block_opportunities": {
+        "both_endpoints_have_blocks": 30,
+        "bounded_anchor_pool_reaches_target": 29,
+        "eligible_block_pair": 22,
+        "evaluated_pair_cohort_units": 39
+      },
+      "cohort_id": "ALL_COHORTS_SEPARATE_FITS",
+      "evaluated_accepted_records": 39,
+      "evaluated_pair_cohort_units": 39,
+      "evaluated_unique_source_pairs": 39,
+      "first_losses": {
+        "block_floor": 7,
+        "bounded_anchor_pool": 3,
+        "eligible": 44,
+        "missing_exact_native_full_source_or_tokens": 302,
+        "missing_verified_mapping": 42,
+        "query_no_block": 16,
+        "shared_operation_guard": 6,
+        "target_no_block": 4,
+        "unsupported_Python_AST_language": 118
+      },
+      "label": "duplicate",
+      "lineage_records": 271,
+      "missing_family_pairs": 7,
+      "named_families": 29,
+      "profiles": {
+        "default3": {
+          "first_losses": {
+            "floor": 11,
+            "funded": 30,
+            "missing_exact_native_full_source_or_tokens": 302,
+            "missing_verified_mapping": 42,
+            "same_file": 38,
+            "top_k": 1,
+            "unsupported_Python_AST_language": 118
+          },
+          "funded": {
+            "baseline": 15,
+            "denominator": 39,
+            "uncertainty": {
+              "estimand": "Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+              "family_clusters": 29,
+              "missing_family_pairs": 7,
+              "paired_rate_delta_95_percentile": [
+                0.0,
+                0.09090909090909091
+              ],
+              "repeats": 2000,
+              "repositories": 3,
+              "seed": 71603,
+              "status": "descriptive_hierarchical_repository_then_family_bootstrap",
+              "warning": "Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately."
+            },
+            "variant": 16
+          },
+          "retrieved": {
+            "baseline": 15,
+            "denominator": 39,
+            "uncertainty": {
+              "estimand": "Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+              "family_clusters": 29,
+              "missing_family_pairs": 7,
+              "paired_rate_delta_95_percentile": [
+                0.0,
+                0.09090909090909091
+              ],
+              "repeats": 2000,
+              "repositories": 3,
+              "seed": 71603,
+              "status": "descriptive_hierarchical_repository_then_family_bootstrap",
+              "warning": "Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately."
+            },
+            "variant": 16
+          }
+        },
+        "default_plus_current20": {
+          "first_losses": {
+            "budget": 5,
+            "floor": 5,
+            "funded": 70,
+            "missing_exact_native_full_source_or_tokens": 302,
+            "missing_verified_mapping": 42,
+            "unsupported_Python_AST_language": 118
+          },
+          "funded": {
+            "baseline": 35,
+            "denominator": 39,
+            "uncertainty": {
+              "estimand": "Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+              "family_clusters": 29,
+              "missing_family_pairs": 7,
+              "paired_rate_delta_95_percentile": [
+                0.0,
+                0.1590909090909091
+              ],
+              "repeats": 2000,
+              "repositories": 3,
+              "seed": 71603,
+              "status": "descriptive_hierarchical_repository_then_family_bootstrap",
+              "warning": "Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately."
+            },
+            "variant": 37
+          },
+          "retrieved": {
+            "baseline": 37,
+            "denominator": 39,
+            "uncertainty": {
+              "estimand": "Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+              "family_clusters": 29,
+              "missing_family_pairs": 7,
+              "paired_rate_delta_95_percentile": [
+                0.0,
+                0.1590909090909091
+              ],
+              "repeats": 2000,
+              "repositories": 3,
+              "seed": 71603,
+              "status": "descriptive_hierarchical_repository_then_family_bootstrap",
+              "warning": "Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately."
+            },
+            "variant": 39
+          }
+        }
+      },
+      "raw_ranks": {
+        "1": {
+          "denominator": 39,
+          "numerator": 29
+        },
+        "20": {
+          "denominator": 39,
+          "numerator": 38
+        },
+        "3": {
+          "denominator": 39,
+          "numerator": 34
+        }
+      }
+    },
+    {
+      "accepted_denominators": {
+        "evaluated": 80,
+        "mapped": 528,
+        "missing": 429,
+        "supported": 509,
+        "total": 565
+      },
+      "accepted_records": 565,
+      "block_opportunities": {
+        "both_endpoints_have_blocks": 35,
+        "bounded_anchor_pool_reaches_target": 17,
+        "eligible_block_pair": 8,
+        "evaluated_pair_cohort_units": 80
+      },
+      "cohort_id": "ALL_COHORTS_SEPARATE_FITS",
+      "evaluated_accepted_records": 80,
+      "evaluated_pair_cohort_units": 80,
+      "evaluated_unique_source_pairs": 64,
+      "first_losses": {
+        "block_floor": 4,
+        "bounded_anchor_pool": 36,
+        "eligible": 16,
+        "missing_exact_native_full_source_or_tokens": 784,
+        "missing_verified_mapping": 74,
+        "pair_filter": 2,
+        "query_no_block": 65,
+        "self_pair": 2,
+        "shared_operation_guard": 12,
+        "target_no_block": 25,
+        "unsupported_Python_AST_language": 112
+      },
+      "label": "separate",
+      "lineage_records": 566,
+      "missing_family_pairs": 13,
+      "named_families": 37,
+      "profiles": {
+        "default3": {
+          "first_losses": {
+            "floor": 78,
+            "funded": 24,
+            "missing_exact_native_full_source_or_tokens": 784,
+            "missing_verified_mapping": 74,
+            "pair_filter": 2,
+            "same_file": 52,
+            "self_pair": 2,
+            "top_k": 4,
+            "unsupported_Python_AST_language": 112
+          },
+          "funded": {
+            "baseline": 13,
+            "denominator": 80,
+            "uncertainty": {
+              "estimand": "Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+              "family_clusters": 37,
+              "missing_family_pairs": 13,
+              "paired_rate_delta_95_percentile": [
+                0.0,
+                0.16216216216216217
+              ],
+              "repeats": 2000,
+              "repositories": 3,
+              "seed": 71603,
+              "status": "descriptive_hierarchical_repository_then_family_bootstrap",
+              "warning": "Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately."
+            },
+            "variant": 15
+          },
+          "retrieved": {
+            "baseline": 13,
+            "denominator": 80,
+            "uncertainty": {
+              "estimand": "Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+              "family_clusters": 37,
+              "missing_family_pairs": 13,
+              "paired_rate_delta_95_percentile": [
+                0.0,
+                0.16216216216216217
+              ],
+              "repeats": 2000,
+              "repositories": 3,
+              "seed": 71603,
+              "status": "descriptive_hierarchical_repository_then_family_bootstrap",
+              "warning": "Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately."
+            },
+            "variant": 15
+          }
+        },
+        "default_plus_current20": {
+          "first_losses": {
+            "budget": 5,
+            "floor": 83,
+            "funded": 67,
+            "missing_exact_native_full_source_or_tokens": 784,
+            "missing_verified_mapping": 74,
+            "pair_filter": 2,
+            "self_pair": 2,
+            "top_k": 3,
+            "unsupported_Python_AST_language": 112
+          },
+          "funded": {
+            "baseline": 35,
+            "denominator": 80,
+            "uncertainty": {
+              "estimand": "Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+              "family_clusters": 37,
+              "missing_family_pairs": 13,
+              "paired_rate_delta_95_percentile": [
+                0.0,
+                0.23076923076923078
+              ],
+              "repeats": 2000,
+              "repositories": 3,
+              "seed": 71603,
+              "status": "descriptive_hierarchical_repository_then_family_bootstrap",
+              "warning": "Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately."
+            },
+            "variant": 38
+          },
+          "retrieved": {
+            "baseline": 36,
+            "denominator": 80,
+            "uncertainty": {
+              "estimand": "Paired rate delta conditional on units with explicit family IDs; family-unknown units excluded from this interval.",
+              "family_clusters": 37,
+              "missing_family_pairs": 13,
+              "paired_rate_delta_95_percentile": [
+                0.0,
+                0.23076923076923078
+              ],
+              "repeats": 2000,
+              "repositories": 3,
+              "seed": 71603,
+              "status": "descriptive_hierarchical_repository_then_family_bootstrap",
+              "warning": "Observed development data, sparse repositories, no significance or population-generalization claim. Directions are never resampled separately."
+            },
+            "variant": 39
+          }
+        }
+      },
+      "raw_ranks": {
+        "1": {
+          "denominator": 80,
+          "numerator": 24
+        },
+        "20": {
+          "denominator": 80,
+          "numerator": 63
+        },
+        "3": {
+          "denominator": 80,
+          "numerator": 37
+        }
+      }
+    },
+    {
+      "accepted_denominators": {
+        "evaluated": 0,
+        "mapped": 0,
+        "missing": 0,
+        "supported": 0,
+        "total": 0
+      },
+      "accepted_records": 0,
+      "block_opportunities": {
+        "both_endpoints_have_blocks": 0,
+        "bounded_anchor_pool_reaches_target": 0,
+        "eligible_block_pair": 0,
+        "evaluated_pair_cohort_units": 0
+      },
+      "cohort_id": "ALL_COHORTS_SEPARATE_FITS",
+      "evaluated_accepted_records": 0,
+      "evaluated_pair_cohort_units": 0,
+      "evaluated_unique_source_pairs": 0,
+      "first_losses": {
+        "missing_verified_mapping": 4,
+        "unsupported_Python_AST_language": 4
+      },
+      "label": "unknown",
+      "lineage_records": 4,
+      "missing_family_pairs": 0,
+      "named_families": 0,
+      "profiles": {
+        "default3": {
+          "first_losses": {
+            "missing_verified_mapping": 4,
+            "unsupported_Python_AST_language": 4
+          },
+          "funded": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          },
+          "retrieved": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          }
+        },
+        "default_plus_current20": {
+          "first_losses": {
+            "missing_verified_mapping": 4,
+            "unsupported_Python_AST_language": 4
+          },
+          "funded": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          },
+          "retrieved": {
+            "baseline": 0,
+            "denominator": 0,
+            "uncertainty": {
+              "missing_family_pairs": 0,
+              "status": "unavailable_missing_family_identity"
+            },
+            "variant": 0
+          }
+        }
+      },
+      "raw_ranks": {
+        "1": {
+          "denominator": 0,
+          "numerator": 0
+        },
+        "20": {
+          "denominator": 0,
+          "numerator": 0
+        },
+        "3": {
+          "denominator": 0,
+          "numerator": 0
+        }
+      }
+    }
+  ],
+  "publication_scope": "Only overall anonymous aggregate rows; all per-cohort/private pair/family identifiers omitted. Original hash is in provenance."
+}

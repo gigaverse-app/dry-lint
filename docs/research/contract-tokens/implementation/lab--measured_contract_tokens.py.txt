@@ -1,0 +1,735 @@
+"""Offline stage3 experiment. No network, credentials, provider calls or production writes.
+
+Run from repository root using retrieval/.venv/bin/python .lab-results/contract_tokens.py.
+The source index is derived independently; baseline tokens always come from BenchBackground.
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+from collections import Counter, defaultdict
+import hashlib
+import json
+from pathlib import Path
+import resource
+import subprocess
+import sys
+import time
+
+HERE = Path(__file__).resolve().parent
+WORK = HERE.parent
+LAB = WORK.parents[1]
+sys.path.insert(0, str(WORK / "src"))
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger, estimate
+from dry_lint.detector import why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.functions import function_nodes
+from dry_lint.index import TfidfIndex
+from dry_lint.judges.jev import JevJudge
+from dry_lint.models import Candidate
+from dry_lint.settings import Settings
+
+ARMS = ("baseline", "addition", "field10", "field20")
+sha = lambda b: hashlib.sha256(b).hexdigest()
+
+
+def dump(path, value):
+    Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+
+def jsonl(path, rows):
+    Path(path).write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in rows))
+
+
+def git(config, *args):
+    return subprocess.check_output(["git", "-C", config["git"], *args])
+
+
+def chain(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        root = chain(node.value)
+        return root + "." + node.attr if root else None
+    return None
+
+
+def bindings(nodes):
+    """Conservative binding inventory; ambiguity suppresses resolution rather than guessing."""
+    return {n.id for node in nodes for n in ast.walk(node)
+            if isinstance(n, ast.Name) and isinstance(n.ctx, (ast.Store, ast.Del))} | {
+                n.arg for node in nodes for n in ast.walk(node) if isinstance(n, ast.arg)
+            }
+
+
+class Resolver:
+    def __init__(self, tree, function):
+        self.imports = {}
+        imported = Counter()
+        for node in tree.body:
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    name = alias.asname or alias.name.split(".")[0]
+                    imported[name] += 1
+                    self.imports[name] = alias.name if alias.asname else name
+            elif isinstance(node, ast.ImportFrom) and not node.level:
+                for alias in node.names:
+                    name = alias.asname or alias.name
+                    imported[name] += 1
+                    self.imports[name] = (node.module or "") + "." + alias.name
+        # Definitions and assignments anywhere at module scope, including branches, are ambiguous.
+        module_nodes = [n for n in tree.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
+        self.shadow = bindings([function]) | bindings([
+            n for n in module_nodes if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        ]) | {n.name for n in module_nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
+        self.shadow |= {k for k, n in imported.items() if n > 1}
+        # Local imports/global/nonlocal/dynamic star imports are never resolved in this experiment.
+        for n in ast.walk(function):
+            if isinstance(n, ast.Import):
+                self.shadow.update(a.asname or a.name.split(".")[0] for a in n.names)
+            elif isinstance(n, ast.ImportFrom):
+                self.shadow.update(a.asname or a.name for a in n.names)
+        self.star = any(isinstance(n, ast.ImportFrom) and any(a.name == "*" for a in n.names)
+                        for n in ast.walk(tree))
+
+    def resolve(self, node):
+        name = chain(node)
+        if name is None:
+            # Only an explicitly imported pathlib.Path constructor; arbitrary object.open is unresolved.
+            if isinstance(node, ast.Attribute) and node.attr == "open" and isinstance(node.value, ast.Call):
+                if self.resolve(node.value.func) == "pathlib.Path":
+                    return "pathlib.Path.open"
+            return None
+        head, _, tail = name.partition(".")
+        if head in self.shadow or self.star:
+            return None
+        if head in self.imports:
+            return self.imports[head] + ("." + tail if tail else "")
+        if not tail and head in {"open", "list", "map"}:
+            return "builtins." + head
+        return None
+
+
+def expr_ok(node):
+    # Attribute/subscript/operators may invoke user code. The label claims only no explicit calls.
+    allowed = (ast.Name, ast.Constant, ast.Attribute, ast.Subscript, ast.Slice, ast.Tuple, ast.List,
+               ast.Dict, ast.Set, ast.UnaryOp, ast.BinOp, ast.BoolOp, ast.Compare, ast.IfExp,
+               ast.Load, ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
+    return all(isinstance(n, allowed) for n in ast.walk(node))
+
+
+def executable(root):
+    """Do not ascribe a nested function/class's operation to its caller."""
+    yield root
+    for child in ast.iter_child_nodes(root):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            continue
+        yield from executable(child)
+
+
+def statement_lists(root):
+    for node in executable(root):
+        for _, value in ast.iter_fields(node):
+            if isinstance(value, list) and value and all(isinstance(n, ast.stmt) for n in value):
+                yield value
+
+
+def features(tree, fn):
+    resolver = Resolver(tree, fn)
+    regions = []
+    tokens = set()
+
+    def add(op, node, syntax, contracts, api=None, end=None):
+        labels = {"op:" + op, *contracts}
+        if api:
+            labels.add("api:" + api)
+        tokens.update(labels)
+        regions.append({"operation": op, "line": node.lineno, "end_line": end or node.end_lineno,
+                        "syntax": syntax, "contracts": sorted(contracts), "resolved_api": api,
+                        "source_expression": ast.unparse(node)})
+
+    collection = {"contract:eager", "contract:input_iteration_order", "contract:no_explicit_transform_calls"}
+    for node in executable(fn):
+        if isinstance(node, ast.ListComp) and len(node.generators) == 1:
+            gen = node.generators[0]
+            if not gen.is_async and expr_ok(node.elt) and all(expr_ok(n) for n in gen.ifs):
+                add("transform_collect", node, "list_comprehension",
+                    collection | {"contract:filtered" if gen.ifs else "contract:unfiltered"})
+        elif isinstance(node, ast.Call) and resolver.resolve(node.func) == "builtins.list":
+            if len(node.args) != 1 or node.keywords:
+                continue
+            inner = node.args[0]
+            if not (isinstance(inner, ast.Call) and resolver.resolve(inner.func) == "builtins.map"
+                    and len(inner.args) == 2 and not inner.keywords and isinstance(inner.args[0], ast.Lambda)):
+                continue
+            lam = inner.args[0]
+            if expr_ok(lam.body) and len(lam.args.args) == 1 and not lam.args.defaults:
+                add("transform_collect", node, "materialized_map_lambda",
+                    collection | {"contract:unfiltered"}, "builtins.list+map")
+
+    for stmts in statement_lists(fn):
+        for previous, node in zip(stmts, stmts[1:]):
+            if not (isinstance(previous, ast.Assign) and len(previous.targets) == 1
+                    and isinstance(previous.targets[0], ast.Name)):
+                continue
+            name = previous.targets[0].id
+            if isinstance(previous.value, ast.List) and not previous.value.elts and isinstance(node, ast.For):
+                body = node.body
+                filters = []
+                if len(body) == 1 and isinstance(body[0], ast.If) and not body[0].orelse:
+                    filters = [body[0].test]
+                    body = body[0].body
+                if node.orelse or len(body) != 1 or not isinstance(body[0], ast.Expr):
+                    continue
+                call = body[0].value
+                if not (isinstance(call, ast.Call) and chain(call.func) == name + ".append"
+                        and len(call.args) == 1 and not call.keywords and expr_ok(call.args[0])
+                        and all(expr_ok(n) for n in filters)):
+                    continue
+                if any(isinstance(n, ast.Name) and n.id == name
+                       for x in [node.target, node.iter, call.args[0], *filters] for n in ast.walk(x)):
+                    continue
+                add("transform_collect", previous, "empty_list_append_loop",
+                    collection | {"contract:filtered" if filters else "contract:unfiltered"}, end=node.end_lineno)
+            # Acquisition and unconditional close must be in the same statement list and adjacent.
+            if isinstance(previous.value, ast.Call) and isinstance(node, ast.Try) and len(node.finalbody) == 1:
+                api = resolver.resolve(previous.value.func)
+                close = node.finalbody[0]
+                if (api in {"builtins.open", "io.open", "pathlib.Path.open"}
+                    and isinstance(close, ast.Expr) and isinstance(close.value, ast.Call)
+                    and chain(close.value.func) == name + ".close" and not close.value.args and not close.value.keywords):
+                    # Any rebinding of the owned handle makes the ownership proof ambiguous.
+                    if name not in bindings(node.body + [h for h in node.handlers] + node.orelse):
+                        add("owned_file_cleanup", previous, "acquire_try_finally_close",
+                            {"contract:lexical_cleanup", mode(previous.value, api)}, api, node.end_lineno)
+
+    for node in executable(fn):
+        if not isinstance(node, ast.With):
+            continue
+        for item in node.items:
+            call = item.context_expr
+            if not isinstance(call, ast.Call) or not isinstance(item.optional_vars, ast.Name):
+                continue
+            api = resolver.resolve(call.func)
+            if api in {"builtins.open", "io.open", "pathlib.Path.open"}:
+                add("owned_file_cleanup", node, "with_owned_handle",
+                    {"contract:lexical_cleanup", mode(call, api)}, api)
+    # Deterministic cap independent of outcomes; operation/contract evidence before API identity.
+    selected = sorted(tokens, key=lambda t: (0 if t.startswith("op:") else 1 if t.startswith("contract:") else 2, t))[:12]
+    return selected, regions
+
+
+def mode(call, api):
+    value = next((k.value for k in call.keywords if k.arg == "mode"), None)
+    offset = 0 if api == "pathlib.Path.open" else 1
+    if value is None and len(call.args) > offset:
+        value = call.args[offset]
+    literal = "r" if value is None else value.value if isinstance(value, ast.Constant) and isinstance(value.value, str) else "dynamic"
+    return "contract:file_mode:" + literal
+
+
+def load_panels():
+    out = []
+    decisions = {r["id"]: r for r in read_jsonl(LAB / "reports/candidate-first/scaled-coordinator-decisions.jsonl")}
+    for short in ("openhands", "litellm"):
+        for row in read_jsonl(LAB / f"reports/candidate-first/{short}-scaled-completed.jsonl"):
+            packet = row["packet"]
+            d = decisions[row["id"]]
+            out.append({"id": row["id"], "cohort": "scaled_development", "repository": packet["repository"],
+                        "revision": packet["revision"], "candidate": packet["candidate"],
+                        "family": d.get("family_id", row["id"]), "label": d.get("label", "unknown"),
+                        "drifted": d.get("drifted", False), "accepted_gold": d.get("accepted_gold", False),
+                        "operation_contract": d.get("operation_contract"), "decision": d.get("decision"),
+                        "provider_dissent": d.get("retain_provider_dissent", False)})
+    root = LAB / "reports/candidate-first/corpus-remote-verification/candidate-first-gold"
+    for file in ("accepted-public-gold.jsonl", "disputed.jsonl"):
+        for row in read_jsonl(root / file):
+            if row["repository"] in {"OpenHands/software-agent-sdk", "BerriAI/litellm"}:
+                out.append({"id": row["id"], "cohort": "released_development", "repository": row["repository"],
+                            "revision": row["revision"], "candidate": row["candidate"], "family": row["family_id"],
+                            "label": row["label"], "drifted": row.get("drifted", False),
+                            "accepted_gold": file.startswith("accepted"), "operation_contract": row.get("narrow_operation"),
+                            "decision": row.get("review_status"), "provider_dissent": False})
+    return out
+
+
+def read_jsonl(path):
+    return [json.loads(line) for line in Path(path).read_text().splitlines() if line.strip()]
+
+
+def reviewed_keys(config):
+    """Pair identities are exact to this pin; endpoints alone never exclude other pairs."""
+    reviewed = set()
+    def add(row):
+        c = row.get("candidate")
+        if isinstance(c, dict) and "new" in c and "existing" in c:
+            candidate = Candidate.model_validate(c)
+            reviewed.add(candidate.key)
+    for short in ("t3", "litellm", "opencode", "openhands", "kaizen"):
+        for row in read_jsonl(LAB / f"reports/candidate-first/{short}-scaled-completed.jsonl"):
+            if row["packet"]["repository"] == config["repository"]:
+                add(row["packet"])
+    for cohort in ("candidate-first-gold", "public-gold"):
+        for name in ("accepted-public-gold.jsonl", "contrast-controls.jsonl", "disputed.jsonl", "unknown.jsonl", "source-related.jsonl"):
+            p = LAB / "reports/candidate-first/corpus-remote-verification" / cohort / name
+            if p.exists():
+                for row in read_jsonl(p):
+                    if row.get("repository") == config["repository"]:
+                        add(row)
+    # Earlier proposal packets may already have been reviewed but not promoted. Exclude conservatively.
+    p = Path(config["proposals"])
+    if p.exists():
+        for row in read_jsonl(p):
+            add(row)
+    return reviewed
+
+
+class Corpus:
+    def __init__(self, config):
+        self.config = config
+        self.name = "openhands" if "OpenHands" in config["repository"] else "litellm"
+        self.out = HERE / self.name
+        self.out.mkdir(exist_ok=True)
+        self.source_dir = self.out / "source-files"
+        self.source_dir.mkdir(exist_ok=True)
+        self.sources = {}
+        self.fs = {}
+        self.proofs = {}
+        self.annotations = {}
+        self.timing = {}
+        start = time.perf_counter()
+        raw = Path(config["background_proof"]["path"]).read_bytes()
+        assert sha(raw) == config["background_proof"]["sha256"]
+        self.bg = BenchBackground.decode(raw)
+        assert (self.bg.repository, self.bg.revision) == (config["repository"], config["revision"])
+        self.timing["decode_seconds"] = time.perf_counter() - start
+        self.positions = defaultdict(list)
+        for i, d in enumerate(self.bg.documents):
+            self.positions[d.id].append(i)
+        self.ambiguous_ids = {k: v for k, v in self.positions.items() if len(v) > 1}
+        assert not any("enterprise" in d.id.split("::")[0].split("/") for d in self.bg.documents)
+        start = time.perf_counter()
+        self.base = self.bg.index()
+        self.timing["baseline_first_index_seconds"] = time.perf_counter() - start
+        start = time.perf_counter()
+        warm = self.bg.index()
+        self.timing["baseline_warm_index_seconds"] = time.perf_counter() - start
+        assert warm.idf == self.base.idf
+        del warm
+        start = time.perf_counter()
+        for path in sorted({d.id.split("::")[0] for d in self.bg.documents if d.id.split("::")[0].endswith(".py")}):
+            self.load_source(path)
+        self.timing["source_extract_derive_verify_seconds"] = time.perf_counter() - start
+        self.concepts = [self.annotations.get(i, {}).get("tokens", []) for i in range(len(self.bg.documents))]
+        start = time.perf_counter()
+        self.concept = TfidfIndex(self.concepts, self.bg.max_df)
+        self.timing["concept_first_index_seconds"] = time.perf_counter() - start
+        start = time.perf_counter()
+        self.add = TfidfIndex([d.tokens() + self.concepts[i] for i, d in enumerate(self.bg.documents)], self.bg.max_df)
+        self.timing["addition_first_index_seconds"] = time.perf_counter() - start
+        # Inserting concepts cannot change original code-token IDFs: corpus rows and membership are fixed.
+        assert all(self.add.idf.get(k) == v for k, v in self.base.idf.items())
+        start = time.perf_counter()
+        warm = TfidfIndex(self.concepts, self.bg.max_df)
+        self.timing["concept_warm_index_seconds"] = time.perf_counter() - start
+        assert warm.idf == self.concept.idf
+        del warm
+        self.reviewed = reviewed_keys(config)
+        self.settings = Settings()
+        self.settings.budget.usd = .04
+        # No HTTP client is instantiated or call made: constructor contains only local configuration.
+        self.judge = JevJudge(api_key="offline-not-a-credential", model="jev-1.14.0", context=True, workers=1)
+        self.query_cache = {}
+        self.candidate_cache = {}
+        jsonl(self.out / "annotation-rows.jsonl", [dict(position=i, source_id=self.bg.documents[i].id, **row)
+                                                   for i, row in sorted(self.annotations.items())])
+        jsonl(self.out / "source-verification.jsonl", [dict(path=k, **v) for k, v in sorted(self.proofs.items())])
+
+    def load_source(self, path):
+        if path in self.sources:
+            return
+        raw = git(self.config, "show", self.config["revision"] + ":" + path)
+        text = raw.decode()
+        tree = ast.parse(text, filename=path)
+        file_path = self.source_dir / (sha(raw) + ".py")
+        if not file_path.exists():
+            file_path.write_bytes(raw)
+        self.sources[path] = text
+        # Extract current source only for spans/callers; frozen tokens remain the retrieval baseline.
+        extracted = PythonExtractor().functions(path, text)
+        nodes = {(f.qualname, sha(f.code.encode())): node for f, node in function_nodes(text, path)}
+        verified = 0
+        for f in extracted:
+            if f.qualname not in self.positions:
+                continue
+            matches = [i for i in self.positions[f.qualname]
+                       if i not in self.fs and self.bg.documents[i].source_sha256 == sha(f.code.encode())]
+            assert matches, f.qualname
+            i = matches[0]
+            d = self.bg.documents[i]
+            assert sha(f.code.encode()) == d.source_sha256, f.qualname
+            f.tokens = []  # No second lexical corpus in memory; replay always uses frozen background rows.
+            self.fs[i] = f
+            verified += 1
+            # Duplicate source IDs remain in baseline IDF/rank competition. Never invent a unique owner.
+            if f.qualname in self.ambiguous_ids:
+                continue
+            tokens, regions = features(tree, nodes[(f.qualname, sha(f.code.encode()))])
+            if tokens:
+                self.annotations[i] = {"tokens": tokens, "regions": regions}
+        expected = sum(d.id.split("::")[0] == path for d in self.bg.documents)
+        assert verified == expected, (path, verified, expected)
+        self.proofs[path] = {"sha256": sha(raw), "complete_file": str(file_path), "bytes": len(raw),
+                             "verified_background_functions": verified,
+                             "git_object": self.config["revision"] + ":" + path}
+
+    def function(self, i):
+        return self.fs[i]
+
+    def candidate(self, qi, ti, score, arm):
+        c = Candidate(new=self.function(qi), existing=self.function(ti), similarity=score,
+                      comparer="tfidf:2" if arm == "baseline" else "lab-contract-tokens-v1:" + arm,
+                      similarity_reusable=False)
+        c.filtered = why_skipped(c.new, c.existing, self.settings)
+        return c
+
+    def scores(self, qi):
+        base = dict(self.base.similar(self.bg.documents[qi].tokens(), exclude={qi}))
+        addition = dict(self.add.similar(self.bg.documents[qi].tokens() + self.concepts[qi], exclude={qi}))
+        concept = dict(self.concept.similar(self.concepts[qi], exclude={qi}))
+        all_positions = set(base) | set(concept)
+        return {"baseline": base, "addition": addition,
+                **{arm: {i: base.get(i, 0.) + alpha * (1 - base.get(i, 0.)) * concept.get(i, 0.)
+                         for i in all_positions} for arm, alpha in [("field10", .1), ("field20", .2)]}}
+
+    def ranked(self, scores, qi):
+        return sorted((i for i in range(len(self.bg.documents)) if i != qi),
+                      key=lambda i: (-scores.get(i, 0.), self.bg.documents[i].id, i))
+
+    def query(self, qi):
+        if qi in self.query_cache:
+            return self.query_cache[qi]
+        self.query_cache.clear()  # Full-corpus rank maps are temporary, never accumulated per query.
+        start = time.perf_counter()
+        matrices = self.scores(qi)
+        f = self.function(qi)
+        result = {}
+        for arm in ARMS:
+            ranked = self.ranked(matrices[arm], qi)
+            rank_map = {ti: n + 1 for n, ti in enumerate(ranked)}
+            cross = [ti for ti in ranked if self.bg.documents[ti].id.split("::")[0] != f.path]
+            cross_map = {ti: n + 1 for n, ti in enumerate(cross)}
+            result[arm] = {"scores": matrices[arm], "rank": rank_map, "cross_rank": cross_map, "profiles": {}}
+            for profile, floor, pool in [("default", .3 if f.lines < 6 else .5, cross[:3]),
+                                          ("balanced", .35, ranked[:20])]:
+                chosen = [ti for ti in pool if matrices[arm].get(ti, 0.) >= floor and ti in self.fs
+                          and self.bg.documents[ti].id not in self.ambiguous_ids]
+                candidates = [self.candidate(qi, ti, matrices[arm][ti], arm) for ti in chosen]
+                eligible = [c for c in candidates if c.filtered is None]
+                ledger = Ledger(self.settings)
+                funded = ledger.select(self.judge, eligible)
+                funded_keys = {eligible[i].key for i in funded}
+                ledger.charge(self.judge, [eligible[i] for i in funded], len(eligible) - len(funded))
+                rows = []
+                for ti, c in zip(chosen, candidates):
+                    rows.append({"target_position": ti, "target": c.existing.qualname,
+                                 "score": c.similarity, "rank": rank_map[ti], "cross_rank": cross_map.get(ti),
+                                 "filtered": c.filtered, "funded": c.key in funded_keys,
+                                 "estimated_usd": estimate(self.judge, [c], self.settings),
+                                 "key": c.key, "target_lines": c.existing.lines,
+                                 "target_concepts": self.concepts[ti]})
+                    self.candidate_cache[(qi, ti, arm)] = c
+                result[arm]["profiles"][profile] = {"floor": floor, "proposed": rows,
+                                                        "funded_count": len(funded), "estimated_usd": ledger.usd,
+                                                        "budget": .04, "cache": "cold"}
+        self.query_cache[qi] = result
+        self.timing["query_seconds_total"] = self.timing.get("query_seconds_total", 0.) + time.perf_counter() - start
+        return result
+
+
+def counterexamples():
+    cases = [
+        ("collect_comp", "def f(xs):\n return [x.name for x in xs]\n", "transform_collect"),
+        ("collect_loop", "def f(xs):\n out=[]\n for x in xs:\n  out.append(x.name)\n return out\n", "transform_collect"),
+        ("collect_map", "def f(xs):\n return list(map(lambda x: x.name, xs))\n", "transform_collect"),
+        ("lazy_generator", "def f(xs):\n return (x.name for x in xs)\n", None),
+        ("lazy_map", "def f(xs):\n return map(lambda x: x.name, xs)\n", None),
+        ("effectful_loop", "def f(xs):\n out=[]\n for x in xs:\n  log(x)\n  out.append(x.name)\n return out\n", None),
+        ("effectful_transform", "def f(xs):\n return [save(x) for x in xs]\n", None),
+        ("early_exit", "def f(xs):\n out=[]\n for x in xs:\n  out.append(x)\n  break\n return out\n", None),
+        ("reverse_order", "def f(xs):\n out=[]\n for x in xs:\n  out.insert(0,x)\n return out\n", None),
+        ("async_iteration", "async def f(xs):\n return [x async for x in xs]\n", None),
+        ("filtered", "def f(xs):\n return [x.name for x in xs if x.active]\n", "transform_collect"),
+        ("owned_file", "def f(p):\n with open(p) as h:\n  return h.read()\n", "owned_file_cleanup"),
+        ("finally_file", "def f(p):\n h=open(p)\n try:\n  return h.read()\n finally:\n  h.close()\n", "owned_file_cleanup"),
+        ("io_alias", "import io as stream\ndef f(p):\n with stream.open(p,'wb') as h:\n  h.write(b'x')\n", "owned_file_cleanup"),
+        ("path_alias", "from pathlib import Path as P\ndef f(p):\n with P(p).open('rb') as h:\n  return h.read()\n", "owned_file_cleanup"),
+        ("different_mode", "def f(p):\n with open(p,'w') as h:\n  h.write('x')\n", "owned_file_cleanup"),
+        ("unrelated_open", "from widgets import open\ndef f(p):\n with open(p) as h:\n  return h.read()\n", None),
+        ("shadowed_open", "def f(p,open):\n with open(p) as h:\n  return h.read()\n", None),
+        ("shadowed_io", "import io\ndef f(p):\n io=custom\n with io.open(p) as h:\n  return h.read()\n", None),
+        ("shadowed_list", "def f(xs,list):\n return list(map(lambda x:x.name,xs))\n", None),
+        ("shared_helper_a", "def f(xs):\n return collect_fields(xs)\n", None),
+        ("shared_helper_b", "def g(xs):\n return collect_fields(xs)\n", None),
+        ("nested_shared_helper", "def f(xs):\n def helper():\n  return [x.name for x in xs]\n return helper()\n", None),
+        ("cleanup_not_finally", "def f(p):\n h=open(p)\n text=h.read()\n h.close()\n return text\n", None),
+        ("conditional_close", "def f(p):\n h=open(p)\n try:\n  return h.read()\n finally:\n  if h: h.close()\n", None),
+        ("copy_without_metadata", "import shutil\ndef f(a,b):\n return shutil.copyfile(a,b)\n", None),
+        ("copy_with_metadata", "from shutil import copy2\ndef f(a,b):\n return copy2(a,b)\n", None),
+    ]
+    out = []
+    for name, source, expected in cases:
+        tree = ast.parse(source)
+        fn = next(n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)))
+        tokens, regions = features(tree, fn)
+        actual = {r["operation"] for r in regions}
+        assert actual == ({expected} if expected else set()), (name, actual, expected)
+        out.append(dict(case=name, source=source, expected_operation=expected, tokens=tokens,
+                        regions=regions, passed=True))
+    by_name = {r["case"]: r for r in out}
+    assert by_name["owned_file"]["tokens"] != by_name["different_mode"]["tokens"]
+    assert by_name["collect_comp"]["tokens"] != by_name["filtered"]["tokens"]
+    jsonl(HERE / "counterexamples.jsonl", out)
+    return {"cases": len(out), "passed": len(out), "scope": "AST signal invariants, not equivalence labels"}
+
+
+def run(config, panels):
+    corpus = Corpus(config)
+    relevant = [p for p in panels if (p["repository"], p["revision"]) == (config["repository"], config["revision"])]
+    queries = set(corpus.annotations)
+    for row in relevant:
+        c = Candidate.model_validate(row["candidate"])
+        for f in [c.new, c.existing]:
+            ps = corpus.positions.get(f.qualname, [])
+            if len(ps) == 1 and corpus.bg.documents[ps[0]].source_sha256 == sha(f.code.encode()):
+                queries.add(ps[0])
+    print(corpus.name, "annotated", len(corpus.annotations), "queries", len(queries), flush=True)
+    query_rows = []
+    for qi in sorted(queries):
+        data = corpus.query(qi)
+        query_rows.append({"query": corpus.bg.documents[qi].id, "position": qi,
+                           "query_lines": corpus.function(qi).lines, "concepts": corpus.concepts[qi],
+                           "arms": {arm: data[arm]["profiles"] for arm in ARMS}})
+    jsonl(corpus.out / "query-rows.jsonl", query_rows)
+    rows = []
+    for panel in relevant:
+        c = Candidate.model_validate(panel["candidate"])
+        row = {k: v for k, v in panel.items() if k != "candidate"}
+        row["directions"] = []
+        for direction, q, target in [("new_to_existing", c.new, c.existing), ("existing_to_new", c.existing, c.new)]:
+            qp, tp = corpus.positions.get(q.qualname, []), corpus.positions.get(target.qualname, [])
+            status = "eligible"
+            if len(qp) != 1 or len(tp) != 1:
+                status = "missing_or_ambiguous"
+            elif qp == tp:
+                status = "self_pair"
+            elif (corpus.bg.documents[qp[0]].source_sha256 != sha(q.code.encode())
+                  or corpus.bg.documents[tp[0]].source_sha256 != sha(target.code.encode())):
+                status = "source_mismatch"
+            d = {"direction": direction, "query": q.qualname, "target": target.qualname,
+                 "status": status, "same_file": q.path == target.path, "query_lines": q.lines,
+                 "target_lines": target.lines, "arms": {}}
+            if status == "eligible":
+                qi, ti = qp[0], tp[0]
+                data = corpus.query(qi)
+                for arm in ARMS:
+                    score = data[arm]["scores"].get(ti, 0.)
+                    d["arms"][arm] = {"score": score, "rank": data[arm]["rank"][ti],
+                                       "cross_rank": data[arm]["cross_rank"].get(ti), "profiles": {}}
+                    for profile in ("default", "balanced"):
+                        p = data[arm]["profiles"][profile]
+                        match = next((r for r in p["proposed"] if r["target_position"] == ti), None)
+                        loss = ("same_file" if profile == "default" and q.path == target.path else
+                                "score_floor" if score < p["floor"] else "top_k" if match is None else
+                                "rule_filter" if match["filtered"] else "budget" if not match["funded"] else None)
+                        d["arms"][arm]["profiles"][profile] = {"loss": loss, "retrieved": match is not None,
+                                                                  "funded": bool(match and match["funded"]),
+                                                                  "filtered": match["filtered"] if match else None}
+                d["query_concepts"], d["target_concepts"] = corpus.concepts[qi], corpus.concepts[ti]
+            row["directions"].append(d)
+        rows.append(row)
+    jsonl(corpus.out / "panel-rows.jsonl", rows)
+    summary = summarize(rows)
+    summary.update({"repository": config["repository"], "revision": config["revision"],
+                    "background_proof": config["background_proof"], "scope": corpus.bg.scope,
+                    "background_documents": len(corpus.bg.documents), "source_verified_functions": len(corpus.fs),
+                    "ambiguous_ids_excluded_from_concepts_and_review": corpus.ambiguous_ids,
+                    "annotated_functions": len(corpus.annotations), "query_count": len(queries),
+                    "operations": dict(Counter(r["operation"] for a in corpus.annotations.values() for r in a["regions"])),
+                    "concept_document_frequency": dict(Counter(t for ts in corpus.concepts for t in ts)),
+                    "filtered_by_max_df": sorted({t for ts in corpus.concepts for t in ts} - corpus.concept.idf.keys()),
+                    "timing": corpus.timing, "process_peak_rss_mib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024,
+                    "reviewed_pairs_excluded": len(corpus.reviewed)})
+    # Incremental queue pool is fixed before provider observations, field20 is not picked using labels.
+    extras, controls = [], []
+    for qr in query_rows:
+        qi = qr["position"]
+        baseline = {r["key"] for r in qr["arms"]["baseline"]["balanced"]["proposed"] if r["funded"]}
+        base_ranks = {r["key"]: r for r in qr["arms"]["baseline"]["balanced"]["proposed"]}
+        for arm in ("field10", "field20", "addition", "baseline"):
+            for proposed in qr["arms"][arm]["balanced"]["proposed"]:
+                ti = proposed["target_position"]
+                if not proposed["funded"] or proposed["key"] in corpus.reviewed:
+                    continue
+                shared = {r["operation"] for r in corpus.annotations.get(qi, {}).get("regions", [])} & {
+                    r["operation"] for r in corpus.annotations.get(ti, {}).get("regions", [])}
+                if not shared:
+                    continue
+                item = {"qi": qi, "ti": ti, "arm": arm, "row": proposed,
+                        "baseline_funded": proposed["key"] in baseline,
+                        "baseline_row": base_ranks.get(proposed["key"]), "corpus": corpus}
+                if arm in {"field10", "field20"} and proposed["key"] not in baseline:
+                    extras.append(item)
+                elif arm == "baseline":
+                    controls.append(item)
+    summary["novel_pool"] = {"field_incremental_directed": len(extras),
+                             "field_incremental_exact_pairs": len({i["row"]["key"] for i in extras}),
+                             "baseline_control_directed": len(controls),
+                             "baseline_control_exact_pairs": len({i["row"]["key"] for i in controls})}
+    dump(corpus.out / "summary.json", summary)
+    print(corpus.name, json.dumps({"panel": summary["panel_counts"], "novel_pool": summary["novel_pool"]}), flush=True)
+    return corpus, extras, controls
+
+
+def summarize(rows):
+    groups = defaultdict(list)
+    for row in rows:
+        groups[row["label"]].append(row)
+    result = {"panel_counts": {label: {"pairs": len(rs), "families": len({r["family"] for r in rs}),
+                                              "directions": sum(len(r["directions"]) for r in rs)}
+                                for label, rs in groups.items()}, "metrics": []}
+    for label, rs in groups.items():
+        ds = [d for r in rs for d in r["directions"] if d["status"] == "eligible"]
+        for arm in ARMS:
+            for profile in ("default", "balanced"):
+                funded_pairs = [r for r in rs if any(d["status"] == "eligible" and d["arms"][arm]["profiles"][profile]["funded"] for d in r["directions"])]
+                baseline_keys = {r["id"] for r in rs if any(d["status"] == "eligible" and d["arms"]["baseline"]["profiles"][profile]["funded"] for d in r["directions"])}
+                keys = {r["id"] for r in funded_pairs}
+                result["metrics"].append({"label": label, "arm": arm, "profile": profile,
+                                          "funded_pairs": len(funded_pairs), "pair_denominator": len(rs),
+                                          "funded_families": len({r["family"] for r in funded_pairs}),
+                                          "family_denominator": len({r["family"] for r in rs}),
+                                          "funded_directions": sum(d["arms"][arm]["profiles"][profile]["funded"] for d in ds),
+                                          "eligible_direction_denominator": len(ds),
+                                          "wins": sorted(keys - baseline_keys), "lost_prior": sorted(baseline_keys - keys),
+                                          "first_losses": dict(Counter(d["arms"][arm]["profiles"][profile]["loss"] or "funded" for d in ds))})
+    return result
+
+
+def freeze_queue(extras, controls):
+    def priority(item):
+        c = item["corpus"]
+        qr = c.annotations[item["qi"]]["regions"]
+        tr = c.annotations[item["ti"]]["regions"]
+        cross_syntax = bool({r["syntax"] for r in qr} ^ {r["syntax"] for r in tr})
+        return (not cross_syntax, sha(("20261106:" + item["row"]["key"]).encode()), item["arm"])
+    selected, seen, queries, filepairs = [], set(), set(), Counter()
+    for kind, pool, limit in [("novel", extras, 8), ("baseline_control", controls, 4)]:
+        count = 0
+        for item in sorted(pool, key=priority):
+            c = item["corpus"]
+            candidate = c.candidate_cache[(item["qi"], item["ti"], item["arm"])]
+            key = (c.config["repository"], candidate.key)
+            query = (c.config["repository"], candidate.new.qualname)
+            files = (c.config["repository"], *sorted([candidate.new.path, candidate.existing.path]))
+            if key in seen or query in queries or filepairs[files] >= 2:
+                continue
+            item["kind"] = kind
+            selected.append(item)
+            seen.add(key)
+            queries.add(query)
+            filepairs[files] += 1
+            count += 1
+            if count == limit:
+                break
+    queue, private, blind = [], [], []
+    for n, item in enumerate(selected, 1):
+        c = item["corpus"]
+        candidate = c.candidate_cache[(item["qi"], item["ti"], item["arm"])]
+        ident = f"CT-{n:03}"
+        evidence = []
+        for side, f, i in [("new", candidate.new, item["qi"]), ("existing", candidate.existing, item["ti"])]:
+            # Lexical callers are evidence only; ambiguous cross-file or dynamic dispatch is not resolved.
+            callers = [{"source_id": x.qualname, "line": x.line, "end_line": x.end_line,
+                        "call_kind": "file-local-bare-or-same-owner-syntactic"}
+                       for x in c.fs.values() if x.path == f.path and x.qualname != f.qualname
+                       and (f.name in (x.calls or []) or (x.owner == f.owner and "self." + f.name in (x.calls or [])))]
+            evidence.append({"side": side, "source_id": f.qualname, "line": f.line, "end_line": f.end_line,
+                             "body_sha256": sha(f.code.encode()), "complete_file_proof": c.proofs[f.path],
+                             "operation_regions": c.annotations[i]["regions"], "caller_evidence": callers,
+                             "caller_scope": "same-file lexical calls only; unresolved callers unknown, no whole-program claim"})
+        packet = {"id": ident, "repository": c.config["repository"], "revision": c.config["revision"],
+                  "candidate": candidate.model_dump(mode="json"), "background_proof": c.config["background_proof"],
+                  "source_evidence": evidence, "source_verification": "all full-file and function body digests checked against pinned git and immutable background",
+                  "label": "unknown", "physical_allowance_usd": 1.0,
+                  "budget_policy": "cold-cache .04 Jev context synthetic single-query batch; not Sonnet/historical/deployed policy"}
+        queue.append(packet)
+        private.append({"id": ident, "kind": item["kind"], "variant": item["arm"], "key": candidate.key,
+                        "query_position": item["qi"], "target_position": item["ti"],
+                        "rank_budget": item["row"], "baseline_funded": item["baseline_funded"],
+                        "baseline_row": item["baseline_row"], "reason": "actually exposed and admitted by frozen per-query Ledger; exact previous pair review excluded",
+                        "sidecar_scope": "selection metadata; withhold from source reviewer"})
+        # Full Candidate is in canonical queue; source review receives no scores, ranking or channel information.
+        blind.append({"id": ident, "repository": packet["repository"], "revision": packet["revision"],
+                      "new": candidate.new.model_dump(mode="json"), "existing": candidate.existing.model_dump(mode="json"),
+                      "source_evidence": evidence,
+                      "question": "Does a source-bounded repeated operation have a useful shared implementation owner? Specify exact region, callers, differing guarantees and any already-shared helper; do not assume whole-function equivalence."})
+    # Refuse silent regeneration after central freeze/observations. Byte-identical reruns are allowed.
+    target = HERE / "novel-review-queue.jsonl"
+    encoded = "".join(json.dumps(r, sort_keys=True) + "\n" for r in queue)
+    if target.exists():
+        assert target.read_text() == encoded, "Frozen review queue changed; preserve original and stop"
+    else:
+        target.write_text(encoded)
+    jsonl(HERE / "novel-review-sidecar.jsonl", private)
+    jsonl(HERE / "blind-source-review.jsonl", blind)
+    manifest = {"queue_sha256": sha(target.read_bytes()), "queue_rows": len(queue),
+                "novel_pairs": sum(r["kind"] == "novel" for r in private),
+                "baseline_controls": sum(r["kind"] == "baseline_control" for r in private),
+                "frozen_before_provider_response": True, "worker_provider_calls": 0,
+                "physical_allowance_not_spent_by_worker": 1.0}
+    dump(HERE / "queue-freeze.json", manifest)
+    return manifest
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--counterexamples-only", action="store_true")
+    args = parser.parse_args()
+    test_result = counterexamples()
+    if args.counterexamples_only:
+        print(json.dumps(test_result))
+        return
+    start = time.perf_counter()
+    config_path = LAB / "jobs/review-automation/.lab-results/review-automation/repositories-five.json"
+    configs = json.loads(config_path.read_text())
+    panels = load_panels()
+    # Record frozen input hashes before computing any results.
+    dump(HERE / "run-provenance.json", {"code_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=WORK).decode().strip(),
+                                       "python": sys.version, "script_sha256": sha(Path(__file__).read_bytes()),
+                                       "preregistration_sha256": sha((HERE / "EXPERIMENT.json").read_bytes()),
+                                       "config_map_sha256": sha(config_path.read_bytes()), "counterexamples": test_result,
+                                       "counterexample_policy": "synthetic controls frozen in script before panel scores; no source transformations inserted in repository IDF",
+                                       "provider_calls": 0, "exact_tie_order": "descending score, sourceID, documentposition"})
+    extras, controls, summaries = [], [], []
+    # Keep only one repository's indexes resident after candidate pools have been frozen to disk.
+    corpora = []
+    for config in [configs[3], configs[1]]:
+        corpus, novel, baseline = run(config, panels)
+        extras.extend(novel)
+        controls.extend(baseline)
+        corpora.append(corpus)
+        summaries.append(json.loads((corpus.out / "summary.json").read_text()))
+    queue = freeze_queue(extras, controls)
+    report = {"experiment": "stage3-contextual-contract-tokens-v1", "repositories": summaries,
+              "counterexamples": test_result, "queue": queue, "seconds_total": time.perf_counter() - start,
+              "process_peak_rss_mib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024,
+              "provider_calls": 0, "useful_funded_reports": None, "emitted_reports": None,
+              "scope": "development/regression retrieval + cold-cache synthetic single-query Jev Ledger diagnostics, no exhaustive recall/report/deployment claim"}
+    dump(HERE / "summary.json", report)
+    print(json.dumps({"seconds": report["seconds_total"], "queue": queue}), flush=True)
+
+
+if __name__ == "__main__":
+    main()

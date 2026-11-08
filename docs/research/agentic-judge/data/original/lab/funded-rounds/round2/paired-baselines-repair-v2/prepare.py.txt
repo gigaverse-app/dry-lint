@@ -1,0 +1,83 @@
+"""Preregister and freeze exactly the nine existing started novel questions."""
+import copy
+import difflib
+import json
+from pathlib import Path
+
+import adapter as a
+
+
+def main():
+    out = a.HERE
+    assert not (out / 'requests.jsonl').exists(), 'Do not overwrite a frozen repair queue.'
+    old_path = out.parent / 'paired-baselines/actually-started-requests.jsonl'
+    rows = a.v.h.lines(old_path)
+    assert len(rows) == 9
+    spec = {'schema': 1, 'version': a.VERSION, 'direction': 'agentic-judge',
+        'kind': 'body_only_comparator_procedure_repair', 'selected_cases': [r['id'] for r in rows],
+        'selection': 'All nine actually-started round2 novel cases; no outcome filtering. No candidate or teacher change.',
+        'reason': 'Original comparator retained instructions to call unavailable source tools; 5/9 yielded no final submission.',
+        'only_request_delta': ['Replace system tool/procedure instructions with supplied-evidence-only instructions; retain semantic operation/variation guidance and exact coordinates.',
+                               'Force sole submit_verdict terminal tool and disable parallel tool use; same final schema.'],
+        'fixed': ['Exact full user semantic question and bodies/names/signatures/docs', 'source pin/content', 'model claude-sonnet-5-5', 'max_tokens 1024', 'strict final schema/citations/80-word rule', 'report threshold .8'],
+        'old_queue_sha256': a.sha(old_path.read_bytes()), 'old_nine_requests_answers_unchanged': True,
+        'r1_uncertainty_not_retried': True, 'paid_retries': False, 'one_physical_call_per_new_request': True,
+        'no_new_teacher_or_candidates': True, 'root_only_provider': True, 'root_shared_remaining_authorized_usd': .18573016,
+        'cache': 'Fresh experimental keys only; no production store; no cached spend credit.',
+        'scoring': 'Same final validator; uncertain, malformed, capped, missing and unsupported-tool answers remain unknown.',
+        'interpretation': 'Comparator repair, not a same-prompt ablation or evidence that teacher improved. Existing source labels and outcomes are observed development; procedural change only.',
+        'worker_provider_calls': 0}
+    a.v.h.save(out / 'EXPERIMENT.json', spec)
+    new, deltas = [], []
+    for previous in rows:
+        row = copy.deepcopy(previous)
+        request = a.initial(previous)
+        source = {**previous['source_contract'], 'experiment_context_version': a.VERSION,
+                  'original_source_content_sha256': previous['identity']['source_sha256']}
+        contract = {**previous['prompt_contract'], 'request': request, 'version': a.VERSION,
+            'semantic_policy': 'Unchanged user shared-operations question; supplied-evidence-only procedure.',
+            'procedure': 'Only supplied evidence; force the sole submit_verdict output tool; no source callbacks.'}
+        identity = {**previous['identity'], 'version': a.VERSION, 'source_sha256': a.sha(a.canon(source)),
+            'prompt_sha256': a.sha(a.canon(contract)), 'canonical_request_sha256': a.sha(a.canon(request))}
+        exact = a.canon(request)
+        row.update(experiment=a.VERSION, model_version=a.VERSION, request_body=request, exact_rendered_json=exact,
+            source_contract=source, prompt_contract=contract, identity=identity, request_id=a.sha(a.canon(identity)),
+            wire_sha256=a.sha(exact), supersedes_request_id=previous['request_id'],
+            funded_phase='paired_body_baseline_procedure_repair',
+            comparability={'semantic_question_identical': True, 'initial_full_bodies_identical': True,
+                'source_content_identical': True, 'model_and_output_cap_identical': True,
+                'final_schema_identical': True, 'system_bytes_identical': False,
+                'same_prompt_ablation': False, 'comparator_procedure_repair': True},
+            estimate_usd=(len(exact)/2.8*2+512*10)/1e6,
+            reservation_usd=((len(exact.encode())+4096)*2+1024*10)/1e6,
+            response_contract='One HTTP only, sole forced submit_verdict terminal tool. No source callbacks. Strict original citations/why/uncertainty; malformed/capped/unavailable tools unknown.')
+        assert row['request_id'] != previous['request_id']
+        assert identity['source_sha256'] != previous['identity']['source_sha256']
+        a.validate_request(row)
+        new.append(row)
+        deltas.append({'id': row['id'], 'old_request_id': previous['request_id'], 'new_request_id': row['request_id'],
+            'unchanged_source_content_sha256': previous['identity']['source_sha256'],
+            'system_unified_diff': ''.join(difflib.unified_diff(previous['request_body']['system'].splitlines(True),
+                request['system'].splitlines(True), fromfile='old flawed procedure', tofile='supplied-evidence procedure')),
+            'old_tool_choice': previous['request_body']['tool_choice'], 'new_tool_choice': request['tool_choice']})
+    for name, data in [('requests.jsonl', new), ('instruction-deltas.jsonl', deltas)]:
+        (out / name).write_text(''.join(a.canon(r)+'\n' for r in data))
+    (out / 'instruction-diff.txt').write_text(deltas[0]['system_unified_diff']+'\nTool choice: '+a.canon(deltas[0]['old_tool_choice'])+' → '+a.canon(deltas[0]['new_tool_choice'])+'\nAll nine exact per-case diffs: instruction-deltas.jsonl\n')
+    # Separate root entrypoint; frozen old executor and ledger class stay intact.
+    root = (a.FUND / 'root_paired_baselines.py').read_text()
+    root = root.replace('import paired_baseline_adapter as p', 'import adapter as p')
+    root = root.replace('p.HERE.parents[3]', 'p.FUND.parents[3]')
+    root = root.replace("'agentic-judge-paired-body-baseline-v1'", repr(a.VERSION))
+    root = root.replace('1.33017984', '1.81426984')
+    root = root.replace("funded_phase='paired_body_baseline',", "funded_phase='paired_body_baseline_procedure_repair', method_version=q['identity']['version'],")
+    (out / 'root_runner.py').write_text(root)
+    summary = {'schema': 1, 'requests': 9, 'queue_sha256': a.sha((out/'requests.jsonl').read_bytes()),
+        'estimated_new_usd': sum(r['estimate_usd'] for r in new), 'max_case_reservation_usd': max(r['reservation_usd'] for r in new),
+        'first_four_reservation_usd': sum(r['reservation_usd'] for r in new[:4]),
+        'old_inputs_outputs_unchanged': True, 'worker_provider_calls': 0}
+    a.v.h.save(out / 'REQUEST-FREEZE.json', summary)
+    print(json.dumps(summary))
+
+
+if __name__ == '__main__':
+    main()

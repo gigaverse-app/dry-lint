@@ -1,0 +1,354 @@
+{
+  "status": "PASS",
+  "clean_copy_without_lab_imports": true,
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "commands": [
+    {
+      "command": "python3 transform.py",
+      "exit_code": 0,
+      "stdout_sha256": "e87a2737f261970e7a6ffd53fca42a491ba6a1b7abc8ce91c61b127134eb0961",
+      "result": [
+        {
+          "id": "VEC-R2-006",
+          "before_cosine": 0.0,
+          "after_cosine": 0.3616284095855076,
+          "background_functions": 13893,
+          "scope": "Exact selected-vector transformation with frozen full-background IDF/edges; no full-corpus fit or candidate ranking replay."
+        },
+        {
+          "id": "VEC-R2-017",
+          "before_cosine": 0.47613273037371473,
+          "after_cosine": 0.5004193723460203,
+          "background_functions": 13893,
+          "scope": "Exact selected-vector transformation with frozen full-background IDF/edges; no full-corpus fit or candidate ranking replay."
+        },
+        {
+          "id": "VEC-R2-040",
+          "before_cosine": 1.0,
+          "after_cosine": 1.0,
+          "background_functions": 2348,
+          "scope": "Exact selected-vector transformation with frozen full-background IDF/edges; no full-corpus fit or candidate ranking replay."
+        },
+        {
+          "id": "VEC-R2-042",
+          "before_cosine": 0.9615262039892033,
+          "after_cosine": 0.9654900220198863,
+          "background_functions": 13893,
+          "scope": "Exact selected-vector transformation with frozen full-background IDF/edges; no full-corpus fit or candidate ranking replay."
+        }
+      ]
+    },
+    {
+      "command": "python3 reproduce.py replay",
+      "exit_code": 0,
+      "stdout_sha256": "c08effe9108a5fca458ac318cfd7f3bc6bda9ee2bffec587f07d191482788d56",
+      "result": {
+        "limits": "Replays final answers and fixed admission records; does not refit whole-corpus retrieval or independently prove source truth. Primary feed costs exclude separately attributed current-phase usage. Jev and Claude remain separate.",
+        "policy_counts": [
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "protected_default",
+            "role": "control",
+            "round": 1,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "protected_default",
+            "role": "novel",
+            "round": 1,
+            "unknown": 28,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "protected_default",
+            "role": "control",
+            "round": 1,
+            "unknown": 0,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "protected_default",
+            "role": "novel",
+            "round": 1,
+            "unknown": 28,
+            "variant": 0
+          },
+          {
+            "added": 0,
+            "baseline": 2,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "protected_default",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 2
+          },
+          {
+            "added": 1,
+            "baseline": 0,
+            "kind": "claude",
+            "lost": 0,
+            "profile": "protected_default",
+            "role": "novel",
+            "round": 2,
+            "unknown": 19,
+            "variant": 1
+          },
+          {
+            "added": 0,
+            "baseline": 2,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "protected_default",
+            "role": "control",
+            "round": 2,
+            "unknown": 0,
+            "variant": 2
+          },
+          {
+            "added": 5,
+            "baseline": 0,
+            "kind": "jev",
+            "lost": 0,
+            "profile": "protected_default",
+            "role": "novel",
+            "round": 2,
+            "unknown": 19,
+            "variant": 5
+          }
+        ],
+        "primary_feeds": [
+          {
+            "primary_feed_actual_usd": "0.17328328",
+            "requests_in_primary_feed": 128,
+            "round": 1,
+            "successful": 72,
+            "unknown": 56
+          },
+          {
+            "primary_feed_actual_usd": "0.20732188",
+            "requests_in_primary_feed": 126,
+            "round": 2,
+            "successful": 88,
+            "unknown": 38
+          }
+        ],
+        "round1_with_attributed_supplement": {
+          "actual_usd": "0.20032464",
+          "requests": 140,
+          "scope": "Two disjoint current-phase feeds, six additional pairs; older pilot spend excluded.",
+          "successful": 84,
+          "supplemental_requests": 12,
+          "unknown": 56
+        },
+        "selected_answers": [
+          {
+            "id": "VEC-R2-006",
+            "kind": "jev",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.33
+          },
+          {
+            "id": "VEC-R2-006",
+            "kind": "claude",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.03
+          },
+          {
+            "id": "VEC-R2-017",
+            "kind": "jev",
+            "label": "separate",
+            "reportable": false,
+            "score": 0.22
+          },
+          {
+            "id": "VEC-R2-017",
+            "kind": "claude",
+            "label": "duplicate",
+            "reportable": false,
+            "score": 0.55
+          },
+          {
+            "id": "VEC-R2-040",
+            "kind": "jev",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.98
+          },
+          {
+            "id": "VEC-R2-040",
+            "kind": "claude",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.85
+          },
+          {
+            "id": "VEC-R2-042",
+            "kind": "jev",
+            "label": "drifted",
+            "reportable": true,
+            "score": 0.96
+          },
+          {
+            "id": "VEC-R2-042",
+            "kind": "claude",
+            "label": "duplicate",
+            "reportable": true,
+            "score": 0.9
+          }
+        ],
+        "selected_raw_answers_reparsed": 8
+      }
+    },
+    {
+      "command": "python3 reproduce.py audit",
+      "exit_code": 0,
+      "stdout_sha256": "b72ddafc7ca5d2e3f373156b3aa7b0e5eaa46a29c17ae91703a36877eacf7653",
+      "result": {
+        "compressed_archives_opened": 4,
+        "credential_or_private_identifier_matches": 0,
+        "files_scanned": 40,
+        "limit": "Pattern scan plus allowlisted response/source export; not a universal secret detector.",
+        "relative_links_checked": 15,
+        "source_files_verified": 8,
+        "status": "PASS"
+      }
+    },
+    {
+      "command": "python3 acquire.py --corpus /home/researcher/dry-lint-round/jobs/corpus-migration/.lab-results/corpus-migration/standalone",
+      "exit_code": 0,
+      "stdout_sha256": "4b21cd4fd155f8d2493abed42796f35ab2c98e43d62d41bee1688bb09aa850e2",
+      "result": {
+        "status": "PASS",
+        "exact_background_catalog_bindings": 10,
+        "scope": "Catalog hash lookup; run corpus.py verify for stored object bytes. Missing/private study inputs remain missing/private."
+      }
+    },
+    {
+      "command": "python3 aggregate.py",
+      "exit_code": 0,
+      "stdout_sha256": "0d3959bacf0e7699c4c58ef882054f7a1444a18b1aadd5fad937e6e6550fc9ce",
+      "result": {
+        "status": "PASS",
+        "ranking_comparisons": [
+          {
+            "capture": "original_methods",
+            "label": "duplicate",
+            "arm": "raw-tfidf",
+            "conditions": 227,
+            "MRR": 0.7001502388256396,
+            "top3": 182,
+            "top20": 218
+          },
+          {
+            "capture": "original_methods",
+            "label": "duplicate",
+            "arm": "lsi64",
+            "conditions": 227,
+            "MRR": 0.5915690437493851,
+            "top3": 158,
+            "top20": 198
+          },
+          {
+            "capture": "original_methods",
+            "label": "duplicate",
+            "arm": "lsi64-csls10",
+            "conditions": 227,
+            "MRR": 0.5450752995041058,
+            "top3": 144,
+            "top20": 196
+          },
+          {
+            "capture": "original_methods",
+            "label": "separate",
+            "arm": "raw-tfidf",
+            "conditions": 522,
+            "MRR": 0.3905930688646152,
+            "top3": 264,
+            "top20": 399
+          },
+          {
+            "capture": "original_methods",
+            "label": "separate",
+            "arm": "lsi64",
+            "conditions": 522,
+            "MRR": 0.26007874947819526,
+            "top3": 176,
+            "top20": 341
+          },
+          {
+            "capture": "original_methods",
+            "label": "separate",
+            "arm": "lsi64-csls10",
+            "conditions": 522,
+            "MRR": 0.24070994604597779,
+            "top3": 147,
+            "top20": 326
+          },
+          {
+            "capture": "association_metrics",
+            "label": "duplicate",
+            "arm": "raw-tfidf",
+            "conditions": 227,
+            "MRR": 0.7001502388256396,
+            "top3": 182,
+            "top20": 218
+          },
+          {
+            "capture": "association_metrics",
+            "label": "duplicate",
+            "arm": "herdr-source-pmi-onehop-r2-v1",
+            "conditions": 227,
+            "MRR": 0.6931372140395312,
+            "top3": 182,
+            "top20": 220
+          },
+          {
+            "capture": "association_metrics",
+            "label": "separate",
+            "arm": "raw-tfidf",
+            "conditions": 522,
+            "MRR": 0.3905930688646152,
+            "top3": 264,
+            "top20": 399
+          },
+          {
+            "capture": "association_metrics",
+            "label": "separate",
+            "arm": "herdr-source-pmi-onehop-r2-v1",
+            "conditions": 522,
+            "MRR": 0.37987751328337716,
+            "top3": 260,
+            "top20": 401
+          }
+        ],
+        "funding_limit": "Dataset/batch funding is a separate preserved comparison, not recomputed by this rank aggregator."
+      }
+    }
+  ],
+  "held_exact_request_hydrations": 0,
+  "provider_calls": 0,
+  "full_corpus_refits": 0,
+  "external_fetches": 0,
+  "source_safety": "Selected source allowlisted to licensed pinned public repositories; held source/prose omitted; decompressed archive and literal credential/private-identifier patterns scanned; original hashes retained. Not a universal secret detector.",
+  "tests_not_run": "Production suite, live providers, full-corpus refitting and independent source adjudication are outside this evidence-only publication."
+}

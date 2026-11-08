@@ -1,0 +1,22 @@
+{
+  "balanced_public_accepted_source_decisions": 2,
+  "balanced_public_native_campaigns": 2,
+  "balanced_public_questions": 4,
+  "balanced_public_source_files": 3,
+  "balanced_replay_output_sha256": "17cbc411270eb3e61478c8bbfdbe58fc9b8633ab908e6e02c1e2a4baf1eaa618",
+  "commands": [
+    "python3 -I replay.py",
+    "python -I balanced-posthoc/replay.py --balanced-package balanced"
+  ],
+  "held_source_body_path_and_prose_checks": 75,
+  "main_accepted_source_cases": 118,
+  "main_numeric_cases": 118,
+  "main_replay_output_sha256": "5e69184a8650b05fd85adf87bd10e2299c5c0b2ac3c489ce8a7776a8c9cf11bf",
+  "main_selected_recomputed": 6,
+  "no_live_target_execution": true,
+  "no_worker_provider_calls": true,
+  "outside_lab_copy": "/tmp/cpu-final-public-pastybc9/kit",
+  "runtime_and_dependency_hashes": "exact frozen upstream files verified",
+  "status": "PASS",
+  "tests": "6 passed on pinned73709fd runtime"
+}

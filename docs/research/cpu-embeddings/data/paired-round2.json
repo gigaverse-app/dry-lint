@@ -1,0 +1,1730 @@
+[
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-001",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.05,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.41,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-002",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.25,
+        "status": "success"
+      },
+      "jev": {
+        "label": "drifted",
+        "score": 0.86,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-003",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.02,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.15,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-004",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.03,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.08,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-005",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.05,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.08,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-006",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.12,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.35,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-007",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.05,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.12,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-008",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.12,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.45,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "report_threshold",
+    "id": "CPUR2-009",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "duplicate",
+        "score": 0.7,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.38,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-010",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.03,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.07,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-011",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.03,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.21,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-012",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.04,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.28,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-013",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.1,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.55,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-014",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.03,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.11,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-015",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.12,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.05,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-016",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.03,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.09,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-017",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.03,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.11,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-018",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.2,
+        "status": "success"
+      },
+      "jev": {
+        "label": "duplicate",
+        "score": 0.73,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "report_threshold",
+    "id": "CPUR2-019",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "duplicate",
+        "score": 0.5,
+        "status": "success"
+      },
+      "jev": {
+        "label": "drifted",
+        "score": 0.69,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-020",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.06,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.3,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "report_threshold",
+    "id": "CPUR2-021",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "duplicate",
+        "score": 0.72,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.45,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-022",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.08,
+        "status": "success"
+      },
+      "jev": {
+        "label": "drifted",
+        "score": 0.79,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "report_threshold",
+    "id": "CPUR2-023",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "duplicate",
+        "score": 0.72,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.32,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "report_threshold",
+    "id": "CPUR2-024",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "duplicate",
+        "score": 0.5,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.59,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-025",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.08,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.26,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "report_threshold",
+    "id": "CPUR2-026",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "duplicate",
+        "score": 0.62,
+        "status": "success"
+      },
+      "jev": {
+        "label": "duplicate",
+        "score": 0.68,
+        "status": "success"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-027",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-028",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.04,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.58,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-029",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-030",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-031",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-032",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.12,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.49,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-033",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-034",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-035",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-036",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.05,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.34,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-037",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-038",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-039",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-040",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.12,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.55,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-041",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-042",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-043",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": true,
+    "cpu_retrieved": true,
+    "first_loss": null,
+    "id": "CPUR2-044",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "drifted",
+        "score": 0.8,
+        "status": "success"
+      },
+      "jev": {
+        "label": "duplicate",
+        "score": 0.93,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-045",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-046",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-047",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-048",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.12,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.27,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-049",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-050",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-051",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-052",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.03,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.09,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-053",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-054",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-055",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-056",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.2,
+        "status": "success"
+      },
+      "jev": {
+        "label": "drifted",
+        "score": 0.82,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-057",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-058",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-059",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-060",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.03,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.07,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-061",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-062",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": null,
+    "cpu_retrieved": true,
+    "first_loss": "answer_missing",
+    "id": "CPUR2-063",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      },
+      "jev": {
+        "label": null,
+        "score": null,
+        "status": "unknown"
+      }
+    },
+    "role": "novel",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  },
+  {
+    "authentic_deployment_ledger": false,
+    "baseline_emission": false,
+    "baseline_retrieved": false,
+    "cpu_emission_projection": false,
+    "cpu_retrieved": true,
+    "first_loss": "judge_separate",
+    "id": "CPUR2-064",
+    "normal_synthetic04_funded": true,
+    "profile": "baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65",
+    "provider_observations": {
+      "claude": {
+        "label": "separate",
+        "score": 0.12,
+        "status": "success"
+      },
+      "jev": {
+        "label": "separate",
+        "score": 0.46,
+        "status": "success"
+      }
+    },
+    "role": "control",
+    "source_label": "unknown_pending_independent_source_review",
+    "standalone_claude_report_at": 0.8,
+    "strict_canonical_claude_identity_matches": true
+  }
+]

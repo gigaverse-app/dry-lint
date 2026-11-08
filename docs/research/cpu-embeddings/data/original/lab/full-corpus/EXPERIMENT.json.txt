@@ -1,0 +1,32 @@
+{
+  "accepted_rows_before_dedup": 539,
+  "evaluation": "Inventory lineage rows retained, unique unordered source pairs deduplicated by repo+rev+scope+background+source body hashes; uncertainty by family/repository cluster resampling, directions never independent. Prior400 settings/versions retained separately, synthetic diagnostic .04 ledger not historical replay.",
+  "execution_followup": "Resource scheduling/cache extension only: at most2 threads and3GiB RSS,100function preflight per exact background, bounded3600s encoder walltime per cohort (parent pilot600s replaced for broader inputs only); immutable full-body cache binds model/tokenizer/backend/pooling/truncation and code digest across cohorts, never combines IDF or revisions. No N-by-N allocation.",
+  "frozen_at": "2026-11-07T00:02:03.813032+00:00",
+  "inventory": "LAB_ROOT/reports/research-experiments/full-corpus/input-inventory.jsonl",
+  "inventory_rows": 566,
+  "inventory_sha256": "5300bef02d92f5994332e2307c17e7ef57cc97c178af206d8934abd08b9fc29a",
+  "mapper_root": "LAB_ROOT/jobs/corpus-wide-evaluation/.lab-results/full-corpus",
+  "name": "cpu-minilm-reserved1-full-corpus-replication-v1",
+  "novel": "Initial12 diverse funded unordered novel pairs +4 independently matched controls. Include lower-score/disagreement strata; no Jev truth gate. Full-source candidate inventories and exclusion/audit records; exact known source/prompt equivalence only exclusion. Expand by useful yield. Root owns provider calls and separate blinded source allocation. Missing answers unknown.",
+  "output": [
+    "coverage.json",
+    "paired-rows.jsonl",
+    "paired-summary.json",
+    "novel-review-queue.jsonl",
+    "novel-reviewer-packet-blind.jsonl",
+    "novel-review-sidecar-private.jsonl",
+    "REPORT.txt",
+    "HANDOFF.json"
+  ],
+  "parent_experiment_sha256": "37e16969a527717245c536c0d815eb9acf5cd606c6de11afd37ec79dc03b4571",
+  "pilot_status": "Limited preliminary observations only; preserved byte-for-byte, not general success/failure evidence.",
+  "requirements": "LAB_ROOT/reports/research-experiments/full-corpus/REQUIREMENTS.md",
+  "requirements_sha256": "f51e832104a82629730ef130751640fa55d7f6a3c0fd78b259a350dad963d532",
+  "root_physical_discovery_shared_new_tranche_usd": 1.0,
+  "schema": 1,
+  "scope": "All compatible function cohorts in full inventory, not only first-wave public repos. Retain unresolveds, negatives and models separately; unsupported/missing source explicit, no inference from previous coverage.",
+  "source": "Full competitor source per exact pin/background required; git show or hash-verified full file/function artifact. No gold-snippet-only dense index.",
+  "variants": "Identical pretrained model, immutable revision/artifacts/tokenization256/pooling/normalization, sparse baseline and dense-only and protected-sparse-plus-dense1 profiles/floors/ranking/normal .04 ledger as parent; no parameter search.",
+  "worker_provider_calls": 0
+}

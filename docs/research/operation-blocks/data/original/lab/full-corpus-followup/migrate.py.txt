@@ -1,0 +1,302 @@
+"""Root-routed shared resolver adoption, exact v2 inputs, no refit of the existing 77 cohorts."""
+
+import gzip
+import importlib.util
+import json
+import os
+import sys
+from collections import Counter
+from pathlib import Path
+
+from prepare import LAB, OUT, ROOT, dump, read, rows, sha
+
+sys.path.insert(0, str(LAB.parent / "src"))
+sys.path.insert(0, str(LAB))
+import operation_blocks as frozen
+import run as engine
+
+V2 = ROOT / "jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2"
+OWNER = ROOT / "jobs/corpus-wide-evaluation/.lab-results/span-resolution"
+DEST = OUT / "span-v2-migration"
+
+
+def adapter(owner, row, mapping, side, source):
+    """The actual adapter: shared identity/span resolution, then existing native policy/context builders."""
+    result = owner.resolve(row, mapping, side, source)
+    function = None
+    if result["status"] == "resolved_native" and result["source_id"].split("::")[0].endswith(".py"):
+        function = frozen.Function.model_validate(result["function"])
+        ex = frozen.PythonExtractor()
+        function.hash = ex.structure_hash(function)
+        function.context_digest = source["sha256"]
+        function.context = (
+            "Owning file source prefix (may be truncated; full file in source proof):\n" + source["source"][:6000]
+        )
+        assert function.line >= 1 and function.end_line >= function.line
+    return result, function
+
+
+def main():
+    DEST.mkdir(exist_ok=True)
+    os.environ["GIT_NO_LAZY_FETCH"] = "1"
+    os.environ["GIT_TERMINAL_PROMPT"] = "0"
+    helper_raw = (OWNER / "resolver.py").read_bytes()
+    helper_sha = sha(helper_raw)
+    copy = DEST / "shared_resolver_v1.py"
+    if copy.exists():
+        assert copy.read_bytes() == helper_raw, "Published helper changed; use a separately named migration version"
+    else:
+        copy.write_bytes(helper_raw)
+    spec = importlib.util.spec_from_file_location("routed_shared_resolver_v1", copy)
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    ready = json.loads((V2 / "index-ready.json").read_text())
+    assert sha((V2 / "rows.jsonl").read_bytes()) == ready["rows_sha256"]
+    assert sha((V2 / "cohorts.jsonl").read_bytes()) == ready["cohorts_sha256"]
+    assert ready["cohorts"] == 79 and ready["records"] == 617
+    old_hashes = {
+        str(p): sha(p.read_bytes())
+        for p in OUT.iterdir()
+        if p.is_file() and p.suffix != ".log" and p.name not in {"artifact-hashes.json", "migrate.py", "migration.log"}
+    }
+    fixture_results = []
+    for f in read(OWNER / "fixtures.jsonl"):
+        owner = helper.Resolver(f["cohort"], f["documents"])
+        result, native = adapter(owner, f["row"], f["mapping"], "new", f["source"])
+        for key in ("status", "category"):
+            assert result[key] == f["expected_" + key], (f["name"], key, result)
+        for key in ("native_lines", "start_line", "end_line"):
+            assert result["span"][key] == f["expected_" + key], (f["name"], key, result)
+        expected_python = result["status"] == "resolved_native" and result["source_id"].split("::")[0].endswith(".py")
+        assert bool(native) == expected_python
+        if native:
+            assert native.hash and native.context_digest == f["source"]["sha256"]
+            assert native.context.endswith(f["source"]["source"][:6000])
+            assert (0.3 if native.lines < 6 else 0.5) == (0.3 if f["expected_native_lines"] < 6 else 0.5)
+        fixture_results.append(
+            dict(
+                fixture=f["name"],
+                actual_adapter_called=True,
+                passed=True,
+                status=result["status"],
+                category=result["category"],
+                method_native_eligible=bool(native),
+                floor=0.3 if native and native.lines < 6 else 0.5 if native else None,
+                structure_context_complete=bool(native and native.hash and native.context_digest),
+            )
+        )
+    rows(DEST / "adapter-fixtures.jsonl", fixture_results)
+    dump(
+        DEST / "input-receipt.json",
+        dict(
+            helper_sha256=helper_sha,
+            copied_helper=str(copy),
+            shared_index=str(V2),
+            index_ready_sha256=sha((V2 / "index-ready.json").read_bytes()),
+            final_receipt_sha256=sha((V2 / "final-receipt.json").read_bytes()),
+            rows_sha256=ready["rows_sha256"],
+            cohorts_sha256=ready["cohorts_sha256"],
+            owner_fixtures_sha256=sha((OWNER / "fixtures.jsonl").read_bytes()),
+            owner_consumer_receipt_sha256=sha((OWNER / "consumer-validation.json").read_bytes()),
+            actual_adapter_fixtures=len(fixture_results),
+            actual_adapter_fixtures_passed=True,
+        ),
+    )
+    cohorts, records = read(V2 / "cohorts.jsonl"), read(V2 / "rows.jsonl")
+    old_cohorts = {r["cohort_id"]: r for r in read(engine.SHARED / "cohorts.jsonl")}
+    # Only genuinely new exact backgrounds need a first fit. Existing 77 fits/results remain untouched.
+    engine.OUT, engine.SHARED = DEST, V2
+    for c in cohorts:
+        if c["cohort_id"] in old_cohorts:
+            prior = old_cohorts[c["cohort_id"]]
+            assert all(c[k] == prior[k] for k in ("repository", "revision", "scope", "background_sha256"))
+            continue
+        if not (DEST / "cohorts" / c["cohort_id"] / "coverage.json").exists():
+            engine.evaluate(c, records)
+    native, replay, counts = [], [], Counter()
+    changed_rows = []
+    unresolved = []
+    categories = Counter()
+    for cohort in cohorts:
+        old = cohort["cohort_id"] in old_cohorts
+        folder = (OUT if old else DEST) / "cohorts" / cohort["cohort_id"]
+        snapshot = json.loads(gzip.decompress((folder / "candidate-index.json.gz").read_bytes()))
+        functions = {int(i): frozen.Function.model_validate(f) for i, f in snapshot["functions"].items()}
+        # Catalog comes from the authoritative exact background, retaining order and ambiguous competitors.
+        documents = read(cohort["documents_path"])
+        owner = helper.Resolver(cohort, documents)
+        sources = {}
+        root, probes = engine.gitroot(cohort["repository"], cohort["revision"])
+        endpoint_functions = {}
+        for row in records:
+            for mapping in row["mappings"]:
+                if mapping["cohort_id"] != cohort["cohort_id"]:
+                    continue
+                for side in ("new", "existing"):
+                    bound = mapping["sources"][side]
+                    identity = bound.get("source_id") or ""
+                    path = identity.split("::")[0]
+                    python = identity.endswith(".py") if "::" not in identity else path.endswith(".py")
+                    proof = snapshot["sources"].get(path)
+                    if path not in sources:
+                        if proof:
+                            raw = Path(proof["snapshot"]).read_bytes()
+                            assert sha(raw) == proof["sha256"]
+                            sources[path] = dict(
+                                repository=cohort["repository"],
+                                revision=cohort["revision"],
+                                path=path,
+                                source=raw.decode(),
+                                sha256=proof["sha256"],
+                                git_blob_sha1=proof["git_blob"],
+                            )
+                        elif python and root is not None:
+                            sources[path] = helper.read_git_source(root, cohort["repository"], cohort["revision"], path)
+                        elif python:
+                            sources[path] = dict(
+                                status="missing_commit",
+                                repository=cohort["repository"],
+                                revision=cohort["revision"],
+                                path=path,
+                            )
+                        else:
+                            sources[path] = None
+                    result, f = adapter(owner, row, mapping, side, sources[path])
+                    position = bound.get("position")
+                    before = position in functions
+                    after = f is not None and before  # frozen native body/token capture contract stays required
+                    counts["endpoint_mapping_records"] += 1
+                    counts["before_method_native_resolved"] += before
+                    counts["after_method_native_resolved"] += after
+                    counts["metadata_native_span_recoveries"] += (
+                        result["span"]["provenance"] == "recovered_unique_native_span"
+                    )
+                    categories[result["category"]] += 1
+                    if before:
+                        assert f is not None, (row["row_id"], result)
+                        previous = functions[position]
+                        same = f.model_dump(mode="json") == previous.model_dump(mode="json")
+                        assert same, (row["row_id"], side, "native Function/context/structure changed")
+                        endpoint_functions[position] = f
+                        counts["compared_native_records"] += 1
+                        if f.line != previous.line or f.end_line != previous.end_line:
+                            changed_rows.append((row["row_id"], side))
+                    else:
+                        unresolved.append(
+                            dict(
+                                row_id=row["row_id"],
+                                cohort_id=cohort["cohort_id"],
+                                side=side,
+                                method_unsupported_language=not python,
+                                method_unresolved_native=python,
+                                category=result["category"],
+                                reasons=result["reasons"],
+                                status=result["status"],
+                            )
+                        )
+                    result.pop("function", None)
+                    native.append(
+                        result
+                        | dict(
+                            method_before_native_eligible=before,
+                            method_after_native_eligible=after,
+                            method_language="python" if python else "unsupported_Python_AST",
+                            existing_fit_reused=old,
+                        )
+                    )
+        # Replay existing ordered cold ledgers from zero, after resolver-native Function equivalence checks.
+        updated = functions | endpoint_functions
+        for q in read(folder / "per-query.jsonl"):
+            qi = q["query"]
+            for profile, p in q.get("profiles", {}).items():
+                before_cs = [
+                    frozen.Candidate(
+                        new=functions[qi], existing=functions[ti], similarity=0, comparer="tfidf:2", lane="exploration"
+                    )
+                    for ti in p["augmented"]
+                ]
+                after_cs = [
+                    frozen.Candidate(
+                        new=updated[qi], existing=updated[ti], similarity=0, comparer="tfidf:2", lane="exploration"
+                    )
+                    for ti in p["augmented"]
+                ]
+                old_ledger = frozen.Ledger(frozen.SETTINGS).select(frozen.JUDGE, before_cs)
+                new_ledger = frozen.Ledger(frozen.SETTINGS).select(frozen.JUDGE, after_cs)
+                old_base = frozen.Ledger(frozen.SETTINGS).select(frozen.JUDGE, before_cs[: len(p["baseline"])])
+                new_base = frozen.Ledger(frozen.SETTINGS).select(frozen.JUDGE, after_cs[: len(p["baseline"])])
+                assert [p["augmented"][i] for i in old_ledger] == p["augmented_funded"]
+                assert [p["baseline"][i] for i in old_base] == p["baseline_funded"]
+                assert new_ledger == old_ledger and new_base == old_base
+                assert (0.3 if functions[qi].lines < 6 else 0.5) == (0.3 if updated[qi].lines < 6 else 0.5)
+                for ti in p["augmented"]:
+                    assert frozen.why_skipped(functions[qi], functions[ti], frozen.SETTINGS) == frozen.why_skipped(
+                        updated[qi], updated[ti], frozen.SETTINGS
+                    )
+                replay.append(
+                    dict(
+                        cohort_id=cohort["cohort_id"],
+                        query=qi,
+                        profile=profile,
+                        ordinal_zero_replayed=True,
+                        baseline_funded=p["baseline_funded"],
+                        variant_funded=p["augmented_funded"],
+                        raw_rank_changed=False,
+                        floor_changed=False,
+                        filter_changed=False,
+                        eligibility_changed=False,
+                        funding_changed=False,
+                    )
+                )
+    rows(DEST / "shared-span-results.jsonl", native)
+    rows(DEST / "policy-replay.jsonl", replay)
+    rows(DEST / "unresolved.jsonl", unresolved)
+    for path, digest in old_hashes.items():
+        assert sha(Path(path).read_bytes()) == digest, (path, "prior result changed")
+    archive = json.loads((OUT / "review-batches/v1/manifest.json").read_text())
+    for item in archive["files"]:
+        assert sha(Path(item["path"]).read_bytes()) == item["sha256"]
+    receipt = dict(
+        schema=1,
+        status="shared_resolver_adopted_native_path_equivalent",
+        helper_sha256=helper_sha,
+        shared_index=str(V2),
+        shared_receipt_sha256=sha((V2 / "final-receipt.json").read_bytes()),
+        actual_adapter_fixtures=len(fixture_results),
+        all_fixture_checks_pass=True,
+        original77_fits_reused=77,
+        additional_exact_background_first_fits=2,
+        exact_backgrounds_assessed=79,
+        counts=counts,
+        resolver_categories=categories,
+        before_unresolved_native_endpoint_records=counts["endpoint_mapping_records"]
+        - counts["before_method_native_resolved"],
+        after_unresolved_native_endpoint_records=counts["endpoint_mapping_records"]
+        - counts["after_method_native_resolved"],
+        unit="endpoint/mapping records, not unique gold pairs or independent trials",
+        old_native_span_changes=len(changed_rows),
+        old_native_function_context_structure_changes=0,
+        ordinal_zero_policy_replays=len(replay),
+        raw_rank_deltas=0,
+        floor_deltas=0,
+        filter_deltas=0,
+        eligibility_deltas=0,
+        baseline_funding_deltas=0,
+        variant_funding_deltas=0,
+        changed_pair_families=[],
+        missing_commits_separate=True,
+        ambiguous_symbols_separate=True,
+        snippet_only_never_native_funded=True,
+        no_fuzzy_or_cross_revision_matches=True,
+        previous_results_unchanged=True,
+        announced_queue_v1_unchanged=True,
+        providers_called=0,
+        provider_spend_usd=0,
+        note="Shared audit's111 recoveries are endpoint records across consumers, not111 unique gold pairs. Own existing native Functions already supplied actual spans; complete structure/context equality and ledger replays verify zero migration policy delta.",
+    )
+    dump(DEST / "receipt.json", receipt)
+    print(json.dumps(receipt), flush=True)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,51 @@
+"""Existing fixed sparse controls for the sealed R2 pairs; no dense work or providers."""
+import hashlib
+import json
+from pathlib import Path
+import sys
+from unittest.mock import patch
+P=Path(__file__).resolve().parent;LAB=P.parent;R=P/'round2';sys.path[:0]=[str(LAB/'promotion/implementation/src'),str(LAB)]
+from dry_lint import detector as core
+from dry_lint.bench_background import BenchBackground
+from dry_lint.comparers import TfidfComparer
+from dry_lint.extractors import PythonExtractor
+from dry_lint.models import Candidate,Function,Verdict,evidence
+from dry_lint.settings import Settings
+from dry_lint.typescript import TypeScriptExtractor
+from dry_lint.costs import Ledger
+from dry_lint.judges.command import PROMPT_POLICIES,prompt
+from experiment import EstimateOnlySonnet
+read=lambda p:[json.loads(x) for x in p.open()]
+packets=read(R/'provider-queue.jsonl');sides={r['id']:r for r in read(R/'central-funding-sidecar.jsonl')};projections={r['id']:r for r in read(R/'emission-projections.jsonl')};plans={(r['id'],r['kind']):r for r in read(R/'central-canonical-request-plan.jsonl')}
+bg=BenchBackground.decode(Path(packets[0]['background_proof']['path']).read_bytes());folder=LAB/'full-corpus/cohorts'/packets[0]['background_proof']['sha256'];fs=[];native=set()
+for raw,pr,doc in zip(read(folder/'functions.jsonl'),read(folder/'functions-policy-resolver-v1.jsonl'),bg.documents,strict=True):
+ f=Function.model_validate(pr['function'] or {**raw,'line':0,'end_line':-1});assert f.qualname==doc.id;f.tokens=doc.tokens();fs.append(f)
+ if pr['function'] is not None:native.add(f.qualname)
+by={f.qualname:f for f in fs};settings=Settings(include=bg.scope['include'],exclude=bg.scope['exclude'],discovery={'enabled':False})
+primary=TfidfComparer(max_df=bg.max_df);baseline=core.Detector(fs,settings,primary,[PythonExtractor(),TypeScriptExtractor()])
+explore=TfidfComparer(min_similarity=.35,min_similarity_small=.35,max_df=bg.max_df);explore.functions=fs;explore.position=primary.position;explore.tfidf=primary.tfidf
+# Reuse one exact complete sparse index; proposals still run through the actual Detector allowed/topk path.
+def stable_index(functions):assert len(functions)==len(fs) and all(a is b for a,b in zip(functions,fs,strict=True))
+explore.index=stable_index
+wide_settings=Settings(include=bg.scope['include'],exclude=bg.scope['exclude'],discovery={'enabled':True,'comparers':[{'use':'tfidf','neighbours':20,'min_similarity':.35,'min_similarity_small':.35,'max_df':bg.max_df}]})
+wide_primary=TfidfComparer(max_df=bg.max_df);wide_primary.functions=fs;wide_primary.position=primary.position;wide_primary.tfidf=primary.tfidf;wide_primary.index=stable_index
+wide=core.Detector(fs,wide_settings,wide_primary,[PythonExtractor(),TypeScriptExtractor()]);oldload=core.load;results=[];candidates_out=[]
+for packet in packets:
+ frozen=Candidate.model_validate(packet['candidate']);q=by[frozen.new.qualname];target=by[frozen.existing.qualname];projection=projections[packet['id']]
+ with patch.object(core,'load',lambda slot,choice,**kw: explore if slot=='comparers' and choice.use=='tfidf' else oldload(slot,choice,**kw)):
+  for arm,detector,config in [('baseline3',baseline,settings),('baseline3+originalTFIDF20-.35',wide,wide_settings)]:
+   candidates=detector.candidates([q]);eligible=[c for c in candidates if c.lane!='relative' and not c.filtered and c.new.qualname in native and c.existing.qualname in native];judge=EstimateOnlySonnet();ledger=Ledger(config);selected=ledger.select(judge,eligible);funded=[eligible[i] for i in selected];ledger.charge(judge,funded,len(eligible)-len(funded));match=next((c for c in candidates if c.key==frozen.key),None);isfunded=match is not None and match.key in {c.key for c in funded};legacy=plans[(packet['id'],'claude')]['legacy_identity']
+   input_matches=bool(match and prompt(match,policy='shared-operations')==legacy['rendered_input'] and evidence(match)==legacy['source_evidence'] and match.context_hash==legacy['context_hash'])
+   emit=False if not isfunded else projection['cpu_emission_projection'] if input_matches else None
+   results.append({'id':packet['id'],'role_private':sides[packet['id']]['role'],'arm':arm,'source_ids':[q.qualname,target.qualname],'actual_native_lines':[q.lines,target.lines],'primary_query_score_floor':primary.floor(q),'exploration_score_floor':.35 if arm!='baseline3' else None,'raw_sparse_cosine':primary.similarity(q,target),'candidate_count':len(candidates),'eligible_native_unsettled_count':len(eligible),'normal_synthetic04_funded_count':len(funded),'normal_synthetic04_ledger_usd':ledger.usd,'retrieved':match is not None,'funded':isfunded,'same_frozen_rendered_judge_input_evidence_context':input_matches,'standalone_claude8_counterfactual_emission':emit,'first_loss':'retrieval' if match is None else 'settled_rule' if match.filtered else 'normal_synthetic04_budget' if not isfunded else 'judge_request_context_differs' if not input_matches else projection['first_loss'],'actual_deployment_evidence':False,'provider_calls':0,'dense_encodings':0})
+   candidates_out.append({'id':packet['id'],'arm':arm,'original_candidates':[c.model_dump(mode='json') for c in candidates],'funded_keys':[c.key for c in funded]})
+   if arm=='baseline3':
+    original=[Candidate.model_validate(c) for c in sides[packet['id']]['original_candidates']];assert [c.model_dump() for c in candidates]==[c.model_dump() for c in original if not(c.lane=='exploration' and c.comparer.startswith('cpu-embedding:'))]
+for r in results:
+ if r['first_loss']=='retrieval':
+  query,target=r['source_ids'];samefile=query.split('::')[0]==target.split('::')[0];floor=r['primary_query_score_floor'] if r['arm']=='baseline3' else r['exploration_score_floor'];r['first_loss_detail']='same_file' if samefile and r['arm']=='baseline3' else 'query_score_floor' if r['raw_sparse_cosine']<floor else 'top3' if r['arm']=='baseline3' else 'original_top20'
+ else:r['first_loss_detail']=r['first_loss']
+(R/'matched-sparse-baseline-projections.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in results));(R/'matched-sparse-baseline-candidates-private.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in candidates_out))
+summary={arm:{'rows':sum(r['arm']==arm for r in results),'retrieved':sum(r['arm']==arm and r['retrieved'] for r in results),'funded':sum(r['arm']==arm and r['funded'] for r in results),'emitted':sum(r['arm']==arm and r['standalone_claude8_counterfactual_emission'] is True for r in results),'unknown_emission':sum(r['arm']==arm and r['standalone_claude8_counterfactual_emission'] is None for r in results)} for arm in ['baseline3','baseline3+originalTFIDF20-.35']};(R/'matched-sparse-baseline-summary.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary),flush=True)
+for r in results:
+ if r['id']=='CPUR2-044':print(json.dumps(r),flush=True)

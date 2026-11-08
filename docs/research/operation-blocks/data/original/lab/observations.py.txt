@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Read exact central observations; never reinterpret a model label as source gold."""
+
+import json
+from collections import Counter, defaultdict
+from pathlib import Path
+
+from operation_blocks import HERE, ROOT, Candidate, dump, evidence, readrows, rows, sha
+
+
+def main():
+    completed = ROOT / "reports/research-experiments/review-wave1/blocks-completed.jsonl"
+    packets = {p["id"]: p for p in readrows(HERE / "novel-review-queue.jsonl")}
+    sidecars = {p["id"]: p for p in readrows(HERE / "review-private-sidecar.jsonl")}
+    observations, per_pair = [], []
+    for row in readrows(completed):
+        assert row["id"] in packets
+        p, s = packets[row["id"]], sidecars[row["id"]]
+        c = Candidate.model_validate(p["candidate"])
+        assert row["packet"]["candidate"] == p["candidate"]
+        pair = dict(
+            id=row["id"],
+            role=s["role"],
+            profile=s["profile"],
+            source_status="pending_independent_blinded_review",
+            models=[],
+        )
+        for ob in row["observations"]:
+            path = Path(ob["path"])
+            raw = path.read_bytes()
+            assert sha(raw) == ob["sha256"]
+            cached = json.loads(raw)
+            identity = ob["identity"]
+            assert cached["identity"] == identity
+            assert identity["source_evidence"] == evidence(c)
+            assert identity["context_hash"] == c.context_hash
+            verdict = ob["verdict"]
+            assert cached["verdict"] == verdict and ob["usd"] == cached["usd"]
+            reported = bool(verdict and verdict["label"] in {"duplicate", "drifted"} and verdict["score"] >= 0.8)
+            item = dict(
+                id=row["id"],
+                role=s["role"],
+                profile=s["profile"],
+                model=identity["model"],
+                kind=ob["kind"],
+                judge=identity["judge"],
+                version=identity["version"],
+                max_output_tokens=identity["max_output_tokens"],
+                rendered_input_sha256=sha(identity["rendered_input"].encode()),
+                canonical_request_key=cached["request_key"],
+                source_evidence=evidence(c),
+                context_hash=c.context_hash,
+                observation_path=str(path),
+                observation_sha256=ob["sha256"],
+                fresh=ob["fresh"],
+                measured_usd=ob["usd"],
+                error=ob["error"],
+                verdict=verdict,
+                threshold=0.8,
+                reported_at_08=reported,
+                accepted_gold=False,
+                source_status=pair["source_status"],
+            )
+            observations.append(item)
+            pair["models"].append(
+                {k: item[k] for k in ["kind", "model", "version", "verdict", "threshold", "reported_at_08"]}
+            )
+        per_pair.append(pair)
+    groups = defaultdict(list)
+    for ob in observations:
+        groups[(ob["role"], ob["profile"], ob["kind"], ob["model"], ob["version"])].append(ob)
+    report = []
+    for key, group in sorted(groups.items()):
+        report.append(
+            dict(
+                role=key[0],
+                profile=key[1],
+                kind=key[2],
+                model=key[3],
+                version=key[4],
+                observed_pairs=len(group),
+                labels=dict(Counter(o["verdict"]["label"] for o in group)),
+                threshold=0.8,
+                reports=dict(numerator=sum(o["reported_at_08"] for o in group), denominator=len(group)),
+                fresh_observations=sum(o["fresh"] for o in group),
+                exact_cache_reused_observations=sum(not o["fresh"] for o in group),
+                measured_usd=sum(o["measured_usd"] for o in group),
+                source_confirmed_reports=None,
+                accepted_gold=0,
+            )
+        )
+    rows(HERE / "central-observation-receipts.jsonl", observations)
+    rows(HERE / "central-pair-outcomes.jsonl", per_pair)
+    summary = dict(
+        central_completed_path=str(completed),
+        central_completed_sha256=sha(completed.read_bytes()),
+        immutable_queue_sha256=sha((HERE / "novel-review-queue.jsonl").read_bytes()),
+        paired_candidates=len(per_pair),
+        observations=len(observations),
+        fresh_observations=sum(o["fresh"] for o in observations),
+        exact_cache_reused_observations=sum(not o["fresh"] for o in observations),
+        measured_physical_usd=sum(o["measured_usd"] for o in observations),
+        worker_provider_calls=0,
+        by_role_policy_model=report,
+        source_status="pending_independent_blinded_review",
+        thresholds="Existing Settings.report_at=.8; no threshold grid or post-hoc model/prompt switch",
+        funding_judge="Unchanged concept Sonnet estimate in synthetic Ledger; central paired classifiers are separately reported, not substituted into funding",
+        rendered_context="Exact full Candidate.context preserved. Jev contextual question includes source_context. Existing dry-operations-v2 text template contains full functions but no context placeholders; canonical renderer left unchanged. Complete files available to independent source review.",
+        deployment_reports_emitted=0,
+        synthetic_model_threshold_reports="see separate role/policy/model groups; not an actual PR report",
+        accepted_gold=0,
+    )
+    dump(HERE / "central-review-summary.json", summary)
+    print(json.dumps({k: v for k, v in summary.items() if k != "by_role_policy_model"}))
+
+
+if __name__ == "__main__":
+    main()

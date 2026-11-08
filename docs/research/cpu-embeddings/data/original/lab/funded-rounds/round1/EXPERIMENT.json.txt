@@ -1,0 +1,15 @@
+{
+  "caps": "round1 initial supply64, immutable chunks32, add adaptively until root actual >=.20. No paid repeats to fill quota.",
+  "controls": "Every fourth sampled pair is an independent-endpoint matched control hypothesis from the same actual arm; source review, not provider confidence, establishes labels. Different names/owners required for controls. No endpoint reuse across selected pairs.",
+  "encoder": "unchanged pinned MiniLM and already verified production vector cache; encoding forbidden",
+  "families": "Reserve full endpoint parent directories for round1; round2 must be disjoint in these coarse source families and independently source-qualified.",
+  "normal_vs_paid": "Normal .04 estimates separate from diagnostic central actual paid spend. Root excludes cache hits and duplicate rendered requests; no worker provider calls.",
+  "price_goal": "Expected .25-.35 new spend based on normal150-answer estimate; actual central ledger authoritative",
+  "profile": "ordinary baseline3 then explicit first-unseen-unsettled CPU1 cosine.65; no TFIDF20 route in this explicitly narrower profile",
+  "public_only": "exact original5public backgrounds; full competitors, no enterprise paths",
+  "query_sampling": "deterministic SHA order, production/library functions6..160native lines, skip test/example query paths; <=768queries/repo, <=16eligible pairs/repo initially",
+  "round": 1,
+  "schema": 1,
+  "selection": "Actual production Detector.candidates(single_changed_function); unchanged full Candidate; normal synthetic single-change .04 ledger; no authentic deployment ledger claim",
+  "stop": "Do not close before root verification of .20actual or exhausted eligible distinct supply. Failed benefit requires one justified preregistered revision and disjoint-family round2."
+}

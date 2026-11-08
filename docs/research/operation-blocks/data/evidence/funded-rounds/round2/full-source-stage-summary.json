@@ -1,0 +1,94 @@
+{
+  "counts": {
+    "background_documents": 39952,
+    "baseline_derived_from_exact_existing_index": 8343,
+    "cached_baseline_reused": 4913,
+    "eligible_query_regions": 13694,
+    "fully_baseline_covered_query": 1299,
+    "funded_replacement": 1,
+    "has_residual_regions": 11957,
+    "native_source": 39806,
+    "no_eligible_cached_scoped_regions": 26112,
+    "no_retained_rare_anchor": 438,
+    "original_rank_selected": 1132,
+    "residual_nonempty_anchor_pool": 11123,
+    "residual_normal_concept_funded": 240,
+    "residual_normal_operations_funded": 187,
+    "residual_rank_selected": 692,
+    "retained_rare_anchor_query": 13256,
+    "source_unavailable_or_ambiguous": 146,
+    "valid_native_span": 39806
+  },
+  "elapsed_seconds": 296.98778045200015,
+  "no_refits": true,
+  "no_threshold_changes": true,
+  "per_cohort": [
+    {
+      "cohort_id": "bg-7489aa1946c16153",
+      "counts": {
+        "background_documents": 37604,
+        "baseline_derived_from_exact_existing_index": 7934,
+        "cached_baseline_reused": 4218,
+        "eligible_query_regions": 12553,
+        "fully_baseline_covered_query": 984,
+        "funded_replacement": 1,
+        "has_residual_regions": 11168,
+        "native_source": 37460,
+        "no_eligible_cached_scoped_regions": 24907,
+        "no_retained_rare_anchor": 401,
+        "original_rank_selected": 1093,
+        "residual_nonempty_anchor_pool": 10361,
+        "residual_normal_concept_funded": 230,
+        "residual_normal_operations_funded": 180,
+        "residual_rank_selected": 674,
+        "retained_rare_anchor_query": 12152,
+        "source_unavailable_or_ambiguous": 144,
+        "valid_native_span": 37460
+      },
+      "frozen_region_rejections": {
+        "boilerplate_or_single_owner_call": 18478,
+        "parent_cap": 351,
+        "parse": 10,
+        "size": 54955
+      },
+      "repository": "BerriAI/litellm",
+      "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f"
+    },
+    {
+      "cohort_id": "bg-ebd0031534c954e5",
+      "counts": {
+        "background_documents": 2348,
+        "baseline_derived_from_exact_existing_index": 409,
+        "cached_baseline_reused": 695,
+        "eligible_query_regions": 1141,
+        "fully_baseline_covered_query": 315,
+        "funded_replacement": 0,
+        "has_residual_regions": 789,
+        "native_source": 2346,
+        "no_eligible_cached_scoped_regions": 1205,
+        "no_retained_rare_anchor": 37,
+        "original_rank_selected": 39,
+        "residual_nonempty_anchor_pool": 762,
+        "residual_normal_concept_funded": 10,
+        "residual_normal_operations_funded": 7,
+        "residual_rank_selected": 18,
+        "retained_rare_anchor_query": 1104,
+        "source_unavailable_or_ambiguous": 2,
+        "valid_native_span": 2346
+      },
+      "frozen_region_rejections": {
+        "boilerplate_or_single_owner_call": 1185,
+        "parent_cap": 0,
+        "parse": 10,
+        "size": 2169
+      },
+      "repository": "OpenHands/software-agent-sdk",
+      "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc"
+    }
+  ],
+  "provider_calls": 0,
+  "scope": "All native source queries in these two exact backgrounds, not a claim that the full79-background corpus or all source families are exhausted. Token-only missing/ambiguous competitors retain index influence.",
+  "source_rows": "LAB_ROOT/jobs/experiment-operation-blocks/.lab-results/funded-rounds/round2/full-source-stage-rows.jsonl",
+  "status": "COMPLETE_FULL_SOURCE_STAGE_CENSUS_FOR_TWO_PUBLIC_PINS",
+  "variant": "operation-blocks-residual:1"
+}

@@ -1,0 +1,115 @@
+"""Freeze bounded screen after auditing prior results, before ensemble scoring."""
+
+import hashlib, json, time
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+assert not (P / "EXPERIMENT.json").exists()
+queries = [json.loads(l) for l in (P / "inputs/operation-blocks/openhands/per-query.jsonl").read_text().splitlines()]
+reg = {
+    "schema": 1,
+    "experiment": "signal-ensemble-openhands-v1",
+    "worker": "experiment-signal-ensemble / GPT-6.1-Sol high",
+    "registered_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    "status": "FROZEN BEFORE NEW ENSEMBLE SCORING",
+    "base_commit": "15567ee22a662208e8e6ad66b2439c10c08584cf",
+    "worktree": str(P.parent),
+    "audit_sha256": sha(P / "AUDIT.json"),
+    "input_manifest_sha256": sha(P / "input-manifest.json"),
+    "split_sha256": sha(P / "SPLIT.json"),
+    "panel_sha256": sha(P / "panel-frozen.jsonl"),
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "background_sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842",
+    "scope": {
+        "include": ["*"],
+        "exclude": ["*/migrations/*"],
+        "status": "frozen diagnostic corpus; includes tests/examples, no production adoption inference",
+    },
+    "hypothesis": "Complementary bounded channels might fund additional independent useful operation families with no lost prior useful reports or extra false reports; exposure/rank/funding alone cannot pass.",
+    "prior_audit": "AUDIT.json and audit-prior-rows.jsonl; do not transfer LiteLLM positives to OpenHands or pool diagnostic/production scopes.",
+    "queries": {
+        "positions": [q["query"] for q in queries],
+        "count": len(queries),
+        "selection": "exact completed operation-blocks query subset, known endpoints plus preregistered random sample; full frozen corpus target competitors, never known-pair-only scoring",
+    },
+    "batches": {
+        "discovery": "each frozen query separately; SYNTHETIC, cold cache, .04 each",
+        "panel": "family+overlapping endpoint connected component, all available frozen query endpoints together; SYNTHETIC, cold .04. Missing channel query directions stay unavailable, not negatives",
+        "historical": False,
+    },
+    "profiles": {
+        "default": {"same_file": False, "k": 3, "raw_floor": 0.5, "raw_under6lines": 0.3},
+        "balanced": {
+            "same_file": True,
+            "k": 20,
+            "raw_floor": 0.35,
+            "status": "standalone balanced diagnostic, never pooled with default-plus20",
+        },
+    },
+    "channels": {
+        "raw": "original frozen full-corpus IDF, max_df, counts; index rebuild only; no extraction rebuild",
+        "csls": "reuse saved LSI64 normalized Z. cosine floors frozen by prior label-free coverage: default .8606354760499331, balanced .7684372157206755; cross-file density top10 over original resolved competitors; affinity=2cos-r10(q)-r10(t). Filter by latent cosine then order affinity, never treat affinity as cosine.",
+        "blocks": "reuse completed exact per-query native parent pools. Keep prior guard: block cosine>=.6, full-parent cosine>=.1, at least2 shared call identities and >=3 shared call/attribute/key operation tokens, prior rare-posting anchor eligibility; one native parent per target; retain prefilter/rejection evidence.",
+    },
+    "arms": [
+        "baseline",
+        "csls-only",
+        "blocks-only",
+        "protected-csls1",
+        "protected-block1",
+        "rrf60",
+        "protected-ensemble2",
+    ],
+    "arm_rules": {
+        "individuals": "native profile k each; baseline and csls full-corpus candidates, block recorded complete bounded pool",
+        "rrf60": "rank each admitted channel independently after native floor/same-file eligibility, take first20 per channel, score=sum(1/(60+rank)); rank starts1. Select profile k total, at most2 nonbaseline targets per query; skip additional nonbaseline, continue filling from ranked union. No raw score sums.",
+        "protected": "complete corresponding baseline batch comes first in exactly its baseline order; append one highest allowed nonbaseline csls target then one highest allowed block target per query. Dedup exact native parent identity, choose next eligible block if csls already selected. At most2 extras perquery. Individual protected arms append only their own1.",
+        "budget_protection": "Within each batch and arm: production Ledger.select then charge. Complete baseline eligible candidate list before extras proves same-batch preservation; no temporal/historical cache guarantee.",
+        "ordering": "baseline and standalone arms: query position then native channel rank. RRF: query position then fused rank. protected extras after entire baseline batch, query position then csls/block priority.",
+        "ties": "descending full unrounded native score then sourceID then frozen original position; RRF uses exact rational sums then sourceID then position; stable undirected batch dedup exact (path,owner,name,line,end_line,bodySHA) identities, never snippets or operation labels",
+    },
+    "judge": {
+        "name": "anthropic-operations",
+        "model": "claude-sonnet-5-5",
+        "version": "dry-operations-v2:claude-sonnet-5-5:output=1024",
+        "prompt_policy": "shared-operations",
+        "max_output_tokens": 1024,
+        "estimate_answer_tokens": 150,
+        "budget_usd": 0.04,
+        "estimate": "production costs.estimate and Ledger; canonical prompt. No block concept-prompt budget reuse. No cache discount, no SDK client or credential access, provider calls0",
+    },
+    "split": "SPLIT.json frozen before scoring; group explicit family and overlapping endpoints. All observed DEVELOPMENT/REGRESSION including former holdouts; no fresh holdout or significance claim.",
+    "metrics": [
+        "per-row and arm/profile/split/label numerator-denominator",
+        "exact rescued/lost positives, negative additions, costly useful candidates lost",
+        "first-loss stage and directional vs undirected global redundancy",
+        "baseline complete funded set and paired displacement",
+        "family overlap and independent source families",
+        "runtime CPU RSS cold/warm cache cost",
+    ],
+    "novel_review": {
+        "max_novel": 8,
+        "max_controls": 4,
+        "eligibility": "actually funded protected-ensemble2 candidates globally absent from same-profile baseline funded pairs over all frozen queries, exclude all exact previously proposed/reviewed/gold pairs regardless answer status. Production-source endpoints only (no tests/examples), full unchanged Candidate and source proofs. Missing answers unknown.",
+        "selection": "fixed structural source plausibility, not label or judge features: prioritize block+csls agreement then block operation evidence then stable hash of exact pair. At most1 proposal per connected endpoint/source-module family. Inspect full bodies/callers after funding; retain all rejects/filtered/unjudged.",
+        "controls": "actually funded baseline, same profile, nearest combined source lines to novel median; distinct endpoint+source-module families from novel and other controls; no same-family clones called independent. Controls may be prior reviewed, exact status retained.",
+        "export": "score-blind complete packet queue plus private rank/funding sidecar; judge-operations/root own canonical request/cache prep and execution; no worker calls",
+    },
+    "limits": {
+        "numerical_threads": 2,
+        "no_new_extraction": True,
+        "no_new_model_inference": True,
+        "no_labels_as_features": True,
+        "no_grid_or_training": True,
+        "no_other_agents": True,
+        "no_production_CI_config_changes": True,
+        "no_publication": True,
+        "unseen": ["Firecrawl", "Curator"],
+    },
+    "decision": "Only independently useful funded/reportable operation families per identical budget can pass, with no extra false reports or lost prior useful reports. Offline missing new answers => inconclusive/no promotion. Report negative/mixed results without retuning.",
+}
+(P / "EXPERIMENT.json").write_text(json.dumps(reg, indent=2, sort_keys=True) + "\n")
+(P / "EXPERIMENT.sha256").write_text(sha(P / "EXPERIMENT.json") + "\n")
+print(sha(P / "EXPERIMENT.json"), len(queries))

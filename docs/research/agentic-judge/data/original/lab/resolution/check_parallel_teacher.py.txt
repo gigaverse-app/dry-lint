@@ -1,0 +1,122 @@
+"""Actual-SDK four-thread smoke plus flock admission test; no network or real keys."""
+import contextlib
+import io
+import json
+import socket
+import sys
+import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from unittest.mock import patch
+
+import anthropic
+import httpx2
+import run_teacher_v2_parallel as parallel
+
+v = parallel.v
+h = v.h
+
+
+def main():
+    rows = v.validate()
+    initial_by_text = {r['request']['messages'][0]['content']: r for r in rows}
+    barrier, guard = threading.Barrier(4), threading.Lock()
+    calls, network, reservation_snapshots = {}, [], []
+    real_constructor = anthropic.Anthropic
+    test_root = v.DEST / 'offline-parallel'
+    test_root.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=test_root) as temp:
+        base = Path(temp)
+        ledger = base / 'shared.json'
+        original_charge = {'key': 'root-preserved-original-spend', 'job': 'previous-work',
+                           'reserved_usd': .26740012, 'charged_usd': .26740012, 'state': 'settled'}
+        h.save(ledger, {'schema': 1, 'limit_usd': 1, 'halted': False, 'entries': [original_charge]})
+
+        def no_network(*args, **kwargs):
+            network.append(True)
+            raise AssertionError('Network forbidden')
+
+        def handler(request):
+            body = json.loads(request.content)
+            row = initial_by_text[body['messages'][0]['content']]
+            ident = row['id']
+            with guard:
+                count = calls.get(ident, 0)
+                calls[ident] = count + 1
+            assert body['tools'] == v.TOOLS
+            assert body['max_tokens'] == 1024 and 'temperature' not in body
+            if count == 0:
+                assert body == row['request']
+                barrier.wait(timeout=30)  # proves four SDK requests/reservations overlap
+                snap = h.load_json(ledger)
+                total = sum(e['charged_usd'] if e['charged_usd'] is not None else e['reserved_usd'] for e in snap['entries'])
+                assert total <= 1 + 1e-10
+                with guard:
+                    reservation_snapshots.append(total)
+                f = row['original']['candidate']['new']
+                content = [{'type': 'tool_use', 'id': 'source_fixture', 'name': 'read_source',
+                            'input': {'path': f['path'], 'start_line': max(1, f['line'] - 2),
+                                      'end_line': max(1, f['line'] - 1)}}]
+            else:
+                assert count == 1 and len(body['messages']) == 3
+                fact = json.loads(body['messages'][-1]['content'][0]['content'])
+                content = [{'type': 'tool_use', 'id': 'submit_fixture', 'name': 'submit_verdict', 'input': {
+                    'label': 'separate', 'score': .1, 'owner': '', 'why': 'Synthetic parallel fixture only.',
+                    'uncertainty': False, 'missing_evidence': [], 'citations': [{'evidence_id': fact['evidence_id'],
+                        'start_line': fact['start_line'], 'end_line': fact['end_line']}]}}]
+            return httpx2.Response(200, json={'id': 'msg_offline', 'type': 'message', 'role': 'assistant',
+                'model': h.MODEL, 'content': content, 'stop_reason': 'tool_use', 'stop_sequence': None,
+                'usage': {'input_tokens': 100, 'output_tokens': 20}})
+
+        def construct(**kwargs):
+            kwargs['api_key'] = 'offline-parallel-placeholder'
+            assert kwargs['max_retries'] == 0
+            kwargs['http_client'].close()
+            kwargs['http_client'] = httpx2.Client(trust_env=False, transport=httpx2.MockTransport(handler))
+            return real_constructor(**kwargs)
+
+        with (patch.object(anthropic, 'Anthropic', side_effect=construct),
+              patch.object(socket.socket, 'connect', side_effect=no_network),
+              patch.object(httpx2.HTTPTransport, 'handle_request', side_effect=no_network),
+              patch('sys.argv', ['parallel.py', '--shared-ledger', str(ledger), '--out', str(base / 'run')]),
+              contextlib.redirect_stdout(io.StringIO())):
+            parallel.main()
+        execution = h.load_json(base / 'run/execution.json')
+        assert execution['concurrency'] == 4 and not execution['errors']
+        assert len(execution['results']) == 4 and all(r['status'] == 'complete' for r in execution['results'])
+        assert all(n == 2 for n in calls.values()) and len(calls) == 4
+        from analyze_teacher_v2 import analyze_case
+        for row in rows:
+            analyzed = analyze_case(row, base / 'run')
+            assert analyzed['valid_submission'] and analyzed['provider_calls'] == 2
+            assert analyzed['unique_new_source_lines'] > 0
+        final = h.load_json(ledger)
+        assert final['entries'][0] == original_charge  # no reset or prior-cost modification
+        assert all(e['charged_usd'] is not None for e in final['entries'])
+
+        # Seven reservations fit; three must be refused, regardless of interleaving.
+        admission = base / 'admission.json'
+        h.save(admission, {'schema': 1, 'limit_usd': 1, 'halted': False, 'entries': [original_charge]})
+        budget = h.SharedBudget(admission)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            admitted = list(pool.map(lambda n: budget.reserve('fixture-' + str(n), .1), range(10)))
+        assert sum(admitted) == 7
+        assert sum(e['charged_usd'] if e['charged_usd'] is not None else e['reserved_usd']
+                   for e in h.load_json(admission)['entries']) <= 1
+    assert not network
+    report = {'schema': 1, 'passed': True, 'synthetic_only': True, 'concurrent_cases': 4,
+              'actual_sdk_mock_rounds': 8, 'real_provider_calls': 0, 'network_attempts': 0,
+              'prior_spend_preserved_usd': .26740012, 'ledger_reset': False,
+              'concurrent_reservations_admitted': 7, 'concurrent_reservations_refused': 3,
+              'maximum_observed_reserved_plus_spent_usd': max(reservation_snapshots),
+              'source_tool_and_submission_contract_unchanged': True,
+              'postrun_hash_citation_and_source_replay_verified': True,
+              'queue_sha256': h.sha((v.DEST / 'queue.jsonl').read_bytes()),
+              'entrypoint_sha256': h.sha(Path(parallel.__file__).read_bytes())}
+    h.save(test_root / 'report.json', report)
+    print(json.dumps(report, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

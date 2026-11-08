@@ -1,0 +1,53 @@
+{
+  "actual_new_paid_usd": {
+    "round1": 0.2070306,
+    "round1_plus_round2": 0.7231298,
+    "round2_initial13": 0.09918588,
+    "round2_supplement48": 0.41691332,
+    "round2_total": 0.5160992
+  },
+  "core_result": {
+    "additional_function_report_pairs": 0,
+    "global_new_family_credit": null,
+    "lost_known_positive_function_pairs": 0,
+    "model_only_findings_separate": true,
+    "original_known_positive_function_funding_gain": 0,
+    "reported_source_useful_test_case": "MF-FC-7e77ae1ff789; already baseline-funded, test maintenance only",
+    "source_d_bounded_extractions_baseline_cofunded": 5,
+    "source_d_tiny_convenience_baseline_cofunded": 1,
+    "source_expansion_new_queries": 2545,
+    "source_useful_join_only_candidate": "MF-FC-5643422cc704; original default budget admitted, canonical.20, no report",
+    "strict_treatment_only_function_pairs": 18,
+    "supplemental_baseline_covered_report_pairs": 7,
+    "supplied_scoped_source_assessments_joined": 25
+  },
+  "coverage": {
+    "accepted_binary_rows": 584,
+    "all_inventory_rows": 617,
+    "cohorts": 79,
+    "complete_native_source_cohorts": 16,
+    "distinct_accepted_evaluated_records": 186,
+    "distinct_evaluated_records": 211,
+    "function_records": 613,
+    "model_records": 4,
+    "paired_record_profile_scope_rows": 1738,
+    "source_missing_cohorts": 63
+  },
+  "decision": "STOP_THIS_VARIANT",
+  "source_d_categories": {
+    "already_shared": 1,
+    "bounded_extraction": 5,
+    "negative": 1,
+    "related": 4,
+    "tiny_convenience": 1
+  },
+  "unknowns": {
+    "first_paid_round_unanswered_novel_pairs": 32,
+    "initial_round2_source_assessments_pending": 6,
+    "other_historical_missing_observations": "Preserved as unknown in original immutable packets/ledgers; not negative",
+    "round1_topup_source_assessments_pending": 16,
+    "supplemental_projected_report_source_unknown": 1,
+    "supplemental_source_assessments_pending": 36,
+    "usefulness_of_18_new_treatment_pairs": "Two reviewed: one related, one negative. Other16 remain source-unknown. All18 still have zero original-policy emissions."
+  }
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/README.md",
+    "original_sha256": "f2d5bf265e8d8f2652a7daf2b49d92a061bf886b0db3de1fcd847edd317ffad9",
+    "published": "data/evidence/README.md",
+    "published_sha256": "f2d5bf265e8d8f2652a7daf2b49d92a061bf886b0db3de1fcd847edd317ffad9",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/metrics.json",
+    "original_sha256": "9f952a97de86aeffa352dea21ac53e9c59a23abb676e03b15ac698a47f728ea1",
+    "published": "data/evidence/metrics.json",
+    "published_sha256": "9f952a97de86aeffa352dea21ac53e9c59a23abb676e03b15ac698a47f728ea1",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/novel-outcomes.jsonl",
+    "original_sha256": "a7c7ba8cbf8b725e175681be31918be3c153d9f1fc996662697b7614620da4c7",
+    "published": "data/evidence/novel-outcomes.jsonl",
+    "published_sha256": "a7c7ba8cbf8b725e175681be31918be3c153d9f1fc996662697b7614620da4c7",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/source-outcomes.jsonl",
+    "original_sha256": "d52a42d1c6406273c10923bdff7224d03a14b517a172a17abd19b4aee3ee5360",
+    "published": "data/evidence/source-outcomes.jsonl",
+    "published_sha256": "d52a42d1c6406273c10923bdff7224d03a14b517a172a17abd19b4aee3ee5360",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/default-four-losses.jsonl",
+    "original_sha256": "dca5100cff2b2301f29173579726c9cea966a75d280e1aa99aa20004d4228ef5",
+    "published": "data/evidence/default-four-losses.jsonl",
+    "published_sha256": "dca5100cff2b2301f29173579726c9cea966a75d280e1aa99aa20004d4228ef5",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/paired-rows.jsonl.gz",
+    "original_sha256": "be7f6c29f7866005b7eda78b4c6379e05d5b07dd78c6edc1ff42f3eb0a842b06",
+    "published": "data/evidence/paired-rows.jsonl.gz",
+    "published_sha256": "be7f6c29f7866005b7eda78b4c6379e05d5b07dd78c6edc1ff42f3eb0a842b06",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/verify_evidence.py",
+    "original_sha256": "366e71f15142d6b82ca46e0f52c2196be853cdf0e093bb2b8d9509a1aa9265cb",
+    "published": "data/evidence/verify_evidence.py",
+    "published_sha256": "366e71f15142d6b82ca46e0f52c2196be853cdf0e093bb2b8d9509a1aa9265cb",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/MANIFEST.json",
+    "original_sha256": "9df05f56bc720410c4d91dcda84862df6cb17e7a5b192f9375bc42670ea1fa1d",
+    "published": "data/evidence/MANIFEST.json",
+    "published_sha256": "9df05f56bc720410c4d91dcda84862df6cb17e7a5b192f9375bc42670ea1fa1d",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/.lab-results/conclusion/public-evidence/DECISION.md",
+    "original_sha256": "0317088db1a3c866296aeefe2b9db57cf3629363b45df838b46acee1711b6e07",
+    "published": "data/evidence/DECISION.md",
+    "published_sha256": "0317088db1a3c866296aeefe2b9db57cf3629363b45df838b46acee1711b6e07",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/research-evidence-publication/docs/research/funded-recall/context/reproduction/licenses/BerriAI--litellm.txt",
+    "original_sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "published": "licenses/BerriAI--litellm.txt",
+    "published_sha256": "b170d6bf8e8835dd357e011681db028f4d51e2fb0ea892058f56e01fb39b8273",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/research-evidence-publication/docs/research/funded-recall/context/reproduction/licenses/pingdotgg--t3code.txt",
+    "original_sha256": "935d8f2af0c703f9c39517ee57cc4930b19d02d533be930b63f0e82f93614b43",
+    "published": "licenses/pingdotgg--t3code.txt",
+    "published_sha256": "935d8f2af0c703f9c39517ee57cc4930b19d02d533be930b63f0e82f93614b43",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-token-hygiene/LICENSE",
+    "original_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "published": "licenses/dry-lint.txt",
+    "published_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "transformation": "none"
+  }
+]

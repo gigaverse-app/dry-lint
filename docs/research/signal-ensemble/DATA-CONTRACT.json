@@ -1,0 +1,74 @@
+{
+  "backgrounds": [
+    {
+      "path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-ebd0031534c954e5/background.json.gz",
+      "sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842"
+    },
+    {
+      "path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-7489aa1946c16153/background.json.gz",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    {
+      "path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-faef200af37c7cb5/background.json.gz",
+      "sha256": "faef200af37c7cb54a1dcf98e250dea9d8694b300ba928763be8e7250bd36094"
+    },
+    {
+      "path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-1269484b895f0e3a/background.json.gz",
+      "sha256": "1269484b895f0e3a46dffb7b9c4f5bb72effbd499a7e1aa2d3f1fb23ba8897ce"
+    },
+    {
+      "path": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/bg-2700fdccdbdf9872/background.json.gz",
+      "sha256": "2700fdccdbdf9872734d11932f19df77bb362abfc77d137418935ea579293fa3"
+    },
+    {
+      "path": "LAB_ROOT/jobs/litellm-candidate-golds/.lab-results/litellm-candidates/background.json.gz",
+      "sha256": "7489aa1946c1615331785f76ec17812cf589600bc7a6666fff56a3c5e2154b6b"
+    },
+    {
+      "path": "LAB_ROOT/jobs/public-gold-packaging/.lab-results/package/examples/public-gold/backgrounds/software-agent-sdk/344ec8a9c30dff0a4ca200fc412510aad44e1bdc.json.gz",
+      "sha256": "ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842"
+    }
+  ],
+  "dependency_install": "Archived pyproject.toml.txt and uv.lock.txt fix Python dependencies for an isolated reconstruction. Core source snapshot is archived alongside them.",
+  "full_corpus_status": "Requires original external inputs below; not a turnkey full-corpus experiment reproduction. Private inputs are not public dependencies.",
+  "held_input_hydration": "hydrate.py --case CASE --ledger EXACT_ORIGINAL_COMPLETED_JSONL --out LOCAL_FILE; each case.provenance fixes the original ledger path and SHA256. Restores exact original prompt/answer only from lawfully available local evidence. Redistribution remains held.",
+  "lab_root_alias": "LAB_ROOT",
+  "lab_root_original": "/home/researcher/dry-lint-round",
+  "live_rerun": "Not authorized or implemented here. A separately authorized adopter-owned judge runner must send the exact recorded identity/rendered_input/options using its own credentials and write new outputs. No key is included, read, proxied or used.",
+  "method": "signal-ensemble",
+  "missing_results": "Missing original answers stay unknown; rerunning a model would create a new observation, not repair the historical record.",
+  "original_implementation": "data/archived-code; .txt files are inert readable originals. Privacy comment replacements have both hashes in data/provenance.json. Original scripts can have import-time writes and absolute paths: never import them during replay.",
+  "portable_command": "python3 replay.py",
+  "portable_scope": "Reparse public recorded Claude answers, preserve held numeric verdicts and unknowns, recompute reports from original admissions and aggregate paired arm counts/costs. No retrieval reconstruction.",
+  "producer_git_commit": "15567ee22a662208e8e6ad66b2439c10c08584cf",
+  "resources": [
+    {
+      "location": "jobs/experiment-signal-ensemble/.lab-results/full-corpus/inputs/{cohorts,rows}.jsonl",
+      "purpose": "79 exact scope inventory and accepted-label mapping; private rows remain local"
+    },
+    {
+      "location": "jobs/experiment-signal-ensemble/.lab-results/full-corpus/span-resolved-v1/COHORT/",
+      "purpose": "background.json.gz, query-pools.jsonl, ledger.jsonl, paired-rows.jsonl; native source and ranks"
+    },
+    {
+      "location": "jobs/experiment-signal-ensemble/.lab-results/learned-ensemble-v1/COHORT/",
+      "purpose": "functions.json.gz and frozen feature/model fold artifacts; original evaluation scripts archived"
+    },
+    {
+      "location": "jobs/experiment-cpu-embeddings/.lab-results/full-corpus/cohorts/BACKGROUND_SHA/",
+      "purpose": "neighbors.jsonl, manifest.json, frozen embeddings; no fitting is performed by this kit"
+    },
+    {
+      "location": "jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/cohorts/COHORT/",
+      "purpose": "per-query.jsonl guarded block candidates"
+    },
+    {
+      "location": "jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round{1,2}/",
+      "purpose": "inputs/representations, native source, exact active queues, original funding ledgers and INPUT-MANIFEST.json"
+    }
+  ],
+  "schema": 1,
+  "source_acquisition": "hydrate.py reads an existing local Git checkout/bare repository at exact revision:path and verifies full-file SHA256. No fetch or fuzzy substitution.",
+  "published_background_acquisition": "python3 backgrounds.py --goldens /tmp/dry-lint-goldens --out /tmp/study-backgrounds; uses exact git objects at bb29c4b71987008d06c2381a68b6833b6d542e3e, never substitutes revision or scope.",
+  "background_catalog_lookup": "data/background-catalog-lookup.json"
+}

@@ -1,0 +1,51 @@
+{
+  "frozen_gained": {
+    "report_versions": 0,
+    "distinct_pairs": 0,
+    "categories": {},
+    "reference_disagreements": 0
+  },
+  "frozen_lost": {
+    "report_versions": 19,
+    "distinct_pairs": 15,
+    "categories": {
+      "independently_separate": 3,
+      "independently_duplicate": 5,
+      "reference_only_borderline": 1,
+      "reference_only_separate": 8,
+      "independently_borderline": 2
+    },
+    "reference_disagreements": 4
+  },
+  "frozen_unknown": {
+    "report_versions": 0,
+    "distinct_pairs": 0,
+    "categories": {},
+    "reference_disagreements": 0
+  },
+  "regression_gained": {
+    "report_versions": 4,
+    "distinct_pairs": 4,
+    "categories": {
+      "independently_separate": 2,
+      "independently_duplicate": 1,
+      "independently_borderline": 1
+    },
+    "reference_disagreements": 0
+  },
+  "regression_lost": {
+    "report_versions": 6,
+    "distinct_pairs": 6,
+    "categories": {
+      "independently_separate": 5,
+      "independently_duplicate": 1
+    },
+    "reference_disagreements": 0
+  },
+  "regression_unknown": {
+    "report_versions": 0,
+    "distinct_pairs": 0,
+    "categories": {},
+    "reference_disagreements": 0
+  }
+}

@@ -1,0 +1,18 @@
+"""Project frozen synthetic admission and standalone Claude.8; never relabel source gold."""
+import collections
+import hashlib
+import json
+from pathlib import Path
+import sys
+P=Path(__file__).resolve().parent;R=P/'round1';sys.path.insert(0,str(P.parent/'promotion/implementation/src'))
+from dry_lint.models import Verdict
+from dry_lint.settings import Settings
+read=lambda p:[json.loads(x) for x in p.open()]
+feed=Path('LAB_ROOT/jobs/judge-operations/.lab-results/promotion-operations/intakes/cpu-embeddings/round1/b4a7dff4ddc204c0-4cbb628cfd97/completed.jsonl');plans={(r['id'],r['kind']):r for r in read(R/'central-canonical-request-plan.jsonl')};side={r['id']:r for r in read(R/'central-funding-sidecar.jsonl')};out=[]
+for r in read(feed):
+ observations={o['kind']:o for o in r['observations']};c=observations['claude'];plan=plans[(r['id'],'claude')];bound=c['identity']==plan['identity'] and c['request_key']==plan['request_key'];assert bound
+ s=side[r['id']];funded=s['funding']['funded'];assert funded
+ v=c.get('verdict');emitted=Settings().duplicate_at(Verdict.model_validate(v),.8) if v else None
+ row={'id':r['id'],'role':r['role'],'profile':s['funding']['profile'],'baseline_retrieved':False,'baseline_emission':False,'cpu_retrieved':True,'normal_synthetic04_funded':funded,'authentic_deployment_ledger':False,'strict_canonical_claude_identity_matches':bound,'standalone_claude_report_at':.8,'cpu_emission_projection':emitted,'first_loss':('answer_missing' if v is None else 'judge_separate' if v['label']=='separate' else 'report_threshold' if not emitted else None),'provider_observations':{k:{'label':(o.get('verdict') or {}).get('label'),'score':(o.get('verdict') or {}).get('score'),'status':o.get('response_state')} for k,o in observations.items()},'source_label':'unknown_pending_independent_source_review'};out.append(row)
+(R/'emission-projections.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in out))
+summary={'feed':str(feed),'feed_sha256':hashlib.sha256(feed.read_bytes()).hexdigest(),'cases':len(out),'emitted':sum(r['cpu_emission_projection'] is True for r in out),'not_emitted':sum(r['cpu_emission_projection'] is False for r in out),'unknown':sum(r['cpu_emission_projection'] is None for r in out),'normal_ledger':'frozen synthetic04 per single change, not central diagnostic paid spend','source_gold_relabels':0,'fresh_current_direction_usd_root_confirmed':.28323212};(R/'emission-summary.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary),flush=True)

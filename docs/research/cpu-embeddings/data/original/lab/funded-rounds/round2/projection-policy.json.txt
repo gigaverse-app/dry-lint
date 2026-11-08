@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "judge": "anthropic-operations",
+  "model": "claude-sonnet-5-5",
+  "prompt_policy": "shared-operations",
+  "max_output_tokens": 1024,
+  "report_at": 0.8,
+  "first_at": null,
+  "rule": "non-separate label and score>=.8, exact canonical binding for CPU; same rendered judge input + source evidence + context for counterfactual sparse control",
+  "jev": "independent diagnostic observation, never truth or a deployable feature",
+  "funding": "each arm charged normal estimated .04 one-change budget independently; cached/observed answers do not waive arm cost",
+  "baseline_controls": "ordinary cross-file TFIDF top3 .5/.3 query<6 lines; explicit original TFIDF20 same-file exploratory route top20 .35; separate standalone balanced top20 .35 diagnostic remains separate",
+  "runtime": "No new encodings; one shared complete sparse index reused across both selected-pair sparse controls. Dense20 fixed rerank is the only revision.",
+  "new_source_labels": 0
+}

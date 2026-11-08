@@ -1,0 +1,263 @@
+#!/usr/bin/env python3
+"""Assemble measured evidence; source authority remains with the coordinator."""
+
+import json
+
+from operation_blocks import HERE, ROOT, dump, readrows, sha
+
+
+def ratio(n, d):
+    return dict(numerator=n, denominator=d)
+
+
+def main():
+    summaries = {n: json.loads((HERE / n / "summary.json").read_text()) for n in ["litellm", "openhands"]}
+    panel = [r for n in summaries for r in readrows(HERE / n / "per-row.jsonl")]
+    effects = json.loads((HERE / "diagnostic-effects-summary.json").read_text())
+    observed = json.loads((HERE / "central-review-summary.json").read_text())
+    compatibility = json.loads((HERE / "prompt-cost-compatibility-summary.json").read_text())
+    queue_summary = json.loads((HERE / "queue-summary.json").read_text())
+    source_path = HERE / "source-review-outcomes.json"
+    source = (
+        json.loads(source_path.read_text())
+        if source_path.exists()
+        else dict(status="pending_independent_blinded_source_review", accepted_gold=0, useful_operation_families=None)
+    )
+    metrics = []
+    for label in sorted({r["label"] for r in panel}):
+        group = [r for r in panel if r["label"] == label]
+        for metric in [
+            "default3_retrieved",
+            "default3_funded",
+            "default3_block_retrieved",
+            "default3_block_funded",
+            "default_plus_current20_retrieved",
+            "default_plus_current20_funded",
+            "default_plus_current20_block_retrieved",
+            "default_plus_current20_block_funded",
+            "standalone_balanced20_retrieved",
+        ]:
+            hit = [r for r in group if any(d.get(metric, False) for d in r["directions"])]
+            metrics.append(
+                dict(
+                    label=label,
+                    metric=metric,
+                    candidate_pairs=ratio(len(hit), len(group)),
+                    operation_families=ratio(len({r["family"] for r in hit}), len({r["family"] for r in group})),
+                )
+            )
+    arm_counts = []
+    for name, s in summaries.items():
+        exposures = readrows(HERE / name / "funded-exposures.jsonl")
+        for profile, funding in s["funding"].items():
+            ee = [e for e in exposures if e["profile"] == profile]
+            unique_extra = {e["pair_key"] for e in ee if e["is_extra"]}
+            arm_counts.append(
+                dict(
+                    repository=s["repository"],
+                    profile=profile,
+                    queries=s["queries"],
+                    **funding,
+                    unique_funded_extra_candidate_pairs=len(unique_extra),
+                )
+            )
+    validation = json.loads((HERE / "validation.json").read_text())
+    handoff = dict(
+        experiment="bounded-operation-blocks-v1",
+        worktree=str(HERE.parent),
+        status="offline_experiment_complete_source_decisions_pending"
+        if not source_path.exists()
+        else "offline_experiment_complete",
+        result="No primary known-positive gain over either default3 or default-plus-current20; zero extra model reports at .8; no promotion.",
+        production_commit="442b17af38ff596605e8307910ba206c4d0614a0",
+        goldens_pin="4bf3c56efe55190f17132a7ac2537051a177cde1",
+        preregistration=str(HERE / "EXPERIMENT.preregistered.json"),
+        registered_parameters=str(HERE / "EXPERIMENT.json"),
+        policy_names={
+            "default3": "Source-verified diagnostic cross-file top3 at .5 (.3 query<6 source lines)",
+            "default_plus_current20": "Protect default3, union same-file top20/.35, then append at most one block extra; synthetic one-query .04 concept-Sonnet Ledger",
+            "standalone_balanced20": "Separate raw same-file top20/.35 diagnostic, no default3 union or funding/report claim",
+        },
+        corpus=[
+            {
+                k: s[k]
+                for k in [
+                    "repository",
+                    "revision",
+                    "background_proof",
+                    "scope",
+                    "original_documents",
+                    "extraction_audit",
+                    "blocks",
+                    "parents_with_blocks",
+                    "block_rejections",
+                ]
+            }
+            for s in summaries.values()
+        ],
+        split="All 49 inspected rows are development/regression; 24 accepted positive pairs/22 operation families, 22 separate pairs/20 families, 3 borderline disputes/3 families. No holdout.",
+        known_metrics=metrics,
+        candidate_exposure_and_funding=arm_counts,
+        wins_lostprior_negatives_disputes=dict(
+            primary_new_known_positive_pairs=0,
+            primary_new_known_positive_operation_families=0,
+            baseline_funded_candidates_lost_to_block_lane=0,
+            additional_known_separate_pairs=["OH-S034", "OH-P003"],
+            additional_known_separate_operation_families=1,
+            additional_known_separate_is_not_false_report=True,
+            existing_borderline_disputes=3,
+            newly_funded_borderline_disputes=0,
+            drifted_subtype_retained=["LL-S052"],
+        ),
+        retrieval_vs_reports=dict(
+            known_retrieval_is_not_report_recall=True,
+            novel_reviewed_candidate_pairs=8,
+            matched_baseline_control_pairs=4,
+            useful_source_confirmed_operation_families=source.get("useful_operation_families"),
+            extra_reports_at_08={"jev": ratio(0, 8), "claude_shared_operations": ratio(0, 8)},
+            baseline_control_reports_at_08={"jev": ratio(1, 4), "claude_shared_operations": ratio(0, 4)},
+            extra_claude_label_positives_below_threshold=[
+                dict(id="OB-dd256789bb58cf2b", score=0.5),
+                dict(id="OB-068d02b2b9dc9080", score=0.6),
+            ],
+            real_PR_reports_emitted=0,
+            newly_accepted_gold=0,
+            source_status=source.get("status"),
+        ),
+        source_review=source,
+        central_model_observations=dict(
+            path=observed["central_completed_path"],
+            sha256=observed["central_completed_sha256"],
+            receipts=str(HERE / "central-observation-receipts.jsonl"),
+            summary=str(HERE / "central-review-summary.json"),
+            policy_model_threshold_groups=observed["by_role_policy_model"],
+            context_rendering=observed["rendered_context"],
+        ),
+        prompt_cost_compatibility=dict(
+            explicitly_post_registration=True,
+            original_diagnostic_unchanged=True,
+            not_an_end_to_end_arm=True,
+            fixed_pools_and_order=True,
+            budget_usd=0.04,
+            queued_novel_remain_funded=compatibility["queued_novel_remaining_funded"],
+            queued_controls_remain_funded=compatibility["queued_control_remaining_funded"],
+            newly_unfunded_queue_ids=["OB-9be7832114b2c167", "OB-dd256789bb58cf2b"],
+            summary=str(HERE / "prompt-cost-compatibility-summary.json"),
+            per_query=str(HERE / "prompt-cost-compatibility-per-query.jsonl"),
+            per_queued_pair=str(HERE / "prompt-cost-compatibility-queue.jsonl"),
+        ),
+        scorefloor_size_samefile=dict(
+            effects_path=str(HERE / "diagnostic-effects-summary.json"),
+            audited_groups=effects["groups"],
+            positive_direction_size_floor_rescues=ratio(0, 48),
+            positive_directions_below_flat_05_floor=ratio(10, 48),
+            positive_samefile_directions=ratio(30, 48),
+            registered_samefile_control="Enabling same-file extras over fixed default3 gives Litellm 10/16 and OpenHands 6/8 funded positives, versus primary 5/16 and 2/8; also increases known separate exposure. No positive gain versus default-plus-current20. No new arm selected.",
+            stage_annotation_audit="LL-S030 had 2 directions with convention-filter loss misnamed top_k in capture rows. Audited stage file corrects the annotation without changing scores, pools or funding.",
+        ),
+        bounded_work=dict(
+            max_blocks_per_parent=12,
+            max_anchors_per_block=8,
+            max_anchor_posting=64,
+            theoretical_posting_visits_per_query=6144,
+            measured_max_posting_visits={n: s["max_posting_visits"] for n, s in summaries.items()},
+            parent_pool_cap=64,
+            measured_max_pools={n: s["max_pool"] for n, s in summaries.items()},
+            no_size_splitting=True,
+            original_full_corpus_IDF=True,
+            no_union_revisions=True,
+        ),
+        runtime={
+            n: {mode: json.loads((HERE / n / (mode + "-runtime.json")).read_text()) for mode in ["cold", "warm"]}
+            for n in summaries
+        },
+        validation=validation,
+        implementation_archive_verification=json.loads((HERE / "capture-implementation-verification.json").read_text()),
+        research_script_lint=(HERE / "ruff.log").read_text().strip(),
+        queue=dict(
+            path=str(HERE / "novel-review-queue.jsonl"),
+            sha256=queue_summary["queue_sha256"],
+            central_frozen_path=str(
+                ROOT / "reports/candidate-first/frozen-review-batches/research-operation-blocks-0dedba958a2606f3.jsonl"
+            ),
+            immutable=True,
+            full_unchanged_candidates=True,
+            complete_source_proofs=True,
+            score_free_blind_packet=str(HERE / "blind-review-packets.jsonl"),
+            private_sidecar=str(HERE / "review-private-sidecar.jsonl"),
+            previously_reviewed_exact_pairs_excluded=True,
+            current_queue_never_treated_as_prior_data=True,
+            novel_unreviewed_retained=str(HERE / "funded-novel-unselected.jsonl"),
+        ),
+        cost_cache_ledger=dict(
+            worker_provider_calls=0,
+            worker_spend_usd=0,
+            central_fresh_observations=24,
+            central_exact_cache_reused_observations=0,
+            central_measured_physical_usd=observed["measured_physical_usd"],
+            central_allowance_usd=1,
+            remaining_experiment_allowance_usd=1 - observed["measured_physical_usd"],
+            global_remaining_before_experiment_usd=4.7889404,
+            no_inference_about_current_shared_global_balance=True,
+            estimated_PR_Ledger_is_not_physical_provider_reservation=True,
+        ),
+        uncertainty=[
+            "Purposive partial-operation labels, overlapping families/lineages; no independent holdout or population precision/recall estimate.",
+            "Sparse index guards reject simple logging and single-helper delegation but admit generic concurrency/API composition and materially different process lifecycle contracts.",
+            "Compound/run boundaries can over-cover an operation or omit preceding policy; winning blocks never replace judge source/context.",
+            "144 ambiguous LiteLLM and 2 ambiguous OpenHands documents remain original-IDF/rank competitors, but cannot become source-verified candidate inputs; 10 function-snippet reparses per repository yielded no blocks.",
+            "No historical PR diff, actual configured deployment, campaign scheduler, exact historical cache or escalation replay.",
+            "Registered funding used concept prompt; central Claude used shared-operations. Post-registration cost check kept separate; not an end-to-end measured arm.",
+            "Initial Python implementation has substantial large-corpus time and memory costs; measured without further tuning.",
+            "Reviewed queue is selected and partially matched; source review and threshold outcomes do not estimate full-pool yield.",
+        ],
+        gates=dict(
+            baseline_funded_preservation="pass_within_each_registered_paired_arm",
+            known_positive_gain="fail_no_gain",
+            extra_report_gain_at_08="fail_zero",
+            source_precision="pending" if not source_path.exists() else "see_source_review",
+            worker_promotion=False,
+            publication=False,
+        ),
+        exact_scripts={p.name: sha(p.read_bytes()) for p in sorted(HERE.glob("*.py"))},
+        commands=str(HERE / "commands.sh"),
+        artifact_hash_manifest=str(HERE / "artifact-hashes.json"),
+        untouched="No production, CI or adopter configuration changes. No external provider/credential access by worker. No agents. Firecrawl/curator unseen.",
+    )
+    dump(HERE / "HANDOFF.json", handoff)
+    # Hash outputs and exact shared input receipts, without embedding complete files again.
+    manifest = [
+        dict(path=str(p), bytes=p.stat().st_size, sha256=sha(p.read_bytes()))
+        for p in sorted(HERE.rglob("*"))
+        if p.is_file() and p.name not in {"artifact-hashes.json", "handoff.log"} and ".ruff_cache" not in p.parts
+    ]
+    dump(
+        HERE / "artifact-hashes.json",
+        dict(
+            artifacts=manifest,
+            input_receipts=[
+                dict(path=str(p), sha256=sha(p.read_bytes()))
+                for p in [
+                    ROOT / "reports/candidate-first/scaled-coordinator-decisions.jsonl",
+                    ROOT / "reports/candidate-first/litellm-scaled-completed.jsonl",
+                    ROOT / "reports/candidate-first/openhands-scaled-completed.jsonl",
+                    ROOT / "jobs/review-automation/.lab-results/review-automation/repositories-five.json",
+                ]
+            ],
+        ),
+    )
+    print(
+        json.dumps(
+            dict(
+                handoff=str(HERE / "HANDOFF.json"),
+                status=handoff["status"],
+                artifacts=len(manifest),
+                primary_positive_gain=0,
+                extra_reports_at_08=0,
+            )
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

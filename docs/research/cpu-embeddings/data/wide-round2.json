@@ -1,0 +1,3714 @@
+[
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      10,
+      2
+    ],
+    "arm": "baseline3",
+    "candidate_count": 9,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "top3",
+    "funded": false,
+    "id": "CPUR2-001",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.013812142857142856,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.6666697534811447,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/base_llm/base_model_iterator.py::BaseModelResponseIterator.aclose",
+      "litellm/responses/litellm_completion_transformation/streaming_iterator.py::LiteLLMCompletionStreamingIterator.aclose"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      10,
+      2
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 26,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-001",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.03685571428571429,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.6666697534811447,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/base_llm/base_model_iterator.py::BaseModelResponseIterator.aclose",
+      "litellm/responses/litellm_completion_transformation/streaming_iterator.py::LiteLLMCompletionStreamingIterator.aclose"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      42,
+      31
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-002",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.8203337149226512,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/common_utils/debug_utils.py::memory_usage_in_mem_cache",
+      "litellm/proxy/common_utils/debug_utils.py::memory_usage_in_mem_cache_items"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      42,
+      31
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 3,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-002",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.02260142857142857,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.8203337149226512,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/common_utils/debug_utils.py::memory_usage_in_mem_cache",
+      "litellm/proxy/common_utils/debug_utils.py::memory_usage_in_mem_cache_items"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      91,
+      4
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-003",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.49810799291079516,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/mcp_server/outbound_credentials/token_exchanger.py::OboTokenExchanger.exchange",
+      "litellm/proxy/mcp_server/outbound_credentials/resolver.py::_NullTokenExchanger.exchange"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      91,
+      4
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 4,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 4,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-003",
+    "normal_synthetic04_funded_count": 4,
+    "normal_synthetic04_ledger_usd": 0.033737857142857146,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.49810799291079516,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/mcp_server/outbound_credentials/token_exchanger.py::OboTokenExchanger.exchange",
+      "litellm/proxy/mcp_server/outbound_credentials/resolver.py::_NullTokenExchanger.exchange"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      8,
+      2
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-004",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.09089158227680692,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/bedrock/count_tokens/kimi_k3.py::KimiK3Encodings._load",
+      "litellm/llms/bedrock/count_tokens/kimi_k3.py::_EncodingLoad.retry_due"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      8,
+      2
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-004",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.09089158227680692,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/bedrock/count_tokens/kimi_k3.py::KimiK3Encodings._load",
+      "litellm/llms/bedrock/count_tokens/kimi_k3.py::_EncodingLoad.retry_due"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      11
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-005",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4629860347847883,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/custom_httpx/container_handler.py::_request_api_base",
+      "litellm/llms/custom_httpx/container_handler.py::_request_headers"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      11
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 20,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-005",
+    "normal_synthetic04_funded_count": 7,
+    "normal_synthetic04_ledger_usd": 0.03579,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4629860347847883,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/custom_httpx/container_handler.py::_request_api_base",
+      "litellm/llms/custom_httpx/container_handler.py::_request_headers"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      62,
+      73
+    ],
+    "arm": "baseline3",
+    "candidate_count": 10,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-006",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.022687142857142857,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7723779359801436,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/prometheus.py::PrometheusLogger._pretty_print_prometheus_config",
+      "litellm/integrations/prometheus.py::PrometheusLogger._pretty_print_validation_errors"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      62,
+      73
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 22,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 15,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-006",
+    "normal_synthetic04_funded_count": 5,
+    "normal_synthetic04_ledger_usd": 0.037337857142857145,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7723779359801436,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/integrations/prometheus.py::PrometheusLogger._pretty_print_prometheus_config",
+      "litellm/integrations/prometheus.py::PrometheusLogger._pretty_print_validation_errors"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      9
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-007",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.5145890012488495,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/common_utils/model_listing_utils.py::claude_code_group_name",
+      "litellm/proxy/common_utils/model_listing_utils.py::_decoded_compatibility_id"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      9
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-007",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.004790714285714286,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.5145890012488495,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/common_utils/model_listing_utils.py::claude_code_group_name",
+      "litellm/proxy/common_utils/model_listing_utils.py::_decoded_compatibility_id"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      7
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-008",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4380914075323065,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/admin_mcp.py::_admin_routes",
+      "litellm/proxy/pass_through_endpoints/pass_through_endpoints.py::SafeRouteAdder._colliding_routes"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      7
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 7,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 7,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-008",
+    "normal_synthetic04_funded_count": 7,
+    "normal_synthetic04_ledger_usd": 0.03274285714285714,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4380914075323065,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/admin_mcp.py::_admin_routes",
+      "litellm/proxy/pass_through_endpoints/pass_through_endpoints.py::SafeRouteAdder._colliding_routes"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      84,
+      63
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-009",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.5066104634909785,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/pass_through_endpoints/llm_provider_handlers/vertex_passthrough_logging_handler.py::VertexPassthroughLoggingHandler._handle_predict_response",
+      "litellm/proxy/pass_through_endpoints/llm_provider_handlers/vertex_passthrough_logging_handler.py::VertexPassthroughLoggingHandler._handle_embed_content_response"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      84,
+      63
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 5,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 5,
+    "exploration_score_floor": 0.35,
+    "first_loss": "report_threshold",
+    "first_loss_detail": "report_threshold",
+    "funded": true,
+    "id": "CPUR2-009",
+    "normal_synthetic04_funded_count": 4,
+    "normal_synthetic04_ledger_usd": 0.03738642857142857,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.5066104634909785,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/pass_through_endpoints/llm_provider_handlers/vertex_passthrough_logging_handler.py::VertexPassthroughLoggingHandler._handle_predict_response",
+      "litellm/proxy/pass_through_endpoints/llm_provider_handlers/vertex_passthrough_logging_handler.py::VertexPassthroughLoggingHandler._handle_embed_content_response"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      27,
+      3
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-010",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.33505270991236336,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/router_rust/surface/registry.py::model_info_is_active_for_environment",
+      "litellm/router_rust/surface/members.py::RustRegistryMembers.deployment_is_active_for_environment"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      27,
+      3
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-010",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.33505270991236336,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/router_rust/surface/registry.py::model_info_is_active_for_environment",
+      "litellm/router_rust/surface/members.py::RustRegistryMembers.deployment_is_active_for_environment"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      3
+    ],
+    "arm": "baseline3",
+    "candidate_count": 9,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-011",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.014467142857142857,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4973359032670111,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/policy_engine/pipeline_executor.py::_tool_call_shape",
+      "litellm/proxy/spend_tracking/spend_event.py::_tool_call"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      3
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 26,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-011",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.037477142857142855,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4973359032670111,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/policy_engine/pipeline_executor.py::_tool_call_shape",
+      "litellm/proxy/spend_tracking/spend_event.py::_tool_call"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      16,
+      37
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-012",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.19285580847315875,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/pass_through_endpoints/llm_passthrough_endpoints.py::_vertex_dropped_anthropic_betas",
+      "litellm/llms/anthropic/chat/transformation.py::AnthropicConfig.update_headers_with_optional_anthropic_beta"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      16,
+      37
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 4,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 4,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-012",
+    "normal_synthetic04_funded_count": 4,
+    "normal_synthetic04_ledger_usd": 0.02023428571428572,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.19285580847315875,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/pass_through_endpoints/llm_passthrough_endpoints.py::_vertex_dropped_anthropic_betas",
+      "litellm/llms/anthropic/chat/transformation.py::AnthropicConfig.update_headers_with_optional_anthropic_beta"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      9
+    ],
+    "arm": "baseline3",
+    "candidate_count": 9,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "top3",
+    "funded": false,
+    "id": "CPUR2-013",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.014197142857142856,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.93240418256831,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/presidio.py::_OPTIONAL_PresidioPIIMasking.get_supported_event_hooks",
+      "litellm/proxy/guardrails/guardrail_hooks/cisco_ai_defense/cisco_ai_defense.py::CiscoAIDefenseGuardrail.get_supported_event_hooks"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      9
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 26,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-013",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.03780928571428572,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.93240418256831,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/presidio.py::_OPTIONAL_PresidioPIIMasking.get_supported_event_hooks",
+      "litellm/proxy/guardrails/guardrail_hooks/cisco_ai_defense/cisco_ai_defense.py::CiscoAIDefenseGuardrail.get_supported_event_hooks"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      11,
+      7
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-014",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.44239874970731685,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/vertex_ai/gemini/long_decode.py::_shifted_support",
+      "litellm/llms/vertex_ai/gemini/long_decode.py::_shifted_grounding"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      11,
+      7
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-014",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.009392857142857144,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.44239874970731685,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/vertex_ai/gemini/long_decode.py::_shifted_support",
+      "litellm/llms/vertex_ai/gemini/long_decode.py::_shifted_grounding"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      8,
+      6
+    ],
+    "arm": "baseline3",
+    "candidate_count": 5,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-015",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.009365714285714286,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.6095062929405947,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/unified_guardrail/unified_guardrail.py::UnifiedLLMGuardrails._chunk_carries_text",
+      "litellm/proxy/guardrails/guardrail_hooks/unified_guardrail/unified_guardrail.py::UnifiedLLMGuardrails._chunk_has_tool_calls"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      8,
+      6
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 23,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-015",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.03966,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.6095062929405947,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/unified_guardrail/unified_guardrail.py::UnifiedLLMGuardrails._chunk_carries_text",
+      "litellm/proxy/guardrails/guardrail_hooks/unified_guardrail/unified_guardrail.py::UnifiedLLMGuardrails._chunk_has_tool_calls"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      8,
+      3
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-016",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.42282187794235887,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/openrouter/chat/transformation.py::OpenrouterConfig._supports_cache_control_in_content",
+      "litellm/llms/openrouter/chat/transformation.py::openrouter_model_supports_cache_control"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      8,
+      3
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 10,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 10,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-016",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.03730428571428572,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.42282187794235887,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/openrouter/chat/transformation.py::OpenrouterConfig._supports_cache_control_in_content",
+      "litellm/llms/openrouter/chat/transformation.py::openrouter_model_supports_cache_control"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      20,
+      24
+    ],
+    "arm": "baseline3",
+    "candidate_count": 3,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-017",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.005342857142857143,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.26629222081021175,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/datadog/datadog_cost_management.py::DatadogCostManagementLogger._upload_to_datadog",
+      "litellm/integrations/datadog/datadog_cost_management.py::DatadogCostManagementLogger.__init__"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      20,
+      24
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 4,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-017",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.011714285714285715,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.26629222081021175,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/datadog/datadog_cost_management.py::DatadogCostManagementLogger._upload_to_datadog",
+      "litellm/integrations/datadog/datadog_cost_management.py::DatadogCostManagementLogger.__init__"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      7,
+      7
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-018",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.8247208239208853,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/openai/chat/gpt_transformation.py::OpenAIGPTConfig._async_user_message_for_openai",
+      "litellm/llms/openai/chat/gpt_transformation.py::OpenAIGPTConfig._user_message_for_openai"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      7,
+      7
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 18,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 18,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-018",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.03895071428571429,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.8247208239208853,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/openai/chat/gpt_transformation.py::OpenAIGPTConfig._async_user_message_for_openai",
+      "litellm/llms/openai/chat/gpt_transformation.py::OpenAIGPTConfig._user_message_for_openai"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      47,
+      31
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-019",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.5489958514949815,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/auth/handle_jwt.py::JWTHandler.decode_trusted_assertion",
+      "litellm/proxy/auth/handle_jwt.py::JWTHandler._auth_jwt_with_issuer"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      47,
+      31
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 3,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": 0.35,
+    "first_loss": "report_threshold",
+    "first_loss_detail": "report_threshold",
+    "funded": true,
+    "id": "CPUR2-019",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.021115714285714286,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.5489958514949815,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/auth/handle_jwt.py::JWTHandler.decode_trusted_assertion",
+      "litellm/proxy/auth/handle_jwt.py::JWTHandler._auth_jwt_with_issuer"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      19,
+      11
+    ],
+    "arm": "baseline3",
+    "candidate_count": 4,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-020",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.005455,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3971215183529821,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/vertex_ai/gemini/vertex_and_google_ai_studio_gemini.py::VertexGeminiConfig._extract_image_response_from_parts",
+      "litellm/proxy/guardrails/guardrail_hooks/ovalix/ovalix_extraction.py::_part_from_image_url_block"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      19,
+      11
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 14,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 11,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-020",
+    "normal_synthetic04_funded_count": 7,
+    "normal_synthetic04_ledger_usd": 0.03962642857142857,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3971215183529821,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/vertex_ai/gemini/vertex_and_google_ai_studio_gemini.py::VertexGeminiConfig._extract_image_response_from_parts",
+      "litellm/proxy/guardrails/guardrail_hooks/ovalix/ovalix_extraction.py::_part_from_image_url_block"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      35,
+      23
+    ],
+    "arm": "baseline3",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-021",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.006274285714285715,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.6554144772786243,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/discovery_endpoints/skill_hub_endpoints.py::download_skill_version",
+      "litellm/proxy/discovery_endpoints/skill_hub_endpoints.py::download_skill"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      35,
+      23
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 11,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 10,
+    "exploration_score_floor": 0.35,
+    "first_loss": "report_threshold",
+    "first_loss_detail": "report_threshold",
+    "funded": true,
+    "id": "CPUR2-021",
+    "normal_synthetic04_funded_count": 6,
+    "normal_synthetic04_ledger_usd": 0.0358,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.6554144772786243,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/discovery_endpoints/skill_hub_endpoints.py::download_skill_version",
+      "litellm/proxy/discovery_endpoints/skill_hub_endpoints.py::download_skill"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      22,
+      26
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-022",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.16881012190346684,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/cloudzero/cz_resource_names.py::CZRNGenerator._normalize_provider",
+      "litellm/integrations/opik/opik_payload_builder/extractors.py::normalize_provider_name"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      22,
+      26
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 3,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-022",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.015890714285714286,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.16881012190346684,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/cloudzero/cz_resource_names.py::CZRNGenerator._normalize_provider",
+      "litellm/integrations/opik/opik_payload_builder/extractors.py::normalize_provider_name"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      52,
+      61
+    ],
+    "arm": "baseline3",
+    "candidate_count": 11,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-023",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.019620714285714286,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.9383347657578357,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/videos/main.py::avideo_edit",
+      "litellm/videos/main.py::avideo_status"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      52,
+      61
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 28,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "report_threshold",
+    "first_loss_detail": "report_threshold",
+    "funded": true,
+    "id": "CPUR2-023",
+    "normal_synthetic04_funded_count": 6,
+    "normal_synthetic04_ledger_usd": 0.03974571428571429,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.9383347657578357,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/videos/main.py::avideo_edit",
+      "litellm/videos/main.py::avideo_status"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      7,
+      13
+    ],
+    "arm": "baseline3",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-024",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.004785,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.44897900145527503,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/db/gateway_request_tracking.py::GatewayRequestRedisBuffer._pop_batch",
+      "litellm/proxy/db/db_transaction_queue/redis_update_buffer.py::RedisUpdateBuffer.get_spend_logs_from_redis_buffer"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      7,
+      13
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 4,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 4,
+    "exploration_score_floor": 0.35,
+    "first_loss": "report_threshold",
+    "first_loss_detail": "report_threshold",
+    "funded": true,
+    "id": "CPUR2-024",
+    "normal_synthetic04_funded_count": 4,
+    "normal_synthetic04_ledger_usd": 0.019741428571428573,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.44897900145527503,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/db/gateway_request_tracking.py::GatewayRequestRedisBuffer._pop_batch",
+      "litellm/proxy/db/db_transaction_queue/redis_update_buffer.py::RedisUpdateBuffer.get_spend_logs_from_redis_buffer"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      13,
+      4
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-025",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.32918921020948716,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/auth/auth_object_prefetch.py::_fetch_rows",
+      "litellm/proxy/management_endpoints/internal_user_endpoints.py::_fetch_admin_teams_and_keys_rows"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      13,
+      4
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-025",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.32918921020948716,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/auth/auth_object_prefetch.py::_fetch_rows",
+      "litellm/proxy/management_endpoints/internal_user_endpoints.py::_fetch_admin_teams_and_keys_rows"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      17,
+      20
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-026",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.28080750509494784,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/bedrock/base_aws_llm.py::BaseAWSLLM._unverified_web_identity_audience",
+      "litellm/proxy/auth/handle_jwt.py::JWTHandler.get_unverified_claims"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      17,
+      20
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-026",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.010544285714285714,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.28080750509494784,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/bedrock/base_aws_llm.py::BaseAWSLLM._unverified_web_identity_audience",
+      "litellm/proxy/auth/handle_jwt.py::JWTHandler.get_unverified_claims"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      16,
+      9
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-027",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3846256540117635,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/auth/model_checks.py::_hydrate_litellm_credential_name",
+      "litellm/proxy/management_endpoints/model_management_endpoints.py::_stored_credential_name"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      16,
+      9
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 3,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-027",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.015553571428571429,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3846256540117635,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/auth/model_checks.py::_hydrate_litellm_credential_name",
+      "litellm/proxy/management_endpoints/model_management_endpoints.py::_stored_credential_name"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      10
+    ],
+    "arm": "baseline3",
+    "candidate_count": 7,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "top3",
+    "funded": false,
+    "id": "CPUR2-028",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.013644285714285716,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.5035188100520483,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/databricks/agent/responses_output.py::AgentUsage.to_usage",
+      "litellm/integrations/opik/utils.py::create_usage_object"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      10
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 24,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-028",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.037525,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.5035188100520483,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/databricks/agent/responses_output.py::AgentUsage.to_usage",
+      "litellm/integrations/opik/utils.py::create_usage_object"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      40,
+      17
+    ],
+    "arm": "baseline3",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-029",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.006545,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.515759000967419,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/chatgpt/chat/transformation.py::ChatGPTConfig.validate_environment",
+      "litellm/llms/chatgpt/chat/transformation.py::ChatGPTConfig._get_openai_compatible_provider_info"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      40,
+      17
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 7,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 7,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-029",
+    "normal_synthetic04_funded_count": 6,
+    "normal_synthetic04_ledger_usd": 0.03541785714285715,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.515759000967419,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/chatgpt/chat/transformation.py::ChatGPTConfig.validate_environment",
+      "litellm/llms/chatgpt/chat/transformation.py::ChatGPTConfig._get_openai_compatible_provider_info"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      32,
+      33
+    ],
+    "arm": "baseline3",
+    "candidate_count": 9,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-030",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.018485714285714286,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.9372026748917499,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/bedrock/embed/embedding.py::BedrockEmbedding._make_sync_call",
+      "litellm/llms/bedrock/embed/embedding.py::BedrockEmbedding._make_async_call"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      32,
+      33
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 26,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-030",
+    "normal_synthetic04_funded_count": 6,
+    "normal_synthetic04_ledger_usd": 0.03755571428571429,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.9372026748917499,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/bedrock/embed/embedding.py::BedrockEmbedding._make_sync_call",
+      "litellm/llms/bedrock/embed/embedding.py::BedrockEmbedding._make_async_call"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      21,
+      81
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-031",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3033903594473469,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/vertex_ai/context_caching/transformation.py::separate_cached_messages",
+      "litellm/router_utils/prompt_caching_cache.py::PromptCachingCache.extract_cacheable_prefix"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      21,
+      81
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-031",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.005571428571428572,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3033903594473469,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/vertex_ai/context_caching/transformation.py::separate_cached_messages",
+      "litellm/router_utils/prompt_caching_cache.py::PromptCachingCache.extract_cacheable_prefix"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      92,
+      17
+    ],
+    "arm": "baseline3",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-032",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.017185714285714287,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4605803993056899,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/openai/openai.py::OpenAIChatCompletion._get_openai_client",
+      "litellm/llms/openai/workload_identity.py::_client_cache_params"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      92,
+      17
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 15,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 15,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-032",
+    "normal_synthetic04_funded_count": 5,
+    "normal_synthetic04_ledger_usd": 0.03993785714285714,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4605803993056899,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/openai/openai.py::OpenAIChatCompletion._get_openai_client",
+      "litellm/llms/openai/workload_identity.py::_client_cache_params"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      12,
+      11
+    ],
+    "arm": "baseline3",
+    "candidate_count": 11,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "top3",
+    "funded": false,
+    "id": "CPUR2-033",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.014865,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.578076251774717,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/tool_permission.py::ToolPermissionGuardrail._anthropic_tool_use_to_tool_call",
+      "litellm/responses/litellm_completion_transformation/transformation.py::LiteLLMCompletionResponsesConfig._transform_responses_output_tool_call_to_chat_completion_output_tool_call"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      12,
+      11
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 28,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-033",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.039506428571428574,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.578076251774717,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/tool_permission.py::ToolPermissionGuardrail._anthropic_tool_use_to_tool_call",
+      "litellm/responses/litellm_completion_transformation/transformation.py::LiteLLMCompletionResponsesConfig._transform_responses_output_tool_call_to_chat_completion_output_tool_call"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      17,
+      17
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-034",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.45691716787110326,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/agent_365/agent_365.py::Agent365Guardrail._post_allowing_error_status",
+      "litellm/llms/custom_httpx/httpx_handler.py::HTTPHandler.post"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      17,
+      17
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 5,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 5,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-034",
+    "normal_synthetic04_funded_count": 5,
+    "normal_synthetic04_ledger_usd": 0.026404285714285713,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.45691716787110326,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/agent_365/agent_365.py::Agent365Guardrail._post_allowing_error_status",
+      "litellm/llms/custom_httpx/httpx_handler.py::HTTPHandler.post"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      4
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-035",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4290658793245271,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/interactions/background_cost_polling.py::_wrote_outcome",
+      "litellm/interactions/background_cost_polling.py::_UnverifiedRegistrationStore.record_outcome"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      9,
+      4
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 3,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-035",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.014214285714285716,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4290658793245271,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/interactions/background_cost_polling.py::_wrote_outcome",
+      "litellm/interactions/background_cost_polling.py::_UnverifiedRegistrationStore.record_outcome"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      14,
+      12
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-036",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.34102373713394357,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/manus/responses/transformation.py::ManusResponsesAPIConfig._extract_agent_profile",
+      "litellm/llms/bedrock/chat/invoke_agent/transformation.py::AmazonInvokeAgentConfig._get_agent_id_and_alias_id"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      14,
+      12
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 6,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 6,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-036",
+    "normal_synthetic04_funded_count": 6,
+    "normal_synthetic04_ledger_usd": 0.028066428571428572,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.34102373713394357,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/manus/responses/transformation.py::ManusResponsesAPIConfig._extract_agent_profile",
+      "litellm/llms/bedrock/chat/invoke_agent/transformation.py::AmazonInvokeAgentConfig._get_agent_id_and_alias_id"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      17,
+      9
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-037",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3956447596978789,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/mcp_server/openapi_to_mcp_generator.py::_sanitize_path_parameter_value",
+      "litellm/integrations/bitbucket/bitbucket_client.py::_sanitize_file_path"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      17,
+      9
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-037",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.005002857142857143,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3956447596978789,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/mcp_server/openapi_to_mcp_generator.py::_sanitize_path_parameter_value",
+      "litellm/integrations/bitbucket/bitbucket_client.py::_sanitize_file_path"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      58,
+      14
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-038",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.2686342644146596,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/db/pgbouncer.py::start_in_container_pgbouncer",
+      "litellm/proxy/db/pgbouncer.py::pooled_database_url"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      58,
+      14
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-038",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.01385857142857143,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.2686342644146596,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/db/pgbouncer.py::start_in_container_pgbouncer",
+      "litellm/proxy/db/pgbouncer.py::pooled_database_url"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      88,
+      67
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-039",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7114824784200787,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/management_endpoints/access_group_endpoints.py::update_access_group",
+      "litellm/proxy/management_endpoints/access_group_endpoints.py::create_access_group"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      88,
+      67
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 4,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 4,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-039",
+    "normal_synthetic04_funded_count": 4,
+    "normal_synthetic04_ledger_usd": 0.03480142857142857,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7114824784200787,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/management_endpoints/access_group_endpoints.py::update_access_group",
+      "litellm/proxy/management_endpoints/access_group_endpoints.py::create_access_group"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      7,
+      179
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-040",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.18550656686682732,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/types/proxy/management_endpoints/key_management_endpoints.py::BulkUpdateTeamKeysRequest.validate_selection",
+      "litellm/proxy/management_endpoints/key_management_endpoints.py::bulk_update_team_keys"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      7,
+      179
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-040",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.18550656686682732,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/types/proxy/management_endpoints/key_management_endpoints.py::BulkUpdateTeamKeysRequest.validate_selection",
+      "litellm/proxy/management_endpoints/key_management_endpoints.py::bulk_update_team_keys"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      22,
+      38
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-041",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.49193587425881274,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/proxy_server.py::ProxyConfig._apply_alerting_settings",
+      "litellm/proxy/proxy_server.py::ProxyConfig._load_alerting_settings"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      22,
+      38
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-041",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.013465714285714286,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.49193587425881274,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/proxy_server.py::ProxyConfig._apply_alerting_settings",
+      "litellm/proxy/proxy_server.py::ProxyConfig._load_alerting_settings"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      8,
+      53
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-042",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7594609099799494,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/oci/chat/generic.py::adapt_messages_to_generic_oci_standard_tool_response",
+      "litellm/llms/oci/chat/generic.py::adapt_messages_to_generic_oci_standard_content_message"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      8,
+      53
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 5,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 5,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-042",
+    "normal_synthetic04_funded_count": 5,
+    "normal_synthetic04_ledger_usd": 0.027211428571428574,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7594609099799494,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/oci/chat/generic.py::adapt_messages_to_generic_oci_standard_tool_response",
+      "litellm/llms/oci/chat/generic.py::adapt_messages_to_generic_oci_standard_content_message"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      136,
+      38
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-043",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3032125689308215,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/router_rust/steps/prerouting.py::PreRouter._hook",
+      "litellm/router_rust/steps/prerouting.py::PreRouter._resolve_session_router"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      136,
+      38
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-043",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3032125689308215,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/router_rust/steps/prerouting.py::PreRouter._hook",
+      "litellm/router_rust/steps/prerouting.py::PreRouter._resolve_session_router"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      6
+    ],
+    "arm": "baseline3",
+    "candidate_count": 8,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "top3",
+    "funded": false,
+    "id": "CPUR2-044",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.01341357142857143,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.6838724855633596,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/common_utils/token_count_log.py::deployment_model_id",
+      "litellm/router_utils/pre_call_checks/encrypted_content_affinity_check.py::EncryptedContentAffinityCheck._deployment_model_id"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      6
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 25,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": null,
+    "first_loss_detail": null,
+    "funded": true,
+    "id": "CPUR2-044",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.03645857142857144,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.6838724855633596,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/common_utils/token_count_log.py::deployment_model_id",
+      "litellm/router_utils/pre_call_checks/encrypted_content_affinity_check.py::EncryptedContentAffinityCheck._deployment_model_id"
+    ],
+    "standalone_claude8_counterfactual_emission": true
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      10,
+      7
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-045",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4747864548069751,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/router_rust/routing_stores.py::_deployment_increment",
+      "litellm/router_rust/routing_stores.py::RoutingStores.increment_usage"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      10,
+      7
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-045",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.009625,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4747864548069751,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/router_rust/routing_stores.py::_deployment_increment",
+      "litellm/router_rust/routing_stores.py::RoutingStores.increment_usage"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      16,
+      3
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-046",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.24183269245611233,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/litellm_content_filter/patterns.py::get_pattern_metadata",
+      "litellm/litellm_core_utils/pattern_match_deployments.py::PatternMatchRouter.__init__"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      16,
+      3
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 7,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 7,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-046",
+    "normal_synthetic04_funded_count": 7,
+    "normal_synthetic04_ledger_usd": 0.03415785714285714,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.24183269245611233,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/litellm_content_filter/patterns.py::get_pattern_metadata",
+      "litellm/litellm_core_utils/pattern_match_deployments.py::PatternMatchRouter.__init__"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      42,
+      14
+    ],
+    "arm": "baseline3",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-047",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.04100325432095193,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/bitbucket/bitbucket_client.py::BitBucketClient.__init__",
+      "litellm/integrations/bitbucket/__init__.py::set_global_bitbucket_config"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      42,
+      14
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-047",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.04100325432095193,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/bitbucket/bitbucket_client.py::BitBucketClient.__init__",
+      "litellm/integrations/bitbucket/__init__.py::set_global_bitbucket_config"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      45,
+      36
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-048",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.14448850742147454,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/focus/destinations/factory.py::FocusDestinationFactory._resolve_config",
+      "litellm/llms/bedrock/common_utils.py::CommonBatchFilesUtils.get_s3_bucket_and_key_from_config"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      45,
+      36
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-048",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.013575,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.14448850742147454,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/focus/destinations/factory.py::FocusDestinationFactory._resolve_config",
+      "litellm/llms/bedrock/common_utils.py::CommonBatchFilesUtils.get_s3_bucket_and_key_from_config"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      12,
+      27
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-049",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.572152923527619,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/custom_httpx/llm_http_handler.py::BaseLLMHTTPHandler._next_listing_request",
+      "litellm/llms/custom_httpx/llm_http_handler.py::BaseLLMHTTPHandler._files_per_listing_page"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      12,
+      27
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 3,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-049",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.016768571428571428,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.572152923527619,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/custom_httpx/llm_http_handler.py::BaseLLMHTTPHandler._next_listing_request",
+      "litellm/llms/custom_httpx/llm_http_handler.py::BaseLLMHTTPHandler._files_per_listing_page"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      28,
+      23
+    ],
+    "arm": "baseline3",
+    "candidate_count": 7,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "top3",
+    "funded": false,
+    "id": "CPUR2-050",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.016895714285714285,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.8894519421188378,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/cohere/rerank/transformation.py::CohereRerankConfig.validate_environment",
+      "litellm/llms/infinity/rerank/transformation.py::InfinityRerankConfig.validate_environment"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      28,
+      23
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 24,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-050",
+    "normal_synthetic04_funded_count": 7,
+    "normal_synthetic04_ledger_usd": 0.038984285714285714,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.8894519421188378,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/cohere/rerank/transformation.py::CohereRerankConfig.validate_environment",
+      "litellm/llms/infinity/rerank/transformation.py::InfinityRerankConfig.validate_environment"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      12,
+      18
+    ],
+    "arm": "baseline3",
+    "candidate_count": 9,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "top3",
+    "funded": false,
+    "id": "CPUR2-051",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.01449,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7649026196029135,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/base_llm/extraction/transformation.py::BaseExtractionConfig.validate_environment",
+      "litellm/llms/openai/chat/gpt_transformation.py::OpenAIGPTConfig.validate_environment"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      12,
+      18
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 26,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-051",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.03922,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7649026196029135,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/base_llm/extraction/transformation.py::BaseExtractionConfig.validate_environment",
+      "litellm/llms/openai/chat/gpt_transformation.py::OpenAIGPTConfig.validate_environment"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      12,
+      6
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-052",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.2176693753503369,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/db/db_transaction_queue/tool_discovery_queue.py::ToolDiscoveryQueue.add_update",
+      "litellm/proxy/db/db_transaction_queue/tool_discovery_queue.py::_merged"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      12,
+      6
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-052",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.004959285714285715,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.2176693753503369,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/db/db_transaction_queue/tool_discovery_queue.py::ToolDiscoveryQueue.add_update",
+      "litellm/proxy/db/db_transaction_queue/tool_discovery_queue.py::_merged"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      14,
+      10
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-053",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4724793619323001,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/anthropic_endpoints/gateway_endpoints.py::_renewable_credential",
+      "litellm/proxy/anthropic_endpoints/gateway_endpoints.py::_session_only_credential"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      14,
+      10
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 3,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-053",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.016133571428571428,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4724793619323001,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/anthropic_endpoints/gateway_endpoints.py::_renewable_credential",
+      "litellm/proxy/anthropic_endpoints/gateway_endpoints.py::_session_only_credential"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      12
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-054",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.450732685448769,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/vertex_ai/gemini_embeddings/batch_embed_content_transformation.py::_is_image_only_input",
+      "litellm/llms/vertex_ai/gemini_embeddings/batch_embed_content_transformation.py::_is_multimodal_input"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      12
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 5,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 5,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-054",
+    "normal_synthetic04_funded_count": 5,
+    "normal_synthetic04_ledger_usd": 0.023704285714285716,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.450732685448769,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/vertex_ai/gemini_embeddings/batch_embed_content_transformation.py::_is_image_only_input",
+      "litellm/llms/vertex_ai/gemini_embeddings/batch_embed_content_transformation.py::_is_multimodal_input"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      28,
+      12
+    ],
+    "arm": "baseline3",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-055",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.005812857142857143,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3593444744126584,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/openai/responses/count_tokens/transformation.py::OpenAICountTokensConfig.transform_request_to_count_tokens",
+      "litellm/llms/vertex_ai/count_tokens/handler.py::VertexAITokenCounter._build_count_tokens_request_body"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      28,
+      12
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 5,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 5,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-055",
+    "normal_synthetic04_funded_count": 5,
+    "normal_synthetic04_ledger_usd": 0.02824642857142857,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.3593444744126584,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/openai/responses/count_tokens/transformation.py::OpenAICountTokensConfig.transform_request_to_count_tokens",
+      "litellm/llms/vertex_ai/count_tokens/handler.py::VertexAITokenCounter._build_count_tokens_request_body"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      2
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-056",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.528509910560981,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/integrations/otel/model/config.py::parse_excluded_services",
+      "litellm/integrations/otel/model/config.py::OpenTelemetryV2Config._read_excluded_services"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      2
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 5,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 5,
+    "exploration_score_floor": 0.35,
+    "first_loss": "judge_separate",
+    "first_loss_detail": "judge_separate",
+    "funded": true,
+    "id": "CPUR2-056",
+    "normal_synthetic04_funded_count": 5,
+    "normal_synthetic04_ledger_usd": 0.023112857142857143,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.528509910560981,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/integrations/otel/model/config.py::parse_excluded_services",
+      "litellm/integrations/otel/model/config.py::OpenTelemetryV2Config._read_excluded_services"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      24,
+      43
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-057",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4101342153904565,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/mcp_server/openapi_to_mcp_generator.py::extract_parameters",
+      "litellm/proxy/mcp_server/openapi_to_mcp_generator.py::build_input_schema"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      24,
+      43
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-057",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.011751428571428572,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4101342153904565,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/mcp_server/openapi_to_mcp_generator.py::extract_parameters",
+      "litellm/proxy/mcp_server/openapi_to_mcp_generator.py::build_input_schema"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      6
+    ],
+    "arm": "baseline3",
+    "candidate_count": 9,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 3,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "top3",
+    "funded": false,
+    "id": "CPUR2-058",
+    "normal_synthetic04_funded_count": 3,
+    "normal_synthetic04_ledger_usd": 0.013579285714285716,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.9999999999999999,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/lakera_ai_v2.py::LakeraAIGuardrail.get_supported_event_hooks",
+      "litellm/proxy/guardrails/guardrail_hooks/grayswan/grayswan.py::GraySwanGuardrail.get_supported_event_hooks"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      6,
+      6
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 26,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-058",
+    "normal_synthetic04_funded_count": 8,
+    "normal_synthetic04_ledger_usd": 0.03619428571428572,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.9999999999999999,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/lakera_ai_v2.py::LakeraAIGuardrail.get_supported_event_hooks",
+      "litellm/proxy/guardrails/guardrail_hooks/grayswan/grayswan.py::GraySwanGuardrail.get_supported_event_hooks"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      43,
+      59
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-059",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.23250402841835865,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/repositories/skill_submission_repository.py::SkillSubmissionRepository.submit",
+      "litellm/repositories/skill_submission_repository.py::SkillSubmissionRepository.review"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      43,
+      59
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-059",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.006192857142857143,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.23250402841835865,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/repositories/skill_submission_repository.py::SkillSubmissionRepository.submit",
+      "litellm/repositories/skill_submission_repository.py::SkillSubmissionRepository.review"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      17,
+      40
+    ],
+    "arm": "baseline3",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-060",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.2877152413841083,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/exceptions.py::VectorStoreSearchError.__init__",
+      "litellm/integrations/vector_store_integrations/vector_store_pre_call_hook.py::VectorStorePreCallHook._search_one"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      17,
+      40
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 20,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": 0.35,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-060",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.2877152413841083,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/exceptions.py::VectorStoreSearchError.__init__",
+      "litellm/integrations/vector_store_integrations/vector_store_pre_call_hook.py::VectorStorePreCallHook._search_one"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      33,
+      35
+    ],
+    "arm": "baseline3",
+    "candidate_count": 0,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 0,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-061",
+    "normal_synthetic04_funded_count": 0,
+    "normal_synthetic04_ledger_usd": 0.0,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7784592312558302,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/llms/base_llm/managed_resources/base_managed_resource.py::BaseManagedResource.delete_unified_resource_id",
+      "litellm/llms/base_llm/managed_resources/base_managed_resource.py::BaseManagedResource.get_unified_resource_id"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      33,
+      35
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 4,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 4,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-061",
+    "normal_synthetic04_funded_count": 4,
+    "normal_synthetic04_ledger_usd": 0.025440714285714285,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.7784592312558302,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/llms/base_llm/managed_resources/base_managed_resource.py::BaseManagedResource.delete_unified_resource_id",
+      "litellm/llms/base_llm/managed_resources/base_managed_resource.py::BaseManagedResource.get_unified_resource_id"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      13,
+      2
+    ],
+    "arm": "baseline3",
+    "candidate_count": 2,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-062",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.009429285714285713,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.36274978987676054,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/harness/sandbox/local.py::LocalSandbox.run",
+      "litellm/llms/deepagents/harness/sandbox_backend.py::SandboxBackend._run"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      13,
+      2
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 4,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 4,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-062",
+    "normal_synthetic04_funded_count": 4,
+    "normal_synthetic04_ledger_usd": 0.019087857142857146,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.36274978987676054,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/harness/sandbox/local.py::LocalSandbox.run",
+      "litellm/llms/deepagents/harness/sandbox_backend.py::SandboxBackend._run"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      10,
+      17
+    ],
+    "arm": "baseline3",
+    "candidate_count": 1,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 1,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "same_file",
+    "funded": false,
+    "id": "CPUR2-063",
+    "normal_synthetic04_funded_count": 1,
+    "normal_synthetic04_ledger_usd": 0.005065714285714286,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.45343048949373493,
+    "retrieved": false,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/mcp_server/discoverable_endpoints.py::revoke_endpoint",
+      "litellm/proxy/mcp_server/discoverable_endpoints.py::introspect_endpoint"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      10,
+      17
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 5,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 5,
+    "exploration_score_floor": 0.35,
+    "first_loss": "answer_missing",
+    "first_loss_detail": "answer_missing",
+    "funded": true,
+    "id": "CPUR2-063",
+    "normal_synthetic04_funded_count": 5,
+    "normal_synthetic04_ledger_usd": 0.027322142857142857,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.45343048949373493,
+    "retrieved": true,
+    "role_private": "novel-candidate",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/mcp_server/discoverable_endpoints.py::revoke_endpoint",
+      "litellm/proxy/mcp_server/discoverable_endpoints.py::introspect_endpoint"
+    ],
+    "standalone_claude8_counterfactual_emission": null
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      66,
+      33
+    ],
+    "arm": "baseline3",
+    "candidate_count": 7,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 2,
+    "exploration_score_floor": null,
+    "first_loss": "retrieval",
+    "first_loss_detail": "query_score_floor",
+    "funded": false,
+    "id": "CPUR2-064",
+    "normal_synthetic04_funded_count": 2,
+    "normal_synthetic04_ledger_usd": 0.014466428571428573,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4060781086963123,
+    "retrieved": false,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": false,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/panw_prisma_airs/panw_prisma_airs.py::PanwPrismaAirsHandler._handle_api_error_with_logging",
+      "litellm/integrations/custom_guardrail.py::CustomGuardrail._process_error"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  },
+  {
+    "actual_deployment_evidence": false,
+    "actual_native_lines": [
+      66,
+      33
+    ],
+    "arm": "baseline3+originalTFIDF20-.35",
+    "candidate_count": 25,
+    "dense_encodings": 0,
+    "eligible_native_unsettled_count": 20,
+    "exploration_score_floor": 0.35,
+    "first_loss": "normal_synthetic04_budget",
+    "first_loss_detail": "normal_synthetic04_budget",
+    "funded": false,
+    "id": "CPUR2-064",
+    "normal_synthetic04_funded_count": 4,
+    "normal_synthetic04_ledger_usd": 0.034312857142857145,
+    "primary_query_score_floor": 0.5,
+    "provider_calls": 0,
+    "raw_sparse_cosine": 0.4060781086963123,
+    "retrieved": true,
+    "role_private": "matched-independent-control-hypothesis",
+    "same_frozen_rendered_judge_input_evidence_context": true,
+    "source_ids": [
+      "litellm/proxy/guardrails/guardrail_hooks/panw_prisma_airs/panw_prisma_airs.py::PanwPrismaAirsHandler._handle_api_error_with_logging",
+      "litellm/integrations/custom_guardrail.py::CustomGuardrail._process_error"
+    ],
+    "standalone_claude8_counterfactual_emission": false
+  }
+]

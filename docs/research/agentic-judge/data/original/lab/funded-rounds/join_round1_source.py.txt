@@ -1,0 +1,63 @@
+"""Join every funded R1 candidate with coordinator evidence, preserving scope."""
+import hashlib
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[3]
+
+
+def rows(path):
+    return [json.loads(s) for s in path.read_text().splitlines()]
+
+
+def main():
+    folder = HERE / 'round1'
+    source_path = ROOT / 'reports/research-experiments/promotion/agentic-round1-source/coordinator-decisions.jsonl'
+    source = {r['case_id']: r for r in rows(source_path)}
+    prior = {r['id']: r for r in rows(folder / 'selection-private.jsonl')}
+    analyzed = rows(folder / 'analysis/cases.jsonl')
+    joined = []
+    for case in analyzed:
+        ident = case['id']
+        review = source[ident]
+        old = prior[ident]['source_reference'] or {}
+        disputed = ident == 'AJ-R1-3f310c0655076c00'
+        started = case['status'] != 'not_started_unknown'
+        assert review['teacher_started'] == started
+        useful = review['label'] == 'narrow_actionable_extraction'
+        joined.append({'id': ident, 'role': case['role'], 'teacher_started': started,
+            'teacher_status': case['status'], 'teacher_reported_at_08': case.get('reported'),
+            'teacher_decision': case.get('decision'),
+            'source_registry_sha256': hashlib.sha256(source_path.read_bytes()).hexdigest(),
+            'source_row_id': review['id'], 'source_label': review['source_label'],
+            'source_assessment': review['label'], 'root_acceptance': review['root_acceptance'],
+            'source_scope': 'Scoped partial operation only; no whole-function equivalence claim.',
+            'source_proof_status': review['proof_status'], 'useful_partial_operation_proposed': useful,
+            'source_disputed_under_original_question': disputed,
+            'prior_source_label_preserved': old.get('label'), 'prior_source_row': old.get('row_id'),
+            'prior_gold_not_overwritten': True,
+            'baseline_status': 'paired_exact_policy_answer_pending' if case['role'] == 'novel' and started else 'not_scored_for_gain',
+            'accuracy_gain_established': False,
+            'dispute_note': 'OCS080 prior separate retained. Narrow optional menu-helper assessment is separately retained for root adjudication; teacher tool error remains unknown.' if disputed else None})
+    (folder / 'analysis/source-joined.jsonl').write_text(''.join(json.dumps(r, sort_keys=True) + '\n' for r in joined))
+    started = [r for r in joined if r['teacher_started']]
+    useful = [r for r in started if r['useful_partial_operation_proposed']]
+    summary = {'schema': 1, 'round': 1, 'total_joined': len(joined), 'started': len(started),
+        'all_negatives_failures_uncertain_controls_retained': True,
+        'useful_partial_operations_among_started': len(useful),
+        'novel_useful_partial_operations': sum(r['role'] == 'novel' for r in useful),
+        'control_useful_partial_operations_including_disputed': sum(r['role'] == 'control' for r in useful),
+        'disputed_controls': [r['id'] for r in started if r['source_disputed_under_original_question']],
+        'source_confirmed_novel_reports_at_08': [r['id'] for r in started if r['role'] == 'novel' and r['teacher_reported_at_08'] is True and r['useful_partial_operation_proposed']],
+        'below_threshold_uncertain_novel_partial_operation': 'AJ-R1-252d6146fdd56664',
+        'accuracy_gain_established': False, 'reason': 'Exact paired body-only answers pending; no inference from missing baselines. Disputed control excluded from gain.',
+        'actual_new_round1_paid_usd': .356584, 'historical_teacher_pilot_excluded_usd': .252152,
+        'source_registry_sha256': hashlib.sha256(source_path.read_bytes()).hexdigest()}
+    assert summary['novel_useful_partial_operations'] == 2 and summary['control_useful_partial_operations_including_disputed'] == 3
+    (folder / 'analysis/source-joined-summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+    print(json.dumps(summary))
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,80 @@
+"""Thin versioned adapter over the frozen v2 loop; root provides SDK/budget.
+
+The original module/file and all v2 requests/results stay unchanged. The isolated
+module instance changes only the final text-length policy and experiment name.
+"""
+import copy
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+WORK = HERE.parents[2]
+BASE = WORK / '.lab-results/resolution/teacher_v2.py'
+sys.path.insert(0, str(BASE.parent))
+spec = importlib.util.spec_from_file_location('_agentic_funded_round1_v3_runtime', BASE)
+runtime = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(runtime)
+h = runtime.h
+VERSION = 'agentic-funded-r1-submit-v3-length-repair'
+runtime.VERSION = VERSION
+
+
+def initial(original):
+    request = runtime.initial(original)
+    request['system'] = request['system'].replace('35 words and 240 characters', '60 words and 640 characters')
+    request['tools'] = copy.deepcopy(request['tools'])
+    request['tools'][-1]['input_schema']['properties']['why']['maxLength'] = 640
+    return request
+
+
+def strict_submit(args, source):
+    if not isinstance(args, dict) or not isinstance(args.get('why'), str) or len(args['why']) > 640:
+        return None, 'invalid_final_submission'
+    decision, status = h.final_decision({'stop_reason': 'end_turn', 'content': [
+        {'type': 'text', 'text': json.dumps(args)}]}, source)
+    return decision, status if decision is not None else 'invalid_final_submission'
+
+
+runtime.submit = strict_submit
+
+
+def identity(original):
+    return {'version': VERSION, 'source_sha256': original['source_identity_sha256'],
+            'candidate_sha256': original['candidate_sha256'], 'request_sha256': h.sha(initial(original)),
+            'tool_schemas_sha256': h.sha(initial(original)['tools']),
+            'adapter_sha256': h.sha(Path(__file__).read_bytes()), 'frozen_engine_sha256': h.sha(BASE.read_bytes()),
+            'source_boundary_sha256': h.sha(Path(h.__file__).read_bytes()), 'model': h.MODEL,
+            'output_cap': 1024, 'sampling': 'SDK/provider default; temperature omitted',
+            'max_rounds': 6, 'case_cap_usd': .15, 'source_return_chars': 24000,
+            'research_funding': 'Root overall20 USD, direction round actual-new minimum .20; not deployment .04',
+            'cache': 'Never production store; exact experimental dedup only, cached cost excluded from quota.'}
+
+
+def make_row(original):
+    ident = identity(original)
+    return {'id': original['id'], 'original': original, 'request': initial(original),
+            'identity': ident, 'request_key': h.sha(ident),
+            'estimated_first_round_usd': h.estimated_cost(initial(original)),
+            'first_round_reservation_usd': h.reservation(initial(original))}
+
+
+def validate_row(row):
+    h.validate_item(row['original'])
+    assert row['request'] == initial(row['original'])
+    assert row['identity'] == identity(row['original'])
+    assert row['request_key'] == h.sha(row['identity'])
+    assert row['request']['model'] == 'claude-sonnet-5-5' and row['request']['max_tokens'] == 1024
+    assert 'temperature' not in row['request']
+
+
+def run_case(row, out, client, budget):
+    """Root's existing executor supplies its SDK client and versioned locked meter.
+
+    `budget.reserve(key, usd)->bool` and `budget.settle(key, actual_or_None)` must
+    obey the coordinator's overall20 ceiling and unknown-usage halt policy.
+    """
+    validate_row(row)
+    return runtime.run(row, out, client, budget)

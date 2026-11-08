@@ -1,0 +1,35 @@
+"""Read-only sealed round validator: exact git, source spans, actual-arm and normal ledger evidence."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+R=Path(__file__).resolve().parent;LAB=R.parent;sys.path.insert(0,str(LAB/'promotion/implementation/src'))
+from dry_lint.models import Candidate
+
+def sha(b):return hashlib.sha256(b).hexdigest()
+def read(p):return [json.loads(line) for line in p.open()]
+cohorts=read(LAB/'full-corpus/shared-inputs/9bfa15c84eb72dd2/cohorts.jsonl')
+checks=[];seen=set();contexts=[]
+for chunk in sorted((R/'round1').glob('batch-*')):
+ freeze=json.loads((chunk/'freeze.json').read_text())
+ for name,want in freeze['hashes'].items():assert sha((chunk/name).read_bytes())==want
+ private={r['id']:r for r in read(chunk/'funding-sidecar-private.jsonl')}
+ for packet in read(chunk/'provider-queue.jsonl'):
+  c=Candidate.model_validate(packet['candidate']);assert c.model_dump(mode='json')==packet['candidate'] and c.lane=='exploration' and c.comparer.startswith('cpu-embedding:') and not c.filtered
+  key=(packet['repository'],packet['revision'],c.key);assert key not in seen;seen.add(key)
+  pr=private[packet['id']];assert c.key in pr['funded_keys'] and pr['normal_04_ledger_usd_estimated']<=.04+1e-12
+  assert any(x==packet['candidate'] for x in pr['original_candidates'])
+  bg=Path(packet['background_proof']['path']);assert sha(bg.read_bytes())==packet['background_proof']['sha256']
+  cohort=next(x for x in cohorts if x['background_sha256']==packet['background_proof']['sha256']);folder=LAB/'full-corpus/cohorts'/cohort['background_sha256'];manifest=json.loads((folder/'manifest.json').read_text());proofs=read(folder/'source-proof.jsonl')
+  native={r['source_id']:r['function'] for r in read(folder/'functions-policy-resolver-v1.jsonl')}
+  for f,proof in zip([c.new,c.existing],packet['source_endpoints'],strict=True):
+   n=native[f.qualname];assert n is not None and n['code']==f.code and n['line']==f.line and n['end_line']==f.end_line
+   raw=Path(proof['full_source_file']).read_bytes();assert sha(raw)==proof['full_source_sha256'] and sha(f.code.encode())==proof['body_sha256']
+   pinned=subprocess.check_output(['git','-C',manifest['repository']['git'],'show',packet['revision']+':'+f.path],env={**os.environ,'GIT_NO_LAZY_FETCH':'1','GIT_TERMINAL_PROMPT':'0'})
+   assert pinned==raw
+  checks.append({'id':packet['id'],'exact_git_pin':True,'native_spans':True,'unchanged_candidate':True,'actual_cpu_arm':True,'normal_synthetic04_funded':True,'independent_source_review_label':None})
+result={'schema':1,'all_pass':True,'rows':len(checks),'provider_requests':2*len(checks),'checks':checks,'source_resolver':'existing reviewed native snapshots; exact git bytes independently rechecked, no parallel resolver','worker_provider_calls':0,'full_corpus_encodings':0}
+(R/'round1/native-funding-validation.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+print('ROUND1_VALIDATED',len(checks),'rows',2*len(checks),'request bindings; provider calls0 encoding0')

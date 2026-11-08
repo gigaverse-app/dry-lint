@@ -1,0 +1,37 @@
+{
+  "base_commit": "73709fdbe884c107b665400a186cb71caecc03f7",
+  "baseline": "baseline top 3 + explicit TF-IDF top 20 at .35 + original operation-blocks:1, one unseen pair",
+  "treatment": "same ordered primary campaign, then helper fallback only on original abstention",
+  "logical_original": {
+    "model": "claude-sonnet-5-5",
+    "prompt_policy": "concept",
+    "estimated_answer_tokens": 150,
+    "input_characters_per_token": 2.8,
+    "input_usd_per_million": 2,
+    "output_usd_per_million": 10,
+    "cap_usd": 0.04
+  },
+  "physical": {
+    "jev": "jev-1.14.0/reuse-context-v3",
+    "claude": "claude-sonnet-5-5/shared-operations/1024",
+    "report_at": 0.8,
+    "jev_input_limit_characters": 8000,
+    "report_policy": {
+      "label_not": "separate",
+      "score_at_least": 0.8,
+      "model_assessment": null,
+      "escalation": null,
+      "source": "dry-lint 73709fd Settings.duplicate_at and Report.from_findings; independently evaluated diagnostic answers, no deferred/review-required findings"
+    }
+  },
+  "context_recipe": "Historical diagnostic exact 6,000-character file prefix. Jev receives it; concept and shared-operations Claude templates omit it. All 53 Candidates and Claude questions retain full native function bodies including signatures/docs; seven Jev questions truncate a body at 8,000 characters.",
+  "scope": "53 selected public pairs; no full background or private adopter source redistributed",
+  "retrieval_reproduction": "The code is supplied. Full retrieval re-fit still needs the exact pinned complete backgrounds/native source caches named by their SHA and source pins; result replay below needs only this package.",
+  "family_limitation": "3 development and 34 regression candidate pair instances; zero fresh confirmation candidate families; 16 independent control pairs.",
+  "actual_input_coverage": {
+    "complete_questions": 99,
+    "truncated_jev_questions": 7,
+    "complete_candidates": 53,
+    "complete_claude_questions": 53
+  }
+}

@@ -1,0 +1,51 @@
+"""Actual pinned fixture proves literal queries, novel spans and boundary limits."""
+import json
+import sys
+from pathlib import Path
+
+import teacher_v4_adapter as v
+
+sys.path.insert(0, str(v.WORK / '.lab-results/agentic-claude'))
+from test_harness import HarnessTests
+
+
+def main():
+    fixture = HarnessTests()
+    fixture.setUp()
+    try:
+        (fixture.repo / 'c.ts').write_text('const label = "Back to storybook";\nconst className = "settings-servers-row";\n')
+        fixture.git('add', 'c.ts')
+        fixture.git('-c', 'user.name=Offline', '-c', 'user.email=offline@example.invalid', 'commit', '-qm', 'literal fixture')
+        cfg = {**fixture.cfg, 'revision': fixture.git('rev-parse', 'HEAD').strip()}
+        source = v.LiteralSource(v.h.SourceTools(cfg, fixture.candidate, fixture.scope))
+        for query in ('Back to storybook', 'settings-servers-row'):
+            result = source.call('search_source', {'query': query, 'path_prefix': 'c.ts'})
+            assert not result.get('error') and len(result['matches']) == 1
+            assert query in result['matches'][0]['code']
+            assert result['matches'][0]['revision'] == cfg['revision']
+            assert result['matches'][0]['evidence_id'] in source.catalog
+        # Source already supplied is deliberately excluded from search hits.
+        result = source.call('search_source', {'query': 'return alias(x)', 'path_prefix': 'a.py'})
+        assert not result['matches'] and result['excluded_initial_function_regions']
+        for args in ({'query':'label','path_prefix':'../'}, {'query':'label','path_prefix':'/etc'},
+                     {'query':'label','limit':99}, {'query':'label','revision':'f'*40}):
+            assert source.call('search_source', args)['unknown']
+        assert source.call('shell', {'command':'cat /etc/passwd'})['unknown']
+        assert source.call('read_source', {'path':'enterprise/no.py','start_line':1,'end_line':2})['unknown']
+        assert source.call('read_source', {'path':'link.py','start_line':1,'end_line':2})['unknown']
+        secret = source.call('search_source', {'query':'api_key','path_prefix':'secret.py'})
+        assert not secret['matches'] and (secret['available_files'] == 0 or secret['unavailable_files'] == 1)
+        source.base.returned_chars = 24000
+        assert source.call('search_source', {'query':'label','path_prefix':'c.ts'})['unknown']
+    finally:
+        fixture.tearDown()
+    p = Path(__file__).resolve().parent / 'literal-search-validation.json'
+    v.h.save(p, {'schema':1,'passed':True,'real_provider_calls':0,
+        'spaces_and_hyphens_supported':True,'initial_regions_excluded':True,
+        'source_pin_and_citation_ids_verified':True,'traversal_absolute_symlink_enterprise_and_credentials_blocked':True,
+        'result_count_and_return_budget_caps_enforced':True,'arbitrary_execution_blocked':True})
+    print(json.dumps({'passed':True,'real_provider_calls':0}))
+
+
+if __name__ == '__main__':
+    main()

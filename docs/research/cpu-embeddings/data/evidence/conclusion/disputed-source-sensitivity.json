@@ -1,0 +1,188 @@
+{
+  "authority": {
+    "id": "9697a6dcdfd4ab45b047",
+    "path": "LAB_ROOT/reports/research-experiments/promotion/agentic-round2-source/coordinator-decisions.jsonl",
+    "prior_positive_preserved": true,
+    "root_acceptance": "disputed_prior_positive",
+    "sha256": "87a0f62c03fb68d0a4b40ddb25747dd011bce7c4e3ff49203149f873d98b4310",
+    "source_label": "related"
+  },
+  "directional_note": "Nine-line query retrieval/funding/Claude.8 projection unchanged, but source-confirmed useful emission cannot be claimed. Reverse answer remains unknown.",
+  "frozen_gold_relabels": 0,
+  "interpretation": "Disputed pair was already retrieved by both arms in the pooled known panel; excluding it changes denominators, not added/lost contexts.",
+  "new_encodes": 0,
+  "new_provider_calls": 0,
+  "profiles": {
+    "original_narrow": {
+      "disputed_pair_pooled_control_retrieved": true,
+      "disputed_pair_pooled_protected_retrieved": true,
+      "input_path": "LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/promotion/default3/production-paired-rows.jsonl",
+      "input_sha256": "4296953529a0962371e841e95e7c0b4ec51d20d81907ff57c7a74ece42673c4a",
+      "scenarios": {
+        "exclude_disputed_CPUE04": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 77,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 120,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 222,
+          "source_records": 206
+        },
+        "exclude_disputed_CPUE04_and_reopened_CF-C02": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 77,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 119,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 221,
+          "source_records": 205
+        },
+        "frozen_labels": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 78,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 120,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 223,
+          "source_records": 207
+        }
+      }
+    },
+    "original_wide": {
+      "disputed_pair_pooled_control_retrieved": true,
+      "disputed_pair_pooled_protected_retrieved": true,
+      "input_path": "LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/promotion/production-paired-rows.jsonl",
+      "input_sha256": "56535ea854f8dc28c3c210806ae53384ccd161d0e83bd44c64a048b298f7033b",
+      "scenarios": {
+        "exclude_disputed_CPUE04": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 77,
+              "added_retrieval_contexts": 0,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 120,
+              "added_retrieval_contexts": 3,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 222,
+          "source_records": 206
+        },
+        "exclude_disputed_CPUE04_and_reopened_CF-C02": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 77,
+              "added_retrieval_contexts": 0,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 119,
+              "added_retrieval_contexts": 3,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 221,
+          "source_records": 205
+        },
+        "frozen_labels": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 78,
+              "added_retrieval_contexts": 0,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 120,
+              "added_retrieval_contexts": 3,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 223,
+          "source_records": 207
+        }
+      }
+    },
+    "revised_narrow": {
+      "disputed_pair_pooled_control_retrieved": true,
+      "disputed_pair_pooled_protected_retrieved": true,
+      "input_path": "LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/funded-rounds/round2/regression/production-paired-rows.jsonl",
+      "input_sha256": "e7102e6ae6ac7a34fe30bcb3723954adab845b6c8b7cf011b7efa0fdc56cf21a",
+      "scenarios": {
+        "exclude_disputed_CPUE04": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 77,
+              "added_retrieval_contexts": 25,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 120,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 222,
+          "source_records": 206
+        },
+        "exclude_disputed_CPUE04_and_reopened_CF-C02": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 77,
+              "added_retrieval_contexts": 25,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 119,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 221,
+          "source_records": 205
+        },
+        "frozen_labels": {
+          "labels": {
+            "duplicate": {
+              "accepted_contexts": 78,
+              "added_retrieval_contexts": 25,
+              "lost_baseline_contexts": 0
+            },
+            "separate": {
+              "accepted_contexts": 120,
+              "added_retrieval_contexts": 15,
+              "lost_baseline_contexts": 0
+            }
+          },
+          "pair_background_measurements": 223,
+          "source_records": 207
+        }
+      }
+    }
+  },
+  "retrained_or_refitted_representations": 0,
+  "schema": 1,
+  "source_conflict": "Case-sensitive literal substring replacement versus case-insensitive token/underscore-aware rewriting; shared Windows guard does not establish one transformation policy."
+}

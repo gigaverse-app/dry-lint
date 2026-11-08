@@ -1,0 +1,18 @@
+{
+  "counts": {
+    "arm_ledgers": 497,
+    "fullsource_prompt_matches": 210,
+    "hashed_files": 294,
+    "reparsed_diagnostic_answers": 35,
+    "reparsed_primary_answers": 112,
+    "reservation_events": 4117,
+    "source_bound_candidate_versions": 210,
+    "source_decision_seals": 4,
+    "verified_successor_question_reuses": 64
+  },
+  "passed": true,
+  "provider_calls": 0,
+  "retrieval_recomputed": false,
+  "scope": "Selected public-pin cold held campaigns; private30 matrices and fresh model encoding unavailable here",
+  "seconds": 9.884297994998633
+}

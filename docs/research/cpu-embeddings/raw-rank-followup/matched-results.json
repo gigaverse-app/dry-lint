@@ -1,0 +1,155 @@
+[
+  {
+    "arm": "fixed_rrf",
+    "batch": "continuation-batch",
+    "gained": {
+      "canonical_pairs": 32,
+      "reported_by_source": {
+        "alreadyshared": 1,
+        "bounded": 5,
+        "tiny": 2
+      }
+    },
+    "lost": {
+      "canonical_pairs": 23,
+      "reported_by_source": {
+        "bounded": 6,
+        "tiny": 2
+      }
+    }
+  },
+  {
+    "arm": "tail_append",
+    "batch": "continuation-batch",
+    "gained": {
+      "canonical_pairs": 32,
+      "reported_by_source": {
+        "alreadyshared": 1,
+        "bounded": 5,
+        "tiny": 2
+      }
+    },
+    "lost": {
+      "canonical_pairs": 23,
+      "reported_by_source": {
+        "bounded": 6,
+        "tiny": 2
+      }
+    }
+  },
+  {
+    "arm": "fixed_rrf",
+    "batch": "early-batch",
+    "gained": {
+      "canonical_pairs": 19,
+      "reported_by_source": {
+        "bounded": 5,
+        "tiny": 3
+      }
+    },
+    "lost": {
+      "canonical_pairs": 10,
+      "reported_by_source": {
+        "alreadyshared": 1,
+        "bounded": 1,
+        "separate": 1,
+        "tiny": 1
+      }
+    }
+  },
+  {
+    "arm": "tail_append",
+    "batch": "early-batch",
+    "gained": {
+      "canonical_pairs": 19,
+      "reported_by_source": {
+        "bounded": 5,
+        "tiny": 3
+      }
+    },
+    "lost": {
+      "canonical_pairs": 10,
+      "reported_by_source": {
+        "alreadyshared": 1,
+        "bounded": 1,
+        "separate": 1,
+        "tiny": 1
+      }
+    }
+  },
+  {
+    "arm": "fixed_rrf",
+    "batch": "gold-loss-batch",
+    "gained": {
+      "canonical_pairs": 3,
+      "reported_by_source": {
+        "bounded": 1
+      }
+    },
+    "lost": {
+      "canonical_pairs": 2,
+      "reported_by_source": {
+        "bounded": 2
+      }
+    }
+  },
+  {
+    "arm": "tail_append",
+    "batch": "gold-loss-batch",
+    "gained": {
+      "canonical_pairs": 3,
+      "reported_by_source": {
+        "bounded": 1
+      }
+    },
+    "lost": {
+      "canonical_pairs": 2,
+      "reported_by_source": {
+        "bounded": 2
+      }
+    }
+  },
+  {
+    "arm": "fixed_rrf",
+    "batch": "multiquery-batch",
+    "gained": {
+      "canonical_pairs": 7,
+      "reported_by_source": {
+        "bounded": 2
+      }
+    },
+    "lost": {
+      "canonical_pairs": 6,
+      "reported_by_source": {}
+    }
+  },
+  {
+    "arm": "tail_append",
+    "batch": "multiquery-batch",
+    "gained": {
+      "canonical_pairs": 7,
+      "reported_by_source": {
+        "bounded": 2
+      }
+    },
+    "lost": {
+      "canonical_pairs": 6,
+      "reported_by_source": {}
+    }
+  },
+  {
+    "arm": "fixed_rrf_raw",
+    "batch": "successor-batch",
+    "gained": {
+      "canonical_pairs": 16,
+      "reported_by_source": {
+        "bounded": 3,
+        "tiny": 3
+      }
+    },
+    "lost": {
+      "canonical_pairs": 0,
+      "reported_by_source": {}
+    }
+  }
+]

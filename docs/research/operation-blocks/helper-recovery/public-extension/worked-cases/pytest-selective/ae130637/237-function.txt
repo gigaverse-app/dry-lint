@@ -1,0 +1,14 @@
+def worktree_snapshot(root: Path) -> str:
+    """
+    Record the working tree's Python sources as a tree object without touching the real index.
+
+    Rename detection needs both sides in Git, but the local check also sees unstaged and untracked
+    edits. Staging into a copy of the index keeps its stat cache, so only changed files are hashed.
+    """
+    real_index = root / git(root, "rev-parse", "--git-path", "index").strip()
+    with tempfile.TemporaryDirectory() as scratch:
+        index = Path(scratch) / "index"
+        if real_index.is_file():
+            shutil.copyfile(real_index, index)
+        git(root, "add", "--all", "--", PYTHON_SOURCES, index=index)
+        return git(root, "write-tree", index=index).strip()

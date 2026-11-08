@@ -1,0 +1,389 @@
+"""Assemble a bounded-experiment handoff from frozen observations and saved indexes."""
+
+import collections
+import hashlib
+import json
+import shlex
+import statistics
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import run_full
+from experiment import dump
+from experiment import read_rows as read
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+PY = "LAB_ROOT/retrieval/.venv/bin/python"
+ENV = "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 "
+
+
+def digest(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def main():
+    ready, cohorts, rows, snap = run_full.inputs()
+    # Remaining compatible cohorts are required; missing source is an explicit exception.
+    pending = []
+    resources = []
+    for c in cohorts:
+        f = run_full.folder_for(c)
+        m = json.loads((f / "manifest.json").read_text()) if (f / "manifest.json").exists() else {}
+        st = json.loads((f / "embedding-status.json").read_text()) if (f / "embedding-status.json").exists() else {}
+        if run_full.metadata(c)["git"] and (
+            not m
+            or m.get("all_source_bodies_verified")
+            and st.get("status")
+            not in ["complete", "measured_resource_blocker", "measured_rss_blocker", "runtime_failure"]
+        ):
+            pending.append(c["cohort_id"])
+        if st.get("status") == "complete" and not (f / "per-row.jsonl").exists():
+            pending.append(c["cohort_id"] + ":evaluation")
+        if st:
+            timings = read(f / "query-timings.jsonl") if (f / "query-timings.jsonl").exists() else []
+            timing_path = f / "query-timings.jsonl"
+            if timings and all(t.get("rank_cache_reused") for t in timings):
+                timing_path = HERE / "span-migration/helper-v1/before" / c["cohort_id"] / "query-timings.jsonl"
+                timings = read(timing_path)
+            evaluation_summary = json.loads((f / "summary.json").read_text()) if (f / "summary.json").exists() else {}
+            resources.append(
+                {
+                    "cohort_id": c["cohort_id"],
+                    "repository": c["repository"],
+                    "revision": c["revision"],
+                    "functions": c["functions"],
+                    "status": st["status"],
+                    "preflight_functions": st.get("preflight_functions", st.get("preflight_completed_functions", 100)),
+                    "preflight_seconds": st.get("preflight_seconds"),
+                    "encoder_wall_seconds": st.get("encoder_wall_seconds", st.get("full_index_seconds")),
+                    "model_load_seconds": st.get("session_create_seconds", st.get("model_load_seconds")),
+                    "cache_hits": st.get("cache_hits", 0),
+                    "cache_misses": st.get("cache_misses", st.get("encoded_functions")),
+                    "truncated_functions": st.get("truncated_functions"),
+                    "peak_encoder_rss_kib": st.get("peak_rss_kib"),
+                    "median_cached_dense_query_seconds": statistics.median(
+                        t["dense_cached_query_seconds"]
+                        for t in timings
+                        if t.get("dense_cached_query_seconds") is not None
+                    )
+                    if timings
+                    else None,
+                    "median_sparse_query_seconds": statistics.median(t["sparse_seconds"] for t in timings)
+                    if timings
+                    else None,
+                    "query_timing_source": str(timing_path),
+                    "sparse_index_seconds": evaluation_summary.get("sparse_index_seconds"),
+                    "evaluation_process_peak_rss_kib": evaluation_summary.get("peak_rss_kib"),
+                    "evaluation_peak_is_cumulative_process_upper_bound": True,
+                    "source_load_extract_verify_seconds": m.get("source_load_extract_verify_seconds"),
+                    "matrix_bytes": (f / "embeddings.npy").stat().st_size if (f / "embeddings.npy").exists() else None,
+                }
+            )
+    model_coverage = []
+    for f in map(Path, json.loads((HERE / "model-supplement-ready.json").read_text())["folders"]):
+        m = json.loads((f / "manifest.json").read_text())
+        st = json.loads((f / "embedding-status.json").read_text()) if (f / "embedding-status.json").exists() else {}
+        if st.get("status") != "complete" or not (f / "per-row.jsonl").exists():
+            pending.append("model:" + f.name)
+        model_coverage.append(
+            {
+                "repository": m["repository"]["repository"],
+                "revision": m["repository"]["revision"],
+                "inventory": m["functions"],
+                "gold_rows": m["gold_rows"],
+                "status": st.get("status", "not_run"),
+                "evaluated_gold_rows": len({r["id"] for r in read(f / "per-row.jsonl")})
+                if (f / "per-row.jsonl").exists()
+                else 0,
+                "encoder_wall_seconds": st.get("encoder_wall_seconds"),
+                "peak_encoder_rss_kib": st.get("peak_rss_kib"),
+                "truncated": st.get("truncated_functions"),
+                "field_token_idf_separate": True,
+            }
+        )
+    if pending:
+        print("NOT FINAL: compatible cohorts remain", pending)
+        return
+    for script in ["coverage_tables.py", "migration_receipt.py", "paired_summary.py", "adjudication_sensitivity.py"]:
+        subprocess.run([PY, str(HERE / script)], check=True)
+    coverage = json.loads((HERE / "coverage.json").read_text())
+    summary = json.loads((HERE / "paired-summary.json").read_text())
+    sensitivity = json.loads((HERE / "adjudication/exclude-reopened-CF-C02-v1/paired-summary.json").read_text())
+    exceptions = json.loads((HERE / "source-exceptions-index-v2.json").read_text())
+    migration = json.loads((HERE / "span-migration/helper-v1/migration-receipt-v1.json").read_text())
+    acquisition = json.loads((LAB / "acquisition.json").read_text())
+    pilot = json.loads((HERE / "pilot-policy-v1/policy-projection-summary-v1.json").read_text())
+    novel = json.loads((HERE / "novel-batch-v1/policy-projection-summary-v1.json").read_text())
+    ledger_totals = collections.defaultdict(
+        lambda: {"batches": 0, "candidates": 0, "funded": 0, "normal_estimated_usd": 0.0}
+    )
+    for c in cohorts:
+        f = run_full.folder_for(c)
+        if not (f / "ledger.jsonl").exists():
+            continue
+        for r in read(f / "ledger.jsonl"):
+            t = ledger_totals[(r["profile"], r["arm"])]
+            t["batches"] += 1
+            t["candidates"] += r["candidate_count"]
+            t["funded"] += r["funded"]
+            t["normal_estimated_usd"] += r["usd_estimated"]
+    dump(
+        HERE / "resource-summary.json",
+        {
+            "function_indexes": resources,
+            "model_declaration_indexes": model_coverage,
+            "cold_acquisition_coordinator_seconds": acquisition["cold_total_seconds"],
+            "worker_index_times_separate": True,
+            "rss_measurement": "resource.getrusage(RUSAGE_SELF).ru_maxrss is a cumulative subprocess high-water (and may include pre-exec/fork high-water), not incremental model allocation. The registered3GiB guard uses this conservative reported value.",
+            "warm_encoder_update_cost_source": "Pilot measured resident-model one-function warm_update_seconds in original embedding-status.json; current corpus cached exact-cosine timings are separate. No zero-time query claim for reused rank arrays.",
+            "pilot_measured_warm_updates": {
+                name: json.loads((LAB / name / "embedding-status.json").read_text()).get("warm_update_seconds")
+                for name in ["openhands", "kaizen"]
+            },
+            "native_build_rss": "Not measured for original native reconstruction; encoder peak RSS is explicitly separate.",
+            "parallel_timing_limit": "Each numerical subprocess capped2 threads; brief metadata/rank-validation work overlapped bootstrap. No claim of contention-free latency.",
+        },
+    )
+    dump(
+        HERE / "ledger-summary.json",
+        [
+            {
+                "profile": k[0],
+                "arm": k[1],
+                **v,
+                "synthetic": True,
+                "normal_budget_per_batch": 0.04,
+                "worker_physical_usd": 0,
+                "cached_answers_still_charged": True,
+            }
+            for k, v in sorted(ledger_totals.items())
+        ],
+    )
+    model_rows = [
+        r
+        for folder in json.loads((HERE / "model-supplement-ready.json").read_text())["folders"]
+        for r in read(Path(folder) / "per-row.jsonl")
+    ]
+    model_summary = []
+    for profile in sorted({r["profile"] for r in model_rows}):
+        base = {r["id"]: r for r in model_rows if r["profile"] == profile and r["arm"] == "sparse"}
+        for arm in ["sparse", "embedding-only", "protected-sparse-plus-dense1"]:
+            selected = [r for r in model_rows if r["profile"] == profile and r["arm"] == arm]
+            model_summary.append(
+                {
+                    "profile": profile,
+                    "arm": arm,
+                    "positive_rows": sum(r["label_group"] == "positive" for r in selected),
+                    "negative_rows": sum(r["label_group"] == "negative" for r in selected),
+                    "funded_positive": sum(r["label_group"] == "positive" and r["funded"] for r in selected),
+                    "funded_negative_exposures": sum(r["label_group"] == "negative" and r["funded"] for r in selected),
+                    "new_funded": [r["id"] for r in selected if r["funded"] and not base[r["id"]]["funded"]],
+                    "lost_funded": [r["id"] for r in selected if not r["funded"] and base[r["id"]]["funded"]],
+                    "first_losses": dict(
+                        collections.Counter(r["first_loss"] or "funded_answer_unknown" for r in selected)
+                    ),
+                }
+            )
+    dump(
+        HERE / "model-declaration-coverage.json",
+        {
+            "function_inventory_records": len(rows) - 4,
+            "declaration_records": 4,
+            "model_supplement": model_coverage,
+            "paired_model_policy_summary": model_summary,
+            "original_function_idf_unmodified": True,
+            "model_prompt_policy": "model-contracts, Sonnet outputcap1024, normal150answer estimate",
+            "model_judges_called": 0,
+        },
+    )
+    lines = [
+        "CPU pretrained-embedding candidate channel: fixed full-corpus replication",
+        "",
+        f"Execution processed every locally source-compatible background in immutable index-v2: {len(cohorts)} frozen backgrounds, {len(rows)} lineage records, {coverage['accepted_binary_rows']} accepted binary rows. Function evaluation covers {coverage['rows_evaluated']} records; {coverage['rows_unevaluated']} remain visible in function coverage, including declarations tracked separately. Four declaration rows are evaluated against complete separate native inventories of1395+63 units. Exact source exceptions: "
+        + str(len(exceptions["exceptions"]))
+        + " backgrounds; see source-exceptions-index-v2.json and coverage-denominators.jsonl. Missing source is not a method negative.",
+        "",
+        "The encoder remains sentence-transformers/all-MiniLM-L6-v2 (22.7M parameters, Apache2), revision1110a243fdf4706b3f48f1d95db1a4f5529b4d41; official pinned ONNX SHA2566fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452. Official model card is cached unchanged in ../model-cache/README.md. ONNX CPU FP32,2 threads, no remote code; tokenizer first256 total wordpieces, masked-mean pooling and L2 normalization, no chunks. Cold coordinator acquisition/install and worker inference are separate. Each full index had100-function CPU safety preflight and3600s/3GiB encoder bound. Resources, truncations, native-source time, index/query costs and cache hits are machine-readable in resource-summary.json and per-index manifests/statuses. The encoder is a text model used experimentally on unchanged code.",
+        "",
+        "Sparse baseline uses each exact original BenchBackground.decode/index, original corpus IDF/order/max_df. Exact-body dense-vector reuse never merges revisions or fits snippets. Dense exact cosine retains all frozen competitors and stable row-order ties, self excluded. Sparse ties retain production posting order. Dense-only uses fixedcosine.65; protected-sparse-plus-dense1 funds the complete baseline batch first, then at most one dense addition per query. Default cross-file top3/.5(.3 only actual native query<6lines) and standalone balanced same-file top20/.35 are separate laboratory diagnostics, not inferred deployed adopter configuration. Every arm pays its own normal estimated .04 per synthetic family/cohort batch, including cache hits; these are not authentic historical PR ledgers.",
+        "",
+        "Frozen original617 accepted pair-level directional counts below are conditional on the source-supported evaluated subset, deduplicated within exact repo/background/pair/profile. Family/repository cluster intervals and per-family new/lost identities are in paired-summary.json/paired-families.jsonl; directions are correlated. Exposure is not emitted-report gain.",
+    ]
+    for r in summary["summaries"]:
+        if r["label_group"] == "disputed_scope" and not r["evaluated_unique_pairs"]:
+            continue
+        lines.append(
+            f"{r['profile']} | {r['arm']} | {r['label_group']}: {r['evaluated_unique_pairs']} unique pairs; new funded{len(r['new_funded_pairs'])}, lost{len(r['lost_funded_pairs'])}; families +{r['family_gains']}/-{r['family_losses']}."
+        )
+    lines.append(
+        "Separate declaration supplement (3 accepted positives,1 separate control): all arms fund2/3 positives under default and3/3 under balanced; MF-M02 is lost at same-file eligibility in default despite dense raw rank1 both directions. Sparse/protected fund the negative in both diagnostics; dense-only rejects it at its fixed cosine floor. Protected adds or loses no declaration gold pairs. Full raw scores/ranks/first losses and model-contracts ledgers remain in models/*/."
+    )
+    lines.append(
+        "Named sensitivity excludes the reopened exact CF-C02 pair: effective accepted binary inventory583; representation, floors and ledgers unchanged. Its negative summary cells are:"
+    )
+    for r in sensitivity["summaries"]:
+        if r["label_group"] == "negative":
+            lines.append(
+                f"exclude-reopened-CF-C02-v1 | {r['profile']} | {r['arm']}: {r['evaluated_unique_pairs']} negative pairs; added funded exposures{len(r['new_funded_pairs'])}, removed{len(r['lost_funded_pairs'])}."
+            )
+    lines += [
+        "",
+        "Original617 labels/results are preserved. A separate adjudication/exclude-reopened-CF-C02-v1 sensitivity removes the reopened exact pair from all fresh binary summaries while preserving raw scores/ranks and original labels. No model refits or tuning are induced by adjudication.",
+        "",
+        f"Span migration: shared helper SHA{migration['helper_sha256']}; {migration['actual_adapter_fixtures']} actual adapter cases pass. No vector refits or provider calls. Old results remain in span-migration/pre-helper-v1 and helper-v1/before. The receipt records native ambiguity counts and exact rank/floor/filter/funding deltas. Ambiguous frozen/native identities retain their vectors but cannot authorize funded source endpoints; unknown coordinates remain null and do not become one-line functions.",
+        "",
+        "Novel discovery scanned complete pinned OpenHands competitor source, with exact reviewed-pair exclusions and reverse-funding checks. The sealed novel-batch-v1 queue has12 diverse actually funded novel unordered pairs +4 independently matched topical control hypotheses. Blind source evidence is separate from private ranks/funding/selection. Queue, Candidate bodies/context/IDs and canonical Jev/Claude bindings are frozen; native-funding-validation.json validates16rows/32bindings. Root centrally observed3pairs (2novel+1control): CPUF1-01 Jevduplicate.61 versus Claudeseparate.05; CPUF1-04 separate.19/.05; CPUF1-14 separate.16/.03. All3 were funded and do not emit under the original direct-Claude settings;13 lack provider answers and remain unknown. Their actual central provider cost is$"
+        + str(novel["physical_root_usd_for_this_feed"])
+        + ". No provider agreement becomes accepted truth.",
+        "",
+        "Original pilot observations remain immutable in ../pilot-preserved. CPUE01 Jevdrifted.84 versus Claudeseparate.25 is disputed/related, controls CPUE02/03 separate; CPUE04 Jevdrifted.89 and Claudedrifted.80. The frozen original CPUE04 query is funded and emits at the original.80 threshold. Coordinator index-v2 independently accepts its narrow Windows-normalization operation as duplicate; CPUE02/03 are accepted negatives, CPUE01 is unaccepted. This authority is separately bound in coordinator-source-acceptance-binding-v1.json without relabeling data. Four-pair pilot central provider cost$"
+        + str(pilot["physical_root_usd_for_this_feed"])
+        + " is separate from intake. Root global intake48newcalls/$0.1088836 +6exactcachehits spans all methods; only$0.01526976 belongs to these selected CPU intake cases. Worker provider calls/cost remain0. Original-policy projections/first-loss and normal estimated charges are sealed separately from root synthetic intake.",
+        "",
+        "All cohorts are observed development/regression, including the known first-wave OCH01 balanced miss. Public pretrained weights can contain benchmark/source contamination; no independent holdout or broad significance claim. Firecrawl and Curator remain unseen. No enterprise data acquisition, production stores, adopter config, CI, packages in shared venv, credentials, publication or provider calls were changed. The earlier tiny panels support only limited pilot conclusions; this wider fixed-method result remains conditional on exact source availability and central independent source review.",
+        "",
+        "Execution receipt: a nullable drifted annotation interrupted a dry-lint summary after successful encoding; archived under execution-failures/nullable-drifted-summary-v1. The count now distinguishes True from unknown, preserving labels/per-row nulls and reusing completed vectors/policies. No algorithm, threshold, budget or provider change.",
+        "",
+        "Primary artifacts: coverage.json, coverage-rows.jsonl, coverage-denominators.jsonl, coverage-cohorts.jsonl, paired-rows.jsonl, paired-summary.json, paired-families.jsonl, resource-summary.json, ledger-summary.json, model-declaration-coverage.json, span-migration/helper-v1/migration-receipt-v1.json, novel-batch-v1/, HANDOFF.json. Reproduction uses commands.json and SHA256SUMS; all outputs stay in this worktree.",
+    ]
+    (HERE / "REPORT.txt").write_text("\n".join(lines) + "\n")
+    commands = {
+        "cwd": str(LAB.parent),
+        "environment": ENV,
+        "acquire": "Coordinator ran the exact reviewed .lab-results/acquire.py after worker DNS failure; see acquisition.json and root-relay-receipt.json. Do not reinstall shared runtime.",
+        "bootstrap": ENV + PY + " .lab-results/full-corpus/prepare_available.py",
+        "full_function_replication": ENV
+        + PY
+        + " .lab-results/full-corpus/run_full.py --prepare-rest --raw-sparse-all --reuse-completed",
+        "declaration_prepare_validate": ENV + PY + " .lab-results/full-corpus/models.py",
+        "declaration_encode": [
+            ENV + shlex.join([str(LAB / "venv/bin/python"), str(HERE / "encode.py"), folder])
+            for folder in json.loads((HERE / "model-supplement-ready.json").read_text())["folders"]
+        ],
+        "declaration_evaluate": ENV + PY + " .lab-results/full-corpus/models.py evaluate",
+        "actual_adapter_fixtures": ENV
+        + shlex.join(
+            [
+                PY,
+                "-c",
+                'import sys; sys.path.insert(0, ".lab-results/full-corpus"); import migrate_spans; migrate_spans.fixtures()',
+            ]
+        ),
+        "span_receipt": ENV + PY + " .lab-results/full-corpus/migration_receipt.py",
+        "novel_native_funding_binding_validation": ENV
+        + PY
+        + " .lab-results/full-corpus/validate_batch.py .lab-results/full-corpus/novel-batch-v1",
+        "intake_policy_replay": ENV
+        + PY
+        + " .lab-results/full-corpus/project_intake.py --output .lab-results/full-corpus/replay-intake",
+        "pilot_policy_replay": ENV
+        + PY
+        + " .lab-results/full-corpus/project_intake.py --pilot --output .lab-results/full-corpus/replay-pilot",
+        "summary": ENV + PY + " .lab-results/full-corpus/paired_summary.py",
+        "adjudication_sensitivity": ENV + PY + " .lab-results/full-corpus/adjudication_sensitivity.py",
+        "finalize": ENV + PY + " .lab-results/full-corpus/finalize.py",
+        "checks": "LAB_ROOT/retrieval/.venv/bin/ruff check .lab-results/full-corpus; LAB_ROOT/retrieval/.venv/bin/python -m compileall -q .lab-results/full-corpus .lab-results/experiment.py",
+    }
+    dump(HERE / "commands.json", commands)
+    # Hash inputs/outputs and implementations; skip mutable global body cache, venv, pycache and native text catalog.
+    hashes = {}
+    for path in sorted(HERE.rglob("*")):
+        if not path.is_file() or any(
+            part in ["__pycache__", "source-files", "shared-inputs"] for part in path.relative_to(HERE).parts
+        ):
+            continue
+        if path.suffix in [".log", ".sqlite3", ".npy"] or path.name in [
+            "SHA256SUMS",
+            "HANDOFF.json",
+            "finish-progress.json",
+        ]:
+            continue
+        hashes[str(path.relative_to(HERE))] = digest(path)
+    for c in resources:
+        if c["status"] == "complete":
+            f = run_full.folder_for(next(x for x in cohorts if x["cohort_id"] == c["cohort_id"]))
+            hashes[str((f / "embeddings.npy").relative_to(HERE))] = digest(f / "embeddings.npy")
+    for f in map(Path, json.loads((HERE / "model-supplement-ready.json").read_text())["folders"]):
+        hashes[str((f / "embeddings.npy").relative_to(HERE))] = digest(f / "embeddings.npy")
+    (HERE / "SHA256SUMS").write_text("".join(v + "  " + k + "\n" for k, v in sorted(hashes.items())))
+    handoff = {
+        "schema": 1,
+        "status": "all_locally_source_compatible_cohorts_processed_exact_source_exceptions_and_central_review_pending",
+        "cwd": str(LAB.parent),
+        "source_main": "15567ee22a662208e8e6ad66b2439c10c08584cf",
+        "report": str(HERE / "REPORT.txt"),
+        "shared_index": str(run_full.SHARED),
+        "shared_receipt_sha256": digest(run_full.SHARED / "index-ready.json"),
+        "parent_experiment_sha256": digest(LAB / "EXPERIMENT.json"),
+        "full_experiment_sha256": digest(HERE / "EXPERIMENT.json"),
+        "model_supplement_experiment_sha256": digest(HERE / "MODEL-SUPPLEMENT-EXPERIMENT.json"),
+        "function_coverage": {
+            k: coverage[k]
+            for k in [
+                "records",
+                "accepted_binary_rows",
+                "rows_supported_function",
+                "rows_mapped",
+                "rows_evaluated",
+                "rows_unevaluated",
+            ]
+        },
+        "declarations": model_coverage,
+        "exact_source_exception_backgrounds": len(exceptions["exceptions"]),
+        "novel_queue": str(HERE / "novel-batch-v1/novel-review-queue.jsonl"),
+        "novel_queue_sha256": digest(HERE / "novel-batch-v1/novel-review-queue.jsonl"),
+        "blind_source_packet": str(HERE / "novel-batch-v1/novel-reviewer-packet-blind.jsonl"),
+        "private_funding_sidecar": str(HERE / "novel-batch-v1/novel-review-sidecar-private.jsonl"),
+        "native_funding_validator": str(HERE / "validate_batch.py"),
+        "judge_contract": str(HERE / "novel-batch-v1/judge-contract.json"),
+        "span_migration_receipt": str(HERE / "span-migration/helper-v1/migration-receipt-v1.json"),
+        "commands": str(HERE / "commands.json"),
+        "hashes": hashes,
+        "pilot_originals": str(LAB / "pilot-preserved"),
+        "policy_freezes": [
+            str(HERE / "pilot-policy-v1/POLICY-FREEZE-v1.json"),
+            str(HERE / "novel-batch-v1/POLICY-FREEZE-v1.json"),
+        ],
+        "root_remaining_work": "Central independent source review/acceptance for selected intake and any allocation for13unobserved queued cases. No worker providers/new policy tuning authorized. Exact missing source pins may be supplied for separately named completion; no snippet fallback.",
+        "body_cache_snapshot": [
+            {"path": str(path), "sha256": digest(path), "bytes": path.stat().st_size}
+            for path in HERE.glob("body-cache-*.sqlite3")
+        ],
+        "worker_provider_calls": 0,
+        "worker_physical_usd": 0,
+        "gold_labels_manually_changed": 0,
+        "production_files_changed": 0,
+    }
+    dump(HERE / "HANDOFF.json", handoff)
+    dump(
+        LAB / "HANDOFF.json",
+        {
+            "schema": 1,
+            "status": handoff["status"],
+            "current_handoff": str(HERE / "HANDOFF.json"),
+            "report": str(HERE / "REPORT.txt"),
+            "preserved_pilot_handoff": str(LAB / "pilot-preserved/HANDOFF.json"),
+            "commands": str(HERE / "commands.json"),
+            "hash_manifest": str(HERE / "SHA256SUMS"),
+            "worker_provider_calls": 0,
+        },
+    )
+    (LAB / "REPORT.txt").write_text((HERE / "REPORT.txt").read_text())
+    print(
+        "FINALIZED",
+        coverage["rows_evaluated"],
+        "function records and",
+        sum(m["evaluated_gold_rows"] for m in model_coverage),
+        "declaration rows;",
+        len(exceptions["exceptions"]),
+        "source exception backgrounds;",
+        len(hashes),
+        "artifact hashes",
+    )
+
+
+if __name__ == "__main__":
+    main()

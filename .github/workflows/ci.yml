@@ -49,11 +49,21 @@ jobs:
           6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452  onnx/model.onnx
           be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037  tokenizer.json
           SUMS
+      # The dryer extra's tree-sitter-language-pack fetches parsers from GitHub release assets the first time a test
+      # parses a language, and those downloads return 504 during release-host outages. The Actions cache is a separate
+      # service, so a warm cache keeps the tests off the release host. The key follows the locked package version.
+      - name: Restore tree-sitter parsers
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/tree-sitter-language-pack
+          key: tree-sitter-language-pack-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: tree-sitter-language-pack-${{ runner.os }}-
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync ruff format --check .
       - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
         env:
           DRY_LINT_TEST_MINILM_DIR: ${{ runner.temp }}/minilm
+          TREE_SITTER_LANGUAGE_PACK_CACHE_DIR: ${{ runner.temp }}/tree-sitter-language-pack
       - run: uv build
       - name: Default install stays lightweight
         run: >-

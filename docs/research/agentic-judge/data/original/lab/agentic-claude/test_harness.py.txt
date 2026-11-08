@@ -1,0 +1,216 @@
+"""Offline safety/protocol tests, with actual temporary git objects and fake SDK messages."""
+import copy
+import gzip
+import json
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import harness as h
+
+
+class Message:
+    def __init__(self, response):
+        self.response = response
+
+    def model_dump(self, mode):
+        assert mode == 'json'
+        return copy.deepcopy(self.response)
+
+
+class FakeClient:
+    def __init__(self, responses):
+        self.responses = iter(responses)
+        self.requests = []
+        self.messages = self
+
+    def create(self, **request):
+        self.requests.append(copy.deepcopy(request))
+        value = next(self.responses)
+        if isinstance(value, Exception):
+            raise value
+        return Message(value)
+
+
+def response(content, stop='end_turn', usage=True):
+    result = {'model': h.MODEL, 'content': content, 'stop_reason': stop}
+    if usage:
+        result['usage'] = {'input_tokens': 1000, 'output_tokens': 100,
+                           'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 0}
+    return result
+
+
+def final(uncertain=False, **changes):
+    d = {'label': 'duplicate', 'score': .9, 'owner': 'shared', 'why': 'Both repeat the same pinned operation.',
+         'uncertainty': uncertain, 'missing_evidence': [],
+         'citations': [{'evidence_id': 'initial:new', 'start_line': 3, 'end_line': 4}]}
+    d.update(changes)
+    return response([{'type': 'text', 'text': json.dumps(d)}])
+
+
+class HarnessTests(unittest.TestCase):
+    def setUp(self):
+        temp_root = h.HERE / 'test-tmp'
+        temp_root.mkdir(exist_ok=True)
+        self.temp = tempfile.TemporaryDirectory(dir=temp_root)
+        self.base = Path(self.temp.name)
+        self.repo = self.base / 'source'
+        self.repo.mkdir()
+        self.git('init', '-q')
+        (self.repo / 'a.py').write_text('from .b import shared as alias\n\ndef first(x):\n    return alias(x)\n')
+        (self.repo / 'b.py').write_text('def shared(x):\n    return x + 1\n\ndef caller(x):\n    return shared(x)\n')
+        (self.repo / 'c.ts').write_text('import { shared } from "./b";\nexport function main(x: number) { return shared(x); }\n')
+        (self.repo / 'enterprise').mkdir()
+        (self.repo / 'enterprise/no.py').write_text('def forbidden():\n    return 1\n')
+        (self.repo / 'secret.py').write_text('api_key = "sk-ant-' + 'x' * 40 + '"\n')
+        (self.repo / 'link.py').symlink_to('/etc/passwd')
+        self.git('add', '.')
+        self.git('-c', 'user.name=Offline', '-c', 'user.email=offline@example.invalid', 'commit', '-qm', 'snapshot')
+        self.pin = self.git('rev-parse', 'HEAD').strip()
+        self.cfg = {'repository': 'fixture/repo', 'revision': self.pin, 'git': str(self.repo)}
+        self.candidate = {'new': {'path': 'a.py', 'line': 3, 'end_line': 4, 'name': 'first', 'owner': None,
+                                  'code': 'def first(x):\n    return alias(x)'},
+                          'existing': {'path': 'b.py', 'line': 1, 'end_line': 2, 'name': 'shared', 'owner': None,
+                                       'code': 'def shared(x):\n    return x + 1'}}
+        self.scope = ['a.py', 'b.py', 'c.ts', 'secret.py', 'enterprise/no.py', 'link.py']
+        self.source = h.SourceTools(self.cfg, self.candidate, self.scope)
+        self.item = {'id': 'FIXTURE', 'split': 'trace_learning', 'candidate': self.candidate,
+                     'source_config': self.cfg, 'request_key': 'offline-fixture', 'request_identity': {},
+                     'source': [{'side': 'new', 'path': 'a.py', 'line': 3, 'end_line': 4},
+                                {'side': 'existing', 'path': 'b.py', 'line': 1, 'end_line': 2}],
+                     'rendered_body_only_prompt': 'Untrusted pinned bodies; no outcomes.'}
+        self.item['initial_request'] = h.initial_request(self.item)
+        self.ledger_path = self.base / 'ledger.json'
+        h.save(self.ledger_path, {'schema': 1, 'limit_usd': 1., 'halted': False, 'entries': []})
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def git(self, *args):
+        return subprocess.check_output(['/usr/bin/git', '-C', str(self.repo), *args], text=True, stderr=subprocess.DEVNULL)
+
+    def run_fake(self, responses):
+        client = FakeClient(responses)
+        with patch.object(h, 'validate_item', return_value=self.source):
+            result = h.run_case(self.item, self.base / 'out', client, h.SharedBudget(self.ledger_path))
+        return result, client
+
+    def test_exact_pin_not_worktree_or_future(self):
+        (self.repo / 'a.py').write_text('WORKTREE CONTENT MUST NEVER APPEAR')
+        result = self.source.call('read_source', {'path': 'a.py', 'start_line': 1, 'end_line': 4})
+        self.assertIn('return alias(x)', result['code'])
+        self.assertEqual(result['revision'], self.pin)
+        self.assertNotIn('WORKTREE', json.dumps(result))
+        self.assertTrue(self.source.call('read_source', {'path': 'a.py', 'start_line': 1, 'end_line': 4,
+                                                       'revision': 'f' * 40})['unknown'])
+
+    def test_paths_secrets_symlinks_enterprise_and_unknown_tools_denied(self):
+        for path in ['/etc/passwd', '../a.py', 'x/../a.py', 'enterprise/no.py', 'link.py', '.env',
+                     'reports/labels.py', 'a.py\x00', '-a.py', 'a.py:HEAD', 'a\\b.py']:
+            with self.subTest(path=path):
+                self.assertTrue(self.source.call('read_source', {'path': path, 'start_line': 1, 'end_line': 2})['unknown'])
+        self.assertTrue(self.source.call('read_source', {'path': 'secret.py', 'start_line': 1, 'end_line': 1})['unknown'])
+        self.assertTrue(self.source.call('shell', {'command': 'cat /etc/passwd'})['unknown'])
+        self.assertNotIn('enterprise/no.py', self.source.allowed)
+        self.assertNotIn('link.py', self.source.allowed)
+
+    def test_symbols_imports_and_references_are_static_and_bounded(self):
+        self.assertEqual(self.source.call('read_symbol', {'path': 'a.py', 'symbol': 'first'})['start_line'], 3)
+        ts = self.source.call('read_symbol', {'path': 'c.ts', 'symbol': 'main'})
+        self.assertIn('function main', ts['code'])
+        imports = self.source.call('inspect_imports', {'path': 'a.py'})
+        self.assertEqual(imports['imports'][0]['resolved_paths'], ['b.py'])
+        refs = self.source.call('find_references', {'symbol': 'shared', 'path_prefix': '', 'limit': 1})
+        self.assertEqual(len(refs['matches']), 1)
+        self.assertTrue(refs['absence_is_not_proof'])
+        self.assertIn('unknown', refs['matches'][0]['reference_kind'])
+
+    def test_line_byte_total_and_argument_caps(self):
+        for args in [{'path': 'a.py', 'start_line': 0, 'end_line': 2},
+                     {'path': 'a.py', 'start_line': 2, 'end_line': 1},
+                     {'path': 'a.py', 'start_line': True, 'end_line': 2}]:
+            self.assertTrue(self.source.call('read_source', args)['unknown'])
+        self.assertTrue(self.source.call('find_references', {'symbol': 'shared.*', 'path_prefix': ''})['unknown'])
+        self.assertTrue(self.source.call('find_references', {'symbol': 'shared', 'path_prefix': '../'})['unknown'])
+        self.source.returned_chars = h.LIMITS['returned_chars']
+        self.assertEqual(self.source.call('read_source', {'path': 'a.py', 'start_line': 1, 'end_line': 2})['error'],
+                         'tool_result_or_total_output_cap')
+
+    def test_durable_tool_protocol_and_citations(self):
+        request = response([{'type': 'tool_use', 'id': 'tool-1', 'name': 'read_source',
+                             'input': {'path': 'a.py', 'start_line': 1, 'end_line': 4}}], 'tool_use')
+        result, client = self.run_fake([request, final()])
+        self.assertEqual(result['status'], 'complete')
+        self.assertEqual(result['provider_calls'], 2)
+        self.assertTrue(result['reported'])
+        self.assertEqual(client.requests[1]['messages'][-1]['content'][0]['type'], 'tool_result')
+        events = h.lines(self.base / 'out/FIXTURE/events.jsonl')
+        kinds = [e['kind'] for e in events]
+        self.assertLess(kinds.index('after_provider'), kinds.index('before_tool'))
+        previous = '0' * 64
+        for e in events:
+            self.assertEqual(e['previous_sha256'], previous)
+            value = e.pop('event_sha256')
+            self.assertEqual(value, h.sha(e))
+            previous = value
+
+    def test_capped_malformed_uncertain_and_bad_citations_stay_unknown(self):
+        for resp in [response([{'type': 'text', 'text': '{}'}], 'max_tokens'),
+                     response([{'type': 'text', 'text': '{}'}]),
+                     final(citations=[{'evidence_id': 'future', 'start_line': 1, 'end_line': 2}]),
+                     final(score=float('nan'))]:
+            decision, status = h.final_decision(resp, self.source)
+            self.assertIsNone(decision)
+        decision, status = h.final_decision(final(True), self.source)
+        self.assertEqual(status, 'uncertain')
+        self.assertIsNotNone(decision)
+
+    def test_tool_cap_is_unknown_without_another_call(self):
+        request = response([{'type': 'tool_use', 'id': 'tool-1', 'name': 'read_source',
+                             'input': {'path': '../a.py', 'start_line': 1, 'end_line': 4}}], 'tool_use')
+        result, client = self.run_fake([request, final()])
+        self.assertEqual(result['status'], 'tool_error_or_cap')
+        self.assertIsNone(result['reported'])
+        self.assertEqual(len(client.requests), 1)
+
+    def test_exception_retains_reservation_and_has_no_retry_or_secret_log(self):
+        result, client = self.run_fake([RuntimeError('SECRET MUST NOT BE LOGGED')])
+        self.assertIsNone(result['cost_usd'])
+        self.assertEqual(result['provider_calls'], 1)
+        ledger = h.load_json(self.ledger_path)
+        self.assertTrue(ledger['halted'])
+        self.assertIsNone(ledger['entries'][0]['charged_usd'])
+        self.assertNotIn('SECRET', (self.base / 'out/FIXTURE/events.jsonl').read_text())
+        self.assertEqual(len(client.requests), 1)
+
+    def test_shared_budget_includes_external_job_and_uncertain_usage(self):
+        h.save(self.ledger_path, {'schema': 1, 'limit_usd': 1., 'halted': False,
+                                'entries': [{'key': 'Jev', 'reserved_usd': .99, 'charged_usd': None}]})
+        result, client = self.run_fake([final()])
+        self.assertEqual(result['status'], 'shared_budget_deferred')
+        self.assertEqual(len(client.requests), 0)
+        self.assertIsNone(h.usage_cost(response([], usage=False)))
+        resp = response([])
+        resp['usage']['cache_read_input_tokens'] = 1
+        self.assertIsNone(h.usage_cost(resp))
+        resp = response([])
+        resp['model'] = 'another-model'
+        self.assertIsNone(h.usage_cost(resp))
+
+    def test_round_cap_and_changed_identity(self):
+        req = response([{'type': 'tool_use', 'id': 'tool-1', 'name': 'list_paths', 'input': {'query': 'a.py'}}], 'tool_use')
+        result, client = self.run_fake([req] * h.LIMITS['rounds'])
+        self.assertEqual(result['status'], 'round_cap')
+        self.assertIsNone(result['reported'])
+        self.assertEqual(len(client.requests), h.LIMITS['rounds'])
+        item = {**self.item, 'candidate_sha256': 'candidate', 'source_identity_sha256': 'source'}
+        identity = h.request_identity(item)
+        other = copy.deepcopy(item)
+        other['rendered_body_only_prompt'] += ' new context'
+        self.assertNotEqual(identity, h.request_identity(other))
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

@@ -1,0 +1,45 @@
+"""Reference adapter for the exact measured protected allocation; no model or judge.
+
+Root can import this into integration. lookup(query, excluded_keys, limit) must
+apply exclusion BEFORE its top-k limit. For blocks it also applies the published
+core guard before that limit. Existing TF-IDF20 belongs in complete_prefix.
+"""
+from collections.abc import Callable, Sequence
+from dry_lint.models import Candidate, Function
+
+Lookup = Callable[[Function, frozenset[str], int], Sequence[Candidate]]
+
+
+def protected_channels(
+    changed: Sequence[Function],
+    complete_prefix: Sequence[Candidate],
+    channels: Sequence[Lookup],
+    *,
+    extra_cap: int = 2,
+) -> list[Candidate]:
+    """Preserve full prefix; query-major round-robin, at most2 total new pairs/query."""
+    if not 0 <= extra_cap <= 2:
+        raise ValueError('This measured policy permits zero to two total extras per query.')
+    result = list(complete_prefix)
+    seen = {c.key for c in complete_prefix}
+    for query in changed:
+        streams = [iter(lookup(query, frozenset(seen), extra_cap)) for lookup in channels]
+        exhausted: set[int] = set()
+        admitted = turn = 0
+        while admitted < extra_cap and len(exhausted) < len(streams):
+            i = turn % len(streams)
+            turn += 1
+            if i in exhausted:
+                continue
+            for candidate in streams[i]:
+                if candidate.new.qualname != query.qualname:
+                    raise ValueError('Channel yielded a candidate for a different changed function.')
+                if candidate.key in seen:
+                    continue
+                seen.add(candidate.key)
+                result.append(candidate.model_copy(update={'lane': 'exploration'}))
+                admitted += 1
+                break
+            else:
+                exhausted.add(i)
+    return result

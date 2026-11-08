@@ -1,0 +1,72 @@
+import copy
+import json
+import unittest
+
+from evaluate_followup import digest, parse_response, validate_observation
+
+
+class FollowupScoringTests(unittest.TestCase):
+    def setUp(self):
+        self.q = {'kind': 'claude', 'model': 'claude-sonnet-5-5',
+                  'identity': {'canonical_request_sha256': 'request', 'source_sha256': 'source'},
+                  'wire_sha256': 'wire'}
+        self.raw = {'model': self.q['model'], 'stop_reason': 'end_turn', 'content': [{'type': 'text', 'text': json.dumps({
+            'label': 'duplicate', 'score': .9, 'owner': 'shared', 'why': 'Synthetic paired scorer fixture.'})}]}
+        self.o = {'identity': self.q['identity'], 'request_sha256': 'request', 'sent_wire_sha256': 'wire',
+                  'fresh': True, 'http_status': 200, 'error': None, 'raw_response': self.raw,
+                  'output_sha256': digest(self.raw), 'physical_cost_usd': .003, 'seconds': 1.}
+
+    def test_fresh_exact_answer_and_missing_or_duplicate_observations(self):
+        self.assertTrue(validate_observation(self.q, [self.o])['reported'])
+        self.assertIsNone(validate_observation(self.q, [])['reported'])
+        self.assertIsNone(validate_observation(self.q, [self.o, self.o])['reported'])
+
+    def test_identity_wire_output_and_model_mismatches_remain_unknown(self):
+        for field in ('identity', 'request_sha256', 'sent_wire_sha256', 'output_sha256'):
+            o = copy.deepcopy(self.o)
+            o[field] = 'wrong'
+            self.assertIsNone(validate_observation(self.q, [o])['reported'])
+        o = copy.deepcopy(self.o)
+        o['raw_response']['model'] = 'different'
+        o['output_sha256'] = digest(o['raw_response'])
+        self.assertIsNone(validate_observation(self.q, [o])['reported'])
+
+    def test_cap_and_missing_actual_cost_remain_unknown(self):
+        o = copy.deepcopy(self.o)
+        o['raw_response']['stop_reason'] = 'max_tokens'
+        o['output_sha256'] = digest(o['raw_response'])
+        self.assertIsNone(validate_observation(self.q, [o])['reported'])
+        o = copy.deepcopy(self.o)
+        o['physical_cost_usd'] = None
+        self.assertIsNone(validate_observation(self.q, [o])['reported'])
+
+    def test_explicit_uncertainty_is_never_promoted(self):
+        raw = copy.deepcopy(self.raw)
+        obj = json.loads(raw['content'][0]['text'])
+        obj['uncertainty'] = True
+        raw['content'][0]['text'] = json.dumps(obj)
+        o = {**self.o, 'raw_response': raw, 'output_sha256': digest(raw)}
+        result = validate_observation(self.q, [o])
+        self.assertEqual(result['status'], 'uncertain')
+        self.assertIsNone(result['reported'])
+
+    def test_nontext_payload_opaque_and_required_answer_fields_preserved(self):
+        class Opaque(dict):
+            def __getitem__(self, key):
+                raise AssertionError('Opaque payload accessed')
+        raw = copy.deepcopy(self.raw)
+        raw['content'].insert(0, Opaque(type='thinking'))
+        self.assertEqual(parse_response(self.q, raw)[0]['label'], 'duplicate')
+        raw = copy.deepcopy(self.raw)
+        raw['content'][0]['text'] = '{"label":"duplicate"}'
+        with self.assertRaises(ValueError):
+            parse_response(self.q, raw)
+
+    def test_jev_missing_typed_answers_remain_unknown(self):
+        q = {'kind': 'jev', 'request_body': {'questions': {}}, 'model_version': 'fixture'}
+        with self.assertRaises(KeyError):
+            parse_response(q, {'answers': {}})
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

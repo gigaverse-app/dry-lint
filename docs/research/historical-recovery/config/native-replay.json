@@ -1,0 +1,22 @@
+{
+  "model": "claude-sonnet-5-5",
+  "historical_output": 8000,
+  "protected_output": 2048,
+  "report_at": 0.6,
+  "calls_per_revision": {
+    "historical": 10,
+    "protected": 3
+  },
+  "calls_per_PR": 40,
+  "primary_dollars_per_revision": 0.04,
+  "primary_dollars_per_PR": 0.04,
+  "sensitivity_dollars_per_revision": 0.15,
+  "sensitivity_dollars_per_PR": 0.5,
+  "protected_baseline_calls": 20,
+  "protected_baseline_fraction": 0.5,
+  "protected_exploration_calls_per_revision": 1,
+  "input_dollars_per_million": 2,
+  "output_dollars_per_million": 10,
+  "cache_creation_multiplier": 1.25,
+  "cache_read_multiplier": 0.1
+}

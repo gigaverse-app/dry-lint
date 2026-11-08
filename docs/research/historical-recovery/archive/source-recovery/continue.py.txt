@@ -1,0 +1,92 @@
+# PUBLICATION COPY: private lab roots/identities redacted; algorithm otherwise unchanged.
+"""Fresh ordinal-0 counterfactual replay with validated diagnostic response overlay."""
+import json,sys,tempfile
+from pathlib import Path
+from collections import defaultdict
+import handoff as a
+import provider
+import h02_support as h
+from dry_lint.models import Candidate,Run,CandidatesFile,Verdict
+from dry_lint.judging import Judging
+from dry_lint.discovery import CampaignStore
+from dry_lint.settings import Settings
+I=Path('/PRIVATE_LAB_ROOT/research-corpus/history-inputs')
+def historical():
+ answers={};bindings=defaultdict(set);s=a.settings();j=h.OfflineJudge(s,{})
+ for cohort in ['frozen','regression']:
+  for p in (I/'production-discovery'/cohort/'answers').glob('*.json'):answers[p.stem]=a.read(p)
+  for p in (I/'production-discovery'/cohort/'captures').glob('*/*.json'):
+   if p.name=='manifest.json':continue
+   raw=a.read(p)
+   if 'candidates' not in raw:continue
+   if Settings.model_validate(a.read(p.parent/'manifest.json')['settings']).model_dump(mode='json')!=s.model_dump(mode='json'):continue
+   for c in CandidatesFile.model_validate(raw).candidates:bindings[j.key(c)].add(h.digest(j.stamp(c)))
+ for p in (I/'protected-trial/answers').glob('*.json'):answers.setdefault(p.stem,a.read(p))
+ return answers,bindings
+class ProtectedCampaign(CampaignStore):
+ def order(self,cs):return super().order([c for c in cs if c.key in self.protected_keys])+super().order([c for c in cs if c.key not in self.protected_keys])
+def validate_frozen_inputs():
+ for path,expected in a.read(a.O/'frozen-replay-inputs.json').items():
+  assert h.sha(Path(path).read_bytes())==expected,'frozen_replay_input_changed: '+path
+ provenance=a.read(a.O/'implementation-provenance.json')
+ for path,expected in provenance['source_sha256'].items():
+  assert h.sha((a.ROOT/path).read_bytes())==expected,'production_implementation_changed: '+path
+ return True
+class ProvenanceJudge(h.OfflineJudge):
+ def judge(self,candidates,settings):
+  start=len(self.events)
+  try:return super().judge(candidates,settings)
+  finally:
+   for event in self.events[start:]:
+    row=self.answers.get(event['question_key'],{})
+    event['observation_provenance']=row.get('observation_provenance',{'kind':'historical_exact_cache'} if row else {'kind':'unknown'})
+
+def replay(answers,bindings,out,s=None,seed_store=None):
+ """Production replay; optional fixture seeding is used only by temporary offline tests."""
+ out=Path(out);s=s or a.settings();curves=[];summaries={}
+ for arm in ['current20','protected_half_name']:
+  j=ProvenanceJudge(s,answers);j.bindings=bindings;store=h.StrictStore(out/arm/'verdicts',j);censored=False;reports={};known=0
+  if seed_store:seed_store(arm,store,j)
+  for ordinal in range(8):
+   pk=a.packet(ordinal);delta=a.read(a.O/'candidate-deltas.json')[ordinal];n=sum(delta['current_counts'].values());allcs=[Candidate.model_validate(c) for c in pk['candidates']];current=allcs[:n];pool=current if arm=='current20' else allcs
+   run=Run(repository=pk['run']['repository'],pull_request=7001,base=pk['run']['base'],head=pk['run']['head'],revision=a.git('rev-parse',pk['run']['head']+'^{tree}'))
+   campaign=ProtectedCampaign(out/arm/'ledger.sqlite3',run);campaign.protected_keys={c.key for c in current};error=None;findings=[]
+   if not censored:
+    judging=Judging(s,j,None,store);judging.campaign=campaign
+    try:findings=judging.findings(pool,run)
+    except h.CensoredReplay as exc:censored=True;error=str(exc)
+   for finding in findings:
+    if finding.verdict:known+=1
+    if finding.reported:reports[j.key(finding.candidate)]=finding.candidate.key
+   state=campaign.snapshot();assert state.usd<=.04
+   h.dump(out/arm/f'campaign-{ordinal}.json',state.model_dump(mode='json'))
+   curves.append(dict(arm=arm,ordinal=ordinal,censored=censored,error=error,accounted_usd=state.usd,observed_usage_usd=sum(e['observed_usd'] or 0 for e in j.events),retained_unknown_reservation_usd=sum(at.usd for at in state.attempts if at.status!='answered')-sum(e['observed_usd'] or 0 for e in j.events if e['status']=='observed_failure'),cap=.04,physical_local_provider_calls=0))
+  h.dump(out/arm/'observations.json',j.events)
+  available={event['question_key']:event['verdict'] for event in [*store.lookups,*j.events] if event.get('verdict') is not None}
+  above={key:v for key,v in available.items() if s.duplicate_at(Verdict.model_validate(v),s.report_at)}
+  summaries[arm]=dict(censored=censored,admitted_unknown=sum(e['status']=='admitted_unknown' for e in j.events),known_verdict_occurrences=len(available),returned_known_findings_occurrences=known,known_above_threshold_questions=above,observed_answer_questions={e['question_key']:dict(verdict=e['verdict'],provenance=e['observation_provenance']) for e in j.events if e.get('verdict') is not None},reported_questions=reports,observed_usage_usd=curves[-1]['observed_usage_usd'],accounted_usd=curves[-1]['accounted_usd'],retained_unknown_reservation_usd=curves[-1]['retained_unknown_reservation_usd'],cap=.04)
+ h.dump(out/'curves.json',curves);h.dump(out/'summary.json',summaries)
+ return curves,summaries
+
+def main():
+ validate_frozen_inputs()
+ before={str(p):h.sha(p.read_bytes()) for arm in ['current20','protected_half_name'] for p in (a.O/arm).rglob('*') if p.is_file()}
+ old,bindings=historical();old_digest=h.digest(old)
+ overlay,newbindings=provider.load_new_responses(old);assert h.digest(old)==old_digest
+ for key,values in newbindings.items():
+  if key in overlay:bindings[key]=values
+ answers=dict(old);answers.update(overlay)
+ base=a.O/'continuations';base.mkdir(exist_ok=True);out=Path(tempfile.mkdtemp(prefix='run-',dir=base))
+ curves,summaries=replay(answers,bindings,out)
+ assert before=={str(p):h.sha(p.read_bytes()) for arm in ['current20','protected_half_name'] for p in (a.O/arm).rglob('*') if p.is_file()},'original ledgers/cache changed'
+ h.dump(out/'provenance.json',dict(response_path=str(a.PUBLISHED),historical_answers_sha256=old_digest,diagnostic_observations=len(overlay),fresh_separate_ledgers=True,first_ordinal=0,physical_provider_calls=0))
+ h.dump(a.O/'continuation-latest.json',dict(path=str(out),diagnostic_observations=len(overlay),curves=curves,arms=summaries))
+ queue=a.export(out)
+ h.dump(a.O/'summary-latest.json',dict(experiment='H05',reference_authorship='model-authored source-bound reference judgments (Codex before viewing live verdicts)',reference_provenance='label-provenance.json',full_revisions=8,latest_replay=str(out),diagnostic_observations=len(overlay),arms=summaries,pending_request_keys=[r['answer_key'] for r in queue],request_history=len((a.P/'request-history.jsonl').read_text().splitlines()),provider_calls=0,source_exact_candidate_labels={arm:m['source_exact_candidate_labels'] for arm,m in a.read(a.O/'verified-result.json')['metrics'].items()}))
+ latest=a.read(a.O/'summary-latest.json')
+ lines=['# Latest H05 iterative continuation','', 'Replay: `'+str(out)+'`', '', 'All eight revisions replayed from ordinal 0, fresh separate ledgers. Diagnostic observations: '+str(len(overlay))+'. No worker provider calls. Historical files and baseline ledgers are unchanged.','', '| Arm | Observed usage USD | Retained unknown reservation USD | Accounted USD | Admitted unknown | Cap |','| --- | --- | --- | --- | --- | --- |']
+ for arm,st in summaries.items():lines.append(f"| {arm} | {st['observed_usage_usd']:.7f} | {st['retained_unknown_reservation_usd']:.7f} | {st['accounted_usd']:.7f} | {st['admitted_unknown']} | 0.04 |")
+ lines+=['','Pending first-funded frontier keys: '+', '.join('`'+r['answer_key']+'`' for r in queue)+'.','Append-only request-history contracts: '+str(latest['request_history'])+'. Original published c96f9870… contract remains valid.','', 'Source-exact candidate labels remain model-authored source-bound reference judgments (Codex); additions are outside the floor-qualified pool (raw ranks 3/4), not beyond raw rank 20. Missing observations remain unknown; judged retention is unresolved.','', 'See `summary-latest.json`, `provider-staging/requests.jsonl`, immutable `provider-staging/frozen-funding/`, and full per-revision artifacts in the latest replay directory.']
+ (a.O/'LATEST.md').write_text('\n'.join(lines)+'\n')
+ print(out)
+if __name__=='__main__':main()

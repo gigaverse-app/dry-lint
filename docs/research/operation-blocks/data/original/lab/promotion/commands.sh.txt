@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Offline validation commands; do not execute providers or modify the sealed review queues.
+set -eu
+cd LAB_ROOT/jobs/experiment-operation-blocks
+TASK_PYTHON=LAB_ROOT/retrieval/.venv/bin/python
+TASK_RUFF=LAB_ROOT/retrieval/.venv/bin/ruff
+export PYTHONPATH="$PWD/src" PYTHONDONTWRITEBYTECODE=1
+export UV_CACHE_DIR=/tmp/operation-blocks-uv-cache
+export OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2 RAYON_NUM_THREADS=1
+"$TASK_RUFF" check src tests
+"$TASK_RUFF" format --check src tests
+"$TASK_PYTHON" -m pytest -q -k 'not test_fetch_replaces_inherited_auth_headers_without_persisting_token and not test_trial_cli_scores_every_variant_on_a_real_repository' --cov=dry_lint --cov-report=term
+# The sealed comparison ran once using compare_frozen.py. Consult comparison.json;
+# do not rerun it into sealed filenames (timings intentionally differ).
+# Root already applied milestone v1: apply incremental-from-milestone-v1.patch.
+# Otherwise import production.patch with git am, or use production.bundle.

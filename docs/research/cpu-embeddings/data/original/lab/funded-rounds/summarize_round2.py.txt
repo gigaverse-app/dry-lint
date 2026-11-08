@@ -1,0 +1,27 @@
+"""Summarize fixed cached regressions; descriptive family-cluster uncertainty only."""
+import collections
+import hashlib
+import json
+from pathlib import Path
+import random
+R=Path(__file__).resolve().parent/'round2';LAB=R.parent.parent
+read=lambda p:[json.loads(x) for x in p.open()]
+a=read(LAB/'promotion/default3/production-paired-rows.jsonl');b=read(R/'regression/production-paired-rows.jsonl')
+key=lambda r:(r['cohort_id'],r['row_id'])
+old={key(r):r for r in a};assert set(old)=={key(r) for r in b}
+unique={}
+for r in b:unique.setdefault((r['cohort_id'],r['pair_id']),r)
+family=collections.defaultdict(lambda:collections.defaultdict(int));paired=[]
+for r in unique.values():
+ before=old[key(r)];assert before['control_retrieved']==r['control_retrieved']
+ label=r['label'];accepted=r['accepted_gold'];direction=int(r['protected_retrieved'])-int(before['protected_retrieved'])
+ row={k:r[k] for k in ['row_id','cohort_id','family_id','repository','revision','pair_id','source_ids','native_spans','dense_raw_score','label','accepted_gold']};row.update(baseline=r['control_retrieved'],round1=before['protected_retrieved'],round2=r['protected_retrieved'],direction=direction,emission=None);paired.append(row)
+ if accepted:
+  f=family[(r['repository'],r['family_id'])];f[label+'_pairs']+=1;f[label+'_new']+=int(direction>0);f[label+'_lost']+=int(direction<0)
+rng=random.Random(20261107);groups=list(family.values());interval={}
+for label in ['duplicate','separate']:
+ samples=sorted(sum((g[label+'_new']-g[label+'_lost']) for g in rng.choices(groups,k=len(groups))) for _ in range(2000));interval[label]={'family_cluster_net_pair_change_p025':samples[50],'p975':samples[1950]}
+(R/'regression/method-paired-deltas.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in paired))
+(R/'regression/family-paired-deltas.jsonl').write_text(''.join(json.dumps({'repository':k[0],'family_id':k[1],**v},sort_keys=True)+'\n' for k,v in sorted(family.items(),key=lambda x:(x[0][0],str(x[0][1])))))
+summary=json.loads((R/'regression/production-summary.json').read_text());summary['versus_round1_narrow']={l:{'new':sum(r['accepted_gold'] and r['label']==l and r['direction']>0 for r in paired),'lost':sum(r['accepted_gold'] and r['label']==l and r['direction']<0 for r in paired),**interval[l]} for l in ['duplicate','separate']};summary['uncertainty']='2000 family-cluster resamples seed20261107 over fixed observed development/regression records; no fresh holdout claim.';summary['supported_inventory']={'shared_records':617,'full_backgrounds':79,'source_compatible_backgrounds':16,'function_records':207,'model_declarations_absent_from_original_function_background':4,'background_source_exceptions':63};summary['model_scope_note']='The shared function backgrounds omit four model declarations. Those rows retain the exact separate-model-inventory-required status; this is not evidence that the encoder is incompatible with model bodies. This preregistered production function-background comparison does not merge in another extraction scope.';summary['representation']='No dense fitting or encoding; one required lexical index per exact complete background for revised behavior ranking.'
+(R/'regression/comparison-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n');print(json.dumps({k:summary[k] for k in ['unique_input_rows','cohorts','labels','versus_round1_narrow']}),flush=True)

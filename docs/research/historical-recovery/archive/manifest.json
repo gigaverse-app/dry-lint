@@ -1,0 +1,290 @@
+[
+  {
+    "path": "archive/sparse/run.py.txt",
+    "original_sha256": "89fac62ada33c5091626eec9444f20bbad0063305622eebb7fa9338dbb9cfb0f",
+    "published_sha256": "5cee455f9e861f9055e84ef3affd1c7ee9f236bbe4108e4f2950fca91765867f",
+    "changes": [
+      "/PRIVATE_LAB_ROOT"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/sparse/validate.py.txt",
+    "original_sha256": "77cfe677b687b7f9f1f9a18a60e784977dc36d9775acbea22eaaabc8e3bb8c83",
+    "published_sha256": "77cfe677b687b7f9f1f9a18a60e784977dc36d9775acbea22eaaabc8e3bb8c83",
+    "changes": [],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/guarded/replay.py.txt",
+    "original_sha256": "4131c0da62083b9aa6940bf4eb4d06b1160e14f6cf4761bf35aee18ad1555cd1",
+    "published_sha256": "64e5583568e37871c04a1edb4d5a00e97af58b8cec80f964c76874886115adb7",
+    "changes": [
+      "/PRIVATE_LAB_ROOT"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/guarded/provider_support.py.txt",
+    "original_sha256": "44bf0662b9412495a6331f496fdfdf39a90526637c0283b646d0c8083ae8d207",
+    "published_sha256": "0503eb7ddad15e7275bfd207988d3e09b011abaf5d6fa25e75ffabd69e4f807b",
+    "changes": [
+      "/PRIVATE_LAB_ROOT"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/guarded/report.py.txt",
+    "original_sha256": "fdb61fa774e436b820a3b289e7d1067d064a4b054f0c97209b3bcbf18551d447",
+    "published_sha256": "fdb61fa774e436b820a3b289e7d1067d064a4b054f0c97209b3bcbf18551d447",
+    "changes": [],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/guarded/final_counts.py.txt",
+    "original_sha256": "5a312d570a6e042662e1a5fd0978224b0616faa78c4f933899c3055a5a9130e2",
+    "published_sha256": "5a312d570a6e042662e1a5fd0978224b0616faa78c4f933899c3055a5a9130e2",
+    "changes": [],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/native/replay.py.txt",
+    "original_sha256": "837d7c97d2681ea3adb0aee346b0fb04c1d00a5167f40ff40ee7826be28fb37b",
+    "published_sha256": "93219fea7cfe1ed466ad25dd862d5fd16ab6711b6d4f77fe1bd137b9bc05cbcc",
+    "changes": [
+      "/PRIVATE_LAB_ROOT"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/native/summarize.py.txt",
+    "original_sha256": "f954b44bec7482327525d30620666b2260ca69208c7e6bc130390c1d7994bb2a",
+    "published_sha256": "f954b44bec7482327525d30620666b2260ca69208c7e6bc130390c1d7994bb2a",
+    "changes": [],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/source-recovery/run.py.txt",
+    "original_sha256": "a4eac607338e4b6bf2eb2580efadde58f96be9f56ca0c6b40e65b06fd79fd9ac",
+    "published_sha256": "8a4dc7a5c5145c690faedb001adfd69b3cc85618629d41143300f6e93d0afcb9",
+    "changes": [
+      "/PRIVATE_LAB_ROOT",
+      "7001",
+      "7002",
+      "PrivateTargetOwner",
+      "SETTINGS_DONOR",
+      "SOURCE_HISTORY",
+      "private-repository-a",
+      "private_query"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/source-recovery/handoff.py.txt",
+    "original_sha256": "d58747b59062006ea64f5ecd86a43fc2edb15a62622453fe64748df4c61e447d",
+    "published_sha256": "99685fdcb5afcb3965fe86b9b1834f54d3a087969fedbfcdc65f6e60abc6ad17",
+    "changes": [
+      "/PRIVATE_LAB_ROOT",
+      "7001",
+      "private-repository-a"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/source-recovery/provider.py.txt",
+    "original_sha256": "eba65dd6cc63e07942511e87ab8e9991840381a3f8d5cecedc014395c727cddd",
+    "published_sha256": "fc3e09e454a7081dee22d229cacfeb8403b124a5c4c59ba83a24aeab6f837982",
+    "changes": [
+      "7001",
+      "private-repository-a"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/source-recovery/settled_provider_support.py.txt",
+    "original_sha256": "212134ea25eda321428581a454290b6ac123fb3bca503339c7dfb575c72b7b1b",
+    "published_sha256": "6be15cc71189c9375453cb57dec169e770ec4e83464547a5878136a7238de8e2",
+    "changes": [
+      "/PRIVATE_LAB_ROOT"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/source-recovery/h02_support.py.txt",
+    "original_sha256": "5902813f917d52f6085cbcf52dbc70d68e7e28c60e8d82e99a252db736d3452c",
+    "published_sha256": "21d46459fdadd635f4143c7795d8c3180bc3e2a20562324db027ef3c6747bfbf",
+    "changes": [
+      "/PRIVATE_LAB_ROOT"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/source-recovery/continue.py.txt",
+    "original_sha256": "1170c8b62d3b6c042faf965b1831c0e29915f060e2373095c235d47a4d5d1019",
+    "published_sha256": "82d175b6bd401c6b8ba85ca4e6ad20df46a03a665be5632cb1171909e2e2e8c9",
+    "changes": [
+      "/PRIVATE_LAB_ROOT",
+      "7001"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/final-report-correction/replay_h05_final.py.txt",
+    "original_sha256": "5e5e02c91bacbdd17e72eebb05035c49f5afca3f129a3b9103321385aa9d34e7",
+    "published_sha256": "71e104e235053228ac38041d4f9b551bab8c873d722ccd9e860af69d2a4d486b",
+    "changes": [
+      "/PRIVATE_LAB_ROOT",
+      "7001"
+    ],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/native/judge_history.py.txt",
+    "original_sha256": "d4781777bb192697d18a5c577920e883b707ad41e0f173cce98a37506387cdc1",
+    "published_sha256": "d4781777bb192697d18a5c577920e883b707ad41e0f173cce98a37506387cdc1",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/native/replay_coverage.py.txt",
+    "original_sha256": "8a6aeaf5c8b666643f72d47e251e5e00879fa91d0e9836d6a321d375c51cf15b",
+    "published_sha256": "8a6aeaf5c8b666643f72d47e251e5e00879fa91d0e9836d6a321d375c51cf15b",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/index.py.txt",
+    "original_sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7",
+    "published_sha256": "843658746b1eca99c63094a4c1a368447d8630fe6805158e803d03c504d9c2c7",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/discovery.py.txt",
+    "original_sha256": "6956cf6a639b2f73122d519a8a345dd9159b39e842fa2a1473ca7fb52f954675",
+    "published_sha256": "6956cf6a639b2f73122d519a8a345dd9159b39e842fa2a1473ca7fb52f954675",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/judging.py.txt",
+    "original_sha256": "3cd000ba1e09ade2d1181853e38b8fe423b6fe9704441783ed1c16857bcf7765",
+    "published_sha256": "3cd000ba1e09ade2d1181853e38b8fe423b6fe9704441783ed1c16857bcf7765",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/report.py.txt",
+    "original_sha256": "63e38c41f8cc9644eef861318c71ac267d77cb1f4d56e8d15248853b88541bc4",
+    "published_sha256": "63e38c41f8cc9644eef861318c71ac267d77cb1f4d56e8d15248853b88541bc4",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/costs.py.txt",
+    "original_sha256": "ebd7279337e5a2110d11232b17197fed5ac92cc15358c68782839f9a013f12ba",
+    "published_sha256": "385e044c8bf57b0fcf42e29f514b6be01ddbcdd641580d5220dc3a81e0022480",
+    "changes": [
+      "private-repository-a"
+    ],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/settings.py.txt",
+    "original_sha256": "b0af31fcde5720bea8eb1e3900d74a30fa24b6a3876a7d29aef6f6b792f65dc9",
+    "published_sha256": "cc4ebd4308de0ed8cc23db8a6fafec5767245ff7557afc4a08b2d5c7ba0e8ce6",
+    "changes": [
+      "private-repository-a"
+    ],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/presets.py.txt",
+    "original_sha256": "20705839b0a5cea381703b328a97bf6f9eb5dc86a6fc115bc8dae828e7e121ba",
+    "published_sha256": "08a266980742d87dfbe8e609db0c45ba416ec4d905a2b593ce6233479a12de6b",
+    "changes": [
+      "private-repository-a"
+    ],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/detector.py.txt",
+    "original_sha256": "40f99912282e5e08b80b8faea45d8fa8df026ef9fc4b1d0c6f7c1314966b556a",
+    "published_sha256": "40f99912282e5e08b80b8faea45d8fa8df026ef9fc4b1d0c6f7c1314966b556a",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/comparers.py.txt",
+    "original_sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608",
+    "published_sha256": "d42a957cd281085f0a296836be93d6f7640e4ed15d4b2babc05380ad70b8a608",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/judges/command.py.txt",
+    "original_sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317",
+    "published_sha256": "db051abd1af1e536347ac6944ca96f51bec49dd6842d8293c69ec0d3d7dd1317",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/production/judges/anthropic.py.txt",
+    "original_sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f",
+    "published_sha256": "22c0eccd72033a1d32f0c0c05fd55ab0f64c771d9f4fedf802489d6b8381c54f",
+    "changes": [],
+    "source_kind": "dry-lint source",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/shared-operations-template.txt",
+    "original_sha256": "d16aa74739f455d380262e448db3d28a68241c4af47c4f87549b2dc83df6474f",
+    "published_sha256": "d16aa74739f455d380262e448db3d28a68241c4af47c4f87549b2dc83df6474f",
+    "changes": [],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/historical-template.txt",
+    "original_sha256": "6f25e05044efe101f069b1783b191e27ec348956a3cb7da156c035c5b7c2416b",
+    "published_sha256": "6f25e05044efe101f069b1783b191e27ec348956a3cb7da156c035c5b7c2416b",
+    "changes": [],
+    "source_kind": "frozen lab script",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  },
+  {
+    "path": "archive/protected-reference-templates.json.txt",
+    "original_sha256": "d18e60da5c62d8ff1d1755c4aa42b8d7db592134f9bb027862e0960ef75af6dd",
+    "published_sha256": "d18e60da5c62d8ff1d1755c4aa42b8d7db592134f9bb027862e0960ef75af6dd",
+    "changes": [],
+    "source_kind": "frozen generic template; no rendered private request",
+    "implementation_pin": "b74a6223b4b41b8bb881c445c86c2dba82d62dd2"
+  }
+]

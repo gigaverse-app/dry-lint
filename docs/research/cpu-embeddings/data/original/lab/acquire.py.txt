@@ -1,0 +1,98 @@
+"""Bounded public artifact acquisition; never reads credentials or shared caches."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import time
+import urllib.request
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+P = json.loads((HERE / "EXPERIMENT.json").read_text())
+MODEL = P["model"]
+FILES = [
+    "onnx/model.onnx",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "config.json",
+    "special_tokens_map.json",
+    "sentence_bert_config.json",
+    "1_Pooling/config.json",
+    "README.md",
+]
+
+
+def main():
+    begin = time.perf_counter()
+    records = []
+    for name in FILES:
+        path = HERE / "model-cache" / name
+        url = f"https://huggingface.co/{MODEL['id']}/resolve/{MODEL['revision']}/{name}"
+        start = time.perf_counter()
+        record = {"file": name, "url": url}
+        if not path.exists():
+            try:
+                with urllib.request.urlopen(url, timeout=10) as response:
+                    data = response.read(110_000_001)
+                assert len(data) <= 110_000_000, "Artifact exceeded bound"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+                record["status"] = "downloaded"
+            except Exception as exc:
+                record.update(status="blocked", error=f"{type(exc).__name__}: {exc}", sha256=None, bytes=0)
+                record["seconds"] = time.perf_counter() - start
+                records.append(record)
+                break  # no repeated network failures and no alternate model
+        else:
+            record["status"] = "already_local"
+        record.update(
+            sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            bytes=path.stat().st_size,
+            seconds=time.perf_counter() - start,
+        )
+        if name == MODEL["artifact"]:
+            assert record["sha256"] == MODEL["artifact_sha256_official"], "Official weight hash mismatch"
+        records.append(record)
+    modules = {m: bool(importlib.util.find_spec(m)) for m in ["numpy", "onnxruntime", "tokenizers"]}
+    if not all(modules.values()):
+        start = time.perf_counter()
+        cmd = [
+            "uv",
+            "pip",
+            "install",
+            "--python",
+            str(HERE / "venv/bin/python"),
+            "numpy==2.5.4",
+            "onnxruntime==1.31.1",
+            "tokenizers==0.23.3",
+        ]
+        env = {**os.environ, "UV_CACHE_DIR": str(HERE / "uv-cache"), "UV_HTTP_TIMEOUT": "5", "UV_HTTP_RETRIES": "0"}
+        try:
+            proc = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=30)
+            (HERE / "install.log").write_text(proc.stdout + proc.stderr)
+            install = {"command": cmd, "seconds": time.perf_counter() - start, "returncode": proc.returncode}
+        except subprocess.TimeoutExpired as exc:
+            (HERE / "install.log").write_text(str(exc))
+            install = {"command": cmd, "seconds": time.perf_counter() - start, "status": "timeout30s"}
+    else:
+        install = {"status": "already_installed", "seconds": 0}
+    (HERE / "acquisition.json").write_text(
+        json.dumps(
+            {
+                "records": records,
+                "install": install,
+                "modules_at_start": modules,
+                "cold_total_seconds": time.perf_counter() - begin,
+                "model_build_seconds": 0,
+                "model_build_note": "Official preexported ONNX; no graph build executed",
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,15 @@
+{
+  "base": "272b63eb0aa042b6686380feb6f8060440ddf9fc",
+  "cold_warm": "Actual100body cold/warm cache measurement and fresh inference equivalence; remaining complete corpora use verified exact-body cached vectors, no full re-encoding.",
+  "control": "baseline3",
+  "dataset": "all source-supported function records in frozen617 index-v2; full original frozen background order/max_df",
+  "funding": "Candidate comparison only. Original frozen .04 funded4positive/7negative exposures remain separate; no inference of actual production campaign funding.",
+  "native": "Reviewed shared native snapshots; unresolved competitor spans explicitly0/-1 for indexing only, never source evidence or judging. Gold endpoints must be reviewed native.",
+  "profile": "baseline3 + first-unseen-unsettled-cpu1-.65",
+  "route_order": [
+    "ordinary baseline",
+    "cpu1"
+  ],
+  "schema": 1,
+  "worker_provider_calls": 0
+}

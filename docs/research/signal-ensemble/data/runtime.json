@@ -1,0 +1,102 @@
+{
+  "block_cap_replay": {
+    "checks": {
+      "baseline_protection": 176,
+      "campaign_budget": 480
+    },
+    "cpu_seconds": 1.8062857279999998,
+    "new_fits": 0,
+    "peak_rss_kib": 166948,
+    "provider_calls": 0,
+    "source_extractions": 0,
+    "wall_seconds": 1.806410698001855
+  },
+  "interpretation": "Cached replay and preparation runtimes, not deployment latency. No embedding fits, extraction or worker provider calls.",
+  "round2_full_source_preparation": {
+    "checks": {
+      "baseline_protection": 1562,
+      "cached_sparse_scalar_parity": 6776,
+      "extra_cap": 1562
+    },
+    "cpu_seconds": 142.276827712,
+    "identical_sparse_index_rehydrations": 2,
+    "new_representation_fits": 0,
+    "new_source_extractions": 0,
+    "peak_rss_kib": 1915560,
+    "provider_calls": 0,
+    "threads": 2,
+    "wall_seconds": 79.02249275900249
+  },
+  "round2_static_regression": {
+    "backgrounds_assessed": 79,
+    "backgrounds_missing_or_no_queries": 63,
+    "backgrounds_replayed": 16,
+    "baseline_loss_invariant": true,
+    "checks": {
+      "baseline_protection": 333,
+      "campaign_budget": 334
+    },
+    "cpu_seconds": 40.202393385,
+    "declarations_separate": 4,
+    "inventory_records": 617,
+    "new_heavy_representation_fits": 0,
+    "new_source_extractions": 0,
+    "overlay": "CF-C02excluded",
+    "peak_rss_kib": 680832,
+    "provider_calls": 0,
+    "round2_queue_unchanged": true,
+    "source_context": "Existing native Function/source snapshots only; no new extraction",
+    "status": "COMPLETE_CACHED_REGRESSION",
+    "summary": [
+      {
+        "added_pairs": 7,
+        "baseline_funded": 37,
+        "canonical_pairs": 78,
+        "families": 68,
+        "label": "positive",
+        "lost_pairs": 0,
+        "missing_or_unsupported_units": 171,
+        "profile": "default3",
+        "scope_units": 78,
+        "variant_funded": 44
+      },
+      {
+        "added_pairs": 4,
+        "baseline_funded": 23,
+        "canonical_pairs": 103,
+        "families": 76,
+        "label": "negative",
+        "lost_pairs": 0,
+        "missing_or_unsupported_units": 408,
+        "profile": "default3",
+        "scope_units": 119,
+        "variant_funded": 28
+      },
+      {
+        "added_pairs": 0,
+        "baseline_funded": 64,
+        "canonical_pairs": 78,
+        "families": 68,
+        "label": "positive",
+        "lost_pairs": 0,
+        "missing_or_unsupported_units": 171,
+        "profile": "default-plus-tfidf20",
+        "scope_units": 78,
+        "variant_funded": 64
+      },
+      {
+        "added_pairs": 0,
+        "baseline_funded": 51,
+        "canonical_pairs": 103,
+        "families": 76,
+        "label": "negative",
+        "lost_pairs": 0,
+        "missing_or_unsupported_units": 408,
+        "profile": "default-plus-tfidf20",
+        "scope_units": 119,
+        "variant_funded": 51
+      }
+    ],
+    "wall_seconds": 38.11141563000274
+  }
+}

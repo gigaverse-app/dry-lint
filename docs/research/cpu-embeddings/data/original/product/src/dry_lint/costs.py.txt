@@ -1,0 +1,152 @@
+"""
+What judging costs, and the budget that bounds it.
+
+Every judge with a known model is estimated at its list price, from its prompt length and a measured answer length,
+and counted against `budget.usd`. That includes subscription judges: a call through a Claude subscription uses the
+same model as the API, so its list price is what it takes out of the subscription. Subscriptions are rate-limited
+too, so they are also counted against `budget.subscription_calls`. A judge whose price is unknown is not budgeted
+and its cost is reported as unknown, never as zero. When the budget runs out, the riskiest pairs have already been
+judged: callers order them first.
+
+The budget is for a pull request, across all its pushes: what earlier runs on the same pull request spent comes
+from the verdict store (`VerdictStore.spent`), and a run without a pull request has the whole budget to itself.
+"""
+
+from collections.abc import Mapping
+
+from pydantic import BaseModel, Field
+
+from dry_lint.judges.command import prompt
+from dry_lint.models import Candidate
+from dry_lint.plugins import Judge, identity
+from dry_lint.settings import Settings
+
+# USD per million input and output tokens; checked November 2026 (Anthropic and OpenRouter price lists).
+PRICES: dict[str, tuple[float, float]] = {
+    "jev": (0.04, 0.0),
+    "claude-sonnet-5-5": (2.0, 10.0),
+    "claude-opus-5-5": (4.0, 20.0),
+    "claude-haiku-5-5": (0.10, 0.50),
+    "gemini-3.1-pro-preview": (2.0, 12.0),
+    "gemini-2.5-pro": (1.25, 10.0),
+}
+PRICES["jev-models"] = PRICES["jev"]
+CHARS_PER_TOKEN = 2.8  # measured: the DRY prompt over WITHHELD_PRIVATE_REPOSITORY pairs, Claude Sonnet 5.5's tokenizer
+ANSWER_TOKENS = 150  # measured: Sonnet 5.5's answers (thinking included) were 126 tokens on average, p90 150
+ANSWERS: dict[str, int] = {"claude-opus-5-5": 220}  # measured: Opus 5.5's were 217 on average, p90 390
+
+
+def usage_cost(tokens: Mapping[str, int | float], rates: tuple[float, float]) -> float:
+    """Provider usage at the configured price, including Anthropic's cache write/read tiers."""
+    return (
+        tokens.get("input", 0) * rates[0]
+        + tokens.get("output", 0) * rates[1]
+        + tokens.get("cache_creation_input_tokens", 0) * rates[0] * 1.25
+        + tokens.get("cache_read_input_tokens", 0) * rates[0] * 0.1
+    ) / 1_000_000
+
+
+def price(judge: Judge, settings: Settings) -> tuple[float, float] | None:
+    table = {**PRICES, **settings.prices}
+    return table.get(getattr(judge, "model", "") or "") or table.get(judge.name)
+
+
+def judging_input(judge: Judge, candidate: Candidate) -> str:
+    """Plugins may expose their exact input; text judges retain the shared prompt contract."""
+    input_text = getattr(judge, "input_text", None)
+    return input_text(candidate) if input_text else prompt(candidate, policy=getattr(judge, "prompt_policy", "concept"))
+
+
+def estimate(judge: Judge, candidates: list[Candidate], settings: Settings) -> float | None:
+    """Estimated USD at list price for asking `judge` about `candidates`, subscriptions included; None if unknown."""
+    # Average estimates and conservative admission bounds have different guarantees; both reuse usage_cost.
+    # dry-lint: distinct-from src/dry_lint/discovery.py::reservation_cost
+    rates = price(judge, settings)
+    if rates is None:
+        return None
+    tokens = sum(len(judging_input(judge, c)) for c in candidates) / CHARS_PER_TOKEN
+    answer = ANSWERS.get(getattr(judge, "model", "") or "", ANSWER_TOKENS)
+    return usage_cost({"input": tokens, "output": len(candidates) * answer}, rates)
+
+
+class Spend(BaseModel):
+    judge: str
+    calls: int = 0
+    skipped: int = Field(default=0, description="Pairs this judge was not asked about because the budget ran out.")
+    usd: float | None = Field(
+        default=0.0,
+        description="Estimated at list price, also for a subscription; None when the judge's price is unknown.",
+    )
+    subscription: bool = False
+    failed: int = Field(default=0, description="Pairs left on the first judge's answer because this judge failed.")
+    error: str = Field(default="", description="Why this judge failed, when it did.")
+
+
+def combined(spends: list[Spend]) -> list[Spend]:
+    """Several runs' spending, one entry per judge: calls, skips and failures add up; an unknown cost stays unknown."""
+    total: dict[str, Spend] = {}
+    for spend in spends:
+        into = total.setdefault(spend.judge, Spend(judge=spend.judge, subscription=spend.subscription))
+        into.calls += spend.calls
+        into.skipped += spend.skipped
+        into.failed += spend.failed
+        into.usd = None if into.usd is None or spend.usd is None else into.usd + spend.usd
+        into.error = spend.error or into.error
+    return list(total.values())
+
+
+class Ledger:
+    """One run's spending, on top of what earlier runs on the same pull request `spent`: how many of the pairs each
+    judge may still be asked about."""
+
+    def __init__(self, settings: Settings, spent: float = 0.0) -> None:
+        self.settings, self.spent = settings, spent
+        self.spend: dict[str, Spend] = {}
+
+    @property
+    def usd(self) -> float:
+        """This run's estimated spending."""
+        return sum(s.usd or 0.0 for s in self.spend.values())
+
+    def affordable(self, judge: Judge, candidates: list[Candidate]) -> int:
+        """Length of the affordable prefix, for callers that reserve later work before refilling."""
+        return len(self.select(judge, candidates, prefix_only=True))
+
+    def select(self, judge: Judge, candidates: list[Candidate], *, prefix_only: bool = False) -> list[int]:
+        """Fund candidates in priority order, skipping those that cannot fit the remaining allowance."""
+        limit = len(candidates)
+        if getattr(judge, "subscription", False):
+            used = sum(s.calls for s in self.spend.values() if s.subscription)
+            limit = max(0, self.settings.budget.subscription_calls - used)
+        total, room = 0.0, self.settings.budget.usd - self.spent - self.usd
+        selected = []
+        for n, candidate in enumerate(candidates):
+            if len(selected) == limit:
+                break
+            cost = estimate(judge, [candidate], self.settings)
+            if cost is not None and total + cost > room:
+                if prefix_only:
+                    break
+                continue
+            selected.append(n)
+            total += cost or 0.0  # unpriced judges remain unbounded in dollars and reported as unknown
+        return selected
+
+    def charge(self, judge: Judge, asked: list[Candidate], skipped: int) -> None:
+        name = identity(judge)
+        spend = self.spend.setdefault(name, Spend(judge=name, subscription=getattr(judge, "subscription", False)))
+        cost = estimate(judge, asked, self.settings)
+        spend.calls += len(asked)
+        spend.skipped += skipped
+        spend.usd = None if cost is None or spend.usd is None else spend.usd + cost
+
+    def fail(self, judge: Judge, asked: list[Candidate], error: Exception) -> None:
+        """`judge` failed on `asked`; nothing is charged, since it is unknown how much of it ran."""
+        name = identity(judge)
+        spend = self.spend.setdefault(name, Spend(judge=name, subscription=getattr(judge, "subscription", False)))
+        spend.failed += len(asked)
+        spend.error = " ".join(str(getattr(error, "stderr", None) or error).split())[:200]
+
+    @property
+    def failed(self) -> bool:
+        return any(s.error for s in self.spend.values())

@@ -1,0 +1,36 @@
+{
+  "costs": {
+    "cached_cost_credited_to_minimum": 0,
+    "historical_older_separate": 0.1256976,
+    "public_R1_new": 0.69653208,
+    "public_R2_new": 0.5913536
+  },
+  "decision": "Keep current default; no promotion reversal. No further trials, calls, discovery or context-study work by this direction.",
+  "native_revised_report_changes": {
+    "related_additions": 1,
+    "related_losses": 2,
+    "separate_prior_reports_removed": 2,
+    "substantive_useful_additions": 1,
+    "substantive_useful_losses": 0,
+    "tiny_optional_additions": 1,
+    "tiny_optional_losses": 1,
+    "total_additions": 3,
+    "total_losses": 5
+  },
+  "normal_estimated_report_changes": {
+    "current_reports": 53,
+    "fixed_and_cost_reports_each": 54,
+    "matched_complete_histories_per_arm": 11,
+    "report_losses": 0,
+    "same_pair_family_counted_once": true,
+    "substantive_useful_additions": 0,
+    "tiny_optional_additions": 1,
+    "total_histories_per_arm": 12
+  },
+  "source_local_families": 2,
+  "source_review_tier": "Final three: outcome-aware coordinator source review; not independent blind, gold, or whole-function equivalence.",
+  "unknowns": {
+    "historical_normal": "One history has a paid malformed answer, censoring four arms; only aggregate counts published.",
+    "public_R2": "One paid malformed Claude control; common-funded in both arms; absolute reports 5\u20136, paired difference zero."
+  }
+}

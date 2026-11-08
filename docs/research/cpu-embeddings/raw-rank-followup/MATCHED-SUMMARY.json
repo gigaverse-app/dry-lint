@@ -1,0 +1,453 @@
+{
+  "primary_policy": "Haiku5.5/shared-operations/2048/.50; independent source labels separate; no escalation",
+  "scope": "Synthetic exact native held campaigns; not actual adoption, PR history or settled sequential execution.",
+  "source_seals": [
+    {
+      "bytes": 1308,
+      "sha256": "8bfeae28923b52356cdd055e7c70cae0b85d6d032da65b87e118cd1fcc741f34"
+    },
+    {
+      "bytes": 1170,
+      "sha256": "f1222635f29b445adcd61f2fec198f458f95bb10646cd381a226b7e49aa8c902"
+    },
+    {
+      "bytes": 1125,
+      "sha256": "6b4f08f062e852e75f130ae96b5264a20b221ad3008afee206fdac1d49d72598"
+    },
+    {
+      "bytes": 1165,
+      "sha256": "de664dbe5f97a1a5783cab763888f02ebce3dcd1aa748d752f7fd2eb67b0244b"
+    }
+  ],
+  "successor_equivalence": "64/64 exact prior requests independently verified by root; explicit derivative maps only, zero new calls",
+  "summaries": [
+    {
+      "arm": "fixed_rrf",
+      "batch": "continuation-batch",
+      "campaigns": 37,
+      "gained": {
+        "bounded_unreported_pairs": [
+          "9c32b011f190799bf3f2480bafd6209d9e32b8dcb758b24f02a9381afbde0fd3",
+          "c75ab5ecea6a8be26f80f2f5ccb19eeb4f2d2996caa3c59ebb979f0d20ab78f3"
+        ],
+        "canonical_pairs": 32,
+        "occurrences": 32,
+        "reported_bounded_families": [
+          "BerriAI/litellm:litellm context-propagating async executor bridge",
+          "anomalyco/opencode:loopback HTTP server bind-to-Effect adapter",
+          "pingdotgg/t3code:web stacked command-failure toast reporting"
+        ],
+        "reported_by_source": {
+          "alreadyshared": 1,
+          "bounded": 5,
+          "tiny": 2
+        },
+        "reported_pairs": 8,
+        "source_decisions": {
+          "alreadyshared": 11,
+          "bounded": 7,
+          "related": 7,
+          "separate": 4,
+          "tiny": 3
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [
+          "ff2f54a9f3b01f2cb5c23c1de757f83f99ccadd7be6960b9dcd7b6a442506751",
+          "58eb24db8229fc5008486c38b27ad038689bf92ac0e0278be0c14e517220ca38"
+        ],
+        "canonical_pairs": 23,
+        "occurrences": 23,
+        "reported_bounded_families": [
+          "BerriAI/litellm:Anthropic agentic follow-up request patch assembly",
+          "BerriAI/litellm:eval-run request preparation",
+          "BerriAI/litellm:litellm context-propagating async executor bridge",
+          "anomalyco/opencode:loopback OAuth callback reception and listener adapter",
+          "pingdotgg/t3code:web stacked command-failure toast reporting"
+        ],
+        "reported_by_source": {
+          "bounded": 6,
+          "tiny": 2
+        },
+        "reported_pairs": 8,
+        "source_decisions": {
+          "alreadyshared": 6,
+          "bounded": 8,
+          "related": 3,
+          "separate": 3,
+          "tiny": 3
+        },
+        "source_unknown_pairs": []
+      }
+    },
+    {
+      "arm": "tail_append",
+      "batch": "continuation-batch",
+      "campaigns": 37,
+      "gained": {
+        "bounded_unreported_pairs": [
+          "9c32b011f190799bf3f2480bafd6209d9e32b8dcb758b24f02a9381afbde0fd3",
+          "c75ab5ecea6a8be26f80f2f5ccb19eeb4f2d2996caa3c59ebb979f0d20ab78f3"
+        ],
+        "canonical_pairs": 32,
+        "occurrences": 32,
+        "reported_bounded_families": [
+          "BerriAI/litellm:litellm context-propagating async executor bridge",
+          "anomalyco/opencode:loopback HTTP server bind-to-Effect adapter",
+          "pingdotgg/t3code:web stacked command-failure toast reporting"
+        ],
+        "reported_by_source": {
+          "alreadyshared": 1,
+          "bounded": 5,
+          "tiny": 2
+        },
+        "reported_pairs": 8,
+        "source_decisions": {
+          "alreadyshared": 11,
+          "bounded": 7,
+          "related": 7,
+          "separate": 4,
+          "tiny": 3
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [
+          "ff2f54a9f3b01f2cb5c23c1de757f83f99ccadd7be6960b9dcd7b6a442506751",
+          "58eb24db8229fc5008486c38b27ad038689bf92ac0e0278be0c14e517220ca38"
+        ],
+        "canonical_pairs": 23,
+        "occurrences": 23,
+        "reported_bounded_families": [
+          "BerriAI/litellm:Anthropic agentic follow-up request patch assembly",
+          "BerriAI/litellm:eval-run request preparation",
+          "BerriAI/litellm:litellm context-propagating async executor bridge",
+          "anomalyco/opencode:loopback OAuth callback reception and listener adapter",
+          "pingdotgg/t3code:web stacked command-failure toast reporting"
+        ],
+        "reported_by_source": {
+          "bounded": 6,
+          "tiny": 2
+        },
+        "reported_pairs": 8,
+        "source_decisions": {
+          "alreadyshared": 6,
+          "bounded": 8,
+          "related": 3,
+          "separate": 3,
+          "tiny": 3
+        },
+        "source_unknown_pairs": []
+      }
+    },
+    {
+      "arm": "fixed_rrf",
+      "batch": "early-batch",
+      "campaigns": 27,
+      "gained": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 19,
+        "occurrences": 19,
+        "reported_bounded_families": [
+          "anomalyco/opencode:configured model document selection and normalization",
+          "anomalyco/opencode:extension panel entry discovery for a session region",
+          "anomalyco/opencode:manual-permission visibility after project auto-approval",
+          "anomalyco/opencode:project worktree demand list-then-refresh",
+          "pingdotgg/t3code:desktop portal host application registration"
+        ],
+        "reported_by_source": {
+          "bounded": 5,
+          "tiny": 3
+        },
+        "reported_pairs": 8,
+        "source_decisions": {
+          "alreadyshared": 7,
+          "bounded": 5,
+          "related": 1,
+          "separate": 1,
+          "tiny": 5
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [
+          "3330ba7ba90f3e7b27baba9abdfe6682ac0f8c930549a6e26bba0dccba340a99"
+        ],
+        "canonical_pairs": 10,
+        "occurrences": 10,
+        "reported_bounded_families": [
+          "anomalyco/opencode:home session opening with cache/project coordination"
+        ],
+        "reported_by_source": {
+          "alreadyshared": 1,
+          "bounded": 1,
+          "separate": 1,
+          "tiny": 1
+        },
+        "reported_pairs": 4,
+        "source_decisions": {
+          "alreadyshared": 4,
+          "bounded": 2,
+          "related": 1,
+          "separate": 2,
+          "tiny": 1
+        },
+        "source_unknown_pairs": []
+      }
+    },
+    {
+      "arm": "tail_append",
+      "batch": "early-batch",
+      "campaigns": 27,
+      "gained": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 19,
+        "occurrences": 19,
+        "reported_bounded_families": [
+          "anomalyco/opencode:configured model document selection and normalization",
+          "anomalyco/opencode:extension panel entry discovery for a session region",
+          "anomalyco/opencode:manual-permission visibility after project auto-approval",
+          "anomalyco/opencode:project worktree demand list-then-refresh",
+          "pingdotgg/t3code:desktop portal host application registration"
+        ],
+        "reported_by_source": {
+          "bounded": 5,
+          "tiny": 3
+        },
+        "reported_pairs": 8,
+        "source_decisions": {
+          "alreadyshared": 7,
+          "bounded": 5,
+          "related": 1,
+          "separate": 1,
+          "tiny": 5
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [
+          "3330ba7ba90f3e7b27baba9abdfe6682ac0f8c930549a6e26bba0dccba340a99"
+        ],
+        "canonical_pairs": 10,
+        "occurrences": 10,
+        "reported_bounded_families": [
+          "anomalyco/opencode:home session opening with cache/project coordination"
+        ],
+        "reported_by_source": {
+          "alreadyshared": 1,
+          "bounded": 1,
+          "separate": 1,
+          "tiny": 1
+        },
+        "reported_pairs": 4,
+        "source_decisions": {
+          "alreadyshared": 4,
+          "bounded": 2,
+          "related": 1,
+          "separate": 2,
+          "tiny": 1
+        },
+        "source_unknown_pairs": []
+      }
+    },
+    {
+      "arm": "fixed_rrf",
+      "batch": "gold-loss-batch",
+      "campaigns": 2,
+      "gained": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 3,
+        "occurrences": 3,
+        "reported_bounded_families": [
+          "BerriAI/litellm:token base and effective cache-read rate resolution"
+        ],
+        "reported_by_source": {
+          "bounded": 1
+        },
+        "reported_pairs": 1,
+        "source_decisions": {
+          "alreadyshared": 2,
+          "bounded": 1
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 2,
+        "occurrences": 2,
+        "reported_bounded_families": [
+          "BerriAI/litellm:team advisory-lock roster mutation transaction",
+          "BerriAI/litellm:token base and effective cache-read rate resolution"
+        ],
+        "reported_by_source": {
+          "bounded": 2
+        },
+        "reported_pairs": 2,
+        "source_decisions": {
+          "bounded": 2
+        },
+        "source_unknown_pairs": []
+      }
+    },
+    {
+      "arm": "tail_append",
+      "batch": "gold-loss-batch",
+      "campaigns": 2,
+      "gained": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 3,
+        "occurrences": 3,
+        "reported_bounded_families": [
+          "BerriAI/litellm:token base and effective cache-read rate resolution"
+        ],
+        "reported_by_source": {
+          "bounded": 1
+        },
+        "reported_pairs": 1,
+        "source_decisions": {
+          "alreadyshared": 2,
+          "bounded": 1
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 2,
+        "occurrences": 2,
+        "reported_bounded_families": [
+          "BerriAI/litellm:team advisory-lock roster mutation transaction",
+          "BerriAI/litellm:token base and effective cache-read rate resolution"
+        ],
+        "reported_by_source": {
+          "bounded": 2
+        },
+        "reported_pairs": 2,
+        "source_decisions": {
+          "bounded": 2
+        },
+        "source_unknown_pairs": []
+      }
+    },
+    {
+      "arm": "fixed_rrf",
+      "batch": "multiquery-batch",
+      "campaigns": 5,
+      "gained": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 7,
+        "occurrences": 7,
+        "reported_bounded_families": [
+          "anomalyco/opencode:extension panel entry discovery for a session region",
+          "anomalyco/opencode:manual-permission visibility after project auto-approval"
+        ],
+        "reported_by_source": {
+          "bounded": 2
+        },
+        "reported_pairs": 2,
+        "source_decisions": {
+          "alreadyshared": 3,
+          "bounded": 2,
+          "related": 1,
+          "tiny": 1
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 6,
+        "occurrences": 6,
+        "reported_bounded_families": [],
+        "reported_by_source": {},
+        "reported_pairs": 0,
+        "source_decisions": {
+          "alreadyshared": 3,
+          "related": 1,
+          "separate": 2
+        },
+        "source_unknown_pairs": []
+      }
+    },
+    {
+      "arm": "tail_append",
+      "batch": "multiquery-batch",
+      "campaigns": 5,
+      "gained": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 7,
+        "occurrences": 7,
+        "reported_bounded_families": [
+          "anomalyco/opencode:extension panel entry discovery for a session region",
+          "anomalyco/opencode:manual-permission visibility after project auto-approval"
+        ],
+        "reported_by_source": {
+          "bounded": 2
+        },
+        "reported_pairs": 2,
+        "source_decisions": {
+          "alreadyshared": 3,
+          "bounded": 2,
+          "related": 1,
+          "tiny": 1
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 6,
+        "occurrences": 6,
+        "reported_bounded_families": [],
+        "reported_by_source": {},
+        "reported_pairs": 0,
+        "source_decisions": {
+          "alreadyshared": 3,
+          "related": 1,
+          "separate": 2
+        },
+        "source_unknown_pairs": []
+      }
+    },
+    {
+      "arm": "fixed_rrf_raw",
+      "batch": "successor-batch",
+      "campaigns": 66,
+      "gained": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 16,
+        "occurrences": 16,
+        "reported_bounded_families": [
+          "anomalyco/opencode:extension panel entry discovery for a session region",
+          "anomalyco/opencode:manual-permission visibility after project auto-approval",
+          "pingdotgg/t3code:desktop portal host application registration"
+        ],
+        "reported_by_source": {
+          "bounded": 3,
+          "tiny": 3
+        },
+        "reported_pairs": 6,
+        "source_decisions": {
+          "alreadyshared": 6,
+          "bounded": 3,
+          "related": 2,
+          "separate": 1,
+          "tiny": 4
+        },
+        "source_unknown_pairs": []
+      },
+      "lost": {
+        "bounded_unreported_pairs": [],
+        "canonical_pairs": 0,
+        "occurrences": 0,
+        "reported_bounded_families": [],
+        "reported_by_source": {},
+        "reported_pairs": 0,
+        "source_decisions": {},
+        "source_unknown_pairs": []
+      }
+    }
+  ],
+  "unknown_source_exclusions": {
+    "early_retained_controls": 2,
+    "multiquery": "separate source-failure file"
+  }
+}

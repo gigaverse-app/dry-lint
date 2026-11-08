@@ -1,0 +1,16 @@
+{
+  "activation": "Only if root assesses round1 insufficient benefit; no new paid execution without root",
+  "error_evidence": "Earlier16novel/control observations yielded0Claudeemissionsat.8; dense theme/boilerplate relatedness and operational differences remain errors. Known positive Windows operation retained separately.",
+  "exact_profile": "baseline3 then revisedCPU1; no TFIDF20 exploration in this explicitly narrower profile",
+  "no_worker_providers": true,
+  "novel_reserve": "BerriAI/litellm@fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f; full37604competitors. Entire repository was unused in round1, so no source directory/owner/endpoint lineage overlap. Exclude exactknown/adjudicated/paidsource pairs.",
+  "one_revised_mechanism": "top20 eligible unseen/unsettled dense proposals at originalcosine.65; rerank by full complete corpus behavior TFIDF cosine maxdf.3, reject zero overlap, ties dense cosine then original source order; return original cosine, no score blend",
+  "production_option": "behavior_rerank=true; defaultfalse contract/identity unchanged",
+  "regression": "All16compatible frozen backgrounds/all207source-supported function records, same control/profile and native proofs. No label-driven parameter search.",
+  "representation": "Pinned dense vectors unchanged; new cheap lexicalindex on complete samebackground tokens. No embedding encoding allowed.",
+  "round": 2,
+  "sampling": "Same public production6..160line queries, deterministicSHAorder; actualrevisedarm, synthetic04ledgerreplayed; controls everyfourth with distinctnames/owners and nonreusedendpoints; <=2048queries,64initialsupplychunks32",
+  "schema": 1,
+  "spend": "Additional >=.20actualnewdiagnosticjudging centrally, no cache/repeats; synthetic04budget separate.",
+  "status": "conditional_revision_preregistered_before_results"
+}

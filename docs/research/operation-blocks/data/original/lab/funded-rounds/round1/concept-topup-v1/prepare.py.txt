@@ -1,0 +1,89 @@
+"""Exact production concept-policy questions; root-only execution, sealed separately."""
+import gzip,hashlib,json,pickle,sys
+from pathlib import Path
+import httpx2
+from dry_lint.models import Candidate,evidence
+from dry_lint.judges.anthropic import AnthropicJudge,FALLBACK_MODELS
+from dry_lint.judges.command import prompt
+from dry_lint.costs import Ledger,estimate,PRICES,usage_cost
+from dry_lint.settings import Settings
+from dry_lint.detector import Detector,why_skipped
+from dry_lint.extractors import PythonExtractor
+OUT=Path(__file__).resolve().parent
+ROUND=OUT.parent
+WORK=ROUND.parents[2]
+CENTRAL=Path('LAB_ROOT/jobs/judge-operations/.lab-results')
+sys.path.insert(0,str(CENTRAL/'judge-operations'))
+import queue_judges as q
+import intake_seven as intake
+sha=q.sha
+
+def read(p):return [json.loads(l)for l in p.open()if l.strip()]
+def save(name,rows):
+ p=OUT/name;raw=(''.join(json.dumps(r,sort_keys=True)+'\n'for r in rows)if isinstance(rows,list)else json.dumps(rows,indent=2,sort_keys=True)+'\n').encode()
+ if p.exists():assert p.read_bytes()==raw,'Published topup immutable'
+ else:p.write_bytes(raw)
+def deny_http(request):raise AssertionError('Worker may render only; no API request allowed')
+
+assert not(OUT/'HANDOFF.json').exists()
+old=CENTRAL/'promotion-evidence-v1'
+entries={e['id']:e for e in read(old/'frozen-input.jsonl')}
+observations={e['id']:e for e in read(old/'completed.jsonl')}
+decision_path=Path('LAB_ROOT/reports/research-experiments/promotion/source-review-v1/coordinator-decisions.jsonl')
+decisions={r['case_id']:r for r in read(decision_path)}
+cache=next((ROUND.parent/'cache').glob('bg-ebd0031534c954e5-*.pickle.gz'))
+comparer=pickle.loads(gzip.decompress(cache.read_bytes()));comparer._positions={id(f):i for i,f in enumerate(comparer.functions)}
+class Indexed:
+ name,version=comparer.name,comparer.version
+ similarity_reusable=False
+ def index(self,fs):assert all(a is b for a,b in zip(fs,comparer.functions,strict=True))
+ def neighbours(self,*a,**kw):return comparer.neighbours(*a,**kw)
+ def similarity(self,*a):return comparer.similarity(*a)
+detector=Detector(comparer.functions,Settings(),Indexed(),[PythonExtractor()])
+queries={r['query']:r for r in read(WORK/'.lab-results/full-corpus-followup/span-v2-migration/cohorts/bg-ebd0031534c954e5/per-query.jsonl')if'profiles'in r}
+settings=Settings(budget={'usd':.04})
+judge=AnthropicJudge(api_key='offline-render-only',http_client=httpx2.Client(transport=httpx2.MockTransport(deny_http)))
+assert judge.prompt_policy=='concept'and judge.max_tokens==8000 and judge.version=='dry-v2:claude-sonnet-5-5'
+packets=[];plans=[];funds=[];private=[];blind=[];bindings=[]
+for case in ['PEV-024','PEV-025','PEV-027','PEV-029']:
+ oldentry=entries[case];oldpacket=oldentry['packet'];orig=Candidate.model_validate(oldpacket['candidate']);side=oldentry['native_funding']['native'];qi,ti=side['query'],side['target'];query,target=comparer.functions[qi],comparer.functions[ti]
+ source=decisions[case];assert source['coordinator_status']=='accepted_scoped_source_review'
+ assert source['label']==('duplicate'if case in ['PEV-024','PEV-025']else'separate')
+ current=queries[qi]['profiles']['default_plus_current20'];baseline=current['baseline'];fullq=comparer.tfidf.vector(query.tokens);fullt=comparer.tfidf.vector(target.tokens)
+ if ti in baseline:
+  score=sum(w*fullt.get(t,0)for t,w in fullq.items());cid='tfidf:2';route='protected_baseline3'if ti in queries[qi]['profiles']['default3']['baseline']else'explicit_tfidf20'
+ else:
+  found=comparer.neighbours(query,1,allowed=lambda f:f.qualname not in{comparer.functions[i].qualname for i in baseline}and not why_skipped(query,f,settings));assert found and found[0][0]is target,(case,'production route does not retrieve target')
+  score=found[0][1];cid='operation-blocks:1';route='unseen_block1'
+ production=detector.pair(query,target,score).model_copy(update={'comparer':cid,'lane':'baseline'if route=='protected_baseline3'else'exploration'})
+ rendered=prompt(production,policy=judge.prompt_policy);old_rendered=prompt(orig,policy='concept');ops=prompt(orig,policy='shared-operations')
+ assert rendered==old_rendered and rendered!=ops,(case,'question equivalence failed')
+ packet=dict(oldpacket,id='OBR1-CONCEPT-'+case,candidate=production.model_dump(mode='json'),evidence=evidence(production),requested_judging=[{'kind':'claude','judge':judge.name,'version':judge.version,'model':judge.model,'policy':'concept','max_output_tokens':judge.max_tokens,'report_threshold':.8}],status='unknown',truth='Accepted scoped source review exists separately; new concept answer required. Shared-operations observations cannot substitute.')
+ binding=dict(oldentry['binding'],candidate_sha256=sha(q.canonical(packet['candidate'])))
+ legacy=dict(kind='claude',judge=judge.name,version=judge.version,model=judge.model,max_output_tokens=judge.max_tokens,rendered_input=rendered,source_evidence=evidence(production),context_hash=production.context_hash)
+ ident=dict(schema=1,**legacy,**binding,request_options=dict(prompt_policy='concept',effort=judge.effort,max_retries=2,retry_malformed=False,server_side_fallbacks='default'),prompt_version=judge.version,settings=dict(report_at=settings.report_at,drift_at=settings.drift_at,drop_below=settings.drop_below))
+ rates=(max(PRICES[m][0]for m in FALLBACK_MODELS if m in PRICES),max(PRICES[m][1]for m in FALLBACK_MODELS if m in PRICES))
+ reservation=usage_cost(dict(input=len(rendered.encode())+1024,output=judge.max_tokens),rates)
+ request=dict(request_key=sha(q.canonical(ident)),identity=ident,legacy_identity=legacy,reservation_usd=reservation,reservation_rates_per_million=list(rates),method='operation-blocks',case_id=packet['id'],pair_key=intake.packet_pair(packet),packet=packet,packet_file=str(OUT/'queue.jsonl'),cache=None,probe=False,state='new_request',attribution=[dict(method='operation-blocks',round=1,original_id=case,role='accepted_workspace_tools_lead'if source['label']=='duplicate'else'accepted_negative_control')])
+ policyrows={}
+ for profile,p in queries[qi]['profiles'].items():
+  cs=[Candidate(new=query,existing=comparer.functions[t],similarity=0,comparer='tfidf:2',lane='exploration')for t in p['augmented']]
+  if ti in p['augmented']:cs[p['augmented'].index(ti)]=production
+  b=Ledger(settings).select(judge,cs[:len(p['baseline'])]);a=Ledger(settings).select(judge,cs)
+  policyrows[profile]=dict(baseline_targets=p['baseline'],augmented_targets=p['augmented'],baseline_funded=[p['baseline'][i]for i in b],augmented_funded=[p['augmented'][i]for i in a],target_baseline_funded=ti in[p['baseline'][i]for i in b],target_variant_funded=ti in[p['augmented'][i]for i in a],baseline_estimated_usd=estimate(judge,[cs[i]for i in b],settings),augmented_estimated_usd=estimate(judge,[cs[i]for i in a],settings),funding_matches_original=p['baseline_funded']==[p['baseline'][i]for i in b]and p['augmented_funded']==[p['augmented'][i]for i in a])
+ private.append(dict(id=packet['id'],original_case_id=case,original_packet_id=oldpacket['id'],accepted_source_label=source['label'],family=source['family'],source_decision=source,source_decisions_path=str(decision_path),source_decisions_sha256=sha(decision_path.read_bytes()),production_route=route,production_comparer=cid,original_frozen_comparer=orig.comparer,production_concept_render_sha256=sha(rendered.encode()),original_frozen_concept_render_sha256=sha(old_rendered.encode()),shared_operations_render_sha256=sha(ops.encode()),concept_and_operations_interchangeable=False,original_and_production_exact_concept_question_equal=True,previous_observations=[{k:o.get(k)for k in ['kind','verdict','cached','usd','request_key','response_state']}for o in observations[case]['observations']],concept_verdict=None,concept_emitted=None,concept_answer_inferred=False,production_incremental_funding_gain=(ti not in current['baseline_funded'] and ti in current['augmented_funded']),policy_comparison='await exact concept answer; source accepted two pairs in one workspace-tool-registration family; shared-operations reports do not establish native concept emission'))
+ funds.append(dict(id=packet['id'],original_case_id=case,normal_cap_usd=.04,judge=judge.name,judge_version=judge.version,model=judge.model,policy='concept',max_output_tokens=judge.max_tokens,profiles=policyrows,production_profile='default_plus_current20',diagnostic_funding='root-only shared $20; separate physical fresh charge; output reservation differs from normal mean-token estimate',observed_real_pr_ledger=False))
+ packets.append(packet);plans.append(request);bindings.append(dict(id=packet['id'],binding=binding,source_proofs=packet['source_proofs']))
+ blind.append(dict(id=packet['id'],repository=packet['repository'],revision=packet['revision'],new=packet['candidate']['new'],existing=packet['candidate']['existing'],source_proofs=packet['source_proofs'],policies=[],consolidation=[]))
+judge.client.close()
+save('queue.jsonl',packets)
+for request in plans:request['packet_file_sha256']=sha((OUT/'queue.jsonl').read_bytes())
+for name,values in [('canonical-request-plan.jsonl',plans),('funding.jsonl',funds),('private-policy-comparison.jsonl',private),('source-proofs.jsonl',bindings),('source-blind.jsonl',blind)]:save(name,values)
+for p in private:
+ assert p['production_concept_render_sha256']!=p['shared_operations_render_sha256']
+assert len({p['request_key']for p in plans})==4
+handoff=dict(schema=1,method='operation-blocks',round=1,status='EXACT_CONCEPT_TOPUP_ROOT_ADAPTER_REQUIRED',queue=str(OUT/'queue.jsonl'),request_plan=str(OUT/'canonical-request-plan.jsonl'),funding=str(OUT/'funding.jsonl'),source_proofs=str(OUT/'source-proofs.jsonl'),private_policy_comparison=str(OUT/'private-policy-comparison.jsonl'),pairs=4,requests=4,positive_pairs=2,positive_families=1,matched_known_negative_controls=2,actual_default_judge=dict(name='anthropic',version='dry-v2:claude-sonnet-5-5',model='claude-sonnet-5-5',prompt_policy='concept',max_output_tokens=8000,max_retries=2,retry_malformed=False,effort=None),estimated_new_usd=sum(intake.normal_cost(p)for p in plans),conservative_reservation_usd=sum(p['reservation_usd']for p in plans),central_adapter_requirements=['queue_judges.render and intake_seven.policy currently select shared-operations/1024; must explicitly allow the attached exact concept identity.','queue_judges.call_provider hardcodes max_tokens=1024/max_retries=0; root must bind execution to attached max_output_tokens=8000, concept policy, actual default retry options/version.','Do not rewrite this queue or substitute an output=1024 concept version; such a question is separately named and cannot be credited as default configuration.'],shared_operations_vs_concept_interchangeable=False,concept_answers_inferred=0,old_v1_original_blocks_concept_answers_inferred=0,native_concept_emitted_gain='unknown until exact answers; if both leads rejected, report policy gap and zero concept emitted gain from them',normal_ledger_recomputed=True,provider_calls=0,credentials_read=False,worker_http_transport='MockTransport always raises; no SDK ask invoked')
+save('manifest.json',dict(status='SEALED',files={str(p):sha(p.read_bytes())for p in OUT.iterdir()if p.is_file()and p.name not in ['prepare.py','prepare.log']},renderer_source_sha256=sha((WORK/'src/dry_lint/judges/anthropic.py').read_bytes()),prompt_source_sha256=sha((WORK/'src/dry_lint/judges/command.py').read_bytes())))
+save('HANDOFF.json',handoff)
+print(json.dumps({k:handoff[k]for k in ['status','pairs','requests','estimated_new_usd','conservative_reservation_usd','positive_families']}))
+for row in private:print(json.dumps({k:row[k]for k in ['id','original_case_id','accepted_source_label','production_route','production_comparer','original_and_production_exact_concept_question_equal']}))

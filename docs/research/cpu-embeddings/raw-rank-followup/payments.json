@@ -1,0 +1,38 @@
+{
+  "batches": [
+    {
+      "cases": 35,
+      "fresh_calls": 70,
+      "intake": "r1-56443d49bbf9b05b",
+      "new_usd": 0.03356712
+    },
+    {
+      "cases": 35,
+      "fresh_calls": 35,
+      "intake": "r1-0bf0a26692c83059",
+      "new_usd": 0.384496
+    },
+    {
+      "cases": 63,
+      "fresh_calls": 126,
+      "intake": "r1-4f20dc93a1663c42",
+      "new_usd": 0.05485484
+    },
+    {
+      "cases": 5,
+      "fresh_calls": 10,
+      "intake": "r1-302bf3a132b14eca",
+      "new_usd": 0.004974340000000001
+    },
+    {
+      "cases": 17,
+      "fresh_calls": 18,
+      "intake": "r1-0578efcb631e6f10",
+      "new_usd": 0.0056386
+    }
+  ],
+  "fresh_calls": 259,
+  "new_usd": 0.4835309,
+  "successor_fresh_calls": 0,
+  "successor_new_usd": 0
+}

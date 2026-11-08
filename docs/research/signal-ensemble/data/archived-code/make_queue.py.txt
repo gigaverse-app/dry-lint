@@ -1,0 +1,214 @@
+"""Export first actual-funded blind review batch; source truth stays unknown."""
+
+import hashlib, json, statistics
+from collections import Counter, defaultdict
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+sha = lambda b: hashlib.sha256(b).hexdigest()
+
+
+def jl(p):
+    return [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+
+
+def dump(p, x):
+    p.write_text(json.dumps(x, indent=2, sort_keys=True) + "\n")
+
+
+def lines(p, x):
+    p.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in x))
+
+
+def identity(c):
+    return tuple(
+        sorted(
+            (f["path"] + "::" + (f.get("owner") + "." if f.get("owner") else "") + f["name"], sha(f["code"].encode()))
+            for f in [c["new"], c["existing"]]
+        )
+    )
+
+
+reg = json.loads((P / "EXPERIMENT.json").read_text())
+repo = reg["repository"]
+rev = reg["revision"]
+known = {identity(r["candidate"]) for r in jl(P / "panel-frozen.jsonl")}
+prior = set()
+for p in (P / "inputs/history").glob("*.jsonl"):
+    for r in jl(p):
+        c = r.get("candidate", r.get("packet", {}).get("candidate"))
+        if (
+            c
+            and r.get("repository", r.get("packet", {}).get("repository")) == repo
+            and r.get("revision", r.get("packet", {}).get("revision")) == rev
+        ):
+            prior.add(identity(c))
+leads = jl(P / "all-funded-ensemble-leads.jsonl")
+inventory = []
+possible = {}
+for r in leads:
+    k = identity(r["candidate"])
+    reason = "eligible"
+    if not r["globally_new_vs_full_raw_reference"]:
+        reason = "already_funded_raw_any_direction_full_corpus"
+    elif k in known:
+        reason = "exact_existing_source_authority_pair"
+    elif k in prior:
+        reason = "exact_prior_proposed_pair_retained_for_root_cache_review"
+    elif not all(f["path"].startswith("openhands/") for f in [r["candidate"]["new"], r["candidate"]["existing"]]):
+        reason = "first_batch_diversity_reserve_tests_examples_full_source_preserved"
+    r = dict(r, review_eligibility=reason)
+    inventory.append(r)
+    if reason == "eligible":
+        # Prefer default when same pair is funded in both separate profiles.
+        if k not in possible or r["profile"] == "default":
+            possible[k] = r
+# Include low raw scores and channel disagreements; no judge score gates, no source truth assigned.
+possible = list(possible.values())
+for r in possible:
+    r["review_stratum"] = (
+        "low_raw_cosine"
+        if r["raw_cosine"] < 0.2
+        else "block_channel_disagreement"
+        if r["channel"] == "blocks"
+        else "latent_channel_disagreement"
+    )
+possible.sort(key=lambda r: (r["review_stratum"], sha(repr(identity(r["candidate"])).encode())))
+selected = []
+family_counts = Counter()
+for r in possible:
+    family = tuple(sorted(f["path"] for f in [r["candidate"]["new"], r["candidate"]["existing"]]))
+    if family_counts[family] >= 2:
+        continue
+    selected.append(r)
+    family_counts[family] += 1
+    if len(selected) == 12:
+        break
+# Conservative independent controls: disjoint source modules and endpoints from sampled novel cases.
+used_paths = {f["path"] for r in selected for f in [r["candidate"]["new"], r["candidate"]["existing"]]}
+used_ids = {s for r in selected for s in [r["query_id"], r["target_id"]]}
+med = (
+    statistics.median(
+        sum(f["end_line"] - f["line"] + 1 for f in [r["candidate"]["new"], r["candidate"]["existing"]])
+        for r in selected
+    )
+    if selected
+    else 0
+)
+ex = jl(P / "candidate-exposures.jsonl")
+controls = []
+seen = set()
+base = [
+    r
+    for r in ex
+    if r["batch"].startswith("single:")
+    and r["arm"] == "baseline"
+    and r["funded"]
+    and all(f["path"].startswith("openhands/") for f in [r["candidate"]["new"], r["candidate"]["existing"]])
+]
+base.sort(
+    key=lambda r: (
+        abs(sum(f["end_line"] - f["line"] + 1 for f in [r["candidate"]["new"], r["candidate"]["existing"]]) - med),
+        sha(repr(identity(r["candidate"])).encode()),
+        r["profile"],
+    )
+)
+for r in base:
+    k = identity(r["candidate"])
+    paths = {f["path"] for f in [r["candidate"]["new"], r["candidate"]["existing"]]}
+    if k in seen or paths & used_paths or {r["query_id"], r["target_id"]} & used_ids:
+        continue
+    controls.append(r)
+    seen.add(k)
+    used_paths |= paths
+    used_ids |= {r["query_id"], r["target_id"]}
+    if len(controls) == 4:
+        break
+ci = json.loads(
+    __import__("gzip").decompress((P / "inputs/operation-blocks/openhands/candidate-index.json.gz").read_bytes())
+)
+packets = []
+private = []
+for num, r in enumerate(selected + controls, 1):
+    c = r["candidate"]
+    is_control = num > len(selected)
+    id_ = "ENS-R%03d" % num
+    proof = []
+    for side in ["new", "existing"]:
+        f = c[side]
+        s = ci["sources"][f["path"]]
+        source = P / "inputs/native" / s["sha256"]
+        data = source.read_bytes()
+        assert sha(data) == s["sha256"]
+        assert f["context_digest"] == s["sha256"]
+        proof.append(
+            dict(
+                side=side,
+                path=f["path"],
+                line=f["line"],
+                end_line=f["end_line"],
+                code_sha256=sha(f["code"].encode()),
+                file_sha256=s["sha256"],
+                git_blob_sha1=s["git_blob"],
+                source_snapshot=str(source),
+                repository=repo,
+                revision=rev,
+            )
+        )
+    packet = dict(
+        id=id_,
+        repository=repo,
+        revision=rev,
+        candidate=c,
+        background_proof=dict(path=str(P / "inputs/background.json.gz"), sha256=reg["background_sha256"]),
+        scope=reg["scope"],
+        source_proof=proof,
+        review_status="unknown_source_and_judge_pending",
+        judging_policy=reg["judge"],
+        candidate_sha256=sha(json.dumps(c, sort_keys=True).encode()),
+    )
+    packets.append(packet)
+    private.append(
+        dict(
+            id=id_,
+            role="matched_independent_baseline_control" if is_control else "globally_novel_funded",
+            profile=r["profile"],
+            batch=r["batch"],
+            arm=r["arm"],
+            query=r["query"],
+            target=r["target"],
+            funded=r["funded"],
+            normal_estimated_usd=r["estimated_usd"],
+            raw_cosine=r["raw_cosine"],
+            latent_cosine=r["latent_cosine"],
+            channel=r["channel"],
+            block_evidence=r["block_evidence"],
+            stratum=r.get("review_stratum"),
+            global_full_corpus_raw_reference_absent=not is_control,
+            known_pair=k in known if is_control else False,
+            source_truth=None,
+        )
+    )
+lines(P / "novel-review-queue.jsonl", packets)
+lines(P / "review-score-blind-packets.jsonl", packets)
+lines(P / "private-review-sidecar.jsonl", private)
+lines(P / "novel-ranked-inventory.jsonl", inventory)
+dump(
+    P / "QUEUE-READY.json",
+    dict(
+        status="READY_FOR_ROOT_AND_JUDGE_OPERATIONS",
+        limited_pilot=True,
+        broader_inventory_replication="running separately; does not turn pilot into general conclusion",
+        novel=len(selected),
+        controls=len(controls),
+        queue=str(P / "novel-review-queue.jsonl"),
+        sha256=sha((P / "novel-review-queue.jsonl").read_bytes()),
+        worker_provider_calls=0,
+        physical_allocation="Root owns shared new discovery1USD tranche; no worker provider allocation or execution",
+        all_judge_answers_unknown=True,
+        rejected_and_reserved_preserved="novel-ranked-inventory.jsonl",
+        selection_uses_no_judge_answers=True,
+        expansion="Additional batches by source-confirmed useful yield and family coverage; no final12 ceiling",
+    ),
+)
+print(json.dumps(json.loads((P / "QUEUE-READY.json").read_text()), indent=2))

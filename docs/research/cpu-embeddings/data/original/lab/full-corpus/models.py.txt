@@ -1,0 +1,167 @@
+"""Separate declaration inventory supplement; no changes to shared function mappings."""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import experiment
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.models import Candidate, Function
+from dry_lint.settings import Settings
+
+HERE = Path(__file__).resolve().parent
+read = experiment.read_rows
+dump = experiment.dump
+sha = experiment.sha
+SHARED = Path(
+    "LAB_ROOT/jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v1-88f0f73927ce28d2"
+)
+
+
+def prepare_all():
+    spec = json.loads((HERE / "MODEL-SUPPLEMENT-EXPERIMENT.json").read_text())
+    spec_rows = [r for r in read(SHARED / "rows.jsonl") if r["record_kind"] == "model"]
+    outputs = []
+    registry = json.loads((HERE / "source-pin-availability.json").read_text())
+    for source in spec["inventory_sources"]:
+        path = Path(source["models_path"])
+        assert sha(path.read_bytes()) == source["models_sha256"]
+        assert sha(Path(source["source_manifest"]).read_bytes()) == source["source_manifest_sha256"]
+        units = [Function.model_validate(f) for f in json.loads(path.read_text())]
+        manifest = json.loads(Path(source["source_manifest"]).read_text())
+        source_hashes = {f["path"]: f["sha256"] for f in manifest["files"]}
+        git = next(
+            r["git"]
+            for r in registry
+            if r["repository"] == source["repository"] and r["revision"] == source["revision"] and r["git"]
+        )
+        files = {}
+        failures = []
+        folder = HERE / "models" / source["repository"].split("/")[-1]
+        folder.mkdir(parents=True, exist_ok=True)
+        for unit in units:
+            if unit.path not in files:
+                raw = subprocess.check_output(["git", "-C", git, "show", source["revision"] + ":" + unit.path])
+                assert sha(raw) == source_hashes[unit.path]
+                files[unit.path] = raw
+            raw = files[unit.path]
+            lines = raw.decode().splitlines()
+            assert 1 <= unit.line <= unit.end_line <= len(lines)
+            if "\n".join(lines[unit.line - 1 : unit.end_line]) != unit.code:
+                failures.append(
+                    {"source_id": unit.qualname, "reason": "native_inventory_span_body_differs_from_pinned_full_file"}
+                )
+            assert unit.declaration is not None
+            unit.tokens = ["field:" + key for key in unit.declaration.fields]
+        assert not failures, failures[:3]
+        settings = Settings(
+            include=source["scope"]["include"],
+            exclude=source["scope"]["exclude"],
+            extractors=[{"use": "python-models"}],
+            budget={"usd": 0.04},
+        )
+        bg = BenchBackground.capture(units, source["repository"], source["revision"], settings, max_df=0.3)
+        data = bg.encode()
+        (folder / "background.json.gz").write_bytes(data)
+        background = {"path": str(folder / "background.json.gz"), "sha256": sha(data)}
+        repo = {
+            "repository": source["repository"],
+            "revision": source["revision"],
+            "git": git,
+            "background_proof": background,
+        }
+        experiment.jsonl(folder / "functions.jsonl", [f.model_dump(mode="json") for f in units])
+        byid = {f.qualname: f for f in units}
+        gold = []
+        for r in spec_rows:
+            if r["repository"] != source["repository"] or r["revision"] != source["revision"]:
+                continue
+            c = Candidate.model_validate(r["candidate"])
+            assert c.new.qualname in byid and c.existing.qualname in byid
+            for f in [c.new, c.existing]:
+                assert byid[f.qualname].code == f.code
+            candidate = Candidate(
+                new=byid[c.new.qualname],
+                existing=byid[c.existing.qualname],
+                similarity=0,
+                comparer="declaration-supplement-source-only",
+            )
+            row = {
+                "id": r["row_id"],
+                "candidate": candidate.model_dump(mode="json"),
+                "cohort": r["dataset"] + "|declaration-supplement",
+                "family_id": r["family_id"] or "unassigned-family:" + r["repository"],
+                "family_lineage": r["family_lineage"],
+                "label": r["label"],
+                "active_panel_eligible": r["accepted_gold"],
+                "split": "observed-development-regression",
+                "label_scope": r["input_record"]["row"].get("operation_scope"),
+                "whole_function_label": None,
+                "granularity": "model-declaration",
+            }
+            gold.append({"source_cohort_file": str(SHARED / "rows.jsonl"), "row": row})
+        experiment.jsonl(folder / "gold-inputs.jsonl", gold)
+        dump(
+            folder / "manifest.json",
+            {
+                "status": "complete",
+                "repository": repo,
+                "functions": len(units),
+                "all_source_bodies_verified": True,
+                "functions_jsonl_sha256": sha((folder / "functions.jsonl").read_bytes()),
+                "source": source,
+                "kind": "model-declaration inventory, separate from original function backgrounds",
+                "gold_rows": len(gold),
+                "files": len(files),
+                "duplicate_ids": {},
+            },
+        )
+        outputs.append(str(folder))
+        print(
+            "Native declaration corpus verified", source["repository"], len(units), len(gold), "gold rows", flush=True
+        )
+    dump(
+        HERE / "model-supplement-ready.json",
+        {
+            "folders": outputs,
+            "records": len(spec_rows),
+            "source_digests_and_spans_verified": True,
+            "function_mapper_not_changed": True,
+        },
+    )
+
+
+def evaluate_all():
+    previous = experiment.EstimateOnlySonnet
+
+    class ModelEstimate(previous):
+        name = "lab-cpu-minilm-model-contract-estimate"
+        prompt_policy = "model-contracts"
+        version = experiment.PROMPT_POLICIES["model-contracts"][0] + ":claude-sonnet-5-5:output=1024"
+
+    experiment.EstimateOnlySonnet = ModelEstimate
+    try:
+        for folder in json.loads((HERE / "model-supplement-ready.json").read_text())["folders"]:
+            folder = Path(folder)
+            repo = json.loads((folder / "manifest.json").read_text())["repository"]
+            status = (
+                json.loads((folder / "embedding-status.json").read_text())
+                if (folder / "embedding-status.json").exists()
+                else {}
+            )
+            if status.get("status") == "complete":
+                experiment.evaluate(
+                    repo, folder, extension_policy="native-adapter", comparer_version="declaration-supplement-1"
+                )
+    finally:
+        experiment.EstimateOnlySonnet = previous
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "evaluate":
+        evaluate_all()
+    else:
+        prepare_all()

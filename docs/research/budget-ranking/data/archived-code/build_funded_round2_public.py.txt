@@ -1,0 +1,283 @@
+"""Freeze revised fair arm-funded public pairs for root's existing paired central intake."""
+import hashlib
+import importlib.util
+import json
+import re
+import shutil
+import sys
+import time
+from collections import Counter, defaultdict
+from pathlib import Path
+
+O=Path(__file__).resolve().parent
+L=Path('/home/researcher/dry-lint-round')
+D=O/'funded-rounds/round2'
+OPS=L/'jobs/judge-operations/.lab-results/judge-operations'
+sys.path[:0]=[str(O.parent/'src'),str(OPS)]
+import queue_judges as q
+import intake_seven as intake
+
+
+def module(name,path):
+    spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+
+
+def read(p):return json.loads(p.read_text())
+def rows(p):return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def freeze(p,data):
+    p.parent.mkdir(parents=True,exist_ok=True)
+    raw=(json.dumps(data,sort_keys=True,indent=2)+'\n').encode()
+    if p.exists():assert p.read_bytes()==raw,('Immutable file changed',str(p))
+    else:p.write_bytes(raw)
+def lines(p,data):
+    p.parent.mkdir(parents=True,exist_ok=True)
+    raw=b''.join(q.canonical(r)+b'\n' for r in data)
+    if p.exists():assert p.read_bytes()==raw,('Immutable queue changed',str(p))
+    else:p.write_bytes(raw)
+
+
+def pair(repo,pin,ids):return q.sha(q.canonical([repo,pin,sorted(ids)]))
+def rendered_key(identity):
+    fields=['kind','judge','version','model','max_output_tokens','rendered_input','source_evidence','context_hash']
+    return q.sha(q.canonical({k:identity.get(k) for k in fields}))
+
+
+def main():
+    assert (D/'EXPERIMENT.json').exists() and (D/'PUBLIC-EXPERIMENT.json').exists()
+    if (D/'HANDOFF.json').exists():
+        print(json.dumps({'status':'existing_immutable_round2','handoff':str(D/'HANDOFF.json')}));return
+    start=time.perf_counter()
+    e=module('round1_original_method',O/'run_experiment.py')
+    stages=rows(O/'candidate-stages.jsonl')
+    configs={r['repository']:r for r in read(q.REPOS)}
+    background_proofs={r['repository']:r['background'] for r in read(O/'timing.json')}
+    observations=q.observations(sorted(set(q.observation_directories(D))|set(OPS.parent.glob('*/observations'))))
+    seen_rendered={rendered_key(r['identity']) for p,r in observations if r['identity'].get('kind') in ['jev','claude']}
+    index=L/'jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2/rows.jsonl'
+    reviewed=set()
+    for r in rows(index):
+        ids=[v.get('extracted_source_id') or v.get('source_id') or v.get('id') for v in r['sources'].values()]
+        if len(ids)==2 and all(ids):reviewed.add(pair(r['repository'],r['revision'],ids))
+    by=defaultdict(dict);ledger=[]
+    for r in stages:by[(r['repository'],r['revision'],r['pair'])][r['arm']]=r
+    for (repo,rev,batch,arm),rr in group_rows(stages,lambda r:(r['repository'],r['revision'],r['batch'],r['arm'])).items():
+        amount=sum(r['estimated_charge_usd'] for r in rr)
+        assert amount<=.04+1e-12
+        ledger.append(dict(schema=1,ledger_kind='synthetic_diagnostic',repository=repo,revision=rev,batch=batch,arm=arm,
+            split=rr[0]['split'],cap_usd=.04,estimated_usd=amount,funded_keys=sorted(r['pair'] for r in rr if r['funded']),
+            original_stage_path=str(O/'candidate-stages.jsonl'),original_stage_sha256=sha(O/'candidate-stages.jsonl'),
+            policy='Claude Sonnet5.5/shared-operations/output1024 normal estimates; synthetic family batch, not an actual PR or native reserve/settle ledger.'))
+    ledger_path=D/'synthetic-arm-ledgers.jsonl'
+    ledger_by={(r['repository'],r['revision'],r['batch'],r['arm']):r for r in ledger}
+    # Restrict every output/cache write to this worker. Existing central utilities
+    # retain their source/identity logic and no execution path is invoked.
+    shared_caches=[OPS/'extraction-cache',O/'funded-rounds/round1/extraction-cache',O/'funded-rounds/central-cache/extraction-cache']
+    q.HOME=D
+    verifier=intake.Intake(D)
+    cache=verifier.cache
+    documents={};backgrounds={};functions={};source_proofs={}
+    settings=e.Settings(judge={'use':'anthropic','model':'claude-sonnet-5-5','prompt_policy':'shared-operations','max_tokens':1024,'max_retries':0},escalate=None,budget={'usd':.04})
+    judge=e.judge_for(settings)
+    exclusions=[];eligible=[];seeded=0
+
+    def native(repo,pin,source_id):
+        nonlocal seeded
+        if repo not in backgrounds:
+            proof=background_proofs[repo];raw=Path(proof['path']).read_bytes();assert q.sha(raw)==proof['sha256']
+            bg=e.BenchBackground.decode(raw);assert (bg.repository,bg.revision)==(repo,pin)
+            backgrounds[repo]=bg;docs=defaultdict(list)
+            for doc in bg.documents:docs[doc.id].append(doc)
+            documents[repo]=docs
+        key=(repo,pin,source_id)
+        if key in functions:return functions[key]
+        config=configs[repo];path=source_id.split('::')[0]
+        assert 'enterprise' not in Path(path).parts
+        filekey=(repo,pin,path)
+        if filekey not in verifier.files:
+            raw=q.git(Path(config['git']),'cat-file','blob',pin+':'+path)
+            verifier.files[filekey]=raw
+            dest=D/'source-proofs'/repo/pin/path;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(raw)
+            ident=dict(schema=1,repository=repo,revision=pin,path=path,source_sha256=q.sha(raw),contract=cache.contract)
+            name=q.sha(q.canonical(ident))+'.json'
+            cached=next((folder/name for folder in shared_caches if (folder/name).exists()),shared_caches[0]/name)
+            local=cache.directory/cached.name
+            if cached.exists() and not local.exists():shutil.copyfile(cached,local);seeded+=1
+            fs=cache.extract(repo,pin,path,raw)
+            grouped=defaultdict(list)
+            for f in fs:grouped[f.qualname].append(f)
+            for sid,found in grouped.items():
+                if len(found)==1:functions[(repo,pin,sid)]=found[0]
+            source_proofs[filekey]=dict(path=path,revision=pin,file_sha256=q.sha(raw),full_file_path=str(dest.resolve()))
+        if key not in functions:raise ValueError('Missing/ambiguous native sourceID: '+source_id)
+        f=functions[key]
+        bg=backgrounds[repo];matches=documents[repo].get(source_id,[])
+        assert len(matches)==1 and matches[0].source_sha256==q.sha(f.code.encode())
+        return f
+
+    fairness=module('public_fair_method',O/'run_fair_fixed_revision.py')
+    revised=[]
+    grouped=group_rows([r for r in stages if r['arm']=='current' and r['split']=='dev-B'],lambda r:(r['repository'],r['revision'],r['batch']))
+    for (repo,pin,batch),rr in grouped.items():
+        pool=[];oldrows={}
+        for r in rr:
+            first=native(repo,pin,r['new']);second=native(repo,pin,r['existing'])
+            candidate=e.Candidate(new=first,existing=second,similarity=r['similarity'],comparer='tfidf:2',similarity_reusable=True,lane=r['lane'],filtered=e.why_skipped(first,second,settings))
+            assert candidate.key==r['pair'] and e.evidence(candidate)==r['evidence']
+            assert e.digest(e.canonical(candidate,judge))==r['question_key']
+            pool.append(candidate);oldrows[candidate.key]=r
+        fs={k:{name:r[name] for name in ['utility','estimated_usd','cost_score','total_lines','same_file','operation','independent_owners','similarity']} for k,r in oldrows.items()}
+        positions={doc.id:i for i,doc in enumerate(backgrounds[repo].documents)}
+        current=e.feature_order(pool,'current',fs,positions)
+        ordered=fairness.fair_order(pool,current,[],fs)
+        budget=e.Ledger(settings);funded={ordered[i].key for i in budget.select(judge,ordered)}
+        budget.charge(judge,[c for c in ordered if c.key in funded],len(ordered)-len(funded));assert budget.usd<=.04+1e-12
+        for rank,candidate in enumerate(ordered,1):
+            r=dict(oldrows[candidate.key],arm='fair_fixed_feature',rank=rank,funded=candidate.key in funded,
+                cumulative_estimated_usd=budget.usd,estimated_charge_usd=fs[candidate.key]['estimated_usd'] if candidate.key in funded else 0,
+                verdict=None,reported=None,observation_path=None,stage='missing_answer' if candidate.key in funded else 'budget')
+            revised.append(r);by[(repo,pin,candidate.key)]['fair_fixed_feature']=r
+        record=dict(schema=1,ledger_kind='synthetic_diagnostic',repository=repo,revision=pin,batch=batch,arm='fair_fixed_feature',split='dev-B',cap_usd=.04,
+            estimated_usd=budget.usd,funded_keys=sorted(funded),original_stage_path=str(O/'candidate-stages.jsonl'),original_stage_sha256=sha(O/'candidate-stages.jsonl'),
+            policy='Preregistered fairness-preserving fixed utility; original Sonnet normal estimates, synthetic family batch only.')
+        ledger.append(record);ledger_by[(repo,pin,batch,'fair_fixed_feature')]=record
+    lines(ledger_path,ledger);lines(D/'revised-rank-rows.jsonl',revised)
+    r1=O/'funded-rounds/round1'
+    first_endpoints=defaultdict(set)
+    for packet in rows(r1/'novel-review-queue.jsonl'):
+        candidate=q.Candidate.model_validate(packet['candidate']);first_endpoints[(packet['repository'],packet['revision'])].update([candidate.new.qualname,candidate.existing.qualname])
+    first_lineages={family for row in rows(r1/'private-sidecar.jsonl') for family in row['lineage']}
+    for key,arms in sorted(by.items()):
+        r=arms['current'];repo,pin,oldpair=key
+        if r['split']!='dev-B' or not (arms['current']['funded'] or arms['fair_fixed_feature']['funded']):continue
+        pkey=pair(repo,pin,[r['new'],r['existing']])
+        if pkey in reviewed:
+            exclusions.append(dict(pair_key=pkey,repository=repo,pair=oldpair,reason='exact_previously_reviewed_source_pair'));continue
+        if {r['new'],r['existing']}&first_endpoints[(repo,pin)] or set(r['lineage'])&first_lineages:
+            exclusions.append(dict(pair_key=pkey,repository=repo,pair=oldpair,reason='round1_endpoint_or_frozen_family_lineage_overlap'));continue
+        assert pin==configs[repo]['revision']
+        if repo not in backgrounds:
+            proof=background_proofs[repo];raw=Path(proof['path']).read_bytes();assert q.sha(raw)==proof['sha256']
+            bg=e.BenchBackground.decode(raw);assert (bg.repository,bg.revision)==(repo,pin)
+            backgrounds[repo]=bg;docs=defaultdict(list)
+            for doc in bg.documents:docs[doc.id].append(doc)
+            documents[repo]=docs
+        try:
+            a=native(repo,pin,r['new']);b=native(repo,pin,r['existing'])
+            c=e.Candidate(new=a,existing=b,similarity=r['similarity'],comparer='tfidf:2',similarity_reusable=True,
+                          lane=r['lane'],filtered=e.why_skipped(a,b,settings))
+            assert c.key==oldpair and e.evidence(c)==r['evidence']
+            assert e.digest(e.canonical(c,judge))==r['question_key'],'Original rendered Claude request changed'
+            identities=[q.render(c,kind) for kind in ['jev','claude']]
+            if any(rendered_key(i) in seen_rendered for i in identities):
+                exclusions.append(dict(pair_key=pkey,repository=repo,pair=oldpair,reason='at_least_one_exact_rendered_request_previously_observed_no_paid_repeat'));continue
+            role='novel' if not arms['current']['funded'] else 'control'
+            treatment=['fair_fixed_feature'] if arms['fair_fixed_feature']['funded'] else []
+            subtype='treatment_funded_gain' if role=='novel' else 'lost_current_funding_control' if not arms['fair_fixed_feature']['funded'] else 'common_funded_independent_control'
+            chosen='fair_fixed_feature' if role=='novel' else 'current'
+            proofs=[]
+            for side,f in [('new',a),('existing',b)]:
+                proof=source_proofs[(repo,pin,f.path)]
+                proofs.append(dict(**proof,side=side,source_id=f.qualname,line=f.line,end_line=f.end_line,body_sha256=q.sha(f.code.encode()),
+                    outgoing_syntactic_calls=sorted(set(re.findall(r'\b([A-Za-z_$][\w$]*)\s*\(',f.code))-{f.name})))
+            eligible.append(dict(pair_key=pkey,repo=repo,pin=pin,candidate=c,arms=arms,role=role,subtype=subtype,
+                chosen_arm=chosen,source_proofs=proofs,judge_identities=identities,
+                stable=q.sha(q.canonical([repo,pin,oldpair])),batch=r['batch'],lineage=r['lineage'],size='under40' if r['total_lines']<40 else '40plus'))
+        except Exception as exc:
+            exclusions.append(dict(pair_key=pkey,repository=repo,pair=oldpair,reason='source_or_original_arm_contract_rejected',error=type(exc).__name__+': '+str(exc)))
+    # Freeze all eligible supply. Differential cases first and repository/lineage
+    # diversity across chunks. This never inspects a new model answer.
+    eligible.sort(key=lambda x:(0 if x['role']=='novel' else 1 if x['subtype']=='lost_current_funding_control' else 2,x['stable']))
+    selected=[];round_robin=Counter()
+    while eligible:
+        best=min(eligible,key=lambda x:(0 if x['role']=='novel' else 1 if x['subtype']=='lost_current_funding_control' else 2,
+            round_robin[x['repo'],x['batch']],x['stable']))
+        eligible.remove(best);selected.append(best);round_robin[best['repo'],best['batch']]+=1
+    packets=[];private=[];blind=[];frozen=[];requests=[];bindings=[];request_dedup=[]
+    total_expected=0.
+    for n,entry in enumerate(selected,1):
+        qid=f'BR-R2-{n:04d}';c=entry['candidate'];repo=entry['repo'];pin=entry['pin'];arm=entry['chosen_arm'];r=entry['arms'][arm]
+        proof=dict(path=str(ledger_path.resolve()),sha256=sha(ledger_path),batch=entry['batch'],arm=arm,pair_key=c.key,
+            ledger_kind='synthetic_diagnostic',qualification='Actual frozen Sonnet-only synthetic .04 admission; no native PR funding. Jev uses central diagnostic allocation.')
+        packet=dict(schema=1,id=qid,repository=repo,revision=pin,candidate=c.model_dump(mode='json'),
+            background_proof=background_proofs[repo],source_proofs=entry['source_proofs'],caller_proofs=[],
+            caller_evidence_caveat='Exact native context and outgoing call evidence retained; whole-repository reachability not inferred. Independent source reviewers inspect pinned callers before utility acceptance.',
+            funding_proof=proof,source_policy='Public pinned development/regression synthetic arm; no historical PR/deployment configuration claim.',
+            requested_judges=[dict(kind='jev',model='jev-1.14.0',context=True,version=entry['judge_identities'][0]['version'],max_output_tokens=None),
+                dict(kind='claude',model='claude-sonnet-5-5',prompt_policy='shared-operations',version=entry['judge_identities'][1]['version'],max_output_tokens=1024)])
+        binding=verifier.source(packet);bindings.append(dict(id=qid,**binding))
+        stage={a:{k:x[k] for k in ['rank','funded','estimated_usd','estimated_charge_usd','cumulative_estimated_usd','stage','total_lines','same_file','operation','independent_owners','similarity','utility','cost_score']} for a,x in entry['arms'].items()}
+        priv=dict(id=qid,role=entry['role'],stratum=entry['subtype'],batch=entry['batch'],lineage=entry['lineage'],split='dev-B',size_stratum=entry['size'],
+            exact_pair_key=entry['pair_key'],chosen_funded_arm=arm,arm_rows=stage,source_label='unknown',
+            funding_scope='Frozen synthetic .04 Sonnet-only; paired Jev physical judging is separate diagnostic spend.',original_stage_proof=dict(path=str(O/'candidate-stages.jsonl'),sha256=sha(O/'candidate-stages.jsonl')))
+        private.append(priv);packets.append(packet)
+        blind.append(dict(id=qid,repository=repo,revision=pin,new=c.new.model_dump(mode='json'),existing=c.existing.model_dump(mode='json'),
+            source_proofs=[{k:v for k,v in p.items() if k!='outgoing_syntactic_calls'} for p in entry['source_proofs']],
+            instruction='Assess a concrete useful shared operation, independent owners and caller policy differences. Preserve related/disputed/unknown status. Do not infer whole-function equivalence.'))
+        attribution=[dict(method='budget-ranking',id=qid,role=entry['role'],input=str((D/'novel-review-queue.jsonl').resolve()))]
+        funding=ledger_by[(repo,pin,entry['batch'],arm)]
+        frozen.append(dict(method='budget-ranking',role=entry['role'],id=qid,pair_key=entry['pair_key'],packet=packet,attribution=attribution,binding=binding,
+            native_funding=dict(arm=arm,native=funding,qualification='Synthetic diagnostic arm, never native reservation or actual PR funding.')))
+        for kind in ['jev','claude']:
+            req=q.request(c,kind,binding)
+            req.update(packet=packet,packet_file=str((D/'novel-review-queue.jsonl').resolve()),packet_file_sha256=None,cache=None,probe=False,
+                method='budget-ranking',case_id=qid,pair_key=entry['pair_key'],attribution=attribution,state='new_request')
+            estimate=intake.normal_cost(req);total_expected+=estimate
+            requests.append(req);request_dedup.append(dict(case_id=qid,kind=kind,request_key=req['request_key'],rendered_identity_sha256=rendered_key(req['identity']),expected_usd=estimate,cache_status='not_observed_at_freeze'))
+    queue=D/'novel-review-queue.jsonl';lines(queue,packets)
+    for req in requests:req['packet_file_sha256']=sha(queue)
+    assert len({r['request_key'] for r in requests})==len(requests)
+    assert len({r['rendered_identity_sha256'] for r in request_dedup})==len(requests)
+    lines(D/'canonical-request-plan.jsonl',requests);lines(D/'frozen-input.jsonl',frozen);lines(D/'private-sidecar.jsonl',private)
+    lines(D/'source-blind.jsonl',blind);lines(D/'source-bindings.jsonl',bindings);lines(D/'canonical-dedup-private.jsonl',request_dedup);lines(D/'exclusions.jsonl',exclusions)
+    verification=dict(schema=1,all_pass=True,rows=len(packets),frozen_sha256=sha(queue),
+        source_bindings=str(D/'source-bindings.jsonl'),source_bindings_sha256=sha(D/'source-bindings.jsonl'),
+        source_endpoints=sum(len(r['source_files']) for r in bindings),original_candidate_and_rendered_policy_preserved=True,
+        exact_native_source_validated_by='existing intake_seven.Intake.source',extraction_contract=cache.contract,
+        background_index_refits=0,extraction_cache_hits=cache.hits,extraction_parses=cache.parses,shared_entries_reused=seeded,provider_calls=0)
+    freeze(queue.with_suffix('.verification.json'),verification)
+    chunks=[]
+    for offset in range(0,len(packets),32):
+        number=offset//32+1;chunk=D/'chunks'/f'chunk-{number:03d}';subset=packets[offset:offset+32];ids={r['id'] for r in subset}
+        lines(chunk/'novel-review-queue.jsonl',subset);lines(chunk/'canonical-request-plan.jsonl',[r for r in requests if r['case_id'] in ids]);lines(chunk/'frozen-input.jsonl',[r for r in frozen if r['id'] in ids]);lines(chunk/'source-blind.jsonl',[r for r in blind if r['id'] in ids]);lines(chunk/'private-sidecar.jsonl',[r for r in private if r['id'] in ids])
+        freeze(chunk/'novel-review-queue.verification.json',dict(verification,rows=len(subset),frozen_sha256=sha(chunk/'novel-review-queue.jsonl')))
+        expected=sum(r['expected_usd'] for r in request_dedup if r['case_id'] in ids)
+        meta=dict(chunk=number,pairs=len(subset),requests=2*len(subset),expected_new_physical_usd=expected,
+            queue=str((chunk/'novel-review-queue.jsonl').resolve()),queue_sha256=sha(chunk/'novel-review-queue.jsonl'),
+            canonical_request_plan=str((chunk/'canonical-request-plan.jsonl').resolve()),canonical_request_plan_sha256=sha(chunk/'canonical-request-plan.jsonl'),
+            physical_execution='Root central intake only; per-direction new paid spend counted once, cached observations excluded.')
+        freeze(chunk/'MANIFEST.json',meta);chunks.append(meta)
+    for offset in range(0,len(requests),32):lines(D/'request-chunks'/f'requests-{offset//32+1:03d}.jsonl',requests[offset:offset+32])
+    freeze(D/'MANIFEST.json',dict(schema=1,method='budget-ranking',round=2,pairs=len(packets),requests=len(requests),
+        expected_new_physical_usd=total_expected,minimum_actual_new_spend_usd=.20,
+        chunks=chunks,queue=str(queue.resolve()),queue_sha256=sha(queue),provider_calls_by_worker=0))
+    freeze(D/'STATUS.json',dict(status='READY_FOR_JUDGE_OPERATIONS_ROOT_INTAKE',method='budget-ranking',round=2,
+        actual_round_public_new_spend_usd=0,minimum_actual_usd=.20,expected_new_usd=total_expected,pairs=len(packets),requests=len(requests),
+        native_history_first=True,older_historical_spend_not_credited=True,source_labels='unknown',round_closed=False,provider_calls_by_worker=0))
+    artifacts=['EXPERIMENT.json','PUBLIC-EXPERIMENT.json','revised-rank-rows.jsonl','MANIFEST.json','STATUS.json','novel-review-queue.jsonl','novel-review-queue.verification.json','canonical-request-plan.jsonl','frozen-input.jsonl','synthetic-arm-ledgers.jsonl','private-sidecar.jsonl','source-blind.jsonl','source-bindings.jsonl','canonical-dedup-private.jsonl','exclusions.jsonl']
+    freeze(D/'HANDOFF.json',dict(schema=1,status='READY_FOR_ROOT_AND_JUDGE_OPERATIONS',method='budget-ranking',round=2,
+        minimum_new_paid_usd=.20,expected_new_physical_usd=total_expected,pairs=len(packets),requests=len(requests),
+        round_closed=False,provider_calls_by_worker=0,root_source_reblind_required=True,
+        actual_public_new_paid_usd=0,previous_historical_spend='Separate .lab-results/provider-consumption-v*.json and immutable continuation receipts; never automatically credited to new .20 minimum.',
+        native_history_priority='Original historical comparison exhausted atv57 and new fair native arm completed12/12 with0eligible questions; do not pay historical repeats.',
+        funding='Source pairs actually funded by frozen Sonnet synthetic .04 diagnostic arm. No actual PR/deployment/native reserve claim. Central Jev+Claude physical judging is separate.',
+        benefit_gate='Root independent source-confirmed novel reports versus current reports and lost useful reports, precision/related/disputed, size/cost strata and runtime. Common-funded discoveries do not establish ordering benefit.',
+        continuation_gate='Execute frozen chunks adaptively until actual unique direction-attributed new spend>=.20. Cached answers/repeats do not count; stop earlier only root verifies eligible supply exhausted.',
+        iteration_gate='This is the single preregistered revised fairness mechanism; >=.20 actual new public diagnostic spend when root proceeds. No further variant/threshold tuning or paid repeats.',
+        selection_counts=dict(Counter(r['stratum'] for r in private)),repositories=dict(Counter(r['repository'] for r in packets)),
+        split='dev-B DEVELOPMENT/REGRESSION; disjoint from every R1 source endpoint and frozen query lineage; semantic operation-family reconciliation remains required',round2_reserved_split='Now evaluated dev-B; R1 endpoints and frozen lineages excluded, never infer fresh historical holdout',
+        background_or_vector_refits=0,wall_seconds=time.perf_counter()-start,extraction_cache_hits=cache.hits,extraction_parses=cache.parses,
+        shared_reviewed_pair_index=dict(path=str(index),sha256=sha(index)),original_method_sha256=sha(O/'run_experiment.py'),revised_method_sha256=sha(O/'run_fair_fixed_revision.py'),revised_historical_supply=str(D/'replay-v1/HANDOFF.json'),central_intake_sha256=sha(Path(intake.__file__)),
+        central_contract='Existing intake-v1 frozen-input/canonical-request-plan/queue source schema; no new execution framework.',
+        chunks=chunks,artifacts={f:dict(path=str((D/f).resolve()),sha256=sha(D/f)) for f in artifacts}))
+    print(json.dumps(dict(handoff=str(D/'HANDOFF.json'),pairs=len(packets),requests=len(requests),expected_new_usd=total_expected,
+        strata=dict(Counter(r['stratum'] for r in private)),excluded=dict(Counter(r['reason'] for r in exclusions)),chunks=len(chunks),provider_calls=0),sort_keys=True))
+
+
+def group_rows(rr,key):
+    result=defaultdict(list)
+    for r in rr:result[key(r)].append(r)
+    return result
+
+
+if __name__=='__main__':main()

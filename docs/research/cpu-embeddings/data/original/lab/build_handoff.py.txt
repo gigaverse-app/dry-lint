@@ -1,0 +1,103 @@
+"""Save commands and evidence hashes after completed offline evaluation; never alter frozen packets."""
+
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+WORKTREE = HERE.parent
+
+
+def main():
+    files = []
+    for path in HERE.iterdir():
+        if path.is_file() and path.name not in ["HANDOFF.json", "SHA256SUMS"]:
+            files.append(path)
+    for name in ["openhands", "kaizen"]:
+        files.extend(p for p in (HERE / name).iterdir() if p.is_file())
+    for folder in [HERE / "infrastructure-provenance", HERE / "infrastructure-failure-initial"]:
+        if folder.exists():
+            files.extend(p for p in folder.rglob("*") if p.is_file())
+    hashes = {str(p.relative_to(HERE)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(set(files))}
+    prefix = "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python "
+    commands = [
+        "Initial one-time registration: /usr/bin/python3 .lab-results/freeze.py (already frozen; refuses overwrite)",
+        "Coordinator-only public artifact relay: .lab-results/venv/bin/python .lab-results/acquire.py (completed by root)",
+        prefix + ".lab-results/experiment.py prepare",
+        ".lab-results/venv/bin/python .lab-results/embed.py .lab-results/openhands",
+        prefix + ".lab-results/experiment.py evaluate",
+        prefix + ".lab-results/validate.py",
+        prefix + ".lab-results/discover.py",
+        prefix + ".lab-results/measure_sparse.py openhands",
+        prefix + ".lab-results/experiment.py prepare --contrast",
+        ".lab-results/venv/bin/python .lab-results/embed.py .lab-results/kaizen",
+        prefix + ".lab-results/experiment.py evaluate --contrast",
+        prefix + ".lab-results/validate.py --contrast",
+        prefix + ".lab-results/measure_sparse.py kaizen",
+        "Initial packet freeze: " + prefix + ".lab-results/make_packets.py (already frozen; refuses overwrite)",
+        prefix + ".lab-results/validate_queue.py",
+        "/usr/bin/python3 .lab-results/summarize.py",
+        "LAB_ROOT/retrieval/.venv/bin/python -m ruff check .lab-results/*.py",
+        "LAB_ROOT/retrieval/.venv/bin/python -m ruff format --check .lab-results/*.py",
+        "Batch replay (leaves frozen packets untouched): bash .lab-results/reproduce.sh",
+    ]
+    result = {
+        "schema": 1,
+        "experiment": "cpu-minilm-reserved1-v1",
+        "worker": "Herdr CPU Embeddings / GPT-6.1-Sol high",
+        "status": "offline_experiment_complete_central_reviews_pending",
+        "cwd": str(WORKTREE),
+        "base_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=WORKTREE, text=True).strip(),
+        "protocol": str(HERE / "EXPERIMENT.json"),
+        "protocol_sha256": hashes["EXPERIMENT.json"],
+        "report": str(HERE / "REPORT.txt"),
+        "machine_summary": str(HERE / "RESULTS.json"),
+        "complete": [
+            "Frozen registration and official immutable artifact identities",
+            "CPU preflight and full encoder index for OpenHands2348 and Kaizen2101",
+            "All three fixed arms on both distinct diagnostic profiles",
+            "Per-row/directional/stage denominators and paired gains/losses",
+            "Exact normal .04 synthetic family-batch Ledger estimates; all arms charged independently",
+            "Latency/RSS/cache/truncation/source proof",
+            "Full-repository OpenHands production-query novel discovery",
+            "Immutable four-row canonical queue plus separate blind evidence and private controls",
+            "Native/source/background/funding validators and exact canonical judge request bindings",
+        ],
+        "remaining_owner_root": [
+            "Bounded canonical Jev/Claude observations from frozen queue",
+            "Independently allocated score-blind source reviews",
+            "Relay observations to worker; unknowns remain unknown until supplied",
+        ],
+        "root_queue": str(HERE / "novel-review-queue.jsonl"),
+        "root_queue_sha256": hashes["novel-review-queue.jsonl"],
+        "blind_packet": str(HERE / "novel-reviewer-packet-blind.jsonl"),
+        "private_sidecar": str(HERE / "novel-review-sidecar-private.jsonl"),
+        "queue_rows": 4,
+        "private_selection": "2 promising operation hypotheses +2 independently matched topical control hypotheses; sidecar only",
+        "object_kind": "ordinary Python function pairs only; no model declarations or model inventory",
+        "queue_native_source_and_funding_validator": prefix + ".lab-results/validate_queue.py",
+        "judge_contract": str(HERE / "judge-contract.json"),
+        "judge_contract_sha256": hashes["judge-contract.json"],
+        "judge_contract_semantics": "8 exact request keys binding frozen source evidence/context, Jev1.14.0 context, Claude shared-operations output1024; matches root judge_shortlist.py identity convention; no provider client",
+        "physical_judge_usd_by_worker": 0,
+        "shared_allowance_not_reserved": 4.7889404,
+        "missing_answers": "unknown; no emitted-report gain claimed",
+        "main_results": "Protected arm preserves all funded baseline candidates and adds zero known positives in both repositories/profiles. Dense-only loses CF-OH03 at funding on OpenHands balanced; removes2 Kaizen negative exposures in each profile.",
+        "observational_status": "All cohorts are observed development/regression, no independent holdout or deployment/adoption evidence",
+        "production_changes": False,
+        "production_store_access": False,
+        "worker_provider_calls": 0,
+        "additional_agents": 0,
+        "infrastructure_resolution": "Worker DNS failed; root supplied exact registered assets. Initial failures preserved in separate receipt folders; successful acquisition timings attributed to root.",
+        "commands": commands,
+        "hashes": hashes,
+    }
+    (HERE / "HANDOFF.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    hashes["HANDOFF.json"] = hashlib.sha256((HERE / "HANDOFF.json").read_bytes()).hexdigest()
+    (HERE / "SHA256SUMS").write_text("".join(f"{digest}  {path}\n" for path, digest in sorted(hashes.items())))
+    print(HERE / "HANDOFF.json", hashes["HANDOFF.json"])
+
+
+if __name__ == "__main__":
+    main()

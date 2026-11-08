@@ -1,0 +1,55 @@
+"""Bind root observations; project unchanged original arm ledgers, without new judging."""
+import collections, hashlib, json
+from pathlib import Path
+from dry_lint.settings import Settings
+
+BASE=Path(__file__).resolve().parent
+R1=BASE/'round1';OUT=R1/'results-v1';FOLLOW=BASE.parent/'full-corpus-followup'
+ROOT=Path('/home/researcher/dry-lint-round/jobs/judge-operations/.lab-results')
+FEEDS=[('v3',ROOT/'promotion-evidence-v3/model-function-completed.jsonl',FOLLOW/'batches/batch-01'),('topup',ROOT/'promotion-operations/intakes/model-function/round1/7ddad09a08c2337d-9a335b7dc1e9/completed.jsonl',R1/'batch-01')]
+
+def rows(p):return [json.loads(s) for s in p.read_text().splitlines() if s.strip()]
+def sha(b):return hashlib.sha256(b).hexdigest()
+def write(p,rs):
+ with p.open('x') as f:
+  for r in rs:f.write(json.dumps(r,sort_keys=True)+'\n')
+
+def main():
+ if (OUT/'SUMMARY.json').exists():raise SystemExit('Already frozen; new observations require new results version')
+ ledgercache={}; projections=[];bindings=[]; leads=[];unknown=[]; costs=collections.Counter();paidkeys=set();case_summary=[];inputs=[];settings=Settings(preset='none',budget={'usd':.04})
+ for phase,feed,batch in FEEDS:
+  raw=feed.read_bytes();(OUT/(phase+'-completed.jsonl')).write_bytes(raw);inputs.append({'phase':phase,'path':str(feed),'sha256':sha(raw)})
+  queue={p['id']:p for p in rows(batch/'novel-review-queue.jsonl')};side={p['id']:p for p in rows(batch/'private-funding-sidecar.jsonl')};plans={(r['id'],r['identity']['kind']):r['identity'] for r in rows(batch/'canonical-request-plan.jsonl')}
+  for record in rows(feed):
+   rid=record['id'];packet=queue[rid];s=side[rid];assert record['packet']['candidate']==packet['candidate'];verdict=None;providerlabels=[];success=0
+   for obs in record['observations']:
+    wanted=plans[rid,obs['kind']];actual=obs['identity'];assert all(actual.get(k)==v for k,v in wanted.items()),rid
+    assert sha(json.dumps(actual,sort_keys=True).encode())==obs['request_key'];assert record['packet']['revision']==packet['revision']
+    fresh=obs.get('usd') is not None and not obs.get('cached')
+    if fresh:
+     assert obs['request_key'] not in paidkeys;paidkeys.add(obs['request_key']);costs[phase]+=obs['usd']
+    v=obs.get('verdict');success+=v is not None
+    bindings.append({'id':rid,'phase':phase,'kind':obs['kind'],'request_key':obs['request_key'],'canonical_binding_pass':True,'response_state':obs.get('response_state'),'label':v['label'] if v else None,'score':v['score'] if v else None,'cached':obs.get('cached'),'actual_usd':obs.get('usd'),'error':obs.get('error')})
+    if v:
+     providerlabels.append(v['label'])
+     if v['label']!='separate':leads.append({'id':rid,'phase':phase,'candidate_kind':packet['candidate_kind'],'provider':obs['kind'],'label':v['label'],'score':v['score'],'below_frozen_report_threshold':v['score']<settings.report_at,'added_to_function_only':s['added_to_function_only'],'source_label':None,'source_review_status':'independent root review pending; useful lead retained regardless of .8 threshold','queue':str(batch/'novel-review-queue.jsonl'),'private_ownership_sidecar':str(batch/'private-funding-sidecar.jsonl')})
+     if obs['kind']=='claude':verdict=v
+   if not success:unknown.append(rid)
+   f=Path(s['exposures_file'])
+   if f not in ledgercache:
+    ledgercache[f]=collections.defaultdict(list)
+    for e in rows(f):ledgercache[f][e['candidate_id']].append(e)
+   events=ledgercache[f][s['candidate_id']];emitted=[]
+   for e in events:
+    loss='budget' if not e['funded'] else 'judge-answer-missing' if not verdict else 'judge-separate' if verdict['label']=='separate' else 'report-threshold' if verdict['score']<settings.report_at else 'would-emit-under-frozen-policy'
+    emit=bool(e['funded'] and verdict and verdict['label']!='separate' and verdict['score']>=settings.report_at)
+    if emit:emitted.append(e['arm'])
+    projections.append({'id':rid,'phase':phase,'candidate_kind':packet['candidate_kind'],'profile':e['profile'],'arm':e['arm'],'batch':e['batch'],'original_ordinal':e['ordinal'],'original_funded':e['funded'],'normal_estimated_usd':e['estimated_usd'],'report_at':settings.report_at,'provider_label':verdict['label'] if verdict else None,'provider_score':verdict['score'] if verdict else None,'policy_would_emit':emit if verdict else None,'first_loss':loss,'added_to_function_only':s['added_to_function_only'],'source_label':None,'independent_source_status':'pending','diagnostic_paid_allocation_not_deployment_funding':True})
+   case_summary.append({'id':rid,'phase':phase,'candidate_kind':packet['candidate_kind'],'private_role':s['private_stratum'],'observed_provider_answers':success,'added_to_function_only':s['added_to_function_only'],'emitting_arms':sorted(set(emitted)),'provider_dispute':len(set(providerlabels))>1,'source_label':None})
+ write(OUT/'canonical-binding-receipts.jsonl',bindings);write(OUT/'original-policy-projection.jsonl',projections);write(OUT/'source-review-leads.jsonl',leads);write(OUT/'private-case-summary.jsonl',case_summary)
+ summary={'schema':1,'status':'ROUND1_PAID_MINIMUM_MET_SOURCE_REVIEW_PENDING','actual_new_paid_usd':round(sum(costs.values()),8),'paid_by_phase_usd':{k:round(v,8) for k,v in costs.items()},'distinct_paid_request_keys':len(paidkeys),'canonical_bindings_pass':True,'provider_slots':len(bindings),'answered_pairs':sum(c['observed_provider_answers']>0 for c in case_summary),'pairs_in_feeds':len(case_summary),'unknown_pairs':unknown,'unknown_pairs_count':len(unknown),'topup_controls_answered':sum(c['phase']=='topup' and 'control' in c['private_role'] and c['observed_provider_answers']==2 for c in case_summary),'provider_positive_leads':len(leads),'positive_lead_pairs':sorted({r['id'] for r in leads}),'below_report_threshold_leads':sorted({r['id'] for r in leads if r['below_frozen_report_threshold']}),'provider_disputed_pairs':sorted({c['id'] for c in case_summary if c['provider_dispute']}),'emitting_model_pairs':sorted({c['id'] for c in case_summary if c['candidate_kind']=='model' and c['emitting_arms']}),'emitting_function_pairs':sorted({c['id'] for c in case_summary if c['candidate_kind']=='function' and c['emitting_arms']}),'incremental_function_pairs_observed':sum(c['candidate_kind']=='function' and c['added_to_function_only'] and c['observed_provider_answers']>0 for c in case_summary),'incremental_function_pairs_unknown':sum(c['candidate_kind']=='function' and c['added_to_function_only'] and not c['observed_provider_answers'] for c in case_summary),'first_loss_occurrences':dict(collections.Counter(p['first_loss'] for p in projections)),'source_accepted_new_labels':0,'source_review':'independently ongoing at root; no provider score or agreement treated as gold','model_only_vs_join':'Any model emits counted separately; no observed incremental function report emissions. Useful subthreshold leads retained.','historical_actual_spend_separate_usd':{'pilot':.044103,'older_sealed_intake':.01911308},'inputs':inputs,'worker_provider_calls':0,'full_gold_comparisons_rerun':False}
+ assert summary['actual_new_paid_usd']==.20703060
+ (OUT/'SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+ print(json.dumps({k:summary[k] for k in ('status','actual_new_paid_usd','answered_pairs','unknown_pairs_count','topup_controls_answered','emitting_model_pairs','emitting_function_pairs','incremental_function_pairs_observed','incremental_function_pairs_unknown','positive_lead_pairs','below_report_threshold_leads')}))
+
+if __name__=='__main__':main()

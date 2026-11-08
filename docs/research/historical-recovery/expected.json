@@ -1,0 +1,800 @@
+{
+  "first_loss": {
+    "guarded": [
+      {
+        "arm": "baseline",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "budget_or_pacing": 2,
+          "judge_rejected_or_below_threshold": 46,
+          "recovery_guard_or_baseline_pool": 19,
+          "reported": 1
+        },
+        "label": "separate"
+      },
+      {
+        "arm": "balanced",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "budget_or_pacing": 7,
+          "judge_rejected_or_below_threshold": 59,
+          "reported": 2
+        },
+        "label": "separate"
+      },
+      {
+        "arm": "guarded",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "budget_or_pacing": 4,
+          "judge_rejected_or_below_threshold": 51,
+          "recovery_guard_or_baseline_pool": 11,
+          "reported": 2
+        },
+        "label": "separate"
+      },
+      {
+        "arm": "baseline",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "judge_rejected_or_below_threshold": 1,
+          "recovery_guard_or_baseline_pool": 1
+        },
+        "label": "borderline"
+      },
+      {
+        "arm": "balanced",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "budget_or_pacing": 1,
+          "judge_rejected_or_below_threshold": 1
+        },
+        "label": "borderline"
+      },
+      {
+        "arm": "guarded",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "budget_or_pacing": 1,
+          "judge_rejected_or_below_threshold": 1
+        },
+        "label": "borderline"
+      },
+      {
+        "arm": "baseline",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "recovery_guard_or_baseline_pool": 3
+        },
+        "label": "duplicate"
+      },
+      {
+        "arm": "balanced",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "reported": 3
+        },
+        "label": "duplicate"
+      },
+      {
+        "arm": "guarded",
+        "cohort": "frozen",
+        "first_available_reference_stages": {
+          "reported": 3
+        },
+        "label": "duplicate"
+      }
+    ],
+    "native": [
+      {
+        "arm": "fixed",
+        "budget": "primary004",
+        "cohort": "historical-trial",
+        "positive_pair_first_stages": {
+          "native_fixed_retrieval": 7
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "refill",
+        "budget": "primary004",
+        "cohort": "historical-trial",
+        "positive_pair_first_stages": {
+          "scheduler_or_budget:baseline_request_does_not_fit": 5,
+          "scheduler_or_budget:exploration_request_does_not_fit": 2
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "fixed",
+        "budget": "original",
+        "cohort": "historical-trial",
+        "positive_pair_first_stages": {
+          "native_fixed_retrieval": 7
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "refill",
+        "budget": "original",
+        "cohort": "historical-trial",
+        "positive_pair_first_stages": {
+          "judge_or_threshold": 4,
+          "reported": 3
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "fixed",
+        "budget": "primary004",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "native_fixed_retrieval": 9,
+          "reported": 2
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "protected",
+        "budget": "primary004",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "reported": 2,
+          "scheduler_or_budget:baseline_request_does_not_fit": 7,
+          "scheduler_or_budget:exploration_request_does_not_fit": 2
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "refill",
+        "budget": "primary004",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "reported": 2,
+          "scheduler_or_budget:baseline_request_does_not_fit": 8,
+          "scheduler_or_budget:exploration_request_does_not_fit": 1
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "fixed",
+        "budget": "original",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "native_fixed_retrieval": 9,
+          "reported": 2
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "protected",
+        "budget": "original",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "reported": 3,
+          "scheduler_or_budget:exploration_pacing": 8
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "refill",
+        "budget": "original",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "reported": 4,
+          "scheduler_or_budget:run_calls": 7
+        },
+        "prompt": "concept"
+      },
+      {
+        "arm": "fixed",
+        "budget": "primary004",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "native_fixed_retrieval": 9,
+          "reported": 2
+        },
+        "prompt": "shared-operations"
+      },
+      {
+        "arm": "protected",
+        "budget": "primary004",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "reported": 2,
+          "scheduler_or_budget:baseline_request_does_not_fit": 9
+        },
+        "prompt": "shared-operations"
+      },
+      {
+        "arm": "refill",
+        "budget": "primary004",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "reported": 2,
+          "scheduler_or_budget:baseline_request_does_not_fit": 9
+        },
+        "prompt": "shared-operations"
+      },
+      {
+        "arm": "fixed",
+        "budget": "original",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "native_fixed_retrieval": 9,
+          "reported": 2
+        },
+        "prompt": "shared-operations"
+      },
+      {
+        "arm": "protected",
+        "budget": "original",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "reported": 3,
+          "scheduler_or_budget:exploration_pacing": 8
+        },
+        "prompt": "shared-operations"
+      },
+      {
+        "arm": "refill",
+        "budget": "original",
+        "cohort": "protected-trial",
+        "positive_pair_first_stages": {
+          "reported": 4,
+          "scheduler_or_budget:run_calls": 7
+        },
+        "prompt": "shared-operations"
+      }
+    ]
+  },
+  "guarded": [
+    {
+      "arm": "baseline",
+      "calls": 60,
+      "cohort": "frozen",
+      "histories": 11,
+      "labels": {
+        "separate": 2
+      },
+      "reference": {
+        "frozen_separate": 1
+      },
+      "reports": 2,
+      "revisions": 42,
+      "supplementary": {
+        "supplementary_separate": 1
+      },
+      "usd": 0.022758
+    },
+    {
+      "arm": "balanced",
+      "calls": 270,
+      "cohort": "frozen",
+      "histories": 11,
+      "labels": {
+        "borderline": 7,
+        "duplicate": 16,
+        "separate": 13
+      },
+      "reference": {
+        "frozen_borderline": 1,
+        "frozen_duplicate": 3,
+        "frozen_separate": 2
+      },
+      "reports": 36,
+      "revisions": 42,
+      "supplementary": {
+        "supplementary_borderline": 6,
+        "supplementary_duplicate": 13,
+        "supplementary_separate": 11
+      },
+      "usd": 0.1320332
+    },
+    {
+      "arm": "guarded",
+      "calls": 156,
+      "cohort": "frozen",
+      "histories": 11,
+      "labels": {
+        "borderline": 6,
+        "duplicate": 7,
+        "separate": 4
+      },
+      "reference": {
+        "frozen_borderline": 1,
+        "frozen_duplicate": 3,
+        "frozen_separate": 2
+      },
+      "reports": 17,
+      "revisions": 42,
+      "supplementary": {
+        "supplementary_borderline": 5,
+        "supplementary_duplicate": 4,
+        "supplementary_separate": 2
+      },
+      "usd": 0.0763877
+    },
+    {
+      "arm": "baseline",
+      "calls": 50,
+      "cohort": "regression",
+      "histories": 2,
+      "labels": {
+        "unknown": 3
+      },
+      "reference": {},
+      "reports": 3,
+      "revisions": 16,
+      "supplementary": {},
+      "usd": 0.020842
+    },
+    {
+      "arm": "balanced",
+      "calls": 86,
+      "cohort": "regression",
+      "histories": 2,
+      "labels": {
+        "unknown": 13
+      },
+      "reference": {},
+      "reports": 13,
+      "revisions": 16,
+      "supplementary": {},
+      "usd": 0.0388857
+    },
+    {
+      "arm": "guarded",
+      "calls": 78,
+      "cohort": "regression",
+      "histories": 2,
+      "labels": {
+        "unknown": 11
+      },
+      "reference": {},
+      "reports": 11,
+      "revisions": 16,
+      "supplementary": {},
+      "usd": 0.0361805
+    }
+  ],
+  "guarded_deltas": [
+    {
+      "censored": 0,
+      "cohort": "frozen",
+      "comparator": "baseline",
+      "gained": {
+        "borderline": 6,
+        "duplicate": 7,
+        "separate": 2
+      },
+      "gained_total": 15,
+      "histories": 11,
+      "lost": {},
+      "lost_total": 0
+    },
+    {
+      "censored": 0,
+      "cohort": "frozen",
+      "comparator": "balanced",
+      "gained": {},
+      "gained_total": 0,
+      "histories": 11,
+      "lost": {
+        "borderline": 1,
+        "duplicate": 9,
+        "separate": 9
+      },
+      "lost_total": 19
+    },
+    {
+      "censored": 0,
+      "cohort": "regression",
+      "comparator": "baseline",
+      "gained": {
+        "unknown": 8
+      },
+      "gained_total": 8,
+      "histories": 2,
+      "lost": {},
+      "lost_total": 0
+    },
+    {
+      "censored": 0,
+      "cohort": "regression",
+      "comparator": "balanced",
+      "gained": {
+        "unknown": 4
+      },
+      "gained_total": 4,
+      "histories": 2,
+      "lost": {
+        "unknown": 6
+      },
+      "lost_total": 6
+    }
+  ],
+  "guarded_physical": {
+    "accepted_requests": 12,
+    "recorded_physical_usd": 0.0080576,
+    "rejected_records": 0,
+    "unique_provider_requests": 12
+  },
+  "independent_review": {
+    "frozen_gained": {
+      "categories": {},
+      "distinct_pairs": 0,
+      "reference_disagreements": 0,
+      "report_versions": 0
+    },
+    "frozen_lost": {
+      "categories": {
+        "independently_borderline": 2,
+        "independently_duplicate": 5,
+        "independently_separate": 3,
+        "reference_only_borderline": 1,
+        "reference_only_separate": 8
+      },
+      "distinct_pairs": 15,
+      "reference_disagreements": 4,
+      "report_versions": 19
+    },
+    "frozen_unknown": {
+      "categories": {},
+      "distinct_pairs": 0,
+      "reference_disagreements": 0,
+      "report_versions": 0
+    },
+    "regression_gained": {
+      "categories": {
+        "independently_borderline": 1,
+        "independently_duplicate": 1,
+        "independently_separate": 2
+      },
+      "distinct_pairs": 4,
+      "reference_disagreements": 0,
+      "report_versions": 4
+    },
+    "regression_lost": {
+      "categories": {
+        "independently_duplicate": 1,
+        "independently_separate": 5
+      },
+      "distinct_pairs": 6,
+      "reference_disagreements": 0,
+      "report_versions": 6
+    },
+    "regression_unknown": {
+      "categories": {},
+      "distinct_pairs": 0,
+      "reference_disagreements": 0,
+      "report_versions": 0
+    }
+  },
+  "native": [
+    {
+      "arm": "fixed",
+      "borderline": 0,
+      "budget": "primary004",
+      "calls": 0,
+      "cohort": "historical-trial",
+      "denominator": 7,
+      "positive": 0,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.0
+    },
+    {
+      "arm": "refill",
+      "borderline": 0,
+      "budget": "primary004",
+      "calls": 0,
+      "cohort": "historical-trial",
+      "denominator": 7,
+      "positive": 0,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.0
+    },
+    {
+      "arm": "fixed",
+      "borderline": 0,
+      "budget": "original",
+      "calls": 8,
+      "cohort": "historical-trial",
+      "denominator": 7,
+      "positive": 0,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.02136
+    },
+    {
+      "arm": "refill",
+      "borderline": 0,
+      "budget": "original",
+      "calls": 72,
+      "cohort": "historical-trial",
+      "denominator": 7,
+      "positive": 3,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.24569
+    },
+    {
+      "arm": "fixed",
+      "borderline": 0,
+      "budget": "primary004",
+      "calls": 15,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 2,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.036352
+    },
+    {
+      "arm": "protected",
+      "borderline": 0,
+      "budget": "primary004",
+      "calls": 15,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 2,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.036352
+    },
+    {
+      "arm": "refill",
+      "borderline": 0,
+      "budget": "primary004",
+      "calls": 18,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 2,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.054422
+    },
+    {
+      "arm": "fixed",
+      "borderline": 0,
+      "budget": "original",
+      "calls": 18,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 2,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.045176
+    },
+    {
+      "arm": "protected",
+      "borderline": 0,
+      "budget": "original",
+      "calls": 28,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 3,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.093522
+    },
+    {
+      "arm": "refill",
+      "borderline": 1,
+      "budget": "original",
+      "calls": 42,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 4,
+      "prompt": "concept",
+      "separate": 0,
+      "usd": 0.147458
+    },
+    {
+      "arm": "fixed",
+      "borderline": 0,
+      "budget": "primary004",
+      "calls": 7,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 2,
+      "prompt": "shared-operations",
+      "separate": 0,
+      "usd": 0.038112
+    },
+    {
+      "arm": "protected",
+      "borderline": 0,
+      "budget": "primary004",
+      "calls": 7,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 2,
+      "prompt": "shared-operations",
+      "separate": 0,
+      "usd": 0.038112
+    },
+    {
+      "arm": "refill",
+      "borderline": 0,
+      "budget": "primary004",
+      "calls": 7,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 2,
+      "prompt": "shared-operations",
+      "separate": 0,
+      "usd": 0.038112
+    },
+    {
+      "arm": "fixed",
+      "borderline": 0,
+      "budget": "original",
+      "calls": 18,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 2,
+      "prompt": "shared-operations",
+      "separate": 0,
+      "usd": 0.091472
+    },
+    {
+      "arm": "protected",
+      "borderline": 0,
+      "budget": "original",
+      "calls": 28,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 3,
+      "prompt": "shared-operations",
+      "separate": 0,
+      "usd": 0.158968
+    },
+    {
+      "arm": "refill",
+      "borderline": 1,
+      "budget": "original",
+      "calls": 42,
+      "cohort": "protected-trial",
+      "denominator": 11,
+      "positive": 4,
+      "prompt": "shared-operations",
+      "separate": 0,
+      "usd": 0.260222
+    }
+  ],
+  "projections": [
+    {
+      "after": 0.444330455836811,
+      "before": 0.346130810826832,
+      "example": "projection-1",
+      "label": "duplicate",
+      "passes_after": true,
+      "passes_before": false
+    },
+    {
+      "after": 0.39324132100708,
+      "before": 0.320188557566692,
+      "example": "projection-2",
+      "label": "separate",
+      "passes_after": true,
+      "passes_before": false
+    },
+    {
+      "after": 0.303037769475022,
+      "before": 0.295593307916614,
+      "example": "projection-3",
+      "label": "duplicate",
+      "passes_after": false,
+      "passes_before": false
+    }
+  ],
+  "source_recovery": {
+    "arms": {
+      "current20": {
+        "count_unit": "ever reported exact question/source versions across eight revisions; also distinct pairs in this result",
+        "report_labels": {
+          "duplicate": 3
+        },
+        "usage_usd": 0.0088656
+      },
+      "protected_half_name": {
+        "count_unit": "ever reported exact question/source versions across eight revisions; also distinct pairs in this result",
+        "report_labels": {
+          "duplicate": 5
+        },
+        "usage_usd": 0.0109911
+      }
+    },
+    "completed": true,
+    "gained_pairs": 2,
+    "incremental_arm_usage_usd": 0.0021255,
+    "lost_pairs": 0,
+    "pending": 0,
+    "physical": {
+      "accepted_requests": 25,
+      "recorded_physical_usd": 0.0109911,
+      "rejected_records": 0
+    },
+    "reference_pair_denominators": {
+      "borderline": 1,
+      "duplicate": 5,
+      "separate": 13
+    },
+    "revisions": 8
+  },
+  "sparse": [
+    {
+      "after": 47,
+      "before": 47,
+      "gain": 0,
+      "group": "legacy/legacy/legacy-development/duplicate",
+      "pairs": 48
+    },
+    {
+      "after": 107,
+      "before": 107,
+      "gain": 0,
+      "group": "legacy/legacy/legacy-development/separate",
+      "pairs": 110
+    },
+    {
+      "after": 25,
+      "before": 23,
+      "gain": 2,
+      "group": "mined/configured/development/duplicate",
+      "pairs": 48
+    },
+    {
+      "after": 25,
+      "before": 23,
+      "gain": 2,
+      "group": "mined/configured/development/separate",
+      "pairs": 128
+    },
+    {
+      "after": 10,
+      "before": 7,
+      "gain": 3,
+      "group": "mined/configured/holdout/duplicate",
+      "pairs": 12
+    },
+    {
+      "after": 14,
+      "before": 13,
+      "gain": 1,
+      "group": "mined/configured/holdout/separate",
+      "pairs": 54
+    },
+    {
+      "after": 37,
+      "before": 36,
+      "gain": 1,
+      "group": "mined/diagnostic/development/duplicate",
+      "pairs": 48
+    },
+    {
+      "after": 42,
+      "before": 41,
+      "gain": 1,
+      "group": "mined/diagnostic/development/separate",
+      "pairs": 128
+    },
+    {
+      "after": 10,
+      "before": 7,
+      "gain": 3,
+      "group": "mined/diagnostic/holdout/duplicate",
+      "pairs": 12
+    },
+    {
+      "after": 15,
+      "before": 14,
+      "gain": 1,
+      "group": "mined/diagnostic/holdout/separate",
+      "pairs": 54
+    }
+  ]
+}

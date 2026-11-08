@@ -1,0 +1,72 @@
+"""Root-only smoke then remaining-eight adapter; CLI is offline validation only."""
+import argparse
+import json
+from pathlib import Path
+
+import adapter as a
+import repair_budget_runner as b
+
+
+def execute(queue_path, out, ledger, credentials, workers=None, smoke_receipt_path=None, caller=None):
+    queue_path, out, ledger = Path(queue_path), Path(out), Path(ledger)
+    freeze = a.v.h.load_json(a.HERE / 'REQUEST-FREEZE.json')
+    if queue_path.resolve() == (a.HERE / 'smoke.jsonl').resolve():
+        phase, expected, workers = 'smoke', freeze['smoke_sha256'], 1
+    elif queue_path.resolve() == (a.HERE / 'remaining-eight.jsonl').resolve():
+        phase, expected, workers = 'remaining-eight', freeze['remaining_eight_sha256'], workers or 4
+    else:
+        raise ValueError('Execute smoke1 then remaining8 only; all9 is a manifest, never a paid batch.')
+    assert a.sha(queue_path.read_bytes()) == expected
+    queue = a.v.h.lines(queue_path)
+    for q in queue:
+        a.validate_request(q)
+        assert q['request_body']['tool_choice'] == {'type': 'auto'}
+    data = b.read(ledger)
+    assert data['schema'] == 1 and data['limit_usd'] == .20 and not data.get('halted')
+    assert all(e.get('method_version') == a.VERSION for e in data['entries']), 'No seeded/foreign spend.'
+    if phase == 'remaining-eight':
+        if smoke_receipt_path is None:
+            raise ValueError('Root must review a valid physical smoke receipt before remaining8.')
+        smoke = a.v.h.lines(a.HERE / 'smoke.jsonl')[0]
+        receipt = b.read(Path(smoke_receipt_path))
+        parsed = a.parse_receipt(smoke, receipt)
+        assert parsed['status'] in ('complete', 'uncertain'), 'Invalid smoke: no automatic batch or retry.'
+        entry = next(e for e in data['entries'] if e['key'] == receipt['execution_id'])
+        assert entry['state'] == 'settled' and entry['charged_usd'] is not None
+        assert entry['charged_usd'] == receipt['physical_cost_usd']
+    b.QUEUE_SHA = expected
+    keys = {b.digest({'experiment_queue_sha256': expected, 'request_id': q['request_id'],
+                     'attempt_directory': str(out.resolve())}): q for q in queue}
+    for entry in data['entries']:
+        if entry.get('question_key') in {q['request_id'] for q in queue} and entry['key'] not in keys:
+            raise ValueError('Question already reserved under another attempt; no paid repeat.')
+    Base = b.SharedBudget
+
+    class AttributedBudget(Base):
+        def update(self, operation):
+            def attributed(state):
+                before = {e['key'] for e in state['entries']}
+                result = operation(state)
+                for e in state['entries']:
+                    if e['key'] not in before:
+                        q = keys[e['key']]
+                        e.update(job='agentic-judge', method_version=a.VERSION,
+                                 funded_phase='paired_body_baseline_procedure_repair_v3',
+                                 phase=phase, question_key=q['request_id'], counts_toward_teacher_minimum=False)
+                return result
+            return super().update(attributed)
+
+    b.SharedBudget = AttributedBudget
+    try:
+        return b.execute(queue, out, ledger, workers, credentials,
+                         caller=b.rest_call if caller is None else caller)
+    finally:
+        b.SharedBudget = Base
+
+
+if __name__ == '__main__':
+    for q in a.v.h.lines(a.HERE / 'requests.jsonl'):
+        a.validate_request(q)
+    print(json.dumps({'valid': True, 'requests': 9, 'smoke': 1, 'remaining': 8,
+                      'fresh_ledger_cap_usd': .20, 'prior_spent': 0, 'seeded_spend': 0,
+                      'provider_calls': 0}))

@@ -1,0 +1,121 @@
+{
+  "gained_funded_pairs": [
+    "ca3ffea1134668f0",
+    "8e7c2a6456013ad4",
+    "285c1c25d2fc5231",
+    "10979f4f73e670d7",
+    "0bf22af927b6e08f"
+  ],
+  "lost_current_funded_pairs": [
+    "23605b9635fbf79b",
+    "99b8041b63d74cd1",
+    "8c58cff2acbc7284",
+    "2daa4c2270b7759f",
+    "c665f20f0bf25d57",
+    "dc7461cfcffb09a0",
+    "33faa00694e1d301"
+  ],
+  "provider_report_recall": null,
+  "representation_changed": false,
+  "retrieval_or_embedding_fit_rerun": false,
+  "scope": "Cached dev-B gold admission/regression only. Partial-operation source labels do not imply provider report or whole-function equivalence. No new IDF/retrieval fit; original400/full index mapping stays separate.",
+  "source_labeled_positive_losses": [],
+  "strata": [
+    {
+      "arm": "current",
+      "candidate_occurrences": 180,
+      "funded_occurrences": 60,
+      "funded_source_labeled_positive_occurrences": 4,
+      "source_labeled_positive_occurrences": 9,
+      "stratum": "all"
+    },
+    {
+      "arm": "current",
+      "candidate_occurrences": 19,
+      "funded_occurrences": 12,
+      "funded_source_labeled_positive_occurrences": 2,
+      "source_labeled_positive_occurrences": 2,
+      "stratum": "under40lines"
+    },
+    {
+      "arm": "current",
+      "candidate_occurrences": 161,
+      "funded_occurrences": 48,
+      "funded_source_labeled_positive_occurrences": 2,
+      "source_labeled_positive_occurrences": 7,
+      "stratum": "40pluslines"
+    },
+    {
+      "arm": "current",
+      "candidate_occurrences": 49,
+      "funded_occurrences": 20,
+      "funded_source_labeled_positive_occurrences": 2,
+      "source_labeled_positive_occurrences": 3,
+      "stratum": "samefile"
+    },
+    {
+      "arm": "current",
+      "candidate_occurrences": 131,
+      "funded_occurrences": 40,
+      "funded_source_labeled_positive_occurrences": 2,
+      "source_labeled_positive_occurrences": 6,
+      "stratum": "crossfile"
+    },
+    {
+      "arm": "current",
+      "candidate_occurrences": 45,
+      "funded_occurrences": 5,
+      "funded_source_labeled_positive_occurrences": 0,
+      "source_labeled_positive_occurrences": 5,
+      "stratum": "expensive_top_quartile"
+    },
+    {
+      "arm": "fair_fixed_feature",
+      "candidate_occurrences": 180,
+      "funded_occurrences": 58,
+      "funded_source_labeled_positive_occurrences": 4,
+      "source_labeled_positive_occurrences": 9,
+      "stratum": "all"
+    },
+    {
+      "arm": "fair_fixed_feature",
+      "candidate_occurrences": 19,
+      "funded_occurrences": 12,
+      "funded_source_labeled_positive_occurrences": 2,
+      "source_labeled_positive_occurrences": 2,
+      "stratum": "under40lines"
+    },
+    {
+      "arm": "fair_fixed_feature",
+      "candidate_occurrences": 161,
+      "funded_occurrences": 46,
+      "funded_source_labeled_positive_occurrences": 2,
+      "source_labeled_positive_occurrences": 7,
+      "stratum": "40pluslines"
+    },
+    {
+      "arm": "fair_fixed_feature",
+      "candidate_occurrences": 49,
+      "funded_occurrences": 18,
+      "funded_source_labeled_positive_occurrences": 2,
+      "source_labeled_positive_occurrences": 3,
+      "stratum": "samefile"
+    },
+    {
+      "arm": "fair_fixed_feature",
+      "candidate_occurrences": 131,
+      "funded_occurrences": 40,
+      "funded_source_labeled_positive_occurrences": 2,
+      "source_labeled_positive_occurrences": 6,
+      "stratum": "crossfile"
+    },
+    {
+      "arm": "fair_fixed_feature",
+      "candidate_occurrences": 45,
+      "funded_occurrences": 5,
+      "funded_source_labeled_positive_occurrences": 0,
+      "source_labeled_positive_occurrences": 5,
+      "stratum": "expensive_top_quartile"
+    }
+  ]
+}

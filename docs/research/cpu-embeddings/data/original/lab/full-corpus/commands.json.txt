@@ -1,0 +1,22 @@
+{
+  "acquire": "Coordinator ran the exact reviewed .lab-results/acquire.py after worker DNS failure; see acquisition.json and root-relay-receipt.json. Do not reinstall shared runtime.",
+  "actual_adapter_fixtures": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python -c 'import sys; sys.path.insert(0, \".lab-results/full-corpus\"); import migrate_spans; migrate_spans.fixtures()'",
+  "adjudication_sensitivity": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/adjudication_sensitivity.py",
+  "bootstrap": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/prepare_available.py",
+  "checks": "LAB_ROOT/retrieval/.venv/bin/ruff check .lab-results/full-corpus; LAB_ROOT/retrieval/.venv/bin/python -m compileall -q .lab-results/full-corpus .lab-results/experiment.py",
+  "cwd": "LAB_ROOT/jobs/experiment-cpu-embeddings",
+  "declaration_encode": [
+    "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/venv/bin/python LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/full-corpus/encode.py LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/full-corpus/models/litellm",
+    "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/venv/bin/python LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/full-corpus/encode.py LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/full-corpus/models/software-agent-sdk"
+  ],
+  "declaration_evaluate": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/models.py evaluate",
+  "declaration_prepare_validate": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/models.py",
+  "environment": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 ",
+  "finalize": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/finalize.py",
+  "full_function_replication": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/run_full.py --prepare-rest --raw-sparse-all --reuse-completed",
+  "intake_policy_replay": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/project_intake.py --output .lab-results/full-corpus/replay-intake",
+  "novel_native_funding_binding_validation": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/validate_batch.py .lab-results/full-corpus/novel-batch-v1",
+  "pilot_policy_replay": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/project_intake.py --pilot --output .lab-results/full-corpus/replay-pilot",
+  "span_receipt": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/migration_receipt.py",
+  "summary": "PYTHONPATH=$PWD/src OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 LAB_ROOT/retrieval/.venv/bin/python .lab-results/full-corpus/paired_summary.py"
+}

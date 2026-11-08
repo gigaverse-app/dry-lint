@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "counts": {
+    "gain": {
+      "native": 38,
+      "reported": 17,
+      "bounded": 10,
+      "tiny": 2,
+      "nonuseful": 5,
+      "source_unknown": 0
+    },
+    "loss": {
+      "native": 28,
+      "reported": 4,
+      "bounded": 1,
+      "tiny": 1,
+      "nonuseful": 2,
+      "source_unknown": 0
+    },
+    "net": {
+      "native": 10,
+      "reported": 13,
+      "bounded": 9,
+      "tiny": 1,
+      "nonuseful": 3,
+      "source_unknown": 0
+    }
+  },
+  "native_admitted": {
+    "original": 167,
+    "treatment": 177
+  },
+  "retained": 139,
+  "selected_cases": 72,
+  "original_queries": 53,
+  "source_known": 72,
+  "unknown_assessments": 0,
+  "unknown_usage": 0,
+  "shared_account_paid_usd": 0.8597461,
+  "prior_separate_agentic_unknown_allocation_usd": 0.127882,
+  "incremental_physical_usd": 0.05358154,
+  "new_calls": 101,
+  "new_calls_by_kind": {
+    "claude": 72,
+    "jev": 29
+  },
+  "unique_exact_reused_keys": 43,
+  "logical": {
+    "original": {
+      "normal_estimate_usd": 0.102233,
+      "native_held_usd": 0.2872457,
+      "normal_admitted": 349
+    },
+    "treatment": {
+      "normal_estimate_usd": 0.11730867857142858,
+      "native_held_usd": 0.3139965,
+      "normal_admitted": 386
+    }
+  },
+  "partial_jev_cases": 8,
+  "full_body_jev_successor_required": false,
+  "decision": "keep opt-in; positive bounded-report delta with source precision caveat; development replay only"
+}

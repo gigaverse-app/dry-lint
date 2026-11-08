@@ -1,0 +1,53 @@
+{
+  "evaluation": {
+    "inventory_records": 617,
+    "inventory_backgrounds": 79,
+    "evaluated_backgrounds": 16,
+    "unique_records": 207,
+    "pair_background_contexts": 223,
+    "accepted_positive_contexts": 78,
+    "accepted_negative_contexts": 120,
+    "unaccepted_borderline_unknown": 25,
+    "directional_query_slots": 382,
+    "missing_backgrounds": 63
+  },
+  "candidate_exposures": [
+    {
+      "arm": "original CPU after narrow",
+      "additional_positive": 15,
+      "additional_negative": 15,
+      "baseline_lost": 0,
+      "before_candidates": 483,
+      "after_candidates": 797
+    },
+    {
+      "arm": "original CPU after wide",
+      "additional_positive": 0,
+      "additional_negative": 3,
+      "baseline_lost": 0,
+      "before_candidates": 1970,
+      "after_candidates": 2274
+    },
+    {
+      "arm": "revised CPU after narrow",
+      "additional_positive": 25,
+      "additional_negative": 15,
+      "baseline_lost": 0,
+      "before_candidates": 483,
+      "after_candidates": 776
+    }
+  ],
+  "costs": {
+    "actual_round1_usd": 0.28323212,
+    "actual_round2_usd": 0.22441836,
+    "estimated_batch_budget_usd": 0.04
+  },
+  "report_policy": {
+    "model": "claude-sonnet-5-5",
+    "prompt": "shared-operations",
+    "max_tokens": 1024,
+    "threshold": 0.8
+  },
+  "Windows_prior_positive": "disputed; related contracts in independent source review; retrieval/report observations retained",
+  "decision": "Keep original optional and cached; no default change or revised reranker promotion; zero demonstrated useful added report over wide TFIDF20."
+}
