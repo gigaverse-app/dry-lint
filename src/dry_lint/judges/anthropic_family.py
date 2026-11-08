@@ -51,7 +51,7 @@ def family_prompt(request: FamilyRequest, *, max_input_bytes: int = MAX_INPUT_BY
                 mode="json",
             ),
             "operations": [anchor.model_dump(exclude={"source"}) for anchor in member.operations],
-            "operation_slices": [region.model_dump(exclude={"code"}) for region in member.operation_slices],
+            "operation_slices": [region.model_dump(exclude={"code"}) for region in member.regions],
             "local_callers": member.local_callers,
         }
         for member in request.members

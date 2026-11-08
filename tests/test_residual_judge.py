@@ -25,7 +25,7 @@ from dry_lint.report import Report
 from dry_lint.settings import ExplorationComparer, PluginChoice, Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
-from conftest import claude, coverage_pair
+from conftest import claude, coverage_pair, residual_pair
 
 MEASURED_DIGEST = "bcec108a5d1c316c1557a12434b14c209fb1899b277da83b26ac5de5346933a1"
 MEASURED_VERSION = "dry-grounded-claim-v1-bcec108a5d1c316c:claude-haiku-5-5:output=2048"
@@ -52,10 +52,6 @@ def configured(setup):
     settings.discovery.residual_comparers = [ExplorationComparer(use="tfidf", neighbours=100)]
     settings.discovery.residual_judge = recovery_choice()
     return settings, judge, store, calls
-
-
-def suffix(number=3):
-    return coverage_pair(number).model_copy(update={"lane": "exploration", "residual": True})
 
 
 @pytest.fixture
@@ -105,7 +101,7 @@ def test_complete_prefix_then_grounded_recovery_repeats_without_second_call(conf
     )
     control_requests = [r.content for r in original_calls]
     original_calls.clear()
-    pairs = [suffix(), pending, exploration, baseline]
+    pairs = [residual_pair(3), pending, exploration, baseline]
     report, state = check(configured, tmp_path / "treatment", pairs)
     assert [r.content for r in original_calls] == control_requests
     assert state.attempts[: len(before.attempts)] == before.attempts
@@ -134,7 +130,7 @@ def test_complete_prefix_then_grounded_recovery_repeats_without_second_call(conf
 
 def test_same_name_versions_keep_both_cache_slots_and_rollback(configured, recovery_http, tmp_path):
     settings, judge, store, calls = configured
-    pair = suffix()
+    pair = residual_pair(3)
     # Original-policy answer already exists; it must neither satisfy nor be overwritten by recovery.
     original = judge.judge([pair], settings)[0]
     store.remember(pair, original)
@@ -163,7 +159,7 @@ def test_no_main_judge_does_not_load_recovery(configured, monkeypatch, main):
     settings.judge = PluginChoice(use=main)
     with patch.object(judging_module, "load", side_effect=AssertionError("must stay lazy")):
         judging = Judging.configured(settings, store)
-        assert judging.findings([suffix()])[0].verdict is None
+        assert judging.findings([residual_pair(3)])[0].verdict is None
 
 
 @pytest.mark.parametrize(
@@ -174,7 +170,7 @@ def test_unrunnable_recovery_never_loads_plugin(configured, tmp_path, barrier):
     run = Run(session="feature", revision="tree1")
     judging = Judging(settings, judge, None, store)
     judging.campaign = CampaignStore(tmp_path / "campaign.sqlite3", run)
-    pairs = [] if barrier == "empty" else [suffix()]
+    pairs = [] if barrier == "empty" else [residual_pair(3)]
     if barrier in {"dollars", "pending"}:
         settings.budget.usd = 0
         if barrier == "pending":
@@ -200,7 +196,7 @@ def test_selected_prices_prompt_output_and_usage_own_the_charge(configured, reco
     settings, judge, _, _ = configured
     settings.discovery.residual_judge = recovery_choice(model="custom-priced-model", max_tokens=317)
     settings.prices["custom-priced-model"] = (2.3, 4.7)
-    pair = suffix()
+    pair = residual_pair(3)
     report, state = check(configured, tmp_path, [pair])
     request = json.loads(recovery_http[0].content)
     assert request["max_tokens"] == 317
@@ -211,7 +207,7 @@ def test_selected_prices_prompt_output_and_usage_own_the_charge(configured, reco
     assert reservation_cost(actual, pair, settings) == hold
     assert reservation_cost(judge, pair, settings) != hold
     settings.budget.usd = hold - 0.000001
-    blocked, empty = check(configured, tmp_path / "unaffordable", [suffix(9)])
+    blocked, empty = check(configured, tmp_path / "unaffordable", [residual_pair(9)])
     assert blocked.deferred == 1 and not empty.attempts and len(recovery_http) == 1
 
 
@@ -227,14 +223,14 @@ def test_recovery_failure_holds_selected_charge_and_stops_retry(configured, tmp_
     settings.discovery.residual_judge = recovery_choice(
         api_key="test", http_client=claude(response, calls, status=529 if failure == "provider" else 200)
     )
-    pair = suffix()
-    report, state = check(configured, tmp_path, [pair, suffix(4)])
+    pair = residual_pair(3)
+    report, state = check(configured, tmp_path, [pair, residual_pair(4)])
     actual = load("judges", settings.discovery.residual_judge)
     expected = reservation_cost(actual, pair, settings) if failure == "provider" else 0.00015
     assert len(calls) == 1 and state.attempts[0].status == "failed"
     assert state.usd == pytest.approx(expected)
     assert report.judging.spend[-1].failed == 1 and report.deferred == 2
-    again, repeated = check(configured, tmp_path, [pair, suffix(4)])
+    again, repeated = check(configured, tmp_path, [pair, residual_pair(4)])
     assert len(calls) == 1 and repeated == state and again.deferred == 2
 
 
@@ -284,7 +280,7 @@ def test_successful_recovery_cache_survives_later_failure_and_exhaustion(configu
         api_key="test",
         http_client=claude([ANSWER, {"stop_reason": "end_turn", "content": [{"type": "text", "text": "bad"}]}], calls),
     )
-    pairs = [suffix(), suffix(4)]
+    pairs = [residual_pair(3), residual_pair(4)]
     first, state = check(configured, tmp_path, pairs)
     answered = next(f for f in first.findings if f.verdict)
     assert len(calls) == 2 and first.deferred == 1
@@ -303,13 +299,13 @@ def test_selected_subscription_judge_shares_call_limit(configured, tmp_path):
     campaign.settle(first, None, True)
     other = load("judges", recovery_choice(api_key="test", http_client=claude(ANSWER, [])))
     other.subscription = True
-    assert campaign.reserve(suffix(), other, settings, 0.001, residual=True) is None
+    assert campaign.reserve(residual_pair(3), other, settings, 0.001, residual=True) is None
     assert campaign.snapshot().usd == 0.001 and len(campaign.snapshot().attempts) == 1
 
 
 def test_old_attempt_without_source_evidence_still_blocks_cross_policy_recovery(configured, tmp_path):
     settings, judge, _, calls = configured
-    pair = suffix()
+    pair = residual_pair(3)
     campaign = CampaignStore(
         tmp_path / "campaign.sqlite3", Run(repository="owner/repo", session="feature", revision="tree1")
     )
@@ -338,8 +334,8 @@ def test_explicit_same_judge_identity_reuses_its_recovery_cache(configured, reco
     settings.discovery.residual_judge = settings.judge.model_copy(deep=True)
     settings.discovery.exploration_per_revision = 0
     pair = coverage_pair(1).model_copy(update={"lane": "exploration"})
-    first, state = check(configured, tmp_path, [pair, suffix()])
-    again, repeated = check(configured, tmp_path, [pair, suffix()])
+    first, state = check(configured, tmp_path, [pair, residual_pair(3)])
+    again, repeated = check(configured, tmp_path, [pair, residual_pair(3)])
     assert first.deferred == again.deferred == 0
     assert all(f.cached for f in again.findings)
     assert len(recovery_http) == 2 and not calls and repeated == state

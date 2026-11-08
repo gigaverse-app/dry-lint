@@ -1,19 +1,21 @@
 """A family is paid and cached once after the protected pass, never as a clique of pairs."""
 
 import json
+from types import SimpleNamespace
 
 import pytest
 from test_discovery import setup as setup
-from test_family_judging import family_answer
-from test_operation_families import owners
+from test_family_judging import family_answer, family_request
+from test_operation_families import OPERATION, owners
 
 from dry_lint.baseline import require_complete
 from dry_lint.discovery import CampaignStore
-from dry_lint.family_discovery import FamilyBackend, FamilyDiscovery
+from dry_lint.family_discovery import FamilyAdmission, FamilyBackend, FamilyDiscovery
 from dry_lint.family_models import FamilyResponse, FamilyUsage
 from dry_lint.judges.anthropic_family import family_prompt
 from dry_lint.judging import Judging
 from dry_lint.models import Run
+from dry_lint.plugins import identity
 from dry_lint.report import Report, as_check_run, as_json, as_markdown, as_text
 from dry_lint.settings import FamilyDiscovery as FamilyConfiguration
 
@@ -145,3 +147,105 @@ def test_family_reservation_rejects_invalid_cost_without_touching_ledger(setup, 
     with pytest.raises(ValueError, match="finite nonnegative"):
         judging.campaign.reserve_family("key", "source", "owner", settings, cost)
     assert not judging.campaign.snapshot().attempts
+
+
+def test_a_family_needs_native_admission_and_a_budget_refusal_counts_as_skipped():
+    request = family_request()
+    judge = RecordedFamily()
+    with pytest.raises(ValueError, match="native campaign admission"):
+        FamilyAdmission(SimpleNamespace(campaign=None)).reserve(request, judge, 0.01)
+    campaign = SimpleNamespace(reserve_family=lambda *args, **kwargs: "budget")
+    judging = SimpleNamespace(campaign=campaign, settings=None, ledger=SimpleNamespace(spend={}))
+    assert FamilyAdmission(judging).reserve(request, judge, 0.01) == "budget"
+    assert judging.ledger.spend[identity(judge)].skipped == 1
+
+
+def test_an_unrepresentable_nomination_is_a_visible_exclusion(setup, monkeypatch):
+    settings, *_ = setup
+    settings.discovery.families = FamilyConfiguration(judge="test-family")
+    functions = owners()
+
+    def oversized(nomination):
+        raise ValueError("Owner source exceeds the bounded full-function contract")
+
+    monkeypatch.setattr("dry_lint.family_discovery.request_from_nomination", oversized)
+    discovery = FamilyDiscovery(functions, [functions[0]], Run(), settings.discovery.families)
+    assert not discovery.requests and not discovery.findings
+    assert discovery.rejected[0]["reason"] == "Owner source exceeds the bounded full-function contract"
+    discovery(SimpleNamespace(judge=object()), [], Run())
+    assert not discovery.findings
+
+
+def test_a_deferred_protected_baseline_question_runs_no_family(setup, tmp_path, monkeypatch):
+    _, judging, discovery, judge, _, run = configured(setup, tmp_path, monkeypatch)
+    deferred = SimpleNamespace(deferred=True, candidate=SimpleNamespace(lane="baseline"))
+    monkeypatch.setattr("dry_lint.family_discovery.load", lambda *_: pytest.fail("Deferred baseline loaded a plugin"))
+    discovery(judging, [deferred], run)
+    assert not judge.calls and discovery.findings[0].status == "unjudged"
+
+
+def test_an_unloadable_family_judge_fails_every_question_without_a_call(setup, tmp_path, monkeypatch):
+    settings, judging, discovery, judge, _, run = configured(setup, tmp_path, monkeypatch)
+    judging.campaign.advance(settings)
+
+    def missing(*_):
+        raise ImportError("anthropic is not installed")
+
+    monkeypatch.setattr("dry_lint.family_discovery.load", missing)
+    discovery(judging, [], run)
+    assert [(finding.status, finding.error) for finding in discovery.findings] == [("failed", "ImportError")]
+
+
+@pytest.mark.parametrize("defect", ["not a family judge", "unpriced"])
+def test_a_misconfigured_family_judge_is_rejected_and_closed(setup, tmp_path, monkeypatch, defect):
+    settings, judging, discovery, judge, _, run = configured(setup, tmp_path, monkeypatch)
+    judging.campaign.advance(settings)
+    closed = []
+    plugin = SimpleNamespace(close=lambda: closed.append(True))
+    if defect == "unpriced":
+        plugin = judge
+        judge.close = lambda: closed.append(True)
+        monkeypatch.setattr("dry_lint.family_discovery.price", lambda *_: None)
+    monkeypatch.setattr("dry_lint.family_discovery.load", lambda *_: plugin)
+    with pytest.raises(ValueError, match="family judging|model prices"):
+        discovery(judging, [], run)
+    assert closed == [True] and not judge.calls
+
+
+def test_an_unpriceable_prompt_is_deferred_and_questions_beyond_the_cap_wait(setup, tmp_path, monkeypatch):
+    settings, judging, _, judge, _, run = configured(setup, tmp_path, monkeypatch)
+    settings.discovery.families = FamilyConfiguration(judge="test-family", max_questions=1)
+    functions = owners() + owners(OPERATION.replace("decode", "parse"), prefix="parser")
+    discovery = FamilyDiscovery(functions, [functions[0], functions[3]], run, settings.discovery.families)
+    assert len(discovery.requests) == 2
+    judging.family_recovery = discovery
+    judging.campaign.advance(settings)
+    discovery(judging, [], run)
+    assert sorted(finding.status for finding in discovery.findings) == ["answered", "deferred"]
+    judge.max_tokens = 0
+    discovery(judging, [], run)
+    assert {finding.error for finding in discovery.findings} == {
+        "Family prompt exceeds the configured complete-source bound"
+    }
+
+
+@pytest.mark.parametrize("barrier", ["no opt-in", "unadvanced", "repeat", "budget"])
+def test_family_reservation_obeys_opt_in_phase_repeat_and_budget(setup, tmp_path, monkeypatch, barrier):
+    settings, judging, _, _, _, _ = configured(setup, tmp_path, monkeypatch)
+    campaign = judging.campaign
+    if barrier == "no opt-in":
+        settings.discovery.families = None
+        with pytest.raises(ValueError, match="explicit native discovery opt-in"):
+            campaign.reserve_family("key", "source", "owner", settings, 0.0)
+        return
+    if barrier == "unadvanced":
+        with pytest.raises(ValueError, match="protected campaign phase"):
+            campaign.reserve_family("key", "source", "owner", settings, 0.0)
+        return
+    campaign.advance(settings)
+    if barrier == "repeat":
+        reservation = campaign.reserve_family("key", "source", "owner", settings, 0.0)
+        campaign.settle(reservation, 0.0, True)
+        assert campaign.reserve_family("other", "source", "owner", settings, 0.0) is None
+    else:
+        assert campaign.reserve_family("key", "source", "owner", settings, settings.budget.usd * 2) == "budget"
