@@ -1,0 +1,59 @@
+"""Cap1 versus cap2 on identical frozen shared-operation campaigns; no source/model work."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import collections,gzip,hashlib,json,resource,time
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.costs import Ledger,estimate
+from dry_lint.models import Candidate,Function
+from dry_lint.detector import why_skipped
+from dry_lint.settings import Settings
+P=Path(__file__).resolve().parent;A=P/'native-order-v2';O=P/'block1-reconciliation';O.mkdir(exist_ok=True);R=Path('/home/researcher/dry-lint-round/jobs/experiment-operation-blocks/.lab-results/full-corpus-followup');PROFILE='default-plus-tfidf20'
+def jl(p):return [json.loads(l) for l in p.open() if l.strip()]
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+start=time.perf_counter();cpu=time.process_time();settings=Settings(budget={'usd':.04});judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False)
+baseled=[r for r in jl(A/'ledger.jsonl') if r['profile']==PROFILE and r['arm']=='baseline'];all_ex=jl(A/'exposures.jsonl');base_ex=collections.defaultdict(list)
+for e in all_ex:
+ if e['profile']==PROFILE and e['arm']=='baseline':base_ex[e['cohort_id'],e['batch']].append(e)
+source=[r for r in jl(A/'paired-rows.jsonl') if r['profile']==PROFILE and r['arm']=='protected-block2'];bybg=collections.defaultdict(list)
+for r in baseled:bybg[r['cohort_id']].append(r)
+outrows=[];leds=[];caps=[];funding={};cache={};checks=collections.Counter()
+def candidate(fs,q,t,score,ch):return Candidate(new=fs[q],existing=fs[t],similarity=score,comparer='promotion-protected-v1:'+ch,similarity_reusable=False,filtered=why_skipped(fs[q],fs[t],settings),lane='exploration' if ch in ['block','tfidf20'] else 'baseline')
+for cid,batches in bybg.items():
+ with gzip.open(A/cid/'functions.json.gz','rt') as f:fs={int(k):Function.model_validate(v) for k,v in json.load(f).items()}
+ blocks={r['query']:[b for b in r['block_candidates'] if b['block_floor_pass'] and b['full_floor_pass'] and not b['filter']] for r in jl(A/cid/'block-lists.jsonl')} if (A/cid/'block-lists.jsonl').exists() else {}
+ cache[cid]=fs
+ for base in batches:
+  batch=base['batch'];prefix=base_ex[cid,batch];seen={tuple(sorted([e['query'],e['target']])) for e in prefix};seen.update(tuple(sorted([e['query'],e['target']])) for e in base['missing_candidates']);specs=[];states=[]
+  for q in base['queries']:
+   chosen=next((b for b in blocks.get(q,[]) if tuple(sorted([q,b['target']])) not in seen),None)
+   if chosen:
+    t=chosen['target'];seen.add(tuple(sorted([q,t])));specs.append((q,t,chosen['score']));states.append(dict(query=q,target=t))
+  ordered=[(e['query'],e['target'],candidate(fs,e['query'],e['target'],e['similarity'],e['channel'])) for e in prefix];missing=list(base['missing_candidates'])
+  for q,t,score in specs:
+   if q in fs and t in fs:ordered.append((q,t,candidate(fs,q,t,score,'block')))
+   else:missing.append(dict(query=q,target=t,channel='block'))
+  allowed=[c for q,t,c in ordered if not c.filtered];led=Ledger(settings);idx=led.select(judge,allowed) if not missing else [];funded=[allowed[i] for i in idx];keys={c.key for c in funded};led.charge(judge,funded,len(allowed)-len(funded));assert led.usd<=.04000000001
+  if not missing and base['source_complete']:assert set(base['funded_keys'])<=keys;checks['baseline_protection']+=1
+  fpos={tuple(sorted([q,t])) for q,t,c in ordered if c.key in keys};funding[cid,batch]=fpos;leds.append(dict(cohort_id=cid,batch=batch,profile=PROFILE,arm='protected-block1',queries=base['queries'],source_complete=not missing,estimated_usd=led.usd if not missing else None,funded_keys=sorted(keys),funded_positions=[list(k) for k in sorted(fpos)],chosen_extras=states,missing=missing));checks['campaign_budget']+=1
+  for r in [r for r in source if r['cohort_id']==cid and r['batch']==batch]:
+   pp=tuple(r['positions']);retrieved=pp in seen;match=next((c for q,t,c in ordered if tuple(sorted([q,t]))==pp),None);value=match.key in keys if match and not missing else None if retrieved else False
+   outrows.append(dict(r,arm='protected-block1',retrieved=retrieved,funded=value,source_complete=not missing,first_loss='retrieval' if not retrieved else 'missing_source' if value is None else 'funded_judge_unknown' if value else 'budget'))
+lines(O/'paired-rows.jsonl',outrows);lines(O/'ledger.jsonl',leds)
+baseline={(r['row_id'],r['cohort_id']):r for r in jl(A/'paired-rows.jsonl') if r['profile']==PROFILE and r['arm']=='baseline'};two={(r['row_id'],r['cohort_id']):r for r in source};summary=[]
+def counts(rs):return dict(pair_cohort_units=len({(r['cohort_id'],r['pair_id']) for r in rs}),canonical_pairs=len({r['pair_id'] for r in rs}),families=len({r['family_id'] for r in rs}),lineage_background_units=len(rs))
+for label in ['positive','negative']:
+ rr=[r for r in outrows if r['accepted_gold'] and r['id']!='CF-C02' and (r['label'] in ['duplicate','drifted'])==(label=='positive')];rr=[r for r in rr if r['supported'] and r['funded'] is not None and two[r['row_id'],r['cohort_id']]['funded'] is not None and baseline[r['row_id'],r['cohort_id']]['funded'] is not None]
+ summary.append(dict(label=label,matched=counts(rr),baseline_funded=counts([r for r in rr if baseline[r['row_id'],r['cohort_id']]['funded']]),block1_funded=counts([r for r in rr if r['funded']]),block2_funded=counts([r for r in rr if two[r['row_id'],r['cohort_id']]['funded']]),block2_only=counts([r for r in rr if two[r['row_id'],r['cohort_id']]['funded'] and not r['funded']]),block1_only=counts([r for r in rr if r['funded'] and not two[r['row_id'],r['cohort_id']]['funded']]),added_ids_block1=sorted({r['id'] for r in rr if r['funded'] and not baseline[r['row_id'],r['cohort_id']]['funded']})))
+old=jl(R/'span-v2-migration/paired-rows.jsonl');oldunits={(r['cohort_id'],r['pair_id']):r for r in old if r['accepted_gold'] and r['label']=='duplicate' and any(d['status']=='evaluated' for d in r['directions'])};ownunits={(r['cohort_id'],r['pair_id']):r for r in source if r['accepted_gold'] and r['label'] in ['duplicate','drifted'] and r['supported'] and r['funded'] is not None};common=set(oldunits)&set(ownunits);missing=set(oldunits)-set(ownunits);extras=set(ownunits)-set(oldunits)
+special=[]
+for rid in ['OB-e9edd1965bec18b1','OB-dd256789bb58cf2b']:
+ r=next(r for r in outrows if r['id']==rid);oldr=next(x for x in old if x['row_id']==r['row_id'] and x['cohort_id']==r['cohort_id']);base=next(x for x in baseled if x['cohort_id']==r['cohort_id'] and x['batch']==r['batch']);newled=next(x for x in leds if x['cohort_id']==r['cohort_id'] and x['batch']==r['batch']);cost=two[r['row_id'],r['cohort_id']]['estimated_pair_usd'];directions=[]
+ for d in oldr['directions']:
+  f=R/'span-v2-migration/cohorts'/r['cohort_id']/'per-query.jsonl'
+  if not f.exists():f=R/'cohorts'/r['cohort_id']/'per-query.jsonl'
+  q=next(q for q in map(json.loads,f.open()) if q['query']==d['query']);policy=q['profiles']['default_plus_current20'];directions.append(dict(query=d['query'],target=d['target'],old_concept_single_query_baseline_usd=policy['baseline_estimated_usd'],old_concept_single_query_variant_usd=policy['augmented_estimated_usd'],old_variant_funded=d['default_plus_current20']['variant_funded'],old_extra=policy['extra']['target'] if policy['extra'] else None))
+ special.append(dict(row_id=r['row_id'],pair_id=r['pair_id'],family_id=r['family_id'],cohort_id=r['cohort_id'],positions=r['positions'],old_directions=directions,new_shared_campaign_queries=base['queries'],new_shared_baseline_usd=base['estimated_usd'],remaining_before_extras=.04-base['estimated_usd'] if base['estimated_usd'] is not None else None,new_normal_shared_operations_pair_charge=cost,cap1_retrieved=r['retrieved'],cap1_funded=r['funded'],cap2_retrieved=two[r['row_id'],r['cohort_id']]['retrieved'],cap2_funded=two[r['row_id'],r['cohort_id']]['funded'],cap1_total_campaign_usd=newled['estimated_usd']))
+receipt=dict(schema=1,decision='Recommend documented validated BLOCK1 after explicit existing TFIDF20, using shared-operations normal .04 family/source campaign; cap2 adds no useful positive and is unnecessary.',old_profile=dict(extra_cap=1,baseline_positive_units=35,variant_positive_units=37,denominator=39,ledger='Cold one-function query, concept prompt Sonnet; pair success ANY correlated direction; not shared-family campaign'),own_profile=dict(extra_cap_comparison=[1,2],ledger='Shared-operations Sonnet5.5/output1024 normal150, same .04 across complete family/source-component query batch, same exact baseline prefix, native-order cached scores',summary=summary),coverage_reconciliation=dict(old_python_pair_cohort_units=len(oldunits),own_pair_cohort_units=len(ownunits),own_canonical_pairs=len({k[1] for k in ownunits}),common_pair_cohort_units=len(common),old_only=[dict(row_id=oldunits[k]['row_id'],cohort_id=k[0],pair_id=k[1],reason='New bg-8eb6 native source exists; this combination consumed old77 published block query directory, so marked missing-score; no failure or cap loss') for k in missing],own_only_units=len(extras),own_only_repositories=dict(collections.Counter(ownunits[k]['repository'] for k in extras))),special_pairs=special,runtime=dict(wall_seconds=time.perf_counter()-start,cpu_seconds=time.process_time()-cpu,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,checks=dict(checks),new_fits=0,source_extractions=0,provider_calls=0),production_validation='Existing operation-blocks promotion HANDOFF:148 exact query checks,0 extra/funding discrepancies; documented one-extra profile. Generic lab selector not shipped.')
+dump(O/'RECEIPT.json',receipt);print(json.dumps(dict(summary=summary,special_pairs=special,runtime=receipt['runtime']),indent=2))

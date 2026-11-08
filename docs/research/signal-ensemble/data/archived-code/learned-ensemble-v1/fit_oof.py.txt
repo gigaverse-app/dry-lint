@@ -1,0 +1,67 @@
+"""Two preregistered CPU learners, outer repository isolation, no tuning."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import collections,hashlib,json,math,pickle,resource,sys,time,warnings
+from pathlib import Path
+import numpy as np
+sys.path.append('/home/researcher/dry-lint-round/jobs/experiment-vector-expansion/.lab-results/full-corpus/.venv/lib/python3.14/site-packages')
+import sklearn
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.preprocessing import StandardScaler
+P=Path(__file__).resolve().parent;B=P.parent/'full-corpus'
+def jl(p):return [json.loads(l) for l in p.open()]
+def dump(p,x):p.write_text(json.dumps(x,sort_keys=True,indent=2)+'\n')
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+sha=lambda x:hashlib.sha256(x).hexdigest()
+reg=json.loads((P/'EXPERIMENT.json').read_text());assert sha((P/'EXPERIMENT.json').read_bytes())==(P/'EXPERIMENT.sha256').read_text().strip()
+assert (P/'FEATURE-COVERAGE.json').exists(),'Do not fit partial features'
+folds=json.loads((P/'FOLDS.json').read_text())['folds'];features=reg['features'];training=jl(P/'training-rows.jsonl');cohorts=jl(B/'inputs/cohorts.jsonl')
+start=time.perf_counter();cpu=time.process_time();records=json.loads((P/'FOLD-RECEIPT.json').read_text()) if (P/'FOLD-RECEIPT.json').exists() else [];preds=jl(P/'oof-predictions.jsonl') if (P/'oof-predictions.jsonl').exists() else [];all_missing=collections.Counter();completed={(r['repository'],r['profile']) for r in records}
+def matrix(rows):return np.array([[np.nan if r['features'][f] is None else r['features'][f] for f in features] for r in rows],float).reshape((-1,len(features)))
+def prep(x,med,scale=None,empty=None):
+ missing=np.isnan(x);imp=np.where(missing,med,x)
+ native=np.where(empty[None,:],0,x) if empty is not None else x
+ return np.hstack([scale.transform(imp) if scale else native,missing.astype(float)])
+for profile in ['default','balanced']:
+ for fold in folds:
+  repo=fold['test_repository'];trainids=set(fold['train_ids']);testids=set(fold['test_ids'])
+  if (repo,profile) in completed:continue
+  tr=[r for r in training if r['profile']==profile and r['row_id'] in trainids];te=[r for r in training if r['profile']==profile and r['row_id'] in testids]
+  # Deduplicate lineage labels; keep independently scoped partial-operation labels distinct.
+  grouped=collections.defaultdict(list)
+  for r in tr:grouped[r['pair_id'],r['family_id'],r['cohort_id'],r['target']].append(r)
+  tr=[rs[0] for rs in grouped.values()];views=collections.Counter((r['pair_id'],r['family_id']) for r in tr)
+  weight=np.array([1/views[r['pair_id'],r['family_id']] for r in tr]);x=matrix(tr);y=np.array([r['target'] for r in tr]);
+  assert not {r['repository'] for r in tr}&{repo}
+  assert not {r['component'] for r in tr}&{r['component'] for r in te}
+  with warnings.catch_warnings():
+   warnings.simplefilter('ignore',RuntimeWarning);med=np.nanmedian(x,axis=0) if len(x) else np.zeros(len(features))
+  empty=np.isnan(x).all(axis=0);med=np.where(np.isnan(med),0,med);imp=np.where(np.isnan(x),med,x);scale=StandardScaler().fit(imp,sample_weight=weight) if len(x) else None
+  models={};fold_start=time.perf_counter();warn=[]
+  for name in ['logistic','hgb']:
+   if len(set(y))<2:models[name]=None;continue
+   opts=dict(reg['logistic'] if name=='logistic' else reg['hist_gradient_boosting'])
+   # sklearn1.9 exposes L2 through l1_ratio=0; leave its default L2 unchanged.
+   if name=='logistic':opts.pop('penalty',None)
+   model=LogisticRegression(**opts) if name=='logistic' else HistGradientBoostingClassifier(**opts)
+   xx=prep(x,med,scale if name=='logistic' else None,empty)
+   with warnings.catch_warnings(record=True) as ws:
+    model.fit(xx,y,sample_weight=weight)
+   warn.extend(str(w.message) for w in ws);models[name]=model
+  fallback=(float(np.sum(y*weight))+1)/(float(np.sum(weight))+2)
+  def predict(rs):
+   xx=matrix(rs);return {name:model.predict_proba(prep(xx,med,scale if name=='logistic' else None,empty))[:,1].tolist() if model is not None and len(rs) else [fallback]*len(rs) for name,model in models.items()}
+  pp=predict(te)
+  for n,r in enumerate(te):preds.append({k:r[k] for k in ['row_id','cohort_id','profile','repository','pair_id','family_id','component','label','target']}|dict(fold_repository=repo,logistic_probability=pp['logistic'][n],hgb_probability=pp['hgb'][n]))
+  candidate_count=0
+  for c in cohorts:
+   if c['repository']!=repo:continue
+   folder=P/c['cohort_id'];sl=[r for r in jl(folder/'candidate-features.jsonl') if r['profile']==profile];p=predict(sl);out=[]
+   for n,r in enumerate(sl):out.append(dict(query=r['query'],target=r['target'],profile=profile,fold_repository=repo,logistic_probability=p['logistic'][n],hgb_probability=p['hgb'][n]))
+   lines(folder/f'predictions-{profile}.jsonl',out);candidate_count+=len(sl)
+  folder=P/'models';folder.mkdir(exist_ok=True);key=sha((repo+'|'+profile).encode())[:16]
+  with (folder/(key+'.pickle')).open('wb') as f:pickle.dump(dict(models=models,median=med,scaler=scale,features=features,profile=profile,held_out_repository=repo),f)
+  rec=dict(repository=repo,profile=profile,training_units=len(tr),training_canonical_pairs=len({r['pair_id'] for r in tr}),training_families=len({r['family_id'] for r in tr}),training_positive_units=int(sum(y)),training_positive_weight=float(np.sum(y*weight)),test_scope_units=len(te),test_canonical_pairs=len({r['pair_id'] for r in te}),test_families=len({r['family_id'] for r in te}),purged_lineage_records=len(fold['purged_ids']),all_missing_train_features=[f for i,f in enumerate(features) if not len(x) or np.isnan(x[:,i]).all()],candidate_predictions=candidate_count,fit_seconds=time.perf_counter()-fold_start,warnings=warn,model_snapshot=key+'.pickle',train_test_component_overlap=0)
+  records.append(rec);lines(P/'oof-predictions.jsonl',preds);dump(P/'FOLD-RECEIPT.json',records);print(json.dumps(dict(repository=repo,profile=profile,train=len(tr),test=len(te),candidates=candidate_count,seconds=rec['fit_seconds'])),flush=True)
+dump(P/'FIT-READY.json',dict(protocol_sha256=sha((P/'EXPERIMENT.json').read_bytes()),folds=len(folds),model_fits=len(folds)*4,sklearn=sklearn.__version__,oof_scope_predictions=len(preds),wall_seconds=time.perf_counter()-start,cpu_seconds=time.process_time()-cpu,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,threads=2,heavy_representation_fits=0,provider_calls=0))

@@ -1,0 +1,842 @@
+[
+  {
+    "path": "litellm/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1ed99374f696918889a63d950895e5ebfd98ed76a4d8358961dd82d0c4fed368",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/1ed99374f696918889a63d950895e5ebfd98ed76a4d8358961dd82d0c4fed368"
+  },
+  {
+    "path": "litellm/llms/custom_httpx/aiohttp_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "ee3ebc17463c38accbc9229cdf9d13d0667d4adc9359cbf58eededa3b82fcc91",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/ee3ebc17463c38accbc9229cdf9d13d0667d4adc9359cbf58eededa3b82fcc91"
+  },
+  {
+    "path": "litellm/llms/anthropic/messages/responses_adapters/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "eaa9465d33a05d11d972f77c8f8e32a061d7cb78d22b5893f71624f7f768857c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/eaa9465d33a05d11d972f77c8f8e32a061d7cb78d22b5893f71624f7f768857c"
+  },
+  {
+    "path": "litellm/llms/anthropic/messages/native/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "89dbf23550ecfd3fb6a9c288dbbf2f34128ee5ffe982180430426efbaf41356f",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/89dbf23550ecfd3fb6a9c288dbbf2f34128ee5ffe982180430426efbaf41356f"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/auth/user_api_key_auth_mcp.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "81ffbe635b1fa6e8662eb753515ed7758d479a3afc92bd7e9b87a002ef8997c0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/81ffbe635b1fa6e8662eb753515ed7758d479a3afc92bd7e9b87a002ef8997c0"
+  },
+  {
+    "path": "litellm/proxy/management_helpers/object_permission_utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "b0f27fd2c44db60e794f901871849bf4b39f6ea2d0fce2fd747e071f34b64a69",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/b0f27fd2c44db60e794f901871849bf4b39f6ea2d0fce2fd747e071f34b64a69"
+  },
+  {
+    "path": "litellm/proxy/response_api_endpoints/endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "72182e628df7067c7245b8f160cf7854b388218cfddd6e8d8b7c29f26adf2b35",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/72182e628df7067c7245b8f160cf7854b388218cfddd6e8d8b7c29f26adf2b35"
+  },
+  {
+    "path": "litellm/proxy/google_endpoints/endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "b1fb2ea78dd2a7d21bcd45f2f4eb5dccc7c16b7170edf2db97c5be2e7c53e57a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/b1fb2ea78dd2a7d21bcd45f2f4eb5dccc7c16b7170edf2db97c5be2e7c53e57a"
+  },
+  {
+    "path": "litellm/llms/bedrock/image_edit/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "9ccc458d5c835a555f5ea10e4889fb028b3be4442981c5361da206c06411f33f",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/9ccc458d5c835a555f5ea10e4889fb028b3be4442981c5361da206c06411f33f"
+  },
+  {
+    "path": "litellm/proxy/anthropic_endpoints/claude_code_endpoints/claude_code_marketplace.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1d99b9c07852f7d6df239c54fb4f733d3393de90fe05f3bd00b611bf69e8a3c7",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/1d99b9c07852f7d6df239c54fb4f733d3393de90fe05f3bd00b611bf69e8a3c7"
+  },
+  {
+    "path": "litellm/proxy/discovery_endpoints/skill_hub_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "26772f7a5f6fe389d956c8dd59b298fbf365ac4301988e0cadf99b424ba3b834",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/26772f7a5f6fe389d956c8dd59b298fbf365ac4301988e0cadf99b424ba3b834"
+  },
+  {
+    "path": "litellm/llms/bedrock/embed/amazon_titan_g1_transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "251ac1537ed5bef0df5044454285afe035bccad1a3851057f08212a0e5be47bc",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/251ac1537ed5bef0df5044454285afe035bccad1a3851057f08212a0e5be47bc"
+  },
+  {
+    "path": "litellm/llms/bedrock/embed/amazon_titan_v2_transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "a6990a90fbe4abfba3389069e3c37da7f8785f78e30955a714798bafff67d54a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/a6990a90fbe4abfba3389069e3c37da7f8785f78e30955a714798bafff67d54a"
+  },
+  {
+    "path": "litellm/_redis.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "4559882e9c71f104c14a25bd20190df74d20289c23d0720c39059a4e9985e244",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/4559882e9c71f104c14a25bd20190df74d20289c23d0720c39059a4e9985e244"
+  },
+  {
+    "path": "litellm/integrations/websearch_interception/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/7d1433c9222a9be9f3e66028c83e3b29d7056df8399ebd6e97277f79265ed3e0"
+  },
+  {
+    "path": "litellm/proxy/auth/auth_checks.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "4337a9d22fe1c2293de55d890e97a364def6f925d9550ae92aba1f2f731ce309",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/4337a9d22fe1c2293de55d890e97a364def6f925d9550ae92aba1f2f731ce309"
+  },
+  {
+    "path": "litellm/proxy/auth/user_api_key_auth.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "aa47c3600bc2d518e341d16a0e889e46cab8e9a92799a2be5829fa546714310a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/aa47c3600bc2d518e341d16a0e889e46cab8e9a92799a2be5829fa546714310a"
+  },
+  {
+    "path": "litellm/proxy/common_utils/claude_code_marketplace_auth.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "bab6c5274f50abacb5bb8d9028b24405f642a178703cb5dd126a6c3388ec6bbd",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/bab6c5274f50abacb5bb8d9028b24405f642a178703cb5dd126a6c3388ec6bbd"
+  },
+  {
+    "path": "litellm/proxy/spend_tracking/spend_tracking_utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "b2da85fb8ba2f36a7152f7f7ce99a3cf17936fd7879e92e1970a6bb6ae966647",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/b2da85fb8ba2f36a7152f7f7ce99a3cf17936fd7879e92e1970a6bb6ae966647"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/agent_engine/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "8c4fb50c6893a93635a1cc3a160279071a22404fba08cf868ead17ce6aa87b46",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/8c4fb50c6893a93635a1cc3a160279071a22404fba08cf868ead17ce6aa87b46"
+  },
+  {
+    "path": "litellm/llms/langgraph/chat/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "92a041064d37a79a92108f066062f99d267b36e6620aea647e9183ad6cd8a5f7",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/92a041064d37a79a92108f066062f99d267b36e6620aea647e9183ad6cd8a5f7"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/upstream.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "65b2f14e48410b7001fd90abf2d553eb89f76ff005cc87a880385145a25c1340",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/65b2f14e48410b7001fd90abf2d553eb89f76ff005cc87a880385145a25c1340"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/mcp_server_manager.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "ff55b62418278f2ce8c07eec86a47cc852ce8f7451e3040b2bd9839c0f22463b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/ff55b62418278f2ce8c07eec86a47cc852ce8f7451e3040b2bd9839c0f22463b"
+  },
+  {
+    "path": "litellm/proxy/spend_tracking/spend_management_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "d02e344e8f82256e02e1ec1617f78fd6b116bcd68821b9c0587da311937baee9",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/d02e344e8f82256e02e1ec1617f78fd6b116bcd68821b9c0587da311937baee9"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/tool_management_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "278be20fd9f542ad2f6611d0a960013328a0781ff979e88ff8c184d4f28ba40b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/278be20fd9f542ad2f6611d0a960013328a0781ff979e88ff8c184d4f28ba40b"
+  },
+  {
+    "path": "litellm/llms/cometapi/image_generation/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "ab7c67e976b309796711940d8fcaea4ff110e219fe461841874f382711ff055a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/ab7c67e976b309796711940d8fcaea4ff110e219fe461841874f382711ff055a"
+  },
+  {
+    "path": "litellm/llms/aiml/image_generation/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "6fdc55867b516fe3e9b339cfd3bcfb87af9177b511e7dbffc5012cf0262a2a89",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/6fdc55867b516fe3e9b339cfd3bcfb87af9177b511e7dbffc5012cf0262a2a89"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/policy_endpoints/endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e5345ba9b89ac1cbe0456c59ce8329f6c44160c5df16c735d4ee2802aa5ae363",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/e5345ba9b89ac1cbe0456c59ce8329f6c44160c5df16c735d4ee2802aa5ae363"
+  },
+  {
+    "path": "litellm/proxy/proxy_server.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/461723d539caaae4ceadfe1978b409e08141342180bb4b588b6cfcc15b440dfd"
+  },
+  {
+    "path": "litellm/proxy/management_helpers/user_invitation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "5377c0e90259025837848528b3917dc455711390ac0a6716407cfb6223c8420a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/5377c0e90259025837848528b3917dc455711390ac0a6716407cfb6223c8420a"
+  },
+  {
+    "path": "litellm/integrations/s3_v2.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "24a1ec4b4d0cacd6387a32c5dbff62d8ab6f743a2cc8cb720908806c6da1dd1b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/24a1ec4b4d0cacd6387a32c5dbff62d8ab6f743a2cc8cb720908806c6da1dd1b"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/key_management_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "380e046913c556c7a796015313d514c5b8e128849a7862331cd3a6d72a653b0b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/380e046913c556c7a796015313d514c5b8e128849a7862331cd3a6d72a653b0b"
+  },
+  {
+    "path": "litellm/proxy/management_helpers/utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "50bdf40cc137b8802193c93c58e02a91619db6fa5a43c1299dc9d77ab52c6569",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/50bdf40cc137b8802193c93c58e02a91619db6fa5a43c1299dc9d77ab52c6569"
+  },
+  {
+    "path": "litellm/llms/github_copilot/messages/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "dcc93037e5abe446226c7007f50b56eecfbb16d2135f211fc3478b33a51ab643",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/dcc93037e5abe446226c7007f50b56eecfbb16d2135f211fc3478b33a51ab643"
+  },
+  {
+    "path": "litellm/llms/bedrock/rerank/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "d8c3689127ad7afb5abf8cb5554cfe1cd3499a43db1289f0a71aa8be262ea0fe",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/d8c3689127ad7afb5abf8cb5554cfe1cd3499a43db1289f0a71aa8be262ea0fe"
+  },
+  {
+    "path": "litellm/llms/cohere/rerank/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e2babd9a7effad71c923afa837292a0db5511e6ee516d963082ed0bd7a160236",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/e2babd9a7effad71c923afa837292a0db5511e6ee516d963082ed0bd7a160236"
+  },
+  {
+    "path": "litellm/integrations/gcs_bucket/gcs_bucket_base.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "28409b25b8694797b9eacb80a9e46b6fdcdb094952f9f15ab8b73ab8f0402fc7",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/28409b25b8694797b9eacb80a9e46b6fdcdb094952f9f15ab8b73ab8f0402fc7"
+  },
+  {
+    "path": "litellm/integrations/gcs_bucket/gcs_bucket.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "7de1fa49b6e1274e2bff013fca9cd4c9a8db17c8148ad083bc0007ba5aab04aa",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/7de1fa49b6e1274e2bff013fca9cd4c9a8db17c8148ad083bc0007ba5aab04aa"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/audio_transcription/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "17de2cd8e7a67734abe142887f1d44fd9ab0c47d368908df4d5410cc497d3ca6",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/17de2cd8e7a67734abe142887f1d44fd9ab0c47d368908df4d5410cc497d3ca6"
+  },
+  {
+    "path": "litellm/llms/gemini/audio_transcription/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "832b39e843c1db6bd590053e13a43111d769d52337374fd9b8d36659c48f2c7c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/832b39e843c1db6bd590053e13a43111d769d52337374fd9b8d36659c48f2c7c"
+  },
+  {
+    "path": "litellm/proxy/vector_store_endpoints/endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "bb604f2c9e6b71011a59926bedb6058488c02bcecd8ae46813a5b3b3df18dafe",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/bb604f2c9e6b71011a59926bedb6058488c02bcecd8ae46813a5b3b3df18dafe"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/scim/scim_v2.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "61d21940a39b577cd7cc0ac2845506d23f13d1fd0da3860eb926653e8dfaaee5",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/61d21940a39b577cd7cc0ac2845506d23f13d1fd0da3860eb926653e8dfaaee5"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/internal_user_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "c279b30aad141d74787e77e9b9a0c96a078ad6478a29045e90cea19939689656",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/c279b30aad141d74787e77e9b9a0c96a078ad6478a29045e90cea19939689656"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/auth/managed_agent_access.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "73d3ee044f824548ea517b1196b844c3e2fbf786c2f87d7d50c2f798fb92b7cc",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/73d3ee044f824548ea517b1196b844c3e2fbf786c2f87d7d50c2f798fb92b7cc"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/organization_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e98371d1a23702b1305f2d5af652bd84903ebffc7c5433b9adfc564aea3106a2",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/e98371d1a23702b1305f2d5af652bd84903ebffc7c5433b9adfc564aea3106a2"
+  },
+  {
+    "path": "litellm/integrations/opentelemetry.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "669b4aee8a481bf04402385c677755e0c6bc8a962b49447aafc02f25f63edbbe",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/669b4aee8a481bf04402385c677755e0c6bc8a962b49447aafc02f25f63edbbe"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/model_access_group_management_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "21fbd61dee193d1593e7a9122d781158a522a2704fa14357dec6399aab31e3b6",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/21fbd61dee193d1593e7a9122d781158a522a2704fa14357dec6399aab31e3b6"
+  },
+  {
+    "path": "litellm/llms/dataforseo/search/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "a8b713c44b414eade25d862f339703b95646e8c6da4e040320b9b1749ac65b4a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/a8b713c44b414eade25d862f339703b95646e8c6da4e040320b9b1749ac65b4a"
+  },
+  {
+    "path": "litellm/llms/tavily/search/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "3ab4e8ba582c402b2c1a2dae65df8555d17b594b48a8e3b59071a824898e88ad",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/3ab4e8ba582c402b2c1a2dae65df8555d17b594b48a8e3b59071a824898e88ad"
+  },
+  {
+    "path": "litellm/repositories/daily_activity_sql.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "dd74b7ac461ff1c3f3700e9bc47801ce58dcd37e9bdf1bf86d94ff80db13a189",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/dd74b7ac461ff1c3f3700e9bc47801ce58dcd37e9bdf1bf86d94ff80db13a189"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/daily_activity_scopes.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "d1ae6231bfa09d8ebfbbcb152ef9d616a29dcc446a89939c837a73122a313bdb",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/d1ae6231bfa09d8ebfbbcb152ef9d616a29dcc446a89939c837a73122a313bdb"
+  },
+  {
+    "path": "litellm/proxy/guardrails/guardrail_hooks/ibm_guardrails/ibm_detector.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "c3cf8cf06ca706f5cd4c495b114d26f55e7317470862958948e7cddc5ba56a69",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/c3cf8cf06ca706f5cd4c495b114d26f55e7317470862958948e7cddc5ba56a69"
+  },
+  {
+    "path": "litellm/proxy/guardrails/guardrail_hooks/repelloai/repelloai.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "f6a843905bfb25dd07d19d78b9dc29850144c7414ef5b4c2a1277bf9aa87fb2f",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round1/inputs/native/f6a843905bfb25dd07d19d78b9dc29850144c7414ef5b4c2a1277bf9aa87fb2f"
+  },
+  {
+    "path": "litellm/llms/azure/azure.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "72bc80c6dc277a867e1c483d18b1f15b6137c1216abf43e67e61727613f58de0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/72bc80c6dc277a867e1c483d18b1f15b6137c1216abf43e67e61727613f58de0"
+  },
+  {
+    "path": "litellm/llms/azure/completion/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "be25cf90bb0e45c210eae0174e1221f235f6fedc67f53d4afad430849136e678",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/be25cf90bb0e45c210eae0174e1221f235f6fedc67f53d4afad430849136e678"
+  },
+  {
+    "path": "litellm/proxy/client/models.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "de803151e2623111914df068c7599eed0f2bd1dfc285e58353f29ad82df91afe",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/de803151e2623111914df068c7599eed0f2bd1dfc285e58353f29ad82df91afe"
+  },
+  {
+    "path": "litellm/proxy/client/keys.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "82df6bab45800c0c43a926a8d5eb7aa379c1c323193be8b1d99a8d93173ae86c",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/82df6bab45800c0c43a926a8d5eb7aa379c1c323193be8b1d99a8d93173ae86c"
+  },
+  {
+    "path": "litellm/proxy/hooks/parallel_request_limiter.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e7ee4aad6e95a7a529cf2deaf7105297baae6759068d479209728538968d620d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/e7ee4aad6e95a7a529cf2deaf7105297baae6759068d479209728538968d620d"
+  },
+  {
+    "path": "litellm/proxy/hooks/dynamic_rate_limiter.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "6683206817ad4e27489de9dd0f7ecb8e5686123c6707078aa90233ea817f42a9",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/6683206817ad4e27489de9dd0f7ecb8e5686123c6707078aa90233ea817f42a9"
+  },
+  {
+    "path": "openhands/tools/execute_bash/terminal/terminal_session.py",
+    "redistribution": "permissive-public",
+    "repository": "OpenHands/software-agent-sdk",
+    "revision": "344ec8a9c30dff0a4ca200fc412510aad44e1bdc",
+    "sha256": "5caa46d87cd3f854d3ac4494ba9500b10f11c878b812c7d4af518861497cd4c5",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/5caa46d87cd3f854d3ac4494ba9500b10f11c878b812c7d4af518861497cd4c5"
+  },
+  {
+    "path": "litellm/proxy/roi_calculator/gitlab.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "62ef7af6dac9c445a4793d25992a91931a458dfbd621f8b2d29c17c57c6d5dc5",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/62ef7af6dac9c445a4793d25992a91931a458dfbd621f8b2d29c17c57c6d5dc5"
+  },
+  {
+    "path": "litellm/proxy/roi_calculator/github.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "cbc8d74b7fab56c9cd4e41edce94126603a00e4a7c579ec34599aee9f86ee748",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/cbc8d74b7fab56c9cd4e41edce94126603a00e4a7c579ec34599aee9f86ee748"
+  },
+  {
+    "path": "litellm/vector_stores/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "255c699ceaec7aa33208340566c8634d1a46b3beaa5ca36d23658378d6f0c6ea",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/255c699ceaec7aa33208340566c8634d1a46b3beaa5ca36d23658378d6f0c6ea"
+  },
+  {
+    "path": "litellm/vector_store_files/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "df43568b8fe856b123a6d2006e62cad9dfe29137590a49bbf21df366ccf9d4ad",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/df43568b8fe856b123a6d2006e62cad9dfe29137590a49bbf21df366ccf9d4ad"
+  },
+  {
+    "path": "litellm/llms/bedrock/realtime/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "0936445257f2c059bb44fc9e8320132f8dc59c1846c826a06ea786a64ff3e665",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/0936445257f2c059bb44fc9e8320132f8dc59c1846c826a06ea786a64ff3e665"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/gateway_dcr_flow.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "8f2d0c9e9113924769518bef39bc0c4457d678a1c9ab88aa4a05874bc0fb5940",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/8f2d0c9e9113924769518bef39bc0c4457d678a1c9ab88aa4a05874bc0fb5940"
+  },
+  {
+    "path": "litellm/caching/redis_cache.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/beac3890ff208c47d82949a195135059547e7b0815735949ab5600d8214dfdca"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/batches/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "162717c461894ea61d4111dc95728d825cb8842b88c597354a7692c00a618750",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/162717c461894ea61d4111dc95728d825cb8842b88c597354a7692c00a618750"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/gemini/vertex_and_google_ai_studio_gemini.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "4fea4f114dc4622fb13edcb60f114cdc03ec7f16110a776abac7821d47309444",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/4fea4f114dc4622fb13edcb60f114cdc03ec7f16110a776abac7821d47309444"
+  },
+  {
+    "path": "litellm/proxy/pass_through_endpoints/pass_through_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e842fd18630c3a874f1e8f4a88129b6e58a270b397eb3b2bc2f687b801bf2952",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/e842fd18630c3a874f1e8f4a88129b6e58a270b397eb3b2bc2f687b801bf2952"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/operations.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "c5d9af378289536445632cd0ce91db9424fd4dfa2651d6846372b2b78d7bfa2a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/c5d9af378289536445632cd0ce91db9424fd4dfa2651d6846372b2b78d7bfa2a"
+  },
+  {
+    "path": "litellm/interactions/http_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "16a2c1c01be4dc0f5386d24d9ba82d1d7282d358de472b73b1da51cfef523a25",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/16a2c1c01be4dc0f5386d24d9ba82d1d7282d358de472b73b1da51cfef523a25"
+  },
+  {
+    "path": "litellm/caching/redis_semantic_cache.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e140246bd84791fd81913105e19aacd21fe1c2b789df312e3675c56c0ce8859b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/e140246bd84791fd81913105e19aacd21fe1c2b789df312e3675c56c0ce8859b"
+  },
+  {
+    "path": "litellm/caching/s3_cache.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1f439e6ab4f9cf2396c1a08df98663063cb14e78ec1e32c4e2adc23cb13c6935",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/1f439e6ab4f9cf2396c1a08df98663063cb14e78ec1e32c4e2adc23cb13c6935"
+  },
+  {
+    "path": "litellm/llms/openai/completion/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "9e04786bd6885c6d593d1b049dff1891f1326f89441619a2c3363cb447a5dc0b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/9e04786bd6885c6d593d1b049dff1891f1326f89441619a2c3363cb447a5dc0b"
+  },
+  {
+    "path": "litellm/llms/bedrock/chat/converse_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "af013f1e81bd84fc74b00e76041d5ed839c71ae76c059a951c5af9284d562734",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/af013f1e81bd84fc74b00e76041d5ed839c71ae76c059a951c5af9284d562734"
+  },
+  {
+    "path": "litellm/proxy/guardrails/guardrail_hooks/promptguard/promptguard.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "81dc851baa105c7408e9686ee42d045547dbff6a8ef61bf3d3742fdd32c4d349",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/81dc851baa105c7408e9686ee42d045547dbff6a8ef61bf3d3742fdd32c4d349"
+  },
+  {
+    "path": "litellm/proxy/guardrails/guardrail_hooks/prompt_security/prompt_security.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "64a7ffaaa44a6a4f4f51b67ef26ab8ec3f8799b8be87282060d74d8407a50f87",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/64a7ffaaa44a6a4f4f51b67ef26ab8ec3f8799b8be87282060d74d8407a50f87"
+  },
+  {
+    "path": "litellm/videos/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "92794d0a8da4e80c9c00ad75ab450446267e22abe521f3e929af5e37644ad0d0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/92794d0a8da4e80c9c00ad75ab450446267e22abe521f3e929af5e37644ad0d0"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/videos/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e4256982fa56325d7e6f7d5ee2232bfc27393e01e209e9112f90fa23e51b5d35",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/e4256982fa56325d7e6f7d5ee2232bfc27393e01e209e9112f90fa23e51b5d35"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/image_edit/vertex_gemini_transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "7ad67142dbf08b150a86eed95fb352266e9bfb2bc73ad0e2ed772db75e42f649",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/7ad67142dbf08b150a86eed95fb352266e9bfb2bc73ad0e2ed772db75e42f649"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/image_generation/image_generation_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "0a4725d370464b570cc85c9e5896f3b5c37890d94375c9a572d0650fa9de221b",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/0a4725d370464b570cc85c9e5896f3b5c37890d94375c9a572d0650fa9de221b"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/multimodal_embeddings/embedding_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "b8082dc743cf52a5cd0f01da6c6bbd0a13a7948cbe7b2a6d8ab0dc8e9b1bbc7e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/b8082dc743cf52a5cd0f01da6c6bbd0a13a7948cbe7b2a6d8ab0dc8e9b1bbc7e"
+  },
+  {
+    "path": "litellm/utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "c84df12bec296e425ce01cadaf696d4b1759ecdbd809fa38f6074f3f2c547c28",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/c84df12bec296e425ce01cadaf696d4b1759ecdbd809fa38f6074f3f2c547c28"
+  },
+  {
+    "path": "litellm/llms/anthropic/common_utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "d812737b3056efba3aeecb4a10dda4f73fcc23b26180a5b21894500a7d1ce8d4",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/d812737b3056efba3aeecb4a10dda4f73fcc23b26180a5b21894500a7d1ce8d4"
+  },
+  {
+    "path": "litellm/litellm_core_utils/prompt_templates/factory.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "f472759102e97425d83e8a04da503961195ce80b39bab084d77a908c1c4c8645",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/f472759102e97425d83e8a04da503961195ce80b39bab084d77a908c1c4c8645"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/gemini/rejected_thought_signature_retry.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "01d85fbfdcbe0c2744e866b22fddee779c5d800f8c38ff49431a9f9673577199",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/01d85fbfdcbe0c2744e866b22fddee779c5d800f8c38ff49431a9f9673577199"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/context_caching/rejected_cache_retry.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "7abf23a4ec2158bb7101cea040ebb97404095704ece9116fae93cc87dbbb0de7",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/7abf23a4ec2158bb7101cea040ebb97404095704ece9116fae93cc87dbbb0de7"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/jwt_key_mapping_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "0d76fdfc05aa8976203a427debd08a6cd0f5b0e3dd653b608d9719f0bf3bf167",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/0d76fdfc05aa8976203a427debd08a6cd0f5b0e3dd653b608d9719f0bf3bf167"
+  },
+  {
+    "path": "litellm/proxy/management_endpoints/team_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "6f2629e4166e88dc65172204b54e6aac792ef9705a6711ff38b127028123683d",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/6f2629e4166e88dc65172204b54e6aac792ef9705a6711ff38b127028123683d"
+  },
+  {
+    "path": "litellm/llms/bedrock/chat/invoke_agent/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "b2b8a2515a5c1911ad44817baf2480082dbfe03f1caaf6f50d14aec726a82dfa",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/b2b8a2515a5c1911ad44817baf2480082dbfe03f1caaf6f50d14aec726a82dfa"
+  },
+  {
+    "path": "litellm/proxy/agent_endpoints/auth/managed_authorization.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "e599717b0d34d5f2264e56de43c2c74555de7180c0fff1913f2bc1c046ee69e2",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/e599717b0d34d5f2264e56de43c2c74555de7180c0fff1913f2bc1c046ee69e2"
+  },
+  {
+    "path": "litellm/google_genai/main.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "c499538947d2b471126fca12968f0c8d9063caed4e2d9a42f3340a1ac475fd07",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/c499538947d2b471126fca12968f0c8d9063caed4e2d9a42f3340a1ac475fd07"
+  },
+  {
+    "path": "litellm/proxy/litellm_pre_call_utils.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "493a9bddc52956decff5bf34e9edcdeeba00edde246378607baacf5b59155e4a",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/493a9bddc52956decff5bf34e9edcdeeba00edde246378607baacf5b59155e4a"
+  },
+  {
+    "path": "litellm/proxy/policy_engine/policy_resolve_endpoints.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "60a5fef5e592272d38632731c1721b9f21cb399faa773a9c19e626e07686c1c0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/60a5fef5e592272d38632731c1721b9f21cb399faa773a9c19e626e07686c1c0"
+  },
+  {
+    "path": "litellm/llms/custom_httpx/llm_http_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "215f7396cb9f83f0aed7bf8382184f4639e243198c569e317f1a5278e473c9ac",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/215f7396cb9f83f0aed7bf8382184f4639e243198c569e317f1a5278e473c9ac"
+  },
+  {
+    "path": "litellm/llms/soniox/audio_transcription/handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "bf30fa4dc8906214ae8af21264955de6c741dc623539a4b70ecab766c875cf13",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/bf30fa4dc8906214ae8af21264955de6c741dc623539a4b70ecab766c875cf13"
+  },
+  {
+    "path": "litellm/llms/vertex_ai/files/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "a8d506ecaea65fb852526b2672d1ad3163258efc95da25e3fe817d165f0e9c54",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/a8d506ecaea65fb852526b2672d1ad3163258efc95da25e3fe817d165f0e9c54"
+  },
+  {
+    "path": "litellm/proxy/roi_calculator/github_observed.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "f93fd42bb801727e71eba420bec075b1e6cd8c927b8ab4f8068627672cf2ebf0",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/f93fd42bb801727e71eba420bec075b1e6cd8c927b8ab4f8068627672cf2ebf0"
+  },
+  {
+    "path": "litellm/llms/manus/responses/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "1f649baddd3018648ffeaa714c94a54a2f7d8b5441657179a705930850105e7e",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/1f649baddd3018648ffeaa714c94a54a2f7d8b5441657179a705930850105e7e"
+  },
+  {
+    "path": "litellm/llms/openai/responses/transformation.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "dbb96c90aaf354e115ccac5be905269932aa24671f58fbd902c58fbd401d7211",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/dbb96c90aaf354e115ccac5be905269932aa24671f58fbd902c58fbd401d7211"
+  },
+  {
+    "path": "litellm/responses/mcp/litellm_proxy_mcp_handler.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "676563c5506ed8fd99b1689c826dec7ca41c1e62882867e76542f5c6e0150cb3",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/676563c5506ed8fd99b1689c826dec7ca41c1e62882867e76542f5c6e0150cb3"
+  },
+  {
+    "path": "litellm/llms/gigachat/authenticator.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "a81ae6f93977eb70e039c81088c882abfd1c901770c54b505888fcac8ac35394",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/a81ae6f93977eb70e039c81088c882abfd1c901770c54b505888fcac8ac35394"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/outbound_credentials/token_endpoint.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "3e28bc264a9c34c68bd105d4352bc014ee9caf90b732b1179e313c52c58f8ba6",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/3e28bc264a9c34c68bd105d4352bc014ee9caf90b732b1179e313c52c58f8ba6"
+  },
+  {
+    "path": "litellm/proxy/mcp_server/outbound_credentials/token_exchange_provider.py",
+    "redistribution": "permissive-public",
+    "repository": "BerriAI/litellm",
+    "revision": "fc1e47e580d9e3d2e8b46ad05a293a58ed0b8f1f",
+    "sha256": "3dc5650b5478fe8a7fc62020e1ad5f5c74e111bd9410f44ccad7df6da5302f37",
+    "source_snapshot": "LAB_ROOT/jobs/experiment-signal-ensemble/.lab-results/funded-rounds/round2/inputs/native/3dc5650b5478fe8a7fc62020e1ad5f5c74e111bd9410f44ccad7df6da5302f37"
+  }
+]

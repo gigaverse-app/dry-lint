@@ -1,0 +1,62 @@
+"""Validate active existing-schema packets, original funding, source identity and control grouping."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import collections,hashlib,json,sys
+from pathlib import Path
+import numpy as np
+from dry_lint.models import Candidate
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import estimate,judging_input
+from dry_lint.settings import Settings
+from types import SimpleNamespace
+P=Path(__file__).resolve().parent;L=P.parents[1];ROOT=Path('/home/researcher/dry-lint-round');sys.path.insert(0,str(L/'lab-contracts'))
+from lab_contracts_v1 import EstimatedFunding
+def jl(p):return [json.loads(l) for l in Path(p).open() if l.strip()]
+def sha(b):return hashlib.sha256(b).hexdigest()
+h=json.loads((P/'HANDOFF.json').read_text());packets=jl(h['queue']);side={r['id']:r for r in jl(h['private_sidecar'])};checks=collections.Counter();promptkeys=set();parents={};fams={}
+def find(k):
+ parents.setdefault(k,k)
+ if parents[k]!=k:parents[k]=find(parents[k])
+ return parents[k]
+def union(a,b):parents[find(a)]=find(b)
+for r in jl(L/'full-corpus/inputs/rows.jsonl'):
+ for m in r['mappings']:
+  for s in m.get('sources',{}).values():
+   if s.get('source_id'):
+    k=r['repository'],s['source_id'].split('::')[0];find(k)
+    if r['family_id']:
+     if r['family_id'] in fams:union(k,fams[r['family_id']])
+     else:fams[r['family_id']]=k
+known_components=set();used_files=set();used_bodies=set();component_meta={};backgrounds={};vectors={};reprproof=[];settings=Settings(budget={'usd':.04});judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False)
+for chunk in h['chunks']:
+ assert sha(Path(chunk['queue']).read_bytes())==chunk['queue_sha256'];checks['immutable_active_chunks']+=1
+for p in packets:
+ c=Candidate.model_validate(p['candidate']);assert c.model_dump(mode='json')==p['candidate'];assert sha(json.dumps(p['candidate'],sort_keys=True).encode())==p['candidate_sha256'];s=side[p['id']];f=EstimatedFunding.model_validate_json(json.dumps(s['typed_funding']));assert f.cap_per_PR==.04 and f.cumulative_estimated_usd<=.040000000001
+ led=[r for r in jl(f.ledger_proof) if r['profile']==s['profile'] and r['batch']==s['batch'] and r['arm']==s['arm']];assert len(led)==1 and c.key in led[0]['funded_keys'] and set(led[0]['complete_baseline_funded_keys'])<=set(led[0]['funded_keys']);assert sha(Path(f.ledger_proof).read_bytes())==f.ledger_proof_sha256;assert abs(estimate(judge,[c],settings)-f.normal_estimated_usd)<1e-12
+ assert sha(judging_input(judge,c).encode())==p['prompt_sha256'];assert p['prompt_sha256']not in promptkeys;promptkeys.add(p['prompt_sha256']);checks['original_funded_candidates']+=1
+ bgsha=p['background_proof']['sha256']
+ if bgsha not in backgrounds:
+  src=Path(p['background_proof']['path']);raw=src.read_bytes();assert sha(raw)==bgsha;dest=P/'inputs/backgrounds'/src.name;dest.parent.mkdir(parents=True,exist_ok=True)
+  if dest.exists():assert dest.read_bytes()==raw
+  else:dest.write_bytes(raw)
+  bg=BenchBackground.decode(raw);backgrounds[bgsha]=(bg,{d.id:d for d in bg.documents},collections.Counter(d.id for d in bg.documents));cfg=s['source_config'];assert bg.repository==p['repository'] and bg.revision==p['revision'] and bg.scope==p['scope']
+  emb=ROOT/'jobs/experiment-cpu-embeddings/.lab-results/full-corpus/cohorts'/bgsha/'embeddings.npy';stat=emb.stat();raw=emb.read_bytes();assert (emb.stat().st_size,emb.stat().st_mtime_ns)==(stat.st_size,stat.st_mtime_ns);vd=P/'inputs/representations'/(bgsha+'-embeddings.npy');vd.parent.mkdir(parents=True,exist_ok=True)
+  if vd.exists():assert sha(vd.read_bytes())==sha(raw)
+  else:vd.write_bytes(raw)
+  vectors[bgsha]=np.load(vd,mmap_mode='r');reprproof.append(dict(background_sha256=bgsha,background_snapshot=str(dest),matrix_source=str(emb),matrix_snapshot=str(vd),matrix_sha256=sha(raw),matrix_rows=len(vectors[bgsha]),immutable_model_contract='Published CPU full-corpus EXPERIMENT + embedding-status, no new encoding/fitting'))
+ bg,docs,counts=backgrounds[bgsha];files=set();bodies=set()
+ for name in ['new','existing']:
+  f0=getattr(c,name);pp=[r for r in p['source_proofs'] if r['side']==name];assert len(pp)==1;proof=pp[0];assert proof['source_id']==f0.qualname and proof['revision']==bg.revision;assert counts[f0.qualname]==1 and docs[f0.qualname].source_sha256==sha(f0.code.encode());assert sha(Path(proof['source_snapshot']).read_bytes())==proof['file_sha256']==f0.context_digest;assert sha(f0.code.encode())==proof['body_sha256'];assert f0.line>0 and f0.end_line>=f0.line and f0.hash;assert int(sha((bg.repository+'|'+f0.path).encode()),16)%2==0;files.add((bg.repository,f0.path));bodies.add(proof['body_sha256']);checks['full_native_cached_endpoint_proofs']+=1
+ component_meta[p['id']]=dict(files=files,bodies=bodies,components={find(k) for k in files},role=s['role'])
+ if s['channel']=='dense':
+  z=vectors[bgsha];value=float(z[s['query']]@z[s['target']]);assert abs(value-c.similarity)<1e-6;checks['snapshotted_dense_cosine_parity']+=1
+# All novel cases, including the earlier selected reserve, are stronger exclusions for active controls.
+for s in jl(P/'private-sidecar.jsonl'):
+ if s['role']=='novel_funded_ensemble':
+  ff={(s['source_config']['repository'],f) for f in s['source_files']};known_components.update(find(k) for k in ff);used_files|=ff;used_bodies.update(s['source_bodies'])
+for id_,r in component_meta.items():
+ if 'control'in r['role']:
+  assert not r['components']&known_components and not r['files']&used_files and not r['bodies']&used_bodies,id_;known_components|=r['components'];used_files|=r['files'];used_bodies|=r['bodies'];checks['independent_active_controls']+=1
+excluded_components={find(k) for k in used_files};round2_excluded=[dict(repository=k[0],path=k[1],component=str(find(k))) for k in parents if find(k) in excluded_components];(P/'ROUND2-EXCLUSION-COMPONENTS.json').write_text(json.dumps(round2_excluded,indent=2,sort_keys=True)+'\n')
+(P/'REPRESENTATION-SNAPSHOT-RECEIPT.json').write_text(json.dumps(reprproof,indent=2,sort_keys=True)+'\n');receipt=dict(schema=1,status='PASS_ACTIVE32',checks=dict(checks),active_cases=len(packets),unique_sonnet_rendered_questions=len(promptkeys),controls_source_component_overlaps=0,reserve_chunk003='HELD: SE-R1-040 source-component overlap, original bytes retained; not in active queue.',new_model_fits=0,new_source_extractions=0,provider_calls=0,worker_writes='Own .lab-results only',source_verification='Cached shared native Functions + unique exact pinned background/body/source digests, valid actual spans. Root central native verification remains authoritative.')
+(P/'VALIDATION-RECEIPT.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');print(json.dumps(receipt,indent=2))

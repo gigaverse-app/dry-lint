@@ -1,0 +1,147 @@
+"""Cache deployable numeric signals only; source labels stay outside feature columns."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import hashlib,importlib.util,json,math,time,fcntl
+from collections import defaultdict
+from pathlib import Path
+from types import SimpleNamespace
+import numpy as np
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import estimate
+from dry_lint.detector import why_skipped
+from dry_lint.models import Candidate,Function
+from dry_lint.settings import Settings
+
+P=Path(__file__).resolve().parent;B=P.parent/'full-corpus';S=B/'span-resolved-v1'
+worker_lock=(P/'feature-preparation.lock').open('w');fcntl.flock(worker_lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+REG=json.loads((P/'EXPERIMENT.json').read_text());FEATURES=REG['features'];sha=lambda b:hashlib.sha256(b).hexdigest()
+assert sha((P/'EXPERIMENT.json').read_bytes())==(P/'EXPERIMENT.sha256').read_text().strip()
+spec=importlib.util.spec_from_file_location('resolved_sources',B/'shared_sources_adapter.py');adaptermod=importlib.util.module_from_spec(spec);spec.loader.exec_module(adaptermod)
+spec=importlib.util.spec_from_file_location('reviewed_resolver',B/'resolver.py');helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+rows=[json.loads(l) for l in (B/'inputs/rows.jsonl').open()];rowmeta={r['row_id']:r for r in rows};cohorts=[json.loads(l) for l in (B/'inputs/cohorts.jsonl').open()];folds=json.loads((P/'FOLDS.json').read_text())
+settings=Settings(budget={'usd':.04});judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False)
+def jl(p):return [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+def dump(p,x):p.write_text(json.dumps(x,sort_keys=True,indent=2)+'\n')
+def lines(p,x):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in x))
+training=[];allcoverage=[];features_missing=defaultdict(int);start=time.perf_counter()
+# Existing exact dense representation; no model inference.
+dense=None
+cp=P.parent/'inputs/cpu-embeddings/openhands/embeddings.npy'
+if cp.exists():dense=np.load(cp,mmap_mode='r')
+contract_rows=jl(P.parent/'inputs/contract-tokens/openhands/query-rows.jsonl');contract={}
+for q in contract_rows:
+ for profile,detail in q['arms'].get('field20',{}).items():
+  for r in detail.get('proposed',[]):contract[q['position'],r['target_position']]=r['score']
+for meta in cohorts:
+ cid=meta['cohort_id'];folder=S/cid;out=P/cid;out.mkdir(exist_ok=True)
+ if (out/'FEATURES-READY.json').exists():
+  training.extend(jl(out/'training-rows.jsonl'));allcoverage.extend(jl(out/'coverage-rows.jsonl') if (out/'coverage-rows.jsonl').exists() else [r for r in jl(P/'coverage-rows.jsonl') if r['cohort_id']==cid]);continue
+ bg=BenchBackground.decode((folder/'background.json.gz').read_bytes());index=bg.index();ids=[d.id for d in bg.documents]
+ paired=jl(folder/'paired-rows.jsonl');baseline=[r for r in paired if r['arm']=='baseline'];pools=jl(folder/'query-pools.jsonl');qpool={(r['query'],r['profile']):r for r in pools}
+ needed=set()
+ for r in baseline:needed.update(r['positions'] if 'positions' in r else [r['directions'][0]['query_position'],r['directions'][0]['target_position']])
+ universes={}
+ for q in pools:
+  eligible=q['eligible_channels'];targets=set(eligible['raw'])
+  for ch in ['half','csls','blocks']:targets.update(eligible[ch][:20])
+  for arm in ['baseline','rrf60','protected-ensemble2','rrf60-half-csls','protected-half-csls2']:
+   targets.update(int(t[0]) for t in q['arm_specs'][arm])
+  universes[q['query'],q['profile']]=sorted(targets);needed.add(q['query']);needed.update(targets)
+ rr=[r for r in rows if any(m['cohort_id']==cid for m in r['mappings'])]
+ sources=adaptermod.SharedSources(bg,out,rr,meta,helper)
+ # Reuse resolver outputs and already verified files; no repeated source review/extraction.
+ sf=json.loads((folder/'sources.json').read_text());saved_files=sf['files']
+ original_envelope=sources.envelope
+ def envelope(path):
+  if path in sources.envelopes:return sources.envelopes[path]
+  if path in saved_files:
+   proof=saved_files[path];raw=Path(proof['snapshot']).read_bytes();assert sha(raw)==proof['sha256'];env=dict(status='available',repository=bg.repository,revision=bg.revision,path=path,source=raw.decode(),sha256=proof['sha256'])
+   if proof.get('git_blob_sha1'):env['git_blob_sha1']=proof['git_blob_sha1']
+   sources.envelopes[path]=env;return env
+  return original_envelope(path)
+ sources.envelope=envelope
+ for raw in (folder/'resolver-results.jsonl').open():
+  rec=json.loads(raw);i=rec['position']
+  if i not in needed:continue
+  sources.results[i]=rec['results'];native=next((r for r in rec['results'] if r['status']=='resolved_native'),None)
+  if native:sources.fs[i]=Function.model_validate(native['function']);sources.spans[i]=native['span']
+  else:
+   ss=[r['span'] for r in rec['results'] if r['span'].get('lines') is not None]
+   ss += [r['diagnostic_without_native_source']['span'] for r in rec['results'] if r.get('diagnostic_without_native_source',{}).get('span',{}).get('lines') is not None]
+   sources.spans[i]=ss[0] if len({s['lines'] for s in ss})==1 else dict(lines=None,provenance='unknown')
+ # All numeric arrays are precomputed. New2 backgrounds use the final directional scores; no refit.
+ rankfile=folder/'rank-cache.npz';rank={};querypos={}
+ if rankfile.exists():
+  with np.load(rankfile) as f:rank={k:f[k] for k in f.files}
+  querypos={int(q):k for k,q in enumerate(rank['queries'])}
+ Z=None;means=None
+ if not rank:
+  with np.load(folder/'latent.npz') as f:Z=f['Z'].copy();means=f['means'].copy()
+  from dry_lint.index import TfidfIndex
+  class Half(TfidfIndex):
+   def __init__(self):
+    self.size=index.size;self.idf=index.idf;self.postings=defaultdict(list)
+    for i,d in enumerate(bg.documents):
+     for t,w in self.vector(d.tokens()).items():self.postings[t].append((i,w))
+   def vector(self,doc):
+    v=super().vector(doc);v={t:w*(.5 if t.startswith('fn:') else 1) for t,w in v.items()};norm=math.sqrt(sum(w*w for w in v.values())) or 1;return {t:w/norm for t,w in v.items()}
+  half=Half()
+ scorecache={};featurecache={};candidatecache={};rankmaps={};cohortcoverage=[]
+ def scores(q):
+  if q not in scorecache:
+   if rank:
+    k=querypos[q];r=rank['raw'][k];h=rank['half'][k];co=rank['cos'][k];af=rank['aff'][k];native=rank['native_rank'][k]
+    ro=rank['raw_order'][k].tolist();ho=rank['half_order'][k].tolist();so=rank['csls_order'][k].tolist()
+   else:
+    r=np.zeros(len(ids));h=np.zeros(len(ids));native=np.zeros(len(ids),dtype=int)
+    for n,(j,s) in enumerate(index.similar(bg.documents[q].tokens(),exclude={q}),1):r[j]=s;native[j]=n
+    for j,s in half.similar(bg.documents[q].tokens(),exclude={q}):h[j]=s
+    co=Z[q]@Z.T;af=2*co-means[q]-means;pool=[j for j in range(len(ids)) if j!=q];ro=sorted(pool,key=lambda j:(-r[j],ids[j],j));ho=sorted(pool,key=lambda j:(-h[j],ids[j],j));so=sorted(pool,key=lambda j:(-af[j],ids[j],j))
+   scorecache[q]=(r,h,co,af,native,ro,ho,so)
+  return scorecache[q]
+ def feature(q,t,profile):
+  key=(q,t,profile)
+  if key in featurecache:return featurecache[key]
+  r,h,co,af,native,ro,ho,so=scores(q);qp=qpool[q,profile];k=qp['raw_floor'];same=ids[q].split('::')[0]==ids[t].split('::')[0]
+  filt=lambda j: profile=='balanced' or ids[q].split('::')[0]!=ids[j].split('::')[0]
+  def logr(order,value):
+   if value<=0:return None
+   rk=(q,profile,id(order))
+   if rk not in rankmaps:rankmaps[rk]={j:math.log1p(n) for n,j in enumerate((j for j in order if filt(j)),1)}
+   return rankmaps[rk].get(t)
+  d1,d2=bg.documents[q].counts,bg.documents[t].counts;a,b=set(d1),set(d2);inter=a&b;union=a|b;mass=lambda ts:sum(index.idf.get(x,0) for x in ts);n1,n2=sum(d1.values()),sum(d2.values());names1={x for x in a if x.startswith('fn:')};names2={x for x in b if x.startswith('fn:')}
+  fq,ft=sources.get(q),sources.get(t);lq,lt=sources.span(q).get('lines'),sources.span(t).get('lines');cost=None;c=None
+  if fq and ft:
+   c=Candidate(new=fq,existing=ft,similarity=float(r[t]),comparer='herdr-learned-ensemble-v1',similarity_reusable=False,filtered=why_skipped(fq,ft,settings));cost=estimate(judge,[c],settings);candidatecache[q,t]=c
+  bs=next((float(v[2]) for specs in qp['arm_specs'].values() for v in specs if int(v[0])==t and v[1]=='blocks'),None)
+  dc=float(np.sum(dense[q]*dense[t])) if dense is not None and meta['background_sha256']=='ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842' else None
+  featuredict=dict(raw_cosine=float(r[t]),raw_log_rank=logr(ro,r[t]),half_cosine=float(h[t]),half_log_rank=logr(ho,h[t]),latent_cosine=float(co[t]),csls_affinity=float(af[t]),csls_log_rank=logr(so,1),block_cosine=bs,block_eligible=float(t in qp['eligible_channels']['blocks']),contract_field_score=contract.get((q,t)) if meta['background_sha256']=='ebd0031534c954e5ad4206a07f1a1e81e61bcac8cc4b562ba27932f068268842' else None,dense_cosine=dc,token_jaccard=len(inter)/max(1,len(union)),idf_overlap_min=mass(inter)/max(1e-12,min(mass(a),mass(b))),shared_concrete_ops=float(sum(x.startswith(('call:','attr:','key:')) for x in inter)),shared_concrete_calls=float(sum(x.startswith('call:') for x in inter)),name_jaccard=len(names1&names2)/max(1,len(names1|names2)),log_tokens_min=math.log1p(min(n1,n2)),log_tokens_max=math.log1p(max(n1,n2)),token_length_ratio=min(n1,n2)/max(1,max(n1,n2)),log_lines_min=math.log1p(min(lq,lt)) if lq and lt else None,log_lines_max=math.log1p(max(lq,lt)) if lq and lt else None,line_length_ratio=min(lq,lt)/max(lq,lt) if lq and lt else None,same_file=float(same),structure_equal=float(fq.hash==ft.hash) if fq and ft and fq.hash and ft.hash else None,delegation_boundary=float(bool(c.filtered)) if c else None,normal_estimated_usd=cost)
+  assert set(featuredict)==set(FEATURES);featurecache[key]=featuredict;return featuredict
+ # OOF training rows: symmetric pair features, no direction counted independently.
+ tr=[]
+ for r in baseline:
+  rm=rowmeta[r['row_id']];dirs=r['directions'];q,t=dirs[0]['query_position'],dirs[0]['target_position'];reason=None
+  if rm['record_kind']!='function':reason='declaration_separate'
+  elif not rm['accepted_gold']:reason='unresolved_or_related_not_training_negative'
+  elif rm['id']=='CF-C02':reason='named_reopened_overlay'
+  elif q==t:reason='same_native_parent_not_function_pair'
+  elif r['profile']=='default' and ids[q].split('::')[0]==ids[t].split('::')[0]:reason='default_same_file_policy'
+  cov=dict(row_id=r['row_id'],cohort_id=cid,profile=r['profile'],included=reason is None,reason=reason,repository=bg.repository);allcoverage.append(cov);cohortcoverage.append(cov)
+  if reason:continue
+  fs=[feature(q,t,r['profile']),feature(t,q,r['profile'])];agg={}
+  for name in FEATURES:
+   vals=[f[name] for f in fs if f[name] is not None];agg[name]=(min(vals) if 'rank' in name else max(vals)) if vals else None
+  item=dict(row_id=r['row_id'],cohort_id=cid,profile=r['profile'],repository=bg.repository,revision=bg.revision,pair_id=r['pair_id'],family_id=r['family_id'],component=folds['components'][r['row_id']],label=rm['label'],target=int(rm['label'] in ['duplicate','drifted']),features=agg,positions=[q,t]);tr.append(item);training.append(item)
+ # Full target slates from the frozen channels, not just known-pair scoring.
+ slate=[]
+ for (q,profile),targets in universes.items():
+  for t in targets:
+   f=feature(q,t,profile);c=candidatecache.get((q,t));slate.append(dict(query=q,target=t,profile=profile,features=f,source_complete=c is not None,filtered=c.filtered if c else None,raw_member=t in qpool[q,profile]['eligible_channels']['raw']))
+ lines(out/'training-rows.jsonl',tr);lines(out/'candidate-features.jsonl',slate);lines(out/'coverage-rows.jsonl',cohortcoverage)
+ # Save each complete native function once, rather than duplicating contexts into every feature row.
+ import gzip
+ with gzip.open(out/'functions.json.gz','wt') as f:json.dump({str(i):v.model_dump(mode='json') for i,v in sources.fs.items() if i in needed},f,sort_keys=True)
+ dump(out/'FEATURES-READY.json',dict(cohort_id=cid,training_rows=len(tr),candidate_rows=len(slate),source_complete=sum(r['source_complete'] for r in slate),elapsed_seconds=time.perf_counter()-start))
+ lines(P/'training-rows.jsonl',training);lines(P/'coverage-rows.jsonl',allcoverage)
+ print(json.dumps(dict(cohort=cid,train=len(tr),candidates=len(slate),source_complete=sum(r['source_complete'] for r in slate))),flush=True)
+dump(P/'FEATURE-COVERAGE.json',dict(training_units=len(training),coverage_units=len(allcoverage),all_inventory_records=len(rows),source_truth_not_feature=True,feature_names=FEATURES,elapsed_seconds=time.perf_counter()-start,heavy_representation_fits=0))

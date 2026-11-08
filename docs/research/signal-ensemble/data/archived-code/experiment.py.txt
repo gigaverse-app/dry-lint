@@ -1,0 +1,731 @@
+"""Bounded offline ensemble screen, using immutable cached representations and pools."""
+
+import os
+
+for key in [
+    "OPENBLAS_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+]:
+    os.environ[key] = "2"
+import gzip
+import hashlib
+import json
+import platform
+import resource
+import time
+from collections import Counter, defaultdict
+from fractions import Fraction
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger, estimate
+from dry_lint.detector import why_skipped
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
+from dry_lint.models import Candidate, Function
+from dry_lint.settings import Settings
+
+OUT = Path(__file__).resolve().parent
+IN = OUT / "inputs"
+REG = json.loads((OUT / "EXPERIMENT.json").read_text())
+ARMS = REG["arms"]
+PROFILES = list(REG["profiles"])
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def dump(path, value):
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+
+def jl(path):
+    return [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+
+
+def lines(path, values):
+    path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in values))
+
+
+def pair(a, b):
+    return tuple(sorted((a, b)))
+
+
+def main():
+    started = time.perf_counter()
+    cpu_started = time.process_time()
+    timings = {}
+    assert digest((OUT / "EXPERIMENT.json").read_bytes()) == (OUT / "EXPERIMENT.sha256").read_text().strip()
+    assert digest((OUT / "panel-frozen.jsonl").read_bytes()) == REG["panel_sha256"]
+    assert digest((OUT / "SPLIT.json").read_bytes()) == REG["split_sha256"]
+    for row in json.loads((OUT / "input-manifest.json").read_text()):
+        assert digest((OUT / row["snapshot"]).read_bytes()) == row["sha256"], row["snapshot"]
+    timings["verify_snapshots"] = time.perf_counter() - started
+    b = BenchBackground.decode((IN / "background.json.gz").read_bytes())
+    assert b.repository == REG["repository"] and b.revision == REG["revision"]
+    assert digest((IN / "background.json.gz").read_bytes()) == REG["background_sha256"]
+    ci = json.loads(gzip.decompress((IN / "operation-blocks/openhands/candidate-index.json.gz").read_bytes()))
+    fs = {int(i): Function.model_validate(f) for i, f in ci["functions"].items()}
+    ids = [d.id for d in b.documents]
+    n = len(ids)
+    resolved = sorted(fs)
+    assert n == 2348 and len(resolved) == 2346
+    for i, f in fs.items():
+        assert f.qualname == ids[i] and digest(f.code.encode()) == b.documents[i].source_sha256
+        assert f.context_digest == ci["sources"][f.path]["sha256"]
+    native_identity = {
+        i: (fs[i].path, fs[i].owner, fs[i].name, fs[i].line, fs[i].end_line, digest(fs[i].code.encode()))
+        for i in resolved
+    }
+    assert len(set(native_identity.values())) == len(fs)
+    settings = Settings()
+    settings.budget.usd = 0.04
+    settings.include = REG["scope"]["include"]
+    settings.exclude = REG["scope"]["exclude"]
+    judge = SimpleNamespace(
+        name=REG["judge"]["name"],
+        model=REG["judge"]["model"],
+        version=REG["judge"]["version"],
+        prompt_policy="shared-operations",
+        subscription=False,
+    )
+    assert PROMPT_POLICIES["shared-operations"][0] == "dry-operations-v2"
+    dump(
+        OUT / "judge-estimate-contract.json",
+        dict(
+            REG["judge"],
+            prompt_template_sha256=digest(PROMPT_POLICIES["shared-operations"][1].encode()),
+            credentials_read=False,
+            provider_calls=0,
+            source_head=REG["base_commit"],
+        ),
+    )
+    t = time.perf_counter()
+    index = b.index()
+    timings["raw_first_index"] = time.perf_counter() - t
+    t = time.perf_counter()
+    warm = b.index()
+    timings["raw_warm_index"] = time.perf_counter() - t
+    assert index.idf == warm.idf
+    t = time.perf_counter()
+    with np.load(IN / "vector-expansion/latent-cache.npz") as cache:
+        Z = cache["Z"].copy()
+    assert Z.shape == (n, 64) and np.allclose(np.linalg.norm(Z, axis=1), 1, atol=1e-12)
+    timings["latent_cache_load"] = time.perf_counter() - t
+    tie = lambda j: (ids[j], j)
+    raw_scores = {}
+    raw_rank = {}
+    raw_cross_rank = {}
+    raw_lists = {}
+    t = time.perf_counter()
+    # Global raw reference is separate from the shared 96-query arm screen.
+    for i in resolved:
+        d = dict(index.similar(b.documents[i].tokens(), exclude={i}))
+        ranked = sorted((j for j in resolved if j != i), key=lambda j: (-d.get(j, 0.0), *tie(j)))
+        cross = [j for j in ranked if fs[j].path != fs[i].path]
+        raw_lists[i] = {}
+        for profile, p in REG["profiles"].items():
+            floor = p["raw_under6lines"] if profile == "default" and fs[i].lines < 6 else p["raw_floor"]
+            pool = cross if profile == "default" else ranked
+            raw_lists[i][profile] = [j for j in pool[: p["k"]] if d.get(j, 0.0) >= floor]
+        if i in REG["queries"]["positions"]:
+            raw_scores[i] = d
+            raw_rank[i] = {j: r + 1 for r, j in enumerate(ranked)}
+            raw_cross_rank[i] = {j: r + 1 for r, j in enumerate(cross)}
+    timings["raw_all_corpus_reference_ranking"] = time.perf_counter() - t
+    queries = REG["queries"]["positions"]
+    queryset = set(queries)
+    block_rows = {r["query"]: r for r in jl(IN / "operation-blocks/openhands/per-query.jsonl")}
+    # Verify imported completed raw pools exactly (native tie order and scores).
+    imported_checks = []
+    for i in queries:
+        assert fs[i].qualname == block_rows[i]["query_id"]
+        for field, cross in [("raw_cross_top3", True), ("raw_top20", False)]:
+            saved = block_rows[i][field]
+            ordering = raw_cross_rank[i] if cross else raw_rank[i]
+            for r in saved:
+                j = r["position"]
+                assert abs(raw_scores[i].get(j, 0) - r["score"]) < 1e-12
+            observed = sorted(ordering, key=ordering.get)[: 3 if cross else 20]
+            saved_resolved = [r["position"] for r in saved if r["position"] in fs]
+            observed_prefix = observed[: len(saved_resolved)]
+            assert saved_resolved == observed_prefix, (i, field, saved_resolved, observed_prefix)
+        imported_checks.append(
+            dict(
+                query=i,
+                source_id=ids[i],
+                raw_saved_resolved_pool_exact=True,
+                ambiguous_competitors_excluded=[
+                    r["position"] for r in block_rows[i]["raw_top20"] if r["position"] not in fs
+                ],
+            )
+        )
+    lines(OUT / "imported-pool-verification.jsonl", imported_checks)
+    # Reuse normalized latent cache, recomputing only cheap dot products/density and 96 ranks.
+    t = time.perf_counter()
+    means = np.zeros(n)
+    for start in range(0, len(resolved), 32):
+        qq = resolved[start : start + 32]
+        chunk = Z[qq] @ Z.T
+        for i, cos in zip(qq, chunk, strict=True):
+            cross = [j for j in resolved if fs[j].path != fs[i].path]
+            vals = cos[cross]
+            means[i] = float(np.mean(np.partition(vals, -10)[-10:]))
+    timings["cached_latent_cross_density"] = time.perf_counter() - t
+    floors = {"default": 0.8606354760499331, "balanced": 0.7684372157206755}
+    csls_score = {}
+    latent_cos = {}
+    latent_rank = {}
+    latent_lists = {}
+    block_lists = {}
+    block_map = {}
+    pool_rows = []
+    t = time.perf_counter()
+    for i in queries:
+        cos = Z[i] @ Z.T
+        aff = 2 * cos - means[i] - means
+        ranked = sorted((j for j in resolved if j != i), key=lambda j: (-float(aff[j]), *tie(j)))
+        latent_cos[i] = cos
+        csls_score[i] = aff
+        latent_rank[i] = {j: r + 1 for r, j in enumerate(ranked)}
+        latent_lists[i] = {}
+        block_lists[i] = {}
+        block_map[i] = {r["target"]: r for r in block_rows[i]["block_candidates"]}
+        for profile, p in REG["profiles"].items():
+            eligible = [j for j in ranked if (p["same_file"] or fs[j].path != fs[i].path) and cos[j] >= floors[profile]]
+            latent_lists[i][profile] = eligible
+            bb = []
+            for r in block_rows[i]["block_candidates"]:
+                j = r["target"]
+                if j not in fs:
+                    continue
+                # Saved pools already implement rare-anchor and bounded posting eligibility.
+                allowed = (
+                    r["score"] >= 0.6
+                    and r["full_score"] >= 0.1
+                    and len(r["shared_calls"]) >= 2
+                    and len(r["shared_ops"]) >= 3
+                    and (p["same_file"] or fs[i].path != fs[j].path)
+                )
+                if allowed:
+                    bb.append(j)
+            bb.sort(key=lambda j: (-block_map[i][j]["score"], *tie(j)))
+            block_lists[i][profile] = bb
+            pool_rows.append(
+                dict(
+                    query=i,
+                    profile=profile,
+                    raw=raw_lists[i][profile],
+                    csls=eligible[:20],
+                    blocks=bb,
+                    block_bounded_pool=block_rows[i]["block_work"],
+                )
+            )
+    timings["cached_latent_and_block_96queries"] = time.perf_counter() - t
+    lines(OUT / "eligible-query-pools.jsonl", pool_rows)
+    np.savez_compressed(
+        OUT / "cached-scores.npz",
+        queries=np.array(queries),
+        raw=np.array([[raw_scores[i].get(j, 0) for j in range(n)] for i in queries]),
+        latent_cosine=np.array([latent_cos[i] for i in queries]),
+        csls_affinity=np.array([csls_score[i] for i in queries]),
+        cross_means=means,
+    )
+
+    def score(i, j, channel):
+        if channel == "raw":
+            return raw_scores[i].get(j, 0.0)
+        if channel == "csls":
+            return float(csls_score[i][j])
+        return block_map[i][j]["score"]
+
+    proposed = {}
+    rrf_values = {}
+    for profile, p in REG["profiles"].items():
+        k = p["k"]
+        for i in queries:
+            base = raw_lists[i][profile]
+            csls = latent_lists[i][profile]
+            blocks = block_lists[i][profile]
+            lists = {
+                "baseline": [(j, "raw", score(i, j, "raw")) for j in base],
+                "csls-only": [(j, "csls", score(i, j, "csls")) for j in csls[:k]],
+                "blocks-only": [(j, "blocks", score(i, j, "blocks")) for j in blocks[:k]],
+            }
+            for arm, channels in [
+                ("protected-csls1", [("csls", csls)]),
+                ("protected-block1", [("blocks", blocks)]),
+                ("protected-ensemble2", [("csls", csls), ("blocks", blocks)]),
+            ]:
+                result = lists["baseline"].copy()
+                seen = set(base)
+                for channel, ranked in channels:
+                    j = next((j for j in ranked if j not in seen and not why_skipped(fs[i], fs[j], settings)), None)
+                    if j is not None:
+                        result.append((j, channel, score(i, j, channel)))
+                        seen.add(j)
+                assert len(set(j for j, _, _ in result) - set(base)) <= 2
+                lists[arm] = result
+            rr = defaultdict(Fraction)
+            for ranked in [base[:20], csls[:20], blocks[:20]]:
+                for r, j in enumerate(ranked, 1):
+                    rr[j] += Fraction(1, 60 + r)
+            ranked = sorted(rr, key=lambda j: (-rr[j], *tie(j)))
+            rrflist = []
+            extras = 0
+            for j in ranked:
+                if j not in base and extras >= 2:
+                    continue
+                rrflist.append((j, "rrf60", float(rr[j])))
+                extras += j not in base
+                if len(rrflist) == k:
+                    break
+            lists["rrf60"] = rrflist
+            rrf_values[profile, i] = rr
+            for arm, rows in lists.items():
+                proposed[profile, arm, i] = rows
+
+    def nativepair(i, j):
+        return tuple(sorted((native_identity[i], native_identity[j]), key=repr))
+
+    candidates = {}
+
+    def make(i, j, ch, sc, arm):
+        key = (i, j, ch, sc, arm)
+        if key not in candidates:
+            candidates[key] = Candidate(
+                new=fs[i],
+                existing=fs[j],
+                similarity=sc,
+                comparer="herdr-signal-ensemble-v1:" + ch,
+                similarity_reusable=False,
+                filtered=why_skipped(fs[i], fs[j], settings),
+                lane="baseline" if ch == "raw" else "exploration",
+            )
+        return candidates[key]
+
+    # Complete cold single-query global raw funded reference, including reverse directions.
+    t = time.perf_counter()
+    reference = []
+    reference_funded = {p: set() for p in PROFILES}
+    reference_costs = Counter()
+    for profile in PROFILES:
+        for i in resolved:
+            # All corpus raw scores are deterministic; recover selected values only.
+            ss = dict(index.similar(b.documents[i].tokens(), exclude={i})) if i not in raw_scores else raw_scores[i]
+            cc = [
+                Candidate(
+                    new=fs[i],
+                    existing=fs[j],
+                    similarity=ss[j],
+                    comparer="herdr-signal-ensemble-v1:raw",
+                    similarity_reusable=False,
+                    filtered=why_skipped(fs[i], fs[j], settings),
+                )
+                for j in raw_lists[i][profile]
+            ]
+            allowed = [c for c in cc if not c.filtered]
+            led = Ledger(settings)
+            funded = led.select(judge, allowed)
+            led.charge(judge, [allowed[x] for x in funded], len(allowed) - len(funded))
+            fskeys = {allowed[x].key for x in funded}
+            reference_costs[profile] += led.usd
+            for c in cc:
+                j = next(j for j in raw_lists[i][profile] if ids[j] == c.existing.qualname)
+                funded_ = c.key in fskeys
+                if funded_:
+                    reference_funded[profile].add(pair(i, j))
+                reference.append(
+                    dict(
+                        profile=profile,
+                        query=i,
+                        target=j,
+                        key=c.key,
+                        filtered=c.filtered,
+                        funded=funded_,
+                        estimated_usd=estimate(judge, [c], settings),
+                        batch="global-reference-single:" + str(i),
+                        synthetic=True,
+                    )
+                )
+    lines(OUT / "global-baseline-reference.jsonl", reference)
+    dump(
+        OUT / "global-baseline-reference-summary.json",
+        dict(
+            queries=len(resolved),
+            funded_pairs={p: len(v) for p, v in reference_funded.items()},
+            estimated_usd=dict(reference_costs),
+            separate_from_shared96_arm_comparison=True,
+        ),
+    )
+    timings["global_reference_ledger"] = time.perf_counter() - t
+    panel = jl(OUT / "panel-frozen.jsonl")
+    pos = defaultdict(list)
+    for i, id_ in enumerate(ids):
+        pos[id_].append(i)
+    for row in panel:
+        row["positions"] = [pos[e][0] if len(pos[e]) == 1 and pos[e][0] in fs else None for e in row["endpoint_ids"]]
+        if all(i is not None for i in row["positions"]):
+            a, t_ = row["positions"]
+            assert fs[a].code == row["candidate"]["new"]["code"] and fs[t_].code == row["candidate"]["existing"]["code"]
+    batch_queries = {"single:" + str(i): [i] for i in queries}
+    for comp in sorted({r["ensemble_component"] for r in panel}):
+        batch_queries["family:" + comp] = sorted(
+            {i for r in panel if r["ensemble_component"] == comp for i in r["positions"] if i in queryset}
+        )
+    exposure = []
+    ledgers = []
+    batch_records = {}
+    t = time.perf_counter()
+    for batch, qq in batch_queries.items():
+        for profile in PROFILES:
+            for arm in ARMS:
+                specs = []
+                if arm.startswith("protected-"):
+                    specs = [(i, j, ch, sc) for i in qq for j, ch, sc in proposed[profile, arm, i] if ch == "raw"] + [
+                        (i, j, ch, sc) for i in qq for j, ch, sc in proposed[profile, arm, i] if ch != "raw"
+                    ]
+                else:
+                    specs = [(i, j, ch, sc) for i in qq for j, ch, sc in proposed[profile, arm, i]]
+                seen = set()
+                ordered = []
+                duplicates = []
+                for i, j, ch, sc in specs:
+                    key = nativepair(i, j)
+                    if key in seen:
+                        duplicates.append(
+                            dict(query=i, target=j, channel=ch, reason="exact_native_parent_pair_batch_dedup")
+                        )
+                        continue
+                    seen.add(key)
+                    ordered.append((i, j, ch, sc, make(i, j, ch, sc, arm)))
+                allowed = [c for *_, c in ordered if not c.filtered]
+                ledger = Ledger(settings)
+                fundidx = ledger.select(judge, allowed)
+                funded = [allowed[x] for x in fundidx]
+                ledger.charge(judge, funded, len(allowed) - len(funded))
+                fundkeys = {c.key for c in funded}
+                record = dict(
+                    batch=batch,
+                    synthetic=True,
+                    queries=qq,
+                    profile=profile,
+                    arm=arm,
+                    proposed=len(ordered),
+                    after_filters=len(allowed),
+                    funded=len(funded),
+                    estimated_usd=ledger.usd,
+                    cold_cache=True,
+                    duplicate_directions=duplicates,
+                    funded_keys=sorted(fundkeys),
+                    funded_native_pairs=[],
+                )
+                for order, (i, j, ch, sc, c) in enumerate(ordered):
+                    if c.key in fundkeys:
+                        record["funded_native_pairs"].append(list(pair(i, j)))
+                    exposure.append(
+                        dict(
+                            batch=batch,
+                            profile=profile,
+                            arm=arm,
+                            query=i,
+                            target=j,
+                            query_id=ids[i],
+                            target_id=ids[j],
+                            channel=ch,
+                            channel_score=sc,
+                            raw_cosine=raw_scores[i].get(j, 0),
+                            latent_cosine=float(latent_cos[i][j]),
+                            csls_affinity=float(csls_score[i][j]),
+                            block_evidence=block_map[i].get(j),
+                            order=order,
+                            key=c.key,
+                            filtered=c.filtered,
+                            funded=c.key in fundkeys,
+                            estimated_usd=estimate(judge, [c], settings),
+                            candidate=c.model_dump(mode="json"),
+                        )
+                    )
+                batch_records[batch, profile, arm] = record
+                ledgers.append(record)
+            base = batch_records[batch, profile, "baseline"]
+            bset = set(base["funded_keys"])
+            for arm in ARMS:
+                rr = batch_records[batch, profile, arm]
+                aset = set(rr["funded_keys"])
+                rr.update(
+                    baseline_complete_funded_keys=base["funded_keys"],
+                    new_funded_keys=sorted(aset - bset),
+                    lost_baseline_funded_keys=sorted(bset - aset),
+                )
+                if arm.startswith("protected-"):
+                    assert bset <= aset, (batch, profile, arm)
+    lines(OUT / "candidate-exposures.jsonl", exposure)
+    lines(OUT / "ledger.jsonl", ledgers)
+    timings["arm_ledgers_and_export"] = time.perf_counter() - t
+    # Per-row first-loss traces; labels never enter retrieval, filtering, ranking or admission.
+    exidx = {(r["batch"], r["profile"], r["arm"]): {} for r in exposure}
+    for e in exposure:
+        exidx[e["batch"], e["profile"], e["arm"]][pair(e["query"], e["target"])] = e
+    rowresults = []
+
+    def channel_loss(i, j, profile, ch):
+        if i not in queryset:
+            return "query_outside_frozen96"
+        if profile == "default" and fs[i].path == fs[j].path:
+            return "same_file_policy"
+        if ch == "raw":
+            p = REG["profiles"][profile]
+            floor = 0.3 if profile == "default" and fs[i].lines < 6 else p["raw_floor"]
+            return (
+                "score_floor"
+                if raw_scores[i].get(j, 0) < floor
+                else "top_k"
+                if j not in raw_lists[i][profile]
+                else "eligible"
+            )
+        if ch == "csls":
+            return (
+                "latent_cosine_floor"
+                if latent_cos[i][j] < floors[profile]
+                else "top_k"
+                if j not in latent_lists[i][profile][: REG["profiles"][profile]["k"]]
+                else "eligible"
+            )
+        if j not in block_map[i]:
+            return "bounded_operation_pool_or_guard"
+        br = block_map[i][j]
+        return (
+            "block_floor_or_operation_guard"
+            if j not in block_lists[i][profile]
+            else "top_k"
+            if j not in block_lists[i][profile][: REG["profiles"][profile]["k"]]
+            else "eligible"
+        )
+
+    for row in panel:
+        a, j = row["positions"]
+        batch = "family:" + row["ensemble_component"]
+        label = (
+            "positive"
+            if row.get("label") in ["duplicate", "drifted"]
+            and row.get("active_panel_eligible", row.get("accepted_gold", False))
+            else "negative"
+            if row.get("label") == "separate"
+            else "unresolved"
+        )
+        for profile in PROFILES:
+            for arm in ARMS:
+                e = exidx.get((batch, profile, arm), {}).get(pair(a, j)) if a is not None and j is not None else None
+                dirs = []
+                for q, t_ in [(a, j), (j, a)]:
+                    if q is None or t_ is None:
+                        dirs.append(dict(first_loss="mapping"))
+                        continue
+                    members = [x[0] for x in proposed.get((profile, arm, q), [])]
+                    retrieved = t_ in members
+                    loss = (
+                        "query_outside_frozen96"
+                        if q not in queryset
+                        else "eligible"
+                        if retrieved
+                        else "ensemble_selection"
+                    )
+                    dirs.append(
+                        dict(
+                            query=q,
+                            target=t_,
+                            query_id=ids[q],
+                            target_id=ids[t_],
+                            query_lines=fs[q].lines,
+                            target_lines=fs[t_].lines,
+                            same_file=fs[q].path == fs[t_].path,
+                            raw_rank=raw_rank.get(q, {}).get(t_),
+                            raw_cross_rank=raw_cross_rank.get(q, {}).get(t_),
+                            raw_score=raw_scores.get(q, {}).get(t_),
+                            csls_rank=latent_rank.get(q, {}).get(t_),
+                            latent_cosine=float(latent_cos[q][t_]) if q in queryset else None,
+                            csls_affinity=float(csls_score[q][t_]) if q in queryset else None,
+                            block_evidence=block_map.get(q, {}).get(t_),
+                            channel_first_loss={
+                                ch: channel_loss(q, t_, profile, ch) for ch in ["raw", "csls", "blocks"]
+                            },
+                            retrieved=retrieved,
+                            first_loss=loss,
+                        )
+                    )
+                retrieved = bool(e)
+                stage = (
+                    "funded_unknown_judge_answer"
+                    if e and e["funded"]
+                    else "budget"
+                    if e and not e["filtered"]
+                    else "core_rule:" + str(e["filtered"])
+                    if e
+                    else min((d["first_loss"] for d in dirs), default="mapping")
+                )
+                rowresults.append(
+                    dict(
+                        id=row["id"],
+                        cohort=row.get("cohort"),
+                        label=row.get("label"),
+                        label_group=label,
+                        drifted=row.get("drifted"),
+                        operation_scope=row.get("narrow_operation", row.get("operation_scope", row.get("label_scope"))),
+                        family_id=row.get("family_id"),
+                        component=row["ensemble_component"],
+                        split=row["ensemble_split"],
+                        profile=profile,
+                        arm=arm,
+                        positions=[a, j],
+                        retrieved=retrieved,
+                        funded=bool(e and e["funded"]),
+                        first_loss=stage,
+                        directions=dirs,
+                        estimated_pair_usd=e["estimated_usd"] if e else None,
+                        emitted_report=None,
+                        answer="unknown_no_calls_or_cache_reuse",
+                    )
+                )
+    lines(OUT / "per-row-arm.jsonl", rowresults)
+    metrics = []
+    changes = []
+    for profile in PROFILES:
+        for split in ["all", "trace-design", "check"]:
+            for label in ["positive", "negative", "unresolved"]:
+                for arm in ARMS:
+                    rows = [
+                        r
+                        for r in rowresults
+                        if r["profile"] == profile
+                        and r["arm"] == arm
+                        and r["label_group"] == label
+                        and (split == "all" or r["split"] == split)
+                    ]
+                    base = {r["id"]: r for r in rowresults if r["profile"] == profile and r["arm"] == "baseline"}
+                    wins = [r["id"] for r in rows if r["funded"] and not base[r["id"]]["funded"]]
+                    losses = [r["id"] for r in rows if base[r["id"]]["funded"] and not r["funded"]]
+                    metrics.append(
+                        dict(
+                            profile=profile,
+                            split=split,
+                            label=label,
+                            arm=arm,
+                            denominator=len(rows),
+                            retrieved=sum(r["retrieved"] for r in rows),
+                            funded=sum(r["funded"] for r in rows),
+                            families_denominator=len({r["family_id"] for r in rows}),
+                            funded_families=len({r["family_id"] for r in rows if r["funded"]}),
+                            paired_funding_wins=wins,
+                            paired_funding_losses=losses,
+                            first_loss=dict(Counter(r["first_loss"] for r in rows)),
+                        )
+                    )
+                    if split == "all":
+                        for id_ in wins + losses:
+                            rr = next(r for r in rows if r["id"] == id_)
+                            changes.append(
+                                dict(
+                                    profile=profile,
+                                    label=label,
+                                    arm=arm,
+                                    id=id_,
+                                    change="win" if id_ in wins else "loss",
+                                    family=rr["family_id"],
+                                    new_estimated_pair_usd=rr["estimated_pair_usd"],
+                                    baseline_estimated_pair_usd=base[id_]["estimated_pair_usd"],
+                                    baseline_first_loss=base[id_]["first_loss"],
+                                    arm_first_loss=rr["first_loss"],
+                                )
+                            )
+    lines(OUT / "metrics.jsonl", metrics)
+    lines(OUT / "paired-known-changes.jsonl", changes)
+    discovery = [e for e in exposure if e["batch"].startswith("single:")]
+    globalsets = {}
+    overlaps = []
+    for profile in PROFILES:
+        base = [e for e in discovery if e["profile"] == profile and e["arm"] == "baseline" and e["funded"]]
+        basedir = {(e["query"], e["target"]) for e in base}
+        basepairs = {pair(*d) for d in basedir}
+        for arm in ARMS:
+            ee = [e for e in discovery if e["profile"] == profile and e["arm"] == arm]
+            funded = [e for e in ee if e["funded"]]
+            directions = {(e["query"], e["target"]) for e in funded}
+            pairs = {pair(*d) for d in directions}
+            globalsets[profile, arm] = pairs
+            overlaps.append(
+                dict(
+                    profile=profile,
+                    arm=arm,
+                    queries=len(queries),
+                    proposed=len(ee),
+                    funded=len(funded),
+                    funded_pairs=len(pairs),
+                    new_vs_baseline_shared96=sorted(pairs - basepairs),
+                    lost_vs_baseline_shared96=sorted(basepairs - pairs),
+                    added_directions=len(directions - basedir),
+                    added_directions_already_reverse_baseline=sum(pair(*d) in basepairs for d in directions - basedir),
+                    globally_new_vs_full_raw_reference=sorted(pairs - reference_funded[profile]),
+                    baseline_funded_elsewhere_outside96=sorted((pairs - basepairs) & reference_funded[profile]),
+                    estimated_usd=sum(e["estimated_usd"] for e in funded),
+                )
+            )
+    lines(OUT / "global-overlap.jsonl", overlaps)
+    # Preserve every funded lead; packet curation happens separately, after the fixed screen.
+    leads = []
+    for e in discovery:
+        if e["arm"] != "protected-ensemble2" or not e["funded"]:
+            continue
+        e = dict(e)
+        e["globally_new_vs_full_raw_reference"] = pair(e["query"], e["target"]) not in reference_funded[e["profile"]]
+        e["already_baseline_shared96"] = pair(e["query"], e["target"]) in globalsets[e["profile"], "baseline"]
+        leads.append(e)
+    lines(OUT / "all-funded-ensemble-leads.jsonl", leads)
+    runtime = dict(
+        wall_seconds=time.perf_counter() - started,
+        cpu_seconds=time.process_time() - cpu_started,
+        max_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        threads=2,
+        python=platform.python_version(),
+        numpy=np.__version__,
+        timing_seconds=timings,
+        representation_rebuilds=0,
+        extraction_rebuilds=0,
+        new_model_inference=0,
+        verdict_cache_reads=0,
+        provider_calls=0,
+        physical_usd=0,
+        cache_state="Saved representations warm; first/warm in-process index recorded; OS page cache uncontrolled",
+    )
+    dump(OUT / "runtime.json", runtime)
+    summary = dict(
+        experiment=REG["experiment"],
+        registration_sha256=digest((OUT / "EXPERIMENT.json").read_bytes()),
+        amendment_sha256=digest((OUT / "PRE-EVALUATION-AMENDMENT.json").read_bytes()),
+        repository=b.repository,
+        revision=b.revision,
+        background_sha256=REG["background_sha256"],
+        scope=REG["scope"],
+        queries=len(queries),
+        panel_pairs=len(panel),
+        panel_groups=len({r["ensemble_component"] for r in panel}),
+        all_development_regression=True,
+        provider_calls=0,
+        physical_usd=0,
+        known_funding_changes=changes,
+        all_metrics="metrics.jsonl",
+        global_overlap="global-overlap.jsonl",
+        runtime=runtime,
+        decision="No promotion. Funding/exposure alone cannot establish independent useful report gain; judge/source acceptance pending.",
+    )
+    dump(OUT / "summary.json", summary)
+    print(json.dumps(summary, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,187 @@
+"""Existing ensemble, full-source public queries, immutable central-intake chunks."""
+import os
+for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:os.environ[k]='2'
+import collections,fcntl,gzip,hashlib,json,resource,sys,time
+from pathlib import Path
+from types import SimpleNamespace
+import numpy as np
+from operation_gate import OperationalGate
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger,estimate,judging_input
+from dry_lint.detector import why_skipped
+from dry_lint.models import Candidate,Function
+from dry_lint.settings import Settings
+P=Path(__file__).resolve().parent;L=P.parents[1];ROOT=Path('/home/researcher/dry-lint-round');CPU=ROOT/'jobs/experiment-cpu-embeddings/.lab-results/full-corpus/cohorts';BLOCK=ROOT/'jobs/experiment-operation-blocks/.lab-results/full-corpus-followup/cohorts';sys.path.insert(0,str(L/'lab-contracts'))
+from lab_contracts_v1 import EstimatedFunding
+lock=(P/'prepare.lock').open('w');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+def sha(b):return hashlib.sha256(b).hexdigest()
+def jl(p):return [json.loads(l) for l in p.open() if l.strip()]
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+def lines(p,rs):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rs))
+assert sha((P/'EXPERIMENT.json').read_bytes())==(P/'EXPERIMENT.sha256').read_text().strip()
+start=time.perf_counter();cpu=time.process_time();settings=Settings(budget={'usd':.04});judge=SimpleNamespace(name='anthropic-operations',model='claude-sonnet-5-5',version='dry-operations-v2:claude-sonnet-5-5:output=1024',prompt_policy='shared-operations',subscription=False)
+cohorts={r['cohort_id']:r for r in jl(L/'full-corpus/inputs/cohorts.jsonl')};configs=json.loads((ROOT/'jobs/review-automation/.lab-results/review-automation/repositories-five.json').read_text());known=collections.defaultdict(set);prior=set();prior_files=set();inputs=[];inventory=[];pool=[];control_pool=[];ledgers=[];fullfunctions={};proofcache={};provenance=[];checks=collections.Counter();splits=[]
+def pairid(repo,pin,c):return repo,pin,tuple(sorted((f.qualname,sha(f.code.encode())) for f in [c.new,c.existing]))
+# All prior paid/cache questions are exclusions for fresh quota; no paid repeat even with changed context.
+for name in ['promotion-evidence-v1','promotion-evidence-v2','promotion-evidence-v3']:
+ f=ROOT/'jobs/judge-operations/.lab-results'/name/'completed.jsonl'
+ if f.exists():
+  for r in jl(f):
+   packet=r['packet'];c=Candidate.model_validate(packet['candidate']);prior.add(pairid(packet['repository'],packet['revision'],c))
+   if r['method']=='signal-ensemble':prior_files.update((packet['repository'],f.path) for f in [c.new,c.existing])
+for r in jl(ROOT/'jobs/judge-operations/.lab-results/judge-operations/intake-seven-v1/frozen-input.jsonl'):
+ packet=r.get('packet',r)
+ if packet.get('candidate'):
+  c=Candidate.model_validate(packet['candidate']);prior.add(pairid(packet['repository'],packet['revision'],c))
+for r in jl(L/'full-corpus/inputs/rows.jsonl'):
+ for m in r['mappings']:
+  pp=[s.get('position') for s in m.get('sources',{}).values()]
+  if len(pp)==2 and all(type(i)is int for i in pp):known[m['cohort_id']].add(tuple(sorted(pp)))
+# Disjoint source-family components are nomination exclusions only, never gate features.
+for filename in ['ROUND2-EXCLUSION-FILES.json','ROUND2-EXCLUSION-COMPONENTS.json']:
+ for r in json.loads((P.parent/'round1'/filename).read_text()):prior_files.add((r['repository'],r['path']))
+parents={};family_seen={}
+def component(k):
+ parents.setdefault(k,k)
+ if parents[k]!=k:parents[k]=component(parents[k])
+ return parents[k]
+for row in jl(L/'full-corpus/inputs/rows.jsonl'):
+ for mapping in row['mappings']:
+  for source in mapping.get('sources',{}).values():
+   if source.get('source_id'):
+    k=row['repository'],source['source_id'].split('::')[0];component(k)
+    if row['family_id']:
+     if row['family_id'] in family_seen:parents[component(k)]=component(family_seen[row['family_id']])
+     else:family_seen[row['family_id']]=k
+blocked_components={component(k) for k in prior_files}
+prior_files.update(k for k in list(parents) if component(k) in blocked_components)
+
+def phase(repo,path):return int(sha((repo+'|'+path).encode()),16)%2
+def project(src,dest,predicate):
+ stat=src.stat();h=hashlib.sha256();result=[]
+ with src.open('rb') as f:
+  for raw in f:
+   h.update(raw)
+   if raw.strip():
+    r=json.loads(raw)
+    if predicate(r):result.append(r)
+ after=src.stat();assert (stat.st_size,stat.st_mtime_ns)==(after.st_size,after.st_mtime_ns)
+ lines(dest,result);inputs.append(dict(source=str(src),sha256=h.hexdigest(),snapshot=str(dest),snapshot_sha256=sha(dest.read_bytes()),records=len(result)));return result
+for cfg in [r for r in configs if r['repository'] in ['OpenHands/software-agent-sdk','BerriAI/litellm']]:
+ cid='bg-'+cfg['background_proof']['sha256'][:16];meta=cohorts[cid];folder=P/cid;folder.mkdir(exist_ok=True);bgpath=Path(cfg['background_proof']['path']);bgraw=bgpath.read_bytes();assert sha(bgraw)==meta['background_sha256'];bg=BenchBackground.decode(bgraw);ids=[d.id for d in bg.documents];paths=[i.split('::')[0] for i in ids];counts=collections.Counter(ids);cf=CPU/meta['background_sha256'];bf=BLOCK/cid
+ manifest=json.loads((cf/'manifest.json').read_text());assert manifest['repository']['revision']==meta['revision'] and manifest['repository']['background_proof']['sha256']==meta['background_sha256'] and manifest['scope']==bg.scope
+ sparse_index=bg.index();gate=OperationalGate(bg,sparse_index);rawqueries=jl(bf/'per-query.jsonl');queries={r['query']:r for r in rawqueries if r.get('raw')};allq={r['query']:r for r in rawqueries};eligible=[]
+ for q,r in queries.items():
+  file=paths[q]
+  if phase(meta['repository'],file)!=1 or (meta['repository'],file) in prior_files or 'enterprise' in Path(file).parts or file.startswith(('tests/','examples/')):continue
+  bs=[b for b in r['block_candidates'] if b['block_floor_pass'] and b['full_floor_pass'] and not b['filter']]
+  if not bs:continue
+  # Query nomination, not a deployable feature; full arm lists are unchanged.
+  if any(tuple(sorted([q,b['target']])) not in known[cid] and phase(meta['repository'],paths[b['target']])==1 for b in bs):eligible.append(q)
+ eligible.sort(key=lambda q:sha((meta['repository']+'|'+ids[q]).encode()));eligible=eligible[:768]
+ project(bf/'per-query.jsonl',folder/'block-query-inputs.jsonl',lambda r:r['query'] in set(eligible))
+ embeddings=np.load(cf/'embeddings.npy',mmap_mode='r');assert len(embeddings)==len(ids);needed=set(eligible);plans=[];sparse_cache={}
+ for q in eligible:
+  sparse_cache[q]=dict(sparse_index.similar(bg.documents[q].tokens(),exclude={q}))
+  for frozen in queries[q]['block_candidates']:
+   assert abs(sparse_cache[q].get(frozen['target'],0)-frozen['full_score'])<1e-10
+   checks['cached_sparse_scalar_parity']+=1
+  score=np.asarray(embeddings@embeddings[q]);order=np.argsort(-score,kind='stable');dense=[(int(t),float(score[t])) for t in order if t!=q and ids[t]!=ids[q] and score[t]>=.65]
+  r=queries[q];block=[(b['target'],b['score']) for b in r['block_candidates'] if b['block_floor_pass'] and b['full_floor_pass'] and not b['filter']]
+  for profile in ['default3','default-plus-tfidf20']:
+   base=list(r['raw']['default3'])
+   if profile=='default-plus-tfidf20':base+=r['raw']['current20']
+   base=list(dict.fromkeys(base));chosen=set(base);extra=[]
+   primary=block if profile=='default-plus-tfidf20' else dense
+   for t,value in primary:
+    if t in chosen or counts[ids[t]]!=1:continue
+    if profile=='default3' and paths[q]==paths[t]:continue
+    if not gate.passing(q,t,sparse_cache[q].get(t,0),float(score[t])):continue
+    extra=[(t,value,'profile-gated-block' if profile=='default-plus-tfidf20' else 'profile-gated-dense')];break
+   plans.append(dict(query=q,profile=profile,baseline=base,extras=extra));needed.update(base);needed.update(t for t,s,ch in extra)
+ lines(folder/'frozen-selection-plans.jsonl',plans);lines(folder/'gate-evidence.jsonl',[dict(query=q,target=t,**value) for (q,t),value in gate.memo.items()])
+ native=project(cf/'functions-policy-resolver-v1.jsonl',folder/'native-functions.jsonl',lambda r:r['position'] in needed);fs={}
+ for r in native:
+  if r['status']=='resolved_native' and r.get('function') and counts[r['source_id']]==1:
+   f=Function.model_validate(r['function']);assert f.qualname==ids[r['position']] and sha(f.code.encode())==bg.documents[r['position']].source_sha256 and f.hash;fs[r['position']]=f
+ proofs={r['row']:r for r in project(cf/'source-proof.jsonl',folder/'source-proofs.jsonl',lambda r:r['row'] in needed)};files={}
+ for i,f in fs.items():
+  proof=proofs[i];assert proof['source_sha256']==sha(f.code.encode()) and proof['matching_native_symbols']==1
+  if f.path not in files:
+   raw=Path(proof['source_file']).read_bytes();assert sha(raw)==proof['file_sha256'];dest=P/'inputs/native'/proof['file_sha256'];dest.parent.mkdir(parents=True,exist_ok=True)
+   if not dest.exists():dest.write_bytes(raw)
+   files[f.path]=(dest,raw)
+  dest,raw=files[f.path];f.context=(f.context+'\n\n' if f.context else '')+'Owning file source prefix (may be truncated; full file in source proof):\n'+raw.decode()[:6000];f.context_digest=proof['file_sha256'];proofcache[cid,i]=dict(source_snapshot=str(dest),file_sha256=f.context_digest,body_sha256=sha(f.code.encode()),git_blob_sha1=proof.get('git_blob_sha1'))
+ fullfunctions[cid]=fs
+ with gzip.open(folder/'functions.json.gz','wt') as f:json.dump({str(i):f.model_dump(mode='json') for i,f in fs.items()},f,sort_keys=True)
+ for plan in plans:
+  q=plan['query'];profile=plan['profile'];batch='full-source-single-query:'+str(q);missing=[i for i in plan['baseline']+[t for t,s,ch in plan['extras']] if i not in fs]
+  if missing:inventory.append(dict(cohort_id=cid,query=q,profile=profile,status='unfundable_missing_native_full_prompt',missing_positions=missing));continue
+  rr=queries[q];rawscore=sparse_cache[q]
+  baseline=[]
+  for t in plan['baseline']:
+   c=Candidate(new=fs[q],existing=fs[t],similarity=float(rawscore.get(t,0)),comparer='signal-ensemble-public-fullsource-v2:tfidf-frozen-membership',similarity_reusable=False,filtered=why_skipped(fs[q],fs[t],settings),lane='baseline' if profile=='default3' or t in rr['raw']['default3'] else 'exploration');baseline.append((q,t,'tfidf',c))
+  extra=[]
+  for t,s,ch in plan['extras']:
+   c=Candidate(new=fs[q],existing=fs[t],similarity=s,comparer='signal-ensemble-public-fullsource-v2:'+ch,similarity_reusable=False,filtered=why_skipped(fs[q],fs[t],settings),lane='exploration');extra.append((q,t,ch,c))
+  proposed=baseline+extra;allowed=[c for q,t,ch,c in proposed if not c.filtered];led=Ledger(settings);idx=led.select(judge,allowed);funded=[allowed[i] for i in idx];keys={c.key for c in funded};led.charge(judge,funded,len(allowed)-len(funded));assert led.usd<=.04000000001
+  bl=Ledger(settings);ba=[c for q,t,ch,c in baseline if not c.filtered];basefund={ba[i].key for i in bl.select(judge,ba)};assert basefund<=keys;checks['baseline_protection']+=1;checks['extra_cap']+=1
+  record=dict(cohort_id=cid,profile=profile,batch=batch,arm='protected-profile-operation-gate1',queries=[q],proposed_keys=[c.key for q,t,ch,c in proposed],funded_keys=sorted(keys),estimated_usd=led.usd,normal_output_estimate=150,model=judge.model,prompt_policy='shared-operations',cap_usd=.04,complete_baseline_funded_keys=sorted(basefund));ledgers.append(record)
+  for q,t,ch,c in proposed:
+   if c.key not in keys:continue
+   item=dict(cohort_id=cid,query=q,target=t,profile=profile,batch=batch,arm='protected-profile-operation-gate1',channel=ch,candidate=c.model_dump(mode='json'),normal_estimated_usd=estimate(judge,[c],settings),campaign_usd=led.usd,pair_key=c.key,source_files=sorted({c.new.path,c.existing.path}),source_bodies=sorted({sha(c.new.code.encode()),sha(c.existing.code.encode())}),split_files=[dict(path=f.path,bucket=phase(meta['repository'],f.path)) for f in [c.new,c.existing]],funded=True)
+   ident=pairid(meta['repository'],meta['revision'],c);reason=None
+   if ident in prior:reason='already_paid_or_cached_source_pair_no_paid_repeat'
+   elif any(phase(meta['repository'],f.path)!=1 or (meta['repository'],f.path) in prior_files for f in [c.new,c.existing]):reason='reserved_other_round_or_prior_paid_family_file'
+   elif any('enterprise' in Path(f.path).parts or f.path.startswith(('tests/','examples/')) for f in [c.new,c.existing]):reason='public_product_source_nomination_scope'
+   elif ch!='tfidf':
+    if tuple(sorted([q,t])) in known[cid]:reason='existing_source_authority_pair'
+    else:
+     for x,y in [(q,t),(t,q)]:
+      raw=queries.get(x,{}).get('raw')
+      if raw is None:reason='reverse_raw_reference_missing';break
+      reference=raw['default3']+raw['current20'] if profile=='default-plus-tfidf20' else raw['default3']
+      if y in reference:reason='baseline_retrieves_pair_in_one_direction_full_corpus';break
+   if reason:inventory.append({k:v for k,v in item.items() if k!='candidate'}|dict(status=reason));continue
+   (control_pool if ch=='tfidf' else pool).append(item)
+ lines(folder/'ledger.jsonl',[r for r in ledgers if r['cohort_id']==cid]);print(json.dumps(dict(cohort_id=cid,planned_queries=len(eligible),native_functions=len(fs),novel_funded_views=len([r for r in pool if r['cohort_id']==cid]),control_views=len([r for r in control_pool if r['cohort_id']==cid]))),flush=True)
+# Prefer the product-preserving profile for the same exact question; no probability or truth selection.
+def dedup(items):
+ out={}
+ for r in items:
+  c=Candidate.model_validate(r['candidate']);meta=cohorts[r['cohort_id']];key=pairid(meta['repository'],meta['revision'],c)
+  if key not in out or r['profile']=='default-plus-tfidf20':out[key]=r
+ return list(out.values())
+pool=dedup(pool);control_pool=dedup(control_pool);pool.sort(key=lambda r:sha(str((r['cohort_id'],r['pair_key'])).encode()));selected=[];used_files=set();used_bodies=set();used_pairs=set();used_components=set();file_counts=collections.Counter()
+for r in pool:
+ meta=cohorts[r['cohort_id']];files={(meta['repository'],x) for x in r['source_files']}
+ if any(file_counts[x]>=2 for x in files):continue
+ selected.append(dict(r,role='novel_funded_ensemble'));used_files|=files;used_bodies.update(r['source_bodies']);used_pairs.add((r['cohort_id'],r['pair_key']));file_counts.update(files);used_components.update(component(k) for k in files)
+ if len(selected)==36:break
+novel_count=len(selected);median=sorted(r['normal_estimated_usd'] for r in selected)[len(selected)//2] if selected else .006
+control_pool.sort(key=lambda r:(abs(r['normal_estimated_usd']-median),sha(str((r['cohort_id'],r['pair_key'])).encode())))
+for r in control_pool:
+ meta=cohorts[r['cohort_id']];files={(meta['repository'],x) for x in r['source_files']}
+ if {component(k) for k in files}&used_components or files&used_files or set(r['source_bodies'])&used_bodies or (r['cohort_id'],r['pair_key']) in used_pairs:continue
+ selected.append(dict(r,role='independent_matched_baseline_control'));used_files|=files;used_bodies.update(r['source_bodies']);used_pairs.add((r['cohort_id'],r['pair_key']));used_components.update(component(k) for k in files)
+ if len(selected)-novel_count==12:break
+lines(P/'funded-proposal-inventory.jsonl',[{k:v for k,v in r.items() if k!='candidate'}|dict(status='eligible_novel_or_reserve') for r in pool]+[{k:v for k,v in r.items() if k!='candidate'}|dict(status='eligible_control_or_reserve') for r in control_pool]+inventory);lines(P/'ledger.jsonl',ledgers);dump(P/'INPUT-MANIFEST.json',inputs);dump(P/'ROUND2-EXCLUSION-FILES.json',[dict(repository=r,path=p) for r,p in sorted(prior_files|used_files)])
+# Interleave3novel:1control; each frozen chunk16cases is32 existing paired judge requests.
+nov=selected[:novel_count];controls=selected[novel_count:];ordered=[]
+while nov or controls:
+ ordered+=nov[:3];nov=nov[3:]
+ if controls:ordered.append(controls.pop(0))
+chunks=[];allpackets=[];allside=[];funding=[];source_config={r['repository']:r for r in configs}
+for n,r in enumerate(ordered,1):
+ cid=r['cohort_id'];meta=cohorts[cid];c=Candidate.model_validate(r['candidate']);id_=f'SE-R2-{n:03d}';proofs=[]
+ for side,i in [('new',r['query']),('existing',r['target'])]:
+  f=getattr(c,side);p=proofcache[cid,i];proofs.append(dict(side=side,source_id=f.qualname,path=f.path,line=f.line,end_line=f.end_line,file_sha256=p['file_sha256'],body_sha256=p['body_sha256'],source_snapshot=p['source_snapshot'],git_blob_sha1=p['git_blob_sha1'],repository=meta['repository'],revision=meta['revision']))
+ ledger_file=P/cid/'ledger.jsonl';tf=EstimatedFunding(ledger_kind='normal_estimated',actually_funded=True,cap_per_PR=.04,cumulative_estimated_usd=r['campaign_usd'],estimated_charge_usd=r['normal_estimated_usd'],normal_estimated_usd=r['normal_estimated_usd'],ledger_proof=str(ledger_file),ledger_proof_sha256=sha(ledger_file.read_bytes()),source='Actual fixed protected-profile-operation-gate1 arm, full-source one-query synthetic campaign, unchanged complete baseline prefix, production Ledger shared-operations. Not historical PR and not diagnostic paid-allocation admission.')
+ packet=dict(id=id_,repository=meta['repository'],revision=meta['revision'],scope=meta['scope'],candidate=r['candidate'],candidate_sha256=sha(json.dumps(r['candidate'],sort_keys=True).encode()),background_proof=source_config[meta['repository']]['background_proof'],source_proofs=proofs,judging_policy=dict(model=judge.model,version=judge.version,prompt_policy='shared-operations',max_output_tokens=1024,normal_estimated_output_tokens=150),prompt_sha256=sha(judging_input(judge,c).encode()),review_status='unknown_independent_source_and_judge_review_pending')
+ side={k:v for k,v in r.items() if k!='candidate'}|dict(id=id_,method='signal-ensemble',round=2,typed_funding=tf.model_dump(mode='json'),funding=tf.model_dump(mode='json'),source_truth=None,judge_answer=None,source_config=source_config[meta['repository']]);allpackets.append(packet);allside.append(side);funding.append(dict(schema_version='promotion-funding-evidence-v1',id=id_,method='signal-ensemble',original_per_campaign_cap_usd=.04,original_funding=tf.model_dump(mode='json'),original_order_preserved=True,cache_discount_to_original_ledger=0,extra_diagnostic_answers_gate='Root physical20overall/.20minimum direction; not a regrouped deployment budget'))
+for offset in range(0,len(allpackets),16):
+ pp=allpackets[offset:offset+16];ss=allside[offset:offset+16];ff=funding[offset:offset+16];raw=''.join(json.dumps(r,sort_keys=True)+'\n' for r in pp).encode();version=f'chunk-{offset//16+1:03d}-'+sha(raw)[:16];out=P/'chunks'/version;out.mkdir(parents=True,exist_ok=True);assert not (out/'FROZEN.json').exists(),'Never rewrite announced batch'
+ (out/'packets.jsonl').write_bytes(raw);lines(out/'private-sidecar.jsonl',ss);lines(out/'original-arm-funding.jsonl',ff);normal=sum(r['normal_estimated_usd'] for r in ss);receipt=dict(version=version,cases=len(pp),expected_rendered_requests=2*len(pp),queue=str(out/'packets.jsonl'),queue_sha256=sha(raw),private_sidecar=str(out/'private-sidecar.jsonl'),funding=str(out/'original-arm-funding.jsonl'),normal_sonnet_estimate_usd=normal,estimated_paired_new_spend_usd=normal*1.02,output1024_upper_usd=normal+len(pp)*(1024-150)*10/1e6,worker_provider_calls=0);dump(out/'FROZEN.json',receipt);chunks.append(receipt)
+lines(P/'novel-review-queue.jsonl',allpackets);lines(P/'private-sidecar.jsonl',allside);lines(P/'original-arm-funding.jsonl',funding)
+prior_spend=json.loads((P/'EXPERIMENT.json').read_text())['prior_current_phase_new_paid_usd_observed'];normal=sum(x['normal_sonnet_estimate_usd'] for x in chunks);handoff=dict(schema=1,direction='signal-ensemble',round=2,status='PREPARED_NOT_READY_CANONICAL_VALIDATION_PENDING',queue=str(P/'novel-review-queue.jsonl'),manifest=str(P/'INPUT-MANIFEST.json'),private_sidecar=str(P/'private-sidecar.jsonl'),funding=str(P/'original-arm-funding.jsonl'),ledger=str(P/'ledger.jsonl'),sourceproofs='Embedded source_proofs in unchanged Candidates/packets; full-file snapshots under inputs/native; published native Function snapshots per background',chunks=chunks,cases=len(allpackets),novel=novel_count,independent_controls=len(allpackets)-novel_count,expected_rendered_requests=2*len(allpackets),estimated_new_sonnet_normal_usd=normal,estimated_new_paired_usd=normal*1.02,actual_new_paid_required_usd=.2,actual_current_phase_new_observed_usd=prior_spend,exact_spend_evidence=str(P/'current-phase-spend-evidence.jsonl'),historical_older_spend_usd=.01674792,round1_actual_new_paid_usd=.21864048,root_counting='Root verifies unique request attribution once; cache/older spend never fills .20. Existing prior phase currently 0; consume frozen chunks adaptively until actual paid threshold reached. No paid repeats to fill quota.',deployment_vs_diagnostic='Every candidate/control actually funded in its own original .04 protected-ensemble synthetic campaign. Root diagnostic adjudication physical dollars tracked separately, not charged as fake new .04 deployment campaigns.',central_intake_schema='Existing packet Candidate/background_proof/source_proofs plus promotion-funding-evidence-v1 and EstimatedFunding sidecar; judge-operations owns canonical Jev+Sonnet request/cache preparation; no new runner framework.',source_configs=configs,round2='Required if no useful round1 benefit; prospective source-file partition1 and exclusion file are reserved. One error-justified preregistered revision only, new actual paid>=.20; do not close without Root verification.',supply=dict(eligible_novel_unordered_pairs=len(pool),eligible_control_unordered_pairs=len(control_pool),rejected_or_unknown_records=len(inventory),source_file_split='both files SHA256(repo|path)%2==1; all round1 files/known family-components excluded'),runtime=dict(wall_seconds=time.perf_counter()-start,cpu_seconds=time.process_time()-cpu,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,checks=dict(checks),threads=2,new_representation_fits=0,identical_sparse_index_rehydrations=2,new_source_extractions=0,provider_calls=0),closed=False)
+dump(P/'HANDOFF.json',handoff);dump(P/'STATUS.json',{k:handoff[k] for k in ['direction','round','status','cases','novel','independent_controls','estimated_new_paired_usd','actual_current_phase_new_observed_usd','actual_new_paid_required_usd','closed']});print(json.dumps({k:handoff[k] for k in ['status','cases','novel','independent_controls','estimated_new_paired_usd','actual_current_phase_new_observed_usd','supply','runtime']},indent=2))
