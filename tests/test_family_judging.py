@@ -152,7 +152,7 @@ def test_mock_transport_to_cache_and_one_useful_report(tmp_path):
     assert admission.settlements == [(0, pytest.approx(0.003), True)]
     assert finding.charged_usd <= admission.reservations[0][1]
     payload = json.loads(requests[0].content)
-    assert payload["max_tokens"] == 4096
+    assert payload["max_tokens"] == 8192
     assert "fallbacks" not in payload
     assert len(requests) == 1
     assert judging.finding(request).status == "cached"
@@ -184,7 +184,7 @@ def test_prompt_keeps_complete_native_evidence():
     for native, rendered in zip(request.members, payload["members"], strict=True):
         assert rendered["function"]["code"] == native.function.code
         assert rendered["function"]["context"] == native.function.context
-        assert rendered["operations"] == [a.model_dump() for a in native.operations]
+        assert rendered["operations"] == [a.model_dump(exclude={"source"}) for a in native.operations]
     assert "not a clique" in prompt and "EVERY supplied owner" in prompt and "untrusted" in prompt
 
 
@@ -273,7 +273,7 @@ def test_exact_cache_misses_every_changed_question(tmp_path, field):
     elif field == "model":
         judge = AnthropicFamilyJudge(model="different-model")
     else:
-        judge = AnthropicFamilyJudge(model=MODEL, max_tokens=8192)
+        judge = AnthropicFamilyJudge(model=MODEL, max_tokens=4096)
     assert judging.store.lookup(FamilyRequest.model_validate(changed), judge) is None
     assert len(requests) == 1
     judging.judge.close()
@@ -437,7 +437,7 @@ def test_invalid_or_oversized_questions_are_rejected_whole(mutation):
         payload["members"][1]["function"]["path"] = first["function"]["path"]
         payload["members"][1]["function"]["name"] = first["function"]["name"]
     else:
-        payload["canonical_operation"] = "x" * 120000
+        payload["canonical_operation"] = "x" * 1_048_576
     with pytest.raises(ValueError):
         FamilyRequest.model_validate(payload)
 
@@ -579,3 +579,32 @@ def test_explicit_none_is_unjudged_without_claiming_missing_key():
     assert not finding.reported and report.charged_usd == 0
     assert "Family unconfirmed — unjudged" in report.text()
     assert "no key" not in report.text()
+
+
+def test_storage_metadata_is_not_paid_prompt_and_does_not_clip_full_functions():
+    request = family_request()
+    original_prompt = family_prompt(request)
+    payload = request.model_dump()
+    payload["canonical_operation"] = "canonical AST " * 20000
+    revised = FamilyRequest.model_validate(payload)
+    assert len(revised.model_dump_json().encode()) > 120000
+    assert family_prompt(revised) == original_prompt
+    assert revised.key != request.key
+    judge = AnthropicFamilyJudge(model=MODEL)
+    assert family_key(revised, judge) != family_key(request, judge)
+    assert family_reservation_cost(revised, judge, RATES) == family_reservation_cost(request, judge, RATES)
+
+
+def test_actual_prompt_byte_ceiling_rejects_whole_source_before_client(tmp_path):
+    request = family_request()
+    exact = len(family_prompt(request).encode("utf-8"))
+    judge = AnthropicFamilyJudge(model=MODEL, api_key="test", max_input_bytes=exact)
+    assert len(judge.input_text(request).encode("utf-8")) == exact
+    judge.max_input_bytes -= 1
+    with pytest.raises(ValueError, match="not clipped"):
+        family_reservation_cost(request, judge, RATES)
+    with pytest.raises(ValueError, match="not clipped"):
+        judge.judge_family(request)
+    assert judge._client is None
+    with pytest.raises(ValueError, match="max_input_bytes"):
+        AnthropicFamilyJudge(model=MODEL, max_input_bytes=1_048_577)

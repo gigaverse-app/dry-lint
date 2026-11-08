@@ -133,7 +133,7 @@ class FamilyRequest(FamilyFile):
         names = [member.function.qualname for member in self.members]
         if len(set(ids)) != len(ids) or len(set(names)) != len(names):
             raise ValueError("Family members must have unique IDs and independent native owners")
-        if len(self.model_dump_json().encode()) > 120_000:
+        if len(self.model_dump_json().encode()) > 1_048_576:
             raise ValueError("Family question exceeds the bounded full-source contract")
         return self
 

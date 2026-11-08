@@ -48,7 +48,8 @@ def test_make_judge_builds_a_command_judge_from_its_options_and_rejects_bad_choi
     with pytest.raises(ValueError, match="--judge-command"):
         make_judge(PluginChoice(use="command"))
     with pytest.raises(
-        ValueError, match="Unknown judge 'oracle'; available: anthropic, claude-code, codex, command, gemini, jev"
+        ValueError,
+        match="Unknown judge 'oracle'; available: anthropic, anthropic-family, claude-code, codex, command, gemini, jev",
     ):
         make_judge(PluginChoice(use="oracle"))
 

@@ -17,7 +17,7 @@ Load the opt-in judge with the existing plugin mechanism:
 from dry_lint.plugins import load
 from dry_lint.settings import PluginChoice
 
-judge = load("judges", PluginChoice(use="anthropic-family", model="claude-sonnet-5-5", max_tokens=4096))
+judge = load("judges", PluginChoice(use="anthropic-family", model="claude-sonnet-5-5", max_tokens=8192))
 ```
 
 The adopter supplies `ANTHROPIC_API_KEY` or an explicit `api_key`. An absent key sets `available=False`;
@@ -33,9 +33,14 @@ from the native function; original column slices are independently validated, in
 Caller IDs only describe available file-local resolution, not a complete caller graph.
 
 Requests reject oversized evidence as a whole instead of truncating source: 2–12 owners, up to 16 operation
-regions per owner, 32 KB per complete function, 16 KB of context per owner and 120 KB per serialized question.
+regions per owner, 32 KB per complete function, 16 KB of context per owner and 1 MiB per serialized question.
+The separate `max_input_bytes` plugin option bounds the actual rendered prompt (default 256 KiB, configurable
+up to 1 MiB). The prompt retains full functions and semantic context once; hashes, canonical AST serialization,
+and duplicate region bodies stay in exact storage/cache identity. Highlights are exact line/column coordinates
+within the complete source, never clipped snippets.
 Set nomination limits accordingly or report oversized nominations as unconfirmed. Do not silently omit
-members and reuse the same question identity. Output is bounded to a configured 1–16,000 tokens.
+members and reuse the same question identity. Output is bounded to a configured 1–16,000 tokens, default 8192. The independent input/output bounds
+do not grant spending: shared native campaign reservation still decides whether the question fits.
 
 ```python
 from dry_lint.family_models import request_from_nomination
