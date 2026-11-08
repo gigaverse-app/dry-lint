@@ -95,8 +95,13 @@ def call_relation(caller: Function, callee: Function) -> str | None:
     return None
 
 
-def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
-    """Look-alikes that are never duplicates, by structure, by rule, or by a person's inline decision."""
+def why_skipped(a: Function, b: Function, settings: Settings, *, calls: bool = True) -> str | None:
+    """Look-alikes that are never duplicates, by structure, by rule, or by a person's inline decision.
+
+    `calls=False` keeps every rule except the caller/callee relation, which says two WHOLE functions are not one
+    duplicate. An operation repeated inside both a caller and its callee is still repeated, so operation families
+    ask with `calls=False`.
+    """
     if IGNORE.search(a.code) or IGNORE.search(b.code):
         return "inline ignore"
     # INVARIANT: language syntax is interpreted by the adapter, never guessed from source or file suffix here.
@@ -110,7 +115,7 @@ def why_skipped(a: Function, b: Function, settings: Settings) -> str | None:
         return f"language convention: {a.analysis.convention}"
     # INVARIANT: one shared rule for every route. `pair()` records it as `filtered`, and discovery routes that
     # exclude settled pairs (`discovery_unseen`) never spend their slot on it; no comparer re-implements it.
-    if a.origin == b.origin and (relation := call_relation(a, b) or call_relation(b, a)):
+    if calls and a.origin == b.origin and (relation := call_relation(a, b) or call_relation(b, a)):
         return relation
     for pattern in settings.patterns:
         if fnmatch.fnmatch(a.qualname, pattern.members) and fnmatch.fnmatch(b.qualname, pattern.members):
@@ -256,7 +261,7 @@ class Detector:
         assert extractor is not None, function.path  # it extracted the function
         return function.model_copy(update={"hash": extractor.structure_hash(function)})
 
-    def pair(self, new: Function, existing: Function, similarity: float) -> Candidate:
+    def pair(self, new: Function, existing: Function, similarity: float, *, calls: bool = True) -> Candidate:
         targets = [
             target
             for target in self.settings.consolidation
@@ -272,7 +277,7 @@ class Detector:
             existing=self.hashed(existing),
             similarity=round(similarity, 3),
             comparer=self.comparer_id,
-            filtered=why_skipped(new, existing, self.settings)
+            filtered=why_skipped(new, existing, self.settings, calls=calls)
             or (f"adopter policy {discarded.name}: {discarded.reason}" if discarded else None),
             similarity_reusable=getattr(self.comparer, "similarity_reusable", False),
             consolidation=targets,

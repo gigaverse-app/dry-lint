@@ -219,7 +219,9 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         native = {f.model_copy(update={"origin": f.origin or run}).qualname: f for f in detector.functions}
 
         def settled(a, b):
-            candidate = detector.pair(native[a.qualname], native[b.qualname], 0)
+            # Human and adopter decisions settle a family; a call between two members does not, since a caller
+            # and its callee can both repeat the operation.
+            candidate = detector.pair(native[a.qualname], native[b.qualname], 0, calls=False)
             return decisions.apply([candidate])[0].filtered
 
         families = FamilyDiscovery(detector.functions, changed, run, settings.discovery.families, settled=settled)

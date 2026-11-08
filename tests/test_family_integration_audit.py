@@ -255,3 +255,22 @@ def test_a_report_with_families_refuses_formats_that_cannot_show_them(form):
     report = Report(judge="test", family_exclusions=[{"nomination_id": "n", "reason": "oversized"}])
     with pytest.raises(ValueError, match="Operation families support"):
         render(report, form, Settings())
+
+
+def test_cli_family_keeps_a_caller_and_callee_that_both_repeat_the_operation(repo, tmp_path):
+    # Both repeat the operation: the call settles the pair as wholes, never the repeated operation.
+    config = 'preset="none"\n[discovery]\nenabled=true\n[discovery.families]\njudge={use="anthropic-family",model="claude-haiku-5-5"}\n'
+    repo.write(".dry-lint.toml", config)
+    callee = "def callee(codec, payload):\n" + OPERATION
+    # The `if` ends the straight run, so the caller repeats exactly the callee's operation after its call.
+    caller = "def caller(codec, payload):\n    if callee(codec, payload):\n        log(payload)\n" + OPERATION
+    repo.write("jobs/pair.py", f"{callee}\n\n{caller}")
+    repo.write("jobs/other.py", f"def other(codec, payload):\n{OPERATION}")
+    repo.commit("caller and callee both repeat the operation")
+    target = tmp_path / "report.json"
+    with patch.object(family_module, "load", side_effect=AssertionError("no main judge")):
+        assert main(["check", "--root", str(repo.root), "--base", "main", "--report", str(target)]) == 0
+    report = Report.model_validate_json(target.read_text())
+    assert not report.family_exclusions
+    [family] = report.families
+    assert {member.function.name for member in family.request.members} == {"callee", "caller", "other"}
