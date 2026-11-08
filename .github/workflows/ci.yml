@@ -127,6 +127,7 @@ jobs:
             .github/workflows/ci.yml
             .github/workflows/observe-ci.yml
             .github/workflows/release.yml
+            .github/workflows/docs.yml
             .github/workflows/counter.yml
             .github/workflows/viewer.yml
             examples/dry-lint.yml

@@ -11,7 +11,10 @@
   <a href="pyproject.toml"><img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-7E4FC9?logo=python&logoColor=white&labelColor=24292F"></a>
   <a href="docs/typescript.md"><img alt="TypeScript" src="https://img.shields.io/badge/typescript-supported-7E4FC9?logo=typescript&logoColor=white&labelColor=24292F"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-7E4FC9?labelColor=24292F"></a>
+  <a href="https://dry-lint.readthedocs.io/en/latest/"><img alt="Documentation" src="https://readthedocs.org/projects/dry-lint/badge/?version=latest"></a>
 </p>
+
+<p align="center"><a href="https://dry-lint.readthedocs.io/en/latest/">Read the documentation</a> · <a href="https://dry-lint.readthedocs.io/en/latest/ecosystem/">Related tools</a></p>
 
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
