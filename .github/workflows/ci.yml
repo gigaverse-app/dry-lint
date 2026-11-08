@@ -27,10 +27,33 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache-environment: "false"
-          sync-args: --extra dryer
+          sync-args: --extra dryer --extra cpu-embedding
+      # The CPU recovery tests need the pinned MiniLM artifacts; without them they skip and coverage falls to 98%.
+      # The revision and SHA256s are the ones `dry_lint.cpu_embedding.ARTIFACTS` verifies at runtime.
+      - name: Restore pinned MiniLM
+        id: minilm
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/minilm
+          key: minilm-1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+      - name: Fetch pinned MiniLM
+        if: steps.minilm.outputs.cache-hit != 'true'
+        env:
+          MINILM: ${{ runner.temp }}/minilm
+          SOURCE: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+        run: |
+          mkdir -p "$MINILM/onnx"
+          curl --fail --location --silent --show-error "$SOURCE/onnx/model.onnx" -o "$MINILM/onnx/model.onnx"
+          curl --fail --location --silent --show-error "$SOURCE/tokenizer.json" -o "$MINILM/tokenizer.json"
+          cd "$MINILM" && sha256sum --check <<'SUMS'
+          6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452  onnx/model.onnx
+          be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037  tokenizer.json
+          SUMS
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync ruff format --check .
       - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
+        env:
+          DRY_LINT_TEST_MINILM_DIR: ${{ runner.temp }}/minilm
       - run: uv build
       - name: Default install stays lightweight
         run: >-

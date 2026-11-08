@@ -6,7 +6,7 @@ implements one; nothing needs to inherit from dry-lint.
 | Slot | Settings key | Built in | Entry-point group |
 | --- | --- | --- | --- |
 | Extractor | `extractors` (a list, one per language) | `python`, `typescript`, opt-in `python-models`, `typescript-models` | `dry_lint.extractors` |
-| Comparer | `comparer` | `tfidf`, optional `dryer`, opt-in `model-shape` | `dry_lint.comparers` |
+| Comparer | `comparer` | `tfidf`, optional `dryer`, opt-in `model-shape`, `operation-blocks`, optional `cpu-embedding`, `cpu-tail-rrf` | `dry_lint.comparers` |
 | Judge | `judge`, `escalate` | `jev`, opt-in `jev-models`, `command` (and `auto`, `none`) | `dry_lint.judges` |
 | Store backend | `store` | `dir`, `s3` | `dry_lint.stores` |
 
@@ -71,6 +71,7 @@ judging, budgets, caching and reports; adapters own syntax and binding conventio
 | `language`, `version` | Identify the analysis contract; bump version when facts change | Included in cache evidence |
 | `convention` | A recognized language convention; Python emits `python-special-method` for class dunders | Only matching conventions in the same language settle a pair |
 | `forward_target` | `path::Owner.method` for a same-owner forwarding body with no additional policy | Settle only against that exact declaration in the same repository |
+| `local_calls` | `path::qualified` targets of direct calls that bind inside the file (own-class methods via `self`/`cls`/`this`; unshadowed Python module functions) | Settle "one calls the other" against those exact declarations; never verdict evidence, so excluded from `context_hash` |
 | `declared_override` | Explicit override syntax, without claiming a resolved runtime target | Evidence, never an automatic exclusion |
 | `Function.bases` | Syntactically named direct base references; unresolved imports may be absent | Evidence, never an automatic exclusion |
 
@@ -80,6 +81,10 @@ fields. Computed arguments, nested callbacks, decorators, parameter initializers
 (such as debounced fields) do not qualify. Bare/imported
 calls, inherited dispatch and TypeScript package/path aliases are not resolved. Function-valued object fields
 are not assumed to bind `this` like class arrow fields. No project dependencies are installed or executed.
+
+`local_calls = ()` likewise means unresolved. It is consulted only to settle a pair before lookup, so it stays out of
+`Candidate.context_hash`: adding or changing it never voids a stored verdict or an accepted baseline entry, and a
+changed call reopens or settles the pair through the rule instead.
 
 Legacy extractors keep working without analysis; their candidates reach the judge instead of core guessing
 relationships with regular expressions. `calls` remains syntax data for inspection. Candidate/report schema 9 and
@@ -108,7 +113,7 @@ class Comparer(Protocol):
 similar first and above the comparer's own floor. Similarities are only compared with stored ones of the same
 `name:version`, so a new version never reuses the "not closer" rule on old numbers. Comparers can opt into that rule with
 `similarity_reusable = True`; the safe default is false. Both the candidate and the stored record must permit it.
-Neither built-in comparer opts in: TF-IDF tokens and Dryer's normalization both leave out literals, so a changed
+The built-in comparers do not opt in: TF-IDF tokens and Dryer's normalization both leave out literals, so a changed
 literal can make two functions one concept without moving the score. An optional
 `shared(a, b) -> list[str]` feeds `dry-lint explain`.
 
@@ -120,6 +125,73 @@ options go to the comparer constructor. With discovery enabled, independent inde
 pairs to the exploration lane without replacing baseline pairs. The first route to retrieve a pair owns its
 score and comparer identity; scores from different comparers are not averaged. An empty list preserves legacy
 TF-IDF exploration. See the [model configuration](model-duplication.md) for bounded TF-IDF and wider Dice routes.
+
+A comparer may set `discovery_unseen = True` to apply its discovery cap after excluding pairs already owned by
+earlier routes and pairs settled by core rules. Core supplies these exclusions through `allowed`; the comparer
+must apply it before taking `k`. Without this opt-in, existing raw-neighbour caps remain unchanged. Neither route
+can replace protected baseline candidates or transfer its score to an earlier route.
+
+### Bounded Python operation blocks
+
+Start with the [worked operation-block example](operation-blocks.md) for why this method can find a helper inside
+a larger workflow, when to use it, and the measured limits. The [comparer selection guide](discovery-comparers.md)
+explains route ordering and how to run a fair repository trial. This section specifies the plugin contract.
+
+`operation-blocks:3` retrieves complete native Python functions by shared operation regions. It supports Python
+functions with parseable source and valid source coordinates, not model declarations or other languages. Candidates
+retain their complete signature, documentation, source, hashes and context. Region cosine is a retrieval score,
+not a duplication verdict, and cannot authorize reuse of stored verdicts.
+
+This opt-in configuration preserves the evaluated route order: the normal three-neighbour baseline, existing
+TF-IDF exploration at .35 with a raw cap of 20, then at most one unseen, unsettled block pair per changed function:
+
+```toml
+[discovery]
+enabled = true
+comparers = [
+  { use = "tfidf", min_similarity = 0.35, min_similarity_small = 0.35, neighbours = 20 },
+  { use = "operation-blocks", neighbours = 1 },
+]
+```
+
+An explicit comparer list replaces implicit TF-IDF exploration, so retain the first entry when adding blocks to
+that policy. Discovery permits same-file pairs. This example changes no budget or admission defaults; actual
+funding still depends on the adopter's ledger, pricing and configuration. Frozen synthetic budget diagnostics
+do not establish deployment report gains. Provider answers and source adjudication remain separate.
+
+Regions are whole compound statements or maximal consecutive straight runs of at least two statements. Nested
+functions/classes and string-expression boundaries split runs; no region includes a nested owner. Compound suites
+are visited through depth three. Regions must span 4–80 lines and 20–400 executable AST nodes, contain at least
+eight distinct behavior tokens and two distinct nongeneric calls. Oversized regions are rejected, never split into
+windows. At most 12 regions survive in source order. If this original route finds no eligible winner, a second
+index adds at most one whole helper body, subject to the same guards and excluding its docstring and nested
+owners. Independent postings preserve the first route; this fallback keeps at most 13 regions.
+
+The complete indexed function-token background supplies TF-IDF (max document frequency .3) and anchor frequencies;
+blocks and standalone queries never refit it. Each region keeps at most eight concrete call/attribute/key anchors
+whose function frequency is at most `min(128, max(2, floor(.01 * functions)))`. An anchor with more than 64 region
+postings is dropped entirely. At most 6,144 posting visits in the original route, or 6,656 in the fallback,
+select 64 parents. The fallback compares at most 64 × 13 × 13 region pairs. A region pair needs three shared
+concrete operations, two shared nongeneric calls and a retained shared anchor. Region cosine must reach .65 and
+whole-function cosine .1. Results deduplicate native parent identities and break score ties by qualified name,
+then original position. `similarity(a, b)` applies the same guards and floors directly; neighbour retrieval also
+requires membership in the bounded anchor pool. These scores have their own comparer identity and are never
+substituted for TF-IDF scores.
+
+### Offline CPU embeddings
+
+The optional [`cpu-embedding` comparer](cpu-embedding.md) uses adopter-supplied pinned MiniLM artifacts and an
+optional local vector cache. It retrieves complete functions, requires the `cpu-embedding` installation extra,
+and never downloads weights or judges candidates. Cold indexing is expensive; the measured benefit depends on
+the preceding retrieval routes. See the [measured profile comparison](benchmark.md#offline-cpu-discovery).
+
+### Optional run resources
+
+The detector creates a `ComparerResources` scope for the discovery routes in each `candidates()` call. A comparer may implement `for_run(resources, **options)` for construction and `index_for_run(functions, resources)` for indexing. Existing plugins need neither hook. `resources.get(key, factory)` publishes only successfully constructed values; core never inspects a value or calls an encoder itself.
+
+Plugins own exact reuse keys and must preserve source edits, native identity/order, validation and transactional reindex behavior. Share prepared resources only; query caches must stay private. The scope is confined to one synchronous detection call, never shared by concurrent calls. A plugin must not retain the scope globally or export it to concurrent query workers. This API does not make a comparer instance thread-safe. Built-in CPU recovery revalidates model files on each constructor and shares vectors only when the explicit cache path and complete encoder contract match. No file schema or verdict reuse rule changes.
+
+The [CPU recovery setting](cpu-recovery.md) supplies the evaluated stack without exposing its route limits as setup choices.
 
 ## Judge
 

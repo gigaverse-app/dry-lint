@@ -156,6 +156,11 @@ def function(path: str, source: str, name: str | None = None, owner: str | None 
     )
 
 
+def stub_function(path: str, name: str, code: str, *, end_line: int, tokens: tuple[str, ...] = ()) -> Function:
+    """A bare function with exactly these fields, for tests that set tokens or vectors themselves."""
+    return Function(path=path, name=name, line=1, end_line=end_line, code=code, tokens=list(tokens))
+
+
 def replay_payload(api, *sources):
     return api["ReplayInput"].model_validate(
         {
