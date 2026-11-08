@@ -331,7 +331,7 @@ dev = [
 dryer = [{ name = "dryer", git = "https://github.com/unclebob/dryer.git?rev=66ff6d21a42c04afcad89c78a80066176d1294b0" }]
 quint = [
     { name = "pytest", specifier = ">=8" },
-    { name = "pytest-quint-connect", specifier = ">=1.1.0,<2" },
+    { name = "pytest-quint-connect", specifier = ">=1.2.1,<2" },
 ]
 
 [[package]]
@@ -1073,14 +1073,14 @@ wheels = [
 
 [[package]]
 name = "pytest-quint-connect"
-version = "1.1.0"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pytest" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a4/3c/7b2ddc1b7f423b0bfa5371cb194f7e1d1aa9e0f9da4fedc0eb88e712cd82/pytest_quint_connect-1.1.0.tar.gz", hash = "sha256:07cf1f2e607363a7493f04e8f38d808a06ae32d4170bbd2a8ffcdf6eaa71301d", size = 6923970, upload-time = "2026-11-08T15:22:02.125Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/cb/f8267417dbf20823998cbd2d899a098e72fef9423294d25eb46839de7476/pytest_quint_connect-1.2.1.tar.gz", hash = "sha256:40f8b4b197021e4a62168016939be51fed7e3cb922315828eaa5a2635572f928", size = 6933607, upload-time = "2026-11-08T17:53:24.335Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/65/12d3cc7c8324bb8cb3ea8891afbe402acfa19cdbaaa881c89e5220aef447/pytest_quint_connect-1.1.0-py3-none-any.whl", hash = "sha256:4a24a70034dc1305340faada931ec4e67e77978bbd82abf767adcb3e2d5dcd52", size = 75580, upload-time = "2026-11-08T15:22:00.485Z" },
+    { url = "https://files.pythonhosted.org/packages/33/6c/66cfa0dc227f24a4f6ec9a5aaff0ea6d7896a0ffe97d80f93ea94f143260/pytest_quint_connect-1.2.1-py3-none-any.whl", hash = "sha256:31780a21c419e8751dfbd65fc998543df52dc078c3ff21ba1dbe9fb071f2c2e9", size = 78805, upload-time = "2026-11-08T17:53:22.88Z" },
 ]
 
 [[package]]
