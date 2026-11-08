@@ -229,7 +229,7 @@ def test_an_unpriceable_prompt_is_deferred_and_questions_beyond_the_cap_wait(set
     }
 
 
-@pytest.mark.parametrize("barrier", ["no opt-in", "unadvanced", "repeat", "budget"])
+@pytest.mark.parametrize("barrier", ["no opt-in", "unadvanced", "inflight", "repeat", "budget"])
 def test_family_reservation_obeys_opt_in_phase_repeat_and_budget(setup, tmp_path, monkeypatch, barrier):
     settings, judging, _, _, _, _ = configured(setup, tmp_path, monkeypatch)
     campaign = judging.campaign
@@ -243,7 +243,15 @@ def test_family_reservation_obeys_opt_in_phase_repeat_and_budget(setup, tmp_path
             campaign.reserve_family("key", "source", "owner", settings, 0.0)
         return
     campaign.advance(settings)
-    if barrier == "repeat":
+    if barrier == "inflight":
+        from dry_lint.discovery import Attempt
+
+        with campaign.transaction() as state:
+            state.attempts.append(
+                Attempt(revision=campaign.revision, evidence="pending", lane="exploration", query="q", usd=0.001)
+            )
+        assert campaign.reserve_family("key", "source", "owner", settings, 0.0) is None
+    elif barrier == "repeat":
         reservation = campaign.reserve_family("key", "source", "owner", settings, 0.0)
         campaign.settle(reservation, 0.0, True)
         assert campaign.reserve_family("other", "source", "owner", settings, 0.0) is None
