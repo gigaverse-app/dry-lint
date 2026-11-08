@@ -1,0 +1,515 @@
+"""Bounded offline sparse-token hygiene experiment. No provider/network calls.
+
+Run prepare, freeze, evaluate in that order. Only writes beside this script.
+"""
+
+import argparse
+import gzip
+import hashlib
+import json
+import math
+import os
+import re
+import resource
+import subprocess
+import sys
+import time
+from collections import Counter, defaultdict, deque
+from pathlib import Path
+from types import SimpleNamespace
+
+from dry_lint import functions as py_tokens
+from dry_lint import typescript as ts_tokens
+from dry_lint.bench_background import BackgroundDocument, BenchBackground
+from dry_lint.costs import Ledger, estimate
+from dry_lint.detector import delegates, why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.functions import extractor_for, selected_path
+from dry_lint.models import Candidate, Function
+from dry_lint.settings import Budget, Settings
+from dry_lint.typescript import TypeScriptExtractor
+
+ROOT = Path('/home/researcher/dry-lint-round')
+OUT = Path(__file__).resolve().parent
+FROZEN = OUT.parent / 'EXPERIMENT.json'
+REPOS = ROOT / 'jobs/review-automation/.lab-results/review-automation/repositories-five.json'
+PANELS = ROOT / 'reports/candidate-first/corpus-verification'
+AUTHORITY = ROOT / 'reports/candidate-first/scaled-coordinator-decisions.jsonl'
+SELECTED = ['pingdotgg/t3code', 'OpenHands/software-agent-sdk']
+ARMS = ['baseline', 'english4', 'accessor', 'combined']
+GLUE = frozenset(['should', 'given', 'when', 'then'])
+ACCESSOR = re.compile(r'^(get|set) ([A-Za-z_$][A-Za-z0-9_$]*)$')
+ORIGINAL_WORDS = py_tokens.words
+JUDGE = SimpleNamespace(name='anthropic-operations', model='claude-sonnet-5-5',
+                        prompt_policy='shared-operations', subscription=False)
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def dump(path, obj):
+    path.write_text(json.dumps(obj, indent=2, sort_keys=True) + '\n')
+
+
+def lines(path):
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def jsonl(path, rows):
+    path.write_text(''.join(json.dumps(row, sort_keys=True) + '\n' for row in rows))
+
+
+def packed(path, obj):
+    path.write_bytes(gzip.compress(json.dumps(obj, separators=(',', ':')).encode(), mtime=0))
+
+
+def unpack(path):
+    return json.loads(gzip.decompress(path.read_bytes()))
+
+
+def slug(repo):
+    return repo.split('/')[-1]
+
+
+def repos():
+    table = {r['repository']: r for r in json.loads(REPOS.read_text())}
+    return [table[name] for name in SELECTED]
+
+
+def git(repo, *args):
+    return subprocess.check_output(['git', '-C', repo['git'], *args])
+
+
+def sources(repo, background):
+    """Every selected source read with git show at the FULL pin, never the checkout."""
+    paths = git(repo, 'ls-tree', '-rz', '--name-only', repo['revision']).decode().split('\0')
+    extractors = [PythonExtractor(), TypeScriptExtractor()]
+    result = {}
+    for path in paths:
+        if path and extractor_for(path, extractors) and selected_path(path, **background.scope):
+            result[path] = git(repo, 'show', repo['revision'] + ':' + path).decode()
+    configs = {}
+    for path in ['pyproject.toml', '.dry-lint.toml']:
+        if path in paths:
+            configs[path] = git(repo, 'show', repo['revision'] + ':' + path).decode()
+    return result, configs
+
+
+def experimental_words(identifier, arm):
+    # Only syntactic accessor-prefix whitespace is normalized. Computed keys, $, #,
+    # hyphens, punctuation, API names and general English names are not rewritten.
+    parts = identifier.split(' ') if arm in ('accessor', 'combined') and ACCESSOR.fullmatch(identifier) else [identifier]
+    words = [word for part in parts for word in ORIGINAL_WORDS(part)]
+    return [w for w in words if arm not in ('english4', 'combined') or w not in GLUE]
+
+
+def extract(source, arm):
+    extractors = [PythonExtractor(), TypeScriptExtractor()]
+    py_tokens.words = ts_tokens.words = lambda name: experimental_words(name, arm)
+    found, coverage = [], []
+    try:
+        for path, text in source.items():
+            ex = extractor_for(path, extractors)
+            error = None
+            try:
+                ex.validate_source(path, text)
+            except ValueError as exc:
+                error = str(exc)
+            fs = ex.functions(path, text)
+            found.extend(fs)
+            coverage.append(dict(path=path, file_sha256=sha(text.encode()), bytes=len(text.encode()),
+                                 parse_error=error, extracted=len(fs), language=ex.name))
+    finally:
+        py_tokens.words = ts_tokens.words = ORIGINAL_WORDS
+    return found, coverage
+
+
+def align(found, background):
+    by_identity = defaultdict(deque)
+    for f in found:
+        by_identity[(f.qualname, sha(f.code.encode()))].append(f)
+    aligned = []
+    for d in background.documents:
+        key = (d.id, d.source_sha256)
+        assert by_identity[key], ('missing pinned body', key)
+        aligned.append(by_identity[key].popleft())
+    assert not any(by_identity.values()), 'extraction added functions outside the frozen rows'
+    return aligned
+
+
+def native_dump(fs):
+    return [{**f.model_dump(mode='json'), 'tokens': f.tokens, 'calls': f.calls} for f in fs]
+
+
+def audit(background, fs):
+    index = background.index()
+    mass = Counter()
+    token_mass = Counter()
+    for d in background.documents:
+        for token, weight in index.vector(d.tokens()).items():
+            mass[token.split(':')[0]] += weight * weight
+            token_mass[token] += weight * weight
+    malformed = sorted([(t, df) for t, df in background.document_frequency.items()
+                        if t.startswith(('w:', 'fn:')) and re.search(r'[^a-z0-9]', t.split(':', 1)[1])],
+                       key=lambda x: (-x[1], x[0]))
+    examples = []
+    for token, df in malformed[:16]:
+        examples.append(dict(token=token, df=df, retained=token in index.idf,
+                             mean_squared_mass=token_mass[token] / len(fs),
+                             examples=[dict(position=i, id=f.qualname, name=f.name, line=f.line,
+                                            source_sha256=sha(f.code.encode()), excerpt=f.code[:900])
+                                       for i, f in enumerate(fs) if token in f.tokens][:3]))
+    plurals = []
+    for token, df in background.document_frequency.items():
+        family, word = token.split(':', 1)
+        singular = family + ':' + word[:-1]
+        if family in ('fn', 'w') and word.endswith('s') and singular in background.document_frequency:
+            plurals.append(dict(plural=token, singular=singular, plural_df=df,
+                                singular_df=background.document_frequency[singular]))
+    return dict(documents=len(fs), vocabulary=len(background.document_frequency),
+                retained_vocabulary=len(index.idf), discarded_vocabulary=len(background.document_frequency)-len(index.idf),
+                singletons=sum(n == 1 for n in background.document_frequency.values()),
+                family_mean_squared_weight={k: v / len(fs) for k, v in mass.items()},
+                naming_glue_df={t: n for t, n in background.document_frequency.items()
+                                if t.split(':', 1)[1] in GLUE},
+                malformed=examples, plural_coexistence=plurals,
+                top_retained=[dict(token=t, df=background.document_frequency[t], mean_squared_mass=m / len(fs))
+                              for t, m in token_mass.most_common(30)],
+                ambiguous_qualnames={k: n for k, n in Counter(f.qualname for f in fs).items() if n > 1})
+
+
+def prepare():
+    assert not FROZEN.exists(), 'prepare must precede preregistration'
+    for repo in repos():
+        folder = OUT / slug(repo['repository'])
+        folder.mkdir(exist_ok=True)
+        raw = Path(repo['background_proof']['path']).read_bytes()
+        assert sha(raw) == repo['background_proof']['sha256']
+        background = BenchBackground.decode(raw)
+        assert (background.repository, background.revision) == (repo['repository'], repo['revision'])
+        start = time.perf_counter()
+        source, configs = sources(repo, background)
+        packed(folder / 'source-files.json.gz', source)
+        dump(folder / 'pinned-configs.json', configs)
+        fs, coverage = extract(source, 'baseline')
+        fs = align(fs, background)
+        mismatches = [i for i, (f, d) in enumerate(zip(fs, background.documents, strict=True))
+                      if Counter(f.tokens) != d.counts]
+        assert not mismatches, mismatches[:10]
+        packed(folder / 'native-functions.json.gz', native_dump(fs))
+        jsonl(folder / 'parse-coverage.jsonl', coverage)
+        report = audit(background, fs)
+        report.update(repository=repo['repository'], revision=repo['revision'], background_proof=repo['background_proof'],
+                      source_files=len(source), parse_errors=sum(x['parse_error'] is not None for x in coverage),
+                      native_count_mismatches=mismatches, seconds=time.perf_counter()-start,
+                      rss_peak_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        dump(folder / 'inventory.json', report)
+        print('prepared', repo['repository'], len(fs), len(source), 'files', flush=True)
+
+
+def freeze():
+    assert not FROZEN.exists(), 'preregistration is immutable'
+    artifacts = sorted(p for p in OUT.rglob('*') if p.is_file())
+    frozen = dict(schema=1, experiment='sol-token-hygiene-20261106-v1',
+                  worker='Herdr token-hygiene / GPT-6.1-Sol high', main='15567ee22a662208e8e6ad66b2439c10c08584cf',
+                  frozen_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                  repositories=repos(), arms=ARMS, stoplist=sorted(GLUE),
+                  derivation='Unlabelled native corpus inventory plus prior negative trials. Four conditional/narrative naming words only; retain test, with, without, not, never, no, has, can and domain vocabulary. then partially overlaps an earlier English probe; the full four-word probe and accessor repair have not been tested here.',
+                  accessor_rule=ACCESSOR.pattern,
+                  tokenizer='Re-extract every selected pinned full source with patched word splitter; English removal only w:/fn:. Accessor get/set prefix split only for syntactically matching accessor names. Existing get stopword remains; set remains. Never change call:/attr:/key:/ctl:/jsx:.',
+                  morphology='No plural folding: corpus contains dumps/dump, supports/support and contents/content; syntactic number/verb roles differ. Earlier folding displaced positives. Inventory alone provides no semantic justification.',
+                  weighting='Unchanged sublinear TF, unit L2, max_df per original background. Each experimental full-corpus DF separately rebuilt. No name-weight or label-based features.',
+                  profiles={'laboratory-default': {'k': 3, 'floor': .5, 'small_floor': .3, 'small_lines': 6, 'same_file': False},
+                            'standalone-balanced': {'k': 20, 'floor': .35, 'same_file': True}},
+                  ties='TfidfIndex native stable score sort; equal scores retain first posting encounter in frozen row/token order. Query excludes exact own position; ambiguous qualified IDs never silently resolved.',
+                  panel='Observed development/regression only: matching pins from public-gold, candidate-first-gold and scaled-v1, all negative/unresolved rows retained; scaled authority overrides labels. Other revisions reported outside selected scope; no merging revisions or enterprise. No fresh holdout.',
+                  discovery='512 lowest SHA256(pin:id:position) corpus positions per repository, union all changed-token positions capped at 512 by same hash, union uniquely resolved fixed-panel endpoints. Candidate generation from both full indexes, not gold rescoring. Same queries for every arm.',
+                  batches='Consecutive deterministic blocks of 8 query positions, independent of labels/families. Synthetic change batches, not authentic PR history. Each arm/profile charged normal cost even cached.',
+                  budget=dict(usd=.04, estimator='dry_lint.costs.Ledger, Sonnet 5.5 shared-operations, 150 estimated output tokens, 2.8 chars/token, normal list prices',
+                              physical_calls=0, physical_usd=0, shared_allowance_remaining_at_request=4.7889404,
+                              live_review='Coordinator only; no dedicated allowance assumed; missing answers unknown'),
+                  screen='One fixed screen of all four arms on T3, SDK as language/scope contrast regardless of result. No weight/threshold hunting or label-driven rerun.',
+                  decision='Any new/lost known positive, negative/unknown exposure and candidate/funding costs reported per profile and cohort. No production proposal without no known-positive losses, funded gain and independent useful-operation review; even a pass remains development evidence.',
+                  novel_queue='At most 8 source-verified promising actually funded exact unreviewed pairs plus <=4 matched independent controls; canonical unchanged Candidate.model_dump in reviewer packets, scores/variant/funding private sidecar. No queue if source proof or promising operation absent.',
+                  input_hashes={str(p.relative_to(OUT.parent)): sha(p.read_bytes()) for p in artifacts},
+                  source_code_hashes={str(p): sha(p.read_bytes()) for p in sorted(Path('src/dry_lint').rglob('*.py'))},
+                  cohort_hashes={str(p): sha(p.read_bytes()) for p in sorted(PANELS.glob('*/*.jsonl'))
+                                 if p.parent.name in ['public-gold', 'candidate-first-gold', 'scaled-v1'] and p.name not in ['proposals.jsonl']},
+                  authority_sha256=sha(AUTHORITY.read_bytes()), python=sys.version,
+                  thread_limit=2)
+    dump(FROZEN, frozen)
+    digest = sha(FROZEN.read_bytes())
+    (OUT.parent / 'EXPERIMENT.sha256').write_text(digest + '\n')
+    print('FROZEN', digest, flush=True)
+
+
+def load_panels(repo):
+    rows = []
+    decisions = {x['id']: x for x in lines(AUTHORITY)}
+    for package, names in {
+        'public-gold': ['accepted-public-gold.jsonl', 'contrast-controls.jsonl', 'unknown.jsonl', 'source-related.jsonl'],
+        'candidate-first-gold': ['accepted-public-gold.jsonl', 'disputed.jsonl'],
+        'scaled-v1': ['accepted-public-gold.jsonl', 'unresolved.jsonl'],
+    }.items():
+        for name in names:
+            for row in lines(PANELS / package / name):
+                if row['repository'] != repo['repository']:
+                    continue
+                row = dict(row, package=package, file=name)
+                if package == 'scaled-v1':
+                    decision = decisions[row['id']]
+                    row['label'] = decision['label'] or 'unknown'
+                    row['drifted'] = decision.get('drifted')
+                    row['authority'] = decision
+                rows.append(row)
+    return rows
+
+
+def resolve_side(side, fs, revision):
+    sid = side.get('extraction', {}).get('source_id') or side.get('id', side.get('source_id'))
+    candidates = [i for i, f in enumerate(fs) if f.qualname == sid]
+    pin = side.get('revision', side.get('source_revision'))
+    if pin and pin != revision:
+        return dict(id=sid, status='outside_selected_revision', revision=pin, matches=[])
+    # Partial excerpts do not become whole-function queries; only unambiguous IDs map.
+    if len(candidates) != 1:
+        return dict(id=sid, status='missing' if not candidates else 'ambiguous', matches=candidates)
+    actual = sha(fs[candidates[0]].code.encode())
+    expected = side.get('extraction', {}).get('source_sha256') or side.get('candidate_code_sha256')
+    if expected and actual != expected:
+        return dict(id=sid, status='source_digest_mismatch', matches=candidates, expected=expected, actual=actual)
+    return dict(id=sid, status='mapped', position=candidates[0],
+                exact_body=side.get('code') == fs[candidates[0]].code,
+                source_sha256=actual)
+
+
+def allowed(fs, q, j, same_file):
+    a, b = fs[q], fs[j]
+    return q != j and a.qualname != b.qualname and (same_file or a.path != b.path) and a.analysis.language == b.analysis.language
+
+
+def candidate(fs, q, j, score, arm, settings):
+    def hashed(f):
+        ex = PythonExtractor() if f.path.endswith('.py') else TypeScriptExtractor()
+        return f.model_copy(update={'hash': ex.structure_hash(f)})
+    policies = [applied for policy in settings.policies if (applied := policy.apply(fs[q], fs[j]))]
+    discard = next((p for p in policies if p.action == 'discard'), None)
+    return Candidate(new=hashed(fs[q]), existing=hashed(fs[j]), similarity=round(score, 3),
+                     comparer='tfidf:2' if arm == 'baseline' else 'lab-token-hygiene-' + arm + ':1',
+                     similarity_reusable=False, filtered=why_skipped(fs[q], fs[j], settings) or
+                     ('adopter policy ' + discard.name + ': ' + discard.reason if discard else None), policies=policies)
+
+
+def evaluate():
+    frozen_hash = sha(FROZEN.read_bytes())
+    assert frozen_hash == (OUT.parent / 'EXPERIMENT.sha256').read_text().strip()
+    spec = json.loads(FROZEN.read_text())
+    for name, digest in spec['input_hashes'].items():
+        assert sha((OUT.parent / name).read_bytes()) == digest, name
+    all_metrics = []
+    for repo in repos():
+        folder = OUT / slug(repo['repository'])
+        background = BenchBackground.decode(Path(repo['background_proof']['path']).read_bytes())
+        fs = [Function.model_validate(f) for f in unpack(folder / 'native-functions.json.gz')]
+        source = unpack(folder / 'source-files.json.gz')
+        panels = load_panels(repo)
+        mapped = []
+        for row in panels:
+            sides = {side: resolve_side(row[side], fs, repo['revision']) for side in ('new', 'existing')}
+            if row.get('revision') and row['revision'] != repo['revision']:
+                for v in sides.values():
+                    v['status'] = 'outside_selected_revision'
+            mapped.append(dict(id=row['id'], package=row['package'], file=row['file'], label=row['label'],
+                               drifted=row.get('drifted'), family_id=row.get('family_id'),
+                               lineage_id=row.get('lineage_id', row.get('family_lineage')), split=row.get('split'),
+                               label_scope=row.get('label_scope'), operation=row.get('narrow_operation'),
+                               source_roles=row.get('source_roles'), active_panel_eligible=row.get('active_panel_eligible'),
+                               new=sides['new'], existing=sides['existing']))
+        jsonl(folder / 'panel-mapping.jsonl', mapped)
+        indexes, token_lists, timings = {}, {}, []
+        for arm in ARMS:
+            start = time.perf_counter()
+            if arm == 'baseline':
+                token_lists[arm] = [d.tokens() for d in background.documents]
+                indexes[arm] = background.index()  # Required baseline adapter, original order/IDF.
+                tokenizer_seconds = 0.0
+            else:
+                new_fs, cov = extract(source, arm)
+                new_fs = align(new_fs, background)
+                assert [x.model_dump() for x in new_fs] == [x.model_dump() for x in fs]
+                for f, nf in zip(fs, new_fs, strict=True):
+                    assert Counter(t for t in f.tokens if not t.startswith(('w:', 'fn:'))) == Counter(t for t in nf.tokens if not t.startswith(('w:', 'fn:')))
+                tokenizer_seconds = time.perf_counter() - start
+                token_lists[arm] = [f.tokens for f in new_fs]
+                experimental = background.model_copy(update={
+                    'documents': [BackgroundDocument(id=d.id, source_sha256=d.source_sha256, counts=dict(Counter(nf.tokens)))
+                                  for d, nf in zip(background.documents, new_fs, strict=True)],
+                    'document_frequency': dict(Counter(t for f in new_fs for t in set(f.tokens))),
+                    'extraction_contract': 'lab-token-hygiene-' + arm + ':1:' + frozen_hash,
+                })
+                target = folder / ('experimental-' + arm + '.json.gz')
+                target.write_bytes(experimental.encode())
+                indexes[arm] = experimental.index()
+                dump(folder / ('experimental-' + arm + '.metadata.json'), dict(
+                    comparer='lab-token-hygiene-' + arm + ':1', similarity_reusable=False,
+                    frozen_sha256=frozen_hash, baseline=repo['background_proof'], candidate_sha256=sha(target.read_bytes()),
+                    changed_documents=sum(Counter(f.tokens) != d.counts for f, d in zip(new_fs, background.documents, strict=True)),
+                    removed_tokens=sorted(set(background.document_frequency)-set(experimental.document_frequency)),
+                    added_tokens=sorted(set(experimental.document_frequency)-set(background.document_frequency)),
+                    merged_accessor_targets=[dict(name=f.name, id=f.qualname, position=i, original=[t for t in fs[i].tokens if t.startswith('fn:')],
+                                                  replacement=[t for t in f.tokens if t.startswith('fn:')])
+                                             for i, f in enumerate(new_fs) if ACCESSOR.fullmatch(f.name)],
+                    parse_errors=sum(c['parse_error'] is not None for c in cov)))
+            elapsed = time.perf_counter()-start
+            timings.append(dict(arm=arm, tokenizer_seconds=tokenizer_seconds, index_seconds=elapsed-tokenizer_seconds,
+                                total_seconds=elapsed, rss_peak_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
+        changed = [i for i in range(len(fs)) if any(Counter(token_lists[a][i]) != Counter(token_lists['baseline'][i]) for a in ARMS[1:])]
+        order = lambda i: sha((repo['revision'] + ':' + fs[i].qualname + ':' + str(i)).encode())
+        queries = set(sorted(range(len(fs)), key=order)[:512]) | set(sorted(changed, key=order)[:512])
+        for row in mapped:
+            queries.update(row[s]['position'] for s in ['new', 'existing'] if row[s]['status'] == 'mapped')
+        queries = sorted(queries, key=order)
+        dump(folder / 'query-manifest.json', dict(positions=queries, ids=[fs[i].qualname for i in queries], changed_positions=changed,
+                                                batch_size=8, selection='preregistered hash sample + changed-token sample + mapped endpoints'))
+        settings = Settings(budget=Budget(usd=.04), patterns=[])
+        # Actual pinned adopter patterns/policies only if present; scope remains the frozen background's scope.
+        configs = json.loads((folder / 'pinned-configs.json').read_text())
+        from dry_lint.function_index import source_settings
+        adopter = source_settings({p: text.encode() for p, text in configs.items()})
+        settings.patterns = adopter.patterns
+        settings.policies = adopter.policies
+        selected, raw_ranks = {}, {}
+        query_audit = []
+        for arm in ARMS:
+            start = time.perf_counter()
+            idx = indexes[arm]
+            ranks = {}
+            for q in queries:
+                ranks[q] = idx.similar(token_lists[arm][q], exclude={q})
+            raw_ranks[arm] = ranks
+            seconds = time.perf_counter()-start
+            query_audit.append(dict(arm=arm, queries=len(queries), seconds=seconds,
+                                    per_query_seconds=seconds/len(queries),
+                                    rss_peak_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
+            for profile, policy in spec['profiles'].items():
+                for q in queries:
+                    floor = policy['small_floor'] if 'small_floor' in policy and fs[q].lines < policy['small_lines'] else policy['floor']
+                    near = [(j, score) for j, score in ranks[q] if score >= floor and allowed(fs, q, j, policy['same_file'])][:policy['k']]
+                    selected[(arm, profile, q)] = near
+            print('queried', repo['repository'], arm, len(queries), round(seconds, 2), 'seconds', flush=True)
+        # Hubness on exactly the same bounded sample; no label use or correction.
+        hubness = []
+        for arm in ARMS:
+            for profile in spec['profiles']:
+                counts = Counter(j for q in queries for j, _ in selected[(arm, profile, q)])
+                slots = sum(counts.values())
+                top_n = max(1, math.ceil(len(fs) * .01))
+                hubness.append(dict(arm=arm, profile=profile, slots=slots,
+                                    top1percent_slot_share=sum(n for _, n in counts.most_common(top_n))/slots if slots else 0,
+                                    hubs=[dict(position=j, id=fs[j].qualname, slots=n) for j, n in counts.most_common(25)]))
+        jsonl(folder / 'hubness.jsonl', hubness)
+        # Every candidate occurrence and synthetic-batch ledger, all costs recomputed per arm.
+        exposures, ledgers = [], []
+        funded_keys = defaultdict(set)
+        for arm in ARMS:
+            for profile in spec['profiles']:
+                for batch, offset in enumerate(range(0, len(queries), 8)):
+                    candidates, keys, occurrence = [], set(), []
+                    for q in queries[offset:offset+8]:
+                        for rank, (j, score) in enumerate(selected[(arm, profile, q)], 1):
+                            c = candidate(fs, q, j, score, arm, settings)
+                            occurrence.append(dict(q=q, j=j, score=score, rank=rank, key=c.key, filtered=c.filtered))
+                            if c.key not in keys and c.filtered is None:
+                                keys.add(c.key)
+                                candidates.append(c)
+                    # Fixed score/key order; native scores in model are rounded just as Detector.pair does.
+                    candidates.sort(key=lambda c: (-c.similarity, c.key))
+                    ledger = Ledger(settings)
+                    admitted = ledger.select(JUDGE, candidates)
+                    admitted_keys = {candidates[i].key for i in admitted}
+                    spent = estimate(JUDGE, [candidates[i] for i in admitted], settings) or 0
+                    assert spent <= .04 + 1e-12
+                    for item in occurrence:
+                        item.update(arm=arm, profile=profile, batch=batch, funded=item['key'] in admitted_keys,
+                                    repository=repo['repository'], new=fs[item['q']].qualname, existing=fs[item['j']].qualname)
+                        exposures.append(item)
+                        if item['funded']:
+                            funded_keys[(arm, profile)].add(item['key'])
+                    ledgers.append(dict(arm=arm, profile=profile, batch=batch, query_positions=queries[offset:offset+8],
+                                        synthetic=True, cap_usd=.04, candidates=len(candidates), funded=len(admitted),
+                                        estimated_usd=spent, cached_answers_still_charge=True,
+                                        funded_keys=sorted(admitted_keys), actual_provider_usd=0))
+        jsonl(folder / 'candidate-occurrences.jsonl', exposures)
+        jsonl(folder / 'stage-ledgers.jsonl', ledgers)
+        results = []
+        for row in mapped:
+            for arm in ARMS:
+                for profile, policy in spec['profiles'].items():
+                    result = {k:v for k,v in row.items() if k not in ('new', 'existing')}
+                    result.update(arm=arm, profile=profile, directions=[])
+                    for side, other in [('new', 'existing'), ('existing', 'new')]:
+                        a, b = row[side], row[other]
+                        d = dict(direction=side, query=a['id'], target=b['id'], mapping_query=a['status'], mapping_target=b['status'])
+                        if a['status'] != 'mapped' or b['status'] != 'mapped':
+                            d['first_loss'] = 'mapping'
+                        else:
+                            q, j = a['position'], b['position']
+                            ranklist = raw_ranks[arm][q]
+                            lookup = {p:(rank, s) for rank, (p,s) in enumerate(ranklist, 1)}
+                            raw_rank, score = lookup.get(j, (None, 0.0))
+                            allowedlist = [(p,s) for p,s in ranklist if allowed(fs,q,p,policy['same_file'])]
+                            arank = next((r for r,(p,s) in enumerate(allowedlist,1) if p == j),None)
+                            floor = policy['small_floor'] if 'small_floor' in policy and fs[q].lines < policy['small_lines'] else policy['floor']
+                            near = {p for p,_ in selected[(arm,profile,q)]}
+                            c = candidate(fs,q,j,score,arm,settings)
+                            funded = c.key in funded_keys[(arm,profile)]
+                            loss = ('self' if q == j else 'same_file' if not policy['same_file'] and fs[q].path == fs[j].path else
+                                    'language' if fs[q].analysis.language != fs[j].analysis.language else
+                                    'score_floor' if score < floor else 'rank' if j not in near else
+                                    'filter' if c.filtered else 'budget' if not funded else None)
+                            lv = indexes[arm].vector(token_lists[arm][q]);rv = indexes[arm].vector(token_lists[arm][j])
+                            shared = sorted(((t,w*rv[t]) for t,w in lv.items() if t in rv),key=lambda x:(-x[1],x[0]))
+                            d.update(query_position=q,target_position=j,raw_rank=raw_rank,allowed_rank=arank,
+                                     score=score,query_floor=floor,query_lines=fs[q].lines,target_lines=fs[j].lines,
+                                     same_file=fs[q].path==fs[j].path,topk=j in near,filtered=c.filtered,
+                                     funded=funded and j in near and c.filtered is None,pair_funded_in_any_batch=funded,
+                                     first_loss=loss,self=q==j,ties_at_target=sum(s==score for _,s in ranklist) if raw_rank else 0,
+                                     shared_family_contribution=dict(Counter({f:sum(m for t,m in shared if t.split(':')[0]==f) for f in ['w','fn','call','attr','key','ctl','jsx']})),
+                                     shared_top=shared[:12])
+                        result['directions'].append(d)
+                    result['retrieved'] = any(d.get('topk',False) and not d.get('filtered') for d in result['directions'])
+                    result['funded'] = any(d.get('funded',False) for d in result['directions'])
+                    results.append(result)
+        jsonl(folder / 'per-row-results.jsonl', results)
+        metrics = dict(repository=repo['repository'],revision=repo['revision'],documents=len(fs),queries=len(queries),
+                       indexing=timings,query_timings=query_audit,changes={},panels=[])
+        for arm in ARMS[1:]:
+            for profile in spec['profiles']:
+                base = {(e['q'],e['j']) for e in exposures if e['arm']=='baseline' and e['profile']==profile}
+                new = {(e['q'],e['j']) for e in exposures if e['arm']==arm and e['profile']==profile}
+                metrics['changes'][arm+':'+profile] = dict(new_exposures=len(new-base),lost_exposures=len(base-new),
+                    baseline_exposures=len(base),arm_exposures=len(new),
+                    new_funded_keys=sorted(funded_keys[(arm,profile)]-funded_keys[('baseline',profile)]),
+                    lost_funded_keys=sorted(funded_keys[('baseline',profile)]-funded_keys[(arm,profile)]))
+        for package in sorted({r['package'] for r in results}):
+            for arm in ARMS:
+                for profile in spec['profiles']:
+                    subset = [r for r in results if (r['package'],r['arm'],r['profile'])==(package,arm,profile)]
+                    metrics['panels'].append(dict(package=package,arm=arm,profile=profile,
+                        labels={label:dict(rows=sum(r['label']==label for r in subset),
+                                          mapped=sum(r['label']==label and all(d['mapping_query']=='mapped' and d['mapping_target']=='mapped' for d in r['directions']) for r in subset),
+                                          retrieved=sum(r['label']==label and r['retrieved'] for r in subset),
+                                          funded=sum(r['label']==label and r['funded'] for r in subset))
+                                for label in sorted({r['label'] for r in subset})}))
+        dump(folder / 'summary.json', metrics)
+        all_metrics.append(metrics)
+        print('finished',repo['repository'], flush=True)
+    dump(OUT / 'summary.json', all_metrics)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mode', choices=['prepare','freeze','evaluate'])
+    args = parser.parse_args()
+    {'prepare':prepare,'freeze':freeze,'evaluate':evaluate}[args.mode]()
