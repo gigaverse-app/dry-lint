@@ -13,7 +13,7 @@ from dry_lint.costs import Ledger, Spend, price, usage_cost
 from dry_lint.discovery import CampaignStore, reservation_cost
 from dry_lint.git import git
 from dry_lint.judges import make_escalation, make_judge
-from dry_lint.models import Candidate, Run, Verdict
+from dry_lint.models import Candidate, Run, Verdict, evidence
 from dry_lint.plugins import Judge, identity, load
 from dry_lint.report import Finding, JudgingSummary
 from dry_lint.settings import Settings
@@ -151,8 +151,12 @@ class Judging:
         proposed = [c for c in candidates if c.filtered is None and c.lane != "relative"]
         if self.judge is None:
             return [Finding(candidate=c) for c in proposed]
+        if any(c.residual for c in proposed) and not self.settings.discovery.residual_comparers:
+            raise ValueError("Residual candidates require explicit discovery.residual_comparers opt-in")
         if self.campaign is not None:
             return self.discover(proposed, source)
+        if self.settings.discovery.residual_comparers:
+            raise ValueError("Residual discovery requires native campaign admission")
         # The budget is for the whole pull request, not this run; known even when nothing is left to judge.
         self.ledger.spent = self.store.spent(source)
         self.pull_request = source is not None and source.pull_request is not None
@@ -236,6 +240,33 @@ class Judging:
         campaign.advance(self.settings, self.store.spent(source))
         self.ledger.spent = campaign.snapshot().usd
         self.pull_request = source is not None and source.pull_request is not None
+        protected = [c for c in candidates if not c.residual]
+        found = self.discovery_phase(protected, source)
+        if not self.settings.discovery.residual_comparers:
+            return found
+        suffix = [c for c in candidates if c.residual]
+        # Preserve the complete configured pass, including every exploration comparer. An unresolved baseline
+        # still bars exploration. Only unattempted deferred exploration can join the recovery queue.
+        blocked = [f for f in found if f.deferred and f.candidate.lane == "baseline"]
+        if blocked:
+            self.ledger.spend[identity(judge)].skipped += len(suffix)
+            return found + [
+                Finding(candidate=c, deferred=True, budget_deferred=all(f.budget_deferred for f in blocked))
+                for c in suffix
+            ]
+        attempted = {a.evidence for a in campaign.snapshot().attempts if a.revision == campaign.revision}
+        pending = [f.candidate for f in found if f.deferred and evidence(f.candidate, identity(judge)) not in attempted]
+        self.ledger.spend[identity(judge)].skipped -= len(pending)
+        recovered = self.discovery_phase(pending + suffix, source, residual=True)
+        replacements = {f.candidate.key: f for f in recovered}
+        return [replacements.get(f.candidate.key, f) for f in found] + [f for f in recovered if f.candidate.residual]
+
+    def discovery_phase(
+        self, candidates: list[Candidate], source: Run | None, *, residual: bool = False
+    ) -> list[Finding]:
+        """One ordered pass; both phases use the same reservations, settlements and exact verdict cache."""
+        assert self.campaign is not None and self.judge is not None
+        judge, campaign = self.judge, self.campaign
         spend = self.ledger.spend.setdefault(identity(judge), Spend(judge=identity(judge)))
         findings = []
         baseline_pending = False
@@ -250,7 +281,11 @@ class Judging:
             reservation = "budget" if baseline_pending and baseline_budget_only else None
             if not (baseline_pending and candidate.lane == "exploration"):
                 reservation = campaign.reserve(
-                    candidate, judge, self.settings, reservation_cost(judge, candidate, self.settings)
+                    candidate,
+                    judge,
+                    self.settings,
+                    reservation_cost(judge, candidate, self.settings),
+                    residual=residual,
                 )
             if not isinstance(reservation, int):
                 if candidate.lane == "baseline":
