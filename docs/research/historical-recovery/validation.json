@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "command": "python3 -I reproduce.py --check",
+  "standalone_full_json_matches": true,
+  "package_unchanged_by_run": true,
+  "credentials_passed": false,
+  "provider_calls": 0,
+  "project_imports": false,
+  "archived_python_files_parsed": 28,
+  "private_source_pins_checked": 126,
+  "privacy_scan": "known private source names/IDs/pins and secret-like prefixes absent; archive source inspection completed",
+  "negative_checks": [
+    {
+      "kind": "altered inputs/weight-projections.json",
+      "rejected": true
+    },
+    {
+      "kind": "altered recordings/source-recovery.json",
+      "rejected": true
+    },
+    {
+      "kind": "altered recordings/guarded.json",
+      "rejected": true
+    },
+    {
+      "kind": "disabled half-name weighting",
+      "rejected": true
+    },
+    {
+      "kind": "altered archived implementation",
+      "rejected": true
+    }
+  ],
+  "scope": "numeric projection and recorded aggregate reproduction, not private full-history replay",
+  "repository_tests": "Not run: no tracked or runtime edits. Public reproducer lint and clean-copy execution checked."
+}

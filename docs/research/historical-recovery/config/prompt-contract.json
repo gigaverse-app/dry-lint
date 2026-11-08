@@ -1,0 +1,10 @@
+{
+  "policy": "shared-operations",
+  "version": "dry-operations-v2",
+  "model": "claude-haiku-5-5",
+  "max_tokens": 2048,
+  "max_retries": 0,
+  "template_sha256": "d16aa74739f455d380262e448db3d28a68241c4af47c4f87549b2dc83df6474f",
+  "rendering": "dry_lint.judges.command.prompt(candidate, policy=\"shared-operations\")",
+  "status": "exact requests unavailable until full pinned Candidate source/context and changed-side orientation exist; template is not an exact rendered request"
+}

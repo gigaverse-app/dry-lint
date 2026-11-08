@@ -1,0 +1,48 @@
+[
+  {
+    "cohort": "frozen",
+    "comparator": "baseline",
+    "histories": 11,
+    "censored": 0,
+    "gained": {
+      "separate": 2,
+      "borderline": 6,
+      "duplicate": 7
+    },
+    "lost": {}
+  },
+  {
+    "cohort": "frozen",
+    "comparator": "balanced",
+    "histories": 11,
+    "censored": 0,
+    "gained": {},
+    "lost": {
+      "duplicate": 9,
+      "borderline": 1,
+      "separate": 9
+    }
+  },
+  {
+    "cohort": "regression",
+    "comparator": "baseline",
+    "histories": 2,
+    "censored": 0,
+    "gained": {
+      "unknown": 8
+    },
+    "lost": {}
+  },
+  {
+    "cohort": "regression",
+    "comparator": "balanced",
+    "histories": 2,
+    "censored": 0,
+    "gained": {
+      "unknown": 4
+    },
+    "lost": {
+      "unknown": 6
+    }
+  }
+]

@@ -1,0 +1,27 @@
+"""Separate exact question/source versions, stable pair IDs and unavailable owner families."""
+import json
+from pathlib import Path
+OUT=Path(__file__).resolve().parent
+results=json.loads((OUT/'results.json').read_text());rows=[]
+def collapse(r):
+    by={}
+    for q,x in r['reported_questions'].items():
+        by.setdefault(x['evidence'],dict(pair=x['pair'],label=x['label'],supplementary_label=x['supplementary_label'],questions=[]))['questions'].append(q)
+    return by
+for cohort in ['frozen','regression']:
+ for name in sorted({r['history'] for r in results if r['cohort']==cohort}):
+  arms={r['arm']:r for r in results if r['cohort']==cohort and r['history']==name}
+  for comparator in ['baseline','balanced']:
+   a,b=arms[comparator],arms['guarded'];av,bv=collapse(a),collapse(b)
+   gained={k:bv[k] for k in bv.keys()-av.keys()};lost={k:av[k] for k in av.keys()-bv.keys()}
+   rows.append(dict(cohort=cohort,history=name,comparison='guarded_vs_'+comparator,
+       complete=not a['censored'] and not b['censored'],
+       comparator_reported_exact_questions=len(a['reported_questions']),guard_reported_exact_questions=len(b['reported_questions']),
+       comparator_reported_source_versions=len(av),guard_reported_source_versions=len(bv),
+       comparator_unique_reported_pairs=len({r['pair'] for r in av.values()}),guard_unique_reported_pairs=len({r['pair'] for r in bv.values()}),
+       source_versions_gained=len(gained),source_versions_lost=len(lost),gained=gained,lost=lost,
+       comparator_replayed_usage_usd=a['observed_replayed_usage_usd_lower'],guard_replayed_usage_usd=b['observed_replayed_usage_usd_lower'],
+       guard_usage_upper=b['conservative_accounted_usd_upper'],
+       family_counts=None,family_reason='No reviewed proposed-owner/region family IDs in these production reference inputs. Pair IDs and source versions are not independent families.',
+       qualification='Observed prefix only; source-version differences are not established whole-history losses while censored' if a['censored'] or b['censored'] else 'Complete chronological candidate-capture replay'))
+(OUT/'per-PR-delta-counts.json').write_text(json.dumps(rows,indent=2,sort_keys=True)+'\n')

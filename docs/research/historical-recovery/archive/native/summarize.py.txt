@@ -1,0 +1,66 @@
+"""Build concise, phase-separated H04 tables from replay rows."""
+import collections
+import hashlib
+import json
+from pathlib import Path
+P=Path(__file__).resolve().parent
+rows=json.loads((P/'rows.json').read_text())
+s=json.loads((P/'summary.json').read_text())
+g=collections.defaultdict(collections.Counter)
+for run in s['runs']:
+    r=run['final']; c=g[(r['cohort'],r['prompt_policy'],r['budget'],r['policy'])]
+    c.update(calls=r['attempts'],usd=r['usd'],true=r['reported']['duplicate'],false=r['reported']['separate'],borderline=r['reported']['borderline'])
+text='''# H04 archived native replay
+
+Completed offline: six historical PRs / 27 revisions and four protected PRs / 18 revisions. 72 independent arms, 324 revision rows, no missing selected request keys. No provider constructed, external calls, CI changes or production13 work. Inputs and native source SHA-256 values are in hashes.json. Output manifest is artifact-hashes.json.
+
+## Phase and evidence boundaries
+
+The six historical PRs are previously evaluated development evidence. The four protected PRs were fresh families in the original study; they are previously evaluated evidence now, not a new H04 independent holdout. Development arm selection, prior evaluation, and any future freshly mined families remain separate. Shared-operations v2 was already selected before this replay. No new family was mined or evaluated here. No implicit preset equivalence: each arm reads its archived judge/template/report threshold and explicitly pins its output cap.
+
+Replay uses frozen historical diff candidate artifacts, never later source injection. Private Windows capture roots are unavailable; raw Python/TypeScript re-extraction is not verified. All per-revision run.base objects match recorded merge_base; the previous three-bad-base warning is retracted. Absent adopter configuration establishes default behavior or no adoption, never deployment. This is a native research-scheduler replay, not production CI ordering or the production judge cascade.
+
+## Comparison controls
+
+Within each cohort/prompt/budget, all scheduling arms use identical judge version, oriented template, maximum output, report threshold 0.6, source pools and native query-fair order. Historical: dry-v1:claude-sonnet-5-5, 8000 output tokens; protected: archived dry-v1 or shared-operations v2, 2048 output tokens. Historical template recovered by AST.literal_eval from git show 2056161f4616bf07e0baf04c6d447329989dd1e4, SHA-256 6f25e05044efe101f069b1783b191e27ec348956a3cb7da156c035c5b7c2416b; all 72 historical reference packet keys match. Protected reference keys use the separate archived reference-v1 concept template, regardless of evaluated judge prompt.
+
+Native evaluate owns chronological per-arm state. Fixed/refill are native historical policies; fixed/protected/refill are native protected policies. Protected reserves 20 of 40 calls and half the PR dollars; exploration is paced at one call/revision. Original limits: 10 calls/revision historical, 3 protected, 40/PR, $0.15/revision, $0.50/PR. Primary limits retain call limits but use $0.04/revision and $0.04/PR. No observed usage is substituted for admission reservations. Frozen prices: Sonnet $2/M input, $10/M output, creation 1.25x input, reads 0.10x input. Each cache observation's cost is recalculated and checked. Arm costs charge cached responses independently and are not summed as physical experimental spend.
+
+Cache misses raise and censor the entire affected revision plus downstream budget inferences; missing answers are never synthesized. Paid invalid observations preserve usage and remain unresolved. No selected arm hit a missing or failed answer. The frozen protected physical cache retains two paid failures (tested); this does not charge failures to arms that did not select them.
+
+## Aggregate final reports and charged usage
+
+Primary comparisons are within a prompt row group; original-limit runs are sensitivity/reproduction evidence.
+
+| Cohort | Prompt | Limits | Arm | Calls | USD | Positive reports | Negative reports | Borderline reports |
+|---|---|---|---|---:|---:|---:|---:|---:|
+'''
+for k,c in g.items():
+    text+='| '+' | '.join(k)+f" | {c['calls']} | {c['usd']:.6f} | {c['true']} | {c['false']} | {c['borderline']} |\n"
+text+='''
+At $0.04, historical's 8000-token output reserve alone is $0.08, so neither arm can admit any request. Protected's 2048-token output reserve alone is $0.02048; the protected exploration slice is $0.02, so no exploration request fits even before input. Legacy refill buys three extra calls without another final true report. All protected prompt arms retain the same two baseline positives. Across-PR aggregate usage may exceed $0.04 because each PR has its own ceiling.
+
+At original limits, historical refill has **3/7 final positive pairs**, **4/7 ever-reported positive pairs**, and **4/9 ever-reported positive evidence versions** (9 positive, 62 negative, 1 borderline historical reference versions). These denominators are distinct; revisions are not independent pairs. Fixed has zero in each. The protected four-family final pool has 11 positive pairs; its complete reviewed evidence pool has 11 positive, 103 negative and 7 borderline versions. Protected final counts are 2/11 fixed, 3/11 protected and 4/11 refill at original limits, versus 2/11 for all $0.04 arms. Pair counts are not evidence-version counts. Protected and refill gain one and two final positives respectively over fixed in each archived prompt; refill also reports one borderline. These are conditional reviewed-pool findings, not population precision/recall or evidence for promotion.
+
+## Exact per-PR losses
+
+rows.json includes every revision's known positive/negative/borderline and unknown counts, judged/reported counts, exact positive-pair first-loss stage, report gains/losses versus same-prompt fixed, token usage, spend and stop reason. Loss stages start at the frozen eligible pool: fixed retrieval exclusion, native scheduler/budget deferral, judge/threshold, or reported. It cannot diagnose extraction/floor/filter losses outside that pool without source re-extraction. Summary final rows follow; identifiers are immutable pair hashes.
+
+| PR | Prompt | Limits | Arm | Final positives/negatives/borderline in pool | First-stage counts |
+|---|---|---|---|---|---|
+'''
+for run in s['runs']:
+    r=run['final'];known=r['known']
+    text+=f"| {r['pr']} | {r['prompt_policy']} | {r['budget']} | {r['policy']} | {known['duplicate']}/{known['separate']}/{known['borderline']} | {json.dumps(r['first_stage_counts'],sort_keys=True)} |\n"
+text+='''
+## Validation and reproducibility
+
+See commands.txt and tests.log. Four offline tests verify exact equality of covered/reported sets, attempts and cost against 60 archived native results; zero admission for the 12 historical $0.04 arms; cache-miss censoring with provider construction forbidden; orientation-, changed-source- and changed-prompt-dependent keys at the same output cap; exact verdict judge/version assertions; protected prior fixed coverage at every revision; and paid failure usage retention. Independent audit remains a subsequent phase; no agents were used for this work.
+'''
+text+='\n## Available pinned object comparison\n\nobject-audit.json records read-only checks against the newly available bare exports. All 45 commit/tree objects resolved; 782 distinct captured candidate function spans matched the pinned blobs, with zero mismatches or missing files. Python and TypeScript remain un-re-extracted. Configuration blob hashes and exact capture/adopter-or-default field differences are retained per revision. Twenty-seven revisions match current default settings; seventeen differ only because captures explicitly choose Python while defaults select automatic extractors. One revision contains adopter configuration and differs in extractors and fail_at. None establishes that dry-lint was deployed. The archived scheduler continues to use its recorded research configuration.\n'
+for audit in json.loads((P/'object-audit.json').read_text()):
+    if audit.get('adopter_config_present'):
+        text+=f"\nAdopter configuration at {audit['pr']} / {audit['head']}: {json.dumps(audit['config_vs_capture_differences'],sort_keys=True)}.\n"
+(P/'report.md').write_text(text)
+(P/'aggregate.json').write_text(json.dumps([dict(cohort=k[0],prompt=k[1],limits=k[2],arm=k[3],**c) for k,c in g.items()],indent=2))
+(P/'artifact-hashes.json').write_text(json.dumps({str(p.relative_to(P)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(P.rglob('*')) if p.is_file() and p.name!='artifact-hashes.json'},indent=2))

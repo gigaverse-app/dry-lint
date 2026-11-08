@@ -1,0 +1,333 @@
+# PUBLICATION COPY: private lab roots/identities redacted; algorithm otherwise unchanged.
+#!/usr/bin/env python3
+"""Historical Recovery Experiments: production-capture PR-diff replay, offline only.
+No provider SDK, credentials, network, target imports or target execution.
+"""
+from collections import Counter, defaultdict
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import sys
+import time
+ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT/'src'))
+from dry_lint.costs import price, usage_cost
+from dry_lint.discovery import CampaignStore, reservation_cost
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
+from dry_lint.judging import Judging
+from dry_lint.models import Candidate, CandidatesFile, Run, Verdict, evidence
+from dry_lint.plugins import identity
+from dry_lint.report import Finding, Report
+from dry_lint.settings import Settings
+from dry_lint.store import DirectoryStore, Lookup, VerdictStore
+OUT=Path(__file__).resolve().parent
+INPUT=Path('/PRIVATE_LAB_ROOT/research-corpus/history-inputs/production-discovery')
+INPUT_HASHES={}
+def digest(value): return hashlib.sha256(json.dumps(value,sort_keys=True,ensure_ascii=True).encode()).hexdigest()
+def sha(data):return hashlib.sha256(data).hexdigest()
+def read(path):
+    data=path.read_bytes();INPUT_HASHES[str(path)]=sha(data);return json.loads(data)
+def dump(path,value):
+    path.parent.mkdir(parents=True,exist_ok=True);path.write_text(json.dumps(value,indent=2,sort_keys=True,allow_nan=False)+'\n')
+class CensoredReplay(RuntimeError): pass
+
+class OfflineJudge:
+    """Exact serialized historical request identity; no missing-answer fallback."""
+    subscription=False
+    strict_version=True
+    context=True
+    def __init__(self,settings,answers,template=None):
+        options=settings.judge.options()
+        assert settings.judge.use=='anthropic' and settings.escalate is None
+        self.model=options['model'];self.max_tokens=options['max_tokens']
+        self.prompt_policy=options['prompt_policy'];self.template=template or PROMPT_POLICIES[self.prompt_policy][1]
+        self.name='anthropic-operations' if self.prompt_policy!='concept' else 'anthropic'
+        self.version=PROMPT_POLICIES[self.prompt_policy][0]+':'+self.model
+        self.effort=options.get('effort')
+        if self.effort:self.version+=':'+self.effort
+        if self.max_tokens!=8000:self.version+=f':output={self.max_tokens}'
+        self.settings=settings;self.answers=answers;self.tokens={'input':0,'output':0}
+        self.events=[];self.current=None;self.bindings=None
+        # Full effective settings protect all subsequent arm-local store lookups.
+        self.settings_sha256=digest(settings.model_dump(mode='json'))
+        self.request_settings=dict(model=self.model,max_tokens=self.max_tokens,prompt_policy=self.prompt_policy,
+            template_sha256=sha(self.template.encode()),effort=self.effort,max_retries=options.get('max_retries',2))
+    def input_text(self,c):return prompt(c,policy=self.prompt_policy,template=self.template)
+    def key(self,c):return digest([self.version,self.input_text(c)])
+    def stamp(self,c):
+        return dict(question_key=self.key(c),evidence=evidence(c),context_hash=c.context_hash,
+            settings_sha256=self.settings_sha256,request_settings=self.request_settings,
+            prompt_sha256=sha(self.input_text(c).encode()),model=self.model,version=self.version)
+    def lookup(self,c):
+        key=self.key(c);row=self.answers.get(key)
+        if row is None:return None,'exact_request_missing'
+        if self.bindings is not None and (len(self.bindings.get(key,set()))!=1 or digest(self.stamp(c)) not in self.bindings.get(key,set())):
+            return None,'ambiguous_or_mismatched_captured_source_context_settings'
+        if row.get('key')!=key or row.get('pair')!=c.key:return None,'key_or_pair_mismatch'
+        if row.get('model')!=self.model:return None,'model_mismatch'
+        if row.get('request_settings') is not None and row['request_settings']!=self.request_settings:return None,'request_settings_mismatch'
+        if row.get('settings_sha256') is not None and row['settings_sha256']!=self.settings_sha256:return None,'settings_mismatch'
+        if row.get('evidence') is not None and row['evidence']!=evidence(c):return None,'exact_evidence_mismatch'
+        if row.get('prompt_sha256') is not None and row['prompt_sha256']!=sha(self.input_text(c).encode()):return None,'prompt_mismatch'
+        v=row.get('verdict')
+        if v and (v.get('judge')!=self.name or v.get('judge_version')!=self.version):return None,'judge_version_mismatch'
+        if not row.get('request_id'):return None,'request_provenance_missing'
+        for field in ['input_tokens','output_tokens','cache_creation_tokens','cache_read_tokens']:
+            if type(row.get(field,0)) is not int or row.get(field,0)<0:return None,'invalid_usage'
+        usage=self.usage(row);usd=usage_cost(usage,price(self,self.settings))
+        if 'usd' not in row or abs(usd-row['usd'])>1e-12:return None,'usage_price_mismatch'
+        return row,'exact_rendered_request_and_model_output_version_match'
+    @staticmethod
+    def usage(row):return dict(input=row['input_tokens'],output=row['output_tokens'],
+        cache_creation_input_tokens=row.get('cache_creation_tokens',0),cache_read_input_tokens=row.get('cache_read_tokens',0))
+    def judge(self,candidates,settings):
+        result=[]
+        for c in candidates:
+            row,reason=self.lookup(c)
+            event=dict(pair=c.key,question_key=self.key(c),reason=reason,stamp=self.stamp(c),cached_usage=None,
+                observed_usd=None,status='admitted_unknown',verdict=None)
+            self.events.append(event)
+            if row is None:raise CensoredReplay(reason)
+            event.update(status='observed_answer' if row.get('verdict') else 'observed_failure',
+                observed_usd=row['usd'],cached_usage=self.usage(row),verdict=row.get('verdict'),request_id=row['request_id'])
+            for k,v in self.usage(row).items():self.tokens[k]=self.tokens.get(k,0)+v
+            if row.get('error') or row.get('verdict') is None:raise CensoredReplay('recorded_paid_failure_no_automatic_retry')
+            result.append(Verdict.model_validate(row['verdict']))
+        return result
+
+class StrictStore(VerdictStore):
+    """Production records plus exact oriented prompt/full-settings sidecar on EVERY reuse."""
+    def __init__(self,path,judge):
+        super().__init__(DirectoryStore(path));self.path=Path(path);self.judge=judge;self.lookups=[]
+    def lookup(self,c,*args,**kwargs):
+        meta=self.path/(c.key+'.request.json')
+        expected=self.judge.stamp(c)
+        if not meta.exists() or json.loads(meta.read_text())!=expected:
+            answer=Lookup(None,'oriented request/context/settings identity missing or changed')
+        else:answer=super().lookup(c,*args,**kwargs)
+        self.lookups.append(dict(pair=c.key,question_key=self.judge.key(c),why=answer.why,
+            verdict=answer.verdict.model_dump(mode='json') if answer.verdict else None))
+        return answer
+    def remember(self,c,v,source=None):
+        record=super().remember(c,v,source)
+        dump(self.path/(c.key+'.request.json'),self.judge.stamp(c));return record
+
+class AuditCampaignStore(CampaignStore):
+    def __init__(self,path,run):
+        super().__init__(path,run);self.reservation_events=[]
+    def reserve(self,candidate,judge,settings,usd):
+        before=self.snapshot()
+        room=settings.budget.usd-before.usd
+        if candidate.lane=='exploration':
+            cap=settings.budget.usd*(1-settings.discovery.baseline_fraction)
+            room=min(room,cap-sum(a.usd for a in before.attempts if a.lane=='exploration'),before.credit)
+        token=super().reserve(candidate,judge,settings,usd)
+        self.reservation_events.append(dict(pair=candidate.key,question_key=judge.key(candidate),lane=candidate.lane,
+            requested_reservation_usd=usd,available_money_room=room,accounted_usd_before=before.usd,
+            credit_before=before.credit,admitted=token is not None,
+            decline='money_or_credit_bound' if token is None and usd>room+1e-12 else 'call_limit_or_duplicate_attempt' if token is None else None))
+        return token
+
+def guarded(candidates,depth=1):
+    """Fixed pre-outcome guard: baseline untouched; first unfiltered exploration per query."""
+    baseline=[c for c in candidates if c.lane=='baseline'];extras=[];counts=Counter()
+    keys={c.key for c in baseline}
+    for c in candidates:
+        if c.lane!='exploration' or c.filtered or c.key in keys:continue
+        if counts[c.new.qualname]>=depth:continue
+        counts[c.new.qualname]+=1;keys.add(c.key);extras.append(c)
+    assert [(c.key,evidence(c),c.similarity) for c in baseline]==[(c.key,evidence(c),c.similarity) for c in candidates if c.lane=='baseline']
+    return baseline+extras
+
+def load_histories():
+    histories=[];inventory=[]
+    for cohort in ['frozen','regression']:
+        base=INPUT/cohort
+        if not base.exists():inventory.append(dict(cohort=cohort,status='missing'));continue
+        answer_files=sorted((base/'answers').glob('*.json'));answers={}
+        for f in answer_files:
+            row=read(f);assert f.stem==row['key'];assert row['key'] not in answers;answers[row['key']]=row
+        refs={};supplement={}
+        for file,target in [('reference.json',refs),('supplementary.json',supplement)]:
+            if (base/file).exists():
+                for row in read(base/file):
+                    key=(row.get('pr'),row['evidence']);assert key not in target or target[key]['label']==row['label'];target[key]=row
+        for path in sorted((base/'captures').glob('*/manifest.json')):
+            m=read(path);history=m['history'];settings=Settings.model_validate(m['settings'])
+            assert abs(settings.budget.usd-.04)<1e-12 and settings.discovery.enabled
+            assert settings.judge.options()['model']=='claude-haiku-5-5'
+            steps=[]
+            files=sorted(path.parent.glob('[0-9]*.json'))
+            assert len(files)==len(history['commits'])
+            for i,f in enumerate(files):
+                snapshot=CandidatesFile.model_validate(read(f))
+                assert snapshot.run.head==history['commits'][i]
+                assert snapshot.run.repository==history['repository'] and snapshot.run.pull_request==history['number']
+                assert snapshot.run.base==history['base']
+                steps.append((snapshot,f))
+            archived={}
+            for arm in ['baseline','balanced']:
+                curves=base/arm/path.parent.name/'curves.json'
+                if curves.exists():archived[arm]=read(curves)
+            histories.append(dict(cohort=cohort,name=path.parent.name,history=history,settings=settings,steps=steps,
+                answers=answers,refs=refs,supplement=supplement,archived=archived,manifest_path=str(path)))
+        inventory.append(dict(cohort=cohort,status='available',histories=sum(h['cohort']==cohort for h in histories),
+            answer_files=len(answer_files),frozen_reference_rows=len(refs),supplementary_rows=len(supplement),
+            source_roots='recorded Windows paths unavailable locally; candidate-capture replay, not reacquisition from git',
+            acquisition='ordered PR diff-selected captures with immutable recorded base/head/tree; no independent blob authentication'))
+    # Reconstruct request provenance ONLY from the corresponding original cohort captures.
+    # Rendered prompts alone can omit unused context: reject colliding context/settings stamps.
+    for cohort in ['frozen','regression']:
+        bindings=defaultdict(set)
+        for h in histories:
+            if h['cohort']!=cohort:continue
+            judge=OfflineJudge(h['settings'],h['answers'])
+            for snapshot,path in h['steps']:
+                for candidate in snapshot.candidates:
+                    bindings[judge.key(candidate)].add(digest(judge.stamp(candidate)))
+        for h in histories:
+            if h['cohort']==cohort:h['bindings']=bindings
+    return histories,inventory
+
+def evaluate(h,arm,depth=1):
+    folder=OUT/'runs'/h['cohort']/h['name']/arm
+    if folder.exists():shutil.rmtree(folder)
+    settings=h['settings'];judge=OfflineJudge(settings,h['answers']);judge.bindings=h['bindings'];store=StrictStore(folder/'verdicts',judge)
+    curves=[];events=[];gold=[];censored=False;ever_reports={};baseline_orders=[]
+    for ordinal,(snapshot,path) in enumerate(h['steps']):
+        eligible=[c for c in snapshot.candidates if c.lane!='relative']
+        chosen=[c for c in eligible if c.lane=='baseline'] if arm=='baseline' else eligible if arm=='balanced' else guarded(eligible,depth)
+        campaign=AuditCampaignStore(folder/'ledger.sqlite3',snapshot.run)
+        start_events=len(judge.events);start_lookups=len(store.lookups)
+        failure=None;findings=[]
+        if not censored:
+            judging=Judging(settings,judge,None,store);judging.campaign=campaign
+            baseline_orders.append([c.key for c in campaign.order([c for c in chosen if c.lane=='baseline' and not c.filtered])])
+            try:findings=judging.findings(chosen,snapshot.run)
+            except CensoredReplay as error:
+                censored=True;failure=str(error)
+        step_events=judge.events[start_events:];lookups=store.lookups[start_lookups:]
+        evidence_answers={x['question_key']:x for x in step_events}
+        reused={x['question_key']:x for x in lookups if x['verdict'] is not None}
+        returned={f.candidate.key:f for f in findings}
+        selected_keys={c.key for c in chosen};by_key={c.key:c for c in chosen}
+        step_rows=[];reported=[]
+        reservation_events={x['question_key']:x for x in campaign.reservation_events}
+        for rank,c in enumerate(snapshot.candidates):
+            if c.lane=='relative':continue
+            question=judge.key(c);obs,availability=judge.lookup(c)
+            event=evidence_answers.get(question);cached=reused.get(question);f=returned.get(c.key)
+            verdict=f.verdict.model_dump(mode='json') if f and f.verdict else event['verdict'] if event and event['verdict'] else cached['verdict'] if cached else None
+            status='filtered' if c.filtered else 'guard_not_selected' if c.key not in selected_keys else 'known_answer' if verdict else 'admitted_unknown' if event else 'budget_or_pacing_deferred' if f and f.deferred else 'censored_unprocessed' if censored else 'not_selected'
+            reported_value=None if status in ['admitted_unknown','censored_unprocessed'] else bool(verdict and settings.duplicate_at(Verdict.model_validate(verdict),settings.report_at))
+            if reported_value:
+                reported.append(c.key);ever_reports[question]=dict(pair=c.key,evidence=evidence(c),head=snapshot.run.head,
+                    label=h['refs'].get((h['name'],evidence(c)),{}).get('label'),
+                    supplementary_label=h['supplement'].get((h['name'],evidence(c)),{}).get('label'))
+            r=dict(cohort=h['cohort'],history=h['name'],arm=arm,ordinal=ordinal,head=snapshot.run.head,base=snapshot.run.base,tree=snapshot.run.revision,
+                pair=c.key,evidence=evidence(c),question_key=question,new=c.new.qualname,existing=c.existing.qualname,
+                new_code_sha256=sha(c.new.code.encode()),existing_code_sha256=sha(c.existing.code.encode()),context_hash=c.context_hash,
+                lane=c.lane,capture_rank=rank,similarity=c.similarity,filtered=c.filtered,
+                settings_sha256=judge.settings_sha256,captured_changed=snapshot.changed,captured_functions=snapshot.functions,
+                in_arm_pool=c.key in selected_keys,status=status,exact_observation_availability=availability,
+                reservation_event=reservation_events.get(question),budget_admitted=reservation_events.get(question,{}).get('admitted'),
+                observation_funded=bool(event and event['status']=='observed_answer'),
+                external_answer_compatible=obs is not None,reservation_estimate_usd=reservation_cost(judge,c,settings),
+                recorded_usage_usd=event.get('observed_usd') if event else None,recorded_usage=event.get('cached_usage') if event else None,
+                arm_store_cached=bool(cached),verdict=verdict,reported=reported_value,
+                frozen_label=h['refs'].get((h['name'],evidence(c)),{}).get('label'),
+                supplementary_label=h['supplement'].get((h['name'],evidence(c)),{}).get('label'))
+            step_rows.append(r);events.append(r)
+        state=campaign.snapshot();observed=sum(x['observed_usd'] or 0 for x in judge.events)
+        curve=dict(ordinal=ordinal,head=snapshot.run.head,base=snapshot.run.base,tree=snapshot.run.revision,
+            capture_sha256=INPUT_HASHES[str(path)],changed_functions=snapshot.changed,indexed_functions=snapshot.functions,
+            captured_candidate_occurrences=len(eligible),arm_candidate_occurrences=len(chosen),
+            unfiltered_arm_candidates=sum(c.filtered is None for c in chosen),known_verdicts=sum(r['verdict'] is not None for r in step_rows),
+            compatible_external_observations=sum(r['external_answer_compatible'] for r in step_rows),
+            admitted_observed_answers=sum(e['status']=='observed_answer' for e in step_events),
+            admitted_unknown=sum(e['status']=='admitted_unknown' for e in step_events),
+            arm_local_cache_hits=sum(r['arm_store_cached'] for r in step_rows),
+            reported=sorted(set(reported)),censored=censored,censor_reason=failure,
+            observed_replayed_usage_usd_lower=observed,conservative_accounted_usd_upper=state.usd,
+            hypothetical_attempts=len(state.attempts),physical_new_provider_calls=0,reservation_events=campaign.reservation_events,
+            censored_explanation='at first admitted missing/mismatched observation, production reservation remains upper bound; no subsequent admissions inferred' if censored else None)
+        curves.append(curve)
+        # Reference denominator is frozen, source-bound and independent of supplementary additions.
+        gold_by_evidence={r['evidence']:r for r in step_rows}
+        for (pr,ev),ref in h['refs'].items():
+            if pr!=h['name']:continue
+            row=gold_by_evidence.get(ev)
+            first_loss='outside_captured_diff_pool_or_different_source_version' if row is None else (
+                'structural_filter' if row['filtered'] else 'recovery_guard_or_baseline_pool' if not row['in_arm_pool'] else
+                'unknown_cached_answer_or_censored_budget' if row['status'] in ['admitted_unknown','censored_unprocessed'] else
+                'budget_or_pacing' if row['status']=='budget_or_pacing_deferred' else
+                'judge_rejected_or_below_threshold' if row['verdict'] and not row['reported'] else
+                'reported' if row['reported'] else row['status'])
+            gold.append(dict(history=h['name'],cohort=h['cohort'],arm=arm,ordinal=ordinal,head=snapshot.run.head,
+                evidence=ev,label=ref['label'],pair=ref.get('key',ref.get('pair')),first_loss=first_loss,
+                unavailable_preproposal_details='scope/extraction/touched/floor/rank cannot be separated from candidate-only captures' if row is None else None))
+    folder.mkdir(parents=True,exist_ok=True)
+    dump(folder/'settings.json',dict(effective=settings.model_dump(mode='json'),settings_sha256=judge.settings_sha256,
+        request_settings=judge.request_settings,full_original_provider_settings_hash='not stored by archives; effective request contract reconstructed from capture settings, output-version and exact rendered request key'))
+    dump(folder/'curves.json',curves);dump(folder/'baseline-order.json',baseline_orders)
+    (folder/'candidate-stages.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in events))
+    (folder/'gold-first-loss.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in gold))
+    dump(folder/'observations.json',judge.events)
+    report_classification=Counter(r['label'] or ('supplementary_'+r['supplementary_label'] if r['supplementary_label'] else 'unknown') for r in ever_reports.values())
+    archived=h['archived'].get('baseline' if arm=='baseline' else 'balanced' if arm=='balanced' else '')
+    comparison=None
+    if archived:
+        comparison=dict(steps=len(archived),reports_equal_all_steps=all(set(c['reported'])==set(a['reported']) for c,a in zip(curves,archived,strict=True)),
+            costs_equal_all_steps=all(abs(c['conservative_accounted_usd_upper']-a['usd'])<1e-12 for c,a in zip(curves,archived,strict=True)),
+            archived_last_usd=archived[-1]['usd'],archived_current_reports=archived[-1]['reported'])
+    final=dict(cohort=h['cohort'],history=h['name'],arm=arm,steps=len(curves),censored=censored,
+        first_censored_ordinal=next((c['ordinal'] for c in curves if c['censored']),None),
+        candidate_stage_counts=dict(Counter(r['status'] for r in events)),
+        observed_replayed_usage_usd_lower=curves[-1]['observed_replayed_usage_usd_lower'],
+        conservative_accounted_usd_upper=curves[-1]['conservative_accounted_usd_upper'],
+        calls=len(judge.events),arm_local_cache_hit_occurrences=sum(c['arm_local_cache_hits'] for c in curves),
+        unique_observed_reports=len(ever_reports),report_classification=dict(report_classification),
+        reported_questions=ever_reports,native_archived_comparison=comparison,
+        final_current_reports=curves[-1]['reported'],frozen_reference_denominator=sum(pr==h['name'] for pr,ev in h['refs']))
+    dump(folder/'summary.json',final)
+    return final
+
+def main():
+    started=time.monotonic();histories,inventory=load_histories()
+    dump(OUT/'input-inventory.json',dict(input_root=str(INPUT),cohorts=inventory,
+        required_fields=dict(history=['repository','number','base','ordered commits'],capture=['run repository/PR/base/head/tree','changed/functions','ordered candidates with full source/context/hash/lane/filter'],
+            cache=['exact oriented rendered-question key','model/output/prompt version','pair','verdict or explicit failure','provider request_id','usage tokens and usd'],
+            reference=['pr','exact source/context evidence','label; supplementary separately']),
+        excluded_duplicate_root='historical-fixtures: never loaded',histories=len(histories)))
+    assert len(histories)==13,'production fresh11 + regression2 required; fail closed on missing cohort'
+    results=[]
+    for h in histories:
+        for arm in ['baseline','balanced','guarded']:
+            result=evaluate(h,arm);results.append(result)
+            print(h['cohort'],h['name'],arm,'censored',result['censored'],'observed',result['observed_replayed_usage_usd_lower'],flush=True)
+    deltas=[]
+    for h in histories:
+        rs={r['arm']:r for r in results if r['cohort']==h['cohort'] and r['history']==h['name']}
+        baseline=rs['baseline'];guard=rs['guarded'];a=baseline['reported_questions'];b=guard['reported_questions']
+        gained={k:b[k] for k in b.keys()-a.keys()};lost={k:a[k] for k in a.keys()-b.keys()}
+        deltas.append(dict(cohort=h['cohort'],history=h['name'],comparison='guarded_vs_baseline',
+            censoring_prevents_complete_recall_comparison=baseline['censored'] or guard['censored'],
+            observed_reports_gained=gained,observed_reports_lost=lost,
+            gained_classification=dict(Counter(v['label'] or 'unknown' for v in gained.values())),
+            lost_classification=dict(Counter(v['label'] or 'unknown' for v in lost.values()))))
+    dump(OUT/'paired-deltas.json',deltas)
+    dump(OUT/'results.json',results)
+    dump(OUT/'input-hashes.json',INPUT_HASHES)
+    dump(OUT/'protocol.json',dict(title='Historical Recovery Experiments',experiment='H02',budget_per_PR=.04,
+        arms=['baseline-only','native balanced reproduction','guarded recovery: first original unfiltered exploration per changed query/revision'],
+        reserve_fraction=.625,baseline_reserve_usd=.025,exploration_credit_per_tree=.006,
+        variant_frozen_before_outcomes=True,no_name_weight_reconstruction=True,no_gold_used_in_selection=True,
+        exact_cache='external key = sha256(JSON [judge_version, exact oriented rendered prompt]); full effective settings/context/orientation sidecar required every arm-local lookup',
+        missing_policy='RuntimeError censorship after production reservation; finally keeps unknown reservation upper; branch stops; never physical spending or proven budget exhaustion',
+        acquisition='recorded chronological PR-diff candidate captures; not whole-tree ranking or independent raw-git reacquisition',
+        limits=['full original provider-settings hashes absent; request-affecting contract reconstructed from capture judge config + exact prompt/output version; disclosed per arm',
+            'source repositories recorded Windows roots absent; captured diffs not independently authenticated','regression source-bound reference file unavailable: reports classified unknown unless supplied',
+            'reference rows absent at revision cannot distinguish extraction/scope/touch/floor/rank from candidate-only packets'],
+        runtime_seconds=time.monotonic()-started))
+if __name__=='__main__':main()

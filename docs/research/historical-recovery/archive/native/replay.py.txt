@@ -1,0 +1,206 @@
+# PUBLICATION COPY: private lab roots/identities redacted; algorithm otherwise unchanged.
+"""H04: offline native scheduling, with exact frozen requests and fail-closed cache misses."""
+import ast
+import contextlib
+import hashlib
+import io
+import json
+import subprocess
+import sys
+from collections import Counter
+from pathlib import Path
+from types import SimpleNamespace
+
+REPO = Path(__file__).resolve().parents[2]
+sys.path[:0] = [str(REPO / 'scripts'), str(REPO / 'src')]
+import judge_history as native
+from replay_coverage import ReplayInput, pool
+from dry_lint.judges.command import prompt
+from dry_lint.settings import Settings
+
+OUT = Path(__file__).resolve().parent
+INPUT = Path('/PRIVATE_LAB_ROOT/research-corpus/history-inputs')
+SHA = '6f25e05044efe101f069b1783b191e27ec348956a3cb7da156c035c5b7c2416b'
+
+
+def recover():
+    source = subprocess.check_output(['git', 'show', '2056161f4616bf07e0baf04c6d447329989dd1e4:src/dry_lint/judges/command.py'], cwd=REPO, text=True)
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'PROMPT' for t in node.targets):
+            value = ast.literal_eval(node.value)
+            if hashlib.sha256(value.encode()).hexdigest() == SHA:
+                return value
+    raise ValueError('Historical template hash mismatch')
+
+
+class MissingAnswer(Exception):
+    pass
+
+
+class FrozenAnswers:
+    """No client, credentials, provider or fallback. A missing observation halts the arm."""
+    def __init__(self, directory, config, cap):
+        self.directory, self.limit = directory, 0
+        self.template = config['prompt_template']
+        self.judge = SimpleNamespace(version=config['judge'], prompt_policy=config['prompt_policy'], model=native.MODEL, max_tokens=cap)
+        self.settings = Settings(report_at=config['report_at'])
+        self.observations = {}
+        for path in sorted(directory.glob('*.json')):
+            observation = native.Observation.model_validate_json(path.read_text())
+            assert path.stem == observation.key
+            assert observation.model == native.MODEL
+            expected = (observation.input_tokens * 2 + observation.output_tokens * 10 + observation.cache_creation_tokens * 2.5 + observation.cache_read_tokens * .2) / 1e6
+            assert abs(expected - observation.usd) < 1e-10
+            self.observations[path.stem] = observation
+        self.requested = []
+
+    def key(self, candidate):
+        return native.answer_key(candidate, self.judge.version, self.judge.prompt_policy, template=self.template)
+
+    def reserve(self, candidate):
+        size = len(prompt(candidate, template=self.template).encode()) + 1000
+        return (size * 2 * 1.25 + self.judge.max_tokens * 10) / 1e6
+
+    def observe(self, candidate):
+        key = self.key(candidate)
+        self.requested.append(key)
+        if key not in self.observations:
+            raise MissingAnswer(key)
+        result = self.observations[key]
+        assert result.pair == candidate.key
+        if result.verdict is not None:
+            assert result.verdict.judge_version == self.judge.version
+            assert result.verdict.judge == ('anthropic' if self.judge.prompt_policy == 'concept' else 'anthropic-operations')
+        return result
+
+
+def evaluate_protected(payload, answers, **kwargs):
+    return native.evaluate(payload, answers, 'protected', **kwargs)
+
+
+def run_arm(payload, answers, policy, limits):
+    # Re-run a deterministic prefix on a miss to retain complete prior revisions without fabricating state.
+    kwargs = dict(per_run=limits['per_run'], total=40, run_usd=limits['usd'], total_usd=limits['total_usd'])
+    if policy == 'protected':
+        kwargs['protection'] = native.Protection(baseline_calls=20, baseline_usd=limits['total_usd']/2)
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = native.evaluate(payload, answers, policy, **kwargs)
+        result['censored'] = None
+    except MissingAnswer as error:
+        missing = str(error)
+        for count in range(len(payload.steps)):
+            try:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    result = native.evaluate(payload.model_copy(update={'steps': payload.steps[:count+1]}), answers, policy, **kwargs)
+            except MissingAnswer:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    result = native.evaluate(payload.model_copy(update={'steps': payload.steps[:count]}), answers, policy, **kwargs)
+                result['censored'] = {'revision': count+1, 'missing_answer': missing, 'remaining_revisions': len(payload.steps)-count, 'downstream_budget': 'unknown'}
+                break
+    result['prompt_template'] = answers.template
+    return result
+
+
+def metrics(payload, result, answers, labels, reference_key):
+    rows = []
+    ever = set()
+    for ordinal, (step, curve) in enumerate(zip(payload.steps, result['curves']), 1):
+        candidates, ranks = pool(step)
+        sets = {label: {k for k,c in candidates.items() if labels.get(reference_key(c)) == label} for label in ['duplicate','separate','borderline']}
+        covered, reports = set(curve['covered']), set(curve['reported'])
+        ever |= reports & sets['duplicate']
+        losses = {}
+        for k in sets['duplicate']:
+            if 'baseline' not in ranks[k] and result['policy'] == 'fixed':
+                stage = 'native_fixed_retrieval'
+            elif k not in covered:
+                stage = 'scheduler_or_budget:' + curve['stopped_reason']
+            elif k not in reports:
+                stage = 'judge_or_threshold'
+            else:
+                stage = 'reported'
+            losses[k] = stage
+        selected = curve['selected']
+        rows.append(dict(revision=ordinal, head=curve['head'], pool=len(candidates), known={label:len(keys) for label,keys in sets.items()}, unknown=len(candidates)-sum(map(len,sets.values())), first_stage_by_positive_pair=losses, first_stage_counts=dict(Counter(losses.values())), judged={label:len(keys & covered) for label,keys in sets.items()}, reported={label:len(keys & reports) for label,keys in sets.items()}, reported_pairs=sorted(reports), ever_positive_reports=sorted(ever), attempts=curve['cumulative_attempts'], usd=curve['cumulative_usd'], stopped_reason=curve['stopped_reason'], paid_failures=sum(answers.observations[s['answer']].verdict is None for s in selected), input_tokens=sum(answers.observations[s['answer']].input_tokens for s in selected), output_tokens=sum(answers.observations[s['answer']].output_tokens for s in selected)))
+    return rows
+
+
+def main():
+    template = recover()
+    (OUT/'historical-template.txt').write_text(template)
+    summary, allrows, hashes = [], [], {}
+    packet_keys = set()
+    for cohort in ['historical-trial','protected-trial']:
+        root = INPUT/cohort
+        historical = cohort == 'historical-trial'
+        labels_raw = json.loads((root/('reference/labels.json' if historical else 'fresh-labels.json')).read_text())
+        labels = {r['answer' if historical else 'evidence']:r['label'] for r in labels_raw}
+        cap = 8000 if historical else 2048
+        policies = ['concept'] if historical else ['concept','shared-operations']
+        for path in sorted((root/'captures').glob('*/replay.json')):
+            payload = ReplayInput.model_validate_json(path.read_text())
+            manifest = json.loads((path.parent/'manifest.json').read_text())
+            assert [r['head'] for r in manifest['revisions']] == manifest['history']['commits']
+            for step, revision in zip(payload.steps, manifest['revisions'], strict=True):
+                history = manifest['history']
+                assert step.run_id == f"{history['repository']}#{history['number']}/{revision['head']}"
+                assert all(source.run.base == revision['merge_base'] and source.run.head == revision['head'] and source.run.repository == history['repository'] and source.run.pull_request == history['number'] for source in step.sources.values())
+            for prompt_policy in policies:
+                original_path = root/('live' if historical else 'fresh-v2')/(path.parent.name+('-fixed.json' if historical else f'-{prompt_policy}-fixed.json'))
+                if not original_path.exists():
+                    original_path = root/'fresh'/f'{path.parent.name}-{prompt_policy}-fixed.json'
+                config = json.loads(original_path.read_text())
+                if historical:
+                    config.update(prompt_template=template,prompt_policy='concept')
+                answers = FrozenAnswers(root/('live/answers' if historical else 'answers'), config, cap)
+                reference_template = json.loads((root/'prompt-v1-snapshot.json').read_text())['concept'][1] if not historical else template
+                refkey = answers.key if historical else lambda c: native.answer_key(c,'reference-v1',template=reference_template)
+                for step in payload.steps:
+                    packet_keys.update(refkey(c) for c in pool(step)[0].values()) if historical else None
+                for budget in ['primary004','original']:
+                    limits = dict(per_run=10 if historical else 3,usd=.04 if budget=='primary004' else .15,total_usd=.04 if budget=='primary004' else .50)
+                    results = {}
+                    for policy in (['fixed','refill'] if historical else ['fixed','protected','refill']):
+                        result = run_arm(payload, answers, policy, limits)
+                        name = f'{cohort}-{path.parent.name}-{prompt_policy}-{budget}-{policy}'
+                        (OUT/'runs').mkdir(exist_ok=True)
+                        (OUT/'runs'/f'{name}.json').write_text(json.dumps(result,indent=2))
+                        rows = metrics(payload,result,answers,labels,refkey)
+                        for row in rows:
+                            row.update(cohort=cohort,pr=path.parent.name,prompt_policy=prompt_policy,budget=budget,policy=policy)
+                        allrows.extend(rows)
+                        entry = dict(name=name,revisions=len(payload.steps),completed_revisions=len(rows),censored=result['censored'],final=rows[-1] if rows else None)
+                        summary.append(entry)
+                        results[policy] = rows
+                    fixed = results['fixed']
+                    for policy,rows in results.items():
+                        for i,row in enumerate(rows):
+                            row['report_gains_vs_fixed'] = sorted(set(row['reported_pairs'])-set(fixed[i]['reported_pairs'])) if i<len(fixed) else None
+                            row['report_losses_vs_fixed'] = sorted(set(fixed[i]['reported_pairs'])-set(row['reported_pairs'])) if i<len(fixed) else None
+    historical_labels = json.loads((INPUT/'historical-trial/reference/labels.json').read_text())
+    assert len(historical_labels)==72 and all(r['answer'] in packet_keys for r in historical_labels)
+    consumed = set()
+    for cohort in ['historical-trial','protected-trial']:
+        root = INPUT/cohort
+        consumed.update((root/'captures').glob('*/replay.json'))
+        consumed.update((root/'captures').glob('*/manifest.json'))
+        if cohort == 'historical-trial':
+            consumed.add(root/'reference/labels.json')
+            consumed.update((root/'live').glob('*.json'))
+            consumed.update((root/'live/answers').glob('*.json'))
+        else:
+            consumed.update([root/'fresh-labels.json',root/'prompt-v1-snapshot.json'])
+            consumed.update((root/'answers').glob('*.json'))
+            for folder in ['fresh','fresh-v2','fresh-budget004','fresh-v2-budget004']:
+                consumed.update(p for p in (root/folder).glob('*.json') if not p.name.endswith('-packets.json'))
+    consumed.update(REPO/'scripts'/name for name in ['judge_history.py','replay_coverage.py'])
+    consumed.update(Path(m.__file__) for m in list(sys.modules.values()) if getattr(m,'__file__',None) and str(REPO/'src/dry_lint') in str(m.__file__) and str(m.__file__).endswith('.py'))
+    for p in sorted(consumed):
+        hashes[str(p)] = hashlib.sha256(p.read_bytes()).hexdigest()
+    (OUT/'rows.json').write_text(json.dumps(allrows,indent=2))
+    (OUT/'summary.json').write_text(json.dumps(dict(denominators={'historical':{'positive_pairs':7,'positive_evidence_versions':9,'negative_evidence_versions':62,'borderline_evidence_versions':1,'original_refill_final_positive_pairs':3,'original_refill_ever_positive_pairs':4,'original_refill_ever_positive_evidence_versions':4},'protected':{'positive_pairs':11,'positive_evidence_versions':11,'negative_evidence_versions':103,'borderline_evidence_versions':7}},historical_reference_keys_matched=72,template_sha256=SHA,price_table={native.MODEL:[2,10]},runs=summary),indent=2))
+    (OUT/'hashes.json').write_text(json.dumps(hashes,indent=2))
+    print('Completed',len(summary),'arms;',len(allrows),'revision rows;',sum(s['censored'] is not None for s in summary),'censored arms')
+
+if __name__=='__main__': main()
