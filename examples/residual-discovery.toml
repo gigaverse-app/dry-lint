@@ -1,0 +1,13 @@
+# Experimental native campaign policy, pending measured usefulness review.
+# For an existing configuration, add only residual_comparers to its discovery table.
+# Keep its existing preset, comparers, thresholds, budget and judge settings.
+preset = "balanced"
+
+[discovery]
+residual_comparers = [
+  { use = "tfidf", neighbours = 100, min_similarity = 0, min_similarity_small = 0 },
+]
+
+# No extra allowance: this is the existing total campaign cap.
+[budget]
+usd = 0.04

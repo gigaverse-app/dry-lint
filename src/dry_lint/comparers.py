@@ -12,6 +12,11 @@ from dry_lint.index import TfidfIndex
 from dry_lint.models import Function
 
 
+def sparse_cosine(left: dict[str, float], right: dict[str, float]) -> float:
+    """Cosine of two L2-normalised sparse vectors: their dot product."""
+    return sum(weight * right.get(token, 0.0) for token, weight in left.items())
+
+
 class TfidfComparer:
     name = "tfidf"
     version = "2"
@@ -52,8 +57,7 @@ class TfidfComparer:
         return found
 
     def similarity(self, a: Function, b: Function) -> float:
-        left, right = self.tfidf.vector(a.tokens), self.tfidf.vector(b.tokens)
-        return sum(weight * right.get(token, 0.0) for token, weight in left.items())
+        return sparse_cosine(self.tfidf.vector(a.tokens), self.tfidf.vector(b.tokens))
 
     def shared(self, a: Function, b: Function, limit: int = 12) -> list[str]:
         """The tokens that contribute most to the pair's similarity, for `dry-lint explain`."""

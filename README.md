@@ -183,7 +183,8 @@ plugin slots: how functions are found, how they are compared, how a pair is judg
    **comparer** proposes each one's nearest look-alikes in other files; the built-in one is a TF-IDF fingerprint
    of what a function *does*: the names it calls, the attributes it touches, the words in its identifiers, its
    loops, `try` blocks and `await`s. One shared policy consumes language-adapter facts: Python special methods, recognized forwarding wrappers,
-   declared patterns and inline `distinct-from`. Inheritance or a call alone does not exclude repeated logic.
+   a function that calls the other (resolved within the file), declared patterns and inline `distinct-from`.
+   Inheritance alone does not exclude repeated logic.
 2. **Judge** (separate and pluggable). [Jev](docs/judges.md) answers three typed questions per pair in about 0.3 s:
    - Is it one concept?
    - Do the two already behave differently?

@@ -1,0 +1,515 @@
+{
+  "artifact": {
+    "bytes": 98551390,
+    "files": 3865,
+    "sha256": "a870c87a65556d8bf633b7b41abcc80949017ab1b339c2c3e9f9d4ef1c187455",
+    "url": "https://github.com/gigaverse-app/dry-lint-goldens/releases/download/recall-enablement-v1-20261107/recall-enablement-evidence.tar.gz"
+  },
+  "baseline_commit": "b0abdf52706a2b715ecc7f56bc1de2ea8ee56781",
+  "cohorts": {
+    "historical": {
+      "balanced": {
+        "accounted_usd": 0.0428716,
+        "pairs": 8,
+        "report_versions": 10
+      },
+      "blocks": {
+        "accounted_usd": 0.0445097,
+        "pairs": 8,
+        "report_versions": 11
+      },
+      "earlier_pairs": 1,
+      "lost_pairs": 0,
+      "new_pairs": 0,
+      "prs": 6,
+      "revisions": 27
+    },
+    "production": {
+      "balanced": {
+        "accounted_usd": 0.0639207,
+        "pairs": 18,
+        "report_versions": 21
+      },
+      "blocks": {
+        "accounted_usd": 0.0632286,
+        "pairs": 19,
+        "report_versions": 22
+      },
+      "earlier_pairs": 0,
+      "lost_pairs": 0,
+      "new_pairs": 1,
+      "prs": 4,
+      "revisions": 20
+    }
+  },
+  "comparison": "native chronological baseline vs operation-block append; separate cold .04 PR ledgers",
+  "cpu_parity": {
+    "all_records_exact": true,
+    "complete_gold_contexts": 1,
+    "gold_queries": 2,
+    "identity_mapping_between_arms": false,
+    "live_inference": 0,
+    "provider_calls": 0,
+    "research_reference_identity_mapping": "Only historical cpu-tail-rrf:2-raw-rank-k60-top20 name mapped for comparison to predecessor research, never between frozen baseline and optimization.",
+    "scope": "Selected66 + shared5 in four full public backgrounds, plus two small T3 gold pilot inputs. No 30-background sweep.",
+    "selected_admissions": 207,
+    "selected_queries": 66,
+    "selected_rows": 66,
+    "shared_admissions": 27,
+    "shared_campaigns": 5
+  },
+  "cpu_performance": [
+    {
+      "arms": {
+        "baseline": {
+          "cold_peak_rss_mib": 589.74609375,
+          "cold_seconds": 117.33634020699537,
+          "repeated_complete_seconds": 8.410538256997825,
+          "reuse_counts": {
+            "block_builds": 2,
+            "disk_hits": 3391,
+            "encoded": 0,
+            "memory_hits": 53,
+            "sessions": 2
+          },
+          "warm_peak_rss_mib": 389.94140625,
+          "warm_repetitions": 3,
+          "warm_seconds": 8.472858313994948
+        },
+        "runtime": {
+          "cold_peak_rss_mib": 408.9609375,
+          "cold_seconds": 123.61230040399823,
+          "repeated_complete_seconds": 7.280496723004035,
+          "reuse_counts": {
+            "block_builds": 1,
+            "disk_hits": 1842,
+            "encoded": 0,
+            "memory_hits": 1654,
+            "sessions": 1
+          },
+          "warm_peak_rss_mib": 298.58203125,
+          "warm_repetitions": 3,
+          "warm_seconds": 7.647521011997014
+        }
+      },
+      "background": "1269484b895f0e3a46dffb7b9c4f5bb72effbd499a7e1aa2d3f1fb23ba8897ce",
+      "candidate_and_prompt_hashes_equal": true,
+      "functions": 1601,
+      "queries": 15,
+      "repository": "pingdotgg/t3code",
+      "warm_rss_reduction_percent": 23.4290007513148,
+      "warm_time_reduction_percent": 9.740954839699045
+    },
+    {
+      "arms": {
+        "baseline": {
+          "cold_peak_rss_mib": null,
+          "cold_seconds": null,
+          "repeated_complete_seconds": 88.09363730999758,
+          "reuse_counts": {
+            "block_builds": 2,
+            "disk_hits": 42400,
+            "encoded": 0,
+            "memory_hits": 54,
+            "sessions": 2
+          },
+          "warm_peak_rss_mib": 806.578125,
+          "warm_repetitions": 1,
+          "warm_seconds": 87.460331262002
+        },
+        "runtime": {
+          "cold_peak_rss_mib": null,
+          "cold_seconds": null,
+          "repeated_complete_seconds": 74.18565616299747,
+          "reuse_counts": {
+            "block_builds": 1,
+            "disk_hits": 23778,
+            "encoded": 0,
+            "memory_hits": 18946,
+            "sessions": 1
+          },
+          "warm_peak_rss_mib": 728.56640625,
+          "warm_repetitions": 1,
+          "warm_seconds": 75.24672207400727
+        }
+      },
+      "background": "62d8145fa0144191ee8ac4716a419eafc7babecdc6671db46ef4f5590e75952a",
+      "candidate_and_prompt_hashes_equal": true,
+      "functions": 18892,
+      "queries": 15,
+      "repository": "pingdotgg/t3code",
+      "warm_rss_reduction_percent": 9.671935840065093,
+      "warm_time_reduction_percent": 13.96474151396344
+    },
+    {
+      "arms": {
+        "baseline": {
+          "cold_peak_rss_mib": 634.35546875,
+          "cold_seconds": 183.25856813900464,
+          "repeated_complete_seconds": 13.167128079992835,
+          "reuse_counts": {
+            "block_builds": 2,
+            "disk_hits": 5016,
+            "encoded": 0,
+            "memory_hits": 60,
+            "sessions": 2
+          },
+          "warm_peak_rss_mib": 411.390625,
+          "warm_repetitions": 3,
+          "warm_seconds": 13.572199248985271
+        },
+        "runtime": {
+          "cold_peak_rss_mib": 434.91015625,
+          "cold_seconds": 181.40529659700405,
+          "repeated_complete_seconds": 9.781138579011895,
+          "reuse_counts": {
+            "block_builds": 1,
+            "disk_hits": 2714,
+            "encoded": 0,
+            "memory_hits": 2409,
+            "sessions": 1
+          },
+          "warm_peak_rss_mib": 323.23046875,
+          "warm_repetitions": 3,
+          "warm_seconds": 10.000638288998744
+        }
+      },
+      "background": "a068703e185ee6a85429f3de4f92c1e384196e8fb3f01bdd0d88ddd28ac2d424",
+      "candidate_and_prompt_hashes_equal": true,
+      "functions": 2349,
+      "queries": 15,
+      "repository": "OpenHands/software-agent-sdk",
+      "warm_rss_reduction_percent": 21.429792244293367,
+      "warm_time_reduction_percent": 26.315270609172327
+    }
+  ],
+  "default_block_cost": {
+    "baseline_peak_mib": 215.00390625,
+    "baseline_seconds": 1.7338108310068492,
+    "blocks_peak_mib": 350.9609375,
+    "blocks_seconds": 12.679834323003888,
+    "changed": 6,
+    "extraction_excluded": true,
+    "functions": 10319,
+    "paired_repetitions": 3
+  },
+  "limitation": "Previously evaluated cohorts. New pair and source-version report counts are not ground-truth precision/recall; independent source decisions live in REPORT-DELTAS.jsonl and reviewer seals.",
+  "native_independent_rerun": {
+    "all_match": true,
+    "recorded_attempts": 421,
+    "revision_arm_states": 94
+  },
+  "per_pr": [
+    {
+      "balanced": {
+        "accounted_usd": 0.0090361,
+        "first_report": {},
+        "pairs": 0,
+        "report_versions": 0
+      },
+      "blocks": {
+        "accounted_usd": 0.0090439,
+        "first_report": {},
+        "pairs": 0,
+        "report_versions": 0
+      },
+      "cohort": "historical",
+      "earlier_pairs": [],
+      "history": "gigaverse-ai-3270",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [],
+      "revisions": 4
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.0088656,
+        "first_report": {
+          "24f1583c445f49dd": 7,
+          "5327dc8e6431a42e": 7,
+          "c61333575778d5bc": 7
+        },
+        "pairs": 3,
+        "report_versions": 3
+      },
+      "blocks": {
+        "accounted_usd": 0.0088656,
+        "first_report": {
+          "24f1583c445f49dd": 7,
+          "5327dc8e6431a42e": 7,
+          "c61333575778d5bc": 7
+        },
+        "pairs": 3,
+        "report_versions": 3
+      },
+      "cohort": "historical",
+      "earlier_pairs": [],
+      "history": "gigaverse-ai-3275",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [],
+      "revisions": 8
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.010917300000000001,
+        "first_report": {
+          "98fc4dfacad6db43": 1,
+          "b8226ff012a5334d": 1
+        },
+        "pairs": 2,
+        "report_versions": 2
+      },
+      "blocks": {
+        "accounted_usd": 0.0108316,
+        "first_report": {
+          "98fc4dfacad6db43": 1,
+          "b8226ff012a5334d": 1
+        },
+        "pairs": 2,
+        "report_versions": 2
+      },
+      "cohort": "historical",
+      "earlier_pairs": [],
+      "history": "gigaverse-ai-3280",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [],
+      "revisions": 2
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.017249900000000002,
+        "first_report": {
+          "df5342c39b60930c": 3
+        },
+        "pairs": 1,
+        "report_versions": 1
+      },
+      "blocks": {
+        "accounted_usd": 0.016488100000000002,
+        "first_report": {
+          "df5342c39b60930c": 3
+        },
+        "pairs": 1,
+        "report_versions": 1
+      },
+      "cohort": "production",
+      "earlier_pairs": [],
+      "history": "gigaverse-ai-3293",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [],
+      "revisions": 4
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.0171308,
+        "first_report": {
+          "24b4640014f257ea": 0,
+          "58ec6b2b4414a889": 2,
+          "61960da909a6c5e4": 0,
+          "b2df27437d3bc351": 2,
+          "b804095a7324b442": 0,
+          "e3a1c9e9318bdb06": 2
+        },
+        "pairs": 6,
+        "report_versions": 9
+      },
+      "blocks": {
+        "accounted_usd": 0.0171264,
+        "first_report": {
+          "24b4640014f257ea": 0,
+          "58ec6b2b4414a889": 2,
+          "61960da909a6c5e4": 0,
+          "b2df27437d3bc351": 2,
+          "b804095a7324b442": 0,
+          "e3a1c9e9318bdb06": 2
+        },
+        "pairs": 6,
+        "report_versions": 9
+      },
+      "cohort": "production",
+      "earlier_pairs": [],
+      "history": "gigaverse-ai-3294",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [],
+      "revisions": 3
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.0149005,
+        "first_report": {
+          "0ea04d1ce014305a": 5,
+          "2d3cfe54843a364f": 5,
+          "61a6c0a05ed81433": 5,
+          "7088062aa33a54a5": 5,
+          "75273a6e68a8b916": 5,
+          "fae2e29383a55f83": 5,
+          "fdd3f04d7a52f030": 5
+        },
+        "pairs": 7,
+        "report_versions": 7
+      },
+      "blocks": {
+        "accounted_usd": 0.014974600000000001,
+        "first_report": {
+          "0ea04d1ce014305a": 5,
+          "2d3cfe54843a364f": 5,
+          "61a6c0a05ed81433": 5,
+          "7088062aa33a54a5": 5,
+          "75273a6e68a8b916": 5,
+          "a7ddfe65680f1cd0": 5,
+          "fae2e29383a55f83": 5,
+          "fdd3f04d7a52f030": 5
+        },
+        "pairs": 8,
+        "report_versions": 8
+      },
+      "cohort": "production",
+      "earlier_pairs": [],
+      "history": "gigaverse-ai-3296",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [
+        "a7ddfe65680f1cd0"
+      ],
+      "new_versions": [
+        "0e1ef2777cee5e0717ed2d2eaa02b1387bfcac35e86b3a914f11bb2798df8a6a"
+      ],
+      "revisions": 6
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.00024320000000000003,
+        "first_report": {},
+        "pairs": 0,
+        "report_versions": 0
+      },
+      "blocks": {
+        "accounted_usd": 0.00024320000000000003,
+        "first_report": {},
+        "pairs": 0,
+        "report_versions": 0
+      },
+      "cohort": "historical",
+      "earlier_pairs": [],
+      "history": "gigaverse-backend-5567",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [],
+      "revisions": 8
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.0051161,
+        "first_report": {},
+        "pairs": 0,
+        "report_versions": 0
+      },
+      "blocks": {
+        "accounted_usd": 0.0051161,
+        "first_report": {},
+        "pairs": 0,
+        "report_versions": 0
+      },
+      "cohort": "historical",
+      "earlier_pairs": [],
+      "history": "gigaverse-backend-5626",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [],
+      "revisions": 3
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.0086933,
+        "first_report": {
+          "010add5c86869295": 0,
+          "558fd173617c7b6f": 1,
+          "9b94ffa72244b104": 0
+        },
+        "pairs": 3,
+        "report_versions": 5
+      },
+      "blocks": {
+        "accounted_usd": 0.0104093,
+        "first_report": {
+          "010add5c86869295": 0,
+          "558fd173617c7b6f": 0,
+          "9b94ffa72244b104": 0
+        },
+        "pairs": 3,
+        "report_versions": 6
+      },
+      "cohort": "historical",
+      "earlier_pairs": [
+        {
+          "baseline_ordinal": 1,
+          "pair": "558fd173617c7b6f",
+          "treatment_ordinal": 0
+        }
+      ],
+      "history": "gigaverse-backend-5632",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [
+        "e69836b633ec20aab64da476ec90cfcbec689b7cfb4e18742769dfcb37d186b7"
+      ],
+      "revisions": 2
+    },
+    {
+      "balanced": {
+        "accounted_usd": 0.0146395,
+        "first_report": {
+          "4cf918f3c2a8305d": 6,
+          "71a5b4f4fd90bc4e": 6,
+          "8bcc4a6d91986f07": 6,
+          "e47fe7c9569c9664": 6
+        },
+        "pairs": 4,
+        "report_versions": 4
+      },
+      "blocks": {
+        "accounted_usd": 0.0146395,
+        "first_report": {
+          "4cf918f3c2a8305d": 6,
+          "71a5b4f4fd90bc4e": 6,
+          "8bcc4a6d91986f07": 6,
+          "e47fe7c9569c9664": 6
+        },
+        "pairs": 4,
+        "report_versions": 4
+      },
+      "cohort": "production",
+      "earlier_pairs": [],
+      "history": "gigaverse-backend-5634",
+      "lost_pairs": [],
+      "lost_versions": [],
+      "new_pairs": [],
+      "new_versions": [],
+      "revisions": 7
+    }
+  ],
+  "physical_spend_usd": 0.0422378,
+  "provider_observations": 73,
+  "schema": 1,
+  "source_excluded_prs": 9,
+  "source_excluded_revisions": 38,
+  "source_labels": {
+    "earlier_tiny_pairs": 1,
+    "lost_pairs": 0,
+    "new_unsupported_pairs": 1,
+    "new_useful_pairs": 0
+  },
+  "source_selection_sha256": "b771e3f7b8faf4ad203a151d0cbacc1524d5c0cbd83dac00ee5e36fe859e9cda"
+}
