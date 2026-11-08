@@ -15,8 +15,9 @@ dry-lint finds functions in a pull request that look like they re-implement
 something that already exists. A judge decides whether each pair really is one
 concept, and the result goes back as PR annotations and one comment.
 
-[Adopt it in a repository](../docs/adoption-playbook.md){ .md-button .md-button--primary }
-[Add the GitHub Action](../docs/github-action.md){ .md-button }
+[Why dry-lint](../docs/why.md){ .md-button .md-button--primary }
+[Tutorial: first run](../docs/tutorials/first-run.md){ .md-button }
+[How CI runs it](../docs/ci.md){ .md-button }
 
 ```text
 src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_text (drifted)
@@ -46,7 +47,10 @@ and without any it only lists look-alikes ([design](../docs/design.md)).
 
 | You want to | Read |
 | --- | --- |
-| Block new duplicates on every pull request | [GitHub Action](../docs/github-action.md) |
+| Understand what it is for, with evidence | [Why dry-lint](../docs/why.md) |
+| Go from a local scan to a required check | [First-run tutorial](../docs/tutorials/first-run.md) |
+| See the whole CI flow: check, forks, ratchet, secrets | [How CI runs dry-lint](../docs/ci.md) |
+| Look up an Action input | [GitHub Action reference](../docs/github-action.md) |
 | Accept existing debt once and track its cleanup | [Sweeps and the ratchet](../docs/sweeps.md) |
 | Choose a judge, its cost and its thresholds | [Judges and presets](../docs/judges.md) |
 | Find duplicated data models, not only functions | [Model duplication](../docs/model-duplication.md) |
