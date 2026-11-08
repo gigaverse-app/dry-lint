@@ -21,7 +21,7 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel
 
-from dry_lint.settings import Discovery, Escalation, PluginChoice, Settings
+from dry_lint.settings import Discovery, Escalation, ExplorationComparer, PluginChoice, Settings
 
 SONNET = "claude-sonnet-5-5"
 OPUS = "claude-opus-5-5"
@@ -33,6 +33,7 @@ class Preset(BaseModel):
     summary: str
     judge: PluginChoice
     discovery: Discovery = Discovery()
+    discovery_append: tuple[ExplorationComparer, ...] = ()
     escalate: Escalation | None = None
     drop_below: float
     report_at: float
@@ -104,12 +105,14 @@ PRESETS = {preset.name: preset for preset in [
            drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=False,
            numbers="opt-in agent-reviewed experiment; 17 true and 7 false evidence reports on 10 development PRs; "
                    "local checks use baseline retrieval, not the historical exploration scheduler"),
-    Preset(name="balanced", summary="Agent-reviewed discovery: protected baseline, paced exploration and persistent budget",
+    Preset(name="balanced", summary="Agent-reviewed discovery: protected baseline, bounded blocks and persistent budget",
            judge=PluginChoice(use="anthropic", model="claude-haiku-5-5", prompt_policy="shared-operations", max_tokens=2048,
                               max_retries=0),
            discovery=Discovery(enabled=True),
+           discovery_append=(ExplorationComparer(use="operation-blocks", neighbours=1),),
              drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=True,
-             numbers="11 fresh PRs: 3/3 known positives, 44% confirmed evidence; max $0.018/PR; agent-reviewed"),
+             numbers="TF-IDF-only historical panel: 3/3 known positives on 11 PRs; block route evaluated separately; "
+                     "agent-reviewed"),
     Preset(name="none", summary="no judge: candidates are listed, nothing is reported or fails",
            judge=PluginChoice(use="none"), drop_below=0.6, report_at=0.8, fail_at=0.8),
 ]}  # fmt: skip
@@ -146,4 +149,28 @@ def resolve(settings: Settings, environ: Mapping[str, str] | None = None) -> Set
         raise ValueError(f"Unknown preset {name!r}; available: {', '.join(PRESETS)}")
     preset = PRESETS[name]
     update = {field: getattr(preset, field) for field in PRESET_FIELDS if field not in settings.model_fields_set}
+    # INVARIANT: explicit nested discovery choices win, including an empty
+    # comparer list (the implicit TF-IDF-only escape hatch) and enabled=False.
+    discovery = preset.discovery.model_copy(
+        update={field: getattr(settings.discovery, field) for field in settings.discovery.model_fields_set}
+    )
+    if (
+        discovery.enabled
+        and preset.discovery_append
+        and "comparers" not in settings.discovery.model_fields_set
+        and settings.comparer.use == "tfidf"
+    ):
+        # Match the detector's implicit exploration configuration before appending
+        # generic plugins. Explicit custom baselines keep their existing policy.
+        options = settings.comparer.options()
+        options.update(min_similarity=discovery.min_similarity, min_similarity_small=discovery.min_similarity)
+        discovery = discovery.model_copy(
+            update={
+                "comparers": [
+                    ExplorationComparer(use="tfidf", neighbours=discovery.depth, **options),
+                    *(choice.model_copy(deep=True) for choice in preset.discovery_append),
+                ]
+            }
+        )
+    update["discovery"] = discovery
     return settings.model_copy(update={**update, "preset": name})

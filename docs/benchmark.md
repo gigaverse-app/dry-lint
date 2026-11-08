@@ -539,3 +539,25 @@ for a complementary comparer rather than adding every token to one cosine score;
 false-positive cost. More features can change which neighbour wins even when a true pair's score remains high.
 
 The [research plan](research-plan.md) collects these results, hypotheses and the experiments queued next.
+
+## Offline CPU discovery
+
+The optional [offline CPU comparer](cpu-embedding.md) implements the pinned MiniLM channel through ordered
+`discovery.comparers`, retaining ordinary baseline and explicit existing TF-IDF exploration before one unseen
+CPU candidate. It is an optional cached channel, not a default cold CI workload.
+
+A production-plugin check of 100 complete OpenHands source bodies (88 unique) measured **6.623 seconds cold** and
+**0.440 seconds warm**, including runtime construction and artifact validation. Warm retrieval had 88 disk-cache
+hits and zero encodings; fresh vectors matched the research cache exactly (maximum absolute difference 0).
+Cold whole-corpus research encoding of 37,604 LiteLLM functions took 2,496 seconds on two CPU threads. This
+cost motivates an explicitly configured local vector cache, not a change to the default comparer.
+
+The original fixed laboratory default-plus-one route added four funded positive pairs and seven negative
+exposures across source/background contexts, with no lost baseline positives. Its balanced diagnostic added one
+of each. Those are development/regression observations and funding exposures, not deployed configuration or
+emitted-report gains. The production profile also preserves the original 20-neighbour TF-IDF exploration route,
+so its measured result is a separate comparison: across 207 source-supported function records and 16 backgrounds,
+adding one CPU neighbour recovered no additional known positive pair and exposed three additional known negatives.
+Earlier primary candidates were unchanged. Negative exposure is not a false report; the judge still decides.
+Budgets and judge defaults remain unchanged. Public pretrained
+weights may contain source contamination. Provider agreement alone does not establish accepted source labels.
