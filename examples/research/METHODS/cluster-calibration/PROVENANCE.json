@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "cluster-calibration",
+      "original_path": "jobs/cluster-calibration/.lab-results/one_seed.py",
+      "original_sha256": "a1bef83d59e07af0a5d2355b869c523b92ab0a99bc6eade90619e453d4987b78",
+      "public_path": "cluster-calibration/implementation/one_seed.py",
+      "public_sha256": "ece6bfe9317f5a63f8bf653edd4d3aac653ded3c5ab43e6516aa65826921c1c7",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "E401",
+        "E402",
+        "E741",
+        "F401",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "cluster-calibration",
+      "original_path": "jobs/cluster-calibration/.lab-results/collect_milestone.py",
+      "original_sha256": "6554ac0a5614b20ecc36930d58825ae3deb9cd1b8265337d0fea43eeb61bccab",
+      "public_path": "cluster-calibration/implementation/collect_milestone.py",
+      "public_sha256": "bdf9a174e27bbe0f87e4fc1d9d7906bf7577a86030c92e5ac56d72aafcdd381e",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E741",
+        "I001",
+        "UP017"
+      ]
+    },
+    {
+      "method": "cluster-calibration",
+      "original_path": "jobs/cluster-calibration/.lab-results/analyze.py",
+      "original_sha256": "c2ff08e519da38c8d90a1b38acfd322945d289fb338679ce2832f80f7418208d",
+      "public_path": "cluster-calibration/implementation/analyze.py",
+      "public_sha256": "dba28d402b5776f323344443cbab630ae6a19f425c7ba4eb5311ab009147fae0",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B007",
+        "B905",
+        "E401",
+        "E402",
+        "E741",
+        "F401",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "cluster-calibration",
+      "original_path": "jobs/cluster-calibration/.lab-results/ingest_seeds.py",
+      "original_sha256": "826c52f29584057c3c1b4fe6f71cb32be6d68e0ad7a9e814415cb5033d7ddea8",
+      "public_path": "cluster-calibration/implementation/ingest_seeds.py",
+      "public_sha256": "d98ca2ea526ff8a05cf9094613e64890e56dcbff5e3b9138c09f35b8f674ab80",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "E741",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "cluster-calibration",
+      "original_path": "jobs/cluster-calibration/.lab-results/audit_history.py",
+      "original_sha256": "6e72c9df3d0798509b658405735124ac38d728d9892dfdeb1fe78689c6872942",
+      "public_path": "cluster-calibration/implementation/audit_history.py",
+      "public_sha256": "d0cc9ed27d5d8e75be8f32a82e9873cc69f27bee2db9e76e027806ee12da9ec4",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "E731",
+        "E741",
+        "I001"
+      ]
+    },
+    {
+      "method": "cluster-calibration",
+      "original_path": "jobs/cluster-calibration/.lab-results/graph_reference.py",
+      "original_sha256": "3507f4a4a3cae44df160e366bb5148d20f567c24c1cc369da48da5cf05563fdb",
+      "public_path": "cluster-calibration/implementation/graph_reference.py",
+      "public_sha256": "19abdb70cc623812bbdf251b64b99072774e955cb6c7ab78da6acecd107bf2f2",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "E401",
+        "E402",
+        "E731",
+        "E741",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "cluster-calibration",
+      "original_path": "jobs/cluster-calibration/.lab-results/prepare.py",
+      "original_sha256": "a8982836cbc49ebb2c312a47ae9a00c8e53051a5842cbe6b07aefae9cd2086ef",
+      "public_path": "cluster-calibration/implementation/prepare.py",
+      "public_sha256": "fd74bc693c612fe06a89789193166c1bb2360b3ca3e5584470d202347c914280",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E401",
+        "E402",
+        "E731",
+        "E741",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}
