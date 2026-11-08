@@ -15,7 +15,7 @@
   <a href="https://dry-lint.readthedocs.io/en/latest/"><img alt="Documentation" src="https://readthedocs.org/projects/dry-lint/badge/?version=latest"></a>
 </p>
 
-<p align="center"><a href="https://dry-lint.readthedocs.io/en/latest/">Read the documentation</a> · <a href="https://dry-lint.readthedocs.io/en/latest/ecosystem/">Related tools</a></p>
+<p align="center"><a href="docs/why.md">Why dry-lint</a> · <a href="docs/tutorials/first-run.md">First-run tutorial</a> · <a href="docs/ci.md">How CI runs it</a> · <a href="https://dry-lint.readthedocs.io/en/latest/">Documentation</a> · <a href="https://dry-lint.readthedocs.io/en/latest/ecosystem/">Related tools</a></p>
 
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
