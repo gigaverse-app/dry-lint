@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/gigaverse-app/dry-lint/compare/v1.5.0...v1.6.0) (2026-11-08)
+
+
+### Features
+
+* publish to PyPI and make the Dryer comparer optional ([#141](https://github.com/gigaverse-app/dry-lint/issues/141)) ([64122af](https://github.com/gigaverse-app/dry-lint/commit/64122af7552bcde9e93cfcaee1422fc5ed7180a5))
+
+
+### Documentation
+
+* publish the documentation on Read the Docs ([#142](https://github.com/gigaverse-app/dry-lint/issues/142)) ([91e6c57](https://github.com/gigaverse-app/dry-lint/commit/91e6c57e31c89d1fab53dfe397f0bd39636a89c6))
+
 ## [1.5.0](https://github.com/gigaverse-app/dry-lint/compare/v1.4.3...v1.5.0) (2026-11-06)
 
 
