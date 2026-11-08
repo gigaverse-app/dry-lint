@@ -1,13 +1,56 @@
-# Private evidence access: publication receipt required
+# Private evidence access
 
-**Recovery is prepared locally; the new archive's merged corpus pin and dataset receipt are still pending. Do not publish these methods until this file contains the actual reviewed commit, dataset ID(s), materialization command and reassembly command.** No dataset or commit is inferred from a planned filename.
+Authorized access to [dry-lint-goldens](https://github.com/gigaverse-app/dry-lint-goldens) is required. The final evidence commit is [`f430b9ade685a4125c8eb66ef785da32f9d1c30c`](https://github.com/gigaverse-app/dry-lint-goldens/commit/f430b9ade685a4125c8eb66ef785da32f9d1c30c), merged in [corpus PR #11](https://github.com/gigaverse-app/dry-lint-goldens/pull/11). Its tree exactly matches tested data head `1573260772a1e499a617a32ca841bb61dd13c588`. Private source, rendered prompts, raw answers, labels and matrices stay in that repository.
 
-The existing private corpus baseline is `ab31d5baa6d57c368ebb81586e91f677965cbe8e` (merged corpus PR #10). It contains earlier reviewed datasets, including `private-historical400-v1`, `research-experiments-v1`, `reviewed-recovery-v1`, `reviewed-campaigns-v1`, `reviewed-full12-v1`, `residual-native-replay-v1`, `grounded-operation-claims-v1` and `budget-family-proof-v1`. **That baseline does not constitute publication of this recovered raw archive.** See [the corpus](https://github.com/gigaverse-app/dry-lint-goldens) for authorized access.
+| Dataset | Contents and use |
+|---|---|
+| `worker-evidence-v1` | Original worker implementations, recipes, reports, source artifacts and recorded responses; materializes under `evidence/` plus indices. |
+| `worker-judgments-v1` | Scoped accepted source rows, original assessments, background bindings and reconciliation. Diagnostic same-revision background matches do not restore historical retrieval-policy authority. |
+| `worker-matrices-v1` | Frozen matrices and large result inputs, stored as chunks with exact original-path reassembly records. |
+| `worker-replay-state-v1` | Original verdict stores and additional large replay inputs, with a separate chunk reassembly index. |
+| `grounded-product-replay-v1` | Retired grounded-product replay observations and explicit dependencies; separate from these twelve recovered method contributions. |
 
-At the reviewed recovery commit, the existing storage commands are `python3 corpus.py list`, `python3 corpus.py verify`, and `python3 corpus.py materialize DATASET_ID --out NEW_DIRECTORY`. The actual recovery dataset ID and its reassembly interface have not been delivered yet; they must be copied from the verified final receipt, not guessed. Materialization/reassembly must restore the manifest-relative `jobs/`, `reports/` and coordinator `.lab-results/` layout beneath a caller-selected evidence root. Original historical path strings inside immutable records must remain intact; the shared replay resolves them against that explicit root.
+All twenty minimum inputs, including two complete matrices, were restored from verified corpus objects. All eleven shared result modes reproduced their exact saved results with original-lab evidence reads and networking blocked. Imports from the existing scientific environment were permitted; this is evidence relocation, not a sealed standalone runtime. Numerical matrix ranking and queue replay remain distinct from aggregate-only rank/event summaries.
 
-[minimum-replay-inputs.json](minimum-replay-inputs.json) binds twenty required files for the eleven shared result replays, including two complete cached matrices. Hash references without those bytes are insufficient. Original algorithm entry points additionally require the full frozen source/graph/runtime/recording closure named by each recipe and provenance manifest. Saved model prediction replay also needs the original feature arrays, models and metadata. Scheduler replay needs the exact Candidates, rendered prompts, raw recorded answers, source proofs, settings and runtime. Original source/tests are retained publicly; their private fixtures remain in the corpus.
+## Minimal shared replay
 
-Once materialized, set `EVIDENCE_ROOT` to that root and `OUTPUT` to a writable directory, select the frozen interpreter recorded by the method, then run its README command. Missing inputs must fail explicitly; do not substitute a new revision, infer an absent answer, fit new models or silently invoke a provider. Recorded replay has no provider cost. A fresh experiment requires its own output history, source/encoder settings and adopter-supplied credentials/costs.
+Use an authorized corpus checkout and a **new** directory for `EVIDENCE_ROOT`. Set `OUTPUT` to a writable result directory. From the public dry-lint checkout:
 
-The shared recorded-result commands passed with copied input bytes and relocated code while networking and original evidence reads were blocked. The stronger legacy staged scheduler/model/test replays passed locally against their original immutable manifests; full arbitrary-root relocation of those legacy manifests remains a separate prerequisite.
+```bash
+git -C "$CORPUS_CHECKOUT" checkout --detach f430b9ade685a4125c8eb66ef785da32f9d1c30c
+python3 "$CORPUS_CHECKOUT/verify_recovery.py" --minimum-inputs --out "$EVIDENCE_ROOT"
+```
+
+The command validates all payloads/chunks before creating the destination, restores the original relative `jobs/`, `reports/` and coordinator `.lab-results/` paths directly under `EVIDENCE_ROOT`, and refuses an existing destination. Its twenty restored files must match [minimum-replay-inputs.json](minimum-replay-inputs.json). Run the selected method's README command afterward. Shared matrix replay needs NumPy; the other shared result modes use the standard library.
+
+## Original artifacts, judgments and additional inputs
+
+To inspect full original artifacts or source judgments, choose **new**, separate destinations:
+
+```bash
+python3 "$CORPUS_CHECKOUT/corpus.py" materialize worker-evidence-v1 --out "$FULL_EVIDENCE_PACKAGE"
+python3 "$CORPUS_CHECKOUT/corpus.py" materialize worker-judgments-v1 --out "$JUDGMENTS_PACKAGE"
+export FULL_EVIDENCE_ROOT="$FULL_EVIDENCE_PACKAGE/evidence"
+```
+
+`FULL_EVIDENCE_ROOT` has the same logical path layout as the minimal root; the package's `indices/` directory holds storage and lineage indices. The judgment package contains the scoped rows and their background bindings. A diagnostic binding supplies exact same-revision source identity, not a claim of production-policy replay; missing bindings remain missing.
+
+For a single larger artifact, take its exact original-relative `ARTIFACT_PATH` from the selected dataset's `reassembly.jsonl`, and choose a new `ARTIFACT_OUTPUT` whose parent exists:
+
+```bash
+python3 "$CORPUS_CHECKOUT/verify_recovery.py" --dataset worker-matrices-v1 \
+  --reassemble "$ARTIFACT_PATH" --out "$ARTIFACT_OUTPUT"
+# For a saved verdict store or other replay-state artifact, select its own dataset:
+python3 "$CORPUS_CHECKOUT/verify_recovery.py" --dataset worker-replay-state-v1 \
+  --reassemble "$STATE_ARTIFACT_PATH" --out "$STATE_ARTIFACT_OUTPUT"
+```
+
+Use the dataset that actually contains the logical path. Reassembly checks every chunk boundary/hash and the complete original byte length/hash before writing a new output. The two commands are independent examples, not two ways to reconstruct an arbitrary file.
+
+## Scope and remaining prerequisites
+
+The minimum closure supports eleven shared recorded-result modes. Recorded metrics are not a reconstructed graph; settled event totals are not a scheduler execution; cached matrix ranking is not encoder inference. The corpus-only result receipt establishes only its stated scope.
+
+All 86 original implementation/test files referenced by the public package were checked against archived bytes. Stronger original scheduler, saved-model allocation, bundle and mapper checks passed locally. Their complete archived-input execution and arbitrary-root relocation are not implied by the minimum closure. The separate closure audit independently verifies all 32 requested original recipe/control/sample files and all 56 restored logical paths. Those enumerated archived-byte gaps are closed; complete execution of every original workflow after relocation remains untested. Original algorithms may require complete source graphs, exact Candidates, prompts, raw recordings, model/feature arrays, pinned product source and the frozen scientific environment. Fresh encoding additionally requires the separately licensed pinned model weights.
+
+Historical absolute paths in immutable manifests need portable resolution before direct legacy execution; setting an environment variable alone is insufficient. Missing inputs must fail explicitly, without substituting a revision, inventing an answer, fitting a new model or invoking a provider. Recorded replay has no provider or inference cost. A new experiment needs its own output history, settings, complete inputs and adopter-supplied credentials/costs.

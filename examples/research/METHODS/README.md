@@ -25,7 +25,7 @@ PRs #110–#121, #123 and #124 are merged in main `11acf547a209f0361234ddd07da39
 
 ## Later directions recovered here
 
-Each linked branch is one independent method contribution, prepared locally for review and publication. The canonical index lives on the shared infrastructure branch; a child checkout contains only its own method directory. [ACCESS.md](ACCESS.md) records the pending corpus-publication gate. [Shared mapper](support/corpus-mapper/README.md) preserves the original full-background identity/floor correction used by the later studies.
+Each linked branch is one independent method contribution, prepared locally for review and publication. The canonical index lives on the shared infrastructure branch; a child checkout contains only its own method directory. [ACCESS.md](ACCESS.md) pins private corpus `f430b9ade685a4125c8eb66ef785da32f9d1c30c` and provides exact materialize/reassemble commands. [Corpus closure](corpus-closure.json) verifies all twenty minimum inputs; [independent corpus-only replay](corpus-only-replay-summary.json) reproduces all eleven shared modes. [Shared mapper](support/corpus-mapper/README.md) preserves the original full-background identity/floor correction used by the later studies.
 
 | Direction | Main conclusion |
 |---|---|

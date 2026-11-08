@@ -1,0 +1,64 @@
+{
+  "status": "passed",
+  "methods": [
+    {
+      "method": "adaptive-judge-budget",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "cluster-calibration",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "coderank-cpu-evaluation",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "complementary-signal-learning",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "confirmed-cluster-expansion",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "cross-repo-recall-audit",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "encoder-corpus-evaluation",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "gemma-cpu-evaluation",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "learned-budget-policy",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "spectral-family-recovery",
+      "exit_code": 0,
+      "exact_result_match": true
+    },
+    {
+      "method": "tfidf-blindspot-recovery",
+      "exit_code": 0,
+      "exact_result_match": true
+    }
+  ],
+  "input_files": 20,
+  "source": "Only verified private corpus objects; no original lab evidence reads.",
+  "network": "Blocked with Python audit hook",
+  "new_provider_calls": 0
+}
