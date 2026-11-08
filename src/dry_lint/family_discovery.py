@@ -175,22 +175,12 @@ class FamilyDiscovery:
         """`check`: the protected pair pass is complete and the campaign still has room, or the answer is cached."""
         if any(finding.deferred and finding.candidate.lane == "baseline" for finding in protected_findings):
             return False
-        campaign = judging.campaign
-        state = campaign.snapshot()
-        current = [attempt for attempt in state.attempts if attempt.revision == campaign.revision]
-        sources = {"family:" + request.key for _, request in self.requests}
-        cached_work = any(
-            attempt.status == "answered" and attempt.source_evidence in sources for attempt in state.attempts
-        )
-        if not cached_work and (
-            any(attempt.status != "answered" for attempt in current)
-            or state.usd >= judging.settings.budget.usd
-            or not campaign.call_room(state, current, judging.settings, exploration=True)
-        ):
-            status = "budget" if state.usd >= judging.settings.budget.usd else "deferred"
-            self.findings = [FamilyFinding(request=request, status=status) for _, request in self.requests]
-            return False
-        return True
+        campaign, settings = judging.campaign, judging.settings
+        if campaign.recovery_ready(settings, {"family:" + request.key for _, request in self.requests}):
+            return True
+        status = "budget" if campaign.snapshot().usd >= settings.budget.usd else "deferred"
+        self.findings = [FamilyFinding(request=request, status=status) for _, request in self.requests]
+        return False
 
     def _execute(self, judging, judge):
         if not hasattr(judge, "judge_family"):

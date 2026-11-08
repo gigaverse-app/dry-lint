@@ -82,14 +82,14 @@ class CampaignStore:
                 state.revisions.append(self.revision)
                 state.credit = min(cap, state.credit + settings.discovery.exploration_per_revision)
 
-    def recovery_ready(self, settings: Settings, candidates: list[Candidate]) -> bool:
+    def recovery_ready(self, settings: Settings, sources: set[str]) -> bool:
         """Avoid constructing a recovery plugin when neither admission nor recovery cache work can run.
 
-        This is only a lazy-loading gate; reserve repeats the authoritative checks atomically.
+        `sources` is the recovery work's source evidence: pair evidence, or `family:<request key>`. This is only
+        a lazy-loading gate; reserve repeats the authoritative checks atomically.
         """
         state = self.snapshot()
         current = [a for a in state.attempts if a.revision == self.revision]
-        sources = {evidence(c) for c in candidates}
         # Cached successful recovery remains readable after a later failure or exhaustion. Loading the
         # current plugin still verifies its exact version; an earlier policy cannot answer this one.
         if any(a.residual and a.status == "answered" and a.source_evidence in sources for a in state.attempts):
