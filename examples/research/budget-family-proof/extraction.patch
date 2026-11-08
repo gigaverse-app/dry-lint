@@ -1,0 +1,252 @@
+--- a/litellm/proxy/management_endpoints/budget_management_endpoints.py
++++ b/litellm/proxy/management_endpoints/budget_management_endpoints.py
+@@ -12,7 +12,6 @@
+ """
+ 
+ #### BUDGET TABLE MANAGEMENT ####
+-import math
+ from collections.abc import Mapping
+ from types import MappingProxyType
+ from typing import Final
+@@ -28,6 +27,7 @@
+     _user_has_admin_view,  # pyright: ignore[reportPrivateUsage,reportUnusedImport]  # backwards-compatible package export
+     user_api_key_has_admin_view,
+     validate_budget_duration,
++    validate_nonnegative_budget,
+ )
+ from litellm.proxy.utils import jsonify_object
+ from litellm.repositories.budget_repository import BudgetRepository
+@@ -70,16 +70,8 @@
+         )
+ 
+     # Validate budget values are not negative
+-    if budget_obj.max_budget is not None and (not math.isfinite(budget_obj.max_budget) or budget_obj.max_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"max_budget must be a non-negative finite number. Received: {budget_obj.max_budget}"},
+-        )
+-    if budget_obj.soft_budget is not None and (not math.isfinite(budget_obj.soft_budget) or budget_obj.soft_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"soft_budget must be a non-negative finite number. Received: {budget_obj.soft_budget}"},
+-        )
++    validate_nonnegative_budget(budget_obj.max_budget, "max_budget")
++    validate_nonnegative_budget(budget_obj.soft_budget, "soft_budget")
+ 
+     validate_budget_duration(budget_obj.budget_duration)
+ 
+@@ -154,16 +146,8 @@
+         raise HTTPException(status_code=400, detail={"error": "budget_id is required"})
+ 
+     # Validate budget values are not negative
+-    if budget_obj.max_budget is not None and (not math.isfinite(budget_obj.max_budget) or budget_obj.max_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"max_budget must be a non-negative finite number. Received: {budget_obj.max_budget}"},
+-        )
+-    if budget_obj.soft_budget is not None and (not math.isfinite(budget_obj.soft_budget) or budget_obj.soft_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"soft_budget must be a non-negative finite number. Received: {budget_obj.soft_budget}"},
+-        )
++    validate_nonnegative_budget(budget_obj.max_budget, "max_budget")
++    validate_nonnegative_budget(budget_obj.soft_budget, "soft_budget")
+ 
+     validate_budget_duration(budget_obj.budget_duration)
+ 
+--- a/litellm/proxy/management_endpoints/common_utils.py
++++ b/litellm/proxy/management_endpoints/common_utils.py
+@@ -6,6 +6,15 @@
+ 
+ from fastapi import HTTPException, status
+ from pydantic import BaseModel, TypeAdapter, ValidationError
++
++
++def validate_nonnegative_budget(value: float | None, field_name: str) -> None:
++    """Allow unset budgets; otherwise require a finite, nonnegative value."""
++    if value is not None and (not math.isfinite(value) or value < 0):
++        raise HTTPException(
++            status_code=400,
++            detail={"error": f"{field_name} must be a non-negative finite number. Received: {value}"},
++        )
+ 
+ 
+ # Defined above the `litellm.proxy.*` imports so the name is bound even when
+--- a/litellm/proxy/management_endpoints/key_management_endpoints.py
++++ b/litellm/proxy/management_endpoints/key_management_endpoints.py
+@@ -99,6 +99,7 @@
+     user_api_key_has_admin_view,
+     validate_budget_duration,
+     validate_finite_spend,
++    validate_nonnegative_budget,
+ )
+ from litellm.proxy.management_endpoints.key_budget_change import (
+     KeyBudgetAdminOnly,
+@@ -2462,11 +2463,7 @@
+ 
+         # Validate budget values are not negative and are finite numbers
+         # (GHSA-2rv4-xv66-fpjg): float('nan') passes `< 0` because nan < 0 is False.
+-        if data.max_budget is not None and (not math.isfinite(data.max_budget) or data.max_budget < 0):
+-            raise HTTPException(
+-                status_code=400,
+-                detail={"error": f"max_budget must be a non-negative finite number. Received: {data.max_budget}"},
+-            )
++        validate_nonnegative_budget(data.max_budget, "max_budget")
+         _validate_soft_budget_value(data.soft_budget)
+ 
+         custom_key_generate_hook: Final[Callable[..., Awaitable[Mapping[str, object]]] | None] = (
+@@ -2783,11 +2780,7 @@
+ 
+ 
+ def _validate_soft_budget_value(soft_budget: float | None) -> None:
+-    if soft_budget is not None and (not math.isfinite(soft_budget) or soft_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"soft_budget must be a non-negative finite number. Received: {soft_budget}"},
+-        )
++    validate_nonnegative_budget(soft_budget, "soft_budget")
+ 
+ 
+ async def _update_key_soft_budget(
+@@ -3170,11 +3163,7 @@
+     Raises:
+         HTTPException: If max_budget is negative
+     """
+-    if max_budget is not None and (not math.isfinite(max_budget) or max_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"max_budget must be a non-negative finite number. Received: {max_budget}"},
+-        )
++    validate_nonnegative_budget(max_budget, "max_budget")
+ 
+ 
+ async def _get_and_validate_existing_key(
+@@ -4123,11 +4112,7 @@
+ 
+     try:
+         # Validate budget values are not negative and are finite numbers
+-        if data.max_budget is not None and (not math.isfinite(data.max_budget) or data.max_budget < 0):
+-            raise HTTPException(
+-                status_code=400,
+-                detail={"error": f"max_budget must be a non-negative finite number. Received: {data.max_budget}"},
+-            )
++        validate_nonnegative_budget(data.max_budget, "max_budget")
+ 
+         _validate_soft_budget_value(data.soft_budget)
+ 
+--- a/litellm/proxy/management_endpoints/organization_endpoints.py
++++ b/litellm/proxy/management_endpoints/organization_endpoints.py
+@@ -55,6 +55,7 @@
+     set_object_metadata_field,
+     user_api_key_has_admin_view,
+     validate_budget_duration,
++    validate_nonnegative_budget,
+ )
+ from litellm.proxy.management_helpers.object_permission_utils import (
+     handle_update_object_permission_common,
+@@ -463,16 +464,8 @@
+         raise HTTPException(status_code=500, detail={"error": CommonProxyErrors.no_llm_router.value})
+ 
+     # Validate budget values are not negative
+-    if data.max_budget is not None and (not math.isfinite(data.max_budget) or data.max_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"max_budget must be a non-negative finite number. Received: {data.max_budget}"},
+-        )
+-    if data.soft_budget is not None and (not math.isfinite(data.soft_budget) or data.soft_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"soft_budget must be a non-negative finite number. Received: {data.soft_budget}"},
+-        )
++    validate_nonnegative_budget(data.max_budget, "max_budget")
++    validate_nonnegative_budget(data.soft_budget, "soft_budget")
+ 
+     user_object_correct_type: LiteLLM_UserTable | None = None
+ 
+@@ -733,16 +726,8 @@
+     data: Final = LiteLLM_OrganizationTableUpdate(**raw_data_with_flat_budget_fields)
+ 
+     # Validate budget values are not negative
+-    if data.max_budget is not None and (not math.isfinite(data.max_budget) or data.max_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"max_budget must be a non-negative finite number. Received: {data.max_budget}"},
+-        )
+-    if data.soft_budget is not None and (not math.isfinite(data.soft_budget) or data.soft_budget < 0):
+-        raise HTTPException(
+-            status_code=400,
+-            detail={"error": f"soft_budget must be a non-negative finite number. Received: {data.soft_budget}"},
+-        )
++    validate_nonnegative_budget(data.max_budget, "max_budget")
++    validate_nonnegative_budget(data.soft_budget, "soft_budget")
+ 
+     if data.updated_by is None:
+         data.updated_by = user_api_key_dict.user_id
+--- a/litellm/proxy/management_endpoints/team_endpoints.py
++++ b/litellm/proxy/management_endpoints/team_endpoints.py
+@@ -174,6 +174,7 @@
+     upsert_budget_and_membership,
+     user_api_key_has_admin_view,
+     validate_budget_duration,
++    validate_nonnegative_budget,
+     validate_team_model_max_budget,
+ )
+ from litellm.proxy.management_endpoints.organization_endpoints import (
+@@ -1733,25 +1734,9 @@
+             raise HTTPException(status_code=500, detail={"error": "No db connected"})
+ 
+         # Validate budget values are not negative
+-        if data.max_budget is not None and (not math.isfinite(data.max_budget) or data.max_budget < 0):
+-            raise HTTPException(
+-                status_code=400,
+-                detail={"error": f"max_budget must be a non-negative finite number. Received: {data.max_budget}"},
+-            )
+-        if data.team_member_budget is not None and (
+-            not math.isfinite(data.team_member_budget) or data.team_member_budget < 0
+-        ):
+-            raise HTTPException(
+-                status_code=400,
+-                detail={
+-                    "error": f"team_member_budget must be a non-negative finite number. Received: {data.team_member_budget}"
+-                },
+-            )
+-        if data.soft_budget is not None and (not math.isfinite(data.soft_budget) or data.soft_budget < 0):
+-            raise HTTPException(
+-                status_code=400,
+-                detail={"error": f"soft_budget must be a non-negative finite number. Received: {data.soft_budget}"},
+-            )
++        validate_nonnegative_budget(data.max_budget, "max_budget")
++        validate_nonnegative_budget(data.team_member_budget, "team_member_budget")
++        validate_nonnegative_budget(data.soft_budget, "soft_budget")
+ 
+         validate_budget_duration(data.budget_duration)
+         validate_budget_duration(data.team_member_budget_duration)
+@@ -2510,25 +2495,9 @@
+         verbose_proxy_logger.debug("/team/update - %s", data)
+ 
+         # Validate budget values are not negative
+-        if data.max_budget is not None and (not math.isfinite(data.max_budget) or data.max_budget < 0):
+-            raise HTTPException(
+-                status_code=400,
+-                detail={"error": f"max_budget must be a non-negative finite number. Received: {data.max_budget}"},
+-            )
+-        if data.team_member_budget is not None and (
+-            not math.isfinite(data.team_member_budget) or data.team_member_budget < 0
+-        ):
+-            raise HTTPException(
+-                status_code=400,
+-                detail={
+-                    "error": f"team_member_budget must be a non-negative finite number. Received: {data.team_member_budget}"
+-                },
+-            )
+-        if data.soft_budget is not None and (not math.isfinite(data.soft_budget) or data.soft_budget < 0):
+-            raise HTTPException(
+-                status_code=400,
+-                detail={"error": f"soft_budget must be a non-negative finite number. Received: {data.soft_budget}"},
+-            )
++        validate_nonnegative_budget(data.max_budget, "max_budget")
++        validate_nonnegative_budget(data.team_member_budget, "team_member_budget")
++        validate_nonnegative_budget(data.soft_budget, "soft_budget")
+ 
+         validate_budget_duration(data.budget_duration)
+         validate_budget_duration(data.team_member_budget_duration)
