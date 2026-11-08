@@ -313,3 +313,4 @@ hero from [docs/assets/lint.png](docs/assets/lint.png).
 ## License
 
 Apache 2.0. See [CONTRIBUTING.md](CONTRIBUTING.md) to work on dry-lint itself.
+

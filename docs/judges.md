@@ -229,3 +229,4 @@ like any other.
 
 See [plugins.md](plugins.md#judge). Measure it with `dry-lint bench --gold gold.jsonl --judge your-judge`, on the
 same gold set as the judge it replaces.
+
