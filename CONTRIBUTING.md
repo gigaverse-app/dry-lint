@@ -20,5 +20,14 @@ Windows. The ordinary pytest suite stays offline.
   invariant it broke.
 - **Thresholds and judge wording come from measurements.** If you change them, re-measure and update
   [docs/benchmark.md](docs/benchmark.md). If you change the Jev questions, bump `PROMPT_VERSION`.
+- **CI runs only what a change can affect.** [pytest-selective](https://github.com/gigaverse-app/pytest-selective)
+  plans whole lanes from [.github/test-lanes.json](.github/test-lanes.json) before any runner starts: `tests`,
+  `counter`, `viewer`, `package` (consumer installs) and `dogfood`. A documentation-only pull request runs the
+  workflow lint and the required `Validation gate`, and no tests. A lane's inputs are the files its jobs execute
+  or read; when a test starts reading a new non-Python file, add it there. Lockfiles, `pyproject.toml` and the
+  lane file run every lane; manual runs and pull requests labelled `test:full` run everything. The gate accepts a
+  skipped job only when the plan succeeded and said its lane was unaffected, and `ci-esta check-workflow` in
+  `lint-ci` keeps the job conditions, the gate and the lane file in agreement. The optional Dryer comparer runs in
+  its own `dryer.yml` workflow, outside the gate.
 - **Assets.** Regenerate them from `docs/assets/lint.png` with `uv run --with pillow python scripts/make_assets.py`, then
   `uv run --with playwright==1.58.0 python scripts/render_png.py`.

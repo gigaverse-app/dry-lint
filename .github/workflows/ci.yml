@@ -13,8 +13,40 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Plans whole lanes before any runner starts: a change that cannot affect a lane's inputs does not start its jobs,
+  # so a documentation-only pull request runs only the lint jobs and the gate. See .github/test-lanes.json.
+  select-tests:
+    name: Select tests
+    runs-on: ubuntu-latest
+    outputs:
+      lanes: ${{ steps.lanes.outputs.lanes }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: plan
+        uses: gigaverse-app/pytest-selective/actions/plan-lanes@v1
+        with:
+          config: .github/test-lanes.json
+      # dry-lint on itself has no pull request to judge in a manual run, and every push to main folds the ledger.
+      - id: lanes
+        env:
+          PLANNED: ${{ steps.plan.outputs.lanes }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          case "$EVENT" in
+            workflow_dispatch) dogfood=false ;;
+            push) dogfood=true ;;
+            *) dogfood=$(jq '.dogfood' <<<"$PLANNED") ;;
+          esac
+          echo "lanes=$(jq -c --argjson dogfood "$dogfood" '.dogfood = $dogfood' <<<"$PLANNED")" >> "$GITHUB_OUTPUT"
+
   test:
     name: Test (Python ${{ matrix.python }})
+    needs: select-tests
+    if: >-
+      ${{ always() && !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).tests) }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -63,6 +95,10 @@ jobs:
 
   counter:
     name: Test the global counter
+    needs: select-tests
+    if: >-
+      ${{ always() && !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).counter) }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -74,45 +110,14 @@ jobs:
 
   viewer:
     name: Test the comparison viewer
+    needs: select-tests
+    if: >-
+      ${{ always() && !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).viewer) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - run: node --test viewer/diff.test.mjs
-
-  # Dryer is an optional comparer, not on PyPI, whose tree-sitter-language-pack downloads parsers from GitHub release
-  # assets on first use; those return 504 during release-host outages. So it is tested here, outside the gate: an
-  # outage or an upstream change shows on this job without blocking dry-lint's own pull requests and releases.
-  dryer:
-    name: Optional Dryer comparer
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@v1
-        with:
-          python-version: "3.13"
-          cache-environment: "false"
-          sync-args: --group dryer
-      # The Actions cache is a separate service, so a warm cache keeps the parser download off the release host.
-      - name: Restore tree-sitter parsers
-        uses: actions/cache@v5
-        with:
-          path: ${{ runner.temp }}/tree-sitter-language-pack
-          key: tree-sitter-language-pack-${{ runner.os }}-${{ hashFiles('uv.lock') }}
-          restore-keys: tree-sitter-language-pack-${{ runner.os }}-
-      # The default run omits dryer.py from coverage; this run measures it alone, with Dryer installed.
-      - name: Dryer tests with full coverage of the comparer
-        env:
-          TREE_SITTER_LANGUAGE_PACK_CACHE_DIR: ${{ runner.temp }}/tree-sitter-language-pack
-        run: |
-          cat > "$RUNNER_TEMP/dryer.coveragerc" <<'RC'
-          [run]
-          source = dry_lint
-          [report]
-          include = */dry_lint/dryer.py
-          RC
-          uv run --no-sync python -c "import dryer"
-          uv run --no-sync pytest -q tests/test_sources.py tests/test_channel_trial.py tests/test_plugins.py --cov \
-            --cov-config "$RUNNER_TEMP/dryer.coveragerc" --cov-report=term-missing --cov-fail-under=100
 
   lint-ci:
     name: Lint the action and workflows
@@ -128,6 +133,7 @@ jobs:
             .github/workflows/observe-ci.yml
             .github/workflows/release.yml
             .github/workflows/docs.yml
+            .github/workflows/dryer.yml
             .github/workflows/counter.yml
             .github/workflows/viewer.yml
             examples/dry-lint.yml
@@ -135,11 +141,20 @@ jobs:
             examples/dry-lint-audit.yml
           head-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: shellcheck scripts/install-action.sh
+      # Each lane-gated job's condition, the gate's lane-jobs and .github/test-lanes.json must agree.
+      - uses: astral-sh/setup-uv@v7
+      - name: Check the lane wiring
+        run: >-
+          uvx --python 3.13 --from "ci-esta>=1.1.0,<2.0.0"
+          ci-esta check-workflow --workflow .github/workflows/ci.yml --lanes .github/test-lanes.json
 
   dogfood:
     name: dry-lint on itself
     # On main too: that run judges merged code and folds merged pull requests into the repository's ledger.
-    if: github.event_name != 'workflow_dispatch'
+    needs: select-tests
+    if: >-
+      ${{ always() && !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).dogfood) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -165,6 +180,10 @@ jobs:
 
   consumer-install:
     name: Install in consumer repos (${{ matrix.os }})
+    needs: select-tests
+    if: >-
+      ${{ always() && !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).package) }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -178,14 +197,16 @@ jobs:
         run: uv run --no-config --no-project --python 3.13 python scripts/test_action_install.py
 
   gate:
-    name: CI gate
-    if: always()
-    needs: [test, counter, lint-ci, dogfood, consumer-install]
+    name: Validation gate
+    if: ${{ !cancelled() }}
+    needs: [select-tests, test, counter, viewer, lint-ci, dogfood, consumer-install]
     runs-on: ubuntu-latest
     steps:
-      # The one check to require: fails on any missing, failed, cancelled or unexpectedly skipped prerequisite.
+      # The one check to require. A lane job may be skipped only when the planner succeeded and returned false for
+      # its lane; any other missing, failed, cancelled or skipped prerequisite fails the gate. The optional Dryer
+      # job stays outside it.
       - uses: gigaverse-app/ci-esta/actions/validation-gate@v1
         with:
           needs: ${{ toJSON(needs) }}
-          required: >-
-            {"test": true, "counter": true, "lint-ci": true, "consumer-install": true, "dogfood": ${{ github.event_name != 'workflow_dispatch' }}}
+          lanes: ${{ needs.select-tests.outputs.lanes || '{}' }}
+          lane-jobs: '{"test":["tests"],"counter":["counter"],"viewer":["viewer"],"dogfood":["dogfood"],"consumer-install":["package"]}'

@@ -9,3 +9,6 @@ dist/
 # Documentation build
 .venv-docs/
 site/
+
+# pytest-selective planner cache
+.test-impact/
