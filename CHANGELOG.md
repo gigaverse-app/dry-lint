@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/gigaverse-app/dry-lint/compare/v1.7.1...v1.8.0) (2026-11-08)
+
+
+### Features
+
+* **families:** judge the repository's family backlog with scan ([#155](https://github.com/gigaverse-app/dry-lint/issues/155)) ([ecbb4f5](https://github.com/gigaverse-app/dry-lint/commit/ecbb4f51eb102357bc4a2334353b09cdb7f3580f))
+
 ## [1.7.1](https://github.com/gigaverse-app/dry-lint/compare/v1.7.0...v1.7.1) (2026-11-08)
 
 
