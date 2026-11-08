@@ -1,0 +1,127 @@
+"""Compact measured results, stage denominators and handoff inputs."""
+
+import collections
+import json
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent
+
+
+def rows(path):
+    with path.open() as handle:
+        for line in handle:
+            yield json.loads(line)
+
+
+def main():
+    summaries = []
+    denominators = []
+    for name in ("software-agent-sdk", "litellm"):
+        p = OUT / name
+        s = json.loads((p / "summary.json").read_text())
+        stages = list(rows(p / "gold-stages.jsonl"))
+        exposures = list(rows(p / "candidate-exposures.jsonl"))
+        cs = {r["candidate_id"]: r for r in rows(p / "candidates.jsonl")}
+        buckets = collections.defaultdict(list)
+        for r in stages:
+            buckets[(r["input_cohort"], r["profile"], r["arm"], r["label"])].append(r)
+        for (cohort, profile, arm, label), rs in sorted(buckets.items()):
+            denominators.append(
+                dict(
+                    repository=s["repository"],
+                    cohort=cohort,
+                    profile=profile,
+                    arm=arm,
+                    label=label,
+                    rows=len(rs),
+                    present=sum(r["present"] for r in rs),
+                    retrieved=sum(r["retrieved"] for r in rs),
+                    funded=sum(r["funded"] for r in rs),
+                    first_losses=dict(collections.Counter(r["first_loss"] for r in rs)),
+                )
+            )
+        measured = []
+        for profile in ("laboratory-default", "standalone-balanced-diagnostic"):
+            base = [r for r in stages if r["profile"] == profile and r["arm"] == "function-only"]
+            joined = [r for r in stages if r["profile"] == profile and r["arm"] == "protected-ownership-join"]
+            basefund = {(r["input_cohort"], r["id"]) for r in base if r["funded"]}
+            joinfund = {(r["input_cohort"], r["id"]) for r in joined if r["funded"]}
+            base_e = {
+                e["candidate_id"]
+                for e in exposures
+                if e["profile"] == profile and e["arm"] == "function-only" and e["funded"]
+            }
+            join_e = {
+                e["candidate_id"]
+                for e in exposures
+                if e["profile"] == profile and e["arm"] == "protected-ownership-join" and e["funded"]
+            }
+            info = dict(
+                profile=profile,
+                known_labels=dict(collections.Counter(r["label"] for r in base)),
+                positive_retrieved=sum(r["retrieved"] and r["label"] in ("duplicate", "drifted") for r in base),
+                positive_funded=sum(r["funded"] and r["label"] in ("duplicate", "drifted") for r in base),
+                separate_retrieved=sum(r["retrieved"] and r["label"] == "separate" for r in base),
+                separate_funded=sum(r["funded"] and r["label"] == "separate" for r in base),
+                new_gold_funding=sorted(joinfund - basefund),
+                lost_gold_funding=sorted(basefund - joinfund),
+                joined_new_unique_funded_functions=[c for c in sorted(join_e - base_e) if cs[c]["kind"] == "function"],
+                joined_new_unique_funded_models=[c for c in sorted(join_e - base_e) if cs[c]["kind"] == "model"],
+            )
+            arms = []
+            for arm in ("function-only", "model-only", "protected-ownership-join"):
+                es = [e for e in exposures if e["profile"] == profile and e["arm"] == arm]
+                funded = [e for e in es if e["funded"]]
+                totals = next(r for r in s["summary"] if r["profile"] == profile and r["arm"] == arm)
+                arms.append(
+                    dict(
+                        arm=arm,
+                        candidate_occurrences=totals["candidate_occurrences"],
+                        unique_candidates=len({e["candidate_id"] for e in es}),
+                        funded_occurrences=len(funded),
+                        unique_funded=len({e["candidate_id"] for e in funded}),
+                        funded_model_occurrences=sum(e["kind"] == "model" for e in funded),
+                        normal_estimated_usd=sum(e["estimated_usd"] for e in funded),
+                        synthetic_batches=totals["batches"],
+                        max_batch_cap_usd=0.04,
+                    )
+                )
+            info["arms"] = arms
+            measured.append(info)
+        summaries.append(
+            dict(
+                repository=s["repository"],
+                cohort_rows=s["cohort_rows"],
+                functions=s["functions"],
+                models=s["models"],
+                linked_functions=s["linked_functions"],
+                source_identity_ambiguities=json.loads((p / "source-manifest.json").read_text())["ambiguous"],
+                resolution=s["resolution"],
+                unique_candidate_union=len(cs),
+                directional_receipts=sum(1 for _ in rows(p / "directional-rows.jsonl")),
+                gold_stage_rows=len(stages),
+                profiles=measured,
+                index_walltime_seconds=s["index_walltime_seconds"],
+                query_walltime_seconds=s["query_walltime_seconds"],
+                walltime_seconds=s["walltime_seconds"],
+                peak_rss_kib=s["peak_rss_kib"],
+            )
+        )
+    result = dict(
+        repositories=summaries,
+        total_cohort_rows=sum(r["cohort_rows"] for r in summaries),
+        total_directional_receipts=sum(r["directional_receipts"] for r in summaries),
+        total_gold_stage_rows=sum(r["gold_stage_rows"] for r in summaries),
+        total_unique_repo_candidate_union=sum(r["unique_candidate_union"] for r in summaries),
+        physical_spend_usd=0,
+        accepted_new_model_labels=0,
+        novel_queue_rows=sum(1 for _ in rows(OUT / "novel-review-queue.jsonl")),
+        all_answers_unknown=True,
+    )
+    for file, obj in [("measured-results.json", result), ("stage-denominators.json", denominators)]:
+        (OUT / file).write_text(json.dumps(obj, indent=2, sort_keys=True) + "\n")
+    print(json.dumps(result, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

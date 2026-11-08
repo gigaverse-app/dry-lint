@@ -1,0 +1,121 @@
+"""Same v2 mechanism, all previously unqueried supported public-source functions."""
+import collections,gzip,hashlib,json,pickle,resource,time
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger,estimate
+from dry_lint.extractors import PythonExtractor
+from dry_lint.model_shapes import ModelComparer
+from dry_lint.models import Candidate,Function
+from dry_lint.settings import Settings
+from dry_lint.typescript import TypeScriptExtractor
+from contract_operations import Signatures,match
+import run_round2 as prior
+
+BASE=Path(__file__).resolve().parent;OUT=BASE/'round2';COVER=OUT/'full-source-coverage';FOLLOW=prior.FOLLOW;ROOT=prior.ROOT;ARM=prior.ARM;CMP=prior.CMP
+
+def sha(b):return hashlib.sha256(b).hexdigest()
+def rows(p):return prior.rows(p)
+def dump(p,d):p.write_text(json.dumps(d,indent=2,sort_keys=True)+'\n')
+def write(p,rs):
+ with p.open('x') as f:
+  for r in rs:f.write(json.dumps(r,sort_keys=True)+'\n')
+def pair(a,b):return tuple(sorted((a,b)))
+
+def main():
+ if (COVER/'SUMMARY.json').exists():raise SystemExit('Coverage already frozen')
+ COVER.mkdir(exist_ok=True);began=time.monotonic();assert sha((OUT/'EXPERIMENT-COVERAGE-v2.json').read_bytes())=='57dc3607c544e1888be29dd4784385b1fbba989d12142601866de6b387799de4'
+ configs={r['repository']:r for r in json.loads((ROOT/'jobs/review-automation/.lab-results/review-automation/repositories-five.json').read_text())};cohorts={c['cohort_id']:c for c in rows(prior.INDEX/'cohorts.jsonl')};reserved_models,reserved_endpoints=prior.reserved()
+ for packet in rows(OUT/'batch-01/novel-review-queue.jsonl'):
+  c=Candidate.model_validate(packet['candidate']);side=next(s for s in rows(OUT/'batch-01/private-funding-sidecar.jsonl') if s['id']==packet['id']);key=packet['repository'],packet['revision'];reserved_models.update((*key,m) for m in side['ownership_model_ids']);reserved_endpoints.update((*key,f.qualname) for f in (c.new,c.existing))
+ settings=Settings(preset='none',budget={'usd':.04});judges={k:SimpleNamespace(name='anthropic',version='offline-normal-estimate-v1-'+k,model='claude-sonnet-5-5',prompt_policy='shared-operations' if k=='function' else 'model-contracts') for k in ('function','model')};summaries=[]
+ for sf in sorted(FOLLOW.glob('runs-index-v1/*/summary.json')):
+  original_summary=json.loads(sf.read_text());repo=original_summary['repository'];pin=original_summary['revision']
+  if repo not in configs or configs[repo]['revision']!=pin:continue
+  folder=sf.parent;cid=folder.name;meta=cohorts[cid];target=COVER/'runs'/cid
+  if (target/'summary.json').exists():
+   summaries.append(json.loads((target/'summary.json').read_text()));print(json.dumps({'cohort':cid,'status':'reused_completed_exact_coverage'}),flush=True);continue
+  target.mkdir(parents=True,exist_ok=True);started=time.monotonic();bgraw=Path(meta['background_path']).read_bytes();assert sha(bgraw)==meta['background_sha256'];b=BenchBackground.decode(bgraw);fs,unresolved,missing=prior.functions(folder,b);links=json.loads((folder/'links.json').read_text());ms={m.qualname:m for m in map(Function.model_validate,json.loads((folder/'models.json').read_text()))};engine=Signatures();counts=collections.Counter();allowed=set();signature_graph={};elig=[]
+  cachedq=set()
+  with gzip.open(folder/'query-ranks.jsonl.gz','rt') as stream:
+   for line in stream:cachedq.add(json.loads(line)['query'])
+  for fid in sorted(links):
+   if fid not in fs:counts['missing_native_function']+=1;continue
+   f=fs[fid]
+   if f.line<1 or f.end_line<f.line or f.lines<6:counts['native_span_or_size_gate']+=1;continue
+   if (repo,pin,fid) in reserved_endpoints or any((repo,pin,m) in reserved_models for m in links[fid]):counts['prior_family_reservation']+=1;continue
+   for mid,link in links[fid].items():
+    if mid not in ms:counts['missing_native_model']+=1;continue
+    sig=engine.get(f,mid,link,set(ms[mid].declaration.fields))
+    if len({k[0] for k in sig})>=2 and any(v['nontrivial'] for v in sig.values()):signature_graph.setdefault(fid,{})[mid]=sig
+   if fid in signature_graph:
+    allowed.add(fid)
+    if fid not in cachedq:elig.append(fid)
+  elig.sort(key=lambda fid:(sha(fid.encode()),fid));write(target/'frozen-query-inventory.jsonl',[{'source_id':q,'source_sha256':sha(fs[q].code.encode()),'line':fs[q].line,'end_line':fs[q].end_line,'canonical_contracts':sorted(signature_graph[q]),'batch':'full-source:'+str(i//16).zfill(4)} for i,q in enumerate(elig)])
+  # Persist exact frozen sparse graph once. No model download, embedding fit or snippet IDF.
+  cache=OUT/'index-cache';cache.mkdir(exist_ok=True);cp=cache/(meta['background_sha256']+'.pickle');rp=cp.with_suffix('.json');t=time.monotonic()
+  if cp.exists():
+   proof=json.loads(rp.read_text());assert proof['background_sha256']==meta['background_sha256'] and proof['pickle_sha256']==sha(cp.read_bytes());index=pickle.loads(cp.read_bytes());built=False
+  else:
+   index=b.index();cp.write_bytes(pickle.dumps(index,protocol=5));dump(rp,{'background_sha256':meta['background_sha256'],'pickle_sha256':sha(cp.read_bytes()),'repository':repo,'revision':pin,'scope':b.scope,'max_df':b.max_df,'idf_source':'original full frozen corpus; document order unchanged','index_implementation_sha256':sha((ROOT/'jobs/experiment-model-function/src/dry_lint/index.py').read_bytes())});built=True
+  index_seconds=time.monotonic()-t;pos={i:d.id for i,d in enumerate(b.documents)};doc_positions=collections.defaultdict(set)
+  for i,d in enumerate(b.documents):doc_positions[d.id].add(i)
+  model_index=ModelComparer();model_index.index(list(ms.values()));model_neighbors={};cs={};events=[];ledgers=[];opportunities=[];rankreceipts=[];query_seconds=0;operation_seconds=0
+  def candidate(kind,a,z,score,cmp):
+   ep=pair(a,z);ci=('v2f-' if kind=='function' else 'v2m-')+sha((kind+':'+ '\n'.join(ep)).encode())[:20]
+   if ci not in cs:
+    units=fs if kind=='function' else ms
+    for fid in ep:
+     if not units[fid].hash:units[fid].hash=(PythonExtractor() if units[fid].path.endswith('.py') else TypeScriptExtractor()).structure_hash(units[fid])
+    c=Candidate(new=units[ep[0]],existing=units[ep[1]],similarity=score,comparer=cmp,similarity_reusable=False);cs[ci]={'candidate_id':ci,'candidate':c.model_dump(),'kind':kind,'endpoints':list(ep)}
+   return ci
+  for start in range(0,len(elig),16):
+   qs=elig[start:start+16];bid='full-source:'+str(start//16).zfill(4);base={'laboratory-default':set(),'standalone-balanced-diagnostic':set()};mods=set();best={'laboratory-default':{},'standalone-balanced-diagnostic':{}}
+   for q in qs:
+    t=time.monotonic();ranked=index.similar(fs[q].tokens,exclude=doc_positions[q]);query_seconds+=time.monotonic()-t
+    for rank,(i,score) in enumerate(ranked[:20],1):rankreceipts.append({'query':q,'target':pos[i],'rank':rank,'cosine':score,'source_position':i,'same_file':pos[i].split('::')[0]==fs[q].path,'source_unambiguous':pos[i] in fs})
+    for profile,k,same,floor in [('laboratory-default',3,False,.5),('standalone-balanced-diagnostic',20,True,.35)]:
+     native_ranking=[(i,s) for i,s in ranked if same or pos[i].split('::')[0]!=fs[q].path]
+     for i,score in native_ranking[:k]:
+      z=pos[i]
+      if score>=floor and z in fs:base[profile].add(candidate('function',q,z,score,'trial-function-frozen-tfidf:v1'))
+    for mid in links[q]:
+     if mid not in ms:continue
+     if mid not in model_neighbors:model_neighbors[mid]=model_index.neighbours(ms[mid],3,lambda other:True)
+     for m,dice in model_neighbors[mid]:mods.add(candidate('model',mid,m.qualname,dice,'trial-model-shape:v1'))
+    t=time.monotonic();facts=[]
+    for rank,(i,score) in enumerate(ranked[:20],1):
+     z=pos[i]
+     if z not in allowed or score<.1:continue
+     for mid in sorted(set(signature_graph[q])&set(signature_graph[z])):
+      m=match(engine,fs[q],fs[z],mid,links[q][mid],links[z][mid],set(ms[mid].declaration.fields))
+      if m:
+       m.update(query=q,target=z,models=[mid,mid],shared_used_fields=m['matched_fields'],query_lines=fs[q].lines,target_lines=fs[z].lines,same_file=fs[q].path==fs[z].path,cosine=score,raw_rank=rank,disjoint_round1_family=True,coverage_extension=True);facts.append(m);opportunities.append(m)
+    facts.sort(key=lambda f:(-f['matched_operation_count'],-len(f['matched_fields']),-f['cosine'],f['target'],f['canonical_model']))
+    for profile in base:
+     baselinepairs={tuple(cs[ci]['endpoints']) for ci in base[profile]}
+     for fact in facts:
+      if profile=='laboratory-default' and fact['same_file']:continue
+      if pair(q,fact['target']) in baselinepairs:continue
+      ci=candidate('function',q,fact['target'],fact['cosine'],CMP);best[profile][ci]=fact;break
+    operation_seconds+=time.monotonic()-t
+   for profile in base:
+    baseline=sorted(base[profile],key=lambda ci:(-cs[ci]['candidate']['similarity'],ci));modelorder=sorted(mods,key=lambda ci:(-cs[ci]['candidate']['similarity'],ci));extra=sorted(best[profile],key=lambda ci:(-best[profile][ci]['matched_operation_count'],-len(best[profile][ci]['matched_fields']),-best[profile][ci]['cosine'],ci));orders={'function-only':baseline,'model-only':modelorder,ARM:list(dict.fromkeys(baseline+extra+modelorder))};fundedsets={}
+    for arm,order in orders.items():
+     ledger=Ledger(settings);funded=set()
+     for ordinal,ci in enumerate(order,1):
+      row=cs[ci];c=Candidate.model_validate(row['candidate']);kind=row['kind'];cost=estimate(judges[kind],[c],settings);admit=bool(ledger.select(judges[kind],[c]))
+      if admit:ledger.charge(judges[kind],[c],0);funded.add(ci)
+      events.append({'repository':repo,'profile':profile,'batch':bid,'arm':arm,'candidate_id':ci,'kind':kind,'ordinal':ordinal,'evidence':best[profile].get(ci),'cosine_or_dice':c.similarity,'estimated_usd':cost,'funded':admit,'cumulative_usd':ledger.usd,'synthetic':True,'verdict':'unknown'})
+     fundedsets[arm]=funded;ledgers.append({'repository':repo,'revision':pin,'profile':profile,'batch':bid,'arm':arm,'candidate_count':len(order),'funded_count':len(funded),'cap':.04,'estimated_usd':ledger.usd,'synthetic':True,'baseline_retrieved_displacement':0,'normal_estimate_cached_also_charged':True})
+    assert fundedsets['function-only']<=fundedsets[ARM]
+   if start%256==0:print(json.dumps({'cohort':cid,'queries_done':min(start+16,len(elig)),'queries_total':len(elig)}),flush=True)
+  for name in ('source-manifest.json','models.json','links.json'):(target/name).write_bytes((folder/name).read_bytes())
+  write(target/'candidates.jsonl',cs.values());write(target/'candidate-exposures.jsonl',events);write(target/'ledger.jsonl',ledgers);write(target/'joined-opportunities.jsonl',opportunities)
+  with gzip.open(target/'query-ranks.jsonl.gz','wt') as f:
+   for r in rankreceipts:f.write(json.dumps(r,sort_keys=True)+'\n')
+  treatment={e['candidate_id'] for e in events if e['funded'] and e['arm']==ARM and e['kind']=='function'};baseline={e['candidate_id'] for e in events if e['funded'] and e['arm']=='function-only'}
+  summary={'cohort_id':cid,'repository':repo,'revision':pin,'native_functions':len(fs),'native_models':len(ms),'resolved_link_functions':len(links),'disjoint_operation_supported_functions':len(allowed),'prior_cached_queries_reused_not_rerun':len(allowed&cachedq),'new_queries':len(elig),'source_functions_not_operation_supported':len(fs)-len(allowed),'gates':dict(counts),'operation_parse_unresolved':engine.counts,'native_unresolved':unresolved,'previous_native_syntax_exception_files':len(missing),'candidate_count':len(cs),'operation_pair_directions':len(opportunities),'function_arm_funded_pairs':len(treatment),'treatment_only_funded_pairs':len(treatment-baseline),'sparse_graph_materialized':built,'sparse_graph_seconds':index_seconds,'query_seconds':query_seconds,'operation_seconds':operation_seconds,'walltime_seconds':time.monotonic()-started,'baseline_funding_loss':0,'background_sha256':meta['background_sha256'],'max_df':b.max_df,'query_coverage':'ALL supported disjoint native contract-operation functions: prior cached query audit plus newly evaluated full source; no unsupported-by-history exclusions','vector_or_embedding_fits':0,'model_only_separate':True,'provider_calls':0};dump(target/'summary.json',summary);summaries.append(summary);print(json.dumps({k:summary[k] for k in ('cohort_id','new_queries','candidate_count','function_arm_funded_pairs','treatment_only_funded_pairs','walltime_seconds')}),flush=True)
+ result={'schema':1,'status':'FULL_SUPPORTED_PUBLIC_SOURCE_QUERIED','cohorts':len(summaries),'query_count':sum(s['new_queries'] for s in summaries),'treatment_only_funded_pair_cohort_entries':sum(s['treatment_only_funded_pairs'] for s in summaries),'walltime_seconds':time.monotonic()-began,'peak_rss_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'source_cohorts':summaries,'coverage_addendum_sha256':sha((OUT/'EXPERIMENT-COVERAGE-v2.json').read_bytes()),'vector_or_embedding_fits':0,'old_gold_comparison_reruns':0,'worker_provider_calls':0,'bounded_top20_receipts':True,'source_scope_revisions_merged':False};dump(COVER/'SUMMARY.json',result);print(json.dumps({k:v for k,v in result.items() if k!='source_cohorts'}),flush=True)
+
+if __name__=='__main__':main()

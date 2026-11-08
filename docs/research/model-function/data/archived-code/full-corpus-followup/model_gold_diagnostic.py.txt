@@ -1,0 +1,49 @@
+"""Direct native model-gold diagnostic; never transfer these labels to functions."""
+import collections
+import hashlib
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+from dry_lint.costs import Ledger,estimate
+from dry_lint.judges.command import prompt
+from dry_lint.model_shapes import ModelComparer
+from dry_lint.models import Candidate,Function
+from dry_lint.settings import Settings
+
+OUT=Path(__file__).resolve().parent
+MAPPER=Path('/home/researcher/dry-lint-round/jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v1-88f0f73927ce28d2')
+
+
+def rows(p):return [json.loads(x) for x in p.read_text().splitlines() if x]
+
+
+def main():
+    source_rows=[r for r in rows(MAPPER/'rows.jsonl') if r['record_kind']=='model'];all_exposures=[];results=[]
+    settings=Settings(preset='none',budget={'usd':.04});judge=SimpleNamespace(name='anthropic-models',version='offline-model-contracts-diagnostic',model='claude-sonnet-5-5',prompt_policy='model-contracts')
+    provider=json.loads((OUT/'pilot-provider-observations.json').read_text())['rows'];provider={r['id']:r for r in provider}
+    for row in source_rows:
+        mapping=row['mappings'][0];folder=OUT/'runs-index-v1'/mapping['cohort_id'];units=[Function.model_validate(m) for m in json.loads((folder/'models.json').read_text())];byid={m.qualname:m for m in units};comp=ModelComparer();comp.index(units)
+        c=Candidate.model_validate(row['candidate']);assert all(f.qualname in byid and f.model_dump()==byid[f.qualname].model_dump() for f in (c.new,c.existing))
+        candidates={};directions=[]
+        for q,t in ((c.new,c.existing),(c.existing,c.new)):
+            ns=comp.neighbours(q,len(units),lambda f: f.path.endswith('.py')==q.path.endswith('.py'));rank=next((i+1 for i,(f,s) in enumerate(ns) if f.qualname==t.qualname),None)
+            directions.append(dict(query=q.qualname,target=t.qualname,dice=comp.similarity(q,t),rank=rank,top1=rank==1,top3=rank is not None and rank<=3,top20=rank is not None and rank<=20))
+            for f,s in ns[:3]:
+                a,z=sorted((q.qualname,f.qualname));key=a+'\n'+z
+                candidates.setdefault(key,Candidate(new=byid[a],existing=byid[z],similarity=s,comparer='trial-model-shape:v1'))
+        ledger=Ledger(settings);order=sorted(candidates,key=lambda k:(-candidates[k].similarity,k));funded=set()
+        for ordinal,key in enumerate(order,1):
+            cc=candidates[key];cost=estimate(judge,[cc],settings);admitted=bool(ledger.select(judge,[cc]))
+            if admitted:ledger.charge(judge,[cc],0);funded.add(key)
+            all_exposures.append(dict(row_id=row['row_id'],cohort_id=mapping['cohort_id'],candidate=cc.model_dump(),ordinal=ordinal,funded=admitted,estimated_usd=cost,cumulative_usd=ledger.usd,synthetic=True,kind='model',function_cost=0,budget_shared_total=.04))
+        target='\n'.join(sorted((c.new.qualname,c.existing.qualname)));normal_policy=prompt(c,policy='model-contracts');observed=next(o for o in provider[row['id']]['observations'] if o['kind']=='claude');assert observed['identity']['rendered_input']==normal_policy
+        results.append(dict(row_id=row['row_id'],id=row['id'],pair_id=row['pair_id'],cohort_id=mapping['cohort_id'],family_id=row['family_id'],repository=row['repository'],revision=row['revision'],label=row['label'],accepted_gold=row['accepted_gold'],candidate_kind='model',directions=directions,retrieved=any(d['top3'] for d in directions),funded=target in funded,first_loss='funded-model-source-review-known' if target in funded else 'budget' if any(d['top3'] for d in directions) else 'model-top3',model_candidate_count=len(candidates),funded_candidates=len(funded),normal_estimated_usd=ledger.usd,cap=.04,synthetic_batch='direct model declarations; no function-PR claim',function_gold_transfer=False,exact_root_claude_request_reusable=True,root_verdict=observed['verdict'],root_actual_usd=observed['usd']))
+    for name,data in [('model-gold-rows.jsonl',results),('model-gold-exposures.jsonl',all_exposures)]:
+        with (OUT/name).open('w') as handle:
+            for r in data:handle.write(json.dumps(r,sort_keys=True)+'\n')
+    summary=dict(rows=len(results),labels=dict(collections.Counter(r['label'] for r in results)),retrieved=sum(r['retrieved'] for r in results),funded=sum(r['funded'] for r in results),normal_estimated_usd=sum(r['normal_estimated_usd'] for r in results),worker_provider_calls=0,labels_never_applied_to_function_gold=True,comparison='Direct model-only diagnostic; no causal function-join gain claim; cached canonical answers still charge normal estimates.')
+    (OUT/'model-gold-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n');print(json.dumps(summary,sort_keys=True))
+
+
+if __name__=='__main__':main()

@@ -1,0 +1,159 @@
+"""Preregistered static v2 over cached native cohorts; no fitting or provider calls."""
+import collections,gzip,hashlib,json,resource,time
+from pathlib import Path
+from types import SimpleNamespace
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger,estimate
+from dry_lint.extractors import PythonExtractor
+from dry_lint.model_shapes import PythonModelExtractor,TypeScriptModelExtractor
+from dry_lint.models import Candidate,Function
+from dry_lint.settings import Settings
+from dry_lint.typescript import TypeScriptExtractor
+from contract_operations import Signatures,match
+
+BASE=Path(__file__).resolve().parent;OUT=BASE/'round2';FOLLOW=BASE.parent/'full-corpus-followup';ROOT=Path('/home/researcher/dry-lint-round');INDEX=ROOT/'jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2'
+ARM='protected-contract-operation-join-v2';CMP='trial-model-contract-operation:v2'
+
+def sha(b):return hashlib.sha256(b).hexdigest()
+def rows(p):return [json.loads(s) for s in p.read_text().splitlines() if s.strip()]
+def dump(p,d):p.write_text(json.dumps(d,indent=2,sort_keys=True)+'\n')
+def write(p,rr):
+ with p.open('x') as f:
+  for r in rr:f.write(json.dumps(r,sort_keys=True)+'\n')
+def pair(a,b):return tuple(sorted((a,b)))
+def obj(r):return Function.model_validate(r)
+
+def reserved():
+ models=set();endpoints=set()
+ for s in rows(BASE/'round1/private-family-reservation.jsonl'):
+  models.update((s['repository'],s['revision'],m) for m in s['ownership_model_ids']);endpoints.update((s['repository'],s['revision'],f) for f in s['source_function_endpoints'])
+ old=FOLLOW/'batches/batch-01';ps={r['id']:r for r in rows(old/'novel-review-queue.jsonl')};links_cache={}
+ for s in rows(old/'private-funding-sidecar.jsonl'):
+  p=ps[s['id']];c=Candidate.model_validate(p['candidate']);key=p['repository'],p['revision']
+  if p['candidate_kind']=='model':models.update((*key,m) for m in (c.new.qualname,c.existing.qualname));continue
+  folder=Path(s['candidate_file']).parent
+  if folder not in links_cache:links_cache[folder]=json.loads((folder/'links.json').read_text())
+  for f in (c.new,c.existing):
+   endpoints.add((*key,f.qualname));models.update((*key,m) for m in links_cache[folder].get(f.qualname,{}))
+ return models,endpoints
+
+def functions(folder,b):
+ manifest=json.loads((folder/'source-manifest.json').read_text());found=collections.defaultdict(list);missing=[]
+ for p in manifest['files']:
+  if not p['code_in_scope']:continue
+  ex,mex=(PythonExtractor(),PythonModelExtractor()) if p['path'].endswith('.py') else (TypeScriptExtractor(),TypeScriptModelExtractor())
+  cp=FOLLOW/'cache'/(sha((p['path']+'\n'+p['sha256']+'\n'+ex.version+'\n'+mex.version).encode())+'.json.gz')
+  if not cp.exists():missing.append(p['path']);continue
+  cap=json.loads(gzip.decompress(cp.read_bytes()))
+  for r in cap['functions']:
+   f=obj(r);found[f.qualname].append(f)
+ docs=collections.defaultdict(list)
+ for d in b.documents:docs[d.id].append(d)
+ fs={};counts=collections.Counter()
+ for fid,ds in docs.items():
+  if len(ds)!=1 or len(found.get(fid,[]))!=1:counts['missing_or_ambiguous_native']+=1;continue
+  f=found[fid][0]
+  if sha(f.code.encode())!=ds[0].source_sha256:counts['native_body_mismatch']+=1;continue
+  if f.line<1 or f.end_line<f.line:counts['invalid_native_span']+=1;continue
+  f.tokens=ds[0].tokens();fs[fid]=f
+ return fs,dict(counts),missing
+
+def run():
+ started=time.monotonic();protocol=sha((OUT/'EXPERIMENT.json').read_bytes());assert protocol=='21ceb99a58710ee48bc1bdc0260a6bf12a1f0bd4203cf0be9413a787b15169c3'
+ if (OUT/'STATIC-SUMMARY.json').exists():raise SystemExit('Static v2 already frozen')
+ cohorts={c['cohort_id']:c for c in rows(INDEX/'cohorts.jsonl')};mapped=rows(INDEX/'rows.jsonl');public={r['repository']:r['revision'] for r in json.loads((ROOT/'jobs/review-automation/.lab-results/review-automation/repositories-five.json').read_text())};reserved_models,reserved_endpoints=reserved();settings=Settings(preset='none',budget={'usd':.04});judge={kind:SimpleNamespace(name='anthropic',version='offline-normal-estimate-v1-'+kind,model='claude-sonnet-5-5',prompt_policy='shared-operations' if kind=='function' else 'model-contracts') for kind in ('function','model')}
+ summaries=[];statusrows=[];allpairfund={};allpairbase={};native_ids={};eligible_pairs={};family_eligible={}
+ folders=sorted(FOLLOW.glob('runs-index-v1/*/summary.json'))+sorted(FOLLOW.glob('runs-index-v2-new/*/summary.json'))
+ for sf in folders:
+  tick=time.monotonic();folder=sf.parent;cid=folder.name;c=cohorts[cid];target=OUT/'runs-attempt-03'/cid;target.mkdir(parents=True);bgraw=Path(c['background_path']).read_bytes();assert sha(bgraw)==c['background_sha256'];b=BenchBackground.decode(bgraw);fs,unresolved,missing_cache=functions(folder,b);assert set(missing_cache)<={p['path'] for p in json.loads((folder/'source-manifest.json').read_text())['syntax_errors']};native_ids[cid]=set(fs)
+  links=json.loads((folder/'links.json').read_text());models={m.qualname:m for m in map(obj,json.loads((folder/'models.json').read_text()))};engine=Signatures();rankrows=[]
+  with gzip.open(folder/'query-ranks.jsonl.gz','rt') as stream:
+   for line in stream:
+    r=json.loads(line)
+    if r['source_unambiguous'] and r['query'] in fs and r['target'] in fs:rankrows.append(r)
+  oldcs=rows(folder/'candidates.jsonl');cs={r['candidate_id']:r for r in oldcs};oldex=rows(folder/'candidate-exposures.jsonl');oldled=rows(folder/'ledger.jsonl');bygroup=collections.defaultdict(list)
+  for e in oldex:
+   if e['arm'] in ('function-only','model-only'):bygroup[e['profile'],e['batch'],e['arm']].append(e)
+  for es in bygroup.values():es.sort(key=lambda e:e['ordinal'])
+  opportunities=collections.defaultdict(list);pairfacts={};excluded=collections.Counter();queryids={r['query'] for r in rankrows};discovery_allowed=set()
+  for fid in links:
+   if (c['repository'],c['revision'],fid) in reserved_endpoints:continue
+   if any((c['repository'],c['revision'],mid) in reserved_models for mid in links[fid]):continue
+   discovery_allowed.add(fid)
+  for r in rankrows:
+   a,z=r['query'],r['target'];fa,fz=fs[a],fs[z]
+   if min(fa.lines,fz.lines)<6 or r['cosine']<.1:excluded['size_or_score']+=1;continue
+   common=sorted(set(links.get(a,{}))&set(links.get(z,{})))
+   if not common:excluded['no_same_resolved_contract']+=1;continue
+   facts=[]
+   for mid in common:
+    if mid not in models:continue
+    ma=match(engine,fa,fz,mid,links[a][mid],links[z][mid],set(models[mid].declaration.fields))
+    if ma:facts.append(ma)
+   if not facts:excluded['no_two_matching_field_operations']+=1;continue
+   best=min(facts,key=lambda f:(-f['matched_operation_count'],-len(f['matched_fields']),f['canonical_model']))
+   best.update(query=a,target=z,cosine=r['cosine'],query_lines=fa.lines,target_lines=fz.lines,same_file=fa.path==fz.path,raw_rank=r['rank'],shared_used_fields=best['matched_fields'],models=[best['canonical_model'],best['canonical_model']],disjoint_round1_family=a in discovery_allowed and z in discovery_allowed)
+   opportunities[a].append(best);pk=pair(a,z)
+   if pk not in pairfacts or (-best['matched_operation_count'],-len(best['matched_fields']),best['canonical_model'])<(-pairfacts[pk]['matched_operation_count'],-len(pairfacts[pk]['matched_fields']),pairfacts[pk]['canonical_model']):pairfacts[pk]=best
+  for vals in opportunities.values():vals.sort(key=lambda f:(-f['matched_operation_count'],-len(f['matched_fields']),-f['cosine'],f['target'],f['canonical_model']))
+  eligible_pairs[cid]=set(pairfacts);family_eligible[cid]={pk:f['disjoint_round1_family'] for pk,f in pairfacts.items()}
+  # Same original query batches; only cached native direct endpoints are admitted.
+  selected=sorted(links,key=lambda fid:(sha(fid.encode()),fid))[:128];batchdefs={f'discovery:{i//16:02}':set(selected[i:i+16]) for i in range(0,len(selected),16)}
+  for row in mapped:
+   for mapping in row.get('mappings',[]):
+    if mapping['cohort_id']!=cid or mapping['status']!='mapped':continue
+    family=row.get('family_id') or '__unknown-family__:'+row['dataset']+':'+str(row['input_record'].get('row',{}).get('panel','unresolved'))
+    bid='regression:'+row['dataset']+':'+family
+    sources=mapping['sources'];batchdefs.setdefault(bid,set()).update(sources[s]['source_id'] for s in ('new','existing'))
+  newcs={};exposures=[e for e in oldex if e['arm'] in ('function-only','model-only')];ledgers=[e for e in oldled if e['arm'] in ('function-only','model-only')];v2fund=collections.defaultdict(set);basefund=collections.defaultdict(set);gains=collections.Counter();coverage=collections.Counter()
+  for profile,bid in sorted({(e['profile'],e['batch']) for e in oldled}):
+   baseevents=bygroup[profile,bid,'function-only'];model_events=bygroup[profile,bid,'model-only'];baselineids={e['candidate_id'] for e in baseevents};basepairs={pair(*cs[ci]['endpoints']) for ci in baselineids};extras={}
+   for q in sorted(batchdefs.get(bid,set())):
+    if q not in queryids:coverage['no_saved_top20_query']+=1;continue
+    for fact in opportunities.get(q,[]):
+     if profile=='laboratory-default' and fact['same_file']:continue
+     pk=pair(q,fact['target'])
+     if pk in basepairs:continue
+     ci='r2-'+sha(('function:'+ '\n'.join(pk)).encode())[:20]
+     if ci not in newcs:
+      for fid in pk:
+       if not fs[fid].hash:fs[fid].hash=(PythonExtractor() if fs[fid].path.endswith('.py') else TypeScriptExtractor()).structure_hash(fs[fid])
+      cand=Candidate(new=fs[pk[0]],existing=fs[pk[1]],similarity=fact['cosine'],comparer=CMP,similarity_reusable=False)
+      newcs[ci]={'candidate_id':ci,'candidate':cand.model_dump(),'kind':'function','endpoints':list(pk)}
+     extras[ci]=fact;break
+   order=[e['candidate_id'] for e in baseevents]+sorted(extras,key=lambda ci:(-extras[ci]['matched_operation_count'],-len(extras[ci]['matched_fields']),-extras[ci]['cosine'],ci))+[e['candidate_id'] for e in model_events]
+   # Stable dedup: exactly one charge for an unordered native candidate in this arm/batch.
+   order=list(dict.fromkeys(order));ledger=Ledger(settings);funded=[]
+   for ordinal,ci in enumerate(order,1):
+    row=newcs.get(ci,cs.get(ci));cand=Candidate.model_validate(row['candidate']);kind=row['kind'];cost=estimate(judge[kind],[cand],settings);admit=bool(ledger.select(judge[kind],[cand]))
+    if admit:ledger.charge(judge[kind],[cand],0);funded.append(ci)
+    exposures.append(dict(repository=c['repository'],profile=profile,batch=bid,arm=ARM,candidate_id=ci,kind=kind,ordinal=ordinal,evidence=extras.get(ci),cosine_or_dice=cand.similarity,estimated_usd=cost,funded=admit,cumulative_usd=ledger.usd,synthetic=True,verdict='unknown'))
+    if admit and kind=='function':v2fund[profile].add(pair(*row['endpoints']))
+   original={e['candidate_id'] for e in baseevents if e['funded']};assert original.issubset(set(funded)),(cid,profile,bid,'baseline funding displacement')
+   for e in baseevents:
+    if e['funded']:basefund[profile].add(pair(*cs[e['candidate_id']]['endpoints']))
+   ledgers.append(dict(repository=c['repository'],revision=c['revision'],profile=profile,batch=bid,arm=ARM,candidate_count=len(order),funded_count=len(funded),cap=.04,estimated_usd=ledger.usd,synthetic=True,baseline_retrieved_displacement=0,baseline_funded_displacement=0,normal_estimate_cached_also_charged=True,function_candidates=sum((newcs.get(ci,cs.get(ci)))['kind']=='function' for ci in order),model_candidates=sum((newcs.get(ci,cs.get(ci)))['kind']=='model' for ci in order)))
+  cs.update(newcs);allpairfund[cid]=v2fund;allpairbase[cid]=basefund
+  for name in ('source-manifest.json','models.json','links.json'):(target/name).write_bytes((folder/name).read_bytes())
+  write(target/'candidates.jsonl',cs.values());write(target/'candidate-exposures.jsonl',exposures);write(target/'ledger.jsonl',ledgers);write(target/'joined-opportunities.jsonl',(f for vals in opportunities.values() for f in vals))
+  summary={'cohort_id':cid,'repository':c['repository'],'revision':c['revision'],'native_functions':len(fs),'native_models':len(models),'cached_query_directions':len(rankrows),'eligible_pairs':len(pairfacts),'disjoint_eligible_pairs':sum(f['disjoint_round1_family'] for f in pairfacts.values()),'v2_extra_candidates':len(newcs),'funded_v2_extra_pairs':len({e['candidate_id'] for e in exposures if e['arm']==ARM and e['funded'] and e['candidate_id'] in newcs}),'public_discovery_pin':public.get(c['repository'])==c['revision'],'native_unresolved':unresolved,'cached_native_file_exceptions':missing_cache,'gate_denominators':dict(excluded),'query_coverage':dict(coverage),'operation_unresolved':engine.counts,'walltime_seconds':time.monotonic()-tick,'background_sha256':c['background_sha256'],'source_run':str(folder),'fits':0,'provider_calls':0}
+  dump(target/'summary.json',summary);summaries.append(summary);print(json.dumps({'cohort':cid,'eligible':len(pairfacts),'disjoint':summary['disjoint_eligible_pairs'],'funded_extra':summary['funded_v2_extra_pairs'],'seconds':round(summary['walltime_seconds'],2)}),flush=True)
+ # Preserve all inventory rows, unknown/source exceptions and model records separately.
+ for row in mapped:
+  entries=[]
+  for m in row.get('mappings',[]):
+   cid=m['cohort_id'];state={'cohort_id':cid,'mapper_status':m['status']}
+   if cid not in native_ids:state['v2_status']='exact_native_source_unavailable'
+   elif m['status']!='mapped':state['v2_status']='mapping_unresolved'
+   elif row['record_kind']!='function':state['v2_status']='model_only_unchanged_separate_native_pass'
+   else:
+    pk=pair(*(m['sources'][s]['source_id'] for s in ('new','existing')))
+    if not set(pk)<=native_ids[cid]:state['v2_status']='native_endpoint_missing_or_ambiguous'
+    else:
+     state.update(v2_status='native_supported_cached_campaign',static_v2_operation_eligible=pk in eligible_pairs[cid],disjoint_round1_family=family_eligible[cid].get(pk),profiles={p:{'baseline_funded_any_original_campaign':pk in allpairbase[cid][p],'v2_funded_any_original_campaign':pk in allpairfund[cid][p]} for p in ('laboratory-default','standalone-balanced-diagnostic')})
+   entries.append(state)
+  statusrows.append({'row_id':row['row_id'],'repository':row['repository'],'revision':row['revision'],'record_kind':row['record_kind'],'accepted_gold':row['accepted_gold'],'label':row['label'],'family_id':row.get('family_id'),'lineage':row.get('family_lineage'),'mappings':entries,'evaluation_unit':'any original cached arm batch; not a replay of missing newly mapped gold-family batch','new_model_labels_never_assigned_to_functions':True})
+ write(OUT/'static-gold-campaign-rows.jsonl',statusrows)
+ summary={'schema':1,'status':'STATIC_V2_COMPLETE_NO_FITS','protocol_sha256':protocol,'cohorts_complete':len(summaries),'inventory_rows_preserved':len(statusrows),'exact_native_source_missing_cohorts':len(cohorts)-len(summaries),'eligible_pair_cohort_entries':sum(s['eligible_pairs'] for s in summaries),'disjoint_eligible_pair_cohort_entries':sum(s['disjoint_eligible_pairs'] for s in summaries),'v2_extra_candidate_cohort_entries':sum(s['v2_extra_candidates'] for s in summaries),'funded_v2_extra_pair_cohort_entries':sum(s['funded_v2_extra_pairs'] for s in summaries),'walltime_seconds':time.monotonic()-started,'peak_rss_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'baseline_displacement':0,'full617_baseline_comparisons':'Original final comparisons preserved; revised status is explicitly any cached campaign, not invented missing family ledgers.','source_cohorts':summaries,'new_fits':0,'provider_calls':0,'reserved_model_identities':len(reserved_models),'reserved_function_endpoints':len(reserved_endpoints)};dump(OUT/'STATIC-SUMMARY.json',summary);print(json.dumps({k:v for k,v in summary.items() if k not in ('source_cohorts',)}),flush=True)
+
+if __name__=='__main__':run()
