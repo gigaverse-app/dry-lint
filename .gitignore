@@ -5,3 +5,7 @@ dist/
 .coverage
 .pytest_cache/
 .ruff_cache/
+
+# Documentation build
+.venv-docs/
+site/
