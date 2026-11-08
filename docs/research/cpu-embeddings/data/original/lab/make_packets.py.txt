@@ -1,0 +1,173 @@
+"""Freeze a small, source-verified funded queue and a separate score-blind reviewer packet."""
+
+import hashlib
+import json
+import random
+import re
+import subprocess
+from pathlib import Path
+
+import experiment
+
+from dry_lint.models import Candidate
+
+HERE = Path(__file__).resolve().parent
+
+
+def main():
+    experiment.verify_freeze()
+    folder = HERE / "openhands"
+    repo = experiment.PROTOCOL["repositories"][0]
+    rows = experiment.read_rows(folder / "discovery-extras-private.jsonl")
+    # Source curation only; these hypotheses do not alter retrieval, thresholds, ranks, or funding.
+    selection = {
+        "3904aa898a068a16": {
+            "stratum": "promising_scoped_drift_hypothesis",
+            "operation": "Win32 shell terminology rewriting for executable prompts: regex/case/boundary and execute_bash handling differ from plain replace; review the shared responsibility and whether drift is intentional.",
+            "ownership": "Two top-level prompt helpers, called from prompt.render_template and the tool-conversion example generator; neither calls the other. A prompt refinement utility is a possible common owner, with boundary/case policy explicit.",
+            "caller_names": ["refine", "refine_prompt"],
+        },
+        "d2a32917ffa8d5e3": {
+            "stratum": "promising_partial_operation_hypothesis",
+            "operation": "Per-task status icon, ordinal, title and optional notes assembly in text and Rich renderers. Whole functions differ (summary/style versus plain output); consolidation value of a common presentation record remains unreviewed.",
+            "ownership": "TaskTrackerExecutor._format_task_list is called by the view branch of __call__; TaskTrackerObservation.visualize separately iterates the same TaskItem contract. A shared TaskItem presentation helper is possible, preserving renderer-specific styling and summaries.",
+            "caller_names": ["_format_task_list", "TaskTrackerObservation"],
+        },
+        "7c21ea81ac75a3c3": {
+            "stratum": "matched_independent_topical_control",
+            "operation": "Action and observation to_llm_message adapters: assistant tool requests and tool results have different roles/payloads. Same topic and Message constructor do not establish a repeated operation.",
+            "ownership": "Distinct ActionEvent and ObservationEvent own opposite protocol roles. Event batching in sdk/event/base.py calls to_llm_message polymorphically. Neither target delegates to the other.",
+            "caller_names": ["to_llm_message"],
+            "matched_to": "3904aa898a068a16",
+            "matching": "Same default diagnostic, cross-file production pair, short text-transforming adapters, dense score within0.05. Different endpoint lineage; no shared endpoint. Control is a hypothesis for independent review.",
+        },
+        "f9ad04ea30e16840": {
+            "stratum": "matched_independent_topical_control",
+            "operation": "Non-native function-call pre-request and post-response transformations: opposite protocol directions, stop/tool-choice policy versus response reasoning preservation; not interchangeable transforms.",
+            "ownership": "NonNativeToolCallingMixin has distinct lifecycle hooks; llm.py invokes each at the corresponding request/response boundary. Helpers already own their respective direction conversions.",
+            "caller_names": ["pre_request_prompt_mock", "post_response_prompt_mock"],
+            "matched_to": "d2a32917ffa8d5e3",
+            "matching": "Same balanced diagnostic, same-file production pair, text-representation transformations,18/38versus20/57lines and dense scores within0.05. Independent endpoint family. Control hypothesis remains unreviewed.",
+        },
+    }
+    keys = list(selection)
+    random.Random(20261106).shuffle(keys)
+    proof = {r["row"]: r for r in experiment.read_rows(folder / "source-proof.jsonl")}
+    packets, blind, sidecar = [], [], []
+    for number, key in enumerate(keys, 1):
+        selected = next(
+            r for r in rows if r["pair_key"] == key and r["funded"] and not r["already_reviewed_exact_pair"]
+        )
+        candidate = Candidate.model_validate(selected["candidate"])
+        assert candidate.model_dump(mode="json") == selected["candidate"]
+        assert not candidate.filtered and candidate.key == key
+        endpoints = []
+        for name, row_index in [("new", selected["query_row"]), ("existing", selected["target_row"])]:
+            f = getattr(candidate, name)
+            source = subprocess.check_output(["git", "-C", repo["git"], "show", repo["revision"] + ":" + f.path])
+            lines = source.decode().splitlines()
+            body_sha = hashlib.sha256(f.code.encode()).hexdigest()
+            assert body_sha == proof[row_index]["background_sha256"]
+            assert hashlib.sha256(source).hexdigest() == proof[row_index]["file_sha256"]
+            excerpt_start = max(1, f.line - 8)
+            excerpt_end = min(len(lines), f.end_line + 4)
+            endpoints.append(
+                {
+                    "side": name,
+                    "source_id": f.qualname,
+                    "revision": repo["revision"],
+                    "path": f.path,
+                    "line": f.line,
+                    "end_line": f.end_line,
+                    "body_sha256": body_sha,
+                    "full_source_sha256": proof[row_index]["file_sha256"],
+                    "git_blob_sha1": proof[row_index]["git_blob_sha1"],
+                    "full_source_file": proof[row_index]["source_file"],
+                    "excerpt_start": excerpt_start,
+                    "excerpt_end": excerpt_end,
+                    "excerpt": "\n".join(lines[excerpt_start - 1 : excerpt_end]),
+                    "blob_url": f"https://github.com/{repo['repository']}/blob/{repo['revision']}/{f.path}#L{f.line}",
+                }
+            )
+        pattern = "|".join(re.escape(n) + r"\(" for n in selection[key]["caller_names"])
+        process = subprocess.run(
+            ["git", "-C", repo["git"], "grep", "-n", "-E", pattern, repo["revision"], "--", "openhands", "*.py"],
+            capture_output=True,
+            text=True,
+        )
+        assert process.returncode in [0, 1]
+        callers = process.stdout.splitlines()
+        assert callers
+        identifier = f"CPUE{number:02d}"
+        neutral = {
+            "id": identifier,
+            "repository": repo["repository"],
+            "revision": repo["revision"],
+            "background_proof": repo["background_proof"],
+            "source_endpoints": endpoints,
+            "caller_evidence": {
+                "method": "git grep over exact full revision; syntactic references, receiver binding not inferred from generic names",
+                "matches": callers,
+            },
+            "wanted": {
+                "jev": {"model": "jev-1.14.0", "context": True},
+                "claude": {
+                    "model": "claude-sonnet-5-5",
+                    "prompt_policy": "shared-operations",
+                    "max_output_tokens": 1024,
+                },
+            },
+            "question": "Review the source-grounded operation boundary, current implementation ownership, and whether consolidation is useful. Preserve drift, intentional differences and uncertainty. No whole-function equivalence is assumed.",
+        }
+        packets.append({**neutral, "candidate": selected["candidate"]})
+        blind.append({**neutral, "new": selected["candidate"]["new"], "existing": selected["candidate"]["existing"]})
+        sidecar.append(
+            {
+                "id": identifier,
+                "pair_key": key,
+                **selection[key],
+                "funded_discovery_row": selected,
+                "candidate_sha256": experiment.sha(json.dumps(selected["candidate"], sort_keys=True).encode()),
+                "normal_ledger": {
+                    "budget_usd": 0.04,
+                    "spent_estimated": selected["ledger_usd_estimated"],
+                    "synthetic": True,
+                    "query": candidate.new.qualname,
+                    "profile": selected["profile"],
+                    "funded": True,
+                },
+                "review_status": "unreviewed hypothesis; independent allocation by coordinator only",
+            }
+        )
+    for name, records in [
+        ("novel-review-queue.jsonl", packets),
+        ("novel-reviewer-packet-blind.jsonl", blind),
+        ("novel-review-sidecar-private.jsonl", sidecar),
+    ]:
+        path = HERE / name
+        assert not path.exists(), "Frozen packet already exists"
+        experiment.jsonl(path, records)
+        path.chmod(0o444)
+    experiment.dump(
+        HERE / "queue-receipt.json",
+        {
+            "rows": len(packets),
+            "promising_hypotheses": 2,
+            "matched_independent_controls": 2,
+            "all_funded": True,
+            "all_source_verified": True,
+            "already_reviewed_exact_pairs": 0,
+            "full_candidate_unmodified": True,
+            "reviewer_packet_has_no_retrieval_scores_or_variants": True,
+            "physical_usd_spent": 0,
+            "judge_answers": "unknown_pending_coordinator",
+            "classification": "local research; no publication",
+            "queue_sha256": experiment.sha((HERE / "novel-review-queue.jsonl").read_bytes()),
+            "blind_packet_sha256": experiment.sha((HERE / "novel-reviewer-packet-blind.jsonl").read_bytes()),
+            "sidecar_sha256": experiment.sha((HERE / "novel-review-sidecar-private.jsonl").read_bytes()),
+        },
+    )
+
+
+if __name__ == "__main__":
+    main()

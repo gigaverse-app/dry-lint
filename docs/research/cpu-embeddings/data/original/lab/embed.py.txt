@@ -1,0 +1,187 @@
+"""Actual CPU ONNX encoder, isolated process with a bounded100function preflight."""
+
+import hashlib
+import importlib.metadata
+import importlib.util
+import json
+import os
+import resource
+import sys
+import time
+from pathlib import Path
+
+for variable in ["OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"]:
+    os.environ[variable] = "2"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["ORT_DISABLE_TELEMETRY"] = "1"
+HERE = Path(__file__).resolve().parent
+
+
+def dump(path, data):
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+
+
+def main():
+    folder = Path(sys.argv[1])
+    protocol = json.loads((HERE / "EXPERIMENT.json").read_text())
+    model = protocol["model"]
+    paths = [HERE / "model-cache" / name for name in ["onnx/model.onnx", "tokenizer.json"]]
+    missing_modules = [x for x in ["numpy", "onnxruntime", "tokenizers"] if importlib.util.find_spec(x) is None]
+    missing_files = [str(p) for p in paths if not p.exists()]
+    status = {
+        "status": "infrastructure_blocked",
+        "missing_modules": missing_modules,
+        "missing_files": missing_files,
+        "encoded_functions": 0,
+        "preflight_attempted_functions": 100,
+        "preflight_completed_functions": 0,
+        "preflight_seconds": None,
+        "full_index_seconds": None,
+        "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        "failure_stage": "runtime_or_artifact_availability",
+        "embedding_ranks_available": False,
+    }
+    if missing_modules or missing_files:
+        dump(folder / "embedding-status.json", status)
+        print(json.dumps(status), flush=True)
+        return
+    import numpy as np
+    import onnxruntime as ort
+    from tokenizers import Tokenizer
+
+    artifacts = {
+        str(p.relative_to(HERE / "model-cache")): hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in (HERE / "model-cache").rglob("*")
+        if p.is_file()
+    }
+    assert artifacts["onnx/model.onnx"] == model["artifact_sha256_official"]
+    assert ort.__version__ == "1.31.1"
+    assert importlib.metadata.version("tokenizers") == "0.23.3"
+    functions = [json.loads(x) for x in (folder / "functions.jsonl").read_text().splitlines()]
+    codes = [f["code"] for f in functions]
+    cache_identity = {
+        "model": model,
+        "artifacts": artifacts,
+        "code_hashes": [hashlib.sha256(x.encode()).hexdigest() for x in codes],
+        "runtime": ort.__version__,
+        "tokenizers": importlib.metadata.version("tokenizers"),
+        "numpy": np.__version__,
+    }
+    dump(folder / "embedding-cache-identity.json", cache_identity)
+    ort.disable_telemetry_events()
+    options = ort.SessionOptions()
+    options.intra_op_num_threads = 2
+    options.inter_op_num_threads = 1
+    options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+    # Prevent an idle spinning thread while the lab shares CPU time.
+    options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+    start = time.perf_counter()
+    session = ort.InferenceSession(str(paths[0]), sess_options=options, providers=["CPUExecutionProvider"])
+    load_seconds = time.perf_counter() - start
+    tokenizer = Tokenizer.from_file(str(paths[1]))
+    tokenizer.no_truncation()
+    start = time.perf_counter()
+    lengths = [len(tokenizer.encode(code).ids) for code in codes]
+    length_seconds = time.perf_counter() - start
+    tokenizer.enable_truncation(max_length=256)
+    tokenizer.enable_padding(pad_id=0, pad_token="[PAD]")
+    names = {x.name for x in session.get_inputs()}
+
+    def encode(batch):
+        encoded = tokenizer.encode_batch(batch)
+        inputs = {
+            "input_ids": np.array([x.ids for x in encoded], dtype=np.int64),
+            "attention_mask": np.array([x.attention_mask for x in encoded], dtype=np.int64),
+            "token_type_ids": np.array([x.type_ids for x in encoded], dtype=np.int64),
+        }
+        output = session.run(None, {k: v for k, v in inputs.items() if k in names})[0]
+        assert output.ndim == 3 and output.shape[-1] == 384
+        mask = inputs["attention_mask"][..., None].astype(np.float32)
+        pooled = (output * mask).sum(axis=1) / np.maximum(mask.sum(axis=1), 1e-9)
+        return (pooled / np.maximum(np.linalg.norm(pooled, axis=1, keepdims=True), 1e-9)).astype(np.float32)
+
+    count = min(100, len(codes))
+    start = time.perf_counter()
+    preflight = np.concatenate([encode(codes[i : min(i + 8, count)]) for i in range(0, count, 8)])
+    elapsed = time.perf_counter() - start
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    projected = elapsed / count * len(codes)
+    status.update(
+        status="preflight_passed",
+        failure_stage=None,
+        encoded_functions=count,
+        preflight_completed_functions=count,
+        preflight_seconds=elapsed,
+        functions_per_second=count / elapsed,
+        projected_index_seconds=projected,
+        peak_rss_kib=rss,
+        model_load_seconds=load_seconds,
+        length_count_seconds=length_seconds,
+        artifact_hashes=artifacts,
+        truncated_functions=sum(x > 256 for x in lengths),
+        discarded_wordpieces=sum(max(0, x - 256) for x in lengths),
+        wordpiece_lengths=lengths,
+        providers=session.get_providers(),
+    )
+    if projected > 600 or rss > 3 * 1024 * 1024:
+        status.update(status="measured_safety_failure", failure_stage="preflight_projected_latency_or_rss")
+        dump(folder / "embedding-status.json", status)
+        return
+    dump(folder / "embedding-status.json", status)
+    vectors = [preflight]
+    start = time.perf_counter()
+    for i in range(count, len(codes), 8):
+        vectors.append(encode(codes[i : i + 8]))
+        if (
+            time.perf_counter() - start + elapsed > 600
+            or resource.getrusage(resource.RUSAGE_SELF).ru_maxrss > 3 * 1024 * 1024
+        ):
+            status.update(
+                status="measured_safety_failure", failure_stage="full_index_latency_or_rss", encoded_functions=i
+            )
+            dump(folder / "embedding-status.json", status)
+            return
+    embeddings = np.concatenate(vectors)
+    np.save(folder / "embeddings.npy", embeddings)
+    full_index_seconds = elapsed + time.perf_counter() - start
+    # Warm single changed function costs, with unchanged input and fixed first100 order.
+    update_seconds = []
+    query_seconds = []
+    for i in range(count):
+        start = time.perf_counter()
+        vector = encode([codes[i]])
+        update_seconds.append(time.perf_counter() - start)
+        start = time.perf_counter()
+        scores = embeddings @ vector[0]
+        np.argsort(-scores, kind="stable")
+        query_seconds.append(time.perf_counter() - start)
+    status.update(
+        status="complete",
+        failure_stage=None,
+        embedding_ranks_available=True,
+        encoded_functions=len(codes),
+        full_index_seconds=full_index_seconds,
+    )
+    status.update(
+        warm_update_seconds=update_seconds,
+        warm_exact_query_seconds=query_seconds,
+        peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+    )
+    dump(folder / "embedding-status.json", status)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        dump(
+            Path(sys.argv[1]) / "embedding-status.json",
+            {
+                "status": "runtime_failure",
+                "failure_stage": "load_or_inference",
+                "error": f"{type(exc).__name__}: {exc}",
+                "embedding_ranks_available": False,
+                "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            },
+        )
+        raise

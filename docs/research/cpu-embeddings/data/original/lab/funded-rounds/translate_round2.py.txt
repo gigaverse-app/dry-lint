@@ -1,0 +1,59 @@
+"""Translate existing frozen evidence to the existing central CPU contract; provider-free."""
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import sys
+P=Path(__file__).resolve().parent;LAB=P.parent;R=P/'round2';PROMO=LAB/'promotion'
+CENTRAL=Path('LAB_ROOT/jobs/judge-operations/.lab-results')
+sys.path[:0]=[str(PROMO/'implementation/src'),str(LAB),str(CENTRAL/'judge-operations'),str(CENTRAL/'lab-contracts'),str(CENTRAL/'promotion-evidence-v2'),str(CENTRAL/'promotion-evidence-v3')]
+import queue_judges as q
+from adapters import Intake as RootIntake
+from dry_lint.models import Candidate
+from dry_lint.settings import Settings
+from dry_lint.costs import Ledger
+from experiment import EstimateOnlySonnet
+
+def sha(b):return hashlib.sha256(b).hexdigest()
+def read(p):return [json.loads(line) for line in p.open()]
+def dump(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+def jsonl(p,x):p.write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in x))
+class LocalIntake(RootIntake):
+ def __init__(self,out):
+  self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True);self.inputs={};self.configs={r['repository']:r for r in json.loads(q.REPOS.read_bytes())};self.cache=q.ExactCache(R/'central-proof-cache');self.backgrounds={};self.files={}
+
+packets=read(R/'provider-queue.jsonl');original=read(R/'funding-sidecar-private.jsonl');sides={r['id']:r for r in original};oldplans=read(R/'canonical-request-plan.jsonl');oldby={(r['id'],r['kind']):r for r in oldplans}
+intake=LocalIntake(R/'central-source-validation');translated=[];ledgers=[];canonical=[]
+for packet in packets:
+ side=sides[packet['id']];c=Candidate.model_validate(packet['candidate']);candidates=[Candidate.model_validate(v) for v in side['original_candidates']]
+ eligible=[v for v in candidates if v.lane!='relative' and not v.filtered and v.new.line>=1 and v.existing.line>=1]
+ settings=Settings();ledger=Ledger(settings);judge=EstimateOnlySonnet();ix=ledger.select(judge,eligible);admitted=[eligible[i] for i in ix];ledger.charge(judge,admitted,len(eligible)-len(admitted))
+ assert [v.key for v in admitted]==side['funded_keys']
+ assert abs(ledger.usd-side['normal_04_ledger_usd_estimated'])<1e-12 and c.key in side['funded_keys'] and ledger.usd<=.04+1e-12
+ binding=intake.source(packet)
+ record={'id':packet['id'],'query':c.new.qualname,'profile':'baseline3+fixed-dense20-behavior-rerank-cpu1-cosine.65','normal_budget_usd':.04,'estimated_usd':ledger.usd,'original_candidate_order':side['original_candidates'],'funded_keys':side['funded_keys'],'original_sidecar':str(R/'funding-sidecar-private.jsonl'),'original_sidecar_sha256':sha((R/'funding-sidecar-private.jsonl').read_bytes()),'deployment':'Synthetic one-function change only; diagnostic paid ledger separate'}
+ ledgers.append(record)
+ translated.append({**side,'funding':{'profile':record['profile'],'funded':True,'ledger_usd_estimated':ledger.usd,'candidate':packet['candidate'],'query_source_id':c.new.qualname,'target_source_id':c.existing.qualname,'native_original_ledger':{'path':str(R/'native-original-query-ledgers.jsonl'),'id':packet['id']},'original_ledger_replayed':True,'authentic_deployment_ledger':False}})
+ for kind in ['jev','claude']:
+  expected=q.request(c,kind,binding);legacy=oldby[(packet['id'],kind)]['identity']
+  differences=[key for key in set(expected['legacy_identity'])|set(legacy) if expected['legacy_identity'].get(key)!=legacy.get(key)]
+  assert not differences,(packet['id'],kind,differences)
+  # Canonical source/options/reservation enrichment only. The original rendered input is byte-identical.
+  assert expected['legacy_identity']['rendered_input']==legacy['rendered_input']
+  canonical.append({**expected,'id':packet['id'],'kind':kind,'legacy_producer_request_key':oldby[(packet['id'],kind)]['request_key'],'legacy_manifest':str(R/'canonical-request-plan.jsonl')})
+jsonl(R/'native-original-query-ledgers.jsonl',ledgers)
+ledger_sha=sha((R/'native-original-query-ledgers.jsonl').read_bytes())
+for row in translated:row['funding']['native_original_ledger']['sha256']=ledger_sha
+jsonl(R/'central-funding-sidecar.jsonl',translated);jsonl(R/'central-canonical-request-plan.jsonl',canonical)
+h=json.loads((R/'HANDOFF.json').read_text());dump(R/'HANDOFF.before-central-cpu-translation.json',h)
+h['original_funding']=str(R/'funding-sidecar-private.jsonl');h['funding']=h['private_sidecar']=str(R/'central-funding-sidecar.jsonl');h['canonical_request_plan_original']=h['canonical_request_plan'];h['canonical_request_plan']=str(R/'central-canonical-request-plan.jsonl');h['canonical_request_plan_sha256']=sha((R/'central-canonical-request-plan.jsonl').read_bytes());h['native_original_query_ledger']=str(R/'native-original-query-ledgers.jsonl');h['funding_note']='Existing central CPU funding contract: nested funding object backed by exact original candidate order/funded keys. All64normal04ledgers replay exactly. Diagnostic paid spend distinct. Original packets/legacy128rendered strings unchanged.'
+dump(R/'HANDOFF.json',h)
+dump(R/'central-translation-receipt.json',{'rows':len(translated),'exact_ledger_replays':len(ledgers),'canonical_source_bound_requests':len(canonical),'legacy_rendered_input_changes':0,'packet_candidate_changes':0,'new_provider_calls':0,'translation':'q.request existing central schema; exact legacy input equality proved before source/options/reservation enrichment','ledger_sha256':ledger_sha,'canonical_plan_sha256':h['canonical_request_plan_sha256']})
+print('TRANSLATED64 exactnativequeryledgers128sourceboundrequests; renderedtextchanges0; providers0',flush=True)
+# Run the real central --prepare logic with only output/cache locations redirected into this worker.
+spec=importlib.util.spec_from_file_location('central_funded_rounds_local_check',CENTRAL/'promotion-operations/funded_rounds.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+module.HOME=R/'central-prepare-check';module.Intake=LocalIntake
+out=module.prepare('cpu-embeddings',2,R/'HANDOFF.json')
+ready=json.loads((out/'ROOT-READY.json').read_text());receipt={'status':'CENTRAL_PREPARE_VALIDATED_PROVIDER_FREE','local_ready':str(out/'ROOT-READY.json'),'cases':ready['cases'],'requests':ready['requests'],'cache_hits':ready['cache_hits'],'boundary_exclusions':ready['root_boundary_requests'],'provider_calls':0,'shared_roots_written':False}
+dump(R/'central-prepare-validation.json',receipt)
+print(json.dumps(receipt),flush=True)

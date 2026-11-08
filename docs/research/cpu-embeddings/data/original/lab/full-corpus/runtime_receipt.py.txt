@@ -1,0 +1,41 @@
+"""Immutable local backend/runtime provenance; imports only, no network or fitting."""
+
+import hashlib
+import importlib.metadata as metadata
+import json
+import platform
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+
+def main():
+    packages = []
+    for name in ["numpy", "onnxruntime", "tokenizers"]:
+        dist = metadata.distribution(name)
+        files = []
+        for f in dist.files or []:
+            if str(f).endswith((".so", "METADATA", "RECORD")):
+                p = Path(dist.locate_file(f))
+                files.append(
+                    {"path": str(f), "bytes": p.stat().st_size, "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+                )
+        packages.append({"name": name, "version": dist.version, "files": files})
+    receipt = {
+        "schema": 1,
+        "python_executable": sys.executable,
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "packages": packages,
+        "backend": "ONNX Runtime CPUExecutionProvider only, intra_op2/inter_op1/sequential, no remote code",
+        "environment": "Own isolated venv supplied by coordinator after worker DNS failure. No shared packages modified.",
+        "acquisition_times": "Coordinator acquisition.json, distinct from worker inference/index timings.",
+    }
+    p = HERE / "runtime-artifact-receipt.json"
+    p.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    print("Runtime provenance", [(p["name"], p["version"], len(p["files"])) for p in packages])
+
+
+if __name__ == "__main__":
+    main()

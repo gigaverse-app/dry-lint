@@ -1,0 +1,10 @@
+{
+  "cpu_model": "AMD EPYC-Genoa Processor",
+  "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.43",
+  "logical_cpus_visible": 16,
+  "affinity_cpus": 16,
+  "cpu_budget_threads": 2,
+  "python_shared": "LAB_ROOT/retrieval/.venv/bin/python",
+  "python_encoder": "LAB_ROOT/jobs/experiment-cpu-embeddings/.lab-results/venv/bin/python",
+  "source_pythonpath": "LAB_ROOT/jobs/experiment-cpu-embeddings/src"
+}

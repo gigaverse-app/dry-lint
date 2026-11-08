@@ -1,0 +1,237 @@
+"""Apply reviewed source identity policy without recomputing an embedding vector."""
+
+import collections
+import importlib.util
+import json
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import experiment
+from span_adapter import endpoint, shared
+
+from dry_lint.bench_background import BenchBackground
+
+HERE = Path(__file__).resolve().parent
+OWNER = Path("LAB_ROOT/jobs/corpus-wide-evaluation/.lab-results/span-resolution")
+INDEX = Path(
+    "LAB_ROOT/jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2"
+)
+OUT = HERE / "span-migration/helper-v1"
+read = experiment.read_rows
+dump = experiment.dump
+sha = experiment.sha
+
+
+def fixtures():
+    p = OWNER / "validate_consumers.py"
+    spec = importlib.util.spec_from_file_location("cpu_resolver_fixture_owner", p)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["resolver"] = shared
+    spec.loader.exec_module(mod)
+    checks = []
+    for f in mod.fixtures():
+        resolver = shared.Resolver(f["cohort"], f["documents"])
+        r = endpoint(resolver, f["row"], f["mapping"], "new", f.get("source"))
+        assert r["status"] == f["expected_status"]
+        assert r["category"] == f["expected_category"]
+        assert r["span"]["native_lines"] == f["expected_native_lines"]
+        assert r["span"]["start_line"] == f["expected_start_line"]
+        assert r["span"]["end_line"] == f["expected_end_line"]
+        assert r["cpu_funding_source_authorized"] == (r["status"] == "resolved_native")
+        if r["cpu_native"] is None:
+            assert r["cpu_default_floor_native"] is None and not r["cpu_span_is_absolute"]
+        checks.append(
+            {
+                "fixture": f["name"],
+                "status": r["status"],
+                "category": r["category"],
+                "funding_source_authorized": r["cpu_funding_source_authorized"],
+                "default_floor": r["cpu_default_floor_native"],
+                "structure_hash_built": bool(r["cpu_native"] and r["cpu_native"].hash),
+                "all_pass": True,
+            }
+        )
+    dump(
+        OUT / "actual-adapter-fixtures.json",
+        {
+            "all_pass": True,
+            "checks": checks,
+            "count": len(checks),
+            "adapter_sha256": sha((HERE / "span_adapter.py").read_bytes()),
+            "helper_sha256": sha((OUT / "resolver.py").read_bytes()),
+        },
+    )
+
+
+def apply(only=None):
+    ready = json.loads((INDEX / "index-ready.json").read_text())
+    assert sha((INDEX / "rows.jsonl").read_bytes()) == ready["rows_sha256"]
+    assert sha((INDEX / "cohorts.jsonl").read_bytes()) == ready["cohorts_sha256"]
+    cs = read(INDEX / "cohorts.jsonl")
+    rows = read(INDEX / "rows.jsonl")
+    totals = []
+    for c in cs:
+        if only is not None and c["cohort_id"] != only:
+            continue
+        folder = HERE / "cohorts" / c["background_sha256"]
+        if not (folder / "functions.jsonl").exists():
+            continue
+        meta_path = folder / "span-policy-meta-v1.json"
+        if meta_path.exists():
+            cached = json.loads(meta_path.read_text())
+            if (
+                cached["helper_sha256"] == sha((OUT / "resolver.py").read_bytes())
+                and cached["index_rows_sha256"] == ready["rows_sha256"]
+            ):
+                totals.append(cached["cohort_receipt"])
+                continue
+        old = read(folder / "functions.jsonl")
+        proof = {r["row"]: r for r in read(folder / "source-proof.jsonl")}
+        raw = Path(c["background_path"]).read_bytes()
+        assert sha(raw) == c["background_sha256"]
+        bg = BenchBackground.decode(raw)
+        resolver = shared.Resolver(c, bg.documents)
+        sources = {}
+        policy = []
+        results = []
+        before = OUT / "before" / c["cohort_id"]
+        before.mkdir(parents=True, exist_ok=True)
+        for name in [
+            "per-row.jsonl",
+            "ledger.jsonl",
+            "candidates.jsonl",
+            "query-timings.jsonl",
+            "neighbors.jsonl",
+            "paired-changes.json",
+        ]:
+            if (folder / name).exists() and not (before / name).exists():
+                shutil.copy2(folder / name, before / name)
+        for i, doc in enumerate(bg.documents):
+            identity = doc.id
+            path = identity.split("::")[0]
+            pr = proof[i]
+            if path not in sources:
+                data = Path(pr["source_file"]).read_bytes()
+                assert sha(data) == pr["file_sha256"]
+                sources[path] = {
+                    "status": "available",
+                    "repository": c["repository"],
+                    "revision": c["revision"],
+                    "path": path,
+                    "source": data.decode(),
+                    "sha256": sha(data),
+                    "git_blob_sha1": pr["git_blob_sha1"],
+                }
+            row = {
+                "row_id": "competitor:" + str(i),
+                "repository": c["repository"],
+                "revision": c["revision"],
+                "record_kind": "function",
+                "sources": {
+                    "new": {"source_id": identity, "line": old[i].get("line"), "end_line": old[i].get("end_line")}
+                },
+            }
+            mapping = {
+                "cohort_id": c["cohort_id"],
+                "sources": {"new": {"source_id": identity, "position": i, "source_sha256": doc.source_sha256}},
+            }
+            r = endpoint(resolver, row, mapping, "new", sources[path])
+            native = r.pop("cpu_native")
+            policy.append(
+                {
+                    "position": i,
+                    "source_id": identity,
+                    "body_sha256": doc.source_sha256,
+                    "function": native.model_dump(mode="json") if native is not None else None,
+                    "status": r["status"],
+                    "category": r["category"],
+                    "span": r["span"],
+                }
+            )
+            results.append(r)
+        experiment.jsonl(folder / "functions-policy-resolver-v1.jsonl", policy)
+        experiment.jsonl(folder / "span-resolution-competitors-v1.jsonl", results)
+        # Actual mapped gold examples go through the exact same adapter, preserving supplied operation-region metadata.
+        gold = []
+        for row in rows:
+            for mapping in row["mappings"]:
+                if mapping["cohort_id"] != c["cohort_id"]:
+                    continue
+                for side in ["new", "existing"]:
+                    identity = mapping["sources"][side].get("source_id")
+                    src = sources.get(identity.split("::")[0]) if identity else None
+                    r = endpoint(resolver, row, mapping, side, src)
+                    r.pop("cpu_native")
+                    gold.append(r)
+        experiment.jsonl(folder / "span-resolution-gold-v1.jsonl", gold)
+        emb = folder / "embeddings.npy"
+        embhash = (
+            sha(emb.read_bytes())
+            if emb.exists() and json.loads((folder / "embedding-status.json").read_text()).get("status") == "complete"
+            else None
+        )
+        totals.append(
+            {
+                "cohort_id": c["cohort_id"],
+                "background_sha256": c["background_sha256"],
+                "competitors": len(old),
+                "before_first_match_policy_unresolved": sum(
+                    r.get("line") is None or r.get("end_line") is None for r in old
+                ),
+                "after_unresolved_native": sum(r["function"] is None for r in policy),
+                "after_categories": dict(collections.Counter(r["category"] for r in policy)),
+                "gold_endpoint_records": len(gold),
+                "gold_categories": dict(collections.Counter(r["category"] for r in gold)),
+                "gold_native_recoveries": sum(r["span"]["provenance"] == "recovered_unique_native_span" for r in gold),
+                "gold_prior_actual_span_changes": sum(
+                    r["status"] == "resolved_native"
+                    and (old[r["position"]]["line"], old[r["position"]]["end_line"])
+                    != (r["span"]["start_line"], r["span"]["end_line"])
+                    for r in gold
+                ),
+                "embedding_sha256_before_after_expected_unchanged": embhash,
+                "expensive_vector_refits": 0,
+            }
+        )
+        dump(
+            meta_path,
+            {
+                "helper_sha256": sha((OUT / "resolver.py").read_bytes()),
+                "index_rows_sha256": ready["rows_sha256"],
+                "cohort_receipt": totals[-1],
+            },
+        )
+        print(
+            c["cohort_id"],
+            "native policy",
+            len(policy),
+            "unresolved",
+            totals[-1]["after_unresolved_native"],
+            flush=True,
+        )
+    if only is not None and (OUT / "source-policy-receipt.json").exists():
+        prior = json.loads((OUT / "source-policy-receipt.json").read_text())
+        known = {c["cohort_id"]: c for c in prior.get("cohorts", [])}
+        known.update({c["cohort_id"]: c for c in totals})
+        totals = list(known.values())
+    dump(
+        OUT / "source-policy-receipt.json",
+        {
+            "helper_sha256": sha((OUT / "resolver.py").read_bytes()),
+            "shared_helper_sha256": sha((OWNER / "resolver.py").read_bytes()),
+            "index_v2": ready,
+            "index_v2_receipt_sha256": sha((INDEX / "index-ready.json").read_bytes()),
+            "cohorts": totals,
+            "expensive_vector_refits": 0,
+            "new_provider_calls": 0,
+            "warning": "Endpoint recovery records are correlated, not unique gold pairs; native ambiguity remains unfundable. Matrices retain all competitors.",
+        },
+    )
+
+
+if __name__ == "__main__":
+    fixtures()
+    apply()

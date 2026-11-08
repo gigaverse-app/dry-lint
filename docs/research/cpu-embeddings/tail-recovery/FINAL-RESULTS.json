@@ -1,0 +1,704 @@
+{
+  "attribution": {
+    "CPUI2-004": "new versus original baseline, also admitted by V1; not an append-rule effect",
+    "CPUI2-012": "new versus original baseline, suppressed by V1; append-rule effect, copying/aliasing/absence constraints required"
+  },
+  "decision": "Keep original CPU opt-in/defaults unchanged; stop abstention-only restriction; append-only remains promising scoped research, no extra CPU implementation promotion.",
+  "historical_sweep": {
+    "diagnosis_backgrounds": 16,
+    "diagnosis_counts": {
+      "blocked_by_original_nonabstention": 3465,
+      "counterfactual_paired_funded": 963,
+      "operation_after_original": 3510,
+      "queries": 36866,
+      "short_query_hash_excluded": 82168
+    },
+    "encoded_backgrounds": 16,
+    "encoder_counts": {
+      "cache_hits": 16617,
+      "cache_misses": 31582,
+      "encode_seconds": 1395.271903514993,
+      "inputs": 48199,
+      "views": 48439,
+      "wall_seconds": 1398.6066953140034
+    },
+    "full_sweep_backgrounds": 16,
+    "full_sweep_counts": {
+      "controls": 3702,
+      "non_native_query_excluded": 699,
+      "original_abstains": 26005,
+      "queries": 119034,
+      "tail_added": 58,
+      "tail_paired_funded": 41,
+      "test_example_query_excluded": 51716
+    },
+    "known_labels": {
+      "duplicate": {
+        "lost_funded": 0,
+        "lost_retrieved": 0,
+        "new_funded": 0,
+        "new_retrieved": 0,
+        "original_funded": 71,
+        "original_retrieved": 74,
+        "pair_backgrounds": 78,
+        "treatment_funded": 71,
+        "treatment_retrieved": 74
+      },
+      "separate": {
+        "lost_funded": 0,
+        "lost_retrieved": 0,
+        "new_funded": 0,
+        "new_retrieved": 0,
+        "original_funded": 62,
+        "original_retrieved": 64,
+        "pair_backgrounds": 120,
+        "treatment_funded": 62,
+        "treatment_retrieved": 64
+      },
+      "unaccepted_or_unknown": {
+        "lost_funded": 0,
+        "lost_retrieved": 0,
+        "new_funded": 1,
+        "new_retrieved": 1,
+        "original_funded": 18,
+        "original_retrieved": 19,
+        "pair_backgrounds": 25,
+        "treatment_funded": 19,
+        "treatment_retrieved": 20
+      }
+    },
+    "physical_worker_calls": 0,
+    "provider_observations": "All main118cases source-reviewed and236answers valid; balanced3case posthoc sourcejoined separately.",
+    "regression_backgrounds": 16,
+    "regression_pair_backgrounds": 223,
+    "unique_gold_records": 207
+  },
+  "native_balanced_addendum": {
+    "control_review_blindness": "role known; not fully method-blind",
+    "exact_reuses": 2,
+    "gained_bounded_useful_reports": 2,
+    "gained_reports": 2,
+    "gains": 2,
+    "independent_query_control": false,
+    "local_verified_campaigns": 4,
+    "losses": 0,
+    "lost_bounded_useful_reports": 0,
+    "lost_reports": 0,
+    "native_holds": [
+      {
+        "haiku_report_status": "complete; reported under exact balanced profile",
+        "id": "CPUI2-004",
+        "normal_estimate_target_usd": 0.0003748214285714286,
+        "original_admitted": 0,
+        "original_held_usd": 0.0,
+        "private": true,
+        "target_held_usd": 0.0019665,
+        "treatment_admitted": 1,
+        "treatment_held_usd": 0.0019665
+      },
+      {
+        "haiku_report_status": "complete; reported under exact balanced profile",
+        "id": "CPUI2-012",
+        "normal_estimate_target_usd": 0.0003876071428571429,
+        "original_admitted": 1,
+        "original_held_usd": 0.002123,
+        "private": false,
+        "target_held_usd": 0.0020023000000000003,
+        "treatment_admitted": 2,
+        "treatment_held_usd": 0.0041253
+      }
+    ],
+    "native_original": 1,
+    "native_treatment": 3,
+    "net_bounded_useful_reports": 2,
+    "new_calls": 4,
+    "new_physical_usd": 0.00223456,
+    "private_numeric_cases": 1,
+    "public012_boundary": "Strict copying/aliasing and falsy-to-None policy must be explicit; no direct substitution equivalence",
+    "public_exact_cases": 2,
+    "public_replay_campaigns": 2,
+    "retained": 1,
+    "retained_control_reports": 0,
+    "rows": [
+      {
+        "accepted_gold": false,
+        "answers": {
+          "claude": {
+            "label": "duplicate",
+            "new_usd": 0.0008519,
+            "newly_paid_here": true,
+            "reported": true,
+            "score": 0.8
+          },
+          "jev": {
+            "label": "drifted",
+            "new_usd": 0,
+            "newly_paid_here": false,
+            "reported": true,
+            "score": 0.9
+          }
+        },
+        "bounded_useful_report": true,
+        "coordinator_scope_accepted": true,
+        "id": "CPUI2-004",
+        "private": true,
+        "role": "candidate",
+        "source_label": "duplicate",
+        "source_status": "coordinator scope accepted",
+        "source_utility": "bounded"
+      },
+      {
+        "accepted_gold": false,
+        "answers": {
+          "claude": {
+            "label": "drifted",
+            "new_usd": 0.0007489,
+            "newly_paid_here": true,
+            "reported": true,
+            "score": 0.8
+          },
+          "jev": {
+            "label": "separate",
+            "new_usd": 0,
+            "newly_paid_here": false,
+            "reported": false,
+            "score": 0.2
+          }
+        },
+        "bounded_useful_report": true,
+        "coordinator_scope_accepted": true,
+        "id": "CPUI2-012",
+        "private": false,
+        "role": "candidate",
+        "source_label": "duplicate",
+        "source_status": "coordinator scope accepted",
+        "source_utility": "bounded"
+      },
+      {
+        "accepted_gold": false,
+        "answers": {
+          "claude": {
+            "label": "separate",
+            "new_usd": 0.0005266,
+            "newly_paid_here": true,
+            "reported": false,
+            "score": 0.05
+          },
+          "jev": {
+            "label": "separate",
+            "new_usd": 0.00010716,
+            "newly_paid_here": true,
+            "reported": false,
+            "score": 0.08
+          }
+        },
+        "bounded_useful_report": false,
+        "coordinator_scope_accepted": true,
+        "id": "CPUHS2-CONTROL-c57bba13138e684e",
+        "private": false,
+        "role": "control",
+        "source_label": "separate",
+        "source_review_mode": "coordinator source inspection; control role known; not fully method blind",
+        "source_status": "coordinator scope accepted",
+        "source_utility": "separate"
+      }
+    ],
+    "schema": 1,
+    "scope": "post-hoc two prior Sonnet-reported queries; not full63/global",
+    "source_join_status": "complete; accepted scoped judgments, not automatic gold",
+    "source_known_gains": 2,
+    "source_unknown_gains": 0,
+    "source_useful_net_lower": 2,
+    "source_useful_net_upper": 2
+  },
+  "physical": {
+    "all_cpu_fresh_calls": 240,
+    "all_cpu_usd": 0.81120112,
+    "balanced_extra_fresh_calls": 4,
+    "balanced_extra_usd": 0.00223456,
+    "main_fresh_calls": 236,
+    "main_usd": 0.80896656,
+    "unknown_or_errors": 0
+  },
+  "provider_calls_by_worker": 0,
+  "public_extension_v2": {
+    "backgrounds": 14,
+    "directions": 230,
+    "gained": 0,
+    "groups": [
+      {
+        "background": "0be1688db28aea6d0fbb9e2cfb32eaef07fb554aa9053ee063275ce679bc8a6a",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 0,
+        "pair_background_units": 2,
+        "repository": "gigaverse-app/due",
+        "revision": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0",
+        "treatment": 0
+      },
+      {
+        "background": "1c9d034edbdcd322738556c283ac31b487d66be858f733d768fbadf9ec941ef1",
+        "gained": 0,
+        "label": "duplicate",
+        "lost": 0,
+        "original": 3,
+        "pair_background_units": 3,
+        "repository": "gigaverse-app/due",
+        "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd",
+        "treatment": 3
+      },
+      {
+        "background": "1c9d034edbdcd322738556c283ac31b487d66be858f733d768fbadf9ec941ef1",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 2,
+        "pair_background_units": 7,
+        "repository": "gigaverse-app/due",
+        "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd",
+        "treatment": 2
+      },
+      {
+        "background": "393753b9ef2fa032f3f15b2004e333f3d33e48056656b57f2044c562d11441c8",
+        "gained": 0,
+        "label": "duplicate",
+        "lost": 0,
+        "original": 2,
+        "pair_background_units": 4,
+        "repository": "gigaverse-app/due",
+        "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4",
+        "treatment": 2
+      },
+      {
+        "background": "393753b9ef2fa032f3f15b2004e333f3d33e48056656b57f2044c562d11441c8",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 0,
+        "pair_background_units": 1,
+        "repository": "gigaverse-app/due",
+        "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4",
+        "treatment": 0
+      },
+      {
+        "background": "46e0cd67a6759423dcb6162c8f62eb3f6f02dbf20699b7824ceb50e818f9e0f8",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 4,
+        "pair_background_units": 4,
+        "repository": "gigaverse-app/pytest-obligation",
+        "revision": "389c5bb84f7ab186fa9c7815c2e15cb9332b67a4",
+        "treatment": 4
+      },
+      {
+        "background": "4edc2f988654836c7ab1a887b6aba67d70b6f893acf5ca5a59870e4ccc329351",
+        "gained": 0,
+        "label": "duplicate",
+        "lost": 0,
+        "original": 3,
+        "pair_background_units": 3,
+        "repository": "gigaverse-app/due",
+        "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd",
+        "treatment": 3
+      },
+      {
+        "background": "4edc2f988654836c7ab1a887b6aba67d70b6f893acf5ca5a59870e4ccc329351",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 2,
+        "pair_background_units": 7,
+        "repository": "gigaverse-app/due",
+        "revision": "8d4d100b3a9ffb2ef259931508f0ccde87a968dd",
+        "treatment": 2
+      },
+      {
+        "background": "7a250fd17ca113c76e5e893f1c0848754987aa05577010dae36b776edd2b9c72",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 3,
+        "pair_background_units": 4,
+        "repository": "gigaverse-app/pytest-selective",
+        "revision": "4ab22f35385bb0e3225cf9d40877b559d45c23dc",
+        "treatment": 3
+      },
+      {
+        "background": "80d2ae63aa96e4ba824e16094ffebecb33745efb87957501ef1a9a9bb1679d2e",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 0,
+        "pair_background_units": 2,
+        "repository": "gigaverse-app/due",
+        "revision": "701d2167dc7ca192bfd2c9c5e98e1c377a5f23a0",
+        "treatment": 0
+      },
+      {
+        "background": "a35412534e3d42e7e10b78aee9e0a0fcf2b7fb42c436cda0e70af17a97735720",
+        "gained": 0,
+        "label": "duplicate",
+        "lost": 0,
+        "original": 3,
+        "pair_background_units": 3,
+        "repository": "gigaverse-app/due",
+        "revision": "33857688849a481a794b46295f4080dca853cc0f",
+        "treatment": 3
+      },
+      {
+        "background": "a35412534e3d42e7e10b78aee9e0a0fcf2b7fb42c436cda0e70af17a97735720",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 2,
+        "pair_background_units": 6,
+        "repository": "gigaverse-app/due",
+        "revision": "33857688849a481a794b46295f4080dca853cc0f",
+        "treatment": 2
+      },
+      {
+        "background": "be1b38de21febc643bf194daffa937fa7063d4b263f3f5f93b9ff56524e076e0",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 1,
+        "pair_background_units": 4,
+        "repository": "gigaverse-app/due",
+        "revision": "d45977a85f1804d8c6cbc3b35d02fd61438f7531",
+        "treatment": 1
+      },
+      {
+        "background": "d1a8938133a6059a3add8869c8915aedc24697313f70599a757ec444c28e0f8b",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 1,
+        "pair_background_units": 4,
+        "repository": "gigaverse-app/due",
+        "revision": "d45977a85f1804d8c6cbc3b35d02fd61438f7531",
+        "treatment": 1
+      },
+      {
+        "background": "d54104cc3e03c039fc62af6abbaae2ed9673e6d053497bc6c11017a19ed8fcaf",
+        "gained": 0,
+        "label": "duplicate",
+        "lost": 0,
+        "original": 2,
+        "pair_background_units": 4,
+        "repository": "gigaverse-app/due",
+        "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4",
+        "treatment": 2
+      },
+      {
+        "background": "d54104cc3e03c039fc62af6abbaae2ed9673e6d053497bc6c11017a19ed8fcaf",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 0,
+        "pair_background_units": 1,
+        "repository": "gigaverse-app/due",
+        "revision": "6a68131774a25b6a7b6a192ca578be9b7ab5e1d4",
+        "treatment": 0
+      },
+      {
+        "background": "e8eb65099fbc8a4e0853da3bce62fc497f9c428331d05ce5c47f994290456b22",
+        "gained": 0,
+        "label": "duplicate",
+        "lost": 0,
+        "original": 3,
+        "pair_background_units": 3,
+        "repository": "gigaverse-app/due",
+        "revision": "33857688849a481a794b46295f4080dca853cc0f",
+        "treatment": 3
+      },
+      {
+        "background": "e8eb65099fbc8a4e0853da3bce62fc497f9c428331d05ce5c47f994290456b22",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 1,
+        "pair_background_units": 6,
+        "repository": "gigaverse-app/due",
+        "revision": "33857688849a481a794b46295f4080dca853cc0f",
+        "treatment": 1
+      },
+      {
+        "background": "eceb1bd48b5a8bfa6471ff19f5064ea65f9046511680256f746b6172eef31940",
+        "gained": 0,
+        "label": "borderline",
+        "lost": 0,
+        "original": 3,
+        "pair_background_units": 3,
+        "repository": "gigaverse-app/pytest-obligation",
+        "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6",
+        "treatment": 3
+      },
+      {
+        "background": "eceb1bd48b5a8bfa6471ff19f5064ea65f9046511680256f746b6172eef31940",
+        "gained": 0,
+        "label": "duplicate",
+        "lost": 0,
+        "original": 6,
+        "pair_background_units": 6,
+        "repository": "gigaverse-app/pytest-obligation",
+        "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6",
+        "treatment": 6
+      },
+      {
+        "background": "eceb1bd48b5a8bfa6471ff19f5064ea65f9046511680256f746b6172eef31940",
+        "gained": 0,
+        "label": "separate",
+        "lost": 0,
+        "original": 2,
+        "pair_background_units": 2,
+        "repository": "gigaverse-app/pytest-obligation",
+        "revision": "d39f77ea343a25bf0a065376ea7a50ed38c7b2f6",
+        "treatment": 2
+      },
+      {
+        "background": "fc5d60d9a7922b37b69218a94f25b0e71a7596c65ad24a29dc4518ab2aaf3dfe",
+        "gained": 0,
+        "label": "duplicate",
+        "lost": 0,
+        "original": 8,
+        "pair_background_units": 8,
+        "repository": "gigaverse-app/pytest-selective",
+        "revision": "ae1306377dda82d1d0a6fa0b43dbb612d69d72b2",
+        "treatment": 8
+      }
+    ],
+    "lost": 0,
+    "provider_calls": 0,
+    "recipe": "cpu-complete-statements:2-append",
+    "rows": 115,
+    "source_scope": "Previously observed public gold at exact revision/background; no independent fresh families; original synthetic paired .04 estimates, not balanced native reserve ledger.",
+    "wall_seconds": 13.136128544996609
+  },
+  "r2_bounded_misses": [
+    {
+      "claude_label": "duplicate",
+      "claude_score": 0.5,
+      "id": "CPUI2-002",
+      "jev_score": 0.21
+    },
+    {
+      "claude_label": "separate",
+      "claude_score": 0.12,
+      "id": "CPUI2-038",
+      "jev_score": 0.09
+    }
+  ],
+  "round1": [
+    {
+      "cases": 1,
+      "claude_reports": 0,
+      "jev_reports": 0,
+      "meaningful_source_useful": 0,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0.0069066,
+      "role": "candidate",
+      "source_labels": {
+        "already-shared": 1
+      },
+      "source_reviewed": 1,
+      "tiny_source_useful": 0
+    },
+    {
+      "cases": 16,
+      "claude_reports": 0,
+      "jev_reports": 0,
+      "meaningful_source_useful": 0,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0.08395784,
+      "role": "control",
+      "source_labels": {
+        "already-shared": 7,
+        "related/too-generic": 3,
+        "separate": 5,
+        "useful-extractable": 1
+      },
+      "source_reviewed": 16,
+      "tiny_source_useful": 1
+    },
+    {
+      "cases": 4,
+      "claude_reports": 0,
+      "jev_reports": 0,
+      "meaningful_source_useful": 0,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0.03071484,
+      "role": "rejected_audit",
+      "source_labels": {
+        "already-shared": 2,
+        "separate": 2
+      },
+      "source_reviewed": 4,
+      "tiny_source_useful": 0
+    }
+  ],
+  "round1_supplement": [
+    {
+      "cases": 4,
+      "claude_reports": 0,
+      "jev_reports": 0,
+      "meaningful_source_useful": 0,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0.0264648,
+      "role": "candidate",
+      "source_labels": {
+        "already-shared": 2,
+        "separate": 1,
+        "useful-extractable": 1
+      },
+      "source_reviewed": 4,
+      "tiny_source_useful": 1
+    },
+    {
+      "cases": 16,
+      "claude_reports": 0,
+      "jev_reports": 1,
+      "meaningful_source_useful": 1,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0.09284044,
+      "role": "control",
+      "source_labels": {
+        "already-shared": 7,
+        "related/too-generic": 3,
+        "separate": 4,
+        "useful-extractable": 2
+      },
+      "source_reviewed": 16,
+      "tiny_source_useful": 1
+    },
+    {
+      "cases": 14,
+      "claude_reports": 0,
+      "jev_reports": 0,
+      "meaningful_source_useful": 2,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0.12502952,
+      "role": "rejected_audit",
+      "source_labels": {
+        "already-shared": 5,
+        "related/too-generic": 2,
+        "separate": 3,
+        "useful-extractable": 4
+      },
+      "source_reviewed": 14,
+      "tiny_source_useful": 2
+    }
+  ],
+  "round2": [
+    {
+      "cases": 47,
+      "claude_reports": 2,
+      "jev_reports": 1,
+      "meaningful_source_useful": 4,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0.36048132,
+      "role": "candidate",
+      "source_labels": {
+        "distinct": 14,
+        "duplicate": 3,
+        "related": 20,
+        "separate": 9,
+        "useful-extractable": 1
+      },
+      "source_reviewed": 47,
+      "tiny_source_useful": 5
+    },
+    {
+      "cases": 16,
+      "claude_reports": 0,
+      "jev_reports": 0,
+      "meaningful_source_useful": 0,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0.0825712,
+      "role": "control",
+      "source_labels": {
+        "distinct": 16
+      },
+      "source_reviewed": 16,
+      "tiny_source_useful": 2
+    },
+    {
+      "cases": 0,
+      "claude_reports": 0,
+      "jev_reports": 0,
+      "meaningful_source_useful": 0,
+      "missing_answers": 0,
+      "physical_fresh_usd": 0,
+      "role": "rejected_audit",
+      "source_labels": {},
+      "source_reviewed": 0,
+      "tiny_source_useful": 0
+    }
+  ],
+  "source_coverage_table": "native-source-coverage-by-background.jsonl",
+  "v2_historical_regression": {
+    "backgrounds": 16,
+    "pair_backgrounds": 223,
+    "paired_budget_diagnostic": {
+      "duplicate": {
+        "lost_funded": 0,
+        "new_funded": 0,
+        "original_funded": 71,
+        "pair_backgrounds": 78,
+        "treatment_funded": 71
+      },
+      "separate": {
+        "lost_funded": 0,
+        "new_funded": 0,
+        "original_funded": 62,
+        "pair_backgrounds": 120,
+        "treatment_funded": 62
+      },
+      "unknown_or_unaccepted": {
+        "lost_funded": 0,
+        "new_funded": 1,
+        "original_funded": 18,
+        "pair_backgrounds": 25,
+        "treatment_funded": 19
+      }
+    },
+    "unique_rows": 207,
+    "units": "observed regression pair-background contexts, not fresh heldout or provider reports"
+  },
+  "v2_original_Claude_estimate": {
+    "fullmatched_coverage": "source-coverage-summary.json",
+    "labels": {
+      "duplicate": {
+        "baseline3_funded": 39,
+        "lost_funded": 0,
+        "new_funded": 0,
+        "original_funded": 71,
+        "pair_backgrounds": 78,
+        "treatment_funded": 71,
+        "wide_funded": 71
+      },
+      "separate": {
+        "baseline3_funded": 24,
+        "lost_funded": 0,
+        "new_funded": 0,
+        "original_funded": 62,
+        "pair_backgrounds": 120,
+        "treatment_funded": 62,
+        "wide_funded": 59
+      },
+      "unaccepted_or_unknown": {
+        "baseline3_funded": 6,
+        "lost_funded": 0,
+        "new_funded": 1,
+        "original_funded": 18,
+        "pair_backgrounds": 25,
+        "treatment_funded": 19,
+        "wide_funded": 16
+      }
+    },
+    "not_equivalent_to": "paired Jev+Claude diagnostic .04; actual balanced conservative reservations; previous pooled-background .04 gold experiments or historical deployment",
+    "physical_spend": "not a provider bill; answers unknown until central recorded responses",
+    "profile": "original standalone Claude-only normal .04 synthetic single-function change; shared-operations,150 estimated answer tokens, unchanged source/route order"
+  }
+}

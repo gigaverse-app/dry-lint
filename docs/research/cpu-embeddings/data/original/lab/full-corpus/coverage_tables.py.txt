@@ -1,0 +1,181 @@
+"""Complete-inventory opportunity denominators, preserving every source/config mapping."""
+
+import collections
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import run_full
+from experiment import dump, jsonl, sha
+from experiment import read_rows as read
+
+HERE = Path(__file__).resolve().parent
+
+
+def main():
+    ready, cs, rows, _ = run_full.inputs()
+    coverage = {r["row_id"]: r for r in read(HERE / "coverage-rows.jsonl")}
+    groups = collections.defaultdict(list)
+    for r in rows:
+        c = coverage[r["row_id"]]
+        label = r["label"] if r["accepted_gold"] else "unaccepted:" + str(r["label"])
+        for group, value in [
+            ("dataset", r["dataset"]),
+            ("repository", r["repository"]),
+            ("family", r["family_id"] or "unknown-family-repository:" + str(r["repository"])),
+        ]:
+            groups[(group, str(value), label)].append(c)
+    out = []
+    for (group, value, label), rs in sorted(groups.items()):
+        out.append(
+            {
+                "group": group,
+                "value": value,
+                "label": label,
+                "total": len(rs),
+                "supported_function_text": sum(r["supported_function_representation"] for r in rs),
+                "mapped": sum(r["mapped"] for r in rs),
+                "evaluated_any_exact_background": sum(r["evaluated"] for r in rs),
+                "missing_all_evaluations": sum(not r["evaluated"] for r in rs),
+                "mapping_records": sum(r.get("mapping_records_total", 0) for r in rs),
+                "evaluated_mapping_records": sum(r.get("mapping_records_evaluated", 0) for r in rs),
+                "missing_mapping_records": sum(r.get("mapping_records_missing", 0) for r in rs),
+                "status_counts": dict(collections.Counter(s for r in rs for s in r["statuses"])),
+            }
+        )
+    paired = read(HERE / "paired-rows.jsonl")
+    evaluated_keys = {(r["row_id"], r["cohort_id"]) for r in paired if r["status"] == "evaluated"}
+    for c in cs:
+        for label in sorted(
+            {
+                str(r["label"]) if r["accepted_gold"] else "unaccepted:" + str(r["label"])
+                for r in rows
+                if any(m["cohort_id"] == c["cohort_id"] for m in r["mappings"])
+            }
+        ):
+            selected = [
+                r
+                for r in rows
+                if (str(r["label"]) if r["accepted_gold"] else "unaccepted:" + str(r["label"])) == label
+                and any(m["cohort_id"] == c["cohort_id"] for m in r["mappings"])
+            ]
+            out.append(
+                {
+                    "group": "cohort",
+                    "value": c["cohort_id"],
+                    "label": label,
+                    "repository": c["repository"],
+                    "revision": c["revision"],
+                    "background_sha256": c["background_sha256"],
+                    "total": len(selected),
+                    "supported_function_text": sum(r["record_kind"] == "function" for r in selected),
+                    "mapped": sum(
+                        any(m["cohort_id"] == c["cohort_id"] and m["status"] == "mapped" for m in r["mappings"])
+                        for r in selected
+                    ),
+                    "evaluated_exact_background": sum(
+                        (r["row_id"], c["cohort_id"]) in evaluated_keys for r in selected
+                    ),
+                    "missing_exact_background": sum(
+                        (r["row_id"], c["cohort_id"]) not in evaluated_keys for r in selected
+                    ),
+                }
+            )
+    jsonl(HERE / "coverage-denominators.jsonl", out)
+    exceptions = []
+    cohort_rows = []
+    for c in cs:
+        selected = [r for r in rows if any(m["cohort_id"] == c["cohort_id"] for m in r["mappings"])]
+        source = run_full.metadata(c)
+        f = run_full.folder_for(c)
+        manifest = json.loads((f / "manifest.json").read_text()) if (f / "manifest.json").exists() else {}
+        st = json.loads((f / "embedding-status.json").read_text()) if (f / "embedding-status.json").exists() else {}
+        e = {
+            "cohort_id": c["cohort_id"],
+            "repository": c["repository"],
+            "revision": c["revision"],
+            "background_sha256": c["background_sha256"],
+            "scope": c["scope"],
+            "functions": c["functions"],
+            "records": len(selected),
+            "accepted": sum(r["accepted_gold"] for r in selected),
+            "labels": dict(
+                collections.Counter(
+                    str(r["label"]) if r["accepted_gold"] else "unaccepted:" + str(r["label"]) for r in selected
+                )
+            ),
+            "exact_pin_present": source["git"] is not None,
+            "source_body_verification": manifest.get("status"),
+            "encoder_status": st.get("status", "not_run"),
+            "native_failures": len(manifest.get("failures", [])),
+        }
+        cohort_rows.append(e)
+        if source["git"] is None:
+            exceptions.append(
+                {
+                    **e,
+                    "reason": "exact_commit_absent_from_audited_local_git_roots",
+                    "row_ids": [r["row_id"] for r in selected],
+                    "attempts": run_full._SOURCE_LOOKUPS[(c["repository"], c["revision"])]["attempts"],
+                }
+            )
+        elif manifest.get("status") == "full_competitor_source_incomplete":
+            exceptions.append(
+                {
+                    **e,
+                    "reason": "complete_background_native_bodies_not_reconstructed",
+                    "row_ids": [r["row_id"] for r in selected],
+                    "details_path": str(f / "manifest.json"),
+                    "matched": manifest.get("matched_functions"),
+                }
+            )
+    jsonl(HERE / "coverage-cohorts.jsonl", cohort_rows)
+    dump(
+        HERE / "source-exceptions-index-v2.json",
+        {
+            "index_receipt_sha256": sha((run_full.SHARED / "index-ready.json").read_bytes()),
+            "backgrounds": len(cs),
+            "locally_exact_pin_present": sum(r["exact_pin_present"] for r in cohort_rows),
+            "exceptions": exceptions,
+            "source_exceptions_are_not_method_negatives": True,
+            "function_span_resolution_owner": "corpus-wide-evaluation; no parallel symbol resolver",
+        },
+    )
+    # The four native declaration cases have unchanged mapper source identities across the immutable snapshots.
+    v1 = run_full.SHARED.parent / "index-v1-88f0f73927ce28d2"
+    previous = {r["row_id"]: r for r in read(v1 / "rows.jsonl") if r["record_kind"] == "model"}
+    now = {r["row_id"]: r for r in rows if r["record_kind"] == "model"}
+    checks = []
+    for key, r in now.items():
+        a = previous[key]
+        checks.append(
+            {
+                "row_id": key,
+                "sources_unchanged": a["sources"] == r["sources"],
+                "candidate_unchanged": a["candidate"] == r["candidate"],
+                "repository_pin_unchanged": (a["repository"], a["revision"]) == (r["repository"], r["revision"]),
+            }
+        )
+    assert len(checks) == 4 and all(all(v for k, v in x.items() if k != "row_id") for x in checks)
+    dump(
+        HERE / "model-mapper-migration-v1.json",
+        {"checks": checks, "no_model_inventory_refits": True, "function_background_mapping_not_changed": True},
+    )
+    print(
+        "Denominators:",
+        len(rows),
+        "records,",
+        len(out),
+        "group/label records,",
+        len(cs),
+        "backgrounds,",
+        sum(r["exact_pin_present"] for r in cohort_rows),
+        "exact pins available;",
+        len(exceptions),
+        "source-exception backgrounds",
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,25 @@
+"""Join accepted independent source assessments to existing admissions/answers, without reruns."""
+import hashlib
+import json
+from pathlib import Path
+C=Path(__file__).resolve().parent;R=C.parent/'funded-rounds/round2'
+S=Path('LAB_ROOT/reports/research-experiments/promotion/revised-source-c/coordinator-decisions.jsonl')
+read=lambda p:[json.loads(x) for x in p.open()]
+packets={r['id']:r for r in read(R/'provider-queue.jsonl')};sides={r['id']:r for r in read(R/'central-funding-sidecar.jsonl')};ledgers={r['id']:r for r in read(R/'native-original-query-ledgers.jsonl')};projections={r['id']:r for r in read(R/'emission-projections.jsonl')};baselines=read(R/'matched-sparse-baseline-projections.jsonl');plans={(r['id'],r['kind']):r for r in read(R/'central-canonical-request-plan.jsonl')}
+feed_path=Path(json.loads((R/'emission-summary.json').read_text())['feed']);feed={r['id']:r for r in read(feed_path)};out=[]
+for source in read(S):
+ if source['attribution'].get('method')!='cpu-embeddings':continue
+ ident=source['attribution']['case_id'];packet=packets[ident];side=sides[ident];ledger=ledgers[ident];projection=projections[ident]
+ assert source['root_acceptance']=='accepted_scoped_source_assessment' and source['repository']==packet['repository'] and source['revision']==packet['revision']
+ endpoints={r['side']:r for r in packet['source_endpoints']}
+ for endpoint in source['endpoints']:
+  e=endpoints[endpoint['side']];p=endpoint['source_proof'];assert endpoint['source_identity']==e['source_id'] and endpoint['packet_code']==packet['candidate'][endpoint['side']]['code'] and p['body_sha256']==e['body_sha256'] and p['file_sha256']==e['full_source_sha256']
+ f=side['funding'];proof=f['native_original_ledger'];assert proof['id']==ident and hashlib.sha256(Path(proof['path']).read_bytes()).hexdigest()==proof['sha256'];assert packet['candidate']==f['candidate'] and packet['candidate'] in ledger['original_candidate_order'] and ledger['funded_keys']==side['funded_keys'];assert f['funded'] and f['original_ledger_replayed'] and abs(f['ledger_usd_estimated']-ledger['estimated_usd'])<1e-12 and ledger['estimated_usd']<=.04
+ obs={r['kind']:r for r in feed[ident]['observations']}
+ for kind,o in obs.items():assert o['identity']==plans[(ident,kind)]['identity'] and o['request_key']==plans[(ident,kind)]['request_key']
+ baseline_rows=[r for r in baselines if r['id']==ident];assert len(baseline_rows)==2
+ useful=source['useful'];emit=projection['cpu_emission_projection'];j=obs['jev']['verdict'];c=obs['claude']['verdict']
+ out.append({'id':ident,'source_review_id':source['id'],'source_authority':{'path':str(S),'sha256':hashlib.sha256(S.read_bytes()).hexdigest(),'root_acceptance':source['root_acceptance']},'repository':packet['repository'],'revision':packet['revision'],'source_ids':[endpoints[s]['source_id'] for s in ['new','existing']],'exact_source_and_packet_joins':True,'scoped_source_label':source['label'],'source_useful':useful,'source_summary':source['summary'],'bounded_extractable_scope':source['bounded_extractable_scope'],'global_novelty':'not established by this source-local join; no new broad gold acceptance','original_cpu_arm':{'profile':f['profile'],'retrieved':True,'normal_synthetic04_funded':True,'normal_synthetic04_ledger_usd':ledger['estimated_usd'],'ledger_proof':proof,'canonical_claude_projection':emit,'first_loss':projection['first_loss']},'matched_original_baselines':[{k:r[k] for k in ['arm','retrieved','funded','normal_synthetic04_ledger_usd','first_loss_detail','same_frozen_rendered_judge_input_evidence_context','standalone_claude8_counterfactual_emission']} for r in baseline_rows],'judge_diagnostics':{'jev':{'label':j['label'],'score':j['score'],'nonseparate_at_diagnostic8':j['label']!='separate' and j['score']>=.8,'canonical_deployment_report':False},'claude':{'label':c['label'],'score':c['score'],'canonical_standalone8_projection':emit}},'source_useful_but_canonical_miss':bool(useful and emit is False),'source_unsupported_canonical_report':bool(not useful and emit is True),'provider_calls':0,'representation_refits':0,'new_encodes':0,'frozen_gold_labels_changed':0})
+assert {r['id'] for r in out}=={'CPUR2-001','CPUR2-002','CPUR2-044','CPUR2-056'}
+(C/'source-reviewed-round2-joins.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in out))
+for r in out:print(r['id'],r['scoped_source_label'],'CPUfunded',r['original_cpu_arm']['normal_synthetic04_funded'],'ClaudeEmit',r['original_cpu_arm']['canonical_claude_projection'],'Jev',r['judge_diagnostics']['jev']['label'],r['judge_diagnostics']['jev']['score'],'widefunded',r['matched_original_baselines'][1]['funded'])

@@ -1,0 +1,687 @@
+"""Frozen CPU embedding retrieval experiment. All writes are local, all source reads use full Git pins.
+
+Run with PYTHONPATH explicitly selecting this worktree's src. No judge or provider is instantiated.
+"""
+
+import argparse
+import collections
+import hashlib
+import json
+import os
+import resource
+import statistics
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.costs import Ledger
+from dry_lint.detector import why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.judges.command import PROMPT_POLICIES, prompt
+from dry_lint.models import Candidate, Function, pair_key
+from dry_lint.ranking import rank_candidates
+from dry_lint.settings import Settings
+from dry_lint.typescript import TypeScriptExtractor
+
+for variable in ["OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"]:
+    os.environ[variable] = "2"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+HERE = Path(__file__).resolve().parent
+PROTOCOL = json.loads((HERE / "EXPERIMENT.json").read_text())
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def dump(path, value):
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+
+def jsonl(path, rows):
+    with path.open("w") as stream:
+        for row in rows:
+            stream.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def read_rows(path):
+    return [json.loads(x) for x in Path(path).read_text().splitlines() if x.strip()]
+
+
+def verify_freeze():
+    assert sha((HERE / "EXPERIMENT.json").read_bytes()) == (HERE / "EXPERIMENT.sha256").read_text().split()[0]
+    for c in PROTOCOL["cohorts"] + [PROTOCOL["authority"]]:
+        assert sha(Path(c["path"]).read_bytes()) == c["sha256"], c["path"]
+
+
+class EstimateOnlySonnet:
+    """Ledger duck type: identical prompt/price/answer estimate, deliberately no network client."""
+
+    name = "lab-cpu-minilm-sonnet-estimate"
+    model = "claude-sonnet-5-5"
+    version = PROMPT_POLICIES["shared-operations"][0] + ":claude-sonnet-5-5:output=1024"
+    prompt_policy = "shared-operations"
+    subscription = False
+
+    def input_text(self, candidate):
+        return prompt(candidate, policy=self.prompt_policy)
+
+
+def prepare(repo, folder):
+    folder.mkdir(exist_ok=True)
+    data = Path(repo["background_proof"]["path"]).read_bytes()
+    assert sha(data) == repo["background_proof"]["sha256"]
+    background = BenchBackground.decode(data)
+    assert background.repository == repo["repository"] and background.revision == repo["revision"]
+    all_files, by_key, proof, functions = {}, collections.defaultdict(list), [], []
+    source_folder = folder / "sources"
+    source_folder.mkdir(exist_ok=True)
+    started = time.perf_counter()
+    for path in dict.fromkeys(d.id.split("::", 1)[0] for d in background.documents):
+        raw = subprocess.check_output(["git", "-C", repo["git"], "show", repo["revision"] + ":" + path])
+        extractor = PythonExtractor() if path.endswith(".py") else TypeScriptExtractor()
+        source = raw.decode("utf-8")
+        extractor.validate_source(path, source)
+        file_sha = sha(raw)
+        (source_folder / (file_sha + ".txt")).write_bytes(raw)
+        file_functions = extractor.functions(path, source)
+        for f in file_functions:
+            f.hash = extractor.structure_hash(f)
+            by_key[(f.qualname, sha(f.code.encode()))].append(f)
+        all_files[path] = {
+            "path": path,
+            "file_sha256": file_sha,
+            "git_blob_sha1": hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest(),
+            "bytes": len(raw),
+            "source_file": str(source_folder / (file_sha + ".txt")),
+            "extracted_functions": len(file_functions),
+        }
+    for i, doc in enumerate(background.documents):
+        matches = by_key[(doc.id, doc.source_sha256)]
+        assert matches, (i, doc.id, "missing native full-source match")
+        # Equal-ID/equal-body duplicates remain separate frozen competitor rows; never merge revisions/rows.
+        f = matches[0]
+        functions.append(f)
+        proof.append(
+            {
+                "row": i,
+                "id": doc.id,
+                "source_sha256": sha(f.code.encode()),
+                "background_sha256": doc.source_sha256,
+                "matching_native_symbols": len(matches),
+                "line": f.line,
+                "end_line": f.end_line,
+                **all_files[f.path],
+            }
+        )
+    ids = collections.Counter(d.id for d in background.documents)
+    jsonl(folder / "functions.jsonl", [f.model_dump(mode="json") for f in functions])
+    jsonl(folder / "source-proof.jsonl", proof)
+    raw_gold = []
+    for cohort in PROTOCOL["cohorts"]:
+        for row in read_rows(cohort["path"]):
+            if row.get("repository") == repo["repository"] and row.get("revision") == repo["revision"]:
+                raw_gold.append({"source_cohort_file": cohort["path"], "row": row})
+    jsonl(folder / "gold-inputs.jsonl", raw_gold)
+    manifest = {
+        "repository": repo,
+        "functions": len(functions),
+        "files": len(all_files),
+        "scope": background.scope,
+        "max_df": background.max_df,
+        "extraction_contract": background.extraction_contract,
+        "python_version_background": background.python_version,
+        "python_version_run": sys.version,
+        "all_source_bodies_verified": True,
+        "duplicate_ids": {k: v for k, v in ids.items() if v > 1},
+        "source_load_extract_verify_seconds": time.perf_counter() - started,
+        "frozen_df_sha256": sha(json.dumps(background.document_frequency, sort_keys=True).encode()),
+        "frozen_row_order_sha256": sha(json.dumps([d.id for d in background.documents]).encode()),
+        "functions_jsonl_sha256": sha((folder / "functions.jsonl").read_bytes()),
+        "gold_rows": len(raw_gold),
+        "adopter_config": "not inspected or inferred; frozen diagnostic scope only; absence proves neither adoption nor deployment",
+    }
+    dump(folder / "manifest.json", manifest)
+    print("prepared", repo["repository"], len(functions), "native functions", len(raw_gold), "gold rows", flush=True)
+
+
+def evaluate(repo, folder, *, extension_policy="pilot-suffix", comparer_version="1", native_functions=None, rankings_cache=None):
+    manifest = json.loads((folder / "manifest.json").read_text())
+    assert sha((folder / "functions.jsonl").read_bytes()) == manifest["functions_jsonl_sha256"]
+    background = BenchBackground.decode(Path(repo["background_proof"]["path"]).read_bytes())
+    raw_functions = read_rows(folder / "functions.jsonl")
+    unresolved_native = set()
+    unknown_native_slots = []
+    if native_functions is not None:
+        from types import SimpleNamespace
+
+        unresolved_native = {i for i, f in native_functions.items() if f is None}
+        functions = [
+            native_functions[i]
+            if native_functions[i] is not None
+            else SimpleNamespace(
+                qualname=background.documents[i].id,
+                path=background.documents[i].id.split("::", 1)[0],
+                code=r["code"],
+                lines=None,
+            )
+            for i, r in enumerate(raw_functions)
+        ]
+    else:
+        functions = [Function.model_validate(r) for r in raw_functions]
+    positions = collections.defaultdict(list)
+    for i, f in enumerate(functions):
+        positions[f.qualname].append(i)
+    settings = Settings(
+        include=background.scope["include"], exclude=background.scope["exclude"], patterns=[], budget={"usd": 0.04}
+    )
+    started = time.perf_counter()
+    sparse = background.index()
+    sparse_index_seconds = time.perf_counter() - started
+    dense_status_path = folder / "embedding-status.json"
+    dense_status = json.loads(dense_status_path.read_text()) if dense_status_path.exists() else {"status": "not_run"}
+    dense = None
+    if dense_status["status"] == "complete":
+        import numpy as np
+
+        dense = np.load(folder / "embeddings.npy")
+        assert dense.shape == (len(functions), 384) and np.isfinite(dense).all()
+        assert np.max(np.abs(np.linalg.norm(dense, axis=1) - 1)) < 1e-5
+    gold_inputs = read_rows(folder / "gold-inputs.jsonl")
+    mapped, queries = [], set()
+    for entry in gold_inputs:
+        row = entry["row"]
+        c = Candidate.model_validate(row["candidate"])
+        found = []
+        behavior = []
+        for f in [c.new, c.existing]:
+            ids = positions[f.qualname]
+            matches = [i for i in ids if sha(functions[i].code.encode()) == sha(f.code.encode())]
+            found.append(matches[0] if len(ids) == len(matches) == 1 else None)
+            behavior.append(
+                {
+                    "id": f.qualname,
+                    "identity_matches": len(ids),
+                    "body_matches": len(matches),
+                    "status": "unique"
+                    if len(ids) == len(matches) == 1
+                    else "ambiguous"
+                    if len(ids) > 1
+                    else "missing_or_body_mismatch",
+                }
+            )
+        mapped.append((entry, c, found, behavior))
+        queries.update(i for i in found if i is not None)
+    sparse_scores, dense_scores, timings = {}, {}, []
+    reused_rank_queries = 0
+    for i in sorted(queries):
+        if rankings_cache is not None and i in rankings_cache:
+            sparse_scores[i], cached_dense = rankings_cache[i]
+            if cached_dense is not None:
+                dense_scores[i] = cached_dense
+            timings.append({"query_row": i, "query_id": functions[i].qualname, "sparse_seconds": 0.0, "dense_cached_query_seconds": 0.0, "rank_cache_reused": True})
+            reused_rank_queries += 1
+            continue
+        start = time.perf_counter()
+        # Freeze tokens/IDF/order and native tie behavior; never refit against snippets.
+        s = sparse.similar(background.documents[i].tokens(), exclude={i})
+        sparse_scores[i] = s
+        sparse_seconds = time.perf_counter() - start
+        dsec = None
+        if dense is not None:
+            start = time.perf_counter()
+            scores = dense @ dense[i]
+            order = np.argsort(-scores, kind="stable")
+            dense_scores[i] = [(int(j), float(scores[j])) for j in order if j != i]
+            dsec = time.perf_counter() - start
+        if rankings_cache is not None:
+            rankings_cache[i] = (sparse_scores[i], dense_scores.get(i))
+        timings.append(
+            {
+                "query_row": i,
+                "query_id": functions[i].qualname,
+                "sparse_seconds": sparse_seconds,
+                "dense_cached_query_seconds": dsec,
+            }
+        )
+    jsonl(folder / "query-timings.jsonl", timings)
+
+    def candidates(profile, query, channel, extra_exclude=None):
+        f = functions[query]
+        config = PROTOCOL["profiles"][profile]
+        rankings = sparse_scores[query] if channel == "sparse" else dense_scores.get(query, [])
+        floor = (
+            (config["sparse_small_floor"] if f.lines < 6 else config["sparse_floor"]) if channel == "sparse" else 0.65
+        )
+        results = []
+        admitted_slots = 0
+        for j, score in rankings:
+            if score < floor:
+                break
+            other = functions[j]
+            if not config["same_file"] and other.path == f.path:
+                continue
+            if (
+                (Path(f.path).suffix == ".py") != (Path(other.path).suffix == ".py")
+                if extension_policy == "native-adapter"
+                else Path(f.path).suffix != Path(other.path).suffix
+            ):
+                continue
+            if other.qualname == f.qualname:
+                continue
+            source_key = pair_key(f.qualname, other.qualname)
+            if extra_exclude is not None and source_key in extra_exclude:
+                continue
+            admitted_slots += 1
+            if j in unresolved_native or query in unresolved_native:
+                unknown_native_slots.append(
+                    {
+                        "profile": profile,
+                        "batch": batch,
+                        "query_row": query,
+                        "target_row": j,
+                        "pair_key": source_key,
+                        "channel": channel,
+                        "selection": "one-extra" if extra_exclude is not None else "channel-top-k",
+                        "score": score,
+                        "status": "unresolved_native_identity",
+                        "native_span": None,
+                        "funded": False,
+                        "consumes_original_neighbor_slot": True,
+                    }
+                )
+                if admitted_slots == (1 if extra_exclude is not None else config["k"]):
+                    break
+                continue
+            c = Candidate(
+                new=f,
+                existing=other,
+                similarity=score,
+                comparer="lab-cpu-minilm-"
+                + channel
+                + ":"
+                + comparer_version
+                + ":"
+                + (
+                    repo["background_proof"]["sha256"][:16]
+                    if channel == "sparse"
+                    else PROTOCOL["model"]["revision"][:16]
+                ),
+                filtered=why_skipped(f, other, settings),
+                similarity_reusable=False,
+            )
+            if extra_exclude is not None and c.key in extra_exclude:
+                continue
+            results.append(c)
+            if admitted_slots == (1 if extra_exclude is not None else config["k"]):
+                break
+        return results
+
+    batches = collections.defaultdict(set)
+    for entry, _c, found, _behavior in mapped:
+        r = entry["row"]
+        key = (r["cohort"], repo["repository"], repo["revision"], r["family_id"])
+        batches[key].update(i for i in found if i is not None)
+    funded_sets, retrieved_sets, allowed_sets = {}, {}, {}
+    ledger_rows, emitted_candidates = [], []
+    for profile in PROTOCOL["profiles"]:
+        for batch, qs in sorted(batches.items()):
+            base, extra, embedding = [], [], []
+            for q in sorted(qs):
+                baseline = candidates(profile, q, "sparse")
+                base.extend(baseline)
+                if dense is not None:
+                    dense_c = candidates(profile, q, "dense")
+                    embedding.extend(dense_c)
+                    existing_keys = {c.key for c in baseline} | {
+                        e["pair_key"]
+                        for e in unknown_native_slots
+                        if e["profile"] == profile
+                        and e["batch"] == batch
+                        and e["query_row"] == q
+                        and e["channel"] == "sparse"
+                    }
+                    extra.extend(candidates(profile, q, "dense", extra_exclude=existing_keys))
+
+            def unique(cs):
+                seen, out = set(), []
+                for c in cs:
+                    if c.key not in seen:
+                        seen.add(c.key)
+                        out.append(c)
+                return out
+
+            base = rank_candidates(unique(base))
+            extra = rank_candidates(unique(extra))
+            arms = {"sparse": base}
+            if dense is not None:
+                arms.update(
+                    {
+                        "embedding-only": rank_candidates(unique(embedding)),
+                        "protected-sparse-plus-dense1": unique(base + extra),
+                    }
+                )
+            batch_id = sha(json.dumps(batch).encode())[:16]
+            for arm, proposed in arms.items():
+                allowed = [c for c in proposed if c.filtered is None]
+                ledger = Ledger(settings)
+                judge = EstimateOnlySonnet()
+                indexes = ledger.select(judge, allowed)
+                selected = [allowed[i] for i in indexes]
+                ledger.charge(judge, selected, len(allowed) - len(selected))
+                assert ledger.usd <= 0.04 + 1e-12
+                key = (profile, batch, arm)
+                retrieved_sets[key] = {c.key for c in proposed}
+                allowed_sets[key] = {c.key for c in allowed}
+                funded_sets[key] = {c.key for c in selected}
+                ledger_rows.append(
+                    {
+                        "profile": profile,
+                        "batch": batch,
+                        "batch_id": batch_id,
+                        "arm": arm,
+                        "synthetic": True,
+                        "historical_pr": False,
+                        "query_count": len(qs),
+                        "candidate_count": len(proposed),
+                        "core_rule_allowed": len(allowed),
+                        "funded": len(selected),
+                        "skipped_budget": len(allowed) - len(selected),
+                        "usd_estimated": ledger.usd,
+                        "budget_usd": 0.04,
+                        "spend": [s.model_dump() for s in ledger.spend.values()],
+                        "answers_received": 0,
+                        "reports_known": None,
+                        "physical_usd": 0,
+                        "cache_policy": "normal estimated charge per arm even if answer cached",
+                    }
+                )
+                for order, c in enumerate(proposed):
+                    emitted_candidates.append(
+                        {
+                            "profile": profile,
+                            "batch_id": batch_id,
+                            "arm": arm,
+                            "order": order,
+                            "candidate": c.model_dump(mode="json"),
+                            "key": c.key,
+                            "funded": c.key in funded_sets[key],
+                        }
+                    )
+            if dense is not None:
+                assert (
+                    retrieved_sets[(profile, batch, "sparse")]
+                    <= retrieved_sets[(profile, batch, "protected-sparse-plus-dense1")]
+                )
+                assert (
+                    funded_sets[(profile, batch, "sparse")]
+                    <= funded_sets[(profile, batch, "protected-sparse-plus-dense1")]
+                )
+    jsonl(folder / "unresolved-native-slots.jsonl", unknown_native_slots)
+    jsonl(folder / "ledger.jsonl", ledger_rows)
+    jsonl(folder / "candidates.jsonl", emitted_candidates)
+    results, neighbors = [], []
+    for i in sorted(queries):
+        neighbors.append(
+            {
+                "query_row": i,
+                "query_id": functions[i].qualname,
+                "sparse_raw_top20": [
+                    {"row": j, "id": functions[j].qualname, "score": s} for j, s in sparse_scores[i][:20]
+                ],
+                "dense_raw_top20": [
+                    {"row": j, "id": functions[j].qualname, "score": s} for j, s in dense_scores.get(i, [])[:20]
+                ]
+                if dense is not None
+                else None,
+                "self_excluded": True,
+                "sparse_ties": "native stable posting encounter order",
+                "dense_ties": "frozen corpus row index",
+            }
+        )
+    jsonl(folder / "neighbors.jsonl", neighbors)
+
+    def directional(q, t, scores, profile, channel):
+        config = PROTOCOL["profiles"][profile]
+        if q is None or t is None:
+            return {"first_loss": "missing_or_ambiguous_source", "retrieved": False, "score": None, "raw_rank": None}
+        qf, tf = functions[q], functions[t]
+        ranking = scores.get(q)
+        if ranking is None:
+            return {"first_loss": "embedding_not_executed", "retrieved": None, "score": None, "raw_rank": None}
+        raw_rank = next((r + 1 for r, (j, _) in enumerate(ranking) if j == t), None)
+        score = next((s for j, s in ranking if j == t), 0.0)
+        cross = [(j, s) for j, s in ranking if functions[j].path != qf.path]
+        cross_rank = next((r + 1 for r, (j, _) in enumerate(cross) if j == t), None)
+        floor = (
+            (config["sparse_small_floor"] if qf.lines < 6 else config["sparse_floor"]) if channel == "sparse" else 0.65
+        )
+        same = qf.path == tf.path
+        eligible_rank = raw_rank if config["same_file"] else cross_rank
+        loss = (
+            "same_file"
+            if same and not config["same_file"]
+            else "score_floor"
+            if score < floor
+            else "rank_cutoff"
+            if eligible_rank is None or eligible_rank > config["k"]
+            else None
+        )
+        return {
+            "query": qf.qualname,
+            "target": tf.qualname,
+            "query_row": q,
+            "target_row": t,
+            "query_lines": qf.lines,
+            "target_lines": tf.lines,
+            "same_file": same,
+            "score": score,
+            "raw_rank": raw_rank,
+            "cross_file_rank": cross_rank,
+            "eligible_rank": eligible_rank,
+            "floor": floor,
+            "floor_failure": score < floor,
+            "size_floor_failure": False,
+            "extraction_min_lines": 2,
+            "score_small_floor": qf.lines < 6,
+            "rank_failure": eligible_rank is None or eligible_rank > config["k"],
+            "first_loss": loss,
+            "retrieved": loss is None,
+        }
+
+    for entry, c, found, behavior in mapped:
+        row = entry["row"]
+        batch = (row["cohort"], repo["repository"], repo["revision"], row["family_id"])
+        for profile in PROTOCOL["profiles"]:
+            for arm in PROTOCOL["arms"]:
+                scores = sparse_scores if arm == "sparse" else dense_scores
+                directions = [
+                    directional(found[0], found[1], scores, profile, "sparse" if arm == "sparse" else "dense"),
+                    directional(found[1], found[0], scores, profile, "sparse" if arm == "sparse" else "dense"),
+                ]
+                available = arm == "sparse" or dense is not None
+                k = (profile, batch, arm)
+                retrieved = c.key in retrieved_sets.get(k, set()) if available else None
+                allowed = c.key in allowed_sets.get(k, set()) if available else None
+                funded = c.key in funded_sets.get(k, set()) if available else None
+                first_loss = (
+                    "embedding_not_executed"
+                    if not available
+                    else "missing_or_ambiguous_source"
+                    if None in found
+                    else None
+                    if funded
+                    else "budget"
+                    if allowed
+                    else "core_rule"
+                    if retrieved
+                    else "retrieval"
+                )
+                if first_loss == "retrieval" and arm != "protected-sparse-plus-dense1":
+                    # Pair succeeds in either direction; report the earliest common failure when both miss.
+                    losses = [d["first_loss"] for d in directions]
+                    first_loss = losses[0] if losses[0] == losses[1] else "directional_retrieval_failures"
+                label = row.get("coordinator_label") or row["label"]
+                accepted = row.get("active_panel_eligible", label in ["duplicate", "drifted", "separate"])
+                label_group = (
+                    "positive"
+                    if accepted and label in ["duplicate", "drifted"]
+                    else "negative"
+                    if accepted and label == "separate"
+                    else "unknown"
+                )
+                results.append(
+                    {
+                        "id": row["id"],
+                        "cohort": row["cohort"],
+                        "family_id": row["family_id"],
+                        "family_lineage": row.get("family_lineage"),
+                        "split": row.get("split"),
+                        "repository": repo["repository"],
+                        "revision": repo["revision"],
+                        "profile": profile,
+                        "arm": arm,
+                        "label": label,
+                        "label_group": label_group,
+                        "label_scope": row.get("label_scope"),
+                        "granularity": row.get("granularity"),
+                        "narrow_operation": row.get("narrow_operation"),
+                        "whole_function_label": row.get("whole_function_label"),
+                        "drifted": row.get("drifted", False),
+                        "source_roles": row.get("source_roles"),
+                        "mapping": behavior,
+                        "pair_key": c.key,
+                        "retrieved": retrieved,
+                        "core_rule_allowed": allowed,
+                        "funded": funded,
+                        "answer_status": "unknown_no_provider_call",
+                        "report_emitted": None,
+                        "first_loss": first_loss,
+                        "directional_channel": "sparse"
+                        if arm == "sparse"
+                        else "dense (protected result is union; raw ranks are dense)",
+                        "directions": directions,
+                    }
+                )
+    jsonl(folder / "per-row.jsonl", results)
+    denominators = []
+    for profile in PROTOCOL["profiles"]:
+        for arm in PROTOCOL["arms"]:
+            for cohort in sorted({x["cohort"] for x in results}):
+                for label_group in ["positive", "negative", "unknown"]:
+                    rows = [
+                        x
+                        for x in results
+                        if (x["profile"], x["arm"], x["cohort"], x["label_group"])
+                        == (profile, arm, cohort, label_group)
+                    ]
+                    denominators.append(
+                        {
+                            "profile": profile,
+                            "arm": arm,
+                            "cohort": cohort,
+                            "label_group": label_group,
+                            "rows": len(rows),
+                            "families": len({x["family_id"] for x in rows}),
+                            "source_unique": sum(all(m["status"] == "unique" for m in r["mapping"]) for r in rows),
+                            "evaluated_rows": sum(r["retrieved"] is not None for r in rows),
+                            "retrieved": sum(r["retrieved"] is True for r in rows)
+                            if arm == "sparse" or dense is not None
+                            else None,
+                            "core_rule_allowed": sum(r["core_rule_allowed"] is True for r in rows)
+                            if arm == "sparse" or dense is not None
+                            else None,
+                            "funded": sum(r["funded"] is True for r in rows)
+                            if arm == "sparse" or dense is not None
+                            else None,
+                            "answers_known": 0,
+                            "reports_known": None,
+                            "first_losses": dict(collections.Counter(r["first_loss"] or "none_funded" for r in rows)),
+                            "drifted_rows": sum(r["drifted"] for r in rows),
+                        }
+                    )
+    dump(folder / "stage-denominators.json", denominators)
+    changes = []
+    for profile in PROTOCOL["profiles"]:
+        base = {(r["cohort"], r["id"]): r for r in results if r["profile"] == profile and r["arm"] == "sparse"}
+        for arm in ["embedding-only", "protected-sparse-plus-dense1"]:
+            rows = [r for r in results if r["profile"] == profile and r["arm"] == arm]
+            changes.append(
+                {
+                    "profile": profile,
+                    "arm": arm,
+                    "status": "evaluated" if dense is not None else "not_evaluated_infrastructure_blocked",
+                    "new_funded_positives": [
+                        r["id"]
+                        for r in rows
+                        if r["label_group"] == "positive" and r["funded"] and not base[(r["cohort"], r["id"])]["funded"]
+                    ]
+                    if dense is not None
+                    else None,
+                    "lost_funded_positives": [
+                        r["id"]
+                        for r in rows
+                        if r["label_group"] == "positive" and not r["funded"] and base[(r["cohort"], r["id"])]["funded"]
+                    ]
+                    if dense is not None
+                    else None,
+                    "new_funded_negative_exposures": [
+                        r["id"]
+                        for r in rows
+                        if r["label_group"] == "negative" and r["funded"] and not base[(r["cohort"], r["id"])]["funded"]
+                    ]
+                    if dense is not None
+                    else None,
+                    "lost_funded_negative_exposures": [
+                        r["id"]
+                        for r in rows
+                        if r["label_group"] == "negative" and not r["funded"] and base[(r["cohort"], r["id"])]["funded"]
+                    ]
+                    if dense is not None
+                    else None,
+                    "new_reports": None,
+                }
+            )
+    dump(folder / "paired-changes.json", changes)
+    dump(
+        folder / "summary.json",
+        {
+            "repository": repo["repository"],
+            "functions": len(functions),
+            "gold_rows": len(mapped),
+            "unique_queries": len(queries),
+            "rank_cache_reused_queries": reused_rank_queries,
+            "sparse_index_seconds": sparse_index_seconds,
+            "sparse_mean_query_ms": statistics.mean(x["sparse_seconds"] for x in timings) * 1000,
+            "sparse_max_query_ms": max(x["sparse_seconds"] for x in timings) * 1000,
+            "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            "dense_status": dense_status["status"],
+            "self_pairs_emitted": sum(x["candidate"]["new"] == x["candidate"]["existing"] for x in emitted_candidates),
+            "ledger_batches": len(ledger_rows),
+            "candidate_rows_across_profiles_batches_arms": len(emitted_candidates),
+            "physical_judge_usd": 0,
+            "reports_known": None,
+        },
+    )
+    print("evaluated", repo["repository"], "dense:", dense_status["status"], flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("stage", choices=["prepare", "evaluate"])
+    parser.add_argument("--contrast", action="store_true")
+    args = parser.parse_args()
+    verify_freeze()
+    repo = PROTOCOL["contrast"]["repository"] if args.contrast else PROTOCOL["repositories"][0]
+    folder = HERE / ("kaizen" if args.contrast else "openhands")
+    if args.contrast:
+        primary = json.loads((HERE / "openhands/embedding-status.json").read_text())
+        assert primary["status"] == "complete" and primary["full_index_seconds"] < 300, "Frozen contrast gate not met"
+    (prepare if args.stage == "prepare" else evaluate)(repo, folder)
+
+
+if __name__ == "__main__":
+    main()

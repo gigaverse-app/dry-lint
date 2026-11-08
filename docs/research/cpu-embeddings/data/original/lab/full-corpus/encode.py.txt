@@ -1,0 +1,201 @@
+# ruff: noqa: E402 -- thread caps and local import path are set before numeric/research imports.
+"""The registered encoder with exact-body disk caching, no labels and no N-by-N allocation."""
+
+import hashlib
+import json
+import os
+import resource
+import sqlite3
+import sys
+import time
+from pathlib import Path
+
+for key in ["OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"]:
+    os.environ[key] = "2"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["ORT_DISABLE_TELEMETRY"] = "1"
+import numpy as np
+import onnxruntime as ort
+from tokenizers import Tokenizer
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def dump(p, x):
+    p.write_text(json.dumps(x, indent=2, sort_keys=True) + "\n")
+
+
+def run(folder):
+    protocol = json.loads((LAB / "EXPERIMENT.json").read_text())
+    model = protocol["model"]
+    modeldir = LAB / "model-cache"
+    assert sha((modeldir / "onnx/model.onnx").read_bytes()) == model["artifact_sha256_official"]
+    import importlib.metadata
+
+    assert ort.__version__ == "1.31.1" and importlib.metadata.version("tokenizers") == "0.23.3"
+    identity = {
+        "model": model,
+        "tokenizer_sha256": sha((modeldir / "tokenizer.json").read_bytes()),
+        "backend": ort.__version__,
+        "tokenizers": importlib.metadata.version("tokenizers"),
+        "numpy": np.__version__,
+        "pool": "masked_mean_l2",
+        "length": 256,
+    }
+    cachekey = sha(json.dumps(identity, sort_keys=True).encode())
+    db = sqlite3.connect(HERE / ("body-cache-" + cachekey[:20] + ".sqlite3"))
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS embeddings (body TEXT PRIMARY KEY, vector BLOB NOT NULL, tokens INTEGER NOT NULL)"
+    )
+    # Conservative reuse: identical full body only; no shared labels/learned data and no changed-body verdict reuse.
+    for name in ["openhands", "kaizen"]:
+        old = LAB / name
+        if (old / "embeddings.npy").exists():
+            fs = [json.loads(x) for x in (old / "functions.jsonl").read_text().splitlines()]
+            vs = np.load(old / "embeddings.npy")
+            lens = json.loads((old / "embedding-status.json").read_text())["wordpiece_lengths"]
+            db.executemany(
+                "INSERT OR IGNORE INTO embeddings VALUES (?,?,?)",
+                [(sha(f["code"].encode()), vs[i].tobytes(), lens[i]) for i, f in enumerate(fs)],
+            )
+    db.commit()
+    functions = [json.loads(x) for x in (folder / "functions.jsonl").read_text().splitlines()]
+    codes = [f["code"] for f in functions]
+    bodies = [sha(c.encode()) for c in codes]
+    options = ort.SessionOptions()
+    options.intra_op_num_threads = 2
+    options.inter_op_num_threads = 1
+    options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+    options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+    ort.disable_telemetry_events()
+    start = time.perf_counter()
+    session = ort.InferenceSession(
+        str(modeldir / "onnx/model.onnx"), sess_options=options, providers=["CPUExecutionProvider"]
+    )
+    load = time.perf_counter() - start
+    tokenizer = Tokenizer.from_file(str(modeldir / "tokenizer.json"))
+    tokenizer.enable_truncation(max_length=256)
+    tokenizer.enable_padding(pad_id=0, pad_token="[PAD]")
+    names = {x.name for x in session.get_inputs()}
+
+    def encode(batch):
+        encoded = tokenizer.encode_batch(batch)
+        inputs = {
+            "input_ids": np.array([x.ids for x in encoded], dtype=np.int64),
+            "attention_mask": np.array([x.attention_mask for x in encoded], dtype=np.int64),
+            "token_type_ids": np.array([x.type_ids for x in encoded], dtype=np.int64),
+        }
+        output = session.run(None, {k: v for k, v in inputs.items() if k in names})[0]
+        mask = inputs["attention_mask"][..., None].astype(np.float32)
+        pooled = (output * mask).sum(1) / np.maximum(mask.sum(1), 1e-9)
+        return (pooled / np.maximum(np.linalg.norm(pooled, axis=1, keepdims=True), 1e-9)).astype(np.float32)
+
+    # Test registered exact-body cache against fresh inference on pilot examples; this is numeric validation, not tuning.
+    pilot = LAB / "openhands"
+    pfs = [json.loads(x) for x in (pilot / "functions.jsonl").read_text().splitlines()][:8]
+    pvs = np.load(pilot / "embeddings.npy")[:8]
+    delta = float(np.max(np.abs(encode([f["code"] for f in pfs]) - pvs)))
+    assert delta < 1e-5, delta
+    status = {
+        "status": "preflight",
+        "cache_identity": identity,
+        "cache_key": cachekey,
+        "functions": len(codes),
+        "cache_pilot_parity_max_abs": delta,
+        "providers": session.get_providers(),
+        "session_create_seconds": load,
+    }
+    count = min(100, len(codes))
+    start = time.perf_counter()
+    np.concatenate([encode(codes[i : min(i + 8, count)]) for i in range(0, count, 8)])
+    elapsed = time.perf_counter() - start
+    status.update(
+        preflight_seconds=elapsed,
+        projected_uncached_full_seconds=elapsed / count * len(codes),
+        peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+    )
+    dump(folder / "embedding-status.json", status)
+    if status["peak_rss_kib"] > 3 * 1024 * 1024:
+        status.update(status="measured_rss_blocker")
+        dump(folder / "embedding-status.json", status)
+        return
+    result = np.lib.format.open_memmap(folder / "embeddings.npy", mode="w+", dtype=np.float32, shape=(len(codes), 384))
+    lengths = [0] * len(codes)
+    missing = []
+    hits = 0
+    start = time.perf_counter()
+    for i, body in enumerate(bodies):
+        row = db.execute("SELECT vector,tokens FROM embeddings WHERE body=?", (body,)).fetchone()
+        if row is not None:
+            result[i] = np.frombuffer(row[0], dtype=np.float32)
+            lengths[i] = row[1]
+            hits += 1
+        else:
+            missing.append(i)
+    lookup = time.perf_counter() - start
+    status.update(
+        cache_hits=hits,
+        cache_misses=len(missing),
+        projected_missing_seconds=elapsed / count * len(missing),
+        cache_lookup_seconds=lookup,
+    )
+    dump(folder / "embedding-status.json", status)
+    start = time.perf_counter()
+    for offset in range(0, len(missing), 8):
+        ids = missing[offset : offset + 8]
+        vectors = encode([codes[i] for i in ids])
+        tokenizer.no_truncation()
+        ls = [len(tokenizer.encode(codes[i]).ids) for i in ids]
+        tokenizer.enable_truncation(max_length=256)
+        for i, vector, length in zip(ids, vectors, ls, strict=True):
+            result[i] = vector
+            lengths[i] = length
+            db.execute("INSERT OR IGNORE INTO embeddings VALUES (?,?,?)", (bodies[i], vector.tobytes(), length))
+        if offset % 800 == 0:
+            db.commit()
+            print(
+                folder.name,
+                "encoded",
+                offset + len(ids),
+                "/",
+                len(missing),
+                "seconds",
+                round(time.perf_counter() - start, 1),
+                flush=True,
+            )
+        if time.perf_counter() - start > 3600 or resource.getrusage(resource.RUSAGE_SELF).ru_maxrss > 3 * 1024 * 1024:
+            status.update(
+                status="measured_resource_blocker",
+                encoded_missing=offset + len(ids),
+                encoder_wall_seconds=time.perf_counter() - start,
+                peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            )
+            db.commit()
+            dump(folder / "embedding-status.json", status)
+            return
+    db.commit()
+    result.flush()
+    total = time.perf_counter() - start
+    status.update(
+        status="complete",
+        encoded_missing=len(missing),
+        encoder_wall_seconds=total,
+        preflight_functions=count,
+        peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        wordpiece_lengths=lengths,
+        truncated_functions=sum(x > 256 for x in lengths),
+        discarded_wordpieces=sum(max(0, x - 256) for x in lengths),
+        embedding_sha256=sha((folder / "embeddings.npy").read_bytes()),
+        full_source_required=True,
+    )
+    dump(folder / "embedding-status.json", status)
+    print(folder.name, "COMPLETE", len(codes), "new", len(missing), "seconds", round(total, 2), flush=True)
+
+
+if __name__ == "__main__":
+    run(Path(sys.argv[1]))

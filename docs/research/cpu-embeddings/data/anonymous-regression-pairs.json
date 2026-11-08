@@ -1,0 +1,2232 @@
+[
+  {
+    "row": 1,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 2,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": false,
+    "direction": -1,
+    "emission": null
+  },
+  {
+    "row": 3,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 4,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 5,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 6,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 7,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 8,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 9,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 10,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 11,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 12,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 13,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 14,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 15,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 16,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 17,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 18,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 19,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 20,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 21,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 22,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 23,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 24,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 25,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 26,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 27,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 28,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 29,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 30,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 31,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 32,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 33,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 34,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 35,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 36,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 37,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 38,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 39,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 40,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 41,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 42,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 43,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 44,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 45,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 46,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 47,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 48,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 49,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 50,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 51,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 52,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 53,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 54,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 55,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 56,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 57,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 58,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 59,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 60,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 61,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 62,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 63,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 64,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 65,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 66,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 67,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 68,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 69,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 70,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 71,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 72,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 73,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 74,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 75,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 76,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 77,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 78,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 79,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 80,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 81,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": false,
+    "direction": -1,
+    "emission": null
+  },
+  {
+    "row": 82,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 83,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 84,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 85,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 86,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 87,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 88,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 89,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 90,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 91,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 92,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 93,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 94,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 95,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 96,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 97,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 98,
+    "label": "unknown",
+    "accepted_gold": false,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 99,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 100,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 101,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 102,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 103,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 104,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 105,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 106,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 107,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 108,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 109,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 110,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 111,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 112,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 113,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 114,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 115,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 116,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 117,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 118,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 119,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 120,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 121,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 122,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 123,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 124,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 125,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 126,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 127,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 128,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 129,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 130,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 131,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 132,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 133,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 134,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 135,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 136,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 137,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 138,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 139,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 140,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 141,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 142,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 143,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": false,
+    "direction": -1,
+    "emission": null
+  },
+  {
+    "row": 144,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 145,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 146,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 147,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 148,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 149,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 150,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 151,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 152,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 153,
+    "label": "borderline",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": true,
+    "round2": false,
+    "direction": -1,
+    "emission": null
+  },
+  {
+    "row": 154,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 155,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": false,
+    "direction": -1,
+    "emission": null
+  },
+  {
+    "row": 156,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 157,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 158,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 159,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 160,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 161,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 162,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": false,
+    "direction": -1,
+    "emission": null
+  },
+  {
+    "row": 163,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 164,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 165,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 166,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 167,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 168,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 169,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 170,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 171,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 172,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 173,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 174,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 175,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 176,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 177,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 178,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 179,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 180,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 181,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 182,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 183,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 184,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 185,
+    "label": "separate",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 186,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 187,
+    "label": "unknown",
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 188,
+    "label": "duplicate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": true,
+    "direction": 1,
+    "emission": null
+  },
+  {
+    "row": 189,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 190,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 191,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 192,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 193,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 194,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 195,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 196,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 197,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 198,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 199,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 200,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 201,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 202,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 203,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 204,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 205,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 206,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 207,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 208,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 209,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 210,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 211,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 212,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 213,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 214,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 215,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 216,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 217,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 218,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 219,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 220,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 221,
+    "label": "separate",
+    "accepted_gold": true,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 222,
+    "label": "duplicate",
+    "accepted_gold": false,
+    "baseline": true,
+    "round1": true,
+    "round2": true,
+    "direction": 0,
+    "emission": null
+  },
+  {
+    "row": 223,
+    "label": null,
+    "accepted_gold": false,
+    "baseline": false,
+    "round1": false,
+    "round2": false,
+    "direction": 0,
+    "emission": null
+  }
+]

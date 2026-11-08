@@ -1,0 +1,35 @@
+{
+  "fullmatched_coverage": "source-coverage-summary.json",
+  "labels": {
+    "duplicate": {
+      "baseline3_funded": 39,
+      "lost_funded": 0,
+      "new_funded": 0,
+      "original_funded": 71,
+      "pair_backgrounds": 78,
+      "treatment_funded": 71,
+      "wide_funded": 71
+    },
+    "separate": {
+      "baseline3_funded": 24,
+      "lost_funded": 0,
+      "new_funded": 0,
+      "original_funded": 62,
+      "pair_backgrounds": 120,
+      "treatment_funded": 62,
+      "wide_funded": 59
+    },
+    "unaccepted_or_unknown": {
+      "baseline3_funded": 6,
+      "lost_funded": 0,
+      "new_funded": 1,
+      "original_funded": 18,
+      "pair_backgrounds": 25,
+      "treatment_funded": 19,
+      "wide_funded": 16
+    }
+  },
+  "not_equivalent_to": "paired Jev+Claude diagnostic .04; actual balanced conservative reservations; previous pooled-background .04 gold experiments or historical deployment",
+  "physical_spend": "not a provider bill; answers unknown until central recorded responses",
+  "profile": "original standalone Claude-only normal .04 synthetic single-function change; shared-operations,150 estimated answer tokens, unchanged source/route order"
+}

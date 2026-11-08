@@ -1,0 +1,27 @@
+import json
+from pathlib import Path
+
+here = Path(__file__).resolve().parent
+result = []
+for p in (here / "cohorts").glob("*/functions.jsonl"):
+    good = bad = 0
+    for line in p.read_text().splitlines():
+        f = json.loads(line)
+        if isinstance(f["line"], int) and isinstance(f["end_line"], int) and 1 <= f["line"] <= f["end_line"]:
+            good += 1
+        else:
+            bad += 1
+    result.append({"file": str(p), "native_valid_spans": good, "invalid_spans": bad})
+    assert bad == 0, p
+(here / "span-audit.json").write_text(
+    json.dumps(
+        {
+            "native_cohorts": result,
+            "unknown_source_spans": "Raw-only cohorts retain size unknown; raw rank/score and explicit floor comparisons only. No fallback0-0+1.",
+            "shared_mapper_snapshot": "index-v1-88f0f73927ce28d2",
+            "policy": "Default/balanced are experimental diagnostics, not inferred deployment.",
+        },
+        indent=2,
+    )
+    + "\n"
+)

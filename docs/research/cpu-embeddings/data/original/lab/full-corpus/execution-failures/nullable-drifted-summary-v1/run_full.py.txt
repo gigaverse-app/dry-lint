@@ -1,0 +1,588 @@
+# ruff: noqa: E402 -- thread caps and local import path are set before numeric/research imports.
+"""Shared full-inventory adapter around the already measured frozen pilot runner."""
+
+import argparse
+import collections
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+for k in ["OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"]:
+    os.environ[k] = "2"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import experiment
+
+from dry_lint.bench_background import BenchBackground
+from dry_lint.models import Candidate, Function
+
+HERE = Path(__file__).resolve().parent
+LAB = HERE.parent
+ROOT = Path("/home/researcher/dry-lint-round")
+SHARED = ROOT / "jobs/corpus-wide-evaluation/.lab-results/full-corpus/index-v2-88f0f73927ce28d2"
+read = experiment.read_rows
+dump = experiment.dump
+sha = experiment.sha
+
+
+def inputs():
+    ready = json.loads((SHARED / "index-ready.json").read_text())
+    assert sha((SHARED / "rows.jsonl").read_bytes()) == ready["rows_sha256"]
+    assert sha((SHARED / "cohorts.jsonl").read_bytes()) == ready["cohorts_sha256"]
+    snap = HERE / "shared-inputs" / ready["rows_sha256"][:16]
+    snap.mkdir(parents=True, exist_ok=True)
+    for n in ["rows.jsonl", "cohorts.jsonl", "index-ready.json", "README.md"]:
+        if not (snap / n).exists():
+            shutil.copy2(SHARED / n, snap / n)
+    return ready, read(snap / "cohorts.jsonl"), read(snap / "rows.jsonl"), snap
+
+
+def folder_for(c):
+    return HERE / "cohorts" / c["background_sha256"]
+
+
+_SOURCE_LOOKUPS = {}
+
+
+def metadata(c):
+    # Exact object existence only. This is an acquisition audit, not another span/symbol resolver.
+    key = (c["repository"], c["revision"])
+    if key not in _SOURCE_LOOKUPS:
+        registry = json.loads((HERE / "source-pin-availability.json").read_text())
+        attempts = []
+        roots = list(dict.fromkeys(a["git"] for r in registry if r["repository"] == key[0] for a in r["attempts"]))
+        git = None
+        for root in roots:
+            proc = subprocess.run(
+                ["git", "-C", root, "cat-file", "-e", str(key[1]) + "^{commit}"],
+                capture_output=True,
+                env={**os.environ, "GIT_NO_LAZY_FETCH": "1", "GIT_TERMINAL_PROMPT": "0"},
+            )
+            attempts.append({"git": root, "commit_present": proc.returncode == 0})
+            if proc.returncode == 0:
+                git = root
+                break
+        _SOURCE_LOOKUPS[key] = {"repository": key[0], "revision": key[1], "git": git, "attempts": attempts}
+        dump(HERE / "source-pin-availability-index-v2.json", list(_SOURCE_LOOKUPS.values()))
+    return {
+        "repository": c["repository"],
+        "revision": c["revision"],
+        "git": _SOURCE_LOOKUPS[key]["git"],
+        "background_proof": {"path": c["background_path"], "sha256": c["background_sha256"]},
+    }
+
+
+def seed_pilot(c):
+    f = folder_for(c)
+    for name in ["openhands", "kaizen"]:
+        old = LAB / name
+        meta = json.loads((old / "manifest.json").read_text())
+        if meta["repository"]["background_proof"]["sha256"] == c["background_sha256"]:
+            f.mkdir(parents=True, exist_ok=True)
+            for n in ["functions.jsonl", "source-proof.jsonl", "embeddings.npy", "embedding-status.json"]:
+                if not (f / n).exists():
+                    shutil.copy2(old / n, f / n)
+            meta.update(status="complete", pilot_cache_reused=True)
+            dump(f / "manifest.json", meta)
+
+
+def adapt(c, rs):
+    f = folder_for(c)
+    manifest = json.loads((f / "manifest.json").read_text())
+    assert manifest.get("all_source_bodies_verified")
+    raw_functions = read(f / "functions.jsonl")
+    fs = [Function.model_validate(r) if r.get("line") is not None else None for r in raw_functions]
+    gold = []
+    mapped = []
+    policy = (
+        {r["position"]: r for r in read(f / "functions-policy-resolver-v1.jsonl")}
+        if (f / "functions-policy-resolver-v1.jsonl").exists()
+        else {}
+    )
+    native_exclusions = []
+    for r in rs:
+        if r["record_kind"] != "function":
+            continue
+        for m in r["mappings"]:
+            if m["cohort_id"] != c["cohort_id"] or m["status"] != "mapped":
+                continue
+            positions = [m["sources"][side]["position"] for side in ["new", "existing"]]
+            if None in positions:
+                continue
+            if policy and any(policy[pos]["function"] is None for pos in positions):
+                native_exclusions.append(
+                    {
+                        "row_id": r["row_id"],
+                        "cohort_id": c["cohort_id"],
+                        "reason": "shared_resolver_unresolved_native_endpoint",
+                        "positions": positions,
+                        "statuses": [policy[pos]["category"] for pos in positions],
+                    }
+                )
+                continue
+            if policy:
+                for pos in positions:
+                    fs[pos] = Function.model_validate(policy[pos]["function"])
+            assert all(1 <= fs[pos].line <= fs[pos].end_line for pos in positions)
+            for pos, side in zip(positions, ["new", "existing"], strict=True):
+                assert (
+                    fs[pos].qualname == m["sources"][side]["source_id"]
+                    and sha(fs[pos].code.encode()) == m["sources"][side]["source_sha256"]
+                )
+            source = r["input_record"]["row"]
+            payload = r.get("payload") or {}
+            family = r["family_id"] or "unassigned-family:" + r["repository"]
+            row = {
+                "id": r["row_id"],
+                "candidate": Candidate(
+                    new=fs[positions[0]], existing=fs[positions[1]], similarity=0, comparer="full-mapper-source-only"
+                ).model_dump(mode="json"),
+                "repository": r["repository"],
+                "revision": r["revision"],
+                "cohort": r["dataset"]
+                + "|"
+                + str(payload.get("cohort", payload.get("panel", "")))
+                + "|"
+                + ",".join(m["profiles"]),
+                "family_id": family,
+                "family_lineage": r["family_lineage"],
+                "split": source.get("split", "observed-development-regression"),
+                "label": r["label"] or "borderline",
+                "active_panel_eligible": r["accepted_gold"],
+                "drifted": payload.get("drifted", source.get("drifted", False)),
+                "label_scope": source.get("label_scope", source.get("operation_scope")),
+                "granularity": source.get("granularity"),
+                "whole_function_label": source.get("whole_function_label"),
+                "narrow_operation": source.get("operation_contract", source.get("narrow_operation")),
+                "source_roles": source.get("source_roles"),
+            }
+            gold.append({"source_cohort_file": str(SHARED / "rows.jsonl"), "row": row})
+            mapped.append(r["row_id"])
+    experiment.jsonl(f / "adapter-native-exclusions-v1.jsonl", native_exclusions)
+    experiment.jsonl(f / "gold-inputs.jsonl", gold)
+    dump(
+        f / "mapper-adapter.json",
+        {
+            "cohort_id": c["cohort_id"],
+            "mapper_rows": mapped,
+            "family_unknown_rows_share_repository_cluster": True,
+            "implementation": "full-corpus-2 native adapter routing; parent representation/floors/slots unchanged",
+        },
+    )
+    return len(gold)
+
+
+def raw_sparse(c, rs):
+    f = folder_for(c)
+    f.mkdir(parents=True, exist_ok=True)
+    raw = Path(c["background_path"]).read_bytes()
+    assert sha(raw) == c["background_sha256"]
+    b = BenchBackground.decode(raw)
+    index = b.index()
+    rankings = {}
+    results = []
+    for r in rs:
+        if r["record_kind"] != "function":
+            continue
+        for m in r["mappings"]:
+            if m["cohort_id"] != c["cohort_id"] or m["status"] != "mapped":
+                continue
+            src = m["sources"]
+            a, t = src["new"]["position"], src["existing"]["position"]
+            if a is None or t is None:
+                continue
+            ds = []
+            for q, target in [(a, t), (t, a)]:
+                if q not in rankings:
+                    rankings[q] = index.similar(b.documents[q].tokens(), exclude={q})
+                ranked = rankings[q]
+                rr = next((i + 1 for i, (j, _) in enumerate(ranked) if j == target), None)
+                score = next((s for j, s in ranked if j == target), 0.0)
+                cross = [
+                    (j, s) for j, s in ranked if b.documents[j].id.split("::")[0] != b.documents[q].id.split("::")[0]
+                ]
+                ds.append(
+                    {
+                        "query_row": q,
+                        "target_row": target,
+                        "raw_rank": rr,
+                        "score": score,
+                        "top1": rr == 1,
+                        "top3": rr is not None and rr <= 3,
+                        "top20": rr is not None and rr <= 20,
+                        "same_file": b.documents[q].id.split("::")[0] == b.documents[target].id.split("::")[0],
+                        "cross_file_rank": next((i + 1 for i, (j, _) in enumerate(cross) if j == target), None),
+                        "score_floor_03": score >= 0.3,
+                        "score_floor_035": score >= 0.35,
+                        "score_floor_05": score >= 0.5,
+                        "native_function_size_known": False,
+                    }
+                )
+            results.append(
+                {
+                    "row_id": r["row_id"],
+                    "cohort_id": c["cohort_id"],
+                    "pair_id": r["pair_id"],
+                    "directions": ds,
+                    "funded": None,
+                    "funding_reason": "complete native competitor bodies required for normal prompt-cost ledger",
+                }
+            )
+    experiment.jsonl(f / "raw-sparse.jsonl", results)
+    dump(
+        f / "raw-sparse-summary.json",
+        {"rows": len(results), "functions": len(b.documents), "queries": len(rankings), "idf_unchanged": True},
+    )
+
+
+def raw_dense_unresolved(c, rs):
+    """Fitted raw ranks remain valid even when native source policy must abstain."""
+    f = folder_for(c)
+    if (
+        not (f / "embedding-status.json").exists()
+        or json.loads((f / "embedding-status.json").read_text()).get("status") != "complete"
+    ):
+        return
+    import numpy as np
+
+    done = {p["id"] for p in read(f / "per-row.jsonl")} if (f / "per-row.jsonl").exists() else set()
+    matrix = None
+    cache = {}
+    results = []
+    for row in rs:
+        if row["record_kind"] != "function" or row["row_id"] in done:
+            continue
+        for mapping in row["mappings"]:
+            if mapping["cohort_id"] != c["cohort_id"] or mapping["status"] != "mapped":
+                continue
+            positions = [mapping["sources"][side]["position"] for side in ["new", "existing"]]
+            if None in positions:
+                continue
+            if matrix is None:
+                matrix = np.load(f / "embeddings.npy", mmap_mode="r")
+            a, b = positions
+            directions = []
+            for q, t in [(a, b), (b, a)]:
+                if q == t:
+                    directions.append(
+                        {
+                            "query_row": q,
+                            "target_row": t,
+                            "score": None,
+                            "raw_rank": None,
+                            "self_excluded": True,
+                            "native_policy_eligible": None,
+                            "floor": None,
+                            "funded": None,
+                        }
+                    )
+                    continue
+                if q not in cache:
+                    scores = matrix @ matrix[q]
+                    order = np.argsort(-scores, kind="stable")
+                    ranks = np.empty(len(order), dtype=np.int32)
+                    nonself = order[order != q]
+                    ranks[nonself] = np.arange(1, len(nonself) + 1)
+                    cache[q] = (scores, ranks)
+                scores, ranks = cache[q]
+                directions.append(
+                    {
+                        "query_row": q,
+                        "target_row": t,
+                        "score": float(scores[t]),
+                        "raw_rank": int(ranks[t]),
+                        "native_policy_eligible": None,
+                        "floor": None,
+                        "funded": None,
+                    }
+                )
+            results.append(
+                {
+                    "row_id": row["row_id"],
+                    "cohort_id": c["cohort_id"],
+                    "directions": directions,
+                    "policy_status": "unresolved_native_source_policy_abstains; raw text ranks valid",
+                    "expensive_vector_refits": 0,
+                }
+            )
+    experiment.jsonl(f / "raw-dense-unresolved-native-v1.jsonl", results)
+
+
+def collect(ready, cs, rs, snap):
+    pairs = []
+    coverage = []
+    result_cache = {}
+    raw_cache = {}
+    dense_raw_cache = {}
+    for r in rs:
+        statuses = []
+        evaluated = False
+        supported = r["record_kind"] == "function"
+        mapped = any(m["status"] == "mapped" for m in r["mappings"])
+        for m in r["mappings"]:
+            c = next((c for c in cs if c["cohort_id"] == m["cohort_id"]), None)
+            if c is None:
+                statuses.append("shared_cohort_missing")
+                continue
+            f = folder_for(c)
+            status = (
+                json.loads((f / "embedding-status.json").read_text()).get("status")
+                if (f / "embedding-status.json").exists()
+                else "encoder_not_run"
+            )
+            manifest = json.loads((f / "manifest.json").read_text()) if (f / "manifest.json").exists() else {}
+            if r["record_kind"] == "model":
+                reason = "model_declaration_absent_from_function_background; separate native model-inventory supplement required"
+            elif m["status"] != "mapped":
+                reason = "mapper:" + ",".join(m["reasons"])
+            elif (f / "per-row.jsonl").exists() and status == "complete":
+                if c["cohort_id"] not in result_cache:
+                    result_cache[c["cohort_id"]] = collections.defaultdict(list)
+                    for p in read(f / "per-row.jsonl"):
+                        result_cache[c["cohort_id"]][p["id"]].append(p)
+                found = result_cache[c["cohort_id"]][r["row_id"]]
+                by_profile = collections.defaultdict(dict)
+                for p in found:
+                    by_profile[p["profile"]][p["arm"]] = p
+                for profile, arms in by_profile.items():
+                    pairs.append(
+                        {
+                            "schema": 1,
+                            "row_id": r["row_id"],
+                            "dataset": r["dataset"],
+                            "cohort_id": c["cohort_id"],
+                            "background_sha256": c["background_sha256"],
+                            "scope": c["scope"],
+                            "profiles_from_source": m["profiles"],
+                            "repository": r["repository"],
+                            "revision": r["revision"],
+                            "pair_id": r["pair_id"],
+                            "pair_lineage": r.get("pair_lineage"),
+                            "family_id": r["family_id"],
+                            "family_lineage": r["family_lineage"],
+                            "record_kind": r["record_kind"],
+                            "label": r["label"],
+                            "accepted_gold": r["accepted_gold"],
+                            "control": r["control"],
+                            "profile": profile,
+                            "status": "evaluated",
+                            "arms": arms,
+                            "input_record": r["input_record"],
+                            "mapping": m,
+                        }
+                    )
+                evaluated = evaluated or bool(found)
+                excluded = (
+                    next(
+                        (e for e in read(f / "adapter-native-exclusions-v1.jsonl") if e["row_id"] == r["row_id"]), None
+                    )
+                    if (f / "adapter-native-exclusions-v1.jsonl").exists()
+                    else None
+                )
+                reason = (
+                    "evaluated"
+                    if found
+                    else "shared_resolver_unresolved_native_endpoint"
+                    if excluded
+                    else "native_gold_adapter_not_evaluated"
+                )
+            elif not metadata(c)["git"] and not manifest.get("all_source_bodies_verified"):
+                reason = "full_native_repository_pin_unavailable_in_audited_local_git_paths"
+            elif manifest.get("status") == "full_competitor_source_incomplete":
+                reason = (
+                    "native_competitor_body_matches_incomplete:"
+                    + str(manifest.get("matched_functions"))
+                    + "/"
+                    + str(manifest.get("functions"))
+                )
+            else:
+                reason = "encoding_or_evaluation_pending:" + status
+            statuses.append(reason)
+            if reason != "evaluated":
+                if c["cohort_id"] not in raw_cache:
+                    raw_cache[c["cohort_id"]] = (
+                        {p["row_id"]: p for p in read(f / "raw-sparse.jsonl")}
+                        if (f / "raw-sparse.jsonl").exists()
+                        else {}
+                    )
+                raw = raw_cache[c["cohort_id"]].get(r["row_id"])
+                if c["cohort_id"] not in dense_raw_cache:
+                    path = f / "raw-dense-unresolved-native-v1.jsonl"
+                    dense_raw_cache[c["cohort_id"]] = {p["row_id"]: p for p in read(path)} if path.exists() else {}
+                dense_raw = dense_raw_cache[c["cohort_id"]].get(r["row_id"])
+                pairs.append(
+                    {
+                        "schema": 1,
+                        "row_id": r["row_id"],
+                        "dataset": r["dataset"],
+                        "cohort_id": c["cohort_id"],
+                        "background_sha256": c["background_sha256"],
+                        "scope": c["scope"],
+                        "repository": r["repository"],
+                        "revision": r["revision"],
+                        "pair_id": r["pair_id"],
+                        "family_id": r["family_id"],
+                        "family_lineage": r["family_lineage"],
+                        "record_kind": r["record_kind"],
+                        "label": r["label"],
+                        "accepted_gold": r["accepted_gold"],
+                        "control": r["control"],
+                        "status": reason,
+                        "profile": None,
+                        "raw_sparse": raw,
+                        "raw_embedding": dense_raw,
+                        "arms": {"embedding-only": None, "protected-sparse-plus-dense1": None},
+                        "input_record": r["input_record"],
+                        "mapping": m,
+                    }
+                )
+        coverage.append(
+            {
+                "row_id": r["row_id"],
+                "dataset": r["dataset"],
+                "repository": r["repository"],
+                "revision": r["revision"],
+                "record_kind": r["record_kind"],
+                "accepted_gold": r["accepted_gold"],
+                "label": r["label"],
+                "family_id": r["family_id"],
+                "supported_function_representation": supported,
+                "mapped": mapped,
+                "evaluated": evaluated,
+                "statuses": statuses or r["reasons"] or ["no_shared_mapping"],
+                "mapping_records_total": len(r["mappings"]),
+                "mapping_records_evaluated": sum(s == "evaluated" for s in statuses),
+                "mapping_records_missing": sum(s != "evaluated" for s in statuses),
+            }
+        )
+    experiment.jsonl(HERE / "coverage-rows.jsonl", coverage)
+    experiment.jsonl(HERE / "paired-rows.jsonl", pairs)
+    d = {
+        "schema": 1,
+        "publication": ready,
+        "shared_snapshot": str(snap),
+        "records": len(rs),
+        "accepted_binary_rows": sum(r["accepted_gold"] for r in rs),
+        "record_kinds": dict(collections.Counter(r["record_kind"] for r in rs)),
+        "rows_supported_function": sum(r["supported_function_representation"] for r in coverage),
+        "rows_mapped": sum(r["mapped"] for r in coverage),
+        "rows_evaluated": sum(r["evaluated"] for r in coverage),
+        "rows_unevaluated": sum(not r["evaluated"] for r in coverage),
+        "status_counts": dict(collections.Counter(s for r in coverage for s in r["statuses"])),
+        "by_dataset": {
+            ds: {
+                "total": sum(r["dataset"] == ds for r in coverage),
+                "accepted": sum(r["dataset"] == ds and r["accepted_gold"] for r in coverage),
+                "mapped": sum(r["dataset"] == ds and r["mapped"] for r in coverage),
+                "evaluated": sum(r["dataset"] == ds and r["evaluated"] for r in coverage),
+            }
+            for ds in sorted({r["dataset"] for r in rs})
+        },
+        "all_observed_development": True,
+        "directions_are_correlated": True,
+        "worker_provider_calls": 0,
+        "conclusion": "Full-corpus replication ongoing; pilots are not general success/failure evidence.",
+    }
+    dump(HERE / "coverage.json", d)
+    print(
+        json.dumps(
+            {k: d[k] for k in ["records", "accepted_binary_rows", "rows_mapped", "rows_evaluated", "rows_unevaluated"]},
+            indent=2,
+        ),
+        flush=True,
+    )
+
+
+def evaluate_ready(c, rs, repo, f):
+    sys.path.insert(0, str(HERE))
+    from migrate_spans import apply
+
+    apply(only=c["cohort_id"])
+    count = adapt(c, rs)
+    if not count:
+        for name in ["per-row.jsonl", "ledger.jsonl", "candidates.jsonl", "query-timings.jsonl", "neighbors.jsonl"]:
+            experiment.jsonl(f / name, [])
+        dump(
+            f / "stage-denominators.json",
+            {
+                "mapped_authorized_gold_rows": 0,
+                "source_exclusions": read(f / "adapter-native-exclusions-v1.jsonl"),
+                "status": "no_source_authorized_gold_policy_endpoints",
+            },
+        )
+        dump(
+            f / "evaluation-status.json",
+            {
+                "status": "representation_complete_no_authorized_gold_policy_endpoints",
+                "source_exclusions": str(f / "adapter-native-exclusions-v1.jsonl"),
+            },
+        )
+        return
+    policy = {
+        p["position"]: Function.model_validate(p["function"]) if p["function"] is not None else None
+        for p in read(f / "functions-policy-resolver-v1.jsonl")
+    }
+    rank_cache = {}
+    before = HERE / "span-migration/helper-v1/before" / c["cohort_id"]
+    before.mkdir(parents=True, exist_ok=True)
+    if not (before / "per-row.jsonl").exists() and all(r.get("line") is not None for r in read(f / "functions.jsonl")):
+        for name in ["manifest.json", "functions.jsonl", "gold-inputs.jsonl", "embedding-status.json"]:
+            shutil.copy2(f / name, before / name)
+        if not (before / "embeddings.npy").exists():
+            (before / "embeddings.npy").symlink_to(f / "embeddings.npy")
+        experiment.evaluate(
+            repo,
+            before,
+            extension_policy="native-adapter",
+            comparer_version="full-corpus-2",
+            rankings_cache=rank_cache,
+        )
+    experiment.evaluate(
+        repo,
+        f,
+        extension_policy="native-adapter",
+        comparer_version="full-corpus-3-resolver-v1",
+        native_functions=policy,
+        rankings_cache=rank_cache,
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--raw-sparse-all", action="store_true")
+    parser.add_argument("--prepare-rest", action="store_true")
+    args = parser.parse_args()
+    ready, cs, rs, snap = inputs()
+    for c in cs:
+        seed_pilot(c)
+    for c in sorted(cs, key=lambda c: -c["accepted_positive_mapped"]):
+        f = folder_for(c)
+        repo = metadata(c)
+        if args.prepare_rest and repo["git"] and not (f / "manifest.json").exists():
+            sys.path.insert(0, str(HERE))
+            from prepare import prepare
+
+            prepare(repo, f)
+        if (f / "manifest.json").exists() and json.loads((f / "manifest.json").read_text()).get(
+            "all_source_bodies_verified"
+        ):
+            status = (
+                json.loads((f / "embedding-status.json").read_text()).get("status")
+                if (f / "embedding-status.json").exists()
+                else None
+            )
+            if args.prepare_rest and status is None:
+                subprocess.run([str(LAB / "venv/bin/python"), str(HERE / "encode.py"), str(f)], check=True)
+                status = json.loads((f / "embedding-status.json").read_text()).get("status")
+            if status == "complete":
+                evaluate_ready(c, rs, repo, f)
+                raw_dense_unresolved(c, rs)
+        if args.raw_sparse_all and not (f / "raw-sparse.jsonl").exists():
+            raw_sparse(c, rs)
+    collect(ready, cs, rs, snap)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,50 @@
+"""Strict original admission/emission overlay of centrally supplied v2 answers."""
+import hashlib
+import json
+from pathlib import Path
+import sys
+P=Path(__file__).resolve().parent;LAB=P.parent
+sys.path.insert(0,str(P/'implementation/src'))
+from dry_lint.models import Candidate,evidence,Verdict
+from dry_lint.settings import Settings
+from dry_lint.judges.command import prompt
+from dry_lint.judges.jev import state,CONTEXT_QUESTIONS
+
+def read(p):return [json.loads(line) for line in p.open()]
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+root=Path('LAB_ROOT/jobs/judge-operations/.lab-results/promotion-evidence-v2')
+source=root/'cpu-embeddings-completed.jsonl';feed=read(source);settings=Settings();rows=[];keys=set();paid=0
+for case in feed:
+ packet=case['packet'];observations={o['kind']:o for o in case['observations']}
+ for o in observations.values():
+  key=o.get('request_key')
+  if not o.get('cached') and key not in keys:paid+=o.get('usd',0);keys.add(key)
+ for attribution in case['attribution']:
+  if attribution.get('method')!='cpu-embeddings':continue
+  folder=next((LAB/'full-corpus/cohorts').glob(attribution['cohort_id'][3:]+'*'))
+  candidates=read(folder/'candidates.jsonl');perrow=read(folder/'per-row.jsonl')
+  source_candidate=Candidate.model_validate(packet['candidate'])
+  for arm in ['sparse','embedding-only','protected-sparse-plus-dense1']:
+   found=[r for r in perrow if r['profile']==attribution['profile'] and r['arm']==arm and r['pair_key']==source_candidate.key]
+   assert found
+   # All same-context lineage rows must agree about their original admission.
+   assert len({(r['retrieved'],r['core_rule_allowed'],r['funded']) for r in found})==1
+   r=found[0];asked=next((x for x in candidates if x['profile']==attribution['profile'] and x['arm']==arm and x['key']==source_candidate.key and x['funded']),None)
+   identity_ok=False;v=None;reason=None
+   if not r['retrieved']:reason=r['first_loss'] or 'retrieval'
+   elif not r['core_rule_allowed']:reason='rule_filter'
+   elif not r['funded']:reason='budget'
+   elif asked:
+    target=Candidate.model_validate(asked['candidate']);o=observations.get('claude')
+    if o:
+     identity=o['identity'];identity_ok=(identity['rendered_input']==prompt(target,policy='shared-operations') and identity['source_evidence']==evidence(target) and identity['context_hash']==target.context_hash and identity['model']=='claude-sonnet-5-5' and identity['max_output_tokens']==1024)
+     if identity_ok:v=o.get('verdict')
+    reason='answer_missing_or_request_identity_differs' if v is None else 'judge_separate' if v['label']=='separate' else 'report_threshold' if not settings.duplicate_at(Verdict.model_validate(v),.8) else None
+   emitted=False if not r['funded'] else None if v is None else settings.duplicate_at(Verdict.model_validate(v),.8)
+   rows.append({'central_case_id':case['central_case_id'],'id':case['id'],'profile':attribution['profile'],'cohort_id':attribution['cohort_id'],'source_rows':attribution.get('source_rows'),'arm':arm,'retrieved':r['retrieved'],'core_rule_allowed':r['core_rule_allowed'],'funded':r['funded'],'strict_claude_request_binding_matches':identity_ok,'original_standalone_sonnet_report_at':.8,'emission':emitted,'first_loss':reason,'provider_labels':{k:{'label':o.get('verdict',{}).get('label'),'score':o.get('verdict',{}).get('score')} for k,o in observations.items()},'no_manual_gold_relabel':True})
+(P/'v2-original-emission-projections.jsonl').write_text(''.join(json.dumps(r,sort_keys=True)+'\n' for r in rows))
+summary={'schema':1,'source':str(source),'source_sha256':sha(source),'cases':len(feed),'fresh_distinct_observed_requests':len(keys),'observed_new_paid_usd':paid,'quota_credit':'Root must confirm current-round attribution; do not double-count historical or shared requests.','arms':{arm:{'emitted':sum(r['emission'] is True for r in rows if r['arm']==arm),'unknown':sum(r['emission'] is None for r in rows if r['arm']==arm)} for arm in ['sparse','embedding-only','protected-sparse-plus-dense1']},'profile_limit':'Frozen original lab budgets/settings, not inferred deployed auto preset or authentic PR ledger. Wide/default3 production retrieval comparisons remain separately named.','worker_provider_calls':0,'manual_gold_relabels':0}
+(P/'v2-emission-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+print('v2cases',len(feed),'fresh requests',len(keys),'observed USD',paid,'armemissions',summary['arms'])
+for r in rows:
+ if r['central_case_id']=='PEV2-002':print('PEV2-002',r['profile'],r['arm'],r['funded'],r['strict_claude_request_binding_matches'],r['emission'],r['first_loss'])

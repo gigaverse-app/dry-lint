@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export PYTHONPATH="$PWD/src"
+export OPENBLAS_NUM_THREADS=2 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 NUMEXPR_NUM_THREADS=2
+export TOKENIZERS_PARALLELISM=false
+export UV_CACHE_DIR="$PWD/.lab-results/uv-cache"
+task_python=LAB_ROOT/retrieval/.venv/bin/python
+"$task_python" .lab-results/experiment.py prepare
+.lab-results/venv/bin/python .lab-results/embed.py .lab-results/openhands
+"$task_python" .lab-results/experiment.py evaluate
+"$task_python" .lab-results/validate.py
+"$task_python" .lab-results/discover.py
+"$task_python" .lab-results/measure_sparse.py openhands
+if "$task_python" -c 'import json; d=json.load(open(".lab-results/openhands/embedding-status.json")); raise SystemExit(0 if d["status"]=="complete" and d["full_index_seconds"]<300 else 1)'; then
+    "$task_python" .lab-results/experiment.py prepare --contrast
+    .lab-results/venv/bin/python .lab-results/embed.py .lab-results/kaizen
+    "$task_python" .lab-results/experiment.py evaluate --contrast
+    "$task_python" .lab-results/validate.py --contrast
+    "$task_python" .lab-results/measure_sparse.py kaizen
+fi
+# Frozen packet Candidates, contexts and IDs are never regenerated.
+"$task_python" .lab-results/validate_queue.py
+"$task_python" .lab-results/summarize.py

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "status": "FINAL-SOURCE-JOINED",
+  "files": {
+    "LICENSE-software-agent-sdk": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "README.md": "0c15f49c7803349ed86c1f38b65279c85d3d7b2964900a334737a3153d696494",
+    "accepted-source-public.json": "0f17dc55b8f1e87986fdd4f6add44dac3b43795b3af3411f8eac6ef64eaf220a",
+    "balanced-dependency.json": "b4b716363b42a3d76452ce247a7622fdf79ce526d2be38c1ef7ef2aec0babcf2",
+    "native-snapshots.zip": "31b4069e49a407d5db9a18859e83cd6533073db9afa745416de5a554baef4992",
+    "recordings.json.gz": "35775b6d168acba6ddcf68baa452792221aee675904086aa91088374ef7fd50f",
+    "replay.py": "ccbb3e3042524c628b494b50c4c0af53ec3f27c942ec05f63fb70677c953cddd",
+    "summary.json": "ac658639fd73b5127b314c6cfe376ef13bfcf2276c347b6c2a7298ea46cfddb7",
+    "validation.json": "081cdccbe44e9139fac2eb8280e051846af924bb6ccc801b83743b2b2bf59ff1",
+    "verification.txt": "17cbc411270eb3e61478c8bbfdbe58fc9b8633ab908e6e02c1e2a4baf1eaa618"
+  }
+}
