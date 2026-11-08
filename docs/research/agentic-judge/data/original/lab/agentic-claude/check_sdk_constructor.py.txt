@@ -1,0 +1,60 @@
+"""Exercise actual harness SDK construction with a dummy key and no HTTP.
+
+Run in the scrubbed subprocess environment documented in sdk-constructor-check.json.
+No shared budget or run artifacts are read or written by this check.
+"""
+import importlib.metadata
+import io
+import json
+from contextlib import redirect_stdout
+from unittest.mock import patch
+
+import anthropic
+import httpx2
+
+import harness as h
+
+
+def main():
+    sdk_constructor = anthropic.Anthropic
+    clients = []
+    sends = []
+
+    def construct(**kwargs):
+        kwargs['api_key'] = 'offline-constructor-placeholder'
+        assert isinstance(kwargs['http_client'], httpx2.Client)
+        assert kwargs['max_retries'] == 0
+        client = sdk_constructor(**kwargs)
+        clients.append(client)
+        return client
+
+    def no_send(*args, **kwargs):
+        sends.append(True)
+        raise AssertionError('HTTP forbidden in offline constructor check')
+
+    def no_case(*args, **kwargs):
+        return {'id': 'OFFLINE-CONSTRUCTOR', 'status': 'complete', 'provider_calls': 0, 'cost_usd': 0}
+
+    with (patch.object(anthropic, 'Anthropic', side_effect=construct),
+          patch.object(httpx2.Client, 'send', side_effect=no_send),
+          patch.object(h, 'validate_prereg', return_value=[{'id': 'OFFLINE-CONSTRUCTOR'}]),
+          patch.object(h, 'SharedBudget', return_value=object()),
+          patch.object(h, 'run_case', side_effect=no_case),
+          patch('sys.argv', ['harness.py', 'execute', '--shared-ledger', 'offline-unused',
+                             '--root-reviewed-pricing-and-source']),
+          redirect_stdout(io.StringIO())):
+        h.main()
+    assert len(clients) == 1 and not sends
+    assert clients[0].max_retries == 0
+    assert clients[0].is_closed()
+    print(json.dumps({'passed': True, 'actual_harness_constructor_exercised': True,
+                      'anthropic_version': importlib.metadata.version('anthropic'),
+                      'httpx2_version': importlib.metadata.version('httpx2'),
+                      'http_client_type': 'httpx2.Client', 'dummy_key': True,
+                      'http_send_calls': len(sends), 'provider_calls': 0,
+                      'real_credentials_available_in_child_environment': False,
+                      'max_retries': clients[0].max_retries}))
+
+
+if __name__ == '__main__':
+    main()

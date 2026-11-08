@@ -1,0 +1,204 @@
+"""Offline audit, source-reference scoring, and reproducible learning-trace export.
+
+Never calls a provider. No absent result or reviewer agreement is converted to gold.
+"""
+import argparse
+import json
+from pathlib import Path
+
+import harness as h
+
+
+def reported(verdict):
+    if not isinstance(verdict, dict) or verdict.get('label') not in ('duplicate', 'drifted', 'separate'):
+        return None
+    score = verdict.get('score')
+    if type(score) not in (float, int) or not 0 <= score <= 1:
+        return None
+    return verdict['label'] in ('duplicate', 'drifted') and score >= .8
+
+
+def reference_summary(row):
+    r = row['reference']['record']
+    src = r.get('source_adjudication', r)
+    label = r.get('coordinator_decision', {}).get('label', r.get('label'))
+    accepted = r.get('accepted_gold', row.get('accepted_gold', False))
+    return {'label': label, 'accepted_gold': accepted,
+            'authority': row.get('authority', r.get('authority')),
+            'human_ground_truth': False,
+            'scope': src.get('operation_contract', src.get('contract', src.get('operation_scope'))),
+            'scope_qualification': src.get('scope', src.get('rationale')),
+            'whole_function_equivalence': src.get('whole_function_equivalence', src.get('whole_function_positive', False)),
+            'source_reference_path': row['reference']['path'], 'source_reference_sha256': row['reference']['file_sha256']}
+
+
+def verify_trace(item, run_dir):
+    events = h.lines(Path(run_dir) / item['id'] / 'events.jsonl')
+    source = h.validate_item(item)
+    previous = '0' * 64
+    requests, outputs = [], []
+    pending = None
+    for e in events:
+        data = {k: v for k, v in e.items() if k != 'event_sha256'}
+        if e['previous_sha256'] != previous or h.sha(data) != e['event_sha256']:
+            raise ValueError('event hash chain mismatch')
+        previous = e['event_sha256']
+        if e['kind'] == 'case_begin' and (e['data']['request_key'] != item['request_key'] or
+                                         e['data']['initial_request'] != item['initial_request']):
+            raise ValueError('trace request identity mismatch')
+        if e['kind'] == 'after_provider' and h.sha(e['data']['response']) != e['data']['response_sha256']:
+            raise ValueError('response hash mismatch')
+        if e['kind'] == 'before_tool':
+            pending = e['data']
+            requests.append(pending)
+        if e['kind'] == 'after_tool':
+            if pending is None or pending['tool_use_id'] != e['data']['tool_use_id']:
+                raise ValueError('unmatched tool response')
+            result = source.call(pending['name'], pending['input'])
+            if result != e['data']['result'] or h.sha(result) != e['data']['result_sha256']:
+                raise ValueError('tool evidence cannot be mechanically reproduced')
+            outputs.append({'tool': pending['name'], 'input': pending['input'], 'result': result,
+                            'result_sha256': h.sha(result)})
+            pending = None
+    if not events or events[-1]['kind'] != 'case_end':
+        raise ValueError('incomplete trace remains unknown')
+    result = h.load_json(Path(run_dir) / item['id'] / 'result.json')
+    if events[-1]['data'] != result:
+        raise ValueError('result differs from durable final event')
+    return result, outputs
+
+
+def audit(items, output):
+    rows = []
+    for item in items:
+        record = {'id': item['id'], 'candidate_sha256': item['candidate_sha256'],
+                  'body_only_claude_exact': True, 'function_context_sent_to_claude': False,
+                  'claude_prompt_sha256': item['rendered_body_only_prompt_sha256'], 'sides': {}}
+        for kind, base in item['baselines'].items():
+            p = Path(base['path'])
+            if h.sha(p.read_bytes()) != base['file_sha256']:
+                raise ValueError('baseline file changed')
+            obs = base['record']
+            record[kind] = {'status': obs['status'], 'model': obs['identity']['model'],
+                            'version': obs['identity']['version'], 'max_output_tokens': obs['identity']['max_output_tokens'],
+                            'rendered_input_sha256': h.sha(obs['identity']['rendered_input'].encode()),
+                            'response_sha256': h.sha(obs['raw_response']), 'usage': obs['usage'],
+                            'usd_recorded': obs['usd'], 'seconds_recorded': obs['seconds'],
+                            'cache_policy': 'historical exact observation; provider cache usage retained',
+                            'concurrency': 'historical runner; not matched to serial agentic execution'}
+        state = json.loads(item['baselines']['jev']['record']['identity']['rendered_input'])['state']
+        for side, key in [('new', 'new_function'), ('existing', 'existing_function')]:
+            f, sent = item['candidate'][side], state[key]
+            record['sides'][side] = {'candidate_chars': len(f['code']), 'jev_sent_chars': len(sent['code']),
+                                     'jev_code_truncated': sent.get('code_truncated'),
+                                     'jev_body_exact': sent['code'] == f['code'],
+                                     'jev_context_chars': len(sent.get('source_context', '')),
+                                     'candidate_context_chars': len(f.get('context', ''))}
+        rows.append(record)
+    h.save(Path(output) / 'input-audit.json', {'schema': 1, 'cases': rows,
+           'note': 'Exact recorded inputs audited per case. Claude shared-operations includes policies, no context placeholders. Jev context state may truncate each body independently.'})
+
+
+def score(items, runs, output):
+    refs = {r['id']: r for r in h.lines(h.HERE / 'references.jsonl')}
+    rows = []
+    for item in items:
+        row = {'id': item['id'], 'split': item['split'], 'stratum': item['stratum'],
+               'component': item['component'], 'reference': reference_summary(refs[item['id']]),
+               'source': item['source'], 'baseline': {}}
+        for kind in ('claude', 'jev'):
+            b = item['baselines'].get(kind)
+            v = b['record'].get('verdict') if b else None
+            row['baseline'][kind] = {'verdict': v, 'reported': reported(v),
+                                      'observation_file_sha256': b['file_sha256'] if b else None}
+        result_path = Path(runs) / item['id'] / 'result.json'
+        if result_path.exists():
+            try:
+                result, returned = verify_trace(item, runs)
+                cited = {c['evidence_id'] for c in (result.get('decision') or {}).get('citations', [])}
+                row['agentic'] = result
+                row['observable_tools'] = returned
+                row['used_evidence_citations'] = sorted(cited)
+                row['citation_limit'] = 'Citation indicates explicit use, not access to hidden model reasoning.'
+            except ValueError as error:
+                row['agentic'] = {'status': 'invalid_trace', 'reported': None, 'error': str(error)}
+        else:
+            row['agentic'] = {'status': 'not_run', 'reported': None, 'decision': None, 'cost_usd': None}
+        ar, br = row['agentic']['reported'], row['baseline']['claude']['reported']
+        row['changed_report_against_body_only_claude'] = (ar != br) if ar is not None and br is not None else None
+        row['changed_verdict_against_body_only_claude'] = ((row['agentic']['decision']['label'] != row['baseline']['claude']['verdict']['label'])
+                                                         if row['agentic'].get('decision') else None)
+        rows.append(row)
+    summary = {'schema': 1, 'report_threshold': .8, 'cases': len(rows),
+               'interpretation': 'Observed development diagnostic. Agentic output is not ground truth. Partial-operation source labels; all unknowns remain in coverage. No population precision claim.',
+               'arms': {}, 'agentic_actual_cost_usd': None,
+               'agentic_known_cost_usd': sum(r['agentic'].get('known_cost_usd', 0) for r in rows),
+               'provider_execution': 'root_only', 'production_estimated_batch_budget_usd': .04,
+               'production_budget_compliance_demonstrated': False}
+    for arm in ('claude', 'jev', 'agentic'):
+        metrics = {'true_reports': 0, 'false_reports': 0, 'missed_supported_positives': 0,
+                   'correct_separate': 0, 'unknown': 0, 'source_unresolved': 0}
+        for row in rows:
+            observed = row['agentic']['reported'] if arm == 'agentic' else row['baseline'][arm]['reported']
+            label = row['reference']['label']
+            if observed is None:
+                metrics['unknown'] += 1
+            elif label not in ('duplicate', 'drifted', 'separate'):
+                metrics['source_unresolved'] += 1
+            elif label == 'separate':
+                metrics['false_reports' if observed else 'correct_separate'] += 1
+            else:
+                metrics['true_reports' if observed else 'missed_supported_positives'] += 1
+        summary['arms'][arm] = metrics
+    if all(r['agentic'].get('cost_usd') is not None for r in rows):
+        summary['agentic_actual_cost_usd'] = sum(r['agentic']['cost_usd'] for r in rows)
+    out = Path(output)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / 'case-comparison.jsonl').write_bytes(b''.join(h.canonical(r) + b'\n' for r in rows))
+    h.save(out / 'summary.json', summary)
+    print(json.dumps(summary, sort_keys=True))
+
+
+def derive(items, runs, output):
+    # Check components and labels never enter the exported learning facts or prompt.
+    exports = []
+    for item in items:
+        if item['split'] != 'trace_learning':
+            continue
+        path = Path(runs) / item['id'] / 'result.json'
+        if not path.exists():
+            continue
+        _, returned = verify_trace(item, runs)
+        facts = [r for r in returned if not r['result'].get('error')]
+        payload = {'id': item['id'], 'repository': item['repository'], 'revision': item['revision'],
+                   'candidate': item['candidate'], 'source': item['source'], 'mechanical_facts': facts,
+                   'mechanical_facts_sha256': h.sha(facts),
+                   'observable_tool_events': returned,
+                   'observable_tool_events_sha256': h.sha(returned)}
+        # Contains no verdict, reference, stratum, nomination or provider explanation.
+        exports.append(payload)
+    out = Path(output)
+    out.mkdir(parents=True, exist_ok=True)
+    for filename, values in [('mechanical-learning-facts.jsonl', exports), ('oneshot-replay-queue.jsonl', [])]:
+        (out / filename).write_bytes(b''.join(h.canonical(v) + b'\n' for v in values))
+    h.save(out / 'derivation-manifest.json', {'schema': 1, 'cases': len(exports),
+        'status': 'awaiting_root_traces' if not exports else 'learning_facts_reproduced',
+        'check_components_exported': 0, 'labels_or_agentic_verdicts_exported': False,
+        'limit': 'Learning facts only: no one-shot comparison requests are generated on learning families.',
+        'comparison_case_ids': [i['id'] for i in items if i['split'] == 'diagnostic_check'],
+        'next': 'Freeze a generic extraction recipe using learning facts only, then mechanically extract facts and preregister new-identity one-shot comparison requests on separate diagnostic_check/reserved families. Never copy check traces into those facts. All checks remain observed development; broader validation uses root inventory of 539 accepted including new cases later.'})
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('command', choices=['audit', 'score', 'derive'])
+    p.add_argument('--runs', default=str(h.HERE / 'runs/root-attempt-2'))
+    p.add_argument('--out', default=str(h.HERE / 'evidence'))
+    args = p.parse_args()
+    items = h.validate_prereg(h.HERE / 'queue.jsonl')
+    {'audit': lambda: audit(items, args.out), 'score': lambda: score(items, args.runs, args.out),
+     'derive': lambda: derive(items, args.runs, args.out)}[args.command]()
+
+
+if __name__ == '__main__':
+    main()

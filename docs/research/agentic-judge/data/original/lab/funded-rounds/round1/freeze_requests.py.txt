@@ -1,0 +1,80 @@
+"""Freeze rendered agentic requests for the verified native supply; provider-free."""
+import json
+from pathlib import Path
+
+import teacher_v3_adapter as v
+
+h = v.h
+HERE = Path(__file__).resolve().parent
+from dry_lint.judges.command import prompt
+from dry_lint.models import Candidate
+
+
+def emit(path, rows):
+    Path(path).write_bytes(b''.join(h.canonical(row) + b'\n' for row in rows))
+
+
+def main():
+    if (HERE / 'teacher-requests.jsonl').exists():
+        raise ValueError('Already frozen; never overwrite')
+    packets = h.lines(HERE / 'novel-review-queue.jsonl')
+    private = {r['id']: r for r in h.lines(HERE / 'selection-private.jsonl')}
+    configs = {c['repository']: c for c in h.load_json(v.WORK.parent.parent / 'jobs/review-automation/.lab-results/review-automation/repositories-five.json')}
+    # Controls lead; novel cases then take turns across the four pinned corpora.
+    ordered = sorted([p for p in packets if private[p['id']]['role'] == 'control'], key=lambda p: p['id'])
+    groups = {}
+    for p in packets:
+        if private[p['id']]['role'] == 'novel':
+            groups.setdefault(p['repository'], []).append(p)
+    for rows in groups.values():
+        rows.sort(key=lambda p: p['id'])
+    for n in range(max(map(len, groups.values()), default=0)):
+        ordered.extend(groups[repo][n] for repo in sorted(groups) if n < len(groups[repo]))
+    requests = []
+    for packet in ordered:
+        candidate = Candidate.model_validate(packet['candidate'])
+        original = {'schema': 1, 'id': packet['id'], 'split': 'funded-round1-independent-source-review',
+            'repository': packet['repository'], 'revision': packet['revision'], 'candidate': candidate.model_dump(),
+            'candidate_sha256': h.sha(candidate.model_dump()), 'source': packet['source_proofs'],
+            'source_identity_sha256': h.sha(packet['source_proofs']),
+            'source_config': configs[packet['repository']],
+            'rendered_body_only_prompt': prompt(candidate, policy='shared-operations')}
+        original['initial_request'] = h.initial_request(original)
+        original['request_identity'] = h.request_identity(original)
+        original['request_key'] = h.sha(original['request_identity'])
+        row = v.make_row(original)
+        v.validate_row(row)
+        row['direction'] = 'agentic-judge'
+        row['funded_round'] = 1
+        row['fresh_required'] = True
+        row['input_packet_sha256'] = h.sha(packet)
+        row['normal_funding_sidecar'] = str((HERE / 'normal-funding-private.jsonl').resolve())
+        requests.append(row)
+    emit(HERE / 'teacher-requests.jsonl', requests)
+    chunks = []
+    for offset in range(0, len(requests), 32):
+        path = HERE / 'chunks' / f'chunk-{offset // 32 + 1:02d}.jsonl'
+        path.parent.mkdir(exist_ok=True)
+        emit(path, requests[offset:offset + 32])
+        chunks.append({'path': str(path.resolve()), 'sha256': h.sha(path.read_bytes()),
+                       'cases': len(requests[offset:offset + 32])})
+    first_cost = sum(r['estimated_first_round_usd'] for r in requests)
+    h.save(HERE / 'REQUEST-FREEZE.json', {'schema': 1, 'direction': 'agentic-judge', 'round': 1,
+        'version': v.VERSION, 'queue_sha256': h.sha((HERE / 'teacher-requests.jsonl').read_bytes()),
+        'packet_queue_sha256': h.sha((HERE / 'novel-review-queue.jsonl').read_bytes()),
+        'adapter_sha256': h.sha(Path(v.__file__).read_bytes()), 'frozen_v2_engine_sha256': h.sha(v.BASE.read_bytes()),
+        'requests': len(requests), 'chunks': chunks, 'first_round_estimated_usd': first_cost,
+        'estimated_research_usd': first_cost * 1.5,
+        'estimate_basis': 'Per-request byte/2.8 input estimate and 512 output tokens; 1.5 API rounds/case observed in completed v2 learning pilot. Planning only; root actual fresh paid cost controls minimum.',
+        'minimum_actual_new_paid_usd': .2, 'already_settled_v2_round1_usd': .089686,
+        'historical_pilot_separate_usd': .252152, 'paid_repeats_allowed': False,
+        'repair': 'Only future distinct cases: why 640 chars with original strict80-word semantic/citation validator, guidance60 words. Old v2 240-char failures unchanged; no invented citations.',
+        'deployment_estimate': 'Normal .04 cold-query ledger remains separate from teacher research spend.',
+        'models': ['claude-sonnet-5-5'], 'max_tokens': 1024, 'max_rounds_per_case': 6,
+        'case_cost_cap_usd': .15, 'worker_provider_calls': 0})
+    emit(HERE / 'source-blind-map-private.jsonl', [{'case_id': p['id'], 'blind_id': h.sha(['blind-source', p['id']])[:20]} for p in packets])
+    print(json.dumps(h.load_json(HERE / 'REQUEST-FREEZE.json'), sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,158 @@
+"""Independently validate the frozen source-anchor queue; offline only."""
+import copy
+import hashlib
+import importlib.metadata
+import json
+import socket
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent / 'agentic-claude'))
+import harness as h
+from dry_lint.models import Candidate
+from dry_lint.judges.command import prompt
+
+ROOT = Path('/home/researcher/dry-lint-round')
+FOLLOW = ROOT / 'jobs/experiment-jev-context/.lab-results/trace-derived-v1'
+
+
+def canon(value):
+    return json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(',', ':'), allow_nan=False)
+
+
+def digest(value):
+    return hashlib.sha256((value if isinstance(value, str) else canon(value)).encode()).hexdigest()
+
+
+def main():
+    import anthropic
+    import httpx2
+    registered = h.load_json(HERE / 'EXPERIMENT.json')
+    assert h.sha((FOLLOW / 'EXPERIMENT.json').read_bytes()) == registered['followup_recipe_sha256']
+    assert h.sha((FOLLOW / 'requests.jsonl').read_bytes()) == registered['followup_queue_sha256']
+    spec = h.load_json(FOLLOW / 'EXPERIMENT.json')
+    requests = h.lines(FOLLOW / 'requests.jsonl')
+    contexts = {r['id']: r for r in h.lines(FOLLOW / 'contexts.jsonl')}
+    source_manifest = h.lines(FOLLOW / 'source-manifest.jsonl')
+    learning = h.lines(spec['facts_path'])
+    configs = {c['repository']: c for c in h.load_json(ROOT / 'jobs/review-automation/.lab-results/review-automation/repositories-five.json')}
+    sources = {}
+    originals = {}
+    by_case = {}
+    checked_snippets = 0
+    network_attempts, sdk_sends, rest_sends = [], [], []
+
+    def forbid(*args, **kwargs):
+        network_attempts.append(True)
+        raise AssertionError('Network forbidden')
+
+    for row in requests:
+        by_case.setdefault(row['id'], {})[row['variant']] = row
+        assert row['group'] not in spec['learning_groups']
+        assert row['identity']['canonical_request_sha256'] == digest(row['request_body'])
+        assert row['identity']['source_sha256'] == digest(row['source_contract'])
+        assert row['identity']['prompt_sha256'] == digest(row['prompt_contract'])
+        assert row['request_id'] == digest(row['identity'])
+        assert row['exact_rendered_json'] == canon(row['request_body'])
+        assert row['wire_sha256'] == digest(row['exact_rendered_json'])
+        assert row['fresh_required'] and row['physical_call_policy'] == {'concurrency': 1, 'retries': 0, 'max_attempts': 1, 'fallbacks': False}
+        assert row['source_contract']['recipe_sha256'] == h.sha((FOLLOW / 'EXPERIMENT.json').read_bytes())
+        assert row['source_contract']['learning_facts_sha256'] == h.sha(Path(spec['facts_path']).read_bytes())
+        assert row['source_contract']['revision'] == configs[row['source_contract']['repository']]['revision']
+        original = originals.setdefault(row['id'], h.load_json(row['full_original_path']))
+        repo = original['repository']
+        if row['id'] not in sources:
+            allowed = {r['path'] for r in source_manifest if r['repository'] == repo and r['revision'] == original['revision']}
+            sources[row['id']] = h.SourceTools(configs[repo], original['candidate'], allowed_paths=allowed)
+        source = sources[row['id']]
+        assert digest(Candidate.model_validate(original['candidate']).model_dump()) == row['source_contract']['candidate_sha256']
+        for endpoint in row['source_contract']['endpoints']:
+            f = original['candidate'][endpoint['side']]
+            assert h.sha(source.file(f['path']).encode()) == endpoint['file_sha256']
+            assert h.sha(f['code'].encode()) == endpoint['body_sha256']
+            for item in learning:
+                for lf in item['source']:
+                    assert not (repo == lf['repository'] and original['revision'] == lf['revision'] and
+                                f['path'] == lf['path'] and max(f['line'], lf['line']) <= min(f['end_line'], lf['end_line']))
+        rates = row['reservation_rates_per_million']
+        reserve = ((len(row['exact_rendered_json'].encode()) + 1024) * rates[0] + (row['max_output_tokens'] or 0) * rates[1]) / 1e6
+        assert abs(reserve - row['reservation_usd']) < 1e-12
+
+    for ident, arms in by_case.items():
+        assert set(arms) == set(spec['arms'])
+        original, source = originals[ident], sources[ident]
+        plain = prompt(Candidate.model_validate(original['candidate']), policy='shared-operations')
+        cb, ca = arms['claude_baseline']['request_body'], arms['claude_source_anchors']['request_body']
+        assert cb == {'model': h.MODEL, 'max_tokens': 1024, 'messages': [{'role': 'user', 'content': plain}]}
+        appendix = ca['messages'][0]['content'][len(plain):]
+        assert ca['messages'][0]['content'].startswith(plain + '\n\n# PINNED MECHANICAL SOURCE CONTEXT\n')
+        assert {k: v for k, v in ca.items() if k != 'messages'} == {k: v for k, v in cb.items() if k != 'messages'}
+        jb = copy.deepcopy(arms['jev_baseline']['request_body'])
+        ja = arms['jev_source_anchors']['request_body']
+        assert jb['questions'] == ja['questions']
+        for side in ('new', 'existing'):
+            payload = contexts[ident]['sides'][side]['payload']
+            assert len(canon(payload)) <= 4000
+            assert ja['state'][side + '_function']['source_context'] == canon(payload)
+            jb['state'][side + '_function']['source_context'] = canon(payload)
+            sent = ja['state'][side + '_function']
+            f = original['candidate'][side]
+            assert sent['code'] == f['code'][:8000]
+            assert sent['code_truncated'] == (len(f['code']) > 8000)
+            for snippet in payload['snippets']:
+                text = source.file(snippet['path'])
+                excerpt = '\n'.join(text.splitlines()[snippet['line'] - 1:snippet['end_line']])
+                assert h.sha(text.encode()) == snippet['file_sha256']
+                assert digest(excerpt) == snippet['original_excerpt_sha256']
+                assert snippet['code'] == excerpt[:1200]
+                assert digest(snippet['code']) == snippet['visible_excerpt_sha256']
+                checked_snippets += 1
+        assert jb == ja
+
+    def sdk_handler(request):
+        body = json.loads(request.content)
+        assert body == current['request_body']
+        sdk_sends.append(current['request_id'])
+        return httpx2.Response(200, json={'id': 'msg_offline', 'type': 'message', 'role': 'assistant', 'model': h.MODEL,
+             'content': [{'type': 'text', 'text': '{"label":"separate","score":0.1,"owner":"","why":"Synthetic SDK fixture only."}'}],
+             'stop_reason': 'end_turn', 'stop_sequence': None, 'usage': {'input_tokens': 100, 'output_tokens': 20}})
+
+    def rest_handler(request):
+        assert request.content == current['exact_rendered_json'].encode()
+        assert digest(request.content.decode()) == current['wire_sha256']
+        assert json.loads(request.content) == current['request_body']
+        rest_sends.append(current['request_id'])
+        return httpx2.Response(200, json={'offline_serialization_fixture': True})
+
+    with patch.object(socket.socket, 'connect', side_effect=forbid), patch.object(httpx2.HTTPTransport, 'handle_request', side_effect=forbid):
+        with anthropic.Anthropic(api_key='offline-sdk-placeholder', max_retries=0,
+                http_client=httpx2.Client(trust_env=False, transport=httpx2.MockTransport(sdk_handler))) as client:
+            for current in requests:
+                if current['kind'] == 'claude':
+                    response = client.messages.create(**current['request_body'])
+                    assert response.stop_reason == 'end_turn'
+        with httpx2.Client(trust_env=False, transport=httpx2.MockTransport(rest_handler)) as client:
+            for current in requests:
+                assert client.post(current['url'], content=current['exact_rendered_json'].encode(),
+                                   headers={'content-type': 'application/json'}).status_code == 200
+    report = {'schema': 1, 'passed': True, 'followup_queue_sha256': h.sha((FOLLOW / 'requests.jsonl').read_bytes()),
+              'recipe_sha256': h.sha((FOLLOW / 'EXPERIMENT.json').read_bytes()),
+              'cases': len(by_case), 'requests': len(requests), 'source_snippets_verified': checked_snippets,
+              'source_family_and_endpoint_disjoint_from_learning': True, 'body_and_question_contracts_preserved': True,
+              'sdk_claude_requests_mocked': len(sdk_sends), 'all_rest_wire_requests_mocked': len(rest_sends),
+              'network_attempts': len(network_attempts), 'real_provider_calls': 0, 'real_credentials_read': False,
+              'reservation_total_usd': sum(r['reservation_usd'] for r in requests),
+              'expected_usage_price_estimate_usd': sum(r['estimate_usd'] for r in requests),
+              'shared_budget_required': 'Root uses existing ledger, no reset or independent allowance.',
+              'anthropic_sdk_version': importlib.metadata.version('anthropic'),
+              'httpx2_version': importlib.metadata.version('httpx2')}
+    assert not network_attempts and len(requests) == 24 and len(sdk_sends) == 12
+    h.save(HERE / 'followup-validation.json', report)
+    print(json.dumps(report, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

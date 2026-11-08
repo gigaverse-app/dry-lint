@@ -1,0 +1,63 @@
+"""No providers: verify crossing quota never skips the four independent controls."""
+import contextlib
+import io
+import json
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+import anthropic
+import run_round2 as runner
+
+
+class DummyClient:
+    def __enter__(self):
+        return self
+    def __exit__(self, *args):
+        pass
+
+
+def main():
+    h, v = runner.h, runner.v
+    rows = h.lines(runner.HERE / 'chunks/chunk-01.jsonl')
+    controls = {r['id'] for r in h.lines(runner.HERE / 'selection-private.jsonl') if r['role'] == 'control'}
+    assert {r['id'] for r in rows[:4]} == controls
+    seen = []
+    original_loader = h.load_json
+
+    def load(path):
+        if Path(path).name == 'EXECUTION-FREEZE.json':
+            return {'entrypoint_sha256': h.sha(Path(runner.__file__).read_bytes()),
+                    'budget_module_sha256': h.sha(runner.BUDGET_PATH.read_bytes()),
+                    'selection_private_sha256': h.sha((runner.HERE / 'selection-private.jsonl').read_bytes())}
+        return original_loader(path)
+
+    def fake_case(row, out, client, budget):
+        seen.append(row['id'])
+        return {'id': row['id'], 'status': 'complete', 'provider_calls': 0, 'cost_usd': .12}
+
+    scratch = runner.HERE / 'offline-check'
+    scratch.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=scratch) as temp:
+        root = Path(temp)
+        ledger = root / 'synthetic.json'
+        h.save(ledger, {'schema': 1, 'limit_usd': 2, 'halted': False, 'entries': []})
+        with (patch.object(anthropic, 'Anthropic', return_value=DummyClient()),
+              patch.object(v, 'run_case', side_effect=fake_case), patch.object(h, 'load_json', side_effect=load),
+              patch('sys.argv', ['run_round2.py', '--execute', '--workers', '1', '--shared-ledger', str(ledger), '--out', str(root / 'run')]),
+              contextlib.redirect_stdout(io.StringIO())):
+            runner.main()
+        result = h.load_json(root / 'run/execution.json')
+        assert set(seen) == controls and len(seen) == 4
+        assert result['minimum_reached'] and result['all_controls_finished']
+        assert len(result['results']) == 4 and not result['errors']
+    h.save(runner.HERE / 'control-schedule-validation.json', {
+        'schema': 1, 'passed': True, 'synthetic_only': True,
+        'quota_crossed_after_second_control': True, 'all_four_controls_executed': True,
+        'unstarted_novel_cases_not_launched_after_quota': True, 'begun_cases_preserved': True,
+        'real_provider_calls': 0, 'entrypoint_sha256': h.sha(Path(runner.__file__).read_bytes())})
+    print(json.dumps({'passed': True, 'controls_executed': 4, 'real_provider_calls': 0}))
+
+
+if __name__ == '__main__':
+    main()

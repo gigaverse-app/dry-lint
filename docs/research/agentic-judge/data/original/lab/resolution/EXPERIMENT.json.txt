@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "experiment": "resolve-teacher-protocol-and-validate-frozen-source-anchors-v1",
+  "frozen_utc": "2026-11-07T00:26:08Z",
+  "scope": "Reuse existing eight-case teacher data and independently frozen six-case separate-family four-arm followup. Do not expand selection or inspect inventory539.",
+  "teacher_primary_outcomes": "Preserve all registered unknowns, raw events and previous strict text diagnostic.",
+  "teacher_attribution": "Inspect only explicit final text. For protocol-invalid final JSON record label/score/owner/uncertainty and bounds-validated citation claims as observations, never as accepted verdicts or ground truth. Decompose formatting (why length) versus semantic/evidence errors; retain no-answer unknown. No nontext payload analysis or export. No relaxed semantic/citation validation.",
+  "followup_recipe": "LAB_ROOT/jobs/experiment-jev-context/.lab-results/trace-derived-v1/EXPERIMENT.json",
+  "followup_recipe_sha256": "08f752140a2d92647c2fa9be223d901b9184704a4177ec3fe5354f1147fb0582",
+  "followup_queue": "LAB_ROOT/jobs/experiment-jev-context/.lab-results/trace-derived-v1/requests.jsonl",
+  "followup_queue_sha256": "de471b846288301df71b5af0d99285f9c6ffbd26bae69d3b799362c1619edae2",
+  "check_rule": "Do not design a new recipe from check outcomes. Validate the existing frozen source-anchors-v1 exactly, source/pin/snippets and family disjointness; same questions/bodies within each model, changes only source appendix/context.",
+  "protocol_smoke": "Actual Anthropic SDK plus httpx2.MockTransport on every Claude followup request; JSON REST mock on every Jev request, no network or credentials. Exact parsed wire-body equality, prices and reserve checks.",
+  "primary_followup_metric": "Paired changes at .8 against coordinator accepted scoped source labels: recovered reports, newly false reports, lost source positives, unknown/error coverage. Report disagreements and uncertain rows. One repetition cannot establish calibrated accuracy.",
+  "execution": "Root executes fresh requests once queue validation passes; worker has no provider/credential authority. Same existing <=1USD shared ledger; no independent allowance or reset.",
+  "production_estimated_pr_budget_usd": 0.04,
+  "production_changes": false,
+  "facts_learning_sha256": "1eb5cc6bb39dcf183c571c37094b94c0ae7d995c58fe3e5e66b99fe89dee5d85"
+}

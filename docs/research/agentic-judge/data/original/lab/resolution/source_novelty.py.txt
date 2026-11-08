@@ -1,0 +1,54 @@
+"""Measure learning-trace source-line novelty, without any model answers/labels."""
+import json
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent / 'agentic-claude'))
+import harness as h
+
+
+def main():
+    facts_path = h.HERE / 'evidence/mechanical-learning-facts.jsonl'
+    cases = h.lines(facts_path)
+    rows = []
+    for item in cases:
+        initial = {(f['path'], n) for f in item['source'] for n in range(f['line'], f['end_line'] + 1)}
+        seen, events = set(), []
+        for event in item['observable_tool_events']:
+            returned = event['result']
+            spans = []
+
+            def collect(value, parent_path=None):
+                if isinstance(value, dict):
+                    path = value.get('path', parent_path)
+                    if path and ('code' in value or 'text' in value) and type(value.get('start_line')) is int and type(value.get('end_line')) is int:
+                        spans.append((path, value['start_line'], value['end_line']))
+                    for child in value.values():
+                        collect(child, path)
+                elif isinstance(value, list):
+                    for child in value:
+                        collect(child, parent_path)
+            collect(returned)
+            lines = {(path, n) for path, start, end in spans for n in range(start, end + 1)}
+            new = lines - initial
+            events.append({'tool': event['tool'], 'input': event['input'], 'error': returned.get('error'),
+                           'returned_source_lines': len(lines), 'lines_already_in_initial_bodies': len(lines & initial),
+                           'outside_initial_bodies': len(new), 'new_outside_lines_not_seen_before': len(new - seen)})
+            seen |= new
+        rows.append({'id': item['id'], 'source_tool_events': events, 'unique_outside_initial_body_lines': len(seen),
+                     'zero_tool_requests': not item['observable_tool_events']})
+    summary = {'schema': 1, 'facts_sha256': h.sha(facts_path.read_bytes()), 'learning_cases_only': True,
+               'cases': rows, 'model_answers_or_labels_read': False,
+               'findings': ['Quantifies source-line availability, not semantic usefulness or causal judge improvement.',
+                            'Source already in initial bodies is re-reading, not additional supporting evidence.',
+                            'No reference matches in a bounded scan is not evidence of no caller or shared owner.',
+                            'Two empty traces remain evidence that no extra source was requested in those runs; they do not prove context is unnecessary.']}
+    h.save(HERE / 'learning-source-novelty.json', summary)
+    print(json.dumps({'cases': [{'id': r['id'], 'unique_outside_initial_body_lines': r['unique_outside_initial_body_lines'],
+                                 'zero_tool_requests': r['zero_tool_requests']} for r in rows]}, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

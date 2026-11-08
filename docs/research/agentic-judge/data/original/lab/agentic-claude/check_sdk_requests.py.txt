@@ -1,0 +1,123 @@
+"""Offline actual-SDK request/tool-loop smoke; all responses and usage are synthetic.
+
+Uses httpx2.MockTransport for every exact queued request and a real pinned-source
+tool round through run_case. No real credentials or network are available.
+"""
+import importlib.metadata
+import json
+import socket
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+import anthropic
+import httpx2
+
+import harness as h
+
+
+def main():
+    items = h.validate_prereg(h.HERE / 'queue.jsonl')
+    out = h.HERE / 'evidence' / 'sdk-request-smoke'
+    out.mkdir(parents=True, exist_ok=True)
+    summaries = []
+    network_attempts = []
+
+    def no_network(*args, **kwargs):
+        network_attempts.append(True)
+        raise AssertionError('Real network forbidden during SDK mock-transport smoke')
+
+    with tempfile.TemporaryDirectory(prefix='synthetic-only-', dir=out) as temp:
+        base = Path(temp)
+        ledger_path = base / 'synthetic-ledger.json'
+        h.save(ledger_path, {'schema': 1, 'limit_usd': 1, 'halted': False, 'entries': []})
+        budget = h.SharedBudget(ledger_path)
+        for item in items:
+            captured = []
+
+            def handler(request):
+                body = json.loads(request.content)
+                assert request.url.host == 'api.anthropic.com'
+                assert request.url.path == '/v1/messages'
+                assert 'temperature' not in body
+                assert body['model'] == h.MODEL
+                assert body['max_tokens'] == h.LIMITS['output_tokens_per_round']
+                assert body['system'] == item['initial_request']['system']
+                assert body['tools'] == h.TOOLS
+                if not captured:
+                    # This asserts exact initial serialization for all eight queued requests.
+                    assert body == item['initial_request']
+                    f = item['candidate']['new']
+                    content = [{'type': 'tool_use', 'id': 'toolu_offline_fixture', 'name': 'read_source',
+                                'input': {'path': f['path'], 'start_line': f['line'],
+                                          'end_line': min(f['line'] + 3, f['end_line'])}}]
+                    stop = 'tool_use'
+                else:
+                    assert len(captured) == 1
+                    assert len(body['messages']) == 3
+                    assert body['messages'][0] == item['initial_request']['messages'][0]
+                    assistant = body['messages'][1]
+                    assert assistant['role'] == 'assistant'
+                    tools = [b for b in assistant['content'] if b['type'] == 'tool_use']
+                    assert len(tools) == 1 and tools[0]['id'] == 'toolu_offline_fixture'
+                    user = body['messages'][2]
+                    assert user['role'] == 'user'
+                    result = user['content'][0]
+                    assert result['type'] == 'tool_result'
+                    assert result['tool_use_id'] == tools[0]['id']
+                    assert result['is_error'] is False
+                    fact = json.loads(result['content'])
+                    assert fact['repository'] == item['repository']
+                    assert fact['revision'] == item['revision']
+                    assert fact['file_sha256'] == item['source'][0]['file_sha256']
+                    answer = {'label': 'separate', 'score': .1, 'owner': '',
+                              'why': 'Synthetic transport fixture only; no scientific assessment.',
+                              'uncertainty': False, 'missing_evidence': [],
+                              'citations': [{'evidence_id': fact['evidence_id'],
+                                             'start_line': fact['start_line'], 'end_line': fact['end_line']}]}
+                    content = [{'type': 'text', 'text': json.dumps(answer)}]
+                    stop = 'end_turn'
+                captured.append(body)
+                return httpx2.Response(200, json={
+                    'id': 'msg_offline_transport_fixture', 'type': 'message', 'role': 'assistant',
+                    'model': h.MODEL, 'content': content, 'stop_reason': stop, 'stop_sequence': None,
+                    'usage': {'input_tokens': 1000, 'output_tokens': 100,
+                              'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 0},
+                }, headers={'request-id': 'req_offline_transport_fixture'})
+
+            with (patch.object(socket.socket, 'connect', side_effect=no_network),
+                  patch.object(httpx2.HTTPTransport, 'handle_request', side_effect=no_network)):
+                with anthropic.Anthropic(
+                    api_key='offline-transport-fixture-placeholder', max_retries=0,
+                    timeout=h.LIMITS['timeout_seconds'], base_url='https://api.anthropic.com',
+                    http_client=httpx2.Client(trust_env=False, transport=httpx2.MockTransport(handler)),
+                ) as client:
+                    result = h.run_case(item, base / 'synthetic-runs', client, budget)
+            assert result['status'] == 'complete', (item['id'], result['status'])
+            assert result['provider_calls'] == 2 and result['tool_calls'] == 1
+            assert len(captured) == 2
+            events = h.lines(base / 'synthetic-runs' / item['id'] / 'events.jsonl')
+            requests = [e['data']['request'] for e in events if e['kind'] == 'before_provider']
+            assert requests == captured  # actual SDK tool-round serialization matches durable input
+            summaries.append({'id': item['id'], 'request_key': item['request_key'],
+                              'initial_request_sha256': h.sha(captured[0]),
+                              'tool_round_request_sha256': h.sha(captured[1]),
+                              'exact_initial_wire_body': True, 'exact_tool_round_wire_body': True,
+                              'mock_http_requests': len(captured), 'pinned_source_tool_calls': 1,
+                              'synthetic_final_valid': True})
+        assert not network_attempts
+    report = {'schema': 1, 'passed': True, 'synthetic_only': True,
+              'anthropic_version': importlib.metadata.version('anthropic'),
+              'httpx2_version': importlib.metadata.version('httpx2'),
+              'cases': summaries, 'exact_initial_requests_validated': len(summaries),
+              'exact_tool_rounds_validated': len(summaries), 'mock_http_requests': len(summaries) * 2,
+              'network_attempts': len(network_attempts), 'real_provider_calls': 0,
+              'real_provider_cost_usd': 0, 'real_credentials_available': False,
+              'sampling': 'temperature omitted: installed SDK does not expose it; SDK/provider default sampling, no deterministic-sampling claim',
+              'scientific_results': None}
+    h.save(out / 'report.json', report)
+    print(json.dumps(report, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

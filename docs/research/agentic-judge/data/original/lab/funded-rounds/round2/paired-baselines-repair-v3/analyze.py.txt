@@ -1,0 +1,95 @@
+"""Independent strict v3 receipt join; no provider calls or thinking inspection."""
+import json
+from collections import Counter
+from pathlib import Path
+
+import adapter as a
+
+
+def main():
+    queue = a.v.h.lines(a.HERE / 'requests.jsonl')
+    receipts = a.v.h.lines(a.HERE/'root-smoke-01/returned.jsonl') + a.v.h.lines(a.HERE/'root-remaining-01/returned.jsonl')
+    assert len(receipts) == len(queue) == 9
+    byid = {r['request_id']: r for r in receipts}
+    assert len(byid) == 9 and set(byid) == {q['request_id'] for q in queue}
+    old = {r['id']: r for r in a.v.h.lines(a.HERE.parent/'final-join/cases.jsonl')}
+    root_path = a.FUND.parents[3] / 'reports/research-experiments/promotion/agentic-v3-observed.jsonl'
+    root_observed = {r['id']: r for r in a.v.h.lines(root_path)}
+    source_path = a.FUND.parents[3] / 'reports/research-experiments/promotion/agentic-round2-source/coordinator-decisions.jsonl'
+    mapping_path = source_path.parent / 'private-map.jsonl'
+    mapping = {r['blind_id']: r['case_id'] for r in a.v.h.lines(mapping_path)}
+    source = {mapping[r['id']]: r for r in a.v.h.lines(source_path)}
+    result = []
+    for q in queue:
+        receipt = byid[q['request_id']]
+        parsed = a.parse_receipt(q, receipt)
+        assert all(parsed[k] == root_observed[q['id']][k] for k in ('id', 'request_id', 'status', 'reported', 'decision', 'reason'))
+        assert receipt['physical_cost_usd'] is not None and receipt['fresh'] is True
+        assert receipt['raw_response']['model'] == q['model']
+        assert not any((receipt.get('usage') or {}).get(k, 0) for k in ('cache_creation_input_tokens', 'cache_read_input_tokens'))
+        costs = receipt['usage']
+        assert abs(receipt['physical_cost_usd'] - (costs['input_tokens']*2 + costs['output_tokens']*10)/1e6) < 1e-10
+        previous = old[q['id']]
+        reviewed = source[q['id']]
+        assert previous['source_row_id'] == reviewed['id']
+        assert previous['source_registry_sha256'] == a.v.h.sha(source_path.read_bytes())
+        teacher = previous['teacher']
+        both_certain = teacher['status'] == 'complete' and parsed['status'] == 'complete'
+        report_recovery = both_certain and teacher['reported'] is True and parsed['reported'] is False and previous['source_confirmed_positive']
+        report_loss = both_certain and teacher['reported'] is False and parsed['reported'] is True and previous['source_confirmed_positive']
+        source_nonpositive = reviewed['root_acceptance'].startswith('accepted') and reviewed['source_label'] in ('separate', 'related')
+        resolution = parsed['status'] == 'uncertain' and teacher['status'] == 'complete' and teacher['reported'] is False and source_nonpositive
+        result.append({'id': q['id'], 'role': 'novel', 'teacher': teacher,
+            'old_flawed_body_only': previous['body_only'], 'corrected_body_only': {**parsed,
+                'actual_cost_usd': receipt['physical_cost_usd'], 'api_seconds': receipt['seconds'],
+                'usage': receipt['usage'], 'output_sha256': receipt['output_sha256'], 'request_identity': receipt['identity']},
+            'source_row_id': reviewed['id'], 'source_label': reviewed['source_label'],
+            'source_assessment': reviewed['label'], 'source_root_acceptance': reviewed['root_acceptance'],
+            'source_registry_sha256': a.v.h.sha(source_path.read_bytes()),
+            'source_tiny_convenience': bool(reviewed.get('tiny_convenience')),
+            'source_positive': previous['source_confirmed_positive'], 'source_disputed': previous['source_disputed'],
+            'certain_pair': both_certain, 'source_supported_report_recovery': report_recovery,
+            'source_supported_report_loss': report_loss, 'source_supported_nonreport_uncertainty_resolution': resolution,
+            'teacher_false_report_on_accepted_nonpositive': teacher['reported'] is True and source_nonpositive,
+            'body_false_report_on_accepted_nonpositive': parsed['reported'] is True and source_nonpositive,
+            'observable_tools': previous['observable_tools'], 'cited_evidence_used': previous['cited_evidence_used'],
+            'cited_new_source_lines': previous['cited_new_source_lines'],
+            'comparison_limit': 'Same bodies, user semantic question/model/cap/final schema; corrected procedure differs. One sample per arm, observed development, not pure same-prompt causal ablation.'})
+    summary = {'schema': 1, 'status': 'COMPLETE_CORRECTED_COMPARATOR', 'pairs': 9,
+        'teacher_statuses': dict(Counter(r['teacher']['status'] for r in result)),
+        'corrected_body_statuses': dict(Counter(r['corrected_body_only']['status'] for r in result)),
+        'valid_body_final_submissions': sum(r['corrected_body_only']['status'] in ('complete', 'uncertain') for r in result),
+        'invalid_body_submissions': sum(r['corrected_body_only']['status'] not in ('complete', 'uncertain') for r in result),
+        'certain_paired_finals': sum(r['certain_pair'] for r in result),
+        'teacher_novel_reports': sum(r['teacher']['reported'] is True for r in result),
+        'corrected_body_novel_reports': sum(r['corrected_body_only']['reported'] is True for r in result),
+        'report_changes_in_certain_pairs': sum(r['certain_pair'] and r['teacher']['reported'] != r['corrected_body_only']['reported'] for r in result),
+        'source_supported_report_recoveries': [r['id'] for r in result if r['source_supported_report_recovery']],
+        'source_supported_report_losses': [r['id'] for r in result if r['source_supported_report_loss']],
+        'source_supported_nonreport_uncertainty_resolutions': [r['id'] for r in result if r['source_supported_nonreport_uncertainty_resolution']],
+        'teacher_false_reports_on_accepted_nonpositive': [r['id'] for r in result if r['teacher_false_report_on_accepted_nonpositive']],
+        'body_false_reports_on_accepted_nonpositive': [r['id'] for r in result if r['body_false_report_on_accepted_nonpositive']],
+        'remaining_uncertain_pairs': [r['id'] for r in result if not r['certain_pair']],
+        'uncertain_in_both_arms': [r['id'] for r in result if r['teacher']['status'] == 'uncertain' and r['corrected_body_only']['status'] == 'uncertain'],
+        'body_actual_usd': round(sum(r['corrected_body_only']['actual_cost_usd'] for r in result), 8),
+        'teacher_novel_actual_usd': round(sum(r['teacher']['actual_cost_usd'] for r in result), 8),
+        'body_api_seconds_sum': sum(r['corrected_body_only']['api_seconds'] for r in result),
+        'teacher_novel_api_seconds_sum': sum(r['teacher']['api_seconds_sum'] for r in result),
+        'body_usage': {k: sum(r['corrected_body_only']['usage'].get(k, 0) or 0 for r in result)
+                       for k in ('input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens')},
+        'v2_failed_held_reservation_usd_separate': .127882, 'v2_failed_actual_cost_usd': None,
+        'old_five_unavailable_tool_replies_still_unknown': True, 'r1_uncertainty_unchanged': True,
+        'root_strict_observations_independently_matched': True,
+        'same_prompt_claim': False, 'teacher_improvement_claim': False,
+        'source_decisions_unchanged': True, 'worker_provider_calls': 0,
+        'evidence_sha256': {str(p): a.sha(p.read_bytes()) for p in [source_path, mapping_path, root_path,
+            a.HERE/'requests.jsonl', a.HERE/'root-smoke-01/returned.jsonl', a.HERE/'root-remaining-01/returned.jsonl']}}
+    assert abs(summary['body_actual_usd'] - .085286) < 1e-10
+    out = a.HERE/'analysis'; out.mkdir(exist_ok=True)
+    (out/'cases.jsonl').write_text(''.join(a.canon(r)+'\n' for r in result))
+    a.v.h.save(out/'metrics.json', summary)
+    print(json.dumps({k: v for k, v in summary.items() if k not in ('body_usage', 'evidence_sha256')}))
+
+
+if __name__ == '__main__':
+    main()

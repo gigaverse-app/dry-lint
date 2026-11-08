@@ -1,0 +1,261 @@
+"""Disjoint native TF-IDF supply for agentic-judge funded round 2; no providers."""
+import collections
+import json
+import sys
+import time
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+HERE = Path(__file__).resolve().parent
+WORK = HERE.parents[2]
+ROOT = Path('/home/researcher/dry-lint-round')
+sys.path.insert(0, str(WORK / '.lab-results/agentic-claude'))
+import harness as h
+from dry_lint.bench_background import BenchBackground
+from dry_lint.detector import why_skipped
+from dry_lint.extractors import PythonExtractor
+from dry_lint.typescript import TypeScriptExtractor
+from dry_lint.models import Candidate
+from dry_lint.judges.command import prompt
+from dry_lint.settings import Settings
+
+
+def pair(repo, pin, ids):
+    return h.sha([repo, pin, sorted(ids)])
+
+
+def emit(path, rows):
+    Path(path).write_bytes(b''.join(h.canonical(r) + b'\n' for r in rows))
+
+
+class Corpus:
+    def __init__(self, config):
+        self.config = config
+        self.repo, self.pin = config['repository'], config['revision']
+        raw = Path(config['background_proof']['path']).read_bytes()
+        assert h.sha(raw) == config['background_proof']['sha256']
+        self.bg = BenchBackground.decode(raw)
+        assert (self.bg.repository, self.bg.revision) == (self.repo, self.pin)
+        self.docs = {d.id: d for d in self.bg.documents}
+        self.positions = {d.id: n for n, d in enumerate(self.bg.documents)}
+        self.index = self.bg.index()
+        paths = list(self.docs)
+        dummy = {s: {'path': paths[n].split('::')[0], 'line': 1, 'end_line': 1, 'code': ''}
+                 for n, s in enumerate(('new', 'existing'))}
+        self.source = h.SourceTools(config, dummy)
+        self.functions = {}
+        self.file_positions = collections.defaultdict(set)
+        for n, d in enumerate(self.bg.documents):
+            self.file_positions[d.id.split('::')[0]].add(n)
+
+    def function(self, ident):
+        path = ident.split('::')[0]
+        if path not in self.functions:
+            text = self.source.file(path)
+            ex = PythonExtractor() if path.endswith('.py') else TypeScriptExtractor()
+            fs = ex.functions(path, text)
+            for f in fs:
+                f.hash = ex.structure_hash(f)
+            self.functions[path] = {f.qualname: f for f in fs}
+        f = self.functions[path][ident]
+        assert h.sha(f.code.encode()) == self.docs[ident].source_sha256
+        return f
+
+    def neighbours(self, ident):
+        f = self.function(ident)
+        floor = .3 if f.lines < 6 else .5
+        excluded = self.file_positions[f.path]
+        return [(self.bg.documents[n].id, score) for n, score in self.index.similar(
+            self.docs[ident].tokens(), limit=3, exclude=excluded) if score >= floor], floor
+
+    def candidate(self, ident, other, score):
+        a, b = self.function(ident), self.function(other)
+        skipped = why_skipped(a, b, Settings())
+        if skipped:
+            raise ValueError('core-filter:' + skipped)
+        if len(a.code) + len(b.code) > 16000:
+            raise ValueError('bounded-body-supply-limit')
+        c = Candidate(new=a, existing=b, similarity=score, comparer='tfidf:2')
+        return c
+
+
+def main():
+    started = time.monotonic()
+    if (HERE / 'novel-review-queue.jsonl').exists():
+        raise SystemExit('Frozen supply exists: use an explicit additional chunk, never overwrite.')
+    configs_path = ROOT / 'jobs/review-automation/.lab-results/review-automation/repositories-five.json'
+    configs = [c for c in h.load_json(configs_path) if c['repository'] != 'Garsson-io/kaizen']
+    registry_path = ROOT / 'jobs/corpus-wide-evaluation/.lab-results/full-corpus/rows.jsonl'
+    registry = h.lines(registry_path)
+    observed_path = ROOT / 'jobs/judge-operations/.lab-results/judge-operations/full-corpus/exact-observations.jsonl'
+    past = h.lines(observed_path)
+    known, known_files = set(), collections.defaultdict(set)
+    for r in registry + past:
+        if not r.get('candidate'):
+            continue
+        c = Candidate.model_validate(r['candidate'])
+        known.add(pair(r['repository'], r['revision'], [c.new.qualname, c.existing.qualname]))
+        for f in (c.new, c.existing):
+            known_files[r['repository']].add(f.path)
+    r1 = HERE.parent / 'round1'
+    prior_control_families = {r['source_reference']['family_id'] for r in h.lines(r1 / 'selection-private.jsonl')
+                              if r.get('source_reference')}
+    for r in h.lines(r1 / 'novel-review-queue.jsonl'):
+        c = Candidate.model_validate(r['candidate'])
+        known.add(pair(r['repository'], r['revision'], [c.new.qualname, c.existing.qualname]))
+        known_files[r['repository']].update([c.new.path, c.existing.path])
+    # All previous teacher/followup endpoints stay outside new source supply.
+    prohibited = set()
+    for r in h.lines(WORK / '.lab-results/agentic-claude/queue.jsonl'):
+        c = Candidate.model_validate(r['candidate'])
+        prohibited.add(pair(r['repository'], r['revision'], [c.new.qualname, c.existing.qualname]))
+    follow = ROOT / 'jobs/experiment-jev-context/.lab-results/trace-derived-v1/originals'
+    for p in follow.glob('*.json'):
+        r = h.load_json(p)
+        c = Candidate.model_validate(r['candidate'])
+        prohibited.add(pair(r['repository'], r['revision'], [c.new.qualname, c.existing.qualname]))
+    prereg = {'schema': 1, 'direction': 'agentic-judge', 'round': 2,
+        'frozen_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'selection': 'Four public pinned corpora. Native tfidf:2 frozen full-background IDF, cross-file top3, default .5/.3 floors and core skip rules. Deterministic content-hash query order. At most 250 queries per repository; 4 novel pairs per repository initially, plus up to 4 independent accepted source controls. Combined body length capped at 16000 chars for bounded teacher admission; no size minimum or provider confidence gate.',
+        'novelty': 'Reject all round1 source files/pairs including unstarted cases, prior control family IDs, and previously observed/accepted endpoint files. Thus known endpoint/source-file components are disjoint; broader semantic family novelty remains provisional for independent review.',
+        'controls': 'Source-accepted positive and separate controls from registry, still required to be native top3 proposals. Reject prior teacher/followup pairs; no provider agreement used as source truth.',
+        'input_hashes': {str(p): h.sha(p.read_bytes()) for p in (configs_path, registry_path, observed_path)},
+        'teacher_protocol': 'ONE revision: replace identifier-only find_references with bounded literal search outside supplied function bodies. This addresses two observed invalid-string control searches without changing semantic questions, final validation or caps.',
+        'round1_actual_new_paid_usd': .356584,
+        'minimum_actual_new_paid_usd': .2, 'current_round2_paid_usd': 0.,
+        'round1_supply_sha256': h.sha((r1 / 'novel-review-queue.jsonl').read_bytes()),
+        'research_overall_root_ceiling_usd': 20, 'worker_provider_calls': 0,
+        'normal_funding': 'Separate cold per-query estimated one-shot .04 admission. Not actual PR history, not teacher research funding, no production-fit claim.'}
+    h.save(HERE / 'EXPERIMENT.json', prereg)
+    packets, proofs, funding, private, exclusions = [], [], [], [], []
+    used_pairs, used_endpoints = set(prohibited), set()
+    corpora = [Corpus(c) for c in configs]
+
+    def add(corpus, ident, other, score, rank, floor, role, reference=None):
+        c = corpus.candidate(ident, other, score)
+        key = pair(corpus.repo, corpus.pin, [ident, other])
+        endpoints = {(corpus.repo, ident), (corpus.repo, other)}
+        if key in used_pairs or endpoints & used_endpoints:
+            return False
+        # Cold query admission charges the native top3 in rank order, including
+        # competitors that are known or not selected for research.
+        ledger, cumulative, admitted = [], 0., False
+        neighbours, _ = corpus.neighbours(ident)
+        for n, (target, similarity) in enumerate(neighbours, 1):
+            try:
+                cc = Candidate(new=corpus.function(ident), existing=corpus.function(target), similarity=similarity, comparer='tfidf:2')
+                filtered = why_skipped(cc.new, cc.existing, Settings())
+                rendered = prompt(cc, policy='shared-operations')
+                charge = 0. if filtered else (len(rendered) / 2.8 * 2 + 150 * 10) / 1e6
+                ok = cumulative + charge <= .04
+                if ok:
+                    cumulative += charge
+                ledger.append({'rank': n, 'target': target, 'filtered': filtered, 'estimated_usd': charge,
+                               'admitted': ok, 'cumulative_estimated_usd': cumulative,
+                               'rendered_prompt_sha256': h.sha(rendered.encode())})
+                if target == other:
+                    admitted = ok and not filtered
+            except (ValueError, KeyError, SyntaxError, UnicodeError):
+                ledger.append({'rank': n, 'target': target, 'admitted': False, 'unknown_source': True})
+        if not admitted:
+            return False
+        case_id = 'AJ-R2-' + key[:16]
+        source = []
+        for side in ('new', 'existing'):
+            f = getattr(c, side)
+            source.append({'side': side, 'source_id': f.qualname, 'path': f.path, 'line': f.line,
+                'end_line': f.end_line, 'repository': corpus.repo, 'revision': corpus.pin,
+                'file_sha256': h.sha(corpus.source.file(f.path).encode()), 'body_sha256': h.sha(f.code.encode()),
+                'extractor': 'python' if f.path.endswith('.py') else 'typescript', 'extractor_version': '3'})
+        packet = {'schema': 1, 'format': 'dry-lint/lab-review-packet', 'id': case_id,
+            'repository': corpus.repo, 'revision': corpus.pin, 'candidate': c.model_dump(),
+            'background_proof': corpus.config['background_proof'], 'source_proofs': source,
+            'source_status': 'unknown' if role == 'novel' else 'independent_control',
+            'accepted_gold': False if role == 'novel' else reference['accepted_gold'],
+            'requested_judging': [{'kind': 'claude', 'model': 'claude-sonnet-5-5', 'max_output_tokens': 1024,
+                                  'prompt_policy': 'shared-operations'}]}
+        packets.append(packet)
+        proofs.extend({'id': case_id, **s} for s in source)
+        funding.append({'id': case_id, 'ledger_kind': 'normal_estimated', 'simulation_unit': 'cold_native_query',
+            'cap_usd': .04, 'query': ident, 'native_top_k': 3, 'native_floor': floor,
+            'source': 'Frozen full-background native TF-IDF; no historical PR replay claim.', 'ledger': ledger,
+            'selected_rank': rank, 'actually_funded_in_estimated_query': True,
+            'teacher_diagnostic_cost_charged_to_this_ledger': False})
+        private.append({'id': case_id, 'role': role, 'pair_key': key,
+            'source_reference': None if reference is None else {'row_id': reference['row_id'],
+                'label': reference['label'], 'accepted_gold': reference['accepted_gold'], 'family_id': reference['family_id']},
+            'native_query': ident, 'native_target': other, 'score': score, 'rank': rank,
+            'family_status': 'source-file-disjoint from round1 and known evidence' if role == 'novel' else 'source-reviewed control; source files and family ID disjoint from round1',
+            'repository': corpus.repo, 'revision': corpus.pin})
+        used_pairs.add(key); used_endpoints.update(endpoints)
+        return True
+
+    for corpus in corpora:
+        count, queried = 0, 0
+        ids = sorted(corpus.docs, key=lambda ident: h.sha([corpus.repo, ident, 'agentic-round2-disjoint']))
+        for ident in ids:
+            if queried >= 250 or count >= 4:
+                break
+            if ident.split('::')[0] in known_files[corpus.repo]:
+                continue
+            queried += 1
+            try:
+                neighbours, floor = corpus.neighbours(ident)
+                for rank, (other, score) in enumerate(neighbours, 1):
+                    key = pair(corpus.repo, corpus.pin, [ident, other])
+                    if key in known or other.split('::')[0] in known_files[corpus.repo]:
+                        continue
+                    if add(corpus, ident, other, score, rank, floor, 'novel'):
+                        count += 1
+                    if count >= 4:
+                        break
+            except (ValueError, KeyError, SyntaxError, UnicodeError) as error:
+                exclusions.append({'repository': corpus.repo, 'query': ident, 'reason': type(error).__name__})
+        print(json.dumps({'repository': corpus.repo, 'queries': queried, 'novel_selected': count}), flush=True)
+    # Independent controls selected without looking at any provider assessment.
+    for label in ('separate', 'duplicate'):
+        selected = 0
+        for r in sorted(registry, key=lambda r: h.sha(['agentic-round2-control', r['row_id']])):
+            if selected >= 2:
+                break
+            if not r['accepted_gold'] or r['label'] != label or not r.get('candidate'):
+                continue
+            if r['family_id'] in prior_control_families:
+                continue
+            corpus = next((c for c in corpora if c.repo == r['repository'] and c.pin == r['revision']), None)
+            if corpus is None:
+                continue
+            c = Candidate.model_validate(r['candidate'])
+            r1_files = {(p['repository'], f['path']) for p in h.lines(r1 / 'novel-review-queue.jsonl')
+                        for f in (p['candidate']['new'], p['candidate']['existing'])}
+            if any((r['repository'], f.path) in r1_files for f in (c.new, c.existing)):
+                continue
+            for ident, other in ((c.new.qualname, c.existing.qualname), (c.existing.qualname, c.new.qualname)):
+                if ident not in corpus.docs or other not in corpus.docs:
+                    continue
+                try:
+                    neighbours, floor = corpus.neighbours(ident)
+                    matches = [(n, score) for n, (target, score) in enumerate(neighbours, 1) if target == other]
+                    if matches and add(corpus, ident, other, matches[0][1], matches[0][0], floor, 'control', r):
+                        selected += 1; break
+                except (ValueError, KeyError, SyntaxError, UnicodeError):
+                    continue
+    emit(HERE / 'novel-review-queue.jsonl', packets)
+    emit(HERE / 'source-proofs.jsonl', proofs)
+    emit(HERE / 'normal-funding-private.jsonl', funding)
+    emit(HERE / 'selection-private.jsonl', private)
+    emit(HERE / 'exclusions.jsonl', exclusions)
+    blinded = [{'id': h.sha(['blind-source', p['id']])[:20], 'repository': p['repository'], 'revision': p['revision'],
+                'new': p['candidate']['new'], 'existing': p['candidate']['existing'], 'source_proofs': p['source_proofs']}
+               for p in packets]
+    emit(HERE / 'source-blind.jsonl', blinded)
+    h.save(HERE / 'supply-summary.json', {'schema': 1, 'packets': len(packets),
+        'novel': sum(r['role'] == 'novel' for r in private), 'controls': sum(r['role'] == 'control' for r in private),
+        'queue_sha256': h.sha((HERE / 'novel-review-queue.jsonl').read_bytes()),
+        'source_proofs_sha256': h.sha((HERE / 'source-proofs.jsonl').read_bytes()),
+        'offline_seconds': time.monotonic() - started, 'provider_calls': 0,
+        'scope': 'No whole-corpus re-audit or re-scoring; frozen sparse indexes only, bounded selected native-source verification.'})
+
+
+if __name__ == '__main__':
+    main()

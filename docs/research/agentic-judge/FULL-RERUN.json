@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "method": "agentic-judge",
+  "portable_scope": "Nine v3 paired cases; original final parser and recorded-source/report replay. Not a full experiment rerun.",
+  "full_replay_root_contract": "LAB_ROOT/jobs/experiment-agentic-judge plus LAB_ROOT/reports/research-experiments",
+  "required_external": [
+    {
+      "location": "jobs/experiment-agentic-judge/.lab-results/funded-rounds/round{1,2}/",
+      "requires": [
+        "teacher-requests.jsonl",
+        "source-proofs.jsonl",
+        "source-blind.jsonl",
+        "complete pinned Git snapshots and allowed scope",
+        "root response events and original paired baselines",
+        "round2/paired-baselines-repair-v3 requests and raw receipts"
+      ]
+    },
+    {
+      "location": "reports/research-experiments/promotion/agentic-round2-source/",
+      "requires": [
+        "coordinator-decisions.jsonl",
+        "private-map.jsonl (local audit join only; never publish)"
+      ]
+    },
+    {
+      "location": "reports/research-experiments/promotion/agentic-v3-observed.jsonl",
+      "requires": [
+        "strict root observation feed"
+      ]
+    },
+    {
+      "location": "jobs/experiment-agentic-judge/.lab-results/resolution/followup-results/",
+      "requires": [
+        "six-family, 24-request original context comparison recordings; separate from selected v3 reproduction"
+      ]
+    }
+  ],
+  "exact_pins": "data/source-pins.json",
+  "original_commands": "REPRODUCTION.md",
+  "dependencies": "data/original/product/uv.lock.txt",
+  "held_sources": "data/holds.json",
+  "providers_required_for_recorded_replay": false,
+  "full_live_rerun": "New adopter-owned funded experiment; never writes frozen outputs",
+  "original_provenance": "data/provenance.json",
+  "public_background_acquisition": "data/background-acquisition.json"
+}

@@ -1,0 +1,159 @@
+"""Verify completed v2 traces and measure retrieval without reading non-text payloads."""
+import argparse
+import json
+from collections import Counter
+from pathlib import Path
+
+import teacher_v2 as v
+
+h = v.h
+
+
+def source_spans(value, parent_path=None):
+    spans = []
+    if isinstance(value, dict):
+        path = value.get('path', parent_path)
+        if path and ('code' in value or 'text' in value) and type(value.get('start_line')) is int and type(value.get('end_line')) is int:
+            spans.append((path, value['start_line'], value['end_line']))
+        for child in value.values():
+            spans += source_spans(child, path)
+    elif isinstance(value, list):
+        for child in value:
+            spans += source_spans(child, parent_path)
+    return spans
+
+
+def analyze_case(row, run_dir):
+    case = Path(run_dir) / row['id']
+    events = h.lines(case / 'events.jsonl')
+    source = h.validate_item(row['original'])
+    previous = '0' * 64
+    pending = None
+    facts, source_kinds, outputs, final_input = [], Counter(), [], None
+    initial_lines = {(f['path'], n) for f in row['original']['source'] for n in range(f['line'], f['end_line'] + 1)}
+    outside, repeated, occurrences = set(), set(), 0
+    known_cost = 0.
+    unknown_cost = False
+    provider_calls = 0
+    usage = Counter()
+    for event in events:
+        assert event['previous_sha256'] == previous
+        assert h.sha({k: val for k, val in event.items() if k != 'event_sha256'}) == event['event_sha256']
+        previous = event['event_sha256']
+        d = event['data']
+        if event['kind'] == 'case_begin':
+            assert d['identity'] == row['identity'] and d['request_key'] == row['request_key']
+            assert d['initial_request'] == row['request']
+        elif event['kind'] == 'before_provider':
+            provider_calls += 1
+            assert d['request_sha256'] == h.sha(d['request'])
+        elif event['kind'] == 'after_provider':
+            # Treat the provider JSON as opaque for integrity hashing; no non-text payload analysis.
+            assert d['response_sha256'] == h.sha(d['response'])
+            outputs.append(d['response_sha256'])
+            if d['cost_usd'] is None:
+                unknown_cost = True
+            else:
+                known_cost += d['cost_usd']
+            for key in ('input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens'):
+                count = (d['response'].get('usage') or {}).get(key)
+                if type(count) is int:
+                    usage[key] += count
+        elif event['kind'] == 'after_provider_error':
+            unknown_cost = True
+        elif event['kind'] == 'before_tool':
+            pending = d
+            source_kinds[d['name']] += 1
+        elif event['kind'] == 'after_tool':
+            assert pending and pending['tool_use_id'] == d['tool_use_id']
+            replay = source.call(pending['name'], pending['input'])
+            assert replay == d['result'] and h.sha(replay) == d['result_sha256']
+            facts.append({'tool': pending['name'], 'input': pending['input'], 'result': replay,
+                          'result_sha256': d['result_sha256']})
+            spans = source_spans(replay)
+            lines = {(path, n) for path, start, end in spans for n in range(start, end + 1)}
+            occurrences += len(lines)
+            outside |= lines - initial_lines
+            repeated |= lines & initial_lines
+            pending = None
+        elif event['kind'] == 'before_submission':
+            final_input = d['input']
+    assert provider_calls <= 6
+    result_file = case / 'result.json'
+    if result_file.exists():
+        result = h.load_json(result_file)
+        assert events[-1]['kind'] == 'case_end' and events[-1]['data'] == result
+        assert result['result_key'] == h.sha({k: val for k, val in result.items() if k != 'result_key'})
+        assert result['final_event_sha256'] == events[-1]['previous_sha256']
+        assert result['output_sha256s'] == outputs
+        if final_input is not None:
+            decision, status = v.submit(final_input, source)
+            assert decision == result['decision'] and status == result['status']
+        else:
+            assert result['decision'] is None and result['reported'] is None
+    else:
+        result = {'status': 'incomplete_trace_unknown', 'decision': None, 'reported': None,
+                  'provider_calls': provider_calls, 'cost_usd': None if unknown_cost else known_cost}
+    return {'id': row['id'], 'status': result['status'], 'reported': result['reported'],
+            'valid_submission': result['decision'] is not None, 'uncertain': result['status'] == 'uncertain',
+            'decision': result['decision'], 'provider_calls': provider_calls,
+            'actual_cost_usd': None if unknown_cost else round(known_cost, 8), 'known_cost_usd': round(known_cost, 8),
+            'usage': dict(usage), 'source_tool_kinds': dict(source_kinds),
+            'unique_new_source_lines': len(outside), 'unique_initial_body_lines_repeated': len(repeated),
+            'source_line_occurrences_returned': occurrences, 'observable_source_facts': facts,
+            'api_seconds_sum': result.get('api_seconds_sum'), 'tool_seconds_sum': result.get('tool_seconds_sum'),
+            'case_wall_seconds': result.get('case_wall_seconds')}
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--runs', default=str(v.DEST / 'root-attempt-1'))
+    p.add_argument('--out', default=str(v.DEST / 'analysis'))
+    args = p.parse_args()
+    rows = v.validate()
+    execution = h.load_json(Path(args.runs) / 'execution.json')
+    assert 'wall_seconds' in execution  # root wrapper has finished all futures
+    protected = {str(f): h.sha(f.read_bytes()) for f in Path(args.runs).rglob('*') if f.is_file()}
+    results = []
+    for row in rows:
+        if (Path(args.runs) / row['id'] / 'events.jsonl').exists():
+            results.append(analyze_case(row, args.runs))
+        else:
+            results.append({'id': row['id'], 'status': 'not_started_unknown', 'reported': None,
+                            'valid_submission': False, 'uncertain': False, 'actual_cost_usd': None,
+                            'known_cost_usd': 0., 'provider_calls': 0, 'source_tool_kinds': {},
+                            'unique_new_source_lines': 0, 'unique_initial_body_lines_repeated': 0,
+                            'source_line_occurrences_returned': 0})
+    kinds = Counter()
+    for r in results:
+        kinds.update(r['source_tool_kinds'])
+    old = [h.load_json(h.HERE / 'runs/root-attempt-2' / r['id'] / 'result.json') for r in rows]
+    summary = {'schema': 1, 'version': v.VERSION, 'cases': 4,
+        'queue_sha256': h.sha((v.DEST / 'queue.jsonl').read_bytes()),
+        'matched_original_registered_complete': sum(r['status'] == 'complete' for r in old),
+        'matched_original_provider_rounds': sum(r['provider_calls'] for r in old),
+        'matched_original_actual_cost_usd': round(sum(r['cost_usd'] for r in old), 8),
+        'new_valid_submissions': sum(r['valid_submission'] for r in results),
+        'new_certain_complete': sum(r['status'] == 'complete' for r in results),
+        'new_uncertain': sum(r['uncertain'] for r in results),
+        'provider_rounds': sum(r['provider_calls'] for r in results),
+        'known_cost_usd': round(sum(r['known_cost_usd'] for r in results), 8),
+        'actual_cost_usd': round(sum(r['actual_cost_usd'] for r in results), 8)
+            if all(r['actual_cost_usd'] is not None for r in results) else None,
+        'source_tool_kinds': dict(kinds), 'unique_new_source_lines_across_cases': sum(r['unique_new_source_lines'] for r in results),
+        'unique_initial_body_lines_repeated_across_cases': sum(r['unique_initial_body_lines_repeated'] for r in results),
+        'concurrency': execution['concurrency'], 'elapsed_wall_seconds': execution['wall_seconds'],
+        'original_concurrency': 1, 'accuracy_gain_claimed': False,
+        'interpretation': 'Matched learning families, new submission protocol AND retrieval guidance. Measures protocol coverage and retrieval, not independent accuracy or a one-factor causal effect. Do not compare parallel wall time to serial old teacher as model speedup.',
+        'registered_original_results_unchanged': True, 'nontext_payloads_exposed_or_interpreted': False,
+        'worker_provider_calls': 0}
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / 'cases.jsonl').write_bytes(b''.join(h.canonical(r) + b'\n' for r in results))
+    h.save(out / 'summary.json', summary)
+    assert all(h.sha(Path(f).read_bytes()) == digest for f, digest in protected.items())
+    print(json.dumps(summary, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

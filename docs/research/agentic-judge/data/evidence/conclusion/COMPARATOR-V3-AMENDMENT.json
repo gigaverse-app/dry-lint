@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "status": "AUTO_REPAIR_SMOKE_PENDING",
+  "v2_http400": 4,
+  "v2_unknown_held_maximum_usd": 0.127882,
+  "no_model_answers_v2": true,
+  "sdk_mock_was_serialization_only": true,
+  "only_api_change_from_v2": "tool_choice auto",
+  "new_ledger_limit_usd": 0.2,
+  "prior_spend_seed_zero": true,
+  "old_ledger_and_receipts_unchanged": true,
+  "handoff": "LAB_ROOT/jobs/experiment-agentic-judge/.lab-results/funded-rounds/round2/paired-baselines-repair-v3/HANDOFF.json"
+}

@@ -1,0 +1,66 @@
+"""Thin root-only adapter over the existing cap2 one-shot executor.
+
+Root calls execute(..., credentials=trusted_credentials). This file never reads
+credentials. The CLI validates only and cannot execute a provider request.
+"""
+import argparse
+import importlib.util
+import json
+from pathlib import Path
+
+import paired_baseline_adapter as p
+
+BUDGET_PATH = p.HERE.parents[3] / 'jobs/experiment-jev-context/.lab-results/funded-rounds/round2/root_runner_v2.py'
+BUDGET_SHA = '1189c8f84b4bfe69f454ca029d96171661220ca3f57ddb2de0dfa78877af3b4e'
+
+
+def execute(queue_path, out, ledger, credentials, workers=4, caller=None):
+    """Root supplies trusted credentials; test callers receive dummy credentials."""
+    queue_path, out = Path(queue_path), Path(out)
+    if (out / 'events.jsonl').exists() or (out / 'returned.jsonl').exists():
+        raise ValueError('Existing attempt retained; no automatic retry or overwrite.')
+    queue = p.v.h.lines(queue_path)
+    assert queue and len(queue) == len({q['request_id'] for q in queue})
+    for q in queue:
+        p.validate_request(q)
+    assert p.v.h.sha(BUDGET_PATH.read_bytes()) == BUDGET_SHA
+    spec = importlib.util.spec_from_file_location('_paired_existing_cap2_executor', BUDGET_PATH)
+    root = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(root)
+    root.QUEUE_SHA = p.v.h.sha(queue_path.read_bytes())
+    root.VERSION = 'agentic-judge-paired-body-baseline-v1'
+    root.PRIOR_SPENT = 1.33017984  # Preserve settled pre-R2 teacher/context spend.
+    keys = {root.digest({'experiment_queue_sha256': root.QUEUE_SHA, 'request_id': q['request_id'],
+                        'attempt_directory': str(out.resolve())}): q for q in queue}
+    BaseBudget = root.SharedBudget
+
+    class PairedBudget(BaseBudget):
+        def update(self, operation):
+            def attributed(data):
+                before = {e['key'] for e in data['entries']}
+                result = operation(data)
+                for entry in data['entries']:
+                    if entry['key'] not in before:
+                        q = keys[entry['key']]
+                        entry.update(job='agentic-judge', direction='agentic-judge',
+                                     funded_round=q['funded_round'], funded_phase='paired_body_baseline',
+                                     question_key=q['request_id'], counts_toward_teacher_minimum=False)
+                return result
+            return super().update(attributed)
+
+    root.SharedBudget = PairedBudget
+    # Existing executor performs one exact REST call per fresh request, durable
+    # events/results, actual usage settlement, and no retry/source callbacks.
+    return root.execute(queue, out, Path(ledger), workers, credentials,
+                        caller=root.rest_call if caller is None else caller)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('queue', type=Path)
+    args = parser.parse_args()
+    rows = p.v.h.lines(args.queue)
+    for row in rows:
+        p.validate_request(row)
+    print(json.dumps({'valid': True, 'requests': len(rows), 'queue_sha256': p.v.h.sha(args.queue.read_bytes()),
+                      'estimated_usd': sum(q['estimate_usd'] for q in rows), 'provider_calls': 0}))

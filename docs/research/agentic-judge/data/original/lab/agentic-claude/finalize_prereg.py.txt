@@ -1,0 +1,67 @@
+"""Record pre-execution harness corrections without changing selection or prompts."""
+import argparse
+import time
+from pathlib import Path
+
+import harness as h
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--reason', required=True)
+    parser.add_argument('--no-send-reconciliation')
+    args = parser.parse_args()
+    prereg_path = h.HERE.parent / 'EXPERIMENT.json'
+    prereg = h.load_json(prereg_path)
+    prior_logs = list((h.HERE / 'runs').glob('**/events.jsonl'))
+    if prior_logs:
+        if not args.no_send_reconciliation:
+            raise SystemExit('Existing attempt artifacts require root no-send reconciliation; never overwrite them.')
+        receipt = h.load_json(args.no_send_reconciliation)
+        if receipt.get('http_send_calls') != 0 or receipt.get('queue_sha256') != prereg['queue_sha256']:
+            raise SystemExit('Root reconciliation does not establish zero sends for this exact queue')
+        for log in prior_logs:
+            events = h.lines(log)
+            if any(e['kind'] == 'after_provider' for e in events):
+                raise SystemExit('Cannot infrastructure-amend after a provider response')
+            failures = [e for e in events if e['kind'] == 'after_provider_error']
+            if any(e['data'].get('error_type') != 'TypeError' for e in failures):
+                raise SystemExit('Existing failure is not the reconciled pre-send TypeError')
+    queue_path = h.HERE / 'queue.jsonl'
+    original = prereg_path.read_bytes()
+    archive = h.HERE / 'preregistration-history'
+    archive.mkdir(exist_ok=True)
+    backup = archive / f'{h.sha(original)}.json'
+    backup.write_bytes(original)
+    queue_raw = queue_path.read_bytes()
+    (archive / f'{h.sha(queue_raw)}.queue.jsonl').write_bytes(queue_raw)
+    items = h.lines(queue_path)
+    for item in items:
+        item['initial_request'] = h.initial_request(item)
+        item['request_identity'] = h.request_identity(item)
+        item['request_key'] = h.sha(item['request_identity'])
+        item['estimated_initial_cost_usd'] = h.estimated_cost(item['initial_request'])
+        item['initial_conservative_reservation_usd'] = h.reservation(item['initial_request'])
+        h.validate_item(item)
+    queue_path.write_bytes(b''.join(h.canonical(i) + b'\n' for i in items))
+    prereg['pre_execution_amendment'] = {
+        'at_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'prior_preregistration_sha256': h.sha(original),
+        'prior_queue_sha256': h.sha(queue_raw),
+        'reason': args.reason,
+        'selection_changed': False, 'split_changed': False, 'prompt_changed': False,
+        'new_agentic_outputs_seen': False, 'provider_calls': 0,
+    }
+    if args.no_send_reconciliation:
+        prereg['pre_execution_amendment']['no_send_reconciliation'] = {
+            'path': str(Path(args.no_send_reconciliation).resolve()),
+            'sha256': h.sha(Path(args.no_send_reconciliation).read_bytes()),
+        }
+    prereg['queue_sha256'] = h.sha(queue_path.read_bytes())
+    prereg['harness_sha256'] = h.sha(Path(h.__file__).read_bytes())
+    h.save(prereg_path, prereg)
+    print({'preregistration_sha256': h.sha(prereg_path.read_bytes()), 'queue_sha256': prereg['queue_sha256']})
+
+
+if __name__ == '__main__':
+    main()
