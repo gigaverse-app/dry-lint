@@ -240,6 +240,7 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 | `comment` | `true` | Keep the sticky comment. |
 | `comment-on-clean` | `true` | Comment on a clean pull request too; `false` comments only once there are findings. |
 | `share-totals` | `true` | On the default branch, add each merged pull request's counts to [the global counter](#the-global-counter); `false` opts out. |
+| `share-goldens` | `false` | Opt in to [dry-lint's benchmark](#sharing-goldens-opt-in): keep each merged pull request's settled pairs as a `dry-lint-goldens` artifact for collection. |
 | `check-run` | `true` | In judge mode, post a `dry-lint` check run on the pull request's head; failure for blocking findings, neutral for advisory findings. |
 | `sticky-key` | | Legacy marker label, and the suffix that tells apart the verdict saves of several steps in one job; all keys share one PR comment. |
 | `fail-at` | the preset's (0.55 with `jev+opus`, 0.8 with `jev`) | Judge score at or above which a duplicate fails the check. |
@@ -341,6 +342,28 @@ rewrites rather than copies, and their lines) and the dry-lint version: no code,
   changes nothing. A send that fails waits in the repository's ledger (`outbox`) for the next push, and never
   fails the run.
 - **Bounded.** Counts are self-reported; the counter refuses a pull request claiming implausible figures.
+
+### Sharing goldens (opt-in)
+
+A pull request that settles a reported pair says something the benchmark wants to know: a duplicate the author
+**kept out** (a later push no longer reported it, usually because it now reuses the existing owner), or a pair
+**dismissed** after it was reported (typically a person's `# dry-lint: distinct-from` with a reason). With
+`share-goldens: "true"`, the fold keeps those outcomes for each merged pull request:
+
+- **Pointers, not code.** Each record holds the repository, the pinned revision, both functions' paths, names and
+  line spans, the judge's verdict, and how the label was learned. Model pairs, pairs settled by the pre-commit
+  hook, accepted-backlog cleanups and pairs still open at merge are left out.
+- **Nothing is sent.** The records stay in your repository as a 30-day `dry-lint-goldens-RUN-ATTEMPT` artifact.
+- **Collected only from registered public repositories.** dry-lint's maintainers run
+  [`scripts/collect_goldens.py`](../scripts/collect_goldens.py) over the repositories listed, by pull request, in
+  [`docs/goldens/adopters.toml`](goldens/adopters.toml), with the license that allows their code in a public
+  panel. It refuses a private repository and fetches each function at its pinned revision.
+- **Weak labels, staged.** "Kept out" is inferred and a dismissal can be wrong, so collected goldens become
+  diagnostic panels in the `examples/*-gold.toml` format, never part of the population estimates, which use blind
+  three-vendor labels.
+
+To opt in, set `share-goldens: "true"` on the dry-lint job that runs on pushes to your default branch, and add
+your repository to the registry in a pull request to dry-lint.
 
 ## Running it in a monorepo, or more than once
 
