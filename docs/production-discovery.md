@@ -45,6 +45,100 @@ persistent storage and serialize the PR's state lifecycle. `--discovery-state` c
 volume. Deleting the ledger resets its allowance. The report says how much was accounted, including reservations,
 and separately identifies deferred work. A successful check is not an exhaustive duplication audit.
 
+## Experimental residual recovery
+
+`discovery.residual_comparers` opts into a second pass under the **same campaign allowance**. It is empty by
+default. Add this key to the existing discovery table; retain the adopter's existing comparer list and other
+settings:
+
+```toml
+[discovery]
+residual_comparers = [
+  { use = "tfidf", neighbours = 100, min_similarity = 0, min_similarity_small = 0 },
+]
+```
+
+Discovery must be enabled. With `preset = "balanced"`, it is enabled automatically and the protected pass keeps
+both TF-IDF exploration and the operation-block route. Explicit comparer lists remain explicit. The
+[complete example](../examples/residual-discovery.toml) uses the otherwise unchanged balanced preset and $0.04
+total allowance. All judges still require adopter-owned credentials; without a judge this only lists candidates.
+
+Detection completes the original candidate array, including filters, comparer identities and advisory relatives,
+before appending deduplicated residual candidates. Judging runs the complete configured protected pass first.
+Only then can its unattempted deferred exploration and the appended candidates use the remaining dollars, in the
+existing query-fair order. Floor and depth are ordinary TF-IDF configuration, not a new comparer. A zero floor
+still searches the sparse index's retained postings; it does not enumerate every unrelated pair.
+
+Native admission computes residual room inside the existing SQLite reservation transaction. It bypasses the
+paced exploration credit and the fractional lifetime exploration dollar/call reserves. It retains prior spending,
+all attempts, conservative holds, actual-usage settlement, the total dollar/call caps, per-revision call limits,
+exploration calls per revision and `max_judgements`. Residual settlements do not refill protected credit. Exact
+source, context and judge identity still govern verdict reuse; scheduling metadata does not change the question.
+Repeating a revision cannot retry failed or abandoned attempts or mint capacity. A later revision may retry
+within the same remaining allowance. Unresolved baseline work bars recovery. Failed or unfinished attempts on
+the current revision also bar residual reservations, including attempts owned by another process. These barriers
+are deliberately conservative; in-flight work can be revisited after settlement, but an abandoned hold is retained.
+
+This borrows capacity reserved for **future baseline evidence**. It preserves the current protected pass's
+admissions, not future-push coverage. Later pushes may have less money and fewer calls, including when the option
+is subsequently disabled. Concurrent processes share atomic accounting; they must use the same complete source
+inventory and policy for a meaningful protected-prefix comparison. Persistent storage is still required.
+
+This option supports single-judge native campaigns (`check` and split `detect`/`judge`). Ordinary estimated
+admission, scans and sweeps do not implement this policy and reject residual judging without a campaign. Scheduled
+escalation remains unsupported. Candidate/report schema 14 records `residual`; campaign schema 2 records residual
+attempts. Older records load with `residual = false`. Upgrade all producers and workers together before enabling
+it; older workers do not understand the phase marker.
+
+No default profile is changed. The implementation has been tested against the complete balanced prefix at
+matched budgets, but promotion is held on **report quality**. TF-IDF-only ablations, additional emitted pairs and
+preservation tests do not establish independent useful-family gains or acceptance.
+
+### Measured residual behavior
+
+A provider-free replay on product base `2aab042c256141383c7c731b7ba6097dd2db53b3` compared the unchanged
+balanced pass (including operation blocks) with protected balanced followed by zero-floor TF-IDF depth 100.
+Both arms used the same $0.04 native campaign cap on each of 12 frozen historical cases. Actual `Detector`,
+`Judging` and `CampaignStore` ran in separate processes; a recorded-answer judge supplied independently audited
+exact-question responses and their original token usage. No new provider calls were made.
+
+| Native campaign comparison | Preserved report occurrences | Lost | Added | Control logical dollars | Residual logical dollars |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 11 complete paired campaigns | 24 | 0 | 10 | $0.0382533 | $0.0969322 |
+| Remaining campaign, known prefix only | 2 | 0 | 2 | $0.0035410 | $0.0140067 |
+
+An occurrence is one reported pair in one campaign, not an independently useful operation or family. All 12
+protected candidate passes, admitted attempts and charges were preserved exactly. Each individual campaign
+stayed below $0.04; table costs sum separate campaigns. One treatment reached a previously failed question
+without a reusable successful answer. Its $0.0060248 conservative hold remains charged, with no retry; its
+known-prefix report is reconstructed and does not establish a completed campaign result.
+
+The independent actual-rationale audit, reproduced by the coordinator, classifies the 12 added occurrences as
+**3 useful, 6 nonuseful and 3 disputed** (11 unique pairs: 3 useful, 6 nonuseful, 2 disputed). In the 11 complete
+campaigns, the 10 additions comprise 3 useful, 5 nonuseful and 2 disputed. All three confirmed claims occur in
+`gigaverse-app/gigaverse-ai`; the required two-repository adoption bar is not met. Several other reports name
+tiny guards or already-shared operations even when a different useful fragment exists elsewhere in the pair.
+Seven source-useful pair exposures therefore do not mean seven useful reports. Disputed claims receive no
+confirmed usefulness credit. This is an outcome audit against frozen judgments, not an expanded gold dataset.
+
+A bounded ownership review of four baseline findings and the three confirmed additions in two campaigns found
+one new useful campaign family claim, one new owner in an existing family, and one redundant alternate pair.
+The first claim also adds an owner while retaining the already-exposed one, so the first two claims add two
+independent owner memberships in total. All occur in AI; none is a globally new family in the frozen source
+history. This review did not expand the gold dataset or inspect other campaigns.
+
+The [public replay scripts and fixture instructions](../examples/research/residual-budget/README.md) use the
+private `residual-native-replay-v1` dataset, pinned to corpus merge
+`f14564f05f1541bc1ee8557b099253d82e7fa70f`. No private source or answers are included in the product example.
+
+The implementation remains a draft: budget and candidate preservation passed, while report quality prevents
+promotion. This measurement uses the original judge; a separate grounded-policy experiment has not changed
+these results or this implementation. The frozen single-revision traces agree with the research native replay,
+but the product has stricter barriers after
+deferred baseline work or failed/in-flight attempts and does not reset protected pacing credit. Normal estimated
+admission was not implemented or evaluated. This measurement does not establish future-push preservation,
+general policy equivalence, or product acceptance.
+
 ## Fix or dismiss a finding
 
 Balanced checks save their latest report at `git rev-parse --git-path dry-lint/last-report.json`, independently

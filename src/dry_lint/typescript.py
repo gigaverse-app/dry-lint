@@ -9,6 +9,7 @@ from collections.abc import Iterator
 import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
+from dry_lint.extractors import local_calls
 from dry_lint.functions import words
 from dry_lint.models import Function, LanguageAnalysis, module_of, qualified
 from dry_lint.source_context import SourceContext
@@ -291,6 +292,7 @@ class TypeScriptExtractor:
         context_digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
         bases = Bases(root, path)
         found = []
+        classes: set[str] = set()
 
         def add(node: Node, code: Node, name: str, owner: str | None, inherits: tuple[str, ...]) -> None:
             body = node.child_by_field_name("body")
@@ -366,10 +368,17 @@ class TypeScriptExtractor:
             if node.type in {"class_declaration", "abstract_class_declaration", "internal_module"}:
                 if name_node is not None:
                     owner = ".".join(part for part in (owner, text(name_node)) if part)
+                    if node.type != "internal_module":
+                        classes.add(owner)
             for child in node.named_children:
                 visit(child, owner, inherits)
 
         visit(root)
+        # Only class methods bind `this` to their owner; object-literal fields and bare calls stay unresolved.
+        defined = {qualified(function.owner, function.name) for function in found}
+        for function in found:
+            if function.owner in classes and function.analysis is not None:
+                function.analysis.local_calls = local_calls(path, function, defined, ("this",))
         return found
 
     preserve_types = False  # Declaration extractors retain type syntax in the shared hashing path.
