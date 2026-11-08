@@ -1,0 +1,15 @@
+[
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/vector-expansion/round1/be0cf58ba612e226-9a335b7dc1e9/completed.jsonl",
+    "sha256": "25970d95b8af781d4083b864143555b77e9d99072fab1a8b39d139c99b9223bb"
+  },
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-operations/intakes/vector-expansion/round2/b4916cfeb587bfca-4cbb628cfd97/completed.jsonl",
+    "sha256": "39c41b352e393c23603c378554e20485cec3faad32e99ab38bb0cfcf42368709"
+  },
+  {
+    "path": "jobs/judge-operations/.lab-results/promotion-evidence-v3/vector-expansion-completed.jsonl",
+    "sha256": "2531ed0be1be50de2df3c982c530cee9c92878c6d3ffbdf0f92f62627c87035a",
+    "purpose": "six separately attributed current-phase round1 pairs"
+  }
+]

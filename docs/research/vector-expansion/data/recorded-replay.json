@@ -1,0 +1,168 @@
+{
+  "limits": "Replays final answers and fixed admission records; does not refit whole-corpus retrieval or independently prove source truth. Primary feed costs exclude separately attributed current-phase usage. Jev and Claude remain separate.",
+  "policy_counts": [
+    {
+      "added": 0,
+      "baseline": 0,
+      "kind": "claude",
+      "lost": 0,
+      "profile": "protected_default",
+      "role": "control",
+      "round": 1,
+      "unknown": 0,
+      "variant": 0
+    },
+    {
+      "added": 0,
+      "baseline": 0,
+      "kind": "claude",
+      "lost": 0,
+      "profile": "protected_default",
+      "role": "novel",
+      "round": 1,
+      "unknown": 28,
+      "variant": 0
+    },
+    {
+      "added": 0,
+      "baseline": 0,
+      "kind": "jev",
+      "lost": 0,
+      "profile": "protected_default",
+      "role": "control",
+      "round": 1,
+      "unknown": 0,
+      "variant": 0
+    },
+    {
+      "added": 0,
+      "baseline": 0,
+      "kind": "jev",
+      "lost": 0,
+      "profile": "protected_default",
+      "role": "novel",
+      "round": 1,
+      "unknown": 28,
+      "variant": 0
+    },
+    {
+      "added": 0,
+      "baseline": 2,
+      "kind": "claude",
+      "lost": 0,
+      "profile": "protected_default",
+      "role": "control",
+      "round": 2,
+      "unknown": 0,
+      "variant": 2
+    },
+    {
+      "added": 1,
+      "baseline": 0,
+      "kind": "claude",
+      "lost": 0,
+      "profile": "protected_default",
+      "role": "novel",
+      "round": 2,
+      "unknown": 19,
+      "variant": 1
+    },
+    {
+      "added": 0,
+      "baseline": 2,
+      "kind": "jev",
+      "lost": 0,
+      "profile": "protected_default",
+      "role": "control",
+      "round": 2,
+      "unknown": 0,
+      "variant": 2
+    },
+    {
+      "added": 5,
+      "baseline": 0,
+      "kind": "jev",
+      "lost": 0,
+      "profile": "protected_default",
+      "role": "novel",
+      "round": 2,
+      "unknown": 19,
+      "variant": 5
+    }
+  ],
+  "primary_feeds": [
+    {
+      "primary_feed_actual_usd": "0.17328328",
+      "requests_in_primary_feed": 128,
+      "round": 1,
+      "successful": 72,
+      "unknown": 56
+    },
+    {
+      "primary_feed_actual_usd": "0.20732188",
+      "requests_in_primary_feed": 126,
+      "round": 2,
+      "successful": 88,
+      "unknown": 38
+    }
+  ],
+  "selected_answers": [
+    {
+      "id": "VEC-R2-006",
+      "kind": "jev",
+      "label": "separate",
+      "reportable": false,
+      "score": 0.33
+    },
+    {
+      "id": "VEC-R2-006",
+      "kind": "claude",
+      "label": "separate",
+      "reportable": false,
+      "score": 0.03
+    },
+    {
+      "id": "VEC-R2-017",
+      "kind": "jev",
+      "label": "separate",
+      "reportable": false,
+      "score": 0.22
+    },
+    {
+      "id": "VEC-R2-017",
+      "kind": "claude",
+      "label": "duplicate",
+      "reportable": false,
+      "score": 0.55
+    },
+    {
+      "id": "VEC-R2-040",
+      "kind": "jev",
+      "label": "duplicate",
+      "reportable": true,
+      "score": 0.98
+    },
+    {
+      "id": "VEC-R2-040",
+      "kind": "claude",
+      "label": "duplicate",
+      "reportable": true,
+      "score": 0.85
+    },
+    {
+      "id": "VEC-R2-042",
+      "kind": "jev",
+      "label": "drifted",
+      "reportable": true,
+      "score": 0.96
+    },
+    {
+      "id": "VEC-R2-042",
+      "kind": "claude",
+      "label": "duplicate",
+      "reportable": true,
+      "score": 0.9
+    }
+  ],
+  "selected_raw_answers_reparsed": 8
+}

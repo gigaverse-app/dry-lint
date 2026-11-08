@@ -1,0 +1,51 @@
+[
+  {
+    "origin": "jobs/experiment-vector-expansion/.lab-results/conclusion/DECISION.md",
+    "original_sha256": "2abaef4f0db9206de9007124f2d2551e90cf48082579b0968fb34716c1695a33",
+    "published": "data/evidence/DECISION.md",
+    "published_sha256": "2abaef4f0db9206de9007124f2d2551e90cf48082579b0968fb34716c1695a33",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-vector-expansion/.lab-results/conclusion/FINAL-METRICS.json",
+    "original_sha256": "7d229f9ecd5eac78fbf966dfedf8741e2db06e8b2b3dbcfd1965d92160eaa07b",
+    "published": "data/evidence/FINAL-METRICS.json",
+    "published_sha256": "7d229f9ecd5eac78fbf966dfedf8741e2db06e8b2b3dbcfd1965d92160eaa07b",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-vector-expansion/.lab-results/conclusion/CLAIM-EVIDENCE.json",
+    "original_sha256": "f67e55590694a29b8bcf891b057b6758ce492d656abd89f5b4cd56d3a5ef106b",
+    "published": "data/evidence/CLAIM-EVIDENCE.json",
+    "published_sha256": "f67e55590694a29b8bcf891b057b6758ce492d656abd89f5b4cd56d3a5ef106b",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-vector-expansion/.lab-results/conclusion/SOURCE-D-RECEIPT.json",
+    "original_sha256": "bc4acc6e7c99208ee6da179d8f826f7d49039a3c3219aacf5a93533dd153ab99",
+    "published": "data/evidence/SOURCE-D-RECEIPT.json",
+    "published_sha256": "bc4acc6e7c99208ee6da179d8f826f7d49039a3c3219aacf5a93533dd153ab99",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/research-evidence-publication/docs/research/funded-recall/context/reproduction/licenses/OpenHands--software-agent-sdk.txt",
+    "original_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "published": "licenses/OpenHands--software-agent-sdk.txt",
+    "published_sha256": "08c3754ef9561e49367dc94c11c952b6951d3543bc27c0ad9d8d4c5943a2057b",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/research-evidence-publication/docs/research/funded-recall/context/reproduction/licenses/anomalyco--opencode.txt",
+    "original_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+    "published": "licenses/anomalyco--opencode.txt",
+    "published_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+    "transformation": "none"
+  },
+  {
+    "origin": "jobs/experiment-vector-expansion/LICENSE",
+    "original_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "published": "licenses/dry-lint.txt",
+    "published_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "transformation": "none"
+  }
+]
