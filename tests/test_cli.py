@@ -136,6 +136,67 @@ def test_staged_check_sees_only_the_staged_change(repo: Repo, tmp_path: Path, ca
     assert "src/more.py:1: shorten_label looks like" in out and "caption.py:1:" not in out
 
 
+def hook_baseline(repo: Repo) -> list[str]:
+    """The hook's arguments as adopters configure it: the settings file's preset, with a committed baseline."""
+    from dry_lint.baseline import Baseline, contract
+
+    repo.write(".dry-lint.toml", 'preset = "jev"\n')
+    settings = settings_for(repo.root, parser().parse_args(["check", "--root", str(repo.root)]))
+    baseline = Baseline(contract=contract(settings), started_at="main", checked_at="main", entries=[])
+    repo.write(".dry-lint/baseline.json", baseline.model_dump_json())
+    repo.commit("adopt dry-lint")
+    return ["--staged", "--preset", "jev", "--baseline", ".dry-lint/baseline.json"]
+
+
+@pytest.mark.parametrize(
+    "stage",
+    [
+        {},  # `pre-commit run --all-files` in CI: a clean checkout stages nothing
+        {"README.md": "docs\n"},  # no supported source file
+        {"src/text.py": EXISTING + "\n# a comment, so no function changes\n"},  # source, but no changed function
+    ],
+    ids=["nothing", "no-source", "no-changed-function"],
+)
+def test_the_hook_passes_without_a_key_when_the_staged_change_has_nothing_to_judge(repo, tmp_path, capsys, stage):
+    args = hook_baseline(repo)
+    for path, source in stage.items():
+        repo.write(path, source)
+        repo.git("add", path)
+    assert run(repo, tmp_path, *args) == 0
+    captured = capsys.readouterr()
+    assert "judging: preset jev · no pair to judge, so no judge ran" in captured.out and not captured.err
+    assert not (tmp_path / "store").exists()
+
+
+def test_the_hook_still_requires_the_key_once_the_staged_change_has_a_pair_to_judge(repo, tmp_path, capsys) -> None:
+    args = hook_baseline(repo)
+    repo.write("src/more.py", TWIN_SOURCE)
+    repo.git("add", "src/more.py")
+    assert run(repo, tmp_path, *args) == 2
+    assert capsys.readouterr().err.strip() == "dry-lint: The Jev judge needs TYPESAFE_AI_API_KEY"
+
+
+def test_ci_still_requires_the_key_when_its_change_has_nothing_to_judge(repo, tmp_path, capsys) -> None:
+    # A missing or misnamed secret must turn the adoption pull request's check red, though it changes no function.
+    args = hook_baseline(repo)
+    assert run(repo, tmp_path, *[a for a in args if a != "--staged"], "--base", "HEAD~1") == 2
+    assert "needs TYPESAFE_AI_API_KEY" in capsys.readouterr().err
+
+
+def test_an_idle_hook_run_still_credits_a_pair_the_agent_removed(repo, tmp_path, blocking_twin_judge) -> None:
+    from dry_lint.commits import Journal
+
+    repo.write("src/more.py", TWIN_SOURCE)
+    repo.git("add", "src/more.py")
+    assert run(repo, tmp_path, "--staged", "--judge", "command", "--judge-command", blocking_twin_judge) == 1
+    assert Journal.load(repo.root).blocked
+    repo.write("src/more.py", "from src.text import shorten_text as preview_caption_text\n")
+    repo.git("add", "src/more.py")
+    assert run(repo, tmp_path, "--staged", "--preset", "jev") == 0  # no key, and none needed
+    journal = Journal.load(repo.root)
+    assert not journal.blocked and {pair.state for pair in journal.pending.values()} == {"kept-out"}
+
+
 def test_staged_judging_reads_index_even_when_working_copy_was_repaired(repo, tmp_path, blocking_twin_judge, capsys):
     repo.write("src/more.py", TWIN_SOURCE)
     repo.git("add", "src/more.py")
