@@ -1,0 +1,5 @@
+dependencies:
+  - inputs:
+      - "//src/dry_lint/model_shapes.py"
+    kind: import
+    reason: "Loaded or run outside the test's imports; recorded by pytest-selective audit --write-declarations."

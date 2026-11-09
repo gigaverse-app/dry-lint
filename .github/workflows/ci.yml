@@ -13,8 +13,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Plans whole lanes before any runner starts: a change that cannot affect a lane's inputs does not start its jobs,
-  # so a documentation-only pull request runs only the lint jobs and the gate. See .github/test-lanes.json.
+  # Plans whole lanes before any runner starts: each lane is the name a job's condition reads, and a change selects it
+  # through the tests, scripts and actions that job runs, so a documentation-only pull request runs only the lint
+  # jobs and the gate. `ci-esta lanes` shows the lanes and why; .github/test-lanes.json adds the one rule the graphs
+  # cannot see.
   select-tests:
     name: Select tests
     runs-on: ubuntu-latest
@@ -25,7 +27,7 @@ jobs:
         with:
           fetch-depth: 0
       - id: plan
-        uses: gigaverse-app/pytest-selective/actions/plan-lanes@v1
+        uses: gigaverse-app/ci-esta/actions/plan-work@v1
         with:
           config: .github/test-lanes.json
       # dry-lint on itself has no pull request to judge in a manual run, and every push to main folds the ledger.
@@ -173,11 +175,11 @@ jobs:
             examples/dry-lint-bootstrap.yml
           head-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: shellcheck scripts/install-action.sh
-      # Each lane-gated job's condition, the gate's lane-jobs and .github/test-lanes.json must agree.
+      # Each lane-gated job's condition, the gate's lane-jobs and the lanes the workflow defines must agree.
       - uses: astral-sh/setup-uv@v7
       - name: Check the lane wiring
         run: >-
-          uvx --python 3.13 --from "ci-esta[selection]>=1.1.0,<2.0.0"
+          uvx --python 3.13 --from "ci-esta[selection]>=1.11.0,<2.0.0"
           ci-esta check-workflow --workflow .github/workflows/ci.yml --lanes .github/test-lanes.json
 
   dogfood:

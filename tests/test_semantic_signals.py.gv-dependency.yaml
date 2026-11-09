@@ -1,0 +1,6 @@
+dependencies:
+  - inputs:
+      - "//scripts/benchmark_semantic_signals.py"
+      - "//scripts/semantic_signals.py"
+    kind: import
+    reason: "Loaded or run outside the test's imports; recorded by pytest-selective audit --write-declarations."

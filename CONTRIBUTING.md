@@ -26,12 +26,17 @@ Windows. The ordinary pytest suite stays offline.
   fail. Run it with `uv sync --group quint` then `uv run pytest -c contracts/quint.ini contracts --quint-require-complete`
   (needs Node.js 22+). After editing the model, run `uv run pytest-quint-connect codegen contracts/campaign/quint-connect.json`
   and commit the regenerated driver base. Change the model only when the ledger's intended rules change.
-- **CI runs only what a change can affect.** [pytest-selective](https://github.com/gigaverse-app/pytest-selective)
-  plans whole lanes from [.github/test-lanes.json](.github/test-lanes.json) before any runner starts: `tests`,
-  `counter`, `viewer`, `contracts`, `package` (consumer installs) and `dogfood`. A documentation-only pull request runs the
-  workflow lint and the required `Validation gate`, and no tests. A lane's inputs are the files its jobs execute
-  or read; when a test starts reading a new non-Python file, add it there. Lockfiles, `pyproject.toml` and the
-  lane file run every lane; manual runs and pull requests labelled `test:full` run everything. The gate accepts a
+- **CI runs only what a change can affect.** [CI-esta](https://github.com/gigaverse-app/ci-esta)'s `plan-work`
+  plans whole lanes before any runner starts: `tests`, `counter`, `viewer`, `contracts`, `package` (consumer
+  installs) and `dogfood`, the names the jobs' conditions read. A change selects a lane through what its jobs run:
+  the tests that import it ([pytest-selective](https://github.com/gigaverse-app/pytest-selective) for Python, Bun's
+  module graph for `counter` and `viewer`), and the scripts and actions the job executes. A documentation-only
+  pull request runs the workflow lint and the required `Validation gate`, and no tests. When a test or a script
+  starts reading a file by path, declare it next to the reader (a `<test>.gv-dependency.yaml` sidecar, which
+  `pytest-selective audit --write-declarations` writes, or a `# gv:test-dependency: PATH` comment); `ci-esta lanes
+  --base origin/main` shows what a change would run and why. [.github/test-lanes.json](.github/test-lanes.json)
+  holds the one rule the graphs cannot see: `dogfood` judges every changed source file. Lockfiles and
+  `pyproject.toml` run every lane; manual runs and pull requests labelled `test:full` run everything. The gate accepts a
   skipped job only when the plan succeeded and said its lane was unaffected, and `ci-esta check-workflow` in
   `lint-ci` keeps the job conditions, the gate and the lane file in agreement. The optional Dryer comparer runs in
   its own `dryer.yml` workflow, outside the gate.
