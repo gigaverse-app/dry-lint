@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.1](https://github.com/gigaverse-app/dry-lint/compare/v1.9.0...v1.9.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* **accounting:** verify source removal before retiring baseline debt ([46ce402](https://github.com/gigaverse-app/dry-lint/commit/46ce4026354a2f43e226104654738340f4e56694))
+* **baseline:** preserve debt and schema compatibility during migration ([c58c739](https://github.com/gigaverse-app/dry-lint/commit/c58c7394ea87995d0303ed1e6e6141b81d76d888))
+* **baseline:** preserve migration evidence and verify cleanup ([f4790d8](https://github.com/gigaverse-app/dry-lint/commit/f4790d83e54c5cc782153f8f81a85435cd7c3ab3))
+* preserve baseline ownership and update regression contracts ([2c89837](https://github.com/gigaverse-app/dry-lint/commit/2c89837cb96d94130a4ae098a924c48f267c4a7f))
+* use balanced function review and report cleanup honestly ([6acb9cc](https://github.com/gigaverse-app/dry-lint/commit/6acb9cc44770feca663cc69982e8e8da0be18300))
+* use balanced function review and stop crediting missing findings as cleanup ([b199bd3](https://github.com/gigaverse-app/dry-lint/commit/b199bd39e70dcbf0d7bd0ea10ab2b50c5a5d06ef))
+
 ## [1.9.0](https://github.com/gigaverse-app/dry-lint/compare/v1.8.1...v1.9.0) (2026-11-09)
 
 
