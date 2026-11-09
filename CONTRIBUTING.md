@@ -33,7 +33,11 @@ Windows. The ordinary pytest suite stays offline.
   module graph for `counter` and `viewer`), and the scripts and actions the job executes. A documentation-only
   pull request runs the workflow lint and the required `Validation gate`, and no tests. When a test or a script
   starts reading a file by path, declare it next to the reader (a `<test>.gv-dependency.yaml` sidecar, which
-  `pytest-selective audit --write-declarations` writes, or a `# gv:test-dependency: PATH` comment); `ci-esta lanes
+  `pytest-selective audit --write-declarations` writes, a scoped `.gv-dependencies.yaml` shared rule,
+  or a `# gv:test-dependency: PATH` comment). `tests/.gv-dependencies.yaml` owns the repeated extractor
+  imports: add a reader to the matching rule instead of copying the module list. Keep script-specific
+  inputs scoped to their actual readers and preserve `content` versus `import`; a broad test glob would
+  silently add dependencies to unrelated tests. `ci-esta lanes
   --base origin/main` shows what a change would run and why. [.github/test-lanes.json](.github/test-lanes.json)
   holds the one rule the graphs cannot see: `dogfood` judges every changed source file. Lockfiles and
   `pyproject.toml` run every lane; manual runs and pull requests labelled `test:full` run everything. The gate accepts a

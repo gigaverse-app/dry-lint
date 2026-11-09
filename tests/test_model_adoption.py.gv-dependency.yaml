@@ -1,8 +1,0 @@
-dependencies:
-  - inputs:
-      - "//src/dry_lint/extractors.py"
-      - "//src/dry_lint/model_shapes.py"
-      - "//src/dry_lint/source_context.py"
-      - "//src/dry_lint/typescript.py"
-    kind: import
-    reason: "Loaded or run outside the test's imports; recorded by pytest-selective audit --write-declarations."
