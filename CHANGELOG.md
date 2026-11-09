@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1](https://github.com/gigaverse-app/dry-lint/compare/v1.8.0...v1.8.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* agent setup round 3, from a third adoption trial ([#159](https://github.com/gigaverse-app/dry-lint/issues/159)) ([df09e2a](https://github.com/gigaverse-app/dry-lint/commit/df09e2ac62ecfecfcfa112717cedde37706fcfe8))
+* **discovery:** settle a reservation once; lock the campaign ledger with a Quint contract ([#157](https://github.com/gigaverse-app/dry-lint/issues/157)) ([5ee2f75](https://github.com/gigaverse-app/dry-lint/commit/5ee2f75dd13584cd412f40d46c504310ba0a21e3))
+
 ## [1.8.0](https://github.com/gigaverse-app/dry-lint/compare/v1.7.1...v1.8.0) (2026-11-08)
 
 
