@@ -13,7 +13,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: release
+  # Renamed from `release`: run 42670159293 is wedged in "waiting" on the pypi environment with nothing to approve,
+  # GitHub refuses to cancel it, and it holds its group forever. A new name lets later runs start.
+  group: release-publish
   cancel-in-progress: false
 
 jobs:
@@ -91,6 +93,9 @@ jobs:
 
   publish:
     needs: build
+    # Without this, the default success() also requires release-please, which a republish dispatch skips,
+    # so publish was skipped too and a tag missing from PyPI could never be republished.
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: pypi
