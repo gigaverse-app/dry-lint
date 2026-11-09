@@ -176,6 +176,17 @@ def test_the_hook_still_requires_the_key_once_the_staged_change_has_a_pair_to_ju
     assert capsys.readouterr().err.strip() == "dry-lint: The Jev judge needs TYPESAFE_AI_API_KEY"
 
 
+@pytest.mark.parametrize("staged", [True, False], ids=["hook", "ci"])
+def test_a_missing_baseline_says_how_to_create_it_rather_than_a_git_error(repo, tmp_path, capsys, staged) -> None:
+    # During adoption the hook and the check can run before the backlog is accepted, with nothing staged.
+    args = ["--preset", "jev", "--baseline", ".dry-lint/baseline.json"]
+    assert run(repo, tmp_path, *args, *(["--staged"] if staged else ["--base", "main"])) == 2
+    assert capsys.readouterr().err.strip() == (
+        "dry-lint: No baseline at .dry-lint/baseline.json. Accept the existing backlog once with "
+        "`dry-lint sweep --init` (it needs a judge key; docs/sweeps.md) or the bootstrap workflow, and commit it"
+    )
+
+
 def test_ci_still_requires_the_key_when_its_change_has_nothing_to_judge(repo, tmp_path, capsys) -> None:
     # A missing or misnamed secret must turn the adoption pull request's check red, though it changes no function.
     args = hook_baseline(repo)

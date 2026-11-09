@@ -34,7 +34,7 @@ from pathlib import Path
 import httpx
 
 from dry_lint import __version__, model_review, schema_policy
-from dry_lint.baseline import Baseline, readme_key, require_complete, update_readme
+from dry_lint.baseline import Baseline, missing, readme_key, require_complete, update_readme
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.commits import Journal, append_trailers, staged_files, summary
 from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
@@ -413,10 +413,7 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if args.init and path.exists():
         raise ValueError("Baseline already exists; rerun sweep without --init to ratchet it")
     if not args.init and not path.exists():
-        raise ValueError(
-            f"No baseline at {path.relative_to(root).as_posix()}. Accept the existing backlog once with "
-            "`dry-lint sweep --init` (it needs a judge key; docs/sweeps.md), or pass --baseline PATH"
-        )
+        raise ValueError(f"{missing(path.relative_to(root).as_posix())}, or pass --baseline PATH")
     baseline = None if args.init else Baseline.read(path, settings)
     detector, _ = detector_for(root, settings, args)
     candidates = baseline.candidates(detector) if baseline else detector.candidates(detector.functions)

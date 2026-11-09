@@ -44,6 +44,14 @@ def contract(settings: Settings) -> str:
     return digest(policy)
 
 
+def missing(relative: str) -> str:
+    """What every command that needs the baseline says before it exists, and how to create it."""
+    return (
+        f"No baseline at {relative}. Accept the existing backlog once with `dry-lint sweep --init` "
+        "(it needs a judge key; docs/sweeps.md) or the bootstrap workflow, and commit it"
+    )
+
+
 class Entry(BaseModel):
     """One original accepted pair, with its immutable evidence and current outcome."""
 
@@ -135,6 +143,9 @@ class Baseline(BaseModel):
     ) -> tuple["Baseline", "Baseline | None"]:
         """Read proposed allowances and enforce the target branch's immutable pair set."""
         relative = (root / path).resolve().relative_to(root.resolve()).as_posix()
+        if not (git(root, "ls-files", "--", relative) if staged else (root / path).is_file()):
+            # The hook during adoption, before the backlog is accepted: say so, rather than a Git or OS error.
+            raise ValueError(missing(relative))
         raw = git(root, "show", f":{relative}") if staged else (root / path).read_text(encoding="utf-8")
         proposed = cls.model_validate_json(raw).with_policy(settings) if migrate_policy else cls.parse(raw, settings)
         previous = None
