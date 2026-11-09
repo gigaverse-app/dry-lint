@@ -17,7 +17,7 @@ on:
         type: string
         default: '5'
       plugins:
-        description: Extra judge packages, for example anthropic==2.4.0 for a Claude preset.
+        description: Extra judge packages, one per line. The Action already installs the Anthropic SDK for Claude presets.
         type: string
         default: ''
     secrets:

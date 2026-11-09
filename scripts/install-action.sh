@@ -4,8 +4,9 @@ set -eo pipefail
 # Ignore the caller's uv configuration; publishers and consumers share our locked extraction versions.
 uv venv --quiet --no-config --allow-existing --python "${DRY_LINT_PYTHON_VERSION:-3.13}" "$RUNNER_TEMP/dry-lint-venv"
 locked="$RUNNER_TEMP/dry-lint-requirements.txt"
+# The anthropic extra too: balanced, the recommended preset, judges with the Anthropic SDK, at its locked version.
 uv export --quiet --no-config --project "$GITHUB_ACTION_PATH" --frozen --no-dev --no-emit-project --no-hashes \
-  -o "$locked"
+  --extra anthropic -o "$locked"
 # Bash 3.2 (macOS) has no mapfile. Accept pasted Windows line endings and blank lines too.
 extra=()
 while IFS= read -r package; do

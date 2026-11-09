@@ -4,3 +4,8 @@ dependencies:
       - "//scripts/install-action.sh"
     kind: content
     reason: "Read at runtime to check the action installs through the shipped script."
+  - inputs:
+      - "//pyproject.toml"
+      - "//uv.lock"
+    kind: content
+    reason: "The shipped uv export reads the project's extras and lock to list what the Action installs."

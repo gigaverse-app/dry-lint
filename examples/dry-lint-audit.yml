@@ -13,8 +13,8 @@ jobs:
     uses: gigaverse-app/dry-lint/.github/workflows/audit.yml@v1
     # with:
     #   python-version: '3.14'      # the newest syntax your code uses (default 3.13)
-    #   budget-usd: '5'             # for a Claude preset (default 1, ample for Jev)
-    #   plugins: anthropic==2.4.0   # for a Claude preset
+    #   budget-usd: '1'             # ample for a Jev preset (default 5, for a Claude preset such as balanced)
+    #   plugins: my-judge-plugin    # extra judge packages; the Anthropic SDK for Claude presets is already installed
     secrets:
       # The same judge as dry-lint.yml: your TypeSafe key's secret, under whatever name you gave it.
       TYPESAFE_AI_API_KEY: ${{ secrets.TYPESAFE_AI_API_KEY }}

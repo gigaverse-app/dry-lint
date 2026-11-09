@@ -74,13 +74,14 @@ class ConsumerInstallTests(unittest.TestCase):
                 versions = {
                     p["name"]: p["version"]
                     for p in lock["package"]
-                    if p["name"] in {"pydantic", "tree-sitter", "tree-sitter-typescript"}
+                    # anthropic: the recommended balanced preset's judge, so it must work without `plugins:`.
+                    if p["name"] in {"pydantic", "tree-sitter", "tree-sitter-typescript", "anthropic"}
                 }
                 subprocess.run(
                     [
                         str(python),
                         "-c",
-                        "import sys, dry_lint; from importlib.metadata import version; "
+                        "import sys, anthropic, dry_lint; from importlib.metadata import version; "
                         f"assert sys.version_info[:2] == {tuple(map(int, requested_python.split('.')))!r}; "
                         f"assert all(version(k) == v for k, v in {versions!r}.items()); "
                         + (

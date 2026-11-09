@@ -180,7 +180,7 @@ In **both** Action calls set the same judge, parser and these inputs:
 
 ```yaml
 typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}   # your secret's name
-# anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}  # and plugins: anthropic==2.4.0, for a Claude preset
+# anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}  # for a Claude preset; the Action ships the SDK
 baseline: .dry-lint/baseline.json
 require-complete: 'true'
 comment: 'true'
