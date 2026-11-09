@@ -34,8 +34,9 @@ Run these and note the answers. Every later step uses them.
 REPO=OWNER/NAME     # the repository you will open the pull request in: check `git remote -v`; in a fork, the fork
 gh repo view "$REPO" --json defaultBranchRef,visibility -q '"\(.defaultBranchRef.name) \(.visibility)"'
 grep -rhE '^\s*-?\s*uses:' .github/workflows 2>/dev/null | sort | uniq -c    # how actions are pinned
-ls AGENTS.md CLAUDE.md CONTRIBUTING* README* .pre-commit-config.yaml .dry-lint.toml .dry-lint/baseline.json 2>/dev/null
-git ls-files | grep -i pull_request_template                                 # the template, in any folder or case
+ls AGENTS.md CLAUDE.md README* .pre-commit-config.yaml .dry-lint.toml .dry-lint/baseline.json 2>/dev/null
+git ls-files | grep -iE 'contributing|pull_request_template'                 # in any folder (.github/, docs/) or case
+grep -n "rev:" .pre-commit-config.yaml 2>/dev/null                           # how hooks are pinned
 grep -n "tool.dry-lint" pyproject.toml 2>/dev/null; grep -rln "dry-lint" .github/workflows 2>/dev/null
 gh secret list --repo "$REPO"                                                # repository secrets
 gh api "repos/$REPO/actions/organization-secrets" --jq '.secrets[].name'     # organization secrets it can use
@@ -49,7 +50,10 @@ the wrong place.
 - **Default branch.** Use it wherever this file says `DEFAULT`. Do not assume `main`.
 - **One version of dry-lint.** Everything you add uses dry-lint 1.x: the CLI as `'dry-lint>=1,<2'` (here and in
   the bootstrap workflow), the Action as `gigaverse-app/dry-lint@v1`, the hook as `rev: v1`, and the example
-  workflows from the `v1` tag (the links below), so the examples match the CLI you installed.
+  workflows from the `v1` tag (the links below), so the examples match the CLI you installed. If the hooks
+  already in `.pre-commit-config.yaml` pin exact tags (`rev: v4.6.0`, not `rev: v4`), pin dry-lint's hook the
+  same way, to its latest release:
+  `gh release view --repo gigaverse-app/dry-lint --json tagName -q .tagName` (for example `rev: v1.8.1`).
 - **Pinning policy.** The repository's workflows decide, whatever this file's examples show:
   - For an action the repository already uses, copy its existing reference exactly, tag or SHA. If it uses
     `actions/setup-python@v6` and an example says `@v7`, write `@v6`.
@@ -71,11 +75,13 @@ the wrong place.
 ## 2. Look at the repository, no key needed
 
 ```bash
-uv tool install --no-config --python 3.13 'dry-lint>=1,<2'   # or: pipx install 'dry-lint>=1,<2'
+uv tool install --upgrade --no-config --python 3.13 'dry-lint>=1,<2'   # or: pipx install --force 'dry-lint>=1,<2'
+dry-lint --version                 # expected: dry-lint 1.8.1 or later
 dry-lint config                    # the scope: which folders' source files it reads
 dry-lint scan --judge none --limit 30
 ```
 
+`--upgrade` matters: without it, an older dry-lint already on the machine stays in place ("already installed").
 If the shell then says `dry-lint: command not found`, the tool folder is not on `PATH` yet: run
 `export PATH="$(uv tool dir --bin):$PATH"` (or `uv tool update-shell` and a new shell) and try again.
 
@@ -102,12 +108,22 @@ unless the repository already configures dry-lint in `pyproject.toml`.
 
 ```toml
 # .dry-lint.toml
-preset = "jev"                    # see the table below; CI, the hook and the baseline all use this one preset
-include = ["src/*"]               # the folders that ship: the package directories, not tests or docs
-exclude = ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"]   # setting exclude replaces the defaults
+# The preset: see the table below. CI, the hook and the baseline all use this one preset.
+preset = "jev"
+# The folders that ship: the package directories, not tests or docs.
+include = ["src/*"]
+# The defaults, restated: setting exclude replaces them, so keep them in the list.
+exclude = ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"]
 [budget]
-usd = 0.04                        # most judging one pull request may spend, across all its pushes
+# The most judging one pull request may spend, across all its pushes.
+usd = 0.04
 ```
+
+To leave out a folder inside an included one, such as vendored or generated code, add it to `exclude` after the
+defaults: `exclude = ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*", "src/pkg/_vendor/*"]`. Patterns are
+fnmatch over the repository-relative path, and `*` also matches `/`, so `src/pkg/_vendor/*` covers every file below
+it. Exclude wins over include. Without the four defaults the list would bring tests, migrations and scripts back
+into scope.
 
 | Keys the repository has | `preset` | `--budget-usd` for the one-off sweep |
 | --- | --- | --- |
@@ -239,7 +255,8 @@ In each one:
    `require-complete: 'true'`: both post the judged check, so both enforce the baseline. Keep `dry-lint.yml`'s job
    `name:` expression: it names a fork's unjudged job `dry-lint detect`, so it can never satisfy a required
    `dry-lint` check.
-4. Apply the pinning policy from step 1, and the parser version if it is not 3.13.
+4. Apply the pinning policy from step 1, and the parser version if it is not 3.13. The examples keep their
+   explanations on lines of their own, so a SHA pin's `# TAG` is the only comment after a `uses:`.
 5. Keep the triggers, permissions and concurrency as they are: the comments explain why. The README handling
    needs no edit: the audit, like the bootstrap, writes the progress block only when there is a `README.md`.
 
@@ -261,31 +278,42 @@ Expected: no output. (`uvx actionlint` does not work: the PyPI package is `actio
 Decide by the first rule that matches:
 
 1. The repository has `.pre-commit-config.yaml`: merge the block below into it, keeping every existing hook.
-2. It has no pre-commit config, but AGENTS.md or CONTRIBUTING invites new developer tooling or pre-commit: add the
-   file with the block below.
+2. It has no pre-commit config, but AGENTS.md or a CONTRIBUTING file (wherever step 1 found it, `.github/` or
+   `docs/` included) invites new developer tooling or pre-commit: add the file with the block below.
 3. Otherwise, including a repository with neither AGENTS.md nor CONTRIBUTING, or one whose README asks for no
    automated or tooling-only changes: add no hook file. Write `Hooks: skipped: <which of these applied>` in the
    report, and go to step 8.
 
 ```yaml
 default_install_hook_types: [pre-commit, prepare-commit-msg]
-default_stages: [pre-commit]       # other hooks must not also run at prepare-commit-msg
+# Other hooks must not also run at prepare-commit-msg.
+default_stages: [pre-commit]
 repos:
   - repo: https://github.com/gigaverse-app/dry-lint
+    # v1, or the latest v1.x.y tag when the other hooks pin exact tags (step 1).
     rev: v1
     hooks:
+      # The preset from .dry-lint.toml, with the baseline.
       - id: dry-lint
-        args: [--preset, jev, --baseline, .dry-lint/baseline.json]   # the preset from .dry-lint.toml
-      - id: dry-lint-trailers        # credits duplicates the hook kept out in the pull request's comment
+        args: [--preset, jev, --baseline, .dry-lint/baseline.json]
+      # Credits the duplicates the hook kept out in the pull request's comment.
+      - id: dry-lint-trailers
 ```
 
 - The hook defaults to the `agent` preset, so always pass the settings file's preset with the baseline.
 - It reads `TYPESAFE_AI_API_KEY` from the shell or an untracked `.env`; add `.env` to `.gitignore`.
-- `rev: v1` follows dry-lint's 1.x releases, but pre-commit caches the first install and warns that `v1` is a
-  mutable reference. To pick up a newer 1.x release: `pre-commit clean && pre-commit install --install-hooks`.
-  If the repository pins hooks to exact tags, use the latest `v1.x.y` tag and `pre-commit autoupdate` instead.
-- Put the install command, `pre-commit install`, where contributors set up: CONTRIBUTING, or the README's
-  development section if there is no CONTRIBUTING.
+- It needs the key only when the staged change has a pair to judge. With nothing staged, no supported source
+  file staged, or no look-alike, it passes and prints `no pair to judge, so no judge ran`. So
+  `pre-commit run --all-files` in a tox or nox lint session, a CI lint job or pre-commit.ci passes without a key,
+  because a clean checkout stages nothing: add no `SKIP=dry-lint`, `ci: skip` or key there. The required `dry-lint`
+  check judges pull requests. A contributor's commit whose staged code has a look-alike still needs the key, and
+  fails without it.
+- With `rev: v1`, pre-commit caches the first install and warns that `v1` is a mutable reference. To pick up a
+  newer 1.x release: `pre-commit clean && pre-commit install --install-hooks`. With an exact tag, run
+  `pre-commit autoupdate --repo https://github.com/gigaverse-app/dry-lint` instead.
+- Put the install command, `pre-commit install`, where contributors already read how to set up: the CONTRIBUTING
+  file step 1 found, wherever it lives (`.github/CONTRIBUTING.md`, `docs/contributing.rst`), in its format; the
+  README's development section only if there is none. Do not add a second CONTRIBUTING at the root.
 
 Check it: `uvx pre-commit validate-config` prints nothing and exits 0.
 
@@ -315,6 +343,11 @@ Expected: a green `dry-lint` check and a sticky comment from dry-lint (with 0 ch
 run). The comment counts only the pushes dry-lint checked, so a push before `dry-lint.yml` existed is not in its
 history. A red check on the adoption pull request means the key's secret is missing or misnamed, or the baseline
 and settings disagree; read its log.
+
+Other checks may fail for reasons outside this change, most often in a fork: an upstream workflow that requires a
+pull request label ("Require PR label", a changelog label) fails because the fork has none of upstream's labels,
+and deploy or publish jobs lack upstream's secrets. Do not create labels, edit those workflows or rerun them to
+make them pass. Name each under "Left for you" in the report, with the check and the reason.
 
 ## 9. Prove it catches a copy
 
@@ -357,6 +390,10 @@ function to keep: the judge picks the side it thinks should own the code, often 
 
 ## 10. Stop for the human
 
+Keep the adoption pull request a draft until its `dry-lint` check is green and the probe proved red, then mark it
+ready for review: `gh pr ready PR_NUMBER --repo "$REPO"`. If either is missing, for example because there is no key
+yet, leave it a draft and say why in the report.
+
 Tell the human exactly what is left. These need repository admin rights or secrets, so you do not do them:
 
 1. **Judge secret** (only if step 1 found none): add a repository or organization secret holding a TypeSafe API key
@@ -377,9 +414,9 @@ dry-lint adoption: <PR URL>
 Preset: <preset> (secret <KEY_SECRET>); scope: include <...>, <N> source files
 Baseline: <N> accepted pairs (<route: local | CI run URL>, $<cost>)
 Patterns: <each members list and reason>, each verified with dry-lint explain
-Checks: adoption PR dry-lint <green/red>; probe PR <URL> red at <score> against <pair>, closed
+Checks: adoption PR dry-lint <green/red>, <ready | draft: why>; probe PR <URL> red at <score> against <pair>, closed
 Hooks: <added and validated | skipped: which step 7 rule applied>
-Left for you: <required check ruleset> <secret, if missing> <DRY_LINT_RATCHET_TOKEN>
+Left for you: <required check ruleset> <secret, if missing> <DRY_LINT_RATCHET_TOKEN> <other failing checks: which, why>
 Not verified: <anything you could not run, with the command and error>; the judge and audit workflows (run
   only from DEFAULT)
 ```

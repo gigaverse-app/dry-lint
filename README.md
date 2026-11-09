@@ -148,7 +148,8 @@ The hook checks the staged Python, JavaScript and TypeScript for the coding agen
 each finding itself, then reuses the existing function or records why the two differ, so the hook judges for
 recall: preset `agent`, Jev on every pair, blocking from 0.6. That keeps 92% to 100% recall on four gold sets, with
 about one finding in two real, for about $0.0002 a commit. Set `TYPESAFE_AI_API_KEY` in the environment or in an
-untracked `.env`; nothing else is needed. `args: [--preset, agent+haiku]` adds Claude Haiku on Jev's uncertain
+untracked `.env`; nothing else is needed. The key is needed only when the staged change has a pair to judge, so
+`pre-commit run --all-files` in tox, a CI lint job or pre-commit.ci, where nothing is staged, passes without one. `args: [--preset, agent+haiku]` adds Claude Haiku on Jev's uncertain
 scores, for higher precision and some lost recall on TypeScript; `args: [--preset, auto]` gives a person committing
 by hand the same precision-first judging as CI
 ([who reads the findings](docs/judges.md#who-reads-the-findings-people-or-coding-agents)).

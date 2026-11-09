@@ -111,8 +111,11 @@ def judged(
     functions: int = 0,
     scope: str = "change",
     family_discovery=None,
+    idle: bool = False,
 ) -> Report:
-    judging = Judging.configured(settings, open_store(settings, root, args.store))
+    # `idle`: there is nothing to ask, so no judge starts and a missing key cannot fail the run.
+    store = open_store(settings, root, args.store)
+    judging = Judging(settings, None, None, store) if idle else Judging.configured(settings, store)
     judging.family_recovery = family_discovery
     if settings.discovery.enabled and scope == "change":
         if run.pull_request is None:
@@ -141,13 +144,14 @@ def judged(
     return report
 
 
-def prepare(report: Report, settings: Settings, args: argparse.Namespace) -> Report:
+def prepare(report: Report, settings: Settings, args: argparse.Namespace, *, idle: bool = False) -> Report:
     # Preserve evidence on strict failures so CI can publish a failing check with the assessed head.
     if args.report:
         args.report.write_text(as_json(report) + "\n", encoding="utf-8")
     # Read-only checks report budget gaps as warnings.
     # Baseline ratchets still require complete assessment before changing accepted debt.
-    if args.baseline or args.require_complete:
+    # An idle staged check had no pair to assess, so it is complete without a judge.
+    if (args.baseline or args.require_complete) and not idle:
         require_complete(report, check=True, allow_review_tasks=not args.baseline)
     if args.baseline:
         if args.warn_only:
@@ -237,6 +241,9 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         if not settings.discovery.enabled:
             raise ValueError("Operation-family discovery requires discovery.enabled = true")
         families = family_discovery(root, settings, detector, changed, run, staged=args.staged)
+    # The hook needs its judge, and so its key, only when the staged change has a pair to ask about. CI stays
+    # strict: its judge starts even for a change with no pair, so a missing or misnamed secret turns it red.
+    idle = args.staged and families is None and not any(c.filtered is None and c.lane != "relative" for c in candidates)
     report = judged(
         candidates,
         settings,
@@ -246,11 +253,12 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         len(changed),
         functions=len(detector.functions),
         family_discovery=families,
+        idle=idle,
     )
     if debt:
         base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
         report.backlog = debt.cleared(report, removed(root, detector, debt, base))
-    report = prepare(report, settings, args)
+    report = prepare(report, settings, args, idle=idle)
     if model_review.enabled(settings, args.models, staged=args.staged):
         model_detector, model_changed, model_candidates, model_debt = model_candidates_for(root, settings, args, run)
         model_report = judge_models(

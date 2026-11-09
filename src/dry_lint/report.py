@@ -173,8 +173,15 @@ class JudgingSummary(BaseModel):
     def skipped(self) -> int:
         return sum(s.skipped for s in self.spend)
 
-    def line(self, *, ranking: bool = False) -> str:
-        """One line: judges, thresholds, and the bill; with no judge, only that, since nothing is judged or fails."""
+    def line(self, *, ranking: bool = False, idle: bool = False) -> str:
+        """
+        One line: judges, thresholds, and the bill; with no judge, only that, since nothing is judged or fails. A
+        `ranking` lane (models) runs dry-lint's fixed model contract, never the repository's preset. An `idle` lane
+        had no pair to ask, so it started no judge and needed no key.
+        """
+        label = "fixed model contract" if ranking else f"preset {self.preset}" if self.preset else ""
+        if not self.judge and idle:
+            return " · ".join(p for p in (label, "no pair to judge, so no judge ran") if p)
         if not self.judge:
             return "no judge · look-alikes are listed; nothing is judged, reported or failed"
         judges = self.judge
@@ -204,7 +211,7 @@ class JudgingSummary(BaseModel):
             bill = bill.replace("est.", "accounted") + f"; exploration credit ${self.exploration_credit:.4f}"
         calls = sum(s.calls for s in self.spend if s.subscription)
         parts = [
-            f"preset {self.preset}" if self.preset else "",
+            label,
             judges,
             thresholds,
             bill,
@@ -355,6 +362,16 @@ class Report(Versioned):
             "reported": sum(f.reported for f in self.findings),
         }
 
+    @property
+    def idle(self) -> bool:
+        """No judge ran because there was no pair to ask, not because the preset names none."""
+        return (
+            self.judging is not None
+            and self.judging.judge is None
+            and not self.findings
+            and self.judging.preset not in ("", "none")
+        )
+
     def lane(self, kind: Literal["function", "model"]) -> "Report":
         """A rendering view of one pass; counts and judging retain that pass's meaning."""
         model = kind == "model"
@@ -423,7 +440,7 @@ def text_lane(report: Report, *, kind: str = "function") -> str:
     if report.deferred:
         lines.append(f"dry-lint: {report.deferred} deferred by the judge budget; these pairs are not cleared")
     if report.judging:
-        lines.append(f"judging: {report.judging.line(ranking=kind == 'model')}")
+        lines.append(f"judging: {report.judging.line(ranking=kind == 'model', idle=report.idle)}")
     lines.extend(model_summary(report))
     return "\n".join(lines)
 
@@ -590,7 +607,11 @@ def markdown_lane(
     footer = [
         "",
         f"<sub>{coverage}</sub>",
-        *([f"<sub>{escaped(report.judging.line(ranking=kind == 'model'))}</sub>"] if report.judging else []),
+        *(
+            [f"<sub>{escaped(report.judging.line(ranking=kind == 'model', idle=report.idle))}</sub>"]
+            if report.judging
+            else []
+        ),
         *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
     ]
     if report.judge is None and kind == "function":
@@ -771,7 +792,9 @@ def clean(report: Report, audit: bool, report_at: float | None, kind: str = "fun
         if not audit and not report.changed and not report.changed_models
         else []
     )
-    judging = report.judging.line(ranking=kind == "model") if report.judging else f"judge {report.judge}"
+    judging = (
+        report.judging.line(ranking=kind == "model", idle=report.idle) if report.judging else f"judge {report.judge}"
+    )
     return "\n".join(
         [
             MARKER,

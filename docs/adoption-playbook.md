@@ -155,17 +155,18 @@ uvx pre-commit install
 
 With `--baseline`, the hook must pass the preset the baseline was written with, the one in `.dry-lint.toml`:
 the hook's own default is `agent`, and a baseline refuses any other preset. The hook reads judge credentials from the shell or an untracked `.env`. Missing credentials
-must fail strict judging. `default_stages` prevents unrelated hooks from accidentally running twice. In shared Git worktrees, hook installation affects sibling worktrees too; use `pre-commit install --allow-missing-config`
+fail strict judging whenever the staged change has a pair to judge; with no pair (nothing staged, no supported
+source staged, no look-alike) the hook starts no judge and passes. `default_stages` prevents unrelated hooks from accidentally running twice. In shared Git worktrees, hook installation affects sibling worktrees too; use `pre-commit install --allow-missing-config`
 when older branches legitimately lack the configuration. This only tolerates an absent configuration; configured
 hooks still enforce the baseline. Configuration
-in Git does not install hooks in other contributors' clones; put the install command in CONTRIBUTING, or in the
-README's development section when the repository has no CONTRIBUTING. If the repository does not use pre-commit at
-all, add it only where its maintainers welcome new tooling.
+in Git does not install hooks in other contributors' clones; put the install command in the CONTRIBUTING file the
+repository already has, wherever it lives (`.github/CONTRIBUTING.md` included), or in the README's development
+section when it has none. If the repository does not use pre-commit at all, add it only where its maintainers
+welcome new tooling.
 
-If a general quality job runs `pre-commit run --all-files`, set `SKIP: dry-lint` on that step once the dedicated,
-required semantic job owns judging. Keep Ruff, formatting and documentation hooks running there. This avoids
-asking the general quality job, including fork runs, for judge credentials. Local hooks still judge normally;
-skipping the semantic hook in CI is only valid while the required judged check remains enforced.
+A general quality job that runs `pre-commit run --all-files` (tox or nox lint sessions, a CI lint job,
+pre-commit.ci) needs no key and no `SKIP: dry-lint`: a clean checkout stages nothing, so the hook has no pair to
+judge and passes. The required judged check owns judging pull requests, fork runs included.
 
 When a pair blocks, read both functions. Reuse the existing owner for one concept, preserving its failure and
 resource contracts. For genuinely different concepts, add a narrow `distinct-from` comment and reason. Run the

@@ -186,6 +186,29 @@ def test_clean_model_pass_says_review_complete_and_keeps_one_sticky_marker():
     assert "ranking only" in shown
 
 
+def test_each_lane_names_what_judged_it_the_repository_preset_or_the_fixed_model_contract():
+    settings = Settings(preset="jev")
+    assert profile(settings).preset == "models"  # report.json says which contract ranked models, never "custom"
+    mixed = combined(finding("duplicate"))
+    mixed.judging = JudgingSummary(preset=settings.preset, judge="jev:5")
+    mixed.model_judging.preset = profile(settings).preset
+    for shown in (as_markdown(mixed), as_text(mixed)):
+        assert "preset jev · jev:5" in shown and "fixed model contract · jev-models" in shown
+        assert "custom" not in shown and "preset models" not in shown
+
+
+def test_a_lane_with_no_pair_to_judge_says_no_judge_was_needed():
+    idle = combined(models=[])
+    idle.model_judging.judge = None
+    idle.model_judging.preset = "models"
+    idle.judging = JudgingSummary(preset="jev")
+    shown = as_text(idle)
+    assert "judging: preset jev · no pair to judge, so no judge ran" in shown
+    assert "fixed model contract · no pair to judge, so no judge ran" in shown
+    idle.judging = JudgingSummary(preset="none")  # a run without a judge says so, as before
+    assert "no judge · look-alikes are listed" in as_text(idle)
+
+
 def test_model_ratchet_refreshes_readme_and_missing_readme_option_is_actionable(tmp_path, capsys):
     repo = Repo(tmp_path / "empty")
     repo.write("README.md", "# Library\n")

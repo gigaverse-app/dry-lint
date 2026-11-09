@@ -21,7 +21,7 @@ def profile(settings: Settings) -> Settings:
             "policies": [*settings.policies, *settings.models.policies],
             "judge": PluginChoice(use="jev-models"),
             "escalate": None,
-            "preset": "custom",
+            "preset": "models",  # the fixed model contract, which no repository preset changes
             "discovery": Discovery(),
             "budget": settings.models.budget,
             "drop_below": 0.6,
