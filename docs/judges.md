@@ -39,9 +39,20 @@ dry-lint check --baseline .dry-lint/baseline.json --require-complete
 ```
 
 Migration records the old policy digest and preserves the original pair set, hashes, context, adoption revision
-and settled states. It accepts no new debt and credits no cleanup. Commit its small metadata diff with the settings;
+and all debt states, including the last verified revision. It accepts no new debt and credits no cleanup. Commit its small metadata diff with the settings;
 review the complete change against the target branch. Never delete/reinitialize the baseline to change a preset.
 New findings from broader discovery require review; migration is not an exemption for them.
+Excluding a file after adoption does not delete its accepted debt or count as cleanup. The debt remains until
+source removal is verified or an in-scope assessment settles it; use explicit reviewed dismissals for intentional copies.
+
+The migration must start from a committed baseline (`HEAD`, or `--baseline-ref <target>`). Repeating it after
+adjusting the policy before commit extends its history; it does not reset the original debt. Restore accidental
+state/revision edits from that reference before retrying. Run cleanup sweeps after the policy migration lands,
+so their evidence and cleanup credit remain separate from the policy change.
+
+Migrated baselines require a release that supports schema 2 in CI and every local hook. Keep an adoption PR
+draft until that release reaches `@v1`; refresh cached hook environments as described in the adoption setup.
+Unmigrated schema-1 files retain their old wire shape, including when a newer version writes an ordinary sweep.
 
 Legacy Jev and cascade presets remain explicit compatibility choices for existing baselines. Their historical
 measurements are in [the benchmark](benchmark.md); they are not current guarantees for the replaced text prompt.

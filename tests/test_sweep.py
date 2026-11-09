@@ -501,6 +501,28 @@ def test_a_check_without_a_baseline_claims_nothing_about_the_backlog(
     assert backlog(tmp_path) is None
 
 
+@pytest.mark.parametrize("staged", [False, True])
+@pytest.mark.parametrize("scope", ['exclude = ["src/widgets/*"]', 'extractors = ["typescript"]'])
+def test_narrowing_detection_scope_cannot_claim_source_removal(
+    repo: Repo, tmp_path: Path, twin_judge: str, staged: bool, scope: str
+) -> None:
+    args = adopt(repo, tmp_path, twin_judge)
+    original = state(repo)
+    repo.write(".dry-lint.toml", scope + "\n")
+    assert run_cli(repo, tmp_path, "--judge", "command", "--judge-command", twin_judge, command="baseline-migrate") == 0
+    if staged:
+        repo.git("add", ".")
+    else:
+        repo.commit("test: change detection scope without deleting code")
+    check_args = ("--staged", *args[2:]) if staged else args  # replace the helper's --base main
+    assert run_cli(repo, tmp_path, *check_args) == 0
+    assert backlog(tmp_path) == []
+    if staged:
+        repo.commit("test: record the checked index")
+    assert sweep(repo, tmp_path, twin_judge) == 0
+    assert state(repo)["entries"] == original["entries"]
+
+
 def test_a_renamed_copy_is_not_credited_as_removed_debt(repo: Repo, tmp_path: Path) -> None:
     args = adopt(repo, tmp_path, copy_judge(tmp_path))
     path = repo.root / "src/widgets/caption.py"

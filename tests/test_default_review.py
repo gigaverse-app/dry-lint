@@ -1,6 +1,7 @@
 """Regressions from gigaverse-ai #3360 / AI-926: delegation is not cleanup duplication."""
 
 import hashlib
+import json
 import tomllib
 from pathlib import Path
 
@@ -80,13 +81,70 @@ def test_policy_migration_preserves_debt_and_rejects_new_allowances(tmp_path) ->
     assert Baseline.read(repo.root / ".dry-lint/baseline.json", new) == migrated
     forged = migrated.model_copy(deep=True)
     forged.entries[0].hashes[next(iter(forged.entries[0].hashes))] = "different-code"
-    with pytest.raises(ValueError, match="widen"):
+    with pytest.raises(ValueError, match="preserve committed debt"):
         forged.validate_successor(debt)
 
 
 def test_hook_inherits_repository_policy_instead_of_forcing_agent() -> None:
     hooks = (Path(__file__).parents[1] / ".pre-commit-hooks.yaml").read_text()
     assert "--preset agent" not in hooks
+
+
+def test_unmigrated_baseline_round_trip_keeps_the_schema_one_wire_contract() -> None:
+    baseline = Baseline.start(report(finding("duplicate", score=0.99)), resolve(Settings(preset="agent"), {}))
+    original = baseline.model_dump(exclude={"policy_history"})
+    restored = Baseline.model_validate_json(json.dumps(original))
+    # Older readers forbid unknown fields. An ordinary sweep must not silently upgrade their file format.
+    assert json.loads(restored.model_dump_json()) == original
+
+
+def test_schema_one_cannot_hide_policy_migration_history() -> None:
+    baseline = Baseline.start(report(finding("duplicate", score=0.99)), resolve(Settings(preset="agent"), {}))
+    invalid = baseline.model_dump()
+    invalid["policy_history"] = ["previous-policy"]
+    with pytest.raises(ValueError, match="schema 2"):
+        Baseline.model_validate(invalid)
+
+
+def test_migration_can_be_refined_before_commit_without_losing_original_debt(repo: Repo) -> None:
+    old = resolve(Settings(preset="agent"), {})
+    original = Baseline.start(report(finding("duplicate", score=0.99)), old)
+    repo.write(".dry-lint/baseline.json", original.model_dump_json())
+    repo.commit()
+    args = ["baseline-migrate", "--root", str(repo.root), "--preset", "balanced"]
+    assert main(args) == 0
+    assert main([*args, "--fail-at", "0.7"]) == 0
+    refined = Baseline.model_validate_json((repo.root / ".dry-lint/baseline.json").read_bytes())
+    refined.validate_successor(original)
+    assert refined.entries == original.entries
+    assert refined.checked_at == original.checked_at
+    assert len(refined.policy_history) == 2
+    assert refined.policy_history[0] == original.contract
+    reparented = refined.model_copy(update={"policy_history": refined.policy_history[1:]})
+    with pytest.raises(ValueError, match="original scope"):
+        reparented.validate_successor(original)
+
+
+@pytest.mark.parametrize("alteration", ["state", "checked_at"])
+@pytest.mark.parametrize("preset", ["agent", "balanced"])
+def test_migration_cannot_smuggle_unverified_cleanup(repo: Repo, alteration: str, preset: str) -> None:
+    original = Baseline.start(report(finding("duplicate", score=0.99)), resolve(Settings(preset="agent"), {}))
+    repo.write(".dry-lint/baseline.json", original.model_dump_json())
+    repo.commit()
+    changed = original.model_copy(deep=True)
+    if alteration == "state":
+        changed.entries[0].state = "cleaned"
+    else:
+        changed.checked_at = "unverified-revision"
+    path = repo.root / ".dry-lint/baseline.json"
+    path.write_text(changed.model_dump_json())
+    before = path.read_bytes()
+    assert main(["baseline-migrate", "--root", str(repo.root), "--preset", preset]) == 2
+    assert path.read_bytes() == before
+    # A hand-edited migration must also fail the CI reader, not just the migration CLI.
+    changed = changed.with_policy(resolve(Settings(preset="balanced"), {}))
+    with pytest.raises(ValueError, match="preserve committed debt"):
+        changed.validate_successor(original)
 
 
 def test_migration_cannot_create_unreviewed_debt(tmp_path, capsys) -> None:

@@ -42,14 +42,14 @@ from dry_lint.detector import Detector, base_ref, changed_lines, touched
 from dry_lint.discovery import CampaignStore
 from dry_lint.feedback import FILENAME, Decision, Feedback
 from dry_lint.files import write_text
-from dry_lint.functions import extractor_for, tracked_files
+from dry_lint.functions import extractor_for, tracked_files, validate_source
 from dry_lint.git import git, worktree
 from dry_lint.github import github_event
 from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, default_store, open_store
 from dry_lint.labelling import label, labeller, sample, summarise
 from dry_lint.ledger import counter_key
-from dry_lint.models import Candidate, CandidatesFile, Run, evidence
+from dry_lint.models import Candidate, CandidatesFile, Function, Run, evidence
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
 from dry_lint.replay import replay
@@ -179,16 +179,29 @@ def baselines(root: Path, settings: Settings, args: argparse.Namespace) -> tuple
     return Baseline.for_repository(root, args.baseline, settings, base=args.baseline_ref)
 
 
-def removed(root: Path, detector: Detector, debt: Baseline, base: str) -> set[str]:
+def removed(root: Path, detector: Detector, debt: Baseline, base: str, *, current: str = "HEAD") -> set[str]:
     """The debt's functions this change removed: present at its merge base `base`, gone now."""
     present = {f.qualname for f in detector.functions}
     missing = {name for e in debt.entries if e.state == "remaining" for name in e.hashes if name not in present}
+    if not missing:
+        return set()
+    # Validate both trees once; a failed Git read must never masquerade as an empty/deleted file.
+    tracked = {
+        revision: set(git(root, "ls-tree", "-r", "--name-only", "-z", revision).split("\0"))
+        for revision in {base, current}
+    }
     found = set()
     for path in {name.split("::", 1)[0] for name in missing}:
         extractor = extractor_for(path, detector.extractors)
-        source = subprocess.run(["git", "show", f"{base}:{path}"], cwd=root, capture_output=True)
-        if extractor and source.returncode == 0:
-            found |= missing & {f.qualname for f in extractor.functions(path, source.stdout.decode("utf-8"))}
+        if extractor is None:
+            continue  # Without an extractor, absence is unknown rather than proof of removal.
+        declarations = {}
+        for revision in (base, current):
+            source = git(root, "show", f"{revision}:{path}") if path in tracked[revision] else ""
+            validate_source(extractor, path, source)
+            declarations[revision] = {f.qualname for f in extractor.functions(path, source)}
+        # A scope exclusion is not deletion. Check the actual source, including excluded files.
+        found |= missing & (declarations[base] - declarations[current])
     return found
 
 
@@ -215,17 +228,31 @@ def family_discovery(root: Path, settings: Settings, detector: Detector, changed
     return FamilyDiscovery(detector.functions, changed, run, settings.discovery.families, settled=settled)
 
 
-def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    require_family_format(settings, args)
-    detector, primary = detector_for(root, settings, args)
-    changed = touched(
-        [f for f in detector.functions if not f.origin or f.origin.repository == primary],
-        changed_lines(root, args.base, args.staged),
-    )
+def changed_owners(
+    root: Path, detector: Detector, primary: str, args: argparse.Namespace, *, whole_repository: bool = False
+) -> list[Function]:
+    """Select this repository's owners for function and model change review."""
+    own = [f for f in detector.functions if not f.origin or f.origin.repository == primary]
+    return own if whole_repository else touched(own, changed_lines(root, args.base, args.staged))
+
+
+def review_scope(
+    root: Path, detector: Detector, primary: str, args: argparse.Namespace, *, whole_repository: bool = False
+) -> tuple[list[Function], Run]:
+    """Identify the source snapshot and changed owners consistently in check and split detection."""
+    # Whole-workspace function detection includes peers; changed-owner and model review stay primary-scoped.
+    changed = detector.functions if whole_repository else changed_owners(root, detector, primary, args)
     run = run_info(root, args.base)
     run.revision = git(root, "write-tree") if args.staged else git(root, "rev-parse", "HEAD^{tree}")
     if primary:
         run.repository = primary
+    return changed, run
+
+
+def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    require_family_format(settings, args)
+    detector, primary = detector_for(root, settings, args)
+    changed, run = review_scope(root, detector, primary, args)
     debt = None
     if args.baseline:  # The target branch's debt: a pull request that also records its cleanup still earns it.
         proposed, target = baselines(root, settings, args)
@@ -257,7 +284,7 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     )
     if debt:
         base = "HEAD" if args.staged else git(root, "merge-base", run.base, "HEAD")
-        report.backlog = debt.cleared(report, removed(root, detector, debt, base))
+        report.backlog = debt.cleared(report, removed(root, detector, debt, base, current=run.revision))
     report = prepare(report, settings, args, idle=idle)
     if model_review.enabled(settings, args.models, staged=args.staged):
         model_detector, model_changed, model_candidates, model_debt = model_candidates_for(root, settings, args, run)
@@ -270,7 +297,9 @@ def check(root: Path, settings: Settings, args: argparse.Namespace) -> int:
             # Credit only debt outstanding at the base, while current allowances still enforce the check.
             target = model_review.baseline(root, settings, staged=args.staged, base=base, target=True)
             assert target is not None  # model_debt established a configured, validated baseline
-            model_report.backlog = target.cleared(model_report, removed(root, model_detector, target, base))
+            model_report.backlog = target.cleared(
+                model_report, removed(root, model_detector, target, base, current=run.revision)
+            )
         report = model_review.combine(report, model_report, model_debt)
     if (settings.discovery.enabled or args.staged) and not args.report:  # `dry-lint feedback` reviews this report
         target = last_report(root)
@@ -292,10 +321,7 @@ def model_candidates_for(root: Path, settings: Settings, args: argparse.Namespac
     if args.repo_index and len(args.repo) == 1:
         model_args.repo = []  # The only checked-out source is this repository; peer indexes hold functions only.
     detector, primary = detector_for(root, model_review.profile(settings), model_args)
-    own = [f for f in detector.functions if not f.origin or f.origin.repository == primary]
-    changed = (
-        own if args.command == "detect" and args.all else touched(own, changed_lines(root, args.base, args.staged))
-    )
+    changed = changed_owners(root, detector, primary, args, whole_repository=args.command == "detect" and args.all)
     debt = model_review.baseline(root, settings, staged=args.staged, base=args.base or run.base)
     if debt:
         inventory = reviewed(root, debt.candidates(detector), staged=args.staged)
@@ -406,7 +432,11 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     if baseline and any(f.blocking for f in baseline.apply(report).findings):
         print("dry-lint: new or changed duplicates found; baseline and cleanup totals were not updated")
         return 1
-    updated = baseline.advance(report) if baseline else Baseline.start(report, settings)
+    updated = (
+        baseline.advance(report, removed=removed(root, detector, baseline, baseline.checked_at))
+        if baseline
+        else Baseline.start(report, settings)
+    )
     if not args.init and not args.update:
         print(
             f"dry-lint: audit found {updated.count('remaining')} remaining pairs; "
@@ -515,22 +545,17 @@ def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     return finish(report, settings, args)
 
 
-def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+def require_split_compatible(settings: Settings) -> None:
+    """Both halves of split CI must reject a family policy that needs a single change campaign."""
     if settings.discovery.families is not None:
         raise ValueError("Operation-family discovery currently requires check; split detect/judge is not supported")
+
+
+def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    require_split_compatible(settings)
     detector, primary = detector_for(root, settings, args)
-    if args.all:
-        changed, candidates = detector.functions, detector.scan()
-    else:
-        changed = touched(
-            [f for f in detector.functions if not f.origin or f.origin.repository == primary],
-            changed_lines(root, args.base, args.staged),
-        )
-        candidates = detector.candidates(changed)
-    run = run_info(root, args.base)
-    run.revision = git(root, "write-tree") if args.staged else git(root, "rev-parse", "HEAD^{tree}")
-    if primary:
-        run.repository = primary
+    changed, run = review_scope(root, detector, primary, args, whole_repository=args.all)
+    candidates = detector.scan() if args.all else detector.candidates(changed)
     found = CandidatesFile(
         run=run,
         changed=len(changed),
@@ -582,8 +607,7 @@ def judge_models(
 
 
 def judge(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    if settings.discovery.families is not None:
-        raise ValueError("Operation-family discovery currently requires check; split detect/judge is not supported")
+    require_split_compatible(settings)
     found = CandidatesFile.model_validate_json(args.candidates.read_text())
     if args.models is True and found.model_candidates is None:
         raise ValueError(
