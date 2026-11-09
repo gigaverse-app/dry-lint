@@ -63,7 +63,8 @@ repository audit for a scheduled/manual workflow.
     See [the ledger](#the-ledger).
   - Old keyed comments are removed on the next publish. Serialize publishers to prevent creation races.
   - Once dry-lint's repository is public, the comment carries the banner. The action checks first, so it never
-    shows a broken image.
+    shows a broken image. The banner comes from the action's own revision (`@v1`, a tag or a SHA), never from a
+    moving branch.
 - **The job summary**, with the same report.
 - **Red for a reported duplicate**, unless overridden. The threshold is the `fail-at` input. See
   [When it fails](#when-it-fails-and-false-positives).
