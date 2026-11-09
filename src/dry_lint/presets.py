@@ -140,7 +140,9 @@ def auto_preset(environ: Mapping[str, str] | None = None) -> str:
 
 def resolve(settings: Settings, environ: Mapping[str, str] | None = None) -> Settings:
     """The settings with the preset's judges and thresholds filled in wherever they were not set explicitly."""
-    if settings.preset == "auto" and "judge" in settings.model_fields_set:
+    if settings.preset == "auto" and "judge" in settings.model_fields_set and settings.judge.use == "none":
+        settings = settings.model_copy(update={"preset": "none"})  # no judge is the `none` preset, not your own judge
+    elif settings.preset == "auto" and "judge" in settings.model_fields_set:
         # Your own judge: a preset's escalation and thresholds were measured for other judges, so none is added.
         update = {} if "escalate" in settings.model_fields_set else {"escalate": None}
         return settings.model_copy(update={**update, "preset": "custom"})

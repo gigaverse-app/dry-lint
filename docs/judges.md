@@ -192,8 +192,10 @@ It asks three questions:
 | `owner` | choice | `existing`, `new`, `shared` or `none` |
 
 The `owner` answer is about the pair shown, and it becomes the advice: `existing` says to call the existing
-function, `new` to move the existing function's callers to the new one, `shared` to extract a helper both call. The
-judge often prefers a public function over a private helper. Because functions in the same file are never compared, a
+function, `new` to keep the changed function and move the existing one's callers to it, naming both, and `shared`
+to extract a helper both call. In a repository-wide `scan` or `sweep` neither function is new (a pair's sides are
+only ordered by name), so the advice names the function to keep and the one whose callers move. The judge often
+prefers a public function over a private helper. Because functions in the same file are never compared, a
 copy placed next to its original pairs with another copy elsewhere, if there is one; the advice can then be to move
 that copy's callers to the new function, although the right owner is the original beside it. Read both functions
 before following the advice.

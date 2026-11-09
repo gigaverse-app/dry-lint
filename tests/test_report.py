@@ -358,6 +358,23 @@ def test_a_repository_scan_reads_as_an_audit_of_existing_code_that_never_blocks(
     assert "keep the first copy" in body and "in either function" in body and "dry-lint: override" not in body
 
 
+def test_a_repository_audit_names_the_side_to_keep_since_neither_function_is_new() -> None:
+    """A scan or sweep pairs two functions that both exist; its "new" side is only the first by name."""
+    for owner, kept, moved in (
+        ("new", "src/widgets/caption.py::clip", "src/text.py::shorten"),
+        ("existing", "src/text.py::shorten", "src/widgets/caption.py::clip"),
+    ):
+        scan = clean_report(finding("duplicate", 0.95, owner=owner), changed=0, scope="repository")
+        for view in (as_text(scan), as_github(scan), as_sarif(scan), as_check_run(scan)):
+            assert f"keep {kept} and move callers of {moved} to it" in view
+            assert "the new one" not in view and "the existing function" not in view
+    # A check's finding sits on the changed function, which may have existed before: it is named, never "new".
+    check = as_text(report(finding("duplicate", 0.95, owner="new")))
+    assert "keep clip and move callers of src/text.py::shorten to it" in check and "new one" not in check
+    assert "call the existing function" in as_text(report(finding("duplicate", 0.95)))
+    assert "keep the changed one; move callers to it" in as_markdown(report(finding("duplicate", 0.95, owner="new")))
+
+
 def test_the_status_note_has_a_slot_between_the_result_and_the_evidence() -> None:
     body = as_markdown(report(finding("duplicate")))
     assert body.index("### dry-lint") < body.index(NOTE_SLOT) < body.index("| :-: |")
@@ -457,7 +474,9 @@ def test_the_judging_line_names_judges_band_thresholds_and_the_bill() -> None:
         spend=[Spend(judge="claude-code:x", calls=3, usd=0.01, subscription=True), Spend(judge="c", calls=1, usd=None)],
     )
     assert plain.line() == "jev:reuse-v2 · reports and fails at 0.8 · cost unknown · 3 subscription calls"
-    assert JudgingSummary().line() == "no judge · reports and fails at 0.8 · est. $0.000 of $0 budget"
+    # With no judge, nothing is judged, so no preset, threshold or bill describes the run.
+    no_judge = JudgingSummary(preset="none", budget_usd=0.04)
+    assert no_judge.line() == "no judge · look-alikes are listed; nothing is judged, reported or failed"
     failed = summary.model_copy(
         update={"spend": [Spend(judge="claude-code:dry-v1:claude-opus-5-5", failed=3, error="OAuth session expired")]}
     )

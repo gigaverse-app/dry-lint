@@ -410,7 +410,9 @@ def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, 
     post(fake, tmp_path, push("b" * 40), "2")  # the same run, posting again
     ledger = ledger_of(fake)
     assert (ledger.pushed, ledger.tally.runs, ledger.count("kept-out")) == (2, 2, 1)
-    assert "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes." in fake.stickies()[0]
+    assert (
+        "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 checked pushes." in fake.stickies()[0]
+    )
     body = fake.stickies()[0]
     assert body.index("### 🧹 A little less lint") < body.index("<summary><strong>Scan details")
     assert "| **1 pair** | **0 pairs** | **0 pairs** |" in body.replace(SPREAD, "")

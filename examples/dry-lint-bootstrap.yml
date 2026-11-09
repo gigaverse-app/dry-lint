@@ -9,7 +9,7 @@
 #     --jq '.[] | select(.name == "dry-lint bootstrap")'
 #   OUT=$(mktemp -d) && gh run download RUN_ID --repo OWNER/NAME --name dry-lint-baseline --dir "$OUT"
 #
-# Copy .dry-lint/ and README.md from $OUT into the repository, and delete this workflow in the same commit. Nothing
+# Copy .dry-lint/ and README.md (when there is one) from $OUT into the repository, and delete this workflow in the same commit. Nothing
 # here writes to the repository: the files arrive only through the commit you review.
 name: dry-lint bootstrap
 on:
@@ -42,13 +42,16 @@ jobs:
           OUT: ${{ runner.temp }}/dry-lint-baseline
         # --budget-usd: 1 is ample for Jev (273 pairs cost $0.010); use 5 for a Claude preset.
         # --repository-id: the README's counter sign is keyed by a hash of this numeric id, never by the name.
-        # Leave out --readme for a README that is not Markdown.
+        # The progress block goes only into a Markdown README.md; without one, this step writes and ships no README.
         run: |
           mkdir -p "$OUT"
           dry-lint config
-          dry-lint sweep --init --budget-usd 1 --readme README.md --report "$OUT/sweep-report.json" \
+          readme=()
+          if [[ -f README.md ]]; then readme=(--readme README.md); fi
+          dry-lint sweep --init --budget-usd 1 "${readme[@]}" --report "$OUT/sweep-report.json" \
             --repository "$GITHUB_REPOSITORY" --repository-id "$GITHUB_REPOSITORY_ID" --branch "$DEFAULT_BRANCH"
-          cp -R .dry-lint README.md "$OUT/"
+          cp -R .dry-lint "$OUT/"
+          if [[ -f README.md ]]; then cp README.md "$OUT/"; fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:

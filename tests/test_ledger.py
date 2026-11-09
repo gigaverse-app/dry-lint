@@ -213,23 +213,26 @@ def test_the_headline_leads_with_what_was_kept_out_and_what_it_cost() -> None:
         [push("a" * 40, finding("duplicate"), finding("duplicate", existing="trim"))], run="1"
     )
     assert headline(ledger) == (
-        "**2 duplicates caught** for $0.002 of judging, on its first push. "
+        "**2 duplicates caught** for $0.002 of judging, on its first checked push. "
         "Each one fixed here is kept out of the codebase."
     )
     ledger = ledger.advance([push("b" * 40, finding("duplicate", existing="trim"))], run="2")
     assert headline(ledger) == (
-        "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes. 1 duplicate still open."
+        "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 checked pushes. "
+        "1 duplicate still reported."
     )
     ledger = ledger.advance([push("c" * 40)], run="3")
-    assert headline(ledger) == "**2 duplicates kept out of the codebase** for $0.006 of judging, across 3 pushes."
+    assert headline(ledger) == (
+        "**2 duplicates kept out of the codebase** for $0.006 of judging, across 3 checked pushes."
+    )
 
 
 def test_the_headline_of_a_clean_pull_request_says_how_much_was_checked() -> None:
     assert headline(PullLedger().advance([push("a" * 40)], run="1")) == (
-        "**3 functions checked, nothing duplicated**, for $0.002 of judging, on its first push."
+        "**3 functions checked, nothing duplicated**, for $0.002 of judging, on its first checked push."
     )
     assert headline(PullLedger().advance([push("a" * 40, changed=0, usd=0.0)], run="1")) == (
-        "**No changed functions to check yet**, on its first push."
+        "**No changed functions to check yet**, on its first checked push."
     )
 
 
@@ -267,6 +270,23 @@ def test_the_push_table_lists_every_push_and_every_pair_by_outcome() -> None:
     kept, still, dismissed = (shown.index(f"{icon} `clip`") for icon in ("✅", "🟡", "⚪"))
     assert kept < still < dismissed
     assert "found in push 1, kept out in push 2" in shown and "dismissed by a person's decision in push 2" in shown
+    assert "`clip` ≈ `trim` · found in push 1, still reported" in shown
+
+
+def test_the_history_counts_checked_pushes_and_says_what_an_open_pair_means() -> None:
+    """
+    A push before dry-lint's workflow existed has no run, so the first push the comment sees may be the pull
+    request's second: it says "checked push". An open pair is the one the findings below mark as blocking, so the
+    history says what "still reported" means rather than looking like a second, softer verdict.
+    """
+    ledger = PullLedger().advance([push("a" * 40, finding("duplicate"))], run="1")
+    ledger = ledger.advance([push("b" * 40, finding("duplicate"))], run="2")
+    shown = render(ledger)
+    assert "checked_pushes-2" in shown and "| Checked push | Commit |" in shown
+    assert "Push numbers count only the pushes dry-lint checked." in shown
+    assert "🟡 still reported means the latest checked push reports the pair" in shown
+    assert "the findings below say whether it blocks this check" in shown
+    assert "still open" not in shown
 
 
 def test_a_concept_with_one_name_on_both_sides_is_named_once() -> None:
@@ -436,7 +456,9 @@ def test_accepted_debt_cleaned_up_is_backlog_and_never_kept_out() -> None:
     assert "### 🧹 A little less lint" in shown
     assert "| **1 pair**<br><sub>1 from the accepted backlog</sub> | **0 pairs** | **0 pairs** |" in shown
     assert "- ✅ `trim` ≈ `strip` · accepted backlog, cleaned up in push 1: one side removed" in shown
-    assert headline(ledger) == "**1 accepted backlog pair cleaned up** for $0.002 of judging, on its first push."
+    assert headline(ledger) == (
+        "**1 accepted backlog pair cleaned up** for $0.002 of judging, on its first checked push."
+    )
 
 
 def test_each_baseline_check_restates_the_backlog() -> None:

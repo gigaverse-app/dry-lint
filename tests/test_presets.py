@@ -91,6 +91,14 @@ def test_your_own_judge_gets_no_preset_escalation_or_thresholds() -> None:
     assert (named.judge.options(), named.escalate.use) == ({"workers": 2}, "anthropic")
 
 
+def test_asking_for_no_judge_is_the_none_preset_not_your_own_judge() -> None:
+    """`--judge none` with no settings file: the footer and `config` must not call it a custom judge."""
+    none = resolve(Settings(judge=PluginChoice(use="none")), BOTH)
+    assert (none.preset, none.judge.use, none.report_at, none.fail_at) == ("none", "none", 0.8, 0.8)
+    named = resolve(Settings(preset="jev", judge=PluginChoice(use="none")), BOTH)
+    assert (named.preset, named.judge.use) == ("jev", "none")  # a named preset stays named
+
+
 def test_an_unknown_preset_names_the_known_ones() -> None:
     with pytest.raises(ValueError, match="Unknown preset 'fast'; available: jev\\+opus"):
         resolve(Settings(preset="fast"), {})

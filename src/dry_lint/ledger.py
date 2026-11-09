@@ -335,12 +335,13 @@ class PullLedger(Versioned):
 def headline(ledger: PullLedger) -> str:
     """The sentence a reader remembers: what this pull request's checks cost, and what they caught."""
     tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
-    across = f"across {ledger.pushed:,} pushes" if ledger.pushed > 1 else "on its first push"
+    # Pushes the check ran on: a push before dry-lint's workflow existed, or one it skipped, is not counted.
+    across = f"across {ledger.pushed:,} checked pushes" if ledger.pushed > 1 else "on its first checked push"
     backlog = (
         f"**{plural(ledger.backlog_count(), 'accepted backlog pair')} cleaned up.** " if ledger.backlog_count() else ""
     )
     if kept:
-        tail = f" {plural(still, 'duplicate')} still open." if still else ""
+        tail = f" {plural(still, 'duplicate')} still reported." if still else ""
         hooked = sum(pair.before_commit for pair in ledger.kept_out())
         early = f" ({hooked:,} by the pre-commit hook, before commit)" if hooked else ""
         return (
@@ -380,7 +381,7 @@ def pair_line(pair: Pair) -> str:
         return f"{ICONS[pair.state]} {pair.concept()} · {done} before commit, by the pre-commit hook"
     where = {
         "kept-out": f"kept out in push {pair.settled}",
-        "open": "still open",
+        "open": "still reported",
         "dismissed": f"dismissed by a person's decision in push {pair.settled}",
     }[pair.state]
     return f"{ICONS[pair.state]} {pair.concept()} · found in push {pair.found}, {where}"
@@ -415,7 +416,7 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
         if part
     )
     badges = [
-        badge("pushes", ledger.pushed, GRAY),
+        badge("checked pushes", ledger.pushed, GRAY),
         badge("functions checked", f"{tally.functions:,}", GRAY),
         *([badge("models checked", f"{tally.models:,}", GRAY)] if tally.model_codebase else []),
         badge("judgments", f"{tally.judgments:,}", GRAY),
@@ -465,7 +466,9 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
         " ".join(badges),
         "",
         "<sub>Previously reported pairs no longer reported, here or by the pre-commit hook before commit; "
-        "dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits."
+        "dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits. "
+        "Push numbers count only the pushes dry-lint checked. 🟡 still reported means the latest checked push "
+        "reports the pair; the findings below say whether it blocks this check."
         + (
             " Accepted backlog pairs count when this pull request removes a side or the judge now finds them "
             "separate; the baseline and its badge change only with the repository's audit."
@@ -478,7 +481,7 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
     if ledger.pushed > 1 or ledger.pairs or ledger.backlog:
         first = ledger.pushed - len(ledger.pushes) + 1
         rows = [
-            "| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |",
+            "| Checked push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |",
             "| --: | :-- | --: | --: | --: | --: | --: | --: |",
         ]
         for n, push in enumerate(ledger.pushes, first):
