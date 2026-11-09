@@ -114,27 +114,31 @@ class Baseline(BaseModel):
 
     @classmethod
     def for_repository(
-        cls, root: Path, path: Path, settings: Settings, *, base: str | None = None, staged: bool = False
+        cls,
+        root: Path,
+        path: Path,
+        settings: Settings,
+        *,
+        base: str | None = None,
+        staged: bool = False,
+        migrate_policy: bool = False,
     ) -> tuple["Baseline", "Baseline | None"]:
         """Read proposed allowances and enforce the target branch's immutable pair set."""
         relative = (root / path).resolve().relative_to(root.resolve()).as_posix()
         raw = git(root, "show", f":{relative}") if staged else (root / path).read_text(encoding="utf-8")
-        proposed, previous = cls.parse(raw, settings), None
+        proposed = cls.model_validate_json(raw).with_policy(settings) if migrate_policy else cls.parse(raw, settings)
+        previous = None
         previous_ref = "HEAD" if staged else base
         if previous_ref:
-            previous = cls.at_ref(root, path, previous_ref)
-            if previous is not None:
+            git(root, "rev-parse", "--verify", f"{previous_ref}^{{commit}}")
+            if git(root, "ls-tree", "--name-only", previous_ref, "--", relative):
+                previous = cls.model_validate_json(git(root, "show", f"{previous_ref}:{relative}"))
                 proposed.validate_successor(previous)
+        if migrate_policy and previous is None:
+            raise ValueError(
+                "Policy migration requires an existing committed baseline; adopt new debt with sweep --init"
+            )
         return proposed, previous
-
-    @classmethod
-    def at_ref(cls, root: Path, path: Path, ref: str) -> "Baseline | None":
-        """Read accepted debt from a verified commit; absence is different from an invalid ref."""
-        relative = (root / path).resolve().relative_to(root.resolve()).as_posix()
-        git(root, "rev-parse", "--verify", f"{ref}^{{commit}}")
-        if not git(root, "ls-tree", "--name-only", ref, "--", relative):
-            return None
-        return cls.model_validate_json(git(root, "show", f"{ref}:{relative}"))
 
     @classmethod
     def start(cls, report: Report, settings: Settings) -> "Baseline":

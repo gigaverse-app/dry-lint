@@ -106,7 +106,7 @@ unless the repository already configures dry-lint in `pyproject.toml`.
 
 ```toml
 # .dry-lint.toml
-# The preset: see the table below. CI, the hook and the baseline all use this one preset.
+# Recommended function policy. CI, the hook and the baseline all use it; models require agent review.
 preset = "balanced"
 # The folders that ship: the package directories, not tests or docs.
 include = ["src/*"]
@@ -390,8 +390,8 @@ yet, leave it a draft and say why in the report.
 
 Tell the human exactly what is left. These need repository admin rights or secrets, so you do not do them:
 
-1. **Judge secret** (only if step 1 found none): add a repository or organization secret holding a TypeSafe API key
-   ([TypeSafe](https://docs.typesafe.ai)) and tell you its name.
+1. **Judge secret** (only if step 1 found none): add a repository or organization secret holding an Anthropic API key
+   ([Anthropic](https://console.anthropic.com)) and tell you its name.
 2. **Required check**: Settings, Rules, Rulesets, New branch ruleset; target the default branch; enable "Require
    status checks to pass"; add `dry-lint` with source GitHub Actions. Never add `dry-lint detect`. A workflow named
    `dry-lint` is not required until a rule says so.

@@ -433,12 +433,7 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 def baseline_migrate(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     """Record a reviewed policy change while preserving the target branch's exact debt allowances."""
     path = root / (args.baseline or Path(".dry-lint/baseline.json"))
-    baseline = Baseline.model_validate_json(path.read_text(encoding="utf-8"))
-    migrated = baseline.with_policy(settings)
-    previous = Baseline.at_ref(root, path, args.baseline_ref or "HEAD")
-    if previous is None:
-        raise ValueError("Policy migration requires an existing committed baseline; adopt new debt with sweep --init")
-    migrated.validate_successor(previous)
+    migrated, _ = Baseline.for_repository(root, path, settings, base=args.baseline_ref or "HEAD", migrate_policy=True)
     write_text(path, migrated.model_dump_json(indent=2) + "\n")
     print(
         f"dry-lint: migrated policy to {settings.preset}; preserved {len(migrated.entries)} exact allowances; no cleanup credited"

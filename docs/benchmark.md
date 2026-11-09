@@ -8,17 +8,35 @@ source reviewers adjudicated 54 fresh stratified candidates: 11 useful, 42 separ
 places 4. It retains every score for coding-agent review and carries adopter ownership policies. These sample
 yields and ranking results do not inherit the function benchmark's population precision/recall claims.
 
-The generic concept prompt is now `dry-v2`: language-neutral, with forwarding distinguished from repeated
-policy around a call. It has not been recalibrated; the historical second-judge results below used `dry-v1`.
-The measured Jev `reuse-v2` and contextual `reuse-context-v3` profiles are unchanged.
+The maintained text prompt is now `dry-operations-v3`; the former concept and compact names are compatibility
+aliases. The historical second-judge results below used `dry-v1` and do not calibrate the new prompt.
+The Jev `reuse-v2` and contextual `reuse-context-v3` profiles remain explicit compatibility choices.
 
 The production `balanced` agent-hook profile has separate [58-commit validation](production-discovery-results.md):
 cumulative budgets, preserved baseline coverage, same-file exploration and reviewed feedback. Its small known-positive
-panel does not inherit the corpus precision/recall estimates below. Unattended `auto` remains unchanged.
+panel does not inherit the corpus precision/recall estimates below. `auto` now selects balanced with Anthropic
+credentials; see [judging defaults](judges.md) for credential fallback and the separate model-review lane.
 
-The opt-in shared-operation judge and protected historical scheduler have separate
-[paired development and fresh-PR measurements](protected-exploration.md). Their prompt and discovery policy
-do not inherit the calibrated precision/recall claims below, and do not change defaults.
+The shared-operation judge and protected historical scheduler have separate
+[paired development and fresh-PR measurements](protected-exploration.md). Those historical results do not
+calibrate the updated prompt now used by balanced.
+
+## Current default regression panel
+
+One live Claude Haiku 5.5 run with `dry-operations-v3`, a 2,048-token response limit and the balanced 0.5 threshold
+produced these results. These are small curated, agent-labelled regression panels, not population estimates.
+
+| Panel | Useful duplication detected (higher is better) | False positives (lower is better) |
+| --- | --- | --- |
+| [Oz's actual fixtures](../examples/oz-fixtures-gold.toml) | 6/6 | 0/6 |
+| [pytest-obligation](../examples/pytest-obligation-gold.toml), excluding borderline cases | 5/6 | 1/6 |
+| [Due](../examples/due-consolidation-gold.toml) | 5/7 | 0/3 |
+
+Oz's shared-helper adapters produced 6/6 false positives in the recorded Jev/agent incident. The new panel
+also retains their original independent setup/yield/teardown implementations as positive controls. The initial
+shared-operation v2 replay caught 5/6 of those controls; v3 explicitly distinguishes owning a resource lifecycle
+from entering an existing owner. Broader misses above remain limitations; these results do not establish the
+precision or recall of the new default across repositories.
 
 The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
 Its small diagnostic sample does not inherit the Python precision/recall claims below.
