@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 import httpx
 import pytest
+from action_harness import github_env as github_env
+from action_harness import outputs
 from test_action_sticky import FakeGitHub
 from test_ledger import push
 from test_report import finding
@@ -14,7 +16,7 @@ from dry_lint import action, sticky
 from dry_lint.action import count_findings, default_branch, ensure_history, resolve_base, resolve_judge, resolve_mode
 from dry_lint.ledger import PullLedger, RepositoryLedger, counter_key
 
-from conftest import Repo, clear_judge_credentials, judge_calls, run_cli
+from conftest import Repo, judge_calls, run_cli
 
 HEAD, BASE = "c" * 40, "b" * 40
 ANNOTATION = "::warning file=src/a.py,line=3,endLine=9,title=dry-lint::clip looks like src/b.py::shorten"
@@ -189,44 +191,6 @@ def test_a_shallow_checkout_gets_the_history_a_merge_base_needs(repo: Repo, tmp_
     main_sha = repo.git("rev-parse", "main").strip()
     ensure_history(clone, main_sha)
     assert subprocess.run(["git", "merge-base", main_sha, "HEAD"], cwd=clone, capture_output=True).returncode == 0
-
-
-@pytest.fixture
-def github_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """The environment a composite action step sees, with its output files in tmp_path."""
-
-    def set_event(name: str, payload: dict, **inputs: str) -> Path:
-        event = tmp_path / "event.json"
-        event.write_text(json.dumps(payload))
-        values = {
-            "GITHUB_EVENT_NAME": name,
-            "GITHUB_EVENT_PATH": str(event),
-            "GITHUB_REPOSITORY": "acme/shop",
-            "GITHUB_REPOSITORY_ID": "4242",
-            "GITHUB_RUN_ID": "55",
-            "GITHUB_OUTPUT": str(tmp_path / "output"),
-            "GITHUB_TOKEN": "token",
-            "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
-            "RUNNER_TEMP": str(tmp_path / "runner"),
-            "INPUT_COMMENT": "true",
-            "INPUT_CHECK_RUN": "true",
-            "INPUT_WORKING_DIRECTORY": str(tmp_path),
-        }
-        values.update({f"INPUT_{k.upper()}": v for k, v in inputs.items() if k != "key"})
-        # Hermetic: a developer's or Claude Code's own keys must never reach a judge from a test.
-        clear_judge_credentials(monkeypatch)
-        monkeypatch.delenv("GITHUB_RUN_ATTEMPT", raising=False)  # set when the tests themselves run in Actions
-        if "key" in inputs:
-            values["TYPESAFE_AI_API_KEY"] = inputs["key"]
-        for name_, value in values.items():
-            monkeypatch.setenv(name_, value)
-        return tmp_path
-
-    return set_event
-
-
-def outputs(tmp_path: Path) -> dict[str, str]:
-    return dict(line.split("=", 1) for line in (tmp_path / "output").read_text().splitlines())
 
 
 def cli_writes_comment(
