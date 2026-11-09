@@ -396,7 +396,7 @@ def test_a_failed_peer_scope_does_not_claim_its_earlier_duplicate_was_kept_out(t
         [*common, "--findings", "0", "--run", "2", "--report", f"local={local_json}"],
         transport=httpx.MockTransport(fake),
     )
-    assert (ledger_of(fake).count("open"), ledger_of(fake).count("kept-out")) == (1, 0)
+    assert (ledger_of(fake).count("open"), ledger_of(fake).count("not-reported")) == (1, 0)
     assert "kept out of the codebase**" not in fake.stickies()[0]
 
 
@@ -443,10 +443,8 @@ def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, 
     post(fake, tmp_path, push("b" * 40), "2")
     post(fake, tmp_path, push("b" * 40), "2")  # the same run, posting again
     ledger = ledger_of(fake)
-    assert (ledger.pushed, ledger.tally.runs, ledger.count("kept-out")) == (2, 2, 1)
-    assert (
-        "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 checked pushes." in fake.stickies()[0]
-    )
+    assert (ledger.pushed, ledger.tally.runs, ledger.count("not-reported")) == (2, 2, 1)
+    assert "**1 finding no longer reported** for $0.004 of judging, across 2 checked pushes." in fake.stickies()[0]
     body = fake.stickies()[0]
     assert body.index("### 🧹 A little less lint") < body.index("<summary><strong>Scan details")
     assert "| **1 pair** | **0 pairs** | **0 pairs** |" in body.replace(SPREAD, "")
@@ -485,7 +483,7 @@ def test_the_ledger_with_the_most_runs_survives_racing_copies() -> None:
     fake = FakeGitHub([f"{MARKER}\nold\n{fewer.snapshot()}", f"{MARKER}\nnew\n{more.snapshot()}"])
     upsert(client(fake), REPO, PR, REPORT, 1, reports=[push("c" * 40)], run="3")
     ledger = ledger_of(fake)
-    assert ledger.pushed == 3 and ledger.count("kept-out") == 1
+    assert ledger.pushed == 3 and ledger.count("not-reported") == 1
 
 
 def test_a_post_without_a_report_keeps_the_ledger_as_it_was() -> None:
@@ -515,7 +513,7 @@ def test_the_repositorys_totals_follow_the_pull_requests_own(tmp_path: Path, mon
     assert "🏆" not in fake.stickies()[0]
     fake = FakeGitHub()
     post(fake, tmp_path, push("c" * 40), "5", "--repository-ledger", str(saved))
-    assert "<sub>🏆 `acme/shop` since Oct 1, 2026: **1 duplicate kept out of the codebase**" in fake.stickies()[0]
+    assert "<sub>🏆 `acme/shop` since Oct 1, 2026: **1 finding no longer reported**" in fake.stickies()[0]
 
 
 def test_the_sticky_counts_what_the_commits_say_the_pre_commit_hook_kept_out() -> None:
@@ -523,7 +521,7 @@ def test_the_sticky_counts_what_the_commits_say_the_pre_commit_hook_kept_out() -
     fake = FakeGitHub(commits=["feat: prices", f"fix: reuse money\n\n{trailer}"])
     upsert(client(fake), REPO, PR, REPORT, 1, reports=[push("a" * 40)], run="1")
     assert ledger_of(fake).pairs["ab7719f1ec3f9b70"].before_commit
-    assert "kept out before commit, by the pre-commit hook" in fake.stickies()[0]
+    assert "no longer reported before commit, by the pre-commit hook" in fake.stickies()[0]
 
 
 def test_the_sticky_still_posts_when_the_token_cannot_read_the_commits() -> None:

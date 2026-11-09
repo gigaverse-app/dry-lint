@@ -136,7 +136,7 @@ def collapse_reports(markdown: str) -> str:
     return "\n".join(folded)
 
 
-RESOLVED = "> [!TIP]\n> **Resolved:** the duplicated concepts reported earlier on this pull request are gone."
+RESOLVED = "> [!TIP]\n> **Resolved:** the earlier findings are no longer reported. This does not establish removal or consolidation."
 
 
 class GitHub:

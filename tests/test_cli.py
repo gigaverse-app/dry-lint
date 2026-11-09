@@ -114,7 +114,7 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(
     assert comment.read_text().startswith("<!-- dry-lint -->") and f"`{TWIN.split('::')[1]}`" in comment.read_text()
     assert "blocking" not in comment.read_text()
     written = json.loads(report.read_text())
-    assert written["schema"] == 15 and any(f["reported"] for f in written["findings"])
+    assert written["schema"] == 16 and any(f["reported"] for f in written["findings"])
 
 
 def test_without_a_judge_candidates_are_listed_and_never_fail(repo: Repo, tmp_path: Path, capsys) -> None:
@@ -194,7 +194,7 @@ def test_an_idle_hook_run_still_credits_a_pair_the_agent_removed(repo, tmp_path,
     repo.git("add", "src/more.py")
     assert run(repo, tmp_path, "--staged", "--preset", "jev") == 0  # no key, and none needed
     journal = Journal.load(repo.root)
-    assert not journal.blocked and {pair.state for pair in journal.pending.values()} == {"kept-out"}
+    assert not journal.blocked and {pair.state for pair in journal.pending.values()} == {"not-reported"}
 
 
 def test_staged_judging_reads_index_even_when_working_copy_was_repaired(repo, tmp_path, blocking_twin_judge, capsys):
@@ -504,15 +504,12 @@ def test_config_shows_the_resolved_preset_its_numbers_and_what_unlocks_the_other
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
     assert main(["config", "--root", str(repo.root)]) == 0
     out = capsys.readouterr().out
-    assert out.startswith("preset: jev+opus - Jev on every pair")
-    assert (
-        "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out
-        and "measured: 98% precision, 85% recall" in out
-    )
-    assert "escalate: anthropic {'model': 'claude-opus-5-5'} on [0.5, 0.91) ($0.0083 per pair)" in out
-    assert "thresholds: drop below 0.5 - report at 0.55 - fail at 0.55 - first judge alone at 0.8" in out
+    assert out.startswith("preset: balanced - Recommended function review")
+    assert "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out and "AI-926 diagnostic panel: 6/6" in out
+    assert "escalate: none" in out
+    assert "thresholds: drop below 0.5 - report at 0.5 - fail at 0.5" in out
     assert "budget: $0.04 per pull request at list price" in out
-    assert "  * jev+opus" in out and "jev+claude-code" in out and "[needs CLAUDE_CODE_OAUTH_TOKEN]" in out
+    assert "  * balanced" in out and "jev+claude-code" in out and "[needs CLAUDE_CODE_OAUTH_TOKEN]" in out
     assert "jev+claude-code-sonnet" in out and "[named only]" in out
 
 

@@ -17,7 +17,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 15
+SCHEMA = 16
 Label = Literal["duplicate", "drifted", "separate"]
 
 

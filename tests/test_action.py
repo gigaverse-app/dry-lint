@@ -536,8 +536,8 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     [body] = github.stickies()
     assert "Resolved" in body and "distinct-from src/text.py::shorten_text" not in body
     # The ledger remembers what the fix was worth: the run on the same commit was not a new push.
-    assert "**1 duplicate kept out of the codebase**" in body and "across 2 checked pushes" in body
-    assert "`preview_caption_text` ≈ `shorten_text` · found in push 1, kept out in push 2" in body
+    assert "**1 finding no longer reported**" in body and "across 2 checked pushes" in body
+    assert "`preview_caption_text` ≈ `shorten_text` · found in push 1, no longer reported in push 2" in body
 
 
 def test_typescript_pull_request_updates_and_resolves_one_sticky_comment(
@@ -1090,7 +1090,7 @@ def test_folding_counts_each_pull_request_merged_since_the_ledger_began_once(git
     assert action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github)) == "folded"
     ledger = saved_ledger()
     assert ledger.pulls == [6, 3, 4] and ledger.unaccounted == [5]
-    assert (ledger.kept_out, ledger.merged_open, ledger.pushes) == (1, 1, 3)
+    assert (ledger.kept_out, ledger.not_reported, ledger.merged_open, ledger.pushes) == (0, 1, 1, 3)
     assert round(ledger.tally.usd, 3) == 0.016 and ledger.runs == ["55"]
 
     # The next push looks back over the same pull requests, and changes nothing but its own run.
@@ -1106,7 +1106,9 @@ def test_a_new_ledger_counts_the_pull_request_this_push_merged(github_env, tmp_p
     )
     action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
     ledger = saved_ledger()
-    assert ledger.pulls == [3] and ledger.kept_out == 1 and ledger.repository == "acme/shop"
+    assert (
+        ledger.pulls == [3] and ledger.not_reported == 1 and ledger.kept_out == 0 and ledger.repository == "acme/shop"
+    )
 
 
 def test_folding_without_the_pull_requests_still_counts_this_run(github_env, tmp_path, monkeypatch, capsys) -> None:
@@ -1178,7 +1180,7 @@ def test_merged_pull_requests_are_shared_with_the_counter_under_a_key_the_name_d
     assert f"counter key is {sent['repository']}; its sign is " in capsys.readouterr().out
     assert {k: sent[k] for k in ("pull", "kept_out", "caught", "dismissed", "merged_open", "pushes", "runs")} == {
         "pull": 3,
-        "kept_out": 1,
+        "kept_out": 0,
         "caught": 1,
         "dismissed": 0,
         "merged_open": 0,
@@ -1253,7 +1255,7 @@ def test_a_baselined_pull_request_that_removes_accepted_debt_is_credited_in_its_
     assert "**1 pair**<br><sub>1 from the accepted backlog</sub>" in body
     assert "`shorten_text` ≈ `preview_caption_text` · accepted backlog, cleaned up in push 1: one side removed" in body
     ledger = PullLedger.read(body)
-    assert ledger is not None and ledger.count("kept-out") == 0 and len(ledger.backlog) == 1
+    assert ledger is not None and ledger.count("not-reported") == 0 and len(ledger.backlog) == 1
 
 
 def test_budget_exhaustion_publishes_a_nonblocking_agent_review_task(repo: Repo, github_env) -> None:
@@ -1407,8 +1409,6 @@ def test_recovered_judge_errors_are_annotated_in_advisory_mode(repo, github_env,
 
 
 def test_share_goldens_keeps_each_merged_pull_requests_settled_pairs(github_env, tmp_path, monkeypatch) -> None:
-    from dry_lint.goldens import Golden
-
     github_env("push", MAIN_PUSH)
     github = FakeGitHub(
         merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
@@ -1421,8 +1421,4 @@ def test_share_goldens_keeps_each_merged_pull_requests_settled_pairs(github_env,
     action.ledger_path().unlink()
     monkeypatch.setenv("INPUT_SHARE_GOLDENS", "true")
     action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github))
-    [golden] = [Golden.model_validate_json(line) for line in (tmp_path / "goldens.jsonl").read_text().splitlines()]
-    assert (golden.repository, golden.pull_request, golden.label) == ("acme/shop", 3, "duplicate")
-    assert golden.label_source.startswith("kept out before merge (inferred")
-    assert golden.new.revision == "a" * 40 and golden.new.path and golden.new.end_line >= golden.new.line
-    assert "code" not in golden.model_dump_json(), "pointers only: the collector fetches code at the revision"
+    assert not (tmp_path / "goldens.jsonl").exists(), "disappearance is not a positive gold label"

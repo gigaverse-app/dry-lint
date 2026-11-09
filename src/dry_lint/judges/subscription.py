@@ -21,7 +21,7 @@ from pathlib import Path
 
 from dry_lint.family_models import FamilyRequest, FamilyResponse, FamilyUsage
 from dry_lint.judges.anthropic_family import MAX_INPUT_BYTES, FamilyPromptJudge
-from dry_lint.judges.command import PROMPT_VERSION, CommandJudge, parse_verdict, prompt
+from dry_lint.judges.command import CommandJudge, parse_verdict, prompt
 from dry_lint.models import Candidate, Verdict
 
 API_KEY_VARIABLES = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
@@ -48,17 +48,23 @@ class ClaudeCodeJudge(CommandJudge):
     subscription = True
 
     def __init__(
-        self, model: str = "claude-sonnet-5-5", cli: str = "claude", timeout: float = 300, workers: int = 2
+        self,
+        model: str = "claude-sonnet-5-5",
+        cli: str = "claude",
+        timeout: float = 300,
+        workers: int = 2,
+        max_tokens: int = 2048,
     ) -> None:
         super().__init__(
             command=claude_command(cli, model, "text"),
-            version=f"{PROMPT_VERSION}:{model}",
+            version=model,
             name="claude-code",
             timeout=timeout,
             workers=workers,
         )
         self.model = model
-        self.environment = subscription_environment()
+        self.environment = {**subscription_environment(), "CLAUDE_CODE_MAX_OUTPUT_TOKENS": str(max_tokens)}
+        self.version += f":output={max_tokens}"
 
 
 class ClaudeCodeFamilyJudge(FamilyPromptJudge):
@@ -125,7 +131,7 @@ class CodexJudge(CommandJudge):
         flags = f" -m {model}" if model else ""
         super().__init__(
             command=f"{cli} exec{flags} --sandbox read-only --skip-git-repo-check --ephemeral",
-            version=f"{PROMPT_VERSION}:{model or 'account-default'}",
+            version=model or "account-default",
             name="codex",
             timeout=timeout,
             workers=workers,

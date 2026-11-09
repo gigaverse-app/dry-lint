@@ -3,7 +3,7 @@ The dry-lint command.
 
     dry-lint check                     # functions changed since the default branch: detect, judge, report
     dry-lint check --staged            # the staged changes (the pre-commit hook)
-    dry-lint trailers .git/COMMIT_EDITMSG  # what that hook kept out, into the commit's trailers
+    dry-lint trailers .git/COMMIT_EDITMSG  # what that hook observed, into the commit's trailers
     dry-lint scan --limit 50           # the whole repository's backlog of look-alikes
 
 In CI the two halves run as separate jobs, with files between them (docs/design.md):
@@ -426,6 +426,22 @@ def sweep(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     print(
         f"dry-lint: {updated.count('cleaned')} pairs cleaned, {updated.count('remaining')} remaining, "
         f"{updated.count('dismissed')} dismissed; wrote {path}"
+    )
+    return 0
+
+
+def baseline_migrate(root: Path, settings: Settings, args: argparse.Namespace) -> int:
+    """Record a reviewed policy change while preserving the target branch's exact debt allowances."""
+    path = root / (args.baseline or Path(".dry-lint/baseline.json"))
+    baseline = Baseline.model_validate_json(path.read_text(encoding="utf-8"))
+    migrated = baseline.with_policy(settings)
+    relative = path.resolve().relative_to(root.resolve()).as_posix()
+    previous_ref = args.baseline_ref or "HEAD"
+    previous = Baseline.model_validate_json(git(root, "show", f"{previous_ref}:{relative}"))
+    migrated.validate_successor(previous)
+    write_text(path, migrated.model_dump_json(indent=2) + "\n")
+    print(
+        f"dry-lint: migrated policy to {settings.preset}; preserved {len(migrated.entries)} exact allowances; no cleanup credited"
     )
     return 0
 
@@ -1010,10 +1026,15 @@ def parser() -> argparse.ArgumentParser:
     trailing = commands.add_parser(
         "trailers",
         parents=[common],
-        help="Write what the hook kept out before this commit into its message (prepare-commit-msg).",
+        help="Write the hook observations before this commit into its message (prepare-commit-msg).",
     )
     trailing.add_argument("message", type=Path, help="The commit message file git passes the hook.")
     trailing.add_argument("source", nargs="*", help="The message's source and commit, as git passes them; unused.")
+    commands.add_parser(
+        "baseline-migrate",
+        parents=[common],
+        help="Migrate a reviewed judging policy without widening baseline allowances.",
+    )
     reviewing = commands.add_parser(
         "feedback", parents=[common], help="Record a reviewed fix or exact-source dismissal."
     )
@@ -1064,6 +1085,7 @@ COMMANDS = {
     "feedback": feedback,
     "model-baseline": model_baseline,
     "progress": progress,
+    "baseline-migrate": baseline_migrate,
     "schema-check": schema_policy.check,
     "trailers": trailers,
     "bench": bench,

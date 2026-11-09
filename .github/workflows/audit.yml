@@ -13,19 +13,19 @@ on:
         type: string
         default: '3.13'
       budget-usd:
-        description: Most the whole-repository audit may spend on judging; 1 is ample for Jev, use 5 for a Claude preset.
+        description: Most the whole-repository audit may spend on judging; set an explicit repository-wide budget.
         type: string
-        default: '1'
+        default: '5'
       plugins:
         description: Extra judge packages, for example anthropic==2.4.0 for a Claude preset.
         type: string
         default: ''
     secrets:
       TYPESAFE_AI_API_KEY:
-        description: Jev's key, for the default presets.
+        description: Optional Jev ranking or explicitly configured legacy function judging.
         required: false
       ANTHROPIC_API_KEY:
-        description: For the presets that judge with Claude (jev+opus, sonnet).
+        description: For balanced function judging.
         required: false
       DRY_LINT_RATCHET_TOKEN:
         description: >-

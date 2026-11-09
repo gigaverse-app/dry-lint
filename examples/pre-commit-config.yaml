@@ -1,5 +1,5 @@
 # .pre-commit-config.yaml: check staged functions before each commit, for the coding agent making it.
-# Needs TYPESAFE_AI_API_KEY in your shell or in an untracked .env.
+# Needs ANTHROPIC_API_KEY in your shell or in an untracked .env.
 #
 # `rev: v1` follows dry-lint's 1.x releases, but pre-commit caches the first install and warns that v1 is a mutable
 # reference. To pick up a newer 1.x release: `pre-commit clean && pre-commit install --install-hooks`.
@@ -11,11 +11,8 @@ repos:
     rev: v1
     hooks:
       - id: dry-lint
-        # With a baseline, pass the preset it was written with (the one in .dry-lint.toml): the hook's own default is
-        # `agent`, and a baseline refuses a different preset.
-        args: [--preset, jev, --baseline, .dry-lint/baseline.json]
-        # Without a baseline, leave args out for the `agent` preset (recall first), or:
-        # args: [--preset, agent+haiku]   # Haiku re-judges Jev's uncertain scores; needs ANTHROPIC_API_KEY too
-        # verbose: true                   # show the hook's tally of what it kept out on every commit
-      # What the hook kept out goes into the commit's trailers, so the pull request's comment counts it.
+        # Inherit preset=balanced from repository settings, as CI and the baseline do.
+        args: [--baseline, .dry-lint/baseline.json, --require-complete]
+        # Without a baseline, omit --baseline. Model ownership findings require agent review.
+      # Records absence/dismissal without claiming verified removal.
       - id: dry-lint-trailers

@@ -86,8 +86,9 @@ class Baseline(BaseModel):
     """Committed adoption state. Its independent schema is not a verdict-store schema."""
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True, serialize_by_alias=True)
-    schema_version: Literal[1] = Field(default=1, alias="schema")
+    schema_version: Literal[1, 2] = Field(default=1, alias="schema")
     contract: str
+    policy_history: list[str] = Field(default_factory=list, description="Explicit policy migrations, oldest first.")
     started_at: str
     checked_at: str
     entries: list[Entry]
@@ -106,7 +107,9 @@ class Baseline(BaseModel):
     def parse(cls, raw: str, settings: Settings) -> "Baseline":
         result = cls.model_validate_json(raw)
         if result.contract != contract(settings):
-            raise ValueError("Baseline detection/judging policy differs; restore the adoption settings before checking")
+            raise ValueError(
+                "Baseline detection/judging policy differs; restore settings or run baseline-migrate after reviewing the policy change"
+            )
         return result
 
     @classmethod
@@ -140,7 +143,10 @@ class Baseline(BaseModel):
 
     def validate_successor(self, previous: "Baseline") -> None:
         old, new = {e.key: e for e in previous.entries}, {e.key: e for e in self.entries}
-        if self.contract != previous.contract or self.started_at != previous.started_at or old.keys() != new.keys():
+        expected_history = [*previous.policy_history, previous.contract]
+        migrated = self.schema_version == 2 and self.policy_history == expected_history
+        same_policy = self.contract == previous.contract and self.policy_history == previous.policy_history
+        if not (same_policy or migrated) or self.started_at != previous.started_at or old.keys() != new.keys():
             raise ValueError("A baseline update cannot change its original scope or accepted pair set")
         for key, entry in new.items():
             before = old[key]
@@ -151,6 +157,18 @@ class Baseline(BaseModel):
                 and entry.state != before.state
             ):
                 raise ValueError("A baseline update cannot widen an allowance or reopen settled debt")
+
+    def with_policy(self, settings: Settings) -> "Baseline":
+        """Migrate explicitly without accepting, clearing, or modifying any original source allowance."""
+        current = contract(settings)
+        if current == self.contract:
+            return self
+        migrated = self.model_copy(
+            deep=True,
+            update={"schema_version": 2, "contract": current, "policy_history": [*self.policy_history, self.contract]},
+        )
+        migrated.validate_successor(self)
+        return migrated
 
     def apply(self, report: Report) -> Report:
         accepted = self.matching([f.candidate for f in report.findings])

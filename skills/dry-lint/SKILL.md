@@ -48,7 +48,7 @@ clone of a fork, `gh` otherwise picks the upstream repository, and runs, secrets
 the wrong place.
 
 - **Default branch.** Use it wherever this file says `DEFAULT`. Do not assume `main`.
-- **One version of dry-lint.** Everything you add uses dry-lint 1.x: the CLI as `'dry-lint>=1,<2'` (here and in
+- **One version of dry-lint.** Everything you add uses dry-lint 1.x: the CLI as `'dry-lint[anthropic]>=1,<2'` (here and in
   the bootstrap workflow), the Action as `gigaverse-app/dry-lint@v1`, the hook as `rev: v1`, and the example
   workflows from the `v1` tag (the links below), so the examples match the CLI you installed. If the hooks
   already in `.pre-commit-config.yaml` pin exact tags (`rev: v4.6.0`, not `rev: v4`), pin dry-lint's hook the
@@ -62,20 +62,18 @@ the wrong place.
     `gh api repos/OWNER/REPO/commits/TAG --jq .sha` (for example `repos/gigaverse-app/dry-lint/commits/v1`); this
     works for annotated tags too, where `git/ref/tags/TAG` returns the tag object rather than the commit.
   - Otherwise use the tags shown in this file.
-- **Judge key.** The judge needs a TypeSafe API key (the Jev judge) and optionally an Anthropic key. The secret
-  can have any name. Look for one in both secret lists (names like `TYPESAFE_API_KEY` or `TYPESAFE_AI_API_KEY`). Call
-  its name `KEY_SECRET` below. A 403 from the organization endpoint means you cannot see those secrets, not that
-  there are none; ask the human before concluding there is no key. If there is none, finish the steps that need no key and stop at step 10 with the
-  request to add one. Check for a local key without printing it: `test -n "$TYPESAFE_AI_API_KEY" && echo set`.
+- **Judge key.** Use `ANTHROPIC_API_KEY` for balanced function review. Find its actual secret name in the repository
+  and organization secret lists; call it `KEY_SECRET` below. Never print its value. A 403 listing org secrets does
+  not prove no key exists. Finish work that needs no key before asking for missing credentials.
 - **Existing adoption.** If `.dry-lint/baseline.json` exists, you are resuming: never delete it or run
-  `sweep --init` again. Keep existing hooks, settings and README markers, and fill in only what is missing.
+  `sweep --init` again. Preserve debt and README markers. Migrate legacy function presets to balanced with `baseline-migrate`, remove hook preset overrides, and document any compelling exception. Never reinitialize debt.
 - **Python syntax.** If the code uses syntax newer than Python 3.13, use that version for the parser below
   (`--python 3.14`, the Action's `python-version`, the hook's `language_version`).
 
 ## 2. Look at the repository, no key needed
 
 ```bash
-uv tool install --upgrade --no-config --python 3.13 'dry-lint>=1,<2'   # or: pipx install --force 'dry-lint>=1,<2'
+uv tool install --upgrade --no-config --python 3.13 'dry-lint[anthropic]>=1,<2'   # or: pipx install --force 'dry-lint[anthropic]>=1,<2'
 dry-lint --version                 # expected: dry-lint 1.8.1 or later
 dry-lint config                    # the scope: which folders' source files it reads
 dry-lint scan --judge none --limit 30
@@ -109,7 +107,7 @@ unless the repository already configures dry-lint in `pyproject.toml`.
 ```toml
 # .dry-lint.toml
 # The preset: see the table below. CI, the hook and the baseline all use this one preset.
-preset = "jev"
+preset = "balanced"
 # The folders that ship: the package directories, not tests or docs.
 include = ["src/*"]
 # The defaults, restated: setting exclude replaces them, so keep them in the list.
@@ -125,18 +123,15 @@ fnmatch over the repository-relative path, and `*` also matches `/`, so `src/pkg
 it. Exclude wins over include. Without the four defaults the list would bring tests, migrations and scripts back
 into scope.
 
-| Keys the repository has | `preset` | `--budget-usd` for the one-off sweep |
-| --- | --- | --- |
-| TypeSafe | `jev` (94% precision, 73% recall, about $0.0002 a pull request) | `1` (273 pairs cost $0.010) |
-| TypeSafe and Anthropic | `jev+opus` (98% / 85%, about $0.005 a pull request) | `5` |
-| Anthropic only | `sonnet` (97% / 63%) | `5` |
-| Neither | stop at step 10 and ask for a TypeSafe key | |
+Use balanced for functions and agent source review for models. An Anthropic key selects balanced automatically,
+but pin it in repository settings so a missing key cannot quietly downgrade enforcement. A Claude subscription may
+use `balanced-subscription`; TypeSafe-only function judging requires a documented exception. Do not equate the legacy
+function preset named `agent` with the separate model review lane.
 
-**One preset everywhere.** The baseline records the preset's judges and thresholds, and any command that checks
-against the baseline must use the same preset or it refuses to run. So the settings file names it, the workflows
-take it from there (do not set the Action's `preset` input), and the hook passes it explicitly (step 7). If coding
-agents write and fix most pull requests, `preset = "agent"` (Jev, failing from 0.6: more recall, more false
-positives) is a valid choice; it is still the one preset for everything.
+**One policy everywhere.** CI, hooks, audits and the baseline inherit repository settings. Remove hook `--preset`
+arguments and leave the Action preset input unset. For existing debt, run `dry-lint baseline-migrate` after changing
+settings; verify it preserves every pair, hash and settled state. Then check with `--require-complete`. Migration
+accepts no new debt and earns no cleanup credit. See [the policy](../../docs/judges.md).
 
 Check the scope:
 
@@ -180,11 +175,11 @@ Markdown `README.md`, a progress block in it. `progress.json` is the shields.io 
 commit it in every case, since the weekly audit keeps it current. A README in another format (`README.rst`) gets no
 block, and you leave it alone.
 
-**With a local key** (`TYPESAFE_AI_API_KEY`, and `ANTHROPIC_API_KEY` for a Claude preset, in the environment):
+**With a local key** (`ANTHROPIC_API_KEY` in the environment):
 
 ```bash
 ID=$(gh api "repos/$REPO" --jq .id)   # the README's counter sign is keyed by a hash of this id, never the name
-dry-lint sweep --init --budget-usd 1 --readme README.md --repository "$REPO" --repository-id "$ID" --branch DEFAULT
+dry-lint sweep --init --budget-usd 5 --readme README.md --repository "$REPO" --repository-id "$ID" --branch DEFAULT
 ```
 
 Without a Markdown `README.md`, leave out `--readme README.md` and `--repository-id "$ID"`: the id serves only the
@@ -246,11 +241,9 @@ Fetch the examples, adapt them as listed, and save them in `.github/workflows/`:
 
 In each one:
 
-1. Replace every `secrets.TYPESAFE_AI_API_KEY` value with `secrets.KEY_SECRET`. In `dry-lint-audit.yml` change only
-   the value after the colon: the names on the left (`TYPESAFE_AI_API_KEY:`, `DRY_LINT_RATCHET_TOKEN:`) are the ones
-   dry-lint's audit declares. Leave the environment variable `TYPESAFE_AI_API_KEY` in `run:` steps as it is: it is the
-   only name the CLI reads. The Action input is always `typesafe-api-key`. For a Claude preset, uncomment the
-   `anthropic-api-key` lines, and in `dry-lint-audit.yml` the `ANTHROPIC_API_KEY`, `budget-usd` and `plugins` lines.
+1. Replace `secrets.ANTHROPIC_API_KEY` values with `secrets.KEY_SECRET`. Keep the audit's left-hand
+   `ANTHROPIC_API_KEY` secret name and the Action input `anthropic-api-key`. TypeSafe credentials are optional for
+   model ranking; model candidates still require agent review with or without them.
 2. Replace `main` in `branches:` with `DEFAULT`.
 3. In `dry-lint.yml` **and** `dry-lint-judge.yml`, uncomment `baseline: .dry-lint/baseline.json` and
    `require-complete: 'true'`: both post the judged check, so both enforce the baseline. Keep `dry-lint.yml`'s job
@@ -296,13 +289,13 @@ repos:
     hooks:
       # The preset from .dry-lint.toml, with the baseline.
       - id: dry-lint
-        args: [--preset, jev, --baseline, .dry-lint/baseline.json]
-      # Credits the duplicates the hook kept out in the pull request's comment.
+        args: [--baseline, .dry-lint/baseline.json, --require-complete]
+      # Records findings no longer reported, without claiming they were removed.
       - id: dry-lint-trailers
 ```
 
-- The hook defaults to the `agent` preset, so always pass the settings file's preset with the baseline.
-- It reads `TYPESAFE_AI_API_KEY` from the shell or an untracked `.env`; add `.env` to `.gitignore`.
+- The hook inherits repository settings. Never force a lower-precision preset for local function checks.
+- It reads `ANTHROPIC_API_KEY` from the shell or an untracked `.env`; add `.env` to `.gitignore`.
 - It needs the key only when the staged change has a pair to judge. With nothing staged, no supported source
   file staged, or no look-alike, it passes and prints `no pair to judge, so no judge ran`. So
   `pre-commit run --all-files` in a tox or nox lint session, a CI lint job or pre-commit.ci passes without a key,

@@ -86,12 +86,12 @@ def test_public_cleanup_links_both_originals_to_the_uniquely_remaining_symbol():
     assert "Three-way view" in body
     assert data["evidence"]["a"]["revision"] == HEAD == data["evidence"]["b"]["revision"]
     assert data["result"]["revision"] == AFTER and data["result"]["line"] == 3
-    assert data["result"]["name"] == "shorten" and data["state"] == "kept-out"
+    assert data["result"]["name"] == "shorten" and data["state"] == "not-reported"
     assert data["evidence"]["verdict"] == built.findings[0].verdict.model_dump()
     assert "return text" not in json.dumps(data)
     assert "return text" not in body
     ledger = PullLedger.read(body)
-    assert ledger.count("kept-out") == 1 and ledger.tally.judgments == 1
+    assert ledger.count("not-reported") == 1 and ledger.tally.judgments == 1
     assert body.index("Compare the code") < body.index("History and check stats")
 
 
@@ -356,7 +356,7 @@ def test_large_evidence_does_not_grow_the_sticky_ledger_or_lose_cleanup_counts()
     )
     assert len(body) < 50000
     post(fake, report(AFTER), "2")
-    assert PullLedger.read(fake.stickies()[0]).count("kept-out") == 40
+    assert PullLedger.read(fake.stickies()[0]).count("not-reported") == 40
 
 
 def test_pairs_of_same_named_methods_on_different_classes_render_as_different_rows():

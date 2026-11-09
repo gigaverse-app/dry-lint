@@ -27,13 +27,12 @@ def pair(state: str, **overrides) -> Pair:
     return Pair(**{**fields, **overrides})
 
 
-def test_kept_out_and_dismissed_pairs_become_labelled_pointers() -> None:
+def test_only_dismissed_pairs_become_labels_and_absence_is_excluded() -> None:
     ledger = PullLedger(pairs={"k": pair("kept-out"), "d": pair("dismissed")})
     found = {golden.key: golden for golden in settled("acme/shop", 7, ledger)}
-    assert (found["k"].label, found["d"].label) == ("duplicate", "separate")
-    assert found["k"].label_source.startswith("kept out before merge (inferred")
+    assert set(found) == {"d"} and found["d"].label == "separate"
     assert found["d"].label_source.startswith("dismissed after it was reported")
-    assert found["k"].new.path == "src/clip.py" and found["k"].existing.name == "shorten"
+    assert found["d"].new.path == "src/clip.py" and found["d"].existing.name == "shorten"
 
 
 def test_unsettled_unsourced_and_self_reported_pairs_are_left_out() -> None:
@@ -53,6 +52,6 @@ def test_unsettled_unsourced_and_self_reported_pairs_are_left_out() -> None:
 def test_append_writes_json_lines_and_skips_empty_batches(tmp_path: Path) -> None:
     path = tmp_path / "out" / "goldens.jsonl"
     assert append(path, []) == 0 and not path.exists()
-    goldens = settled("acme/shop", 7, PullLedger(pairs={"k": pair("kept-out")}))
+    goldens = settled("acme/shop", 7, PullLedger(pairs={"k": pair("dismissed")}))
     assert append(path, goldens) == 1 and append(path, goldens) == 1
     assert [Golden.model_validate_json(line).key for line in path.read_text().splitlines()] == ["k", "k"]
