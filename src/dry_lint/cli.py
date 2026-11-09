@@ -1148,3 +1148,5 @@ def main(argv: list[str] | None = None) -> int:
         detail = getattr(error, "stderr", None) or error
         print(f"dry-lint: {str(detail).strip()}", file=sys.stderr)
         return 2
+
+# probe: a one-line source change
