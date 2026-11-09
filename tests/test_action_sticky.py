@@ -7,7 +7,7 @@ import pytest
 from test_ledger import push
 from test_report import finding
 
-from dry_lint import sticky
+from dry_lint import __version__, sticky
 from dry_lint.ledger import SPREAD, PullLedger, RepositoryLedger
 from dry_lint.report import CLEAN, NOTE_SLOT
 from dry_lint.sticky import MARKER, GitHub, compose, marker, upsert
@@ -183,6 +183,40 @@ def test_the_comment_carries_one_marker_the_banner_when_it_renders_and_its_sourc
     assert "sticky-banner-dark.svg" in body and 'sticky-banner-light.svg" width="100%"' in body
     assert f"commit {HEAD[:7]}" in body and "[run](https://github.com/acme/shop/actions/runs/9)" in body
     assert "<picture>" not in compose(REPORT) and "<sub>" not in compose(REPORT)
+
+
+RAW = "https://raw.githubusercontent.com"
+
+
+@pytest.mark.parametrize(
+    "environ, revision",
+    [
+        # a released Action, by tag or by SHA, on Linux and Windows runners
+        ({"GITHUB_ACTION_PATH": "/home/runner/work/_actions/gigaverse-app/dry-lint/v1"}, "gigaverse-app/dry-lint/v1"),
+        ({"GITHUB_ACTION_PATH": "D:\\a\\_actions\\gigaverse-app\\dry-lint\\v1.8.1\\"}, "gigaverse-app/dry-lint/v1.8.1"),
+        ({"GITHUB_ACTION_PATH": f"/w/_actions/acme/dry-lint-fork/{'f' * 40}"}, f"acme/dry-lint-fork/{'f' * 40}"),
+        # `uses: ./`: the repository under test, at the commit under test
+        (
+            {"GITHUB_ACTION_PATH": "/w/dry-lint/dry-lint", "GITHUB_REPOSITORY": "acme/dry-lint", "GITHUB_SHA": HEAD},
+            f"acme/dry-lint/{HEAD}",
+        ),
+        # outside the Action: the release this package is, never a moving branch
+        ({}, f"gigaverse-app/dry-lint/v{__version__}"),
+        ({"GITHUB_ACTION_PATH": "/w/dry-lint/dry-lint"}, f"gigaverse-app/dry-lint/v{__version__}"),
+    ],
+)
+def test_the_banner_comes_from_the_action_s_own_revision(environ, revision, monkeypatch) -> None:
+    assert sticky.assets(environ) == f"{RAW}/{revision}/docs/assets"
+    for name in ("GITHUB_ACTION_PATH", "GITHUB_REPOSITORY", "GITHUB_SHA"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in environ.items():
+        monkeypatch.setenv(name, value)
+    body = compose(REPORT, banner=True)
+    assert f'srcset="{RAW}/{revision}/docs/assets/sticky-banner-dark.svg"' in body
+    assert f'src="{RAW}/{revision}/docs/assets/sticky-banner-light.svg"' in body and "/main/" not in body
+    asked = []
+    sticky.banner_available(httpx.MockTransport(lambda request: asked.append(str(request.url)) or httpx.Response(200)))
+    assert asked == [f"{RAW}/{revision}/docs/assets/sticky-banner-light.svg"]
 
 
 @pytest.mark.parametrize("status, expected", [(200, True), (404, False)])
