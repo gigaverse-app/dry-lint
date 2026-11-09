@@ -1,0 +1,5 @@
+dependencies:
+  - inputs:
+      - "//.github/workflows/release.yml"
+    kind: content
+    reason: "test_a_republish_dispatch_reaches_the_publish_job reads the publish job's condition."
