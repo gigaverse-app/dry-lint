@@ -1,0 +1,9 @@
+dependencies:
+  - inputs:
+      - "//.github/workflows/audit.yml"
+      - "//examples/dry-lint-audit.yml"
+      - "//examples/dry-lint-bootstrap.yml"
+      - "//examples/dry-lint-judge.yml"
+      - "//examples/dry-lint.yml"
+    kind: content
+    reason: "Read at runtime; recorded by pytest-selective audit --write-declarations."
