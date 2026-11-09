@@ -226,7 +226,9 @@ Private repositories need a separately published aggregate endpoint for a public
 
 ## 6. Close the weekly ratchet loop
 
-Use [the audit workflow](../examples/dry-lint-audit.yml). The Action's `mode: sweep` is read-only; a later CLI
+Call dry-lint's [audit workflow](../.github/workflows/audit.yml) from a short workflow of your own, as
+[examples/dry-lint-audit.yml](../examples/dry-lint-audit.yml) does; never copy its steps, which then drift from the
+release. The Action's `mode: sweep` is read-only; a later CLI
 `sweep --update` records the result using the same store and the CLI already installed by the Action.
 Do not resolve/install the moving Action ref again between those steps: a different version can invalidate cached
 judgments or change the baseline contract. The workflow opens/updates one `dry-lint/ratchet` branch
@@ -337,15 +339,15 @@ For each model adoption, exercise unchanged accepted debt, a new or changed copy
 the opt-out, and both sides of each ownership policy. Confirm model findings survive fork detect/judge and
 appear in the combined sticky. Test schema naming/isolation separately if that optional policy is enabled.
 
-A new audit workflow cannot be dispatched directly until GitHub knows it on the default branch. The audit
-template also supports `workflow_call`: add this job to an already registered workflow with `workflow_dispatch`,
-then dispatch that workflow on the adoption branch to exercise the same audit before merging:
+A new audit workflow cannot be dispatched directly until GitHub knows it on the default branch. Call the
+same reusable audit from an already registered workflow with `workflow_dispatch`, then dispatch that workflow on
+the adoption branch to exercise the audit before merging:
 
 ```yaml
 jobs:
   audit:
     if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/dry-lint-audit.yml
+    uses: gigaverse-app/dry-lint/.github/workflows/audit.yml@v1
     secrets:
       TYPESAFE_AI_API_KEY: ${{ secrets.TYPESAFE_AI_API_KEY }}
       DRY_LINT_RATCHET_TOKEN: ${{ secrets.DRY_LINT_RATCHET_TOKEN }}

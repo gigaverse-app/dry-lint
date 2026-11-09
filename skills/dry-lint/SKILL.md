@@ -226,14 +226,15 @@ Fetch the examples, adapt them as listed, and save them in `.github/workflows/`:
 | --- | --- |
 | [dry-lint.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint.yml) | the `dry-lint` check on every pull request and default-branch push |
 | [dry-lint-judge.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint-judge.yml) | judges pull requests from forks with secrets, never running fork code (public repositories) |
-| [dry-lint-audit.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint-audit.yml) | weekly audit; opens a `dry-lint/ratchet` pull request when old debt is cleaned |
+| [dry-lint-audit.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint-audit.yml) | weekly audit: calls dry-lint's reusable `audit.yml@v1`, which opens a `dry-lint/ratchet` pull request when old debt is cleaned. Keep it a caller: never paste the audit's steps into the repository |
 
 In each one:
 
-1. Replace every `secrets.TYPESAFE_AI_API_KEY` with `secrets.KEY_SECRET`, and in `dry-lint-audit.yml` also the
-   `TYPESAFE_AI_API_KEY:` name declared under `workflow_call: secrets:`. Leave the environment variable
-   `TYPESAFE_AI_API_KEY` in `run:` steps as it is: it is the only name the CLI reads. The Action input is always
-   `typesafe-api-key`. For a Claude preset, uncomment the `anthropic-api-key` lines too.
+1. Replace every `secrets.TYPESAFE_AI_API_KEY` value with `secrets.KEY_SECRET`. In `dry-lint-audit.yml` change only
+   the value after the colon: the names on the left (`TYPESAFE_AI_API_KEY:`, `DRY_LINT_RATCHET_TOKEN:`) are the ones
+   dry-lint's audit declares. Leave the environment variable `TYPESAFE_AI_API_KEY` in `run:` steps as it is: it is the
+   only name the CLI reads. The Action input is always `typesafe-api-key`. For a Claude preset, uncomment the
+   `anthropic-api-key` lines, and in `dry-lint-audit.yml` the `ANTHROPIC_API_KEY`, `budget-usd` and `plugins` lines.
 2. Replace `main` in `branches:` with `DEFAULT`.
 3. In `dry-lint.yml` **and** `dry-lint-judge.yml`, uncomment `baseline: .dry-lint/baseline.json` and
    `require-complete: 'true'`: both post the judged check, so both enforce the baseline. Keep `dry-lint.yml`'s job

@@ -166,6 +166,7 @@ jobs:
             .github/workflows/dryer.yml
             .github/workflows/counter.yml
             .github/workflows/viewer.yml
+            .github/workflows/audit.yml
             examples/dry-lint.yml
             examples/dry-lint-judge.yml
             examples/dry-lint-audit.yml

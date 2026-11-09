@@ -98,7 +98,8 @@ same parser version; an incompatible index is rebuilt under the existing contrac
 
 [How CI runs dry-lint](ci.md) shows how the check, the fork judge and the ratchet fit together.
 For the full setup, including local hooks, PR accounting and a standing ratchet PR, use the
-[adoption playbook](adoption-playbook.md) and [audit workflow example](../examples/dry-lint-audit.yml).
+[adoption playbook](adoption-playbook.md) and [audit workflow example](../examples/dry-lint-audit.yml), which
+calls dry-lint's reusable [audit workflow](../.github/workflows/audit.yml).
 
 ## Periodic audits
 

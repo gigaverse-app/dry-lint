@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
+# The audit adopters call rather than copy: its steps ship with each release.
+AUDIT = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "audit.yml"
 
 
 @pytest.mark.parametrize("name", ["dry-lint.yml", "dry-lint-judge.yml"])
@@ -48,10 +50,10 @@ def test_the_bootstrap_initializes_from_a_push_and_ships_the_hidden_folder() -> 
     assert "persist-credentials: false" in workflow
 
 
-@pytest.mark.parametrize("name", ["dry-lint-bootstrap.yml", "dry-lint-audit.yml"])
-def test_a_repository_without_a_markdown_readme_needs_no_edit(name: str) -> None:
-    """The progress block goes only into README.md; a README.rst repository runs the example unchanged."""
-    workflow = (EXAMPLES / name).read_text()
+@pytest.mark.parametrize("path", [EXAMPLES / "dry-lint-bootstrap.yml", AUDIT])
+def test_a_repository_without_a_markdown_readme_needs_no_edit(path: Path) -> None:
+    """The progress block goes only into README.md; a README.rst repository runs the workflow unchanged."""
+    workflow = path.read_text()
     assert "if [[ -f README.md ]]; then readme=(--readme README.md); fi" in workflow
     assert '"${readme[@]}"' in workflow and "--readme README.md --" not in workflow
     assert "cp -R .dry-lint README.md" not in workflow
@@ -59,8 +61,28 @@ def test_a_repository_without_a_markdown_readme_needs_no_edit(name: str) -> None
 
 def test_the_ratchet_commits_only_files_that_exist() -> None:
     """`git add -- a missing` stages nothing, so a listed optional file that is absent would lose the whole ratchet."""
-    workflow = (EXAMPLES / "dry-lint-audit.yml").read_text()
+    workflow = AUDIT.read_text()
     assert "add-paths: ${{ steps.ratchet.outputs.paths }}" in workflow
     listed = re.search(r"for path in (.*); do", workflow).group(1).split()
     assert listed == [".dry-lint/baseline.json", ".dry-lint/progress.json", ".dry-lint/models.json", "README.md"]
     assert 'if [[ -f "$path" ]]; then echo "$path"; fi' in workflow
+
+
+def test_the_audit_example_calls_dry_lints_audit_and_passes_only_what_it_declares() -> None:
+    """
+    INVARIANT: adopters call the audit at the major tag instead of copying its steps, and every input and secret an
+    adopter passes, commented or not, is one the audit declares: an undeclared one fails the caller at run time.
+    """
+    example, audit = (EXAMPLES / "dry-lint-audit.yml").read_text(), AUDIT.read_text()
+    assert re.search(r"^    uses: gigaverse-app/dry-lint/\.github/workflows/audit\.yml@v1$", example, re.MULTILINE)
+    assert not re.search(r"^\s*(?:- )?(?:run|steps):", example, re.MULTILINE)  # no steps of its own to drift
+    assert re.search(r"^on:\n  workflow_call:\n", audit, re.MULTILINE)  # only ever called
+    assert not re.search(r"^  (?:schedule|push|pull_request|workflow_dispatch):", audit, re.MULTILINE)
+    # The audit's declarations, six spaces deep under `inputs:` and `secrets:`, before its permissions and steps.
+    declared = set(re.findall(r"^      ([A-Za-z_-]+):$", audit.split("\npermissions:")[0], re.MULTILINE))
+    # What the example passes under `with:` and `secrets:`, including the commented-out choices.
+    call = example.split("    uses: ", 1)[1]
+    passed = set(re.findall(r"^\s+#?\s*([A-Za-z_-]+): (?![>|]?$)", call, re.MULTILINE))
+    assert {"TYPESAFE_AI_API_KEY", "ANTHROPIC_API_KEY", "DRY_LINT_RATCHET_TOKEN"} <= passed
+    assert {"python-version", "budget-usd", "plugins"} <= passed
+    assert passed <= declared, passed - declared
