@@ -1,111 +1,78 @@
-# Judges
+# Judging defaults
 
-## Presets: judges and thresholds, chosen together
+Use **balanced for function duplication** and **agent source review for model ownership**. Adopt this split in CI,
+hooks and audits unless the repository documents a concrete cost, credential or measured-quality exception.
 
-A threshold means something only for the judges it was measured with: Jev's 0.8 and Claude Sonnet's 0.7 are not
-the same bar. So dry-lint chooses the judges and the thresholds together, as a **preset**:
+| Lane | Default | What a finding means |
+| --- | --- | --- |
+| Functions | `balanced`: Claude Haiku 5.5, shared-operation prompt, report/fail at 0.5 | A named executable operation has competing implementations; inspect the proposed shared owner |
+| Models | Model discovery and optional Jev ranking, followed by agent review | Investigate the complete model family, producers, consumers and ownership; a score never authorizes a merge |
 
-| Preset | Judges | Reports and fails at | Precision / recall within $0.04 a PR | Average cost a PR |
-| --- | --- | --- | --- | --- |
-| `jev+opus` | Jev, then Claude Opus 5.5 (API) on Jev scores in [0.5, 0.91) | 0.55 | 98% / 85% (99% / 90% unbudgeted) | ~$0.005 |
-| `jev+claude-code` | the same, through a Claude subscription (`claude` CLI) | 0.55 | same model and prompt; not measured through the CLI | ~$0.005 of subscription use |
-| `jev+sonnet` | Jev, then Claude Sonnet 5.5 (API) on [0.5, 0.91) | 0.7 (reports from 0.6) | 97% / 84% | ~$0.0035 |
-| `jev+claude-code-sonnet` | the same, through a Claude subscription | 0.7 (from 0.6) | same model and prompt | ~$0.0035 of subscription use |
-| `jev+codex` | Jev, then the ChatGPT subscription's model (`codex` CLI) on [0.5, 0.91) | 0.7 | 96% / 85% | ~1.1 subscription calls, ~14 s each |
-| `sonnet` | Claude Sonnet 5.5 (API) on every pair | 0.7 (from 0.6) | 97% / 63% (84% unbudgeted) | ~$0.007 |
-| `claude-code` | the same, through a Claude subscription | 0.7 (from 0.6) | same model and prompt | ~$0.007 of subscription use |
-| `jev` | Jev on every pair | 0.8 | 94% / 73% | ~$0.0002 |
-| `none` | no judge: candidates are listed, nothing fails | - | - | free |
+Balanced keeps protected TF-IDF candidates, explores up to 20 neighbours, adds one bounded operation-block neighbour,
+and shares a persistent $0.04 budget across a PR's pushes. API judging uses a 2,048-token response limit and no SDK retries.
+Deferred or failed judgments are not negative verdicts. Required CI uses `require-complete: 'true'`.
+Tests/migrations/scripts remain excluded by default; including them is a repository scope choice, not a reason to
+suppress all fixtures. Two wrappers entering the same lifecycle helper are separate; independently implementing
+setup/yield/teardown still duplicates behavior.
 
-Measured on the 250-pair gold set and simulated on each pull request's own candidates under the default budget,
-every push included ([benchmark](benchmark.md#within-a-budget)). On gigaverse-backend, -web-app and -mobile,
-`jev+sonnet` failing at 0.7 kept 91–100% precision, while Jev alone fell to about 80% on TypeScript
-([other repositories](benchmark.md#other-repositories)). There, within the budget, `jev+opus` and `jev+sonnet`
-tie, and TypeScript precision falls to 83–89% with either, so keep `warn-only` on TypeScript
-([`jev+opus` elsewhere](benchmark.md#jevopus-and-the-budget-elsewhere)). The default,
-`preset = "auto"`, takes the first of `jev+opus`, `jev+claude-code`, `jev`, `sonnet`, `claude-code`, `none` whose
-credentials are in the environment (`TYPESAFE_AI_API_KEY`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`); the
-others must be named. On gigaverse-ai, `jev+sonnet` costs a third less than `jev+opus` but blocks about twice as many separate pairs.
-`sonnet` and `claude-code` have no cheap first judge to fall back on, so on the largest pull requests the budget
-runs out and pairs stay unjudged: that is why `jev` comes before them. Any field set explicitly (`judge`,
-`escalate`, `drop_below`, `report_at`, `fail_at`, or `--fail-at`) wins over the preset's; naming your own `judge`
-without a preset runs it alone, as `custom`, with the default thresholds, since no preset was measured for it.
-`dry-lint config` prints what would run and why, and every report ends with the same line: the preset, the judges,
-the thresholds and the cost.
-
-Each threshold belongs to the judge whose scores it was measured on. With a second judge, its answers meet the
-preset's thresholds, and the first judge's answers that it did not see (outside the band, or once the budget has
-run out) meet the first judge's own bar, `escalate.first_at`: 0.8 for Jev. Without that, a large pull request that
-ran out of budget would fail on Jev scores of 0.55, where Jev alone is right about two times in three.
+`auto` selects `balanced` with `ANTHROPIC_API_KEY`, then `balanced-subscription` with `CLAUDE_CODE_OAUTH_TOKEN`,
+then `jev` only for existing TypeSafe-only installations, otherwise `none` (detection only). This credential
+fallback preserves existing enforcement; it is not the recommended adoption. Pin `preset = "balanced"` in adopting repositories so missing credentials fail visibly. Install
+`dry-lint[anthropic]`, or use the Action's `anthropic-api-key` input. The subscription preset shares discovery,
+model, prompt and thresholds, but has not been independently calibrated through the CLI.
 
 ## One preset everywhere
 
-A repository has one preset, named in `.dry-lint.toml` (`preset = "jev"`). CI, the pre-commit hook, the weekly
-audit and the baseline all use it. The baseline records the preset's judges and thresholds when `sweep --init`
-writes it, and any command that checks against the baseline refuses to run with a different preset
-(`Baseline detection/judging policy differs`). So:
+```toml
+[tool.dry-lint]
+preset = "balanced"
+```
 
-- leave the Action's `preset` input empty, so the workflows read the settings file;
-- give the hook the same preset with the baseline, `args: [--preset, jev, --baseline, .dry-lint/baseline.json]`,
-  because the hook's own default is `agent`;
-- choose the preset for whoever reads the findings, below. Without a baseline, the hook's `agent` default is the
-  recall-first choice for a coding agent.
+Leave workflow `preset` inputs and hook `--preset` arguments out. Both inherit repository settings. Model review
+is enabled separately and does not require the legacy function preset named `agent`.
 
-| Keys the repository has | Preset for the check and the baseline | Budget for a one-off `sweep --init` |
-| --- | --- | --- |
-| TypeSafe | `jev` | `--budget-usd 1` (273 pairs cost $0.010) |
-| TypeSafe and Anthropic | `jev+opus` | `--budget-usd 5` |
-| Anthropic only | `sonnet` | `--budget-usd 5` |
-| Mostly agent-written and agent-fixed pull requests, TypeSafe | `agent` | `--budget-usd 1` |
+For an existing baseline, change the repository preset, remove hook overrides, then run:
 
-The keys are the adopter's own. Store each as a repository or organization secret under any name and pass it to
-the Action's `typesafe-api-key:` or `anthropic-api-key:` input; a plain `run:` step passes it as the environment
-variable the CLI reads, `TYPESAFE_AI_API_KEY` or `ANTHROPIC_API_KEY`. Locally, set those variables or put them in an
-untracked `.env`.
+```bash
+dry-lint baseline-migrate --baseline .dry-lint/baseline.json
+dry-lint check --baseline .dry-lint/baseline.json --require-complete
+```
+
+Migration records the old policy digest and preserves the original pair set, hashes, context, adoption revision
+and settled states. It accepts no new debt and credits no cleanup. Commit its small metadata diff with the settings;
+review the complete change against the target branch. Never delete/reinitialize the baseline to change a preset.
+New findings from broader discovery require review; migration is not an exemption for them.
+
+Legacy Jev and cascade presets remain explicit compatibility choices for existing baselines. Their historical
+measurements are in [the benchmark](benchmark.md); they are not current guarantees for the replaced text prompt.
+`dry-lint config` prints the resolved setup. Explicit repository overrides still win.
 
 ## Who reads the findings: people, or coding agents
 
-Choose the judging for whoever reads the findings, not for the best score on a benchmark.
+Both use balanced for functions. Reserve deeper agent investigation for model ownership and unresolved context.
+The old `agent` function preset optimized recall at 43–69% precision. Making it the hook's forced default turned
+ordinary pytest adapters into blocking work. Repository owners should document an exception before retaining it.
 
-- **A person** reading a pull request comment pays for each false positive with attention, and a red check holds up a
-  merge. Every wrong finding also teaches them to skim the next one. Put precision first: an escalating preset such
-  as `jev+opus` (98% precision), and a `fail_at` that blocks only what is nearly certain.
-- **A coding agent** pays seconds. It opens both functions, decides, and either reuses the existing one or records
-  why they differ (`# dry-lint: distinct-from ...`), which settles the pair for good. A missed duplicate costs a copy
-  that drifts. Put recall first, with a fast, cheap judge and a low threshold: the agent is the second judge, so
-  paying Claude Opus to judge a finding that an agent will check anyway buys little.
+## AI-926 regression and limits
 
-**High enough** is a range, not a maximum, for both:
+[gigaverse-ai #3360](https://github.com/gigaverse-app/gigaverse-ai/pull/3360) used Jev `reuse-v2`, `preset=agent`,
+without helper context. Its six identical fixture-adapter pairs were false positives. Operation blocks were disabled;
+the failure also reproduces before that feature landed. The old prompt only excluded direct delegation between the
+pair, while both fixtures actually delegated cleanup to a third owner.
 
-| Reader | Recall | Precision | Judging |
-| --- | --- | --- | --- |
-| Person: PR comment, required check | as high as precision allows | about 95% or more of what blocks; reports may warn below it | `jev+opus` or `jev+sonnet` |
-| Coding agent: hook, agent loop, `--format json` | about 90% or more | about one in two or better: below that, agents start ignoring findings as people do | `agent` (Jev at 0.6), or `agent+haiku` |
+The maintained `dry-operations-v3` prompt distinguishes shared delegation from independently repeated lifecycle
+policy. The replaced `concept` and compact prompt names are compatibility aliases, with strict versioned cache
+identity. Frozen research artifacts remain historical evidence, not runtime policy.
 
-The measurements support the split. Each cell is precision / recall at the preset's report threshold, on the
-labelled gold sets of four gigaverse repositories (two Python, two TypeScript, 675 pairs in all):
+[Oz's pinned corpus](../examples/oz-fixtures-gold.toml) contains six real adapter pairs and six independent cleanup
+pairs. One live Haiku run classified all 12 correctly. Additional curated controls caught 5/6 pytest-obligation
+positives with 1/6 false positives, and 5/7 Due positives with 0/3 false positives. These small agent-labelled panels
+are regression evidence, not independent population estimates; model output remains variable.
 
-| Judging | gigaverse-ai | -backend | -web-app | -mobile | Cost a pair |
-| --- | --- | --- | --- | --- | --- |
-| `agent`: Jev, from 0.6 | 69% / 92% | 53% / 97% | 43% / 100% | 55% / 93% | under $0.0001 |
-| `agent+haiku`: Haiku on Jev's [0.5, 0.91), from 0.5 | 85% / 94% | 61% / 94% | 58% / 70% | 81% / 80% | about $0.0002 |
-| Sonnet on Jev's [0.5, 0.91), from 0.5 | 95% / 88% | 100% / 71% | 80% / 78% | 91% / 78% | about $0.0025 |
-
-Only Jev alone keeps recall at 90% or more everywhere. Every second judge buys precision with recall, because it
-also turns down real duplicates Jev was right about, and Sonnet, the strictest, turns down the most. Lowering its
-threshold does not win them back: they score below 0.5. So a person's preset escalates and an agent's preset
-mostly does not. `agent+haiku` is the middle ground: on Python it keeps about Jev's recall at higher precision; on
-TypeScript it loses a fifth to a third of the duplicates. A shared-operations prompt for Haiku (the one `balanced`
-uses), tried as the second judge, kept only 49% to 75% of the duplicates.
-
-One repository can serve both readers. CI keeps a precision preset for the comment and the check, and the
-[pre-commit hook](../README.md#pre-commit) runs `agent` on what the coding agent stages.
-`dry-lint check --staged --preset agent --format json` lists every judged pair with its score, not only the ones
-the preset reports. A local run keeps its verdicts in the git directory and CI keeps its own in the Actions cache.
-Even in one store, a verdict is reused only by judging that would have given it: a second opinion only for the
-same second judge, and Jev's own answer in the escalation band never for a run that escalates. So an `agent` run
-and a `jev+opus` run can share a store, and adding a second judge re-judges the cached first answers it would have
-seen.
+A disappearing finding now means **no longer reported**. Reverts, retrieval changes and changed budgets cannot earn
+cleanup credit or supply positive training labels. Only evidenced reductions of accepted baseline debt count toward
+cleanup. Legacy sticky/trailer claims are downgraded when read; already published global totals are historical and
+are not retroactively recomputed by a local upgrade.
 
 ## Paying with a subscription instead of an API key
 

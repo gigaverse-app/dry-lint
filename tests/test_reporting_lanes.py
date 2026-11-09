@@ -84,8 +84,8 @@ def test_skipping_model_pass_cannot_resolve_its_review_in_hook_or_sticky():
     assert ledger.advance([skipped], run="2").pairs[key].state == "open"
     assert ledger.count("open") == 0  # model review is never counted as a confirmed duplicate
     reviewed = combined(models=[])
-    assert journal.observe(reviewed, staged).pending[key].state == "kept-out"
-    assert ledger.advance([reviewed], run="3").pairs[key].state == "kept-out"
+    assert journal.observe(reviewed, staged).pending[key].state == "not-reported"
+    assert ledger.advance([reviewed], run="3").pairs[key].state == "not-reported"
 
 
 def test_progress_refresh_reads_both_baselines_without_rejudging_or_mutating_debt(tmp_path):
@@ -131,7 +131,7 @@ def test_model_hook_trailer_roundtrip_preserves_review_semantics_and_excludes_pr
     journal = Journal().observe(initial, staged).observe(combined(models=[]), staged)
     [settled] = journal.pending.values()
     carried = outcomes([settled.trailer()])
-    assert carried[0].kind == "model" and carried[0].state == "kept-out"
+    assert carried[0].kind == "model" and carried[0].state == "not-reported"
     ledger = PullLedger().advance([combined(models=[])], before_commit=carried)
     assert ledger.contribution("a" * 64, 1)["kept_out"] == 0
     assert ledger.contribution("a" * 64, 1)["caught"] == 0
@@ -174,7 +174,7 @@ def test_model_policy_dismissal_is_distinct_from_resolved_review():
     later.filtered = [proposed.model_copy(update={"filtered": "independent prompt contract"})]
     ledger = PullLedger().advance([current], run="1").advance([later], run="2")
     assert ledger.count("dismissed", "model") == 1
-    assert ledger.count("kept-out", "model") == 0
+    assert ledger.count("not-reported", "model") == 0
     assert ledger.contribution("a" * 64, 1)["dismissed"] == 0
 
 

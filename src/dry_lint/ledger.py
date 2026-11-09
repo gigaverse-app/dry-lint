@@ -4,13 +4,11 @@ The ledger: what dry-lint has cost and caught, across a pull request's pushes an
 - **A pull request's ledger travels in its sticky comment**, as one hidden `<!-- dry-lint-ledger {...} -->` line,
   the way CI-esta carries its snapshot. It needs no cache, so losing one loses nothing. Each run adds its figures
   once: runs are counted by id and attempt, so posting the same run again changes nothing.
-- **A duplicate is kept out of the codebase** when a push reported it and a later push no longer does, without a
-  person's decision (`distinct-from`, `ignore`, a pattern) settling it. A pair left unjudged is still open, and so
-  is one whose scope (the local check, or the check against peer repositories) did not report on that push: a
-  check that did not run cannot say the duplicate is gone. A pair from an older ledger, which never recorded its
-  scope, stays open until a push reports it again (and so names its scope) or a person settles it.
+- **No longer reported** means a completed scope no longer lists the pair. It proves neither removal nor
+  consolidation: a revert or retrieval change has the same symptom. Unjudged pairs and uncompleted scopes stay
+  open. Old disappearance-based kept-out claims are normalized on read and earn no cleanup credit.
 - **An accepted baseline pair this pull request cleaned up** (`report.backlog`: a side removed, or judged `separate`
-  now) is backlog, kept apart from the duplicates it kept out: that debt was already in the codebase. Each baseline
+  now) is backlog, kept apart from missing findings: that debt was already in the codebase. Each baseline
   check restates the whole list, so a pair that comes back drops out. The baseline and its badge move only with the
   repository's sweep.
 - **A duplicate the pre-commit hook blocked** and saw fixed, or dismissed, before any push arrives in the commits'
@@ -28,10 +26,10 @@ from collections import Counter
 from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 from dry_lint import __version__
-from dry_lint.commits import Outcome
+from dry_lint.commits import Outcome, reported_state
 from dry_lint.evidence import PairEvidence
 from dry_lint.models import SCHEMA, Versioned, pair_key
 from dry_lint.report import BLUE, GRAY, BacklogCleanup, Finding, Report, badge, code, plural
@@ -131,7 +129,7 @@ class Pair(BaseModel):
     kind: Literal["function", "model"] = "function"
     existing: str
     found: int = Field(description="The push that first reported it.")
-    state: Literal["open", "kept-out", "dismissed"] = "open"
+    state: Literal["open", "not-reported", "dismissed"] = "open"
     settled: int | None = Field(default=None, description="The push that kept it out or dismissed it.")
     scope: str | None = Field(default=None, description="The report scope that found it; None in older ledgers.")
     lines: int = Field(default=0, description="Lines in the new function when last reported.")
@@ -139,6 +137,8 @@ class Pair(BaseModel):
     rewrite: bool = Field(default=False, description="Not a copy: the two functions' structure hashes differ.")
     before_commit: bool = Field(default=False, description="Settled by the pre-commit hook; from a commit's trailer.")
     evidence: PairEvidence | None = Field(default=None, description="Last reported source coordinates and verdict.")
+
+    _read_legacy_state = field_validator("state", mode="before")(reported_state)
 
     def concept(self) -> str:
         return code(self.new) if self.new == self.existing else f"{code(self.new)} ≈ {code(self.existing)}"
@@ -177,14 +177,6 @@ class PullLedger(Versioned):
         return sum(
             pair.state == state and pair.kind == kind and key not in self.backlog for key, pair in self.pairs.items()
         )
-
-    def kept_out(self) -> list[Pair]:
-        """The duplicates kept out whose details were recorded: a pair an older version reported has none."""
-        return [
-            pair
-            for key, pair in self.pairs.items()
-            if pair.kind == "function" and pair.state == "kept-out" and pair.lines and key not in self.backlog
-        ]
 
     def backlog_count(self, kind: str = "function") -> int:
         return sum(item.kind == kind for item in self.backlog.values())
@@ -255,7 +247,7 @@ class PullLedger(Versioned):
             if key in settled_by_rule and pair.state != "dismissed":  # a person's decision, even after the fact
                 pair.state, pair.settled = "dismissed", ledger.pushed
             elif pair.state == "open" and pair.scope in (models_completed if pair.kind == "model" else completed):
-                pair.state, pair.settled = "kept-out", ledger.pushed
+                pair.state, pair.settled = "not-reported", ledger.pushed
         checked_backlogs = {
             kind
             for report in reports
@@ -268,10 +260,6 @@ class PullLedger(Versioned):
                 for report in reports
                 for item in [*(report.backlog or []), *(report.model_backlog or [])]
             }
-            # A pair a push reported and a later one cleared keeps that push; anything else is cleaned up now.
-            since = {
-                key: pair.settled for key, pair in ledger.pairs.items() if pair.state == "kept-out" and pair.settled
-            }
             retained = {key: item for key, item in ledger.backlog.items() if item.kind not in checked_backlogs}
             ledger.backlog = {
                 **retained,
@@ -280,7 +268,7 @@ class PullLedger(Versioned):
                     if key in ledger.backlog
                     else Backlog(
                         **item.model_dump(),
-                        settled=since.get(key, ledger.pushed),
+                        settled=ledger.pushed,
                     )
                     for key, item in cleaned.items()
                 },
@@ -300,7 +288,7 @@ class PullLedger(Versioned):
         return {
             "repository": key,
             "pull": number,
-            "kept_out": self.count("kept-out"),
+            "kept_out": 0,  # Absence proves no removal; preserve the counter wire contract.,
             "caught": sum(pair.kind == "function" for pair in self.pairs.values()),
             "dismissed": self.count("dismissed"),
             "merged_open": self.count("open"),
@@ -311,10 +299,10 @@ class PullLedger(Versioned):
             "pairs": self.tally.pairs,
             "reused": self.tally.reused,
             "usd": round(self.tally.usd, 6),
-            "measured_kept_out": len(self.kept_out()),
-            "drifted_kept_out": sum(pair.drifted for pair in self.kept_out()),
-            "rewrites_kept_out": sum(pair.rewrite for pair in self.kept_out()),
-            "lines_kept_out": sum(pair.lines for pair in self.kept_out()),
+            "measured_kept_out": 0,
+            "drifted_kept_out": 0,
+            "rewrites_kept_out": 0,
+            "lines_kept_out": 0,
             "version": __version__,
         }
 
@@ -334,7 +322,7 @@ class PullLedger(Versioned):
 
 def headline(ledger: PullLedger) -> str:
     """The sentence a reader remembers: what this pull request's checks cost, and what they caught."""
-    tally, kept, still = ledger.tally, ledger.count("kept-out"), ledger.count("open")
+    tally, kept, still = ledger.tally, ledger.count("not-reported"), ledger.count("open")
     # Pushes the check ran on: a push before dry-lint's workflow existed, or one it skipped, is not counted.
     across = f"across {ledger.pushed:,} checked pushes" if ledger.pushed > 1 else "on its first checked push"
     backlog = (
@@ -342,15 +330,13 @@ def headline(ledger: PullLedger) -> str:
     )
     if kept:
         tail = f" {plural(still, 'duplicate')} still reported." if still else ""
-        hooked = sum(pair.before_commit for pair in ledger.kept_out())
+        hooked = sum(pair.before_commit for pair in ledger.pairs.values() if pair.state == "not-reported")
         early = f" ({hooked:,} by the pre-commit hook, before commit)" if hooked else ""
-        return (
-            f"{backlog}**{plural(kept, 'duplicate')} kept out of the codebase**{early} {tally.spent()}, {across}.{tail}"
-        )
+        return f"{backlog}**{plural(kept, 'finding')} no longer reported**{early} {tally.spent()}, {across}.{tail}"
     if still:
         return (
             f"{backlog}**{plural(still, 'duplicate')} caught** {tally.spent()}, {across}. "
-            "Each one fixed here is kept out of the codebase."
+            "Consolidation requires source review."
         )
     if ledger.backlog_count():
         return f"**{plural(ledger.backlog_count(), 'accepted backlog pair')} cleaned up** {tally.spent()}, {across}."
@@ -361,7 +347,7 @@ def headline(ledger: PullLedger) -> str:
     return f"**{plural(tally.functions, 'function')} checked, nothing duplicated**, {tally.spent()}, {across}."
 
 
-ICONS = {"kept-out": "✅", "open": "🟡", "dismissed": "⚪"}
+ICONS = {"not-reported": "⚪", "open": "🟡", "dismissed": "⚪"}
 # GitHub sizes a comment's tables to their content. A wide spacer floated into each cell, which GitHub then caps at
 # the comment's width, stretches a table across the comment on any screen while adding only one pixel of height.
 # It floats right: GitHub pads a floated image by 20px on the side away from its float, and padding past the left
@@ -371,16 +357,16 @@ SPREAD = '<img width="2000" height="1" align="right" alt="">'
 
 def pair_line(pair: Pair) -> str:
     if pair.kind == "model":
-        outcome = {"open": "review required", "kept-out": "review resolved", "dismissed": "dismissed by policy"}[
+        outcome = {"open": "review required", "not-reported": "review resolved", "dismissed": "dismissed by policy"}[
             pair.state
         ]
         where = "before commit" if pair.before_commit else f"found in push {pair.found}"
         return f"{ICONS[pair.state]} {pair.concept()} · model {outcome}, {where}"
     if pair.before_commit:
-        done = "kept out" if pair.state == "kept-out" else "dismissed by a person's decision"
+        done = "no longer reported" if pair.state == "not-reported" else "dismissed by a person's decision"
         return f"{ICONS[pair.state]} {pair.concept()} · {done} before commit, by the pre-commit hook"
     where = {
-        "kept-out": f"kept out in push {pair.settled}",
+        "not-reported": f"no longer reported in push {pair.settled}",
         "open": "still reported",
         "dismissed": f"dismissed by a person's decision in push {pair.settled}",
     }[pair.state]
@@ -391,30 +377,18 @@ def backlog_line(key: str, item: Backlog, ledger: PullLedger) -> str:
     how = "one side removed" if item.how == "removed" else "the judge now finds them separate"
     found = f"found in push {ledger.pairs[key].found}, " if key in ledger.pairs else ""
     concept = Pair(new=item.new.split("::")[-1], existing=item.existing.split("::")[-1], found=item.settled).concept()
-    return f"{ICONS['kept-out']} {concept} · accepted backlog, {found}cleaned up in push {item.settled}: {how}"
+    return f"✅ {concept} · accepted backlog, {found}cleaned up in push {item.settled}: {how}"
 
 
 def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, comparisons: str = "") -> str:
     """Cleanup progress first, with the current outcomes and the commits that cleared them."""
-    tally, kept, still, backlog = ledger.tally, ledger.count("kept-out"), ledger.count("open"), ledger.backlog_count()
-    cleaned = Counter(
-        [
-            *(
-                pair.settled
-                for key, pair in ledger.pairs.items()
-                if pair.kind == "function" and pair.state == "kept-out" and key not in ledger.backlog
-            ),
-            *(item.settled for item in ledger.backlog.values() if item.kind == "function"),
-        ]
+    tally, kept, still, backlog = (
+        ledger.tally,
+        ledger.count("not-reported"),
+        ledger.count("open"),
+        ledger.backlog_count(),
     )
-    split = " · ".join(
-        part
-        for part in (
-            f"{backlog:,} from the accepted backlog" if backlog else "",
-            f"{kept:,} found here" if kept and backlog else "",
-        )
-        if part
-    )
+    cleaned = Counter(item.settled for item in ledger.backlog.values() if item.kind == "function")
     badges = [
         badge("checked pushes", ledger.pushed, GRAY),
         badge("functions checked", f"{tally.functions:,}", GRAY),
@@ -422,14 +396,13 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
         badge("judgments", f"{tally.judgments:,}", GRAY),
         badge("spent", tally.cost(), BLUE),
     ]
-    title = "### 🧹 A little less lint" if kept or backlog else "### 🧺 This PR's cleanup basket"
-    cells = [f"{SPREAD}**{plural(n, 'pair')}**" for n in (kept + backlog, still, ledger.count("dismissed"))]
-    cells[0] += f"<br><sub>{split}</sub>" if split else ""
+    title = "### 🧹 A little less lint" if backlog else "### 🧺 This PR's cleanup basket"
+    cells = [f"{SPREAD}**{plural(n, 'pair')}**" for n in (backlog, still, ledger.count("dismissed"), kept)]
     lines = [
         title,
         "",
-        "| 🧼 Cleaned up | 🧶 Still tangled | 🏷️ Dismissed |",
-        "| :--: | :--: | :--: |",
+        "| 🧼 Baseline reduced | 🧶 Still reported | 🏷️ Dismissed | No longer reported |",
+        "| :--: | :--: | :--: | :--: |",
         "| " + " | ".join(cells) + " |",
         "",
     ]
@@ -437,7 +410,7 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
         lines += [
             "| Model ownership reviews | Still open | Resolved | Dismissed |",
             "| :-- | --: | --: | --: |",
-            f"| This PR and its hooks | {ledger.count('open', 'model')} | {ledger.count('kept-out', 'model')} | {ledger.count('dismissed', 'model')} |",
+            f"| This PR and its hooks | {ledger.count('open', 'model')} | {ledger.count('not-reported', 'model')} | {ledger.count('dismissed', 'model')} |",
             "",
             "<sub>Resolved means the completed model pass no longer raises the pair. It does not prove consolidation and is excluded from duplicates kept out.</sub>",
             "",
@@ -466,7 +439,7 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
         " ".join(badges),
         "",
         "<sub>Previously reported pairs no longer reported, here or by the pre-commit hook before commit; "
-        "dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits. "
+        "absence, reverts and dismissals do not count as cleanup. Only verified baseline reductions count. "
         "Push numbers count only the pushes dry-lint checked. 🟡 still reported means the latest checked push "
         "reports the pair; the findings below say whether it blocks this check."
         + (
@@ -493,7 +466,7 @@ def render(ledger: PullLedger, repository: "RepositoryLedger | None" = None, com
             )
         rows.append(
             f"| **{ledger.pushed}** | | **{tally.functions:,}** | **{tally.pairs:,}** | "
-            f"**{tally.judgments:,}** | | **{kept + backlog:,}** | **{tally.cost()}** |"
+            f"**{tally.judgments:,}** | | **{backlog:,}** | **{tally.cost()}** |"
         )
         pairs = sorted(
             (pair for key, pair in ledger.pairs.items() if key not in ledger.backlog),
@@ -532,10 +505,20 @@ class RepositoryLedger(Versioned):
     runs: list[str] = Field(default_factory=list, description=f"The last {RECENT_RUNS} default-branch runs counted.")
     tally: Tally = Field(default_factory=Tally)
     pushes: int = 0
-    kept_out: int = 0
+    kept_out: int = 0  # legacy field; never credited as verified cleanup
+    not_reported: int = 0
     dismissed: int = 0
     merged_open: int = Field(default=0, description="Duplicates still open when their pull request merged.")
     outbox: list[dict] = Field(default_factory=list, description="Contributions the global counter has not confirmed.")
+
+    @model_validator(mode="after")
+    def downgrade_legacy_cleanup(self) -> "RepositoryLedger":
+        self.not_reported += self.kept_out
+        self.kept_out = 0
+        for item in self.outbox:
+            for field in ("kept_out", "measured_kept_out", "drifted_kept_out", "rewrites_kept_out", "lines_kept_out"):
+                item[field] = 0
+        return self
 
     def add_run(self, tally: Tally, run: str) -> None:
         if run and run in self.runs:
@@ -552,7 +535,7 @@ class RepositoryLedger(Versioned):
             self.outbox.append(ledger.contribution(key, number))
         self.tally = self.tally + ledger.tally
         self.pushes += ledger.pushed
-        self.kept_out += ledger.count("kept-out")
+        self.not_reported += ledger.count("not-reported")
         self.dismissed += ledger.count("dismissed")
         self.merged_open += ledger.count("open")
 
@@ -563,7 +546,7 @@ class RepositoryLedger(Versioned):
         )
         return (
             f"🏆 {name} since {since:%b} {since.day}, {since.year}: "
-            f"**{plural(self.kept_out, 'duplicate')} kept out of the codebase** across "
+            f"**{plural(self.not_reported, 'finding')} no longer reported** across "
             f"{plural(len(self.pulls), 'merged pull request')}, {self.tally.spent()}."
         )
 

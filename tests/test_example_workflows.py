@@ -44,7 +44,7 @@ def test_the_bootstrap_initializes_from_a_push_and_ships_the_hidden_folder() -> 
     # Runs on the branch that adds it, and again whenever the settings change, e.g. a new pattern.
     assert "paths: [.github/workflows/dry-lint-bootstrap.yml, .dry-lint.toml]" in workflow
     assert '--repository-id "$GITHUB_REPOSITORY_ID"' in workflow  # the README sign, as the local route gives it
-    assert "pip install 'dry-lint>=1,<2'" in workflow  # the same major version as @v1 and rev: v1
+    assert "pip install 'dry-lint[anthropic]>=1,<2'" in workflow  # the same major version as @v1 and rev: v1
     assert "dry-lint sweep --init" in workflow and "contents: read" in workflow
     assert "include-hidden-files: true" in workflow  # upload-artifact skips .dry-lint/ otherwise
     assert "persist-credentials: false" in workflow

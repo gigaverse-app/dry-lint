@@ -19,11 +19,11 @@ def test_agent_feedback_is_explicit_and_keeps_its_own_model_prompt_and_threshold
 
 
 @pytest.mark.parametrize("environ, preset", [
-    (BOTH, "jev+opus"),
-    ({"TYPESAFE_AI_API_KEY": "k", "CLAUDE_CODE_OAUTH_TOKEN": "t"}, "jev+claude-code"),
+    (BOTH, "balanced"),
+    ({"TYPESAFE_AI_API_KEY": "k", "CLAUDE_CODE_OAUTH_TOKEN": "t"}, "balanced-subscription"),
     ({"TYPESAFE_AI_API_KEY": "k"}, "jev"),
-    ({"ANTHROPIC_API_KEY": "k"}, "sonnet"),
-    ({"CLAUDE_CODE_OAUTH_TOKEN": "t"}, "claude-code"),
+    ({"ANTHROPIC_API_KEY": "k"}, "balanced"),
+    ({"CLAUDE_CODE_OAUTH_TOKEN": "t"}, "balanced-subscription"),
     ({"TYPESAFE_AI_API_KEY": ""}, "none"),
     ({}, "none"),
 ])  # fmt: skip
@@ -38,7 +38,7 @@ def test_every_preset_is_reachable_and_measured_ones_say_what_was_measured() -> 
 
 
 def test_a_preset_fills_judges_and_thresholds_that_were_not_set() -> None:
-    settings = resolve(Settings(), BOTH)
+    settings = resolve(Settings(preset="jev+opus"), BOTH)
     assert (settings.judge.use, settings.escalate.use, settings.escalate.options()) == (
         "jev",
         "anthropic",
@@ -150,9 +150,9 @@ def test_balanced_explicit_depth_and_floors_still_go_to_tfidf() -> None:
 
 
 @pytest.mark.parametrize("environment", [{}, {"ANTHROPIC_API_KEY": "presence"}, BOTH])
-def test_legacy_auto_does_not_enable_block_exploration(environment) -> None:
+def test_auto_uses_balanced_discovery_when_claude_is_available(environment) -> None:
     settings = resolve(Settings(), environment)
-    assert not settings.discovery.enabled and not settings.discovery.comparers
+    assert settings.discovery.enabled == bool(environment.get("ANTHROPIC_API_KEY"))
 
 
 def test_balanced_resolved_block_choice_cannot_mutate_preset_or_future_resolve() -> None:

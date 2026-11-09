@@ -1,3 +1,6 @@
+> `balanced` is now the recommended function default. Keep model ownership findings in the separate agent review lane.
+> See [defaults and migration](judges.md) before upgrading an existing baseline.
+
 # Balanced discovery with reviewed feedback
 
 `--preset balanced` uses Haiku's shared-operation judge at a 0.5 reporting and blocking threshold. It is intended
@@ -218,7 +221,7 @@ repos:
     hooks:
       - id: dry-lint
         additional_dependencies: ["dry-lint[hooks]"]
-        args: [--preset, balanced, --env-file, .env]
+        args: [--env-file, .env]  # inherits preset=balanced from repository settings
 ```
 
 Run `pre-commit install`. Export `ANTHROPIC_API_KEY` or keep it in the untracked optional `.env` file. The hook

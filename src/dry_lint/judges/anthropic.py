@@ -33,7 +33,7 @@ class AnthropicJudge:
         workers: int = 4,
         timeout: float = 120,
         http_client: Any = None,
-        prompt_policy: str = "concept",
+        prompt_policy: str = "shared-operations",
         max_tokens: int = 8000,
         max_retries: int = 2,
         retry_malformed: bool = False,
@@ -53,10 +53,10 @@ class AnthropicJudge:
         self.prompt_policy, self.max_tokens = prompt_policy, max_tokens
         self.retry_malformed = retry_malformed
         # An opt-in policy cannot inherit legacy answers, nor contaminate a rollback to the legacy judge.
-        self.name = "anthropic" if prompt_policy == "concept" else "anthropic-operations"
+        self.name = "anthropic-operations"
         if prompt_policy == "model-contracts":
             self.name = "anthropic-models"
-        self.strict_version = prompt_policy != "concept" or max_tokens != 8000
+        self.strict_version = True
         self.version = f"{PROMPT_POLICIES[prompt_policy][0]}:{model}" + (f":{effort}" if effort else "")
         if max_tokens != 8000:
             self.version += f":output={max_tokens}"

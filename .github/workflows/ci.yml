@@ -199,6 +199,9 @@ jobs:
       - uses: ./
         id: dry-lint
         with:
+          # Temporary credential exception: this repo has no Anthropic secret.
+          # Keep explicit Jev enforcement until a Claude key is provisioned; local regressions use balanced.
+          preset: jev
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
           # Merged code was reviewed already, overrides included: on main, report but never fail.
           warn-only: ${{ github.event_name == 'push' }}

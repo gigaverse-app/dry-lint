@@ -281,46 +281,24 @@ Losing the cache only costs re-judging.
 The sticky keeps a running account across a pull request's pushes, and the repository keeps one across its merged
 pull requests.
 
-The cleanup basket appears before the current findings. Its counts describe pairs, not functions: one function
-can participate in several pairs. The latest analyzed commit shows its cleanup credit, and the folded history's
-**Cleaned here** column attributes currently resolved pairs to earlier commits. A pair that returns is open again;
-dismissals do not earn cleanup credit. Commits before the first recorded report are not backfilled.
+The basket separates **Baseline reduced**, **Still reported**, **Dismissed**, and **No longer reported**.
+Absence from the next scan cannot establish removal: reverting an extraction, renaming code or changing retrieval
+can all produce it. It never earns cleanup credit or a positive gold label. Deferred/unjudged pairs and scopes
+that did not complete remain open.
 
-With a [baseline](sweeps.md), the basket also credits accepted debt the pull request cleans up, labelled
-**from the accepted backlog** apart from the duplicates its own pushes reported and fixed. The check never sees
-accepted pairs as findings, so it collects the same evidence the audit accepts instead: a side of the pair that
-existed at the merge base and is gone now, or a `separate` verdict on the pair as it is now. A side renamed or
-moved while its partner is still reported as a duplicate is not credited: the duplication moved.
-The check revisits every accepted pair whose functions the pull request touched, even one that fell out of the
-nearest-neighbour ranking, so a rerouted side gets a verdict; this costs a judgment per touched pair, and a touched
-pair that is still a duplicate blocks here rather than failing the next audit. A side removed on the default branch
-before the pull request is not credited to it. Each baselined run restates the whole list, so a pair that comes back
-drops out. Backlog cleanup is remediation, not prevention: it is left out of **kept out of the codebase**, the
-repository's 🏆 line and the global counter, and the baseline and its badge still change only with `sweep --update`.
-A fork's judge-mode run has no pull request tree, so it claims nothing about the backlog.
+Baseline reductions require the existing evidence contract: a side present at the merge base is removed, or the
+revisited pair is explicitly judged separate. A moved side whose partner still duplicates a survivor earns no
+credit. Each check restates the full list, so returning debt revokes its credit. The baseline badge changes only
+through the repository audit. A fork's judge-only run has no source tree and claims no baseline cleanup.
 
-- **The pull request's ledger lives in its comment**, as one hidden `<!-- dry-lint-ledger {...} -->` line. Each
-  run adds its cost, checks and judgments once: a run is counted by its id and attempt, and a re-run of the same
-  commit adds what it cost but no new checks.
-- **A duplicate is kept out of the codebase** when a push reported it and a later push no longer does. A pair a
-  person settles with `distinct-from`, `ignore` or a pattern counts as dismissed instead, even after it went away,
-  and a pair left unjudged (the budget ran out) stays open. So does a pair whose scope did not report on the
-  later push: name the scopes (`--report local=...`) and a failed cross-repository check settles nothing.
-- **What the pre-commit hook kept out counts too.** A duplicate the [hook](../README.md#pre-commit) blocks and the
-  agent fixes before committing never reaches a push. With the `dry-lint-trailers` hook, the commit carries it as a
-  trailer (`Dry-Lint-Kept-Out: KEY new ≈ existing (N lines)`, or `Dry-Lint-Dismissed:`), and the sticky reads the
-  pull request's commit messages through the API, so it works in the two-job layout too. Those pairs show as
-  "kept out before commit, by the pre-commit hook". The hook settles a pair by the same rule as pushes: only a
-  check that staged the pair's file and judged it can settle it. What a push reports of a pair wins over a trailer.
-  A trailer is what the committer's hook said, counted like any dismissal, not verified.
-- **The repository's ledger** is folded by the run on each push to the default branch: it adds that run, and the
-  final ledger of each pull request merged since the ledger began, once each. It looks back over the latest 100
-  merged pull requests, so a cancelled run is caught up by the next. It lives beside the verdicts in the cache
-  every pull request restores, and each sticky shows its line: "🏆 `owner/repo` since Oct 6, 2026: 31 duplicates
-  kept out of the codebase across 58 merged pull requests, for $0.84 of judging."
-- **It says since when it counts.** If the cache is evicted, the repository's ledger starts again from that day;
-  it never estimates what it lost. A merged pull request without a dry-lint comment (`comment-on-clean: "false"`
-  and nothing found) is not counted.
+The optional hook trailers use `Dry-Lint-Not-Reported` and `Dry-Lint-Dismissed`; CI findings take precedence.
+Legacy `Dry-Lint-Kept-Out` trailers and sticky states are read as absence. The ledger retains run costs, counts,
+source evidence and push history, but no longer exports absence as removed duplicates to the global counter.
+Already published global totals are historical and require a separate historical recomputation.
+
+Runs are deduplicated by id/attempt. Only completed scopes settle findings. The repository ledger folds each
+merged PR once and lives in the Actions cache. Losing the cache starts a new accounting period; it invents no
+history. Skipped or unobserved pushes receive no cleanup credit.
 
 The fold needs the default branch to run dry-lint on push, as [the example workflow](../examples/dry-lint.yml)
 does, and a token that can read pull requests.
@@ -348,10 +326,9 @@ rewrites rather than copies, and their lines) and the dry-lint version: no code,
 
 ### Sharing goldens (opt-in)
 
-A pull request that settles a reported pair says something the benchmark wants to know: a duplicate the author
-**kept out** (a later push no longer reported it, usually because it now reuses the existing owner), or a pair
-**dismissed** after it was reported (typically a person's `# dry-lint: distinct-from` with a reason). With
-`share-goldens: "true"`, the fold keeps those outcomes for each merged pull request:
+A reviewed dismissal can supply a negative label with its reason. A disappeared finding cannot supply a positive
+label: a revert and a real consolidation can look identical to retrieval. With `share-goldens: "true"`, the fold
+keeps eligible dismissals as pointers; legacy disappearance-based positive labels require re-adjudication.
 
 - **Pointers, not code.** Each record holds the repository, the pinned revision, both functions' paths, names and
   line spans, the judge's verdict, and how the label was learned. Model pairs, pairs settled by the pre-commit

@@ -40,22 +40,21 @@ def test_opt_in_operation_policy_reaches_provider_and_invalidates_legacy_cache(t
     )
     assert not Judging(Settings(escalate=None), revised, None, store).findings([candidate])[0].cached
     assert len(requests) == 2
-    legacy_requests = []
-    legacy = AnthropicJudge(api_key="test", http_client=claude(reply, legacy_requests))
-    assert not Judging(Settings(escalate=None), legacy, None, store).findings([candidate])[0].cached
-    assert len(legacy_requests) == 1
-    assert estimate(judge, [candidate], Settings()) > estimate(legacy, [candidate], Settings())
+    default_requests = []
+    default = AnthropicJudge(api_key="test", http_client=claude(reply, default_requests))
+    assert not Judging(Settings(escalate=None), default, None, store).findings([candidate])[0].cached
+    assert len(default_requests) == 1  # different response limit still invalidates cache
+    assert estimate(default, [candidate], Settings()) > 0
 
 
-def test_default_concept_prompt_uses_the_shared_relationship_policy() -> None:
+def test_default_prompt_uses_the_shared_operation_policy() -> None:
     candidate = coverage_pair()
     judge = AnthropicJudge(api_key="test")
-    assert judge.name == "anthropic"
-    assert judge.version == "dry-v2:claude-sonnet-5-5"
-    assert prompt(candidate) == prompt(candidate, policy="concept")
-    assert "Two Python functions" not in prompt(candidate)
-    assert "only forwards" in prompt(candidate)
-    assert "independently repeated behavior" in prompt(candidate)
+    assert judge.name == "anthropic-operations"
+    assert judge.version == f"{OPERATIONS_VERSION}:claude-sonnet-5-5"
+    assert judge.strict_version
+    assert prompt(candidate) == prompt(candidate, policy="concept") == prompt(candidate, policy="shared-operations")
+    assert "already delegate" in prompt(candidate)
 
 
 def test_model_policy_reaches_provider_with_distinct_identity() -> None:
@@ -75,13 +74,13 @@ def test_compact_policy_uses_separate_evidence_and_bounded_response() -> None:
         api_key="test", prompt_policy="shared-operations-compact", max_tokens=512, http_client=claude(reply, requests)
     )
     [verdict] = judge.judge([coverage_pair()], Settings())
-    assert verdict.judge_version.startswith("dry-operations-compact-v1:")
-    assert len(prompt(coverage_pair(), policy="shared-operations-compact")) < len(
+    assert verdict.judge_version.startswith(OPERATIONS_VERSION + ":")
+    assert len(prompt(coverage_pair(), policy="shared-operations-compact")) == len(
         prompt(coverage_pair(), policy="shared-operations")
     )
     body = json.loads(requests[0].content)
     assert body["max_tokens"] == 512
-    assert "30 words" in body["messages"][0]["content"]
+    assert "shared sub-operation" in body["messages"][0]["content"]
 
 
 @pytest.mark.parametrize("options", [{"prompt_policy": "unknown"}, {"max_tokens": 0}])

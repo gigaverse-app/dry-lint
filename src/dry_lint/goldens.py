@@ -2,8 +2,8 @@
 
 A merged pull request's ledger says how each pair it reported ended:
 
-- **kept out**: a later push no longer reported it. Usually the author reused the existing owner; a
-  rename or move looks the same, so the label is inferred, not confirmed.
+- **no longer reported**: excluded. A revert, rename, budget change or retrieval change can all cause absence;
+  it provides no positive duplication label. Older disappearance-based labels must not train a judge.
 - **dismissed**: a rule settled it after it was reported, typically a person's
   ``# dry-lint: distinct-from`` with a reason.
 
@@ -29,7 +29,6 @@ ARTIFACT = "dry-lint-goldens"
 
 # How each settled state becomes a label, and what the label rests on.
 OUTCOMES: dict[str, tuple[Literal["duplicate", "separate"], str]] = {
-    "kept-out": ("duplicate", "kept out before merge (inferred: a later push no longer reported it)"),
     "dismissed": ("separate", "dismissed after it was reported (a rule, typically a person's distinct-from)"),
 }
 

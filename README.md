@@ -119,7 +119,7 @@ the changed functions, keeps one sticky PR comment up to date and caches verdict
 links both functions at the analyzed commit, shows the review workload, and folds evidence and pair-specific
 suppression instructions under each summary. A clean pull request gets a green sticky with what was checked
 (`comment-on-clean: "false"` to opt out), and every sticky keeps a running account of what each push cost and
-each duplicate kept out ([the ledger](docs/github-action.md#the-ledger)).
+each finding and its current outcome ([the ledger](docs/github-action.md#the-ledger)).
 
 A reported duplicate fails the check at the preset's threshold (98% of them are real duplicates with
 `jev+opus`); `fail-at` raises or lowers it, and the `dry-lint: override` label lets one through. That precision
@@ -141,35 +141,19 @@ repos:
     rev: v1
     hooks:
       - id: dry-lint
-      - id: dry-lint-trailers  # optional: the pull request's comment counts what the hook kept out
+      - id: dry-lint-trailers  # optional: records absence/dismissal without claiming removal
 ```
 
-The hook checks the staged Python, JavaScript and TypeScript for the coding agent making the commit. An agent checks
-each finding itself, then reuses the existing function or records why the two differ, so the hook judges for
-recall: preset `agent`, Jev on every pair, blocking from 0.6. That keeps 92% to 100% recall on four gold sets, with
-about one finding in two real, for about $0.0002 a commit. Set `TYPESAFE_AI_API_KEY` in the environment or in an
-untracked `.env`; nothing else is needed. The key is needed only when the staged change has a pair to judge, so
-`pre-commit run --all-files` in tox, a CI lint job or pre-commit.ci, where nothing is staged, passes without one. `args: [--preset, agent+haiku]` adds Claude Haiku on Jev's uncertain
-scores, for higher precision and some lost recall on TypeScript; `args: [--preset, auto]` gives a person committing
-by hand the same precision-first judging as CI
-([who reads the findings](docs/judges.md#who-reads-the-findings-people-or-coding-agents)).
+The hook inherits repository settings. Use `preset = "balanced"` for functions and keep model candidates routed
+to agent ownership review. Set `ANTHROPIC_API_KEY` in the environment or an untracked `.env`. The hook only needs
+a key when there are pairs to judge. With a baseline, use `args: [--baseline, .dry-lint/baseline.json, --require-complete]`.
 
-Once the repository has a baseline, the hook must judge with the baseline's preset, because a baseline refuses any
-other: `args: [--preset, jev, --baseline, .dry-lint/baseline.json]`, naming the preset in `.dry-lint.toml`
-([one preset everywhere](docs/judges.md#one-preset-everywhere)).
+To upgrade an existing adoption, change the preset and run `dry-lint baseline-migrate`; this preserves all original
+allowances. Refresh cached hooks with `pre-commit clean && pre-commit install --install-hooks`.
+See [defaults, migration and regression evidence](docs/judges.md).
 
-`rev: v1` follows dry-lint's 1.x releases, but pre-commit caches the first install and warns that `v1` is a mutable
-reference. To pick up a newer release, run `pre-commit clean && pre-commit install --install-hooks`.
-
-A blocked commit names the pair. Fix it by reusing the existing function, or record an intentional difference with
-`# dry-lint: distinct-from path::name` or `dry-lint feedback dismiss PAIR --reason ...`. For wider exploration with a
-persistent campaign budget, see [`balanced`](docs/production-discovery.md).
-
-A duplicate the hook blocks and the agent fixes never reaches a push, so CI alone would never count it. The hook
-remembers what it blocked; `dry-lint-trailers` writes what was then fixed or dismissed into the commit message,
-`Dry-Lint-Kept-Out: ab7719f1ec3f9b70 repository_counter_name ≈ counter_key (3 lines)`, and the pull request's
-sticky, the repository's ledger and the [global counter](#the-counter) count it
-([the ledger](docs/github-action.md#the-ledger)). Run `pre-commit install` once more after adding it.
+The optional trailers hook records `Dry-Lint-Not-Reported` or `Dry-Lint-Dismissed`. A finding disappearing from a
+scan does not establish that a duplicate was removed. Cleanup credit requires evidence from the accepted baseline.
 
 ## Commands
 
@@ -370,8 +354,8 @@ including how many source files the scope covers:
 | `include` / `exclude` | everything / tests, migrations, scripts | fnmatch over tracked paths; setting `exclude` replaces the defaults |
 | `patterns` | none | `[[patterns]]` entries with `members` (a glob or a list) and a `reason`: [deliberate look-alikes](#when-it-is-right-not-to-merge-them) |
 | `neighbours` | 3 | candidates per changed function |
-| `preset` | `"auto"` | judges and their measured thresholds together: `jev+opus`, `jev+claude-code`, `jev+sonnet`, `jev+claude-code-sonnet`, `jev+codex`, `sonnet`, `claude-code`, `jev`, `none`; auto picks by the credentials present |
-| `drop_below` / `report_at` / `fail_at` | from the preset | separate below, reported at, failing at (`--fail-at` overrides it); `jev+opus` is 0.5 / 0.55 / 0.55, with Jev's answers that Opus did not see held to Jev's 0.8 |
+| `preset` | `"auto"` | `balanced` with an Anthropic key; `balanced-subscription` with a Claude token; `jev` for TypeSafe-only compatibility, otherwise `none` (detection only). Adopters pin `balanced`; models require agent review |
+| `drop_below` / `report_at` / `fail_at` | from the preset | balanced uses 0.5 / 0.5 / 0.5; confidence in a named shared operation, not lines saved |
 | `drift_at` | 0.8 | a duplicate whose `behaves_differently` reaches this is drifted |
 | `budget` | `{ usd = 0.04, subscription_calls = 20 }` | most judging spends on a pull request across all its pushes, at list price, subscriptions included (`--budget-usd`); and calls per run to subscription judges |
 | `prices` | built-in table | USD per million input and output tokens, by model |
@@ -388,11 +372,9 @@ A plugin slot takes a name, or a table with `use` and the plugin's options:
 
 ## The counter
 
-The sign at the top counts every duplicate dry-lint has kept out of a codebase: a duplicate a pull request
-introduced, dry-lint reported, and a later push removed before merging. A *rewrite* is one whose structure differs
-from the function it duplicates, so a copy-paste checker would not see it; a *drifted* copy already behaved
-differently; a *re-check skipped* is a verdict the store already held. Actions from November 2026 on measure these;
-until a pull request they measured has merged, the sign shows them as "–", never as zero.
+Legacy global totals include disappearance-based claims and are historical, not verified removal counts. Current
+versions report disappearance separately and send zero removal credit for it. Baseline reductions remain visible
+in the PR and repository's debt progress. Old positive weak labels inferred from disappearance must not train judges.
 
 When a pull request merges, the action's run on the default branch sends its counts to a
 [Cloudflare Worker](counter): duplicates kept out (how many had drifted, how many were rewrites, and their lines),
@@ -403,7 +385,7 @@ does not lead to; a private repository's id is visible only to people who can se
 request is counted once. Opt out with `share-totals: "false"`.
 
 Separately, a repository can **opt in** to dry-lint's benchmark with `share-goldens: "true"`: each merged pull
-request's settled pairs (duplicates kept out, pairs dismissed after being reported) are kept as pointers in a
+request's settled pairs (pairs dismissed after being reported) are kept as pointers in a
 `dry-lint-goldens` artifact in its own repository, and collected only from public repositories registered in
 [docs/goldens/adopters.toml](docs/goldens/adopters.toml). See [sharing goldens](docs/github-action.md#sharing-goldens-opt-in).
 

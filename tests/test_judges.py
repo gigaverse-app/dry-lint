@@ -49,7 +49,7 @@ def test_auto_judge_is_jev_with_a_key_and_none_without(monkeypatch: pytest.Monke
 
 def test_make_judge_builds_a_command_judge_from_its_options_and_rejects_bad_choices() -> None:
     judge = make_judge(PluginChoice(use="command", command="/usr/bin/my-llm --json", version="v3"))
-    assert (judge.name, judge.version) == ("command:my-llm", "v3")
+    assert (judge.name, judge.version) == ("command:my-llm", f"v3:{PROMPT_VERSION}")
     assert make_judge(PluginChoice(use="command", command="llm", name="house-llm")).name == "house-llm"
     with pytest.raises(ValueError, match="--judge-command"):
         make_judge(PluginChoice(use="command"))
@@ -135,7 +135,7 @@ def test_command_judge_sends_both_functions_and_reads_the_json_verdict(tmp_path:
     )
     assert (verdict.judge, verdict.judge_version, verdict.behaves_differently) == (
         f"command:{Path(sys.executable).name}",
-        "1",
+        f"1:{PROMPT_VERSION}",
         0.0,
     )
 
@@ -268,7 +268,12 @@ def test_the_anthropic_judge_asks_through_the_sdk_with_refusal_fallbacks_and_rea
     }
     judge = AnthropicJudge(api_key="secret", effort="low", http_client=claude(reply, requests))
     [verdict] = judge.judge([CANDIDATE], Settings())
-    assert (verdict.label, verdict.score, verdict.owner, verdict.judge) == ("drifted", 0.88, "shared", "anthropic")
+    assert (verdict.label, verdict.score, verdict.owner, verdict.judge) == (
+        "drifted",
+        0.88,
+        "shared",
+        "anthropic-operations",
+    )
     assert verdict.judge_version == f"{PROMPT_VERSION}:claude-sonnet-5-5:low"
     body = json.loads(requests[0].content)
     assert requests[0].url.path == "/v1/messages" and requests[0].headers["authorization"] == "Bearer secret"
@@ -349,7 +354,7 @@ def test_the_claude_code_judge_runs_the_cli_without_tools_and_without_an_api_key
     assert (verdict.score, verdict.judge, verdict.judge_version) == (
         0.9,
         "claude-code",
-        f"{PROMPT_VERSION}:claude-sonnet-5-5",
+        f"claude-sonnet-5-5:{PROMPT_VERSION}:output=2048",
     )
     assert "-p --model claude-sonnet-5-5 --tools  --no-session-persistence" in verdict.why
     assert "--system-prompt Answer the question exactly as asked" in verdict.why
@@ -373,10 +378,10 @@ def test_the_codex_judge_reads_the_last_message_codex_writes(tmp_path: Path) -> 
         "separate",
         0.2,
         "codex",
-        f"{PROMPT_VERSION}:gpt-x",
+        f"gpt-x:{PROMPT_VERSION}",
     )
     assert verdict.why.startswith("exec -m gpt-x --sandbox read-only")
-    assert make_judge(PluginChoice(use="codex", cli=cli)).version == f"{PROMPT_VERSION}:account-default"
+    assert make_judge(PluginChoice(use="codex", cli=cli)).version == f"account-default:{PROMPT_VERSION}"
 
 
 def test_the_anthropic_judge_says_how_to_install_the_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
