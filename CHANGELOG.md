@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.0](https://github.com/gigaverse-app/dry-lint/compare/v1.8.1...v1.9.0) (2026-11-09)
+
+
+### Features
+
+* **audit:** ship the audit as a reusable workflow adopters call ([a7ae8d7](https://github.com/gigaverse-app/dry-lint/commit/a7ae8d7743b9336fdf615ddaded3660e2c5164ee))
+* **audit:** ship the audit as a reusable workflow adopters call ([5c2149c](https://github.com/gigaverse-app/dry-lint/commit/5c2149c6ec000b8b5cd26d058f34eb61f323555c))
+
+
+### Bug Fixes
+
+* agent setup round 4, from a fourth adoption trial ([#160](https://github.com/gigaverse-app/dry-lint/issues/160)) ([fa74823](https://github.com/gigaverse-app/dry-lint/commit/fa74823078c41e036294600ada40c8dd059dd083))
+
 ## [1.8.1](https://github.com/gigaverse-app/dry-lint/compare/v1.8.0...v1.8.1) (2026-11-09)
 
 
