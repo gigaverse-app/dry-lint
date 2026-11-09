@@ -85,8 +85,10 @@ check rulesets as well as classic branch protection.
 
 ## 4. Record cleanup: `dry-lint-audit.yml`
 
-Add [examples/dry-lint-audit.yml](../examples/dry-lint-audit.yml). Every week, or when
-dispatched after a cleanup merges, it sweeps the whole repository against the accepted
+Add [examples/dry-lint-audit.yml](../examples/dry-lint-audit.yml): a few lines that call dry-lint's own
+[audit workflow](../.github/workflows/audit.yml) at `@v1`, so its steps arrive with dry-lint releases instead of
+being copied into each repository. Pass the judge's secrets and, for a Claude preset, `budget-usd` and `plugins`.
+Every week, or when dispatched after a cleanup merges, it sweeps the whole repository against the accepted
 backlog:
 
 - Pairs that were refactored away, or are now judged separate, are recorded as cleaned.
