@@ -177,6 +177,11 @@ jobs:
       - run: shellcheck scripts/install-action.sh
       # Each lane-gated job's condition, the gate's lane-jobs and the lanes the workflow defines must agree.
       - uses: astral-sh/setup-uv@v7
+      # Adopters who run zizmor must get no findings from the workflows they copy, except their own pinning policy.
+      - name: Audit the example workflows with zizmor
+        run: >-
+          uvx --from 'zizmor>=1.32,<2' zizmor --offline --config .github/zizmor.yml
+          examples/dry-lint.yml examples/dry-lint-judge.yml examples/dry-lint-audit.yml examples/dry-lint-bootstrap.yml
       - name: Check the lane wiring
         run: >-
           uvx --python 3.13 --from "ci-esta[selection]>=1.11.0,<2.0.0"

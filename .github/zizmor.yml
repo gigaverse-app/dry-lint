@@ -1,0 +1,8 @@
+# zizmor's settings for the example workflows adopters copy (lint-ci in ci.yml). The examples reference actions by
+# their moving major tags (@v1), as dry-lint's own workflows do; an adopter who pins SHAs applies its own policy.
+# Every other audit stays on.
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "*": ref-pin

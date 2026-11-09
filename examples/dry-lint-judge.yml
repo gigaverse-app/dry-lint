@@ -5,15 +5,18 @@
 # uploaded candidates and comments only if they belong to the pull request's current head commit.
 name: dry-lint judge
 on:
-  workflow_run:
+  # workflow_run is the design, not an oversight: it is how a fork's pull request is judged with secrets without
+  # running the fork's code. This job reads only the uploaded candidates, checks out the default branch, and comments
+  # only for the pull request's current head, so zizmor's warning about the trigger does not apply.
+  workflow_run:  # zizmor: ignore[dangerous-triggers]
     workflows: [dry-lint]
     types: [completed]
 
 permissions:
-  actions: read
-  checks: write
-  contents: read
-  pull-requests: write
+  actions: read          # download the triggering run's candidates artifact
+  checks: write          # post the judged `dry-lint` check on the pull request's head
+  contents: read         # check out the default branch's settings
+  pull-requests: write   # keep the sticky comment
 
 jobs:
   judge:
@@ -22,6 +25,8 @@ jobs:
     steps:
       # The default branch, for its settings; never the fork's code.
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: gigaverse-app/dry-lint@v1
         with:
           # The same judge inputs as dry-lint.yml: your TypeSafe key's secret, under whatever name you gave it.

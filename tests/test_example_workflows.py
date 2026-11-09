@@ -39,6 +39,15 @@ def test_a_fork_run_never_reports_as_the_required_check() -> None:
     )
 
 
+def test_the_fork_judge_keeps_zizmor_clean_for_adopters_who_run_it() -> None:
+    """zizmor flags workflow_run (dangerous-triggers) and a checkout that keeps its token (artipacked)."""
+    workflow = (EXAMPLES / "dry-lint-judge.yml").read_text()
+    # The trigger is the design, so it is justified where zizmor reads it rather than restructured away.
+    assert re.search(r"^  workflow_run:  # zizmor: ignore\[dangerous-triggers\]$", workflow, re.MULTILINE)
+    checkouts = re.findall(r"uses: actions/checkout@\S+\n((?:          .*\n|        with:\n)*)", workflow)
+    assert checkouts and all("persist-credentials: false" in step for step in checkouts)
+
+
 def test_the_bootstrap_initializes_from_a_push_and_ships_the_hidden_folder() -> None:
     workflow = (EXAMPLES / "dry-lint-bootstrap.yml").read_text()
     # Runs on the branch that adds it, and again whenever the settings change, e.g. a new pattern.
