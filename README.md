@@ -32,7 +32,7 @@ Set up dry-lint in this repository. Fetch https://dry-lint.readthedocs.io/en/lat
 The agent reads how your repository works (default branch, action pinning, pull request template, existing
 secrets), writes the settings, accepts today's duplicates in a baseline, adds the workflows and hooks, proves the
 check catches a copied function, and opens a pull request. Repository settings and secrets stay with you: it stops
-and asks you to add a TypeSafe API key secret if there is none, to make the `dry-lint` check required, and to add a
+and asks you to add a judge key secret if there is none (Anthropic for the recommended preset), to make the `dry-lint` check required, and to add a
 token for the weekly cleanup pull request. To do it by hand, follow the [first-run tutorial](docs/tutorials/first-run.md);
 [how CI runs dry-lint](docs/ci.md) explains the moving parts.
 
