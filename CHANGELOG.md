@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.2](https://github.com/gigaverse-app/dry-lint/compare/v1.9.1...v1.9.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* **ci:** let a republish dispatch reach the publish job ([#173](https://github.com/gigaverse-app/dry-lint/issues/173)) ([be65539](https://github.com/gigaverse-app/dry-lint/commit/be655398b29734bc5391fdf2385172847cc12dd5))
+* **ci:** move the release workflow off its wedged concurrency group ([#172](https://github.com/gigaverse-app/dry-lint/issues/172)) ([f9490fd](https://github.com/gigaverse-app/dry-lint/commit/f9490fddd0617055e98cd4a241009d7c3de449f6))
+
 ## [1.9.1](https://github.com/gigaverse-app/dry-lint/compare/v1.9.0...v1.9.1) (2026-11-09)
 
 
