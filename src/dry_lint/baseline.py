@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import quote, urlencode
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
 from dry_lint.detector import Detector
 from dry_lint.function_index import digest, repository_name
@@ -95,9 +95,19 @@ class Baseline(BaseModel):
 
     @model_validator(mode="after")
     def unique_pairs(self) -> "Baseline":
+        if self.schema_version == 1 and self.policy_history:
+            raise ValueError("Policy migration history requires baseline schema 2")
         if len({e.key for e in self.entries}) != len(self.entries):
             raise ValueError("Duplicate baseline pair")
         return self
+
+    @model_serializer(mode="wrap")
+    def serialize(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        result = handler(self)
+        # Schema-1 readers forbid unknown fields; ordinary sweeps must preserve their wire contract.
+        if self.schema_version == 1:
+            result.pop("policy_history", None)
+        return result
 
     @classmethod
     def read(cls, path: Path, settings: Settings) -> "Baseline":
@@ -133,7 +143,7 @@ class Baseline(BaseModel):
             git(root, "rev-parse", "--verify", f"{previous_ref}^{{commit}}")
             if git(root, "ls-tree", "--name-only", previous_ref, "--", relative):
                 previous = cls.model_validate_json(git(root, "show", f"{previous_ref}:{relative}"))
-                proposed.validate_successor(previous)
+                proposed.validate_successor(previous, preserve_debt=migrate_policy)
         if migrate_policy and previous is None:
             raise ValueError(
                 "Policy migration requires an existing committed baseline; adopt new debt with sweep --init"
@@ -153,13 +163,16 @@ class Baseline(BaseModel):
     def count(self, state: State) -> int:
         return sum(e.state == state for e in self.entries)
 
-    def validate_successor(self, previous: "Baseline") -> None:
+    def validate_successor(self, previous: "Baseline", *, preserve_debt: bool = False) -> None:
         old, new = {e.key: e for e in previous.entries}, {e.key: e for e in self.entries}
         expected_history = [*previous.policy_history, previous.contract]
-        migrated = self.schema_version == 2 and self.policy_history == expected_history
+        migrated = self.schema_version == 2 and self.policy_history[: len(expected_history)] == expected_history
         same_policy = self.contract == previous.contract and self.policy_history == previous.policy_history
         if not (same_policy or migrated) or self.started_at != previous.started_at or old.keys() != new.keys():
             raise ValueError("A baseline update cannot change its original scope or accepted pair set")
+        # Migration changes policy metadata only, including when CI reads a hand-edited migration.
+        if (migrated or preserve_debt) and (old != new or self.checked_at != previous.checked_at):
+            raise ValueError("Policy migration must preserve committed debt states and verification revision")
         for key, entry in new.items():
             before = old[key]
             if (
