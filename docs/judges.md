@@ -42,6 +42,8 @@ Migration records the old policy digest and preserves the original pair set, has
 and all debt states, including the last verified revision. It accepts no new debt and credits no cleanup. Commit its small metadata diff with the settings;
 review the complete change against the target branch. Never delete/reinitialize the baseline to change a preset.
 New findings from broader discovery require review; migration is not an exemption for them.
+Excluding a file after adoption does not delete its accepted debt or count as cleanup. The debt remains until
+source removal is verified or an in-scope assessment settles it; use explicit reviewed dismissals for intentional copies.
 
 The migration must start from a committed baseline (`HEAD`, or `--baseline-ref <target>`). Repeating it after
 adjusting the policy before commit extends its history; it does not reset the original debt. Restore accidental

@@ -269,19 +269,13 @@ class Baseline(BaseModel):
             found.append(BacklogCleanup(new=new, existing=existing, how=how))
         return found
 
-    def advance(self, report: Report) -> "Baseline":
+    def advance(self, report: Report, *, removed: set[str] | None = None) -> "Baseline":
         require_complete(report)
         if any(f.blocking for f in self.apply(report).findings):
             raise ValueError("New or changed duplicates cannot be added to the baseline")
-        findings = {f.candidate.key: f for f in report.findings}
         dismissed = {c.key for c in report.filtered}
-        cleaned = {
-            entry.key
-            for entry in self.entries
-            if (finding := findings.get(entry.key)) is None
-            or finding.verdict is not None
-            and finding.verdict.label == "separate"
-        }
+        # Sweeps and PR checks share one evidence rule; an absent candidate alone retires no debt.
+        cleaned = {pair_key(item.new, item.existing) for item in self.cleared(report, removed or set())}
         return self.retire(dismissed=dismissed, cleaned=cleaned, revision=report.run.head)
 
     def retire(self, *, dismissed: set[str], cleaned: set[str], revision: str) -> "Baseline":

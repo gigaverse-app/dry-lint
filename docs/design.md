@@ -76,6 +76,9 @@ Every run goes through the same six steps, whatever plugins it uses:
 
 `dry-lint check` runs all six. In CI they split into two jobs: `dry-lint detect` runs steps 1–4 and writes
 `candidates.json`; `dry-lint judge` runs steps 5–6 from that file and writes `report.json`.
+Check and detect share source-revision identity and changed-owner selection. Model review uses the same
+primary-repository selection; an explicit whole-workspace function scan still includes peer owners.
+Both split-CI entry points share the guard against family policies that require a single change campaign.
 
 Discovery comparers may opt into generic resources owned by a single `Detector.candidates()` call. Core supplies construction/index hooks only; plugin code owns validation, exact keys and encoding. Prepared resources may be reused while mutable query state remains private. Concurrent calls have independent scopes, and no scope survives the call. See [plugin resource ownership](plugins.md#optional-run-resources).
 
@@ -112,6 +115,9 @@ readers can still read them. Explicit policy migration writes schema 2 with appe
 The successor check preserves the original pair set and source evidence; a migration also preserves every
 debt state and `checked_at`, including when CI reads a hand-edited baseline. Several policy adjustments before
 commit may extend that history. A regular sweep under an unchanged policy can still settle debt using evidence.
+Sweeps reuse PR checks' cleanup evidence: missing candidates do not prove deletion. Removal compares declarations
+at the previous and current Git trees (the index for staged checks), including files excluded from detection.
+Narrowing scope leaves unobserved accepted debt outstanding; unreadable source cannot earn cleanup credit.
 Release the schema-2 reader before merging an adopter migration; a source merge alone does not update `@v1`
 or an already-cached hook environment. See [judging policy migration](judges.md#one-preset-everywhere).
 
