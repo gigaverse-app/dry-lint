@@ -227,12 +227,12 @@ The judge job runs from the default branch, with secrets. It treats the fork's c
 
 | Input | Default | |
 | --- | --- | --- |
-| `typesafe-api-key` | | Enables the Jev judge. |
-| `anthropic-api-key` | | Enables escalation: with `typesafe-api-key`, Claude Opus re-judges the Jev scores it is least sure of (preset `jev+opus`), about $0.005 a pull request on average ([judges](judges.md)). Empty: no escalation. |
+| `typesafe-api-key` | | Enables the Jev judge: the `jev` and `agent` presets, and model ranking. |
+| `anthropic-api-key` | | The Claude judge of the recommended `balanced` preset; the Action installs the Anthropic SDK. Also the escalation of `jev+opus`, where Claude Opus re-judges the Jev scores it is least sure of ([judges](judges.md)). |
 | `claude-code-oauth-token` | | A Claude subscription token (`claude setup-token`): the `claude-code` judge runs on the subscription. The `claude` CLI is installed only when this is set. |
 | `claude-code-version` | `2.1.311` | The `@anthropic-ai/claude-code` version installed for it. |
-| `preset` | | Judging preset; `dry-lint config` lists them. Empty: dry-lint picks one from the keys it has (jev+opus, jev+claude-code, jev, ...). |
-| `budget-usd` | `0.04` from the settings | Most judging spends on a pull request, all pushes together, at list price, subscriptions included. The verdict cache carries the running total from push to push. |
+| `preset` | | Judging preset; `dry-lint config` lists them. Leave it empty so the repository's `preset` setting applies, as in the hook and audit. With no setting either, `auto` picks from the keys it has ([judges](judges.md)). |
+| `budget-usd` | `0.04` from the settings | Most judging spends on a pull request, all pushes together, at list price, subscriptions included. The verdict cache carries the running total from push to push ([budgets](judges.md#budget-and-cost)). |
 | `judge` | `auto` | `auto` leaves the choice to the preset. An explicit `jev`, `command`, `none` or installed plugin replaces it (preset `custom`). |
 | `judge-command` | | For `judge: command`: reads the prompt on stdin, prints a JSON verdict ([judges](judges.md)). |
 | `plugins` | | Extra packages to install, one per line. |

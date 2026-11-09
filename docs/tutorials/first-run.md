@@ -80,7 +80,7 @@ judge, and limit the scope to the code you ship:
 preset = "agent"   # Jev only, recall first; "jev" puts precision first, "jev+opus" more so
 include = ["src/*"]
 [budget]
-usd = 0.25         # the per-pull-request cap; the one-off sweep below gets its own
+usd = 0.04         # the pull request budget; the one-off sweep below gets its own ([budgets](../judges.md#budget-and-cost))
 ```
 
 `dry-lint config` prints the scope with a count of source files per top-level folder, so a
@@ -94,11 +94,11 @@ A real repository already has duplicates. Accept them once, so CI only blocks ne
 ones, and so later cleanup can be counted:
 
 ```bash
-dry-lint sweep --init --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT
+dry-lint sweep --init --budget-usd 5 --readme README.md --repository OWNER/NAME --branch DEFAULT
 ```
 
 `DEFAULT` is your default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`).
-`--budget-usd 1` is ample with Jev (273 pairs cost $0.010); use `5` with a Claude preset. No key
+`--budget-usd 5` is the whole-repository budget, a ceiling Jev stays far below ([budgets](../judges.md#budget-and-cost)). No key
 on this machine? The [bootstrap workflow](../../examples/dry-lint-bootstrap.yml) runs the same
 sweep in GitHub Actions with your secret and uploads the files for you to commit
 ([CI route](../ci.md#no-judge-key-on-your-machine)).

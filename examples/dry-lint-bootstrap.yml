@@ -40,7 +40,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # balanced function judging
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           OUT: ${{ runner.temp }}/dry-lint-baseline
-        # --budget-usd: 1 is ample for Jev (273 pairs cost $0.010); use 5 for a Claude preset.
+        # --budget-usd 5: the whole-repository budget, a ceiling, separate from the pull request budget
+        # (docs/judges.md#budget-and-cost).
         # --repository-id: the README's counter sign is keyed by a hash of this numeric id, never by the name.
         # The progress block goes only into a Markdown README.md; without one, this step writes and ships no README.
         run: |
@@ -48,7 +49,7 @@ jobs:
           dry-lint config
           readme=()
           if [[ -f README.md ]]; then readme=(--readme README.md); fi
-          dry-lint sweep --init --budget-usd 1 "${readme[@]}" --report "$OUT/sweep-report.json" \
+          dry-lint sweep --init --budget-usd 5 "${readme[@]}" --report "$OUT/sweep-report.json" \
             --repository "$GITHUB_REPOSITORY" --repository-id "$GITHUB_REPOSITORY_ID" --branch "$DEFAULT_BRANCH"
           cp -R .dry-lint "$OUT/"
           if [[ -f README.md ]]; then cp README.md "$OUT/"; fi

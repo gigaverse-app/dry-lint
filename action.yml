@@ -20,14 +20,14 @@ inputs:
     required: false
     default: auto
   typesafe-api-key:
-    description: TypeSafe API key. With it the Jev judge runs; without it (and no judge-command) dry-lint only lists look-alikes in the log.
+    description: TypeSafe API key, for the Jev judge (the jev and agent presets) and model ranking.
     required: false
     default: ""
   anthropic-api-key:
     description: >
-      Anthropic API key. With typesafe-api-key, preset jev+opus: Claude Opus re-judges the Jev scores it is least
-      sure of, for 98% precision and 85% recall within the budget, about $0.005 a pull request. Empty means no
-      escalation. (Gemini needs escalate = "gemini" in [tool.dry-lint] and GEMINI_API_KEY in the environment.)
+      Anthropic API key, for the recommended balanced preset's Claude judge (the Action installs the SDK) and other
+      Claude presets. With typesafe-api-key and preset jev+opus, Claude Opus re-judges the Jev scores it is least
+      sure of. (Gemini needs escalate = "gemini" in [tool.dry-lint] and GEMINI_API_KEY in the environment.)
     required: false
     default: ""
   claude-code-oauth-token:
@@ -41,7 +41,7 @@ inputs:
     required: false
     default: "2.1.311"
   preset:
-    description: Judging preset (dry-lint config lists them). Empty lets dry-lint choose from the keys it has.
+    description: Judging preset (dry-lint config lists them). Empty applies the repository's preset setting, as hooks and audits do.
     required: false
     default: ""
   budget-usd:

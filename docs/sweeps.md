@@ -20,10 +20,10 @@ usd = 0.04
 ```
 
 ```bash
-dry-lint sweep --init --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT
+dry-lint sweep --init --budget-usd 5 --readme README.md --repository OWNER/NAME --branch DEFAULT
 ```
 
-`--budget-usd 1` is ample for Jev (273 pairs cost $0.010); a Claude preset such as `sonnet` needs about `5`.
+`--budget-usd 5` is the whole-repository budget, a ceiling a Jev preset stays far below ([budgets](judges.md#budget-and-cost)).
 Without a judge key on the machine, the [bootstrap workflow](../examples/dry-lint-bootstrap.yml) runs this sweep in
 GitHub Actions and uploads the files to commit ([CI route](ci.md#no-judge-key-on-your-machine)). A later `sweep`
 without `--init` needs the committed baseline; without one it says so and points back to `--init`.
@@ -44,9 +44,9 @@ Unsupported or invalid source cannot silently disappear from a strict scan.
 ## Review the audit and clean up deliberately
 
 ```bash
-dry-lint sweep --budget-usd 1 --report audit.json --output audit.md
+dry-lint sweep --budget-usd 5 --report audit.json --output audit.md
 # A human or agent reviews the list, refactors selected code, and runs its tests.
-dry-lint sweep --update --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT
+dry-lint sweep --update --budget-usd 5 --readme README.md --repository OWNER/NAME --branch DEFAULT
 ```
 
 The first command is read-only except for explicitly requested report files and the verdict cache. The second
@@ -103,7 +103,7 @@ calls dry-lint's reusable [audit workflow](../.github/workflows/audit.yml).
 
 ## Periodic audits
 
-Use `mode: sweep`, the same judging inputs, and an explicit audit budget in a scheduled or manually dispatched
+Use `mode: sweep`, the same judging inputs, and an explicit audit budget (`budget-usd: '5'`, [budgets](judges.md#budget-and-cost)) in a scheduled or manually dispatched
 workflow. The Action writes its audit to the job summary and `$RUNNER_TEMP/dry-lint/report.json` and `comment.md`.
 Retain these as workflow artifacts. It does not commit files or open PRs. A newly discovered blocking pair
 outside the accepted baseline fails the audit so a maintainer can investigate it.

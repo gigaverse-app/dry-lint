@@ -15,10 +15,14 @@ Tests/migrations/scripts remain excluded by default; including them is a reposit
 suppress all fixtures. Two wrappers entering the same lifecycle helper are separate; independently implementing
 setup/yield/teardown still duplicates behavior.
 
-`auto` selects `balanced` with `ANTHROPIC_API_KEY`, then `balanced-subscription` with `CLAUDE_CODE_OAUTH_TOKEN`,
-then `jev` only for existing TypeSafe-only installations, otherwise `none` (detection only). This credential
-fallback preserves existing enforcement; it is not the recommended adoption. Pin `preset = "balanced"` in adopting repositories so missing credentials fail visibly. Install
-`dry-lint[anthropic]`, or use the Action's `anthropic-api-key` input. The subscription preset shares discovery,
+`preset = "auto"`, the setting's default, picks from the credentials it finds, and what it picks depends on the
+installed version. From dry-lint 1.9.1 it selects `balanced` with `ANTHROPIC_API_KEY`, then `balanced-subscription`
+with `CLAUDE_CODE_OAUTH_TOKEN`, then `jev` only for existing TypeSafe-only installations, otherwise `none`
+(detection only). dry-lint 1.9.0 and earlier never select `balanced` automatically: with only `ANTHROPIC_API_KEY`,
+1.9.0 picks the legacy `sonnet` preset. This credential fallback preserves existing enforcement; it is not the
+recommended adoption. Pin `preset = "balanced"` in adopting repositories, so every version applies the same policy
+and a missing key fails visibly instead of downgrading. Locally, install `dry-lint[anthropic]`; the Action installs
+the Anthropic SDK itself and reads the key from its `anthropic-api-key` input. The subscription preset shares discovery,
 model, prompt and thresholds, but has not been independently calibrated through the CLI.
 
 ## One preset everywhere
@@ -105,17 +109,30 @@ Jev's numbers. A failing first judge is still an error.
 
 ## Budget and cost
 
+This section is the one description of dry-lint's budgets; other pages link here. There are two, and they never
+mix:
+
+| Budget | Set with | Value | What it caps |
+| --- | --- | --- | --- |
+| Pull request | `[budget] usd` in the settings; for one run, the Action's `budget-usd` input or `check --budget-usd` | `0.04` (default) | judging on one pull request, across all its pushes |
+| Whole-repository sweep | `sweep --budget-usd` (locally and in the bootstrap workflow); the audit workflow's `budget-usd` input | `5` (the audit's default) | one sweep of every candidate pair: `sweep --init`, `--update` and the weekly audit |
+
+Pass `--budget-usd 5` to every `sweep`: without it a sweep falls back to the pull request budget, too little for a
+whole repository, and `--init` refuses to write a baseline while pairs are left unjudged. 5 is a ceiling, not a
+price: a Claude preset such as `balanced` can need most of it on a large repository, while a Jev preset (`jev`,
+`agent`) spends far less (273 pairs cost $0.010). A sweep's budget never changes the pull request budget.
+
 ```toml
 # .dry-lint.toml ([tool.dry-lint.budget] and [tool.dry-lint.prices] in pyproject.toml)
 [budget]
-usd = 0.04                 # most judging spends on one pull request, across all its pushes (--budget-usd overrides it)
+usd = 0.04                 # most judging spends on one pull request, across all its pushes
 subscription_calls = 20    # most calls one run makes to subscription judges
 
 [prices]                   # USD per million input and output tokens, over the built-in table
 "my-model" = [1.0, 4.0]
 ```
 
-The budget is for a pull request, not a run: the verdict store keeps what each pull request has spent so far, so a
+The pull request budget is for a pull request, not a run: the verdict store keeps what each pull request has spent so far, so a
 push that re-judges only its changed pairs spends what is left. A run outside a pull request has the whole budget.
 Replaying 184 gigaverse-ai pull requests commit by commit, a pair is judged 1.27 times on average over the life of
 its pull request, because a duplicate verdict reopens when its code changes.

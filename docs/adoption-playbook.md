@@ -59,7 +59,7 @@ Choose the parser for the repository's syntax, independently of its runtime depe
 `python-version` and the hook's `language_version` consistently. Due needs Python 3.14; do not assume every
 consumer does. Review include/exclude rules: defaults omit tests and migrations. A full sweep covers the configured
 candidate detector, not every possible semantic duplicate. Keep the initial/weekly audit budget separate from
-the per-PR budget. Reuse the verdict store between audit and update to avoid paying twice.
+the per-PR budget ([budgets](judges.md#budget-and-cost)). Reuse the verdict store between audit and update to avoid paying twice.
 
 By default, use the `v1` major-version tag: `gigaverse-app/dry-lint@v1` for Actions, `rev: v1` for pre-commit
 hooks, and `'dry-lint>=1,<2'` from PyPI for the CLI. That keeps adopters on the supported major release without a
@@ -76,11 +76,11 @@ Install the CLI in its own environment, outside the application's dependency res
 ```bash
 uv tool install --no-config --python 3.13 'dry-lint>=1,<2'    # 'dry-lint[anthropic]>=1,<2' for a Claude preset
 dry-lint config
-dry-lint sweep --init --budget-usd 1 --readme README.md --repository OWNER/NAME --repository-id NUMERIC_ID \
+dry-lint sweep --init --budget-usd 5 --readme README.md --repository OWNER/NAME --repository-id NUMERIC_ID \
   --branch DEFAULT
 ```
 
-`--budget-usd 1` is ample for Jev (273 pairs cost $0.010); use `5` for a Claude preset. Without a judge key on the
+`--budget-usd 5` is the whole-repository budget, separate from the pull request's ([budgets](judges.md#budget-and-cost)). Without a judge key on the
 machine, run the same sweep in Actions with [the bootstrap workflow](../examples/dry-lint-bootstrap.yml) and
 commit the files it uploads ([CI route](ci.md#no-judge-key-on-your-machine)).
 
@@ -275,7 +275,7 @@ immutable during function adoption, and initial model debt still requires explic
 To clean debt, select a pair from the audit, inspect both contracts, consolidate, run the affected tests, then run:
 
 ```bash
-dry-lint sweep --update --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT
+dry-lint sweep --update --budget-usd 5 --readme README.md --repository OWNER/NAME --branch DEFAULT
 ```
 
 Commit that metadata with the refactor, or dispatch the audit after the cleanup merges. A second identical update

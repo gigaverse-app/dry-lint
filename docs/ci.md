@@ -147,8 +147,8 @@ It passes `--repository-id "$GITHUB_REPOSITORY_ID"`, as the local route does: th
 counter sign is keyed by a hash of that numeric id, never by the repository's name.
 
 The workflow has read-only permissions; nothing reaches the repository except the commit you
-make. Budget it for the judge: `--budget-usd 1` is ample for Jev (273 pairs cost $0.010),
-`5` for a Claude preset.
+make. It sweeps with `--budget-usd 5`, the whole-repository budget
+([budgets](judges.md#budget-and-cost)).
 
 ## Check the installation
 
