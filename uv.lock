@@ -254,7 +254,7 @@ wheels = [
 
 [[package]]
 name = "dry-lint"
-version = "1.8.1"
+version = "1.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
