@@ -1102,7 +1102,14 @@ def test_a_new_ledger_counts_the_pull_request_this_push_merged(github_env, tmp_p
     github_env("push", MAIN_PUSH)
     github = FakeGitHub(
         merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
-        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]},
+        elsewhere={
+            3: [
+                merged_ledger(
+                    push("a" * 40, finding("duplicate")),
+                    push("b" * 40),
+                )
+            ]
+        },
     )
     action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
     ledger = saved_ledger()
@@ -1170,7 +1177,14 @@ def test_merged_pull_requests_are_shared_with_the_counter_under_a_key_the_name_d
     github_env("push", MAIN_PUSH)
     github = FakeGitHub(
         merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
-        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]},
+        elsewhere={
+            3: [
+                merged_ledger(
+                    push("a" * 40, finding("duplicate")),
+                    push("b" * 40),
+                )
+            ]
+        },
     )
     action.fold("acme/shop", "main", HEAD, tmp_path / "no-report.json", httpx.MockTransport(github))
     action.fold("acme/shop", "main", "d" * 40, tmp_path / "no-report.json", httpx.MockTransport(github))
@@ -1252,7 +1266,7 @@ def test_a_baselined_pull_request_that_removes_accepted_debt_is_credited_in_its_
     github = FakeGitHub(head=repo.git("rev-parse", "HEAD").strip())
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     [body] = github.stickies()
-    assert "**1 pair**<br><sub>1 from the accepted backlog</sub>" in body
+    assert "| 🧼 Baseline reduced |" in body and "**1 pair**" in body
     assert "`shorten_text` ≈ `preview_caption_text` · accepted backlog, cleaned up in push 1: one side removed" in body
     ledger = PullLedger.read(body)
     assert ledger is not None and ledger.count("not-reported") == 0 and len(ledger.backlog) == 1
@@ -1408,11 +1422,26 @@ def test_recovered_judge_errors_are_annotated_in_advisory_mode(repo, github_env,
     assert "failed" in (tmp_path / "summary").read_text()
 
 
-def test_share_goldens_keeps_each_merged_pull_requests_settled_pairs(github_env, tmp_path, monkeypatch) -> None:
+@pytest.mark.parametrize("dismissed", [False, True])
+def test_share_goldens_only_exports_reviewed_dismissals(github_env, tmp_path, monkeypatch, dismissed) -> None:
+    from dry_lint.goldens import Golden
+
     github_env("push", MAIN_PUSH)
     github = FakeGitHub(
         merged=[{"number": 3, "merged_at": "2026-10-31T00:00:00Z", "merge_commit_sha": HEAD}],
-        elsewhere={3: [merged_ledger(push("a" * 40, finding("duplicate")), push("b" * 40))]},
+        elsewhere={
+            3: [
+                merged_ledger(
+                    push("a" * 40, finding("duplicate")),
+                    push(
+                        "b" * 40,
+                        filtered=[finding("duplicate").candidate.model_copy(update={"filtered": "distinct-from"})]
+                        if dismissed
+                        else [],
+                    ),
+                )
+            ]
+        },
     )
     report = tmp_path / "report.json"
     action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github))
@@ -1421,4 +1450,10 @@ def test_share_goldens_keeps_each_merged_pull_requests_settled_pairs(github_env,
     action.ledger_path().unlink()
     monkeypatch.setenv("INPUT_SHARE_GOLDENS", "true")
     action.fold("acme/shop", "main", HEAD, report, httpx.MockTransport(github))
-    assert not (tmp_path / "goldens.jsonl").exists(), "disappearance is not a positive gold label"
+    if dismissed:
+        [golden] = [Golden.model_validate_json(line) for line in (tmp_path / "goldens.jsonl").read_text().splitlines()]
+        assert (golden.repository, golden.pull_request, golden.label) == ("acme/shop", 3, "separate")
+        assert golden.new.revision == "a" * 40 and golden.new.path
+        assert "code" not in golden.model_dump_json()
+    else:
+        assert not (tmp_path / "goldens.jsonl").exists(), "disappearance is not a positive gold label"

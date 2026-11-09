@@ -89,6 +89,20 @@ def test_hook_inherits_repository_policy_instead_of_forcing_agent() -> None:
     assert "--preset agent" not in hooks
 
 
+def test_migration_cannot_create_unreviewed_debt(tmp_path, capsys) -> None:
+    repo = Repo(tmp_path / "repo")
+    repo.write("keep.py", "# initial commit\n")
+    repo.git("add", ".")
+    repo.git("commit", "-qm", "test: initialize repository")
+    debt = Baseline.start(report(finding("duplicate", score=0.99)), resolve(Settings(preset="agent"), {}))
+    repo.write(".dry-lint/baseline.json", debt.model_dump_json())
+    path = repo.root / ".dry-lint/baseline.json"
+    before = path.read_bytes()
+    assert main(["baseline-migrate", "--root", str(repo.root), "--preset", "balanced"]) == 2
+    assert "existing committed baseline" in capsys.readouterr().err
+    assert path.read_bytes() == before
+
+
 def test_replaced_prompt_names_use_the_canonical_shared_operation_policy() -> None:
     candidate = finding("duplicate").candidate
     expected = prompt(candidate, policy="shared-operations")

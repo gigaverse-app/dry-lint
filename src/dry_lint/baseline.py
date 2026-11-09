@@ -122,11 +122,19 @@ class Baseline(BaseModel):
         proposed, previous = cls.parse(raw, settings), None
         previous_ref = "HEAD" if staged else base
         if previous_ref:
-            git(root, "rev-parse", "--verify", f"{previous_ref}^{{commit}}")
-            if git(root, "ls-tree", "--name-only", previous_ref, "--", relative):
-                previous = cls.model_validate_json(git(root, "show", f"{previous_ref}:{relative}"))
+            previous = cls.at_ref(root, path, previous_ref)
+            if previous is not None:
                 proposed.validate_successor(previous)
         return proposed, previous
+
+    @classmethod
+    def at_ref(cls, root: Path, path: Path, ref: str) -> "Baseline | None":
+        """Read accepted debt from a verified commit; absence is different from an invalid ref."""
+        relative = (root / path).resolve().relative_to(root.resolve()).as_posix()
+        git(root, "rev-parse", "--verify", f"{ref}^{{commit}}")
+        if not git(root, "ls-tree", "--name-only", ref, "--", relative):
+            return None
+        return cls.model_validate_json(git(root, "show", f"{ref}:{relative}"))
 
     @classmethod
     def start(cls, report: Report, settings: Settings) -> "Baseline":

@@ -446,9 +446,9 @@ def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, 
     assert (ledger.pushed, ledger.tally.runs, ledger.count("not-reported")) == (2, 2, 1)
     assert "**1 finding no longer reported** for $0.004 of judging, across 2 checked pushes." in fake.stickies()[0]
     body = fake.stickies()[0]
-    assert body.index("### 🧹 A little less lint") < body.index("<summary><strong>Scan details")
-    assert "| **1 pair** | **0 pairs** | **0 pairs** |" in body.replace(SPREAD, "")
-    assert "`bbbbbbb` · **+1 pair cleaned up**" in body
+    assert body.index("### 🧺 This PR's cleanup basket") < body.index("<summary><strong>Scan details")
+    assert "| **0 pairs** | **0 pairs** | **0 pairs** | **1 pair** |" in body.replace(SPREAD, "")
+    assert "pair cleaned up**" not in body
 
 
 def test_the_run_defaults_to_the_workflow_run_and_attempt(tmp_path: Path, monkeypatch) -> None:

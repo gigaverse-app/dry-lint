@@ -435,9 +435,9 @@ def baseline_migrate(root: Path, settings: Settings, args: argparse.Namespace) -
     path = root / (args.baseline or Path(".dry-lint/baseline.json"))
     baseline = Baseline.model_validate_json(path.read_text(encoding="utf-8"))
     migrated = baseline.with_policy(settings)
-    relative = path.resolve().relative_to(root.resolve()).as_posix()
-    previous_ref = args.baseline_ref or "HEAD"
-    previous = Baseline.model_validate_json(git(root, "show", f"{previous_ref}:{relative}"))
+    previous = Baseline.at_ref(root, path, args.baseline_ref or "HEAD")
+    if previous is None:
+        raise ValueError("Policy migration requires an existing committed baseline; adopt new debt with sweep --init")
     migrated.validate_successor(previous)
     write_text(path, migrated.model_dump_json(indent=2) + "\n")
     print(

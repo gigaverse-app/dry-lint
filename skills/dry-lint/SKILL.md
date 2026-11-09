@@ -131,7 +131,7 @@ function preset named `agent` with the separate model review lane.
 **One policy everywhere.** CI, hooks, audits and the baseline inherit repository settings. Remove hook `--preset`
 arguments and leave the Action preset input unset. For existing debt, run `dry-lint baseline-migrate` after changing
 settings; verify it preserves every pair, hash and settled state. Then check with `--require-complete`. Migration
-accepts no new debt and earns no cleanup credit. See [the policy](../../docs/judges.md).
+accepts no new debt and earns no cleanup credit. See [the policy](https://github.com/gigaverse-app/dry-lint/blob/main/docs/judges.md).
 
 Check the scope:
 
