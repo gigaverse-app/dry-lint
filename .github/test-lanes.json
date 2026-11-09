@@ -91,6 +91,16 @@
         ".dry-lint/**",
         ".github/workflows/ci.yml#dogfood"
       ]
+    },
+    "contracts": {
+      "roots": [],
+      "inputs": [
+        "src/**",
+        "contracts/**",
+        "pyproject.toml",
+        "uv.lock",
+        ".github/workflows/ci.yml#contracts"
+      ]
     }
   },
   "global_inputs": [

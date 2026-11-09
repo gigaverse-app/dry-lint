@@ -35,6 +35,8 @@ hooks = ["anthropic>=1.0", "python-dotenv>=1,<2"]
 # Develop and test it with `uv sync --group dryer`; users install it next to dry-lint (docs/detectors.md).
 dryer = ["dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0"]
 dev = ["pytest>=8", "pytest-cov>=6", "ruff>=0.14", "build>=1.2", "boto3>=1.35", "anthropic>=1.0", "numpy>=2.2", "python-dotenv>=1,<2"]
+# Model-based contracts in contracts/ (run with `pytest -c contracts/quint.ini contracts`); needs Node.js 22+.
+quint = ["pytest>=8", "pytest-quint-connect>=1.2.1,<2"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dry_lint"]

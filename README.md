@@ -276,6 +276,85 @@ On 600 gigaverse-ai pull requests, against a 250-pair gold set labelled blind by
 | Known duplicates found and scored ≥ 0.8 | 11 of 13 |
 | Verdict store for the whole repository | about 1,900 pairs, 0.75 MB |
 
+### The spending ledger, checked against a model
+
+The campaign ledger that admits and settles paid judging is also a [Quint](https://quint.sh) model. CI
+replays generated histories against the real ledger and requires every deliberately broken ledger to be
+caught ([campaign contract](contracts/campaign/README.md)). The block below is the latest complete run,
+checked by [pytest-quint-connect](https://github.com/gigaverse-app/pytest-quint-connect) on every change that
+runs the contract.
+
+<!-- pytest-quint-connect:start -->
+<!-- pytest-quint-connect:contracts campaign -->
+<a href="https://github.com/gigaverse-app/pytest-quint-connect#impact"><picture><source media="(prefers-color-scheme: dark)" srcset="https://pytest-quint-connect-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=8b0ca91e4d8433105306299297db81e9dad626ccaa58d84af1200291111eea60&amp;name=gigaverse-app%2Fdry-lint&amp;theme=dark"><img alt="What pytest-quint-connect&#x27;s contracts caught in gigaverse-app/dry-lint&#x27;s pull requests" src="https://pytest-quint-connect-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=8b0ca91e4d8433105306299297db81e9dad626ccaa58d84af1200291111eea60&amp;name=gigaverse-app%2Fdry-lint" width="100%"></picture></a>
+
+<a href="https://github.com/gigaverse-app/pytest-quint-connect" title="Mutants are planted fake bugs: deliberately broken copies of the code, used only during this test run. Each must make some history diverge, proving the tests are meaningful: they would notice that kind of bug"><img alt="Quint contracts: 1 contract passed · 20 histories · 4/4 mutants caught" src="https://img.shields.io/badge/Quint_contracts-1_contract_passed_%C2%B7_20_histories_%C2%B7_4%2F4_mutants_caught-brightgreen"></a>
+
+<details>
+<summary>✅ 1 contract · 25/25 cases · 4/4 mutants caught · 20 histories</summary>
+
+| | <img width="2000" height="1" align="right" alt="">Contract | Cases passed | [Mutants caught](https://github.com/gigaverse-app/pytest-quint-connect/blob/main/docs/why.md#proof-that-the-tests-can-fail "Mutants are planted fake bugs: deliberately broken copies of the code, used only during this test run. Each must make some history diverge, proving the tests are meaningful: they would notice that kind of bug") |
+| :-: | :-- | --: | --: |
+| ✅ | `campaign` `campaign/test_campaign_contract.py::test_campaign`<br><sub>20 histories (4 witnesses, 16 samples, seed 11) · every action covered · Quint 0.33.1</sub> | 25/25 | 4/4 |
+
+</details>
+
+<details>
+<summary>🐞 1 real bug found by this contract</summary>
+
+| Contract | <img width="2000" height="1" align="right" alt="">Bug | Fixed in | Regression test |
+| :-- | :-- | :-- | :-- |
+| `campaign` | settle() accepted an already settled reservation: an answered attempt could turn failed and protected exploration credit was refunded again<br><sub>found by witness secondSettleIsRefusedTest · mutant `double-settle` reintroduces it: 13 of 20 histories diverge</sub> | gigaverse-app/dry-lint#157 | <sub>`tests/test_discovery.py`<br>`::test_a_reservation_settles_exactly_once`</sub> |
+
+</details>
+
+<details>
+<summary>🧪 4 mutants (planted fake bugs), all caught</summary>
+
+| Contract | [Mutant](https://github.com/gigaverse-app/pytest-quint-connect/blob/main/docs/why.md#proof-that-the-tests-can-fail "Mutants are planted fake bugs: deliberately broken copies of the code, used only during this test run. Each must make some history diverge, proving the tests are meaningful: they would notice that kind of bug") | <img width="2000" height="1" align="right" alt="">What it breaks | Caught by | At |
+| :-- | :-- | :-- | :-- | :-- |
+| `campaign` | `double-settle` | settle() accepts an already settled reservation and refunds its credit again<br><sub>reintroduces a real bug found earlier</sub> | `witness-secondSettleIsRefusedTest` | state 4, after `settle(actual=0, cand='', cost=0, idx=0, kind='', success=False)` |
+| `campaign` | `credit-per-call` | every advance() mints exploration credit, not only a new revision's first | `witness-creditMintedOncePerRevisionTest` | state 2, after `advance(actual=0, cand='', cost=0, idx=0, kind='', success=False)` |
+| `campaign` | `residual-skips-pass` | residual reserve() does not wait for the revision's protected attempts to be answered | `witness-residualWaitsForTheProtectedPassTest` | state 2, after `reserve(actual=0, cand='c2', cost=1, idx=0, kind='residual', success=False)` |
+| `campaign` | `no-dedupe` | reserve() admits the same pair twice on one revision | `witness-residualWaitsForTheProtectedPassTest` | state 5, after `reserve(actual=0, cand='c2', cost=1, idx=0, kind='residual', success=False)` |
+
+</details>
+
+<details open>
+<summary>What <code>campaign</code> says</summary>
+
+**Actions**, and the code each one drives:
+
+- `init`: a new CampaignStore on an empty ledger
+- `push`: a new CampaignStore for the next immutable revision on the same ledger
+- `advance`: CampaignStore.advance
+- `reserve`: CampaignStore.reserve
+- `reserveFamily`: CampaignStore.reserve_family
+- `settle`: CampaignStore.settle
+- `inspect`: read only
+
+**Invariant** `withinBudget`, checked while sampling histories.
+
+**Witnesses**, scenarios replayed exactly as written: `creditMintedOncePerRevisionTest`, `secondSettleIsRefusedTest`, `residualWaitsForTheProtectedPassTest`, `familyNeedsAnEnteredRevisionTest`.
+
+**Bounds**: seed `11` · max_samples `300` · max_steps `10` · n_traces `16`.
+
+**Witness `creditMintedOncePerRevisionTest`, step by step**: the observation the model starts from, then what it expects each action to change.
+
+| State | Action | Model expects |
+| --: | :-- | :-- |
+| `0` | `init(actual=0, cand='', cost=0, idx=0, kind='', success=False)` | `{ attempts: [], credit: 0, outcome: NoOutcome, rev: 0, revisions: 0 }` |
+| `1` | `advance(actual=0, cand='', cost=0, idx=0, kind='', success=False)` | `credit: 0 → 2`<br>`revisions: 0 → 1` |
+| `2` | `advance(actual=0, cand='', cost=0, idx=0, kind='', success=False)` | unchanged |
+| `3` | `push(actual=0, cand='', cost=0, idx=0, kind='', success=False)` | `rev: 0 → 1` |
+| `4` | `advance(actual=0, cand='', cost=0, idx=0, kind='', success=False)` | `credit: 2 → 4`<br>`revisions: 1 → 2` |
+| `5` | `inspect(actual=0, cand='', cost=0, idx=0, kind='', success=False)` | unchanged |
+
+</details>
+
+<sub>Generated by [pytest-quint-connect](https://github.com/gigaverse-app/pytest-quint-connect) from contract receipts; [what a passing run proves](https://github.com/gigaverse-app/pytest-quint-connect/blob/main/docs/limits.md).</sub>
+<!-- pytest-quint-connect:end -->
+
 ## Settings
 
 Settings live in `.dry-lint.toml` at the repository root, as top-level keys with tables such as `[budget]` and
