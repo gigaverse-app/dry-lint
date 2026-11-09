@@ -386,3 +386,5 @@ and keeps semantic credentials out of its general all-hooks quality job. Its rea
 verify both the metadata PR path and idempotence. These checks belong in the adoption recipe for future consumers.
 Keep consumer-specific paths, parser versions, token names and CI selection rules in the consumer; keep this lifecycle
 and the reusable workflow here.
+
+<!-- probe: documentation-only change -->
