@@ -13,7 +13,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: release
+  # Renamed from `release`: run 42670159293 is wedged in "waiting" on the pypi environment with nothing to approve,
+  # GitHub refuses to cancel it, and it holds its group forever. A new name lets later runs start.
+  group: release-publish
   cancel-in-progress: false
 
 jobs:
