@@ -66,7 +66,7 @@ def test_repeated_evidence_costs_nothing_but_changed_evidence_reopens(setup, tmp
 def test_exploration_is_paced_and_preserves_later_baseline(setup, tmp_path):
     settings, judge, store, calls = setup
     settings.discovery.exploration_calls_per_revision = 1
-    settings.discovery.calls = 2  # one exploration call for the whole campaign: int(2 * (1 - baseline_fraction))
+    settings.discovery.calls = 3  # one exploration call for the whole campaign: int(3 * (1 - baseline_fraction))
     pool = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(6)]
     _, first = check(setup, tmp_path, pool)
     _, repeat = check(setup, tmp_path, pool)
