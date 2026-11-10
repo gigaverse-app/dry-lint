@@ -40,32 +40,51 @@ precision or recall of the new default across repositories.
 
 ## Structured answers
 
-Does a schema-constrained answer judge as well as free text? Measured in November 2026 on 756 labelled pairs
-(317 duplicates, 439 separate) from nine repositories, Python and TypeScript, each sent as the two whole functions
-the detector would propose. Labels are source reviews by models, not people. Every variant is Claude Haiku 5.5
-with the `dry-operations-v3` prompt and a 2,048-token limit; an answer that failed counts as not reported.
+Does a schema-constrained answer judge as well as free text? Measured in November 2026, every variant Claude
+Haiku 5.5 at `effort = "low"` with a 2,048-token limit and the `dry-operations-v3` question.
+
+**Labelled pairs.** 756 pairs (317 duplicates, 439 separate) from nine repositories, Python and TypeScript, each
+sent as the two whole functions the detector would propose. Labels are source reviews by models, not people. An
+answer that failed counts as not reported.
 
 | Variant | Failed answers | AUC | Recall | False reports | Cost a pair | Seconds |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Text, `effort = "low"`, reported at 0.5 | 0 | 0.945 | 87.4% | 8.2% | $0.00062 | 4.1 |
-| Text, default effort, reported at 0.5 (`balanced`) | 2 | 0.898 | 89.0% | 8.7% | $0.00070 | 4.3 |
-| **Schema, reason first, JSON-schema mode, low; score at 0.3** | 0 | 0.946 | 85.5% | 8.2% | $0.00049 | 2.3 |
-| Same, score at 0.25 | 0 | 0.946 | 87.7% | 11.6% | $0.00049 | 2.3 |
-| Same, at the text judge's rule (label and 0.5) | 0 | 0.946 | 47.6% | 1.1% | $0.00049 | 2.3 |
-| Schema, reason first, forced tool call, low; score at 0.3 | 58 | 0.862 | 74.1% | 6.4% | $0.00057 | 2.3 |
-| Schema, decision first, forced tool call, low; label and 0.5 | 15 | | 47.7% | 1.2% | $0.00055 | 2.0 |
+| Text answer, reported at 0.5 | 0 | 0.945 | 87.4% | 8.2% | $0.00062 | 4.1 |
+| First schema (literals, one-line descriptions), decision first | 15 | | 47.7% | 1.2% | $0.00055 | 2.0 |
+| First schema, reason first, forced tool call, score at 0.3 | 58 | 0.862 | 74.1% | 6.4% | $0.00057 | 2.3 |
+| First schema, reason first, JSON-schema mode, score at 0.3 | 0 | 0.946 | 85.5% | 8.2% | $0.00049 | 2.3 |
+| **Shipped schema (enums, descriptions, rubric), tool call, score at 0.3** | 0 | 0.959 | 87.7% | 8.9% | $0.00063 | 2.3 |
+| Shipped schema, score at 0.4 | 0 | 0.959 | 70.3% | 3.2% | $0.00063 | 2.3 |
+| Shipped schema, score at 0.6 (the rubric's "established") | 0 | 0.959 | 52.7% | 1.6% | $0.00063 | 2.3 |
+| Shipped schema, JSON-schema mode, score at 0.3 | 1 | 0.940 | 85.8% | 9.6% | $0.00056 | 2.3 |
 
 Higher AUC and recall are better; lower failures, false reports, cost and seconds are better. AUC is the chance
 that a labelled duplicate scores above a labelled separate pair; it does not depend on a threshold.
 
-- **Same accuracy, once the threshold moves.** The bolded row and the first row differ by 0.001 AUC (95% interval
-  −0.016 to +0.017, bootstrap over pairs). The 0.3 threshold was also the one chosen when each repository was held
-  out in turn and the threshold picked on the others (85.5% recall, 8.2% false reports held out).
-- **At the text judge's threshold it is a different judge**: half the recall, an eighth of the false reports.
-- **Field order is not cosmetic**, and neither is the mode: see the last two rows.
+- **The schema is prompt text.** Putting the decision before the reasoning halves recall. Spelling the fields out
+  (enums, descriptions, a score rubric) removes the 58 failed answers of the forced tool call and gives the best
+  ranking of any variant.
+- **The rubric makes a stricter judge.** At its own "established" line it finds half the labelled duplicates with
+  almost no false reports. It matches the text judge's recall only when reporting from 0.3.
 
-The `langchain` judge and the `balanced-structured` preset are the bolded row. Not measured: pull-request replays,
-other models, and the CLI judges, whose `--json-schema` and `--output-schema` flags could take the same schema.
+**Pairs from real commits.** The 656 pairs that 51 recent commits of four private repositories sent to the judge
+under `balanced`. Claude Opus 5.5, with the text prompt, judged every pair either judge would report; it is a
+stricter judge, not ground truth, and it shares the text judge's prompt.
+
+| Rule | Reports | Opus confirms | Opus rejects |
+| --- | ---: | ---: | ---: |
+| Text judge, reported at 0.5 (`balanced`) | 90 | 81 | 9 |
+| Shipped schema, score at 0.3 | 90 | 74 | 16 |
+| Shipped schema, score at 0.4 | 52 | 51 | 1 |
+| Shipped schema, score at 0.6 | 34 | 33 | 1 |
+
+More confirmed and fewer rejected are better. On real commits the text judge finds more confirmed duplicates at
+the same number of reports; the schema judge is the more precise one from 0.4. On these pairs it cost $0.00050
+and 2.1 s a pair, against $0.00041 and about 4 s for the text judge: shorter answers, but the schema adds about a
+thousand tokens to every question. Hence `balanced-structured` reports from 0.3 and fails from 0.4, and `balanced` stays the default.
+
+Not measured: a replay through the scheduler with this schema, other models, and the CLI judges, whose
+`--json-schema` and `--output-schema` flags could take the same schema.
 
 The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
 Its small diagnostic sample does not inherit the Python precision/recall claims below.

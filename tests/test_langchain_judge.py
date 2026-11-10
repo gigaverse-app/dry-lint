@@ -10,7 +10,14 @@ import pytest
 
 from dry_lint.discovery import reservation_cost
 from dry_lint.judges import make_judge
-from dry_lint.judges.langchain import DuplicateVerdictPromptSchema, LangChainJudge
+from dry_lint.judges.command import OPERATIONS_ANSWER, OPERATIONS_PROMPT, OPERATIONS_RULES, OPERATIONS_SOURCES
+from dry_lint.judges.langchain import (
+    STRUCTURED_PROMPT,
+    ConsolidationOwner,
+    DuplicateVerdictPromptSchema,
+    DuplicationLabel,
+    LangChainJudge,
+)
 from dry_lint.models import Candidate
 from dry_lint.presets import AUTO_ORDER, PRESETS, resolve
 from dry_lint.settings import Settings
@@ -28,9 +35,11 @@ STRUCTURED = resolve(Settings(preset="balanced-structured"))
 def verdict(
     score: float, label: str = "duplicate", owner: str = "existing", why: str = "both slice to a limit"
 ) -> dict:
+    """A tool call filling the schema, as the provider returns it for `with_structured_output`."""
+    filled = {"reasoning": why, "score": score, "label": label, "owner": owner}
     return {
-        "stop_reason": "end_turn",
-        "content": [{"type": "text", "text": json.dumps({"why": why, "label": label, "score": score, "owner": owner})}],
+        "stop_reason": "tool_use",
+        "content": [{"type": "tool_use", "id": "toolu_1", "name": "DuplicateVerdictPromptSchema", "input": filled}],
     }
 
 
@@ -89,25 +98,55 @@ def api() -> Iterator[Api]:
     api.server.server_close()
 
 
-def test_the_reason_is_the_schemas_first_field() -> None:
+def test_the_reasoning_is_the_schemas_first_field() -> None:
     # INVARIANT: fields are generated in order. Deciding before reasoning cost a third of the measured recall.
-    assert list(DuplicateVerdictPromptSchema.model_fields) == ["why", "label", "score", "owner"]
+    assert list(DuplicateVerdictPromptSchema.model_fields) == ["reasoning", "score", "label", "owner"]
 
 
-def test_it_asks_for_the_schema_with_the_adopters_key_and_the_dry_prompt(api: Api) -> None:
+def test_the_schema_is_prompt_text_enums_descriptions_and_a_score_rubric() -> None:
+    schema = DuplicateVerdictPromptSchema.model_json_schema()
+    assert "independently implement the same operation" in schema["description"]
+    fields = schema["properties"]
+    # Every field tells the model what to write; none is a bare type.
+    assert all(len(fields[name]["description"]) > 150 for name in ("reasoning", "score", "label", "owner"))
+    # The score is anchored: each band says what evidence earns it, and where reporting starts.
+    for band in ("0.0-0.1", "0.2-0.3", "0.4-0.5", "0.6-0.7", "0.8-0.9", "1.0"):
+        assert band + ":" in fields["score"]["description"]
+    assert (
+        "Not reported" in fields["score"]["description"] and "Reported to the author" in fields["score"]["description"]
+    )
+    # Closed choices are enums the provider can enforce, not strings to be guessed.
+    assert [label.value for label in DuplicationLabel] == ["duplicate", "drifted", "separate"]
+    assert [owner.value for owner in ConsolidationOwner] == ["new", "existing", "shared", "none"]
+    assert schema["$defs"]["DuplicationLabel"]["enum"] == ["duplicate", "drifted", "separate"]
+    assert schema["$defs"]["ConsolidationOwner"]["enum"] == ["new", "existing", "shared", "none"]
+    assert schema["required"] == ["reasoning", "score", "label", "owner"]
+
+
+def test_it_asks_the_text_judges_question_without_their_answer_format() -> None:
+    # INVARIANT: the text prompt is the three parts joined, so this judge and the text judges ask one question.
+    assert OPERATIONS_PROMPT == OPERATIONS_RULES + OPERATIONS_ANSWER + OPERATIONS_SOURCES
+    assert STRUCTURED_PROMPT.startswith(OPERATIONS_RULES) and STRUCTURED_PROMPT.endswith(OPERATIONS_SOURCES)
+    # The schema is the only statement of the format: two formats in one request contradict each other.
+    assert "Answer one JSON object" not in STRUCTURED_PROMPT and '{"label"' not in STRUCTURED_PROMPT
+    assert "limit your reasoning to the shared sub-operation" in STRUCTURED_PROMPT
+
+
+def test_it_sends_the_schema_the_adopters_key_and_both_functions(api: Api) -> None:
     [answer] = api.judge().judge([CANDIDATE], STRUCTURED)
 
     [request] = api.requests
     assert api.keys == ["adopter-key"]
     assert request["model"] == "claude-haiku-5-5" and request["max_tokens"] == 2048
-    assert request["output_config"]["effort"] == "low"
-    schema = request["output_config"]["format"]
-    assert schema["type"] == "json_schema"
-    assert list(schema["schema"]["properties"]) == schema["schema"]["required"] == ["why", "label", "score", "owner"]
-    # A forced tool call lost answers to missing fields; the schema is the output format, not a tool.
-    assert "tools" not in request and "tool_choice" not in request
+    assert request["output_config"] == {"effort": "low"}
+    [tool] = request["tools"]
+    assert tool["name"] == "DuplicateVerdictPromptSchema"
+    assert request["tool_choice"] == {"type": "tool", "name": "DuplicateVerdictPromptSchema"}
+    assert list(tool["input_schema"]["properties"]) == ["reasoning", "score", "label", "owner"]
+    assert "0.6-0.7: established" in tool["input_schema"]["properties"]["score"]["description"]
     [message] = request["messages"]
     assert "def clip(text, n)" in str(message["content"]) and "def shorten(text, limit)" in str(message["content"])
+    assert "Answer one JSON object" not in str(message["content"])
     assert (answer.label, answer.score, answer.owner, answer.why) == (
         "duplicate",
         0.8,
@@ -115,7 +154,7 @@ def test_it_asks_for_the_schema_with_the_adopters_key_and_the_dry_prompt(api: Ap
         "both slice to a limit",
     )
     assert answer.judge == "langchain-operations"
-    assert answer.judge_version == "dry-operations-v3+schema-1:claude-haiku-5-5:low"
+    assert answer.judge_version == "dry-operations-v3+schema-2:claude-haiku-5-5:low"
 
 
 @pytest.mark.parametrize(
@@ -135,13 +174,15 @@ def test_the_label_follows_the_score_and_this_judges_thresholds(api: Api, score,
 
     assert (answer.label, answer.score) == (label, score)
     assert STRUCTURED.duplicate_at(answer, STRUCTURED.report_at) == (score >= 0.3)
+    # It warns from 0.3 and blocks only from 0.4, where its reports were almost all confirmed.
+    assert STRUCTURED.duplicate_at(answer, STRUCTURED.fail_at) == (score >= 0.4)
 
 
-def test_a_score_outside_the_range_is_clamped(api: Api) -> None:
-    api.replies = [verdict(1.4), verdict(-0.2)]
+def test_a_score_outside_the_range_is_clamped_and_no_owner_is_empty(api: Api) -> None:
+    api.replies = [verdict(1.4), verdict(-0.2, "separate", "none")]
     high, low = api.judge(workers=1).judge([CANDIDATE, CANDIDATE], STRUCTURED)
 
-    assert (high.score, low.score, low.label) == (1.0, 0.0, "separate")
+    assert (high.score, low.score, low.label, low.owner) == (1.0, 0.0, "separate", "")
 
 
 def test_answers_keep_their_order_and_usage_adds_up_across_workers(api: Api) -> None:
@@ -154,7 +195,13 @@ def test_answers_keep_their_order_and_usage_adds_up_across_workers(api: Api) -> 
 
 
 def test_an_answer_cut_off_at_the_output_limit_is_an_error_not_a_verdict(api: Api) -> None:
-    api.replies = [{"stop_reason": "max_tokens", "content": [{"type": "text", "text": '{"why": "both functions sli'}]}]
+    cut = {"reasoning": "both functions sli"}  # the limit hit inside the first field
+    api.replies = [
+        {
+            "stop_reason": "max_tokens",
+            "content": [{"type": "tool_use", "id": "toolu_1", "name": "DuplicateVerdictPromptSchema", "input": cut}],
+        }
+    ]
     judge = api.judge()
 
     with pytest.raises(ValueError, match="gave no complete verdict for src/widgets/caption.py::clip"):
@@ -170,14 +217,14 @@ def test_a_provider_failure_is_a_judge_error_the_scheduler_can_record(api: Api) 
 
 
 def test_the_version_names_what_changes_the_answers(api: Api) -> None:
-    assert api.judge().version == "dry-operations-v3+schema-1:claude-haiku-5-5:low"
+    assert api.judge().version == "dry-operations-v3+schema-2:claude-haiku-5-5:low"
     assert (
         api.judge(model="claude-sonnet-5-5", effort=None).version
-        == "dry-operations-v3+schema-1:claude-sonnet-5-5:default"
+        == "dry-operations-v3+schema-2:claude-sonnet-5-5:default"
     )
     assert api.judge(max_tokens=4096).version.endswith(":low:output=4096")
     api.judge(effort=None).judge([CANDIDATE], STRUCTURED)
-    assert "effort" not in api.requests[-1]["output_config"]
+    assert "output_config" not in api.requests[-1]
 
 
 def test_it_needs_a_key_the_extra_and_sane_options(api: Api, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -187,10 +234,8 @@ def test_it_needs_a_key_the_extra_and_sane_options(api: Api, monkeypatch: pytest
     monkeypatch.setenv("ANTHROPIC_API_KEY", "from-the-environment")
     LangChainJudge(base_url=api.url).judge([CANDIDATE], STRUCTURED)
     assert api.keys == ["from-the-environment"]
-    with pytest.raises(ValueError, match="Unknown prompt policy or nonpositive output limit"):
+    with pytest.raises(ValueError, match="needs a positive output limit"):
         api.judge(max_tokens=0)
-    with pytest.raises(ValueError, match="Unknown prompt policy or nonpositive output limit"):
-        api.judge(prompt_policy="nope")
     monkeypatch.setitem(sys.modules, "langchain_anthropic", None)
     with pytest.raises(ValueError, match=r"pip install 'dry-lint\[langchain\]'"):
         api.judge()
@@ -204,7 +249,7 @@ def test_balanced_structured_is_balanced_with_this_judge_and_its_own_thresholds(
         "langchain",
         {"model": "claude-haiku-5-5", "effort": "low", "max_tokens": 2048},
     )
-    assert (STRUCTURED.drop_below, STRUCTURED.report_at, STRUCTURED.fail_at) == (0.3, 0.3, 0.3)
+    assert (STRUCTURED.drop_below, STRUCTURED.report_at, STRUCTURED.fail_at) == (0.3, 0.3, 0.4)
     assert STRUCTURED.discovery == balanced.discovery and STRUCTURED.budget == balanced.budget
     assert STRUCTURED.escalate is None
     # Chosen by name only, and it says it has not been replayed on pull requests.
@@ -213,5 +258,7 @@ def test_balanced_structured_is_balanced_with_this_judge_and_its_own_thresholds(
     monkeypatch.setenv("ANTHROPIC_API_KEY", "adopter-key")
     judge = make_judge(STRUCTURED.judge)
     assert isinstance(judge, LangChainJudge)
-    # Priced by its model with an output ceiling, so the discovery scheduler can reserve for it.
+    # Priced by its model with an output ceiling, so the discovery scheduler can reserve for it, and the
+    # reservation covers what the model really reads: the question, both functions and the whole schema.
+    assert "0.6-0.7: established" in judge.input_text(CANDIDATE) and "def clip(text, n)" in judge.input_text(CANDIDATE)
     assert reservation_cost(judge, CANDIDATE, STRUCTURED) > 0

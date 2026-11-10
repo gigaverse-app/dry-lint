@@ -138,8 +138,9 @@ PRESETS["balanced-subscription"] = PRESETS["balanced"].model_copy(
         "numbers": "Same prompt, model and thresholds as balanced; subscription transport is not independently calibrated",
     }
 )
-# The same model, prompt, discovery and budget, answering in a schema. Its scores sit lower than the text
-# judge's, so it has its own thresholds: 0.3 here is the measured equivalent of balanced's 0.5.
+# The same model, question, discovery and budget, answering in a schema. Its rubric makes it stricter than the
+# text judge, so it has its own thresholds: it reports from 0.3, where it found as many labelled duplicates as
+# balanced does at 0.5, and fails only from 0.4, where Opus confirmed 51 of its 52 reports on real commits.
 PRESETS["balanced-structured"] = PRESETS["balanced"].model_copy(
     update={
         "name": "balanced-structured",
@@ -147,11 +148,12 @@ PRESETS["balanced-structured"] = PRESETS["balanced"].model_copy(
         "judge": PluginChoice(use="langchain", model=HAIKU, effort="low", max_tokens=2048),
         "drop_below": 0.3,
         "report_at": 0.3,
-        "fail_at": 0.3,
+        "fail_at": 0.4,
         "automatic": False,
         "measured": False,
-        "numbers": "756 labelled pairs of nine repositories: 86% recall at 8% false reports, against 87% at 8% for "
-        "balanced; 21% cheaper and 44% faster a pair; no unreadable answers. Not yet replayed on pull requests.",
+        "numbers": "756 labelled pairs: reports from 0.3 find 88% of duplicates at 9% false reports (balanced: 87% at "
+        "8%); 656 pairs from real commits: failing from 0.4, Opus confirmed 51 of 52, but balanced found 81 "
+        "confirmed duplicates against 74 here. Half the time a pair, about a fifth dearer; no unreadable answers.",
     }
 )
 # Preserve enforcement for existing TypeSafe-only auto users; adopters pin balanced and fail without Claude.
