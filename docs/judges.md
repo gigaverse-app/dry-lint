@@ -215,6 +215,12 @@ the object is ignored:
  "why": "both truncate at a word boundary with an ellipsis"}
 ```
 
+An answer that is not valid JSON still counts when its decision is complete: one that starts
+`{"label": …, "score": …` and was then cut off at the output limit, or quotes source inside `why` without escaping
+it. The label and score are read as written and the reason is kept as far as it goes. An answer whose label or
+score is missing or cut is an error, never a guess. On 3,608 measured Claude Haiku 5.5 judgments this recovered all
+13 answers (0.4%) that were paid for and previously discarded.
+
 The judge's name is `command:<program>` unless you set `name`. A verdict is only reused by the judge that gave
 it, so changing the program means judging again.
 

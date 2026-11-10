@@ -438,3 +438,39 @@ def test_the_claude_code_family_judge_fails_closed_on_a_cli_error_and_keeps_unkn
     response = unmetered.judge_family(request)
     assert response.usage is None and response.stop_reason == "unknown"
     assert not load("judges", PluginChoice(use="claude-code-family", cli="no-such-claude-cli")).available
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # Cut off at the output limit, inside the reason.
+        '{"label":"drifted","score":0.6,"owner":"shared","why":"Both build the cache key from data["tenant_id"], th',
+        # Complete, but the reason quotes source without escaping it.
+        r'{"label":"drifted","score":0.6,"owner":"shared","why":"Both read data["tenant_id"] and `a\`b`."}',
+    ],
+)
+def test_parse_verdict_reads_a_complete_decision_from_an_answer_that_is_not_valid_json(text: str) -> None:
+    # INVARIANT: a paid answer whose label and score were written whole is a verdict, not an unknown pair.
+    verdict = parse_verdict(text, "g", "v")
+    assert (verdict.label, verdict.score, verdict.owner) == ("drifted", 0.6, "shared")
+    assert verdict.why.startswith("Both ") and not verdict.why.endswith(('"', "}"))
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        '{"label":"dupl',  # the label itself was cut
+        '{"label":"duplicate","score":0',  # a cut score is not 0
+        '{"label":"duplicate","score":0.',
+        '{"label":"maybe","score":0.9,"owner":"","why":"x"',  # not one of the three labels
+        '{"score":0.9,"why":"no label',
+    ],
+)
+def test_parse_verdict_never_completes_a_decision_the_answer_did_not_finish(text: str) -> None:
+    with pytest.raises(ValueError, match="without a JSON verdict"):
+        parse_verdict(text, "g", "v")
+
+
+def test_parse_verdict_prefers_valid_json_over_the_lenient_reading() -> None:
+    text = 'Draft {"label":"separate","score":0.1,"why":"x "y" z"} final {"label": "duplicate", "score": 0.9}'
+    assert parse_verdict(text, "g", "v").label == "duplicate"

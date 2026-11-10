@@ -162,9 +162,32 @@ def first_object(text: str, accepts: Callable[[dict], bool]) -> dict | None:
     return None
 
 
+DECIDED = re.compile(
+    r"""\{\s*"label"\s*:\s*"(?P<label>duplicate|drifted|separate)"\s*,\s*"score"\s*:\s*(?P<score>\d+(?:\.\d+)?)(?=\s*[,}])"""
+    r"""(?:\s*,\s*"owner"\s*:\s*"(?P<owner>new|existing|shared|)")?(?:\s*,\s*"why"\s*:\s*"(?P<why>.*))?""",
+    re.DOTALL,
+)
+
+
+def decided_fields(text: str) -> dict | None:
+    """
+    The decision of an answer whose JSON does not parse, when the decision itself is complete.
+
+    The prompt asks for `label` and `score` first and the reason last. An answer cut off at the output limit, or
+    one that quotes source inside `why` without escaping it, is not valid JSON, yet its label and score were
+    written whole. Reading them is not guessing: nothing here is inferred, and an answer without both still fails.
+    The reason is kept as written, without its closing quote and brace.
+    """
+    found = DECIDED.search(text)
+    if found is None:
+        return None
+    why = re.sub(r"""["}\s]+$""", "", found["why"] or "")
+    return {"label": found["label"], "score": found["score"], "owner": found["owner"] or "", "why": why}
+
+
 def parse_verdict(text: str, judge: str, version: str) -> Verdict:
     """The first JSON object with a `label` in a text answer, as a verdict."""
-    answer = first_object(text, lambda found: "label" in found)
+    answer = first_object(text, lambda found: "label" in found) or decided_fields(text)
     if answer is None:
         raise ValueError(f"The judge {judge} answered without a JSON verdict: {text[:200]!r}")
     return Verdict(
