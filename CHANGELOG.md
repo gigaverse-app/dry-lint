@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.3](https://github.com/gigaverse-app/dry-lint/compare/v1.9.2...v1.9.3) (2026-11-10)
+
+
+### Bug Fixes
+
+* **judging:** judge pairs in parallel and treat spent caps as budget gaps ([#176](https://github.com/gigaverse-app/dry-lint/issues/176)) ([47edbb8](https://github.com/gigaverse-app/dry-lint/commit/47edbb83e54309f8586604cfa0b129123ee354cc))
+
 ## [1.9.2](https://github.com/gigaverse-app/dry-lint/compare/v1.9.1...v1.9.2) (2026-11-09)
 
 
