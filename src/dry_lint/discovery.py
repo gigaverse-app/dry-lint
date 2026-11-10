@@ -274,8 +274,7 @@ def reservation_cost(judge: Judge, candidate: Candidate, settings: Settings) -> 
 def group_reservation_cost(judge: Judge, candidates: list[Candidate], settings: Settings) -> float:
     """The admission bound of one request about one changed function and several look-alikes."""
     rates = price(judge, settings)
-    if rates is None:
-        raise ValueError("Discovery needs a priced judge with a maximum output token limit")
+    assert rates is not None, "the request's first pair was reserved at this judge's price"
     # The same admission rule as a pair's; only the rendered request and its output ceiling differ.
     # dry-lint: distinct-from src/dry_lint/discovery.py::reservation_cost
     text = judge.group_input_text(candidates)  # type: ignore[attr-defined]

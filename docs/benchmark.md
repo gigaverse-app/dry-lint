@@ -126,7 +126,7 @@ More confirmed and fewer rejected are better; lower cost is better.
 - **Spending the saving on more pairs buys false reports.** At 48 pairs it costs 7% less than `balanced`,
   confirms 11 more duplicates and adds 19 rejected reports. Opus confirms 62% of grouped exploration reports,
   against 73% of single ones, and no score threshold separates the rejected ones.
-- **No grouped request failed**, and no pair was left without a verdict, in 461 grouped requests.
+- **No grouped request failed**, and no pair was left without a verdict, in 436 grouped requests.
 
 So `group` stays an opt-in option of the `anthropic` judge, and no preset sets it.
 

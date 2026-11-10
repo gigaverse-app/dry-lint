@@ -184,9 +184,26 @@ def coverage_pair(number: int = 1) -> Candidate:
     )
 
 
+def exploration_pair(number: int = 1) -> Candidate:
+    """One of the changed function's exploration look-alikes."""
+    return coverage_pair(number).model_copy(update={"lane": "exploration"})
+
+
 def residual_pair(number: int = 1) -> Candidate:
     """A recovery-suffix exploration pair, scheduled after the complete protected pass."""
-    return coverage_pair(number).model_copy(update={"lane": "exploration", "residual": True})
+    return exploration_pair(number).model_copy(update={"residual": True})
+
+
+def scheduled_judge(tmp_path: Path, client: anthropic.DefaultHttpxClient, requests: list, settings=None, **options):
+    """Balanced settings, its Claude judge over `client`, an empty verdict store, and the requests the client saw."""
+    from dry_lint.judges.anthropic import AnthropicJudge
+    from dry_lint.presets import resolve
+    from dry_lint.settings import Settings
+    from dry_lint.store import DirectoryStore, VerdictStore
+
+    settings = settings or resolve(Settings(preset="balanced"))
+    judge = AnthropicJudge(api_key="test", http_client=client, **{**settings.judge.options(), **options})
+    return settings, judge, VerdictStore(DirectoryStore(tmp_path / "verdicts")), requests
 
 
 @pytest.fixture

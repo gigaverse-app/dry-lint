@@ -20,13 +20,8 @@ from dry_lint.judging import Judging
 from dry_lint.models import AppliedPolicy, Candidate, Run
 from dry_lint.presets import resolve
 from dry_lint.settings import Settings
-from dry_lint.store import DirectoryStore, VerdictStore
 
-from conftest import claude, coverage_pair, function
-
-
-def look_alike(number: int, lane: str = "exploration") -> Candidate:
-    return coverage_pair(number).model_copy(update={"lane": lane})
+from conftest import claude, coverage_pair, exploration_pair, function, scheduled_judge
 
 
 def other_function(number: int) -> Candidate:
@@ -42,7 +37,7 @@ def other_function(number: int) -> Candidate:
 def policed(number: int) -> Candidate:
     """A look-alike an adopter rule applies to: its question carries the rule, so it is asked alone."""
     rule = AppliedPolicy(name="rule", reason="adapters stay apart", definition_hash="h")
-    return look_alike(number).model_copy(update={"policies": [rule]})
+    return exploration_pair(number).model_copy(update={"policies": [rule]})
 
 
 def answer(*objects: dict) -> dict:
@@ -77,11 +72,8 @@ def by_question(requests: list) -> anthropic.DefaultHttpxClient:
 def grouped(tmp_path, replies=None, group=3, **discovery):
     settings = resolve(Settings(preset="balanced", discovery={"enabled": True, **discovery}))
     requests: list = []
-    options = {**settings.judge.options(), "group": group}
     client = by_question(requests) if replies is None else claude(replies, requests)
-    judge = AnthropicJudge(api_key="test", http_client=client, **options)
-    store = VerdictStore(DirectoryStore(tmp_path / "verdicts"))
-    return settings, judge, store, requests
+    return scheduled_judge(tmp_path, client, requests, settings, group=group)
 
 
 def check(setup, tmp_path, candidates, revision="tree1"):
@@ -100,7 +92,7 @@ def sent(request) -> str:
 def test_the_grouped_question_is_the_pair_question_with_another_opening() -> None:
     # INVARIANT: a grouped answer is held to the same rules as a pair's; only the opening sentence differs.
     assert OPERATIONS_RULES.removeprefix(PAIR_OPENING) == GROUP_RULES.removeprefix(GROUP_OPENING)
-    text = group_prompt([look_alike(1), look_alike(2)])
+    text = group_prompt([exploration_pair(1), exploration_pair(2)])
     assert text.startswith(GROUP_RULES)
     assert text.count("# NEW: new.py::new") == 1
     assert "# EXISTING 1: existing1.py::existing" in text and "# EXISTING 2: existing2.py::existing" in text
@@ -109,13 +101,15 @@ def test_the_grouped_question_is_the_pair_question_with_another_opening() -> Non
 
 def test_a_grouped_question_refuses_two_changed_functions_or_adopter_policies() -> None:
     with pytest.raises(ValueError, match="one changed function"):
-        group_prompt([look_alike(1), other_function(1)])
+        group_prompt([exploration_pair(1), other_function(1)])
     with pytest.raises(ValueError, match="no adopter policies"):
-        group_prompt([look_alike(1), policed(2)])
+        group_prompt([exploration_pair(1), policed(2)])
 
 
 def test_a_grouped_answer_is_read_by_the_number_each_object_names() -> None:
-    text = "Thinking aloud [not json]. " + json.dumps([verdict(2, "duplicate", 0.9), verdict(1)])
+    # Arrays that are not an answer come first and are passed over: prose, an empty one, numbers, unlabelled.
+    noise = 'Thinking aloud [not json]. [] [1, 2] [{"existing": 1}] '
+    text = noise + json.dumps([verdict(2, "duplicate", 0.9), verdict(1)])
     first, second, third = parse_group(text, 3, "judge", "v")
     assert (first.label, first.why) == ("separate", "pair 1")
     assert (second.label, second.score, second.judge_version) == ("duplicate", 0.9, "v")
@@ -124,6 +118,11 @@ def test_a_grouped_answer_is_read_by_the_number_each_object_names() -> None:
 
 def test_a_pair_answered_twice_or_out_of_range_gets_no_verdict() -> None:
     answers = parse_group(json.dumps([verdict(1), verdict(1, "duplicate", 0.9), verdict(7), verdict(2)]), 2, "j", "v")
+    assert answers[0] is None and answers[1].why == "pair 2"
+
+
+def test_an_object_with_an_unreadable_score_leaves_only_its_own_pair_unknown() -> None:
+    answers = parse_group(json.dumps([{**verdict(1), "score": "high"}, verdict(2)]), 2, "j", "v")
     assert answers[0] is None and answers[1].why == "pair 2"
 
 
@@ -150,7 +149,7 @@ def test_the_group_size_is_part_of_the_judges_version(monkeypatch) -> None:
 
 def test_look_alikes_of_one_changed_function_share_a_request_and_keep_their_own_verdicts(tmp_path) -> None:
     setup = grouped(tmp_path, answer(verdict(1), verdict(2, "duplicate", 0.9), verdict(3)))
-    pairs = [look_alike(1), look_alike(2), look_alike(3)]
+    pairs = [exploration_pair(1), exploration_pair(2), exploration_pair(3)]
     findings, state = check(setup, tmp_path, pairs)
     requests = setup[3]
 
@@ -170,7 +169,7 @@ def test_look_alikes_of_one_changed_function_share_a_request_and_keep_their_own_
 
 def test_baseline_pairs_and_other_changed_functions_are_never_grouped(tmp_path) -> None:
     setup = grouped(tmp_path)
-    pairs = [look_alike(1, "baseline"), look_alike(2, "baseline"), look_alike(3), look_alike(4), other_function(1)]
+    pairs = [coverage_pair(1), coverage_pair(2), exploration_pair(3), exploration_pair(4), other_function(1)]
     findings, _ = check(setup, tmp_path, pairs)
     texts = [sent(request) for request in setup[3]]
 
@@ -182,7 +181,7 @@ def test_baseline_pairs_and_other_changed_functions_are_never_grouped(tmp_path) 
 
 def test_a_pair_with_an_adopter_policy_is_asked_alone_with_its_policy(tmp_path) -> None:
     setup = grouped(tmp_path)
-    findings, _ = check(setup, tmp_path, [policed(1), look_alike(2), look_alike(3)])
+    findings, _ = check(setup, tmp_path, [policed(1), exploration_pair(2), exploration_pair(3)])
     texts = [sent(request) for request in setup[3]]
 
     alone = next(text for text in texts if "ADOPTER POLICIES" in text)
@@ -194,7 +193,7 @@ def test_a_pair_with_an_adopter_policy_is_asked_alone_with_its_policy(tmp_path) 
 
 def test_a_group_holds_no_more_pairs_than_the_judge_allows(tmp_path) -> None:
     setup = grouped(tmp_path, group=2)
-    findings, _ = check(setup, tmp_path, [look_alike(n) for n in range(1, 6)])
+    findings, _ = check(setup, tmp_path, [exploration_pair(n) for n in range(1, 6)])
 
     assert sorted(sent(request).count("# EXISTING ") for request in setup[3]) == [0, 2, 2]
     assert all(finding.verdict is not None for finding in findings.values())
@@ -203,7 +202,7 @@ def test_a_group_holds_no_more_pairs_than_the_judge_allows(tmp_path) -> None:
 def test_the_pair_cap_counts_every_pair_of_a_group(tmp_path) -> None:
     # INVARIANT: grouping never asks about more pairs than the caps allow; a group stops growing at the cap.
     setup = grouped(tmp_path, answer(verdict(1), verdict(2)), exploration_calls_per_revision=2)
-    findings, state = check(setup, tmp_path, [look_alike(n) for n in range(1, 5)])
+    findings, state = check(setup, tmp_path, [exploration_pair(n) for n in range(1, 5)])
 
     assert len(setup[3]) == 1 and len(state.attempts) == 2
     unasked = [finding for finding in findings.values() if finding.verdict is None]
@@ -212,7 +211,7 @@ def test_the_pair_cap_counts_every_pair_of_a_group(tmp_path) -> None:
 
 def test_a_pair_the_grouped_answer_omits_fails_alone(tmp_path) -> None:
     setup = grouped(tmp_path, answer(verdict(1), verdict(3)))
-    pairs = [look_alike(1), look_alike(2), look_alike(3)]
+    pairs = [exploration_pair(1), exploration_pair(2), exploration_pair(3)]
     findings, state = check(setup, tmp_path, pairs)
 
     judged = [finding for finding in findings.values() if finding.verdict is not None]
@@ -228,7 +227,7 @@ def test_a_pair_the_grouped_answer_omits_fails_alone(tmp_path) -> None:
 def test_a_request_that_fails_fails_every_pair_in_it_and_stores_nothing(tmp_path) -> None:
     unreadable = {"stop_reason": "end_turn", "content": [{"type": "text", "text": "I cannot decide."}]}
     setup = grouped(tmp_path, unreadable)
-    findings, state = check(setup, tmp_path, [look_alike(1), look_alike(2)])
+    findings, state = check(setup, tmp_path, [exploration_pair(1), exploration_pair(2)])
 
     assert all(f.verdict is None and f.deferred and not f.budget_deferred for f in findings.values())
     assert [a.status for a in state.attempts] == ["failed", "failed"]
@@ -243,7 +242,7 @@ def test_grouped_answers_are_reused_for_the_same_pairs_and_never_by_another_grou
     """
     reply = answer(verdict(1), verdict(2, "duplicate", 0.9))
     setup = grouped(tmp_path, reply, group=2)
-    pairs = [look_alike(1), look_alike(2)]
+    pairs = [exploration_pair(1), exploration_pair(2)]
     check(setup, tmp_path, pairs)
     assert len(setup[3]) == 1
 
@@ -262,8 +261,8 @@ def test_grouped_answers_are_reused_for_the_same_pairs_and_never_by_another_grou
 
 def test_a_stored_look_alike_is_not_asked_again_inside_a_group(tmp_path) -> None:
     setup = grouped(tmp_path, group=3)
-    check(setup, tmp_path, [look_alike(1), look_alike(2)])
-    findings, _ = check(setup, tmp_path, [look_alike(n) for n in range(1, 5)], revision="tree2")
+    check(setup, tmp_path, [exploration_pair(1), exploration_pair(2)])
+    findings, _ = check(setup, tmp_path, [exploration_pair(n) for n in range(1, 5)], revision="tree2")
 
     second = sent(setup[3][1])
     assert "existing1.py" not in second and "existing2.py" not in second
@@ -271,9 +270,23 @@ def test_a_stored_look_alike_is_not_asked_again_inside_a_group(tmp_path) -> None
     assert sum(finding.cached for finding in findings.values()) == 2
 
 
+def test_a_look_alike_this_revision_already_asked_about_does_not_join_or_block_a_group(tmp_path) -> None:
+    unreadable = {"stop_reason": "end_turn", "content": [{"type": "text", "text": "I cannot decide."}]}
+    setup = grouped(tmp_path, [unreadable, answer(verdict(1), verdict(2))])
+    check(setup, tmp_path, [exploration_pair(1), exploration_pair(2)])
+    # The same tree again, with two more look-alikes: the failed pairs are not paid for twice on one revision.
+    findings, state = check(setup, tmp_path, [exploration_pair(n) for n in range(1, 5)])
+
+    second = sent(setup[3][1])
+    assert "existing3.py" in second and "existing4.py" in second
+    assert "existing1.py" not in second and "existing2.py" not in second
+    assert sum(finding.verdict is not None for finding in findings.values()) == 2
+    assert sorted(a.status for a in state.attempts) == ["answered", "answered", "failed", "failed"]
+
+
 def test_a_judge_that_cannot_group_is_asked_one_pair_at_a_time(tmp_path) -> None:
     setup = grouped(tmp_path, group=1)
-    findings, _ = check(setup, tmp_path, [look_alike(1), look_alike(2), look_alike(3)])
+    findings, _ = check(setup, tmp_path, [exploration_pair(1), exploration_pair(2), exploration_pair(3)])
 
     assert len(setup[3]) == 3 and all("# EXISTING 1:" not in sent(request) for request in setup[3])
     assert all(finding.verdict is not None for finding in findings.values())

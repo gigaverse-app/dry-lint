@@ -20,25 +20,15 @@ from dry_lint.models import CandidatesFile, Run
 from dry_lint.presets import resolve
 from dry_lint.report import Report
 from dry_lint.settings import Escalation, Settings
-from dry_lint.store import DirectoryStore, VerdictStore
 
-from conftest import TWIN, claude, coverage_pair
+from conftest import TWIN, claude, coverage_pair, scheduled_judge
 
 
 @pytest.fixture
 def setup(tmp_path):
-    settings = resolve(Settings(preset="balanced"))
-    requests = []
-    judge = AnthropicJudge(
-        api_key="test",
-        http_client=claude(
-            {"stop_reason": "end_turn", "content": [{"type": "text", "text": '{"label":"duplicate","score":0.8}'}]},
-            requests,
-        ),
-        **settings.judge.options(),
-    )
-    store = VerdictStore(DirectoryStore(tmp_path / "verdicts"))
-    return settings, judge, store, requests
+    requests: list = []
+    reply = {"stop_reason": "end_turn", "content": [{"type": "text", "text": '{"label":"duplicate","score":0.8}'}]}
+    return scheduled_judge(tmp_path, claude(reply, requests), requests)
 
 
 def check(setup, tmp_path, candidates, revision="tree1"):
