@@ -138,6 +138,22 @@ PRESETS["balanced-subscription"] = PRESETS["balanced"].model_copy(
         "numbers": "Same prompt, model and thresholds as balanced; subscription transport is not independently calibrated",
     }
 )
+# The same model, prompt, discovery and budget, answering in a schema. Its scores sit lower than the text
+# judge's, so it has its own thresholds: 0.3 here is the measured equivalent of balanced's 0.5.
+PRESETS["balanced-structured"] = PRESETS["balanced"].model_copy(
+    update={
+        "name": "balanced-structured",
+        "summary": "Balanced function review with schema-constrained answers through LangChain",
+        "judge": PluginChoice(use="langchain", model=HAIKU, effort="low", max_tokens=2048),
+        "drop_below": 0.3,
+        "report_at": 0.3,
+        "fail_at": 0.3,
+        "automatic": False,
+        "measured": False,
+        "numbers": "756 labelled pairs of nine repositories: 86% recall at 8% false reports, against 87% at 8% for "
+        "balanced; 21% cheaper and 44% faster a pair; no unreadable answers. Not yet replayed on pull requests.",
+    }
+)
 # Preserve enforcement for existing TypeSafe-only auto users; adopters pin balanced and fail without Claude.
 PRESETS["jev"].automatic = True
 AUTO_ORDER = ("balanced", "balanced-subscription", "jev", "none")

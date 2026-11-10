@@ -97,6 +97,7 @@ BUILT_IN = {
         "gemini": "dry_lint.judges.gemini:GeminiJudge",
         "anthropic": "dry_lint.judges.anthropic:AnthropicJudge",
         "anthropic-family": "dry_lint.judges.anthropic_family:AnthropicFamilyJudge",
+        "langchain": "dry_lint.judges.langchain:LangChainJudge",
         "claude-code": "dry_lint.judges.subscription:ClaudeCodeJudge",
         "claude-code-family": "dry_lint.judges.subscription:ClaudeCodeFamilyJudge",
         "codex": "dry_lint.judges.subscription:CodexJudge",

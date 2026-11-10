@@ -38,6 +38,35 @@ shared-operation v2 replay caught 5/6 of those controls; v3 explicitly distingui
 from entering an existing owner. Broader misses above remain limitations; these results do not establish the
 precision or recall of the new default across repositories.
 
+## Structured answers
+
+Does a schema-constrained answer judge as well as free text? Measured in November 2026 on 756 labelled pairs
+(317 duplicates, 439 separate) from nine repositories, Python and TypeScript, each sent as the two whole functions
+the detector would propose. Labels are source reviews by models, not people. Every variant is Claude Haiku 5.5
+with the `dry-operations-v3` prompt and a 2,048-token limit; an answer that failed counts as not reported.
+
+| Variant | Failed answers | AUC | Recall | False reports | Cost a pair | Seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Text, `effort = "low"`, reported at 0.5 | 0 | 0.945 | 87.4% | 8.2% | $0.00062 | 4.1 |
+| Text, default effort, reported at 0.5 (`balanced`) | 2 | 0.898 | 89.0% | 8.7% | $0.00070 | 4.3 |
+| **Schema, reason first, JSON-schema mode, low; score at 0.3** | 0 | 0.946 | 85.5% | 8.2% | $0.00049 | 2.3 |
+| Same, score at 0.25 | 0 | 0.946 | 87.7% | 11.6% | $0.00049 | 2.3 |
+| Same, at the text judge's rule (label and 0.5) | 0 | 0.946 | 47.6% | 1.1% | $0.00049 | 2.3 |
+| Schema, reason first, forced tool call, low; score at 0.3 | 58 | 0.862 | 74.1% | 6.4% | $0.00057 | 2.3 |
+| Schema, decision first, forced tool call, low; label and 0.5 | 15 | | 47.7% | 1.2% | $0.00055 | 2.0 |
+
+Higher AUC and recall are better; lower failures, false reports, cost and seconds are better. AUC is the chance
+that a labelled duplicate scores above a labelled separate pair; it does not depend on a threshold.
+
+- **Same accuracy, once the threshold moves.** The bolded row and the first row differ by 0.001 AUC (95% interval
+  −0.016 to +0.017, bootstrap over pairs). The 0.3 threshold was also the one chosen when each repository was held
+  out in turn and the threshold picked on the others (85.5% recall, 8.2% false reports held out).
+- **At the text judge's threshold it is a different judge**: half the recall, an eighth of the false reports.
+- **Field order is not cosmetic**, and neither is the mode: see the last two rows.
+
+The `langchain` judge and the `balanced-structured` preset are the bolded row. Not measured: pull-request replays,
+other models, and the CLI judges, whose `--json-schema` and `--output-schema` flags could take the same schema.
+
 The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
 Its small diagnostic sample does not inherit the Python precision/recall claims below.
 

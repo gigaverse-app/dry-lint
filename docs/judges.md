@@ -147,11 +147,43 @@ establish model-consolidation accuracy.
 | `jev` | TypeSafe's System One decision model, prompt `reuse-v2` | about 0.3 s per pair, 8 pairs in parallel |
 | `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout; 4 at once | whatever your model costs |
 | `anthropic` | Claude through the official SDK (`dry-lint[anthropic]`) with the same DRY prompt and server-side refusal fallbacks; needs `ANTHROPIC_API_KEY`. Default model `claude-sonnet-5-5`; option `effort` | per pair: Sonnet 2 s and $0.0035, Opus 3 s and $0.008; 4 in parallel |
+| `langchain` | Claude through LangChain (`dry-lint[langchain]`), answering in a schema: [structured answers](#structured-answers). Needs `ANTHROPIC_API_KEY`. Default model `claude-haiku-5-5`, `effort = "low"` | per pair with Haiku: 2.3 s and $0.0005; 4 in parallel |
 | `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 12 s per pair, 4 in parallel |
 | `claude-code` | Claude through `claude -p` on a Claude subscription; default model `claude-sonnet-5-5` | the model's list price, out of the subscription; rate-limited |
 | `codex` | The ChatGPT subscription's model through `codex exec`; `model` optional | no per-call cost; about 14 s per pair |
 | `none` | Lists candidate pairs unjudged; never fails the build | free |
 | anything installed | A package registering `dry_lint.judges` | |
+
+## Structured answers
+
+The `langchain` judge asks the same question as the `anthropic` judge and gets the answer as a schema,
+`DuplicateVerdictPromptSchema`, through LangChain's `with_structured_output`. The provider constrains the output
+to the schema, so there is no JSON to find in prose and no answer that fails to parse.
+
+```toml
+preset = "balanced-structured"     # balanced's model, prompt, discovery and budget, with this judge
+```
+
+or, with your own thresholds, `judge = { use = "langchain", model = "claude-haiku-5-5" }`.
+
+Three things were measured before it shipped ([benchmark](benchmark.md#structured-answers)), and each is a rule
+in the code:
+
+- **The reason is the schema's first field.** With the decision first, recall on labelled duplicates fell from
+  87% to 48–58%: the model commits before it has compared the functions.
+- **The schema is the output format, not a tool.** LangChain's default (a forced tool call) lost 4–8% of answers
+  to missing fields. This judge uses `method="json_schema"`, which lost none.
+- **Its thresholds are its own.** Its scores sit lower than the text judge's, and its own label lags them, so the
+  label is derived from the score and the thresholds, as Jev's is. `balanced-structured` reports and fails at
+  0.3, which measured the same as `balanced` at 0.5.
+
+On the same 756 labelled pairs it matched the text judge (86% recall at 8% false reports, against 87% at 8%), at
+$0.00049 a pair instead of $0.00062 and 2.3 s instead of 4.1 s. It has not been replayed on pull requests yet,
+so `balanced` stays the default and `auto` never picks this preset. It is another judge with another version:
+switching re-judges stored pairs once, and a baseline needs `dry-lint baseline-migrate`.
+
+LangChain can trace every prompt, which contains your source, to LangSmith. It does so only when you set its
+tracing variables (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`); dry-lint never sets them.
 
 ## Jev
 
