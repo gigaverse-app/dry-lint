@@ -433,3 +433,63 @@ def test_a_single_worker_judge_keeps_one_call_in_flight(setup, tmp_path):
     check((settings, judge, store, []), tmp_path, [coverage_pair(n) for n in range(1, 4)])
 
     assert max(peaks) == 1
+
+
+def test_parallel_reservations_do_not_strand_the_exploration_credit(setup, tmp_path):
+    """
+    Reservations hold a conservative bound; real answers cost a fraction of it. A batch in flight must not make
+    the scheduler refuse the next pair for a budget it would have again the moment the batch settled.
+    """
+    settings, _, store, _ = setup
+    judge, peaks = concurrency_probe(settings, workers=4)
+    pool = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(1, 15)]
+    reserved = reservation_cost(judge, pool[0], settings)
+    credit = settings.discovery.exploration_per_revision
+    # The premise: fewer bounds than the call cap fit in one revision's credit, though every real answer does.
+    assert int(credit / reserved) < settings.discovery.exploration_calls_per_revision < len(pool)
+    assert settings.discovery.exploration_calls_per_revision * 0.00015 < credit
+
+    report, state = check((settings, judge, store, []), tmp_path, pool)
+
+    judged = [f for f in report.findings if f.verdict is not None]
+    # INVARIANT: with money left, the call cap decides how many pairs are asked, not the size of a batch.
+    assert len(judged) == len(state.attempts) == settings.discovery.exploration_calls_per_revision
+    assert all(a.status == "answered" for a in state.attempts)
+    assert max(peaks) > 1  # still asked several at a time
+    unasked = [f for f in report.findings if f.verdict is None]
+    assert unasked and all(f.deferred and f.budget_deferred for f in unasked)
+    assert state.usd == pytest.approx(len(judged) * 0.00015) and state.usd <= settings.budget.usd
+    assert 0 <= state.credit <= credit
+
+
+def test_a_budget_that_is_really_spent_still_refuses_after_the_batch_settles(setup, tmp_path):
+    settings, _, store, _ = setup
+    judge, _ = concurrency_probe(settings, workers=4)
+    # Room for two real answers and no more: settling the batch frees nothing the third pair could use.
+    settings.budget.usd = 2 * 0.00015 + reservation_cost(judge, coverage_pair(1), settings)
+    pool = [coverage_pair(n) for n in range(1, 7)]
+
+    report, state = check((settings, judge, store, []), tmp_path, pool)
+
+    asked = [f for f in report.findings if f.verdict is not None]
+    assert 2 <= len(asked) < len(pool)
+    assert state.usd <= settings.budget.usd
+    unasked = [f for f in report.findings if f.verdict is None]
+    assert all(f.deferred and f.budget_deferred for f in unasked)
+    assert all(a.status == "answered" for a in state.attempts)
+
+
+def test_settling_early_keeps_every_baseline_answer_ahead_of_exploration(setup, tmp_path):
+    settings, _, store, requests = setup
+    judge, _ = concurrency_probe(settings, workers=4)
+    baseline = [coverage_pair(n) for n in range(1, 4)]
+    exploration = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(10, 24)]
+
+    report, state = check((settings, judge, store, requests), tmp_path, [*exploration, *baseline])
+
+    lanes = [a.lane for a in state.attempts]
+    assert lanes == sorted(lanes)  # "baseline" sorts before "exploration": no exploration reserved earlier
+    assert (
+        lanes.count("baseline") == 3 and lanes.count("exploration") == settings.discovery.exploration_calls_per_revision
+    )
+    assert all(f.verdict is not None for f in report.findings if f.candidate.lane == "baseline")

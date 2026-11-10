@@ -349,6 +349,13 @@ class Judging:
             cost = reservation_cost(judge, candidate, self.settings)
             if not (baseline_pending and candidate.lane == "exploration"):
                 reservation = campaign.reserve(candidate, judge, self.settings, cost, residual=residual)
+                if reservation == "budget" and batch:
+                    # A batch in flight holds its conservative bounds, several times what the answers cost.
+                    # Settle it and ask once more, so the money that is really left decides, not the batch size.
+                    # The batch is this candidate's own lane, so settling it cannot raise the baseline barrier
+                    # against an exploration pair.
+                    flush()
+                    reservation = campaign.reserve(candidate, judge, self.settings, cost, residual=residual)
             if not isinstance(reservation, int):
                 # A spent dollar budget or call cap leaves the pair for a later run: a budget gap, not a failure.
                 gap = reservation in ("budget", "limit")
