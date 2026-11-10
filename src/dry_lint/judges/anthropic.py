@@ -12,6 +12,7 @@ For a Claude subscription instead of an API key, use the `claude-code` judge (ju
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from typing import Any
 
 from dry_lint.judges.command import PROMPT_POLICIES, parse_verdict, prompt
@@ -64,6 +65,8 @@ class AnthropicJudge:
             api_key=key, timeout=timeout, http_client=http_client, max_retries=max_retries
         )
         self.tokens = {"input": 0, "output": 0}
+        # Calls run on several threads at once (here and in the campaign scheduler); counts must not race.
+        self._usage_lock = Lock()
 
     def _ask(self, candidate: Candidate, retry: bool = True) -> Verdict:
         import anthropic
@@ -80,12 +83,13 @@ class AnthropicJudge:
             )
         except anthropic.APIError as error:
             raise ValueError(f"Anthropic request failed: {type(error).__name__}") from error
-        self.tokens["input"] += response.usage.input_tokens
-        self.tokens["output"] += response.usage.output_tokens
-        for name in ("cache_creation_input_tokens", "cache_read_input_tokens"):
-            count = getattr(response.usage, name, 0) or 0
-            if count:
-                self.tokens[name] = self.tokens.get(name, 0) + count
+        with self._usage_lock:
+            self.tokens["input"] += response.usage.input_tokens
+            self.tokens["output"] += response.usage.output_tokens
+            for name in ("cache_creation_input_tokens", "cache_read_input_tokens"):
+                count = getattr(response.usage, name, 0) or 0
+                if count:
+                    self.tokens[name] = self.tokens.get(name, 0) + count
         if response.stop_reason == "refusal":
             category = getattr(response.stop_details, "category", None)
             raise ValueError(f"{self.model} declined to judge {candidate.new.qualname} ({category})")

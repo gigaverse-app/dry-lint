@@ -144,7 +144,7 @@ def test_residual_keeps_all_absolute_call_limits(residual_setup, tmp_path, limit
         campaign.reserve(
             coverage_pair(2).model_copy(update={"lane": "exploration"}), judge, settings, 0.001, residual=True
         )
-        is None
+        == "limit"
     )
     assert len(campaign.snapshot().attempts) == 1
 

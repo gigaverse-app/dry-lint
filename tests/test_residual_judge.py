@@ -299,7 +299,7 @@ def test_selected_subscription_judge_shares_call_limit(configured, tmp_path):
     campaign.settle(first, None, True)
     other = load("judges", recovery_choice(api_key="test", http_client=claude(ANSWER, [])))
     other.subscription = True
-    assert campaign.reserve(residual_pair(3), other, settings, 0.001, residual=True) is None
+    assert campaign.reserve(residual_pair(3), other, settings, 0.001, residual=True) == "limit"
     assert campaign.snapshot().usd == 0.001 and len(campaign.snapshot().attempts) == 1
 
 

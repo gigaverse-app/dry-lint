@@ -5,6 +5,7 @@ Every new answer goes to the store. Filtered pairs never reach a judge.
 """
 
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import httpx
@@ -282,8 +283,10 @@ class Judging:
             if not pending and not suffix or not campaign.recovery_ready(self.settings, sources):
                 self.ledger.spend[identity(judge)].skipped += len(suffix) + len(already_attempted)
                 state = campaign.snapshot()
-                budget_only = state.usd >= self.settings.budget.usd and all(
-                    a.status == "answered" for a in state.attempts if a.revision == campaign.revision
+                current = [a for a in state.attempts if a.revision == campaign.revision]
+                budget_only = all(a.status == "answered" for a in current) and (
+                    state.usd >= self.settings.budget.usd
+                    or not campaign.call_room(state, current, self.settings, exploration=True)
                 )
                 return (
                     found
@@ -302,7 +305,12 @@ class Judging:
     def discovery_phase(
         self, candidates: list[Candidate], source: Run | None, *, residual: bool = False
     ) -> list[Finding]:
-        """One ordered pass; both phases use the same reservations, settlements and exact verdict cache."""
+        """One ordered pass; both phases use the same reservations, settlements and exact verdict cache.
+
+        Pairs are asked up to the judge's own ``workers`` at a time. Each batch holds one lane, so the baseline
+        barrier still sees every baseline answer before exploration reserves. A residual pass stays one at a
+        time: its admission requires every earlier attempt of the revision to be answered.
+        """
         assert self.campaign is not None and self.judge is not None
         judge = self.residual_judge if residual and self.residual_judge is not None else self.judge
         campaign = self.campaign
@@ -310,10 +318,27 @@ class Judging:
         spend = self.ledger.spend.setdefault(
             identity(judge), Spend(judge=identity(judge), subscription=getattr(judge, "subscription", False))
         )
-        findings = []
+        workers = 1 if residual else max(1, int(getattr(judge, "workers", 1) or 1))
+        findings: list[Finding | None] = []
+        batch: list[tuple[int, Candidate, int, float]] = []
         baseline_pending = False
         baseline_budget_only = True
+
+        def flush() -> None:
+            nonlocal baseline_pending, baseline_budget_only
+            for (slot, candidate, _, _), verdict in zip(
+                batch, self.judge_reserved(judge, campaign, spend, batch), strict=True
+            ):
+                if verdict is not None:
+                    store.remember(candidate, verdict, source)
+                elif candidate.lane == "baseline":
+                    baseline_pending, baseline_budget_only = True, False
+                findings[slot] = Finding(candidate=candidate, verdict=verdict, deferred=verdict is None)
+            batch.clear()
+
         for candidate in campaign.order(candidates):
+            if batch and (candidate.lane != batch[0][1].lane or len(batch) >= workers):
+                flush()
             cached = store.lookup(
                 candidate, judge.name, self.settings.reopen_margin, judge.version, exact_source=True
             ).verdict
@@ -321,46 +346,74 @@ class Judging:
                 findings.append(Finding(candidate=candidate, verdict=cached, cached=True))
                 continue
             reservation = "budget" if baseline_pending and baseline_budget_only else None
+            cost = reservation_cost(judge, candidate, self.settings)
             if not (baseline_pending and candidate.lane == "exploration"):
-                reservation = campaign.reserve(
-                    candidate,
-                    judge,
-                    self.settings,
-                    reservation_cost(judge, candidate, self.settings),
-                    residual=residual,
-                )
+                reservation = campaign.reserve(candidate, judge, self.settings, cost, residual=residual)
             if not isinstance(reservation, int):
+                # A spent dollar budget or call cap leaves the pair for a later run: a budget gap, not a failure.
+                gap = reservation in ("budget", "limit")
                 if candidate.lane == "baseline":
                     baseline_pending = True
-                    baseline_budget_only &= reservation == "budget"
+                    baseline_budget_only &= gap
                 spend.skipped += 1
-                findings.append(Finding(candidate=candidate, deferred=True, budget_deferred=reservation == "budget"))
+                findings.append(Finding(candidate=candidate, deferred=True, budget_deferred=gap))
                 continue
-            # Reservation is committed before this call. Crashes cannot give its allowance back.
-            tokens = getattr(judge, "tokens", None)
-            before = dict(tokens) if tokens is not None else None
-            verdict, success = None, False
+            # Reservation is committed before any call. Crashes cannot give its allowance back.
+            findings.append(None)
+            batch.append((len(findings) - 1, candidate, reservation, cost))
+        flush()
+        assert all(finding is not None for finding in findings)
+        return [finding for finding in findings if finding is not None]
+
+    def judge_reserved(
+        self, judge: Judge, campaign: CampaignStore, spend: Spend, batch: list[tuple[int, Candidate, int, float]]
+    ) -> list[Verdict | None]:
+        """Ask every reserved pair at once, one call each so one failure cannot void the others; settle each once.
+
+        A judge counts tokens for all its calls together, so the batch's measured cost is shared in proportion to
+        what each pair reserved. Every settlement is made here, after all calls returned or failed.
+        """
+        if not batch:
+            return []
+        tokens = getattr(judge, "tokens", None)
+        before = dict(tokens) if tokens is not None else None
+
+        def ask(candidate: Candidate) -> Verdict | str:
             try:
                 answers = judge.judge([candidate], self.settings)
                 if len(answers) != 1:
                     raise ValueError("Judge returned no single verdict")
-                verdict, success = answers[0], True
+                return answers[0]
             except JUDGE_ERRORS as error:
-                spend.failed += 1
-                spend.error = " ".join(str(error).split())[:200] or type(error).__name__
-            finally:
-                rates = price(judge, self.settings)
-                actual = None
-                if before is not None and rates is not None and tokens != before:
-                    actual = usage_cost({key: value - before.get(key, 0) for key, value in tokens.items()}, rates)
-                charged = campaign.settle(reservation, actual, success)
+                return " ".join(str(error).split())[:200] or type(error).__name__
+
+        # An interrupt that is not a judge error still settles every reservation, as failed.
+        outcomes: list[Verdict | str | None] = [None] * len(batch)
+        try:
+            if len(batch) == 1:
+                outcomes = [ask(batch[0][1])]
+            else:
+                with ThreadPoolExecutor(len(batch)) as pool:
+                    outcomes = list(pool.map(ask, [candidate for _, candidate, _, _ in batch]))
+        finally:
+            rates = price(judge, self.settings)
+            actual = None
+            if before is not None and rates is not None and tokens != before:
+                actual = usage_cost({key: value - before.get(key, 0) for key, value in tokens.items()}, rates)
+            reserved = sum(cost for *_, cost in batch)
+            left = actual
+            for position, (_, _, reservation, cost) in enumerate(batch):
+                share = None
+                if actual is not None and left is not None:
+                    last = position == len(batch) - 1
+                    share = left if last else actual * (cost / reserved if reserved else 1 / len(batch))
+                    left -= share
+                outcome = outcomes[position]
+                success = isinstance(outcome, Verdict)
+                charged = campaign.settle(reservation, share, success)
                 spend.calls += 1
                 spend.usd += charged
-            if verdict is not None:
-                store.remember(candidate, verdict, source)
-            else:
-                if candidate.lane == "baseline":
-                    baseline_pending = True
-                    baseline_budget_only = False
-            findings.append(Finding(candidate=candidate, verdict=verdict, deferred=verdict is None))
-        return findings
+                if not success:
+                    spend.failed += 1
+                    spend.error = outcome if isinstance(outcome, str) else "Judging was interrupted"
+        return [outcome if isinstance(outcome, Verdict) else None for outcome in outcomes]

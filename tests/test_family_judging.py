@@ -279,7 +279,7 @@ def test_exact_cache_misses_every_changed_question(tmp_path, field):
     judging.judge.close()
 
 
-@pytest.mark.parametrize("result,status", [("budget", "budget"), (None, "deferred")])
+@pytest.mark.parametrize("result,status", [("budget", "budget"), ("limit", "budget"), (None, "deferred")])
 def test_admission_denial_never_calls_provider(tmp_path, result, status):
     judging, request, requests, admission = runner(tmp_path, admission=Admission(result))
     assert judging.finding(request).status == status
