@@ -38,11 +38,11 @@ check. Initializing or advancing a baseline needs every pair judged, budget-defe
 | Limit | Balanced default |
 | --- | ---: |
 | Total campaign dollars | $0.04 |
-| Dollars reserved from exploration for baseline | $0.025 |
-| Exploration credit earned per distinct tree | $0.006 |
-| Exploration credit bank / lifetime maximum | $0.015 |
-| Calls per tree / campaign | 20 / 200 |
-| Exploration calls per tree / campaign | 10 / 75 |
+| Dollars reserved from exploration for baseline | $0.015 |
+| Exploration credit earned per distinct tree | $0.015 |
+| Exploration credit bank / lifetime maximum | $0.025 |
+| Calls per tree / campaign | 50 / 200 |
+| Exploration calls per tree / campaign | 30 / 125 |
 
 A local campaign defaults to the Git branch, shared by its worktrees through the common Git directory. Use
 `--session TASK` to name a task explicitly, including detached checkouts. Reusing a branch reuses its allowance;

@@ -157,10 +157,13 @@ class Discovery(BaseModel):
 
     depth: int = Field(default=20, ge=3, le=100)
     min_similarity: float = Field(default=0.35, ge=0, le=1)
-    baseline_fraction: float = Field(default=0.625, ge=0, le=1)
-    exploration_per_revision: float = Field(default=0.006, ge=0)
-    calls_per_revision: int = Field(default=20, ge=1)
-    exploration_calls_per_revision: int = Field(default=10, ge=0)
+    # Measured on 78 real commits (docs/production-discovery-results.md#exploration-depth): 30 exploration pairs a
+    # push reported 135 duplicates where 10 reported 90, for $0.0065 a commit against $0.0035. A push may spend
+    # its whole $0.015 credit; the campaign keeps $0.015 for baseline and lets exploration have $0.025 in all.
+    baseline_fraction: float = Field(default=0.375, ge=0, le=1)
+    exploration_per_revision: float = Field(default=0.015, ge=0)
+    calls_per_revision: int = Field(default=50, ge=1)
+    exploration_calls_per_revision: int = Field(default=30, ge=0)
     calls: int = Field(default=200, ge=1)
 
 
