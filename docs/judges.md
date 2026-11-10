@@ -163,7 +163,9 @@ The `langchain` judge asks the same question as the `anthropic` judge and gets t
 preset = "balanced-structured"     # balanced's model, question, discovery and budget, with this judge
 ```
 
-or, with your own thresholds, `judge = { use = "langchain", model = "claude-haiku-5-5" }`.
+or, with your own thresholds, `judge = { use = "langchain", model = "claude-haiku-5-5" }`. In the GitHub Action,
+add `langchain-anthropic` to the `plugins` input. One real call each confirmed it also answers with
+`claude-sonnet-5-5` and `claude-opus-5-5`; its accuracy was measured with Haiku only.
 
 The schema is prompt text: the model reads its docstring, field names, descriptions and enum values, in field
 order. It is in `judges/langchain.py`, and what was measured ([benchmark](benchmark.md#structured-answers)) is
@@ -181,14 +183,15 @@ written into it:
 The rubric makes it a stricter judge than the text one, so `balanced-structured` has its own thresholds: it
 reports from 0.3 and fails only from 0.4.
 
-| | `balanced` (text) | `balanced-structured` |
+| | `balanced`'s text judge, at `effort = "low"` | `balanced-structured` |
 | --- | --- | --- |
 | Finds labelled duplicates (756 pairs) | 87% at 8% false reports | 88% at 9%, reporting from 0.3 |
 | On 656 pairs from real commits, Opus as referee | 90 reports, 81 confirmed | from 0.3: 90 reports, 74 confirmed; from 0.4: 52 reports, 51 confirmed |
 | Answers that could not be read | 0.4% | none |
 | A pair, on real commits | $0.0004, 4 s | $0.0005, 2 s |
 
-So it is the faster judge and the one to block on. It is not cheaper: its answers are shorter, but the schema adds
+Both columns ran at low effort; `balanced` itself runs at the model's default effort, which was measured only on
+the labelled pairs ([benchmark](benchmark.md#structured-answers)). So it is the faster judge and the one to block on. It is not cheaper: its answers are shorter, but the schema adds
 about a thousand tokens to every question. `balanced` still finds more confirmed duplicates and stays the default; `auto` never picks this preset. It is another judge with another version: switching
 re-judges stored pairs once, and a baseline needs `dry-lint baseline-migrate`.
 

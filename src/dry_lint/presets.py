@@ -151,9 +151,9 @@ PRESETS["balanced-structured"] = PRESETS["balanced"].model_copy(
         "fail_at": 0.4,
         "automatic": False,
         "measured": False,
-        "numbers": "756 labelled pairs: reports from 0.3 find 88% of duplicates at 9% false reports (balanced: 87% at "
-        "8%); 656 pairs from real commits: failing from 0.4, Opus confirmed 51 of 52, but balanced found 81 "
-        "confirmed duplicates against 74 here. Half the time a pair, about a fifth dearer; no unreadable answers.",
+        "numbers": "756 labelled pairs: reports from 0.3 find 88% of duplicates at 9% false reports (balanced's judge at "
+        "low effort: 87% at 8%); 656 pairs from real commits: failing from 0.4, Opus confirmed 51 of 52, but that text "
+        "judge found 81 confirmed duplicates against 74 here. Half the time a pair, about a fifth dearer; no unreadable answers.",
     }
 )
 # Preserve enforcement for existing TypeSafe-only auto users; adopters pin balanced and fail without Claude.

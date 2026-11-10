@@ -50,6 +50,7 @@ answer that failed counts as not reported.
 | Variant | Failed answers | AUC | Recall | False reports | Cost a pair | Seconds |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Text answer, reported at 0.5 | 0 | 0.945 | 87.4% | 8.2% | $0.00062 | 4.1 |
+| Text answer at default effort, as `balanced` runs it | 2 | 0.898 | 89.0% | 8.7% | $0.00070 | 4.3 |
 | First schema (literals, one-line descriptions), decision first | 15 | | 47.7% | 1.2% | $0.00055 | 2.0 |
 | First schema, reason first, forced tool call, score at 0.3 | 58 | 0.862 | 74.1% | 6.4% | $0.00057 | 2.3 |
 | First schema, reason first, JSON-schema mode, score at 0.3 | 0 | 0.946 | 85.5% | 8.2% | $0.00049 | 2.3 |
@@ -68,12 +69,12 @@ that a labelled duplicate scores above a labelled separate pair; it does not dep
   almost no false reports. It matches the text judge's recall only when reporting from 0.3.
 
 **Pairs from real commits.** The 656 pairs that 51 recent commits of four private repositories sent to the judge
-under `balanced`. Claude Opus 5.5, with the text prompt, judged every pair either judge would report; it is a
+under `balanced`'s discovery, with its text judge at low effort. Claude Opus 5.5, with the text prompt, judged every pair either judge would report; it is a
 stricter judge, not ground truth, and it shares the text judge's prompt.
 
 | Rule | Reports | Opus confirms | Opus rejects |
 | --- | ---: | ---: | ---: |
-| Text judge, reported at 0.5 (`balanced`) | 90 | 81 | 9 |
+| Text judge at low effort, reported at 0.5 | 90 | 81 | 9 |
 | Shipped schema, score at 0.3 | 90 | 74 | 16 |
 | Shipped schema, score at 0.4 | 52 | 51 | 1 |
 | Shipped schema, score at 0.6 | 34 | 33 | 1 |

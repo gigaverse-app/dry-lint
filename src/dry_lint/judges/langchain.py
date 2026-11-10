@@ -157,7 +157,10 @@ class LangChainJudge:
             max_retries=max_retries,
             **options,
         )
-        self.chain = llm.with_structured_output(DuplicateVerdictPromptSchema, include_raw=True)
+        # The mode is named, not left to LangChain's default: every number in the benchmark is a tool call's.
+        self.chain = llm.with_structured_output(
+            DuplicateVerdictPromptSchema, method="function_calling", include_raw=True
+        )
         self.tokens = {"input": 0, "output": 0}
         self._usage_lock = Lock()
 
