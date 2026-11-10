@@ -38,7 +38,9 @@ class FamilyAdmission(Protocol):
     USD/call limits. This protocol intentionally cannot initialize, advance, or replenish an allowance.
     """
 
-    def reserve(self, request: FamilyRequest, judge: FamilyJudge, usd: float) -> int | Literal["budget"] | None: ...
+    def reserve(
+        self, request: FamilyRequest, judge: FamilyJudge, usd: float
+    ) -> int | Literal["budget", "limit"] | None: ...
 
     def settle(self, reservation: int, usd: float | None, success: bool) -> float: ...
 
@@ -183,8 +185,9 @@ class FamilyJudging:
             return FamilyFinding(request=request, status="cached", record=cached)
         reserved = family_reservation_cost(request, self.judge, self.rates)
         reservation = self.admission.reserve(request, self.judge, reserved)
-        if reservation is None or reservation == "budget":
-            return FamilyFinding(request=request, status="budget" if reservation == "budget" else "deferred")
+        if not isinstance(reservation, int):
+            # A spent cap is a budget gap like a spent dollar budget; None is unfinished work.
+            return FamilyFinding(request=request, status="deferred" if reservation is None else "budget")
         response = None
         actual = None
         try:

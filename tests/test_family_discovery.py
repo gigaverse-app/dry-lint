@@ -299,6 +299,22 @@ def test_scan_judges_families_after_the_pair_pass_within_the_same_budget(setup, 
         assert [finding.status for finding in discovery.findings] == ["budget"] and not judge.calls
 
 
+def test_a_family_the_budget_left_unasked_passes_a_check_but_not_a_baseline(setup, tmp_path, monkeypatch):
+    """
+    INVARIANT: a family the budget could not afford is a budget gap. A check warns and passes; initializing or
+    advancing a baseline, which needs every question answered, still refuses it.
+    """
+    settings, judging, discovery, judge, _, run = configured(setup, tmp_path, monkeypatch)
+    judging.campaign = None
+    settings.budget.usd = 0.0
+    judging.findings([], run)
+    report = Report(run=run, judge=judging.name, judging=judging.summary(), families=discovery.findings)
+    assert [finding.status for finding in report.families] == ["budget"] and not judge.calls
+    require_complete(report, check=True)
+    with pytest.raises(ValueError, match="Operation-family judging is incomplete"):
+        require_complete(report)
+
+
 def test_scan_runs_no_family_when_the_budget_deferred_a_pair(setup, tmp_path, monkeypatch):
     _, judging, discovery, judge, _, run = configured(setup, tmp_path, monkeypatch)
     judging.campaign = None

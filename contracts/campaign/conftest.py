@@ -132,7 +132,7 @@ class LedgerDriver(CampaignDriver):
         self.outcome = {"tag": "NoOutcome"}
 
     def admitted(self, result: int | str | None) -> Outcome:
-        if result is None:
+        if result is None or result == "limit":
             return {"tag": "Refused"}
         if result == "budget":
             return {"tag": "OverBudget"}

@@ -19,6 +19,18 @@ unexamined pairs. Calls are spread across changed functions, accounting for prev
 reopens even if its normalized structure hash did not change. An unaffordable baseline pair leaves exploration
 deferred; it does not donate its protected capacity.
 
+Pairs are asked up to the judge's own `workers` at a time (`anthropic`, `http` and `command`: 4; `jev`: 8;
+subscription judges: 2). Every reservation in a batch commits before its call, and a batch holds a single lane,
+so exploration still waits for every baseline answer. Each pair is its own call: one failure leaves the others'
+verdicts. A residual pass asks one pair at a time, because its admission requires earlier attempts to be
+answered. Raise `workers` in the judge's options for more concurrency, or set it to 1 to ask serially.
+
+A pair that the dollar budget or a call cap (per tree, per campaign, exploration, subscription or
+`max_judgements`) leaves unasked is `budget_deferred`. This is a budget gap, not a failure: `--require-complete`
+on a check warns about it and passes, and a later push asks again while the campaign has room. A failed or
+interrupted call, or a pair whose evidence this tree already tried, is still incomplete and fails a strict
+check. Initializing or advancing a baseline needs every pair judged, budget-deferred ones included.
+
 ## Cumulative allowance
 
 | Limit | Balanced default |

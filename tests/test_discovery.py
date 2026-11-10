@@ -1,10 +1,15 @@
 """Paid discovery journeys use production admission and the real SDK with an HTTP fake."""
 
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
+import anthropic
+import httpx2
 import pytest
 
+from dry_lint.baseline import require_complete
 from dry_lint.cli import main
 from dry_lint.detector import Detector, changed_lines, touched
 from dry_lint.discovery import CampaignStore, reservation_cost
@@ -42,7 +47,8 @@ def check(setup, tmp_path, candidates, revision="tree1"):
     judging = Judging(settings, judge, None, store)
     judging.campaign = CampaignStore(tmp_path / "campaign.sqlite3", run)
     findings = judging.findings(candidates, run)
-    return Report.build(findings, settings, run=run, judging=judging.summary()), judging.campaign.snapshot()
+    report = Report.build(findings, settings, run=run, judge=judging.name, judging=judging.summary())
+    return report, judging.campaign.snapshot()
 
 
 def test_repeated_evidence_costs_nothing_but_changed_evidence_reopens(setup, tmp_path):
@@ -218,7 +224,7 @@ def test_call_limits_apply_even_when_dollars_remain(setup, tmp_path, limit):
     first = CampaignStore(path, Run(session="feature", head="tree1"))
     assert first.reserve(coverage_pair(1), judge, settings, 0.001) == 0
     second = CampaignStore(path, Run(session="feature", head="tree2" if limit == "campaign" else "tree1"))
-    assert second.reserve(coverage_pair(2), judge, settings, 0.001) is None
+    assert second.reserve(coverage_pair(2), judge, settings, 0.001) == "limit"
     assert second.snapshot().usd == 0.001
 
 
@@ -347,3 +353,83 @@ def test_spending_cap_leaves_baseline_and_waiting_exploration_advisory(setup, tm
     report, _ = check(setup, tmp_path, pairs)
     assert len(report.findings) == 2 and not calls
     assert all(f.budget_deferred and not f.blocking for f in report.findings)
+
+
+def test_pairs_beyond_the_judging_budget_are_deferred_not_failed(setup, tmp_path):
+    """A pull request with more look-alikes than its judging budget covers passes the check on what was judged."""
+    settings, _, _, requests = setup
+    settings.discovery.calls_per_revision = 2
+    report, state = check(setup, tmp_path, [coverage_pair(n) for n in range(1, 6)])
+
+    judged = [f for f in report.findings if f.verdict is not None]
+    unjudged = [f for f in report.findings if f.verdict is None]
+    assert len(judged) == len(requests) == 2 and len(unjudged) == 3
+    assert all(f.budget_deferred and not f.blocking for f in unjudged)
+    assert report.judging.spend[0].skipped == 3 and not report.judging.spend[0].failed
+    require_complete(report, check=True)
+    # Changing accepted debt still needs every pair assessed.
+    with pytest.raises(ValueError, match="Judging is incomplete"):
+        require_complete(report)
+
+
+def test_a_failed_judge_is_still_incomplete_while_budget_gaps_are_not(setup, tmp_path):
+    settings, _, store, _ = setup
+    failing = AnthropicJudge(
+        api_key="test", http_client=claude({}, [], status=500), **{**settings.judge.options(), "max_retries": 0}
+    )
+    report, _ = check((settings, failing, store, []), tmp_path, [coverage_pair(1)])
+
+    assert report.findings[0].deferred and not report.findings[0].budget_deferred
+    with pytest.raises(ValueError, match="Judging is incomplete"):
+        require_complete(report, check=True)
+
+
+def concurrency_probe(settings: Settings, workers: int) -> tuple[AnthropicJudge, list[int]]:
+    """A judge whose transport holds each call briefly and records how many were in flight at once."""
+    lock, in_flight, peaks = threading.Lock(), [0], []
+
+    def answer(request: httpx2.Request) -> httpx2.Response:
+        with lock:
+            in_flight[0] += 1
+            peaks.append(in_flight[0])
+        time.sleep(0.05)
+        with lock:
+            in_flight[0] -= 1
+        return httpx2.Response(
+            200,
+            json={
+                "id": "msg_1",
+                "type": "message",
+                "role": "assistant",
+                "model": "claude-sonnet-5-5",
+                "stop_sequence": None,
+                "usage": {"input_tokens": 900, "output_tokens": 120},
+                "stop_reason": "end_turn",
+                "content": [{"type": "text", "text": '{"label":"duplicate","score":0.8}'}],
+            },
+        )
+
+    options = {**settings.judge.options(), "workers": workers}
+    client = anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(answer))
+    return AnthropicJudge(api_key="test", http_client=client, **options), peaks
+
+
+def test_the_scheduler_judges_up_to_the_judges_workers_at_once(setup, tmp_path):
+    settings, _, store, _ = setup
+    judge, peaks = concurrency_probe(settings, workers=4)
+    pairs = [coverage_pair(n) for n in range(1, 9)]
+    report, state = check((settings, judge, store, []), tmp_path, pairs)
+
+    assert 1 < max(peaks) <= 4
+    assert all(f.verdict is not None for f in report.findings) and len(report.findings) == 8
+    # Every reservation settled exactly once, as answered, and billed from the SDK usage.
+    assert len(state.attempts) == 8 and all(a.status == "answered" for a in state.attempts)
+    assert state.usd == pytest.approx(8 * 0.00015)
+
+
+def test_a_single_worker_judge_keeps_one_call_in_flight(setup, tmp_path):
+    settings, _, store, _ = setup
+    judge, peaks = concurrency_probe(settings, workers=1)
+    check((settings, judge, store, []), tmp_path, [coverage_pair(n) for n in range(1, 4)])
+
+    assert max(peaks) == 1

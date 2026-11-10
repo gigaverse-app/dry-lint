@@ -179,7 +179,8 @@ def test_family_obeys_all_shared_call_limits(setup, tmp_path, monkeypatch, limit
     first = judging.campaign.reserve_family("one", "source1", "owner", settings, 0.001, subscription=True)
     assert isinstance(first, int)
     judging.campaign.settle(first, 0.000035, True)
-    assert judging.campaign.reserve_family("two", "source2", "other", settings, 0.001, subscription=True) is None
+    # A spent cap is named, so the report can tell a budget gap from unfinished work.
+    assert judging.campaign.reserve_family("two", "source2", "other", settings, 0.001, subscription=True) == "limit"
     assert len(judging.campaign.snapshot().attempts) == 1
 
 
@@ -194,7 +195,8 @@ def test_complete_protected_requests_and_reservations_match_without_family(setup
     calls.clear()
     protected = treatment.findings(pairs, run)
     assert protected == original
-    assert [call.content for call in calls] == prefix_requests
+    # Pairs are asked concurrently, so the same requests may arrive in any order.
+    assert sorted(call.content for call in calls) == sorted(prefix_requests)
     assert treatment.campaign.snapshot().attempts[: len(prefix_attempts)] == prefix_attempts
     assert len(family_judge.calls) == 1
 

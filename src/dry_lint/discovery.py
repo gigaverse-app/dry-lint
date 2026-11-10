@@ -122,7 +122,13 @@ class CampaignStore:
 
     def reserve(
         self, candidate: Candidate, judge: Judge, settings: Settings, usd: float, *, residual: bool = False
-    ) -> int | Literal["budget"] | None:
+    ) -> int | Literal["budget", "limit"] | None:
+        """
+        The reservation's index, or why the pair cannot be asked now: ``"budget"`` when its cost exceeds what is left,
+        ``"limit"`` when a call or exploration cap is spent, None when this revision already asked about it (or a
+        residual pass would precede an unanswered protected one). Budget and limit refusals are budget gaps, not
+        failures; None is unfinished work.
+        """
         policy = settings.discovery
         if residual and not policy.residual_comparers or candidate.residual and not residual:
             raise ValueError("Residual admission requires an explicitly configured residual phase")
@@ -140,18 +146,18 @@ class CampaignStore:
             ):
                 return None
             if not self.call_room(state, current, settings, exploration=candidate.lane == "exploration"):
-                return None
+                return "limit"
             if (
                 getattr(judge, "subscription", False)
                 and sum(a.subscription for a in current) >= settings.budget.subscription_calls
             ):
-                return None
+                return "limit"
             room = settings.budget.usd - state.usd
             if candidate.lane == "exploration":
                 explored = [a for a in state.attempts if a.lane == "exploration"]
                 if not residual:
                     if len(explored) >= int(policy.calls * (1 - policy.baseline_fraction)):
-                        return None
+                        return "limit"
                     # Only an explicit residual phase may borrow future baseline capacity.
                     room = min(room, exploration_cap - sum(a.usd for a in explored), state.credit)
             if usd > room + 1e-12:
@@ -181,8 +187,8 @@ class CampaignStore:
         usd: float,
         *,
         subscription: bool = False,
-    ) -> int | Literal["budget"] | None:
-        """A whole family consumes one residual question, with the same total caps and failure holds."""
+    ) -> int | Literal["budget", "limit"] | None:
+        """A whole family consumes one residual question, with the same total caps, refusals and failure holds."""
         if settings.discovery.families is None or not settings.discovery.enabled:
             raise ValueError("Operation-family admission requires explicit native discovery opt-in")
         if not math.isfinite(usd) or usd < 0:
@@ -197,9 +203,9 @@ class CampaignStore:
             if any(attempt.evidence == key or attempt.source_evidence == "family:" + source_key for attempt in current):
                 return None
             if not self.call_room(state, current, settings, exploration=True):
-                return None
+                return "limit"
             if subscription and sum(attempt.subscription for attempt in current) >= settings.budget.subscription_calls:
-                return None
+                return "limit"
             if usd > settings.budget.usd - state.usd + 1e-12:
                 return "budget"
             state.attempts.append(
