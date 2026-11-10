@@ -147,11 +147,56 @@ establish model-consolidation accuracy.
 | `jev` | TypeSafe's System One decision model, prompt `reuse-v2` | about 0.3 s per pair, 8 pairs in parallel |
 | `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout; 4 at once | whatever your model costs |
 | `anthropic` | Claude through the official SDK (`dry-lint[anthropic]`) with the same DRY prompt and server-side refusal fallbacks; needs `ANTHROPIC_API_KEY`. Default model `claude-sonnet-5-5`; option `effort` | per pair: Sonnet 2 s and $0.0035, Opus 3 s and $0.008; 4 in parallel |
+| `langchain` | Claude through LangChain (`dry-lint[langchain]`), answering in a schema: [structured answers](#structured-answers). Needs `ANTHROPIC_API_KEY`. Default model `claude-haiku-5-5`, `effort = "low"` | per pair with Haiku: 2 s and $0.0005; 4 in parallel |
 | `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 12 s per pair, 4 in parallel |
 | `claude-code` | Claude through `claude -p` on a Claude subscription; default model `claude-sonnet-5-5` | the model's list price, out of the subscription; rate-limited |
 | `codex` | The ChatGPT subscription's model through `codex exec`; `model` optional | no per-call cost; about 14 s per pair |
 | `none` | Lists candidate pairs unjudged; never fails the build | free |
 | anything installed | A package registering `dry_lint.judges` | |
+
+## Structured answers
+
+The `langchain` judge asks the same question as the `anthropic` judge and gets the answer as a schema,
+`DuplicateVerdictPromptSchema`, through LangChain's `with_structured_output`.
+
+```toml
+preset = "balanced-structured"     # balanced's model, question, discovery and budget, with this judge
+```
+
+or, with your own thresholds, `judge = { use = "langchain", model = "claude-haiku-5-5" }`. In the GitHub Action,
+add `langchain-anthropic` to the `plugins` input. One real call each confirmed it also answers with
+`claude-sonnet-5-5` and `claude-opus-5-5`; its accuracy was measured with Haiku only.
+
+The schema is prompt text: the model reads its docstring, field names, descriptions and enum values, in field
+order. It is in `judges/langchain.py`, and what was measured ([benchmark](benchmark.md#structured-answers)) is
+written into it:
+
+- **The reasoning is the first field.** With the decision first, recall on labelled duplicates fell from 87% to
+  48–58%: the model commits before it has compared the functions.
+- **Everything is spelled out.** A first schema with bare literals and one-line descriptions lost 4–8% of answers
+  to missing fields. With enums, full descriptions and a score rubric it lost none of 1,412.
+- **The score has a rubric**: six bands, each saying what evidence earns it and whether it is reported, so the
+  label agrees with the score (755 of 756 answers).
+- **One format.** The question is the text judges' `OPERATIONS_RULES`, without their "answer one JSON object"
+  block, which would contradict the schema.
+
+The rubric makes it a stricter judge than the text one, so `balanced-structured` has its own thresholds: it
+reports from 0.3 and fails only from 0.4.
+
+| | `balanced`'s text judge, at `effort = "low"` | `balanced-structured` |
+| --- | --- | --- |
+| Finds labelled duplicates (756 pairs) | 87% at 8% false reports | 88% at 9%, reporting from 0.3 |
+| On 656 pairs from real commits, Opus as referee | 90 reports, 81 confirmed | from 0.3: 90 reports, 74 confirmed; from 0.4: 52 reports, 51 confirmed |
+| Answers that could not be read | 0.4% | none |
+| A pair, on real commits | $0.0004, 4 s | $0.0005, 2 s |
+
+Both columns ran at low effort; `balanced` itself runs at the model's default effort, which was measured only on
+the labelled pairs ([benchmark](benchmark.md#structured-answers)). So it is the faster judge and the one to block on. It is not cheaper: its answers are shorter, but the schema adds
+about a thousand tokens to every question. `balanced` still finds more confirmed duplicates and stays the default; `auto` never picks this preset. It is another judge with another version: switching
+re-judges stored pairs once, and a baseline needs `dry-lint baseline-migrate`.
+
+LangChain can trace every prompt, which contains your source, to LangSmith. It does so only when you set its
+tracing variables (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`); dry-lint never sets them.
 
 ## Jev
 
