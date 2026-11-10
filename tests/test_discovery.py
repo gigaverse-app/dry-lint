@@ -66,7 +66,7 @@ def test_repeated_evidence_costs_nothing_but_changed_evidence_reopens(setup, tmp
 def test_exploration_is_paced_and_preserves_later_baseline(setup, tmp_path):
     settings, judge, store, calls = setup
     settings.discovery.exploration_calls_per_revision = 1
-    settings.discovery.calls = 4
+    settings.discovery.calls = 2  # one exploration call for the whole campaign: int(2 * (1 - baseline_fraction))
     pool = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(6)]
     _, first = check(setup, tmp_path, pool)
     _, repeat = check(setup, tmp_path, pool)
@@ -442,7 +442,7 @@ def test_parallel_reservations_do_not_strand_the_exploration_credit(setup, tmp_p
     """
     settings, _, store, _ = setup
     judge, peaks = concurrency_probe(settings, workers=4)
-    pool = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(1, 15)]
+    pool = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(1, 41)]
     reserved = reservation_cost(judge, pool[0], settings)
     credit = settings.discovery.exploration_per_revision
     # The premise: fewer bounds than the call cap fit in one revision's credit, though every real answer does.
@@ -483,7 +483,7 @@ def test_settling_early_keeps_every_baseline_answer_ahead_of_exploration(setup, 
     settings, _, store, requests = setup
     judge, _ = concurrency_probe(settings, workers=4)
     baseline = [coverage_pair(n) for n in range(1, 4)]
-    exploration = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(10, 24)]
+    exploration = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(10, 50)]
 
     report, state = check((settings, judge, store, requests), tmp_path, [*exploration, *baseline])
 
