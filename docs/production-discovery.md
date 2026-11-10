@@ -22,7 +22,9 @@ deferred; it does not donate its protected capacity.
 Pairs are asked up to the judge's own `workers` at a time (`anthropic`, `http` and `command`: 4; `jev`: 8;
 subscription judges: 2). Every reservation in a batch commits before its call, and a batch holds a single lane,
 so exploration still waits for every baseline answer. Each pair is its own call: one failure leaves the others'
-verdicts. A residual pass asks one pair at a time, because its admission requires earlier attempts to be
+verdicts. A reservation holds a conservative bound, several times what an answer costs, so when the next pair
+does not fit beside a batch in flight the scheduler settles that batch first and asks again: the money really
+left decides how many pairs are asked, not the batch size. A residual pass asks one pair at a time, because its admission requires earlier attempts to be
 answered. Raise `workers` in the judge's options for more concurrency, or set it to 1 to ask serially.
 
 A pair that the dollar budget or a call cap (per tree, per campaign, exploration, subscription or
