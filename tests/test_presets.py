@@ -115,7 +115,7 @@ def test_balanced_adds_bounded_blocks_after_implicit_tfidf() -> None:
     choices = settings.discovery.comparers
     assert [(c.use, c.neighbours) for c in choices] == [("tfidf", 20), ("operation-blocks", 1)]
     assert choices[0].options()["min_similarity"] == choices[0].options()["min_similarity_small"] == 0.35
-    assert settings.budget.usd == 0.04 and settings.report_at == settings.fail_at == 0.5
+    assert settings.budget.usd == 0.04 and (settings.report_at, settings.fail_at) == (0.4, 0.5)
     assert resolve(settings, {}).model_dump() == settings.model_dump()
 
 

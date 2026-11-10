@@ -4,7 +4,7 @@
   description: Flag staged function duplication and model consolidation candidates. Use --no-models to opt out of models.
   entry: dry-lint check --staged --env-file .env
   language: python
-  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # the `hooks` extra: Claude judges, and .env
+  additional_dependencies: ["anthropic>=1.0", "langchain-anthropic>=1.7,<2", "python-dotenv>=1,<2"]  # the `hooks` extra: Claude judges, and .env
   types_or: [python, javascript, jsx, ts, tsx]
   stages: [pre-commit]
   pass_filenames: false
@@ -16,7 +16,7 @@
   description: Enforce explicitly configured Python structured-output schema boundaries.
   entry: dry-lint schema-check --staged
   language: python
-  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # share the other hooks' environment
+  additional_dependencies: ["anthropic>=1.0", "langchain-anthropic>=1.7,<2", "python-dotenv>=1,<2"]  # share the other hooks' environment
   pass_filenames: false
   always_run: true
   stages: [pre-commit]
@@ -26,6 +26,6 @@
   description: Record in the commit message the findings no longer reported before the commit.
   entry: dry-lint trailers
   language: python
-  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # the same environment as the hook above
+  additional_dependencies: ["anthropic>=1.0", "langchain-anthropic>=1.7,<2", "python-dotenv>=1,<2"]  # the same environment as the hook above
   stages: [prepare-commit-msg]
   always_run: true

@@ -5,11 +5,12 @@ hooks and audits unless the repository documents a concrete cost, credential or 
 
 | Lane | Default | What a finding means |
 | --- | --- | --- |
-| Functions | `balanced`: Claude Haiku 5.5, shared-operation prompt, report/fail at 0.5 | A named executable operation has competing implementations; inspect the proposed shared owner |
+| Functions | `balanced`: Claude Haiku 5.5 answering in a schema, shared-operation question, reports from 0.4, fails from 0.5 | A named executable operation has competing implementations; inspect the proposed shared owner |
 | Models | Model discovery and optional Jev ranking, followed by agent review | Investigate the complete model family, producers, consumers and ownership; a score never authorizes a merge |
 
 Balanced keeps protected TF-IDF candidates, explores up to 20 neighbours, adds one bounded operation-block neighbour,
-and shares a persistent $0.04 budget across a PR's pushes. API judging uses a 2,048-token response limit and no SDK retries.
+and shares a persistent $0.04 budget across a PR's pushes. API judging uses a 2,048-token response limit and no SDK retries;
+an answer that comes back as prose is asked once more with the schema forced.
 Deferred or failed judgments are not negative verdicts. Required CI uses `require-complete: 'true'`.
 Tests/migrations/scripts remain excluded by default; including them is a repository scope choice, not a reason to
 suppress all fixtures. Two wrappers entering the same lifecycle helper are separate; independently implementing
@@ -18,8 +19,9 @@ setup/yield/teardown still duplicates behavior.
 `auto` selects `balanced` with `ANTHROPIC_API_KEY`, then `balanced-subscription` with `CLAUDE_CODE_OAUTH_TOKEN`,
 then `jev` only for existing TypeSafe-only installations, otherwise `none` (detection only). This credential
 fallback preserves existing enforcement; it is not the recommended adoption. Pin `preset = "balanced"` in adopting repositories so missing credentials fail visibly. Install
-`dry-lint[anthropic]`, or use the Action's `anthropic-api-key` input. The subscription preset shares discovery,
-model, prompt and thresholds, but has not been independently calibrated through the CLI.
+`dry-lint[anthropic]`, or use the Action's `anthropic-api-key` input. The subscription preset shares discovery
+and model with `balanced-text`, the text answer and its 0.5 threshold, and has not been independently
+calibrated through the CLI.
 
 ## One preset everywhere
 
@@ -147,7 +149,7 @@ establish model-consolidation accuracy.
 | `jev` | TypeSafe's System One decision model, prompt `reuse-v2` | about 0.3 s per pair, 8 pairs in parallel |
 | `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout; 4 at once | whatever your model costs |
 | `anthropic` | Claude through the official SDK (`dry-lint[anthropic]`) with the same DRY prompt and server-side refusal fallbacks; needs `ANTHROPIC_API_KEY`. Default model `claude-sonnet-5-5`; option `effort` | per pair: Sonnet 2 s and $0.0035, Opus 3 s and $0.008; 4 in parallel |
-| `langchain` | Claude through LangChain (`dry-lint[langchain]`), answering in a schema: [structured answers](#structured-answers). Needs `ANTHROPIC_API_KEY`. Default model `claude-haiku-5-5`, `effort = "low"` | per pair with Haiku: 2 s and $0.0005; 4 in parallel |
+| `langchain` | Claude through LangChain (`dry-lint[anthropic]`), answering in a schema: [structured answers](#structured-answers). `balanced`'s judge. Needs `ANTHROPIC_API_KEY`. Default model `claude-haiku-5-5`, `effort = "low"`; options `thinking`, `diagnostics` | per pair with Haiku: 2.6 s and $0.00035; 4 in parallel |
 | `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 12 s per pair, 4 in parallel |
 | `claude-code` | Claude through `claude -p` on a Claude subscription; default model `claude-sonnet-5-5` | the model's list price, out of the subscription; rate-limited |
 | `codex` | The ChatGPT subscription's model through `codex exec`; `model` optional | no per-call cost; about 14 s per pair |
@@ -156,44 +158,55 @@ establish model-consolidation accuracy.
 
 ## Structured answers
 
-The `langchain` judge asks the same question as the `anthropic` judge and gets the answer as a schema,
-`DuplicateVerdictPromptSchema`, through LangChain's `with_structured_output`.
+`balanced` judges with the `langchain` judge: it asks the same question as the `anthropic` judge and gets the
+answer as a schema, `DuplicateVerdictPromptSchema`, through LangChain's `with_structured_output`.
 
 ```toml
-preset = "balanced-structured"     # balanced's model, question, discovery and budget, with this judge
+preset = "balanced"          # this judge, reporting from 0.4 and failing from 0.5
+preset = "balanced-text"     # the text answer `balanced` used until 1.10, at 0.5
 ```
 
-or, with your own thresholds, `judge = { use = "langchain", model = "claude-haiku-5-5" }`. In the GitHub Action,
-add `langchain-anthropic` to the `plugins` input. One real call each confirmed it also answers with
+or, with your own thresholds, `judge = { use = "langchain", model = "claude-haiku-5-5" }`. It comes with
+`dry-lint[anthropic]` and with the GitHub Action. One real call each confirmed it also answers with
 `claude-sonnet-5-5` and `claude-opus-5-5`; its accuracy was measured with Haiku only.
 
 The schema is prompt text: the model reads its docstring, field names, descriptions and enum values, in field
 order. It is in `judges/langchain.py`, and what was measured ([benchmark](benchmark.md#structured-answers)) is
 written into it:
 
+- **The model thinks first.** A forced tool call switches thinking off, and without thinking the judge found
+  95 confirmed duplicates on real commits where it finds 121 with it. So the tool is offered, the request says
+  to call it, and the call is forced only when an answer comes back as prose (2 of 1,362 pairs).
 - **The reasoning is the first field.** With the decision first, recall on labelled duplicates fell from 87% to
-  48–58%: the model commits before it has compared the functions.
+  48–58%.
 - **Everything is spelled out.** A first schema with bare literals and one-line descriptions lost 4–8% of answers
-  to missing fields. With enums, full descriptions and a score rubric it lost none of 1,412.
-- **The score has a rubric**: six bands, each saying what evidence earns it and whether it is reported, so the
-  label agrees with the score (755 of 756 answers).
+  to missing fields. With enums, full descriptions and a score rubric it lost none.
+- **The score has a rubric**: six bands, each saying what evidence earns it. It does not say which bands are
+  reported, and it scores a shared sub-operation by itself, whatever surrounds it.
 - **One format.** The question is the text judges' `OPERATIONS_RULES`, without their "answer one JSON object"
   block, which would contradict the schema.
+- **The rules are cached.** The schema and the rules are the same in every request, so they are one cached
+  prefix of about 2,400 tokens, read at a tenth of the input price by every call after the first.
 
-The rubric makes it a stricter judge than the text one, so `balanced-structured` has its own thresholds: it
-reports from 0.3 and fails only from 0.4.
-
-| | `balanced`'s text judge, at `effort = "low"` | `balanced-structured` |
+| | `balanced-text` (text answer, `effort = "low"`) | `balanced` |
 | --- | --- | --- |
-| Finds labelled duplicates (756 pairs) | 87% at 8% false reports | 88% at 9%, reporting from 0.3 |
-| On 656 pairs from real commits, Opus as referee | 90 reports, 81 confirmed | from 0.3: 90 reports, 74 confirmed; from 0.4: 52 reports, 51 confirmed |
+| Ranking of 756 labelled pairs (AUC) | 0.945 | 0.965 |
+| Finds labelled duplicates | 87% at 10% false reports | 85% at 8%, reporting from 0.4 |
+| Real commits, Opus as referee: reports | 130, 105 confirmed | 136, 106 confirmed |
+| Real commits: what fails the check | the same 130, 81% confirmed | 100 from 0.5, 88% confirmed |
 | Answers that could not be read | 0.4% | none |
-| A pair, on real commits | $0.0004, 4 s | $0.0005, 2 s |
+| A pair, on real commits | $0.00041, 4 s | $0.00035, 2.6 s |
 
-Both columns ran at low effort; `balanced` itself runs at the model's default effort, which was measured only on
-the labelled pairs ([benchmark](benchmark.md#structured-answers)). So it is the faster judge and the one to block on. It is not cheaper: its answers are shorter, but the schema adds
-about a thousand tokens to every question. `balanced` still finds more confirmed duplicates and stays the default; `auto` never picks this preset. It is another judge with another version: switching
-re-judges stored pairs once, and a baseline needs `dry-lint baseline-migrate`.
+Higher AUC and more confirmed are better. So `balanced` warns about as much as the text judge did and blocks on
+less, with more of what it blocks on confirmed.
+
+**Upgrading.** The judge and the thresholds changed, so stored verdicts are judged again once and a baseline
+needs `dry-lint baseline-migrate` ([one preset everywhere](#one-preset-everywhere)). To stay on the text judge,
+set `preset = "balanced-text"`. `balanced-subscription` still asks in text through the `claude` CLI, at 0.5.
+
+**Diagnostics.** `judge = { use = "langchain", diagnostics = true }` adds two fields after the verdict: what
+made the pair hard, and what the model was not shown and would have needed. They do not change the verdict.
+Read over many pairs they show which rule the judge trips on; that is how the rubric above was corrected.
 
 LangChain can trace every prompt, which contains your source, to LangSmith. It does so only when you set its
 tracing variables (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`); dry-lint never sets them.

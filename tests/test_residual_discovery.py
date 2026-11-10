@@ -40,9 +40,9 @@ def test_residual_detection_preserves_complete_balanced_prefix_and_round_trips(t
         repo.write(f"copy{i:02}.py", "def deliver(owner, payload):\n" + OPERATION)
     repo.write("noise.py", "\n".join(f.code + "\n" for f in background(2500)))
     repo.commit()
-    settings = resolve(Settings(preset="balanced", exclude=[]), {})
+    settings = resolve(Settings(preset="balanced-text", exclude=[]), {})
     if explicit:
-        settings = resolve(Settings(preset="balanced", exclude=[], discovery=settings.discovery.model_dump()), {})
+        settings = resolve(Settings(preset="balanced-text", exclude=[], discovery=settings.discovery.model_dump()), {})
     choices = [c.model_dump() for c in settings.discovery.comparers]
     assert [c["use"] for c in choices] == ["tfidf", "operation-blocks"]
     detector = Detector.for_repository(repo.root, settings)

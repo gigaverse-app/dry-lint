@@ -47,52 +47,61 @@ Haiku 5.5 at `effort = "low"` with a 2,048-token limit and the `dry-operations-v
 sent as the two whole functions the detector would propose. Labels are source reviews by models, not people. An
 answer that failed counts as not reported.
 
-| Variant | Failed answers | AUC | Recall | False reports | Cost a pair | Seconds |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Text answer, reported at 0.5 | 0 | 0.945 | 87.4% | 8.2% | $0.00062 | 4.1 |
-| Text answer at default effort, as `balanced` runs it | 2 | 0.898 | 89.0% | 8.7% | $0.00070 | 4.3 |
-| First schema (literals, one-line descriptions), decision first | 15 | | 47.7% | 1.2% | $0.00055 | 2.0 |
-| First schema, reason first, forced tool call, score at 0.3 | 58 | 0.862 | 74.1% | 6.4% | $0.00057 | 2.3 |
-| First schema, reason first, JSON-schema mode, score at 0.3 | 0 | 0.946 | 85.5% | 8.2% | $0.00049 | 2.3 |
-| **Shipped schema (enums, descriptions, rubric), tool call, score at 0.3** | 0 | 0.959 | 87.7% | 8.9% | $0.00063 | 2.3 |
-| Shipped schema, score at 0.4 | 0 | 0.959 | 70.3% | 3.2% | $0.00063 | 2.3 |
-| Shipped schema, score at 0.6 (the rubric's "established") | 0 | 0.959 | 52.7% | 1.6% | $0.00063 | 2.3 |
-| Shipped schema, JSON-schema mode, score at 0.3 | 1 | 0.940 | 85.8% | 9.6% | $0.00056 | 2.3 |
+| Variant | Failed answers | AUC | Recall | False reports | Cost a pair |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Text answer, reported at 0.5 (`balanced-text`) | 0 | 0.945 | 87.3% | 9.8% | $0.00062 |
+| Text answer at default effort | 2 | 0.898 | 89.0% | 8.7% | $0.00070 |
+| First schema (literals, one-line descriptions), decision first | 15 | | 47.7% | 1.2% | $0.00055 |
+| First schema, reason first, forced tool call, score at 0.3 | 58 | 0.862 | 74.1% | 6.4% | $0.00057 |
+| Schema with enums, descriptions and a rubric, forced tool call, score at 0.3 | 0 | 0.959 | 87.7% | 8.9% | $0.00063 |
+| The same with the rules as a cached block | 0 | 0.962 | 89.6% | 8.0% | $0.00041 |
+| The same with the rules in a cached system prompt | 0 | 0.948 | 81.3% | 7.1% | $0.00041 |
+| System prompt with input schema, YAML input, rules repeated after it | 0 | 0.953 | 84.2% | 7.1% | $0.00046 |
+| One function against five look-alikes in one call | 7 of 755 | 0.916 | 86.5% | 15.4% | $0.00028 |
+| **Shipped: revised rubric, thinking, cached block, score at 0.4 (`balanced`)** | 0 | 0.965 | 84.8% | 8.0% | $0.00052 |
+| Shipped, score at 0.5 | 0 | 0.965 | 79.1% | 4.1% | $0.00052 |
 
-Higher AUC and recall are better; lower failures, false reports, cost and seconds are better. AUC is the chance
-that a labelled duplicate scores above a labelled separate pair; it does not depend on a threshold.
+Higher AUC and recall are better; lower failures, false reports and cost are better. AUC is the chance that a
+labelled duplicate scores above a labelled separate pair; it does not depend on a threshold. Its 95% interval
+is about ±0.013 here, so 0.959, 0.962 and 0.965 are not told apart by these pairs; 0.945 and 0.948 are lower.
 
-- **The schema is prompt text.** Putting the decision before the reasoning halves recall. Spelling the fields out
-  (enums, descriptions, a score rubric) removes the 58 failed answers of the forced tool call and gives the best
-  ranking of any variant.
-- **The rubric makes a stricter judge.** At its own "established" line it finds half the labelled duplicates with
-  almost no false reports. It matches the text judge's recall only when reporting from 0.3.
+- **The schema is prompt text.** Putting the decision before the reasoning halves recall. Spelling the fields
+  out (enums, descriptions, a score rubric) removes the 58 failed answers of the forced tool call.
+- **Caching costs nothing in accuracy when the prompt keeps its order.** The rules as a cached first block of
+  the user turn rank as well as the uncached prompt, a third cheaper. Moving them to a system prompt makes the
+  judge stricter and ranks worse; a structured input and repeated rules win back about half of that.
+- **Judging a family in one call is not free here.** It is a third cheaper a pair, and false reports double.
 
-**Pairs from real commits.** The 656 pairs that 51 recent commits of four private repositories sent to the judge
-under `balanced`'s discovery, with its text judge at low effort. Claude Opus 5.5, with the text prompt, judged every pair either judge would report; it is a
-stricter judge, not ground truth, and it shares the text judge's prompt.
+**Pairs from real commits.** The 1,174 pairs that 79 recent commits of four private repositories sent to the
+judge under `balanced`'s discovery at 30 exploration pairs a push. Claude Opus 5.5, with the text prompt, judged
+every pair that any variant reported; 141 it confirms. It is a stronger model, not ground truth, and it shares
+the text judge's prompt.
 
-| Rule | Reports | Opus confirms | Opus rejects |
-| --- | ---: | ---: | ---: |
-| Text judge at low effort, reported at 0.5 | 90 | 81 | 9 |
-| Shipped schema, score at 0.3 | 90 | 74 | 16 |
-| Shipped schema, score at 0.4 | 52 | 51 | 1 |
-| Shipped schema, score at 0.6 | 34 | 33 | 1 |
+| Variant | Reports | Opus confirms | Opus rejects | Share of the 141 found |
+| --- | ---: | ---: | ---: | ---: |
+| Text answer, reported at 0.5 (`balanced-text`) | 130 | 105 | 25 | 74% |
+| Schema, forced tool call (no thinking), score at 0.3 | 134 | 95 | 39 | 67% |
+| The same, score at 0.4 | 64 | 60 | 4 | 43% |
+| **Shipped: revised rubric and thinking, score at 0.4 (`balanced` reports)** | 136 | 106 | 30 | 75% |
+| **Shipped, score at 0.5 (`balanced` fails)** | 100 | 88 | 12 | 62% |
+| Shipped, score at 0.6 | 54 | 51 | 3 | 36% |
+| Question schema (named operation, overlap, same operation, boundary), score at 0.6 | 120 | 93 | 27 | 66% |
+| Question schema, score at 0.5 | 201 | 124 | 77 | 88% |
 
-More confirmed and fewer rejected are better. On real commits the text judge finds more confirmed duplicates at
-the same number of reports; the schema judge is the more precise one from 0.4. On these pairs it cost $0.00050
-and 2.1 s a pair, against $0.00041 and about 4 s for the text judge: shorter answers, but the schema adds about a
-thousand tokens to every question. Hence `balanced-structured` reports from 0.3 and fails from 0.4, and `balanced` stays the default.
+More confirmed and fewer rejected are better.
 
-Not measured: a replay through the scheduler with this schema, other models, and the CLI judges, whose
-`--json-schema` and `--output-schema` flags could take the same schema.
-
-The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
-Its small diagnostic sample does not inherit the Python precision/recall claims below.
-
-Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded),
-much of it written with coding agents. The gold labels contain that private code and are not published, apart from
-[30 example pairs](#example-pairs). The method is described here so it can be repeated on another codebase.
+- **Thinking was the difference.** A forced tool call switches thinking off. The labelled pairs did not show
+  what that costs; real commits did: 95 confirmed against 105 for the text judge, which thinks on two thirds of
+  hard pairs. Offered the tool and told to call it, the model thought on 633 of 1,362 pairs and the judge
+  matches the text one, with a threshold that trades reports for precision. It cost $0.00035 and 2.6 s a pair,
+  against $0.00041 and about 4 s.
+- **The judge's own diagnostics found the rubric's fault.** Asked which rule lowered its score, the judge named
+  "generic shape" and "no sensible shared owner" on 82% of the confirmed duplicates it missed, and wrote "the
+  shared operation is real, but" small, test code, or one step of a larger workflow. The first rubric also
+  said which bands are reported, and real partial duplicates were scored just under that line.
+- **Typed questions make a wider dial, not a better judge.** The question schema answers "the same operation:
+  yes" on 29 pairs and Opus confirms all 29, and at 0.5 it finds 88% of the confirmed pool with 38% of its
+  reports rejected. In between it does not beat the shipped schema, and it costs $0.00061 a pair.
 
 ## Public cleanup regression panel
 
