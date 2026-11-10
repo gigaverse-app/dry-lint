@@ -285,6 +285,36 @@ judge's name with `second_opinion` set, and is reused only by runs with that sam
 (`budget.usd` for priced judges, `budget.subscription_calls` for subscriptions; riskiest pairs first) and every
 report states the preset, the judges, the thresholds and the estimated cost (`costs.py`).
 
+### Grouped pair questions
+
+A changed function usually has several exploration look-alikes, and each pair question repeats the rules and the
+changed function's source. A judge with `group` above 1 (an opt-in option of the `anthropic` judge) is asked about one
+changed function and up to that many of its look-alikes in one request, and answers with one verdict per pair.
+
+What stays per pair:
+
+- **The verdict.** The request tells the judge to decide every pair on its own evidence. Each pair gets its own
+  verdict, its own store record and its own finding. Nothing is reported about the group.
+- **The reservation.** Every pair is reserved before the request is sent, and the caps count pairs, not requests.
+  The reservations of one request sum to its conservative bound; its measured cost is shared between them.
+- **Failure.** A pair that the answer leaves out, or answers twice, has no verdict: it is unfinished work, asked
+  again by a later push, never a "no". A request that fails as a whole fails every pair in it.
+
+What is never grouped: baseline pairs, residual pairs, pairs of different changed functions, and a pair an
+adopter policy applies to, whose question carries that policy.
+
+**Why a grouped answer may be reused.** A stored verdict may be reused only when the answer cannot have changed.
+A grouped answer is the answer to another question than a pair's, so the group size is part of the judge's
+version (`…:group-1x5`): a judge that asks alone, or in another group size, never reuses it, and it never reuses
+theirs. Within one version, the scheduler reuses a verdict only for the same two exact sources. That leaves one
+thing a pair question does not have: the companions the pair was asked with can differ between pushes. The rule
+treats them like the model's own sampling. On 750 labelled pairs the grouped answer made the same report
+decision as the pair answer 90% of the time; pair answers at two effort settings agree 94% of the time
+([benchmark](benchmark.md#grouped-pair-questions)).
+
+**It is off by default.** Grouping is cheaper, and on real commits it reports more pairs that a stronger model
+rejects. No preset uses it.
+
 ## Reports
 
 Every view renders the same `report.json`, so the terminal, the annotations, the PR comment, SARIF and the check

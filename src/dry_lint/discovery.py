@@ -271,6 +271,17 @@ def reservation_cost(judge: Judge, candidate: Candidate, settings: Settings) -> 
     return conservative_cost(judging_input(judge, candidate), maximum or 0, rates)
 
 
+def group_reservation_cost(judge: Judge, candidates: list[Candidate], settings: Settings) -> float:
+    """The admission bound of one request about one changed function and several look-alikes."""
+    rates = price(judge, settings)
+    if rates is None:
+        raise ValueError("Discovery needs a priced judge with a maximum output token limit")
+    # The same admission rule as a pair's; only the rendered request and its output ceiling differ.
+    # dry-lint: distinct-from src/dry_lint/discovery.py::reservation_cost
+    text = judge.group_input_text(candidates)  # type: ignore[attr-defined]
+    return conservative_cost(text, judge.group_max_tokens(len(candidates)), rates)  # type: ignore[attr-defined]
+
+
 def conservative_cost(text: str, output_tokens: int, rates: tuple[float, float]) -> float:
     """An admission bound: UTF-8 bytes plus framing as input, and the full output ceiling; actual usage settles."""
     return usage_cost({"input": len(text.encode("utf-8")) + 1024, "output": output_tokens}, rates)

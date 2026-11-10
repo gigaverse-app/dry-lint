@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from typing import Any
 
-from dry_lint.judges.command import PROMPT_POLICIES, parse_verdict, prompt
+from dry_lint.judges.command import GROUP_VERSION, PROMPT_POLICIES, group_prompt, parse_group, parse_verdict, prompt
 from dry_lint.models import Candidate, Verdict
 from dry_lint.settings import Settings
 
@@ -38,9 +38,12 @@ class AnthropicJudge:
         max_tokens: int = 8000,
         max_retries: int = 2,
         retry_malformed: bool = False,
+        group: int = 1,
     ) -> None:
         if prompt_policy not in PROMPT_POLICIES or max_tokens < 1:
             raise ValueError("Unknown prompt policy or nonpositive output limit")
+        if not 1 <= group <= 8 or (group > 1 and not prompt_policy.startswith("shared-operations")):
+            raise ValueError("`group` is 1 to 8 look-alikes a request, and needs the shared-operations prompt")
         try:
             import anthropic
         except ImportError as error:  # an optional extra
@@ -61,6 +64,11 @@ class AnthropicJudge:
         self.version = f"{PROMPT_POLICIES[prompt_policy][0]}:{model}" + (f":{effort}" if effort else "")
         if max_tokens != 8000:
             self.version += f":output={max_tokens}"
+        # How many look-alikes of one changed function a request may hold. A grouped answer is another question's
+        # answer, so the group size is in the version: answers are never reused across group sizes.
+        self.group = group
+        if group > 1:
+            self.version += f":{GROUP_VERSION}x{group}"
         self.client = anthropic.Anthropic(
             api_key=key, timeout=timeout, http_client=http_client, max_retries=max_retries
         )
@@ -68,7 +76,8 @@ class AnthropicJudge:
         # Calls run on several threads at once (here and in the campaign scheduler); counts must not race.
         self._usage_lock = Lock()
 
-    def _ask(self, candidate: Candidate, retry: bool = True) -> Verdict:
+    def _create(self, text: str, max_tokens: int, about: str) -> str:
+        """One request's text answer, its usage counted as the API returned it."""
         import anthropic
 
         options: dict[str, Any] = {"output_config": {"effort": self.effort}} if self.effort else {}
@@ -77,8 +86,8 @@ class AnthropicJudge:
         try:
             response = self.client.beta.messages.create(
                 model=self.model,
-                max_tokens=self.max_tokens,
-                messages=[{"role": "user", "content": prompt(candidate, policy=self.prompt_policy)}],
+                max_tokens=max_tokens,
+                messages=[{"role": "user", "content": text}],
                 **options,
             )
         except anthropic.APIError as error:
@@ -92,14 +101,32 @@ class AnthropicJudge:
                     self.tokens[name] = self.tokens.get(name, 0) + count
         if response.stop_reason == "refusal":
             category = getattr(response.stop_details, "category", None)
-            raise ValueError(f"{self.model} declined to judge {candidate.new.qualname} ({category})")
+            raise ValueError(f"{self.model} declined to judge {about} ({category})")
+        return "".join(b.text for b in response.content if b.type == "text")
+
+    def _ask(self, candidate: Candidate, retry: bool = True) -> Verdict:
+        text = self._create(prompt(candidate, policy=self.prompt_policy), self.max_tokens, candidate.new.qualname)
         try:
-            return parse_verdict("".join(b.text for b in response.content if b.type == "text"), self.name, self.version)
+            return parse_verdict(text, self.name, self.version)
         except ValueError:
             if not retry or not self.retry_malformed:
                 raise
             # Recover one malformed answer without inventing a verdict or discarding a large sweep.
             return self._ask(candidate, retry=False)
+
+    def group_max_tokens(self, count: int) -> int:
+        """The output ceiling of a request about `count` look-alikes: the pair ceiling, and room for each more."""
+        return self.max_tokens + 600 * (count - 1)
+
+    def group_input_text(self, candidates: list[Candidate]) -> str:
+        return group_prompt(candidates)
+
+    def judge_group(self, candidates: list[Candidate], settings: Settings) -> list[Verdict | None]:
+        """One request about one changed function and several existing ones; None where its answer has no verdict."""
+        text = self._create(
+            group_prompt(candidates), self.group_max_tokens(len(candidates)), candidates[0].new.qualname
+        )
+        return parse_group(text, len(candidates), self.name, self.version)
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         with ThreadPoolExecutor(self.workers) as pool:

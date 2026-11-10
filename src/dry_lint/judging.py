@@ -11,7 +11,7 @@ from pathlib import Path
 import httpx
 
 from dry_lint.costs import Ledger, Spend, price, usage_cost
-from dry_lint.discovery import CampaignStore, reservation_cost
+from dry_lint.discovery import CampaignStore, group_reservation_cost, reservation_cost
 from dry_lint.git import git
 from dry_lint.judges import make_escalation, make_judge
 from dry_lint.models import Candidate, Run, Verdict, evidence
@@ -95,6 +95,10 @@ def decide(
             update={"judge": judge.name, "judge_version": judge.version, "second_opinion": identity(escalation)}
         )
     return answers
+
+
+# One paid request: (finding slot, pair, reservation, reserved USD) for each pair it asks about.
+Request = list[tuple[int, Candidate, int, float]]
 
 
 def judges_name(judge: Judge, escalation: Judge | None) -> str:
@@ -307,9 +311,13 @@ class Judging:
     ) -> list[Finding]:
         """One ordered pass; both phases use the same reservations, settlements and exact verdict cache.
 
-        Pairs are asked up to the judge's own ``workers`` at a time. Each batch holds one lane, so the baseline
+        Requests are sent up to the judge's own ``workers`` at a time. Each batch holds one lane, so the baseline
         barrier still sees every baseline answer before exploration reserves. A residual pass stays one at a
         time: its admission requires every earlier attempt of the revision to be answered.
+
+        A judge with ``group`` above 1 is asked about one changed function and up to that many of its exploration
+        look-alikes in one request (docs/design.md#grouped-pair-questions). Every pair still has its own
+        reservation, verdict and store record; baseline and residual pairs are always asked alone.
         """
         assert self.campaign is not None and self.judge is not None
         judge = self.residual_judge if residual and self.residual_judge is not None else self.judge
@@ -319,15 +327,22 @@ class Judging:
             identity(judge), Spend(judge=identity(judge), subscription=getattr(judge, "subscription", False))
         )
         workers = 1 if residual else max(1, int(getattr(judge, "workers", 1) or 1))
+        group = 1 if residual or not hasattr(judge, "judge_group") else max(1, int(getattr(judge, "group", 1) or 1))
         findings: list[Finding | None] = []
-        batch: list[tuple[int, Candidate, int, float]] = []
+        batch: list[Request] = []
         baseline_pending = False
         baseline_budget_only = True
 
+        def cached(candidate: Candidate) -> Verdict | None:
+            return store.lookup(
+                candidate, judge.name, self.settings.reopen_margin, judge.version, exact_source=True
+            ).verdict
+
         def flush() -> None:
             nonlocal baseline_pending, baseline_budget_only
+            asked = [item for request in batch for item in request]
             for (slot, candidate, _, _), verdict in zip(
-                batch, self.judge_reserved(judge, campaign, spend, batch), strict=True
+                asked, self.judge_reserved(judge, campaign, spend, batch), strict=True
             ):
                 if verdict is not None:
                     store.remember(candidate, verdict, source)
@@ -336,14 +351,16 @@ class Judging:
                 findings[slot] = Finding(candidate=candidate, verdict=verdict, deferred=verdict is None)
             batch.clear()
 
-        for candidate in campaign.order(candidates):
-            if batch and (candidate.lane != batch[0][1].lane or len(batch) >= workers):
+        ordered = campaign.order(candidates)
+        joined: set[int] = set()  # positions already asked as a companion of an earlier pair
+        for position, candidate in enumerate(ordered):
+            if position in joined:
+                continue
+            if batch and (candidate.lane != batch[0][0][1].lane or len(batch) >= workers):
                 flush()
-            cached = store.lookup(
-                candidate, judge.name, self.settings.reopen_margin, judge.version, exact_source=True
-            ).verdict
-            if cached is not None:
-                findings.append(Finding(candidate=candidate, verdict=cached, cached=True))
+            known = cached(candidate)
+            if known is not None:
+                findings.append(Finding(candidate=candidate, verdict=known, cached=True))
                 continue
             reservation = "budget" if baseline_pending and baseline_budget_only else None
             cost = reservation_cost(judge, candidate, self.settings)
@@ -367,53 +384,89 @@ class Judging:
                 continue
             # Reservation is committed before any call. Crashes cannot give its allowance back.
             findings.append(None)
-            batch.append((len(findings) - 1, candidate, reservation, cost))
+            request: Request = [(len(findings) - 1, candidate, reservation, cost)]
+            batch.append(request)
+            if group == 1 or candidate.lane != "exploration" or candidate.policies:
+                continue
+            # The same changed function's next look-alikes join this request while each can be reserved. One that
+            # cannot keeps its own turn in the order, where it is deferred like any other pair.
+            for later in range(position + 1, len(ordered)):
+                if len(request) >= group:
+                    break
+                companion = ordered[later]
+                if later in joined or companion.lane != "exploration" or companion.policies:
+                    continue
+                if companion.new.qualname != candidate.new.qualname or companion.new.code != candidate.new.code:
+                    continue
+                if cached(companion) is not None:
+                    continue
+                members = [item[1] for item in request] + [companion]
+                # The whole request's bound, less what its members already hold: reservations sum to the bound.
+                bound = group_reservation_cost(judge, members, self.settings)
+                extra = max(0.0, bound - sum(item[3] for item in request))
+                held = campaign.reserve(companion, judge, self.settings, extra)
+                if held is None:
+                    continue  # this revision already asked about it; a later look-alike may still join
+                if not isinstance(held, int):
+                    break  # a cap or the budget: no later look-alike fits either
+                joined.add(later)
+                findings.append(None)
+                request.append((len(findings) - 1, companion, held, extra))
         flush()
         assert all(finding is not None for finding in findings)
         return [finding for finding in findings if finding is not None]
 
     def judge_reserved(
-        self, judge: Judge, campaign: CampaignStore, spend: Spend, batch: list[tuple[int, Candidate, int, float]]
+        self, judge: Judge, campaign: CampaignStore, spend: Spend, batch: list[Request]
     ) -> list[Verdict | None]:
-        """Ask every reserved pair at once, one call each so one failure cannot void the others; settle each once.
+        """Send every reserved request at once; one failure cannot void another request. Settle each pair once.
 
-        A judge counts tokens for all its calls together, so the batch's measured cost is shared in proportion to
-        what each pair reserved. Every settlement is made here, after all calls returned or failed.
+        A request is one pair, or one changed function with several look-alikes. A judge counts tokens for all its
+        calls together, so the batch's measured cost is shared in proportion to what each pair reserved. Every
+        settlement is made here, after all calls returned or failed. In a grouped answer, a pair the answer has no
+        verdict for fails alone; a request that fails as a whole fails every pair in it.
         """
         if not batch:
             return []
         tokens = getattr(judge, "tokens", None)
         before = dict(tokens) if tokens is not None else None
 
-        def ask(candidate: Candidate) -> Verdict | str:
+        def ask(request: Request) -> list[Verdict | str]:
+            asked = [candidate for _, candidate, _, _ in request]
             try:
-                answers = judge.judge([candidate], self.settings)
-                if len(answers) != 1:
+                if len(asked) == 1:
+                    answers: list[Verdict | None] = list(judge.judge(asked, self.settings))
+                else:
+                    answers = list(judge.judge_group(asked, self.settings))  # type: ignore[attr-defined]
+                if len(answers) != len(asked):
                     raise ValueError("Judge returned no single verdict")
-                return answers[0]
+                missing = "The grouped answer has no verdict for this pair"
+                return [answer if isinstance(answer, Verdict) else missing for answer in answers]
             except JUDGE_ERRORS as error:
-                return " ".join(str(error).split())[:200] or type(error).__name__
+                return [" ".join(str(error).split())[:200] or type(error).__name__] * len(asked)
 
         # An interrupt that is not a judge error still settles every reservation, as failed.
-        outcomes: list[Verdict | str | None] = [None] * len(batch)
+        items = [item for request in batch for item in request]
+        outcomes: list[Verdict | str | None] = [None] * len(items)
         try:
             if len(batch) == 1:
-                outcomes = [ask(batch[0][1])]
+                answered = [ask(batch[0])]
             else:
                 with ThreadPoolExecutor(len(batch)) as pool:
-                    outcomes = list(pool.map(ask, [candidate for _, candidate, _, _ in batch]))
+                    answered = list(pool.map(ask, batch))
+            outcomes = [outcome for request in answered for outcome in request]
         finally:
             rates = price(judge, self.settings)
             actual = None
             if before is not None and rates is not None and tokens != before:
                 actual = usage_cost({key: value - before.get(key, 0) for key, value in tokens.items()}, rates)
-            reserved = sum(cost for *_, cost in batch)
+            reserved = sum(cost for *_, cost in items)
             left = actual
-            for position, (_, _, reservation, cost) in enumerate(batch):
+            for position, (_, _, reservation, cost) in enumerate(items):
                 share = None
                 if actual is not None and left is not None:
-                    last = position == len(batch) - 1
-                    share = left if last else actual * (cost / reserved if reserved else 1 / len(batch))
+                    last = position == len(items) - 1
+                    share = left if last else actual * (cost / reserved if reserved else 1 / len(items))
                     left -= share
                 outcome = outcomes[position]
                 success = isinstance(outcome, Verdict)

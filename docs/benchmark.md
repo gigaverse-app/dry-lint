@@ -91,6 +91,45 @@ thousand tokens to every question. Hence `balanced-structured` reports from 0.3 
 Not measured: a replay through the scheduler with this schema, other models, and the CLI judges, whose
 `--json-schema` and `--output-schema` flags could take the same schema.
 
+## Grouped pair questions
+
+Does asking about one changed function and up to five of its exploration look-alikes in one request
+([design](design.md#grouped-pair-questions)) judge as well as one pair a request? Measured in November 2026 with
+`balanced`'s text judge, Claude Haiku 5.5 at low effort.
+
+**Labelled pairs.** 750 labelled pairs, each asked together with four TF-IDF neighbours of its changed function.
+
+| | Recall | False reports | Cost a pair |
+| --- | ---: | ---: | ---: |
+| One pair a request | 87.2% | 8.2% | $0.00061 |
+| Five look-alikes a request | 84.7% | 8.7% | $0.00038 |
+
+Higher recall is better; lower false reports and cost are better. The grouped answer made the same report
+decision as the pair answer on 676 of 750 pairs (90%). Five of 755 grouped answers could not be read.
+
+**Real commits.** 78 recent commits of four private repositories through the production scheduler, a fresh
+allowance each. Claude Opus 5.5, asked one pair at a time, judged every report of every row. It is a stricter
+judge, not ground truth.
+
+| Exploration | Pairs judged | Cost a commit | Reports | Opus confirms | Opus rejects |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| One pair a request, 30 pairs a push (`balanced`) | 1,252 | $0.0065 | 133 | 108 | 25 |
+| One pair a request, 48 pairs a push | 1,444 | $0.0074 | 144 | 116 | 28 |
+| Five a request, 30 pairs a push | 1,266 | $0.0051 | 137 | 106 | 31 |
+| Five a request, 48 pairs a push | 1,587 | $0.0060 | 163 | 119 | 44 |
+
+More confirmed and fewer rejected are better; lower cost is better.
+
+- **Grouping is cheaper, not better.** At the same 30 pairs it costs 22% less, confirms 2 fewer duplicates and
+  adds 6 rejected reports. The saving is smaller than on the labelled pairs because baseline pairs are asked
+  alone and many changed functions have only one or two look-alikes.
+- **Spending the saving on more pairs buys false reports.** At 48 pairs it costs 7% less than `balanced`,
+  confirms 11 more duplicates and adds 19 rejected reports. Opus confirms 62% of grouped exploration reports,
+  against 73% of single ones, and no score threshold separates the rejected ones.
+- **No grouped request failed**, and no pair was left without a verdict, in 461 grouped requests.
+
+So `group` stays an opt-in option of the `anthropic` judge, and no preset sets it.
+
 The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
 Its small diagnostic sample does not inherit the Python precision/recall claims below.
 
