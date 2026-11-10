@@ -164,3 +164,16 @@ def test_balanced_resolved_block_choice_cannot_mutate_preset_or_future_resolve()
         assert resolve(Settings(preset="balanced"), {}).discovery.comparers[-1].neighbours == 1
     finally:
         PRESETS["balanced"].discovery_append[0].neighbours = original
+
+
+def test_balanced_judges_at_low_effort_under_a_version_that_says_so(monkeypatch) -> None:
+    # Effort changes the answers, so it is in the version: an answer given at another effort is never reused.
+    from dry_lint.judges import make_judge
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "offline")
+    settings = resolve(Settings(preset="balanced"), {})
+    assert settings.judge.options()["effort"] == "low"
+    judge = make_judge(settings.judge)
+    assert judge.effort == "low"
+    assert judge.version.endswith(":claude-haiku-5-5:low:output=2048")
+    assert getattr(judge, "strict_version", False)

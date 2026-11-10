@@ -106,8 +106,10 @@ PRESETS = {preset.name: preset for preset in [
            numbers="opt-in agent-reviewed experiment; 17 true and 7 false evidence reports on 10 development PRs; "
                    "local checks use baseline retrieval, not the historical exploration scheduler"),
     Preset(name="balanced", summary="Recommended function review: Claude shared-operation judging, bounded discovery and persistent budget",
+           # Low effort: the same recall and false reports as the model's default on 1,526 labelled pairs, better
+           # ranked scores, 12% cheaper, and no answer cut off at the output limit (docs/benchmark.md#structured-answers).
            judge=PluginChoice(use="anthropic", model="claude-haiku-5-5", prompt_policy="shared-operations", max_tokens=2048,
-                              max_retries=0),
+                              max_retries=0, effort="low"),
            discovery=Discovery(enabled=True),
            discovery_append=(ExplorationComparer(use="operation-blocks", neighbours=1),),
              drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=True, measured=True,

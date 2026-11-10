@@ -49,8 +49,8 @@ answer that failed counts as not reported.
 
 | Variant | Failed answers | AUC | Recall | False reports | Cost a pair | Seconds |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Text answer, reported at 0.5 | 0 | 0.945 | 87.4% | 8.2% | $0.00062 | 4.1 |
-| Text answer at default effort, as `balanced` runs it | 2 | 0.898 | 89.0% | 8.7% | $0.00070 | 4.3 |
+| Text answer at low effort, as `balanced` runs it, reported at 0.5 | 0 | 0.945 | 87.4% | 8.2% | $0.00062 | 4.1 |
+| Text answer at the model's default effort, as `balanced` ran before 1.10 | 2 | 0.898 | 89.0% | 8.7% | $0.00070 | 4.3 |
 | First schema (literals, one-line descriptions), decision first | 15 | | 47.7% | 1.2% | $0.00055 | 2.0 |
 | First schema, reason first, forced tool call, score at 0.3 | 58 | 0.862 | 74.1% | 6.4% | $0.00057 | 2.3 |
 | First schema, reason first, JSON-schema mode, score at 0.3 | 0 | 0.946 | 85.5% | 8.2% | $0.00049 | 2.3 |
@@ -62,6 +62,10 @@ answer that failed counts as not reported.
 Higher AUC and recall are better; lower failures, false reports, cost and seconds are better. AUC is the chance
 that a labelled duplicate scores above a labelled separate pair; it does not depend on a threshold.
 
+- **Low effort is the better text judge.** Against the model's default effort it reports the same pairs within
+  run-to-run noise, ranks them better (AUC 0.945 against 0.898), costs 12% less and loses no answer to the
+  output limit. On 1,526 further labelled snippet pairs the default effort lost 9 answers and low effort none.
+  The real-commit replays below ran at low effort too. `balanced` runs at low effort from 1.10.
 - **The schema is prompt text.** Putting the decision before the reasoning halves recall. Spelling the fields out
   (enums, descriptions, a score rubric) removes the 58 failed answers of the forced tool call and gives the best
   ranking of any variant.

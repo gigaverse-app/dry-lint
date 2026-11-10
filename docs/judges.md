@@ -5,11 +5,13 @@ hooks and audits unless the repository documents a concrete cost, credential or 
 
 | Lane | Default | What a finding means |
 | --- | --- | --- |
-| Functions | `balanced`: Claude Haiku 5.5, shared-operation prompt, report/fail at 0.5 | A named executable operation has competing implementations; inspect the proposed shared owner |
+| Functions | `balanced`: Claude Haiku 5.5 at low effort, shared-operation prompt, report/fail at 0.5 | A named executable operation has competing implementations; inspect the proposed shared owner |
 | Models | Model discovery and optional Jev ranking, followed by agent review | Investigate the complete model family, producers, consumers and ownership; a score never authorizes a merge |
 
 Balanced keeps protected TF-IDF candidates, explores up to 20 neighbours, adds one bounded operation-block neighbour,
-and shares a persistent $0.04 budget across a PR's pushes. API judging uses a 2,048-token response limit and no SDK retries.
+and shares a persistent $0.04 budget across a PR's pushes. API judging uses low effort, a 2,048-token response limit and no SDK retries.
+Until 1.10 it ran at the model's default effort. Effort is part of the judge's version, so upgrading re-judges stored
+pairs once, and a repository with a baseline runs `dry-lint baseline-migrate`.
 Deferred or failed judgments are not negative verdicts. Required CI uses `require-complete: 'true'`.
 Tests/migrations/scripts remain excluded by default; including them is a repository scope choice, not a reason to
 suppress all fixtures. Two wrappers entering the same lifecycle helper are separate; independently implementing
@@ -190,8 +192,7 @@ reports from 0.3 and fails only from 0.4.
 | Answers that could not be read | 0.4% | none |
 | A pair, on real commits | $0.0004, 4 s | $0.0005, 2 s |
 
-Both columns ran at low effort; `balanced` itself runs at the model's default effort, which was measured only on
-the labelled pairs ([benchmark](benchmark.md#structured-answers)). So it is the faster judge and the one to block on. It is not cheaper: its answers are shorter, but the schema adds
+Both columns ran at low effort, as `balanced` does from 1.10 ([benchmark](benchmark.md#structured-answers)). The schema judge is the faster judge and the one to block on. It is not cheaper: its answers are shorter, but the schema adds
 about a thousand tokens to every question. `balanced` still finds more confirmed duplicates and stays the default; `auto` never picks this preset. It is another judge with another version: switching
 re-judges stored pairs once, and a baseline needs `dry-lint baseline-migrate`.
 
