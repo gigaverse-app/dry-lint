@@ -1,0 +1,28 @@
+# Keep reader lists explicit: shared ownership must not widen dependency selection.
+dependencies:
+  - readers:
+      - test_bench_background.py
+      - test_function_index.py
+      - test_index_github.py
+      - test_language_analysis.py
+      - test_model_adoption.py
+    inputs:
+      - //src/dry_lint/model_shapes.py
+    kind: import
+    reason: Runtime extraction loads the model-shape implementation.
+  - readers:
+      - test_bench_background.py
+      - test_function_index.py
+      - test_model_adoption.py
+    inputs:
+      - //src/dry_lint/extractors.py
+      - //src/dry_lint/source_context.py
+      - //src/dry_lint/typescript.py
+    kind: import
+    reason: Runtime extraction loads these implementations.
+  - readers:
+      - test_bench_background.py
+    inputs:
+      - //scripts/freeze_bench_background.py
+    kind: import
+    reason: Runs the freezing script through run_main.
