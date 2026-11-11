@@ -8,24 +8,100 @@ source reviewers adjudicated 54 fresh stratified candidates: 11 useful, 42 separ
 places 4. It retains every score for coding-agent review and carries adopter ownership policies. These sample
 yields and ranking results do not inherit the function benchmark's population precision/recall claims.
 
-The generic concept prompt is now `dry-v2`: language-neutral, with forwarding distinguished from repeated
-policy around a call. It has not been recalibrated; the historical second-judge results below used `dry-v1`.
-The measured Jev `reuse-v2` and contextual `reuse-context-v3` profiles are unchanged.
+The maintained text prompt is now `dry-operations-v3`; the former concept and compact names are compatibility
+aliases. The historical second-judge results below used `dry-v1` and do not calibrate the new prompt.
+The Jev `reuse-v2` and contextual `reuse-context-v3` profiles remain explicit compatibility choices.
 
 The production `balanced` agent-hook profile has separate [58-commit validation](production-discovery-results.md):
 cumulative budgets, preserved baseline coverage, same-file exploration and reviewed feedback. Its small known-positive
-panel does not inherit the corpus precision/recall estimates below. Unattended `auto` remains unchanged.
+panel does not inherit the corpus precision/recall estimates below. `auto` now selects balanced with Anthropic
+credentials; see [judging defaults](judges.md) for credential fallback and the separate model-review lane.
 
-The opt-in shared-operation judge and protected historical scheduler have separate
-[paired development and fresh-PR measurements](protected-exploration.md). Their prompt and discovery policy
-do not inherit the calibrated precision/recall claims below, and do not change defaults.
+The shared-operation judge and protected historical scheduler have separate
+[paired development and fresh-PR measurements](protected-exploration.md). Those historical results do not
+calibrate the updated prompt now used by balanced.
 
-The opt-in cross-repository TypeScript judge has a separate [context calibration probe](context-probe.md).
-Its small diagnostic sample does not inherit the Python precision/recall claims below.
+## Current default regression panel
 
-Measured in November 2026 on gigaverse-ai: a Python monorepo of 7,000–10,000 functions (depending on what is excluded),
-much of it written with coding agents. The gold labels contain that private code and are not published, apart from
-[30 example pairs](#example-pairs). The method is described here so it can be repeated on another codebase.
+One live Claude Haiku 5.5 run with `dry-operations-v3`, a 2,048-token response limit and the balanced 0.5 threshold
+produced these results. These are small curated, agent-labelled regression panels, not population estimates.
+
+| Panel | Useful duplication detected (higher is better) | False positives (lower is better) |
+| --- | --- | --- |
+| [Oz's actual fixtures](../examples/oz-fixtures-gold.toml) | 6/6 | 0/6 |
+| [pytest-obligation](../examples/pytest-obligation-gold.toml), excluding borderline cases | 5/6 | 1/6 |
+| [Due](../examples/due-consolidation-gold.toml) | 5/7 | 0/3 |
+
+Oz's shared-helper adapters produced 6/6 false positives in the recorded Jev/agent incident. The new panel
+also retains their original independent setup/yield/teardown implementations as positive controls. The initial
+shared-operation v2 replay caught 5/6 of those controls; v3 explicitly distinguishes owning a resource lifecycle
+from entering an existing owner. Broader misses above remain limitations; these results do not establish the
+precision or recall of the new default across repositories.
+
+## Structured answers
+
+Does a schema-constrained answer judge as well as free text? Measured in November 2026, every variant Claude
+Haiku 5.5 at `effort = "low"` with a 2,048-token limit and the `dry-operations-v3` question.
+
+**Labelled pairs.** 756 pairs (317 duplicates, 439 separate) from nine repositories, Python and TypeScript, each
+sent as the two whole functions the detector would propose. Labels are source reviews by models, not people. An
+answer that failed counts as not reported.
+
+| Variant | Failed answers | AUC | Recall | False reports | Cost a pair |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Text answer, reported at 0.5 (`balanced-text`) | 0 | 0.945 | 87.3% | 9.8% | $0.00062 |
+| Text answer at default effort | 2 | 0.898 | 89.0% | 8.7% | $0.00070 |
+| First schema (literals, one-line descriptions), decision first | 15 | | 47.7% | 1.2% | $0.00055 |
+| First schema, reason first, forced tool call, score at 0.3 | 58 | 0.862 | 74.1% | 6.4% | $0.00057 |
+| Schema with enums, descriptions and a rubric, forced tool call, score at 0.3 | 0 | 0.959 | 87.7% | 8.9% | $0.00063 |
+| The same with the rules as a cached block | 0 | 0.962 | 89.6% | 8.0% | $0.00041 |
+| The same with the rules in a cached system prompt | 0 | 0.948 | 81.3% | 7.1% | $0.00041 |
+| System prompt with input schema, YAML input, rules repeated after it | 0 | 0.953 | 84.2% | 7.1% | $0.00046 |
+| One function against five look-alikes in one call | 7 of 755 | 0.916 | 86.5% | 15.4% | $0.00028 |
+| **Shipped: revised rubric, thinking, cached block, score at 0.4 (`balanced`)** | 0 | 0.965 | 84.8% | 8.0% | $0.00052 |
+| Shipped, score at 0.5 | 0 | 0.965 | 79.1% | 4.1% | $0.00052 |
+
+Higher AUC and recall are better; lower failures, false reports and cost are better. AUC is the chance that a
+labelled duplicate scores above a labelled separate pair; it does not depend on a threshold. Its 95% interval
+is about ±0.013 here, so 0.959, 0.962 and 0.965 are not told apart by these pairs; 0.945 and 0.948 are lower.
+
+- **The schema is prompt text.** Putting the decision before the reasoning halves recall. Spelling the fields
+  out (enums, descriptions, a score rubric) removes the 58 failed answers of the forced tool call.
+- **Caching costs nothing in accuracy when the prompt keeps its order.** The rules as a cached first block of
+  the user turn rank as well as the uncached prompt, a third cheaper. Moving them to a system prompt makes the
+  judge stricter and ranks worse; a structured input and repeated rules win back about half of that.
+- **Judging a family in one call is not free here.** It is a third cheaper a pair, and false reports double.
+
+**Pairs from real commits.** The 1,174 pairs that 79 recent commits of four private repositories sent to the
+judge under `balanced`'s discovery at 30 exploration pairs a push. Claude Opus 5.5, with the text prompt, judged
+every pair that any variant reported; 141 it confirms. It is a stronger model, not ground truth, and it shares
+the text judge's prompt.
+
+| Variant | Reports | Opus confirms | Opus rejects | Share of the 141 found |
+| --- | ---: | ---: | ---: | ---: |
+| Text answer, reported at 0.5 (`balanced-text`) | 130 | 105 | 25 | 74% |
+| Schema, forced tool call (no thinking), score at 0.3 | 134 | 95 | 39 | 67% |
+| The same, score at 0.4 | 64 | 60 | 4 | 43% |
+| **Shipped: revised rubric and thinking, score at 0.4 (`balanced` reports)** | 136 | 106 | 30 | 75% |
+| **Shipped, score at 0.5 (`balanced` fails)** | 100 | 88 | 12 | 62% |
+| Shipped, score at 0.6 | 54 | 51 | 3 | 36% |
+| Question schema (named operation, overlap, same operation, boundary), score at 0.6 | 120 | 93 | 27 | 66% |
+| Question schema, score at 0.5 | 201 | 124 | 77 | 88% |
+
+More confirmed and fewer rejected are better.
+
+- **Thinking was the difference.** A forced tool call switches thinking off. The labelled pairs did not show
+  what that costs; real commits did: 95 confirmed against 105 for the text judge, which thinks on two thirds of
+  hard pairs. Offered the tool and told to call it, the model thought on 633 of 1,362 pairs and the judge
+  matches the text one, with a threshold that trades reports for precision. It cost $0.00035 and 2.6 s a pair,
+  against $0.00041 and about 4 s.
+- **The judge's own diagnostics found the rubric's fault.** Asked which rule lowered its score, the judge named
+  "generic shape" and "no sensible shared owner" on 82% of the confirmed duplicates it missed, and wrote "the
+  shared operation is real, but" small, test code, or one step of a larger workflow. The first rubric also
+  said which bands are reported, and real partial duplicates were scored just under that line.
+- **Typed questions make a wider dial, not a better judge.** The question schema answers "the same operation:
+  yes" on 29 pairs and Opus confirms all 29, and at 0.5 it finds 88% of the confirmed pool with 38% of its
+  reports rejected. In between it does not beat the shipped schema, and it costs $0.00061 a pair.
 
 ## Public cleanup regression panel
 

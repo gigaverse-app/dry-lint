@@ -23,3 +23,11 @@ def test_release_please_bumps_the_lock_file_the_python_release_type_does_not_kno
     bumped = {entry if isinstance(entry, str) else entry["path"] for entry in package["extra-files"]}
     assert package["release-type"] == "python"  # bumps pyproject.toml and src/dry_lint/__init__.py itself
     assert bumped == {"uv.lock"}
+
+
+def test_a_republish_dispatch_reaches_the_publish_job() -> None:
+    # A republish dispatch skips release-please. Without its own `if:`, publish inherits the default success(),
+    # which also requires every earlier job, so it was skipped and v1.9.1 could not reach PyPI.
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text()
+    publish = workflow.split("\n  publish:\n", 1)[1].split("\n  steps:", 1)[0]
+    assert "if: ${{ !cancelled() && needs.build.result == 'success' }}" in publish

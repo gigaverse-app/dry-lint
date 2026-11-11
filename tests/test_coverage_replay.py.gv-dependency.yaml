@@ -1,0 +1,6 @@
+dependencies:
+  - inputs:
+      - "//scripts/probe_coverage.py"
+      - "//scripts/replay_coverage.py"
+    kind: import
+    reason: "Loaded or run outside the test's imports; recorded by pytest-selective audit --write-declarations."

@@ -4,12 +4,16 @@ from pathlib import Path
 
 import pytest
 
+from dry_lint.cli import main
 from dry_lint.comparers import TfidfComparer
+from dry_lint.dryer import DRYER_REQUIREMENT
 from dry_lint.extractors import PythonExtractor
 from dry_lint.judges.command import CommandJudge
 from dry_lint.plugins import BUILT_IN, identity, load, plugin_class
 from dry_lint.settings import PluginChoice
 from dry_lint.store import DirectoryStore, S3Store
+
+from conftest import Repo
 
 
 def test_built_in_plugins_are_found_by_name() -> None:
@@ -58,3 +62,10 @@ def test_an_unknown_plugin_names_what_is_available(installed) -> None:
         match="Unknown comparer 'minhash'; available: cpu-embedding, cpu-tail-rrf, dryer, model-shape, operation-blocks, shingles, tfidf",
     ):
         plugin_class("comparers", "minhash")
+
+
+def test_missing_dryer_explains_installation(repo: Repo, monkeypatch, capsys) -> None:
+    # Dryer is optional and absent from the default environment; selecting it must say how to install it.
+    monkeypatch.setitem(sys.modules, "dryer.extract", None)
+    assert main(["scan", "--root", str(repo.root), "--detector", "dryer"]) == 2
+    assert f"pip install '{DRYER_REQUIREMENT}'" in capsys.readouterr().err

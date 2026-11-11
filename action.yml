@@ -102,9 +102,18 @@ inputs:
   share-totals:
     description: >-
       On the default branch, add each merged pull request's counts (duplicates kept out, pushes, judgments, spend;
-      the repository only as a hash of its name) to dry-lint's public counter. "false" to opt out.
+      the repository only as a hash of its numeric id) to dry-lint's public counter. "false" to opt out.
     required: false
     default: "true"
+  share-goldens:
+    description: >-
+      Opt in to dry-lint's benchmark. On the default branch, keep each merged pull request's settled pairs (kept
+      out, or dismissed after being reported) as pointers: repository, pinned revision, paths, names, line spans,
+      the verdict and how the label was learned. No code, and nothing is sent: they stay a 30-day
+      dry-lint-goldens artifact in this repository, which dry-lint's maintainers collect only from public
+      repositories registered in docs/goldens/adopters.toml. "true" to opt in.
+    required: false
+    default: "false"
   check-run:
     description: In judge mode, post a "dry-lint" check run on the pull request's head, failing for blocking findings and neutral for advisory findings.
     required: false
@@ -242,6 +251,7 @@ runs:
         INPUT_MODELS: ${{ inputs.models }}
         INPUT_COMMENT_ON_CLEAN: ${{ inputs.comment-on-clean }}
         INPUT_SHARE_TOTALS: ${{ inputs.share-totals }}
+        INPUT_SHARE_GOLDENS: ${{ inputs.share-goldens }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         INPUT_VIEWER_URL: ${{ inputs.viewer-url }}
         INPUT_CHECK_RUN: ${{ inputs.check-run }}
@@ -264,6 +274,14 @@ runs:
       with:
         path: ${{ runner.temp }}/dry-lint/verdicts
         key: dry-lint-verdicts-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.sticky-key || 'default' }}
+    - name: Keep settled pairs for the benchmark (share-goldens)
+      if: always() && steps.run.outputs.goldens == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: dry-lint-goldens-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/dry-lint/goldens.jsonl
+        retention-days: 30
+        if-no-files-found: ignore
     - name: Upload candidates
       if: steps.plan.outputs.mode == 'detect'
       uses: actions/upload-artifact@v7

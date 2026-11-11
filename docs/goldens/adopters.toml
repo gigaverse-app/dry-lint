@@ -1,0 +1,33 @@
+# Repositories that opted in with `share-goldens: "true"`, for scripts/collect_goldens.py.
+# Add yours by pull request. Reviewers check that the repository is public and that its license
+# allows its code in a public benchmark panel; the collector refuses private repositories anyway.
+
+[[adopter]]
+repository = "gigaverse-app/dry-lint"
+license = "Apache-2.0"
+since = "2026-11-08"
+
+[[adopter]]
+repository = "gigaverse-app/due"
+license = "Apache-2.0"
+since = "2026-11-08"
+
+[[adopter]]
+repository = "gigaverse-app/pytest-obligation"
+license = "Apache-2.0"
+since = "2026-11-08"
+
+[[adopter]]
+repository = "gigaverse-app/pytest-selective"
+license = "Apache-2.0"
+since = "2026-11-08"
+
+[[adopter]]
+repository = "gigaverse-app/ci-esta"
+license = "Apache-2.0"
+since = "2026-11-08"
+
+[[adopter]]
+repository = "gigaverse-app/pytest-quint-connect"
+license = "Apache-2.0"
+since = "2026-11-08"

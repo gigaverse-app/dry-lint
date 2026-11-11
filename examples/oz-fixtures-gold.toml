@@ -1,0 +1,364 @@
+# AI-926 / gigaverse-ai #3360. Exact, pinned function excerpts; decorators are omitted by the production extractor.
+# Six pairs already delegated cleanup; six independently implement it. Agent labels, curated regression panel, not a population benchmark.
+# Run: dry-lint bench --gold examples/oz-fixtures-gold.toml --preset balanced
+
+
+[[pair]]
+case = "shared-owner-1"
+label = "separate"
+revision = "4d9adda2c4ac19bbce5021d71892127fdeab197d"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both delegate all cleanup to isolated_collection; ordinary pytest yield wiring has no independent cleanup policy."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_billing_models.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_common/test_models/test_shopify_billing_models.py#L89-L91"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[pair.existing]
+id = "tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py#L37-L39"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[[pair]]
+case = "shared-owner-2"
+label = "separate"
+revision = "4d9adda2c4ac19bbce5021d71892127fdeab197d"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both delegate all cleanup to isolated_collection; ordinary pytest yield wiring has no independent cleanup policy."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_billing_models.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_common/test_models/test_shopify_billing_models.py#L89-L91"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_persistence_service/sinks/test_shopify_orders_repository.py#L172-L174"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[[pair]]
+case = "shared-owner-3"
+label = "separate"
+revision = "4d9adda2c4ac19bbce5021d71892127fdeab197d"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both delegate all cleanup to isolated_collection; ordinary pytest yield wiring has no independent cleanup policy."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_billing_models.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_common/test_models/test_shopify_billing_models.py#L89-L91"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py#L106-L108"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[[pair]]
+case = "shared-owner-4"
+label = "separate"
+revision = "4d9adda2c4ac19bbce5021d71892127fdeab197d"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both delegate all cleanup to isolated_collection; ordinary pytest yield wiring has no independent cleanup policy."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py#L37-L39"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_persistence_service/sinks/test_shopify_orders_repository.py#L172-L174"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[[pair]]
+case = "shared-owner-5"
+label = "separate"
+revision = "4d9adda2c4ac19bbce5021d71892127fdeab197d"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both delegate all cleanup to isolated_collection; ordinary pytest yield wiring has no independent cleanup policy."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py#L37-L39"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py#L106-L108"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[[pair]]
+case = "shared-owner-6"
+label = "separate"
+revision = "4d9adda2c4ac19bbce5021d71892127fdeab197d"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both delegate all cleanup to isolated_collection; ordinary pytest yield wiring has no independent cleanup policy."
+
+[pair.new]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_persistence_service/sinks/test_shopify_orders_repository.py#L172-L174"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4d9adda2c4ac19bbce5021d71892127fdeab197d/tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py#L106-L108"
+sha256 = "495318fa9994e53c2b68d76a0a30785295ef7c4f95123e088ac3eae2559170f3"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    async with isolated_collection(real_mongodb_client, DB_NAME, COLLECTION_NAME) as coll:
+        yield coll
+'''
+
+[[pair]]
+case = "independent-cleanup-1"
+label = "duplicate"
+revision = "4f4eeb2163fbd62e572865a99edd71e997358822"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both independently own the same drop/yield/drop lifecycle; extract one context manager with guaranteed teardown."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_billing_models.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_common/test_models/test_shopify_billing_models.py#L88-L92"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[pair.existing]
+id = "tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py#L36-L40"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[[pair]]
+case = "independent-cleanup-2"
+label = "duplicate"
+revision = "4f4eeb2163fbd62e572865a99edd71e997358822"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both independently own the same drop/yield/drop lifecycle; extract one context manager with guaranteed teardown."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_billing_models.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_common/test_models/test_shopify_billing_models.py#L88-L92"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_persistence_service/sinks/test_shopify_orders_repository.py#L171-L175"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[[pair]]
+case = "independent-cleanup-3"
+label = "duplicate"
+revision = "4f4eeb2163fbd62e572865a99edd71e997358822"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both independently own the same drop/yield/drop lifecycle; extract one context manager with guaranteed teardown."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_billing_models.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_common/test_models/test_shopify_billing_models.py#L88-L92"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py#L105-L109"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[[pair]]
+case = "independent-cleanup-4"
+label = "duplicate"
+revision = "4f4eeb2163fbd62e572865a99edd71e997358822"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both independently own the same drop/yield/drop lifecycle; extract one context manager with guaranteed teardown."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py#L36-L40"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_persistence_service/sinks/test_shopify_orders_repository.py#L171-L175"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[[pair]]
+case = "independent-cleanup-5"
+label = "duplicate"
+revision = "4f4eeb2163fbd62e572865a99edd71e997358822"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both independently own the same drop/yield/drop lifecycle; extract one context manager with guaranteed teardown."
+
+[pair.new]
+id = "tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_common/test_models/test_shopify_sent_billing_marks_filter.py#L36-L40"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py#L105-L109"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[[pair]]
+case = "independent-cleanup-6"
+label = "duplicate"
+revision = "4f4eeb2163fbd62e572865a99edd71e997358822"
+repository = "gigaverse-app/gigaverse-ai"
+label_source = "agent source review of Oz actual fixtures"
+rationale = "Both independently own the same drop/yield/drop lifecycle; extract one context manager with guaranteed teardown."
+
+[pair.new]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_persistence_service/sinks/test_shopify_orders_repository.py#L171-L175"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''
+
+[pair.existing]
+id = "tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py::collection"
+source = "https://github.com/gigaverse-app/gigaverse-ai/blob/4f4eeb2163fbd62e572865a99edd71e997358822/tests/test_persistence_service/sinks/test_shopify_orders_billing_repository.py#L105-L109"
+sha256 = "c6700dbe42af4dbd1c1942e6f8f951a65cabfafcb69bc1fd8fe13bf00723cb58"
+code = '''
+async def collection(real_mongodb_client: AsyncIOMotorClient) -> AsyncIterator[AsyncIOMotorCollection]:
+    coll = real_mongodb_client[DB_NAME][COLLECTION_NAME]
+    await coll.drop()
+    yield coll
+    await coll.drop()
+'''

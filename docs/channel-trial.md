@@ -173,7 +173,7 @@ Labels, samples and per-pair results contain private code and remain local.
 From a dry-lint checkout with the Dryer extra, against each pinned target checkout:
 
 ```bash
-PYTHONHASHSEED=0 uv run --extra dryer python scripts/benchmark_channel_trial.py \
+PYTHONHASHSEED=0 uv run --group dryer python scripts/benchmark_channel_trial.py \
   --root ../target-repository --out /private/channel-trial --gold /private/regression.jsonl --gold /private/fresh.jsonl
 ```
 

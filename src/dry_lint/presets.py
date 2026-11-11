@@ -5,7 +5,7 @@ A threshold belongs to a judging setup, not to dry-lint: Jev's 0.8 and Claude So
 So the judges and the thresholds are chosen together, as a preset, and any of them can still be set explicitly:
 
     [tool.dry-lint]
-    preset = "jev+opus"        # or "auto" (the default): the best preset the environment's credentials allow
+    preset = "balanced"        # or "auto" (the default): the best preset the environment's credentials allow
     fail_at = 0.8              # an explicit value always wins over the preset's
 
 Legacy presets' numbers come from the 250-pair gigaverse-ai gold set (docs/benchmark.md), simulated on each pull
@@ -39,7 +39,7 @@ class Preset(BaseModel):
     report_at: float
     fail_at: float
     needs: tuple[str, ...] = ()  # environment variables that must be set for "auto" to pick it
-    automatic: bool = True  # False: a login no environment variable shows, so it must be named
+    automatic: bool = False  # False: a login no environment variable shows, so it must be named
     measured: bool = True
     numbers: str = ""
 
@@ -105,31 +105,74 @@ PRESETS = {preset.name: preset for preset in [
            drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=False,
            numbers="opt-in agent-reviewed experiment; 17 true and 7 false evidence reports on 10 development PRs; "
                    "local checks use baseline retrieval, not the historical exploration scheduler"),
-    Preset(name="balanced", summary="Agent-reviewed discovery: protected baseline, bounded blocks and persistent budget",
+    Preset(name="balanced", summary="Recommended function review: Claude shared-operation judging, bounded discovery and persistent budget",
            judge=PluginChoice(use="anthropic", model="claude-haiku-5-5", prompt_policy="shared-operations", max_tokens=2048,
                               max_retries=0),
            discovery=Discovery(enabled=True),
            discovery_append=(ExplorationComparer(use="operation-blocks", neighbours=1),),
-             drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=False, measured=True,
+             drop_below=0.5, report_at=0.5, fail_at=0.5, needs=("ANTHROPIC_API_KEY",), automatic=True, measured=True,
              numbers="TF-IDF-only historical panel: 3/3 known positives on 11 PRs; block route evaluated separately; "
                      "agent-reviewed"),
     Preset(name="none", summary="no judge: candidates are listed, nothing is reported or fails",
-           judge=PluginChoice(use="none"), drop_below=0.6, report_at=0.8, fail_at=0.8),
+           judge=PluginChoice(use="none"), drop_below=0.6, report_at=0.8, fail_at=0.8, automatic=True),
 ]}  # fmt: skip
 
-# "auto" takes the first preset whose credentials are all in the environment; the others must be named.
-AUTO_ORDER = ("jev+opus", "jev+claude-code", "jev", "sonnet", "claude-code", "none")
-LISTED = (
-    *AUTO_ORDER[:2],
-    "jev+sonnet",
-    "jev+claude-code-sonnet",
-    "jev+codex",
-    *AUTO_ORDER[2:],
-    "agent",
-    "agent+haiku",
-    "agent-haiku",
-    "balanced",
+# Text prompt calibration is version-specific; legacy tables are historical, not measurements of v3.
+for preset in PRESETS.values():
+    if preset.judge.use != "jev" or preset.escalate is not None:
+        if preset.name != "none":
+            preset.measured = False
+            preset.numbers = "Historical configuration; not population-calibrated for the current shared-operation prompt. See docs/judges.md."
+STRUCTURED_NUMBERS = (
+    "756 labelled pairs: reporting from 0.4 finds 85% of duplicates at 8% false reports (the text judge: "
+    "87% at 10%), AUC 0.965 against 0.945; 1,174 pairs from real commits with Opus 5.5 as referee: 136 "
+    "reports, 106 confirmed (text judge: 130, 105), and failing from 0.5, 88 of 100 confirmed. $0.00035 a "
+    "pair against $0.00041."
 )
+# Balanced until 1.10: the same model, question, discovery and budget, answering in text. Kept under its own name
+# so an adopter can stay on it; the subscription preset still asks in text, through the CLI.
+TEXT = PRESETS["balanced"].model_copy(
+    update={
+        "name": "balanced-text",
+        "summary": "Balanced function review with the text answer format used before 1.10",
+        "automatic": False,
+        "numbers": "AI-926 diagnostic panel: 6/6 independent cleanup pairs detected, 0/6 shared-owner adapters flagged; "
+        "small agent-labelled panel, not population precision/recall.",
+    }
+)
+# The schema's rubric spreads scores where the text judge answers almost yes or no, so the thresholds are its
+# own: it reports from 0.4, where it finds as many confirmed duplicates on real commits as the text judge does
+# at 0.5, and fails from 0.5, where Opus confirmed 88 of its 100 reports (docs/benchmark.md#structured-answers).
+PRESETS["balanced"] = TEXT.model_copy(
+    update={
+        "name": "balanced",
+        "summary": "Recommended function review: Claude answering in a schema, bounded discovery and persistent budget",
+        "judge": PluginChoice(use="langchain", model=HAIKU, effort="low", max_tokens=2048),
+        "drop_below": 0.4,
+        "report_at": 0.4,
+        "fail_at": 0.5,
+        "automatic": True,
+        "measured": True,
+        "numbers": STRUCTURED_NUMBERS,
+    }
+)
+PRESETS["balanced-text"] = TEXT
+# Subscription transport shares balanced-text's retrieval, prompt and decision thresholds.
+PRESETS["balanced-subscription"] = TEXT.model_copy(
+    update={
+        "name": "balanced-subscription",
+        "summary": "Balanced function review through a Claude subscription",
+        "judge": PluginChoice(use="claude-code", model=HAIKU, max_tokens=2048),
+        "needs": ("CLAUDE_CODE_OAUTH_TOKEN",),
+        "automatic": True,
+        "measured": False,
+        "numbers": "Same prompt, model and thresholds as balanced-text; subscription transport is not independently calibrated",
+    }
+)
+# Preserve enforcement for existing TypeSafe-only auto users; adopters pin balanced and fail without Claude.
+PRESETS["jev"].automatic = True
+AUTO_ORDER = ("balanced", "balanced-subscription", "jev", "none")
+LISTED = (*AUTO_ORDER, *(name for name in PRESETS if name not in AUTO_ORDER))
 PRESET_FIELDS = ("judge", "escalate", "drop_below", "report_at", "fail_at", "discovery")
 
 
@@ -140,7 +183,9 @@ def auto_preset(environ: Mapping[str, str] | None = None) -> str:
 
 def resolve(settings: Settings, environ: Mapping[str, str] | None = None) -> Settings:
     """The settings with the preset's judges and thresholds filled in wherever they were not set explicitly."""
-    if settings.preset == "auto" and "judge" in settings.model_fields_set:
+    if settings.preset == "auto" and "judge" in settings.model_fields_set and settings.judge.use == "none":
+        settings = settings.model_copy(update={"preset": "none"})  # no judge is the `none` preset, not your own judge
+    elif settings.preset == "auto" and "judge" in settings.model_fields_set:
         # Your own judge: a preset's escalation and thresholds were measured for other judges, so none is added.
         update = {} if "escalate" in settings.model_fields_set else {"escalate": None}
         return settings.model_copy(update={**update, "preset": "custom"})

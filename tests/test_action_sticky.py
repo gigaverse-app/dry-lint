@@ -7,7 +7,7 @@ import pytest
 from test_ledger import push
 from test_report import finding
 
-from dry_lint import sticky
+from dry_lint import __version__, sticky
 from dry_lint.ledger import SPREAD, PullLedger, RepositoryLedger
 from dry_lint.report import CLEAN, NOTE_SLOT
 from dry_lint.sticky import MARKER, GitHub, compose, marker, upsert
@@ -183,6 +183,40 @@ def test_the_comment_carries_one_marker_the_banner_when_it_renders_and_its_sourc
     assert "sticky-banner-dark.svg" in body and 'sticky-banner-light.svg" width="100%"' in body
     assert f"commit {HEAD[:7]}" in body and "[run](https://github.com/acme/shop/actions/runs/9)" in body
     assert "<picture>" not in compose(REPORT) and "<sub>" not in compose(REPORT)
+
+
+RAW = "https://raw.githubusercontent.com"
+
+
+@pytest.mark.parametrize(
+    "environ, revision",
+    [
+        # a released Action, by tag or by SHA, on Linux and Windows runners
+        ({"GITHUB_ACTION_PATH": "/home/runner/work/_actions/gigaverse-app/dry-lint/v1"}, "gigaverse-app/dry-lint/v1"),
+        ({"GITHUB_ACTION_PATH": "D:\\a\\_actions\\gigaverse-app\\dry-lint\\v1.8.1\\"}, "gigaverse-app/dry-lint/v1.8.1"),
+        ({"GITHUB_ACTION_PATH": f"/w/_actions/acme/dry-lint-fork/{'f' * 40}"}, f"acme/dry-lint-fork/{'f' * 40}"),
+        # `uses: ./`: the repository under test, at the commit under test
+        (
+            {"GITHUB_ACTION_PATH": "/w/dry-lint/dry-lint", "GITHUB_REPOSITORY": "acme/dry-lint", "GITHUB_SHA": HEAD},
+            f"acme/dry-lint/{HEAD}",
+        ),
+        # outside the Action: the release this package is, never a moving branch
+        ({}, f"gigaverse-app/dry-lint/v{__version__}"),
+        ({"GITHUB_ACTION_PATH": "/w/dry-lint/dry-lint"}, f"gigaverse-app/dry-lint/v{__version__}"),
+    ],
+)
+def test_the_banner_comes_from_the_action_s_own_revision(environ, revision, monkeypatch) -> None:
+    assert sticky.assets(environ) == f"{RAW}/{revision}/docs/assets"
+    for name in ("GITHUB_ACTION_PATH", "GITHUB_REPOSITORY", "GITHUB_SHA"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in environ.items():
+        monkeypatch.setenv(name, value)
+    body = compose(REPORT, banner=True)
+    assert f'srcset="{RAW}/{revision}/docs/assets/sticky-banner-dark.svg"' in body
+    assert f'src="{RAW}/{revision}/docs/assets/sticky-banner-light.svg"' in body and "/main/" not in body
+    asked = []
+    sticky.banner_available(httpx.MockTransport(lambda request: asked.append(str(request.url)) or httpx.Response(200)))
+    assert asked == [f"{RAW}/{revision}/docs/assets/sticky-banner-light.svg"]
 
 
 @pytest.mark.parametrize("status, expected", [(200, True), (404, False)])
@@ -362,7 +396,7 @@ def test_a_failed_peer_scope_does_not_claim_its_earlier_duplicate_was_kept_out(t
         [*common, "--findings", "0", "--run", "2", "--report", f"local={local_json}"],
         transport=httpx.MockTransport(fake),
     )
-    assert (ledger_of(fake).count("open"), ledger_of(fake).count("kept-out")) == (1, 0)
+    assert (ledger_of(fake).count("open"), ledger_of(fake).count("not-reported")) == (1, 0)
     assert "kept out of the codebase**" not in fake.stickies()[0]
 
 
@@ -409,12 +443,12 @@ def test_the_comment_keeps_the_pull_requests_ledger_across_runs(tmp_path: Path, 
     post(fake, tmp_path, push("b" * 40), "2")
     post(fake, tmp_path, push("b" * 40), "2")  # the same run, posting again
     ledger = ledger_of(fake)
-    assert (ledger.pushed, ledger.tally.runs, ledger.count("kept-out")) == (2, 2, 1)
-    assert "**1 duplicate kept out of the codebase** for $0.004 of judging, across 2 pushes." in fake.stickies()[0]
+    assert (ledger.pushed, ledger.tally.runs, ledger.count("not-reported")) == (2, 2, 1)
+    assert "**1 finding no longer reported** for $0.004 of judging, across 2 checked pushes." in fake.stickies()[0]
     body = fake.stickies()[0]
-    assert body.index("### 🧹 A little less lint") < body.index("<summary><strong>Scan details")
-    assert "| **1 pair** | **0 pairs** | **0 pairs** |" in body.replace(SPREAD, "")
-    assert "`bbbbbbb` · **+1 pair cleaned up**" in body
+    assert body.index("### 🧺 This PR's cleanup basket") < body.index("<summary><strong>Scan details")
+    assert "| **0 pairs** | **0 pairs** | **0 pairs** | **1 pair** |" in body.replace(SPREAD, "")
+    assert "pair cleaned up**" not in body
 
 
 def test_the_run_defaults_to_the_workflow_run_and_attempt(tmp_path: Path, monkeypatch) -> None:
@@ -449,7 +483,7 @@ def test_the_ledger_with_the_most_runs_survives_racing_copies() -> None:
     fake = FakeGitHub([f"{MARKER}\nold\n{fewer.snapshot()}", f"{MARKER}\nnew\n{more.snapshot()}"])
     upsert(client(fake), REPO, PR, REPORT, 1, reports=[push("c" * 40)], run="3")
     ledger = ledger_of(fake)
-    assert ledger.pushed == 3 and ledger.count("kept-out") == 1
+    assert ledger.pushed == 3 and ledger.count("not-reported") == 1
 
 
 def test_a_post_without_a_report_keeps_the_ledger_as_it_was() -> None:
@@ -479,7 +513,7 @@ def test_the_repositorys_totals_follow_the_pull_requests_own(tmp_path: Path, mon
     assert "🏆" not in fake.stickies()[0]
     fake = FakeGitHub()
     post(fake, tmp_path, push("c" * 40), "5", "--repository-ledger", str(saved))
-    assert "<sub>🏆 `acme/shop` since Oct 1, 2026: **1 duplicate kept out of the codebase**" in fake.stickies()[0]
+    assert "<sub>🏆 `acme/shop` since Oct 1, 2026: **1 finding no longer reported**" in fake.stickies()[0]
 
 
 def test_the_sticky_counts_what_the_commits_say_the_pre_commit_hook_kept_out() -> None:
@@ -487,7 +521,7 @@ def test_the_sticky_counts_what_the_commits_say_the_pre_commit_hook_kept_out() -
     fake = FakeGitHub(commits=["feat: prices", f"fix: reuse money\n\n{trailer}"])
     upsert(client(fake), REPO, PR, REPORT, 1, reports=[push("a" * 40)], run="1")
     assert ledger_of(fake).pairs["ab7719f1ec3f9b70"].before_commit
-    assert "kept out before commit, by the pre-commit hook" in fake.stickies()[0]
+    assert "no longer reported before commit, by the pre-commit hook" in fake.stickies()[0]
 
 
 def test_the_sticky_still_posts_when_the_token_cannot_read_the_commits() -> None:

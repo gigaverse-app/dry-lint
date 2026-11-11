@@ -1,7 +1,6 @@
 """The optional source runs real upstream extraction and scoring through dry-lint."""
 
 import json
-import sys
 
 import pytest
 
@@ -37,7 +36,7 @@ def test_dryer_cli_reports_real_structural_twins(repo: Repo, command: str, capsy
         args += ["--base", "main"]
     assert main(args) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["schema"] == 14
+    assert payload["schema"] == 16
     candidates = payload["candidates"] if command == "detect" else [f["candidate"] for f in payload["findings"]]
     twins = [c for c in candidates if {c["new"]["name"], c["existing"]["name"]} == {"compute", "calculate"}]
     assert all(c["similarity_reusable"] is False for c in candidates)
@@ -161,12 +160,6 @@ def test_overload_signatures_do_not_inherit_the_implementation_fingerprint() -> 
     detector = build(functions, source_settings())
     assert detector.neighbours(functions[0]) == []
     assert [(other.name, score) for other, score in detector.neighbours(functions[1])] == [("calculate", 1.0)]
-
-
-def test_missing_optional_package_explains_installation(repo: Repo, monkeypatch, capsys) -> None:
-    monkeypatch.setitem(sys.modules, "dryer.extract", None)
-    assert main(["scan", "--root", str(repo.root), "--detector", "dryer"]) == 2
-    assert "install 'dry-lint[dryer]'" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
