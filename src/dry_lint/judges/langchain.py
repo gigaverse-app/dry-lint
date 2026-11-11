@@ -81,6 +81,8 @@ class ConsolidationOwner(StrEnum):
 class BehaviourDifference(BaseModel):
     """One decision the two functions make differently in the part they share."""
 
+    # Prompt text, changed only with a measurement; models.Difference is the file format, kept in stores and reports.
+    # dry-lint: distinct-from src/dry_lint/models.py::Difference
     what: str = Field(description="The decision the two functions make differently, in a few words.")
     new_does: str = Field(description="What NEW does, in one short phrase.")
     existing_does: str = Field(description="What EXISTING does, in one short phrase.")
