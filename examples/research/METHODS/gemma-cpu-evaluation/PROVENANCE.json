@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "gemma-cpu-evaluation",
+      "original_path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_adapter.py",
+      "original_sha256": "acf15b46189903f93c2aac7959af70238afe034f616f03631debd646f083ac99",
+      "public_path": "gemma-cpu-evaluation/implementation/gemma_adapter.py",
+      "public_sha256": "21cc2746fcce9285526c751d2ede7e15a74f912a11fbcf127a97412d1e209804",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "gemma-cpu-evaluation",
+      "original_path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_variants.py",
+      "original_sha256": "fd02dd6403f01610ee9ea03cab045d100594dfdb959c0e776d9cf2e6e9e953d9",
+      "public_path": "gemma-cpu-evaluation/implementation/gemma_variants.py",
+      "public_sha256": "7e2966a158932d91f04bf9e67723f742b8686c13b9e00cd76abf9dd23533ad8d",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": []
+    },
+    {
+      "method": "gemma-cpu-evaluation",
+      "original_path": "jobs/gemma-cpu-evaluation/.lab-results/gemma_batch_adapter.py",
+      "original_sha256": "e102a52ced4eba4f4ea705b1b6ca2692a53da5fc1cc4e04e24ca72c673699037",
+      "public_path": "gemma-cpu-evaluation/implementation/gemma_batch_adapter.py",
+      "public_sha256": "bc76d4d6e0bc07f5e7287f0989f83d941fe55f5deb2676dc3c57a78afe3e84b6",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "I001"
+      ]
+    },
+    {
+      "method": "gemma-cpu-evaluation",
+      "original_path": "jobs/gemma-cpu-evaluation/.lab-results/full_openhands.py",
+      "original_sha256": "08c585c75f16a9164fa97b352d4ac67f6a195f0259e719380a070fd7825901f1",
+      "public_path": "gemma-cpu-evaluation/implementation/full_openhands.py",
+      "public_sha256": "511a21f65aff7e5f009176c2d124233d49d830aaacf854e8512f5297ed6fa492",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "E741",
+        "I001"
+      ]
+    },
+    {
+      "method": "gemma-cpu-evaluation",
+      "original_path": "jobs/gemma-cpu-evaluation/.lab-results/archive_runner.py",
+      "original_sha256": "7cb5a8131a92760f6bbaff1c74c9016fb8b7603a57bdf3754a1e3a02af79a909",
+      "public_path": "gemma-cpu-evaluation/implementation/archive_runner.py",
+      "public_sha256": "08e325964ca9f2f61e51565f6572caddcad1c8f1c8425acaaf3e938f45f20b6d",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "I001",
+        "UP017"
+      ]
+    },
+    {
+      "method": "gemma-cpu-evaluation",
+      "original_path": "jobs/gemma-cpu-evaluation/.lab-results/throughput.py",
+      "original_sha256": "bb373b98d0de17a2486884f2e9ba6cabee6c6c2f9f3a1809227085725959489f",
+      "public_path": "gemma-cpu-evaluation/implementation/throughput.py",
+      "public_sha256": "9c2db32105158b681c908fd4dffb0a43515d7513f32aaabb189bb8a11bf7273c",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "F401",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}
