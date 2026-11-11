@@ -472,6 +472,29 @@ def test_run_info_outside_actions_is_the_local_head(repo: Repo) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "repository,pull,ref,session",
+    [
+        ("acme/shop", {}, "refs/heads/main", "refs/heads/main"),
+        ("acme/shop", {}, "refs/tags/main", "refs/tags/main"),
+        ("acme/shop", {"number": 7}, "refs/pull/7/merge", ""),
+        ("", {}, "refs/heads/main", ""),
+    ],
+)
+def test_action_session_identity_preserves_pr_and_local_ownership(
+    repo: Repo, tmp_path: Path, monkeypatch, repository, pull, ref, session
+) -> None:
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps({"pull_request": pull}))
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event))
+    monkeypatch.setenv("GITHUB_REPOSITORY", repository)
+    monkeypatch.setenv("GITHUB_REF", ref)
+    info = run_info(repo.root, None)
+    assert info.session == session
+    assert info.pull_request == pull.get("number")
+    assert info.head == repo.git("rev-parse", "HEAD").strip()
+
+
 def test_errors_exit_2_with_a_message(tmp_path: Path, capsys) -> None:
     assert main(["check", "--root", str(tmp_path), "--judge", "none"]) == 2
     assert capsys.readouterr().err.startswith("dry-lint: ")

@@ -70,9 +70,13 @@ def run_info(root: Path, base: str | None) -> Run:
     """The repository, pull request and head commit, from the GitHub Actions environment when there is one."""
     pull = github_event().get("pull_request") or {}
     head = (pull.get("head") or {}).get("sha") or git(root, "rev-parse", "HEAD")
+    repository = os.environ.get("GITHUB_REPOSITORY", "")
     return Run(
-        repository=os.environ.get("GITHUB_REPOSITORY", ""),
+        repository=repository,
         pull_request=pull.get("number"),
+        # Actions checks out SHAs detached. The full ref keeps non-PR campaigns stable across reruns,
+        # separates branches from tags, and leaves the checked-out commit as the revision authority.
+        session=os.environ.get("GITHUB_REF", "") if repository and not pull else "",
         head=head,
         base=base_ref(root, base),
     )

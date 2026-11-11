@@ -46,8 +46,12 @@ check. Initializing or advancing a baseline needs every pair judged, budget-defe
 
 A local campaign defaults to the Git branch, shared by its worktrees through the common Git directory. Use
 `--session TASK` to name a task explicitly, including detached checkouts. Reusing a branch reuses its allowance;
-choose a new session for a new task. GitHub PR runs use repository + PR number. Changing prompts, rerunning a tree,
-or restarting the process does not reset the campaign. Earlier legacy PR spend is imported conservatively.
+choose a new session for a new task. GitHub PR runs use repository + PR number. Non-PR GitHub Actions runs use
+repository + full `GITHUB_REF` (for example, `refs/heads/main`), even when checkout detaches HEAD at a commit.
+An explicit `--session` overrides that non-PR default. Branches and tags with the same name stay separate;
+rerun attempts share the campaign and the checked-out commit remains its source revision.
+Changing prompts, rerunning a tree, or restarting the process does not reset the campaign. Earlier legacy PR
+spend is imported conservatively.
 
 The SQLite ledger is `discovery.sqlite3` beside the verdict directory. `--discovery-state PATH` selects persistent
 storage explicitly. Atomic reservations prevent concurrent local processes from over-admitting calls. Each
