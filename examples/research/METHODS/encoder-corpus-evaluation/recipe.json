@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "method": "encoder-corpus-evaluation",
+  "mechanism": "Raw full-background cosine ranks exclude self, use deterministic source-identity ties and apply no inherited similarity floor. Retain both directions and cross-file/language eligibility separately. Native comparison uses the pinned product stack, RRF60 priority, and .04 funding. Receipts bind actual query/document matrix hashes, source hashes and background hash; missing matrices leave comparisons pending.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/REPORT.md",
+      "sha256": "b6bad9ebea88b37e8e620dcc9748652aabc6820e10c0b831902c20664661b6f1",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/MODEL-CONTRACT.json",
+      "sha256": "233a45a11875863e5254b0724135b1a15c670e9b9c0660748080fdc8edbefd3f",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/COVERAGE.json",
+      "sha256": "8ffdcdf479ba505061a2ba8482baaa1e1d0a41ae94ea511ac65bc4da62e5f5e7",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/FINAL-SETUP-STATUS.json",
+      "sha256": "9a3aa3298d4d1edddf12167297c79bfcad6ceb1f10566fb5f031a3f1cccf711f",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/ROOT-RANK-COMPARISON.json",
+      "sha256": "50307b75a9c4815de4f70d6d85a6c4ea9b378edbce7c62f6d27fc0a2101a934d",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/FAILURES.json",
+      "sha256": "f012dd732aab6f5163d58013719ce33941b2423efb9eedf6307ce29329be1b85",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/HOST-READY.json",
+      "sha256": "a1239cb241088f572e4eb20ca218e7ce724e04be207761b5b80bb4fcd4b41c19",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/HOST-READY.superseded.json",
+      "sha256": "8007efb83850c5c8d58f514e09445b61a8f8984fbdc1502bc2e4b3591c7f13bd",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/panels.jsonl",
+      "sha256": "d60f54bf5356cdc31b457b19901a21d409c07fae264f784ce33ae379e11b4840",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/mapped-gold.jsonl",
+      "sha256": "ce8e41ddb6df6ab6e3d556ee6c4958b5a7538b0e6dbbb87ec835e2eb4d4fdcd3",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/input-hashes.json",
+      "sha256": "4e8b6d397781e48111a4525a58426526886bc259da7df4dbc4d8bec6666c700a",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Recompute scores and exact raw ranks from one explicitly selected completed cached matrix; no encoder inference or paid judging.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/openhands-ebd00315/matrix-1024.json",
+      "sha256": "2f44d1e8c8b1a927d2a9abbaa9d5b162a5513e8e6ea1443e9ce467aa36484f4a",
+      "bytes": 173031
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/panels.jsonl",
+      "sha256": "d60f54bf5356cdc31b457b19901a21d409c07fae264f784ce33ae379e11b4840",
+      "bytes": 150852
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/documents/bg-ebd0031534c954e5.jsonl",
+      "sha256": "52abb71830d6eef73eb27c76fc940ace8ded2ad3bc24a0de7e7eb5292b8b14f6",
+      "bytes": 464992
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/ranks/coderank-sdpa-bf16-t4-singleton-1024/bg-ebd0031534c954e5.jsonl",
+      "sha256": "06e8d10f9a931596ef56552b080f3da74cdba91c0b96b483dd01cd9d3b76f5f2",
+      "bytes": 360483
+    }
+  ]
+}

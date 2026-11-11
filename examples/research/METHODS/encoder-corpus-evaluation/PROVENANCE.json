@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "encoder-corpus-evaluation",
+      "original_path": "jobs/encoder-corpus-evaluation/.lab-results/common.py",
+      "original_sha256": "97917766c885f44cd08b92f57c3a483c931b437f8305adc22e8829a4173c693a",
+      "public_path": "encoder-corpus-evaluation/implementation/common.py",
+      "public_sha256": "c7f77653a7019609a753c0e159ee1bbc4d1073ceae0f1debed99a58fa3f2d2c6",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "I001"
+      ]
+    },
+    {
+      "method": "encoder-corpus-evaluation",
+      "original_path": "jobs/encoder-corpus-evaluation/.lab-results/rank_harness.py",
+      "original_sha256": "975a0ccac8b5b137f6b6baadea2ab6acb566372f0a8b895790ff71894254bbfa",
+      "public_path": "encoder-corpus-evaluation/implementation/rank_harness.py",
+      "public_sha256": "5261cced06c7dbba951e8ac594deadaa8f0c578d2844c54aad3af556b2a8d95f",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E731",
+        "F401",
+        "F403",
+        "F405",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "encoder-corpus-evaluation",
+      "original_path": "jobs/encoder-corpus-evaluation/.lab-results/native_harness.py",
+      "original_sha256": "cbda5df1313f6b2a4fe9adaf25d63be19bf3b7fe9ff3d128b84c5aa2a2a13a7f",
+      "public_path": "encoder-corpus-evaluation/implementation/native_harness.py",
+      "public_sha256": "bf5764c5bb6e935a37d63e494f54da60c56a59f67cc868575ced0e79429a7e1d",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "E401",
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "encoder-corpus-evaluation",
+      "original_path": "jobs/encoder-corpus-evaluation/.lab-results/build_panel.py",
+      "original_sha256": "5c111a0cb77e3a7cec890cebe23dfc2e1f709f3d87816ae2befd421b2100f770",
+      "public_path": "encoder-corpus-evaluation/implementation/build_panel.py",
+      "public_sha256": "a098aca56c827ef2a35951157de911496c58fd0e1b8aaf19f78507f592eb9adb",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "F403",
+        "F405",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "encoder-corpus-evaluation",
+      "original_path": "jobs/encoder-corpus-evaluation/.lab-results/tail_cache.py",
+      "original_sha256": "42786a304faf3f97ff80fecd0a69cc1bec638435eac95a1424c0296ff626aa80",
+      "public_path": "encoder-corpus-evaluation/implementation/tail_cache.py",
+      "public_sha256": "666739d9fe8f9a635f088bff3a88fc4686538f5406a8cb5712efa260c80f3e79",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "I001"
+      ]
+    },
+    {
+      "method": "encoder-corpus-evaluation",
+      "original_path": "jobs/encoder-corpus-evaluation/.lab-results/test_rank_harness.py",
+      "original_sha256": "87ad3803d0f6163c46cee52964c0c06214bc475b88532e24925a4397acfeb64e",
+      "public_path": "encoder-corpus-evaluation/implementation/test_rank_harness.py",
+      "public_sha256": "1abc19af22fe4a79c896e0ee021a9ec869e2da5cf4f08e63192a27331300eada",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; formatting and documented original lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}
