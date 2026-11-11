@@ -15,7 +15,7 @@ from dry_lint.discovery import CampaignStore, reservation_cost
 from dry_lint.git import git
 from dry_lint.judges import make_escalation, make_judge
 from dry_lint.models import Candidate, Run, Verdict, evidence
-from dry_lint.plugins import Judge, identity, load
+from dry_lint.plugins import Judge, accepted_identities, accepted_versions, identity, load
 from dry_lint.report import Finding, JudgingSummary
 from dry_lint.settings import Settings
 from dry_lint.store import DirectoryStore, VerdictStore
@@ -189,16 +189,20 @@ class Judging:
         assert self.judge is not None
         escalation = None if advisory else self.escalation
         strict = getattr(self.judge, "context", False) or getattr(self.judge, "strict_version", False)
-        version = self.judge.version if refresh or strict else None
+        # --refresh asks again for every answer not of this exact version, older ones the judge accepts included.
+        versions = frozenset({self.judge.version}) if refresh else accepted_versions(self.judge) if strict else None
         second = identity(escalation) if escalation and self.settings.escalate else None
+        seconds = accepted_identities(escalation) if second and escalation and not refresh else frozenset()
         band = self.settings.escalate.between if second and self.settings.escalate else (0.0, 0.0)
         known = [
-            self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version, second, band).verdict
+            self.store.lookup(
+                c, self.judge.name, self.settings.reopen_margin, versions, second, band, escalations=seconds
+            ).verdict
             for c in proposed
         ]
         # A cached first answer the second judge has not seen yet: it stands whenever this run cannot ask again.
         first = {
-            i: self.store.lookup(c, self.judge.name, self.settings.reopen_margin, version).verdict
+            i: self.store.lookup(c, self.judge.name, self.settings.reopen_margin, versions).verdict
             for i, c in enumerate(proposed)
             if second and known[i] is None
         }
@@ -340,7 +344,7 @@ class Judging:
             if batch and (candidate.lane != batch[0][1].lane or len(batch) >= workers):
                 flush()
             cached = store.lookup(
-                candidate, judge.name, self.settings.reopen_margin, judge.version, exact_source=True
+                candidate, judge.name, self.settings.reopen_margin, accepted_versions(judge), exact_source=True
             ).verdict
             if cached is not None:
                 findings.append(Finding(candidate=candidate, verdict=cached, cached=True))

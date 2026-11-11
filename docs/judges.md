@@ -204,6 +204,27 @@ less, with more of what it blocks on confirmed.
 needs `dry-lint baseline-migrate` ([one preset everywhere](#one-preset-everywhere)). To stay on the text judge,
 set `preset = "balanced-text"`. `balanced-subscription` still asks in text through the `claude` CLI, at 0.5.
 
+**How the copies differ.** After its reasoning and before its score, the judge lists up to five behavioural
+differences in the part the two functions share: the decision they make differently, what NEW does, what
+EXISTING does, and the observable consequence. The list is empty when the two behave the same. A report alone
+says two functions are copies; reviewers act on copies that already disagree, and the list shows that drift. In
+a measured sample, Opus found 47 of 50 listed differences on reported duplicates real
+([benchmark](benchmark.md#differences)).
+
+- **Where it shows.** `report.json` keeps every difference, with its consequence. The terminal and the PR
+  comment's details fold show one line per difference, and only for reported pairs:
+  "**what**: NEW does X; EXISTING does Y". Like the reason, it is untrusted text: flattened, capped and escaped.
+- **What it costs.** About 156 more output tokens a pair ($0.00060 against $0.00052). Ranking and reporting at
+  0.4 did not move beyond their noise, and the field says a difference never lowers the score. At the 0.5 fail
+  line, 3.5 points fewer labelled duplicates block (73.7% against 77.2%), with fewer false blocks.
+- **Upgrading.** Nothing is asked again. The prompt changed, so new answers carry version `schema-4`, but a stored
+  `schema-3` answer from the same model, effort and options is still this judge's answer: the field is additive and
+  did not move the decision beyond noise ([design](design.md#verdict-store)). It is reused as is and shows no
+  differences; pairs judged after the upgrade (new pairs, or pairs whose code changed) list them.
+  `dry-lint scan --refresh` asks the old ones again to get theirs. Baselines need no migration; their contract is
+  the settings.
+  Other judges (the text judges, `claude-code`, family judges) do not list differences.
+
 **Diagnostics.** `judge = { use = "langchain", diagnostics = true }` adds two fields after the verdict: what
 made the pair hard, and what the model was not shown and would have needed. They do not change the verdict.
 Read over many pairs they show which rule the judge trips on; that is how the rubric above was corrected.

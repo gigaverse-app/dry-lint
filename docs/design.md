@@ -105,6 +105,12 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 17 adds optional `Verdict.differences`: how the two copies of a pair behave differently, as the
+`langchain` judge lists them ([judges.md](judges.md#structured-answers)). Older records and other judges' verdicts
+load with none. It is not part of any key or hash. The judge's prompt changed with it, so new answers carry
+`schema-4`, while stored `schema-3` answers of the same setup are reused without differences
+([the verdict store](#verdict-store)).
+
 Schema 16 replaces disappearance-based `kept-out` states with `not-reported` in journals and ledgers. Readers
 normalize old states and trailers without awarding cleanup credit or inferring positive training labels.
 Separate baseline evidence still owns debt reductions. Text judges require an exact prompt-version match for
@@ -175,7 +181,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New core files carry `"schema": 16`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 15 remain readable with conservative cache defaults. Schema 9 adds
+New core files carry `"schema": 17`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 16 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds
@@ -253,6 +259,16 @@ duplication or record a source-bound dismissal without spending more judge budge
 `dry-lint scan --refresh` asks again. Contextual judges always require the exact model/prompt version, even without
 `--refresh`. Renaming or moving a function changes its key, so its pairs are judged again.
 
+A judge may name older versions whose answers it still takes as its own (`reused_versions`); every version check,
+on the pair path, the discovery campaign and a second opinion, reads them through `plugins.accepted_versions`, and
+`--refresh` still asks them again. Only the `langchain` judge names one, with its argument beside it
+(`REUSED_PROMPTS` in `judges/langchain.py`): its `schema-4` prompt added the `differences` list and nothing else.
+The field is additive, and on the 748 labelled pairs the decision did not move beyond noise: AUC 0.964 against
+0.963, non-duplicates reported at 0.4 5.73% against 6.65% (labelled duplicates at the 0.5 fail line went from
+77.2% to 73.7%; [benchmark](benchmark.md#differences)). So a `schema-3` answer from the same model, effort and
+options is a valid answer of the same judge, missing only the new field. It is reused as is, with no differences,
+and upgrading costs no re-judging. Another model, effort, option or an older prompt is still another judge.
+
 `dry-lint explain A B` shows all of this for one pair: the similarity and the tokens behind it, whether the
 comparer proposes it, the rule that settles it, the stored verdict and why it is or is not reused.
 
@@ -303,7 +319,9 @@ run list the same findings in the same order: drifted first, then by score.
 - Without a judge, the comment does not list unjudged pairs; it says no judge is configured. Annotations and the
   terminal still show them.
 - A judge's reason is untrusted text: an LLM judge read code from the pull request. It is flattened to one line,
-  capped at 300 characters and escaped wherever markdown shows it.
+  capped at 300 characters and escaped wherever markdown shows it. The differences a judge lists are treated the
+  same way, each part capped at 100 characters, and are shown only for reported pairs: one line each in the
+  terminal and in the comment's details fold.
 
 ## Why TF-IDF is the default comparer
 

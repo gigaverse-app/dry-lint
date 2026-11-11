@@ -43,14 +43,16 @@ def setup(tmp_path):
     return settings, judge, store, requests
 
 
-def check(setup, tmp_path, candidates, revision="tree1"):
+def check(setup, tmp_path, candidates, revision="tree1", *, campaign=True, refresh=False):
+    """One `check` through Judging: with a discovery campaign, or (`campaign=False`) the plain pair path."""
     settings, judge, store, _ = setup
     run = Run(repository="owner/repo", session="feature", revision=revision)
     judging = Judging(settings, judge, None, store)
-    judging.campaign = CampaignStore(tmp_path / "campaign.sqlite3", run)
-    findings = judging.findings(candidates, run)
+    if campaign:
+        judging.campaign = CampaignStore(tmp_path / "campaign.sqlite3", run)
+    findings = judging.findings(candidates, run, refresh=refresh)
     report = Report.build(findings, settings, run=run, judge=judging.name, judging=judging.summary())
-    return report, judging.campaign.snapshot()
+    return report, judging.campaign.snapshot() if campaign else None
 
 
 def test_repeated_evidence_costs_nothing_but_changed_evidence_reopens(setup, tmp_path):
