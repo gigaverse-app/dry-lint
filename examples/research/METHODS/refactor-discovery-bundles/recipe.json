@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "method": "refactor-discovery-bundles",
+  "mechanism": "Schema-2 bundles reuse native Candidate/Function/Finding/Report models and bind revision, scope, source and background digests. Render each exact function once and limit extra reading to a 6,000-source-token proxy; an oversized anchor requires explicit escalation rather than truncation. Relationship edges are navigation, not transitive duplicate proof. Leads cannot become reported, related or blocking without the appropriate authority.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/README.md",
+      "sha256": "5eb7b4b2223cb855d33c7bc0421506cb3d3e310542cd839c4475940a134267cf",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/CONTRACT.json",
+      "sha256": "7304ffe3a9f3d34808d8a45b25020662e4061995fc39b8254b06fc897557d0de",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/EARLY-CONTRACT.json",
+      "sha256": "25fc17b06d4c908199f41bdb1de4d155301c3daabf10ac12ef5f45cc7a33feed",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/bundle.schema.json",
+      "sha256": "6cf984b5ea886d1054e738628c1b2501ba9f3fff2546c51a443c4bbcc4d6e5cb",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/quest.schema.json",
+      "sha256": "13d8ab31480a52a2ca40968a45ddbb4871af69ce233c1ed2835c5bacf1481cf8",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/outcomes.json",
+      "sha256": "3cb678e61af6860551df92f6c18846ef5e7d5ed7a5859cb170db045406263693",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/comparison.json",
+      "sha256": "93f7fe562e546edf23196ba5391dc7e349ae1576182268b0751097aad7923235",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/CLAIMS.json",
+      "sha256": "a8f30b2ae743d0ff8f2e7f1070a1742e6c17ff04343849e92ec2d97d7e940f5d",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/POST-REVIEW-ADDENDUM.json",
+      "sha256": "a1a43ef8b076339bda7c0324316de4757c6de29724d5bcf5138cc65c91af8627",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/refactor-discovery-bundles/.lab-results/test_bundles.py",
+      "sha256": "ee4eeed7a3cf293e3ac8acc1e0205dfbfd722803dad34f112f26246a45d159f4",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Existing bundle tests exercise transport/state invariants; complete study replay requires the pinned source bank and native runtime.",
+  "new_experiments": false
+}
