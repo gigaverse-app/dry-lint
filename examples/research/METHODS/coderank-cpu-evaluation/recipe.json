@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "method": "coderank-cpu-evaluation",
+  "mechanism": "Pin nomic-ai/CodeRankEmbed at 3c4b60807d71f79b43f3c4363786d9493691f8b1. Symmetric code inputs have no prefix. Use reviewed local NomicBert, CLS pooling and FP32 L2 normalization; the selected variant is CPU BF16, SDPA, four threads, canonical singleton input. Limits 1024/2048/4096 include special tokens. Reuse only exact token inputs under the bound model/runtime contract.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/README.md",
+      "sha256": "582e3851dcd6d834c75dda385d7ad73f7be405645f7675ff7b31b38c23997bfa",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/MODEL-HANDOFF.json",
+      "sha256": "a0dd4f684a374b670ef4f4464f42ce551a54c605b40ede783086c85ab52752f8",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/BATCH-STATUS.json",
+      "sha256": "28804ad10bb038846a51662617b3734df962795c48aa392bc4d60887a321b21a",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/BATCH-MATRICES.json",
+      "sha256": "875ec071f5c9617dd0dafba2b6366174668ce8e6135eadf768f264ae312fe31d",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/VARIANT-DECISION.json",
+      "sha256": "4be45a25acca8c22413784c3c09d88b1dc5cacd0a62efa057a0ef532eacaa75b",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/CUSTOM-CODE-REVIEW.json",
+      "sha256": "597af117123f15860168bb6c0bd7c860fa094ff422ef6db7def3f1dd859d2ac3",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/model-artifacts.json",
+      "sha256": "f78fd61da1c3a21c469ff9b7a675788e4c3b8c6bd443db6689848f4b41508a80",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/requirements.lock.txt",
+      "sha256": "914b828d0ca15165cdd154b3a4853b93f92ec9dc03da99cb71d7e8e7a82af713",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/openhands-ebd00315/matrix-1024.json",
+      "sha256": "2f44d1e8c8b1a927d2a9abbaa9d5b162a5513e8e6ea1443e9ce467aa36484f4a",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Replay cosine scores/raw ranks from a completed matrix; weights and CPU inference are not invoked.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/coderank-cpu-evaluation/.lab-results/openhands-ebd00315/matrix-1024.json",
+      "sha256": "2f44d1e8c8b1a927d2a9abbaa9d5b162a5513e8e6ea1443e9ce467aa36484f4a",
+      "bytes": 173031
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/panels.jsonl",
+      "sha256": "d60f54bf5356cdc31b457b19901a21d409c07fae264f784ce33ae379e11b4840",
+      "bytes": 150852
+    },
+    {
+      "path": "jobs/corpus-wide-evaluation/.lab-results/full-corpus/documents/bg-ebd0031534c954e5.jsonl",
+      "sha256": "52abb71830d6eef73eb27c76fc940ace8ded2ad3bc24a0de7e7eb5292b8b14f6",
+      "bytes": 464992
+    },
+    {
+      "path": "jobs/encoder-corpus-evaluation/.lab-results/ranks/coderank-sdpa-bf16-t4-singleton-1024/bg-ebd0031534c954e5.jsonl",
+      "sha256": "06e8d10f9a931596ef56552b080f3da74cdba91c0b96b483dd01cd9d3b76f5f2",
+      "bytes": 360483
+    }
+  ]
+}
