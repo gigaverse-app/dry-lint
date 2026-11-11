@@ -1,4 +1,57 @@
-# History reference miner
+# A reference of duplicates maintainers removed
+
+Every label so far covers a pair the detector proposed, so recall is unknown. This directory measures it against
+duplication people actually fixed: Phase 1 mines git history for duplicates that maintainers later merged, and
+Phase 2 replays the shipped `balanced` preset at the commit that introduced each later copy. The plan is in
+`docs/research-program.md`.
+
+## Phase 1: what it found
+
+557 cases mined from the full history of six public repositories (LiteLLM, OpenHands, Saleor, Zulip, Prefect,
+NetBox; 95,177 non-merge Python commits): 227 pairs and 330 families.
+
+- Opus labelled each case at the commit before the consolidation: 453 yes, 60 partial, 42 no, 2 unclear.
+- 184 of the 513 real cases had copies that already behaved differently before the maintainers merged them.
+- Confirmed real pairs: 199 (LiteLLM 100, Zulip 43, Saleor 38). The program's bar of 200 pairs with 50 in each of
+  two repositories is just missed. Families (314 real) far exceed their bar of 40.
+- The miner's own hand-read of samples: 26 of 30 real (first two repositories) and 18 of 20 real (the other four).
+- 402 records are exported after the size rules (at most 150 lines and less than half the file per snippet). 111 real
+  cases were dropped by those rules; none were truncated.
+
+The labels are Opus's; human review is pending.
+
+## Where the reference lives
+
+The reference is in the private repository
+[gigaverse-app/dry-lint-goldens](https://github.com/gigaverse-app/dry-lint-goldens), folder `history-reference/`:
+402 exported records. It holds only the judged functions, never whole files or repositories, so the third-party code
+stays out of this repository.
+
+## Running
+
+Both tools are standard-library Python (the replay also imports `dry_lint`). Paths below are placeholders: `$OUT` is the miner output folder, `$CLONES` holds the miner's clones, `$REPOS` is the replay root.
+
+```sh
+# Phase 1: mine one repository (stages in order; see "Miner reference" below)
+python mine_history.py log   --out $OUT --repo $CLONES/litellm --name litellm
+python mine_history.py fetch --out $OUT --repo $CLONES/litellm --name litellm
+python mine_history.py mine  --out $OUT --repo $CLONES/litellm --name litellm
+python mine_history.py select --out $OUT litellm
+python mine_history.py blame --out $OUT --repo $CLONES/litellm --name litellm
+
+# Phase 2: replay the shipped preset (needs ANTHROPIC_API_KEY in the environment)
+python replay/replay.py --root $REPOS cases.jsonl results.jsonl --detect-only   # no spend
+python replay/replay.py --root $REPOS cases.jsonl results.jsonl --max-usd 1.0
+```
+
+The replay expects its clones in `$REPOS/repos/<name>` (see
+[replay/README.md](replay/README.md) for the layout, options, cost and faithfulness notes).
+
+## Phase 2 results: running
+
+The full replay is running. Results will be added in a later commit.
+
+# Miner reference
 
 `mine_history.py` finds commits in which maintainers removed duplicated Python functions. It is Phase 1 of the
 research program (`docs/research-program.md`): a reference of real duplicates that dry-lint did not propose.
