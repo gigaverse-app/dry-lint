@@ -18,7 +18,7 @@ A public settings-writer pair ranks second under sparse retrieval, 423rd in the 
 | Fixed RRF60 | 130/159 | 6 / 10 | 112/121 |
 | Conditional union | 132/159 | 7 / 9 | 115/121 |
 
-Inspecting both top-four orderings covers **140/159** accepted positive pair-cases (124 shared, six fusion-only, ten sparse-only). [The exact v2 union calculation](complementarity.json) binds the frozen outcome input. Extra inspection count, native settled cost and new-report yield are not measured by this set union. The useful complementarity finding survives; the failed claim is that fixed fusion should replace sparse ordering at the same top-four cap.
+Inspecting both top-four orderings covers **140/159** accepted positive pair-cases (124 shared, six fusion-only, ten sparse-only). The exact v2 union calculation, recorded in `research/complementary-signal-learning/complementarity.json` in [dry-lint-goldens](https://github.com/gigaverse-app/dry-lint-goldens) (private; see [ACCESS.md](../ACCESS.md)), binds the frozen outcome input. Extra inspection count, native settled cost and new-report yield are not measured by this set union. The useful complementarity finding survives; the failed claim is that fixed fusion should replace sparse ordering at the same top-four cap.
 
 ## Decision and limits
 
@@ -42,4 +42,4 @@ The evidence tree is intentionally required. Obtain authorized access to [dry-li
 
 The original full-workflow entry points can require sibling workers, complete source backgrounds, saved arrays, graph caches and byte-exact request recordings. Some original manifests still contain historical absolute locations. The shared replay maps those locations into the caller's explicit evidence root without editing originals. Direct legacy workflow execution requires a portable materialization of those manifests; merely setting an environment variable is not enough. Full-workflow relocation is **not claimed** unless a validation receipt explicitly records it.
 
-Recovery verification is recorded in [validation.json](validation.json). Numerical/queue/scheduler reproduction and aggregate-only checks are labeled separately there. Original implementations retain targeted legacy lint exceptions; public wrappers use normal repository lint.
+Recovery verification is recorded in `research/complementary-signal-learning/validation.json` in [dry-lint-goldens](https://github.com/gigaverse-app/dry-lint-goldens) (private; see [ACCESS.md](../ACCESS.md)). Numerical/queue/scheduler reproduction and aggregate-only checks are labeled separately there. Original implementations retain targeted legacy lint exceptions; public wrappers use normal repository lint.
