@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "method": "tfidf-blindspot-recovery",
+  "mechanism": "Normalize complete Python AST regions while preserving constants/operators/variable relationships: at most twelve regions per function, 25\u2013400 nodes, at least two calls, 4\u201380 lines, postings \u226464 parents and \u226464 targets per query. Combine this with native block evidence. The frozen structural recipe requires sparse <.35 and available dense similarity \u2265.65, ranked .6 structural + .4 dense. Compare raw .35/top20, deep .35/top100 and zero-floor/top100, retaining default baseline candidates. Residual/hybrid variants protect the complete raw prefix.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/README.md",
+      "sha256": "a1a7662457f6ae24e531bbead517ce2bfb1b1f21bbf3c50d6b3aea38ba845c5f",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/FULL12-RESULTS.md",
+      "sha256": "409c9b1678dbec39031cfceac5f7c7bfb887bc9e5f3d7178bed7007832a9b836",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/FINAL-COLLECTION-HANDOFF.json",
+      "sha256": "b602469e9e2eb0ae128aac6d4a484033451f79d657d2928cc6ed5f200916c7fc",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/FULL12-ACCEPTANCE-INDEX.json",
+      "sha256": "8e9066535f9370017d7861cbaa3a5828358f2e79c36c09d128f50d5525ce0743",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/RESIDUAL-REVISION-CONTRACT.json",
+      "sha256": "6217576428c6215d9a67395ce031d213e80f5cb1a7c43e0f09da750df70dcd69",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/POLICY-DELTA.md",
+      "sha256": "6b82c455414f01155bf944b82c80aeab1f4f6d1620c8f295acfca7508755e147",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/FROZEN-GENERATION-AND-REVIEW.json",
+      "sha256": "659dd0a0c760a0d6bd3fd67f540ec2bcf3b994ea77098e11d66def654f03e9e5",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/FINAL-ANALYSIS-DRIVERS-v2.json",
+      "sha256": "b0b0ea2518da671d1f3bd79b52c8d9f42e8fa826379df95407c949c948bd94d8",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Reaggregate the three frozen all-twelve acceptance runs; this does not replace full scheduler replay or the #122 study.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-original-r3/results.jsonl",
+      "sha256": "5403ddf1d648449884745bc74014c31247bc21ab38e5b3a808adf1175f69b35c",
+      "bytes": 23543962
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-residual-r3/results.jsonl",
+      "sha256": "1fd1b0125ea0a5d3695108a255e38687ee21af6f1bd01e3c0ad021ff992344fb",
+      "bytes": 46567149
+    },
+    {
+      "path": "jobs/tfidf-blindspot-recovery/.lab-results/full12-hybrid-r1/results.jsonl",
+      "sha256": "de4fa5f2a9a46872a897eeef79d7750ffa864268223c20c8579d5807fd2c96f2",
+      "bytes": 29822965
+    }
+  ]
+}
