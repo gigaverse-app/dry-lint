@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -113,7 +114,7 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(
     assert comment.read_text().startswith("<!-- dry-lint -->") and f"`{TWIN.split('::')[1]}`" in comment.read_text()
     assert "blocking" not in comment.read_text()
     written = json.loads(report.read_text())
-    assert written["schema"] == 14 and any(f["reported"] for f in written["findings"])
+    assert written["schema"] == 16 and any(f["reported"] for f in written["findings"])
 
 
 def test_without_a_judge_candidates_are_listed_and_never_fail(repo: Repo, tmp_path: Path, capsys) -> None:
@@ -133,6 +134,67 @@ def test_staged_check_sees_only_the_staged_change(repo: Repo, tmp_path: Path, ca
     assert run(repo, tmp_path, "--staged", "--judge", "none", "--format", "text") == 0
     out = capsys.readouterr().out
     assert "src/more.py:1: shorten_label looks like" in out and "caption.py:1:" not in out
+
+
+def hook_baseline(repo: Repo) -> list[str]:
+    """The hook's arguments as adopters configure it: the settings file's preset, with a committed baseline."""
+    from dry_lint.baseline import Baseline, contract
+
+    repo.write(".dry-lint.toml", 'preset = "jev"\n')
+    settings = settings_for(repo.root, parser().parse_args(["check", "--root", str(repo.root)]))
+    baseline = Baseline(contract=contract(settings), started_at="main", checked_at="main", entries=[])
+    repo.write(".dry-lint/baseline.json", baseline.model_dump_json())
+    repo.commit("adopt dry-lint")
+    return ["--staged", "--preset", "jev", "--baseline", ".dry-lint/baseline.json"]
+
+
+@pytest.mark.parametrize(
+    "stage",
+    [
+        {},  # `pre-commit run --all-files` in CI: a clean checkout stages nothing
+        {"README.md": "docs\n"},  # no supported source file
+        {"src/text.py": EXISTING + "\n# a comment, so no function changes\n"},  # source, but no changed function
+    ],
+    ids=["nothing", "no-source", "no-changed-function"],
+)
+def test_the_hook_passes_without_a_key_when_the_staged_change_has_nothing_to_judge(repo, tmp_path, capsys, stage):
+    args = hook_baseline(repo)
+    for path, source in stage.items():
+        repo.write(path, source)
+        repo.git("add", path)
+    assert run(repo, tmp_path, *args) == 0
+    captured = capsys.readouterr()
+    assert "judging: preset jev · no pair to judge, so no judge ran" in captured.out and not captured.err
+    assert not (tmp_path / "store").exists()
+
+
+def test_the_hook_still_requires_the_key_once_the_staged_change_has_a_pair_to_judge(repo, tmp_path, capsys) -> None:
+    args = hook_baseline(repo)
+    repo.write("src/more.py", TWIN_SOURCE)
+    repo.git("add", "src/more.py")
+    assert run(repo, tmp_path, *args) == 2
+    assert capsys.readouterr().err.strip() == "dry-lint: The Jev judge needs TYPESAFE_AI_API_KEY"
+
+
+def test_ci_still_requires_the_key_when_its_change_has_nothing_to_judge(repo, tmp_path, capsys) -> None:
+    # A missing or misnamed secret must turn the adoption pull request's check red, though it changes no function.
+    args = hook_baseline(repo)
+    assert run(repo, tmp_path, *[a for a in args if a != "--staged"], "--base", "HEAD~1") == 2
+    assert "needs TYPESAFE_AI_API_KEY" in capsys.readouterr().err
+
+
+def test_an_idle_hook_run_still_credits_a_pair_the_agent_removed(repo, tmp_path, blocking_twin_judge) -> None:
+    from dry_lint.commits import Journal
+
+    repo.write("src/more.py", TWIN_SOURCE)
+    repo.git("add", "src/more.py")
+    assert run(repo, tmp_path, "--staged", "--judge", "command", "--judge-command", blocking_twin_judge) == 1
+    assert Journal.load(repo.root).blocked
+    repo.write("src/more.py", "from src.text import shorten_text as preview_caption_text\n")
+    repo.git("add", "src/more.py")
+    assert run(repo, tmp_path, "--staged", "--preset", "jev") == 0  # no key, and none needed
+    journal = Journal.load(repo.root)
+    assert not journal.blocked and {pair.state for pair in journal.pending.values()} == {"not-reported"}
 
 
 def test_staged_judging_reads_index_even_when_working_copy_was_repaired(repo, tmp_path, blocking_twin_judge, capsys):
@@ -185,8 +247,20 @@ def test_staged_typescript_reads_the_index_and_excludes_unstaged_sources(repo, t
 
 def test_scan_lists_the_repository_backlog(repo: Repo, tmp_path: Path, capsys) -> None:
     assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "5"]) == 0
-    out = capsys.readouterr().out
-    assert "shorten_text" in out and "preview_caption_text" in out
+    captured = capsys.readouterr()
+    assert "shorten_text" in captured.out and "preview_caption_text" in captured.out
+    assert "raise --limit" not in captured.err  # everything was shown
+
+
+def test_scan_says_when_its_limit_hides_pairs_and_keeps_json_parseable(repo: Repo, capsys) -> None:
+    loader = "def load_{0}(store, key):\n    rows = store.read_rows(key)\n    return [row.decode() for row in rows]\n"
+    repo.write("src/users.py", loader.format("users"))
+    repo.write("src/accounts.py", loader.format("accounts"))
+    repo.commit()
+    assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "1", "--format", "json"]) == 0
+    captured = capsys.readouterr()
+    assert len(json.loads(captured.out)["findings"]) == 1
+    assert re.search(r"showing the 1 closest of [2-9]\d* look-alike pairs; raise --limit", captured.err)
 
 
 def test_scan_refresh_re_judges_answers_from_an_older_judge_version(
@@ -398,6 +472,29 @@ def test_run_info_outside_actions_is_the_local_head(repo: Repo) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "repository,pull,ref,session",
+    [
+        ("acme/shop", {}, "refs/heads/main", "refs/heads/main"),
+        ("acme/shop", {}, "refs/tags/main", "refs/tags/main"),
+        ("acme/shop", {"number": 7}, "refs/pull/7/merge", ""),
+        ("", {}, "refs/heads/main", ""),
+    ],
+)
+def test_action_session_identity_preserves_pr_and_local_ownership(
+    repo: Repo, tmp_path: Path, monkeypatch, repository, pull, ref, session
+) -> None:
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps({"pull_request": pull}))
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event))
+    monkeypatch.setenv("GITHUB_REPOSITORY", repository)
+    monkeypatch.setenv("GITHUB_REF", ref)
+    info = run_info(repo.root, None)
+    assert info.session == session
+    assert info.pull_request == pull.get("number")
+    assert info.head == repo.git("rev-parse", "HEAD").strip()
+
+
 def test_errors_exit_2_with_a_message(tmp_path: Path, capsys) -> None:
     assert main(["check", "--root", str(tmp_path), "--judge", "none"]) == 2
     assert capsys.readouterr().err.startswith("dry-lint: ")
@@ -430,15 +527,12 @@ def test_config_shows_the_resolved_preset_its_numbers_and_what_unlocks_the_other
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
     assert main(["config", "--root", str(repo.root)]) == 0
     out = capsys.readouterr().out
-    assert out.startswith("preset: jev+opus - Jev on every pair")
-    assert (
-        "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out
-        and "measured: 98% precision, 85% recall" in out
-    )
-    assert "escalate: anthropic {'model': 'claude-opus-5-5'} on [0.5, 0.91) ($0.0083 per pair)" in out
-    assert "thresholds: drop below 0.5 - report at 0.55 - fail at 0.55 - first judge alone at 0.8" in out
+    assert out.startswith("preset: balanced - Recommended function review")
+    assert "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out and "756 labelled pairs" in out
+    assert "escalate: none" in out
+    assert "thresholds: drop below 0.4 - report at 0.4 - fail at 0.5" in out
     assert "budget: $0.04 per pull request at list price" in out
-    assert "  * jev+opus" in out and "jev+claude-code" in out and "[needs CLAUDE_CODE_OAUTH_TOKEN]" in out
+    assert "  * balanced" in out and "jev+claude-code" in out and "[needs CLAUDE_CODE_OAUTH_TOKEN]" in out
     assert "jev+claude-code-sonnet" in out and "[named only]" in out
 
 
@@ -455,6 +549,26 @@ def test_config_shows_explicit_settings_subscriptions_and_unknown_prices(repo: R
     assert "(set explicitly: escalate, fail_at, judge)" in out
     assert main(["config", "--root", str(repo.root), "--preset", "none", "--judge", "none"]) == 0
     assert "judge: none (-)" in capsys.readouterr().out
+    (repo.root / ".dry-lint.toml").unlink()
+    assert main(["config", "--root", str(repo.root), "--judge", "none"]) == 0
+    assert capsys.readouterr().out.startswith("preset: none - no judge")
+
+
+def test_config_shows_which_source_files_the_scope_covers(repo: Repo, capsys) -> None:
+    for folder in "abcdefghi":
+        repo.write(f"{folder}/module.py", "def f():\n    return 1\n")
+    repo.write("README.md", "# not source\n")
+    repo.write("top.py", "def g():\n    return 2\n")
+    repo.commit()
+    assert main(["config", "--root", str(repo.root)]) == 0
+    out = capsys.readouterr().out
+    assert "scope: include * - exclude */tests/*, tests/*, */migrations/*, */scripts/*" in out
+    assert "  13 source files in scope: src 3, . 1, a 1, b 1, c 1, d 1, e 1, f 1, ..." in out
+    assert "  0 declared pattern(s)" in out
+    (repo.root / ".dry-lint.toml").write_text('include = ["nowhere/*"]\nexclude = []\n')
+    assert main(["config", "--root", str(repo.root)]) == 0
+    out = capsys.readouterr().out
+    assert "scope: include nowhere/* - exclude nothing\n  0 source files in scope\n" in out
 
 
 def test_preset_and_budget_flags_shape_the_run(repo: Repo, tmp_path: Path, twin_judge: str, capsys) -> None:
@@ -521,3 +635,12 @@ def test_exhausted_judging_routes_to_agent_feedback_without_more_paid_calls(
         )
     assert run(repo, tmp_path, *args) == 0
     assert all(spend.calls == 0 for spend in report_data.judging.spend)
+
+
+def test_scan_reports_pattern_settled_pairs_as_skipped_by_rule(repo: Repo, capsys) -> None:
+    (repo.root / ".dry-lint.toml").write_text(
+        '[[patterns]]\nmembers = ["*text.py::*", "*caption.py::*"]\nreason = "kept on purpose"\n'
+    )
+    assert main(["scan", "--root", str(repo.root), "--judge", "none", "--limit", "5"]) == 0
+    out = capsys.readouterr().out
+    assert "preview_caption_text looks like" not in out and "1 skipped by rule" in out

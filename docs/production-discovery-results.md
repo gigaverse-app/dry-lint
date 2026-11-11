@@ -104,3 +104,23 @@ Reproduce with `scripts/replay_production.py`; add `--baseline` for the comparat
 for exact-evidence dismissal replay. Private manifests, source, labels and responses stay outside this repository.
 The [aggregate results and per-commit curves](production-discovery-results.json) contain counts, costs, provenance
 hashes and anonymous history identifiers.
+
+## Exploration depth
+
+On 10 November 2026 the first-parent history of four repositories (Python and TypeScript, 78 commits with changed
+functions) was replayed twice through the production scheduler, one commit as one pull request. Both arms saw the
+same candidates in the same order, with the Haiku shared-operations judge at 0.5. Only the pacing differed.
+
+| Per push | Pairs judged | Exploration pairs judged | Reports | Opus 5.5 confirms | Mean cost a commit | Highest |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 exploration calls, $0.006 credit (until 1.10) | 656 | 267 | 90 | 81 | $0.0035 | $0.0133 |
+| 30 exploration calls, $0.015 credit (default) | 1,252 | 726 | 135 | 110 | $0.0065 | $0.0207 |
+
+Opus 5.5 read every reported pair with the same question and counts as confirming at 0.5. It is a stronger
+model, not a human label. The deeper arm reports 29 more confirmed duplicates and 16 more unconfirmed ones:
+91% of the shared reports are confirmed and 66% of the added ones, so the added reports are the less certain
+half. The median commit costs the same, because most commits have fewer than ten exploration candidates.
+
+The replay gives every commit a fresh allowance. A real pull request shares $0.04 across its pushes: baseline
+keeps $0.015 of it and exploration may spend $0.025, so a push that uses its whole $0.015 credit leaves a later
+push $0.010. Verdicts for unchanged pairs come from the store and cost nothing on later pushes.

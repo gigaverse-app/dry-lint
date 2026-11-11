@@ -1,0 +1,11 @@
+{
+  "extends": "workflow",
+  "rules": [
+    {
+      "name": "dogfood-reviews-changed-sources",
+      "when": ["**/*.py", "**/*.ts", "**/*.tsx", ".dry-lint.toml", ".dry-lint/**"],
+      "select": ["job:.github/workflows/ci.yml#dogfood"],
+      "reason": "dry-lint on itself judges every changed source file, with its own configuration"
+    }
+  ]
+}

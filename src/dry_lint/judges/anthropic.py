@@ -12,6 +12,7 @@ For a Claude subscription instead of an API key, use the `claude-code` judge (ju
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from typing import Any
 
 from dry_lint.judges.command import PROMPT_POLICIES, parse_verdict, prompt
@@ -33,7 +34,7 @@ class AnthropicJudge:
         workers: int = 4,
         timeout: float = 120,
         http_client: Any = None,
-        prompt_policy: str = "concept",
+        prompt_policy: str = "shared-operations",
         max_tokens: int = 8000,
         max_retries: int = 2,
         retry_malformed: bool = False,
@@ -53,10 +54,10 @@ class AnthropicJudge:
         self.prompt_policy, self.max_tokens = prompt_policy, max_tokens
         self.retry_malformed = retry_malformed
         # An opt-in policy cannot inherit legacy answers, nor contaminate a rollback to the legacy judge.
-        self.name = "anthropic" if prompt_policy == "concept" else "anthropic-operations"
+        self.name = "anthropic-operations"
         if prompt_policy == "model-contracts":
             self.name = "anthropic-models"
-        self.strict_version = prompt_policy != "concept" or max_tokens != 8000
+        self.strict_version = True
         self.version = f"{PROMPT_POLICIES[prompt_policy][0]}:{model}" + (f":{effort}" if effort else "")
         if max_tokens != 8000:
             self.version += f":output={max_tokens}"
@@ -64,6 +65,8 @@ class AnthropicJudge:
             api_key=key, timeout=timeout, http_client=http_client, max_retries=max_retries
         )
         self.tokens = {"input": 0, "output": 0}
+        # Calls run on several threads at once (here and in the campaign scheduler); counts must not race.
+        self._usage_lock = Lock()
 
     def _ask(self, candidate: Candidate, retry: bool = True) -> Verdict:
         import anthropic
@@ -80,12 +83,13 @@ class AnthropicJudge:
             )
         except anthropic.APIError as error:
             raise ValueError(f"Anthropic request failed: {type(error).__name__}") from error
-        self.tokens["input"] += response.usage.input_tokens
-        self.tokens["output"] += response.usage.output_tokens
-        for name in ("cache_creation_input_tokens", "cache_read_input_tokens"):
-            count = getattr(response.usage, name, 0) or 0
-            if count:
-                self.tokens[name] = self.tokens.get(name, 0) + count
+        with self._usage_lock:
+            self.tokens["input"] += response.usage.input_tokens
+            self.tokens["output"] += response.usage.output_tokens
+            for name in ("cache_creation_input_tokens", "cache_read_input_tokens"):
+                count = getattr(response.usage, name, 0) or 0
+                if count:
+                    self.tokens[name] = self.tokens.get(name, 0) + count
         if response.stop_reason == "refusal":
             category = getattr(response.stop_details, "category", None)
             raise ValueError(f"{self.model} declined to judge {candidate.new.qualname} ({category})")
