@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import quote, urlencode
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
 from dry_lint.detector import Detector
 from dry_lint.function_index import digest, repository_name
@@ -86,17 +86,28 @@ class Baseline(BaseModel):
     """Committed adoption state. Its independent schema is not a verdict-store schema."""
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True, serialize_by_alias=True)
-    schema_version: Literal[1] = Field(default=1, alias="schema")
+    schema_version: Literal[1, 2] = Field(default=1, alias="schema")
     contract: str
+    policy_history: list[str] = Field(default_factory=list, description="Explicit policy migrations, oldest first.")
     started_at: str
     checked_at: str
     entries: list[Entry]
 
     @model_validator(mode="after")
     def unique_pairs(self) -> "Baseline":
+        if self.schema_version == 1 and self.policy_history:
+            raise ValueError("Policy migration history requires baseline schema 2")
         if len({e.key for e in self.entries}) != len(self.entries):
             raise ValueError("Duplicate baseline pair")
         return self
+
+    @model_serializer(mode="wrap")
+    def serialize(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        result = handler(self)
+        # Schema-1 readers forbid unknown fields; ordinary sweeps must preserve their wire contract.
+        if self.schema_version == 1:
+            result.pop("policy_history", None)
+        return result
 
     @classmethod
     def read(cls, path: Path, settings: Settings) -> "Baseline":
@@ -106,23 +117,37 @@ class Baseline(BaseModel):
     def parse(cls, raw: str, settings: Settings) -> "Baseline":
         result = cls.model_validate_json(raw)
         if result.contract != contract(settings):
-            raise ValueError("Baseline detection/judging policy differs; restore the adoption settings before checking")
+            raise ValueError(
+                "Baseline detection/judging policy differs; restore settings or run baseline-migrate after reviewing the policy change"
+            )
         return result
 
     @classmethod
     def for_repository(
-        cls, root: Path, path: Path, settings: Settings, *, base: str | None = None, staged: bool = False
+        cls,
+        root: Path,
+        path: Path,
+        settings: Settings,
+        *,
+        base: str | None = None,
+        staged: bool = False,
+        migrate_policy: bool = False,
     ) -> tuple["Baseline", "Baseline | None"]:
         """Read proposed allowances and enforce the target branch's immutable pair set."""
         relative = (root / path).resolve().relative_to(root.resolve()).as_posix()
         raw = git(root, "show", f":{relative}") if staged else (root / path).read_text(encoding="utf-8")
-        proposed, previous = cls.parse(raw, settings), None
+        proposed = cls.model_validate_json(raw).with_policy(settings) if migrate_policy else cls.parse(raw, settings)
+        previous = None
         previous_ref = "HEAD" if staged else base
         if previous_ref:
             git(root, "rev-parse", "--verify", f"{previous_ref}^{{commit}}")
             if git(root, "ls-tree", "--name-only", previous_ref, "--", relative):
                 previous = cls.model_validate_json(git(root, "show", f"{previous_ref}:{relative}"))
-                proposed.validate_successor(previous)
+                proposed.validate_successor(previous, preserve_debt=migrate_policy)
+        if migrate_policy and previous is None:
+            raise ValueError(
+                "Policy migration requires an existing committed baseline; adopt new debt with sweep --init"
+            )
         return proposed, previous
 
     @classmethod
@@ -138,10 +163,16 @@ class Baseline(BaseModel):
     def count(self, state: State) -> int:
         return sum(e.state == state for e in self.entries)
 
-    def validate_successor(self, previous: "Baseline") -> None:
+    def validate_successor(self, previous: "Baseline", *, preserve_debt: bool = False) -> None:
         old, new = {e.key: e for e in previous.entries}, {e.key: e for e in self.entries}
-        if self.contract != previous.contract or self.started_at != previous.started_at or old.keys() != new.keys():
+        expected_history = [*previous.policy_history, previous.contract]
+        migrated = self.schema_version == 2 and self.policy_history[: len(expected_history)] == expected_history
+        same_policy = self.contract == previous.contract and self.policy_history == previous.policy_history
+        if not (same_policy or migrated) or self.started_at != previous.started_at or old.keys() != new.keys():
             raise ValueError("A baseline update cannot change its original scope or accepted pair set")
+        # Migration changes policy metadata only, including when CI reads a hand-edited migration.
+        if (migrated or preserve_debt) and (old != new or self.checked_at != previous.checked_at):
+            raise ValueError("Policy migration must preserve committed debt states and verification revision")
         for key, entry in new.items():
             before = old[key]
             if (
@@ -151,6 +182,18 @@ class Baseline(BaseModel):
                 and entry.state != before.state
             ):
                 raise ValueError("A baseline update cannot widen an allowance or reopen settled debt")
+
+    def with_policy(self, settings: Settings) -> "Baseline":
+        """Migrate explicitly without accepting, clearing, or modifying any original source allowance."""
+        current = contract(settings)
+        if current == self.contract:
+            return self
+        migrated = self.model_copy(
+            deep=True,
+            update={"schema_version": 2, "contract": current, "policy_history": [*self.policy_history, self.contract]},
+        )
+        migrated.validate_successor(self)
+        return migrated
 
     def apply(self, report: Report) -> Report:
         accepted = self.matching([f.candidate for f in report.findings])
@@ -226,19 +269,13 @@ class Baseline(BaseModel):
             found.append(BacklogCleanup(new=new, existing=existing, how=how))
         return found
 
-    def advance(self, report: Report) -> "Baseline":
+    def advance(self, report: Report, *, removed: set[str] | None = None) -> "Baseline":
         require_complete(report)
         if any(f.blocking for f in self.apply(report).findings):
             raise ValueError("New or changed duplicates cannot be added to the baseline")
-        findings = {f.candidate.key: f for f in report.findings}
         dismissed = {c.key for c in report.filtered}
-        cleaned = {
-            entry.key
-            for entry in self.entries
-            if (finding := findings.get(entry.key)) is None
-            or finding.verdict is not None
-            and finding.verdict.label == "separate"
-        }
+        # Sweeps and PR checks share one evidence rule; an absent candidate alone retires no debt.
+        cleaned = {pair_key(item.new, item.existing) for item in self.cleared(report, removed or set())}
         return self.retire(dismissed=dismissed, cleaned=cleaned, revision=report.run.head)
 
     def retire(self, *, dismissed: set[str], cleaned: set[str], revision: str) -> "Baseline":
@@ -352,6 +389,11 @@ def require_complete(report: Report, *, check: bool = False, allow_review_tasks:
     """An unassessed pair is unknown, never evidence of a clean required check."""
     if report.judge is None:
         raise ValueError("Strict checking requires a configured judge; supply the adopter's credentials")
+    # On a check, a family or pair the budget left unasked is a budget gap; a later push asks it again.
+    if any(finding.unresolved and not (check and finding.status == "budget") for finding in report.families) or any(
+        exclusion.get("kind") != "rule" for exclusion in report.family_exclusions
+    ):
+        raise ValueError("Operation-family judging is incomplete; unconfirmed owners are not cleared")
     unresolved = (
         f
         for f in report.findings
@@ -363,8 +405,14 @@ def require_complete(report: Report, *, check: bool = False, allow_review_tasks:
         raise ValueError("Judging is incomplete; resolve agent review tasks or restore the judge and rerun")
 
 
+HEADING = "## Duplicate code"
+
+
 def update_readme(text: str, block: str) -> str:
-    """Replace only our block; preserve malformed/unrelated content by appending a fresh block."""
+    """
+    Replace only our block; preserve malformed/unrelated content by appending a fresh block. A first block gets a
+    visible heading, outside the markers, so a maintainer can rename or move it and later updates leave it alone.
+    """
     if START in text and END in text and text.index(START) < text.index(END):
         return text[: text.index(START)] + block + text[text.index(END) + len(END) :]
-    return text.rstrip() + "\n\n" + block + "\n"
+    return text.rstrip() + f"\n\n{HEADING}\n\n" + block + "\n"

@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from dry_lint.files import encoded
 from dry_lint.models import Candidate, evidence
 from dry_lint.store import DirectoryStore
 
@@ -47,4 +48,4 @@ class Feedback(BaseModel):
         return decision is not None and decision.action == "accept"
 
     def write(self, path: Path) -> None:
-        DirectoryStore(path.parent).put(path.stem, (self.model_dump_json(indent=2, by_alias=True) + "\n").encode())
+        DirectoryStore(path.parent).put(path.stem, encoded(path, self.model_dump_json(indent=2, by_alias=True) + "\n"))

@@ -1,0 +1,11 @@
+dependencies:
+  - inputs:
+      - "//scripts/research_mining/__init__.py"
+      - "//scripts/research_mining/__main__.py"
+      - "//scripts/research_mining/audit.py"
+      - "//scripts/research_mining/demo.py"
+      - "//scripts/research_mining/exact_cache.py"
+      - "//scripts/research_mining/source.py"
+      - "//src/**"
+    kind: import
+    reason: "Loaded or run outside the test's imports; recorded by pytest-selective audit --write-declarations."
