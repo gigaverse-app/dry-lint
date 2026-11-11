@@ -47,9 +47,50 @@ python replay/replay.py --root $REPOS cases.jsonl results.jsonl --max-usd 1.0
 The replay expects its clones in `$REPOS/repos/<name>` (see
 [replay/README.md](replay/README.md) for the layout, options, cost and faithfulness notes).
 
-## Phase 2 results: running
+## Phase 2 results
 
-The full replay is running. Results will be added in a later commit.
+**The shipped `balanced` preset would have reported 57% of these duplicates on the commit that introduced the later
+copy, and 62% of the clear ones.** The largest loss is that no route proposed the pair at all (20%). Next come pairs
+proposed but never judged because a big commit used up its 50 judge calls (14%), and pairs the judge scored below
+the line (9%).
+
+Each case was replayed with the product's own code path: the repository read from git at the introducing commit,
+the diff against its parent, a fresh store and a fresh $0.04 allowance, and the real Haiku judge. A case counts as
+reported if any of its target pairs is reported; otherwise it takes the best of its pairs' outcomes in the order
+below. 501 of the 513 confirmed cases ran; 12 introducing commits were missing from the clones. 77 more could not be
+replayed: across their pairs, a member could not be located at the introducing commit (72 pairs), or both members
+are one function as dry-lint extracts them (18 pairs, nested functions). Total judge spend: $6.15.
+
+Share of the 424 replayable cases, with 95% intervals:
+
+| Cases | n | Reported | Judged below 0.4 | Not funded | Never proposed |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| All | 424 | 57% (52-61) | 9% (6-12) | 14% (11-18) | 20% (17-24) |
+| Opus label yes | 375 | 62% (57-67) | 9% (6-12) | 14% (11-18) | 15% (12-19) |
+| Opus label partial | 49 | 18% (10-31) | 8% (3-19) | 14% (7-27) | 59% (45-72) |
+| Later copy added to an existing one | 304 | 57% (52-63) | 10% (7-13) | 10% (7-14) | 23% (19-28) |
+| Both copies written in one commit | 120 | 56% (47-64) | 7% (3-13) | 25% (18-33) | 12% (8-20) |
+| Copies had already drifted | 156 | 53% (45-60) | 12% (7-18) | 13% (9-20) | 22% (17-30) |
+| LiteLLM | 226 | 54% (47-60) | 8% (5-13) | 14% (10-19) | 23% (18-29) |
+| Zulip | 75 | 53% (42-64) | 13% (7-23) | 8% (4-16) | 25% (17-36) |
+| Saleor | 67 | 64% (52-75) | 4% (2-12) | 21% (13-32) | 10% (5-20) |
+
+NetBox (22), Prefect (17) and OpenHands (17) are too small to read on their own; their rows are in `replay/analyze.py`'s output.
+
+**What lies behind each loss**, counted over target pairs (689 pairs in the 501 cases):
+
+- **Never proposed (143 pairs).** 98 had no route at all. 11 were settled by the "one calls the other" rule and 8
+  by the rule for Python special methods, so those rules dismissed real duplicates.
+- **Not funded (116 pairs).** In 43 of the 60 cases it was the cap of 50 judge calls per commit, not the dollar
+  budget (16). These are big commits: a median of 540 candidates. Copies written together in one commit lose most
+  often this way (25%).
+- **Judged below the line (62 pairs).** Every score was between 0.15 and 0.35.
+- **Routes of the 270 reported pairs:** exploration TF-IDF 206, baseline TF-IDF 59, operation blocks 5.
+
+**Limits.** Every case starts with a fresh store and allowance, as if the introducing commit were the first push of
+a pull request; in a real pull request earlier pushes may already have spent the budget or judged the pair. The
+introducing commit comes from majority blame, so it can be the last large rewrite rather than the first copy. One
+judge draw per pair. The labels are Opus's; the human review of 50 sampled cases is pending.
 
 # Miner reference
 
