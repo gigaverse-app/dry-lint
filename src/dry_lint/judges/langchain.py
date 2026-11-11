@@ -19,6 +19,8 @@ its docstring, its field names, its field descriptions and its enum values, in f
 - **The model thinks first.** A forced tool call switches thinking off, and then this judge found 95
   confirmed duplicates on real commits where it finds 121 with thinking. So the tool is offered, the
   request says to call it, and forcing is only the fallback (2 of 1,362 pairs).
+- **It lists how the copies differ,** between the reasoning and the score, so a report shows drift a reviewer
+  would otherwise have to find. On 748 labelled pairs it moved neither the ranking nor reporting at 0.4.
 
 Its scores spread over the rubric where the text judge's are nearly yes or no, so its thresholds are its
 own (presets.py). `diagnostics = true` adds two fields after the verdict, what was hard and what was
@@ -42,10 +44,11 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from dry_lint.judges.command import OPERATIONS_RULES, OPERATIONS_SOURCES, OPERATIONS_VERSION, prompt
-from dry_lint.models import Candidate, Verdict
+from dry_lint.models import Candidate, Difference, Verdict
 from dry_lint.settings import Settings
 
-SCHEMA_VERSION = "schema-3"
+SCHEMA_VERSION = "schema-4"  # schema-4 adds `differences`; strict_version re-asks schema-3 answers once
+MAX_DIFFERENCES = 5
 # The question, without the text judges' "answer one JSON object" block: here the schema is the only statement of
 # the answer's format, and two formats in one request contradict each other.
 STRUCTURED_RULES = (
@@ -74,6 +77,18 @@ class ConsolidationOwner(StrEnum):
     NONE = "none"
 
 
+# The class name, docstring and descriptions are prompt text, written as measured (docs/benchmark.md#differences).
+class BehaviourDifference(BaseModel):
+    """One decision the two functions make differently in the part they share."""
+
+    what: str = Field(description="The decision the two functions make differently, in a few words.")
+    new_does: str = Field(description="What NEW does, in one short phrase.")
+    existing_does: str = Field(description="What EXISTING does, in one short phrase.")
+    consequence: str = Field(
+        description="What observably differs as a result. If that depends on code you cannot see, say so."
+    )
+
+
 class DuplicateVerdictPromptSchema(BaseModel):
     """Your verdict on whether NEW and EXISTING independently implement the same operation.
 
@@ -90,6 +105,14 @@ class DuplicateVerdictPromptSchema(BaseModel):
             "ordering and failure handling in NEW and in EXISTING; (3) say whether both already delegate it to "
             "the same helper or owner; (4) name the legitimate variation a shared helper would take as "
             "parameters. For a partial overlap, describe only the shared sub-operation, not the whole functions."
+        )
+    )
+    # After the reasoning, before the score: listing how the copies differ moved AUC and false reports at 0.4 by
+    # less than their noise, and the last sentence keeps a recorded difference from turning into a lower score.
+    differences: list[BehaviourDifference] = Field(
+        description=(
+            "List the behavioural differences in the part the two functions share. Empty when they share nothing "
+            "or behave the same. At most five. A difference is recorded, never a reason to lower the score."
         )
     )
     # The rubric does not say which bands are reported: told that, the model scored real partial duplicates just
@@ -313,7 +336,12 @@ class LangChainJudge:
         why = parsed.reasoning
         if isinstance(parsed, DiagnosedVerdictPromptSchema):
             why += f"\nHard: {parsed.difficulty}\nMissing: {parsed.missing_information}"
-        return Verdict(label=label, score=score, owner=owner, why=why, judge=self.name, judge_version=self.version)
+        # The schema asks for at most five; the store, report.json and every renderer keep the same five.
+        differences = [Difference.model_validate(d.model_dump()) for d in parsed.differences[:MAX_DIFFERENCES]]
+        return Verdict(
+            label=label, score=score, owner=owner, why=why, judge=self.name, judge_version=self.version,
+            differences=differences,
+        )  # fmt: skip
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         with ThreadPoolExecutor(self.workers) as pool:

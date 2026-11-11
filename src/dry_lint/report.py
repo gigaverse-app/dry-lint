@@ -23,6 +23,7 @@ from dry_lint.settings import Settings
 
 MARKER = "<!-- dry-lint -->"
 REASON_LIMIT = 300
+DIFFERENCE_LIMIT = 100  # each part of a difference is a short phrase; the comment stays short
 OWNERS = {
     "existing": "call the existing function",
     "new": "keep {new} and move callers of {existing} to it",
@@ -140,6 +141,18 @@ class Finding(BaseModel):
             f"fixing this touches {qualified(existing.owner, existing.name)}, which also looks like {copies}: "
             "consolidate them in the same change"
         )
+
+    def differences(self, *, markdown: bool = False) -> list[str]:
+        """How a reported pair's copies behave differently, one line each. Judge text: flattened, capped, escaped."""
+        if not (self.reported and self.verdict):
+            return []
+        clean = escaped if markdown else plain
+        bold = "**" if markdown else ""
+        return [
+            f"{bold}{clean(d.what, DIFFERENCE_LIMIT)}{bold}: NEW does {clean(d.new_does, DIFFERENCE_LIMIT)}; "
+            f"EXISTING does {clean(d.existing_does, DIFFERENCE_LIMIT)}"
+            for d in self.verdict.differences
+        ]
 
     def suppression(self) -> str:
         prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
@@ -428,7 +441,9 @@ def as_text(report: Report) -> str:
 
 def text_lane(report: Report, *, kind: str = "function") -> str:
     lines = [
-        f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {report.advice(f)}" for f in report.visible
+        f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {report.advice(f)}"
+        + "".join(f"\n    differs: {line}" for line in f.differences())
+        for f in report.visible
     ]
     stats = report.stats
     judge = f"judge {report.judge}" if report.judge else "no judge"
@@ -699,6 +714,8 @@ def markdown_lane(
         details.extend([
             f"{dot(f)} **{concept}** · {scored}similarity {f.candidate.similarity:.2f} · {source}{drift}", "",
             *([f"> {escaped(f.verdict.why)}", ""] if f.verdict and f.verdict.why else []),
+            *(["How the copies differ:", "", *(f"- {line}" for line in differs), ""]
+              if (differs := f.differences(markdown=True)) else []),
             *(["Adopter policies: " + "; ".join(escaped(f"{p.name}: {p.reason}") for p in f.candidate.policies), ""]
               if f.candidate.policies else []),
             *([f"Preferred home: {escaped(action(f))}.", ""] if f.candidate.consolidation else []),

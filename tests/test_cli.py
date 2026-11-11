@@ -114,7 +114,7 @@ def test_warn_only_reports_without_failing_and_writes_the_comment_and_report(
     assert comment.read_text().startswith("<!-- dry-lint -->") and f"`{TWIN.split('::')[1]}`" in comment.read_text()
     assert "blocking" not in comment.read_text()
     written = json.loads(report.read_text())
-    assert written["schema"] == 16 and any(f["reported"] for f in written["findings"])
+    assert written["schema"] == 17 and any(f["reported"] for f in written["findings"])
 
 
 def test_without_a_judge_candidates_are_listed_and_never_fail(repo: Repo, tmp_path: Path, capsys) -> None:

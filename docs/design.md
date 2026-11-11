@@ -105,6 +105,11 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 17 adds optional `Verdict.differences`: how the two copies of a pair behave differently, as the
+`langchain` judge lists them ([judges.md](judges.md#structured-answers)). Older records and other judges' verdicts
+load with none. It is not part of any key or hash. The judge's prompt changed with it, so its version did
+(`schema-4`); exact-version reuse asks each pair again once rather than serve an answer without differences.
+
 Schema 16 replaces disappearance-based `kept-out` states with `not-reported` in journals and ledgers. Readers
 normalize old states and trailers without awarding cleanup credit or inferring positive training labels.
 Separate baseline evidence still owns debt reductions. Text judges require an exact prompt-version match for
@@ -175,7 +180,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New core files carry `"schema": 16`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 15 remain readable with conservative cache defaults. Schema 9 adds
+New core files carry `"schema": 17`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 16 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds
@@ -303,7 +308,9 @@ run list the same findings in the same order: drifted first, then by score.
 - Without a judge, the comment does not list unjudged pairs; it says no judge is configured. Annotations and the
   terminal still show them.
 - A judge's reason is untrusted text: an LLM judge read code from the pull request. It is flattened to one line,
-  capped at 300 characters and escaped wherever markdown shows it.
+  capped at 300 characters and escaped wherever markdown shows it. The differences a judge lists are treated the
+  same way, each part capped at 100 characters, and are shown only for reported pairs: one line each in the
+  terminal and in the comment's details fold.
 
 ## Why TF-IDF is the default comparer
 

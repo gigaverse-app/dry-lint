@@ -10,7 +10,7 @@ from botocore.stub import Stubber
 from dry_lint.comparers import TfidfComparer
 from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
-from dry_lint.models import Candidate, Run, Verdict, pair_key
+from dry_lint.models import Candidate, Difference, Run, Verdict, pair_key
 from dry_lint.settings import Settings
 from dry_lint.store import DirectoryStore, Record, S3Store, VerdictStore
 
@@ -179,10 +179,22 @@ def test_each_record_is_its_own_file_holding_hashes_and_never_code(store: Verdic
     [path] = (tmp_path / "verdicts").iterdir()
     assert path.name == f"{candidate().key}.json"
     data = json.loads(path.read_text())
-    assert data["schema"] == 16 and data["pair"] == ["new.py::clip", "old.py::shorten"]
+    assert data["schema"] == 17 and data["pair"] == ["new.py::clip", "old.py::shorten"]
     assert data["hashes"] == [NEW.hash, OLD.hash] and data["comparer"] == "tfidf:1" and data["similarity"] == 0.7
     assert data["source"]["pull_request"] == 7 and "code" not in path.read_text()
     assert [r.verdict.label for r in store.records()] == ["drifted"]
+
+
+def test_differences_round_trip_and_older_records_have_none(store: VerdictStore) -> None:
+    drift = Difference(what="the limit", new_does="keeps n", existing_does="keeps n - 1", consequence="shorter")
+    store.remember(candidate(), verdict("drifted").model_copy(update={"differences": [drift]}))
+    assert lookup(store, candidate()).differences == [drift]
+    # A schema-16 record, written before verdicts had differences, loads with none.
+    record = store.remember(candidate(), verdict("drifted")).model_dump()
+    record["schema"] = 16
+    del record["verdict"]["differences"]
+    store.backend.put(candidate().key, json.dumps(record).encode())
+    assert lookup(store, candidate()) == verdict("drifted") and lookup(store, candidate()).differences == []
 
 
 def test_a_new_answer_replaces_the_old_record(store: VerdictStore) -> None:
