@@ -158,3 +158,15 @@ What clears its bar becomes a default. The rest goes into the research directory
 - **2026-11-11:** Phase 1, first mining run: 166 cases from LiteLLM and OpenHands. Opus labelled 107 yes, 46 partial,
   12 no and 1 unclear. About 35 of the real ones had copies that already behaved differently before the consolidation.
   Widening to more repositories is in progress.
+- **2026-11-12:** Phase 1 done. 557 cases from the full history of six public repositories (LiteLLM, OpenHands,
+  Saleor, Zulip, Prefect, NetBox). Opus: 453 yes, 60 partial, 42 no, 2 unclear; 184 of the 513 real ones had already
+  drifted. 199 real pairs (bar 200; the second repository has 43 against a bar of 50) and 314 real families (bar 40).
+  402 cases are in [dry-lint-goldens](https://github.com/gigaverse-app/dry-lint-goldens) under `history-reference/`.
+  The human review of 50 sampled cases is pending.
+- **2026-11-12:** Phase 2 done (details in `examples/research/history-reference/README.md`). On 424 replayable
+  cases the shipped `balanced` preset reports 57% (52 to 61) on the commit that introduced the later copy, 62% of the
+  clear ones. First losses: never proposed 20%, not funded 14% (mostly the 50-calls-per-commit cap on big commits,
+  not the dollar budget), judged below the line 9% (every score 0.15 to 0.35). The two product rules "one calls the
+  other" and "Python special method" dismissed 19 real duplicate pairs. Agenda: Track A first, run the fast way
+  (candidates only, then judge only the target pair); then the call cap on big commits, which un-parks budget
+  allocation for that one question; then the judge's low scores.
