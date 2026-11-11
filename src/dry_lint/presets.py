@@ -123,37 +123,50 @@ for preset in PRESETS.values():
         if preset.name != "none":
             preset.measured = False
             preset.numbers = "Historical configuration; not population-calibrated for the current shared-operation prompt. See docs/judges.md."
-PRESETS[
-    "balanced"
-].numbers = "AI-926 diagnostic panel: 6/6 independent cleanup pairs detected, 0/6 shared-owner adapters flagged; small agent-labelled panel, not population precision/recall."
-
-# Subscription transport shares balanced retrieval, prompt and decision thresholds.
-PRESETS["balanced-subscription"] = PRESETS["balanced"].model_copy(
+STRUCTURED_NUMBERS = (
+    "756 labelled pairs: reporting from 0.4 finds 85% of duplicates at 8% false reports (the text judge: "
+    "87% at 10%), AUC 0.965 against 0.945; 1,174 pairs from real commits with Opus 5.5 as referee: 136 "
+    "reports, 106 confirmed (text judge: 130, 105), and failing from 0.5, 88 of 100 confirmed. $0.00035 a "
+    "pair against $0.00041."
+)
+# Balanced until 1.10: the same model, question, discovery and budget, answering in text. Kept under its own name
+# so an adopter can stay on it; the subscription preset still asks in text, through the CLI.
+TEXT = PRESETS["balanced"].model_copy(
+    update={
+        "name": "balanced-text",
+        "summary": "Balanced function review with the text answer format used before 1.10",
+        "automatic": False,
+        "numbers": "AI-926 diagnostic panel: 6/6 independent cleanup pairs detected, 0/6 shared-owner adapters flagged; "
+        "small agent-labelled panel, not population precision/recall.",
+    }
+)
+# The schema's rubric spreads scores where the text judge answers almost yes or no, so the thresholds are its
+# own: it reports from 0.4, where it finds as many confirmed duplicates on real commits as the text judge does
+# at 0.5, and fails from 0.5, where Opus confirmed 88 of its 100 reports (docs/benchmark.md#structured-answers).
+PRESETS["balanced"] = TEXT.model_copy(
+    update={
+        "name": "balanced",
+        "summary": "Recommended function review: Claude answering in a schema, bounded discovery and persistent budget",
+        "judge": PluginChoice(use="langchain", model=HAIKU, effort="low", max_tokens=2048),
+        "drop_below": 0.4,
+        "report_at": 0.4,
+        "fail_at": 0.5,
+        "automatic": True,
+        "measured": True,
+        "numbers": STRUCTURED_NUMBERS,
+    }
+)
+PRESETS["balanced-text"] = TEXT
+# Subscription transport shares balanced-text's retrieval, prompt and decision thresholds.
+PRESETS["balanced-subscription"] = TEXT.model_copy(
     update={
         "name": "balanced-subscription",
         "summary": "Balanced function review through a Claude subscription",
         "judge": PluginChoice(use="claude-code", model=HAIKU, max_tokens=2048),
         "needs": ("CLAUDE_CODE_OAUTH_TOKEN",),
+        "automatic": True,
         "measured": False,
-        "numbers": "Same prompt, model and thresholds as balanced; subscription transport is not independently calibrated",
-    }
-)
-# The same model, question, discovery and budget, answering in a schema. Its rubric makes it stricter than the
-# text judge, so it has its own thresholds: it reports from 0.3, where it found as many labelled duplicates as
-# balanced does at 0.5, and fails only from 0.4, where Opus confirmed 51 of its 52 reports on real commits.
-PRESETS["balanced-structured"] = PRESETS["balanced"].model_copy(
-    update={
-        "name": "balanced-structured",
-        "summary": "Balanced function review with schema-constrained answers through LangChain",
-        "judge": PluginChoice(use="langchain", model=HAIKU, effort="low", max_tokens=2048),
-        "drop_below": 0.3,
-        "report_at": 0.3,
-        "fail_at": 0.4,
-        "automatic": False,
-        "measured": False,
-        "numbers": "756 labelled pairs: reports from 0.3 find 88% of duplicates at 9% false reports (balanced's judge at "
-        "low effort: 87% at 8%); 656 pairs from real commits: failing from 0.4, Opus confirmed 51 of 52, but that text "
-        "judge found 81 confirmed duplicates against 74 here. Half the time a pair, about a fifth dearer; no unreadable answers.",
+        "numbers": "Same prompt, model and thresholds as balanced-text; subscription transport is not independently calibrated",
     }
 )
 # Preserve enforcement for existing TypeSafe-only auto users; adopters pin balanced and fail without Claude.

@@ -355,7 +355,7 @@ including how many source files the scope covers:
 | `patterns` | none | `[[patterns]]` entries with `members` (a glob or a list) and a `reason`: [deliberate look-alikes](#when-it-is-right-not-to-merge-them) |
 | `neighbours` | 3 | candidates per changed function |
 | `preset` | `"auto"` | `balanced` with an Anthropic key; `balanced-subscription` with a Claude token; `jev` for TypeSafe-only compatibility, otherwise `none` (detection only). Adopters pin `balanced`; models require agent review |
-| `drop_below` / `report_at` / `fail_at` | from the preset | balanced uses 0.5 / 0.5 / 0.5; confidence in a named shared operation, not lines saved |
+| `drop_below` / `report_at` / `fail_at` | from the preset | balanced uses 0.4 / 0.4 / 0.5; confidence in a named shared operation, not lines saved |
 | `drift_at` | 0.8 | a duplicate whose `behaves_differently` reaches this is drifted |
 | `budget` | `{ usd = 0.04, subscription_calls = 20 }` | most judging spends on a pull request across all its pushes, at list price, subscriptions included (`--budget-usd`); and calls per run to subscription judges |
 | `prices` | built-in table | USD per million input and output tokens, by model |

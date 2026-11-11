@@ -29,7 +29,7 @@ from conftest import TWIN, claude, coverage_pair
 
 @pytest.fixture
 def setup(tmp_path):
-    settings = resolve(Settings(preset="balanced"))
+    settings = resolve(Settings(preset="balanced-text"))
     requests = []
     judge = AnthropicJudge(
         api_key="test",

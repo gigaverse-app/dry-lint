@@ -57,8 +57,8 @@ def test_oz_excerpts_have_pinned_provenance_and_unchanged_hashes() -> None:
 def test_api_defaults_to_balanced_even_with_jev_credentials() -> None:
     settings = resolve(Settings(), {"ANTHROPIC_API_KEY": "test", "TYPESAFE_AI_API_KEY": "test"})
     assert settings.preset == "balanced"
-    assert settings.judge.use == "anthropic" and settings.escalate is None
-    assert settings.report_at == settings.fail_at == 0.5
+    assert settings.judge.use == "langchain" and settings.escalate is None
+    assert (settings.report_at, settings.fail_at) == (0.4, 0.5)
     assert settings.discovery.enabled
 
 

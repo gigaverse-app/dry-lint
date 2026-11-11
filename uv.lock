@@ -422,6 +422,7 @@ dependencies = [
 [package.optional-dependencies]
 anthropic = [
     { name = "anthropic" },
+    { name = "langchain-anthropic" },
 ]
 cpu-embedding = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -431,6 +432,7 @@ cpu-embedding = [
 ]
 hooks = [
     { name = "anthropic" },
+    { name = "langchain-anthropic" },
     { name = "python-dotenv" },
 ]
 langchain = [
@@ -467,6 +469,8 @@ requires-dist = [
     { name = "anthropic", marker = "extra == 'hooks'", specifier = ">=1.0" },
     { name = "boto3", marker = "extra == 's3'", specifier = ">=1.35" },
     { name = "httpx", specifier = ">=0.28,<1" },
+    { name = "langchain-anthropic", marker = "extra == 'anthropic'", specifier = ">=1.7,<2" },
+    { name = "langchain-anthropic", marker = "extra == 'hooks'", specifier = ">=1.7,<2" },
     { name = "langchain-anthropic", marker = "extra == 'langchain'", specifier = ">=1.7,<2" },
     { name = "numpy", marker = "extra == 'cpu-embedding'", specifier = ">=2.2,<3" },
     { name = "onnxruntime", marker = "extra == 'cpu-embedding'", specifier = ">=1.31.1,<1.32" },

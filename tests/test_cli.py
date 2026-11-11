@@ -528,9 +528,9 @@ def test_config_shows_the_resolved_preset_its_numbers_and_what_unlocks_the_other
     assert main(["config", "--root", str(repo.root)]) == 0
     out = capsys.readouterr().out
     assert out.startswith("preset: balanced - Recommended function review")
-    assert "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out and "AI-926 diagnostic panel: 6/6" in out
+    assert "credentials found: TYPESAFE_AI_API_KEY, ANTHROPIC_API_KEY" in out and "756 labelled pairs" in out
     assert "escalate: none" in out
-    assert "thresholds: drop below 0.5 - report at 0.5 - fail at 0.5" in out
+    assert "thresholds: drop below 0.4 - report at 0.4 - fail at 0.5" in out
     assert "budget: $0.04 per pull request at list price" in out
     assert "  * balanced" in out and "jev+claude-code" in out and "[needs CLAUDE_CODE_OAUTH_TOKEN]" in out
     assert "jev+claude-code-sonnet" in out and "[named only]" in out
