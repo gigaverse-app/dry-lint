@@ -10,9 +10,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from test_discovery import check
 
 from dry_lint.costs import price, usage_cost
-from dry_lint.discovery import CampaignStore, reservation_cost
+from dry_lint.discovery import reservation_cost
 from dry_lint.judges import langchain, make_judge
 from dry_lint.judges.command import OPERATIONS_ANSWER, OPERATIONS_PROMPT, OPERATIONS_RULES, OPERATIONS_SOURCES
 from dry_lint.judges.langchain import (
@@ -26,8 +27,7 @@ from dry_lint.judges.langchain import (
     DuplicationLabel,
     LangChainJudge,
 )
-from dry_lint.judging import Judging
-from dry_lint.models import Candidate, Run, Verdict
+from dry_lint.models import Candidate, Verdict
 from dry_lint.presets import AUTO_ORDER, PRESETS, resolve
 from dry_lint.report import Report, as_markdown, as_text
 from dry_lint.settings import Settings
@@ -470,14 +470,9 @@ def test_an_answer_keeps_its_differences_and_at_most_five(api: Api) -> None:
 SCHEMA_3 = "dry-operations-v3+schema-3:claude-haiku-5-5:low"
 
 
-def judged(api: Api, store: VerdictStore, campaign: Path | None = None, refresh: bool = False) -> Report:
-    """One `check` of CANDIDATE through Judging: the store first, then the judge."""
-    run = Run(repository="owner/repo", session="feature", revision="tree")
-    judging = Judging(STRUCTURED, api.judge(), None, store)
-    if campaign is not None:
-        judging.campaign = CampaignStore(campaign, run)
-    findings = judging.findings([CANDIDATE], run, refresh=refresh)
-    return Report.build(findings, STRUCTURED, run=run, judge=judging.name, judging=judging.summary())
+def judged(api: Api, store: VerdictStore, tmp_path: Path, campaign: bool = False, refresh: bool = False) -> Report:
+    """CANDIDATE through Judging, as `check` asks: the store first, then the judge."""
+    return check((STRUCTURED, api.judge(), store, None), tmp_path, [CANDIDATE], campaign=campaign, refresh=refresh)[0]
 
 
 @pytest.mark.parametrize("campaign", [False, True], ids=["pairs", "discovery campaign"])
@@ -491,7 +486,7 @@ def test_answers_from_the_schema_without_differences_are_reused_as_they_are(
         CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=SCHEMA_3)
     )
     api.fail_after = 0  # any call is an error, and is counted
-    report = judged(api, store, tmp_path / "campaign.sqlite3" if campaign else None)
+    report = judged(api, store, tmp_path, campaign)
 
     [found] = report.findings
     assert api.requests == [] and found.cached
@@ -505,11 +500,11 @@ def test_refresh_asks_a_schema_3_answer_again_for_its_differences(api: Api, tmp_
         CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=SCHEMA_3)
     )
     api.replies = [verdict(0.8, "drifted", differences=[DRIFT])]
-    [found] = judged(api, store, refresh=True).findings
+    [found] = judged(api, store, tmp_path, refresh=True).findings
 
     assert len(api.requests) == 1 and not found.cached
     # The store keeps the differences: a reused verdict shows them like a new one.
-    [again] = judged(api, store).findings
+    [again] = judged(api, store, tmp_path).findings
     assert again.cached and again.verdict.differences[0].existing_does == DRIFT["existing_does"]
     assert again.verdict.judge_version == "dry-operations-v3+schema-4:claude-haiku-5-5:low"
 
@@ -527,7 +522,7 @@ def test_refresh_asks_a_schema_3_answer_again_for_its_differences(api: Api, tmp_
 def test_any_other_older_answer_is_asked_again(api: Api, tmp_path: Path, stored: str) -> None:
     store = VerdictStore(DirectoryStore(tmp_path))
     store.remember(CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=stored))
-    [found] = judged(api, store).findings
+    [found] = judged(api, store, tmp_path).findings
     assert len(api.requests) == 1 and not found.cached
 
 
