@@ -2,18 +2,32 @@ name: Release
 on:
   push:
     branches: [main]
+  # Republish an existing release, for example after a failed upload. PyPI refuses a version it already has.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish to PyPI (vX.Y.Z)
+        required: true
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
-  group: release
+  # Renamed from `release`: run 42670159293 is wedged in "waiting" on the pypi environment with nothing to approve,
+  # GitHub refuses to cancel it, and it holds its group forever. A new name lets later runs start.
+  group: release-publish
   cancel-in-progress: false
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       # Keeps a release pull request open with the next version and changelog, from the Conventional Commit titles
       # merged since the last release. Merging it tags vX.Y.Z and publishes the GitHub release.
@@ -37,3 +51,61 @@ jobs:
           else
             gh api --method POST "repos/$REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$SHA"
           fi
+
+  # Publishing runs here, not on a `release` event: a release created with the workflow token starts no workflow.
+  build:
+    needs: release-please
+    if: >-
+      !cancelled() && (needs.release-please.outputs.release_created == 'true' ||
+      (github.event_name == 'workflow_dispatch' && needs.release-please.result == 'skipped'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name || inputs.tag }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          python-version: '3.13'
+      - name: Require the tag to match the package version
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name || inputs.tag }}
+        run: |
+          version=$(uv run --no-project python -c 'import pathlib, tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')
+          if [[ "$TAG" != "v$version" ]]; then
+            echo "::error::Tag $TAG does not match the package version $version."
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: uv build
+      - run: uvx twine check --strict dist/*
+      # The wheel must install from PyPI-resolvable requirements alone and report the released version.
+      - name: Smoke the built wheel in a clean environment
+        run: |
+          out=$(uv run --isolated --no-project --with dist/*.whl dry-lint --version)
+          echo "$out"
+          [[ "$out" == "dry-lint $VERSION" ]]
+      - uses: actions/upload-artifact@v7
+        with:
+          name: distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    # Without this, the default success() also requires release-please, which a republish dispatch skips,
+    # so publish was skipped too and a tag missing from PyPI could never be republished.
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/dry-lint/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: distributions
+          path: dist
+      # Trusted publishing: PyPI accepts this workflow (release.yml in gigaverse-app/dry-lint) without a token.
+      - uses: pypa/gh-action-pypi-publish@release/v1

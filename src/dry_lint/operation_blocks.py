@@ -11,7 +11,7 @@ from dataclasses import dataclass, field, replace
 from itertools import islice
 
 from dry_lint.comparers import sparse_cosine
-from dry_lint.functions import _behaviour_nodes, _function_node, node_tokens
+from dry_lint.functions import _behaviour_nodes, _function_node, docstring_statement, node_tokens
 from dry_lint.index import TfidfIndex
 from dry_lint.models import Function
 
@@ -49,33 +49,45 @@ class _Block:
     retained: frozenset[str] = frozenset()
 
 
-def _regions(body: list[ast.stmt], depth: int = 0) -> Iterator[tuple[str, list[ast.stmt]]]:
-    """Whole compounds and maximal straight runs; never slide or truncate a region."""
-    run: list[ast.stmt] = []
-    for statement in body:
-        boundary = isinstance(statement, (*_NESTED, *_COMPOUND)) or (
-            isinstance(statement, ast.Expr)
-            and isinstance(statement.value, ast.Constant)
-            and isinstance(statement.value.value, str)
-        )
-        if boundary:
+Region = tuple[str, list[ast.stmt], tuple[ast.AST, ...]]
+
+
+def statement_regions(
+    body: list[ast.stmt], *, max_depth: int | None = None, whole_nested: bool = True
+) -> Iterator[Region]:
+    """Whole compounds and maximal straight runs in source pre-order; never slide or truncate a region.
+
+    Nested owners and docstrings split straight runs. Each region carries its enclosing compounds, plus the
+    exception handler for a handler suite. `max_depth` bounds descent below the function body, and
+    `whole_nested=False` omits a compound containing a nested owner while still visiting its suites. An
+    explicit stack bounds Python call depth.
+    """
+    stack: list[tuple[Iterator[ast.stmt], int, tuple[ast.AST, ...], list[ast.stmt]]] = [(iter(body), 0, (), [])]
+    while stack:
+        suite, depth, enclosing, run = stack[-1]
+        statement = next(suite, None)
+        if statement is None:
+            stack.pop()
             if len(run) >= 2:
-                yield "straight_run", run
-            run = []
-            if isinstance(statement, _COMPOUND):
-                if not any(isinstance(node, _NESTED) for node in ast.walk(statement)):
-                    yield type(statement).__name__, [statement]
-                if depth < 3:
-                    for attr in ("body", "orelse", "finalbody"):
-                        yield from _regions(getattr(statement, attr, []), depth + 1)
-                    for handler in getattr(statement, "handlers", []):
-                        yield from _regions(handler.body, depth + 1)
-                    for case in getattr(statement, "cases", []):
-                        yield from _regions(case.body, depth + 1)
-        else:
+                yield "straight_run", run, enclosing
+            continue
+        if not isinstance(statement, (*_NESTED, *_COMPOUND)) and not docstring_statement(statement):
             run.append(statement)
-    if len(run) >= 2:
-        yield "straight_run", run
+            continue
+        if len(run) >= 2:
+            yield "straight_run", run, enclosing
+        stack[-1] = (suite, depth, enclosing, [])
+        if not isinstance(statement, _COMPOUND):
+            continue
+        if whole_nested or not any(isinstance(node, _NESTED) for node in ast.walk(statement)):
+            yield type(statement).__name__, [statement], enclosing
+        if max_depth is not None and depth >= max_depth:
+            continue
+        scope = (*enclosing, statement)
+        children = [(getattr(statement, name, []), scope) for name in ("body", "orelse", "finalbody")]
+        children += [(handler.body, (*scope, handler)) for handler in getattr(statement, "handlers", [])]
+        children += [(case.body, scope) for case in getattr(statement, "cases", [])]
+        stack.extend((iter(nested), depth + 1, parents, []) for nested, parents in reversed(children))
 
 
 class _Preparation:
@@ -112,7 +124,7 @@ class _Preparation:
 def _block(
     function: Function, kind: str, statements: list[ast.stmt], preparation: _Preparation | None = None
 ) -> _Block | None:
-    # Callers pass only non-empty spans: `_regions` yields runs of at least two
+    # Callers pass only non-empty spans: `statement_regions` yields runs of at least two
     # statements or one compound, and the helper route requires a body.
     start, end = statements[0].lineno, statements[-1].end_lineno
     assert end is not None  # parsed source, rather than a synthesized AST
@@ -146,17 +158,12 @@ def _representations(function: Function) -> tuple[list[_Block], _Block | None]:
     preparation = _Preparation()
     blocks = [
         block
-        for kind, statements in _regions(node.body)
+        for kind, statements, _ in statement_regions(node.body, max_depth=3, whole_nested=False)
         if (block := _block(function, kind, statements, preparation)) is not None
     ]
     original = sorted(blocks, key=lambda block: (block.line, block.end_line, block.kind))[:_MAX_BLOCKS]
     body = node.body
-    if (
-        body
-        and isinstance(body[0], ast.Expr)
-        and isinstance(body[0].value, ast.Constant)
-        and isinstance(body[0].value.value, str)
-    ):
+    if body and docstring_statement(body[0]):
         body = body[1:]
     helper = None
     if body:

@@ -22,10 +22,21 @@ from dry_lint.policies import PairPolicy
 from dry_lint.schema_policy import SchemaPolicy
 
 
-class Pattern(BaseModel):
-    """A declared family of deliberate look-alikes, never reported (e.g. one router per resource)."""
+def _globs(value: Any) -> Any:
+    return [value] if isinstance(value, str) else value
 
-    members: str = Field(description="fnmatch pattern over qualified names, e.g. 'src/api/*_api.py::create_router'.")
+
+class Pattern(BaseModel):
+    """
+    A declared family of deliberate look-alikes, never reported: one router per resource, or copies a project keeps
+    on purpose. A pair belongs to the family when each side's `path::Qualified.name` matches one of `members`.
+    """
+
+    members: Annotated[list[str], BeforeValidator(_globs)] = Field(
+        min_length=1,
+        description="fnmatch globs over qualified names, one or a list, e.g. 'src/api/*_api.py::create_router' or "
+        "['pkg/strutils.py::indent', 'pkg/funcutils.py::_indent'].",
+    )
     reason: str
 
 
@@ -98,6 +109,15 @@ class CpuRecovery(BaseModel):
         ]
 
 
+class FamilyDiscovery(BaseModel):
+    """Explicit operation-family recovery; questions share the existing campaign allowance."""
+
+    model_config = ConfigDict(extra="forbid")
+    judge: Choice = Field(description="An explicit family judge plugin and adopter-selected model.")
+    max_members: int = Field(default=8, ge=3, le=12)
+    max_questions: int = Field(default=3, ge=1, le=20)
+
+
 class Discovery(BaseModel):
     """Baseline first, then paced exploration, sharing a durable campaign allowance."""
 
@@ -116,17 +136,34 @@ class Discovery(BaseModel):
         return value
 
     enabled: bool = False
+    families: FamilyDiscovery | None = None
     comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(default_factory=list)
     residual_comparers: list[Annotated[ExplorationComparer, BeforeValidator(_named)]] = Field(
         default_factory=list,
         description="Opt-in recovery after the complete configured pass, borrowing future baseline capacity.",
     )
+    residual_judge: Choice | None = Field(
+        default=None, description="Optional judge used only for newly funded residual recovery questions."
+    )
+
+    @model_validator(mode="after")
+    def explicit_residual_judge(self):
+        if self.residual_judge is not None:
+            if not self.residual_comparers:
+                raise ValueError("residual_judge requires discovery.residual_comparers")
+            if self.residual_judge.use in {"none", "auto"}:
+                raise ValueError("residual_judge must name an explicit judge plugin")
+        return self
+
     depth: int = Field(default=20, ge=3, le=100)
     min_similarity: float = Field(default=0.35, ge=0, le=1)
-    baseline_fraction: float = Field(default=0.625, ge=0, le=1)
-    exploration_per_revision: float = Field(default=0.006, ge=0)
-    calls_per_revision: int = Field(default=20, ge=1)
-    exploration_calls_per_revision: int = Field(default=10, ge=0)
+    # Measured on 78 real commits (docs/production-discovery-results.md#exploration-depth): 30 exploration pairs a
+    # push reported 135 duplicates where 10 reported 90, for $0.0065 a commit against $0.0035. A push may spend
+    # its whole $0.015 credit; the campaign keeps $0.015 for baseline and lets exploration have $0.025 in all.
+    baseline_fraction: float = Field(default=0.375, ge=0, le=1)
+    exploration_per_revision: float = Field(default=0.015, ge=0)
+    calls_per_revision: int = Field(default=50, ge=1)
+    exploration_calls_per_revision: int = Field(default=30, ge=0)
     calls: int = Field(default=200, ge=1)
 
 

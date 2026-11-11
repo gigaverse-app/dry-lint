@@ -9,7 +9,7 @@ on:
     # would turn a red required check green. Verdicts come from the cache, so a re-run costs no judge calls.
     types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
-    branches: [main]  # judges merged code too, and its verdict cache is shared with every pull request
+    branches: [main]  # your default branch: judges merged code, and its verdict cache is shared with every pull request
 
 permissions:
   contents: read
@@ -23,6 +23,12 @@ concurrency:
 
 jobs:
   dry-lint:
+    # A fork's run cannot judge, so it must not report as the `dry-lint` check a branch rule requires: it is named
+    # `dry-lint detect`, and dry-lint-judge.yml posts the judged `dry-lint` check for it.
+    name: >-
+      ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name
+      != github.event.pull_request.base.repo.full_name
+      && 'dry-lint detect' || 'dry-lint' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -32,8 +38,13 @@ jobs:
           persist-credentials: false
       - uses: gigaverse-app/dry-lint@v1
         with:
+          # Optional model ranking key; functions use Claude balanced. The preset comes from .dry-lint.toml.
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
-          # anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # preset jev+opus: Claude Opus re-judges uncertain scores
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # balanced function judging
+          # Once .dry-lint/baseline.json is committed: old debt passes, new or widened debt fails, and a missing key
+          # or failed judge fails instead of passing unjudged.
+          # baseline: .dry-lint/baseline.json
+          # require-complete: 'true'
           # Every reported duplicate fails the check; the `dry-lint: override` label lets one through.
           # fail-at: "0.91"     # fail only on near-certain duplicates; the rest warn
           # warn-only: "true"   # never fail

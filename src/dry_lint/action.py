@@ -29,7 +29,7 @@ from pathlib import Path
 
 import httpx
 
-from dry_lint import sticky
+from dry_lint import goldens, sticky
 from dry_lint.detector import base_ref, changed_functions, given
 from dry_lint.function_index import export_index
 from dry_lint.git import git
@@ -345,6 +345,7 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
     if report.exists():
         ledger.add_run(Tally.of(Report.model_validate_json(report.read_text())), sticky.run_id())
     outcome = "folded"
+    shared = 0
     repository_id = env("GITHUB_REPOSITORY_ID")
     key = counter_key(repository_id) if sharing() and repository_id else ""
     token = env("GITHUB_TOKEN")
@@ -366,7 +367,12 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
                     if (pulled := PullLedger.read(c.get("body", ""))) is not None
                 ]
                 if found:
-                    ledger.add_pull(number, max(found, key=lambda pulled: pulled.tally.runs), key)
+                    final = max(found, key=lambda pulled: pulled.tally.runs)
+                    ledger.add_pull(number, final, key)
+                    if sharing_goldens():
+                        shared += goldens.append(
+                            report.parent / "goldens.jsonl", goldens.settled(repository, number, final)
+                        )
                 else:
                     ledger.unaccounted.append(number)
         except httpx.HTTPError as error:
@@ -380,11 +386,19 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(ledger.model_dump_json(indent=2) + "\n")
+    if shared:
+        print(f"dry-lint: {shared} settled pair(s) kept as the {goldens.ARTIFACT} artifact (share-goldens).")
+        write_outputs(goldens="true")
     return outcome
 
 
 def sharing() -> bool:
     return env("INPUT_SHARE_TOTALS", "true").lower() not in ("false", "0", "no")
+
+
+def sharing_goldens() -> bool:
+    """Opt in, never opt out: settled pairs leave the run only when the repository says so."""
+    return env("INPUT_SHARE_GOLDENS", "false").lower() in ("true", "1", "yes")
 
 
 def share(ledger: RepositoryLedger, transport: httpx.BaseTransport | None = None) -> int:

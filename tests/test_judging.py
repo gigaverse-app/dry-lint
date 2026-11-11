@@ -6,6 +6,7 @@ import pytest
 
 from dry_lint.costs import Ledger, estimate
 from dry_lint.judges import label_for
+from dry_lint.judges.command import PROMPT_VERSION
 from dry_lint.judging import Judging, decide, default_store, open_store
 from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.settings import Budget, Escalation, PluginChoice, Settings
@@ -153,8 +154,11 @@ def test_configured_judging_names_its_judges(
         escalate=Escalation(use="command", command="llm-b", version="big"),
     )
     judging = Judging.configured(settings, store)
-    assert judging.name == "command:llm-a:1 > command:llm-b:big"
-    assert Judging.configured(settings.model_copy(update={"escalate": None}), store).name == "command:llm-a:1"
+    assert judging.name == f"command:llm-a:1:{PROMPT_VERSION} > command:llm-b:big:{PROMPT_VERSION}"
+    assert (
+        Judging.configured(settings.model_copy(update={"escalate": None}), store).name
+        == f"command:llm-a:1:{PROMPT_VERSION}"
+    )
 
 
 def test_the_store_is_a_folder_in_the_git_directory_unless_configured(repo: Repo, tmp_path: Path) -> None:

@@ -1,0 +1,94 @@
+"""Publish curated repository Markdown without maintaining a second copy."""
+
+import posixpath
+import re
+import shutil
+from hashlib import sha256
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+
+from mkdocs.structure.files import File
+
+ROOT = Path(__file__).resolve().parents[1]
+# The address llms.txt is written against; each Read the Docs version substitutes its own.
+CANONICAL_SITE = "https://dry-lint.readthedocs.io/en/latest/"
+SOURCE_URIS: dict[str, str] = {}
+ASSET_VERSIONS: dict[str, str] = {}
+
+
+def on_files(files, config):
+    SOURCE_URIS.clear()
+    ASSET_VERSIONS.clear()
+    for file in files:
+        if file.abs_src_path and Path(file.abs_src_path).is_relative_to(ROOT):
+            SOURCE_URIS[Path(file.abs_src_path).relative_to(ROOT).as_posix()] = file.src_uri
+    for entry in config.extra["published_sources"]:
+        # A source publishes at its repository path, or at `as` when that path would make a poor URL.
+        source, uri = (entry["source"], entry["as"]) if isinstance(entry, dict) else (entry, entry)
+        path = ROOT / source
+        if not path.is_file():
+            raise ValueError(f"Missing published source: {source}")
+        files.append(File.generated(config, uri, abs_src_path=str(path)))
+        SOURCE_URIS[source] = uri
+    # The brand files keep their existing repository names: adopters' PR comments hot-link some of them.
+    brand = {role: Path(source).name for role, source in config.extra["brand"].items()}
+    for role, source in config.extra["brand"].items():
+        files.append(File.generated(config, f"assets/{brand[role]}", abs_src_path=str(ROOT / source)))
+        SOURCE_URIS[source] = f"assets/{brand[role]}"
+        ASSET_VERSIONS[source] = sha256((ROOT / source).read_bytes()).hexdigest()[:12]
+    version = {role: ASSET_VERSIONS[source] for role, source in config.extra["brand"].items()}
+    config.theme["logo"] = f"assets/{brand['logo']}?v={version['logo']}"
+    config.theme["favicon"] = f"assets/{brand['icon']}?v={version['icon']}"
+    config.extra["brand_social_image"] = config.site_url + f"assets/{brand['social']}?v={version['social']}"
+    return files
+
+
+def on_page_markdown(markdown, page, config, files):
+    source = Path(page.file.abs_src_path).relative_to(ROOT).as_posix()
+    repo = config.repo_url.rstrip("/")
+    page.edit_url = f"{repo}/edit/main/{source}"
+    if not page.meta.get("description"):
+        for paragraph in markdown.split("\n\n"):
+            paragraph = paragraph.strip()
+            if paragraph and paragraph[0].isalpha():
+                summary = re.sub(r"\[([^]]+)\]\([^)]+\)", r"\1", paragraph)
+                summary = re.sub(r"[`*_]", "", summary)
+                page.meta["description"] = " ".join(summary.split())[:180]
+                break
+
+    def rewrite(target):
+        url = urlsplit(target)
+        if url.scheme or url.netloc or not url.path or target.startswith("{"):
+            return target
+        resolved = posixpath.normpath(posixpath.join(posixpath.dirname(source), unquote(url.path)))
+        path = ROOT / resolved
+        if not path.exists() or not path.resolve().is_relative_to(ROOT):
+            raise ValueError(f"{source}: broken local link {target}")
+        query = url.query
+        if resolved in ASSET_VERSIONS:
+            query = (query + "&" if query else "") + "v=" + ASSET_VERSIONS[resolved]
+        suffix = ("?" + query if query else "") + ("#" + url.fragment if url.fragment else "")
+        if resolved in SOURCE_URIS:
+            return posixpath.relpath(SOURCE_URIS[resolved], posixpath.dirname(page.file.src_uri) or ".") + suffix
+        # Source, downloads and internal audit records stay at their existing repository URL.
+        kind = "tree" if path.is_dir() else "blob"
+        return f"{repo}/{kind}/main/{resolved}{suffix}"
+
+    # Preserve executable examples verbatim. Rewrite inline and reference Markdown links.
+    parts = re.split(r"(^```[^\n]*\n.*?^```[^\n]*$)", markdown, flags=re.M | re.S)
+    for index in range(0, len(parts), 2):
+        parts[index] = re.sub(r"(\]\()([^\s)]+)([^)]*\))", lambda m: m[1] + rewrite(m[2]) + m[3], parts[index])
+        parts[index] = re.sub(r"^(\[[^]]+\]:\s*)(\S+)", lambda m: m[1] + rewrite(m[2]), parts[index], flags=re.M)
+    return "".join(parts)
+
+
+def on_post_build(config):
+    """
+    Raw files for agents and crawlers, from the same sources as the pages: the agent setup procedure, verbatim, so the
+    page a person reads and the file an agent fetches never differ, and llms.txt, pointed at this build's own URL.
+    """
+    site = Path(config.site_dir)
+    for source, target in config.extra["raw_files"].items():
+        shutil.copyfile(ROOT / source, site / target)
+    llms = (ROOT / config.extra["llms_txt"]).read_text(encoding="utf-8")
+    (site / "llms.txt").write_bytes(llms.replace(CANONICAL_SITE, config.site_url).encode("utf-8"))
