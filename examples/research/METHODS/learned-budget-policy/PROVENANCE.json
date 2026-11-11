@@ -1,0 +1,188 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/policy_common.py",
+      "original_sha256": "a9bd0c3c7eaf7bff6800d0731fdf38b3abcf2c277c20982ad93283f293138116",
+      "public_path": "learned-budget-policy/implementation/policy_common.py",
+      "public_sha256": "1e5e80899881da47b11685aef87e673c008d1bb59d46c085a14baed6905ae963",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E741",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/fit_policy.py",
+      "original_sha256": "3d16ebefb033e9a88ad084946d29f5b39985389651e5f6688265ded6222b4290",
+      "public_path": "learned-budget-policy/implementation/fit_policy.py",
+      "public_sha256": "b7cee2d3602fd5855cd96e7d39df43aa639a476064b57fa4f04f083b0aeac0a0",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "E401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/allocate_policy.py",
+      "original_sha256": "d61b461f713f17933b9a77a33bbee321c672f63ce44ea5e3b03ee9b1ef415ddc",
+      "public_path": "learned-budget-policy/implementation/allocate_policy.py",
+      "public_sha256": "b83795df83031223d266e08a85c5fd8a81e0abe7332b5c8ef2e2eb614e98236b",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E731",
+        "F403",
+        "F405",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/guard_policy.py",
+      "original_sha256": "4570092af7d1b93e01cb40b0cd79af9da74a861bb003978da03801e5de227b2d",
+      "public_path": "learned-budget-policy/implementation/guard_policy.py",
+      "public_sha256": "74416522fa5aea6ecc96f2880d65bb27fc48b93c935371dc688b88ec09cc49d0",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/dynamic_residual.py",
+      "original_sha256": "df3d59c32efca78093292f55f88295add1d565916806970eca3b1289a4b5dc15",
+      "public_path": "learned-budget-policy/implementation/dynamic_residual.py",
+      "public_sha256": "c08ea85a3afe9dc4878abcbadb36d1fd1841b04419667457937a6bc1936e5c06",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/reproduce_policy.py",
+      "original_sha256": "70f657bf62435fe99a24a514efffe8b6020e85c3e78fd487a0ec191ef3d83827",
+      "public_path": "learned-budget-policy/implementation/reproduce_policy.py",
+      "public_sha256": "910af22c5283d89f4e03885d0b16cc5394e6974810b0a90b933139176a2ef8a0",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/prepare_policy.py",
+      "original_sha256": "6d3449c03602652f5aa20ef677a15f94f558e7f871d3dc59f9b804c1e577bbc7",
+      "public_path": "learned-budget-policy/implementation/prepare_policy.py",
+      "public_sha256": "ead59630445238d069884f49361d3d845f5ba0c8a91958b35f4a01a7f5a9fd12",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E401",
+        "E402",
+        "E741",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/freeze_campaign.py",
+      "original_sha256": "02076c6377a1091e46f1063d0ecbf15697b68c640a99825c01f071a2a0f4074d",
+      "public_path": "learned-budget-policy/implementation/freeze_campaign.py",
+      "public_sha256": "49a876fd490d1640f44a1a02f02ed83ba7ad4a82ad3c99779ecfc9cfc1da7985",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/replay_campaigns.py",
+      "original_sha256": "da5e05187ed1bb89023ad83a470555b54da2d34d0f39c2af6d113275ec00e228",
+      "public_path": "learned-budget-policy/implementation/replay_campaigns.py",
+      "public_sha256": "fb622a0b10eff7623a00a20151b3825d3b834e7e322339bcdb7f510c6398c64b",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E401",
+        "E402",
+        "E731",
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/source_only.py",
+      "original_sha256": "e62d6548c26da922608a2ebf7a6ce1688b80c84eac494dee532b23784106c794",
+      "public_path": "learned-budget-policy/implementation/source_only.py",
+      "public_sha256": "deda52386cfa0f0630b2da67782b2d9fb380273e39a4b2ee71e56ef2817aa34c",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "learned-budget-policy",
+      "original_path": "jobs/learned-budget-policy/.lab-results/complete_subset.py",
+      "original_sha256": "c37f21996ad293f0acc78984a6d8674bb5d1be8c224f1f37aa454e04339a3399",
+      "public_path": "learned-budget-policy/implementation/complete_subset.py",
+      "public_sha256": "bf111234b207e245419d829753d5b97b347c9fbad6f5fb460bf0416deba6473f",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B007",
+        "E401",
+        "E402",
+        "F401",
+        "F403",
+        "F405",
+        "F841",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}
