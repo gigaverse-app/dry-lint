@@ -63,7 +63,8 @@ credentials your repository passes in, at your cost, and without any it only lis
 
 Python, TypeScript and TSX work out of the box. TypeScript repositories need no Python project, `bun install`,
 Node or build step: dry-lint installs its own tools and parses source without executing your code
-([TypeScript and Bun](docs/typescript.md) covers monorepos).
+([TypeScript and Bun](docs/typescript.md) covers monorepos). Luau (Roblox) is opt-in:
+`pip install 'dry-lint[luau]'` and `extractors = ["luau"]` ([Luau and Roblox](docs/luau.md)).
 
 ### Try it locally, without an API key
 

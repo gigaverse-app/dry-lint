@@ -44,6 +44,9 @@ def escaped(text: str, limit: int = REASON_LIMIT) -> str:
     return re.sub(r"([\\`*_{}\[\]()<>#!|~])", r"\\\1", plain(text, limit))
 
 
+FENCES = {"//": "ts", "--": "lua"}
+
+
 class Finding(BaseModel):
     """A proposed pair and, when it was judged, the verdict and whether it came from the store."""
 
@@ -142,7 +145,14 @@ class Finding(BaseModel):
         )
 
     def suppression(self) -> str:
-        prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
+        path = self.candidate.new.path
+        prefix = (
+            "//"
+            if path.endswith((".ts", ".tsx", ".mts", ".cts"))
+            else "--"
+            if path.endswith((".luau", ".lua"))
+            else "#"
+        )
         return f"{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}"
 
 
@@ -707,7 +717,7 @@ def markdown_lane(
                            for r in kin) + ": consolidate them in the same change.", ""]
               if (kin := report.relatives(f)) else []),
             f"Different concepts? Add to {escaped(short_paths(new.path, existing.path)[0])}:", "",
-            *([f"```{'ts' if suppression.startswith('//') else 'python'}", suppression, "```"]
+            *([f"```{FENCES.get(suppression.split()[0], 'python')}", suppression, "```"]
               if not re.search(r"[`\n]", suppression) else [escaped(suppression)]), "",
         ])  # fmt: skip
     legend = " · ".join(f"{icon} {text}" for icon, text in LEGEND.items() if any(dot(f) == icon for f in listed))
@@ -814,7 +824,9 @@ def clean(report: Report, audit: bool, report_at: float | None, kind: str = "fun
 
 def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list[str]:
     typescript = [f.suppression().startswith("//") for f in shown]
-    prefix = "//" if all(typescript) else "#"
+    luau = [f.suppression().startswith("--") for f in shown]
+    markers = {f.suppression().split()[0] for f in shown}
+    prefix = markers.pop() if len(markers) == 1 else "#"
     noun = "model declaration" if kind == "model" else "function"
     where = f"either {noun}" if audit else f"the changed {noun}"
     return [
@@ -824,6 +836,7 @@ def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list
         "| a family of look-alikes, or copies kept on purpose | a `[[patterns]]` entry with a `reason` in `.dry-lint.toml` |",
         *([] if audit else ["| this pull request only | the `dry-lint: override` label |"]),
         *(["", "In TypeScript and TSX, the comments start with `//`."] if any(typescript) and prefix == "#" else []),
+        *(["", "In Luau, the comments start with `--`."] if any(luau) and prefix == "#" else []),
     ]  # fmt: skip
 
 

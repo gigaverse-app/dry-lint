@@ -316,6 +316,20 @@ def test_overrides_use_the_comment_syntax_of_the_findings_languages() -> None:
     assert "`# dry-lint: ignore`" in mixed and "In TypeScript and TSX, the comments start with `//`." in mixed
 
 
+def test_overrides_use_dash_comments_for_luau() -> None:
+    luau = Finding(
+        candidate=pair("shorten").model_copy(
+            update={"new": function("src/Caption.luau", "def clip(text, n):\n    return text\n", "clip")}
+        ),
+        verdict=Verdict(label="duplicate", score=0.9, owner="new", judge="jev", judge_version="v"),
+    )
+    only = as_markdown(report(luau))
+    assert "`-- dry-lint: ignore`" in only and "start with `--`" not in only
+    assert "```lua\n-- dry-lint: distinct-from src/text.py::shorten\n```" in only
+    mixed = as_markdown(report(luau, finding("duplicate", existing="other")))
+    assert "`# dry-lint: ignore`" in mixed and "In Luau, the comments start with `--`." in mixed
+
+
 def test_paths_show_only_as_much_as_tells_the_two_files_apart() -> None:
     assert short_paths("a/b/view.tsx", "c/d/other.tsx") == ("view.tsx", "other.tsx")
     assert short_paths("chat/x/Quoted.tsx", "live/y/Quoted.tsx") == ("x/Quoted.tsx", "y/Quoted.tsx")

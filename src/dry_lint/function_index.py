@@ -65,11 +65,14 @@ def repository_name(value: str) -> str:
 
 
 def extraction_contract(settings: Settings) -> str:
+    plugins = [load("extractors", choice) for choice in settings.extractors]
+    # The Luau extractor is opt-in, so indexes for repositories that never use it keep their existing contract.
+    luau = any(plugin.name == "luau" for plugin in plugins)
     modules = ("function_index", "functions", "extractors", "typescript", "source_context", "models", "model_shapes")
     implementation = {
-        name: Path(import_module(f"dry_lint.{name}").__file__).read_text(encoding="utf-8") for name in modules
+        name: Path(import_module(f"dry_lint.{name}").__file__).read_text(encoding="utf-8")
+        for name in (*modules, *(("luau",) if luau else ()))
     }
-    plugins = [load("extractors", choice) for choice in settings.extractors]
     return digest(
         {
             "schema": INDEX_SCHEMA,
@@ -77,7 +80,10 @@ def extraction_contract(settings: Settings) -> str:
             "default_scope": {"include": Settings().include, "exclude": Settings().exclude},
             "python": list(sys.version_info[:2]),
             "platform": sys.platform,
-            "parsers": {name: version(name) for name in ("tree-sitter", "tree-sitter-typescript")},
+            "parsers": {
+                name: version(name)
+                for name in ("tree-sitter", "tree-sitter-typescript", *(("tree-sitter-luau",) if luau else ()))
+            },
             "extractors": [
                 {"choice": choice.model_dump(), "identity": identity(plugin), "files": plugin.files}
                 for choice, plugin in zip(settings.extractors, plugins, strict=True)

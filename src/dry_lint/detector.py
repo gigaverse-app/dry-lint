@@ -19,8 +19,8 @@ from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
 from dry_lint.settings import ExplorationComparer, Settings
 
-SUPPRESSION = re.compile(r"(?:#|//)\s*dry-lint:\s*distinct-from\s+(\S+)")
-IGNORE = re.compile(r"(?:#|//)\s*dry-lint:\s*ignore\b")
+SUPPRESSION = re.compile(r"(?:#|//|--)\s*dry-lint:\s*distinct-from\s+(\S+)")
+IGNORE = re.compile(r"(?:#|//|--)\s*dry-lint:\s*ignore\b")
 
 
 def default_base(root: Path) -> str:

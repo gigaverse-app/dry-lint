@@ -13,6 +13,7 @@ from dry_lint.comparison_helpers import python_helpers
 from dry_lint.evidence import PairEvidence, SourceReference
 from dry_lint.extractors import PythonExtractor
 from dry_lint.ledger import PullLedger
+from dry_lint.luau import LuauExtractor
 from dry_lint.models import Function, Run, Verdict, qualified
 from dry_lint.report import Report, escaped
 from dry_lint.typescript import TypeScriptExtractor
@@ -141,6 +142,8 @@ class Comparisons:
             if source.path.endswith(".py")
             else TypeScriptExtractor()
             if source.path.endswith((".ts", ".tsx", ".mts", ".cts"))
+            else LuauExtractor()
+            if source.path.endswith((".luau", ".lua"))
             else None
         )
         if extractor is None:
