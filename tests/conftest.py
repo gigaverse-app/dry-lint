@@ -184,6 +184,11 @@ def coverage_pair(number: int = 1) -> Candidate:
     )
 
 
+def residual_pair(number: int = 1) -> Candidate:
+    """A recovery-suffix exploration pair, scheduled after the complete protected pass."""
+    return coverage_pair(number).model_copy(update={"lane": "exploration", "residual": True})
+
+
 @pytest.fixture
 def load_script(monkeypatch: pytest.MonkeyPatch) -> Callable[[str], dict[str, Any]]:
     """Load an experiment's dynamic module namespace with its sibling imports available."""

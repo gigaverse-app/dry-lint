@@ -5,3 +5,12 @@ dist/
 .coverage
 .pytest_cache/
 .ruff_cache/
+
+# Documentation build
+.venv-docs/
+site/
+
+# pytest-selective planner cache
+.test-impact/
+# Quint traces, logs and receipts from model-based contract runs.
+contracts/.artifacts/

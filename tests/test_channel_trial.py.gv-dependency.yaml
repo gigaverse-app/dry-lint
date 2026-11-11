@@ -1,0 +1,6 @@
+dependencies:
+  - inputs:
+      - "//scripts/benchmark_channel_trial.py"
+      - "//scripts/channel_trial.py"
+    kind: import
+    reason: "Loaded or run outside the test's imports; recorded by pytest-selective audit --write-declarations."
