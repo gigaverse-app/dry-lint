@@ -49,4 +49,4 @@ python ../stage_replay.py --method learned-budget-policy --evidence-root "$EVIDE
 
 This stages writes in a new directory, blocks networking, and preserves the original inputs. It does not fit a new model or obtain new answers.
 
-Recovery verification is recorded in [validation.json](validation.json). Numerical/queue/scheduler reproduction and aggregate-only checks are labeled separately there. Original implementations retain targeted legacy lint exceptions; public wrappers use normal repository lint.
+Recovery verification is recorded in `research/learned-budget-policy/validation.json` in [dry-lint-goldens](https://github.com/gigaverse-app/dry-lint-goldens) (private; see [ACCESS.md](../ACCESS.md)). Numerical/queue/scheduler reproduction and aggregate-only checks are labeled separately there. Original implementations retain targeted legacy lint exceptions; public wrappers use normal repository lint.
