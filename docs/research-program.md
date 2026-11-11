@@ -134,3 +134,5 @@ What clears its bar becomes a default. The rest goes into the research directory
 ## Log
 
 - **2026-11-11:** program written; Phase 0 statuses recorded above.
+- **2026-11-11:** Track B differences passed both bars (AUC 0.963 inside the interval, +0.92 points of false
+  reports at 0.4, 47 of 50 differences real); shipped in [#192](https://github.com/gigaverse-app/dry-lint/pull/192).
