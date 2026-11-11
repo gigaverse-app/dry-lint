@@ -13,8 +13,9 @@ Each stage reads the files the previous stage wrote in `--out`.
 ```sh
 python mine_history.py log    --out OUT --repo CLONE --name litellm --commits 3000   # trees only, no blobs
 python mine_history.py fetch  --out OUT --repo CLONE --name litellm --floor-gb 4     # batch-fetch the blobs
-python mine_history.py mine   --out OUT --repo CLONE --name litellm                  # all candidates, with features
+python mine_history.py mine   --out OUT --repo CLONE --name litellm --jobs 12        # all candidates, with features
 python mine_history.py select --out OUT litellm openhands                            # thresholds -> cases-*.jsonl
+python mine_history.py blame  --out OUT --repo CLONE --name litellm                  # introducing commits
 python mine_history.py sample --out OUT litellm openhands --n 30 --seed 20261111     # print a sample to read
 ```
 
@@ -27,8 +28,13 @@ python mine_history.py sample --out OUT litellm openhands --n 30 --seed 20261111
 - `mine` reads blobs with `GIT_NO_LAZY_FETCH=1`. A blob that was not fetched is counted (`blob_missing`) and
   skipped; it is never fetched one at a time. It writes `candidates-<name>.jsonl`, `mine-<name>.json` (counters,
   commit range, HEAD) and `missing-<name>.txt`.
-- `select` applies the thresholds below, drops repeats, splits off test-file cases and writes `cases-<name>.jsonl`
-  and `summary.json`. It only reads files, so thresholds can be changed and re-applied in seconds.
+- `mine --jobs N` mines commits in N worker processes, in contiguous chunks so each worker's parse cache stays useful.
+  The output is identical to a single-process run.
+- `select` keeps one B per deleted function, applies the thresholds below, drops repeats, splits off test-file cases,
+  adds `case_id` and any introducing commits already blamed, and writes `cases-<name>.jsonl` and `summary.json`. It
+  only reads files, so thresholds can be changed and re-applied in seconds.
+- `blame` finds the introducing commits (below) and caches them in `blame-<name>.json`, keyed by member revision,
+  path and line range, so `select` can be re-run without blaming again.
 - Several candidate files can be merged by concatenating them newest first; `select` reads every
   `commits-<name>*.json` in `--out` for the full commit messages.
 
@@ -71,7 +77,8 @@ changed file is near-identical to it. Moved functions are not cases.
    B (`a_in_b >= 0.5`; a small A replaced by a larger B that covers it). Bodies exclude decorators, signature and
    docstring.
 
-One removed A can give several cases: every new call in a redirected caller is tried as B.
+Every new call in a redirected caller is tried as B; `select` keeps only the most similar B for each deleted A
+(similarity = max(Jaccard, `a_in_b`)), and only then applies the thresholds.
 
 Case: A at P and B at P. `callers` lists the redirected call sites.
 
@@ -83,7 +90,7 @@ Case: A at P and B at P. `callers` lists the redirected call sites.
 4. Similarity of the removed lines to B: at least half of B's identifiers occur in the removed lines
    (`containment >= 0.5`) **and** identifier-set Jaccard of removed lines vs B's body >= 0.2.
 
-Case: A at P and B at P. A's member record carries `removed_lines`.
+Case: A at P and B at P. A's member record carries `removed_lines`; `callers` is A itself.
 
 ### family (extract-helper)
 
@@ -113,6 +120,28 @@ of each repository with all thresholds at zero:
 - Families whose sites share less than about 40% of the helper's identifiers were mostly new generic utilities
   (a Redis client getter, a logging helper) called from functions that changed for other reasons.
 
+### Recorded checks
+
+- `callers_call_b` (pairs): every listed caller, as it stands at C, has a call that resolves to B, **and** B is
+  defined at C (in the commit's after-version of its file, or unchanged from P). It is recorded, not a filter.
+- `case_id`: `repo[:2] + "-" + sha1(repo + commit + "|".join(member qualnames) + helper qualname)[:8]` (helper
+  qualname is empty for pairs).
+
+### Introducing commits
+
+For each member at P, `git blame --porcelain -w -M -C -L start,end P -- path` gives the commit of every line; the
+member's `introduced_by` is the commit that owns most lines (`lines` of `total`). The case's `introduced_by` is the
+member whose introducing commit has the newest committer time: the later copy. Family helpers are not blamed (they
+did not exist at P). A case whose blame fails or times out gets `blame_skipped` with the reason.
+
+Blame in a blob-less clone fetches every blob it reads, one round trip at a time, and `-C` reads every file changed
+by each commit the lines come from (not only `.py`). `blame --prefetch` batch-fetches first, skipping binary and
+bundled assets (images, fonts, source maps, `dist/`, `*.min.js`, lock files):
+
+- `full`: every version of each blamed file, plus every file changed by those commits (`log --full-diff`);
+- `commits` (default): every version of each blamed file; then a blame without `-C` names the commits the lines come
+  from, and the files those commits changed are fetched. Origins that only `-C` finds are fetched lazily.
+
 ### Other rules
 
 - **Tests.** Functions in test files (`tests/`, `test/`, `testing/`, `test_*.py`, `*_test.py`, `conftest.py`) are
@@ -139,22 +168,45 @@ of each repository with all thresholds at zero:
 `date` is the commit's author date. `code` is the function's own source (decorators included), never a whole file. Line numbers are 1-based and refer to
 the member's `rev`.
 
-## First run (2026-11-11)
+## Results
 
-| Repository | Commits mined | Range | pair-delete | pair-shrink | family | test-file cases set aside |
+### Second run (2026-11-11)
+
+All six repositories mined with the rules above; thresholds unchanged from the first run. Every case has a `case_id`,
+and every case was blamed (557 of 557; 2 of 1,335 member blames fell back to `-w -M` after `-C` timed out).
+
+| Repository | Non-merge `.py` commits mined | Range | pair-delete | pair-shrink | family | pairs with `callers_call_b` |
 | --- | --- | --- | --- | --- | --- | --- |
-| LiteLLM (HEAD `7bcc462`) | newest 9,000 non-merge `.py` commits | 2026-07-16 .. 2026-11-10 | 10 | 30 | 106 | 47 |
-| OpenHands (HEAD `b759f8a`) | all 3,468 non-merge `.py` commits | 2024-03-17 .. 2026-11-11 | 2 | 4 | 14 | 2 |
+| LiteLLM (HEAD `7bcc462`) | all 31,214 | 2023-07-26 .. 2026-11-10 | 19 | 90 | 184 | 109 of 109 |
+| OpenHands (HEAD `b759f8a`) | all 3,468 | 2024-03-17 .. 2026-11-11 | 2 | 4 | 14 | 6 of 6 |
+| Saleor | all 12,290 | 2013-02-13 .. 2026-11-10 | 12 | 34 | 49 | 46 of 46 |
+| Zulip | all 29,154 | 2012-08-28 .. 2026-11-10 | 13 | 36 | 50 | 49 of 49 |
+| Prefect | all 9,360 | 2021-07-14 .. 2026-11-09 | 3 | 10 | 14 | 13 of 13 |
+| NetBox | all 9,691 | 2016-03-01 .. 2026-11-10 | 1 | 3 | 19 | 4 of 4 |
+| **Total** | 95,177 | | 50 | 177 | 330 | 227 of 227 |
 
-A fixed-seed sample of 30 cases (`sample --seed 20261111`), read by hand, held 26 real consolidations of
-duplicated logic, 3 that were not duplicates and 1 unclear: family 11 of 13, pair-delete 5 of 7, pair-shrink 10 of 10.
+Against the research program's bar: 227 pairs (>= 200), 330 families (>= 40), six repositories (>= 4), but only one
+repository with 50 or more pairs (LiteLLM 109; Zulip 49, Saleor 46). Every listed history was mined in full, so the
+second 50 cannot come from more commits of these repositories under the same rules.
+
+A fixed-seed sample of 20 cases from the four new repositories (`sample --seed 20261112`), read by hand: 18 real, 1
+not a duplicate, 1 unclear.
+
+### First run
+
+Newest 9,000 LiteLLM and all 3,468 OpenHands commits: 166 cases. A fixed-seed sample of 30 (`--seed 20261111`) held
+26 real consolidations, 3 not duplicates and 1 unclear. Of those 166 `case_id`s, 164 are unchanged in the second run;
+the 2 that went are pair-delete cases whose deleted function now keeps a more similar B.
 
 ## Known limits
+
+- Files that do not parse under Python 3 (Python 2 code, commits that left a syntax error) are skipped on that side,
+  and a function is never called removed or new because its file failed to parse (`parse_failed` in `mine-*.json`;
+  3,343 file versions in Zulip, mostly its Python 2 years).
 
 - Calls through instances (`obj.method()`), inherited methods and names imported from outside the repository are not
   resolved, so cases that go through them are missed.
 - The similarity measures are identifier sets, not aligned code. They separate "the removed lines were the helper's
   logic" from "the function now calls an unrelated helper", but they do not prove the two were duplicates.
-- The commit that introduced the later copy (asked for by the research program) is not computed.
-- Blobs reported missing by `mine` (`missing-<name>.txt`, 7 in the first run) were not fetched back, so a few cases
-  may be lost.
+- `git blame -M -C` follows moves inside a file and copies from files changed in the same commit; a copy pasted from a
+  file the commit did not touch is attributed to the pasting commit, which is what "later copy" should mean here.

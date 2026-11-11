@@ -585,6 +585,23 @@ class CommitView:
             self._extra[path] = self.git.module(oid, path, self.stats) if oid else None
         return self._extra[path]
 
+    def func_at_commit(self, path: str, qual: str) -> Func | None:
+        """The function at the commit: from the parsed after-version when the commit changed its file, else the
+        unchanged parent version."""
+        if path in self.status:
+            mod = self.after.get(path)
+            if mod is None:
+                return None
+            if qual in mod.funcs:
+                return mod.funcs[qual]
+            if "." not in qual and qual in mod.from_imports:
+                level, module, orig = mod.from_imports[qual]
+                target = resolve_module(level, module, path, self.pyset_c(), self.cache_c)
+                if target and target != path and target not in self.status:
+                    return self.func_at_parent(target, orig, follow=False)
+            return None
+        return self.func_at_parent(path, qual)
+
     def func_at_parent(self, path: str, qual: str, follow: bool = True) -> Func | None:
         mod = self.module_at_parent(path)
         if mod is None:
@@ -673,10 +690,25 @@ def mine_commit(git: Git, commit: dict, stats: Counter) -> list[dict]:
             memo[("new", fc.path, fc.qualname)] = {}
         return {t: r for t, r in after.items() if t not in before}
 
+    def callers_call(callers: list[str], target: tuple[str, str]) -> bool:
+        """Every caller, as it stands at the commit, has a call that resolves to ``target``, and ``target`` is
+        defined at the commit (an independent check of the after-version, not of the mining rule)."""
+        if view.func_at_commit(*target) is None:
+            return False
+        for ref in callers:
+            path, qual = ref.split("::", 1)
+            mod = view.after.get(path)
+            fc = mod.funcs.get(qual) if mod else None
+            if fc is None or target not in resolved(fc, mod, "c"):
+                return False
+        return True
+
     # ---- pair-delete
     removed_funcs = []
     for path, mod_p in view.before.items():
         mod_c = view.after.get(path)
+        if mod_c is None and view.status.get(path) != "D":
+            continue  # the after-version did not parse (or was not read): nothing is known to be removed
         for qual, fp in mod_p.funcs.items():
             if mod_c is not None and (qual in mod_c.funcs or qual in mod_c.ambiguous):
                 continue
@@ -716,6 +748,7 @@ def mine_commit(git: Git, commit: dict, stats: Counter) -> list[dict]:
                     "kind": "pair-delete",
                     "members": [member(a, parent), member(b, parent)],
                     "callers": callers,
+                    "callers_call_b": callers_call(callers, (bpath, bqual)),
                     "features": {
                         "jaccard": round(jaccard(sa, sb), 3),
                         "seq_ratio": round(seq_ratio(a.tokens, b.tokens), 3),
@@ -732,6 +765,8 @@ def mine_commit(git: Git, commit: dict, stats: Counter) -> list[dict]:
     before_keys = {(f.path, f.qualname) for f in before_funcs}
     for path, mod_c in view.after.items():
         mod_p = view.before.get(path)
+        if mod_p is None and view.status.get(path) != "A":
+            continue  # the before-version did not parse (or was not read): nothing is known to be new
         for qual, fc in mod_c.funcs.items():
             if mod_p is not None and qual in mod_p.funcs:
                 continue
@@ -767,6 +802,8 @@ def mine_commit(git: Git, commit: dict, stats: Counter) -> list[dict]:
                     **base,
                     "kind": "pair-shrink",
                     "members": [member(fp, parent, removed), member(b, parent)],
+                    "callers": [f"{path}::{qual}"],
+                    "callers_call_b": callers_call([f"{path}::{qual}"], target),
                     "features": {
                         "jaccard": round(jaccard(rem_set, b_set), 3),
                         "containment": round(containment(rem_set, b_set), 3),
@@ -819,38 +856,61 @@ def mine_commit(git: Git, commit: dict, stats: Counter) -> list[dict]:
     return cases
 
 
+_WORKER_GIT: Git | None = None
+
+
+def _init_worker(repo: Path) -> None:
+    global _WORKER_GIT
+    _WORKER_GIT = Git(repo)
+
+
+def _mine_one(commit: dict) -> tuple[list[dict], Counter, list[str]]:
+    """Mine one commit in a worker process: (cases, counters, blobs found missing)."""
+    assert _WORKER_GIT is not None
+    stats: Counter = Counter(commits=1)
+    if len(commit["parents"]) != 1:
+        stats["skip_merge"] += 1
+        return [], stats, []
+    if is_mega(commit):
+        stats["skip_mega"] += 1
+        return [], stats, []
+    if not is_candidate_commit(commit):
+        stats["skip_no_modified_py"] += 1
+        return [], stats, []
+    stats["mined"] += 1
+    before = set(_WORKER_GIT.missing)
+    try:
+        cases = mine_commit(_WORKER_GIT, commit, stats)
+    except subprocess.CalledProcessError:
+        stats["git_error"] += 1
+        cases = []
+    return cases, stats, sorted(_WORKER_GIT.missing - before)
+
+
 def cmd_mine(args: argparse.Namespace) -> None:
+    import multiprocessing
+
     data = json.loads((args.out / f"commits-{args.name}.json").read_text(encoding="utf-8"))
-    git = Git(args.repo)
     stats: Counter = Counter()
+    missing: set[str] = set()
     started = time.time()
     out_path = args.out / f"candidates-{args.name}.jsonl"
     commits = data["commits"][: args.limit] if args.limit else data["commits"]
-    with out_path.open("w", encoding="utf-8") as out:
-        for i, commit in enumerate(commits):
-            stats["commits"] += 1
-            if len(commit["parents"]) != 1:
-                stats["skip_merge"] += 1
-                continue
-            if is_mega(commit):
-                stats["skip_mega"] += 1
-                continue
-            if not is_candidate_commit(commit):
-                stats["skip_no_modified_py"] += 1
-                continue
-            stats["mined"] += 1
-            try:
-                cases = mine_commit(git, commit, stats)
-            except subprocess.CalledProcessError:
-                stats["git_error"] += 1
-                continue
+    with (
+        out_path.open("w", encoding="utf-8") as out,
+        multiprocessing.Pool(args.jobs, initializer=_init_worker, initargs=(args.repo,)) as pool,
+    ):
+        # contiguous chunks keep a worker's parse cache useful: a file's new blob is the next commit's old one
+        for i, (cases, commit_stats, commit_missing) in enumerate(pool.imap(_mine_one, commits, chunksize=16)):
+            stats.update(commit_stats)
+            missing.update(commit_missing)
             for case in cases:
                 out.write(json.dumps({"repo": data["repo"], **case}) + "\n")
                 stats[f"candidates_{case['kind']}{'_test' if case['is_test'] else ''}"] += 1
-            if i % 200 == 0:
+            if i % 500 == 0:
                 print(f"{i}/{len(commits)} {time.time() - started:.0f}s {dict(stats)}", flush=True)
     stats["seconds"] = round(time.time() - started)
-    (args.out / f"missing-{args.name}.txt").write_text("\n".join(sorted(git.missing)), encoding="utf-8")
+    (args.out / f"missing-{args.name}.txt").write_text("\n".join(sorted(missing)), encoding="utf-8")
     meta = {"repo": data["repo"], "head": data["head"], "stats": stats}
     meta["range"] = [commits[-1]["commit"], commits[0]["commit"], commits[-1]["date"], commits[0]["date"]]
     (args.out / f"mine-{args.name}.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
@@ -873,7 +933,9 @@ def body_idents(code: str) -> set[str]:
     """Identifiers of a function's body, without its decorators, signature and docstring."""
     source = textwrap.dedent(code)
     try:
-        node = ast.parse(source).body[0]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", SyntaxWarning)
+            node = ast.parse(source).body[0]
     except (SyntaxError, IndexError):
         return ident_set(code)
     body = getattr(node, "body", [])
@@ -885,13 +947,53 @@ def body_idents(code: str) -> set[str]:
     return ident_set("\n".join(source.splitlines()[body[0].lineno - 1 :]))
 
 
+def case_id(case: dict) -> str:
+    """Stable id: repo[:2]-sha1(repo + commit + member qualnames joined by | + helper qualname)[:8]."""
+    text = case["repo"] + case["commit"] + "|".join(m["qualname"] for m in case["members"])
+    text += (case.get("helper") or {}).get("qualname", "")
+    return f"{case['repo'][:2]}-{hashlib.sha1(text.encode()).hexdigest()[:8]}"
+
+
+def pair_delete_similarity(case: dict) -> float:
+    f = case["features"]
+    a, b = (body_idents(m["code"]) for m in case["members"])
+    f["a_in_b"] = round(len(a & b) / len(a), 3) if a else 0.0
+    return max(f["jaccard"], f["a_in_b"])
+
+
+def best_b_only(cand: list[dict], dropped: Counter) -> list[dict]:
+    """Keep, for each deleted function, only the pair-delete candidate whose B is most similar to it."""
+    best: dict[tuple, dict] = {}
+    for case in cand:
+        if case["kind"] != "pair-delete":
+            continue
+        a = case["members"][0]
+        key = (case["commit"], a["path"], a["qualname"])
+        score = pair_delete_similarity(case)
+        if key not in best or score > best[key]["_score"]:
+            best[key] = {**case, "_score": score}
+    out = []
+    for case in cand:
+        if case["kind"] == "pair-delete":
+            a = case["members"][0]
+            chosen = best[(case["commit"], a["path"], a["qualname"])]
+            if chosen["members"][1]["qualname"] != case["members"][1]["qualname"] or (
+                chosen["members"][1]["path"] != case["members"][1]["path"]
+            ):
+                dropped["pair-delete:not_most_similar_b"] += 1
+                continue
+            out.append(case)
+        else:
+            out.append(case)
+    return out
+
+
 def accept(case: dict, th: argparse.Namespace) -> str | None:
     """None when the case passes the thresholds, else the reason it is dropped."""
     f = case["features"]
     if case["kind"] == "pair-delete":
         case["members"][0]["removed_entirely"] = True
-        a, b = (body_idents(m["code"]) for m in case["members"])
-        f["a_in_b"] = round(len(a & b) / len(a), 3) if a else 0.0
+        pair_delete_similarity(case)
         if f["a_calls_b"]:
             return "wrapper_inlined"
         if f["jaccard"] < th.delete_jaccard and f["a_in_b"] < th.delete_a_in_b:
@@ -932,6 +1034,8 @@ def cmd_select(args: argparse.Namespace) -> None:
         kept: dict[str, dict] = {}
         tests: Counter = Counter()
         messages = full_messages(args.out, name)
+        cand = best_b_only(cand, dropped)
+        blame = load_blame(args.out, name)
         for case in reversed(cand):  # oldest first: a cherry-picked repeat keeps its original commit
             if case["commit"] in messages:
                 case["keyword_signal"] = bool(KEYWORDS.search(messages[case["commit"]]))
@@ -943,6 +1047,8 @@ def cmd_select(args: argparse.Namespace) -> None:
             if key in kept:
                 dropped[f"{case['kind']}:repeat"] += 1
                 continue
+            case["case_id"] = case_id(case)
+            annotate_introduced(case, blame)
             kept[key] = case
         cases = [c for c in kept.values() if not c["is_test"]]
         tests.update(c["kind"] for c in kept.values() if c["is_test"])
@@ -962,6 +1068,9 @@ def cmd_select(args: argparse.Namespace) -> None:
             "dropped": dict(dropped),
             "member_lines_quartiles": {k: quartiles(v) for k, v in sizes.items()},
             "family_sites": dict(Counter(c["features"]["sites"] for c in cases if c["kind"] == "family")),
+            "callers_call_b": dict(Counter(c["kind"] for c in cases if c.get("callers_call_b"))),
+            "introduced_by": dict(Counter(c["kind"] for c in cases if c.get("introduced_by"))),
+            "blame_skipped": dict(Counter(c["kind"] for c in cases if c.get("blame_skipped"))),
         }
     text = json.dumps(summary, indent=1)
     (args.out / "summary.json").write_text(text, encoding="utf-8")
@@ -974,6 +1083,184 @@ def quartiles(values: list[int]) -> dict:
         return {}
     pick = lambda q: v[min(len(v) - 1, int(q * len(v)))]  # noqa: E731
     return {"n": len(v), "min": v[0], "p25": pick(0.25), "median": pick(0.5), "p75": pick(0.75), "max": v[-1]}
+
+
+# ---------------------------------------------------------------- stage: blame
+
+NO_PREFETCH = re.compile(
+    r"\.(png|jpe?g|gif|ico|woff2?|ttf|eot|otf|map|mo|pdf|zip|gz|whl|lock|svg|webp|mp4|wasm)$|(^|/)dist/|\.min\.(js|css)$",
+    re.IGNORECASE,
+)
+HEADER = re.compile(r"^([0-9a-f]{40}) \d+ \d+")
+
+
+def blame_key(m: dict) -> str:
+    return f"{m['rev']}:{m['path']}:{m['start_line']}:{m['end_line']}"
+
+
+def load_blame(out: Path, name: str) -> dict[str, dict]:
+    path = out / f"blame-{name}.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def annotate_introduced(case: dict, blame: dict[str, dict]) -> None:
+    """Copy each member's introducing commit from the blame cache; the case's ``introduced_by`` is the member
+    whose introducing commit is newest (the later copy). Family helpers are not members: they did not exist at P."""
+    results = [blame.get(blame_key(m)) for m in case["members"]]
+    for m, r in zip(case["members"], results, strict=True):
+        if r and "sha" in r:
+            m["introduced_by"] = {k: r[k] for k in ("sha", "date", "time", "lines", "total")}
+            m["introduced_by"]["mode"] = r.get("mode", "-w -M -C")  # entries cached before modes were recorded
+    if any(r is None for r in results):
+        return  # blame not run yet
+    errors = [r["error"] for r in results if "error" in r]
+    if errors:
+        case["blame_skipped"] = errors[0]
+        case.pop("introduced_by", None)
+        return
+    case.pop("blame_skipped", None)
+    newest = max(range(len(results)), key=lambda i: results[i]["time"])
+    m = case["members"][newest]
+    case["introduced_by"] = {
+        "sha": results[newest]["sha"],
+        "date": results[newest]["date"],
+        "member": newest,
+        "path": m["path"],
+        "qualname": m["qualname"],
+        # every member's lines come mostly from one commit: the copies were written together, no "later" one
+        "same_commit": len({r["sha"] for r in results}) == 1,
+    }
+
+
+def blame_member(repo: Path, m: dict, timeout: int, copies: bool = True, fallback: int = 0) -> dict:
+    """Majority introducing commit of a member's lines at its revision, by line count. With ``fallback``, a blame
+    with -C that times out is replaced by one without -C (``mode`` says which ran)."""
+    result = _blame_once(repo, m, timeout, copies)
+    if copies and fallback and result.get("error") == "timeout":
+        result = _blame_once(repo, m, fallback, False)
+        if "sha" in result:
+            result["mode"] = "-w -M (-C timed out)"
+    return result
+
+
+def _blame_once(repo: Path, m: dict, timeout: int, copies: bool) -> dict:
+    cmd = ["git", "-C", str(repo), "blame", "--porcelain", "-w", "-M"] + (["-C"] if copies else [])
+    cmd += ["-L", f"{m['start_line']},{m['end_line']}", m["rev"], "--", m["path"]]
+    try:
+        out = subprocess.run(cmd, capture_output=True, timeout=timeout, check=True).stdout.decode("utf-8", "replace")
+    except subprocess.TimeoutExpired:
+        return {"error": "timeout"}
+    except subprocess.CalledProcessError as e:
+        return {"error": "git: " + e.stderr.decode("utf-8", "replace").strip()[:200]}
+    counts: Counter = Counter()
+    times: dict[str, int] = {}
+    current = None
+    for line in out.splitlines():
+        match = HEADER.match(line)
+        if match:
+            current = match.group(1)
+            counts[current] += 1
+        elif line.startswith("committer-time ") and current:
+            times[current] = int(line.split()[1])
+    if not counts:
+        return {"error": "empty blame"}
+    sha, lines = counts.most_common(1)[0]
+    when = times.get(sha, 0)
+    date = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(when))
+    result = {"sha": sha, "time": when, "date": date, "lines": lines, "total": sum(counts.values())}
+    result["mode"] = "-w -M -C" if copies else "-w -M"
+    result["commits"] = sorted(counts)
+    return result
+
+
+def raw_oids(raw: str) -> set[str]:
+    """Blob ids in ``git log --raw`` output, without submodules and binary or bundled assets."""
+    oids: set[str] = set()
+    for line in raw.splitlines():
+        if not RAW_LINE.match(line) or " 160000 " in line[:16] or line.startswith(":160000"):
+            continue  # a submodule entry names a commit, not a blob
+        if not NO_PREFETCH.search(line.split("\t", 1)[1]):
+            oids.update(o for o in line.split()[2:4] if o != ZERO)
+    return oids
+
+
+def prefetch(args: argparse.Namespace, oids: set[str], label: str) -> None:
+    oid_file = args.out / f"blame-oids-{args.name}.txt"
+    oid_file.write_text("\n".join(sorted(oids)), encoding="utf-8")
+    print(f"prefetching {len(oids)} file versions ({label})", flush=True)
+    try:
+        cmd_fetch(argparse.Namespace(**{**vars(args), "oids": oid_file, "batch": 2000, "skip_tests": False}))
+    except SystemExit:
+        print("prefetch stopped at the disk floor; blame fetches the rest lazily", flush=True)
+
+
+def run_blames(args: argparse.Namespace, todo: dict[str, dict], copies: bool, sink: dict[str, dict]) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    started = time.time()
+    with ThreadPoolExecutor(args.jobs) as pool:
+        futures = {
+            key: pool.submit(blame_member, args.repo, m, args.timeout, copies, args.fallback_timeout)
+            for key, m in todo.items()
+        }
+        for i, (key, fut) in enumerate(futures.items()):
+            sink[key] = fut.result()
+            if i % 25 == 0:
+                print(f"{i}/{len(todo)} {time.time() - started:.0f}s {free_gb(args.repo):.2f} GB free", flush=True)
+                if copies:
+                    (args.out / f"blame-{args.name}.json").write_text(json.dumps(sink), encoding="utf-8")
+                if free_gb(args.repo) < args.floor_gb:
+                    print("stopping: free space below floor", flush=True)
+                    pool.shutdown(cancel_futures=True)
+                    break
+
+
+def cmd_blame(args: argparse.Namespace) -> None:
+    cases_path = args.out / f"cases-{args.name}.jsonl"
+    cases = [json.loads(line) for line in cases_path.open(encoding="utf-8")]
+    blame = load_blame(args.out, args.name)
+    todo = {blame_key(m): m for c in cases for m in c["members"] if blame_key(m) not in blame}
+    if args.retry_errors:
+        todo.update({blame_key(m): m for c in cases for m in c["members"] if "error" in blame.get(blame_key(m), {})})
+    print(f"{len(todo)} member blames to run, {free_gb(args.repo):.2f} GB free", flush=True)
+    git = Git(args.repo)
+    targets = {(m["rev"], m["path"]) for m in todo.values()}
+    if args.prefetch == "full" and todo:
+        # every version of each blamed file and of the other files changed in the same commits (what -C reads)
+        oids: set[str] = set()
+        for rev, path in targets:
+            oids |= raw_oids(git.run("-c", "core.quotepath=off", "log", "--raw", "--no-abbrev", "--no-renames",
+                                     "--full-diff", "--format=", rev, "--", path))  # fmt: skip
+        prefetch(args, oids, "file histories with their commits")
+    elif args.prefetch == "commits" and todo:
+        # 1. every version of each blamed file; 2. a blame without -C names the commits the lines come from;
+        # 3. the files those commits changed, which is what -C compares against. Older origins found by -C
+        # are fetched lazily.
+        oids = set()
+        for rev, path in targets:
+            oids |= raw_oids(git.run("-c", "core.quotepath=off", "log", "--raw", "--no-abbrev", "--no-renames",
+                                     "--format=", rev, "--", path))  # fmt: skip
+        prefetch(args, oids, "file histories")
+        first: dict[str, dict] = {}
+        run_blames(args, todo, False, first)
+        shas = sorted({sha for r in first.values() for sha in r.get("commits", [])})
+        if not shas:
+            shas = [targets.pop()[0]]  # nothing to add; keep `log --stdin` from defaulting to HEAD
+        raw = git.run("-c", "core.quotepath=off", "log", "--no-walk", "--raw", "--no-abbrev", "--no-renames",
+                      "--format=", "--stdin", stdin="\n".join(shas).encode())  # fmt: skip
+        prefetch(args, raw_oids(raw), f"files changed by {len(shas)} origin commits")
+    run_blames(args, todo, True, blame)
+    for r in blame.values():
+        r.pop("commits", None)
+    (args.out / f"blame-{args.name}.json").write_text(json.dumps(blame), encoding="utf-8")
+    for case in cases:
+        annotate_introduced(case, blame)
+    with cases_path.open("w", encoding="utf-8") as fh:
+        for case in cases:
+            fh.write(json.dumps(case) + "\n")
+    print(
+        json.dumps(Counter("ok" if c.get("introduced_by") else c.get("blame_skipped", "missing")[:40] for c in cases))
+    )
 
 
 # ---------------------------------------------------------------- stage: sample
@@ -1057,7 +1344,26 @@ def main() -> None:
     p = sub.add_parser("mine")
     common(p)
     p.add_argument("--limit", type=int, help="mine only the newest N listed commits (for trial runs)")
+    p.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2), help="worker processes")
     p.set_defaults(func=cmd_mine)
+
+    p = sub.add_parser("blame")
+    common(p)
+    p.add_argument("--jobs", type=int, default=6)
+    p.add_argument("--timeout", type=int, default=900, help="seconds per blame")
+    p.add_argument("--floor-gb", type=float, default=4.0)
+    p.add_argument(
+        "--prefetch",
+        choices=["none", "full", "commits"],
+        default="commits",
+        help="batch-fetch blobs before blaming: full = each file's history with every file its commits changed; "
+        "commits = each file's history, then the files changed by the commits a blame without -C names",
+    )
+    p.add_argument("--retry-errors", action="store_true")
+    p.add_argument(
+        "--fallback-timeout", type=int, default=0, help="when -C times out, blame without -C with this timeout"
+    )
+    p.set_defaults(func=cmd_blame)
 
     p = sub.add_parser("select")
     common(p, repo=False)
