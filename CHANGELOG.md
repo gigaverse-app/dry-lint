@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.10.0](https://github.com/gigaverse-app/dry-lint/compare/v1.9.3...v1.10.0) (2026-11-11)
+
+
+### Features
+
+* **discovery:** explore 30 pairs a push instead of 10 ([8d3b2b4](https://github.com/gigaverse-app/dry-lint/commit/8d3b2b4d24b6ecc2dd52dd2562730296b6eca66f))
+* **discovery:** explore 30 pairs a push instead of 10 ([6f0c0da](https://github.com/gigaverse-app/dry-lint/commit/6f0c0da8fbb0c90be3087ecf80de2a5abd76824b))
+* **judges:** a LangChain judge that answers in a prompt-quality schema, and balanced-structured ([e4ff574](https://github.com/gigaverse-app/dry-lint/commit/e4ff57419391e36e8b2df31d14f3384b29945578))
+* **judges:** a LangChain judge that answers in a schema, and balanced-structured ([4051456](https://github.com/gigaverse-app/dry-lint/commit/40514567945e2b0d0da5583a4bfecbebcce8cf47))
+* **judges:** spell the verdict schema out: enums, descriptions and a score rubric ([74d9d29](https://github.com/gigaverse-app/dry-lint/commit/74d9d29077f0af5e58490389d579a525d9f9127a))
+
+
+### Bug Fixes
+
+* **discovery:** identify detached GitHub Actions campaigns ([#186](https://github.com/gigaverse-app/dry-lint/issues/186)) ([7cdbecf](https://github.com/gigaverse-app/dry-lint/commit/7cdbecfab7d60e27719f080907b19eb55fc0dd86))
+* **judging:** settle a batch before refusing the next pair for budget ([#178](https://github.com/gigaverse-app/dry-lint/issues/178)) ([49d34a9](https://github.com/gigaverse-app/dry-lint/commit/49d34a9874d8c5398a70591fc0d6d4a0da12e36d))
+
+
+### Documentation
+
+* **judges:** name the structured mode and the baseline it was measured against ([47d0181](https://github.com/gigaverse-app/dry-lint/commit/47d018143cc2d41d8d4a039f824c9f6494c15dda))
+
 ## [1.9.3](https://github.com/gigaverse-app/dry-lint/compare/v1.9.2...v1.9.3) (2026-11-10)
 
 
