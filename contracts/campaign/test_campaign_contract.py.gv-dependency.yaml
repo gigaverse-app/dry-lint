@@ -1,0 +1,10 @@
+dependencies:
+  - inputs:
+      - "//contracts/campaign/quint-connect.json"
+      - "//contracts/campaign/campaign.qnt"
+    kind: content
+    reason: "quint_contract() reads the contract file, which names the Quint model it runs."
+  - inputs:
+      - "//contracts/campaign/campaign_driver.py"
+    kind: import
+    reason: "Loaded by name (driver=\"campaign_driver\") from the contract's pythonpath, which the import graph does not search."

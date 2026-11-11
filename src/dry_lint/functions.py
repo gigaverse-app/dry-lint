@@ -5,7 +5,6 @@ Also the language-neutral part: which tracked files are read, and by which extra
 """
 
 import ast
-import fnmatch
 import hashlib
 import re
 from collections import deque
@@ -13,7 +12,7 @@ from collections.abc import Iterator
 from pathlib import Path, PurePosixPath
 
 from dry_lint.git import git
-from dry_lint.models import Function, module_of
+from dry_lint.models import Function, matches_any, module_of
 from dry_lint.plugins import Extractor
 
 STOP_WORDS = {
@@ -149,6 +148,11 @@ def behaviour_tokens(function: Function) -> list[str]:
     return node_tokens(node) if node else [f"fn:{word}" for word in words(function.name)] * 2
 
 
+def docstring_statement(node: ast.AST) -> bool:
+    """A bare string expression statement: documentation, never behaviour."""
+    return isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
+
+
 class _Canonical(ast.NodeTransformer):
     """Drop docstrings, annotations and the function's own name; number local names in order of first use."""
 
@@ -169,9 +173,8 @@ class _Canonical(ast.NodeTransformer):
         node.returns = None
         node.decorator_list = []
         body = node.body
-        if body and isinstance(body[0], ast.Expr) and isinstance(getattr(body[0], "value", None), ast.Constant):
-            if isinstance(body[0].value.value, str):
-                node.body = body[1:] or [ast.Pass()]
+        if body and docstring_statement(body[0]):
+            node.body = body[1:] or [ast.Pass()]
         self.generic_visit(node)
         return node
 
@@ -317,9 +320,7 @@ def function_nodes(source: str, path: str, min_lines: int = 2) -> list[tuple[Fun
 
 
 def selected_path(path: str, include: list[str], exclude: list[str]) -> bool:
-    return any(fnmatch.fnmatch(path, pattern) for pattern in include) and not any(
-        fnmatch.fnmatch(path, pattern) for pattern in exclude
-    )
+    return matches_any(path, include) and not matches_any(path, exclude)
 
 
 def tracked_files(root: Path, include: list[str], exclude: list[str]) -> list[str]:
@@ -332,7 +333,7 @@ def tracked_files(root: Path, include: list[str], exclude: list[str]) -> list[st
 
 def extractor_for(path: str, extractors: list[Extractor]) -> Extractor | None:
     """The first extractor whose globs match the path."""
-    return next((e for e in extractors if any(fnmatch.fnmatch(path, glob) for glob in e.files)), None)
+    return next((e for e in extractors if matches_any(path, e.files)), None)
 
 
 def blob_ids(root: Path) -> dict[str, str]:

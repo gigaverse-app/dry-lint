@@ -13,6 +13,7 @@ from dry_lint.settings import Settings
 class HttpJudge:
     """A judge is `name`, its API key's environment variable, and how to ask and read one answer."""
 
+    strict_version = True
     name = ""
     key_variable = ""
     default_model = ""

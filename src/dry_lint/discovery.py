@@ -1,6 +1,7 @@
 """Durable admission for paid discovery. Reservations commit before a provider is contacted."""
 
 import hashlib
+import math
 import sqlite3
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
@@ -23,10 +24,12 @@ class Attempt(BaseModel):
     usd: float
     status: str = "reserved"
     residual: bool = False
+    source_evidence: str = ""
+    subscription: bool = False
 
 
 class Campaign(BaseModel):
-    schema_version: int = 2
+    schema_version: int = 3
     revisions: list[str] = Field(default_factory=list)
     attempts: list[Attempt] = Field(default_factory=list)
     credit: float = 0.0
@@ -64,7 +67,7 @@ class CampaignStore:
             row = db.execute("SELECT state FROM campaigns WHERE key = ?", (self.key,)).fetchone()
             state = Campaign.model_validate_json(row[0]) if row else Campaign()
             yield state
-            state.schema_version = 2
+            state.schema_version = 3
             db.execute("INSERT OR REPLACE INTO campaigns VALUES (?, ?)", (self.key, state.model_dump_json()))
 
     def snapshot(self) -> Campaign:
@@ -74,41 +77,87 @@ class CampaignStore:
     def advance(self, settings: Settings, prior_usd: float = 0.0) -> None:
         with self.transaction() as state:
             state.prior_usd = max(state.prior_usd, prior_usd)
-            cap = settings.budget.usd * (1 - settings.discovery.baseline_fraction)
-            if self.revision not in state.revisions:
-                state.revisions.append(self.revision)
-                state.credit = min(cap, state.credit + settings.discovery.exploration_per_revision)
+            self._enter(state, settings)
+
+    def _enter(self, state: Campaign, settings: Settings) -> float:
+        """Record this revision once, minting its exploration credit up to the cap; returns the cap.
+
+        INVARIANT: credit is minted once per revision, never above the exploration share of the budget.
+        """
+        cap = settings.budget.usd * (1 - settings.discovery.baseline_fraction)
+        if self.revision not in state.revisions:
+            state.revisions.append(self.revision)
+            state.credit = min(cap, state.credit + settings.discovery.exploration_per_revision)
+        return cap
+
+    def recovery_ready(self, settings: Settings, sources: set[str]) -> bool:
+        """Avoid constructing a recovery plugin when neither admission nor recovery cache work can run.
+
+        `sources` is the recovery work's source evidence: pair evidence, or `family:<request key>`. This is only
+        a lazy-loading gate; reserve repeats the authoritative checks atomically.
+        """
+        state = self.snapshot()
+        current = [a for a in state.attempts if a.revision == self.revision]
+        # Cached successful recovery remains readable after a later failure or exhaustion. Loading the
+        # current plugin still verifies its exact version; an earlier policy cannot answer this one.
+        if any(a.residual and a.status == "answered" and a.source_evidence in sources for a in state.attempts):
+            return True
+        return (
+            all(a.status == "answered" for a in current)
+            and state.usd < settings.budget.usd
+            and self.call_room(state, current, settings, exploration=True)
+        )
+
+    @staticmethod
+    def call_room(state: Campaign, current: list[Attempt], settings: Settings, *, exploration: bool) -> bool:
+        policy = settings.discovery
+        limit = min(policy.calls_per_revision, settings.max_judgements or policy.calls_per_revision)
+        return (
+            len(current) < limit
+            and len(state.attempts) < policy.calls
+            and (
+                not exploration or sum(a.lane == "exploration" for a in current) < policy.exploration_calls_per_revision
+            )
+        )
 
     def reserve(
         self, candidate: Candidate, judge: Judge, settings: Settings, usd: float, *, residual: bool = False
-    ) -> int | Literal["budget"] | None:
+    ) -> int | Literal["budget", "limit"] | None:
+        """
+        The reservation's index, or why the pair cannot be asked now: ``"budget"`` when its cost exceeds what is left,
+        ``"limit"`` when a call or exploration cap is spent, None when this revision already asked about it (or a
+        residual pass would precede an unanswered protected one). Budget and limit refusals are budget gaps, not
+        failures; None is unfinished work.
+        """
         policy = settings.discovery
         if residual and not policy.residual_comparers or candidate.residual and not residual:
             raise ValueError("Residual admission requires an explicitly configured residual phase")
         version = evidence(candidate, identity(judge))
         with self.transaction() as state:
-            exploration_cap = settings.budget.usd * (1 - policy.baseline_fraction)
-            if self.revision not in state.revisions:
-                state.revisions.append(self.revision)
-                state.credit = min(exploration_cap, state.credit + policy.exploration_per_revision)
+            exploration_cap = self._enter(state, settings)
             current = [a for a in state.attempts if a.revision == self.revision]
             # A concurrent/abandoned or failed attempt is not a completed protected pass.
             if residual and any(a.status != "answered" for a in current):
                 return None
             # Repeated attempts on one tree do not mint calls or credit, including failed/abandoned requests.
-            if any(a.evidence == version for a in current):
+            if any(
+                a.evidence == version or ((residual or a.residual) and a.source_evidence == evidence(candidate))
+                for a in current
+            ):
                 return None
-            limit = min(policy.calls_per_revision, settings.max_judgements or policy.calls_per_revision)
-            if len(current) >= limit or len(state.attempts) >= policy.calls:
-                return None
+            if not self.call_room(state, current, settings, exploration=candidate.lane == "exploration"):
+                return "limit"
+            if (
+                getattr(judge, "subscription", False)
+                and sum(a.subscription for a in current) >= settings.budget.subscription_calls
+            ):
+                return "limit"
             room = settings.budget.usd - state.usd
             if candidate.lane == "exploration":
                 explored = [a for a in state.attempts if a.lane == "exploration"]
-                if sum(a.lane == "exploration" for a in current) >= policy.exploration_calls_per_revision:
-                    return None
                 if not residual:
                     if len(explored) >= int(policy.calls * (1 - policy.baseline_fraction)):
-                        return None
+                        return "limit"
                     # Only an explicit residual phase may borrow future baseline capacity.
                     room = min(room, exploration_cap - sum(a.usd for a in explored), state.credit)
             if usd > room + 1e-12:
@@ -121,15 +170,66 @@ class CampaignStore:
                     query=candidate.new.qualname,
                     usd=usd,
                     residual=residual,
+                    source_evidence=evidence(candidate),
+                    subscription=getattr(judge, "subscription", False),
                 )
             )
             if candidate.lane == "exploration" and not residual:
                 state.credit -= usd
             return len(state.attempts) - 1
 
+    def reserve_family(
+        self,
+        key: str,
+        source_key: str,
+        query: str,
+        settings: Settings,
+        usd: float,
+        *,
+        subscription: bool = False,
+    ) -> int | Literal["budget", "limit"] | None:
+        """A whole family consumes one residual question, with the same total caps, refusals and failure holds."""
+        if settings.discovery.families is None or not settings.discovery.enabled:
+            raise ValueError("Operation-family admission requires explicit native discovery opt-in")
+        if not math.isfinite(usd) or usd < 0:
+            raise ValueError("Family reservation must be a finite nonnegative cost")
+        with self.transaction() as state:
+            if self.revision not in state.revisions:
+                raise ValueError("The protected campaign phase must run before family recovery")
+            current = [attempt for attempt in state.attempts if attempt.revision == self.revision]
+            if any(attempt.status != "answered" for attempt in current):
+                return None
+            # A changed policy cannot trigger a second paid assessment of the same complete family this revision.
+            if any(attempt.evidence == key or attempt.source_evidence == "family:" + source_key for attempt in current):
+                return None
+            if not self.call_room(state, current, settings, exploration=True):
+                return "limit"
+            if subscription and sum(attempt.subscription for attempt in current) >= settings.budget.subscription_calls:
+                return "limit"
+            if usd > settings.budget.usd - state.usd + 1e-12:
+                return "budget"
+            state.attempts.append(
+                Attempt(
+                    revision=self.revision,
+                    evidence=key,
+                    lane="exploration",
+                    query=query,
+                    usd=usd,
+                    residual=True,
+                    source_evidence="family:" + source_key,
+                    subscription=subscription,
+                )
+            )
+            # Family recovery never mints protected exploration credit.
+            return len(state.attempts) - 1
+
     def settle(self, reservation: int, usd: float | None, success: bool) -> float:
         with self.transaction() as state:
             attempt = state.attempts[reservation]
+            # INVARIANT: a reservation settles exactly once. A second settle would refund exploration credit
+            # again and could turn an answered attempt into a failed one.
+            if attempt.status != "reserved":
+                raise ValueError(f"Reservation {reservation} is already settled ({attempt.status})")
             if usd is not None:
                 if attempt.lane == "exploration" and not attempt.residual:
                     state.credit += attempt.usd - usd
@@ -168,6 +268,9 @@ def reservation_cost(judge: Judge, candidate: Candidate, settings: Settings) -> 
     maximum = getattr(judge, "max_tokens", None)
     if rates is None or maximum is None and rates[1] != 0:
         raise ValueError("Discovery needs a priced judge with a maximum output token limit")
-    # Conservative input estimate plus the actual configured output ceiling; actual usage settles the charge.
-    text = judging_input(judge, candidate)
-    return usage_cost({"input": len(text.encode("utf-8")) + 1024, "output": maximum or 0}, rates)
+    return conservative_cost(judging_input(judge, candidate), maximum or 0, rates)
+
+
+def conservative_cost(text: str, output_tokens: int, rates: tuple[float, float]) -> float:
+    """An admission bound: UTF-8 bytes plus framing as input, and the full output ceiling; actual usage settles."""
+    return usage_cost({"input": len(text.encode("utf-8")) + 1024, "output": output_tokens}, rates)
