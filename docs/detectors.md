@@ -6,23 +6,25 @@ reports and storage stay in the shared pipeline. This plugin compares Python fun
 
 ## Install and select
 
-From a dry-lint checkout:
+Dryer is optional and not part of dry-lint's install. It is not on PyPI (the PyPI project named `dryer` is
+unrelated), so install it from Git next to dry-lint:
 
 ```bash
-uv sync --locked --extra dryer
-uv run --extra dryer dry-lint check --root /path/to/project --detector dryer --judge none
-uv run --extra dryer dry-lint scan --root /path/to/project --detector dryer --judge none --limit 50
+pip install dry-lint 'dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0'
+uvx --from dry-lint --with 'dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0' \
+  dry-lint scan --detector dryer --judge none
 ```
 
-For an isolated invocation:
+From a dry-lint checkout, the `dryer` dependency group installs the same commit:
 
 ```bash
-uvx --from 'dry-lint[dryer] @ git+https://github.com/gigaverse-app/dry-lint' dry-lint scan --detector dryer --judge none
+uv sync --locked --group dryer
+uv run --group dryer dry-lint check --root /path/to/project --detector dryer --judge none
 ```
 
-The extra installs upstream Dryer at commit `66ff6d21a42c04afcad89c78a80066176d1294b0`, plus tree-sitter and its
-language pack. The first Dryer invocation downloads the Python grammar through the language pack; provision that
-cache before offline use. TF-IDF needs none of these dependencies and never imports them.
+That commit is the one CI tests, in a separate job outside the required gate. Dryer brings tree-sitter's language
+pack, and its first invocation downloads the Python grammar from GitHub release assets; provision that cache before
+offline use. TF-IDF needs none of these dependencies and never imports them.
 
 Select it in `.dry-lint.toml` or under `[tool.dry-lint]` in `pyproject.toml`:
 
@@ -33,7 +35,7 @@ comparer = { use = "dryer", threshold = 0.82, min_lines = 4, min_nodes = 20 }
 `--detector NAME` selects a comparer with its defaults, overriding the configured comparer and its options.
 It works with `check`, `scan`, `detect` and `explain`, and with `bench --comparer`. Installed third-party comparer
 names work through the same override. No new plugin slot or parallel ranking framework is introduced.
-A missing extra produces exit code 2 with installation guidance; it does not silently substitute TF-IDF.
+A missing Dryer install produces exit code 2 with the install command; it does not silently substitute TF-IDF.
 
 For the GitHub Action, select the comparer in repository configuration and install the upstream dependency via
 the existing `plugins` input (there is no separate detector input):
@@ -45,7 +47,8 @@ the existing `plugins` input (there is no separate detector input):
 ```
 
 Use the same dry-lint release in the detect and judge jobs so both understand schema 2's cache policy.
-For pre-commit, add `additional_dependencies: ['.[dryer]']` and `args: [--detector, dryer]` to the hook.
+For pre-commit, add `additional_dependencies: ['dryer @ git+https://github.com/unclebob/dryer.git@66ff6d21a42c04afcad89c78a80066176d1294b0']`
+and `args: [--detector, dryer]` to the hook.
 
 ## Shared policy, different scores
 
@@ -92,7 +95,7 @@ checks remain in force when both sides opt in. The cache policy stays in core an
 Use a clean detached checkout of the commit in [the comparison](dryer-comparison.md), then:
 
 ```bash
-PYTHONUTF8=1 uv run --extra dryer python scripts/compare_detectors.py /path/to/frozen-backend \
+PYTHONUTF8=1 uv run --group dryer python scripts/compare_detectors.py /path/to/frozen-backend \
   --base 9d5314c54bb3e7e15c825e8eac44e6960ab42d9d --runs 3 --output /outside/repository/evidence
 ```
 

@@ -1,4 +1,8 @@
 """Exercise the shipped installer with real uv installs; run separately from the offline test suite."""
+# The consumer-install job runs this script, which installs the action and its package by path:
+# gv:test-dependency: action.yml
+# gv:test-dependency: scripts/install-action.sh
+# gv:test-dependency: src/**
 
 import os
 import shutil

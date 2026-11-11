@@ -1,0 +1,9 @@
+dependencies:
+  - inputs:
+      - "//examples/backgrounds/**"
+      - "//examples/due-consolidation-gold.toml"
+      - "//examples/gold.toml"
+      - "//examples/pytest-obligation-gold.toml"
+      - "//examples/pytest-selective-gold.toml"
+    kind: content
+    reason: "Read at runtime; recorded by pytest-selective audit --write-declarations."

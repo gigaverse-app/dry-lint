@@ -3,6 +3,11 @@
 Adopt dry-lint as a loop: catch a copy before commit, explain it on the PR, preserve the value of fixing it,
 and steadily retire the duplication that predates adoption. Installing an Action alone leaves parts of that loop open.
 
+To adopt dry-lint in a new repository, give a coding agent the one prompt `Set up dry-lint in this repository.
+Fetch https://dry-lint.readthedocs.io/en/latest/agent-setup.md and follow it.` That
+[agent setup](../skills/dry-lint/SKILL.md) is the short, self-contained procedure. This playbook is the reference
+behind it: why each piece exists, model duplication, and how to audit or resume an existing adoption.
+
 This playbook comes from [Due's adoption](https://github.com/gigaverse-app/due/pull/188), its
 [cleanup](https://github.com/gigaverse-app/due/pull/190) and subsequent ratchets. Use the current dry-lint interfaces
 below rather than copying an old consumer workflow verbatim. [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation)
@@ -11,8 +16,9 @@ below rather than copying an old consumer workflow verbatim. [pytest-obligation]
 
 ## Adoption inventory
 
-Work on a branch and open a draft PR early. Inspect the default branch, existing workflows, hooks, settings,
-baseline, README markers, CONTRIBUTING instructions, branch rules and available secret **names**. Preserve existing
+Work on a branch and open a draft PR early. Inspect the default branch, how existing workflows pin actions,
+the pull request template and AGENTS.md, existing workflows, hooks, settings, baseline, README markers,
+CONTRIBUTING instructions, branch rules and available secret **names**. Preserve existing
 hooks and debt history. An existing baseline means resume adoption; never delete it and initialize again.
 
 | Surface | Complete adoption means |
@@ -34,38 +40,49 @@ prove that an organization token is unavailable. Verify its effective permission
 
 ## 1. Fix the scope, judge and budget
 
-Inspect `dry-lint config` and the [preset guide](judges.md). Judges use the adopter's own credentials. For the
-Sonnet configuration used in Due and pytest-obligation:
+Inspect `dry-lint config` and the [preset guide](judges.md). Judges use the adopter's own credentials, and one
+preset serves CI, the hook and the baseline ([one preset everywhere](judges.md#one-preset-everywhere)). With a
+TypeSafe key:
 
 ```toml
 # .dry-lint.toml
-preset = "sonnet"
+preset = "jev"          # "jev+opus" with an Anthropic key too; Due and pytest-obligation use "sonnet"
+include = ["src/*"]     # the package directories that ship
 [budget]
-usd = 0.25
+usd = 0.04
 ```
 
-Use `ANTHROPIC_API_KEY` locally and the same repository secret in CI. Keep credentials out of Git and logs.
+Settings live in `.dry-lint.toml`; `[tool.dry-lint]` in `pyproject.toml` takes the same keys, and `.dry-lint.toml`
+wins when both exist. Set `TYPESAFE_AI_API_KEY` (and `ANTHROPIC_API_KEY` for a Claude preset) locally, and pass the
+repository's own secret, whatever its name, to the Action's `typesafe-api-key` input in CI. Keep credentials out of Git and logs.
 Choose the parser for the repository's syntax, independently of its runtime dependencies: set the Action's
 `python-version` and the hook's `language_version` consistently. Due needs Python 3.14; do not assume every
 consumer does. Review include/exclude rules: defaults omit tests and migrations. A full sweep covers the configured
 candidate detector, not every possible semantic duplicate. Keep the initial/weekly audit budget separate from
 the per-PR budget. Reuse the verdict store between audit and update to avoid paying twice.
 
-Use the `v1` major-version tag throughout adoption: `gigaverse-app/dry-lint@v1` for Actions, `rev: v1` for
-pre-commit hooks, and `@v1` for Git-based CLI installs. Do not pin dry-lint to a commit SHA or a minor/patch
-release. This keeps adopters on the supported major release without a config edit for every compatible update.
-Use published major tags for established Actions too. Exercise staged detection after setup; if an existing
-pre-commit environment still runs an older version, refresh it with `uvx pre-commit clean` and rerun the hook.
+By default, use the `v1` major-version tag: `gigaverse-app/dry-lint@v1` for Actions, `rev: v1` for pre-commit
+hooks, and `'dry-lint>=1,<2'` from PyPI for the CLI. That keeps adopters on the supported major release without a
+config edit for every compatible update. When the adopting repository has its own pinning policy, follow it: if its
+workflows pin every action to a commit SHA, pin dry-lint the same way (`gigaverse-app/dry-lint@<sha> # v1`, from
+`gh api repos/gigaverse-app/dry-lint/commits/v1 --jq .sha`), and use a publisher's release tag where it has no
+major tag. pre-commit caches the first install of `rev: v1` and warns that it is a mutable reference; to pick up a
+newer 1.x release, run `uvx pre-commit clean` and rerun the hook. Exercise staged detection after setup.
 
 ## 2. Accept the existing backlog once
 
 Install the CLI in its own environment, outside the application's dependency resolution:
 
 ```bash
-uv tool install --no-config --python 3.13 'dry-lint[anthropic] @ git+https://github.com/gigaverse-app/dry-lint@v1'
+uv tool install --no-config --python 3.13 'dry-lint>=1,<2'    # 'dry-lint[anthropic]>=1,<2' for a Claude preset
 dry-lint config
-dry-lint sweep --init --budget-usd 5 --readme README.md --repository OWNER/NAME --repository-id NUMERIC_ID
+dry-lint sweep --init --budget-usd 1 --readme README.md --repository OWNER/NAME --repository-id NUMERIC_ID \
+  --branch DEFAULT
 ```
+
+`--budget-usd 1` is ample for Jev (273 pairs cost $0.010); use `5` for a Claude preset. Without a judge key on the
+machine, run the same sweep in Actions with [the bootstrap workflow](../examples/dry-lint-bootstrap.yml) and
+commit the files it uploads ([CI route](ci.md#no-judge-key-on-your-machine)).
 
 Use the real numeric GitHub repository ID (`gh api repos/OWNER/NAME --jq .id`), not its name. GitHub Actions
 provides that ID automatically. Locally, omitting it produces a backlog-only badge/table unless the README
@@ -125,7 +142,7 @@ repos:
   rev: v1
   hooks:
       - id: dry-lint
-        args: [--preset, sonnet, --baseline, .dry-lint/baseline.json]
+        args: [--preset, jev, --baseline, .dry-lint/baseline.json]   # the preset in .dry-lint.toml
         language_version: python3.13
       - id: dry-lint-trailers
         language_version: python3.13
@@ -136,17 +153,20 @@ uvx pre-commit validate-config
 uvx pre-commit install
 ```
 
-The hook's default is the agent preset; explicitly override it when the baseline uses Sonnet. Keep the baseline's
-contract consistent. The hook reads judge credentials from the shell or an untracked `.env`. Missing credentials
-must fail strict judging. `default_stages` prevents unrelated hooks from accidentally running twice. In shared Git worktrees, hook installation affects sibling worktrees too; use `pre-commit install --allow-missing-config`
+With `--baseline`, the hook must pass the preset the baseline was written with, the one in `.dry-lint.toml`:
+the hook's own default is `agent`, and a baseline refuses any other preset. The hook reads judge credentials from the shell or an untracked `.env`. Missing credentials
+fail strict judging whenever the staged change has a pair to judge; with no pair (nothing staged, no supported
+source staged, no look-alike) the hook starts no judge and passes. `default_stages` prevents unrelated hooks from accidentally running twice. In shared Git worktrees, hook installation affects sibling worktrees too; use `pre-commit install --allow-missing-config`
 when older branches legitimately lack the configuration. This only tolerates an absent configuration; configured
 hooks still enforce the baseline. Configuration
-in Git does not install hooks in other contributors' clones; put the install command in CONTRIBUTING.
+in Git does not install hooks in other contributors' clones; put the install command in the CONTRIBUTING file the
+repository already has, wherever it lives (`.github/CONTRIBUTING.md` included), or in the README's development
+section when it has none. If the repository does not use pre-commit at all, add it only where its maintainers
+welcome new tooling.
 
-If a general quality job runs `pre-commit run --all-files`, set `SKIP: dry-lint` on that step once the dedicated,
-required semantic job owns judging. Keep Ruff, formatting and documentation hooks running there. This avoids
-asking the general quality job, including fork runs, for judge credentials. Local hooks still judge normally;
-skipping the semantic hook in CI is only valid while the required judged check remains enforced.
+A general quality job that runs `pre-commit run --all-files` (tox or nox lint sessions, a CI lint job,
+pre-commit.ci) needs no key and no `SKIP: dry-lint`: a clean checkout stages nothing, so the hook has no pair to
+judge and passes. The required judged check owns judging pull requests, fork runs included.
 
 When a pair blocks, read both functions. Reuse the existing owner for one concept, preserving its failure and
 resource contracts. For genuinely different concepts, add a narrow `distinct-from` comment and reason. Run the
@@ -159,15 +179,16 @@ Start with [the PR workflow](../examples/dry-lint.yml) and [the fork judge](../e
 In **both** Action calls set the same judge, parser and these inputs:
 
 ```yaml
-anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-plugins: anthropic==2.4.0
+typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}   # your secret's name
+# anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}  # and plugins: anthropic==2.4.0, for a Claude preset
 baseline: .dry-lint/baseline.json
 require-complete: 'true'
 comment: 'true'
 comment-on-clean: 'true'
 ```
 
-Name the untrusted fork job `dry-lint detect` and the judged check `dry-lint`. Configure the branch rule to require
+Name the untrusted fork job `dry-lint detect` and the judged check `dry-lint`: keep the job `name:` expression from
+[the example](../examples/dry-lint.yml). Configure the branch rule to require
 the latter from GitHub Actions. Fork judgment consumes artifacts with trusted default-branch settings; never run
 fork code with judge credentials. A PR can report a spending-cap warning against an existing baseline.
 Baseline enforcement rejects widening, judge failures and warn-only bypasses;
@@ -180,8 +201,9 @@ Keep one sticky publisher per PR, including when combining scopes. See [Action a
 
 ## 5. Remember the cumulative value
 
-Keep the PR sticky and the generated `dry-lint-progress` README block. Give the block a visible heading and link it
-from the contributor guide. The sign uses the repository ID's hash, not a key guessed from its name. Preserve other
+Keep the PR sticky and the generated `dry-lint-progress` README block. A first block arrives under a
+`## Duplicate code` heading outside its markers; move or rename it to fit the README, and link it from the
+contributor guide. The sign uses the repository ID's hash, not a key guessed from its name. Preserve other
 tools' README markers. Use `--branch` when the default branch differs from `main`.
 
 | Measure | Authority and meaning |
@@ -205,7 +227,9 @@ Private repositories need a separately published aggregate endpoint for a public
 
 ## 6. Close the weekly ratchet loop
 
-Use [the audit workflow](../examples/dry-lint-audit.yml). The Action's `mode: sweep` is read-only; a later CLI
+Call dry-lint's [audit workflow](../.github/workflows/audit.yml) from a short workflow of your own, as
+[examples/dry-lint-audit.yml](../examples/dry-lint-audit.yml) does; never copy its steps, which then drift from the
+release. The Action's `mode: sweep` is read-only; a later CLI
 `sweep --update` records the result using the same store and the CLI already installed by the Action.
 Do not resolve/install the moving Action ref again between those steps: a different version can invalidate cached
 judgments or change the baseline contract. The workflow opens/updates one `dry-lint/ratchet` branch
@@ -214,7 +238,9 @@ containing only baseline, progress JSON and README changes. No application code 
 Configure an adopter-owned GitHub App token or fine-grained token with repository contents/PR write permission
 as `DRY_LINT_RATCHET_TOKEN` (Gigaverse consumers use the inherited `GV_CI_CROSS_REPO_TOKEN`). A PR created with the
 ordinary `GITHUB_TOKEN` generally does not trigger ordinary PR workflows; the ratchet must receive the same required
-checks as other PRs. Keep the token out of source-checkout credentials. A missing token should fail visibly.
+checks as other PRs. Keep the token out of source-checkout credentials. A missing token should fail visibly: the
+audit runs and then fails at its "Require ratchet PR authentication" step. Creating the token is a person's job; an
+agent adopting dry-lint reports it as left to do rather than working around it.
 
 Upload any emitted JSON/Markdown reports with `if: always()`, including on a new-debt failure.
 An operational failure before report generation may leave no report; retain and link the failed workflow logs,
@@ -249,7 +275,7 @@ immutable during function adoption, and initial model debt still requires explic
 To clean debt, select a pair from the audit, inspect both contracts, consolidate, run the affected tests, then run:
 
 ```bash
-dry-lint sweep --update --budget-usd 5 --readme README.md --repository OWNER/NAME
+dry-lint sweep --update --budget-usd 1 --readme README.md --repository OWNER/NAME --branch DEFAULT
 ```
 
 Commit that metadata with the refactor, or dispatch the audit after the cleanup merges. A second identical update
@@ -314,17 +340,17 @@ For each model adoption, exercise unchanged accepted debt, a new or changed copy
 the opt-out, and both sides of each ownership policy. Confirm model findings survive fork detect/judge and
 appear in the combined sticky. Test schema naming/isolation separately if that optional policy is enabled.
 
-A new audit workflow cannot be dispatched directly until GitHub knows it on the default branch. The audit
-template also supports `workflow_call`: add this job to an already registered workflow with `workflow_dispatch`,
-then dispatch that workflow on the adoption branch to exercise the same audit before merging:
+A new audit workflow cannot be dispatched directly until GitHub knows it on the default branch. Call the
+same reusable audit from an already registered workflow with `workflow_dispatch`, then dispatch that workflow on
+the adoption branch to exercise the audit before merging:
 
 ```yaml
 jobs:
   audit:
     if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/dry-lint-audit.yml
+    uses: gigaverse-app/dry-lint/.github/workflows/audit.yml@v1
     secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      TYPESAFE_AI_API_KEY: ${{ secrets.TYPESAFE_AI_API_KEY }}
       DRY_LINT_RATCHET_TOKEN: ${{ secrets.DRY_LINT_RATCHET_TOKEN }}
 ```
 

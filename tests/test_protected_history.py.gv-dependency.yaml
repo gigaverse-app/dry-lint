@@ -1,0 +1,8 @@
+dependencies:
+  - inputs:
+      - "//scripts/compare_history.py"
+      - "//scripts/judge_history.py"
+      - "//scripts/score_comparison.py"
+      - "//scripts/score_history.py"
+    kind: import
+    reason: "Loaded or run outside the test's imports; recorded by pytest-selective audit --write-declarations."
