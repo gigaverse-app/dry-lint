@@ -217,8 +217,12 @@ a measured sample, Opus found 47 of 50 listed differences on reported duplicates
 - **What it costs.** About 156 more output tokens a pair ($0.00060 against $0.00052). Ranking and reporting at
   0.4 did not move beyond their noise, and the field says a difference never lowers the score. At the 0.5 fail
   line, 3.5 points fewer labelled duplicates block (73.7% against 77.2%), with fewer false blocks.
-- **Upgrading.** The prompt changed, so the judge's version did (`schema-4`): stored `balanced` verdicts are asked
-  again once, under the existing exact-version rule. Baselines need no migration; their contract is the settings.
+- **Upgrading.** Nothing is asked again. The prompt changed, so new answers carry version `schema-4`, but a stored
+  `schema-3` answer from the same model, effort and options is still this judge's answer: the field is additive and
+  did not move the decision beyond noise ([design](design.md#verdict-store)). It is reused as is and shows no
+  differences; pairs judged after the upgrade (new pairs, or pairs whose code changed) list them.
+  `dry-lint scan --refresh` asks the old ones again to get theirs. Baselines need no migration; their contract is
+  the settings.
   Other judges (the text judges, `claude-code`, family judges) do not list differences.
 
 **Diagnostics.** `judge = { use = "langchain", diagnostics = true }` adds two fields after the verdict: what

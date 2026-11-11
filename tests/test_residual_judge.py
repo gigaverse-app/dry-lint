@@ -138,10 +138,10 @@ def test_same_name_versions_keep_both_cache_slots_and_rollback(configured, recov
     found = report.findings[0]
     assert found.verdict.judge == original.judge
     assert found.verdict.judge_version != original.judge_version and not found.cached
-    assert store.lookup(pair, judge.name, 0, judge.version, exact_source=True).verdict == original
+    assert store.lookup(pair, judge.name, 0, frozenset({judge.version}), exact_source=True).verdict == original
     scoped = store.scoped(f"residual:anthropic-operations:{MEASURED_VERSION}")
-    assert scoped.lookup(pair, judge.name, 0, MEASURED_VERSION, exact_source=True).verdict == found.verdict
-    assert scoped.lookup(pair, judge.name, 0, judge.version, exact_source=True).verdict is None
+    assert scoped.lookup(pair, judge.name, 0, frozenset({MEASURED_VERSION}), exact_source=True).verdict == found.verdict
+    assert scoped.lookup(pair, judge.name, 0, frozenset({judge.version}), exact_source=True).verdict is None
     assert [r.verdict for r in store.records()] == [original]
     assert [r.verdict for r in scoped.records()] == [found.verdict]
     # Removing only the optional judge retains PR #122's original cache identity.

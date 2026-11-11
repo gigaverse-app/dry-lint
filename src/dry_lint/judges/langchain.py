@@ -47,7 +47,17 @@ from dry_lint.judges.command import OPERATIONS_RULES, OPERATIONS_SOURCES, OPERAT
 from dry_lint.models import Candidate, Difference, Verdict
 from dry_lint.settings import Settings
 
-SCHEMA_VERSION = "schema-4"  # schema-4 adds `differences`; strict_version re-asks schema-3 answers once
+SCHEMA_VERSION = "schema-4"  # schema-4 adds `differences`; new answers carry this version
+PROMPT_VERSION = f"{OPERATIONS_VERSION}+{SCHEMA_VERSION}"
+# The older prompts whose answers this prompt takes as its own, from the same model, effort and options; the one
+# place this judge's reuse is widened (plugins.accepted_versions reads it). Keyed by the current prompt, so a later
+# prompt change reuses nothing until it argues for its own entry.
+# schema-3 -> schema-4: the `differences` field is additive. On the 748 labelled pairs the decision did not move
+# beyond noise: AUC 0.964 against 0.963, non-duplicates reported at 0.4 5.73% against 6.65% (both inside the
+# pre-registered bar; at the 0.5 fail line labelled duplicates went from 77.2% to 73.7%). So a schema-3 answer is a
+# valid answer of this judge, missing only the new field: it is reused as is and shows no differences. Pairs judged
+# after the upgrade (new pairs, or pairs whose source changed) list them. `--refresh` asks again for differences.
+REUSED_PROMPTS = {"dry-operations-v3+schema-4": ("dry-operations-v3+schema-3",)}
 MAX_DIFFERENCES = 5
 # The question, without the text judges' "answer one JSON object" block: here the schema is the only statement of
 # the answer's format, and two formats in one request contradict each other.
@@ -196,7 +206,8 @@ USAGE_KINDS = {
 class LangChainJudge:
     name = "langchain-operations"
     subscription = False
-    strict_version = True  # another model, effort or schema is another judge: its answers are never reused
+    # Another model, effort or prompt is another judge: its answers are never reused, but for REUSED_PROMPTS.
+    strict_version = True
 
     def __init__(
         self,
@@ -224,13 +235,15 @@ class LangChainJudge:
         self.model, self.effort, self.workers, self.max_tokens = model, effort, workers, max_tokens
         self.thinking = thinking
         self.schema = DiagnosedVerdictPromptSchema if diagnostics else DuplicateVerdictPromptSchema
-        self.version = f"{OPERATIONS_VERSION}+{SCHEMA_VERSION}:{model}:{effort or 'default'}"
+        setup = f":{model}:{effort or 'default'}"
         if not thinking:
-            self.version += ":no-thinking"
+            setup += ":no-thinking"
         if diagnostics:
-            self.version += ":diagnostics"
+            setup += ":diagnostics"
         if max_tokens != 2048:
-            self.version += f":output={max_tokens}"
+            setup += f":output={max_tokens}"
+        self.version = PROMPT_VERSION + setup
+        self.reused_versions = frozenset(older + setup for older in REUSED_PROMPTS.get(PROMPT_VERSION, ()))
         options: dict[str, Any] = {"output_config": {"effort": effort}} if effort else {}
         if base_url:
             options["anthropic_api_url"] = base_url

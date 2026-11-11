@@ -6,12 +6,14 @@ import threading
 import time
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from dry_lint.costs import price, usage_cost
-from dry_lint.discovery import reservation_cost
-from dry_lint.judges import make_judge
+from dry_lint.discovery import CampaignStore, reservation_cost
+from dry_lint.judges import langchain, make_judge
 from dry_lint.judges.command import OPERATIONS_ANSWER, OPERATIONS_PROMPT, OPERATIONS_RULES, OPERATIONS_SOURCES
 from dry_lint.judges.langchain import (
     CALL_THE_TOOL,
@@ -24,8 +26,10 @@ from dry_lint.judges.langchain import (
     DuplicationLabel,
     LangChainJudge,
 )
-from dry_lint.models import Candidate, Verdict
+from dry_lint.judging import Judging
+from dry_lint.models import Candidate, Run, Verdict
 from dry_lint.presets import AUTO_ORDER, PRESETS, resolve
+from dry_lint.report import Report, as_markdown, as_text
 from dry_lint.settings import Settings
 from dry_lint.store import DirectoryStore, VerdictStore
 
@@ -463,19 +467,75 @@ def test_an_answer_keeps_its_differences_and_at_most_five(api: Api) -> None:
     assert len(many.differences) == 5
 
 
-def test_answers_from_the_schema_without_differences_are_asked_again(api: Api, tmp_path) -> None:
-    # The prompt changed, so the version did; this judge reuses only answers of its exact version (design.md).
-    store = VerdictStore(DirectoryStore(tmp_path))
-    judge = api.judge()
-    before = "dry-operations-v3+schema-3:claude-haiku-5-5:low"
-    store.remember(CANDIDATE, Verdict(label="duplicate", score=0.8, judge=judge.name, judge_version=before))
-    assert judge.strict_version and judge.version != before
-    stale = store.lookup(CANDIDATE, judge.name, reopen_margin=0.05, version=judge.version)
-    assert stale.verdict is None and before in stale.why
+SCHEMA_3 = "dry-operations-v3+schema-3:claude-haiku-5-5:low"
 
+
+def judged(api: Api, store: VerdictStore, campaign: Path | None = None, refresh: bool = False) -> Report:
+    """One `check` of CANDIDATE through Judging: the store first, then the judge."""
+    run = Run(repository="owner/repo", session="feature", revision="tree")
+    judging = Judging(STRUCTURED, api.judge(), None, store)
+    if campaign is not None:
+        judging.campaign = CampaignStore(campaign, run)
+    findings = judging.findings([CANDIDATE], run, refresh=refresh)
+    return Report.build(findings, STRUCTURED, run=run, judge=judging.name, judging=judging.summary())
+
+
+@pytest.mark.parametrize("campaign", [False, True], ids=["pairs", "discovery campaign"])
+def test_answers_from_the_schema_without_differences_are_reused_as_they_are(
+    api: Api, tmp_path: Path, campaign: bool
+) -> None:
+    # Upgrading asks nothing again: a schema-3 answer of the same model and effort is this judge's answer without
+    # the additive field (REUSED_PROMPTS gives the measurement). It is reused as is and shows no differences.
+    store = VerdictStore(DirectoryStore(tmp_path / "verdicts"))
+    store.remember(
+        CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=SCHEMA_3)
+    )
+    api.fail_after = 0  # any call is an error, and is counted
+    report = judged(api, store, tmp_path / "campaign.sqlite3" if campaign else None)
+
+    [found] = report.findings
+    assert api.requests == [] and found.cached
+    assert found.verdict.judge_version == SCHEMA_3 and found.verdict.differences == []
+    assert "differs:" not in as_text(report) and "How the copies differ" not in as_markdown(report)
+
+
+def test_refresh_asks_a_schema_3_answer_again_for_its_differences(api: Api, tmp_path: Path) -> None:
+    store = VerdictStore(DirectoryStore(tmp_path))
+    store.remember(
+        CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=SCHEMA_3)
+    )
     api.replies = [verdict(0.8, "drifted", differences=[DRIFT])]
-    [answer] = judge.judge([CANDIDATE], STRUCTURED)
-    store.remember(CANDIDATE, answer)
-    reused = store.lookup(CANDIDATE, judge.name, reopen_margin=0.05, version=judge.version).verdict
+    [found] = judged(api, store, refresh=True).findings
+
+    assert len(api.requests) == 1 and not found.cached
     # The store keeps the differences: a reused verdict shows them like a new one.
-    assert reused == answer and reused.differences[0].existing_does == DRIFT["existing_does"]
+    [again] = judged(api, store).findings
+    assert again.cached and again.verdict.differences[0].existing_does == DRIFT["existing_does"]
+    assert again.verdict.judge_version == "dry-operations-v3+schema-4:claude-haiku-5-5:low"
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        "dry-operations-v3+schema-3:claude-sonnet-5-5:low",  # another model
+        "dry-operations-v3+schema-3:claude-haiku-5-5:high",  # another effort
+        "dry-operations-v3+schema-3:claude-haiku-5-5:low:diagnostics",  # other options
+        "dry-operations-v3+schema-2:claude-haiku-5-5:low",  # a prompt older than schema-3
+        "dry-operations-v2+schema-3:claude-haiku-5-5:low",  # another question
+    ],
+)
+def test_any_other_older_answer_is_asked_again(api: Api, tmp_path: Path, stored: str) -> None:
+    store = VerdictStore(DirectoryStore(tmp_path))
+    store.remember(CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=stored))
+    [found] = judged(api, store).findings
+    assert len(api.requests) == 1 and not found.cached
+
+
+def test_the_reused_versions_follow_the_judges_setup_and_this_prompt_only(api: Api) -> None:
+    assert api.judge().reused_versions == {SCHEMA_3}
+    assert api.judge(diagnostics=True, max_tokens=4096, thinking=False).reused_versions == {
+        "dry-operations-v3+schema-3:claude-haiku-5-5:low:no-thinking:diagnostics:output=4096"
+    }
+    # The reuse is argued for this prompt: a later prompt reuses nothing until it argues for its own.
+    with patch.object(langchain, "PROMPT_VERSION", "dry-operations-v3+schema-5"):
+        assert api.judge().reused_versions == frozenset()

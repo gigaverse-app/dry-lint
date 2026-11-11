@@ -11,6 +11,7 @@ from dry_lint.comparers import TfidfComparer
 from dry_lint.detector import Detector
 from dry_lint.extractors import PythonExtractor
 from dry_lint.models import Candidate, Difference, Run, Verdict, pair_key
+from dry_lint.plugins import accepted_identities, accepted_versions
 from dry_lint.settings import Settings
 from dry_lint.store import DirectoryStore, Record, S3Store, VerdictStore
 
@@ -39,7 +40,8 @@ def edited(f, before: str, after: str):
 
 
 def lookup(store: VerdictStore, pair: Candidate, judge: str = "jev", version: str | None = None) -> Verdict | None:
-    return store.lookup(pair, judge, reopen_margin=0.05, version=version).verdict
+    versions = None if version is None else frozenset({version})
+    return store.lookup(pair, judge, reopen_margin=0.05, versions=versions).verdict
 
 
 @pytest.mark.parametrize("label", ["duplicate", "drifted", "separate"])
@@ -106,6 +108,29 @@ def test_an_older_version_of_the_same_judge_is_reused_unless_a_version_is_requir
     assert lookup(store, candidate(), version="reuse-v1") == verdict("duplicate", version="reuse-v1")
 
 
+class Versioned:
+    name = "jev"
+
+    def __init__(self, version: str, reused: frozenset[str] | None = None) -> None:
+        self.version = version
+        if reused is not None:
+            self.reused_versions = reused
+
+
+def test_a_judge_reuses_its_exact_version_unless_it_names_older_ones(store: VerdictStore) -> None:
+    # Every judge but one that declares `reused_versions` keeps the exact-version rule.
+    assert accepted_versions(Versioned("reuse-v2")) == {"reuse-v2"}
+    assert accepted_versions(Versioned("reuse-v2", frozenset({"reuse-v1"}))) == {"reuse-v1", "reuse-v2"}
+    assert accepted_identities(Versioned("reuse-v2", frozenset({"reuse-v1"}))) == {"jev:reuse-v1", "jev:reuse-v2"}
+    store.remember(candidate(), verdict("duplicate", version="reuse-v1"))
+    exact = store.lookup(candidate(), "jev", 0.05, accepted_versions(Versioned("reuse-v2")))
+    assert exact.verdict is None and exact.why == "judged by jev reuse-v1, not reuse-v2"
+    wider = accepted_versions(Versioned("reuse-v2", frozenset({"reuse-v1"})))
+    assert store.lookup(candidate(), "jev", 0.05, wider).verdict == verdict("duplicate", version="reuse-v1")
+    older = store.lookup(candidate(), "jev", 0.05, frozenset({"reuse-v3", "reuse-v4"}))
+    assert older.why == "judged by jev reuse-v1, not reuse-v3 or reuse-v4"
+
+
 OPUS, BAND = "anthropic:dry-v1:claude-opus-5-5", (0.5, 0.91)
 
 
@@ -141,6 +166,14 @@ def test_a_second_opinion_holds_only_for_the_same_second_judge(
     result = store.lookup(candidate(), "jev", 0.05, escalation=escalation, band=BAND)
     assert (result.verdict is not None) is reused
     assert reused or result.why.startswith(f"second opinion from {OPUS}")
+
+
+def test_a_second_opinion_holds_for_an_older_version_the_second_judge_accepts(store: VerdictStore) -> None:
+    store.remember(candidate(), verdict("duplicate", score=0.9).model_copy(update={"second_opinion": OPUS}))
+    newer = "anthropic:dry-v2:claude-opus-5-5"
+    assert store.lookup(candidate(), "jev", 0.05, escalation=newer, band=BAND).verdict is None
+    accepts = frozenset({newer, OPUS})
+    assert store.lookup(candidate(), "jev", 0.05, escalation=newer, band=BAND, escalations=accepts).verdict
 
 
 def test_the_store_is_keyed_on_the_unordered_pair(store: VerdictStore) -> None:
