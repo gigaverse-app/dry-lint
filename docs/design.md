@@ -76,6 +76,9 @@ Every run goes through the same six steps, whatever plugins it uses:
 
 `dry-lint check` runs all six. In CI they split into two jobs: `dry-lint detect` runs steps 1–4 and writes
 `candidates.json`; `dry-lint judge` runs steps 5–6 from that file and writes `report.json`.
+Check and detect share source-revision identity and changed-owner selection. Model review uses the same
+primary-repository selection; an explicit whole-workspace function scan still includes peer owners.
+Both split-CI entry points share the guard against family policies that require a single change campaign.
 
 Discovery comparers may opt into generic resources owned by a single `Detector.candidates()` call. Core supplies construction/index hooks only; plugin code owns validation, exact keys and encoding. Prepared resources may be reused while mutable query state remains private. Concurrent calls have independent scopes, and no scope survives the call. See [plugin resource ownership](plugins.md#optional-run-resources).
 
@@ -101,6 +104,34 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 - A repository without outside contributors can run `dry-lint check` in one job instead. The files are the same.
 
 ## File formats
+
+Schema 16 replaces disappearance-based `kept-out` states with `not-reported` in journals and ledgers. Readers
+normalize old states and trailers without awarding cleanup credit or inferring positive training labels.
+Separate baseline evidence still owns debt reductions. Text judges require an exact prompt-version match for
+verdict reuse; changing the maintained prompt invalidates its previous answers.
+
+Adoption baselines have their own schema. Ordinary schema-1 round trips omit migration history so older
+readers can still read them. Explicit policy migration writes schema 2 with append-only `policy_history`.
+The successor check preserves the original pair set and source evidence; a migration also preserves every
+debt state and `checked_at`, including when CI reads a hand-edited baseline. Several policy adjustments before
+commit may extend that history. A regular sweep under an unchanged policy can still settle debt using evidence.
+Sweeps reuse PR checks' cleanup evidence: missing candidates do not prove deletion. Removal compares declarations
+at the previous and current Git trees (the index for staged checks), including files excluded from detection.
+Narrowing scope leaves unobserved accepted debt outstanding; unreadable source cannot earn cleanup credit.
+Release the schema-2 reader before merging an adopter migration; a source merge alone does not update `@v1`
+or an already-cached hook environment. See [judging policy migration](judges.md#one-preset-everywhere).
+
+Schema 15 adds optional operation-family findings and exclusion reasons to the main report. Family proposals
+remain separate advisory assessments, never a clique of pair verdicts. Unknown members and excluded source
+remain visible; applicable human-rule exclusions remain settled. Older reports load with empty family lists.
+See [operation-family judging](operation-family-judging.md#native-campaign-configuration).
+
+Campaign schema 3 adds exact source evidence independent of judge identity and a subscription marker to each
+attempt. When either attempt is recovery, changing judge policy cannot charge the same source twice on a revision.
+Older campaigns remain readable with their existing charges and failure barriers. Optional recovery judges use
+policy-specific verdict key namespaces, leaving original pair keys and verdict record payloads unchanged.
+The original judge owns the complete protected pass; only subsequently funded recovery work selects the optional
+plugin. See [recovery judge configuration](production-discovery.md#optional-recovery-judge).
 
 Schema 14 adds optional candidate `residual` scheduling metadata, defaulting to false for older files. It marks
 recovery candidates after the complete adopter-configured discovery pass. It does not enter pair/context/exact
@@ -135,7 +166,7 @@ evidence cannot survive a changed analysis contract or base reference. Extractor
 there are no hidden cross-file semantic dependencies to invalidate. Adding project-wide resolution must include
 those dependency digests before its evidence can influence reuse. See [language adapter contracts](plugins.md#language-analysis).
 
-Repository adoption baselines use an independent schema 1 and are reviewed policy, not cached verdicts.
+Repository adoption baselines use independent schemas 1 and 2 and are reviewed policy, not cached verdicts.
 They bind exact pairs and their structure/context hashes to a fixed detection and judging contract. Strict
 checks accept only unchanged remaining entries; sweeps revisit all existing allowances before shrinking them.
 See [sweeps and ratchets](sweeps.md) for the CLI, progress accounting and failure behavior.
@@ -144,7 +175,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New files carry `"schema": 14`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 13 remain readable with conservative cache defaults. Schema 9 adds
+New core files carry `"schema": 16`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 15 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds

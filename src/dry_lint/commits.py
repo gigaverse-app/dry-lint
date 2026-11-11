@@ -1,35 +1,37 @@
 """
-What the pre-commit hook kept out before a commit, carried to the pull request's sticky in commit trailers.
+What the pre-commit hook no longer reported before a commit, carried to the pull request's sticky in commit trailers.
 
-A duplicate the hook blocks and the coding agent then fixes never reaches a push, so CI never sees it. The hook
-keeps the pairs it blocked in the git directory. When a later staged check no longer reports one, it is kept out,
-or dismissed when a rule settled it (`distinct-from`, a reviewed dismissal): the rule the pull request's ledger
-uses across pushes. Only a check that staged the pair's file can settle it, so unstaging a file settles nothing.
+The hook remembers reported pairs in the git directory. When a later completed staged check no longer reports
+one, it records absence, or dismissal when an explicit rule settles it. This is not proof of consolidation.
+Only a check staging the pair's file can settle it; unstaging alone settles nothing. CI's observed findings win.
 
-The `dry-lint-trailers` hook writes those outcomes into the next commit's message:
+Trailers carry those observations between machines and into the PR ledger:
 
-    Dry-Lint-Kept-Out: ab7719f1ec3f9b70 repository_counter_name ≈ counter_key (4 lines)
+    Dry-Lint-Not-Reported: ab7719f1ec3f9b70 repository_counter_name ≈ counter_key (4 lines)
     Dry-Lint-Dismissed: 5c0e2f6a91d3b7e4 parse_date ≈ parse_timestamp (9 lines)
 
-and the action reads the trailers of the pull request's commits into its ledger. The commits carry them across
-machines and worktrees with no service in between. A trailer is what the committer's hook said: it is counted,
-not verified, as a dismissal in a pull request is.
+Legacy Dry-Lint-Kept-Out trailers used the same absence test and are read as not-reported, without cleanup credit.
 """
 
 import re
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from dry_lint.git import git
 from dry_lint.models import Versioned
 from dry_lint.report import Report, plural
 
-TRAILERS = {"kept-out": "Dry-Lint-Kept-Out", "dismissed": "Dry-Lint-Dismissed"}
+TRAILERS = {"not-reported": "Dry-Lint-Not-Reported", "dismissed": "Dry-Lint-Dismissed"}
 VALUE = re.compile(
     r"(?P<key>[0-9a-f]{8,64}) (?P<new>\S+) ≈ (?P<existing>\S+)(?: \((?P<lines>\d+) lines?\))?(?P<model> \[model review\])?"
 )
+
+
+def reported_state(state: str) -> str:
+    """Old disappearance-only claims carry no proof of removal."""
+    return "not-reported" if state == "kept-out" else state
 
 
 class Outcome(BaseModel):
@@ -41,7 +43,9 @@ class Outcome(BaseModel):
     existing: str
     path: str = Field(default="", description="The new function's file: only a check that stages it settles it.")
     lines: int = 0
-    state: Literal["blocked", "kept-out", "dismissed"] = "blocked"
+    state: Literal["blocked", "not-reported", "dismissed"] = "blocked"
+
+    _read_legacy_state = field_validator("state", mode="before")(reported_state)
 
     def trailer(self) -> str:
         size = f" ({plural(self.lines, 'line')})" if self.lines else ""
@@ -86,13 +90,15 @@ class Journal(Versioned):
                 path=path,
                 lines=new.lines,
             )
-            journal.pending.pop(key, None)  # back again: the commit that carries it must not say it was kept out
+            journal.pending.pop(
+                key, None
+            )  # back again: the commit that carries it must not say it was no longer reported
         for key, pair in list(journal.blocked.items()):
             if key in reported or key in unjudged or pair.path not in staged:
                 continue
             if pair.kind == "model" and report.model_judging is None:
                 continue
-            state = "dismissed" if key in by_rule else "kept-out"
+            state = "dismissed" if key in by_rule else "not-reported"
             journal.pending[key] = pair.model_copy(update={"state": state})
             del journal.blocked[key]
         return journal
@@ -106,6 +112,7 @@ def staged_files(root: Path) -> set[str]:
 def outcomes(messages: list[str]) -> list[Outcome]:
     """The outcomes commit messages carry, oldest message first; the latest word on a pair wins."""
     names = {name.lower(): state for state, name in TRAILERS.items()}
+    names["dry-lint-kept-out"] = "not-reported"  # legacy trailers were based on absence alone
     found: dict[str, Outcome] = {}
     for line in (line for message in messages for line in message.splitlines()):
         name, _, value = line.partition(":")
@@ -142,16 +149,16 @@ def append_trailers(root: Path, message: Path) -> int:
 
 
 def summary(root: Path, base: str) -> str:
-    """The hook's header: what it has kept out and dismissed on this branch, committed and still to commit."""
+    """The hook's header: what it has no longer reported and dismissed on this branch, committed and still to commit."""
     outcomes = {o.key: o for o in [*trailed(root, base), *Journal.load(root).pending.values()]}
-    kept = sum(o.state == "kept-out" and o.kind == "function" for o in outcomes.values())
+    kept = sum(o.state == "not-reported" and o.kind == "function" for o in outcomes.values())
     dismissed = sum(o.state == "dismissed" and o.kind == "function" for o in outcomes.values())
-    model_resolved = sum(o.state == "kept-out" and o.kind == "model" for o in outcomes.values())
+    model_resolved = sum(o.state == "not-reported" and o.kind == "model" for o in outcomes.values())
     model_dismissed = sum(o.state == "dismissed" and o.kind == "model" for o in outcomes.values())
     if not outcomes:
         return ""
     return (
-        f"dry-lint before commit on this branch: {plural(kept, 'duplicate')} kept out, "
+        f"dry-lint before commit on this branch: {plural(kept, 'finding')} no longer reported, "
         f"{plural(dismissed, 'look-alike')} dismissed; the pull request's comment counts them"
         + (
             f"; model reviews: {model_resolved} resolved, {model_dismissed} dismissed (not confirmed consolidations)"

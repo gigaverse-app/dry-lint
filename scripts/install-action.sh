@@ -2,9 +2,10 @@
 set -eo pipefail
 
 # Ignore the caller's uv configuration; publishers and consumers share our locked extraction versions.
+# The Claude judges come with the Action, at locked versions: `balanced` works with only an API key.
 uv venv --quiet --no-config --allow-existing --python "${DRY_LINT_PYTHON_VERSION:-3.13}" "$RUNNER_TEMP/dry-lint-venv"
 locked="$RUNNER_TEMP/dry-lint-requirements.txt"
-uv export --quiet --no-config --project "$GITHUB_ACTION_PATH" --frozen --no-dev --no-emit-project --no-hashes \
+uv export --quiet --no-config --project "$GITHUB_ACTION_PATH" --frozen --no-dev --extra anthropic --no-emit-project --no-hashes \
   -o "$locked"
 # Bash 3.2 (macOS) has no mapfile. Accept pasted Windows line endings and blank lines too.
 extra=()

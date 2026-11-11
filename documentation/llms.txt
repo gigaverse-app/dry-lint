@@ -1,0 +1,32 @@
+# dry-lint
+
+> dry-lint is a pull-request check for Python, JavaScript and TypeScript that finds new functions re-implementing a concept the codebase already has. A local detector proposes look-alike pairs without a model; a judge running on the adopter's own API key decides whether each pair is one concept; the result is posted as annotations, one sticky comment and a required check. Existing duplication is accepted once in a baseline that can only shrink.
+
+To set dry-lint up in a repository with a coding agent, give the agent this one prompt: "Set up dry-lint in this repository. Fetch https://dry-lint.readthedocs.io/en/latest/agent-setup.md and follow it." The agent stops for a person at secrets and repository settings.
+
+## Set it up
+
+- [Agent setup procedure (raw Markdown)](https://dry-lint.readthedocs.io/en/latest/agent-setup.md): the complete, self-contained procedure a coding agent follows to adopt dry-lint and open a pull request
+- [First-run tutorial](https://dry-lint.readthedocs.io/en/latest/docs/tutorials/first-run/): the same steps by hand, from a local scan to a required check
+- [How CI runs dry-lint](https://dry-lint.readthedocs.io/en/latest/docs/ci/): the check, fork pull requests, the weekly ratchet and the secrets each needs
+- [GitHub Action reference](https://dry-lint.readthedocs.io/en/latest/docs/github-action/): every input and output of `gigaverse-app/dry-lint@v1`
+
+## Choose a judge and settings
+
+- [Judges and presets](https://dry-lint.readthedocs.io/en/latest/docs/judges/): which preset to use with which keys, its thresholds, precision, recall and cost
+- [Sweeps and the ratchet](https://dry-lint.readthedocs.io/en/latest/docs/sweeps/): accepting existing debt once, and recording its cleanup
+- [TypeScript and Bun](https://dry-lint.readthedocs.io/en/latest/docs/typescript/): monorepos and TypeScript specifics
+
+## Understand it
+
+- [Why dry-lint](https://dry-lint.readthedocs.io/en/latest/docs/why/): the problem, the evidence, and how it differs from copy-paste detectors
+- [Design](https://dry-lint.readthedocs.io/en/latest/docs/design/): the pipeline, the verdict store, and why adopters always bring their own keys
+- [What the pull request comment shows](https://dry-lint.readthedocs.io/en/latest/docs/comment-preview/)
+
+## Optional
+
+- [Full adoption playbook](https://dry-lint.readthedocs.io/en/latest/docs/adoption-playbook/): model duplication, history replay, auditing an existing adoption
+- [Benchmark](https://dry-lint.readthedocs.io/en/latest/docs/benchmark/): the measurements behind the presets
+- [Model duplication](https://dry-lint.readthedocs.io/en/latest/docs/model-duplication/): duplicated data models, not only functions
+- [Workspaces](https://dry-lint.readthedocs.io/en/latest/docs/workspaces/): duplication across repositories
+- [Source code](https://github.com/gigaverse-app/dry-lint)
