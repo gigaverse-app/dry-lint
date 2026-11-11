@@ -1,3 +1,6 @@
+> `balanced` is now the recommended function default. Keep model ownership findings in the separate agent review lane.
+> See [defaults and migration](judges.md) before upgrading an existing baseline.
+
 # Balanced discovery with reviewed feedback
 
 `--preset balanced` uses Haiku's shared-operation judge at a 0.5 reporting and blocking threshold. It is intended
@@ -16,21 +19,39 @@ unexamined pairs. Calls are spread across changed functions, accounting for prev
 reopens even if its normalized structure hash did not change. An unaffordable baseline pair leaves exploration
 deferred; it does not donate its protected capacity.
 
+Pairs are asked up to the judge's own `workers` at a time (`anthropic`, `http` and `command`: 4; `jev`: 8;
+subscription judges: 2). Every reservation in a batch commits before its call, and a batch holds a single lane,
+so exploration still waits for every baseline answer. Each pair is its own call: one failure leaves the others'
+verdicts. A reservation holds a conservative bound, several times what an answer costs, so when the next pair
+does not fit beside a batch in flight the scheduler settles that batch first and asks again: the money really
+left decides how many pairs are asked, not the batch size. A residual pass asks one pair at a time, because its admission requires earlier attempts to be
+answered. Raise `workers` in the judge's options for more concurrency, or set it to 1 to ask serially.
+
+A pair that the dollar budget or a call cap (per tree, per campaign, exploration, subscription or
+`max_judgements`) leaves unasked is `budget_deferred`. This is a budget gap, not a failure: `--require-complete`
+on a check warns about it and passes, and a later push asks again while the campaign has room. A failed or
+interrupted call, or a pair whose evidence this tree already tried, is still incomplete and fails a strict
+check. Initializing or advancing a baseline needs every pair judged, budget-deferred ones included.
+
 ## Cumulative allowance
 
 | Limit | Balanced default |
 | --- | ---: |
 | Total campaign dollars | $0.04 |
-| Dollars reserved from exploration for baseline | $0.025 |
-| Exploration credit earned per distinct tree | $0.006 |
-| Exploration credit bank / lifetime maximum | $0.015 |
-| Calls per tree / campaign | 20 / 200 |
-| Exploration calls per tree / campaign | 10 / 75 |
+| Dollars reserved from exploration for baseline | $0.015 |
+| Exploration credit earned per distinct tree | $0.015 |
+| Exploration credit bank / lifetime maximum | $0.025 |
+| Calls per tree / campaign | 50 / 200 |
+| Exploration calls per tree / campaign | 30 / 125 |
 
 A local campaign defaults to the Git branch, shared by its worktrees through the common Git directory. Use
 `--session TASK` to name a task explicitly, including detached checkouts. Reusing a branch reuses its allowance;
-choose a new session for a new task. GitHub PR runs use repository + PR number. Changing prompts, rerunning a tree,
-or restarting the process does not reset the campaign. Earlier legacy PR spend is imported conservatively.
+choose a new session for a new task. GitHub PR runs use repository + PR number. Non-PR GitHub Actions runs use
+repository + full `GITHUB_REF` (for example, `refs/heads/main`), even when checkout detaches HEAD at a commit.
+An explicit `--session` overrides that non-PR default. Branches and tags with the same name stay separate;
+rerun attempts share the campaign and the checked-out commit remains its source revision.
+Changing prompts, rerunning a tree, or restarting the process does not reset the campaign. Earlier legacy PR
+spend is imported conservatively.
 
 The SQLite ledger is `discovery.sqlite3` beside the verdict directory. `--discovery-state PATH` selects persistent
 storage explicitly. Atomic reservations prevent concurrent local processes from over-admitting calls. Each
@@ -93,6 +114,51 @@ it; older workers do not understand the phase marker.
 No default profile is changed. The implementation has been tested against the complete balanced prefix at
 matched budgets, but promotion is held on **report quality**. TF-IDF-only ablations, additional emitted pairs and
 preservation tests do not establish independent useful-family gains or acceptance.
+
+### Optional recovery judge
+
+To keep the complete balanced pass on its original policy and use the measured grounded policy only for newly
+funded recovery questions, add this table alongside `residual_comparers`:
+
+```toml
+[discovery.residual_judge]
+use = "anthropic"
+model = "claude-haiku-5-5"
+prompt_policy = "shared-operations-grounded-claim-v1"
+max_tokens = 2048
+max_retries = 0
+retry_malformed = false
+```
+
+The [complete example](../examples/grounded-residual-discovery.toml) retains the original balanced judges,
+comparers, thresholds and $0.04 campaign cap. The plugin uses the adopter's existing `ANTHROPIC_API_KEY`.
+The optional field defaults to absent: the existing judge, verdict keys and protected pass are unchanged.
+It must name an explicit judge plugin, with residual comparers enabled; it is not an escalation or a second
+opinion on answered pairs. Arbitrary installed judge plugins use the same constructor-options contract.
+
+The frozen template is exactly the one measured in PR #123, SHA-256
+`bcec108a5d1c316c1557a12434b14c209fb1899b277da83b26ac5de5346933a1`. With the example's model and output limit,
+the exact judge version is `dry-grounded-claim-v1-bcec108a5d1c316c:claude-haiku-5-5:output=2048`.
+The template is frozen separately from the evolving shared-operations prompt; changing either cannot silently
+change this tested policy. There are no fallback requests or retries in this configuration. This wiring does
+not claim comparative usefulness or acceptance; matched comparative replay remains the acceptance gate.
+
+The complete original pass runs before the optional plugin is loaded. No main judge means no recovery judge;
+an empty queue, unresolved baseline, failed/inflight campaign or exhausted cold campaign does not initialize it.
+Previously answered recovery work can still load the current plugin to validate and read its exact-policy cache,
+even after exhaustion or a later failure. Every newly admitted pair gets one selected-judge call. Reservations
+use that judge's actual prompt, configured output ceiling and configured prices; known provider usage settles
+at those prices, while unknown usage retains the reservation. All campaign dollar and call caps remain shared.
+The summary names both full judge versions and records their separate calls, costs and failures in `spend`.
+
+Configured recovery uses a separate cache namespace keyed by the full judge identity. It neither reads nor
+overwrites original-policy verdict slots, even when both judges share a name. A rollback keeps the original
+cache keys. Exact source and version checks still apply within the recovery namespace. Campaign schema 3 adds
+judge-independent `source_evidence` and a subscription flag to attempts: switching policies cannot charge the
+same source twice on one revision when either attempt is recovery. Old campaigns remain readable and all holds
+remain charged; schema-2 attempts under the original judge also bar a second recovery question on that revision.
+A new revision may fund a new protected question under its original policy, subject to remaining capacity.
+Candidate/report schema 14 and the verdict record payload are unchanged; upgrade workers together before use.
 
 ### Measured residual behavior
 
@@ -173,7 +239,7 @@ repos:
     hooks:
       - id: dry-lint
         additional_dependencies: ["dry-lint[hooks]"]
-        args: [--preset, balanced, --env-file, .env]
+        args: [--env-file, .env]  # inherits preset=balanced from repository settings
 ```
 
 Run `pre-commit install`. Export `ANTHROPIC_API_KEY` or keep it in the untracked optional `.env` file. The hook

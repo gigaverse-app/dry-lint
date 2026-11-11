@@ -15,6 +15,11 @@ if TYPE_CHECKING:
     from dryer.model import Entry
 
 
+# The upstream commit this comparer is tested against. Dryer is not on PyPI, so users install it from Git.
+DRYER_COMMIT = "66ff6d21a42c04afcad89c78a80066176d1294b0"
+DRYER_REQUIREMENT = f"dryer @ git+https://github.com/unclebob/dryer.git@{DRYER_COMMIT}"
+
+
 class DryerComparer:
     name = "dryer"
     similarity_reusable = False  # Normalization erases literals and fields; a flat score cannot settle changed logic.
@@ -30,9 +35,11 @@ class DryerComparer:
             from dryer.extract import entries_in_source
             from dryer.shape import jaccard
         except ImportError as error:
-            raise ValueError("Dryer requires the optional dependency: install 'dry-lint[dryer]'.") from error
+            raise ValueError(
+                f"Dryer requires the optional dependency, which is not on PyPI: pip install '{DRYER_REQUIREMENT}'."
+            ) from error
         self._extract, self._jaccard = entries_in_source, jaccard
-        self.version = f"66ff6d2-{version('tree-sitter-language-pack')}"
+        self.version = f"{DRYER_COMMIT[:7]}-{version('tree-sitter-language-pack')}"
         self.threshold, self.min_lines, self.min_nodes = threshold, min_lines, min_nodes
         self.entries: dict[tuple[str, int], Entry | None] = {}
         self.by_size: dict[int, list[tuple[int, Function, Entry]]] = {}

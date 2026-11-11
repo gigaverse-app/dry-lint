@@ -28,10 +28,12 @@ import html
 import os
 import re
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 
 import httpx
 
+from dry_lint import __version__
 from dry_lint.commits import Outcome, outcomes
 from dry_lint.comparison import VIEWER, Comparisons
 from dry_lint.ledger import PullLedger, RepositoryLedger
@@ -39,7 +41,6 @@ from dry_lint.ledger import render as ledger_render
 from dry_lint.report import CLEAN, NOTE_SLOT, Report
 
 MARKER = "<!-- dry-lint -->"
-ASSETS = "https://raw.githubusercontent.com/gigaverse-app/dry-lint/main/docs/assets"
 PAGE = 100
 
 
@@ -47,11 +48,28 @@ def marker(key: str = "") -> str:
     return f"<!-- dry-lint:{key} -->" if key else MARKER
 
 
+def assets(environ: Mapping[str, str] | None = None) -> str:
+    """
+    Banner images from the Action's own revision, so a comment never shows another version's banner or points at
+    assets its revision lacks: a released Action runs from .../_actions/OWNER/REPO/REF, a local one (`uses: ./`)
+    from this repository at this commit. Outside the Action, from this package's release tag.
+    """
+    environ = os.environ if environ is None else environ
+    path = environ.get("GITHUB_ACTION_PATH", "").replace("\\", "/").rstrip("/")
+    if match := re.search(r"/_actions/([^/]+)/([^/]+)/([^/]+)$", path):
+        revision = "/".join(match.groups())
+    elif path and environ.get("GITHUB_REPOSITORY") and environ.get("GITHUB_SHA"):
+        revision = f"{environ['GITHUB_REPOSITORY']}/{environ['GITHUB_SHA']}"
+    else:
+        revision = f"gigaverse-app/dry-lint/v{__version__}"
+    return f"https://raw.githubusercontent.com/{revision}/docs/assets"
+
+
 def banner_available(transport: httpx.BaseTransport | None = None) -> bool:
     """The banner only renders when GitHub can fetch it anonymously, i.e. once dry-lint's repository is public."""
     try:
         with httpx.Client(timeout=5, transport=transport, follow_redirects=True) as client:
-            return client.head(f"{ASSETS}/sticky-banner-light.svg").status_code == 200
+            return client.head(f"{assets()}/sticky-banner-light.svg").status_code == 200
     except httpx.HTTPError:
         return False
 
@@ -71,10 +89,11 @@ def compose(
         lines = lines[1:]
     parts = [marker(key)]
     if banner:
+        images = assets()
         parts.append(
             "<picture>\n"
-            f'  <source media="(prefers-color-scheme: dark)" srcset="{ASSETS}/sticky-banner-dark.svg">\n'
-            f'  <img alt="dry-lint" src="{ASSETS}/sticky-banner-light.svg" width="100%">\n'
+            f'  <source media="(prefers-color-scheme: dark)" srcset="{images}/sticky-banner-dark.svg">\n'
+            f'  <img alt="dry-lint" src="{images}/sticky-banner-light.svg" width="100%">\n'
             "</picture>\n"
         )
     report = "\n".join(lines).strip()
@@ -117,7 +136,7 @@ def collapse_reports(markdown: str) -> str:
     return "\n".join(folded)
 
 
-RESOLVED = "> [!TIP]\n> **Resolved:** the duplicated concepts reported earlier on this pull request are gone."
+RESOLVED = "> [!TIP]\n> **Resolved:** the earlier findings are no longer reported. This does not establish removal or consolidation."
 
 
 class GitHub:

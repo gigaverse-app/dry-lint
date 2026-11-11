@@ -1,0 +1,10 @@
+dependencies:
+  - inputs:
+      - "//scripts/capture_history.py"
+      - "//scripts/judge_history.py"
+      - "//scripts/probe_coverage.py"
+      - "//scripts/replay_coverage.py"
+      - "//scripts/score_history.py"
+      - "//scripts/semantic_signals.py"
+    kind: import
+    reason: "Loaded or run outside the test's imports; recorded by pytest-selective audit --write-declarations."

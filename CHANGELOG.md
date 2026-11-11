@@ -1,5 +1,117 @@
 # Changelog
 
+## [1.10.0](https://github.com/gigaverse-app/dry-lint/compare/v1.9.3...v1.10.0) (2026-11-11)
+
+
+### Features
+
+* **discovery:** explore 30 pairs a push instead of 10 ([8d3b2b4](https://github.com/gigaverse-app/dry-lint/commit/8d3b2b4d24b6ecc2dd52dd2562730296b6eca66f))
+* **discovery:** explore 30 pairs a push instead of 10 ([6f0c0da](https://github.com/gigaverse-app/dry-lint/commit/6f0c0da8fbb0c90be3087ecf80de2a5abd76824b))
+* **judges:** a LangChain judge that answers in a prompt-quality schema, and balanced-structured ([e4ff574](https://github.com/gigaverse-app/dry-lint/commit/e4ff57419391e36e8b2df31d14f3384b29945578))
+* **judges:** a LangChain judge that answers in a schema, and balanced-structured ([4051456](https://github.com/gigaverse-app/dry-lint/commit/40514567945e2b0d0da5583a4bfecbebcce8cf47))
+* **judges:** spell the verdict schema out: enums, descriptions and a score rubric ([74d9d29](https://github.com/gigaverse-app/dry-lint/commit/74d9d29077f0af5e58490389d579a525d9f9127a))
+
+
+### Bug Fixes
+
+* **discovery:** identify detached GitHub Actions campaigns ([#186](https://github.com/gigaverse-app/dry-lint/issues/186)) ([7cdbecf](https://github.com/gigaverse-app/dry-lint/commit/7cdbecfab7d60e27719f080907b19eb55fc0dd86))
+* **judging:** settle a batch before refusing the next pair for budget ([#178](https://github.com/gigaverse-app/dry-lint/issues/178)) ([49d34a9](https://github.com/gigaverse-app/dry-lint/commit/49d34a9874d8c5398a70591fc0d6d4a0da12e36d))
+
+
+### Documentation
+
+* **judges:** name the structured mode and the baseline it was measured against ([47d0181](https://github.com/gigaverse-app/dry-lint/commit/47d018143cc2d41d8d4a039f824c9f6494c15dda))
+
+## [1.9.3](https://github.com/gigaverse-app/dry-lint/compare/v1.9.2...v1.9.3) (2026-11-10)
+
+
+### Bug Fixes
+
+* **judging:** judge pairs in parallel and treat spent caps as budget gaps ([#176](https://github.com/gigaverse-app/dry-lint/issues/176)) ([47edbb8](https://github.com/gigaverse-app/dry-lint/commit/47edbb83e54309f8586604cfa0b129123ee354cc))
+
+## [1.9.2](https://github.com/gigaverse-app/dry-lint/compare/v1.9.1...v1.9.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* **ci:** let a republish dispatch reach the publish job ([#173](https://github.com/gigaverse-app/dry-lint/issues/173)) ([be65539](https://github.com/gigaverse-app/dry-lint/commit/be655398b29734bc5391fdf2385172847cc12dd5))
+* **ci:** move the release workflow off its wedged concurrency group ([#172](https://github.com/gigaverse-app/dry-lint/issues/172)) ([f9490fd](https://github.com/gigaverse-app/dry-lint/commit/f9490fddd0617055e98cd4a241009d7c3de449f6))
+
+## [1.9.1](https://github.com/gigaverse-app/dry-lint/compare/v1.9.0...v1.9.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* **accounting:** verify source removal before retiring baseline debt ([46ce402](https://github.com/gigaverse-app/dry-lint/commit/46ce4026354a2f43e226104654738340f4e56694))
+* **baseline:** preserve debt and schema compatibility during migration ([c58c739](https://github.com/gigaverse-app/dry-lint/commit/c58c7394ea87995d0303ed1e6e6141b81d76d888))
+* **baseline:** preserve migration evidence and verify cleanup ([f4790d8](https://github.com/gigaverse-app/dry-lint/commit/f4790d83e54c5cc782153f8f81a85435cd7c3ab3))
+* preserve baseline ownership and update regression contracts ([2c89837](https://github.com/gigaverse-app/dry-lint/commit/2c89837cb96d94130a4ae098a924c48f267c4a7f))
+* use balanced function review and report cleanup honestly ([6acb9cc](https://github.com/gigaverse-app/dry-lint/commit/6acb9cc44770feca663cc69982e8e8da0be18300))
+* use balanced function review and stop crediting missing findings as cleanup ([b199bd3](https://github.com/gigaverse-app/dry-lint/commit/b199bd39e70dcbf0d7bd0ea10ab2b50c5a5d06ef))
+
+## [1.9.0](https://github.com/gigaverse-app/dry-lint/compare/v1.8.1...v1.9.0) (2026-11-09)
+
+
+### Features
+
+* **audit:** ship the audit as a reusable workflow adopters call ([a7ae8d7](https://github.com/gigaverse-app/dry-lint/commit/a7ae8d7743b9336fdf615ddaded3660e2c5164ee))
+* **audit:** ship the audit as a reusable workflow adopters call ([5c2149c](https://github.com/gigaverse-app/dry-lint/commit/5c2149c6ec000b8b5cd26d058f34eb61f323555c))
+
+
+### Bug Fixes
+
+* agent setup round 4, from a fourth adoption trial ([#160](https://github.com/gigaverse-app/dry-lint/issues/160)) ([fa74823](https://github.com/gigaverse-app/dry-lint/commit/fa74823078c41e036294600ada40c8dd059dd083))
+
+## [1.8.1](https://github.com/gigaverse-app/dry-lint/compare/v1.8.0...v1.8.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* agent setup round 3, from a third adoption trial ([#159](https://github.com/gigaverse-app/dry-lint/issues/159)) ([df09e2a](https://github.com/gigaverse-app/dry-lint/commit/df09e2ac62ecfecfcfa112717cedde37706fcfe8))
+* **discovery:** settle a reservation once; lock the campaign ledger with a Quint contract ([#157](https://github.com/gigaverse-app/dry-lint/issues/157)) ([5ee2f75](https://github.com/gigaverse-app/dry-lint/commit/5ee2f75dd13584cd412f40d46c504310ba0a21e3))
+
+## [1.8.0](https://github.com/gigaverse-app/dry-lint/compare/v1.7.1...v1.8.0) (2026-11-08)
+
+
+### Features
+
+* **families:** judge the repository's family backlog with scan ([#155](https://github.com/gigaverse-app/dry-lint/issues/155)) ([ecbb4f5](https://github.com/gigaverse-app/dry-lint/commit/ecbb4f51eb102357bc4a2334353b09cdb7f3580f))
+
+## [1.7.1](https://github.com/gigaverse-app/dry-lint/compare/v1.7.0...v1.7.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* count pattern-settled pairs in scan and derive the default branch without origin/HEAD ([#153](https://github.com/gigaverse-app/dry-lint/issues/153)) ([30ced2a](https://github.com/gigaverse-app/dry-lint/commit/30ced2a2e5f017533ecb7a086da7192b7d9499b8))
+
+## [1.7.0](https://github.com/gigaverse-app/dry-lint/compare/v1.6.1...v1.7.0) (2026-11-08)
+
+
+### Features
+
+* **action:** opt-in share-goldens keeps merged pull requests' settled pairs for the benchmark ([#149](https://github.com/gigaverse-app/dry-lint/issues/149)) ([966c0a0](https://github.com/gigaverse-app/dry-lint/commit/966c0a085b85116de5e389f9340ba4f16a03a71c))
+* one-prompt agent setup, and fixes from a real adoption trial ([#151](https://github.com/gigaverse-app/dry-lint/issues/151)) ([5d198bb](https://github.com/gigaverse-app/dry-lint/commit/5d198bbd024790e6859a4838b4d514b2f6d35385))
+
+## [1.6.1](https://github.com/gigaverse-app/dry-lint/compare/v1.6.0...v1.6.1) (2026-11-08)
+
+
+### Documentation
+
+* explain why, add a first-run tutorial and one CI guide ([#145](https://github.com/gigaverse-app/dry-lint/issues/145)) ([efd85f3](https://github.com/gigaverse-app/dry-lint/commit/efd85f36292bf1ce71f5c66f8c954548a1f578ec))
+* install the CLI from PyPI and show the PyPI version ([#144](https://github.com/gigaverse-app/dry-lint/issues/144)) ([d788dfc](https://github.com/gigaverse-app/dry-lint/commit/d788dfcfcacab11f965060f42640f0767ee73946))
+
+## [1.6.0](https://github.com/gigaverse-app/dry-lint/compare/v1.5.0...v1.6.0) (2026-11-08)
+
+
+### Features
+
+* publish to PyPI and make the Dryer comparer optional ([#141](https://github.com/gigaverse-app/dry-lint/issues/141)) ([64122af](https://github.com/gigaverse-app/dry-lint/commit/64122af7552bcde9e93cfcaee1422fc5ed7180a5))
+
+
+### Documentation
+
+* publish the documentation on Read the Docs ([#142](https://github.com/gigaverse-app/dry-lint/issues/142)) ([91e6c57](https://github.com/gigaverse-app/dry-lint/commit/91e6c57e31c89d1fab53dfe397f0bd39636a89c6))
+
 ## [1.5.0](https://github.com/gigaverse-app/dry-lint/compare/v1.4.3...v1.5.0) (2026-11-06)
 
 

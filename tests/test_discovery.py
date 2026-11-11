@@ -1,10 +1,17 @@
 """Paid discovery journeys use production admission and the real SDK with an HTTP fake."""
 
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
+import anthropic
+import httpx2
 import pytest
+from action_harness import github_env as github_env
 
+from dry_lint import judging
+from dry_lint.baseline import require_complete
 from dry_lint.cli import main
 from dry_lint.detector import Detector, changed_lines, touched
 from dry_lint.discovery import CampaignStore, reservation_cost
@@ -22,7 +29,7 @@ from conftest import TWIN, claude, coverage_pair
 
 @pytest.fixture
 def setup(tmp_path):
-    settings = resolve(Settings(preset="balanced"))
+    settings = resolve(Settings(preset="balanced-text"))
     requests = []
     judge = AnthropicJudge(
         api_key="test",
@@ -42,7 +49,8 @@ def check(setup, tmp_path, candidates, revision="tree1"):
     judging = Judging(settings, judge, None, store)
     judging.campaign = CampaignStore(tmp_path / "campaign.sqlite3", run)
     findings = judging.findings(candidates, run)
-    return Report.build(findings, settings, run=run, judging=judging.summary()), judging.campaign.snapshot()
+    report = Report.build(findings, settings, run=run, judge=judging.name, judging=judging.summary())
+    return report, judging.campaign.snapshot()
 
 
 def test_repeated_evidence_costs_nothing_but_changed_evidence_reopens(setup, tmp_path):
@@ -60,7 +68,7 @@ def test_repeated_evidence_costs_nothing_but_changed_evidence_reopens(setup, tmp
 def test_exploration_is_paced_and_preserves_later_baseline(setup, tmp_path):
     settings, judge, store, calls = setup
     settings.discovery.exploration_calls_per_revision = 1
-    settings.discovery.calls = 4
+    settings.discovery.calls = 3  # one exploration call for the whole campaign: int(3 * (1 - baseline_fraction))
     pool = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(6)]
     _, first = check(setup, tmp_path, pool)
     _, repeat = check(setup, tmp_path, pool)
@@ -71,6 +79,18 @@ def test_exploration_is_paced_and_preserves_later_baseline(setup, tmp_path):
     assert any(f.candidate.key == late.key and f.blocking for f in report.findings)
     assert sum(a.lane == "exploration" for a in state.attempts) == 1
     assert state.usd <= settings.budget.usd
+
+
+def test_a_reservation_settles_exactly_once(setup, tmp_path):
+    settings, judge, _, _ = setup
+    campaign = CampaignStore(tmp_path / "ledger.sqlite3", Run(session="feature", revision="tree"))
+    reservation = campaign.reserve(coverage_pair(1), judge, settings, 0.003)
+    assert campaign.settle(reservation, 0.001, True) == 0.001
+    before = campaign.snapshot()
+    # A second settle would refund exploration credit again and could turn an answered attempt into a failed one.
+    with pytest.raises(ValueError, match="already settled"):
+        campaign.settle(reservation, 0.0, False)
+    assert campaign.snapshot() == before
 
 
 def test_atomic_reservations_and_abandoned_calls_stay_charged(setup, tmp_path):
@@ -115,6 +135,46 @@ def test_wider_retrieval_keeps_every_baseline_pair_and_its_order(repo):
     wider = Detector.for_repository(repo.root, settings).candidates(changed)
     assert before
     assert [c.model_dump() for c in wider if c.lane == "baseline"] == [c.model_dump() for c in before]
+
+
+@pytest.mark.parametrize("event_name", ["push", "workflow_dispatch", "schedule"])
+@pytest.mark.parametrize("session", [None, "explicit-task"])
+def test_detached_action_discovery_keeps_identity_and_rerun_accounting(
+    repo, setup, tmp_path, monkeypatch, github_env, event_name, session
+):
+    _, judge, _, requests = setup
+    head = repo.git("rev-parse", "HEAD").strip()
+    repo.git("checkout", "--detach", head)
+    github_env(event_name, {"before": repo.git("rev-parse", "main").strip()})
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
+    report_path = tmp_path / "report.json"
+    args = [
+        "check",
+        "--root",
+        str(repo.root),
+        "--base",
+        "main",
+        "--preset",
+        "balanced",
+        "--report",
+        str(report_path),
+    ]
+    if session:
+        args += ["--session", session]
+    with patch.object(judging, "make_judge", return_value=judge):
+        assert main(args) == 1  # A real duplicate still blocks, rather than an identity error (exit 2).
+        report = Report.model_validate_json(report_path.read_bytes())
+        assert report.run.session == (session or "refs/heads/main")
+        assert report.run.head == head
+        assert report.run.revision == repo.git("rev-parse", "HEAD^{tree}").strip()
+        assert report.run.pull_request is None and any(f.blocking for f in report.findings)
+        calls = len(requests)
+        assert calls > 0
+        monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "2")
+        assert main(args) == 1
+        repeated = Report.model_validate_json(report_path.read_bytes())
+        assert repeated.run == report.run
+        assert len(requests) == calls
 
 
 def test_same_file_duplicates_are_exploration_and_never_replace_baseline(repo):
@@ -206,7 +266,7 @@ def test_call_limits_apply_even_when_dollars_remain(setup, tmp_path, limit):
     first = CampaignStore(path, Run(session="feature", head="tree1"))
     assert first.reserve(coverage_pair(1), judge, settings, 0.001) == 0
     second = CampaignStore(path, Run(session="feature", head="tree2" if limit == "campaign" else "tree1"))
-    assert second.reserve(coverage_pair(2), judge, settings, 0.001) is None
+    assert second.reserve(coverage_pair(2), judge, settings, 0.001) == "limit"
     assert second.snapshot().usd == 0.001
 
 
@@ -335,3 +395,143 @@ def test_spending_cap_leaves_baseline_and_waiting_exploration_advisory(setup, tm
     report, _ = check(setup, tmp_path, pairs)
     assert len(report.findings) == 2 and not calls
     assert all(f.budget_deferred and not f.blocking for f in report.findings)
+
+
+def test_pairs_beyond_the_judging_budget_are_deferred_not_failed(setup, tmp_path):
+    """A pull request with more look-alikes than its judging budget covers passes the check on what was judged."""
+    settings, _, _, requests = setup
+    settings.discovery.calls_per_revision = 2
+    report, state = check(setup, tmp_path, [coverage_pair(n) for n in range(1, 6)])
+
+    judged = [f for f in report.findings if f.verdict is not None]
+    unjudged = [f for f in report.findings if f.verdict is None]
+    assert len(judged) == len(requests) == 2 and len(unjudged) == 3
+    assert all(f.budget_deferred and not f.blocking for f in unjudged)
+    assert report.judging.spend[0].skipped == 3 and not report.judging.spend[0].failed
+    require_complete(report, check=True)
+    # Changing accepted debt still needs every pair assessed.
+    with pytest.raises(ValueError, match="Judging is incomplete"):
+        require_complete(report)
+
+
+def test_a_failed_judge_is_still_incomplete_while_budget_gaps_are_not(setup, tmp_path):
+    settings, _, store, _ = setup
+    failing = AnthropicJudge(
+        api_key="test", http_client=claude({}, [], status=500), **{**settings.judge.options(), "max_retries": 0}
+    )
+    report, _ = check((settings, failing, store, []), tmp_path, [coverage_pair(1)])
+
+    assert report.findings[0].deferred and not report.findings[0].budget_deferred
+    with pytest.raises(ValueError, match="Judging is incomplete"):
+        require_complete(report, check=True)
+
+
+def concurrency_probe(settings: Settings, workers: int) -> tuple[AnthropicJudge, list[int]]:
+    """A judge whose transport holds each call briefly and records how many were in flight at once."""
+    lock, in_flight, peaks = threading.Lock(), [0], []
+
+    def answer(request: httpx2.Request) -> httpx2.Response:
+        with lock:
+            in_flight[0] += 1
+            peaks.append(in_flight[0])
+        time.sleep(0.05)
+        with lock:
+            in_flight[0] -= 1
+        return httpx2.Response(
+            200,
+            json={
+                "id": "msg_1",
+                "type": "message",
+                "role": "assistant",
+                "model": "claude-sonnet-5-5",
+                "stop_sequence": None,
+                "usage": {"input_tokens": 900, "output_tokens": 120},
+                "stop_reason": "end_turn",
+                "content": [{"type": "text", "text": '{"label":"duplicate","score":0.8}'}],
+            },
+        )
+
+    options = {**settings.judge.options(), "workers": workers}
+    client = anthropic.DefaultHttpxClient(transport=httpx2.MockTransport(answer))
+    return AnthropicJudge(api_key="test", http_client=client, **options), peaks
+
+
+def test_the_scheduler_judges_up_to_the_judges_workers_at_once(setup, tmp_path):
+    settings, _, store, _ = setup
+    judge, peaks = concurrency_probe(settings, workers=4)
+    pairs = [coverage_pair(n) for n in range(1, 9)]
+    report, state = check((settings, judge, store, []), tmp_path, pairs)
+
+    assert 1 < max(peaks) <= 4
+    assert all(f.verdict is not None for f in report.findings) and len(report.findings) == 8
+    # Every reservation settled exactly once, as answered, and billed from the SDK usage.
+    assert len(state.attempts) == 8 and all(a.status == "answered" for a in state.attempts)
+    assert state.usd == pytest.approx(8 * 0.00015)
+
+
+def test_a_single_worker_judge_keeps_one_call_in_flight(setup, tmp_path):
+    settings, _, store, _ = setup
+    judge, peaks = concurrency_probe(settings, workers=1)
+    check((settings, judge, store, []), tmp_path, [coverage_pair(n) for n in range(1, 4)])
+
+    assert max(peaks) == 1
+
+
+def test_parallel_reservations_do_not_strand_the_exploration_credit(setup, tmp_path):
+    """
+    Reservations hold a conservative bound; real answers cost a fraction of it. A batch in flight must not make
+    the scheduler refuse the next pair for a budget it would have again the moment the batch settled.
+    """
+    settings, _, store, _ = setup
+    judge, peaks = concurrency_probe(settings, workers=4)
+    pool = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(1, 41)]
+    reserved = reservation_cost(judge, pool[0], settings)
+    credit = settings.discovery.exploration_per_revision
+    # The premise: fewer bounds than the call cap fit in one revision's credit, though every real answer does.
+    assert int(credit / reserved) < settings.discovery.exploration_calls_per_revision < len(pool)
+    assert settings.discovery.exploration_calls_per_revision * 0.00015 < credit
+
+    report, state = check((settings, judge, store, []), tmp_path, pool)
+
+    judged = [f for f in report.findings if f.verdict is not None]
+    # INVARIANT: with money left, the call cap decides how many pairs are asked, not the size of a batch.
+    assert len(judged) == len(state.attempts) == settings.discovery.exploration_calls_per_revision
+    assert all(a.status == "answered" for a in state.attempts)
+    assert max(peaks) > 1  # still asked several at a time
+    unasked = [f for f in report.findings if f.verdict is None]
+    assert unasked and all(f.deferred and f.budget_deferred for f in unasked)
+    assert state.usd == pytest.approx(len(judged) * 0.00015) and state.usd <= settings.budget.usd
+    assert 0 <= state.credit <= credit
+
+
+def test_a_budget_that_is_really_spent_still_refuses_after_the_batch_settles(setup, tmp_path):
+    settings, _, store, _ = setup
+    judge, _ = concurrency_probe(settings, workers=4)
+    # Room for two real answers and no more: settling the batch frees nothing the third pair could use.
+    settings.budget.usd = 2 * 0.00015 + reservation_cost(judge, coverage_pair(1), settings)
+    pool = [coverage_pair(n) for n in range(1, 7)]
+
+    report, state = check((settings, judge, store, []), tmp_path, pool)
+
+    asked = [f for f in report.findings if f.verdict is not None]
+    assert 2 <= len(asked) < len(pool)
+    assert state.usd <= settings.budget.usd
+    unasked = [f for f in report.findings if f.verdict is None]
+    assert all(f.deferred and f.budget_deferred for f in unasked)
+    assert all(a.status == "answered" for a in state.attempts)
+
+
+def test_settling_early_keeps_every_baseline_answer_ahead_of_exploration(setup, tmp_path):
+    settings, _, store, requests = setup
+    judge, _ = concurrency_probe(settings, workers=4)
+    baseline = [coverage_pair(n) for n in range(1, 4)]
+    exploration = [coverage_pair(n).model_copy(update={"lane": "exploration"}) for n in range(10, 50)]
+
+    report, state = check((settings, judge, store, requests), tmp_path, [*exploration, *baseline])
+
+    lanes = [a.lane for a in state.attempts]
+    assert lanes == sorted(lanes)  # "baseline" sorts before "exploration": no exploration reserved earlier
+    assert (
+        lanes.count("baseline") == 3 and lanes.count("exploration") == settings.discovery.exploration_calls_per_revision
+    )
+    assert all(f.verdict is not None for f in report.findings if f.candidate.lane == "baseline")

@@ -15,7 +15,7 @@ def clients(api, path, second_text='{"label":"duplicate","score":0.8}'):
             path,
             model=model,
             max_tokens=512,
-            prompt_policy="shared-operations-compact",
+            prompt_policy="shared-operations",
             http_client=claude(
                 {
                     "model": model,
@@ -45,7 +45,7 @@ def test_cascade_prices_both_stages_and_never_treats_failure_as_coverage(load_sc
         "protected",
         per_run=10,
         total=200,
-        total_usd=0.04,
+        total_usd=0.1,
         protection=api["Protection"](baseline_calls=100, baseline_usd=0.025),
         escalation_answers=second,
         escalation=Escalation(use="anthropic", between=(0.4, 0.7), first_at=0.7),
@@ -75,9 +75,12 @@ def test_deferred_second_opinion_waits_for_credit_without_spending_future_baseli
         "protected",
         per_run=10,
         total=200,
-        total_usd=0.04,
+        total_usd=0.1,
         protection=api["Protection"](
-            baseline_calls=100, baseline_usd=0.025, exploration_run_usd=0.006, exploration_carry_usd=0.015
+            baseline_calls=100,
+            baseline_usd=0.025,
+            exploration_run_usd=second.reserve(pair) * 0.6,
+            exploration_carry_usd=second.reserve(pair) * 1.2,
         ),
         escalation_answers=second,
         escalation=Escalation(use="anthropic", between=(0.4, 0.7)),
@@ -86,8 +89,8 @@ def test_deferred_second_opinion_waits_for_credit_without_spending_future_baseli
     assert early["reported"] == []
     assert later.key in last["covered"]
     assert pair.key in last["reported"]
-    assert last["exploration_usd"] <= 0.015
-    assert last["cumulative_usd"] <= 0.04
+    assert last["exploration_usd"] <= second.reserve(pair) * 1.2
+    assert last["cumulative_usd"] <= 0.1
     assert len(requests) == last["cumulative_attempts"]
 
 
@@ -112,7 +115,7 @@ def test_changed_source_reopens_both_stages_without_crediting_old_second_opinion
         "protected",
         per_run=10,
         total=200,
-        total_usd=0.04,
+        total_usd=0.1,
         protection=api["Protection"](baseline_calls=100, baseline_usd=0.025),
         escalation_answers=second,
         escalation=Escalation(use="anthropic", between=(0.4, 0.7)),
