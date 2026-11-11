@@ -26,6 +26,7 @@ import re
 import shutil
 import subprocess
 import sys
+import textwrap
 import time
 import warnings
 from collections import Counter, defaultdict
@@ -869,12 +870,19 @@ def case_key(case: dict) -> str:
 
 
 def body_idents(code: str) -> set[str]:
-    """Identifiers of a function's source without its ``def`` line."""
-    lines = code.splitlines()
-    for i, line in enumerate(lines):
-        if line.lstrip().startswith(("def ", "async def ")):
-            return ident_set("\n".join(lines[i + 1 :]))
-    return ident_set(code)
+    """Identifiers of a function's body, without its decorators, signature and docstring."""
+    source = textwrap.dedent(code)
+    try:
+        node = ast.parse(source).body[0]
+    except (SyntaxError, IndexError):
+        return ident_set(code)
+    body = getattr(node, "body", [])
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+        if isinstance(body[0].value.value, str):
+            body = body[1:]
+    if not body:
+        return set()
+    return ident_set("\n".join(source.splitlines()[body[0].lineno - 1 :]))
 
 
 def accept(case: dict, th: argparse.Namespace) -> str | None:

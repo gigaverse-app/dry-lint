@@ -21,8 +21,9 @@ python mine_history.py sample --out OUT litellm openhands --n 30 --seed 20261111
 - `CLONE` can be a `--filter=blob:none --no-checkout` partial clone. `log` reads commits and blob ids with
   `git log --raw --no-renames`, which needs only trees, so it fetches nothing.
 - `fetch` fetches the blobs that `mine` will read, in batches of 2,000, over `git fetch --stdin`. It checks free
-  disk before each batch and stops below `--floor-gb`. Fetching about 50,000 blobs for 12,000 LiteLLM and OpenHands
-  commits took about 1.5 minutes and about 300 MB.
+  disk before each batch and stops below `--floor-gb`. The first run fetched about 59,000 blobs for 12,468 LiteLLM and
+  OpenHands commits; the LiteLLM `.git` grew from 465 MB to 706 MB and the OpenHands clone is 48 MB. The first 34,000
+  blobs took about one minute.
 - `mine` reads blobs with `GIT_NO_LAZY_FETCH=1`. A blob that was not fetched is counted (`blob_missing`) and
   skipped; it is never fetched one at a time. It writes `candidates-<name>.jsonl`, `mine-<name>.json` (counters,
   commit range, HEAD) and `missing-<name>.txt`.
@@ -67,7 +68,10 @@ changed file is near-identical to it. Moved functions are not cases.
 4. A and B each have at least 3 statements.
 5. A did not already call B (otherwise the commit inlined a wrapper; dropped as `wrapper_inlined`).
 6. Similarity: identifier-set Jaccard of A's and B's bodies >= 0.3, **or** at least half of A's identifiers occur in
-   B (`a_in_b >= 0.5`; a small A replaced by a larger B that covers it).
+   B (`a_in_b >= 0.5`; a small A replaced by a larger B that covers it). Bodies exclude decorators, signature and
+   docstring.
+
+One removed A can give several cases: every new call in a redirected caller is tried as B.
 
 Case: A at P and B at P. `callers` lists the redirected call sites.
 
@@ -95,7 +99,8 @@ lost.
 
 ### Thresholds
 
-Identifiers are the names in the code minus Python keywords and `self`, `cls`, `None`, `True`, `False`, `str`, `int`,
+Identifiers are the word tokens of the code (names, attribute names and also words inside string literals, such as
+log messages) minus Python keywords and `self`, `cls`, `None`, `True`, `False`, `str`, `int`,
 `dict`, `list`, `len`, `isinstance`. The thresholds were set by reading every candidate from the newest 3,000 commits
 of each repository with all thresholds at zero:
 
@@ -131,7 +136,7 @@ of each repository with all thresholds at zero:
  "features": {"jaccard": 0.5, "containment": 0.8, "...": "..."}}
 ```
 
-`code` is the function's own source (decorators included), never a whole file. Line numbers are 1-based and refer to
+`date` is the commit's author date. `code` is the function's own source (decorators included), never a whole file. Line numbers are 1-based and refer to
 the member's `rev`.
 
 ## First run (2026-11-11)
@@ -151,3 +156,5 @@ duplicated logic, 3 that were not duplicates and 1 unclear: family 11 of 13, pai
 - The similarity measures are identifier sets, not aligned code. They separate "the removed lines were the helper's
   logic" from "the function now calls an unrelated helper", but they do not prove the two were duplicates.
 - The commit that introduced the later copy (asked for by the research program) is not computed.
+- Blobs reported missing by `mine` (`missing-<name>.txt`, 7 in the first run) were not fetched back, so a few cases
+  may be lost.
