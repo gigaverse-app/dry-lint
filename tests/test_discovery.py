@@ -8,7 +8,9 @@ from unittest.mock import patch
 import anthropic
 import httpx2
 import pytest
+from action_harness import github_env as github_env
 
+from dry_lint import judging
 from dry_lint.baseline import require_complete
 from dry_lint.cli import main
 from dry_lint.detector import Detector, changed_lines, touched
@@ -133,6 +135,46 @@ def test_wider_retrieval_keeps_every_baseline_pair_and_its_order(repo):
     wider = Detector.for_repository(repo.root, settings).candidates(changed)
     assert before
     assert [c.model_dump() for c in wider if c.lane == "baseline"] == [c.model_dump() for c in before]
+
+
+@pytest.mark.parametrize("event_name", ["push", "workflow_dispatch", "schedule"])
+@pytest.mark.parametrize("session", [None, "explicit-task"])
+def test_detached_action_discovery_keeps_identity_and_rerun_accounting(
+    repo, setup, tmp_path, monkeypatch, github_env, event_name, session
+):
+    _, judge, _, requests = setup
+    head = repo.git("rev-parse", "HEAD").strip()
+    repo.git("checkout", "--detach", head)
+    github_env(event_name, {"before": repo.git("rev-parse", "main").strip()})
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
+    report_path = tmp_path / "report.json"
+    args = [
+        "check",
+        "--root",
+        str(repo.root),
+        "--base",
+        "main",
+        "--preset",
+        "balanced",
+        "--report",
+        str(report_path),
+    ]
+    if session:
+        args += ["--session", session]
+    with patch.object(judging, "make_judge", return_value=judge):
+        assert main(args) == 1  # A real duplicate still blocks, rather than an identity error (exit 2).
+        report = Report.model_validate_json(report_path.read_bytes())
+        assert report.run.session == (session or "refs/heads/main")
+        assert report.run.head == head
+        assert report.run.revision == repo.git("rev-parse", "HEAD^{tree}").strip()
+        assert report.run.pull_request is None and any(f.blocking for f in report.findings)
+        calls = len(requests)
+        assert calls > 0
+        monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "2")
+        assert main(args) == 1
+        repeated = Report.model_validate_json(report_path.read_bytes())
+        assert repeated.run == report.run
+        assert len(requests) == calls
 
 
 def test_same_file_duplicates_are_exploration_and_never_replace_baseline(repo):
