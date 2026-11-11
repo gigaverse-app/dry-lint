@@ -92,8 +92,8 @@ extractor's existing rename normalization is unchanged. TypeScript hashes carry 
 ## Local use and audits
 
 ```bash
-uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint check
-uvx --from git+https://github.com/gigaverse-app/dry-lint dry-lint scan --limit 20 --warn-only
+uvx dry-lint check
+uvx dry-lint scan --limit 20 --warn-only
 ```
 
 `check` reports changed functions against existing code. `scan` reviews the repository backlog; keep it separate

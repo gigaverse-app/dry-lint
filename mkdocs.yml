@@ -1,0 +1,132 @@
+site_name: dry-lint
+site_description: Find code that re-implements what your codebase already does, judge it, and say so on the pull
+  request.
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, "https://dry-lint.readthedocs.io/en/latest/"]
+repo_url: https://github.com/gigaverse-app/dry-lint
+repo_name: gigaverse-app/dry-lint
+edit_uri: ''
+docs_dir: documentation
+site_dir: site
+strict: true
+exclude_docs: '*.py
+
+  *.txt
+
+  *.in
+
+  overrides/
+
+  '
+theme:
+  name: material
+  custom_dir: documentation/overrides
+  language: en
+  font: false
+  palette:
+    primary: deep purple
+    accent: green
+  features:
+  - navigation.top
+  - search.suggest
+  - search.highlight
+  - content.code.copy
+plugins:
+- search
+hooks:
+- documentation/hooks.py
+markdown_extensions:
+- admonition
+- attr_list
+- tables
+- pymdownx.details
+- pymdownx.tasklist:
+    custom_checkbox: true
+- pymdownx.highlight
+- pymdownx.superfences:
+    custom_fences:
+      - name: mermaid
+        class: mermaid
+        format: !!python/name:pymdownx.superfences.fence_code_format
+- toc:
+    permalink: true
+validation:
+  nav:
+    omitted_files: info
+  links:
+    not_found: warn
+    unrecognized_links: warn
+    anchors: warn
+extra:
+  # Brand files published under their repository names: adopters' PR comments hot-link the sticky banners,
+  # so these are never renamed. scripts/make_assets.py renders all of them.
+  brand:
+    logo: docs/assets/dry-lint-mark.svg
+    icon: docs/assets/icon.png
+    banner: docs/assets/readme-hero-light.svg
+    social: docs/assets/social-preview.png
+  # Copied verbatim into the built site for agents and crawlers (documentation/hooks.py on_post_build).
+  raw_files:
+    skills/dry-lint/SKILL.md: agent-setup.md
+  llms_txt: documentation/llms.txt
+  published_sources:
+  - source: skills/dry-lint/SKILL.md
+    as: agent-setup.md
+  - docs/why.md
+  - docs/tutorials/first-run.md
+  - docs/ci.md
+  - docs/adoption-playbook.md
+  - docs/github-action.md
+  - docs/typescript.md
+  - docs/comment-preview.md
+  - docs/judges.md
+  - docs/retrieval-presets.md
+  - docs/sweeps.md
+  - docs/model-duplication.md
+  - docs/model-adoption.md
+  - docs/operation-blocks.md
+  - docs/cpu-recovery.md
+  - docs/detectors.md
+  - docs/plugins.md
+  - docs/workspaces.md
+  - docs/function-indexes.md
+  - docs/design.md
+  - docs/benchmark.md
+  - docs/research-results.md
+  - docs/case-studies/pytest-selective.md
+  - docs/case-studies/pytest-obligation-cleanup.md
+  - CONTRIBUTING.md
+nav:
+- Home: index.md
+- Getting started:
+  - Set it up with a coding agent: agent-setup.md
+  - Why dry-lint: docs/why.md
+  - "Tutorial: first run to required check": docs/tutorials/first-run.md
+  - How CI runs dry-lint: docs/ci.md
+  - Adopt it in a repository: docs/adoption-playbook.md
+  - GitHub Action reference: docs/github-action.md
+  - TypeScript and Bun: docs/typescript.md
+  - What the pull request comment shows: docs/comment-preview.md
+- Configure and run:
+  - Judges and presets: docs/judges.md
+  - Retrieval presets: docs/retrieval-presets.md
+  - Sweep a repository and ratchet its debt: docs/sweeps.md
+  - Detect duplicated model ownership: docs/model-duplication.md
+  - Default model review: docs/model-adoption.md
+  - Find a helper's work inside a larger function: docs/operation-blocks.md
+  - Offline CPU recovery: docs/cpu-recovery.md
+  - Dryer structural comparer: docs/detectors.md
+  - Plugins: docs/plugins.md
+- Across repositories:
+  - Find duplication across repositories: docs/workspaces.md
+  - Share function indexes: docs/function-indexes.md
+- How it works:
+  - Design: docs/design.md
+- Evidence:
+  - Benchmark: docs/benchmark.md
+  - What the recall research established: docs/research-results.md
+  - "Case study: duplicate debt exposed four bugs": docs/case-studies/pytest-selective.md
+  - "Case study: what a zero-duplication backlog improved": docs/case-studies/pytest-obligation-cleanup.md
+- Related tools: ecosystem.md
+- Contributing:
+  - Development setup: CONTRIBUTING.md
+  - Documentation publishing: publishing.md

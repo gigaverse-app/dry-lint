@@ -1,86 +1,91 @@
-# Judges
+# Judging defaults
 
-## Presets: judges and thresholds, chosen together
+Use **balanced for function duplication** and **agent source review for model ownership**. Adopt this split in CI,
+hooks and audits unless the repository documents a concrete cost, credential or measured-quality exception.
 
-A threshold means something only for the judges it was measured with: Jev's 0.8 and Claude Sonnet's 0.7 are not
-the same bar. So dry-lint chooses the judges and the thresholds together, as a **preset**:
+| Lane | Default | What a finding means |
+| --- | --- | --- |
+| Functions | `balanced`: Claude Haiku 5.5 answering in a schema, shared-operation question, reports from 0.4, fails from 0.5 | A named executable operation has competing implementations; inspect the proposed shared owner |
+| Models | Model discovery and optional Jev ranking, followed by agent review | Investigate the complete model family, producers, consumers and ownership; a score never authorizes a merge |
 
-| Preset | Judges | Reports and fails at | Precision / recall within $0.04 a PR | Average cost a PR |
-| --- | --- | --- | --- | --- |
-| `jev+opus` | Jev, then Claude Opus 5.5 (API) on Jev scores in [0.5, 0.91) | 0.55 | 98% / 85% (99% / 90% unbudgeted) | ~$0.005 |
-| `jev+claude-code` | the same, through a Claude subscription (`claude` CLI) | 0.55 | same model and prompt; not measured through the CLI | ~$0.005 of subscription use |
-| `jev+sonnet` | Jev, then Claude Sonnet 5.5 (API) on [0.5, 0.91) | 0.7 (reports from 0.6) | 97% / 84% | ~$0.0035 |
-| `jev+claude-code-sonnet` | the same, through a Claude subscription | 0.7 (from 0.6) | same model and prompt | ~$0.0035 of subscription use |
-| `jev+codex` | Jev, then the ChatGPT subscription's model (`codex` CLI) on [0.5, 0.91) | 0.7 | 96% / 85% | ~1.1 subscription calls, ~14 s each |
-| `sonnet` | Claude Sonnet 5.5 (API) on every pair | 0.7 (from 0.6) | 97% / 63% (84% unbudgeted) | ~$0.007 |
-| `claude-code` | the same, through a Claude subscription | 0.7 (from 0.6) | same model and prompt | ~$0.007 of subscription use |
-| `jev` | Jev on every pair | 0.8 | 94% / 73% | ~$0.0002 |
-| `none` | no judge: candidates are listed, nothing fails | - | - | free |
+Balanced keeps protected TF-IDF candidates, explores up to 20 neighbours, adds one bounded operation-block neighbour,
+and shares a persistent $0.04 budget across a PR's pushes. API judging uses a 2,048-token response limit and no SDK retries;
+an answer that comes back as prose is asked once more with the schema forced.
+Deferred or failed judgments are not negative verdicts. Required CI uses `require-complete: 'true'`.
+Tests/migrations/scripts remain excluded by default; including them is a repository scope choice, not a reason to
+suppress all fixtures. Two wrappers entering the same lifecycle helper are separate; independently implementing
+setup/yield/teardown still duplicates behavior.
 
-Measured on the 250-pair gold set and simulated on each pull request's own candidates under the default budget,
-every push included ([benchmark](benchmark.md#within-a-budget)). On gigaverse-backend, -web-app and -mobile,
-`jev+sonnet` failing at 0.7 kept 91–100% precision, while Jev alone fell to about 80% on TypeScript
-([other repositories](benchmark.md#other-repositories)). There, within the budget, `jev+opus` and `jev+sonnet`
-tie, and TypeScript precision falls to 83–89% with either, so keep `warn-only` on TypeScript
-([`jev+opus` elsewhere](benchmark.md#jevopus-and-the-budget-elsewhere)). The default,
-`preset = "auto"`, takes the first of `jev+opus`, `jev+claude-code`, `jev`, `sonnet`, `claude-code`, `none` whose
-credentials are in the environment (`TYPESAFE_AI_API_KEY`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`); the
-others must be named. On gigaverse-ai, `jev+sonnet` costs a third less than `jev+opus` but blocks about twice as many separate pairs.
-`sonnet` and `claude-code` have no cheap first judge to fall back on, so on the largest pull requests the budget
-runs out and pairs stay unjudged: that is why `jev` comes before them. Any field set explicitly (`judge`,
-`escalate`, `drop_below`, `report_at`, `fail_at`, or `--fail-at`) wins over the preset's; naming your own `judge`
-without a preset runs it alone, as `custom`, with the default thresholds, since no preset was measured for it.
-`dry-lint config` prints what would run and why, and every report ends with the same line: the preset, the judges,
-the thresholds and the cost.
+`auto` selects `balanced` with `ANTHROPIC_API_KEY`, then `balanced-subscription` with `CLAUDE_CODE_OAUTH_TOKEN`,
+then `jev` only for existing TypeSafe-only installations, otherwise `none` (detection only). This credential
+fallback preserves existing enforcement; it is not the recommended adoption. Pin `preset = "balanced"` in adopting repositories so missing credentials fail visibly. Install
+`dry-lint[anthropic]`, or use the Action's `anthropic-api-key` input. The subscription preset shares discovery
+and model with `balanced-text`, the text answer and its 0.5 threshold, and has not been independently
+calibrated through the CLI.
 
-Each threshold belongs to the judge whose scores it was measured on. With a second judge, its answers meet the
-preset's thresholds, and the first judge's answers that it did not see (outside the band, or once the budget has
-run out) meet the first judge's own bar, `escalate.first_at`: 0.8 for Jev. Without that, a large pull request that
-ran out of budget would fail on Jev scores of 0.55, where Jev alone is right about two times in three.
+## One preset everywhere
+
+```toml
+[tool.dry-lint]
+preset = "balanced"
+```
+
+Leave workflow `preset` inputs and hook `--preset` arguments out. Both inherit repository settings. Model review
+is enabled separately and does not require the legacy function preset named `agent`.
+
+For an existing baseline, change the repository preset, remove hook overrides, then run:
+
+```bash
+dry-lint baseline-migrate --baseline .dry-lint/baseline.json
+dry-lint check --baseline .dry-lint/baseline.json --require-complete
+```
+
+Migration records the old policy digest and preserves the original pair set, hashes, context, adoption revision
+and all debt states, including the last verified revision. It accepts no new debt and credits no cleanup. Commit its small metadata diff with the settings;
+review the complete change against the target branch. Never delete/reinitialize the baseline to change a preset.
+New findings from broader discovery require review; migration is not an exemption for them.
+Excluding a file after adoption does not delete its accepted debt or count as cleanup. The debt remains until
+source removal is verified or an in-scope assessment settles it; use explicit reviewed dismissals for intentional copies.
+
+The migration must start from a committed baseline (`HEAD`, or `--baseline-ref <target>`). Repeating it after
+adjusting the policy before commit extends its history; it does not reset the original debt. Restore accidental
+state/revision edits from that reference before retrying. Run cleanup sweeps after the policy migration lands,
+so their evidence and cleanup credit remain separate from the policy change.
+
+Migrated baselines require a release that supports schema 2 in CI and every local hook. Keep an adoption PR
+draft until that release reaches `@v1`; refresh cached hook environments as described in the adoption setup.
+Unmigrated schema-1 files retain their old wire shape, including when a newer version writes an ordinary sweep.
+
+Legacy Jev and cascade presets remain explicit compatibility choices for existing baselines. Their historical
+measurements are in [the benchmark](benchmark.md); they are not current guarantees for the replaced text prompt.
+`dry-lint config` prints the resolved setup. Explicit repository overrides still win.
 
 ## Who reads the findings: people, or coding agents
 
-Choose the judging for whoever reads the findings, not for the best score on a benchmark.
+Both use balanced for functions. Reserve deeper agent investigation for model ownership and unresolved context.
+The old `agent` function preset optimized recall at 43–69% precision. Making it the hook's forced default turned
+ordinary pytest adapters into blocking work. Repository owners should document an exception before retaining it.
 
-- **A person** reading a pull request comment pays for each false positive with attention, and a red check holds up a
-  merge. Every wrong finding also teaches them to skim the next one. Put precision first: an escalating preset such
-  as `jev+opus` (98% precision), and a `fail_at` that blocks only what is nearly certain.
-- **A coding agent** pays seconds. It opens both functions, decides, and either reuses the existing one or records
-  why they differ (`# dry-lint: distinct-from ...`), which settles the pair for good. A missed duplicate costs a copy
-  that drifts. Put recall first, with a fast, cheap judge and a low threshold: the agent is the second judge, so
-  paying Claude Opus to judge a finding that an agent will check anyway buys little.
+## AI-926 regression and limits
 
-**High enough** is a range, not a maximum, for both:
+[gigaverse-ai #3360](https://github.com/gigaverse-app/gigaverse-ai/pull/3360) used Jev `reuse-v2`, `preset=agent`,
+without helper context. Its six identical fixture-adapter pairs were false positives. Operation blocks were disabled;
+the failure also reproduces before that feature landed. The old prompt only excluded direct delegation between the
+pair, while both fixtures actually delegated cleanup to a third owner.
 
-| Reader | Recall | Precision | Judging |
-| --- | --- | --- | --- |
-| Person: PR comment, required check | as high as precision allows | about 95% or more of what blocks; reports may warn below it | `jev+opus` or `jev+sonnet` |
-| Coding agent: hook, agent loop, `--format json` | about 90% or more | about one in two or better: below that, agents start ignoring findings as people do | `agent` (Jev at 0.6), or `agent+haiku` |
+The maintained `dry-operations-v3` prompt distinguishes shared delegation from independently repeated lifecycle
+policy. The replaced `concept` and compact prompt names are compatibility aliases, with strict versioned cache
+identity. Frozen research artifacts remain historical evidence, not runtime policy.
 
-The measurements support the split. Each cell is precision / recall at the preset's report threshold, on the
-labelled gold sets of four gigaverse repositories (two Python, two TypeScript, 675 pairs in all):
+[Oz's pinned corpus](../examples/oz-fixtures-gold.toml) contains six real adapter pairs and six independent cleanup
+pairs. One live Haiku run classified all 12 correctly. Additional curated controls caught 5/6 pytest-obligation
+positives with 1/6 false positives, and 5/7 Due positives with 0/3 false positives. These small agent-labelled panels
+are regression evidence, not independent population estimates; model output remains variable.
 
-| Judging | gigaverse-ai | -backend | -web-app | -mobile | Cost a pair |
-| --- | --- | --- | --- | --- | --- |
-| `agent`: Jev, from 0.6 | 69% / 92% | 53% / 97% | 43% / 100% | 55% / 93% | under $0.0001 |
-| `agent+haiku`: Haiku on Jev's [0.5, 0.91), from 0.5 | 85% / 94% | 61% / 94% | 58% / 70% | 81% / 80% | about $0.0002 |
-| Sonnet on Jev's [0.5, 0.91), from 0.5 | 95% / 88% | 100% / 71% | 80% / 78% | 91% / 78% | about $0.0025 |
-
-Only Jev alone keeps recall at 90% or more everywhere. Every second judge buys precision with recall, because it
-also turns down real duplicates Jev was right about, and Sonnet, the strictest, turns down the most. Lowering its
-threshold does not win them back: they score below 0.5. So a person's preset escalates and an agent's preset
-mostly does not. `agent+haiku` is the middle ground: on Python it keeps about Jev's recall at higher precision; on
-TypeScript it loses a fifth to a third of the duplicates. A shared-operations prompt for Haiku (the one `balanced`
-uses), tried as the second judge, kept only 49% to 75% of the duplicates.
-
-One repository can serve both readers. CI keeps a precision preset for the comment and the check, and the
-[pre-commit hook](../README.md#pre-commit) runs `agent` on what the coding agent stages.
-`dry-lint check --staged --preset agent --format json` lists every judged pair with its score, not only the ones
-the preset reports. A local run keeps its verdicts in the git directory and CI keeps its own in the Actions cache.
-Even in one store, a verdict is reused only by judging that would have given it: a second opinion only for the
-same second judge, and Jev's own answer in the escalation band never for a run that escalates. So an `agent` run
-and a `jev+opus` run can share a store, and adding a second judge re-judges the cached first answers it would have
-seen.
+A disappearing finding now means **no longer reported**. Reverts, retrieval changes and changed budgets cannot earn
+cleanup credit or supply positive training labels. Only evidenced reductions of accepted baseline debt count toward
+cleanup. Legacy sticky/trailer claims are downgraded when read; already published global totals are historical and
+are not retroactively recomputed by a local upgrade.
 
 ## Paying with a subscription instead of an API key
 
@@ -103,11 +108,12 @@ Jev's numbers. A failing first judge is still an error.
 ## Budget and cost
 
 ```toml
-[tool.dry-lint.budget]
+# .dry-lint.toml ([tool.dry-lint.budget] and [tool.dry-lint.prices] in pyproject.toml)
+[budget]
 usd = 0.04                 # most judging spends on one pull request, across all its pushes (--budget-usd overrides it)
 subscription_calls = 20    # most calls one run makes to subscription judges
 
-[tool.dry-lint.prices]     # USD per million input and output tokens, over the built-in table
+[prices]                   # USD per million input and output tokens, over the built-in table
 "my-model" = [1.0, 4.0]
 ```
 
@@ -143,11 +149,67 @@ establish model-consolidation accuracy.
 | `jev` | TypeSafe's System One decision model, prompt `reuse-v2` | about 0.3 s per pair, 8 pairs in parallel |
 | `command` | Any program: the prompt (or the candidate as JSON) on stdin, a JSON verdict on stdout; 4 at once | whatever your model costs |
 | `anthropic` | Claude through the official SDK (`dry-lint[anthropic]`) with the same DRY prompt and server-side refusal fallbacks; needs `ANTHROPIC_API_KEY`. Default model `claude-sonnet-5-5`; option `effort` | per pair: Sonnet 2 s and $0.0035, Opus 3 s and $0.008; 4 in parallel |
+| `langchain` | Claude through LangChain (`dry-lint[anthropic]`), answering in a schema: [structured answers](#structured-answers). `balanced`'s judge. Needs `ANTHROPIC_API_KEY`. Default model `claude-haiku-5-5`, `effort = "low"`; options `thinking`, `diagnostics` | per pair with Haiku: 2.6 s and $0.00035; 4 in parallel |
 | `gemini` | Gemini over its REST API with the same DRY prompt; needs `GEMINI_API_KEY`, no CLI. Default model `gemini-3.1-pro-preview` | about 12 s per pair, 4 in parallel |
 | `claude-code` | Claude through `claude -p` on a Claude subscription; default model `claude-sonnet-5-5` | the model's list price, out of the subscription; rate-limited |
 | `codex` | The ChatGPT subscription's model through `codex exec`; `model` optional | no per-call cost; about 14 s per pair |
 | `none` | Lists candidate pairs unjudged; never fails the build | free |
 | anything installed | A package registering `dry_lint.judges` | |
+
+## Structured answers
+
+`balanced` judges with the `langchain` judge: it asks the same question as the `anthropic` judge and gets the
+answer as a schema, `DuplicateVerdictPromptSchema`, through LangChain's `with_structured_output`.
+
+```toml
+preset = "balanced"          # this judge, reporting from 0.4 and failing from 0.5
+preset = "balanced-text"     # the text answer `balanced` used until 1.10, at 0.5
+```
+
+or, with your own thresholds, `judge = { use = "langchain", model = "claude-haiku-5-5" }`. It comes with
+`dry-lint[anthropic]` and with the GitHub Action. One real call each confirmed it also answers with
+`claude-sonnet-5-5` and `claude-opus-5-5`; its accuracy was measured with Haiku only.
+
+The schema is prompt text: the model reads its docstring, field names, descriptions and enum values, in field
+order. It is in `judges/langchain.py`, and what was measured ([benchmark](benchmark.md#structured-answers)) is
+written into it:
+
+- **The model thinks first.** A forced tool call switches thinking off, and without thinking the judge found
+  95 confirmed duplicates on real commits where it finds 121 with it. So the tool is offered, the request says
+  to call it, and the call is forced only when an answer comes back as prose (2 of 1,362 pairs).
+- **The reasoning is the first field.** With the decision first, recall on labelled duplicates fell from 87% to
+  48–58%.
+- **Everything is spelled out.** A first schema with bare literals and one-line descriptions lost 4–8% of answers
+  to missing fields. With enums, full descriptions and a score rubric it lost none.
+- **The score has a rubric**: six bands, each saying what evidence earns it. It does not say which bands are
+  reported, and it scores a shared sub-operation by itself, whatever surrounds it.
+- **One format.** The question is the text judges' `OPERATIONS_RULES`, without their "answer one JSON object"
+  block, which would contradict the schema.
+- **The rules are cached.** The schema and the rules are the same in every request, so they are one cached
+  prefix of about 2,400 tokens, read at a tenth of the input price by every call after the first.
+
+| | `balanced-text` (text answer, `effort = "low"`) | `balanced` |
+| --- | --- | --- |
+| Ranking of 756 labelled pairs (AUC) | 0.945 | 0.965 |
+| Finds labelled duplicates | 87% at 10% false reports | 85% at 8%, reporting from 0.4 |
+| Real commits, Opus as referee: reports | 130, 105 confirmed | 136, 106 confirmed |
+| Real commits: what fails the check | the same 130, 81% confirmed | 100 from 0.5, 88% confirmed |
+| Answers that could not be read | 0.4% | none |
+| A pair, on real commits | $0.00041, 4 s | $0.00035, 2.6 s |
+
+Higher AUC and more confirmed are better. So `balanced` warns about as much as the text judge did and blocks on
+less, with more of what it blocks on confirmed.
+
+**Upgrading.** The judge and the thresholds changed, so stored verdicts are judged again once and a baseline
+needs `dry-lint baseline-migrate` ([one preset everywhere](#one-preset-everywhere)). To stay on the text judge,
+set `preset = "balanced-text"`. `balanced-subscription` still asks in text through the `claude` CLI, at 0.5.
+
+**Diagnostics.** `judge = { use = "langchain", diagnostics = true }` adds two fields after the verdict: what
+made the pair hard, and what the model was not shown and would have needed. They do not change the verdict.
+Read over many pairs they show which rule the judge trips on; that is how the rubric above was corrected.
+
+LangChain can trace every prompt, which contains your source, to LangSmith. It does so only when you set its
+tracing variables (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`); dry-lint never sets them.
 
 ## Jev
 
@@ -164,6 +226,20 @@ It asks three questions:
 | `same_concept` | noul | One concept that should have a single implementation, parameterized where they differ? |
 | `behaves_differently` | noul | Would a caller notice a different result for some input? |
 | `owner` | choice | `existing`, `new`, `shared` or `none` |
+
+The `owner` answer is about the pair shown, and it becomes the advice: `existing` says to call the existing
+function, `new` to keep the changed function and move the existing one's callers to it, naming both, and `shared`
+to extract a helper both call. In a repository-wide `scan` or `sweep` neither function is new (a pair's sides are
+only ordered by name), so the advice names the function to keep and the one whose callers move. The judge often
+prefers a public function over a private helper. Because functions in the same file are never compared, a
+copy placed next to its original pairs with another copy elsewhere, if there is one; the advice can then be to move
+that copy's callers to the new function, although the right owner is the original beside it. Read both functions
+before following the advice.
+
+Scores are not perfectly repeatable: identical runs can differ by about 0.01, so a pair within a few hundredths
+of a threshold can be reported in one run and not the next. The verdict store keeps the first answer for each pair
+until either function changes, so a pull request's check does not flip between pushes. Do not tune a threshold to
+settle one such pair; decide it on its merits, as debt, a fix, or a recorded decision.
 
 The score is `same_concept × (1 − p(owner = none))`. Jev must think the two are one concept *and* that they should
 become one implementation. A pair is

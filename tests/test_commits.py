@@ -32,7 +32,7 @@ def test_a_reported_pair_is_blocked_with_its_names_and_file() -> None:
 
 
 @pytest.mark.parametrize("later, state", [
-    (report(), "kept-out"),  # the copy is gone, by the rule the ledger uses across pushes
+    (report(), "not-reported"),  # the copy is gone, by the rule the ledger uses across pushes
     (report(filtered=[pair(filtered="distinct-from")]), "dismissed"),  # a rule settled it
 ])  # fmt: skip
 def test_a_blocked_pair_no_longer_reported_is_settled_for_the_next_commit(later, state) -> None:
@@ -57,10 +57,10 @@ def test_a_settled_pair_reported_again_is_no_longer_claimed_as_kept_out() -> Non
 
 
 def test_a_trailer_reads_back_as_the_outcome_it_wrote() -> None:
-    kept = Outcome(key="ab7719f1ec3f9b70", new="clip", existing="shorten", lines=4, state="kept-out")
+    kept = Outcome(key="ab7719f1ec3f9b70", new="clip", existing="shorten", lines=4, state="not-reported")
     dismissed = kept.model_copy(update={"key": "5c0e2f6a91d3b7e4", "state": "dismissed", "lines": 0})
     message = f"feat: x\n\nbody\n\nCo-Authored-By: A <a@b>\n{kept.trailer()}\n{dismissed.trailer()}\n"
-    assert kept.trailer() == "Dry-Lint-Kept-Out: ab7719f1ec3f9b70 clip ≈ shorten (4 lines)"
+    assert kept.trailer() == "Dry-Lint-Not-Reported: ab7719f1ec3f9b70 clip ≈ shorten (4 lines)"
     assert outcomes([message]) == [kept.model_copy(update={"path": ""}), dismissed]
 
 
@@ -83,15 +83,15 @@ def test_the_hook_carries_a_fixed_duplicate_into_the_commit_and_counts_it_in_its
     repo.git("add", "src/more.py")
     assert run_cli(repo, tmp_path, "--staged", *judge) == 0
     assert (
-        "dry-lint before commit on this branch: 1 duplicate kept out, 0 look-alikes dismissed"
+        "dry-lint before commit on this branch: 1 finding no longer reported, 0 look-alikes dismissed"
         in capsys.readouterr().out
     )
     message = tmp_path / "COMMIT_EDITMSG"
     message.write_text("feat: reuse the shared helper\n")
     assert main(["trailers", "--root", str(repo.root), str(message), "message"]) == 0
     assert main(["trailers", "--root", str(repo.root), str(message)]) == 0  # written once
-    assert message.read_text().count("Dry-Lint-Kept-Out: ") == 1
+    assert message.read_text().count("Dry-Lint-Not-Reported: ") == 1
     repo.git("commit", "-q", "-F", str(message))
     [kept] = trailed(repo.root, "origin/main")
-    assert (kept.state, kept.new, kept.existing) == ("kept-out", "preview_caption_text", "shorten_text")
+    assert (kept.state, kept.new, kept.existing) == ("not-reported", "preview_caption_text", "shorten_text")
     assert Journal.load(repo.root) == Journal()

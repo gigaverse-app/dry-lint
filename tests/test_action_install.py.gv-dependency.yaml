@@ -1,0 +1,6 @@
+dependencies:
+  - inputs:
+      - "//action.yml"
+      - "//scripts/install-action.sh"
+    kind: content
+    reason: "Read at runtime to check the action installs through the shipped script."

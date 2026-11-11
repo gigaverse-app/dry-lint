@@ -29,7 +29,10 @@ WHY_LIMIT = 600
 # Each state's heading, in the order the table shows them, and what it means for the reader.
 GROUPS = {
     "open": ("🔴 Still duplicated", "the judge found one concept at or above the reporting bar"),
-    "kept-out": ("✅ Cleaned up", "reported on an earlier push, and no longer"),
+    "not-reported": (
+        "⚪ No longer reported",
+        "absent from the latest scan; removal or consolidation is not established",
+    ),
     "below threshold": ("🟡 Near misses", "judged one concept, but under the {bar} reporting bar, so not counted"),
     "deferred": ("⏳ Not judged yet", "the budget ran out before the judge reached them"),
     "unjudged": ("⏳ Not judged yet", "no judge answered"),
@@ -193,7 +196,7 @@ class Comparisons:
         ):
             return " · ".join(links)
         result = None
-        if state == "kept-out":
+        if state == "not-reported":
             resolved = [self.current(source) for source in (a, b)]
             survivors = [reference for known, reference in resolved if known and reference]
             if all(known for known, _ in resolved) and len(survivors) == 1:
