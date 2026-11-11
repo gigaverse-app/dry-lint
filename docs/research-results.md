@@ -1,6 +1,6 @@
 # What the recall research established
 
-Start with [the comparer guide](discovery-comparers.md) for configuration and worked examples. The studies below explain why the optional comparers exist, which alternatives were tested, and why several appealing changes did not earn a production recommendation.
+The [research program](research-program.md) records which of these studies reached a decision and what runs next. Start with [the comparer guide](discovery-comparers.md) for configuration and worked examples. The studies below explain why the optional comparers exist, which alternatives were tested, and why several appealing changes did not earn a production recommendation.
 
 Each study links its original implementation, configuration, exact selected source and recorded judge inputs/answers, a provider-free reproduction, and the inputs still needed for a complete corpus rerun. A selected-case replay does not recreate an entire retrieval experiment. Gold backgrounds remain in the separate dataset repository; private source and redistribution-held payloads are not copied into these reports.
 
