@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "method": "spectral-family-recovery",
+  "mechanism": "Build mutual, union, tighter-threshold and hub-removed sparse affinity graphs. Use normalized-Laplacian Fiedler sweeps, minimum side size three, maximum recursion depth four, conductance \u2264 .20, and \u2265 .90 agreement under deterministic \u00b15% edge perturbation. Preserve native leads. Overlapping groups require common bounded-region signatures. Separate fixed SVD/ridge/residual controls test whether low-rank projection removes noise.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/README.md",
+      "sha256": "bfa78b9c3738fbca18efbec31181dc8361a903b9dc500761fdaa80ed0f93460b",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/SPECTRAL-CONTRACT.json",
+      "sha256": "34068c6213468e0c57cc89aaf1f9a1c8c7d2d03bc7208b76b4ae30709a62bf0f",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/SVD-CONTRACT.json",
+      "sha256": "2989ac72dbf03adffcd34249095271698721a47105dcb58a246de9f3dcdcc14b",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/SVD-RESIDUAL-AMENDMENT.json",
+      "sha256": "d07df1801478f3a934e4b2c89eb74563ec1944b50ebe786da4d6bd31dbf96d46",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/SOURCE-MATRIX.json",
+      "sha256": "3bbf0d82c6a60037200e8513ec7c52ece2a9e0eecfdf200340521f659221c683",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/inputs/SNAPSHOT.json",
+      "sha256": "0fba5d4455a5695dbefa8b2f3d51be335f781d78182a534759224261ae137860",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/RESULTS.json",
+      "sha256": "32033fa0c241ced78fb58a6951307dcb3294b6dfab9bdd79740c6a5740e76460",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/SVD-RESULTS.json",
+      "sha256": "82ec6c169d8e17af2d3db7382f724e3557f95e4e5c7ad25398e14458a1027152",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/TOY.json",
+      "sha256": "fe20a161624ee0b3be4e7dd043f9c7f08881106e20a013c86cbe176525f78afb",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/metrics.jsonl",
+      "sha256": "9c9cde718443d8c507a55d845ba700c5b5add7e1a8ae4a490d4452de86274de7",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/REPRODUCIBILITY.json",
+      "sha256": "a009dfd0931c4608c748498ef03d68ec195ccef9793b06922aa76fd6c92c7ead",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Aggregate frozen per-seed real-data measurements; the additional toy command executes the original graph-cut implementation.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/spectral-family-recovery/.lab-results/metrics.jsonl",
+      "sha256": "9c9cde718443d8c507a55d845ba700c5b5add7e1a8ae4a490d4452de86274de7",
+      "bytes": 2772194
+    }
+  ]
+}

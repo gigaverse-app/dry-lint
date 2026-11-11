@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "spectral-family-recovery",
+      "original_path": "jobs/spectral-family-recovery/.lab-results/spectral.py",
+      "original_sha256": "c8f39f0ecd936055d5bdb7eb3c41c2fd399796b3cbba6ea9e649838469a4c065",
+      "public_path": "spectral-family-recovery/implementation/spectral.py",
+      "public_sha256": "0b9f378279a73f5e09808aab9bbc2b8212f86419d94669c58412bc797a11fba3",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B007",
+        "B023",
+        "B905",
+        "E401",
+        "E402",
+        "E741",
+        "I001"
+      ]
+    },
+    {
+      "method": "spectral-family-recovery",
+      "original_path": "jobs/spectral-family-recovery/.lab-results/svd_control.py",
+      "original_sha256": "58f199f5fe54fc718829735c8b47e964c17942ceb88dc999aa49ec910a775e9a",
+      "public_path": "spectral-family-recovery/implementation/svd_control.py",
+      "public_sha256": "abf6445231763279384bf5e8ab733cc58aa1c728649eb3c378691b566c10e1e1",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E741",
+        "F403",
+        "F405"
+      ]
+    },
+    {
+      "method": "spectral-family-recovery",
+      "original_path": "jobs/spectral-family-recovery/.lab-results/freeze.py",
+      "original_sha256": "c67347275f99dcb75bf70ff68828e997112c92572bac6b67a664f9b018ff88dc",
+      "public_path": "spectral-family-recovery/implementation/freeze.py",
+      "public_sha256": "0b05edee22cfd7bf660ec816b62d95202463c45fd71e8afbefc5b20815e21254",
+      "path_literal_replacements": 2,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "F401",
+        "I001",
+        "UP017"
+      ]
+    },
+    {
+      "method": "spectral-family-recovery",
+      "original_path": "jobs/spectral-family-recovery/.lab-results/prepare_svd.py",
+      "original_sha256": "3da2e7cbf75a403a26340b0f906dedcaa22c0e000c99537e29cefda8c014e8cb",
+      "public_path": "spectral-family-recovery/implementation/prepare_svd.py",
+      "public_sha256": "0b7a070a6ace3950892a35d38157c32a60867b5fe79dabc77b8714aea9ff2109",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "I001"
+      ]
+    },
+    {
+      "method": "spectral-family-recovery",
+      "original_path": "jobs/spectral-family-recovery/.lab-results/continue.py",
+      "original_sha256": "37c5f9140ef30a76a308524d2e39e2ecd6a56ae0dced2dc5ec702c37a6d5d011",
+      "public_path": "spectral-family-recovery/implementation/continue.py",
+      "public_sha256": "c9896afb030cf7837a7d95c1a41af780ed64d38e2babd72b1b71d77cccb96ce9",
+      "path_literal_replacements": 2,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E741",
+        "I001"
+      ]
+    },
+    {
+      "method": "spectral-family-recovery",
+      "original_path": "jobs/spectral-family-recovery/.lab-results/validate_native.py",
+      "original_sha256": "005b57d51252e65a5d6f9c0210544fb06d94f55794a0ffd95e007e6029c97f6b",
+      "public_path": "spectral-family-recovery/implementation/validate_native.py",
+      "public_sha256": "21d6f57bd8961681602a8bfae62a41c20f31dd2f25ef2d3aead7cb73dffdafce",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "E741",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}
