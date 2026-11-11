@@ -47,4 +47,4 @@ python replay_toy.py --out "$OUTPUT/spectral-toy"
 
 It recomputes sparse cuts, mixed-function membership and the generic-clique control and compares every recorded field except elapsed time. It is not a real-source recall experiment.
 
-Recovery verification is recorded in [validation.json](validation.json). Numerical/queue/scheduler reproduction and aggregate-only checks are labeled separately there. Original implementations retain targeted legacy lint exceptions; public wrappers use normal repository lint.
+Recovery verification is recorded in `research/spectral-family-recovery/validation.json` in [dry-lint-goldens](https://github.com/gigaverse-app/dry-lint-goldens) (private; see [ACCESS.md](../ACCESS.md)). Numerical/queue/scheduler reproduction and aggregate-only checks are labeled separately there. Original implementations retain targeted legacy lint exceptions; public wrappers use normal repository lint.
