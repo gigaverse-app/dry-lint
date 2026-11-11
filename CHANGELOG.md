@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.11.0](https://github.com/gigaverse-app/dry-lint/compare/v1.10.0...v1.11.0) (2026-11-11)
+
+
+### Features
+
+* **judges:** balanced judges in a schema, thinking first, with the rules cached ([4fd79af](https://github.com/gigaverse-app/dry-lint/commit/4fd79af00b5d40994787f51693d7961779b2ecc1))
+* **judge:** the balanced judge lists how two copies behave differently ([#192](https://github.com/gigaverse-app/dry-lint/issues/192)) ([e0580bc](https://github.com/gigaverse-app/dry-lint/commit/e0580bc2e9d9cfa45f95a33a78e03a3496cf03c1))
+
+
+### Documentation
+
+* **research:** a research program, and an honest status for each merged study ([#190](https://github.com/gigaverse-app/dry-lint/issues/190)) ([9bcb4f9](https://github.com/gigaverse-app/dry-lint/commit/9bcb4f9ae68e6e8a6ad10b2d5daa1f2ed82c6d53))
+* **research:** family judging finds more and is not yet precise enough ([#188](https://github.com/gigaverse-app/dry-lint/issues/188)) ([9e98c9c](https://github.com/gigaverse-app/dry-lint/commit/9e98c9c7ec6b5f090fb6074ddff71cdc33428cfb))
+* **research:** grouped pair questions are cheaper and less precise ([#189](https://github.com/gigaverse-app/dry-lint/issues/189)) ([4250c02](https://github.com/gigaverse-app/dry-lint/commit/4250c0218172e066ec57fb200eb932126b556db9))
+* **research:** rate the earlier studies, and log the first program results ([#193](https://github.com/gigaverse-app/dry-lint/issues/193)) ([9821453](https://github.com/gigaverse-app/dry-lint/commit/98214538a6539085f32d1fdc5820589b7192832c))
+
 ## [1.10.0](https://github.com/gigaverse-app/dry-lint/compare/v1.9.3...v1.10.0) (2026-11-11)
 
 
