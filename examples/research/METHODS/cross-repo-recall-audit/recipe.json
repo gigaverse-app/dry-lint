@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "method": "cross-repo-recall-audit",
+  "mechanism": "Join exact endpoint bodies and repository-qualified identities into conservative source components. Keep revisions/scopes separate and reserve all OpenCode-connected rows. Compare TF-IDF, MiniLM and equal RRF60 at fixed ranks, collapsing row aliases to pair-cases and preserving accepted binary labels separately from utility assessments.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/README.md",
+      "sha256": "84815bf389ba2e97ca960b52d878fb8f3be4d975a474805a6a2ffdf706b5cc07",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/SPLIT-CONTRACT.json",
+      "sha256": "ae2d8a958a7fa92647e42effa90ba3345a7f9967900c8f7202a2ffa118d30265",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/REFERENCE.json",
+      "sha256": "34440eac2f2c52bd11b75c0960581c79c0cf4cd8107794509fca091dd50c1f91",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/reference-pairs.jsonl",
+      "sha256": "3241522f6ff195f2b5bb5dcdc0110df0eb818aeea7eab4ad20ada8e0a44cf1df",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/PARETO-REFERENCE.json",
+      "sha256": "5709f383398d6ea555cb632624b168f44098bc02d2bf406dfe34b8cd9334a7c0",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/SOURCE-WAVE-CLAIMS.json",
+      "sha256": "58525c60e2f18c440976e15559ecbf463931c21726d1ca655c268c4e0f74afde",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/THIRD-FUNCTION-HANDOFF.json",
+      "sha256": "f5807a845c1d1a4c7c306f6ece0def51e027e9b1195e1d92bb2f4af6a32ffe9b",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Recompute the broader pair-case table from frozen independent-reference ranks.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/cross-repo-recall-audit/.lab-results/reference-pairs.jsonl",
+      "sha256": "3241522f6ff195f2b5bb5dcdc0110df0eb818aeea7eab4ad20ada8e0a44cf1df",
+      "bytes": 962342
+    }
+  ]
+}
