@@ -17,6 +17,11 @@ The Anthropic judge accepts opt-in `prompt_policy = "shared-operations"` or `"sh
 See the [configuration and measurements](protected-exploration.md); legacy judging remains the default, and
 experimental prompt answers have a distinct cache identity.
 
+The frozen `shared-operations-grounded-claim-v1` policy is also selectable on the existing Anthropic plugin.
+Use `discovery.residual_judge` to apply it only to newly funded recovery questions while retaining the original
+protected judge. See [recovery configuration and exact identity](production-discovery.md#optional-recovery-judge).
+This optional slot uses the same name/table constructor contract as `judge`; it does not add a plugin group.
+
 The [model duplication profile](model-duplication.md) adds mechanical field retrieval and an optional
 `model-contracts` prompt. Model declarations allow same-file neighbours; function defaults are unchanged.
 Run function and model extraction of the same language in separate invocations.

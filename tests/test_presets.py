@@ -19,11 +19,11 @@ def test_agent_feedback_is_explicit_and_keeps_its_own_model_prompt_and_threshold
 
 
 @pytest.mark.parametrize("environ, preset", [
-    (BOTH, "jev+opus"),
-    ({"TYPESAFE_AI_API_KEY": "k", "CLAUDE_CODE_OAUTH_TOKEN": "t"}, "jev+claude-code"),
+    (BOTH, "balanced"),
+    ({"TYPESAFE_AI_API_KEY": "k", "CLAUDE_CODE_OAUTH_TOKEN": "t"}, "balanced-subscription"),
     ({"TYPESAFE_AI_API_KEY": "k"}, "jev"),
-    ({"ANTHROPIC_API_KEY": "k"}, "sonnet"),
-    ({"CLAUDE_CODE_OAUTH_TOKEN": "t"}, "claude-code"),
+    ({"ANTHROPIC_API_KEY": "k"}, "balanced"),
+    ({"CLAUDE_CODE_OAUTH_TOKEN": "t"}, "balanced-subscription"),
     ({"TYPESAFE_AI_API_KEY": ""}, "none"),
     ({}, "none"),
 ])  # fmt: skip
@@ -38,7 +38,7 @@ def test_every_preset_is_reachable_and_measured_ones_say_what_was_measured() -> 
 
 
 def test_a_preset_fills_judges_and_thresholds_that_were_not_set() -> None:
-    settings = resolve(Settings(), BOTH)
+    settings = resolve(Settings(preset="jev+opus"), BOTH)
     assert (settings.judge.use, settings.escalate.use, settings.escalate.options()) == (
         "jev",
         "anthropic",
@@ -91,6 +91,14 @@ def test_your_own_judge_gets_no_preset_escalation_or_thresholds() -> None:
     assert (named.judge.options(), named.escalate.use) == ({"workers": 2}, "anthropic")
 
 
+def test_asking_for_no_judge_is_the_none_preset_not_your_own_judge() -> None:
+    """`--judge none` with no settings file: the footer and `config` must not call it a custom judge."""
+    none = resolve(Settings(judge=PluginChoice(use="none")), BOTH)
+    assert (none.preset, none.judge.use, none.report_at, none.fail_at) == ("none", "none", 0.8, 0.8)
+    named = resolve(Settings(preset="jev", judge=PluginChoice(use="none")), BOTH)
+    assert (named.preset, named.judge.use) == ("jev", "none")  # a named preset stays named
+
+
 def test_an_unknown_preset_names_the_known_ones() -> None:
     with pytest.raises(ValueError, match="Unknown preset 'fast'; available: jev\\+opus"):
         resolve(Settings(preset="fast"), {})
@@ -107,7 +115,7 @@ def test_balanced_adds_bounded_blocks_after_implicit_tfidf() -> None:
     choices = settings.discovery.comparers
     assert [(c.use, c.neighbours) for c in choices] == [("tfidf", 20), ("operation-blocks", 1)]
     assert choices[0].options()["min_similarity"] == choices[0].options()["min_similarity_small"] == 0.35
-    assert settings.budget.usd == 0.04 and settings.report_at == settings.fail_at == 0.5
+    assert settings.budget.usd == 0.04 and (settings.report_at, settings.fail_at) == (0.4, 0.5)
     assert resolve(settings, {}).model_dump() == settings.model_dump()
 
 
@@ -142,9 +150,9 @@ def test_balanced_explicit_depth_and_floors_still_go_to_tfidf() -> None:
 
 
 @pytest.mark.parametrize("environment", [{}, {"ANTHROPIC_API_KEY": "presence"}, BOTH])
-def test_legacy_auto_does_not_enable_block_exploration(environment) -> None:
+def test_auto_uses_balanced_discovery_when_claude_is_available(environment) -> None:
     settings = resolve(Settings(), environment)
-    assert not settings.discovery.enabled and not settings.discovery.comparers
+    assert settings.discovery.enabled == bool(environment.get("ANTHROPIC_API_KEY"))
 
 
 def test_balanced_resolved_block_choice_cannot_mutate_preset_or_future_resolve() -> None:

@@ -1,7 +1,7 @@
 """
 Generate dry-lint's brand assets from the mascot art in docs/assets/lint.png.
 
-    uv run --with pillow python scripts/make_assets.py              # avatar.png, the mark, banners, README hero, social preview, the sign's Lint
+    uv run --with pillow python scripts/make_assets.py              # avatar.png, icon.png, the mark, banners, README hero, social preview, the sign's Lint
     uv run --with playwright==1.58.0 python scripts/render_png.py   # social-preview.png
 
 Lint is a purple ball of dryer lint with a mint-green hair dryer. The SVGs embed a downscaled copy of
@@ -148,6 +148,8 @@ def social_preview() -> str:
 def main() -> None:
     avatar().save(ASSETS / "avatar.png", optimize=True)
     print("wrote docs/assets/avatar.png")
+    avatar(256).save(ASSETS / "icon.png", optimize=True)  # the documentation site's favicon
+    print("wrote docs/assets/icon.png")
     files = {
         "dry-lint-mark.svg": mark(),
         "sticky-banner-light.svg": banner(dark=False),

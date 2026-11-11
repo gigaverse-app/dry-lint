@@ -1,11 +1,10 @@
-# For the coding agent committing the change: it checks each finding itself, so the hook reports at the agent preset's
-# low threshold. `args: [--preset, auto]` puts a person's precision-first judging back.
+# Inherit the repository policy: balanced function judging and separate agent model review.
 - id: dry-lint
   name: dry-lint
   description: Flag staged function duplication and model consolidation candidates. Use --no-models to opt out of models.
-  entry: dry-lint check --staged --preset agent --env-file .env
+  entry: dry-lint check --staged --env-file .env
   language: python
-  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # the `hooks` extra: Claude judges, and .env
+  additional_dependencies: ["anthropic>=1.0", "langchain-anthropic>=1.7,<2", "python-dotenv>=1,<2"]  # the `hooks` extra: Claude judges, and .env
   types_or: [python, javascript, jsx, ts, tsx]
   stages: [pre-commit]
   pass_filenames: false
@@ -17,16 +16,16 @@
   description: Enforce explicitly configured Python structured-output schema boundaries.
   entry: dry-lint schema-check --staged
   language: python
-  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # share the other hooks' environment
+  additional_dependencies: ["anthropic>=1.0", "langchain-anthropic>=1.7,<2", "python-dotenv>=1,<2"]  # share the other hooks' environment
   pass_filenames: false
   always_run: true
   stages: [pre-commit]
 
 - id: dry-lint-trailers
   name: dry-lint trailers
-  description: Record in the commit message the duplicates dry-lint's hook kept out before the commit.
+  description: Record in the commit message the findings no longer reported before the commit.
   entry: dry-lint trailers
   language: python
-  additional_dependencies: ["anthropic>=1.0", "python-dotenv>=1,<2"]  # the same environment as the hook above
+  additional_dependencies: ["anthropic>=1.0", "langchain-anthropic>=1.7,<2", "python-dotenv>=1,<2"]  # the same environment as the hook above
   stages: [prepare-commit-msg]
   always_run: true

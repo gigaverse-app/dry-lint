@@ -124,16 +124,27 @@ class S3Store:
 
 
 class VerdictStore:
-    def __init__(self, backend: StoreBackend) -> None:
+    def __init__(self, backend: StoreBackend, *, namespace: str = "") -> None:
         self.backend = backend
+        # Recovery must not overwrite a protected answer, even when both policies share a judge name.
+        self.prefix = f"policy-{hashlib.sha256(namespace.encode()).hexdigest()}-" if namespace else ""
+
+    def scoped(self, namespace: str) -> "VerdictStore":
+        return VerdictStore(self.backend, namespace=namespace)
 
     def record(self, key: str) -> Record | None:
-        data = self.backend.get(key)
+        data = self.backend.get(self.prefix + key)
         return Record.model_validate_json(data) if data is not None else None
 
     def records(self) -> Iterator[Record]:
         for key in self.backend.keys():
             if key.startswith(SPENT_PREFIX):
+                continue
+            if self.prefix:
+                if not key.startswith(self.prefix):
+                    continue
+                key = key.removeprefix(self.prefix)
+            elif key.startswith("policy-"):
                 continue
             record = self.record(key)
             if record is not None:
@@ -224,5 +235,5 @@ class VerdictStore:
             context_hash=candidate.context_hash,
             evidence=evidence(candidate),
         )
-        self.backend.put(record.key, record.model_dump_json().encode())
+        self.backend.put(self.prefix + record.key, record.model_dump_json().encode())
         return record

@@ -1,7 +1,7 @@
 """Run the offline channel trial; outputs contain repository code, so keep them private.
 
-    uv run --extra dryer python scripts/benchmark_channel_trial.py --root ../project --out /private/trial
-    uv run --extra dryer python scripts/benchmark_channel_trial.py --root ../project --out /private/trial \
+    uv run --group dryer python scripts/benchmark_channel_trial.py --root ../project --out /private/trial
+    uv run --group dryer python scripts/benchmark_channel_trial.py --root ../project --out /private/trial \
         --gold old.jsonl --gold fresh.jsonl
 
 Every channel indexes the whole repository with the production extractor, rules and filtering. A variant is a set
@@ -43,7 +43,7 @@ Transform = Callable[[list[str]], list[str]]
 
 
 def dryer() -> Comparer:
-    from dry_lint.dryer import DryerComparer  # optional extra; a missing install makes the channel unavailable
+    from dry_lint.dryer import DryerComparer  # optional Dryer group; a missing install makes the channel unavailable
 
     return DryerComparer()
 
