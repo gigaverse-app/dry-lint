@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from dry_lint.settings import Escalation, Pattern, PluginChoice, Settings
 
 
@@ -54,3 +56,14 @@ def test_a_plugin_slot_takes_a_name_or_a_table_whose_other_keys_are_its_options(
 def test_an_escalation_named_by_a_string_uses_the_default_band() -> None:
     assert Settings.model_validate({"escalate": "command"}).escalate == Escalation(use="command", between=(0.6, 0.91))
     assert Settings.model_validate({"escalate": None}).escalate is None
+
+
+def test_pattern_members_take_one_glob_or_a_list(tmp_path: Path) -> None:
+    (tmp_path / ".dry-lint.toml").write_text(
+        '[[patterns]]\nmembers = ["pkg/strutils.py::indent", "pkg/funcutils.py::_indent"]\nreason = "vendored copy"\n'
+    )
+    pattern = Settings.load(tmp_path).patterns[0]
+    assert pattern.members == ["pkg/strutils.py::indent", "pkg/funcutils.py::_indent"]
+    assert Pattern(members="*::load_*", reason="r").members == ["*::load_*"]
+    with pytest.raises(ValueError):
+        Pattern(members=[], reason="a family needs a member")

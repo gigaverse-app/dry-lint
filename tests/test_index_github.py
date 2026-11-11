@@ -6,14 +6,13 @@ import zipfile
 
 import httpx
 import pytest
-from test_action import outputs
+from action_harness import github_env as github_env
+from action_harness import outputs
 
 from dry_lint import action
 from dry_lint.function_index import export_index
 from dry_lint.index_github import PUBLISHER, IndexClient, blob_hash
 from dry_lint.settings import Settings
-
-pytest_plugins = ["test_action"]
 
 
 @pytest.fixture

@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from dry_lint import __version__
 from dry_lint.costs import Spend
+from dry_lint.family_judging import FamilyFinding
 from dry_lint.models import Candidate, Function, Run, Verdict, Versioned, qualified
 from dry_lint.settings import Settings
 
@@ -24,9 +25,12 @@ MARKER = "<!-- dry-lint -->"
 REASON_LIMIT = 300
 OWNERS = {
     "existing": "call the existing function",
-    "new": "move callers of the existing function to the new one",
+    "new": "keep {new} and move callers of {existing} to it",
     "shared": "extract a shared helper both can call",
 }
+# A repository-wide audit (`scan`, `sweep`) compares two functions that both exist already: its pairs are ordered
+# by name, so neither side is new and the advice names the side to keep.
+AUDIT_OWNERS = {**OWNERS, "existing": "keep {existing} and move callers of {new} to it"}
 
 
 def plain(text: str, limit: int = REASON_LIMIT) -> str:
@@ -84,7 +88,8 @@ class Finding(BaseModel):
         kind = "review required" if self.review_required else self.verdict.label if self.verdict else "candidate"
         return f"{new.qualname.split('::')[1]} looks like {existing.qualname} ({kind})"
 
-    def advice(self, relatives: list["Finding"] = ()) -> str:
+    def advice(self, relatives: list["Finding"] = (), *, audit: bool = False) -> str:
+        """What to do about the pair; `audit` for a repository-wide report, where neither function is new."""
         parts = []
         if self.review_required:
             parts.append(
@@ -99,8 +104,12 @@ class Finding(BaseModel):
             parts.append(f"judge {self.verdict.score:.2f}" + (" (cached)" if self.cached else ""))
             if self.verdict.label == "drifted":
                 parts.append("the two already behave differently")
-            if self.kind == "function" and self.verdict.owner in OWNERS and not self.candidate.consolidation:
-                parts.append(OWNERS[self.verdict.owner])
+            owners = AUDIT_OWNERS if audit else OWNERS
+            if self.kind == "function" and self.verdict.owner in owners and not self.candidate.consolidation:
+                new, existing = self.candidate.new.qualname, self.candidate.existing.qualname
+                # A check's finding sits on the changed function, so its own name suffices there.
+                new = new if audit else new.split("::", 1)[1]
+                parts.append(owners[self.verdict.owner].format(new=new, existing=existing))
             if self.verdict.why:
                 parts.append(plain(self.verdict.why))
             if self.verdict.label != "separate" and self.candidate.consolidation:
@@ -119,6 +128,7 @@ class Finding(BaseModel):
         if relatives:
             parts.append(self.kin(relatives))
         parts.append(f"if they are different concepts, add `{self.suppression()}`")
+        parts.append("if they are one concept copied on purpose, add a [[patterns]] entry with a reason")
         return "; ".join(parts)
 
     def kin(self, relatives: list["Finding"]) -> str:
@@ -163,11 +173,24 @@ class JudgingSummary(BaseModel):
     def skipped(self) -> int:
         return sum(s.skipped for s in self.spend)
 
-    def line(self, *, ranking: bool = False) -> str:
-        """One line: judges, thresholds, and the bill."""
-        judges = self.judge or "no judge"
+    def line(self, *, ranking: bool = False, idle: bool = False) -> str:
+        """
+        One line: judges, thresholds, and the bill; with no judge, only that, since nothing is judged or fails. A
+        `ranking` lane (models) runs dry-lint's fixed model contract, never the repository's preset. An `idle` lane
+        had no pair to ask, so it started no judge and needed no key.
+        """
+        label = "fixed model contract" if ranking else f"preset {self.preset}" if self.preset else ""
+        if not self.judge and idle:
+            return " · ".join(p for p in (label, "no pair to judge, so no judge ran") if p)
+        if not self.judge:
+            return "no judge · look-alikes are listed; nothing is judged, reported or failed"
+        judges = self.judge
         if self.escalation and self.band:
             judges += f" > {self.escalation} on [{self.band[0]:g}, {self.band[1]:g})"
+        if self.campaign:
+            recovery = [s.judge for s in self.spend if s.judge not in {self.judge, self.escalation}]
+            if recovery:
+                judges += "; recovery " + ", ".join(recovery)
         thresholds = (
             f"reports at {self.report_at:g}, fails at {self.fail_at:g}"
             if self.fail_at > self.report_at
@@ -188,7 +211,7 @@ class JudgingSummary(BaseModel):
             bill = bill.replace("est.", "accounted") + f"; exploration credit ${self.exploration_credit:.4f}"
         calls = sum(s.calls for s in self.spend if s.subscription)
         parts = [
-            f"preset {self.preset}" if self.preset else "",
+            label,
             judges,
             thresholds,
             bill,
@@ -231,6 +254,8 @@ class Report(Versioned):
     judge: str | None = Field(default=None, description="The judge (and escalation judge), or None when unjudged.")
     judging: JudgingSummary | None = Field(default=None, description="Judges, thresholds, budget and cost.")
     findings: list[Finding] = Field(default_factory=list)
+    families: list[FamilyFinding] = Field(default_factory=list)
+    family_exclusions: list[dict[str, str]] = Field(default_factory=list)
     filtered: list[Candidate] = Field(default_factory=list, description="Pairs a rule settled, with the rule.")
     backlog: list[BacklogCleanup] | None = Field(
         default=None, description="Accepted baseline pairs this change cleaned up; None when no baseline was checked."
@@ -309,6 +334,10 @@ class Report(Versioned):
         """The reported relatives of `finding`: copies its fix touches, closest first."""
         return [f for f in self.findings if f.related and f.candidate.parent == finding.candidate.key]
 
+    def advice(self, finding: Finding) -> str:
+        """The finding's advice in this report: with its relatives, and side-neutral in a repository-wide audit."""
+        return finding.advice(self.relatives(finding), audit=self.repository_wide)
+
     @property
     def deferred(self) -> int:
         return sum(f.deferred for f in self.findings)
@@ -333,6 +362,16 @@ class Report(Versioned):
             "reported": sum(f.reported for f in self.findings),
         }
 
+    @property
+    def idle(self) -> bool:
+        """No judge ran because there was no pair to ask, not because the preset names none."""
+        return (
+            self.judging is not None
+            and self.judging.judge is None
+            and not self.findings
+            and self.judging.preset not in ("", "none")
+        )
+
     def lane(self, kind: Literal["function", "model"]) -> "Report":
         """A rendering view of one pass; counts and judging retain that pass's meaning."""
         model = kind == "model"
@@ -355,6 +394,26 @@ class Report(Versioned):
         )
 
 
+def family_summary(report: Report, *, markdown: bool = False) -> str:
+    if not report.families and not report.family_exclusions:
+        return ""
+    from dry_lint.family_report import FamilyReport
+
+    families = FamilyReport(findings=report.families)
+    output = families.markdown() if markdown else families.text()
+    if report.family_exclusions:
+        clean = escaped if markdown else plain
+        output += (
+            "\nExcluded family nominations:\n"
+            + "\n".join(
+                f"- {clean(item.get('nomination_id', 'unknown'))}: {clean(item.get('reason', 'unspecified'))}"
+                for item in report.family_exclusions
+            )
+            + "\n"
+        )
+    return "\n\n" + output
+
+
 def as_text(report: Report) -> str:
     if report.model_judging is not None:
         return "\n\n".join(
@@ -363,14 +422,13 @@ def as_text(report: Report) -> str:
                 "Models\n" + text_lane(report.lane("model"), kind="model"),
                 *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
             ]
-        )
-    return text_lane(report) + "\nModels: not checked in this run."
+        ) + family_summary(report)
+    return text_lane(report) + "\nModels: not checked in this run." + family_summary(report)
 
 
 def text_lane(report: Report, *, kind: str = "function") -> str:
     lines = [
-        f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {f.advice(report.relatives(f))}"
-        for f in report.visible
+        f"{f.candidate.new.path}:{f.candidate.new.line}: {f.headline()}\n    {report.advice(f)}" for f in report.visible
     ]
     stats = report.stats
     judge = f"judge {report.judge}" if report.judge else "no judge"
@@ -382,7 +440,7 @@ def text_lane(report: Report, *, kind: str = "function") -> str:
     if report.deferred:
         lines.append(f"dry-lint: {report.deferred} deferred by the judge budget; these pairs are not cleared")
     if report.judging:
-        lines.append(f"judging: {report.judging.line(ranking=kind == 'model')}")
+        lines.append(f"judging: {report.judging.line(ranking=kind == 'model', idle=report.idle)}")
     lines.extend(model_summary(report))
     return "\n".join(lines)
 
@@ -419,7 +477,7 @@ def as_github(report: Report) -> str:
         new = f.candidate.new
         lines.append(
             f"::{level(f)} file={new.path},line={new.line},endLine={new.end_line},title=dry-lint::"
-            f"{escape(f.headline() + ': ' + f.advice(report.relatives(f)))}"
+            f"{escape(f.headline() + ': ' + report.advice(f))}"
         )
     return "\n".join(lines)
 
@@ -450,7 +508,7 @@ BADGES = "https://img.shields.io/badge"
 RED, ORANGE, AMBER, GREEN, BLUE, GRAY = "CF222E", "EA580C", "BF8700", "2EA043", "2563EB", "6E7781"
 ACTIONS = {
     "existing": "call the existing one",
-    "new": "keep the new one; move callers",
+    "new": "keep the changed one; move callers to it",
     "shared": "extract a shared helper",
 }
 AUDIT_ACTIONS = {"existing": "keep the second copy", "new": "keep the first copy", "shared": "extract a shared helper"}
@@ -502,7 +560,11 @@ def plural(count: int, noun: str) -> str:
 
 def as_markdown(report: Report, max_findings: int = 10, report_at: float | None = None) -> str:
     if report.model_judging is None:
-        return markdown_lane(report, max_findings, report_at) + "\n\n<sub>Models: not checked in this run.</sub>"
+        return (
+            markdown_lane(report, max_findings, report_at)
+            + "\n\n<sub>Models: not checked in this run.</sub>"
+            + family_summary(report, markdown=True)
+        )
     parts = [MARKER, "### dry-lint · Functions & models", "", NOTE_SLOT, ""]
     if not report.visible:
         parts.append(CLEAN)
@@ -520,7 +582,7 @@ def as_markdown(report: Report, max_findings: int = 10, report_at: float | None 
                 "repository policies before consolidating. Independently evolving contracts may need to stay separate.",
                 *model_summary(report),
             ]
-    return "\n\n".join(parts)
+    return "\n\n".join(parts) + family_summary(report, markdown=True)
 
 
 def markdown_lane(
@@ -545,7 +607,11 @@ def markdown_lane(
     footer = [
         "",
         f"<sub>{coverage}</sub>",
-        *([f"<sub>{escaped(report.judging.line(ranking=kind == 'model'))}</sub>"] if report.judging else []),
+        *(
+            [f"<sub>{escaped(report.judging.line(ranking=kind == 'model', idle=report.idle))}</sub>"]
+            if report.judging
+            else []
+        ),
         *[f"<sub>{escaped(line)}</sub>" for line in model_summary(report)],
     ]
     if report.judge is None and kind == "function":
@@ -726,7 +792,9 @@ def clean(report: Report, audit: bool, report_at: float | None, kind: str = "fun
         if not audit and not report.changed and not report.changed_models
         else []
     )
-    judging = report.judging.line(ranking=kind == "model") if report.judging else f"judge {report.judge}"
+    judging = (
+        report.judging.line(ranking=kind == "model", idle=report.idle) if report.judging else f"judge {report.judge}"
+    )
     return "\n".join(
         [
             MARKER,
@@ -753,7 +821,7 @@ def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list
         "| Scope | Decision |", "| :-- | :-- |",
         f"| this pair | `{prefix} dry-lint: distinct-from <qualified name>` in {where} |",
         f"| one {noun} | `{prefix} dry-lint: ignore` in that {noun} |",
-        "| a family of look-alikes | a `patterns` entry under `[tool.dry-lint]`, or in `.dry-lint.toml` |",
+        "| a family of look-alikes, or copies kept on purpose | a `[[patterns]]` entry with a `reason` in `.dry-lint.toml` |",
         *([] if audit else ["| this pull request only | the `dry-lint: override` label |"]),
         *(["", "In TypeScript and TSX, the comments start with `//`."] if any(typescript) and prefix == "#" else []),
     ]  # fmt: skip
@@ -780,7 +848,7 @@ def as_sarif(report: Report) -> str:
         kind = f.verdict.label if f.verdict else "candidate"
         results.append({
             "ruleId": f"dry-lint/{kind}", "level": level(f) if f.verdict else "note",
-            "message": {"text": f"{f.headline()}: {f.advice(report.relatives(f))}"},
+            "message": {"text": f"{f.headline()}: {report.advice(f)}"},
             "locations": [location(new.path, new.line, new.end_line)],
             "relatedLocations": [{"id": 1, **location(existing.path, existing.line, existing.end_line),
                                   "message": {"text": existing.qualname}}],
@@ -812,27 +880,42 @@ def as_check_run(
     reported = [f for f in report.findings if f.reported or f.review_required]
     failed = any(f.blocking for f in reported) and not warn_only
     title = f"{len(reported)} duplicated concept(s)" if reported else "No duplicated concepts"
+    family_proposals = sum(finding.reported for finding in report.families)
+    family_unresolved = sum(finding.unresolved for finding in report.families) + sum(
+        item.get("kind") != "rule" for item in report.family_exclusions
+    )
+    if report.families or report.family_exclusions:
+        title = f"{len(reported)} pair report(s); {family_proposals} family proposal(s); {family_unresolved} unresolved"
     if report.review_required:
         title = f"{len(report.review_required)} pair(s): review required"
     annotations = [{
         "path": f.candidate.new.path, "start_line": f.candidate.new.line, "end_line": f.candidate.new.end_line,
         "annotation_level": "failure" if level(f) == "error" else "warning", "title": f.headline(),
-        "message": f.advice(report.relatives(f)),
+        "message": report.advice(f),
     } for f in reported[:50]]  # fmt: skip
     body = {
         "name": "dry-lint",
         "head_sha": report.run.head,
         "status": "completed",
-        "conclusion": "failure" if failed else "neutral" if reported or report.deferred else "success",
+        "conclusion": "failure"
+        if failed
+        else "neutral"
+        if reported or report.deferred or family_proposals or family_unresolved
+        else "success",
         "output": {"title": title, "summary": as_markdown(report, max_findings, report_at), "annotations": annotations},
     }
     return json.dumps(body, indent=2)
 
 
 FORMATS = ("text", "github", "markdown", "json", "sarif", "check-run")
+# Formats that can show an operation family: one proposal with its unconfirmed siblings, not pair annotations.
+FAMILY_FORMATS = ("text", "json", "markdown", "check-run")
+FAMILY_FORMAT_ERROR = "Operation families support text, json, markdown and check-run reports"
 
 
 def render(report: Report, form: str, settings: Settings, warn_only: bool = False) -> str:
+    if (report.families or report.family_exclusions) and form not in FAMILY_FORMATS:
+        raise ValueError(FAMILY_FORMAT_ERROR)
     if form not in ("text", "json", "markdown") and any(
         finding.candidate.new.origin
         and (report.repository_wide or finding.candidate.new.origin.repository != report.run.repository)

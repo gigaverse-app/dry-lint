@@ -14,13 +14,13 @@ Latest analyzed commit `ccccccc` · **+1 pair cleaned up** ✨
 
 <details><summary><strong>History and check stats</strong></summary>
 
-**2 duplicates kept out of the codebase** for $0 of judging, across 3 pushes. 1 duplicate still open.
+**2 duplicates kept out of the codebase** for $0 of judging, across 3 checked pushes. 1 duplicate still reported.
 
-![pushes: 3](https://img.shields.io/badge/pushes-3-6E7781?style=flat-square&labelColor=24292F) ![functions checked: 15](https://img.shields.io/badge/functions_checked-15-6E7781?style=flat-square&labelColor=24292F) ![judgments: 3](https://img.shields.io/badge/judgments-3-6E7781?style=flat-square&labelColor=24292F) ![spent: $0](https://img.shields.io/badge/spent-%240-2563EB?style=flat-square&labelColor=24292F)
+![checked pushes: 3](https://img.shields.io/badge/checked_pushes-3-6E7781?style=flat-square&labelColor=24292F) ![functions checked: 15](https://img.shields.io/badge/functions_checked-15-6E7781?style=flat-square&labelColor=24292F) ![judgments: 3](https://img.shields.io/badge/judgments-3-6E7781?style=flat-square&labelColor=24292F) ![spent: $0](https://img.shields.io/badge/spent-%240-2563EB?style=flat-square&labelColor=24292F)
 
-<sub>Previously reported pairs no longer reported; dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits.</sub>
+<sub>Previously reported pairs no longer reported; dismissals do not count as cleanup. Counts reflect current outcomes across analyzed commits. Push numbers count only the pushes dry-lint checked. 🟡 still reported means the latest checked push reports the pair; the findings below say whether it blocks this check.</sub>
 
-| Push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |
+| Checked push | Commit | Changed | Look-alikes | Judged | Duplicates | Cleaned here | Cost |
 | --: | :-- | --: | --: | --: | --: | --: | --: |
 | 1 | `aaaaaaa` | 5 | 3 | 2 <sub>+1 reused</sub> | 3 | 0 | $0 |
 | 2 | `bbbbbbb` | 5 | 2 | 1 <sub>+1 reused</sub> | 2 | **+1** | $0 |
@@ -29,7 +29,7 @@ Latest analyzed commit `ccccccc` · **+1 pair cleaned up** ✨
 
 - ✅ `clip` ≈ `shorten` · found in push 1, kept out in push 2
 - ✅ `clip` ≈ `trim` · found in push 1, kept out in push 3
-- 🟡 `clip` ≈ `preview` · found in push 1, still open
+- 🟡 `clip` ≈ `preview` · found in push 1, still reported
 
 </details>
 

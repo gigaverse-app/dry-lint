@@ -15,9 +15,9 @@ def field(name: str, hook: str = "dry-lint") -> str:
     return re.search(rf"^\s+{name}: (.*?)(\s+#.*)?$", HOOKS[hook], re.MULTILINE).group(1)
 
 
-def test_the_hook_checks_staged_code_with_the_agent_preset_and_the_local_env_file() -> None:
+def test_the_hook_inherits_repository_policy_and_reads_the_local_env_file() -> None:
     args = parser().parse_args(shlex.split(field("entry"))[1:])
-    assert (args.command, args.staged, args.preset, str(args.env_file)) == ("check", True, "agent", ".env")
+    assert (args.command, args.staged, args.preset, str(args.env_file)) == ("check", True, None, ".env")
 
 
 def test_a_repository_s_args_override_the_hook_s_preset() -> None:

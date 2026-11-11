@@ -84,8 +84,8 @@ def test_skipping_model_pass_cannot_resolve_its_review_in_hook_or_sticky():
     assert ledger.advance([skipped], run="2").pairs[key].state == "open"
     assert ledger.count("open") == 0  # model review is never counted as a confirmed duplicate
     reviewed = combined(models=[])
-    assert journal.observe(reviewed, staged).pending[key].state == "kept-out"
-    assert ledger.advance([reviewed], run="3").pairs[key].state == "kept-out"
+    assert journal.observe(reviewed, staged).pending[key].state == "not-reported"
+    assert ledger.advance([reviewed], run="3").pairs[key].state == "not-reported"
 
 
 def test_progress_refresh_reads_both_baselines_without_rejudging_or_mutating_debt(tmp_path):
@@ -131,7 +131,7 @@ def test_model_hook_trailer_roundtrip_preserves_review_semantics_and_excludes_pr
     journal = Journal().observe(initial, staged).observe(combined(models=[]), staged)
     [settled] = journal.pending.values()
     carried = outcomes([settled.trailer()])
-    assert carried[0].kind == "model" and carried[0].state == "kept-out"
+    assert carried[0].kind == "model" and carried[0].state == "not-reported"
     ledger = PullLedger().advance([combined(models=[])], before_commit=carried)
     assert ledger.contribution("a" * 64, 1)["kept_out"] == 0
     assert ledger.contribution("a" * 64, 1)["caught"] == 0
@@ -174,7 +174,7 @@ def test_model_policy_dismissal_is_distinct_from_resolved_review():
     later.filtered = [proposed.model_copy(update={"filtered": "independent prompt contract"})]
     ledger = PullLedger().advance([current], run="1").advance([later], run="2")
     assert ledger.count("dismissed", "model") == 1
-    assert ledger.count("kept-out", "model") == 0
+    assert ledger.count("not-reported", "model") == 0
     assert ledger.contribution("a" * 64, 1)["dismissed"] == 0
 
 
@@ -184,6 +184,29 @@ def test_clean_model_pass_says_review_complete_and_keeps_one_sticky_marker():
     assert shown.count("<!-- dry-lint clean -->") == 1
     assert "9 models" in shown
     assert "ranking only" in shown
+
+
+def test_each_lane_names_what_judged_it_the_repository_preset_or_the_fixed_model_contract():
+    settings = Settings(preset="jev")
+    assert profile(settings).preset == "models"  # report.json says which contract ranked models, never "custom"
+    mixed = combined(finding("duplicate"))
+    mixed.judging = JudgingSummary(preset=settings.preset, judge="jev:5")
+    mixed.model_judging.preset = profile(settings).preset
+    for shown in (as_markdown(mixed), as_text(mixed)):
+        assert "preset jev · jev:5" in shown and "fixed model contract · jev-models" in shown
+        assert "custom" not in shown and "preset models" not in shown
+
+
+def test_a_lane_with_no_pair_to_judge_says_no_judge_was_needed():
+    idle = combined(models=[])
+    idle.model_judging.judge = None
+    idle.model_judging.preset = "models"
+    idle.judging = JudgingSummary(preset="jev")
+    shown = as_text(idle)
+    assert "judging: preset jev · no pair to judge, so no judge ran" in shown
+    assert "fixed model contract · no pair to judge, so no judge ran" in shown
+    idle.judging = JudgingSummary(preset="none")  # a run without a judge says so, as before
+    assert "no judge · look-alikes are listed" in as_text(idle)
 
 
 def test_model_ratchet_refreshes_readme_and_missing_readme_option_is_actionable(tmp_path, capsys):

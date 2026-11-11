@@ -1,0 +1,19 @@
+# Opt-in recovery: preserve the complete balanced pass and its original judge.
+preset = "balanced"
+
+[discovery]
+residual_comparers = [
+  { use = "tfidf", neighbours = 100, min_similarity = 0, min_similarity_small = 0 },
+]
+
+[discovery.residual_judge]
+use = "anthropic"
+model = "claude-haiku-5-5"
+prompt_policy = "shared-operations-grounded-claim-v1"
+max_tokens = 2048
+max_retries = 0
+retry_malformed = false
+
+# Same campaign allowance; no extra recovery budget.
+[budget]
+usd = 0.04
