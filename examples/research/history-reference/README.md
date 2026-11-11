@@ -134,6 +134,16 @@ of each repository with all thresholds at zero:
 `code` is the function's own source (decorators included), never a whole file. Line numbers are 1-based and refer to
 the member's `rev`.
 
+## First run (2026-11-11)
+
+| Repository | Commits mined | Range | pair-delete | pair-shrink | family | test-file cases set aside |
+| --- | --- | --- | --- | --- | --- | --- |
+| LiteLLM (HEAD `7bcc462`) | newest 9,000 non-merge `.py` commits | 2026-07-16 .. 2026-11-10 | 10 | 30 | 106 | 47 |
+| OpenHands (HEAD `b759f8a`) | all 3,468 non-merge `.py` commits | 2024-03-17 .. 2026-11-11 | 2 | 4 | 14 | 2 |
+
+A fixed-seed sample of 30 cases (`sample --seed 20261111`), read by hand, held 26 real consolidations of
+duplicated logic, 3 that were not duplicates and 1 unclear: family 11 of 13, pair-delete 5 of 7, pair-shrink 10 of 10.
+
 ## Known limits
 
 - Calls through instances (`obj.method()`), inherited methods and names imported from outside the repository are not
