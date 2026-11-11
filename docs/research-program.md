@@ -47,9 +47,26 @@ could have shown its idea working; it is not a rejection.
 | [tfidf-blindspot-recovery](https://github.com/gigaverse-app/dry-lint/tree/main/examples/research/METHODS/tfidf-blindspot-recovery) | Untested | "No numeric yield"; its useful part shipped as operation blocks. |
 | [encoder-corpus-evaluation](https://github.com/gigaverse-app/dry-lint/tree/main/examples/research/METHODS/encoder-corpus-evaluation), [coderank](https://github.com/gigaverse-app/dry-lint/tree/main/examples/research/METHODS/coderank-cpu-evaluation), [gemma](https://github.com/gigaverse-app/dry-lint/tree/main/examples/research/METHODS/gemma-cpu-evaluation) | Untested | 174 similarity matrices and about 14 hours of compute, never used to rank anything. |
 
-The earlier studies in [what the recall research established](research-results.md) (#110 to #121) are not
-triaged here yet. Their closing lesson is this program's Phase 2: "trace the first loss: source scope,
-score/filter, shortlist, funding, or judging."
+The earlier studies in [what the recall research established](research-results.md), rated the same way from their
+pull requests and linked docs. None of them wrote down a pass bar or sample size before running.
+
+| Study | Status | Why |
+| --- | --- | --- |
+| [Token hygiene and weighting, #111](https://github.com/gigaverse-app/dry-lint/pull/111) | Solid | 227 positives; top-three ranks 182 to 189, but funded positives 39/77 to 35/77, four useful admissions lost. |
+| [Operation/contract tokens, #112](https://github.com/gigaverse-app/dry-lint/pull/112) | Weak | 61 of 72 known positives funded before and after; one minor reuse added. |
+| [Budget-aware ranking, #113](https://github.com/gigaverse-app/dry-lint/pull/113) | Weak | Useful reports 2 to 3 in one campaign; known reports 5/50 unchanged. |
+| [Signal ensembles, #114](https://github.com/gigaverse-app/dry-lint/pull/114) | Weak | No added report across 28 answered pairs, 28 more unknown; the raw-rank follow-up added 3 in 66 campaigns. |
+| [Operation blocks, #115](https://github.com/gigaverse-app/dry-lint/pull/115) | Weak, shipped | 9 net useful and 3 unsupported added in a labelled delta; a 47-revision replay added none. Runs inside `balanced`. |
+| [CPU embeddings, #116](https://github.com/gigaverse-app/dry-lint/pull/116) | Weak, opt-in | 3 useful among 16 added pairs in 66 single-function campaigns; none in 5 shared ones. Shipped opt-in as `cpu-tail-rrf`. |
+| [Latent vectors and sparse associations, #118](https://github.com/gigaverse-app/dry-lint/pull/118) | Weak | Funded positives 13/78 before and after; one small report added. |
+| [Model/function signals, #119](https://github.com/gigaverse-app/dry-lint/pull/119) | Weak | 32/78 positives funded either way; 16 of 18 treatment-only pairs source-unknown. |
+| [Linked documentation, #120](https://github.com/gigaverse-app/dry-lint/pull/120) | Weak | 31 known positives, funded counts unchanged in both presets. |
+| [Historical protected recovery, #121](https://github.com/gigaverse-app/dry-lint/pull/121) | Weak | Half-name weighting: 3/5 to 5/5 in one family over eight revisions; the guard lost 19 report versions. |
+| [Mechanically extracted judge context, #110](https://github.com/gigaverse-app/dry-lint/pull/110) | Untested | Two novel useful cases per model, recovered by neither arm. |
+| [Source-reading judges, #117](https://github.com/gigaverse-app/dry-lint/pull/117) | Untested | Nine novel pairs; one useful report in each arm. |
+
+Their closing lesson is this program's Phase 2: "trace the first loss: source scope, score/filter, shortlist,
+funding, or judging."
 
 ## Phase 1: a reference from git history
 
@@ -134,3 +151,10 @@ What clears its bar becomes a default. The rest goes into the research directory
 ## Log
 
 - **2026-11-11:** program written; Phase 0 statuses recorded above.
+- **2026-11-11:** Phase 0 extended to the earlier studies #110 to #121.
+- **2026-11-11:** Track B, pairs where both functions call the same helper: the frequency bar passed (about 21% of
+  the 756 labelled pairs), but 62 of the 178 such pairs are labelled duplicates: functions that call the same helpers
+  in the same order are still duplicated orchestration. A rule would discard them, so it is dropped.
+- **2026-11-11:** Phase 1, first mining run: 166 cases from LiteLLM and OpenHands. Opus labelled 107 yes, 46 partial,
+  12 no and 1 unclear. About 35 of the real ones had copies that already behaved differently before the consolidation.
+  Widening to more repositories is in progress.
