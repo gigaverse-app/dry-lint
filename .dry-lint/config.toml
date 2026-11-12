@@ -1,0 +1,6 @@
+# dry-lint checks its own tests too: duplicated fixtures and helpers are the drift it exists to catch.
+exclude = ["docs/research/*", "examples/*", "scripts/*"]
+
+[[patterns]]
+members = "tests/*::test_*"
+reason = "one test per behaviour: tests repeat the arrange-act-assert shape on purpose"

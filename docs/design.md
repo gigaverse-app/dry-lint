@@ -57,7 +57,8 @@ Every run goes through the same six steps, whatever plugins it uses:
    when both adapters identify the same convention in the same language (currently Python special methods),
    one is a recognized forwarding wrapper for the other in the same repository, one calls the other through a
    call the adapter resolved inside the file, both match a declared `pattern`, one carries
-   `# dry-lint: distinct-from <qualified name suffix>`, or either carries `# dry-lint: ignore`.
+   `# dry-lint: distinct-from <qualified name suffix>`, a reviewed exact pair appears in `.dry-lint/ignore.yaml`,
+   or either carries `# dry-lint: ignore`.
    A forwarding body consists only of a same-owner method call with unchanged parameter arguments ("forwarding
    wrapper"). Any other resolved direct call settles as "one calls the other": both judges already label such a pair
    SEPARATE, and caller/helper pairs were the most common false report in agent review, so settling them first saves
@@ -94,7 +95,7 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 | judge | `workflow_run` of detect | `dry-lint judge --candidates candidates.json --report report.json`, then the comment and check run | the judge's key, `pull-requests: write`, `checks: write` |
 
 - The judge job runs in the default branch's context, so it reads the settings and installs the plugins of the
-  default branch, never ones a pull request names. A pull request's own `patterns` and `distinct-from` comments
+  default branch, never ones a pull request names. A pull request's own `patterns`, `.dry-lint/ignore.yaml` and `distinct-from` comments
   do apply in detect; they are in its diff and reviewed like code.
 - `candidates.json` carries the run: repository, pull request and head commit. If the pull request has moved on
   by the time the judge finishes, its verdicts are still stored (they are keyed by structure hashes) and the newer
@@ -202,7 +203,9 @@ empty context, so they cannot satisfy a new contextual request. The models are i
 
 | File | Written by | Holds |
 | --- | --- | --- |
-| `.dry-lint.toml` or `[tool.dry-lint]` | people | settings and declared patterns; committed |
+| `.dry-lint/config.toml` or `[tool.dry-lint]` | people | global settings and declared patterns; committed |
+| `.dry-lint/ignore.yaml` | reviewers and coding agents | schema-1 durable exact-pair distinctions with reasons; committed |
+| `.dry-lint/feedback.json` | reviewers and coding agents | source-bound review decisions; committed |
 | `# dry-lint: distinct-from …` | people | a decision on one pair, next to the code it explains |
 | `candidates.json` | `detect` | `run`, `changed` (how many functions the change touched), `candidates` |
 | `<key>.json` in the store | the judge step | one verdict record |
@@ -280,7 +283,7 @@ Where it lives:
 
 Losing it only costs re-judging. For all of gigaverse-ai it would hold about 1,900 pairs in 0.75 MB.
 
-Human decisions are different: they belong in the code (`distinct-from`) or in configuration (`patterns`), where
+Human decisions are different: they belong in reviewed `.dry-lint/ignore.yaml`, code (`distinct-from`) or configuration (`patterns`), where
 they are reviewed, versioned and visible to the next reader.
 
 ## Judging and escalation
@@ -369,5 +372,5 @@ Schema 7 adds the `relative` lane and a candidate's `parent`; files from schema 
 Schema 5 adds candidate lane, run session/tree identity, exact-source record evidence and campaign reporting.
 `balanced` adds a stateless exploration index to the baseline detector and a transactional SQLite admission ledger
 beside verdicts. Model verdicts remain in the existing cache; reviewed fix/dismiss decisions live separately in
-`.dry-lint-feedback.json`. Source changes reopen reviewed dismissals. See [production discovery](production-discovery.md)
+`.dry-lint/feedback.json`. Source changes reopen reviewed dismissals. See [production discovery](production-discovery.md)
 for accounting, failure, local/CI storage and feedback contracts.

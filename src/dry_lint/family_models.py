@@ -193,7 +193,6 @@ class CommonOperation(FamilyModel):
 
 class FamilyAnswer(FamilyFile):
     # A judge's validated family verdict, not adopter configuration declaring deliberate look-alikes.
-    # dry-lint: distinct-from src/dry_lint/settings.py::Pattern
     decision: Literal["consolidate", "separate", "unknown"]
     reason: Text
     members: list[MemberAssessment] = Field(min_length=2, max_length=12)

@@ -212,15 +212,15 @@ for each worktree; `--report PATH` selects a report explicitly. Each finding sho
 
 ```bash
 dry-lint feedback dismiss PAIR_KEY --reason "Different transaction contracts: ..." --reviewer coding-agent
-git add .dry-lint-feedback.json
+git add .dry-lint/feedback.json
 
 # After implementing and staging a repair:
 dry-lint feedback fix PAIR_KEY --reason "Both callers now use the canonical helper" --reviewer coding-agent
-git add .dry-lint-feedback.json
+git add .dry-lint/feedback.json
 ```
 
 Use `--from report.json` to review a saved report. Decisions live in the reviewed repository file
-`.dry-lint-feedback.json`, with pair, exact source/context digest, reviewer, reason, action and staged tree.
+`.dry-lint/feedback.json`, with pair, exact source/context digest, reviewer, reason, action and staged tree.
 No source code or credential is copied into that file. A dismissal suppresses only that exact evidence;
 changing either function or its context reopens it. Existing inline `distinct-from` and configured patterns
 remain available for durable intentional distinctions.

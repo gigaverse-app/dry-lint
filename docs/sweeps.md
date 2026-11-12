@@ -13,7 +13,7 @@ Choose the repository's judging preset and credentials as described in [judges.m
 with the adopter's TypeSafe key in `TYPESAFE_AI_API_KEY`:
 
 ```toml
-# .dry-lint.toml
+# .dry-lint/config.toml
 preset = "jev"
 [budget]
 usd = 0.04

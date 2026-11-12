@@ -1,6 +1,6 @@
 # .github/workflows/dry-lint-bootstrap.yml: accept the existing backlog in Actions, for when no judge key is at hand.
 #
-# Commit this file with .dry-lint.toml on the adoption branch and push. Every push that changes either file runs it
+# Commit this file with .dry-lint/config.toml on the adoption branch and push. Every push that changes either file runs it
 # on that branch (a push needs no default-branch registration, unlike workflow_dispatch), so editing a pattern and
 # pushing runs it again. It judges every candidate pair once and uploads .dry-lint/, the README and the sweep report
 # as the `dry-lint-baseline` artifact:
@@ -14,7 +14,7 @@
 name: dry-lint bootstrap
 on:
   push:
-    paths: [.github/workflows/dry-lint-bootstrap.yml, .dry-lint.toml]
+    paths: [.github/workflows/dry-lint-bootstrap.yml, .dry-lint/config.toml, .dry-lint/ignore.yaml, .dry-lint.toml, pyproject.toml]
   workflow_dispatch:
 
 permissions:
@@ -50,7 +50,10 @@ jobs:
           if [[ -f README.md ]]; then readme=(--readme README.md); fi
           dry-lint sweep --init --budget-usd 1 "${readme[@]}" --report "$OUT/sweep-report.json" \
             --repository "$GITHUB_REPOSITORY" --repository-id "$GITHUB_REPOSITORY_ID" --branch "$DEFAULT_BRANCH"
-          cp -R .dry-lint "$OUT/"
+          mkdir -p "$OUT/.dry-lint"
+          for file in baseline.json progress.json models.json; do
+            if [[ -f ".dry-lint/$file" ]]; then cp ".dry-lint/$file" "$OUT/.dry-lint/"; fi
+          done
           if [[ -f README.md ]]; then cp README.md "$OUT/"; fi
       - uses: actions/upload-artifact@v7
         if: always()

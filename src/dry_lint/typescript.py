@@ -93,7 +93,6 @@ def direct_call(node: Node) -> str | None:
 
 def fingerprint(node: Node, name: str) -> tuple[list[str], list[str]]:
     """Behaviour tokens, and the direct calls (see `direct_call`): a call on another receiver proves no delegation."""
-    # dry-lint: distinct-from src/dry_lint/functions.py::node_tokens
     tokens = [f"fn:{word}" for word in words(name)] * 2
     calls = []
     for child in behavior(node):

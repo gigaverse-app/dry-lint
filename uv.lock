@@ -415,6 +415,7 @@ source = { editable = "." }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
+    { name = "pyyaml" },
     { name = "tree-sitter" },
     { name = "tree-sitter-typescript" },
 ]
@@ -476,6 +477,7 @@ requires-dist = [
     { name = "onnxruntime", marker = "extra == 'cpu-embedding'", specifier = ">=1.31.1,<1.32" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "python-dotenv", marker = "extra == 'hooks'", specifier = ">=1,<2" },
+    { name = "pyyaml", specifier = ">=6,<7" },
     { name = "tokenizers", marker = "extra == 'cpu-embedding'", specifier = ">=0.23.3,<0.24" },
     { name = "tree-sitter", specifier = ">=0.25,<0.26" },
     { name = "tree-sitter-typescript", specifier = ">=0.23,<0.24" },

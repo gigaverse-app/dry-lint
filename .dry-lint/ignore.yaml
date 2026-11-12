@@ -1,0 +1,64 @@
+schema: 1
+
+distinct:
+  - symbol: src/dry_lint/bench_background.py::BenchBackground.index
+    from:
+      - src/dry_lint/comparers.py::TfidfComparer.index
+    reason: >-
+      Both adapters reuse TfidfIndex. Frozen sparse-token replay does not configure a live comparer.
+
+  - symbol: src/dry_lint/bench_background.py::BenchBackground.encode
+    from:
+      - src/dry_lint/function_index.py::FunctionIndex.encode
+    reason: >-
+      Both reuse encode_snapshot. Benchmark backgrounds must preserve sparse-token insertion order.
+
+  - symbol: src/dry_lint/costs.py::estimate
+    from:
+      - src/dry_lint/discovery.py::reservation_cost
+    reason: >-
+      Average cost estimates and conservative admission bounds provide different guarantees; both
+      reuse usage_cost.
+
+  - symbol: src/dry_lint/family_judging.py::family_reservation_cost
+    from:
+      - src/dry_lint/discovery.py::reservation_cost
+    reason: >-
+      Both reuse conservative_cost. Family admission uses validated explicit rates and a family
+      prompt; pair admission resolves configured prices and the pair prompt.
+
+  - symbol: src/dry_lint/family_report.py::FamilyReport.consolidations
+    from:
+      - src/dry_lint/report.py::Report.stats
+      - src/dry_lint/report.py::Report.deferred
+    reason: >-
+      Confirmed family proposals and pair findings are different reporting units with independent
+      result types.
+
+  - symbol: src/dry_lint/family_models.py::FamilyAnswer
+    from:
+      - src/dry_lint/settings.py::Pattern
+    reason: >-
+      FamilyAnswer validates a judge's family verdict. Pattern is adopter configuration declaring
+      deliberate look-alikes.
+
+  - symbol: src/dry_lint/typescript.py::fingerprint
+    from:
+      - src/dry_lint/functions.py::node_tokens
+    reason: >-
+      TypeScript CST and Python AST tokenization follow different syntax and binding rules in their
+      language adapters.
+
+  - symbol: src/dry_lint/operation_families.py::_source_file
+    from:
+      - src/dry_lint/evidence.py::SourceReference.of
+    reason: >-
+      Physical-file identity deliberately omits function identity and accepts unpinned origins;
+      SourceReference validates a specific function's evidence.
+
+  - symbol: src/dry_lint/judges/langchain.py::BehaviourDifference
+    from:
+      - src/dry_lint/models.py::Difference
+    reason: >-
+      BehaviourDifference is measured judge prompt text; Difference is the persisted store and
+      report format. Their compatibility contracts differ.

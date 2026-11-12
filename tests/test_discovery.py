@@ -192,11 +192,14 @@ def test_same_file_duplicates_are_exploration_and_never_replace_baseline(repo):
     assert all(c.new.qualname != c.existing.qualname for c in pairs)
 
 
-def test_cli_feedback_must_be_staged_and_changes_reopen_dismissals(repo, setup, tmp_path, monkeypatch):
+@pytest.mark.parametrize("feedback_path", [FILENAME, ".dry-lint-feedback.json"])
+def test_cli_feedback_must_be_staged_and_changes_reopen_dismissals(repo, setup, tmp_path, monkeypatch, feedback_path):
     monkeypatch.delenv("GITHUB_EVENT_PATH", raising=False)  # exercise local branch campaigns even inside PR CI
     settings, judge, _, requests = setup
     report_path = tmp_path / "report.json"
     repo.git("reset", "--soft", "main")
+    if feedback_path != FILENAME:
+        Feedback().write(repo.root / feedback_path)
     args = ["check", "--root", str(repo.root), "--staged", "--preset", "balanced", "--report", str(report_path)]
     with patch("dry_lint.judging.make_judge", return_value=judge):
         assert main(args) == 1
@@ -217,7 +220,7 @@ def test_cli_feedback_must_be_staged_and_changes_reopen_dismissals(repo, setup, 
         assert main([*feedback_args, "fix", pair]) == 2  # unchanged code is not a fix
         assert main([*feedback_args, "dismiss", pair]) == 0
         assert main(args) == 1  # an unstaged dismissal cannot clear staged source
-        repo.git("add", FILENAME)
+        repo.git("add", feedback_path)
         assert main(args) == 0
         dismissed = Report.model_validate_json(report_path.read_bytes())
         assert dismissed.filtered and not dismissed.visible
@@ -229,7 +232,8 @@ def test_cli_feedback_must_be_staged_and_changes_reopen_dismissals(repo, setup, 
         repo.write("src/widgets/caption.py", "from src.text import shorten_text as preview_caption_text\n")
         repo.git("add", "src/widgets/caption.py")
         assert main([*feedback_args, "fix", edited.findings[0].candidate.key]) == 0
-        assert Feedback.read(repo.root / FILENAME).decisions[-1].action == "fix"
+        assert Feedback.read(repo.root / feedback_path).decisions[-1].action == "fix"
+        assert not (repo.root / (FILENAME if feedback_path != FILENAME else ".dry-lint-feedback.json")).exists()
         assert main(args) == 0
 
 

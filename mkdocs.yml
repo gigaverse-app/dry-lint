@@ -75,6 +75,7 @@ extra:
   - docs/tutorials/first-run.md
   - docs/ci.md
   - docs/adoption-playbook.md
+  - docs/configuration.md
   - docs/github-action.md
   - docs/typescript.md
   - docs/comment-preview.md
@@ -108,6 +109,7 @@ nav:
   - TypeScript and Bun: docs/typescript.md
   - What the pull request comment shows: docs/comment-preview.md
 - Configure and run:
+  - Configuration, exceptions and migration: docs/configuration.md
   - Judges and presets: docs/judges.md
   - Retrieval presets: docs/retrieval-presets.md
   - Sweep a repository and ratchet its debt: docs/sweeps.md

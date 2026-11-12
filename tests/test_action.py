@@ -474,7 +474,7 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     out = capsys.readouterr().out
     assert "::error file=src/widgets/caption.py,line=1" in out  # 0.85 >= the default fail_at
     [body] = github.stickies()
-    assert "`preview_caption_text` ≈ `shorten_text`" in body and "distinct-from src/text.py::shorten_text" in body
+    assert "`preview_caption_text` ≈ `shorten_text`" in body and '- "src/text.py::shorten_text"' in body
     assert f"/blob/{github.head}/src/widgets/caption.py#L1-L5" in body
     assert outputs(tmp_path)["findings"] == "1" and outputs(tmp_path)["stored"] == "true"
 
@@ -498,7 +498,7 @@ def test_a_pull_request_that_reimplements_a_helper_gets_one_comment_that_tracks_
     monkeypatch.setenv("GITHUB_RUN_ID", "57")
     assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     [body] = github.stickies()
-    assert "Resolved" in body and "distinct-from src/text.py::shorten_text" not in body
+    assert "Resolved" in body and 'from = ["src/text.py::shorten_text"]' not in body
     # The ledger remembers what the fix was worth: the run on the same commit was not a new push.
     assert "**1 finding no longer reported**" in body and "across 2 checked pushes" in body
     assert "`preview_caption_text` ≈ `shorten_text` · found in push 1, no longer reported in push 2" in body
@@ -540,10 +540,10 @@ def test_typescript_pull_request_updates_and_resolves_one_sticky_comment(
         assert action.main(["run"], transport=httpx.MockTransport(github)) == 0
     [body] = github.stickies()
     assert "`preview_caption_text` ≈ `shorten_text`" in body
-    assert "```ts\n// dry-lint: distinct-from src/text.ts::shorten_text\n```" in body
+    assert "```yaml\n  - symbol:" in body and '- "src/text.ts::shorten_text"' in body
     assert "`// dry-lint: ignore`" in body and judge_calls(tmp_path) == 1
     assert "blocking" not in body
-    assert "// dry-lint: distinct-from src/text.ts::shorten_text" in capsys.readouterr().out
+    assert ".dry-lint/ignore.yaml" in capsys.readouterr().out
     repo.write("src/caption.ts", 'export { shorten_text as preview_caption_text } from "./text";')
     repo.commit()
     github.head = repo.git("rev-parse", "HEAD").strip()

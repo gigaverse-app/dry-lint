@@ -128,7 +128,7 @@ def test_text_report_gives_location_verdict_advice_and_a_way_out() -> None:
         "extract a shared helper",
         "same truncation",
         "similarity 0.71",
-        "# dry-lint: distinct-from src/text.py::shorten",
+        "a distinct entry with a reason in .dry-lint/ignore.yaml",
     ]:
         assert part in text
     assert "1 candidate pair(s), 0 skipped by rule, 1 from the store, 0 judged (judge jev:v), 1 reported" in text
@@ -167,7 +167,7 @@ def test_markdown_comment_lists_findings_under_a_stable_marker() -> None:
     assert "**duplicate**&nbsp;0.88<br><sub>call the existing one</sub> |" in body
     assert "| ⚪ | `clip` ≈ `other` <sub>· 2 look-alikes</sub> |" in body and "<sub>not judged</sub>" in body
     assert "> same truncation" in body
-    assert "```python\n# dry-lint: distinct-from src/text.py::shorten\n```" in body
+    assert '- "src/text.py::shorten"' in body and "```yaml\n  - symbol:" in body
     assert "<sub>2 changed functions · 2 pairs compared · judge `jev:v`</sub>" in body
 
 
@@ -295,7 +295,8 @@ def test_markdown_labels_blocking_findings_first_and_lists_every_override() -> N
         "`# dry-lint: distinct-from <qualified name>` in the changed function",
         "`# dry-lint: ignore`",
         "`[[patterns]]`",
-        "`.dry-lint.toml`",
+        "`.dry-lint/config.toml`",
+        "`.dry-lint/ignore.yaml`",
         "the `dry-lint: override` label",
     ):
         assert override in body
@@ -311,7 +312,7 @@ def test_overrides_use_the_comment_syntax_of_the_findings_languages() -> None:
     )
     only = as_markdown(report(typescript))
     assert "`// dry-lint: ignore`" in only and "start with `//`" not in only
-    assert "```ts\n// dry-lint: distinct-from src/text.py::shorten\n```" in only
+    assert '- "src/text.py::shorten"' in only and "```yaml\n  - symbol:" in only
     mixed = as_markdown(report(typescript, finding("duplicate", existing="other")))
     assert "`# dry-lint: ignore`" in mixed and "In TypeScript and TSX, the comments start with `//`." in mixed
 
@@ -443,7 +444,18 @@ def test_a_path_that_could_close_a_code_fence_is_shown_escaped_instead() -> None
     built = report(finding("duplicate")).model_copy(deep=True)
     built.findings[0].candidate.existing.path = "src/```evil.py"
     body = as_markdown(built)
-    assert "```python" not in body and "distinct-from src/\\`\\`\\`evil.py::shorten" in body
+    assert "```yaml" not in body and "src/\\`\\`\\`evil.py::shorten" in body
+
+
+def test_suggested_ignore_entries_preserve_unicode_and_quote_literal_identities() -> None:
+    from dry_lint.settings import Ignores
+
+    item = finding("duplicate").model_copy(deep=True)
+    item.candidate.existing.path = 'src/🌍"quoted.py'
+    document = "schema: 1\ndistinct:\n" + item.ignore_entry()
+    entries = Ignores.read(document.encode()).distinct
+    assert entries[0].symbol == item.candidate.new.qualname
+    assert entries[0].targets == [item.candidate.existing.qualname]
 
 
 def test_the_judging_line_names_judges_band_thresholds_and_the_bill() -> None:
@@ -573,7 +585,7 @@ def test_budget_deferred_pairs_are_actionable_review_tasks_not_clean_or_confirme
     assert built.visible == built.findings
     assert built.findings[0].blocking and not built.findings[0].reported
     text = as_text(built)
-    assert "coding agent" in text and "distinct-from" in text and "review required" in text
+    assert "coding agent" in text and ".dry-lint/ignore.yaml" in text and "review required" in text
     assert "0 reported, 1 review required" in text
     markdown = as_markdown(built)
     assert "review required" in markdown and "No duplicated concepts" not in markdown

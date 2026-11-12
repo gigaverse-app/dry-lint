@@ -147,7 +147,7 @@ or changed artifacts before loading the runtime:
 | `onnx/model.onnx` | `6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452` |
 | `tokenizer.json` | `be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037` |
 
-For `.dry-lint.toml`, explicitly retain the existing TF-IDF exploration route before adding CPU discovery:
+For `.dry-lint/config.toml`, explicitly retain the existing TF-IDF exploration route before adding CPU discovery:
 
 ```toml
 [discovery]

@@ -72,11 +72,11 @@ Each finding names both functions, the judge's score, whether they already behav
 differently and which side should own the code. `dry-lint explain` tells you why
 a particular pair was or was not reported.
 
-Write the preset you chose into `.dry-lint.toml` so CI, the hook and every contributor use the same
+Write the preset you chose into `.dry-lint/config.toml` so CI, the hook and every contributor use the same
 judge, and limit the scope to the code you ship:
 
 ```toml
-# .dry-lint.toml
+# .dry-lint/config.toml
 preset = "agent"   # Jev only, recall first; "jev" puts precision first, "jev+opus" more so
 include = ["src/*"]
 [budget]
@@ -144,7 +144,7 @@ dry-lint check --base origin/main --baseline .dry-lint/baseline.json --baseline-
 
 ## 5. Turn on CI
 
-Commit `.dry-lint.toml`, `.dry-lint/` and the README change. Then add the workflows and
+Commit `.dry-lint/config.toml`, `.dry-lint/` and the README change. Then add the workflows and
 make the `dry-lint` check required, as described in [how CI runs dry-lint](../ci.md).
 
 For coding agents, also install the pre-commit hook. It judges what an agent stages

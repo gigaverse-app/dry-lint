@@ -22,7 +22,7 @@ exploration route. Partial discovery settings inherit unspecified balanced defau
 including those produced by a CPU recovery profile, are retained exactly. A custom non-TFIDF baseline receives
 no automatic block route. Legacy `preset = "auto"` and its credential-selected presets are unchanged.
 
-To retain implicit TF-IDF exploration alone in `.dry-lint.toml`:
+To retain implicit TF-IDF exploration alone in `.dry-lint/config.toml`:
 
 ```toml
 preset = "balanced"

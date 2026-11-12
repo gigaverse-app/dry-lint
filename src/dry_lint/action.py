@@ -499,7 +499,7 @@ UNTOUCHED = (
 def changes_functions(root: Path, base: str) -> bool:
     """Whether the change touches any function in scope: without one, peer indexes have nothing to be compared with."""
     ensure_history(root, base)
-    return bool(changed_functions(root, Settings.load(root), base or None))
+    return bool(changed_functions(root, Settings.load(root), base or None, repository=env("GITHUB_REPOSITORY")))
 
 
 def run(transport: httpx.BaseTransport | None = None) -> int:
