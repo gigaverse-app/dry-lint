@@ -207,6 +207,52 @@ local Snapshot = { id = "a", value = DEFAULT }
     assert "local DEFAULT = 3" in snapshot.context
 
 
+def test_function_reference_tables_are_reuse_not_data_models(extractor):
+    source = """local function touch() return 1 end
+local cross = function() return 2 end
+local alias = touch
+local Responses = {touch = touch, cross = cross, alias = alias}
+local Copy = {touch = touch, cross = cross}
+local Data = {touch = 1, cross = unknown}
+local Before = {touch = later, cross = unknown}
+local function later() return 3 end
+touch = 42
+local Rebound = {touch = touch, cross = 9}
+local cross
+local Shadowed = {touch = 1, cross = cross}
+"""
+    found = {f.name: f for f in extractor.functions("responses.lua", source)}
+    assert set(found) == {"Data", "Before", "Rebound", "Shadowed"}
+    assert all(set(f.declaration.fields) == {"touch", "cross"} for f in found.values())
+
+
+def test_callable_references_observe_simultaneous_bindings_and_conditional_writes(extractor):
+    source = """local function handler() return 1 end
+local handler, old = 7, handler
+local Record = {first = handler, second = old, third = unknown}
+function Module.run() return 1 end
+local Exported = {run = Module . run, kind = "module"}
+local function uncertain() return 1 end
+if changed then uncertain = 2 end
+local Maybe = {first = uncertain, second = 3}
+"""
+    found = {f.name: f for f in extractor.functions("responses.lua", source)}
+    assert found["Record"].declaration.fields == {"first": "handler", "third": "unknown"}
+    assert found["Exported"].declaration.fields == {"kind": '"module"'}
+    assert found["Maybe"].declaration.fields == {"first": "uncertain", "second": "3"}
+
+
+def test_calls_in_initializers_leave_mutable_function_references_unresolved(extractor):
+    source = """local callback = function() return 1 end
+local function mutate() callback = 7 end
+local Result = {first = mutate(), second = callback}
+local Later = {first = 1, second = callback}
+"""
+    found = {f.name: f for f in extractor.functions("callbacks.lua", source)}
+    assert found["Result"].declaration.fields == {"first": "mutate()", "second": "callback"}
+    assert found["Later"].declaration.fields == {"first": "1", "second": "callback"}
+
+
 @pytest.mark.parametrize("source", ["export type Bad = { id: }", "local Bad = {id = , value = 2}"])
 def test_broken_declarations_skip_and_strict_scans_reject(extractor, source):
     assert extractor.functions("broken.luau", source) == []

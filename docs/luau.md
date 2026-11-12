@@ -88,7 +88,7 @@ changes model hashes; editing same-file usage changes context digests and reopen
 | Top-level `type` / `export type`, including generics | Direct named fields in object types and intersections |
 | Named top-level table literals, including `Module.Options = {...}` | Explicit data fields and plain quoted string keys |
 | Nested record/table literal | One outer field; its source remains evidence |
-| Function-valued fields and recognized metamethod metadata | Excluded from field overlap; retained in declaration source |
+| Function-valued fields, proven references to earlier functions, and recognized metamethod metadata | Excluded from field overlap; retained in declaration source |
 | Type/value bindings with the same name | Separate identities, e.g. `models.luau::<type>.Receipt` and `models.luau::<table>.Receipt` |
 
 The automatic pass keeps function and model comparison separate. Use `--no-models` to disable it, or configure
@@ -99,6 +99,9 @@ Lua class libraries and dataclass-like factories have no universal record syntax
 explicit table/type declarations but does not infer instance fields from constructors, `setmetatable`, `typeof`,
 inheritance or imported aliases. It also skips nested declarations, arrays, type unions and computed keys.
 Plain string keys are supported; escaped and interpolated keys remain unresolved. No repository code executes.
+Callable references use a conservative snapshot of earlier same-file bindings. Aliases retain that evidence;
+reassignment, shadowing and potentially mutating calls/control flow invalidate it. Unknown values remain fields
+for review. The [OSS CLI probe](research/luau-oss-review.md) records supported examples and observed class limits.
 
 ## Not covered
 

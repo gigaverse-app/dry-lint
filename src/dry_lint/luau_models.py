@@ -1,12 +1,24 @@
 """Explicit Luau record contracts and named Lua table literals, read through tree-sitter in Python."""
 
+from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Literal
 
 from tree_sitter import Node
 
-from dry_lint.luau import CONTEXT_LIMIT, METAMETHODS, LuauExtractor, dotted, has_syntax_error, text
+from dry_lint.luau import (
+    CONTEXT_LIMIT,
+    FUNCTIONS,
+    METAMETHODS,
+    LuauExtractor,
+    bindings,
+    dotted,
+    has_syntax_error,
+    literal_key,
+    table_key,
+    text,
+)
 from dry_lint.model_shapes import model_unit
 from dry_lint.models import Declaration, Function, qualified
 from dry_lint.source_context import identifiers, with_comments
@@ -56,15 +68,6 @@ def definitions(root: Node) -> Iterator[Definition]:
                     yield Definition(qualified(owner, name), "table", statement, value)
 
 
-def literal_key(node: Node) -> str | None:
-    """Plain quoted keys are exact; escaped, interpolated and computed keys stay unresolved."""
-    if node.type in {"object_field_type", "literal_type"}:
-        return literal_key(node.named_children[0])
-    if node.type == "string" and text(node.children[0]) in {'"', "'"} and "\\" not in text(node):
-        return "".join(text(child) for child in node.named_children)
-    return None
-
-
 def callable_type(node: Node) -> bool:
     if node.type in {"optional_type", "tuple_type"} and len(node.named_children) == 1:
         return callable_type(node.named_children[0])
@@ -100,7 +103,50 @@ def literal_value(node: Node) -> Node:
     return node
 
 
-def table_fields(node: Node) -> dict[str, str]:
+def callable_value(node: Node, known: set[str]) -> bool:
+    node = literal_value(node)
+    owner, name = dotted(node)
+    return node.type in FUNCTIONS or name is not None and qualified(owner, name) in known
+
+
+def calls_during_initialization(node: Node) -> bool:
+    if node.type in FUNCTIONS or node.type == "type_definition":
+        return False
+    return node.type == "function_call" or any(calls_during_initialization(child) for child in node.named_children)
+
+
+def callable_bindings(root: Node, declared: list[Definition]) -> dict[int, set[str]]:
+    """Snapshot proven callable references before each statement; never expand or execute a factory."""
+    by_statement: dict[int, list[Definition]] = defaultdict(list)
+    for definition in declared:
+        if definition.namespace == "table":
+            by_statement[definition.statement.id].append(definition)
+    known: set[str] = set()
+    before = {}
+    for statement in root.named_children:
+        if calls_during_initialization(statement):
+            known.clear()  # Initializer calls can mutate earlier bindings, including within this same table.
+        before[statement.id] = known.copy()
+        definitions_here = by_statement[statement.id]
+        # All RHS expressions observe the old bindings, including local f, alias = 7, f.
+        resolved = {d.name for d in definitions_here if callable_value(d.value, known)}
+        assigned = {d.name for d in definitions_here}
+        if statement.type not in {"function_declaration", "type_definition"}:
+            assigned |= bindings(statement)
+        known = {name for name in known if not any(name == a or name.startswith(a + ".") for a in assigned)}
+        if statement.type not in {
+            "comment",
+            "type_definition",
+            "function_declaration",
+            "variable_declaration",
+            "assignment_statement",
+        }:
+            known.clear()  # A call or control-flow statement may mutate bindings; keep its later fields unresolved.
+        known.update(resolved)
+    return before
+
+
+def table_fields(node: Node, callables: set[str]) -> dict[str, str]:
     node = literal_value(node)
     if node.type != "table_constructor":
         return {}  # A factory, require or setmetatable call does not establish a record's fields.
@@ -111,10 +157,10 @@ def table_fields(node: Node) -> dict[str, str]:
         key, value = field.child_by_field_name("name"), field.child_by_field_name("value")
         if key is None or value is None:
             continue
-        name = text(key) if key.type == "identifier" and field.children[0].type != "[" else literal_key(key)
+        name = table_key(field)
         if name is None or name in METADATA:
             continue
-        if literal_value(value).type == "function_definition":
+        if callable_value(value, callables):
             fields.pop(name, None)
         else:
             fields[name] = text(value)
@@ -123,17 +169,22 @@ def table_fields(node: Node) -> dict[str, str]:
 
 class LuauModelExtractor(LuauExtractor):
     name = "luau-models"
-    version = "1"
+    version = "2"
     # Model contracts retain annotations, defaults, function members and generic parameters in their hashes.
     preserve_types = True
 
     def functions(self, path: str, source: str) -> list[Function]:
         root = self.parser.parse(source.encode("utf-8")).root_node
         declared = list(definitions(root))
+        callables = callable_bindings(root, declared)
         references = {node.id: identifiers(node) for node in root.named_children}
         found = []
         for definition in declared:
-            fields = (type_fields if definition.namespace == "type" else table_fields)(definition.value)
+            fields = (
+                type_fields(definition.value)
+                if definition.namespace == "type"
+                else table_fields(definition.value, callables[definition.statement.id])
+            )
             if not fields:
                 continue
             statement = definition.statement
