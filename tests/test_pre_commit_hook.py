@@ -18,6 +18,8 @@ def field(name: str, hook: str = "dry-lint") -> str:
 def test_the_hook_inherits_repository_policy_and_reads_the_local_env_file() -> None:
     args = parser().parse_args(shlex.split(field("entry"))[1:])
     assert (args.command, args.staged, args.preset, str(args.env_file)) == ("check", True, None, ".env")
+    # Deleted ignore files have no filename for pre-commit's type filter; the CLI inspects the Git diff itself.
+    assert field("always_run") == "true" and field("pass_filenames") == "false"
 
 
 def test_a_repository_s_args_override_the_hook_s_preset() -> None:

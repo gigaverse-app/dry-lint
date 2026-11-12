@@ -63,7 +63,7 @@ a different kind of change, or a broken detector. Compare versioned policies on 
 sample, stratified by repository, function size, new versus edited code, and shared-operation family. Change one
 knob at a time; use hysteresis and a minimum sample before switching. Roll back when the 25% precision floor or
 the interruption bound fails. Initial trials use at most three false reports per commit, not as a claim that all
-developers will tolerate that load. Explicit fix/dismiss decisions now live in `.dry-lint-feedback.json`; automatic threshold control remains future work.
+developers will tolerate that load. Explicit fix/dismiss decisions now live in `.dry-lint/feedback.json`; automatic threshold control remains future work.
 
 ## Budget and eventual discovery
 

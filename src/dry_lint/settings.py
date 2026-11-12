@@ -1,5 +1,5 @@
 """
-Settings, read from `[tool.dry-lint]` in pyproject.toml or from `.dry-lint.toml`.
+Global settings from `.dry-lint/config.toml`, legacy `.dry-lint.toml`, or `[tool.dry-lint]`.
 
 The thresholds are core and apply whatever plugins are chosen. Each plugin slot (`extractors`, `comparer`, `judge`,
 `escalate`, `store`) takes a name, or a table with `use` and the plugin's own options:
@@ -12,13 +12,21 @@ The default thresholds were measured on gigaverse-ai (docs/benchmark.md): they a
 
 import tomllib
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
+import yaml
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
-from dry_lint.git import git
-from dry_lint.models import Consolidation, Verdict
+from dry_lint.models import Consolidation, Verdict, repository_path
 from dry_lint.policies import PairPolicy
+from dry_lint.repository_files import (
+    CONFIG_FILES,
+    IGNORE_FILE,
+    SETTINGS_FILES,
+    UNSUPPORTED_IGNORE_FILES,
+    location,
+    read_files,
+)
 from dry_lint.schema_policy import SchemaPolicy
 
 
@@ -49,6 +57,53 @@ class PluginChoice(BaseModel):
 
     def options(self) -> dict[str, Any]:
         return dict(self.model_extra or {})
+
+
+class Distinction(BaseModel):
+    """Exact symmetric pairs: targets are distinct from the symbol, not from each other."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, populate_by_name=True)
+    symbol: str
+    targets: list[str] = Field(alias="from", min_length=1)
+    reason: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def exact_symbols(self) -> "Distinction":
+        for symbol in (self.symbol, *self.targets):
+            path, separator, name = symbol.partition("::")
+            if not separator or not repository_path(path) or not name.strip():
+                raise ValueError(f"Use an exact repository-relative path::Symbol in {IGNORE_FILE}: {symbol!r}")
+        return self
+
+    def pairs(self) -> set[tuple[str, str]]:
+        return {tuple(sorted((self.symbol, target))) for target in self.targets}
+
+
+class IgnoreLoader(yaml.SafeLoader):
+    """Reject duplicate YAML keys so a merge cannot silently discard reviewed decisions."""
+
+    def construct_mapping(self, node, deep=False):
+        mapping = super().construct_mapping(node, deep=deep)
+        if len(mapping) != len(node.value):
+            raise ValueError(f"Duplicate key in {IGNORE_FILE} at {node.start_mark}")
+        return mapping
+
+
+class Ignores(BaseModel):
+    """Versioned, agent-maintained decisions, independent of execution settings."""
+
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = Field(alias="schema")
+    distinct: list[Distinction] = Field(default_factory=list)
+
+    @classmethod
+    def read(cls, raw: bytes | None) -> "Ignores":
+        if raw is None:
+            return cls(schema=1)
+        try:
+            return cls.model_validate(yaml.load(raw.decode("utf-8"), Loader=IgnoreLoader))
+        except yaml.YAMLError as error:
+            raise ValueError(f"Invalid {IGNORE_FILE}: {error}") from error
 
 
 class Escalation(PluginChoice):
@@ -185,6 +240,7 @@ class Settings(BaseModel):
     include: list[str] = Field(default_factory=lambda: ["*"], description="fnmatch over tracked paths.")
     exclude: list[str] = Field(default_factory=lambda: ["*/tests/*", "tests/*", "*/migrations/*", "*/scripts/*"])
     patterns: list[Pattern] = Field(default_factory=list)
+    distinct: list[Distinction] = Field(default_factory=list)
     policies: list[PairPolicy] = Field(default_factory=list)
     models: ModelReview = Field(default_factory=ModelReview)
     neighbours: int = Field(default=3, description="Nearest functions in other files considered per changed function.")
@@ -256,22 +312,21 @@ class Settings(BaseModel):
 
     @classmethod
     def load(cls, root: Path, *, staged: bool = False) -> "Settings":
-        tracked = (
-            set(git(root, "ls-files", "--cached", "--", ".dry-lint.toml", "pyproject.toml").splitlines())
-            if staged
-            else set()
-        )
+        return cls.from_sources(read_files(root, SETTINGS_FILES, staged=staged))
 
-        def source(name: str) -> str | None:
-            if staged:
-                return git(root, "show", f":{name}") if name in tracked else None
-            path = root / name
-            return path.read_text(encoding="utf-8") if path.exists() else None
-
-        dedicated = source(".dry-lint.toml")
+    @classmethod
+    def from_sources(cls, sources: dict[str, bytes]) -> "Settings":
+        """The same precedence and validation for a checkout, index or downloaded source tree."""
+        if unsupported := set(UNSUPPORTED_IGNORE_FILES).intersection(sources):
+            raise ValueError(
+                f"Unsupported ignore file(s): {', '.join(sorted(unsupported))}. Use YAML in {IGNORE_FILE}."
+            )
+        dedicated = sources.get(location(sources, CONFIG_FILES))
         if dedicated is not None:
-            return cls.model_validate(tomllib.loads(dedicated))
-        pyproject = source("pyproject.toml")
-        if pyproject is not None:
-            return cls.model_validate(tomllib.loads(pyproject).get("tool", {}).get("dry-lint", {}))
-        return cls()
+            data = tomllib.loads(dedicated.decode("utf-8"))
+        else:
+            data = tomllib.loads(sources.get("pyproject.toml", b"").decode("utf-8")).get("tool", {}).get("dry-lint", {})
+        settings = cls.model_validate(data)
+        return settings.model_copy(
+            update={"distinct": [*settings.distinct, *Ignores.read(sources.get(IGNORE_FILE)).distinct]}
+        )

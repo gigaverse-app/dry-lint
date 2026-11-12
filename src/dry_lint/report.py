@@ -128,7 +128,9 @@ class Finding(BaseModel):
             parts.append(f"{self.family} look-alikes")
         if relatives:
             parts.append(self.kin(relatives))
-        parts.append(f"if they are different concepts, add `{self.suppression()}`")
+        parts.append(
+            "if they are different concepts, add this pair as a distinct entry with a reason in .dry-lint/ignore.yaml"
+        )
         parts.append("if they are one concept copied on purpose, add a [[patterns]] entry with a reason")
         return "; ".join(parts)
 
@@ -157,6 +159,17 @@ class Finding(BaseModel):
     def suppression(self) -> str:
         prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
         return f"{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}"
+
+    def ignore_entry(self) -> str:
+        """A YAML list entry with quoted identities; source text cannot introduce extra keys."""
+        return "\n".join(
+            [
+                f"  - symbol: {json.dumps(self.candidate.new.qualname, ensure_ascii=False)}",
+                "    from:",
+                f"      - {json.dumps(self.candidate.existing.qualname, ensure_ascii=False)}",
+                "    reason: Explain why these concepts evolve independently",
+            ]
+        )
 
 
 class JudgingSummary(BaseModel):
@@ -710,7 +723,7 @@ def markdown_lane(
         source = "from the verdict store" if f.cached else "new verdict" if f.verdict else "not judged"
         scored = f"{f.verdict.label} {f.verdict.score:.2f} · " if f.verdict else ""
         drift = " · the copies already behave differently" if f.verdict and f.verdict.label == "drifted" else ""
-        suppression = f.suppression()
+        ignore_entry = f.ignore_entry()
         details.extend([
             f"{dot(f)} **{concept}** · {scored}similarity {f.candidate.similarity:.2f} · {source}{drift}", "",
             *([f"> {escaped(f.verdict.why)}", ""] if f.verdict and f.verdict.why else []),
@@ -723,9 +736,9 @@ def markdown_lane(
                + ", ".join(f"{function_link(r.candidate.existing, report.run)} ({r.verdict.label} {r.verdict.score:.2f})"
                            for r in kin) + ": consolidate them in the same change.", ""]
               if (kin := report.relatives(f)) else []),
-            f"Different concepts? Add to {escaped(short_paths(new.path, existing.path)[0])}:", "",
-            *([f"```{'ts' if suppression.startswith('//') else 'python'}", suppression, "```"]
-              if not re.search(r"[`\n]", suppression) else [escaped(suppression)]), "",
+            "Different concepts? After reviewing both, add to `.dry-lint/ignore.yaml` and replace the reason. "
+            "Start a new file with `schema: 1` and `distinct:` once; add entries under `distinct`:", "",
+            *(["```yaml", ignore_entry, "```"] if "`" not in ignore_entry else [escaped(ignore_entry)]), "",
         ])  # fmt: skip
     legend = " · ".join(f"{icon} {text}" for icon, text in LEGEND.items() if any(dot(f) == icon for f in listed))
     details += [f"<sub>{legend}</sub>", "", "</details>"]
@@ -836,9 +849,10 @@ def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list
     where = f"either {noun}" if audit else f"the changed {noun}"
     return [
         "| Scope | Decision |", "| :-- | :-- |",
-        f"| this pair | `{prefix} dry-lint: distinct-from <qualified name>` in {where} |",
+        "| this pair | a `distinct` entry with exact symbols and a reason in `.dry-lint/ignore.yaml` |",
+        f"| this pair, inline alternative | `{prefix} dry-lint: distinct-from <qualified name>` in {where} |",
         f"| one {noun} | `{prefix} dry-lint: ignore` in that {noun} |",
-        "| a family of look-alikes, or copies kept on purpose | a `[[patterns]]` entry with a `reason` in `.dry-lint.toml` |",
+        "| a family of look-alikes, or copies kept on purpose | a `[[patterns]]` entry with a `reason` in `.dry-lint/config.toml` |",
         *([] if audit else ["| this pull request only | the `dry-lint: override` label |"]),
         *(["", "In TypeScript and TSX, the comments start with `//`."] if any(typescript) and prefix == "#" else []),
     ]  # fmt: skip

@@ -45,14 +45,14 @@ preset serves CI, the hook and the baseline ([one preset everywhere](judges.md#o
 TypeSafe key:
 
 ```toml
-# .dry-lint.toml
+# .dry-lint/config.toml
 preset = "jev"          # "jev+opus" with an Anthropic key too; Due and pytest-obligation use "sonnet"
 include = ["src/*"]     # the package directories that ship
 [budget]
 usd = 0.04
 ```
 
-Settings live in `.dry-lint.toml`; `[tool.dry-lint]` in `pyproject.toml` takes the same keys, and `.dry-lint.toml`
+Settings live in `.dry-lint/config.toml`; `[tool.dry-lint]` in `pyproject.toml` takes the same keys, and `.dry-lint/config.toml`
 wins when both exist. Set `TYPESAFE_AI_API_KEY` (and `ANTHROPIC_API_KEY` for a Claude preset) locally, and pass the
 repository's own secret, whatever its name, to the Action's `typesafe-api-key` input in CI. Keep credentials out of Git and logs.
 Choose the parser for the repository's syntax, independently of its runtime dependencies: set the Action's
@@ -107,7 +107,7 @@ through `models: false`, `--no-models`, or repository `models.enabled`, `models.
 Function and model debt have different authorities. `sweep --init` initializes function debt from a complete
 judged sweep. Model debt requires a coding agent or human to read the declarations, nested types, constructors
 and consumers, then record exact-source `feedback accept` decisions before `model-baseline --init`. Keep
-`.dry-lint/models.json` and `.dry-lint-feedback.json` in Git; preserve them when resuming adoption. Configure
+`.dry-lint/models.json` and `.dry-lint/feedback.json` in Git; preserve them when resuming adoption. Configure
 `models.baseline` only after initialization. If no reviewed positive exists, leave it unset and retain review
 coverage; do not invent a positive merely to create a baseline. Unknown candidates remain unresolved.
 
@@ -142,7 +142,7 @@ repos:
   rev: v1
   hooks:
       - id: dry-lint
-        args: [--preset, jev, --baseline, .dry-lint/baseline.json]   # the preset in .dry-lint.toml
+        args: [--preset, jev, --baseline, .dry-lint/baseline.json]   # the preset in .dry-lint/config.toml
         language_version: python3.13
       - id: dry-lint-trailers
         language_version: python3.13
@@ -153,7 +153,7 @@ uvx pre-commit validate-config
 uvx pre-commit install
 ```
 
-With `--baseline`, the hook must pass the preset the baseline was written with, the one in `.dry-lint.toml`:
+With `--baseline`, the hook must pass the preset the baseline was written with, the one in `.dry-lint/config.toml`:
 the hook's own default is `agent`, and a baseline refuses any other preset. The hook reads judge credentials from the shell or an untracked `.env`. Missing credentials
 fail strict judging whenever the staged change has a pair to judge; with no pair (nothing staged, no supported
 source staged, no look-alike) the hook starts no judge and passes. `default_stages` prevents unrelated hooks from accidentally running twice. In shared Git worktrees, hook installation affects sibling worktrees too; use `pre-commit install --allow-missing-config`

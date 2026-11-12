@@ -40,7 +40,7 @@ The [CPU study](https://github.com/gigaverse-app/dry-lint/pull/116) contains the
 
 Install the optional `dry-lint[cpu-embedding]` dependencies and provide the exact pinned model files described in the [CPU setup guide](cpu-embedding.md#install-and-configure). Both CPU routes can share its validated disk vector cache. The plugin never downloads weights or acquires credentials.
 
-Enable the complete evaluated stack with the [CPU recovery profile](cpu-recovery.md). In `.dry-lint.toml`:
+Enable the complete evaluated stack with the [CPU recovery profile](cpu-recovery.md). In `.dry-lint/config.toml`:
 
 ```toml
 preset = "balanced"

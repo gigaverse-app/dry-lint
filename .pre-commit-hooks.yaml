@@ -5,7 +5,8 @@
   entry: dry-lint check --staged --env-file .env
   language: python
   additional_dependencies: ["anthropic>=1.0", "langchain-anthropic>=1.7,<2", "python-dotenv>=1,<2"]  # the `hooks` extra: Claude judges, and .env
-  types_or: [python, javascript, jsx, ts, tsx]
+  # Metadata-only changes, including deleting the ignore file, can reopen a pair.
+  always_run: true
   stages: [pre-commit]
   pass_filenames: false
   require_serial: true

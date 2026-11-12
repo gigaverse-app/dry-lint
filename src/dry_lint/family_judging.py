@@ -68,7 +68,6 @@ def family_reservation_cost(request: FamilyRequest, judge: FamilyJudge, rates: t
         raise ValueError("Family admission requires a finite output ceiling")
     # One admission rule (`conservative_cost`); a family question is priced from validated explicit rates and
     # the judge's own rendered prompt, where a pair question looks up configured prices and the shared prompt.
-    # dry-lint: distinct-from src/dry_lint/discovery.py::reservation_cost
     return conservative_cost(judge.input_text(request), judge.max_tokens, checked_rates(rates))
 
 

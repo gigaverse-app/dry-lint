@@ -7,7 +7,6 @@ import json
 import re
 import subprocess
 import sys
-import tomllib
 from importlib import import_module
 from importlib.metadata import version
 from pathlib import Path
@@ -19,6 +18,7 @@ from dry_lint.functions import extractor_for, selected_path
 from dry_lint.git import git
 from dry_lint.models import Function, Run, repository_path
 from dry_lint.plugins import identity, load
+from dry_lint.repository_files import SETTINGS_FILES
 from dry_lint.settings import Settings
 
 INDEX_SCHEMA = 2
@@ -65,7 +65,17 @@ def repository_name(value: str) -> str:
 
 
 def extraction_contract(settings: Settings) -> str:
-    modules = ("function_index", "functions", "extractors", "typescript", "source_context", "models", "model_shapes")
+    modules = (
+        "function_index",
+        "functions",
+        "extractors",
+        "typescript",
+        "source_context",
+        "models",
+        "model_shapes",
+        "settings",
+        "repository_files",
+    )
     implementation = {
         name: Path(import_module(f"dry_lint.{name}").__file__).read_text(encoding="utf-8") for name in modules
     }
@@ -140,12 +150,7 @@ class FunctionIndex(BaseModel):
 
 
 def source_settings(sources: dict[str, bytes]) -> Settings:
-    if ".dry-lint.toml" in sources:
-        return Settings.model_validate(tomllib.loads(sources[".dry-lint.toml"].decode("utf-8")))
-    if "pyproject.toml" in sources:
-        data = tomllib.loads(sources["pyproject.toml"].decode("utf-8"))
-        return Settings.model_validate(data.get("tool", {}).get("dry-lint", {}))
-    return Settings()
+    return Settings.from_sources(sources)
 
 
 def build_index(sources: dict[str, bytes], repository: str, commit: str, settings: Settings) -> FunctionIndex:
@@ -182,7 +187,7 @@ def tree_blobs(root: Path, revision: str, settings: Settings) -> dict[str, bytes
     blobs = [
         (meta.split()[2], path)
         for meta, path in entries
-        if meta.startswith("100") and (path in (".dry-lint.toml", "pyproject.toml") or extractor_for(path, extractors))
+        if meta.startswith("100") and (path in SETTINGS_FILES or extractor_for(path, extractors))
     ]
     request = "".join(f"{sha}\n" for sha, _ in blobs).encode()
     result = subprocess.run(

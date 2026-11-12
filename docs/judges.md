@@ -108,7 +108,7 @@ Jev's numbers. A failing first judge is still an error.
 ## Budget and cost
 
 ```toml
-# .dry-lint.toml ([tool.dry-lint.budget] and [tool.dry-lint.prices] in pyproject.toml)
+# .dry-lint/config.toml ([tool.dry-lint.budget] and [tool.dry-lint.prices] in pyproject.toml)
 [budget]
 usd = 0.04                 # most judging spends on one pull request, across all its pushes (--budget-usd overrides it)
 subscription_calls = 20    # most calls one run makes to subscription judges

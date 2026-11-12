@@ -16,7 +16,10 @@ from dry_lint.settings import Settings
 
 
 @pytest.fixture
-def index_server(repo):
+def index_server(repo, request):
+    if config := getattr(request, "param", None):
+        repo.write(config, 'exclude = ["src/filler.py"]\n')
+        repo.commit()
     snapshot = export_index(repo.root, "org/app", Settings())
     archive = subprocess.run(
         ["git", "-C", str(repo.root), "archive", "--format=tar.gz", "--prefix=app/", "HEAD"],
@@ -90,6 +93,15 @@ def test_artifact_hit_never_fetches_peer_source_and_retains_full_identity(index_
     assert result.transferred > 0
     assert snapshot.commit in result.receipt()
     assert all("tarball" not in str(call.url) and "/git/" not in str(call.url) for call in calls)
+
+
+@pytest.mark.parametrize("index_server", [".dry-lint.toml", ".dry-lint/config.toml"], indirect=True)
+def test_rebuild_honors_committed_configuration_in_either_layout(index_server):
+    snapshot, responses, _, _ = index_server
+    responses["/repos/org/app/actions/artifacts"]["artifacts"] = []
+    result = fetch(index_server)
+    assert result.index == snapshot
+    assert {f.path for f in result.index.functions} == {"src/text.py", "src/widgets/caption.py"}
 
 
 @pytest.mark.parametrize(

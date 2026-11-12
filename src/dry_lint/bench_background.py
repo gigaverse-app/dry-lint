@@ -75,12 +75,10 @@ class BenchBackground(BaseModel):
     def index(self) -> TfidfIndex:
         """Replay frozen tokens, without applying today's tokenizer to yesterday's source."""
         # Both adapters already use TfidfIndex; sparse-row replay does not configure a live comparer.
-        # dry-lint: distinct-from src/dry_lint/comparers.py::TfidfComparer.index
         return TfidfIndex([document.tokens() for document in self.documents], self.max_df)
 
     def encode(self) -> bytes:
         # encode_snapshot owns the common envelope; this adapter preserves sparse token insertion order.
-        # dry-lint: distinct-from src/dry_lint/function_index.py::FunctionIndex.encode
         return encode_snapshot(self.model_dump(mode="json", by_alias=True), sort_keys=False)
 
     @classmethod

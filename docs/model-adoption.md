@@ -114,7 +114,7 @@ Coding agents must verify the full runtime boundary. Renaming a mixed-use model 
    For an intentional boundary, use `feedback dismiss` with its concrete reason or an adopter policy.
    Acceptance requires unchanged staged source; it does not suppress a new duplicate by itself.
 3. Run `dry-lint model-baseline --init` against committed source. Commit `.dry-lint/models.json` and the reviewed
-   `.dry-lint-feedback.json` decisions, then set `models.baseline` as above. Only accepted source-bound pairs
+   `.dry-lint/feedback.json` decisions, then set `models.baseline` as above. Only accepted source-bound pairs
    enter the baseline. Unreviewed pairs remain unknown, not accepted debt or confirmed duplication.
 4. After consolidation, stage the repair, run `dry-lint model-baseline --update --staged`, then stage the updated
    baseline. Checks require resolved allowances to be retired before the repair can land, preventing later

@@ -20,6 +20,7 @@ from dry_lint.function_index import (
 from dry_lint.functions import extractor_for
 from dry_lint.models import repository_path
 from dry_lint.plugins import load
+from dry_lint.repository_files import SETTINGS_FILES
 from dry_lint.settings import Settings
 
 PUBLISHER = ".github/workflows/dry-lint-index.yml"
@@ -149,7 +150,7 @@ class IndexClient:
             for entry in listing["tree"]
             if entry["type"] == "blob"
             and entry["mode"] in {"100644", "100755"}
-            and (entry["path"] in {".dry-lint.toml", "pyproject.toml"} or extractor_for(entry["path"], extractors))
+            and (entry["path"] in SETTINGS_FILES or extractor_for(entry["path"], extractors))
         }
         if not all(repository_path(path) for path in expected):
             raise ValueError("Unsafe source tree path")

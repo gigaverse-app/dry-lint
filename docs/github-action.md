@@ -152,7 +152,7 @@ deployment rather than replacing it with the example publisher in `.github/workf
 
 ## When it fails, and false positives
 
-Two thresholds decide what a finding does: `report_at` and `fail_at`, both in `.dry-lint.toml`. The `fail-at`
+Two thresholds decide what a finding does: `report_at` and `fail_at`, both in `.dry-lint/config.toml`. The `fail-at`
 action input (or `--fail-at` on the command line) overrides `fail_at` for one workflow.
 
 | Judge score | Finding | Check |
@@ -180,10 +180,11 @@ pairs are counted separately from confirmed duplicates in the text summary.
 
 | Scope | How | Where it lives |
 | --- | --- | --- |
-| this pair | `# dry-lint: distinct-from src/text.py::shorten_text` in the new function | next to the code it explains |
+| this pair | a `distinct` list entry with exact `symbol`, `from` and `reason` | committed `.dry-lint/ignore.yaml` ([format](configuration.md)) |
+| this pair, inline alternative | `# dry-lint: distinct-from src/text.py::shorten_text` in the new function | next to the code it explains |
 | this function | `# dry-lint: ignore` in the function | next to the code |
-| a family of deliberate look-alikes, or copies kept on purpose | a `[[patterns]]` entry (`members`, `reason`) in `.dry-lint.toml` ([how patterns match](../README.md#when-it-is-right-not-to-merge-them)) | configuration, reviewed |
-| whole paths | `exclude` in `.dry-lint.toml` | configuration, reviewed |
+| a family of deliberate look-alikes, or copies kept on purpose | a `[[patterns]]` entry (`members`, `reason`) in `.dry-lint/config.toml` ([how patterns match](../README.md#when-it-is-right-not-to-merge-them)) | configuration, reviewed |
+| whole paths | `exclude` in `.dry-lint/config.toml` | configuration, reviewed |
 | this pull request only | the `dry-lint: override` label | the pull request; the comment says it was overridden |
 
 The code and configuration routes are permanent and reviewed like any change: the pair is never proposed again.
@@ -257,9 +258,9 @@ code 2 always fails the step, including subprocess crashes and report-rendering 
 error annotation and a job-summary message even with `comment: false` or `warn-only: true`. Each invocation
 discards its previous report before scanning, so a failed scan cannot reuse an earlier successful report.
 
-Thresholds and exclusions live in a `.dry-lint.toml` at the repository root, or under `[tool.dry-lint]` in
-`pyproject.toml` (`.dry-lint.toml` wins when both exist), so that the action, the pre-commit hook and the command
-line all agree ([README](../README.md#settings)). Prefer `.dry-lint.toml`; it also avoids rerunning every test in
+Thresholds and exclusions live in a `.dry-lint/config.toml` at the repository root, or under `[tool.dry-lint]` in
+`pyproject.toml` (`.dry-lint/config.toml` wins when both exist), so that the action, the pre-commit hook and the command
+line all agree ([README](../README.md#settings)). Prefer `.dry-lint/config.toml`; it also avoids rerunning every test in
 repositories whose CI treats any `pyproject.toml` change as global.
 
 ## Verdict cache

@@ -2,7 +2,7 @@
 
 CPU recovery is a supported opt-in discovery profile for operations that lexical matching or a function's embedding prefix misses. It preserves the evaluated route order, native function prompts and budget rules. The selected development campaigns support three useful added operation families; this is not evidence for enabling it in every repository. See the [tail recovery measurements](cpu-tail-rrf.md).
 
-Install the optional `dry-lint[cpu-embedding]` dependencies. Supply the exact pinned local model and tokenizer described in [offline model setup](cpu-embedding.md#install-and-configure), then add this to `.dry-lint.toml`:
+Install the optional `dry-lint[cpu-embedding]` dependencies. Supply the exact pinned local model and tokenizer described in [offline model setup](cpu-embedding.md#install-and-configure), then add this to `.dry-lint/config.toml`:
 
 ```toml
 preset = "balanced"

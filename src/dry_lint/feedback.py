@@ -8,9 +8,10 @@ from pydantic import BaseModel, Field
 
 from dry_lint.files import encoded
 from dry_lint.models import Candidate, evidence
+from dry_lint.repository_files import FEEDBACK_FILES, location, read_files
 from dry_lint.store import DirectoryStore
 
-FILENAME = ".dry-lint-feedback.json"
+FILENAME = FEEDBACK_FILES[0]
 
 
 class Decision(BaseModel):
@@ -30,6 +31,17 @@ class Feedback(BaseModel):
     @classmethod
     def read(cls, path: Path) -> "Feedback":
         return cls.model_validate_json(path.read_bytes()) if path.exists() else cls()
+
+    @classmethod
+    def for_repository(cls, root: Path, *, staged: bool = False, committed: bool = False) -> "Feedback":
+        sources = read_files(root, FEEDBACK_FILES, staged=staged, revision="HEAD" if committed else None)
+        raw = sources.get(location(sources, FEEDBACK_FILES))
+        return cls.model_validate_json(raw) if raw is not None else cls()
+
+    @staticmethod
+    def path(root: Path) -> Path:
+        """Continue an existing legacy file; new feedback belongs under .dry-lint/."""
+        return root / location(read_files(root, FEEDBACK_FILES), FEEDBACK_FILES)
 
     def apply(self, candidates: list[Candidate]) -> list[Candidate]:
         latest = {d.evidence: d for d in self.decisions}

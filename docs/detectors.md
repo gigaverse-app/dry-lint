@@ -26,7 +26,7 @@ That commit is the one CI tests, in a separate job outside the required gate. Dr
 pack, and its first invocation downloads the Python grammar from GitHub release assets; provision that cache before
 offline use. TF-IDF needs none of these dependencies and never imports them.
 
-Select it in `.dry-lint.toml` or under `[tool.dry-lint]` in `pyproject.toml`:
+Select it in `.dry-lint/config.toml` or under `[tool.dry-lint]` in `pyproject.toml`:
 
 ```toml
 comparer = { use = "dryer", threshold = 0.82, min_lines = 4, min_nodes = 20 }

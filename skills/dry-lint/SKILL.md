@@ -34,7 +34,7 @@ Run these and note the answers. Every later step uses them.
 REPO=OWNER/NAME     # the repository you will open the pull request in: check `git remote -v`; in a fork, the fork
 gh repo view "$REPO" --json defaultBranchRef,visibility -q '"\(.defaultBranchRef.name) \(.visibility)"'
 grep -rhE '^\s*-?\s*uses:' .github/workflows 2>/dev/null | sort | uniq -c    # how actions are pinned
-ls AGENTS.md CLAUDE.md README* .pre-commit-config.yaml .dry-lint.toml .dry-lint/baseline.json 2>/dev/null
+ls AGENTS.md CLAUDE.md README* .pre-commit-config.yaml .dry-lint.toml .dry-lint/config.toml .dry-lint/baseline.json 2>/dev/null
 git ls-files | grep -iE 'contributing|pull_request_template'                 # in any folder (.github/, docs/) or case
 grep -n "rev:" .pre-commit-config.yaml 2>/dev/null                           # how hooks are pinned
 grep -n "tool.dry-lint" pyproject.toml 2>/dev/null; grep -rln "dry-lint" .github/workflows 2>/dev/null
@@ -90,7 +90,7 @@ with 30 or fewer it is absent. Nothing is judged and nothing fails.
 
 ```text
 src/dry_lint/judges/http.py:49: HttpJudge.judge looks like src/dry_lint/judges/jev.py::JevJudge.judge (candidate)
-    similarity 0.98; pair 8b37533910fcfe44; if they are different concepts, add `# dry-lint: distinct-from ...`; ...
+    similarity 0.98; pair 8b37533910fcfe44; if they are different concepts, add this pair as a distinct entry with a reason in .dry-lint/ignore.yaml; ...
 ```
 
 Read `config`'s `N source files in scope: <folder> <count>, ...` line before the pairs: by default everything
@@ -100,12 +100,17 @@ generated code usually do not belong in scope; step 3 narrows it.
 
 ## 3. Write the settings
 
-Settings live in `.dry-lint.toml` at the repository root (top-level keys, `[budget]`, `[[patterns]]`). The same
-keys work under `[tool.dry-lint]` in `pyproject.toml`; if both exist, `.dry-lint.toml` wins. Use `.dry-lint.toml`
-unless the repository already configures dry-lint in `pyproject.toml`.
+Settings live in `.dry-lint/config.toml` at the repository root (top-level keys, `[budget]`, `[[patterns]]`). The same
+keys work under `[tool.dry-lint]` in `pyproject.toml`; if both exist, `.dry-lint/config.toml` wins. Use `.dry-lint/config.toml`
+unless the repository already configures dry-lint in `pyproject.toml`. Legacy `.dry-lint.toml` is readable;
+move it to `.dry-lint/config.toml` without changing its contents. Both dedicated locations together are an error.
+Keep the whole `.dry-lint/` directory committed. Settings are global; do not create subdirectory overrides.
+For reviewed pair exceptions, use only `.dry-lint/ignore.yaml`, never `.dry-lint-ignore.toml`.
+Preserve entry order and comments. Edit only the relevant entry, put each target on its own line,
+and use folded multiline reasons for longer explanations. Do not sort or rewrite the whole ignore file.
 
 ```toml
-# .dry-lint.toml
+# .dry-lint/config.toml
 # Recommended function policy. CI, the hook and the baseline all use it; models require agent review.
 preset = "balanced"
 # The folders that ship: the package directories, not tests or docs.
@@ -188,7 +193,7 @@ README block.
 **Without a local key, in CI.** Fetch
 [examples/dry-lint-bootstrap.yml](https://raw.githubusercontent.com/gigaverse-app/dry-lint/v1/examples/dry-lint-bootstrap.yml)
 into `.github/workflows/`, set its secret to `KEY_SECRET`, apply the pinning policy, commit it together with
-`.dry-lint.toml`, and push. It runs on every push that changes either file, on your branch; no default-branch
+`.dry-lint/config.toml`, and push. It runs on every push that changes either file, on your branch; no default-branch
 registration is needed. It passes the repository id itself and writes the README block only when there is a
 `README.md`. This is the first push: open the draft pull request now (the body can say "work in progress"):
 
@@ -208,13 +213,15 @@ OUT=$(mktemp -d) && gh run download RUN_ID --repo "$REPO" --name dry-lint-baseli
 
 Copy `.dry-lint/`, and `README.md` if the artifact has one, from `$OUT` into the repository. Keep
 `sweep-report.json` out of Git; read it for the review below. To run it again, for example after adding a pattern,
-do not commit the downloaded files yet: commit and push the `.dry-lint.toml` change and the push starts a new run.
+do not commit the downloaded files yet: commit and push the `.dry-lint/config.toml` change and the push starts a new run.
 Once the baseline is right, delete the bootstrap workflow and commit it together with the files.
 
 Expected, at the end of either route: `dry-lint: 0 pairs cleaned, N remaining, 0 dismissed; wrote .dry-lint/baseline.json`.
 
 **Review the accepted pairs** before committing. Each is real debt someone will clean up later. If many come from
-one deliberate copy, go back to step 4, add the pattern, delete the uncommitted `.dry-lint/` and run the sweep again.
+one deliberate copy, go back to step 4, add the pattern, remove only the uncommitted generated
+`baseline.json`, `progress.json` and `models.json` under `.dry-lint/`, then run the sweep again.
+Preserve `config.toml`, `ignore.yaml` and `feedback.json`; never delete the whole directory.
 That is allowed only while the baseline has never been merged. Do not refactor the pairs in this pull request.
 
 The sweep judges more pairs than `scan` listed: `scan` shows only pairs that are each other's closest look-alike,
@@ -223,7 +230,7 @@ while a sweep asks about every function's three closest (the `neighbours` settin
 **Judge scores vary slightly.** Two identical runs can differ by about 0.01, so a pair within a few hundredths of the
 preset's threshold can be reported in one run and not the next. Do not chase it: never change thresholds to settle
 one pair, and do not re-run the sweep hoping for a different answer. Decide such a pair on its merits, as you would
-any finding: it stays in the baseline as debt, or gets a pattern or `distinct-from` with a reason. Verdicts are cached
+any finding: it stays in the baseline as debt, or gets a pattern or reviewed `distinct` exception with a reason. Verdicts are cached
 per pair, so later checks reuse the same answer until the code changes.
 
 The README block gets a `## Duplicate code` heading. Move or rename the heading to fit the README; later sweeps
@@ -287,7 +294,7 @@ repos:
     # v1, or the latest v1.x.y tag when the other hooks pin exact tags (step 1).
     rev: v1
     hooks:
-      # The preset from .dry-lint.toml, with the baseline.
+      # The preset from .dry-lint/config.toml, with the baseline.
       - id: dry-lint
         args: [--baseline, .dry-lint/baseline.json, --require-complete]
       # Records findings no longer reported, without claiming they were removed.
@@ -430,8 +437,10 @@ When a finding blocks, you are its final judge. Open both functions.
 
 - **One concept:** delete the new copy and call the existing function, or extract a shared helper both use. Run the
   tests. If the finding says `drifted`, check which behavior callers need first.
-- **Different concepts:** add `# dry-lint: distinct-from path::name` (`//` in TypeScript) inside the new function,
-  with a comment saying how they differ.
+- **Different concepts:** add a reviewed `distinct` entry to `.dry-lint/ignore.yaml`, with the exact
+  `symbol`, a `from` list and a reason explaining their independent ownership. Start a new file with `schema: 1` and `distinct:`.
+  Prefer this committed file over adding tool directives to source. Inline `distinct-from` remains an alternative
+  when the explanation belongs beside the code. See [configuration and migration](../../docs/configuration.md).
 - **One concept, two copies kept on purpose:** a `[[patterns]]` entry with a reason (step 4).
 - **Generated code or a deliberate one-off:** `# dry-lint: ignore` in the function.
 - **One pull request only:** the `dry-lint: override` label. It never waives widening the baseline.
