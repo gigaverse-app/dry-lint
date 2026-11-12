@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from dry_lint import __version__
 from dry_lint.costs import Spend
+from dry_lint.extractor_capabilities import comment_style
 from dry_lint.family_judging import FamilyFinding
 from dry_lint.models import Candidate, Function, Run, Verdict, Versioned, qualified
 from dry_lint.settings import Settings
@@ -157,14 +158,7 @@ class Finding(BaseModel):
         ]
 
     def suppression(self) -> str:
-        path = self.candidate.new.path
-        prefix = (
-            "//"
-            if path.endswith((".ts", ".tsx", ".mts", ".cts"))
-            else "--"
-            if path.endswith((".luau", ".lua"))
-            else "#"
-        )
+        prefix = comment_style(self.candidate.new.path).comment_prefix
         return f"{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}"
 
     def ignore_entry(self) -> str:
@@ -850,8 +844,7 @@ def clean(report: Report, audit: bool, report_at: float | None, kind: str = "fun
 
 
 def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list[str]:
-    typescript = [f.suppression().startswith("//") for f in shown]
-    luau = [f.suppression().startswith("--") for f in shown]
+    styles = dict.fromkeys(comment_style(f.candidate.new.path) for f in shown)
     markers = {f.suppression().split()[0] for f in shown}
     prefix = markers.pop() if len(markers) == 1 else "#"
     noun = "model declaration" if kind == "model" else "function"
@@ -863,8 +856,10 @@ def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list
         f"| one {noun} | `{prefix} dry-lint: ignore` in that {noun} |",
         "| a family of look-alikes, or copies kept on purpose | a `[[patterns]]` entry with a `reason` in `.dry-lint/config.toml` |",
         *([] if audit else ["| this pull request only | the `dry-lint: override` label |"]),
-        *(["", "In TypeScript and TSX, the comments start with `//`."] if any(typescript) and prefix == "#" else []),
-        *(["", "In Luau, the comments start with `--`."] if any(luau) and prefix == "#" else []),
+        *[
+            line for style in styles if style.comment_prefix != prefix and style.language_name
+            for line in ("", f"In {escaped(style.language_name)}, the comments start with `{escaped(style.comment_prefix)}`.")
+        ],
     ]  # fmt: skip
 
 

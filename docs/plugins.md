@@ -65,6 +65,55 @@ empty. `structure_hash` must change when the logic changes and not for comments 
 renames only when the language's binding rules make that safe; conservative re-judging is preferable. Core
 calls it only for the functions in a candidate pair. `owner` is the enclosing class, if any.
 
+### Language integration capabilities
+
+An extractor can declare its integrations once, on the class. Core consumes these capabilities without checking
+language names or suffixes. No base class is required; existing protocol-only plugins continue to work.
+
+```python
+from dry_lint.extractor_capabilities import ExtractorCapabilities
+
+
+class ExampleExtractor:
+    name, version = "example", "1"
+    files = ("*.example",)
+    capabilities = ExtractorCapabilities(
+        language_name="Example",
+        comment_prefix="//",
+        model_extractor="example-records",
+        index_modules=("my_package.syntax",),
+        index_distributions=("my-parser-package",),
+    )
+    # Implement functions(), structure_hash(), and validate_source() as above.
+```
+
+Register both extractors in `dry_lint.extractors`. `model_extractor` names a companion plugin; that companion
+sets `is_model=True` and `model_extractor=None`. It can use any plugin name, without a `-models` suffix. The
+automatic model pass retains the default languages' model coverage and adds companions of configured extractors,
+deduplicating names. Companion construction uses its own defaults; function-only options such as `min_lines`
+are not passed to it. Explicit model-only configurations retain their options and never trigger a second pass.
+
+`language_name` and `comment_prefix` supply inline-suppression instructions and directive recognition.
+The comment prefix describes a line-comment marker; it does not parse the language's syntax. Plugins without
+capabilities keep `#`, no automatic companion and the legacy `-models` convention.
+Previously accepted built-in comment markers remain recognized in inline decisions, including across file types.
+
+The extraction index fingerprints each configured extractor's Python implementation, its base classes, declared
+`index_modules`, and installed `index_distributions` versions. Dependencies declared by base classes are included
+even when a subclass replaces the descriptor. Declare helper modules and parser distributions whose changes can
+change extraction. Unconfigured optional adapters contribute no parser dependency. This invalidates indexes;
+plugin versions and structure/context hashes still own verdict reuse.
+
+The public comparison viewer discovers installed extractors by `files`, constructs the matching adapter and its
+companion with default options, and resolves functions and records from one source read. It never reads or installs
+plugins from adopter settings. Missing dependencies, required constructor options or missing strict validation mean
+the survivor is unknown, not deleted. An optional `comparison_helpers(source, caller) -> list[Function]` hook can
+provide bounded same-file helper references; Python supplies this hook.
+
+Model plugins use a nonempty, stable `Declaration.kind` string of their own, such as `go-struct`; core does not
+enumerate language families. Adding a future Go plugin requires its parser adapter, capability descriptor and
+entry-point registration. This interface does not itself implement Go parsing.
+
 ### Language analysis
 
 The extractor is also the language adapter: return optional `Function.analysis` using the canonical

@@ -25,6 +25,8 @@ from dry_lint.settings import PluginChoice, Settings
 
 
 class Extractor(Protocol):
+    # Optional `capabilities: ExtractorCapabilities` declares model, report and index integrations.
+    # Optional `comparison_helpers(source, caller)` returns same-file helpers for the source viewer.
     name: str
     version: str
     files: tuple[str, ...]  # fnmatch globs over paths it reads, e.g. ("*.py",)

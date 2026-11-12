@@ -14,6 +14,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from dry_lint.extractor_capabilities import capabilities
 from dry_lint.functions import extractor_for, selected_path
 from dry_lint.git import git
 from dry_lint.models import Function, Run, repository_path
@@ -21,7 +22,7 @@ from dry_lint.plugins import identity, load
 from dry_lint.repository_files import SETTINGS_FILES
 from dry_lint.settings import Settings
 
-INDEX_SCHEMA = 3
+INDEX_SCHEMA = 4
 MAX_INDEX_BYTES = 256 * 1024 * 1024
 REPOSITORY = re.compile(r"[\w-][\w.-]*/[\w-][\w.-]*", re.ASCII)
 COMMIT = re.compile(r"[0-9a-f]{40}")
@@ -66,24 +67,23 @@ def repository_name(value: str) -> str:
 
 def extraction_contract(settings: Settings) -> str:
     plugins = [load("extractors", choice) for choice in settings.extractors]
-    # Only configured Luau extraction depends on its implementation and optional parser package.
-    luau = any(plugin.name in {"luau", "luau-models"} for plugin in plugins)
-    luau_models = any(plugin.name == "luau-models" for plugin in plugins)
     modules = (
         "function_index",
         "functions",
-        "extractors",
-        "typescript",
-        "tree_hash",
-        "source_context",
+        "extractor_capabilities",
+        "plugins",
         "models",
-        "model_shapes",
         "settings",
         "repository_files",
     )
+    # Include inherited implementation and declared helpers; core never guesses a plugin's dependencies by name.
+    supports = [capabilities(cls) for plugin in plugins for cls in (plugin, *type(plugin).__mro__)]
+    dependencies = {cls.__module__ for plugin in plugins for cls in type(plugin).__mro__ if cls is not object} | {
+        module for support in supports for module in support.index_modules
+    }
     implementation = {
-        name: Path(import_module(f"dry_lint.{name}").__file__).read_text(encoding="utf-8")
-        for name in (*modules, *(("luau",) if luau else ()), *(("luau_models",) if luau_models else ()))
+        name: Path(import_module(name).__file__).read_text(encoding="utf-8")
+        for name in {*(f"dry_lint.{module}" for module in modules), *dependencies}
     }
     return digest(
         {
@@ -93,8 +93,7 @@ def extraction_contract(settings: Settings) -> str:
             "python": list(sys.version_info[:2]),
             "platform": sys.platform,
             "parsers": {
-                name: version(name)
-                for name in ("tree-sitter", "tree-sitter-typescript", *(("tree-sitter-luau",) if luau else ()))
+                name: version(name) for name in {name for support in supports for name in support.index_distributions}
             },
             "extractors": [
                 {"choice": choice.model_dump(), "identity": identity(plugin), "files": plugin.files}
@@ -112,7 +111,7 @@ class IndexedFunction(Function):
 class FunctionIndex(BaseModel):
     model_config = ConfigDict(extra="forbid")
     format: Literal["dry-lint/function-index"] = "dry-lint/function-index"
-    schema_version: Literal[1, 2, 3] = Field(default=INDEX_SCHEMA, alias="schema")
+    schema_version: Literal[1, 2, 3, 4] = Field(default=INDEX_SCHEMA, alias="schema")
     repository: str
     commit: str
     contract: str

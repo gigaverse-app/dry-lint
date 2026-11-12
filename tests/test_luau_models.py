@@ -51,7 +51,7 @@ def test_records_flow_through_same_file_retrieval_and_wire_formats(tmp_path, ext
     assert len(pairs) == 3
     assert all(p.similarity == 1 and p.filtered is None for p in pairs)
     restored = CandidatesFile.model_validate_json(CandidatesFile(candidates=pairs).model_dump_json())
-    assert restored.schema_version == 18
+    assert restored.schema_version == 19
     assert restored.candidates[0].new.declaration.kind == "luau"
     assert restored.candidates[0].new.declaration.fields == {
         "receiptId": "string",
@@ -59,7 +59,7 @@ def test_records_flow_through_same_file_retrieval_and_wire_formats(tmp_path, ext
         "metadata": "{ currency: string }",
     }
     index = build_index({"models.luau": RECORDS.encode()}, "org/roblox", "a" * 40, settings)
-    assert index.schema_version == 3
+    assert index.schema_version == 4
     loaded = FunctionIndex.decode(index.encode(), index.repository, index.commit, extraction_contract(settings))
     assert [f.declaration for f in loaded.extracted()] == [f.declaration for f in detector.functions]
     assert detector.functions[0].code.startswith("-- A wire record")

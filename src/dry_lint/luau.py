@@ -6,6 +6,7 @@ from functools import partial
 
 from tree_sitter import Language, Node, Parser
 
+from dry_lint.extractor_capabilities import ExtractorCapabilities
 from dry_lint.extractors import local_calls
 from dry_lint.functions import words
 from dry_lint.models import Function, LanguageAnalysis, qualified
@@ -297,6 +298,13 @@ class LuauExtractor:
     name = "luau"
     version = "3"
     files = ("*.luau", "*.lua")
+    capabilities = ExtractorCapabilities(
+        language_name="Luau",
+        comment_prefix="--",
+        model_extractor="luau-models",
+        index_modules=("dry_lint.extractors", "dry_lint.tree_hash"),
+        index_distributions=("tree-sitter", "tree-sitter-luau"),
+    )
     preserve_types = False
 
     def __init__(self, min_lines: int = 2) -> None:
