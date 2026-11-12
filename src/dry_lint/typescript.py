@@ -9,6 +9,7 @@ from functools import partial
 import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
+from dry_lint.extractor_capabilities import ExtractorCapabilities
 from dry_lint.extractors import local_calls
 from dry_lint.functions import words
 from dry_lint.models import Function, LanguageAnalysis, module_of, qualified
@@ -269,6 +270,13 @@ class TypeScriptExtractor:
     name = "typescript"
     version = "3"
     files = ("*.ts", "*.tsx", "*.mts", "*.cts")
+    capabilities = ExtractorCapabilities(
+        language_name="TypeScript and TSX",
+        comment_prefix="//",
+        model_extractor="typescript-models",
+        index_modules=("dry_lint.extractors", "dry_lint.source_context", "dry_lint.tree_hash"),
+        index_distributions=("tree-sitter", "tree-sitter-typescript"),
+    )
 
     def __init__(self, min_lines: int = 1) -> None:
         self.min_lines = min_lines

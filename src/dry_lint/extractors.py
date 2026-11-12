@@ -2,6 +2,7 @@
 
 import ast
 
+from dry_lint.extractor_capabilities import ExtractorCapabilities
 from dry_lint.functions import function_nodes, node_calls, node_tokens, structure_hash
 from dry_lint.models import Function, LanguageAnalysis, qualified
 
@@ -89,6 +90,12 @@ class PythonExtractor:
     name = "python"
     version = "3"
     files = ("*.py",)
+    capabilities = ExtractorCapabilities(language_name="Python", model_extractor="python-models")
+
+    def comparison_helpers(self, source: str, caller: Function) -> list[Function]:
+        from dry_lint.comparison_helpers import python_helpers
+
+        return python_helpers(source, caller)
 
     def __init__(self, min_lines: int = 2) -> None:
         self.min_lines = min_lines

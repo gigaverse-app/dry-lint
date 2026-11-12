@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 from tree_sitter import Node
@@ -168,6 +168,12 @@ def table_fields(node: Node, callables: set[str]) -> dict[str, str]:
 
 
 class LuauModelExtractor(LuauExtractor):
+    capabilities = replace(
+        LuauExtractor.capabilities,
+        is_model=True,
+        model_extractor=None,
+        index_modules=(*LuauExtractor.capabilities.index_modules, "dry_lint.model_shapes", "dry_lint.source_context"),
+    )
     name = "luau-models"
     version = "2"
     # Model contracts retain annotations, defaults, function members and generic parameters in their hashes.

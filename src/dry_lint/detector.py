@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 
 from dry_lint.comparer_resources import ComparerResources
+from dry_lint.extractor_capabilities import comment_prefixes
 from dry_lint.function_index import FunctionIndex, extraction_contract, tree_blobs
 from dry_lint.functions import extractor_for, repository_functions, selected_path, validate_source
 from dry_lint.git import git
@@ -20,8 +21,13 @@ from dry_lint.ranking import rank_candidates
 from dry_lint.repository_files import IGNORE_FILE, read_files
 from dry_lint.settings import ExplorationComparer, Ignores, Settings
 
-SUPPRESSION = re.compile(r"(?:#|//|--)\s*dry-lint:\s*distinct-from\s+(\S+)")
-IGNORE = re.compile(r"(?:#|//|--)\s*dry-lint:\s*ignore\b")
+
+def inline_decisions(function: Function) -> list[tuple[str, str]]:
+    """Read the dry-lint directive grammar using the adapter's comment marker."""
+    if "dry-lint:" not in function.code:
+        return []
+    prefix = "(?:" + "|".join(re.escape(value) for value in sorted(comment_prefixes(function.path))) + ")"
+    return re.findall(prefix + r"\s*dry-lint:\s*(ignore\b|distinct-from\s+(\S+))", function.code)
 
 
 def default_base(root: Path) -> str:
@@ -139,7 +145,8 @@ def why_skipped(a: Function, b: Function, settings: Settings, *, calls: bool = T
     duplicate. An operation repeated inside both a caller and its callee is still repeated, so operation families
     ask with `calls=False`.
     """
-    if IGNORE.search(a.code) or IGNORE.search(b.code):
+    decisions = [(inline_decisions(a), b), (inline_decisions(b), a)]
+    if any(command == "ignore" for directives, _ in decisions for command, _ in directives):
         return "inline ignore"
     # INVARIANT: language syntax is interpreted by the adapter, never guessed from source or file suffix here.
     if (
@@ -160,8 +167,8 @@ def why_skipped(a: Function, b: Function, settings: Settings, *, calls: bool = T
     for distinction in settings.distinct:
         if tuple(sorted((a.qualname, b.qualname))) in distinction.pairs():
             return f"declared distinct pair: {distinction.reason}"
-    for x, y in ((a, b), (b, a)):
-        for target in SUPPRESSION.findall(x.code):
+    for directives, y in decisions:
+        for _, target in directives:
             if y.qualname.endswith(target):
                 return "inline distinct-from"
     return None

@@ -8,6 +8,7 @@ import ast
 import hashlib
 from collections import defaultdict
 from collections.abc import Callable
+from dataclasses import replace
 from typing import Literal
 
 from tree_sitter import Node
@@ -44,6 +45,12 @@ def resolved_name(node: ast.expr, bindings: dict[str, str]) -> str:
 class PythonModelExtractor(PythonExtractor):
     name: str = "python-models"
     version: str = "3"
+    capabilities = replace(
+        PythonExtractor.capabilities,
+        is_model=True,
+        model_extractor=None,
+        index_modules=("dry_lint.python_schemas", "dry_lint.source_context"),
+    )
 
     def functions(self, path: str, source: str) -> list[Function]:
         try:
@@ -164,6 +171,7 @@ def zod_object(node: Node, namespaces: set[str]) -> Node | None:
 
 
 class TypeScriptModelExtractor(TypeScriptExtractor):
+    capabilities = replace(TypeScriptExtractor.capabilities, is_model=True, model_extractor=None)
     name: str = "typescript-models"
     version: str = "1"
     preserve_types: bool = True

@@ -106,6 +106,15 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 
 ## File formats
 
+Schema 19 permits plugin-defined nonempty `Declaration.kind` strings, so a language's model plugin can round-trip
+its records without changing a core enum. Function-index schema 4 carries the same open declaration vocabulary.
+Earlier schemas remain readable; older consumers may reject new kinds. Built-in declaration labels, structural
+hashes and verdict reuse rules are unchanged. Index implementation/dependency contracts now come from configured
+extractor capabilities, including inherited implementation and helper dependencies, and invalidate older indexes.
+
+Extractor capabilities also select model companions, report comment syntax and comparison-viewer integration.
+Language-specific syntax and parser choices stay in the adapters; see [the capability contract](plugins.md#language-integration-capabilities).
+
 Schema 17 adds optional `Verdict.differences`: how the two copies of a pair behave differently, as the
 `langchain` judge lists them ([judges.md](judges.md#structured-answers)). Older records and other judges' verdicts
 load with none. It is not part of any key or hash. The judge's prompt changed with it, so new answers carry

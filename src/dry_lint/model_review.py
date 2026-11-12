@@ -4,22 +4,28 @@ from pathlib import Path
 
 from dry_lint.baseline import Baseline, Entry, contract
 from dry_lint.detector import Detector
+from dry_lint.extractor_capabilities import capabilities
 from dry_lint.feedback import Feedback
 from dry_lint.git import git
 from dry_lint.models import Candidate, Function
+from dry_lint.plugins import plugin_class
 from dry_lint.report import Report
 from dry_lint.settings import Discovery, PluginChoice, Settings
 
 
 def profile(settings: Settings) -> Settings:
     """Fixed model contract, independent of the available credentials and function preset."""
-    extractors = [PluginChoice(use="python-models"), PluginChoice(use="typescript-models")]
-    # The optional parser is required only after the adopter explicitly enables Luau.
-    if any(choice.use in {"luau", "luau-models"} for choice in settings.extractors):
-        extractors.append(PluginChoice(use="luau-models"))
+    extractors: dict[str, PluginChoice] = {}
+    # Preserve default model coverage; additional languages opt in through their configured extractor.
+    for choice in [*Settings().extractors, *settings.extractors]:
+        support = capabilities(plugin_class("extractors", choice.use))
+        if support.is_model:
+            extractors[choice.use] = choice
+        elif support.model_extractor and support.model_extractor not in extractors:
+            extractors[support.model_extractor] = PluginChoice(use=support.model_extractor)
     return settings.model_copy(
         update={
-            "extractors": extractors,
+            "extractors": list(extractors.values()),
             "comparer": settings.models.comparer,
             "neighbours": settings.models.neighbours,
             "policies": [*settings.policies, *settings.models.policies],
@@ -38,7 +44,7 @@ def profile(settings: Settings) -> Settings:
 
 def enabled(settings: Settings, override: bool | None, *, staged: bool = False) -> bool:
     # Explicit model-only plugin configurations already run their own pass.
-    if any(e.use.endswith("-models") for e in settings.extractors):
+    if any(capabilities(plugin_class("extractors", e.use)).is_model for e in settings.extractors):
         return False
     return override if override is not None else settings.models.enabled and (not staged or settings.models.hook)
 

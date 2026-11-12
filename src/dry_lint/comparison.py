@@ -9,15 +9,13 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 
-from dry_lint.comparison_helpers import python_helpers
 from dry_lint.evidence import PairEvidence, SourceReference
-from dry_lint.extractors import PythonExtractor
+from dry_lint.extractor_capabilities import capabilities, extractor_class_for
+from dry_lint.functions import validate_source
 from dry_lint.ledger import PullLedger
-from dry_lint.luau import LuauExtractor
-from dry_lint.luau_models import LuauModelExtractor
 from dry_lint.models import Function, Run, Verdict, qualified
+from dry_lint.plugins import plugin_class
 from dry_lint.report import Report, escaped
-from dry_lint.typescript import TypeScriptExtractor
 
 if TYPE_CHECKING:
     from dry_lint.sticky import GitHub
@@ -108,6 +106,7 @@ class Comparisons:
         self.public: dict[str, bool] = {}
         self.files: dict[tuple[str, str, str], list[Function] | None] = {}
         self.source_text: dict[tuple[str, str, str], str] = {}
+        self.extractors: dict[tuple[str, str, str], object] = {}
         self.base: str | None = None
 
     def pull_diff(self, server: str) -> str:
@@ -138,20 +137,14 @@ class Comparisons:
         """Only resolve an unchanged symbol identity; failed reads are not evidence that a symbol was deleted."""
         if source.repository != self.repository or not re.fullmatch(r"[a-fA-F0-9]{40}", self.head):
             return False, None
-        extractor = (
-            PythonExtractor()
-            if source.path.endswith(".py")
-            else TypeScriptExtractor()
-            if source.path.endswith((".ts", ".tsx", ".mts", ".cts"))
-            else LuauExtractor()
-            if source.path.endswith((".luau", ".lua"))
-            else None
-        )
-        if extractor is None:
+        cls = extractor_class_for(source.path)
+        if cls is None:
             return False, None
         key = (source.repository, self.head, source.path)
         if key not in self.files:
             try:
+                extractor = cls()
+                self.extractors[key] = extractor
                 response = self.github.client.get(
                     f"/repos/{source.repository}/contents/{quote(source.path, safe='/')}",
                     params={"ref": self.head},
@@ -161,12 +154,14 @@ class Comparisons:
                     self.files[key] = []
                 else:
                     response.raise_for_status()
-                    extractor.validate_source(source.path, response.text)
+                    validate_source(extractor, source.path, response.text)
                     self.files[key] = extractor.functions(source.path, response.text)
-                    if source.path.endswith((".lua", ".luau")):
-                        self.files[key].extend(LuauModelExtractor().functions(source.path, response.text))
+                    if model := capabilities(extractor).model_extractor:
+                        self.files[key].extend(
+                            plugin_class("extractors", model)().functions(source.path, response.text)
+                        )
                     self.source_text[key] = response.text
-            except (httpx.HTTPError, ValueError, SyntaxError):
+            except (httpx.HTTPError, ValueError, SyntaxError, ImportError, TypeError):
                 self.files[key] = None
         functions = self.files[key]
         if functions is None:
@@ -178,12 +173,15 @@ class Comparisons:
 
     def helpers(self, result: SourceReference) -> list[SourceReference]:
         key = (result.repository, result.revision, result.path)
-        if not result.path.endswith(".py") or key not in self.source_text:
+        if key not in self.source_text:
             return []
         caller = next(function for function in self.files[key] if function.line == result.line)
+        helpers = getattr(self.extractors[key], "comparison_helpers", None)
+        if helpers is None or caller.declaration is not None:
+            return []
         return [
             SourceReference.of(function, Run(repository=result.repository, head=result.revision))
-            for function in python_helpers(self.source_text[key], caller)
+            for function in helpers(self.source_text[key], caller)
         ]
 
     def links(self, evidence: PairEvidence, state: str) -> str:
