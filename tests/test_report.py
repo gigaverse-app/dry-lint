@@ -4,7 +4,7 @@ import pytest
 
 from dry_lint.baseline import Baseline, require_complete
 from dry_lint.costs import Spend
-from dry_lint.models import Candidate, Run, Verdict
+from dry_lint.models import Candidate, Difference, Run, Verdict
 from dry_lint.report import (
     CLEAN,
     FORMATS,
@@ -128,7 +128,7 @@ def test_text_report_gives_location_verdict_advice_and_a_way_out() -> None:
         "extract a shared helper",
         "same truncation",
         "similarity 0.71",
-        "# dry-lint: distinct-from src/text.py::shorten",
+        "a distinct entry with a reason in .dry-lint/ignore.yaml",
     ]:
         assert part in text
     assert "1 candidate pair(s), 0 skipped by rule, 1 from the store, 0 judged (judge jev:v), 1 reported" in text
@@ -167,7 +167,7 @@ def test_markdown_comment_lists_findings_under_a_stable_marker() -> None:
     assert "**duplicate**&nbsp;0.88<br><sub>call the existing one</sub> |" in body
     assert "| ⚪ | `clip` ≈ `other` <sub>· 2 look-alikes</sub> |" in body and "<sub>not judged</sub>" in body
     assert "> same truncation" in body
-    assert "```python\n# dry-lint: distinct-from src/text.py::shorten\n```" in body
+    assert '- "src/text.py::shorten"' in body and "```yaml\n  - symbol:" in body
     assert "<sub>2 changed functions · 2 pairs compared · judge `jev:v`</sub>" in body
 
 
@@ -295,7 +295,8 @@ def test_markdown_labels_blocking_findings_first_and_lists_every_override() -> N
         "`# dry-lint: distinct-from <qualified name>` in the changed function",
         "`# dry-lint: ignore`",
         "`[[patterns]]`",
-        "`.dry-lint.toml`",
+        "`.dry-lint/config.toml`",
+        "`.dry-lint/ignore.yaml`",
         "the `dry-lint: override` label",
     ):
         assert override in body
@@ -311,7 +312,7 @@ def test_overrides_use_the_comment_syntax_of_the_findings_languages() -> None:
     )
     only = as_markdown(report(typescript))
     assert "`// dry-lint: ignore`" in only and "start with `//`" not in only
-    assert "```ts\n// dry-lint: distinct-from src/text.py::shorten\n```" in only
+    assert '- "src/text.py::shorten"' in only and "```yaml\n  - symbol:" in only
     mixed = as_markdown(report(typescript, finding("duplicate", existing="other")))
     assert "`# dry-lint: ignore`" in mixed and "In TypeScript and TSX, the comments start with `//`." in mixed
 
@@ -325,7 +326,9 @@ def test_overrides_use_dash_comments_for_luau() -> None:
     )
     only = as_markdown(report(luau))
     assert "`-- dry-lint: ignore`" in only and "start with `--`" not in only
-    assert "```lua\n-- dry-lint: distinct-from src/text.py::shorten\n```" in only
+    assert luau.suppression() == "-- dry-lint: distinct-from src/text.py::shorten"
+    assert '- "src/text.py::shorten"' in only and "```yaml\n  - symbol:" in only
+    assert ".dry-lint/ignore.yaml" in only
     mixed = as_markdown(report(luau, finding("duplicate", existing="other")))
     assert "`# dry-lint: ignore`" in mixed and "In Luau, the comments start with `--`." in mixed
 
@@ -397,7 +400,7 @@ def test_the_status_note_has_a_slot_between_the_result_and_the_evidence() -> Non
 def test_json_report_round_trips() -> None:
     built = report(finding("duplicate", existing="a"), finding("separate", existing="b"))
     loaded = Report.model_validate_json(render(built, "json", SETTINGS))
-    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 16
+    assert loaded.model_dump() == built.model_dump() and json.loads(render(built, "json", SETTINGS))["schema"] == 17
 
 
 def test_sarif_puts_each_finding_on_the_changed_function_with_the_existing_one_related() -> None:
@@ -457,7 +460,18 @@ def test_a_path_that_could_close_a_code_fence_is_shown_escaped_instead() -> None
     built = report(finding("duplicate")).model_copy(deep=True)
     built.findings[0].candidate.existing.path = "src/```evil.py"
     body = as_markdown(built)
-    assert "```python" not in body and "distinct-from src/\\`\\`\\`evil.py::shorten" in body
+    assert "```yaml" not in body and "src/\\`\\`\\`evil.py::shorten" in body
+
+
+def test_suggested_ignore_entries_preserve_unicode_and_quote_literal_identities() -> None:
+    from dry_lint.settings import Ignores
+
+    item = finding("duplicate").model_copy(deep=True)
+    item.candidate.existing.path = 'src/🌍"quoted.py'
+    document = "schema: 1\ndistinct:\n" + item.ignore_entry()
+    entries = Ignores.read(document.encode()).distinct
+    assert entries[0].symbol == item.candidate.new.qualname
+    assert entries[0].targets == [item.candidate.existing.qualname]
 
 
 def test_the_judging_line_names_judges_band_thresholds_and_the_bill() -> None:
@@ -587,7 +601,7 @@ def test_budget_deferred_pairs_are_actionable_review_tasks_not_clean_or_confirme
     assert built.visible == built.findings
     assert built.findings[0].blocking and not built.findings[0].reported
     text = as_text(built)
-    assert "coding agent" in text and "distinct-from" in text and "review required" in text
+    assert "coding agent" in text and ".dry-lint/ignore.yaml" in text and "review required" in text
     assert "0 reported, 1 review required" in text
     markdown = as_markdown(built)
     assert "review required" in markdown and "No duplicated concepts" not in markdown
@@ -611,3 +625,51 @@ def test_spending_cap_warns_without_clearing_other_findings_or_advancing_debt() 
     built.judging = JudgingSummary(spend=[Spend(judge="jev", failed=1, skipped=1)])
     with pytest.raises(ValueError, match="incomplete"):
         require_complete(built, check=True, allow_review_tasks=True)
+
+
+DRIFT = Difference(
+    what="the length limit",
+    new_does="keeps n characters",
+    existing_does="keeps limit - 1 and adds <b>…</b>",
+    consequence="EXISTING returns one character less",
+)
+
+
+def differing(label: str = "drifted", score: float = 0.9, existing: str = "shorten") -> Finding:
+    found = finding(label, score, existing=existing)
+    return found.model_copy(update={"verdict": found.verdict.model_copy(update={"differences": [DRIFT]})})
+
+
+def test_a_reported_pair_shows_how_its_copies_differ_one_line_each() -> None:
+    built = report(differing())
+    body = as_markdown(built)
+    # Inside the details fold, after the reason; the judge's text is escaped like the reason.
+    assert body.index("<summary><strong>Why these match") < body.index("How the copies differ:")
+    sides = "NEW does keeps n characters; EXISTING does keeps limit - 1 and adds "
+    assert rf"- **the length limit**: {sides}\<b\>…\</b\>" in body.splitlines()
+    assert "EXISTING returns one character less" not in body  # the consequence stays in report.json
+    assert f"    differs: the length limit: {sides}<b>…</b>" in as_text(built).splitlines()
+    # Annotations and SARIF carry the advice only.
+    assert "differs" not in as_github(built) and "the length limit" not in as_sarif(built)
+
+
+def test_differences_of_a_pair_below_the_report_threshold_are_not_shown() -> None:
+    unreported = differing("duplicate", 0.5, existing="b")
+    built = report(differing(existing="a"), unreported)
+    [shown] = [f for f in built.findings if f.reported]
+    assert shown.candidate.existing.name == "a"
+    below = next(f for f in built.findings if not f.reported)
+    assert below.differences() == [] and below.differences(markdown=True) == []
+    assert as_markdown(built).count("How the copies differ:") == 1 and as_text(built).count("differs:") == 1
+
+
+def test_differences_are_capped_and_in_the_json_report() -> None:
+    long = DRIFT.model_copy(update={"new_does": "x" * 500})
+    found = differing()
+    found = found.model_copy(update={"verdict": found.verdict.model_copy(update={"differences": [long]})})
+    built = report(found)
+    [line] = built.findings[0].differences()
+    assert "x" * 99 + "…" in line and "x" * 100 not in line
+    data = json.loads(as_json(built))
+    assert data["findings"][0]["verdict"]["differences"][0]["new_does"] == "x" * 500
+    assert data["findings"][0]["verdict"]["differences"][0]["consequence"] == DRIFT.consequence

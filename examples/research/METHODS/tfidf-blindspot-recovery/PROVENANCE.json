@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "tfidf-blindspot-recovery",
+      "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/recover.py",
+      "original_sha256": "19789c96861b73590ecf784b3f5811d4342ca9dca60677d650723efcda750bd7",
+      "public_path": "tfidf-blindspot-recovery/implementation/recover.py",
+      "public_sha256": "7fbc2b47097b6256b98b09f803b2255547cafabe7737fbb98aa791a99c5f6370",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E401",
+        "E402",
+        "F401",
+        "F821",
+        "I001"
+      ]
+    },
+    {
+      "method": "tfidf-blindspot-recovery",
+      "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/residual_revision.py",
+      "original_sha256": "dc15c29f517706623bc41e4d8f3a72caefef684f602649548abf2ea33f2b9cff",
+      "public_path": "tfidf-blindspot-recovery/implementation/residual_revision.py",
+      "public_sha256": "3ae2d06824439da79245b5d8e915a8052cb7ee2f5b7abc72dbf36e8b42c92c6a",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "I001"
+      ]
+    },
+    {
+      "method": "tfidf-blindspot-recovery",
+      "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/hybrid_revision.py",
+      "original_sha256": "777973fea3878acd8f7727cd6f22b9288a324c131c20e423f63ab83bbce11a75",
+      "public_path": "tfidf-blindspot-recovery/implementation/hybrid_revision.py",
+      "public_sha256": "fd52fd7d39b43d04d7b77b47792cc0cf2a266c0a98f1d7eac4e940a9d932e876",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "tfidf-blindspot-recovery",
+      "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/complete_graph_scoring.py",
+      "original_sha256": "fdf07545ce58d8b4ce0641c6af469abc8908f3beb9f5126bc06876de8530a0b3",
+      "public_path": "tfidf-blindspot-recovery/implementation/complete_graph_scoring.py",
+      "public_sha256": "8eb786640ebd628323217d803271cbd63126edfa04b59c589629b443c653f079",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "F403",
+        "F405"
+      ]
+    },
+    {
+      "method": "tfidf-blindspot-recovery",
+      "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/dense_gate_ablation.py",
+      "original_sha256": "1158a109796ef9a46df7898c1ece58a1ea2acdeb4ecc9f9f6b3be03ad5a19a39",
+      "public_path": "tfidf-blindspot-recovery/implementation/dense_gate_ablation.py",
+      "public_sha256": "f87e5d02cc02004ac3f0ed6b705cfc3d4120540bb6a29887662cdc8ecd3e3be0",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "tfidf-blindspot-recovery",
+      "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/posthoc_original_curve.py",
+      "original_sha256": "8ba9810513383dc4aa483af84c1336325d13eac6d7e3a510bfa2ee28b7443cba",
+      "public_path": "tfidf-blindspot-recovery/implementation/posthoc_original_curve.py",
+      "public_sha256": "1c56fe4c62bcd85696dd28ccbad9930af830ba8ec2d6bbe9bff0c196c8d50444",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "tfidf-blindspot-recovery",
+      "original_path": "jobs/tfidf-blindspot-recovery/.lab-results/replay_frontier.py",
+      "original_sha256": "902738b4c57473b177b570c56e3c9130b033e37658016cb14153e0f407eb26da",
+      "public_path": "tfidf-blindspot-recovery/implementation/replay_frontier.py",
+      "public_sha256": "1b0e32b3e18f25c20573cc134f8fcff89e0ea51ec5fcdbfd3b4bb6d513a0d654",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "F401",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}

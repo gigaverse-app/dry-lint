@@ -35,7 +35,7 @@ duplication. A workspace `scan` is a backlog audit, not a claim that a PR introd
 
 ## Tell the judge where consolidated code belongs
 
-In `.dry-lint.toml` (or under `tool.dry-lint` in `pyproject.toml`):
+In `.dry-lint/config.toml` (or under `tool.dry-lint` in `pyproject.toml`):
 
 ```toml
 max_judgements = 30

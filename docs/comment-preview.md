@@ -68,7 +68,7 @@ Different concepts? Add to captions.py:
 | :-- | :-- |
 | this pair | `# dry-lint: distinct-from <qualified name>` in the changed function |
 | one function | `# dry-lint: ignore` in that function |
-| a family of look-alikes | a `patterns` entry under `[tool.dry-lint]`, or in `.dry-lint.toml` |
+| a family of look-alikes | a `patterns` entry under `[tool.dry-lint]`, or in `.dry-lint/config.toml` |
 | this pull request only | the `dry-lint: override` label |
 
 </details>

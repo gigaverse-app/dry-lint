@@ -174,15 +174,18 @@ class VerdictStore:
         candidate: Candidate,
         judge: str,
         reopen_margin: float,
-        version: str | None = None,
+        versions: frozenset[str] | None = None,
         escalation: str | None = None,
         band: tuple[float, float] = (0.0, 0.0),
         exact_source: bool = False,
+        escalations: frozenset[str] = frozenset(),
     ) -> Lookup:
         """
-        The stored verdict if it still holds for the pair as it is now, and why it does or does not. With a second
+        The stored verdict if it still holds for the pair as it is now, and why it does or does not. `versions`
+        (`plugins.accepted_versions`) are the judge versions whose answers hold; None accepts any. With a second
         judge (`escalation`, its identity, re-judging first scores in `band`), a verdict holds only if this judging
-        would have given it: a second opinion from that same judge, or a first answer it would not have re-judged.
+        would have given it: a second opinion from that same judge (`escalations` adds the identities it accepts as
+        its own), or a first answer it would not have re-judged.
         """
         record = self.record(candidate.key)
         if record is None:
@@ -194,9 +197,9 @@ class VerdictStore:
             return Lookup(None, "source context or consolidation policy changed")
         if verdict.judge != judge:
             return Lookup(None, f"judged by {verdict.judge}, not {judge}")
-        if version is not None and verdict.judge_version != version:
-            return Lookup(None, f"judged by {judge} {verdict.judge_version}, not {version}")
-        if verdict.second_opinion is not None and verdict.second_opinion != escalation:
+        if versions is not None and verdict.judge_version not in versions:
+            return Lookup(None, f"judged by {judge} {verdict.judge_version}, not {' or '.join(sorted(versions))}")
+        if verdict.second_opinion is not None and verdict.second_opinion not in {escalation, *escalations}:
             return Lookup(None, f"second opinion from {verdict.second_opinion}, not {escalation or 'no second judge'}")
         if verdict.second_opinion is None and escalation and band[0] <= verdict.score < band[1]:
             return Lookup(

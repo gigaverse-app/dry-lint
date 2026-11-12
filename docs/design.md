@@ -57,7 +57,8 @@ Every run goes through the same six steps, whatever plugins it uses:
    when both adapters identify the same convention in the same language (currently Python special methods),
    one is a recognized forwarding wrapper for the other in the same repository, one calls the other through a
    call the adapter resolved inside the file, both match a declared `pattern`, one carries
-   `# dry-lint: distinct-from <qualified name suffix>`, or either carries `# dry-lint: ignore`.
+   `# dry-lint: distinct-from <qualified name suffix>`, a reviewed exact pair appears in `.dry-lint/ignore.yaml`,
+   or either carries `# dry-lint: ignore`.
    A forwarding body consists only of a same-owner method call with unchanged parameter arguments ("forwarding
    wrapper"). Any other resolved direct call settles as "one calls the other": both judges already label such a pair
    SEPARATE, and caller/helper pairs were the most common false report in agent review, so settling them first saves
@@ -94,7 +95,7 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 | judge | `workflow_run` of detect | `dry-lint judge --candidates candidates.json --report report.json`, then the comment and check run | the judge's key, `pull-requests: write`, `checks: write` |
 
 - The judge job runs in the default branch's context, so it reads the settings and installs the plugins of the
-  default branch, never ones a pull request names. A pull request's own `patterns` and `distinct-from` comments
+  default branch, never ones a pull request names. A pull request's own `patterns`, `.dry-lint/ignore.yaml` and `distinct-from` comments
   do apply in detect; they are in its diff and reviewed like code.
 - `candidates.json` carries the run: repository, pull request and head commit. If the pull request has moved on
   by the time the judge finishes, its verdicts are still stored (they are keyed by structure hashes) and the newer
@@ -104,6 +105,12 @@ functions only as text from `candidates.json`; it never checks out or runs them.
 - A repository without outside contributors can run `dry-lint check` in one job instead. The files are the same.
 
 ## File formats
+
+Schema 17 adds optional `Verdict.differences`: how the two copies of a pair behave differently, as the
+`langchain` judge lists them ([judges.md](judges.md#structured-answers)). Older records and other judges' verdicts
+load with none. It is not part of any key or hash. The judge's prompt changed with it, so new answers carry
+`schema-4`, while stored `schema-3` answers of the same setup are reused without differences
+([the verdict store](#verdict-store)).
 
 Schema 16 replaces disappearance-based `kept-out` states with `not-reported` in journals and ledgers. Readers
 normalize old states and trailers without awarding cleanup credit or inferring positive training labels.
@@ -175,7 +182,7 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New core files carry `"schema": 16`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 15 remain readable with conservative cache defaults. Schema 9 adds
+New core files carry `"schema": 17`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 16 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
 to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
 readable subject to extraction-contract validation. Schema 8 adds
@@ -196,7 +203,9 @@ empty context, so they cannot satisfy a new contextual request. The models are i
 
 | File | Written by | Holds |
 | --- | --- | --- |
-| `.dry-lint.toml` or `[tool.dry-lint]` | people | settings and declared patterns; committed |
+| `.dry-lint/config.toml` or `[tool.dry-lint]` | people | global settings and declared patterns; committed |
+| `.dry-lint/ignore.yaml` | reviewers and coding agents | schema-1 durable exact-pair distinctions with reasons; committed |
+| `.dry-lint/feedback.json` | reviewers and coding agents | source-bound review decisions; committed |
 | `# dry-lint: distinct-from …` | people | a decision on one pair, next to the code it explains |
 | `candidates.json` | `detect` | `run`, `changed` (how many functions the change touched), `candidates` |
 | `<key>.json` in the store | the judge step | one verdict record |
@@ -253,6 +262,16 @@ duplication or record a source-bound dismissal without spending more judge budge
 `dry-lint scan --refresh` asks again. Contextual judges always require the exact model/prompt version, even without
 `--refresh`. Renaming or moving a function changes its key, so its pairs are judged again.
 
+A judge may name older versions whose answers it still takes as its own (`reused_versions`); every version check,
+on the pair path, the discovery campaign and a second opinion, reads them through `plugins.accepted_versions`, and
+`--refresh` still asks them again. Only the `langchain` judge names one, with its argument beside it
+(`REUSED_PROMPTS` in `judges/langchain.py`): its `schema-4` prompt added the `differences` list and nothing else.
+The field is additive, and on the 748 labelled pairs the decision did not move beyond noise: AUC 0.964 against
+0.963, non-duplicates reported at 0.4 5.73% against 6.65% (labelled duplicates at the 0.5 fail line went from
+77.2% to 73.7%; [benchmark](benchmark.md#differences)). So a `schema-3` answer from the same model, effort and
+options is a valid answer of the same judge, missing only the new field. It is reused as is, with no differences,
+and upgrading costs no re-judging. Another model, effort, option or an older prompt is still another judge.
+
 `dry-lint explain A B` shows all of this for one pair: the similarity and the tokens behind it, whether the
 comparer proposes it, the rule that settles it, the stored verdict and why it is or is not reused.
 
@@ -264,7 +283,7 @@ Where it lives:
 
 Losing it only costs re-judging. For all of gigaverse-ai it would hold about 1,900 pairs in 0.75 MB.
 
-Human decisions are different: they belong in the code (`distinct-from`) or in configuration (`patterns`), where
+Human decisions are different: they belong in reviewed `.dry-lint/ignore.yaml`, code (`distinct-from`) or configuration (`patterns`), where
 they are reviewed, versioned and visible to the next reader.
 
 ## Judging and escalation
@@ -303,7 +322,9 @@ run list the same findings in the same order: drifted first, then by score.
 - Without a judge, the comment does not list unjudged pairs; it says no judge is configured. Annotations and the
   terminal still show them.
 - A judge's reason is untrusted text: an LLM judge read code from the pull request. It is flattened to one line,
-  capped at 300 characters and escaped wherever markdown shows it.
+  capped at 300 characters and escaped wherever markdown shows it. The differences a judge lists are treated the
+  same way, each part capped at 100 characters, and are shown only for reported pairs: one line each in the
+  terminal and in the comment's details fold.
 
 ## Why TF-IDF is the default comparer
 
@@ -351,5 +372,5 @@ Schema 7 adds the `relative` lane and a candidate's `parent`; files from schema 
 Schema 5 adds candidate lane, run session/tree identity, exact-source record evidence and campaign reporting.
 `balanced` adds a stateless exploration index to the baseline detector and a transactional SQLite admission ledger
 beside verdicts. Model verdicts remain in the existing cache; reviewed fix/dismiss decisions live separately in
-`.dry-lint-feedback.json`. Source changes reopen reviewed dismissals. See [production discovery](production-discovery.md)
+`.dry-lint/feedback.json`. Source changes reopen reviewed dismissals. See [production discovery](production-discovery.md)
 for accounting, failure, local/CI storage and feedback contracts.

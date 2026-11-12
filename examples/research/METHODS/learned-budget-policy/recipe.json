@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "method": "learned-budget-policy",
+  "mechanism": "Use held-repository/lineage models and frozen candidate feature matrices, preserving explicit source-component isolation. Compare raw-prefix-plus-deeper-raw against raw-prefix-plus-learned ordering under .04 native budgets. Keep normal estimated allocation separate from settled native allocation. Dynamic residual updates use exact recorded answers; failures remain unknown and are not retried.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/README.md",
+      "sha256": "4bb5d91ee360d4934a20b1f661abda3757439063b48799a0437aa74e224bdf56",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/POLICY-CONTRACT.json",
+      "sha256": "fd929f7cb64db77ebe85420a1a4f90b5fd7cc74bf45a9bcf4fed973f93ce71cb",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/REVISION-CONTRACT.json",
+      "sha256": "cab5dc98290485e710652bc51fc309d01127121d18900a5ba615761cf043e5f0",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/DYNAMIC-RESIDUAL-CONTRACT.json",
+      "sha256": "f17ef7edfb3fb3dd3a40e41fa8e1e917986449a1b3937186c5cac460b3ab018f",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/FINAL-CLAIMS.json",
+      "sha256": "f4571362df68dcaf079a63969fa4f79502bf0ca6f950e300058e8830565b93e9",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/FINAL-FREEZE.json",
+      "sha256": "28b0877e12288af6615978fb0241350a35a137feddcdfad1694ba54227533000",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/INPUTS.json",
+      "sha256": "6ac9b92b736436498e31ec9cd9d3849b13cd20e9ae6e15af02da2e9c90102000",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/COMPLETION-SUBSET.json",
+      "sha256": "fbf734397d009c995db344db702f035c52924f4df602c89771d9bf544ec7795c",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/PROVENANCE.final.json",
+      "sha256": "041a0640e09e2ccee6a58e6b1b607ca5f558241ca0b4a0f0dd8a27aac600aeae",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/dynamic-residual-v2/RESULTS.json",
+      "sha256": "96a96c8c5378ab6df09fe1a8b7d15eecf1ed638dce1323f6e549be5bd4f743ee",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Recorded native-event aggregation; the supplied staged command additionally recomputes cached-model predictions and exact frozen allocation orders.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/learned-budget-policy/.lab-results/dynamic-residual-v2/results.jsonl",
+      "sha256": "ef3c35d056cb7802fb8b61fdcadd09820d8e45329d41fa540c80e1a26ca78d46",
+      "bytes": 9549425
+    }
+  ]
+}

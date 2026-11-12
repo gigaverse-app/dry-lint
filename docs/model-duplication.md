@@ -11,7 +11,7 @@ Use a separate model-check configuration. A file goes to the first matching extr
 `python` and `python-models` does not run both passes. Keep the ordinary function check as a separate invocation.
 
 ```toml
-# .dry-lint.toml in a checkout used for the model pass
+# .dry-lint/config.toml in a checkout used for the model pass
 extractors = ["python-models", "typescript-models"]
 comparer = { use = "model-shape", min_fields = 2, min_similarity = 0.65 }
 neighbours = 3
@@ -127,7 +127,7 @@ judge = { use = "jev-models", model = "jev-1.14.0", context = false }
 escalate = "none"
 ```
 
-These are top-level settings in `.dry-lint.toml`, before any table headers. The plugin records separate scores
+These are top-level settings in `.dry-lint/config.toml`, before any table headers. The plugin records separate scores
 for shared authority, policy-required separation, established roles, same-owner specialization, existing reuse
 and missing context. `shared_authority` ranks the review queue; it is never multiplied by a boundary score to
 manufacture a final decision. Every assessed pair remains a coding-agent review task, even at a low score.

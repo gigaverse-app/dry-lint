@@ -30,13 +30,13 @@ use the existing vector cache and compare full-stack report additions and losses
 
 ## Use balanced, or choose explicit routes
 
-For agent-reviewed discovery, start with `preset = "balanced"` in `.dry-lint.toml`. No comparer list is needed.
+For agent-reviewed discovery, start with `preset = "balanced"` in `.dry-lint/config.toml`. No comparer list is needed.
 The [activation and opt-out guide](operation-blocks.md#balanced-activation-and-opt-out) explains which explicit
 settings override the defaults. This chooses the balanced judge and reporting thresholds as well as discovery.
 
 To configure the same retrieval routes independently of a judging preset, use an explicit list.
 
-In the adopting repository's `.dry-lint.toml`:
+In the adopting repository's `.dry-lint/config.toml`:
 
 ```toml
 [discovery]

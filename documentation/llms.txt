@@ -13,6 +13,7 @@ To set dry-lint up in a repository with a coding agent, give the agent this one 
 
 ## Choose a judge and settings
 
+- [Configuration and migration](https://dry-lint.readthedocs.io/en/latest/docs/configuration/): committed .dry-lint/ files, global settings and exact-pair exceptions
 - [Judges and presets](https://dry-lint.readthedocs.io/en/latest/docs/judges/): which preset to use with which keys, its thresholds, precision, recall and cost
 - [Sweeps and the ratchet](https://dry-lint.readthedocs.io/en/latest/docs/sweeps/): accepting existing debt once, and recording its cleanup
 - [TypeScript and Bun](https://dry-lint.readthedocs.io/en/latest/docs/typescript/): monorepos and TypeScript specifics

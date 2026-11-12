@@ -17,7 +17,8 @@ from dry_lint.github import github_event
 from dry_lint.models import Candidate, Function, Run, matches_any, pair_key, qualified
 from dry_lint.plugins import Comparer, Extractor, identity, load
 from dry_lint.ranking import rank_candidates
-from dry_lint.settings import ExplorationComparer, Settings
+from dry_lint.repository_files import IGNORE_FILE, read_files
+from dry_lint.settings import ExplorationComparer, Ignores, Settings
 
 SUPPRESSION = re.compile(r"(?:#|//|--)\s*dry-lint:\s*distinct-from\s+(\S+)")
 IGNORE = re.compile(r"(?:#|//|--)\s*dry-lint:\s*ignore\b")
@@ -75,7 +76,24 @@ def touched(functions: list[Function], lines: dict[str, set[int]]) -> list[Funct
     return [f for f in functions if lines.get(f.path, set()) & set(range(f.line, f.end_line + 1))]
 
 
-def changed_functions(root: Path, settings: Settings, base: str | None) -> list[Function]:
+def changed_distinctions(root: Path, base: str | None, *, staged: bool = False) -> set[str]:
+    """Revisit endpoints when their durable exceptions change, including deletion of the ignore file."""
+    comparison = ("--cached",) if staged else (f"{base_ref(root, base)}...HEAD",)
+    if not git(root, "diff", "--name-only", *comparison, "--", IGNORE_FILE):
+        return set()
+    before = "HEAD" if staged else git(root, "merge-base", base_ref(root, base), "HEAD")
+    old = read_files(root, (IGNORE_FILE,), revision=before).get(IGNORE_FILE)
+    new = read_files(root, (IGNORE_FILE,), staged=staged, revision=None if staged else "HEAD").get(IGNORE_FILE)
+    try:
+        previous = {pair for entry in Ignores.read(old).distinct for pair in entry.pairs()}
+    except ValueError:
+        # A repaired invalid manifest must be checkable. Its former scope is unknown, so revisit all owners.
+        return {"*"}
+    current = {pair for entry in Ignores.read(new).distinct for pair in entry.pairs()}
+    return {symbol for pair in previous ^ current for symbol in pair}
+
+
+def changed_functions(root: Path, settings: Settings, base: str | None, *, repository: str = "") -> list[Function]:
     """The functions a change touched, as `check` finds them, reading only the changed files."""
     extractors = [load("extractors", choice) for choice in settings.extractors]
     found: list[Function] = []
@@ -87,6 +105,15 @@ def changed_functions(root: Path, settings: Settings, base: str | None) -> list[
             found += touched(extractor.functions(path, (root / path).read_text(encoding="utf-8")), {path: lines})
         except (OSError, UnicodeDecodeError):
             continue
+    if names := changed_distinctions(root, base):
+        if repository:
+            names |= {name.removeprefix(f"{repository}/") for name in names if name.startswith(f"{repository}/")}
+        known = {f.qualname for f in found}
+        found.extend(
+            f
+            for f in repository_functions(root, settings.include, settings.exclude, extractors)
+            if f.qualname not in known and (f.qualname in names or "*" in names)
+        )
     return found
 
 
@@ -130,6 +157,9 @@ def why_skipped(a: Function, b: Function, settings: Settings, *, calls: bool = T
     for pattern in settings.patterns:
         if matches_any(a.qualname, pattern.members) and matches_any(b.qualname, pattern.members):
             return f"declared pattern: {pattern.reason}"
+    for distinction in settings.distinct:
+        if tuple(sorted((a.qualname, b.qualname))) in distinction.pairs():
+            return f"declared distinct pair: {distinction.reason}"
     for x, y in ((a, b), (b, a)):
         for target in SUPPRESSION.findall(x.code):
             if y.qualname.endswith(target):

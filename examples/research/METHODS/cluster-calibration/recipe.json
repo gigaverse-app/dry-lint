@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "method": "cluster-calibration",
+  "mechanism": "Select one pair per source component by stable hash before revealing its label: 102 positive oracle seeds and 192 intentionally false controls. Compare fixed TF-IDF/MiniLM ordering against seed-endpoint-first ordering. Hide sibling labels until evaluation. Replay bounded continuation, whole-queue stopping and branch-local stopping. Earlier SVM/calibration work is exploratory and is preserved separately after the direction was corrected to spectral/SVD methods.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/cluster-calibration/.lab-results/README.md",
+      "sha256": "b1b24a3d558a7b52a5d09d90c47b1bf09e3faf41d033584534290ecd7689d357",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/EXPLORATORY-REPORT.md",
+      "sha256": "830a0cc1a62850f8db32f53043a2f0a0af23683386306c720876714ad92e8d4a",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/EXPERIMENT-CONTRACT.json",
+      "sha256": "9cb090a0193d463aeb736158fde54319c9470dd6132aa5c4375df36528ab82d8",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/ONE-SEED-CONTRACT.json",
+      "sha256": "c8897bcfb5a74a376e76aead5cb4781d687c5aa839fe522c8a1341cee21cbd5c",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/DIRECTION-CORRECTION.json",
+      "sha256": "94e725839f0890fefaf936bd475446e3e29d89a019d4bc7a2c625a30b79cf990",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one-seed-queues.jsonl",
+      "sha256": "a6abde0f53ded439c6e0a3372411c3a7aeb466c31e14b5e347fe6ce4b756eeaa",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/rows.jsonl",
+      "sha256": "b526bbb5e841c0f086a39945b7e90abf960c2a1b28fde890fcaf030baef3d6c4",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one-seed-results.jsonl",
+      "sha256": "e94b40e65adcc22f70bda73141db9c327df679d9d7687adf9066755b2cf8e28a",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/CONDITIONAL-YIELD.json",
+      "sha256": "7badb3f5ee1cbe710fde709425269848969d5c2baa511223748a98139863c3e1",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/MILESTONE-VERIFICATION.json",
+      "sha256": "84f50ac12b74c49ca3185020abb0c8dba5e25277e1f2fa6213227012e2e91626",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/SPECTRAL-HANDOFF.json",
+      "sha256": "c7269d47bec12660b256ca9a19b34751e0923aee918d8e5f7074df2a0d8b278b",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Recompute actual queue order and all frozen stopping decisions from recorded labels; does not fit the exploratory models.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one-seed-queues.jsonl",
+      "sha256": "a6abde0f53ded439c6e0a3372411c3a7aeb466c31e14b5e347fe6ce4b756eeaa",
+      "bytes": 2346696
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/rows.jsonl",
+      "sha256": "b526bbb5e841c0f086a39945b7e90abf960c2a1b28fde890fcaf030baef3d6c4",
+      "bytes": 496918393
+    },
+    {
+      "path": "jobs/cluster-calibration/.lab-results/one-seed-results.jsonl",
+      "sha256": "e94b40e65adcc22f70bda73141db9c327df679d9d7687adf9066755b2cf8e28a",
+      "bytes": 9797974
+    }
+  ]
+}

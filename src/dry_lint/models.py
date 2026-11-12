@@ -17,7 +17,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 16
+SCHEMA = 17
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -266,6 +266,15 @@ class ModelAssessment(BaseModel):
     needs_context: float = Field(ge=0, le=1)
 
 
+class Difference(BaseModel):
+    """One decision two look-alikes make differently in the part they share: drift a reviewer should see."""
+
+    what: str
+    new_does: str
+    existing_does: str
+    consequence: str = ""
+
+
 class Verdict(BaseModel):
     """A judge's answer for one pair."""
 
@@ -280,6 +289,9 @@ class Verdict(BaseModel):
     judge_version: str = Field(default="", description="Its model and prompt version, e.g. 'reuse-v2'.")
     second_opinion: str | None = Field(default=None, description="The escalation judge whose answer this is, if any.")
     model_assessment: ModelAssessment | None = None
+    differences: list[Difference] = Field(
+        default_factory=list, description="How the two behave differently; only the langchain judge answers it."
+    )
 
 
 class CandidatesFile(Versioned):

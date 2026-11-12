@@ -38,7 +38,7 @@ jobs:
           persist-credentials: false
       - uses: gigaverse-app/dry-lint@v1
         with:
-          # Optional model ranking key; functions use Claude balanced. The preset comes from .dry-lint.toml.
+          # Optional model ranking key; functions use Claude balanced. The preset comes from .dry-lint/config.toml.
           typesafe-api-key: ${{ secrets.TYPESAFE_AI_API_KEY }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}   # balanced function judging
           # Once .dry-lint/baseline.json is committed: old debt passes, new or widened debt fails, and a missing key

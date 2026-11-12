@@ -43,8 +43,8 @@ judge decides whether each pair really is one concept, and the result goes back 
 ```text
 src/widgets/caption.py:1: preview_caption_text looks like src/text.py::shorten_text (drifted)
     judge 0.91; the two already behave differently; call the existing function;
-    similarity 0.71; if they are different concepts, add
-    `# dry-lint: distinct-from src/text.py::shorten_text`;
+    similarity 0.71; if they are different concepts, add this pair as
+    a distinct entry with a reason in .dry-lint/ignore.yaml;
     if they are one concept copied on purpose, add a [[patterns]] entry with a reason
 ```
 
@@ -64,7 +64,7 @@ credentials your repository passes in, at your cost, and without any it only lis
 Python, TypeScript and TSX work out of the box. TypeScript repositories need no Python project, `bun install`,
 Node or build step: dry-lint installs its own tools and parses source without executing your code
 ([TypeScript and Bun](docs/typescript.md) covers monorepos). Luau (Roblox) is opt-in:
-`pip install 'dry-lint[luau]'` and `extractors = ["luau"]` ([Luau and Roblox](docs/luau.md)).
+`pip install 'dry-lint[luau]>=1,<2'` and `extractors = ["luau"]` ([Luau and Roblox](docs/luau.md)).
 
 ### Try it locally, without an API key
 
@@ -217,16 +217,18 @@ Research on profiles, judging budgets and discovery across repeated runs is in
 
 Some look-alikes are deliberate. Silence them where the decision belongs:
 
-- **Inline**: put `# dry-lint: distinct-from src/text.py::shorten_text` in the new function. The reason sits next
+- **A reviewed pair**: add exact `symbol`, `from` and `reason` fields to a `distinct` list entry in
+  `.dry-lint/ignore.yaml`. This keeps tool metadata out of source. See the [format and example](docs/configuration.md).
+- **Inline alternative**: put `# dry-lint: distinct-from src/text.py::shorten_text` in the new function. The reason sits next
   to the code it explains, and moves or disappears with it.
 - **A whole function**: put `# dry-lint: ignore` in it (generated code, a deliberate copy). It is left out of
   every pair, on either side.
-- **Families, and copies kept on purpose**: declare a pattern in `.dry-lint.toml`, for deliberate per-resource
+- **Families, and copies kept on purpose**: declare a pattern in `.dry-lint/config.toml`, for deliberate per-resource
   instances or for one concept a project keeps in two places (say, a module that vendors a helper so it imports
   nothing):
 
 ```toml
-# .dry-lint.toml
+# .dry-lint/config.toml
 exclude = ["*/tests/*", "tests/*", "*/migrations/*"]
 
 [[patterns]]
@@ -344,9 +346,14 @@ runs the contract.
 
 ## Settings
 
-Settings live in `.dry-lint.toml` at the repository root, as top-level keys with tables such as `[budget]` and
+Keep global configuration in `.dry-lint/config.toml` and reviewed pair exceptions in
+`.dry-lint/ignore.yaml`. Commit `.dry-lint/`; it is not a cache directory. Legacy `.dry-lint.toml`
+remains readable, but cannot coexist with `.dry-lint/config.toml`.
+See [file layout, exact-pair exceptions and migration](docs/configuration.md).
+
+Settings live in `.dry-lint/config.toml` at the repository root, as top-level keys with tables such as `[budget]` and
 `[[patterns]]`. The same keys also work under `[tool.dry-lint]` in `pyproject.toml` (`[tool.dry-lint.budget]`,
-`[[tool.dry-lint.patterns]]`); when both files exist, `.dry-lint.toml` wins. Judges and thresholds come from the
+`[[tool.dry-lint.patterns]]`); when both files exist, `.dry-lint/config.toml` wins. Judges and thresholds come from the
 preset ([docs/judges.md](docs/judges.md)); anything set here wins over it. `dry-lint config` prints the result,
 including how many source files the scope covers:
 

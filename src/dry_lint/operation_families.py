@@ -283,7 +283,6 @@ def _overlaps(a: SourceSpan, b: SourceSpan) -> bool:
 def _source_file(function: Function) -> tuple[str, str, str]:
     # One physical file at one revision, so two aliases of a site never count as two owners. Unlike a validated
     # SourceReference, it names no function and accepts unpinned (empty) origins.
-    # dry-lint: distinct-from src/dry_lint/evidence.py::SourceReference.of
     origin = function.origin or Run()
     return origin.repository, origin.head, function.path
 

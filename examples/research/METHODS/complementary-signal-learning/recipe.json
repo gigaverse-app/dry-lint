@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "method": "complementary-signal-learning",
+  "mechanism": "The bank retains up to 100 raw and cross-file neighbors per sparse/dense arm, guarded blocks and qualified containment. Fixed fusion adds equal 1/(60+rank) terms. The conditional route admits TF-IDF \u2265 .35, prefix \u2265 .65, tail \u2265 .80, guarded blocks or containment; prefix and tail get one maximum-rank vote. Containment requires eight shared tokens, three call/attribute/key tokens, overlap mass \u2265 .75 and cosine \u2265 .1. Corrected v2 sorts token accumulation deterministically. Residual fitting uses standardized logistic regression C=.1, repository-lineage holdout and source-component purging; unlabeled candidates never become negatives.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/README.md",
+      "sha256": "04d0c4b8c79115c4e2d87728b2293820282e89c818322305421a2adf01f6a785",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/EXPERIMENT.json",
+      "sha256": "6a216eaacc292ba3120c0839325a7796503bfae473ba33361572a36c7e4cf978",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/BANK-CONTRACT.json",
+      "sha256": "423798227ba2ecd5799610378da036dc1794ab09d57e7a132ac1427eba73cb37",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/SPLIT-CONTRACT.json",
+      "sha256": "ae2d8a958a7fa92647e42effa90ba3345a7f9967900c8f7202a2ffa118d30265",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/FROZEN-INPUTS.json",
+      "sha256": "311413f5f9d4d79cba7a853103e78cfbdb17dba4a5c6458b3ebfa98c242d7b74",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/CORRECTION-AUDIT.json",
+      "sha256": "6ab00d1ac1c34ed6663ad88d7e657dd6ff5115cedbe52ffd9de2bcfd6ebd2ea4",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/deterministic-v2/outcomes.jsonl",
+      "sha256": "0ba4412047960591a5ef990bdc82e85938f354d36a69a94622ca5420da689ddd",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/deterministic-v2/RESIDUAL-RESULTS.json",
+      "sha256": "44ab2501a0ea170a1c8b6f9845309e8a39325b144a9f9517aa3638a253b13b73",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/REPRODUCTION-V2.json",
+      "sha256": "41103f5c71d6a46a1dc7f02e072520b122b4ce791b5a9a28be26fb8487663b11",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Frozen case-rank aggregation; feature construction and fitted residual predictions are separate original entry points.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/complementary-signal-learning/.lab-results/deterministic-v2/outcomes.jsonl",
+      "sha256": "0ba4412047960591a5ef990bdc82e85938f354d36a69a94622ca5420da689ddd",
+      "bytes": 611273
+    }
+  ]
+}

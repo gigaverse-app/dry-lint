@@ -60,7 +60,6 @@ def judging_input(judge: Judge, candidate: Candidate) -> str:
 def estimate(judge: Judge, candidates: list[Candidate], settings: Settings) -> float | None:
     """Estimated USD at list price for asking `judge` about `candidates`, subscriptions included; None if unknown."""
     # Average estimates and conservative admission bounds have different guarantees; both reuse usage_cost.
-    # dry-lint: distinct-from src/dry_lint/discovery.py::reservation_cost
     rates = price(judge, settings)
     if rates is None:
         return None

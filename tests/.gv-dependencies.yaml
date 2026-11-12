@@ -6,6 +6,7 @@ dependencies:
       - test_index_github.py
       - test_language_analysis.py
       - test_model_adoption.py
+      - test_repository_files.py
     inputs:
       - //src/dry_lint/model_shapes.py
     kind: import
@@ -14,6 +15,7 @@ dependencies:
       - test_bench_background.py
       - test_function_index.py
       - test_model_adoption.py
+      - test_repository_files.py
     inputs:
       - //src/dry_lint/extractors.py
       - //src/dry_lint/source_context.py

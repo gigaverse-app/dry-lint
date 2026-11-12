@@ -103,6 +103,33 @@ More confirmed and fewer rejected are better.
   yes" on 29 pairs and Opus confirms all 29, and at 0.5 it finds 88% of the confirmed pool with 38% of its
   reports rejected. In between it does not beat the shipped schema, and it costs $0.00061 a pair.
 
+## Differences
+
+Can the `balanced` judge list how two copies behave differently without judging worse? Measured in November 2026
+(research program, Track B): the shipped schema against the same schema with a `differences` field after the
+reasoning and before the score, on 748 labelled pairs (312 duplicate, 436 separate), shipped `balanced` settings,
+both arms in the same session.
+
+| | Shipped | With differences | Better is |
+| --- | ---: | ---: | --- |
+| AUC (95% interval) | 0.964 (0.951 to 0.974) | 0.963 (0.948 to 0.973) | higher |
+| Duplicates reported at 0.4 | 83.0% | 83.3% | higher |
+| Non-duplicates reported at 0.4 | 5.73% | 6.65% | lower |
+| Duplicates at 0.5 | 77.2% | 73.7% | higher |
+| Non-duplicates at 0.5 | 4.13% | 3.21% | lower |
+| Output tokens a pair | 578 | 734 | lower |
+| Cost a pair | $0.00052 | $0.00060 | lower |
+
+- **Both pre-registered bars passed.** AUC stayed inside 0.952 to 0.974, and non-duplicates reported at 0.4 rose
+  0.92 points, under the one-point limit. Opus checked 50 sampled differences on reported duplicates: 47 real, 2
+  wrong, 1 unclear (bar: 40). Of the 47, 12 look like drift (one auth path falls back to a team's default member
+  budget and the other does not; one copy parses an expiry date unguarded and raises `ValueError` where the other
+  denies cleanly), 30 are per-caller parameters, and 5 are cosmetic.
+- **The trade-off is at the fail line.** At 0.5, 3.5 points fewer duplicates block, with fewer false blocks;
+  reporting at 0.4 is unchanged.
+- **Why it matters.** Of 166 consolidation commits mined from LiteLLM and OpenHands history and confirmed by Opus,
+  about 35 merged copies that already behaved differently.
+
 ## Public cleanup regression panel
 
 The [pytest-obligation cleanup](case-studies/pytest-obligation-cleanup.md) adds

@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "method": "adaptive-judge-budget",
+  "mechanism": "Retain the captured current stack and add candidates with sparse rank \u226450, MiniLM rank \u226410 and at least eight nonblank lines. Keep priority and query fairness; rank by averaged 61/(60+rank), double the two-channel agreement term, divide by estimated cost and 1 plus previously proposed targets of the same structure hash. Compare uniform and cost-only controls. Replay exact answers through normal estimated and native reservation/settlement accounting separately, at .04 per campaign.",
+  "runtime_pin": "a10a288530c4aa25711c7ec3b86ac164d182899a",
+  "sources": [
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/README.md",
+      "sha256": "a5997a892a04c220ce9e3e66ab2ee7c1a9f2a8ac085fbf7b7e8a867c83506b20",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/DESIGN.json",
+      "sha256": "0580dd4e8ccfc3241e311b39dea19eebd4f9bb3b3e18e68e1db695d83ce68d26",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/FROZEN-REPLAY.json",
+      "sha256": "b02af58907489c78b9e1a43568fced3be5e0bd4a6cdbe35e2369b96f83cf8089",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/FROZEN-RECORDINGS.json",
+      "sha256": "d4ac10767f9c0e95618d0b9c335bb3c49fd1f98b786798476c925ed35d6f412a",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/COMPLETION-FINAL.json",
+      "sha256": "7b9d4c1c81a2061f1ba2a87c3eca23bf1058a7be5a5c8366bfca7a313b77af9c",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/completion-round4/README.md",
+      "sha256": "e0a6f15181e49b53357209bbc6c74da3d49f852c30b9da61bb4cc2cd075631fa",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/completion-round4/FINAL-OUTCOMES.json",
+      "sha256": "3872cf6d6015ef90c4dc28f603681b1932f81274012b7d944e222a899fbe08b5",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/completion-final-measured/results.jsonl",
+      "sha256": "6e8aa6e53c7bc9d919b72da5d2e177401546835a1a64079cd8516af1542e8ee5",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    },
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/RUNTIME.json",
+      "sha256": "0f8152f4b148301713e4386344a2d07919bc36e06edda5f31ff5d4e362fbfba5",
+      "status": "available_local",
+      "public_distribution": "withheld: original evidence/recipe requires private corpus access"
+    }
+  ],
+  "evidence_access": {
+    "repository": "https://github.com/gigaverse-app/dry-lint-goldens",
+    "dataset_receipt": null,
+    "status": "Private recovery worker is packaging byte-exact originals. No invented dataset ID or materialization command."
+  },
+  "recovery_replay_scope": "Recompute settled usage and censoring from final recorded events. Full normal/native scheduler replay remains in the recovered original implementation.",
+  "new_experiments": false,
+  "replay_inputs": [
+    {
+      "path": "jobs/adaptive-judge-budget/.lab-results/completion-final-measured/results.jsonl",
+      "sha256": "6e8aa6e53c7bc9d919b72da5d2e177401546835a1a64079cd8516af1542e8ee5",
+      "bytes": 1137152
+    }
+  ]
+}

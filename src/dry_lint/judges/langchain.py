@@ -19,6 +19,8 @@ its docstring, its field names, its field descriptions and its enum values, in f
 - **The model thinks first.** A forced tool call switches thinking off, and then this judge found 95
   confirmed duplicates on real commits where it finds 121 with thinking. So the tool is offered, the
   request says to call it, and forcing is only the fallback (2 of 1,362 pairs).
+- **It lists how the copies differ,** between the reasoning and the score, so a report shows drift a reviewer
+  would otherwise have to find. On 748 labelled pairs it moved neither the ranking nor reporting at 0.4.
 
 Its scores spread over the rubric where the text judge's are nearly yes or no, so its thresholds are its
 own (presets.py). `diagnostics = true` adds two fields after the verdict, what was hard and what was
@@ -42,10 +44,21 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from dry_lint.judges.command import OPERATIONS_RULES, OPERATIONS_SOURCES, OPERATIONS_VERSION, prompt
-from dry_lint.models import Candidate, Verdict
+from dry_lint.models import Candidate, Difference, Verdict
 from dry_lint.settings import Settings
 
-SCHEMA_VERSION = "schema-3"
+SCHEMA_VERSION = "schema-4"  # schema-4 adds `differences`; new answers carry this version
+PROMPT_VERSION = f"{OPERATIONS_VERSION}+{SCHEMA_VERSION}"
+# The older prompts whose answers this prompt takes as its own, from the same model, effort and options; the one
+# place this judge's reuse is widened (plugins.accepted_versions reads it). Keyed by the current prompt, so a later
+# prompt change reuses nothing until it argues for its own entry.
+# schema-3 -> schema-4: the `differences` field is additive. On the 748 labelled pairs the decision did not move
+# beyond noise: AUC 0.964 against 0.963, non-duplicates reported at 0.4 5.73% against 6.65% (both inside the
+# pre-registered bar; at the 0.5 fail line labelled duplicates went from 77.2% to 73.7%). So a schema-3 answer is a
+# valid answer of this judge, missing only the new field: it is reused as is and shows no differences. Pairs judged
+# after the upgrade (new pairs, or pairs whose source changed) list them. `--refresh` asks again for differences.
+REUSED_PROMPTS = {"dry-operations-v3+schema-4": ("dry-operations-v3+schema-3",)}
+MAX_DIFFERENCES = 5
 # The question, without the text judges' "answer one JSON object" block: here the schema is the only statement of
 # the answer's format, and two formats in one request contradict each other.
 STRUCTURED_RULES = (
@@ -74,6 +87,19 @@ class ConsolidationOwner(StrEnum):
     NONE = "none"
 
 
+# The class name, docstring and descriptions are prompt text, written as measured (docs/benchmark.md#differences).
+class BehaviourDifference(BaseModel):
+    """One decision the two functions make differently in the part they share."""
+
+    # Prompt text, changed only with a measurement; models.Difference is the file format, kept in stores and reports.
+    what: str = Field(description="The decision the two functions make differently, in a few words.")
+    new_does: str = Field(description="What NEW does, in one short phrase.")
+    existing_does: str = Field(description="What EXISTING does, in one short phrase.")
+    consequence: str = Field(
+        description="What observably differs as a result. If that depends on code you cannot see, say so."
+    )
+
+
 class DuplicateVerdictPromptSchema(BaseModel):
     """Your verdict on whether NEW and EXISTING independently implement the same operation.
 
@@ -90,6 +116,14 @@ class DuplicateVerdictPromptSchema(BaseModel):
             "ordering and failure handling in NEW and in EXISTING; (3) say whether both already delegate it to "
             "the same helper or owner; (4) name the legitimate variation a shared helper would take as "
             "parameters. For a partial overlap, describe only the shared sub-operation, not the whole functions."
+        )
+    )
+    # After the reasoning, before the score: listing how the copies differ moved AUC and false reports at 0.4 by
+    # less than their noise, and the last sentence keeps a recorded difference from turning into a lower score.
+    differences: list[BehaviourDifference] = Field(
+        description=(
+            "List the behavioural differences in the part the two functions share. Empty when they share nothing "
+            "or behave the same. At most five. A difference is recorded, never a reason to lower the score."
         )
     )
     # The rubric does not say which bands are reported: told that, the model scored real partial duplicates just
@@ -171,7 +205,8 @@ USAGE_KINDS = {
 class LangChainJudge:
     name = "langchain-operations"
     subscription = False
-    strict_version = True  # another model, effort or schema is another judge: its answers are never reused
+    # Another model, effort or prompt is another judge: its answers are never reused, but for REUSED_PROMPTS.
+    strict_version = True
 
     def __init__(
         self,
@@ -199,13 +234,15 @@ class LangChainJudge:
         self.model, self.effort, self.workers, self.max_tokens = model, effort, workers, max_tokens
         self.thinking = thinking
         self.schema = DiagnosedVerdictPromptSchema if diagnostics else DuplicateVerdictPromptSchema
-        self.version = f"{OPERATIONS_VERSION}+{SCHEMA_VERSION}:{model}:{effort or 'default'}"
+        setup = f":{model}:{effort or 'default'}"
         if not thinking:
-            self.version += ":no-thinking"
+            setup += ":no-thinking"
         if diagnostics:
-            self.version += ":diagnostics"
+            setup += ":diagnostics"
         if max_tokens != 2048:
-            self.version += f":output={max_tokens}"
+            setup += f":output={max_tokens}"
+        self.version = PROMPT_VERSION + setup
+        self.reused_versions = frozenset(older + setup for older in REUSED_PROMPTS.get(PROMPT_VERSION, ()))
         options: dict[str, Any] = {"output_config": {"effort": effort}} if effort else {}
         if base_url:
             options["anthropic_api_url"] = base_url
@@ -313,7 +350,12 @@ class LangChainJudge:
         why = parsed.reasoning
         if isinstance(parsed, DiagnosedVerdictPromptSchema):
             why += f"\nHard: {parsed.difficulty}\nMissing: {parsed.missing_information}"
-        return Verdict(label=label, score=score, owner=owner, why=why, judge=self.name, judge_version=self.version)
+        # The schema asks for at most five; the store, report.json and every renderer keep the same five.
+        differences = [Difference.model_validate(d.model_dump()) for d in parsed.differences[:MAX_DIFFERENCES]]
+        return Verdict(
+            label=label, score=score, owner=owner, why=why, judge=self.name, judge_version=self.version,
+            differences=differences,
+        )  # fmt: skip
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         with ThreadPoolExecutor(self.workers) as pool:

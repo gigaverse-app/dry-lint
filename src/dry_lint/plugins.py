@@ -61,6 +61,7 @@ class Comparer(Protocol):
 class Judge(Protocol):
     name: str
     version: str  # model and prompt version: part of every verdict
+    # Optional `reused_versions: frozenset[str]`: older versions whose answers still hold; see `accepted_versions`.
 
     def judge(self, candidates: list[Candidate], settings: Settings) -> list[Verdict]:
         """One verdict per candidate, in order. Use `judges.label_for` so labels follow the thresholds."""
@@ -125,3 +126,17 @@ def load(slot: str, choice: PluginChoice, **defaults: Any) -> Any:
 
 def identity(plugin: Any) -> str:
     return f"{plugin.name}:{plugin.version}"
+
+
+def accepted_versions(judge: Any) -> frozenset[str]:
+    """
+    The versions whose stored answers `judge` takes as its own: its version, and the older ones it names in
+    `reused_versions`, each with the argument that its answers still hold (AGENTS.md). Every reuse check that
+    compares versions reads this, so a judge without `reused_versions` reuses its exact version only.
+    """
+    return frozenset({judge.version, *getattr(judge, "reused_versions", ())})
+
+
+def accepted_identities(judge: Any) -> frozenset[str]:
+    """`accepted_versions` as `identity` writes them, for a second opinion, which is stored by identity."""
+    return frozenset(f"{judge.name}:{version}" for version in accepted_versions(judge))

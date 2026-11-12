@@ -35,7 +35,7 @@ pass it to the Action:
     require-complete: 'true'
 ```
 
-The preset comes from `.dry-lint.toml`, the same one the baseline was written with
+The preset comes from `.dry-lint/config.toml`, the same one the baseline was written with
 ([one preset everywhere](judges.md#one-preset-everywhere)). Replace `main` in the
 example's `push: branches:` with your default branch
 (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`).
@@ -132,14 +132,14 @@ instead, so a misconfigured secret cannot pass silently.
 rarely have one locally. Run it in Actions instead with
 [examples/dry-lint-bootstrap.yml](../examples/dry-lint-bootstrap.yml):
 
-1. Commit it to `.github/workflows/` with `.dry-lint.toml`, using your secret's name, and push.
+1. Commit it to `.github/workflows/` with `.dry-lint/config.toml`, using your secret's name, and push.
    Any push that changes either file runs it on that branch; unlike `workflow_dispatch`, a push
    needs no copy of the workflow on the default branch.
 2. `gh run list --repo OWNER/NAME --branch BRANCH --json databaseId,name --jq '.[] | select(.name == "dry-lint bootstrap")'`
    (the workflow is not on the default branch yet, so select the run by name), then
    `gh run download RUN_ID --repo OWNER/NAME --name dry-lint-baseline --dir OUT`.
 3. Copy `.dry-lint/` and `README.md` from `OUT` and review the accepted pairs. To change the
-   result, for example with a new pattern, commit and push only the `.dry-lint.toml` edit; that
+   result, for example with a new pattern, commit and push only the `.dry-lint/config.toml` edit; that
    push runs it again. When the baseline is right, commit the files and delete the bootstrap
    workflow in the same commit.
 

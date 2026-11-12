@@ -32,7 +32,7 @@ TypeScript precision or recall.
 
 ## Configuration
 
-Commit `.dry-lint.toml` at the git repository root. Paths are relative to that root, including in monorepos:
+Commit `.dry-lint/config.toml` at the git repository root. Paths are relative to that root, including in monorepos:
 
 ```toml
 extractors = ["typescript"]

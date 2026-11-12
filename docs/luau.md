@@ -5,18 +5,18 @@ most often writes a second `clamp`, a second `GetService` wrapper or a second re
 already exists, so the extractor treats the Roblox idioms as behaviour.
 
 ```bash
-pip install 'dry-lint[luau]'
+pip install 'dry-lint[luau]>=1,<2'
 ```
 
 ```toml
-# .dry-lint.toml
+# .dry-lint/config.toml
 extractors = ["luau"]
 exclude = ["Packages/*", "ServerPackages/*", "DevPackages/*", "*/Packages/*", "*/tests/*"]
 ```
 
 `extractors` takes one entry per language, so a repository that mixes languages lists them all:
 `["python", "typescript", "luau"]`. Luau is not in the default list: the default scope stays Python and
-TypeScript, and existing function indexes keep their contract.
+TypeScript. Installing the parser alone does not enable Luau extraction.
 
 ## What it extracts
 
@@ -59,7 +59,8 @@ the names the function uses, so it can tell what `Players` or `Util` is.
 
 ## Comments
 
-Luau comments start with `--`:
+Prefer reviewed pair exceptions with reasons in `.dry-lint/ignore.yaml` ([configuration](configuration.md)).
+Inline exceptions remain supported. Luau comments start with `--`:
 
 ```lua
 -- dry-lint: distinct-from src/shared/Text.luau::shortenText
@@ -68,6 +69,8 @@ Luau comments start with `--`:
 
 ## Not covered
 
+- Data-model duplication: record fields, table schemas and Luau type aliases are not extracted as models. Methods
+  attached to tables are compared as functions; there is no `luau-models` extractor in this release.
 - `.rbxl`, `.rbxm` and `.model.json` files: they are not source. Run dry-lint on the Rojo project, not the place file.
 - Requires are not resolved across files; `local_calls` stays within one file.
 - Luau types are ignored, so two functions that differ only in their annotations are one function.

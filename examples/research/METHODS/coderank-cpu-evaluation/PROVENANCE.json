@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "coderank-cpu-evaluation",
+      "original_path": "jobs/coderank-cpu-evaluation/.lab-results/coderank_adapter.py",
+      "original_sha256": "6e6ad2732bd2e7d354b59d6bdc5afe24a01471e96d6b476386dfa85bc03b13a8",
+      "public_path": "coderank-cpu-evaluation/implementation/coderank_adapter.py",
+      "public_sha256": "5ff958e5de7086308db2bcef230a2415f210012486f3056c45b05743eff5a230",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "I001"
+      ]
+    },
+    {
+      "method": "coderank-cpu-evaluation",
+      "original_path": "jobs/coderank-cpu-evaluation/.lab-results/cpu_variant.py",
+      "original_sha256": "0a6b996e70454709bf6800cc21c7dd6ecd53e874696b73ff9d2e9484e6afd04f",
+      "public_path": "coderank-cpu-evaluation/implementation/cpu_variant.py",
+      "public_sha256": "d83a096216a9a527d779688abf3072abb1b37e712041b3bee7e8bc791acfd3c4",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "I001"
+      ]
+    },
+    {
+      "method": "coderank-cpu-evaluation",
+      "original_path": "jobs/coderank-cpu-evaluation/.lab-results/cache_corpus.py",
+      "original_sha256": "948426d25efb7421995ef69590c01bc9af56f33f8ee78f81baa1cbeef452d18e",
+      "public_path": "coderank-cpu-evaluation/implementation/cache_corpus.py",
+      "public_sha256": "bce4c9160428cefb3c041f2843127e9fbbe48e82de2df548c97778553cab810c",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "I001"
+      ]
+    },
+    {
+      "method": "coderank-cpu-evaluation",
+      "original_path": "jobs/coderank-cpu-evaluation/.lab-results/batch_runner.py",
+      "original_sha256": "dc2ed5fdab89d27488a9ab50f3fd8c25b4ac101906f7a6e8784582d29e316f92",
+      "public_path": "coderank-cpu-evaluation/implementation/batch_runner.py",
+      "public_sha256": "de52aa6907853eb8ac2cdf65ff3569c881b1c89a37583f5a617b5a131c7e0891",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B904",
+        "F401",
+        "I001",
+        "UP017"
+      ]
+    },
+    {
+      "method": "coderank-cpu-evaluation",
+      "original_path": "jobs/coderank-cpu-evaluation/.lab-results/publish_matrices.py",
+      "original_sha256": "223f53b6b467c9e2be80328bfa4c2b19ce7a66ec29d2cb9e168844503bcf678b",
+      "public_path": "coderank-cpu-evaluation/implementation/publish_matrices.py",
+      "public_sha256": "51484f450fe6ab7b8b6771f7a9f2bd61ca658e7566e4683760cd566fefa6546a",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "coderank-cpu-evaluation",
+      "original_path": "jobs/coderank-cpu-evaluation/.lab-results/preflight.py",
+      "original_sha256": "b7ba21d295be7f21208e016e075a052dba62c7cb2ffcb7824ece3d712b26ad8c",
+      "public_path": "coderank-cpu-evaluation/implementation/preflight.py",
+      "public_sha256": "9efdb7538d40c6bf6cd6b30d6b1289f671992c313e7ca9c26d3bfefddeffbb60",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B007",
+        "F401",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}

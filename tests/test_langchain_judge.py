@@ -6,26 +6,32 @@ import threading
 import time
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+from test_discovery import check
 
 from dry_lint.costs import price, usage_cost
 from dry_lint.discovery import reservation_cost
-from dry_lint.judges import make_judge
+from dry_lint.judges import langchain, make_judge
 from dry_lint.judges.command import OPERATIONS_ANSWER, OPERATIONS_PROMPT, OPERATIONS_RULES, OPERATIONS_SOURCES
 from dry_lint.judges.langchain import (
     CALL_THE_TOOL,
     STRUCTURED_PROMPT,
     STRUCTURED_RULES,
+    BehaviourDifference,
     ConsolidationOwner,
     DiagnosedVerdictPromptSchema,
     DuplicateVerdictPromptSchema,
     DuplicationLabel,
     LangChainJudge,
 )
-from dry_lint.models import Candidate
+from dry_lint.models import Candidate, Verdict
 from dry_lint.presets import AUTO_ORDER, PRESETS, resolve
+from dry_lint.report import Report, as_markdown, as_text
 from dry_lint.settings import Settings
+from dry_lint.store import DirectoryStore, VerdictStore
 
 from conftest import function
 
@@ -38,10 +44,14 @@ STRUCTURED = resolve(Settings(preset="balanced"))
 
 
 def verdict(
-    score: float, label: str = "duplicate", owner: str = "existing", why: str = "both slice to a limit"
+    score: float,
+    label: str = "duplicate",
+    owner: str = "existing",
+    why: str = "both slice to a limit",
+    differences: list[dict] | None = None,
 ) -> dict:
     """A tool call filling the schema, as the provider returns it for `with_structured_output`."""
-    filled = {"reasoning": why, "score": score, "label": label, "owner": owner}
+    filled = {"reasoning": why, "differences": differences or [], "score": score, "label": label, "owner": owner}
     return {
         "stop_reason": "tool_use",
         "content": [{"type": "tool_use", "id": "toolu_1", "name": "DuplicateVerdictPromptSchema", "input": filled}],
@@ -120,7 +130,8 @@ def api() -> Iterator[Api]:
 
 def test_the_reasoning_is_the_schemas_first_field() -> None:
     # INVARIANT: fields are generated in order. Deciding before reasoning cost a third of the measured recall.
-    assert list(DuplicateVerdictPromptSchema.model_fields) == ["reasoning", "score", "label", "owner"]
+    # The differences come after the reasoning and before the score: the order that was measured.
+    assert list(DuplicateVerdictPromptSchema.model_fields) == ["reasoning", "differences", "score", "label", "owner"]
 
 
 def test_the_schema_is_prompt_text_enums_descriptions_and_a_score_rubric() -> None:
@@ -140,7 +151,7 @@ def test_the_schema_is_prompt_text_enums_descriptions_and_a_score_rubric() -> No
     assert [owner.value for owner in ConsolidationOwner] == ["new", "existing", "shared", "none"]
     assert schema["$defs"]["DuplicationLabel"]["enum"] == ["duplicate", "drifted", "separate"]
     assert schema["$defs"]["ConsolidationOwner"]["enum"] == ["new", "existing", "shared", "none"]
-    assert schema["required"] == ["reasoning", "score", "label", "owner"]
+    assert schema["required"] == ["reasoning", "differences", "score", "label", "owner"]
 
 
 def test_it_asks_the_text_judges_question_without_their_answer_format() -> None:
@@ -163,7 +174,7 @@ def test_it_sends_the_schema_the_adopters_key_and_both_functions(api: Api) -> No
     assert tool["name"] == "DuplicateVerdictPromptSchema"
     # The model may think first, so the tool is offered, not forced; the request says to call it.
     assert request["thinking"] == {"type": "adaptive"} and "tool_choice" not in request
-    assert list(tool["input_schema"]["properties"]) == ["reasoning", "score", "label", "owner"]
+    assert list(tool["input_schema"]["properties"]) == ["reasoning", "differences", "score", "label", "owner"]
     assert "0.6-0.7: established" in tool["input_schema"]["properties"]["score"]["description"]
     [message] = request["messages"]
     rules, sources = message["content"]
@@ -182,7 +193,7 @@ def test_it_sends_the_schema_the_adopters_key_and_both_functions(api: Api) -> No
         "both slice to a limit",
     )
     assert answer.judge == "langchain-operations"
-    assert answer.judge_version == "dry-operations-v3+schema-3:claude-haiku-5-5:low"
+    assert answer.judge_version == "dry-operations-v3+schema-4:claude-haiku-5-5:low"
 
 
 @pytest.mark.parametrize(
@@ -252,10 +263,10 @@ def test_a_provider_failure_is_a_judge_error_the_scheduler_can_record(api: Api) 
 
 
 def test_the_version_names_what_changes_the_answers(api: Api) -> None:
-    assert api.judge().version == "dry-operations-v3+schema-3:claude-haiku-5-5:low"
+    assert api.judge().version == "dry-operations-v3+schema-4:claude-haiku-5-5:low"
     assert (
         api.judge(model="claude-sonnet-5-5", effort=None).version
-        == "dry-operations-v3+schema-3:claude-sonnet-5-5:default"
+        == "dry-operations-v3+schema-4:claude-sonnet-5-5:default"
     )
     assert api.judge(max_tokens=4096).version.endswith(":low:output=4096")
     assert api.judge(thinking=False).version.endswith(":low:no-thinking")
@@ -323,9 +334,10 @@ def test_without_thinking_the_tool_is_forced_at_once(api: Api) -> None:
 def test_diagnostics_ask_what_was_hard_after_the_verdict(api: Api) -> None:
     fields = list(DiagnosedVerdictPromptSchema.model_fields)
     # After the verdict, so they cannot move it.
-    assert fields == ["reasoning", "score", "label", "owner", "difficulty", "missing_information"]
+    assert fields == ["reasoning", "differences", "score", "label", "owner", "difficulty", "missing_information"]
     filled = {
         "reasoning": "both slice to a limit",
+        "differences": [],
         "score": 0.8,
         "label": "duplicate",
         "owner": "existing",
@@ -422,3 +434,103 @@ def test_balanced_is_this_judge_with_its_own_thresholds_and_the_text_setup_keeps
     # reservation covers what the model really reads: the question, both functions and the whole schema.
     assert "0.6-0.7: established" in judge.input_text(CANDIDATE) and "def clip(text, n)" in judge.input_text(CANDIDATE)
     assert reservation_cost(judge, CANDIDATE, STRUCTURED) > 0
+
+
+DRIFT = {
+    "what": "the limit itself",
+    "new_does": "keeps n characters",
+    "existing_does": "keeps limit - 1 and an ellipsis",
+    "consequence": "the same text comes back one character shorter from EXISTING",
+}
+
+
+def test_the_differences_field_is_worded_as_measured() -> None:
+    # The wording is prompt text and was measured as is (docs/benchmark.md#differences): change it, measure again.
+    fields = DuplicateVerdictPromptSchema.model_json_schema()["properties"]
+    described = fields["differences"]["description"]
+    assert described.startswith("List the behavioural differences in the part the two functions share.")
+    assert "At most five." in described and "never a reason to lower the score" in described
+    item = BehaviourDifference.model_json_schema()
+    assert list(item["properties"]) == ["what", "new_does", "existing_does", "consequence"]
+    assert item["required"] == ["what", "new_does", "existing_does", "consequence"]
+    assert "depends on code you cannot see" in item["properties"]["consequence"]["description"]
+    # The diagnostics schema extends the same one, so it asks for the differences too.
+    assert list(DiagnosedVerdictPromptSchema.model_fields)[:3] == ["reasoning", "differences", "score"]
+
+
+def test_an_answer_keeps_its_differences_and_at_most_five(api: Api) -> None:
+    api.replies = [verdict(0.8, "drifted", differences=[DRIFT]), verdict(0.8), verdict(0.9, differences=[DRIFT] * 7)]
+    one, none, many = api.judge(workers=1).judge([CANDIDATE] * 3, STRUCTURED)
+
+    assert one.label == "drifted" and [d.model_dump() for d in one.differences] == [DRIFT]
+    assert none.differences == []  # the same behaviour: an empty list, as the schema asks
+    assert len(many.differences) == 5
+
+
+SCHEMA_3 = "dry-operations-v3+schema-3:claude-haiku-5-5:low"
+
+
+def judged(api: Api, store: VerdictStore, tmp_path: Path, campaign: bool = False, refresh: bool = False) -> Report:
+    """CANDIDATE through Judging, as `check` asks: the store first, then the judge."""
+    return check((STRUCTURED, api.judge(), store, None), tmp_path, [CANDIDATE], campaign=campaign, refresh=refresh)[0]
+
+
+@pytest.mark.parametrize("campaign", [False, True], ids=["pairs", "discovery campaign"])
+def test_answers_from_the_schema_without_differences_are_reused_as_they_are(
+    api: Api, tmp_path: Path, campaign: bool
+) -> None:
+    # Upgrading asks nothing again: a schema-3 answer of the same model and effort is this judge's answer without
+    # the additive field (REUSED_PROMPTS gives the measurement). It is reused as is and shows no differences.
+    store = VerdictStore(DirectoryStore(tmp_path / "verdicts"))
+    store.remember(
+        CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=SCHEMA_3)
+    )
+    api.fail_after = 0  # any call is an error, and is counted
+    report = judged(api, store, tmp_path, campaign)
+
+    [found] = report.findings
+    assert api.requests == [] and found.cached
+    assert found.verdict.judge_version == SCHEMA_3 and found.verdict.differences == []
+    assert "differs:" not in as_text(report) and "How the copies differ" not in as_markdown(report)
+
+
+def test_refresh_asks_a_schema_3_answer_again_for_its_differences(api: Api, tmp_path: Path) -> None:
+    store = VerdictStore(DirectoryStore(tmp_path))
+    store.remember(
+        CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=SCHEMA_3)
+    )
+    api.replies = [verdict(0.8, "drifted", differences=[DRIFT])]
+    [found] = judged(api, store, tmp_path, refresh=True).findings
+
+    assert len(api.requests) == 1 and not found.cached
+    # The store keeps the differences: a reused verdict shows them like a new one.
+    [again] = judged(api, store, tmp_path).findings
+    assert again.cached and again.verdict.differences[0].existing_does == DRIFT["existing_does"]
+    assert again.verdict.judge_version == "dry-operations-v3+schema-4:claude-haiku-5-5:low"
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        "dry-operations-v3+schema-3:claude-sonnet-5-5:low",  # another model
+        "dry-operations-v3+schema-3:claude-haiku-5-5:high",  # another effort
+        "dry-operations-v3+schema-3:claude-haiku-5-5:low:diagnostics",  # other options
+        "dry-operations-v3+schema-2:claude-haiku-5-5:low",  # a prompt older than schema-3
+        "dry-operations-v2+schema-3:claude-haiku-5-5:low",  # another question
+    ],
+)
+def test_any_other_older_answer_is_asked_again(api: Api, tmp_path: Path, stored: str) -> None:
+    store = VerdictStore(DirectoryStore(tmp_path))
+    store.remember(CANDIDATE, Verdict(label="duplicate", score=0.8, judge="langchain-operations", judge_version=stored))
+    [found] = judged(api, store, tmp_path).findings
+    assert len(api.requests) == 1 and not found.cached
+
+
+def test_the_reused_versions_follow_the_judges_setup_and_this_prompt_only(api: Api) -> None:
+    assert api.judge().reused_versions == {SCHEMA_3}
+    assert api.judge(diagnostics=True, max_tokens=4096, thinking=False).reused_versions == {
+        "dry-operations-v3+schema-3:claude-haiku-5-5:low:no-thinking:diagnostics:output=4096"
+    }
+    # The reuse is argued for this prompt: a later prompt reuses nothing until it argues for its own.
+    with patch.object(langchain, "PROMPT_VERSION", "dry-operations-v3+schema-5"):
+        assert api.judge().reused_versions == frozenset()

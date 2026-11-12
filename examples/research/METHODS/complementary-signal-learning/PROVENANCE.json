@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "complementary-signal-learning",
+      "original_path": "jobs/complementary-signal-learning/.lab-results/build_bank_deterministic.py",
+      "original_sha256": "5a22b2d9cfe274ee16b0e1d248993c87c102a93363475d8330a7d73b6ccd8886",
+      "public_path": "complementary-signal-learning/implementation/build_bank_deterministic.py",
+      "public_sha256": "0e8f8ab36f7838046dd4df890be9e18725c548b8559b9fa22c44a16ffce743b5",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E401",
+        "E402",
+        "E741",
+        "F401",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "complementary-signal-learning",
+      "original_path": "jobs/complementary-signal-learning/.lab-results/bank_loader.py",
+      "original_sha256": "f18bae9d46f4b8804e014d0a9ccf0a068bd6cdb407bec5527ac9abb2d867c57e",
+      "public_path": "complementary-signal-learning/implementation/bank_loader.py",
+      "public_sha256": "e993e60a99b727a19d45aa21e6f20f0bdb5f7778768dc8d9f2b057a70ae725e5",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "E741",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "complementary-signal-learning",
+      "original_path": "jobs/complementary-signal-learning/.lab-results/fit_residual.py",
+      "original_sha256": "8c44ee6e25450ab9ee3e144932ccba180bad9d631ce828edb355fef31e163678",
+      "public_path": "complementary-signal-learning/implementation/fit_residual.py",
+      "public_sha256": "3dbd076f51d7368e527633de55cb0c14baaaeec9b8ad9d10c771ae110ca15224",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B905",
+        "E401",
+        "E402",
+        "E741",
+        "I001"
+      ]
+    },
+    {
+      "method": "complementary-signal-learning",
+      "original_path": "jobs/complementary-signal-learning/.lab-results/prepare_residual.py",
+      "original_sha256": "a4f327746414e306395eb987469c4a9e27e0f867cab0aa6834094b3c8fa39aa7",
+      "public_path": "complementary-signal-learning/implementation/prepare_residual.py",
+      "public_sha256": "7a65d3cf453a66e321ca5e631ef26b554fbcf86137c007c0db9d1576016f651a",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "E731",
+        "E741",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "complementary-signal-learning",
+      "original_path": "jobs/complementary-signal-learning/.lab-results/summarize_bank.py",
+      "original_sha256": "ea45f4a90f5c21c7727347b2b2fad006a8a44775a9fc5de167892e5b932cf656",
+      "public_path": "complementary-signal-learning/implementation/summarize_bank.py",
+      "public_sha256": "e2b0c26e61d5bc4c54a9150ee7a009b920c7e7831290e84b92b4d024d3896276",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E741",
+        "F401",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "complementary-signal-learning",
+      "original_path": "jobs/complementary-signal-learning/.lab-results/build_bank.py",
+      "original_sha256": "01ca8167974468e0d18cb82540c7b9530a8929de505d968c756c1a20c2f91c33",
+      "public_path": "complementary-signal-learning/implementation/build_bank.py",
+      "public_sha256": "d068f6472514e271e44c0c5e85c27d3194fa01a3d7dea97c6cb59be26a7f03c8",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "E401",
+        "E402",
+        "E741",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "complementary-signal-learning",
+      "original_path": "jobs/complementary-signal-learning/.lab-results/transport_controls_v3.py",
+      "original_sha256": "07b4aee90e30d73930f5a00944c2c971c5ba1c775cbe8d3813ebe8ab59e9fd46",
+      "public_path": "complementary-signal-learning/implementation/transport_controls_v3.py",
+      "public_sha256": "cd9dfd4e8c140d1d910a4f4804d7a18d18ca057052b06c1a59ea51fa230be73c",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "F401",
+        "F841",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}

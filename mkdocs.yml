@@ -75,6 +75,7 @@ extra:
   - docs/tutorials/first-run.md
   - docs/ci.md
   - docs/adoption-playbook.md
+  - docs/configuration.md
   - docs/github-action.md
   - docs/typescript.md
   - docs/luau.md
@@ -93,6 +94,7 @@ extra:
   - docs/design.md
   - docs/benchmark.md
   - docs/research-results.md
+  - docs/research-program.md
   - docs/case-studies/pytest-selective.md
   - docs/case-studies/pytest-obligation-cleanup.md
   - CONTRIBUTING.md
@@ -109,6 +111,7 @@ nav:
   - Luau and Roblox: docs/luau.md
   - What the pull request comment shows: docs/comment-preview.md
 - Configure and run:
+  - Configuration, exceptions and migration: docs/configuration.md
   - Judges and presets: docs/judges.md
   - Retrieval presets: docs/retrieval-presets.md
   - Sweep a repository and ratchet its debt: docs/sweeps.md
@@ -126,6 +129,7 @@ nav:
 - Evidence:
   - Benchmark: docs/benchmark.md
   - What the recall research established: docs/research-results.md
+  - Research program: docs/research-program.md
   - "Case study: duplicate debt exposed four bugs": docs/case-studies/pytest-selective.md
   - "Case study: what a zero-duplication backlog improved": docs/case-studies/pytest-obligation-cleanup.md
 - Related tools: ecosystem.md

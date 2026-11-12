@@ -38,9 +38,9 @@ from dry_lint.baseline import Baseline, readme_key, require_complete, update_rea
 from dry_lint.bench import bench_comparer, bench_judge, load_gold
 from dry_lint.commits import Journal, append_trailers, staged_files, summary
 from dry_lint.costs import ANSWER_TOKENS, ANSWERS, CHARS_PER_TOKEN, PRICES
-from dry_lint.detector import Detector, base_ref, changed_lines, touched
+from dry_lint.detector import Detector, base_ref, changed_distinctions, changed_lines, touched
 from dry_lint.discovery import CampaignStore
-from dry_lint.feedback import FILENAME, Decision, Feedback
+from dry_lint.feedback import Decision, Feedback
 from dry_lint.files import write_text
 from dry_lint.functions import extractor_for, tracked_files, validate_source
 from dry_lint.git import git, worktree
@@ -49,7 +49,7 @@ from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, default_store, open_store
 from dry_lint.labelling import label, labeller, sample, summarise
 from dry_lint.ledger import counter_key
-from dry_lint.models import Candidate, CandidatesFile, Function, Run, evidence
+from dry_lint.models import Candidate, CandidatesFile, Function, Run, evidence, qualified
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
 from dry_lint.replay import replay
@@ -237,7 +237,17 @@ def changed_owners(
 ) -> list[Function]:
     """Select this repository's owners for function and model change review."""
     own = [f for f in detector.functions if not f.origin or f.origin.repository == primary]
-    return own if whole_repository else touched(own, changed_lines(root, args.base, args.staged))
+    if whole_repository:
+        return own
+    changed = touched(own, changed_lines(root, args.base, args.staged))
+    names = changed_distinctions(root, args.base, staged=args.staged)
+    keys = {f.qualname for f in changed}
+    return changed + [
+        f
+        for f in own
+        if f.qualname not in keys
+        and ("*" in names or f.qualname in names or f"{f.path}::{qualified(f.owner, f.name)}" in names)
+    ]
 
 
 def review_scope(
@@ -352,12 +362,7 @@ def reviewed(
 
 
 def read_feedback(root: Path, *, staged: bool = False, committed: bool = False) -> Feedback:
-    if staged or committed:
-        raw = git(root, "show", f"{'' if staged else 'HEAD'}:{FILENAME}", check=False)
-        feedback = Feedback.model_validate_json(raw) if raw else Feedback()
-    else:
-        feedback = Feedback.read(root / FILENAME)
-    return feedback
+    return Feedback.for_repository(root, staged=staged, committed=committed)
 
 
 def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tuple[Detector, str]:
@@ -668,7 +673,7 @@ def feedback(root: Path, settings: Settings, args: argparse.Namespace) -> int:
             current = detector.pair(*(functions[name] for name in names), candidate.similarity)
             if evidence(current) == evidence(candidate):
                 raise ValueError("Stage the repair before recording a fix; the reported source is unchanged")
-    path = root / FILENAME
+    path = Feedback.path(root)
     decisions = Feedback.read(path)
     decisions.decisions.append(
         Decision(
@@ -681,7 +686,9 @@ def feedback(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         )
     )
     decisions.write(path)
-    print(f"Recorded {args.action} for {candidate.key} in {FILENAME}; review and stage this file.")
+    print(
+        f"Recorded {args.action} for {candidate.key} in {path.relative_to(root).as_posix()}; review and stage this file."
+    )
     return 0
 
 
@@ -770,6 +777,7 @@ def scope_lines(root: Path, settings: Settings) -> list[str]:
         f"scope: include {', '.join(settings.include)} - exclude {', '.join(settings.exclude) or 'nothing'}",
         f"  {sum(folders.values())} source files in scope" + (f": {shown}" if folders else ""),
         f"  {len(settings.patterns)} declared pattern(s)",
+        f"  {len(settings.distinct)} distinct-pair declaration(s)",
     ]
 
 

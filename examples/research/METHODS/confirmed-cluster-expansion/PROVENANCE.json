@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "confirmed-cluster-expansion",
+      "original_path": "jobs/confirmed-cluster-expansion/.lab-results/run_cluster.py",
+      "original_sha256": "1d47418348b216d4587448f1deb14eab5c4e2e0135b85c39a014373883582dd8",
+      "public_path": "confirmed-cluster-expansion/implementation/run_cluster.py",
+      "public_sha256": "912d639db3ed1215616f0a69812e5658bd113e80b47b1b654178b0b0544a47cd",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B007",
+        "B023",
+        "B905",
+        "E401",
+        "E402",
+        "E741",
+        "I001"
+      ]
+    },
+    {
+      "method": "confirmed-cluster-expansion",
+      "original_path": "jobs/confirmed-cluster-expansion/.lab-results/available_seed.py",
+      "original_sha256": "8f57977201a2ad18149a4b47f174f4b59bfe895345555e9410b5c815c0948fe5",
+      "public_path": "confirmed-cluster-expansion/implementation/available_seed.py",
+      "public_sha256": "1ebb406a89a3000a38d7a5ce0d95356b2250b12558a3c262a01e3408b2296933",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "E402",
+        "E741",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "confirmed-cluster-expansion",
+      "original_path": "jobs/confirmed-cluster-expansion/.lab-results/extended_run.py",
+      "original_sha256": "e5725e3949d6658228b00d536e80c4c514977e1d1dd6da5a5b0ef0215e34637d",
+      "public_path": "confirmed-cluster-expansion/implementation/extended_run.py",
+      "public_sha256": "3d4df9f2cacf9a16bcc7693b113fbf013da811da1c96a054f1926037cb4719c4",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B023",
+        "B904",
+        "E401",
+        "E402",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "confirmed-cluster-expansion",
+      "original_path": "jobs/confirmed-cluster-expansion/.lab-results/controls.py",
+      "original_sha256": "06c3f7411f847b6adfedb1255a30a78d0686ccb4470612fd3e14b28017168e54",
+      "public_path": "confirmed-cluster-expansion/implementation/controls.py",
+      "public_sha256": "3ecc9fbe29482bc63a1a47e45f29ca076143cf9bc9f325184b4fe7b37de56501",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E741",
+        "F403",
+        "F405",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "confirmed-cluster-expansion",
+      "original_path": "jobs/confirmed-cluster-expansion/.lab-results/ledger_frontier.py",
+      "original_sha256": "6e28983a40c4ac7e9afe741370cdd9f6950742ff3e782d94be6ff7168617f9a2",
+      "public_path": "confirmed-cluster-expansion/implementation/ledger_frontier.py",
+      "public_sha256": "af5f6e108daa5dfc05bc4eadf2ff3328931190f88de47548a39eeaf94d919d94",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B007",
+        "E401",
+        "E402",
+        "E741",
+        "F401",
+        "I001"
+      ]
+    },
+    {
+      "method": "confirmed-cluster-expansion",
+      "original_path": "jobs/confirmed-cluster-expansion/.lab-results/status_fields.py",
+      "original_sha256": "04127f237e76e79444a54f52b9c9f26de37b0725eed7149d0a39431ac2b0f996",
+      "public_path": "confirmed-cluster-expansion/implementation/status_fields.py",
+      "public_sha256": "3d360bcac32a6a7272af04bd4d8a13e16f941f41563a71db71fa638c35d368a7",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}

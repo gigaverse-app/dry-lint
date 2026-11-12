@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "method": "adaptive-judge-budget",
+      "original_path": "jobs/adaptive-judge-budget/.lab-results/policy.py",
+      "original_sha256": "409ecb864af4d8f26347a1d7dc15a6aa0d0d4c069c5aa796ff1e9467a421631f",
+      "public_path": "adaptive-judge-budget/implementation/policy.py",
+      "public_sha256": "b2293a17ebc69bec9f548c53685384baa02fa400d501a370137b69afd6f846ed",
+      "path_literal_replacements": 1,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E402",
+        "F401",
+        "F841",
+        "I001"
+      ]
+    },
+    {
+      "method": "adaptive-judge-budget",
+      "original_path": "jobs/adaptive-judge-budget/.lab-results/replay_captures.py",
+      "original_sha256": "49e640d45d51d533301f3643fbd5f470e5692459c6507731aa382941d21d3e35",
+      "public_path": "adaptive-judge-budget/implementation/replay_captures.py",
+      "public_sha256": "85baf5bb0250f8f30563083e782a51ab46dfee9ddfab14ec11b4154b175ca93b",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "adaptive-judge-budget",
+      "original_path": "jobs/adaptive-judge-budget/.lab-results/replay_completion.py",
+      "original_sha256": "ad8c1e6c1ef821e7f1106d5d47c3449355a6395c6d0c8f8bf337df2c77a0915f",
+      "public_path": "adaptive-judge-budget/implementation/replay_completion.py",
+      "public_sha256": "85dd10cf19b4b95ebb391136833940768db97a65dfde08fbe39e2036a66e9d0a",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "adaptive-judge-budget",
+      "original_path": "jobs/adaptive-judge-budget/.lab-results/core_receipt_costs.py",
+      "original_sha256": "8f65b80e72bb95c5eeaf827be1a4c7dcb176dc92246703811fb0e7a28ec2c11c",
+      "public_path": "adaptive-judge-budget/implementation/core_receipt_costs.py",
+      "public_sha256": "cca5bedb464c34709728ec1c14d0f1cc96acab6162551572c29a484cb3f56a48",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "E401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "adaptive-judge-budget",
+      "original_path": "jobs/adaptive-judge-budget/.lab-results/historical_regressions.py",
+      "original_sha256": "0b692d75fe8e996a6cf2d7d22c55afe187b5476cbc4daae874f27554c36d70e0",
+      "public_path": "adaptive-judge-budget/implementation/historical_regressions.py",
+      "public_sha256": "22845a4b46d26a846648401fb52829e75991af1a382a9b690f18947cb402d299",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "B007",
+        "B023",
+        "F401",
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "adaptive-judge-budget",
+      "original_path": "jobs/adaptive-judge-budget/.lab-results/compare_returned.py",
+      "original_sha256": "5e40775aa686c699ae2f79a8ae5c061a09c4138f2694387b052a6ea06556024c",
+      "public_path": "adaptive-judge-budget/implementation/compare_returned.py",
+      "public_sha256": "3d2051fd022c6317a5dfd7e06a77ce73b1a063c0702f41dd9c8ac782ecfdab84",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "F403",
+        "F405",
+        "I001"
+      ]
+    },
+    {
+      "method": "adaptive-judge-budget",
+      "original_path": "jobs/adaptive-judge-budget/.lab-results/summarize_completed_core.py",
+      "original_sha256": "9cdbee0738e0aa2479454b09dc7f7379961f9225506b4b7d97e3711c5cfdceaf",
+      "public_path": "adaptive-judge-budget/implementation/summarize_completed_core.py",
+      "public_sha256": "35279b9ae2da56aca8b578a6dafb8d408926b0bea1c73a31a3676de2e1d6d2b2",
+      "path_literal_replacements": 0,
+      "algorithm_change": "none; explicit evidence-root substitution, formatter, documented legacy lint exceptions",
+      "legacy_lint_exceptions": [
+        "F403",
+        "F405",
+        "I001"
+      ]
+    }
+  ],
+  "original_access": "gigaverse-app/dry-lint-goldens; exact dataset receipt pending evidence worker",
+  "runtime": "a10a288530c4aa25711c7ec3b86ac164d182899a unless the frozen recipe explicitly names a later runtime"
+}

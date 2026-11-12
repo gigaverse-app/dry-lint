@@ -42,7 +42,10 @@ def test_a_fork_run_never_reports_as_the_required_check() -> None:
 def test_the_bootstrap_initializes_from_a_push_and_ships_the_hidden_folder() -> None:
     workflow = (EXAMPLES / "dry-lint-bootstrap.yml").read_text()
     # Runs on the branch that adds it, and again whenever the settings change, e.g. a new pattern.
-    assert "paths: [.github/workflows/dry-lint-bootstrap.yml, .dry-lint.toml]" in workflow
+    assert (
+        "paths: [.github/workflows/dry-lint-bootstrap.yml, .dry-lint/config.toml, .dry-lint/ignore.yaml, .dry-lint.toml, pyproject.toml]"
+        in workflow
+    )
     assert '--repository-id "$GITHUB_REPOSITORY_ID"' in workflow  # the README sign, as the local route gives it
     assert "pip install 'dry-lint[anthropic]>=1,<2'" in workflow  # the same major version as @v1 and rev: v1
     assert "dry-lint sweep --init" in workflow and "contents: read" in workflow
