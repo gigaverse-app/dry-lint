@@ -163,14 +163,18 @@ def fingerprint(node: Node, name: str) -> tuple[list[str], list[str]]:
     return tokens, calls
 
 
-def canonical(node: Node):
-    if node.type in TYPE_ONLY or node.type in {"comment", ";", "empty_statement"}:
+def canonical(node: Node, *, preserve_types: bool = False):
+    if (not preserve_types and node.type in TYPE_ONLY) or node.type in {"comment", ";", "empty_statement"}:
         return None
-    if node.type == "cast_expression":
+    if node.type == "cast_expression" and not preserve_types:
         return canonical(runtime_children(node)[0])
     if not node.children:
         return (node.type, text(node))
-    return (node.type, [value for child in runtime_children(node) if (value := canonical(child)) is not None])
+    children = node.children if preserve_types else runtime_children(node)
+    return (
+        node.type,
+        [value for child in children if (value := canonical(child, preserve_types=preserve_types)) is not None],
+    )
 
 
 def bindings(node: Node) -> set[str]:
@@ -272,6 +276,7 @@ class LuauExtractor:
     name = "luau"
     version = "2"
     files = ("*.luau", "*.lua")
+    preserve_types = False
 
     def __init__(self, min_lines: int = 2) -> None:
         self.min_lines = min_lines
@@ -387,5 +392,7 @@ class LuauExtractor:
         if has_syntax_error(root):
             root = self.parser.parse(("local __DryLint = {\n" + function.code + "\n}").encode("utf-8")).root_node
         # Keep binding names: lexical shadowing can make a rename change behaviour, so a rename is judged again.
-        payload = json.dumps(canonical(root), ensure_ascii=False, separators=(",", ":"))
-        return hashlib.sha256((f"luau:{self.version}:" + payload).encode("utf-8")).hexdigest()[:16]
+        payload = json.dumps(
+            canonical(root, preserve_types=self.preserve_types), ensure_ascii=False, separators=(",", ":")
+        )
+        return hashlib.sha256((f"{self.name}:{self.version}:" + payload).encode("utf-8")).hexdigest()[:16]

@@ -17,7 +17,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SCHEMA = 17
+SCHEMA = 18
 Label = Literal["duplicate", "drifted", "separate"]
 
 
@@ -43,7 +43,7 @@ class Run(BaseModel):
 class Declaration(BaseModel):
     """Declared model fields, not expanded inherited fields or a runtime schema."""
 
-    kind: Literal["pydantic", "dataclass", "typescript", "zod"]
+    kind: Literal["pydantic", "dataclass", "typescript", "zod", "luau"]
     fields: dict[str, str]
     reachable_from: list[str] = Field(
         default_factory=list,

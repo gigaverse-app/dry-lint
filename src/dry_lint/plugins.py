@@ -81,6 +81,7 @@ BUILT_IN = {
         "python": "dry_lint.extractors:PythonExtractor",
         "typescript": "dry_lint.typescript:TypeScriptExtractor",
         "luau": "dry_lint.luau:LuauExtractor",
+        "luau-models": "dry_lint.luau_models:LuauModelExtractor",
         "python-models": "dry_lint.model_shapes:PythonModelExtractor",
         "typescript-models": "dry_lint.model_shapes:TypeScriptModelExtractor",
     },

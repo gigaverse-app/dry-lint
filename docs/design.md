@@ -182,9 +182,11 @@ Peer extraction snapshots use an independent schema and invalidation contract; s
 [versioned function indexes](function-indexes.md). They preserve extraction data while candidate ranking and
 verdict reuse stay in the consumer's existing pipeline.
 
-New core files carry `"schema": 17`. Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 16 remain readable with conservative cache defaults. Schema 9 adds
+New core files carry `"schema": 18`, which adds the `luau` declaration kind for explicit record/table model shapes.
+Model hashes retain the typed syntax tree; function hashes still erase type-only syntax. Both traversals run in Python.
+Findings deferred for cost carry `budget_deferred` and warn on PR checks. Baseline creation and advancement still require complete evidence. Schemas 1 through 17 remain readable with conservative cache defaults. Schema 9 adds
 optional declaration kind/fields for the [model extractors](model-duplication.md); old function records default
-to no declaration. Function indexes write independent schema 2 and preserve this metadata; schema 1 remains
+to no declaration. Function indexes write independent schema 3 to include Luau declarations; schemas 1 and 2 remain
 readable subject to extraction-contract validation. Schema 8 adds
 the report's optional `backlog`, the accepted baseline pairs a baselined check saw the change clean up, and the
 sticky ledger's matching `backlog`. The report's is `null` when no baseline was checked, which makes no claim and
