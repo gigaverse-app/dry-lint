@@ -58,7 +58,7 @@ def test_residual_detection_preserves_complete_balanced_prefix_and_round_trips(t
     assert any(c.residual for c in candidates)
     assert len({c.key for c in candidates}) == len(candidates)
     artifact = CandidatesFile(candidates=candidates)
-    assert artifact.schema_version == 17
+    assert artifact.schema_version == 18
     assert CandidatesFile.model_validate_json(artifact.model_dump_json()).model_dump() == artifact.model_dump()
 
 

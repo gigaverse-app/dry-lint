@@ -5,7 +5,7 @@ implements one; nothing needs to inherit from dry-lint.
 
 | Slot | Settings key | Built in | Entry-point group |
 | --- | --- | --- | --- |
-| Extractor | `extractors` (a list, one per language) | `python`, `typescript`, opt-in `luau` ([Luau and Roblox](luau.md)), `python-models`, `typescript-models` | `dry_lint.extractors` |
+| Extractor | `extractors` (a list, one per language) | `python`, `typescript`, opt-in `luau` ([Luau and Roblox](luau.md)), `python-models`, `typescript-models`, opt-in `luau-models` | `dry_lint.extractors` |
 | Comparer | `comparer` | `tfidf`, optional `dryer`, opt-in `model-shape`, `operation-blocks`, optional `cpu-embedding`, `cpu-tail-rrf` | `dry_lint.comparers` |
 | Judge | `judge`, `escalate` | `jev`, opt-in `jev-models`, `command` (and `auto`, `none`) | `dry_lint.judges` |
 | Store backend | `store` | `dir`, `s3` | `dry_lint.stores` |

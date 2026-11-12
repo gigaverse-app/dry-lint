@@ -14,6 +14,7 @@ from dry_lint.evidence import PairEvidence, SourceReference
 from dry_lint.extractors import PythonExtractor
 from dry_lint.ledger import PullLedger
 from dry_lint.luau import LuauExtractor
+from dry_lint.luau_models import LuauModelExtractor
 from dry_lint.models import Function, Run, Verdict, qualified
 from dry_lint.report import Report, escaped
 from dry_lint.typescript import TypeScriptExtractor
@@ -162,6 +163,8 @@ class Comparisons:
                     response.raise_for_status()
                     extractor.validate_source(source.path, response.text)
                     self.files[key] = extractor.functions(source.path, response.text)
+                    if source.path.endswith((".lua", ".luau")):
+                        self.files[key].extend(LuauModelExtractor().functions(source.path, response.text))
                     self.source_text[key] = response.text
             except (httpx.HTTPError, ValueError, SyntaxError):
                 self.files[key] = None

@@ -21,7 +21,7 @@ from dry_lint.plugins import identity, load
 from dry_lint.repository_files import SETTINGS_FILES
 from dry_lint.settings import Settings
 
-INDEX_SCHEMA = 2
+INDEX_SCHEMA = 3
 MAX_INDEX_BYTES = 256 * 1024 * 1024
 REPOSITORY = re.compile(r"[\w-][\w.-]*/[\w-][\w.-]*", re.ASCII)
 COMMIT = re.compile(r"[0-9a-f]{40}")
@@ -67,12 +67,14 @@ def repository_name(value: str) -> str:
 def extraction_contract(settings: Settings) -> str:
     plugins = [load("extractors", choice) for choice in settings.extractors]
     # Only configured Luau extraction depends on its implementation and optional parser package.
-    luau = any(plugin.name == "luau" for plugin in plugins)
+    luau = any(plugin.name in {"luau", "luau-models"} for plugin in plugins)
+    luau_models = any(plugin.name == "luau-models" for plugin in plugins)
     modules = (
         "function_index",
         "functions",
         "extractors",
         "typescript",
+        "tree_hash",
         "source_context",
         "models",
         "model_shapes",
@@ -81,7 +83,7 @@ def extraction_contract(settings: Settings) -> str:
     )
     implementation = {
         name: Path(import_module(f"dry_lint.{name}").__file__).read_text(encoding="utf-8")
-        for name in (*modules, *(("luau",) if luau else ()))
+        for name in (*modules, *(("luau",) if luau else ()), *(("luau_models",) if luau_models else ()))
     }
     return digest(
         {
@@ -110,7 +112,7 @@ class IndexedFunction(Function):
 class FunctionIndex(BaseModel):
     model_config = ConfigDict(extra="forbid")
     format: Literal["dry-lint/function-index"] = "dry-lint/function-index"
-    schema_version: Literal[1, 2] = Field(default=INDEX_SCHEMA, alias="schema")
+    schema_version: Literal[1, 2, 3] = Field(default=INDEX_SCHEMA, alias="schema")
     repository: str
     commit: str
     contract: str

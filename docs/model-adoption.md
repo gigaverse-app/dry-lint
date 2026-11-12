@@ -37,7 +37,10 @@ baseline = ".dry-lint/models.json" # optional, after initialization
 An explicit CLI `--models` overrides the repository opt-out. Function-only peer indexes remain function-only;
 model comparison includes the local repository and any explicitly checked-out peers.
 
-Models use the existing Python/TypeScript model extractors and model-shape comparer. With the adopter's
+Models use the existing Python/TypeScript model extractors and model-shape comparer. Configuring the opt-in
+`luau` extractor adds `luau-models` to this pass; install `'dry-lint[luau]>=1,<2'` for its parser.
+It recognizes explicit record aliases and named table literals, with the [documented limits](luau.md#record-and-table-model-shapes).
+With the adopter's
 TypeSafe key, `jev-models` prioritizes their review. With another function judge but no TypeSafe key, model
 candidates go directly to source review without a provider call. With judging disabled, candidates are listed
 without blocking. Model ranking has a $0.01 ceiling against the existing shared PR spend ledger; function

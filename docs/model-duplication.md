@@ -71,6 +71,9 @@ and validation remain review evidence rather than hard filters: their difference
   literals, aliases and chained refinements. It does not expand `extends`, `Pick`, `Omit`, inferred types or
   schema references into artificial copies. Nested objects remain one field.
 - Same-file model pairs are eligible. Ordinary function matching retains its existing same-file policy.
+- Opt-in `luau-models` recognizes top-level Luau record aliases and named Lua table literals through tree-sitter.
+  It collects explicit data fields, preserving types and defaults for review, without expanding inheritance,
+  factories or referenced types. See [Luau model shapes](luau.md#record-and-table-model-shapes).
 - Hashes retain annotations, defaults, decorators, validators and Zod constraints. Full-file context digests
   invalidate judgment when local usage changes even if declarations do not.
 

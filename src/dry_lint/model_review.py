@@ -13,9 +13,13 @@ from dry_lint.settings import Discovery, PluginChoice, Settings
 
 def profile(settings: Settings) -> Settings:
     """Fixed model contract, independent of the available credentials and function preset."""
+    extractors = [PluginChoice(use="python-models"), PluginChoice(use="typescript-models")]
+    # The optional parser is required only after the adopter explicitly enables Luau.
+    if any(choice.use in {"luau", "luau-models"} for choice in settings.extractors):
+        extractors.append(PluginChoice(use="luau-models"))
     return settings.model_copy(
         update={
-            "extractors": [PluginChoice(use="python-models"), PluginChoice(use="typescript-models")],
+            "extractors": extractors,
             "comparer": settings.models.comparer,
             "neighbours": settings.models.neighbours,
             "policies": [*settings.policies, *settings.models.policies],

@@ -328,6 +328,32 @@ def test_typescript_resolution_uses_the_parser_and_caches_source_reads():
     assert len(fake.reads) == 1
 
 
+def test_luau_model_and_function_resolution_share_a_complete_source_cache():
+    pytest.importorskip("tree_sitter_luau")
+    from dry_lint.luau import LuauExtractor
+    from dry_lint.luau_models import LuauModelExtractor
+
+    source = """type Receipt = {id: string, amount: number}
+local Receipt = {id = "x", amount = 0}
+function table.Receipt()
+    return 1
+end
+"""
+    fake = SourceGitHub()
+    fake.sources["models.luau"] = (200, source)
+    functions = LuauExtractor().functions("models.luau", source)
+    models = LuauModelExtractor().functions("models.luau", source)
+    assert len({f.qualname for f in [*functions, *models]}) == 3
+    comparisons = Comparisons(client(fake), REPO, AFTER, VIEWER)
+    for symbol in [*functions, *models]:
+        reference = SourceReference.of(symbol, Run(repository=REPO, head=HEAD))
+        known, result = comparisons.current(reference)
+        assert known and result is not None
+        assert result.qualified == reference.qualified and result.line == symbol.line
+        assert result.revision == AFTER
+    assert len(fake.reads) == 1
+
+
 def test_large_pair_sets_have_bounded_links_and_keep_the_scan_report():
     fake = SourceGitHub()
     built = report(HEAD, *(finding("drifted", existing=f"copy_{i}", why="x" * 4000) for i in range(7)))
