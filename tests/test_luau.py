@@ -3,7 +3,7 @@ import textwrap
 import pytest
 
 from dry_lint.detector import Detector, changed_lines, touched, why_skipped
-from dry_lint.luau import LuauExtractor
+from dry_lint.luau import LuauExtractor, literal_key, table_key
 from dry_lint.plugins import load
 from dry_lint.settings import PluginChoice, Settings
 
@@ -308,6 +308,39 @@ end
     found = extractor.functions("keys.lua", source)
     assert [f.qualname for f in found] == ["keys.lua::handlers.copy"]
     assert found[0].analysis.local_calls == ()
+
+
+@pytest.mark.parametrize("key, expected", [('"label"', "label"), ("'label'", "label"), (r'"escaped\nkey"', None)])
+@pytest.mark.parametrize("template", ["type T = KEY", "type T = { [KEY]: number }"])
+def test_literal_keys_resolve_through_type_syntax_wrappers(extractor, key, expected, template):
+    source = template.replace("KEY", key)
+    extractor.validate_source("keys.luau", source)
+    definition = extractor.parser.parse(source.encode()).root_node.named_children[0]
+    annotation = definition.named_children[-1]
+    node = annotation.named_children[0] if annotation.type == "object_type" else annotation
+    assert literal_key(node) == expected
+
+
+@pytest.mark.parametrize(
+    "field, expected",
+    [
+        ("function(v) return v end", None),
+        ("1", None),
+        ("label = 1", "label"),
+        ('["label"] = 1', "label"),
+        ("[key] = 1", None),
+        ("[1] = 1", None),
+        (r'["escaped\nkey"] = 1', None),
+    ],
+)
+def test_table_keys_require_a_statically_named_field(extractor, field, expected):
+    source = f"local t = {{ {field} }}"
+    extractor.validate_source("keys.luau", source)
+    declaration = extractor.parser.parse(source.encode()).root_node.named_children[0]
+    assignment = declaration.named_children[0]
+    values = next(child for child in assignment.named_children if child.type == "expression_list")
+    table = values.named_children[0]
+    assert table_key(table.named_children[0]) == expected
 
 
 def test_dotted_owners_are_resolved_from_syntax_independently_of_layout(extractor):
