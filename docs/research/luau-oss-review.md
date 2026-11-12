@@ -86,6 +86,7 @@ adapters now delegate parsing, wrapper fallback, serialization and digest constr
 Each adapter still supplies its own grammar, canonicalization, syntax-error predicate and hash namespace.
 Three captured hash identities cover a Lua table method, a typed record and a TypeScript class method; they
 remain unchanged across this consolidation. The shared helper also participates in index invalidation.
+Rebuilding and reinstalling the wheel after consolidation produced an identical corrected OSS probe summary.
 
 ## Reproduce with the packaged CLI
 
@@ -113,7 +114,7 @@ The review comments on [#191](https://github.com/gigaverse-app/dry-lint/pull/191
 ## Decision and limits
 
 The measured fixes justify retaining the parser-based Python adapters and their existing opt-in interface.
-Merge in stack order after CI succeeds. Explicit record contracts work; general Lua class/dataclass libraries,
+The function-adapter PR has merged; the model follow-up still requires CI. Explicit record contracts work; general Lua class/dataclass libraries,
 metatable-generated layouts, cross-file aliases and runtime instance dataflow remain unresolved. The probe did
 not run Roblox, the upstream applications, provider judging or a GitHub Actions installation. It establishes
 packaged CLI behavior on these sources, not production-wide model ownership accuracy or general Lua-dialect support.
