@@ -81,6 +81,12 @@ Five function-adapter cases and three model-binding cases were observed failing 
 afterward. The tests also replaced a vacuous member-hash assertion with explicit cosmetic-stability and
 behavior-change controls. Adapter versions advance so earlier analysis cannot be reused under the corrected rules.
 
+Repository CI subsequently identified duplicated structural-hash plumbing between TypeScript and Luau. Both
+adapters now delegate parsing, wrapper fallback, serialization and digest construction to one Python helper.
+Each adapter still supplies its own grammar, canonicalization, syntax-error predicate and hash namespace.
+Three captured hash identities cover a Lua table method, a typed record and a TypeScript class method; they
+remain unchanged across this consolidation. The shared helper also participates in index invalidation.
+
 ## Reproduce with the packaged CLI
 
 From a checkout of the desired dry-lint revision, build its wheel and install it into a fresh environment:

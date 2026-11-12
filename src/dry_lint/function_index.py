@@ -74,6 +74,7 @@ def extraction_contract(settings: Settings) -> str:
         "functions",
         "extractors",
         "typescript",
+        "tree_hash",
         "source_context",
         "models",
         "model_shapes",

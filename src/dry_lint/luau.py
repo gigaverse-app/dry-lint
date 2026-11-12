@@ -1,14 +1,15 @@
 """The Luau (Roblox) extractor, parsed with tree-sitter and never executed."""
 
 import hashlib
-import json
 from collections.abc import Iterator
+from functools import partial
 
 from tree_sitter import Language, Node, Parser
 
 from dry_lint.extractors import local_calls
 from dry_lint.functions import words
 from dry_lint.models import Function, LanguageAnalysis, qualified
+from dry_lint.tree_hash import structure_hash
 
 FUNCTIONS = {"function_declaration", "function_definition"}
 # Types are erased at runtime: they never count as behaviour, and never change a structure hash.
@@ -410,11 +411,12 @@ class LuauExtractor:
         return functions
 
     def structure_hash(self, function: Function) -> str:
-        root = self.parser.parse(function.code.encode("utf-8")).root_node
-        if has_syntax_error(root):
-            root = self.parser.parse(("local __DryLint = {\n" + function.code + "\n}").encode("utf-8")).root_node
         # Keep binding names: lexical shadowing can make a rename change behaviour, so a rename is judged again.
-        payload = json.dumps(
-            canonical(root, preserve_types=self.preserve_types), ensure_ascii=False, separators=(",", ":")
+        return structure_hash(
+            function.code,
+            self.parser,
+            canonicalize=partial(canonical, preserve_types=self.preserve_types),
+            has_syntax_error=has_syntax_error,
+            wrapper=("local __DryLint = {\n", "\n}"),
+            namespace=f"{self.name}:{self.version}",
         )
-        return hashlib.sha256((f"{self.name}:{self.version}:" + payload).encode("utf-8")).hexdigest()[:16]

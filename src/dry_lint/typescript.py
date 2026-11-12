@@ -1,10 +1,10 @@
 """TypeScript and TSX implementations, parsed without executing repository code."""
 
 import hashlib
-import json
 import posixpath
 import re
 from collections.abc import Iterator
+from functools import partial
 
 import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
@@ -13,6 +13,7 @@ from dry_lint.extractors import local_calls
 from dry_lint.functions import words
 from dry_lint.models import Function, LanguageAnalysis, module_of, qualified
 from dry_lint.source_context import SourceContext
+from dry_lint.tree_hash import structure_hash
 
 FUNCTIONS = {
     "function_declaration",
@@ -383,12 +384,12 @@ class TypeScriptExtractor:
     preserve_types = False  # Declaration extractors retain type syntax in the shared hashing path.
 
     def structure_hash(self, function: Function) -> str:
-        parser = self.parser(function.path)
-        root = parser.parse(function.code.encode("utf-8")).root_node
-        if has_syntax_error(root):
-            root = parser.parse(("class __DryLint {\n" + function.code + "\n}").encode("utf-8")).root_node
         # Keep binding names: lexical shadowing and shorthand keys can make a rename change behavior.
-        payload = json.dumps(
-            canonical(root, preserve_types=self.preserve_types), ensure_ascii=False, separators=(",", ":")
+        return structure_hash(
+            function.code,
+            self.parser(function.path),
+            canonicalize=partial(canonical, preserve_types=self.preserve_types),
+            has_syntax_error=has_syntax_error,
+            wrapper=("class __DryLint {\n", "\n}"),
+            namespace="typescript:1",
         )
-        return hashlib.sha256(("typescript:1:" + payload).encode("utf-8")).hexdigest()[:16]
