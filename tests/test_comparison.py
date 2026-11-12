@@ -316,6 +316,24 @@ def test_unresolvable_symbol_identities_never_select_a_result(path, repository, 
     assert Comparisons(client(fake), REPO, head, VIEWER).current(reference) == (False, None)
 
 
+def test_helper_lookup_requires_source_cached_for_the_exact_revision():
+    fake = SourceGitHub()
+    fake.sources["src/text.py"] = (
+        200,
+        "def helper(value):\n    return value.strip()\n\ndef caller(value):\n    return helper(value)\n",
+    )
+    reference = SourceReference(repository=REPO, revision=HEAD, path="src/text.py", name="caller", line=4, end_line=5)
+    comparisons = Comparisons(client(fake), REPO, AFTER, VIEWER)
+    assert comparisons.helpers(reference) == []
+    assert fake.reads == []
+    known, result = comparisons.current(reference)
+    assert known and result is not None
+    assert [helper.name for helper in comparisons.helpers(result)] == ["helper"]
+    # Source cached at AFTER cannot provide helper evidence for the original HEAD.
+    assert comparisons.helpers(reference) == []
+    assert len(fake.reads) == 1
+
+
 def test_typescript_resolution_uses_the_parser_and_caches_source_reads():
     fake = SourceGitHub()
     fake.sources["src/view.tsx"] = (200, "export const View = () => <div>Hello</div>;\n")
