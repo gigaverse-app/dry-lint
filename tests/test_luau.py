@@ -3,6 +3,7 @@ import textwrap
 import pytest
 
 from dry_lint.detector import Detector, changed_lines, touched, why_skipped
+from dry_lint.luau import LuauExtractor
 from dry_lint.plugins import load
 from dry_lint.settings import PluginChoice, Settings
 
@@ -59,7 +60,7 @@ SOURCE = textwrap.dedent("""\
 
 
 @pytest.fixture
-def extractor():
+def extractor() -> LuauExtractor:
     return load("extractors", PluginChoice(use="luau"))
 
 
@@ -180,6 +181,111 @@ def test_metamethods_are_a_recognized_convention(extractor):
     found = {f.name: f for f in extractor.functions("a.luau", source)}
     assert found["__tostring"].analysis.convention == "luau-metamethod"
     assert found["new"].analysis.convention is None
+
+
+@pytest.mark.parametrize("name", ["__normalize", "__helper", "__len__", "__gc", "__mode", "__metatable"])
+def test_ordinary_helpers_are_not_exempted_as_metamethods(extractor, name):
+    source = f"function Module.{name}(value)\n    return math.min(1, math.max(0, value))\nend\n"
+    first = extractor.functions("a.luau", source)[0]
+    second = extractor.functions("b.luau", source)[0]
+    assert first.analysis.convention is None
+    assert why_skipped(first, second, Settings()) is None
+
+
+@pytest.mark.parametrize("name", ["__index", "__newindex", "__tostring", "__add", "__iter", "__call", "__idiv"])
+def test_recognized_metamethods_keep_the_shared_exemption(extractor, name):
+    source = f"function Module.{name}(value)\n    return value\nend\n"
+    first = extractor.functions("a.luau", source)[0]
+    second = extractor.functions("b.luau", source)[0]
+    assert why_skipped(first, second, Settings()) == "language convention: luau-metamethod"
+
+
+@pytest.mark.parametrize(
+    "target, declaration, body",
+    [
+        ("helper", "local function copy(config, value)", "return config.nested.helper(value)"),
+        ("helper", "local function copy(config, value)", "return config[1].helper(value)"),
+        ("helper", "local function copy(config, value)", "return (config).helper(value)"),
+        ("Module.helper", "function Module.copy(Module, value)", "return Module.helper(value)"),
+        ("Module.helper", "function Module.copy(value)", "local Module = value\n    return Module.helper(value)"),
+        ("Module.helper", "function Module.copy(value)", "Module = value\n    return Module.helper(value)"),
+        ("Module.helper", "function Module:copy(self, value)", "return self:helper(value)"),
+        ("Module.helper", "function Module:copy(value)", "local self = value\n    return self:helper(value)"),
+        ("Module.helper", "function Module.copy(value)", "return self:helper(value)"),
+        ("Module.helper", "function Module.copy(values)", "for Module in values do Module.helper(values) end"),
+    ],
+)
+def test_unresolved_calls_never_settle_pairs(extractor, target, declaration, body):
+    source = f"function {target}(value)\n    return value + 1\nend\n{declaration}\n    {body}\nend\n"
+    target, caller = extractor.functions("a.luau", source)
+    assert "call:helper" in caller.tokens  # Uncertain bindings still contribute retrieval signals.
+    assert caller.analysis.local_calls == ()
+    assert caller.analysis.forward_target is None
+    assert why_skipped(caller, target, Settings()) is None
+
+
+@pytest.mark.parametrize(
+    "plain, typed",
+    [
+        ("return value", "return value :: Player"),
+        ("return value", "return value :: number"),
+        ("return value", "return value :: Player :: any"),
+        ("local result = value\nreturn result", "local result: Player = value\nreturn result"),
+        (
+            "local result, count = value, 1\nreturn result",
+            "local result: Player, count: number = value, 1\nreturn result",
+        ),
+        ("local result\nreturn value", "local result: Player\nreturn value"),
+        ("return value", "type Alias = Player\nreturn value"),
+        ("for key, item in value do print(item) end", "for key: number, item: Player in value do print(item) end"),
+        (
+            "local function nested(item)\nreturn item\nend\nreturn nested(value)",
+            "local function nested<T>(item: Player): Player\nreturn item :: Player\nend\nreturn nested(value)",
+        ),
+    ],
+)
+def test_type_only_edits_preserve_tokens_hashes_and_context(extractor, plain, typed):
+    prefix = "local Player = require(script.Parent.Player)\n"
+    first = extractor.functions("a.luau", prefix + f"local function normalize(value)\n{plain}\nend\n")[0]
+    second = extractor.functions("a.luau", prefix + f"local function normalize(value)\n{typed}\nend\n")[0]
+    assert first.tokens == second.tokens
+    assert extractor.structure_hash(first) == extractor.structure_hash(second)
+    assert first.context == second.context == ""
+    assert first.analysis == second.analysis
+
+
+@pytest.mark.parametrize("annotation", ["Player", "Player?", "Types.Player", "List<Player>", "(Player, number)"])
+def test_named_parameter_and_return_annotations_do_not_change_hashes(extractor, annotation):
+    plain = "function Module:normalize(value)\n    return self:consume(value)\nend\n"
+    typed = f"function Module:normalize(value: {annotation}): {annotation}\n    return self:consume(value)\nend\n"
+    first, second = (extractor.functions("a.luau", source)[0] for source in (plain, typed))
+    assert first.tokens == second.tokens
+    assert extractor.structure_hash(first) == extractor.structure_hash(second)
+    assert first.analysis == second.analysis
+
+
+def test_type_names_do_not_shadow_runtime_calls(extractor):
+    source = """local function helper(value)
+    return value + 1
+end
+local function copy(value)
+    local result: helper = value
+    return helper(result)
+end
+"""
+    target, caller = extractor.functions("a.luau", source)
+    assert caller.analysis.local_calls == ("a.luau::helper",)
+    assert why_skipped(caller, target, Settings()) == "one calls the other"
+
+
+@pytest.mark.parametrize(
+    "body",
+    ["return value + 1", "return other", 'return "Player"', "return value:consume()", "return value.consume()"],
+)
+def test_type_erasure_preserves_runtime_changes(extractor, body):
+    original = extractor.functions("a.luau", "local function normalize(value)\nreturn value :: Player\nend\n")[0]
+    changed = extractor.functions("a.luau", f"local function normalize(value)\n{body}\nend\n")[0]
+    assert extractor.structure_hash(original) != extractor.structure_hash(changed)
 
 
 def test_empty_bodies_and_short_functions_are_skipped(extractor):

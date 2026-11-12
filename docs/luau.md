@@ -38,18 +38,23 @@ that contains them. Functions shorter than `min_lines` (default 2) and empty bod
   `Part` and parent it look alike even when their variable names do not.
 - `pcall` and `xpcall` count as error handling (`ctl:try`); `task.wait`, `wait`, `:Wait()` and `coroutine.yield`
   count as yielding (`ctl:await`); `for`, `while` and `repeat` count as loops.
-- Type annotations, casts (`::`), type aliases and comments never count, and never change a structure hash.
+- Type annotations (including named types), casts (`::`), type aliases and comments never count, and never change
+  a structure hash. Python walks the parser's grammar fields to separate types from runtime identifiers and unwraps
+  casts to their runtime expression; it does not strip types with regular expressions.
 
 The judge is also given the file's top-level `local X = require(...)` and `local X = game:GetService(...)` lines for
 the names the function uses, so it can tell what `Players` or `Util` is.
 
 ## Language facts
 
-- `local_calls` resolves `self:method()`, `Owner.method()` and a bare call to a function defined in the same file, and
-  only when a local, parameter or loop variable does not shadow the name.
+- `local_calls` resolves `self:method()` inside a colon-declared method, `Owner.method()` and a bare call to a
+  function defined in the same file. Parameters, local declarations, loop bindings and reassignments invalidate
+  those bindings conservatively. Calls through complex receivers such as `config.nested.helper()` contribute
+  similarity tokens but never prove a call to a file-local `helper`.
 - `forward_target` is set for a `function Owner:name(...)` whose whole body is `self:other(...)` over unchanged
   parameters.
-- `convention` is `luau-metamethod` for `Owner.__index`, `Owner.__tostring` and other `__` names.
+- `convention` is `luau-metamethod` only for recognized callable metamethods such as `Owner.__index` and
+  `Owner.__tostring`. Ordinary helpers such as `Owner.__normalize` remain candidates.
 - Structure hashes keep binding names, so a rename is judged again rather than reused.
 
 ## Comments

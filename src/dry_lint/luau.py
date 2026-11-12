@@ -34,6 +34,29 @@ LOOPS = {"for_statement", "while_statement", "repeat_statement"}
 PROTECTED = {"pcall", "xpcall"}
 YIELDING = {"wait", "yield", "Wait"}
 CONTEXT_LIMIT = 8000
+# Callable Luau metamethods (VM/src/ltm.cpp and VM/src/lbaselib.cpp upstream).
+# Metadata keys such as __mode/__metatable and arbitrary __private names are not method conventions.
+METAMETHODS = {
+    "__index",
+    "__newindex",
+    "__namecall",
+    "__call",
+    "__iter",
+    "__len",
+    "__eq",
+    "__add",
+    "__sub",
+    "__mul",
+    "__div",
+    "__idiv",
+    "__mod",
+    "__pow",
+    "__unm",
+    "__lt",
+    "__le",
+    "__concat",
+    "__tostring",
+}
 
 
 def text(node: Node) -> str:
@@ -48,6 +71,27 @@ def has_syntax_error(node: Node) -> bool:
     return any(has_syntax_error(child) for child in node.children)
 
 
+def runtime_children(node: Node) -> list[Node]:
+    """Erase annotations by grammar position: a named type can itself be an ordinary identifier node."""
+    if node.type in {"parameter", "cast_expression"}:
+        return node.named_children[:1]  # The binding/expression precedes its optional type.
+    if node.type in FUNCTIONS:
+        return [
+            child
+            for index, child in enumerate(node.children)
+            if node.field_name_for_child(index) in {"name", "parameters", "body"}
+            or not child.is_named
+            and child.type != ":"
+        ]
+    if node.type == "variable_list":
+        return [
+            child
+            for index, child in enumerate(node.children)
+            if node.field_name_for_child(index) == "name" or child.type == ","
+        ]
+    return node.children
+
+
 def behavior(node: Node) -> Iterator[Node]:
     """The nodes that carry behaviour: no comments, no type syntax, no parameter or return annotations."""
     if node.type in TYPE_ONLY or node.type == "comment":
@@ -55,16 +99,14 @@ def behavior(node: Node) -> Iterator[Node]:
     yield node
     if node.type in FUNCTIONS:
         children = [child for field in ("parameters", "body") if (child := node.child_by_field_name(field))]
-    elif node.type == "parameter":
-        children = node.named_children[:1]  # the name; what follows is its annotation
     else:
-        children = node.named_children
+        children = [child for child in runtime_children(node) if child.is_named]
     for child in children:
         yield from behavior(child)
 
 
 def callee(node: Node) -> tuple[str | None, str | None]:
-    """`(receiver, name)` of a call: `f()` is (None, f), `a.b()` and `a:b()` are (a, b) for an identifier receiver."""
+    """Call tokens: only an identifier receiver is returned; None also covers unresolved complex receivers."""
     target = node.child_by_field_name("name")
     if target.type == "identifier":
         return None, text(target)
@@ -94,14 +136,17 @@ def fingerprint(node: Node, name: str) -> tuple[list[str], list[str]]:
             receiver, leaf = callee(child)
             if leaf is None:
                 continue
-            calls.append(f"{receiver}.{leaf}" if receiver else leaf)
+            bare = child.child_by_field_name("name").type == "identifier"
+            # INVARIANT: an unresolved receiver must never become evidence of a bare local call.
+            if receiver is not None or bare:
+                calls.append(f"{receiver}.{leaf}" if receiver else leaf)
             tokens.append(f"call:{leaf.lower()}")
             tokens.extend(f"w:{word}" for word in words(leaf))
             if leaf == "GetService" and (service := first_string(child)):
                 tokens.append(f"service:{service}")
             elif receiver == "Instance" and leaf == "new" and (kind := first_string(child)):
                 tokens.append(f"instance:{kind}")
-            if receiver is None and leaf in PROTECTED:
+            if bare and leaf in PROTECTED:
                 tokens.append("ctl:try")
             if leaf in YIELDING:
                 tokens.append("ctl:await")
@@ -121,31 +166,26 @@ def fingerprint(node: Node, name: str) -> tuple[list[str], list[str]]:
 def canonical(node: Node):
     if node.type in TYPE_ONLY or node.type in {"comment", ";", "empty_statement"}:
         return None
-    # The colon that introduces an annotation is type syntax; only a method call's colon is behaviour.
-    if node.type in {":", "::", "->"} and (node.parent is None or node.parent.type != "method_index_expression"):
-        return None
+    if node.type == "cast_expression":
+        return canonical(runtime_children(node)[0])
     if not node.children:
         return (node.type, text(node))
-    return (node.type, [value for child in node.children if (value := canonical(child)) is not None])
+    return (node.type, [value for child in runtime_children(node) if (value := canonical(child)) is not None])
 
 
 def bindings(node: Node) -> set[str]:
     """Names a function binds itself: parameters, locals, loop variables and nested functions."""
     names: set[str] = set()
-    pending = list(node.named_children)
-    while pending:
-        child = pending.pop()
-        pending.extend(child.named_children)
+    for child in behavior(node):
         parent = child.parent
         if child.type == "parameter" and child.named_children:
             names.add(text(child.named_children[0]))
         elif child.type == "variable_list" and parent is not None:
-            grand = parent.parent
-            if parent.type == "for_generic_clause" or (grand is not None and grand.type == "variable_declaration"):
-                names.update(text(name) for name in child.named_children if name.type == "identifier")
+            # Reassignments also invalidate receiver evidence, even when they are not new local declarations.
+            names.update(text(name) for name in runtime_children(child) if name.type == "identifier")
         elif child.type == "for_numeric_clause":
             names.add(text(child.child_by_field_name("name")))
-        elif child.type == "function_declaration":
+        elif child.type == "function_declaration" and child != node:
             name = child.child_by_field_name("name")
             if name.type == "identifier":
                 names.add(text(name))
@@ -216,8 +256,9 @@ class Requirements:
             value = values[0].named_children[0]
             leaf = callee(value)[1] if value.type == "function_call" else None
             if leaf in {"require", "GetService"}:
-                for name in names[0].named_children:
-                    self.lines[text(name)] = text(statement)
+                for name in runtime_children(names[0]):
+                    if name.type == "identifier":
+                        self.lines[text(name)] = text(statement)
 
     def for_function(self, node: Node) -> str:
         used = {text(child) for child in behavior(node) if child.type == "identifier"}
@@ -229,7 +270,7 @@ class LuauExtractor:
     """Functions and methods of at least `min_lines` lines; nested functions stay part of their parent."""
 
     name = "luau"
-    version = "1"
+    version = "2"
     files = ("*.luau", "*.lua")
 
     def __init__(self, min_lines: int = 2) -> None:
@@ -309,7 +350,7 @@ class LuauExtractor:
                 parent = node.parent
                 statement = parent if parent is not None and parent.type == "variable_declaration" else node
                 targets, values = (
-                    [n for c in node.named_children if c.type == kind for n in c.named_children]
+                    [n for c in node.named_children if c.type == kind for n in runtime_children(c) if n.is_named]
                     for kind in ("variable_list", "expression_list")
                 )
                 assign(targets, values, statement)
@@ -321,14 +362,22 @@ class LuauExtractor:
         defined = {qualified(function.owner, function.name) for function, _ in found}
         functions = []
         for function, node in found:
-            target = forwarding_method(node, function.owner)
-            receivers = ("self", function.owner) if function.owner else ("self",)
+            bound = bindings(node)
+            target = forwarding_method(node, function.owner) if "self" not in bound else None
+            declared = node.child_by_field_name("name")
+            method = declared is not None and declared.type == "method_index_expression"
+            # Only colon declarations bind self; any local/parameter/reassignment makes a receiver uncertain.
+            receivers = tuple(
+                receiver
+                for receiver in ("self" if method else None, function.owner)
+                if receiver is not None and receiver.split(".")[0] not in bound
+            )
             function.analysis = LanguageAnalysis(
                 language=self.name,
                 version=self.version,
-                convention="luau-metamethod" if function.owner and function.name.startswith("__") else None,
+                convention="luau-metamethod" if function.owner and function.name in METAMETHODS else None,
                 forward_target=f"{path}::{qualified(function.owner, target)}" if target else None,
-                local_calls=local_calls(path, function, defined, receivers, bindings(node)),
+                local_calls=local_calls(path, function, defined, receivers, bound),
             )
             functions.append(function)
         return functions
@@ -339,4 +388,4 @@ class LuauExtractor:
             root = self.parser.parse(("local __DryLint = {\n" + function.code + "\n}").encode("utf-8")).root_node
         # Keep binding names: lexical shadowing can make a rename change behaviour, so a rename is judged again.
         payload = json.dumps(canonical(root), ensure_ascii=False, separators=(",", ":"))
-        return hashlib.sha256(("luau:1:" + payload).encode("utf-8")).hexdigest()[:16]
+        return hashlib.sha256((f"luau:{self.version}:" + payload).encode("utf-8")).hexdigest()[:16]
