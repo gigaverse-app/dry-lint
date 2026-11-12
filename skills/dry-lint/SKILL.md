@@ -440,7 +440,7 @@ When a finding blocks, you are its final judge. Open both functions.
 - **Different concepts:** add a reviewed `distinct` entry to `.dry-lint/ignore.yaml`, with the exact
   `symbol`, a `from` list and a reason explaining their independent ownership. Start a new file with `schema: 1` and `distinct:`.
   Prefer this committed file over adding tool directives to source. Inline `distinct-from` remains an alternative
-  when the explanation belongs beside the code. See [configuration and migration](../../docs/configuration.md).
+  when the explanation belongs beside the code. See [configuration and migration](https://dry-lint.readthedocs.io/en/latest/docs/configuration/).
 - **One concept, two copies kept on purpose:** a `[[patterns]]` entry with a reason (step 4).
 - **Generated code or a deliberate one-off:** `# dry-lint: ignore` in the function.
 - **One pull request only:** the `dry-lint: override` label. It never waives widening the baseline.
