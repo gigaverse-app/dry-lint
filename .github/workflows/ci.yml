@@ -211,11 +211,15 @@ jobs:
           share-goldens: 'true'
       - name: The action reports its mode and result
         env:
+          # Forks have no secrets: auto mode only proposes candidates there.
+          EXPECTED_MODE: >-
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name
+                != github.event.pull_request.base.repo.full_name && 'detect' || 'single' }}
           MODE: ${{ steps.dry-lint.outputs.mode }}
           CODE: ${{ steps.dry-lint.outputs.exit-code }}
         run: |
           echo "mode=$MODE exit-code=$CODE"
-          [ "$MODE" = single ] && [ "$CODE" != 2 ]
+          [ "$MODE" = "$EXPECTED_MODE" ] && { [ "$CODE" = 0 ] || [ "$CODE" = 1 ]; }
 
   consumer-install:
     name: Install in consumer repos (${{ matrix.os }})

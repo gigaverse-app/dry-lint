@@ -1,0 +1,5 @@
+dependencies:
+  - inputs:
+      - "//.github/workflows/ci.yml"
+    kind: content
+    reason: "Execute the self-check output assertion from the CI workflow."
