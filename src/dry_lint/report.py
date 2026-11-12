@@ -157,7 +157,14 @@ class Finding(BaseModel):
         ]
 
     def suppression(self) -> str:
-        prefix = "//" if self.candidate.new.path.endswith((".ts", ".tsx", ".mts", ".cts")) else "#"
+        path = self.candidate.new.path
+        prefix = (
+            "//"
+            if path.endswith((".ts", ".tsx", ".mts", ".cts"))
+            else "--"
+            if path.endswith((".luau", ".lua"))
+            else "#"
+        )
         return f"{prefix} dry-lint: distinct-from {self.candidate.existing.qualname}"
 
     def ignore_entry(self) -> str:
@@ -844,7 +851,9 @@ def clean(report: Report, audit: bool, report_at: float | None, kind: str = "fun
 
 def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list[str]:
     typescript = [f.suppression().startswith("//") for f in shown]
-    prefix = "//" if all(typescript) else "#"
+    luau = [f.suppression().startswith("--") for f in shown]
+    markers = {f.suppression().split()[0] for f in shown}
+    prefix = markers.pop() if len(markers) == 1 else "#"
     noun = "model declaration" if kind == "model" else "function"
     where = f"either {noun}" if audit else f"the changed {noun}"
     return [
@@ -855,6 +864,7 @@ def overrides(shown: list[Finding], audit: bool, kind: str = "function") -> list
         "| a family of look-alikes, or copies kept on purpose | a `[[patterns]]` entry with a `reason` in `.dry-lint/config.toml` |",
         *([] if audit else ["| this pull request only | the `dry-lint: override` label |"]),
         *(["", "In TypeScript and TSX, the comments start with `//`."] if any(typescript) and prefix == "#" else []),
+        *(["", "In Luau, the comments start with `--`."] if any(luau) and prefix == "#" else []),
     ]  # fmt: skip
 
 

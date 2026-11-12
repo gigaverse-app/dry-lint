@@ -20,8 +20,8 @@ from dry_lint.ranking import rank_candidates
 from dry_lint.repository_files import IGNORE_FILE, read_files
 from dry_lint.settings import ExplorationComparer, Ignores, Settings
 
-SUPPRESSION = re.compile(r"(?:#|//)\s*dry-lint:\s*distinct-from\s+(\S+)")
-IGNORE = re.compile(r"(?:#|//)\s*dry-lint:\s*ignore\b")
+SUPPRESSION = re.compile(r"(?:#|//|--)\s*dry-lint:\s*distinct-from\s+(\S+)")
+IGNORE = re.compile(r"(?:#|//|--)\s*dry-lint:\s*ignore\b")
 
 
 def default_base(root: Path) -> str:

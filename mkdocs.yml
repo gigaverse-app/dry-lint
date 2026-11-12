@@ -78,6 +78,7 @@ extra:
   - docs/configuration.md
   - docs/github-action.md
   - docs/typescript.md
+  - docs/luau.md
   - docs/comment-preview.md
   - docs/judges.md
   - docs/retrieval-presets.md
@@ -107,6 +108,7 @@ nav:
   - Adopt it in a repository: docs/adoption-playbook.md
   - GitHub Action reference: docs/github-action.md
   - TypeScript and Bun: docs/typescript.md
+  - Luau and Roblox: docs/luau.md
   - What the pull request comment shows: docs/comment-preview.md
 - Configure and run:
   - Configuration, exceptions and migration: docs/configuration.md
