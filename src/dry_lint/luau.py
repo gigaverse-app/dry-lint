@@ -234,10 +234,30 @@ def dotted(node: Node) -> tuple[str | None, str | None]:
     if node.type in {"dot_index_expression", "method_index_expression"}:
         table = node.child_by_field_name("table")
         leaf = node.child_by_field_name("field") or node.child_by_field_name("method")
-        owner = text(table) if table is not None and text(table).replace(".", "").replace("_", "").isalnum() else None
-        if owner is not None:
-            return owner, text(leaf)
+        if table is not None and leaf is not None:
+            parent, name = dotted(table)
+            if name is not None:
+                return qualified(parent, name), text(leaf)
     return None, None
+
+
+def literal_key(node: Node) -> str | None:
+    """Resolve plain quoted keys only; escaped/interpolated/computed keys remain unknown."""
+    if node.type in {"object_field_type", "literal_type"}:
+        return literal_key(node.named_children[0])
+    if node.type == "string" and text(node.children[0]) in {'"', "'"} and "\\" not in text(node):
+        return "".join(text(child) for child in node.named_children)
+    return None
+
+
+def table_key(field: Node) -> str | None:
+    key = field.child_by_field_name("name")
+    if key is None:
+        return None
+    if key.type == "identifier" and field.children[0].type != "[":
+        return text(key)
+    # INVARIANT: [key] evaluates a variable; its spelling never establishes a named callable or data field.
+    return literal_key(key)
 
 
 class Requirements:
@@ -270,7 +290,7 @@ class LuauExtractor:
     """Functions and methods of at least `min_lines` lines; nested functions stay part of their parent."""
 
     name = "luau"
-    version = "2"
+    version = "3"
     files = ("*.luau", "*.lua")
 
     def __init__(self, min_lines: int = 2) -> None:
@@ -332,7 +352,9 @@ class LuauExtractor:
                 key, value = field.child_by_field_name("name"), field.child_by_field_name("value")
                 if field.type != "field" or key is None or value is None:
                     continue
-                name = text(key).strip("\"'")
+                name = table_key(field)
+                if name is None:
+                    continue
                 if value.type == "function_definition":
                     add(value, field, name, owner)
                 elif value.type == "table_constructor":

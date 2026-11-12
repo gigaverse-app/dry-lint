@@ -294,6 +294,37 @@ def test_empty_bodies_and_short_functions_are_skipped(extractor):
     assert [f.name for f in short.functions("a.luau", "local function g() return 1 end\n")] == ["g"]
 
 
+@pytest.mark.parametrize("key", ["[key]", "[1]", "[`{key}`]", r'["escaped\nkey"]'])
+def test_computed_member_keys_never_invent_callable_bindings(extractor, key):
+    source = f"""local handlers = {{
+    {key} = function(value)
+        return value * 3
+    end,
+}}
+function handlers.copy(value)
+    return handlers.key(value)
+end
+"""
+    found = extractor.functions("keys.lua", source)
+    assert [f.qualname for f in found] == ["keys.lua::handlers.copy"]
+    assert found[0].analysis.local_calls == ()
+
+
+def test_dotted_owners_are_resolved_from_syntax_independently_of_layout(extractor):
+    source = """function Library.World:move(value)
+    return value + 1
+end
+Library.World.copy = function(value)
+    return value + 2
+end
+"""
+    ordinary = extractor.functions("world.lua", source)
+    spaced = extractor.functions("world.lua", source.replace("Library.World", "Library . World"))
+    assert [f.qualname for f in spaced] == [f.qualname for f in ordinary]
+    assert len(spaced) == 2
+    assert [extractor.structure_hash(f) for f in spaced] == [extractor.structure_hash(f) for f in ordinary]
+
+
 def test_syntax_errors_skip_the_broken_function_and_strict_scans_reject_the_file(extractor):
     source = "local function good()\n    return 1 +\nend\nlocal function fine()\n    return 2\nend\n"
     assert [f.name for f in extractor.functions("a.luau", source)] == ["fine"]
@@ -428,10 +459,12 @@ def test_comment_only_and_empty_bodies_are_not_functions(extractor):
 
 
 def test_structure_hash_survives_a_member_fragment_and_forwarding_edge_cases(extractor):
-    members = extractor.functions("a.luau", "local t = {\n    run = function()\n        return 1\n    end,\n}\n")
-    assert extractor.structure_hash(members[0]) == extractor.structure_hash(
-        extractor.functions("a.luau", "local run = function()\n    return 1\nend\n")[0]
-    ) or extractor.structure_hash(members[0])
+    member_source = "local t = {\n    run = function()\n        return 1\n    end,\n}\n"
+    member = extractor.functions("a.luau", member_source)[0]
+    cosmetic = extractor.functions("a.luau", member_source.replace("return 1", "-- note\nreturn 1"))[0]
+    changed = extractor.functions("a.luau", member_source.replace("return 1", "return 2"))[0]
+    assert extractor.structure_hash(member) == extractor.structure_hash(cosmetic)
+    assert extractor.structure_hash(member) != extractor.structure_hash(changed)
     source = textwrap.dedent("""\
         function Account:Comment(amount)
             -- forwards
