@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.12.0](https://github.com/gigaverse-app/dry-lint/compare/v1.11.0...v1.12.0) (2026-11-12)
+
+
+### Features
+
+* **config:** store reviewed exceptions in .dry-lint ([#195](https://github.com/gigaverse-app/dry-lint/issues/195)) ([fee7710](https://github.com/gigaverse-app/dry-lint/commit/fee77107fe42c810c5c43fe70e3d036eb953055c))
+* **luau:** add an opt-in Luau (Roblox) extractor ([6e8c14b](https://github.com/gigaverse-app/dry-lint/commit/6e8c14b74f2d92187c90343616119da065a23ce6))
+* **luau:** detect record and table model shapes ([016d733](https://github.com/gigaverse-app/dry-lint/commit/016d733ed74bc79c8d7dfda9e4375f1dbb99d08e))
+* **luau:** detect record and table model shapes ([625ea0b](https://github.com/gigaverse-app/dry-lint/commit/625ea0b8e876b089f0b70987888a1994f0011126))
+
+
+### Bug Fixes
+
+* **ci:** validate fork detection mode in self-check ([5b920ad](https://github.com/gigaverse-app/dry-lint/commit/5b920ad8d3dbe06ede051edf1c253b069c37affe))
+* **luau:** exclude reused function references from model shapes ([887f2dc](https://github.com/gigaverse-app/dry-lint/commit/887f2dcec85d5d69f8499442ca9df97a13a19a4f))
+* **luau:** preserve runtime syntax and conservative call facts ([81f3f48](https://github.com/gigaverse-app/dry-lint/commit/81f3f485d8e5dd889546cfe57e606097dd8b14aa))
+* **luau:** resolve static member identities through parser nodes ([f43a5a8](https://github.com/gigaverse-app/dry-lint/commit/f43a5a8c22f5539cb66e7b75dc0190b8e2e2eeaf))
+* **luau:** resolve static member identities through parser nodes ([3cfec3d](https://github.com/gigaverse-app/dry-lint/commit/3cfec3d4a569f159db75aff0ae1d9c47a93f89fe))
+
+
+### Documentation
+
+* **luau:** record final packaged probe and merged base ([05093c8](https://github.com/gigaverse-app/dry-lint/commit/05093c88764d6884dc5cdaabfbab39017796eb42))
+* **readme:** highlight Python TypeScript and Lua support ([65efdba](https://github.com/gigaverse-app/dry-lint/commit/65efdbae84fc689a009445e1fb00444d4e3ae9df))
+
 ## [1.11.0](https://github.com/gigaverse-app/dry-lint/compare/v1.10.0...v1.11.0) (2026-11-11)
 
 
