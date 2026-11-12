@@ -9,13 +9,17 @@
   <a href="https://pypi.org/project/dry-lint/"><img alt="PyPI" src="https://img.shields.io/pypi/v/dry-lint?logo=pypi&logoColor=white&color=7E4FC9&labelColor=24292F"></a>
   <a href="https://github.com/gigaverse-app/dry-lint/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/gigaverse-app/dry-lint/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white&labelColor=24292F"></a>
   <a href="#the-counter"><img alt="Duplicates kept out" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdry-lint-counter.gigaverse-oss.workers.dev%2Fv1%2Fbadge%3Fmetric%3Dkept-out"></a>
-  <a href="pyproject.toml"><img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-7E4FC9?logo=python&logoColor=white&labelColor=24292F"></a>
-  <a href="docs/typescript.md"><img alt="TypeScript" src="https://img.shields.io/badge/typescript-supported-7E4FC9?logo=typescript&logoColor=white&labelColor=24292F"></a>
+  <a href="#quick-start"><img alt="Python supported" src="https://img.shields.io/badge/Python-supported-7E4FC9?logo=python&logoColor=white&labelColor=24292F"></a>
+  <a href="docs/typescript.md"><img alt="TypeScript supported" src="https://img.shields.io/badge/TypeScript-supported-7E4FC9?logo=typescript&logoColor=white&labelColor=24292F"></a>
+  <a href="docs/luau.md"><img alt="Lua / Luau for Roblox supported" src="https://img.shields.io/badge/Lua%20%2F%20Luau-Roblox-7E4FC9?logo=roblox&logoColor=white&labelColor=24292F"></a>
   <a href="LICENSE"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-7E4FC9?labelColor=24292F"></a>
   <a href="https://dry-lint.readthedocs.io/en/latest/"><img alt="Documentation" src="https://readthedocs.org/projects/dry-lint/badge/?version=latest"></a>
 </p>
 
 <p align="center"><a href="docs/why.md">Why dry-lint</a> · <a href="docs/tutorials/first-run.md">First-run tutorial</a> · <a href="docs/ci.md">How CI runs it</a> · <a href="https://dry-lint.readthedocs.io/en/latest/">Documentation</a> · <a href="https://dry-lint.readthedocs.io/en/latest/ecosystem/">Related tools</a></p>
+
+**Find duplicate logic in Python, TypeScript, and Lua/Luau, including Roblox projects.**
+Catch the second implementation of a helper before it becomes another one to maintain.
 
 Coding agents rarely copy and paste. They write *new* code for a job the codebase already does: a second
 `truncate`, another pagination loop, a fresh Mongo query helper, each slightly different. Copy-paste detectors
@@ -63,8 +67,12 @@ credentials your repository passes in, at your cost, and without any it only lis
 
 Python, TypeScript and TSX work out of the box. TypeScript repositories need no Python project, `bun install`,
 Node or build step: dry-lint installs its own tools and parses source without executing your code
-([TypeScript and Bun](docs/typescript.md) covers monorepos). Luau (Roblox) is opt-in:
-`pip install 'dry-lint[luau]>=1,<2'` and `extractors = ["luau"]` ([Luau and Roblox](docs/luau.md)).
+([TypeScript and Bun](docs/typescript.md) covers monorepos).
+
+**Building with Lua or Luau for Roblox?** Enable the opt-in Luau parser for `.lua` and `.luau` files with
+`pip install 'dry-lint[luau]>=1,<2'` and `extractors = ["luau"]` in `.dry-lint/config.toml`.
+It compares functions and table methods, with Roblox service and instance calls included in the analysis.
+See [Luau and Roblox](docs/luau.md) for setup and supported syntax.
 
 ### Try it locally, without an API key
 
