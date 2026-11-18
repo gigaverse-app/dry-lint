@@ -92,7 +92,14 @@ class ConsumerInstallTests(unittest.TestCase):
                     check=True,
                     cwd=consumer,
                 )
-                subprocess.run([str(python), "-m", "dry_lint", "config"], check=True, cwd=consumer, capture_output=True)
+                configured = subprocess.run(
+                    [str(python), "-m", "dry_lint", "config"],
+                    cwd=consumer,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                )
+                self.assertEqual(configured.returncode, 0, configured.stderr)
                 self.assertEqual(config.read_bytes(), before)
                 self.assertEqual(marker.read_text(), "consumer environment")
                 self.assertFalse((consumer / "uv.lock").exists())

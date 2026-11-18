@@ -150,7 +150,11 @@ def ensure_history(root: Path, base: str) -> None:
 
 def dry_lint(*args: str, echo: bool = True) -> tuple[int, list[str]]:
     """Run the dry-lint CLI, echo its output (annotations take effect that way) and return the exit code and lines."""
-    result = subprocess.run([sys.executable, "-m", "dry_lint", *args], capture_output=True, text=True)
+    # The child writes UTF-8 whatever the console encoding, so the parent can decode it on Windows too.
+    environment = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    result = subprocess.run(
+        [sys.executable, "-m", "dry_lint", *args], capture_output=True, text=True, encoding="utf-8", env=environment
+    )
     if echo:
         sys.stdout.write(result.stdout)
     sys.stderr.write(result.stderr)
@@ -171,7 +175,7 @@ def count_findings(lines: list[str]) -> tuple[int, int]:
 
 def judged(report: Path) -> bool:
     """Whether a judge actually ran, by report.json; the repository's settings can turn judging off."""
-    return bool(json.loads(report.read_text()).get("judge"))
+    return bool(json.loads(report.read_text(encoding="utf-8")).get("judge"))
 
 
 def fail_at() -> list[str]:
@@ -212,15 +216,15 @@ def status_note(blocking: int, overridden: bool, baselined: bool = False) -> str
 def write_outputs(**outputs: object) -> None:
     path = env("GITHUB_OUTPUT")
     if path:
-        with open(path, "a") as handle:
+        with open(path, "a", encoding="utf-8") as handle:
             handle.writelines(f"{name.replace('_', '-')}={value}\n" for name, value in outputs.items())
 
 
 def write_summary(comment: Path, note: str = "") -> None:
     path = env("GITHUB_STEP_SUMMARY")
     if path and comment.exists():
-        with open(path, "a") as handle:
-            text = comment.read_text()
+        with open(path, "a", encoding="utf-8") as handle:
+            text = comment.read_text(encoding="utf-8")
             handle.write((note + "\n\n" if note else "") + text.replace(NOTE_SLOT, "") + "\n")
 
 
@@ -229,7 +233,7 @@ def action_error(message: str) -> None:
     print(f"::error title=dry-lint::{escaped}")
     write_outputs(exit_code=2, models_checked="false")
     if path := env("GITHUB_STEP_SUMMARY"):
-        with open(path, "a") as handle:
+        with open(path, "a", encoding="utf-8") as handle:
             handle.write("\n### dry-lint failed\n\n" + message + "\n")
 
 
@@ -343,7 +347,7 @@ def fold(repository: str, branch: str, head: str, report: Path, transport: httpx
     path = ledger_path()
     ledger = RepositoryLedger.load(path.read_text() if path.exists() else "", repository)
     if report.exists():
-        ledger.add_run(Tally.of(Report.model_validate_json(report.read_text())), sticky.run_id())
+        ledger.add_run(Tally.of(Report.model_validate_json(report.read_text(encoding="utf-8"))), sticky.run_id())
     outcome = "folded"
     shared = 0
     repository_id = env("GITHUB_REPOSITORY_ID")

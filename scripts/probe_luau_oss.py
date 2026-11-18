@@ -25,7 +25,9 @@ SOURCES = {
 
 
 def git(root: Path, *args: str) -> str:
-    return subprocess.check_output(["git", "-C", str(root), *args], text=True, stderr=subprocess.PIPE).strip()
+    return subprocess.check_output(
+        ["git", "-C", str(root), *args], text=True, encoding="utf-8", stderr=subprocess.PIPE
+    ).strip()
 
 
 def cli(root: Path, output: Path, mode: str, *args: str) -> dict:
@@ -45,6 +47,7 @@ def cli(root: Path, output: Path, mode: str, *args: str) -> dict:
             str(destination),
         ],
         text=True,
+        encoding="utf-8",
         capture_output=True,
     )
     output.with_suffix(".log").write_text(result.stdout + result.stderr, encoding="utf-8")

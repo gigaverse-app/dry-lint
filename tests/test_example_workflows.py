@@ -56,7 +56,7 @@ def test_the_bootstrap_initializes_from_a_push_and_ships_the_hidden_folder() -> 
 @pytest.mark.parametrize("path", [EXAMPLES / "dry-lint-bootstrap.yml", AUDIT])
 def test_a_repository_without_a_markdown_readme_needs_no_edit(path: Path) -> None:
     """The progress block goes only into README.md; a README.rst repository runs the workflow unchanged."""
-    workflow = path.read_text()
+    workflow = path.read_text(encoding="utf-8")
     assert "if [[ -f README.md ]]; then readme=(--readme README.md); fi" in workflow
     assert '"${readme[@]}"' in workflow and "--readme README.md --" not in workflow
     assert "cp -R .dry-lint README.md" not in workflow

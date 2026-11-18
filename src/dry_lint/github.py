@@ -8,4 +8,4 @@ from pathlib import Path
 def github_event() -> dict:
     """The triggering event's payload (GITHUB_EVENT_PATH), or {} outside GitHub Actions."""
     path = os.environ.get("GITHUB_EVENT_PATH")
-    return json.loads(Path(path).read_text()) if path and Path(path).exists() else {}
+    return json.loads(Path(path).read_text(encoding="utf-8")) if path and Path(path).exists() else {}

@@ -70,8 +70,15 @@ extend-exclude = ["docs/research"]
 [tool.ruff.lint]
 # The same rule sets as gigaverse-app/due: pycodestyle, Pyflakes, isort, pyupgrade and bugbear.
 # `ruff format` owns line length; E501 would only flag the long strings and comments it leaves whole.
-select = ["E", "F", "I", "UP", "B"]
+# PLW1514: every text read names its encoding; the locale default is cp1252 on Windows and corrupts UTF-8 source.
+select = ["E", "F", "I", "UP", "B", "PLW1514"]
+preview = true
+explicit-preview-rules = true
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Research replay scripts reproduce recorded runs on Linux as validated; the product code is what must name UTF-8.
+"examples/research/**" = ["PLW1514"]
 
 [tool.ruff.lint.isort]
 known-local-folder = ["conftest"]

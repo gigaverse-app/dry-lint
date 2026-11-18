@@ -40,7 +40,7 @@ def _syntax_fields(node: object) -> dict[str, object]:
 )
 def test_every_example_is_a_gold_pair_bench_can_read(path: Path) -> None:
     pairs = load_gold(path)
-    assert len(pairs) == len(tomllib.loads(path.read_text())["pair"])
+    assert len(pairs) == len(tomllib.loads(path.read_text(encoding="utf-8"))["pair"])
     assert all(p.label in ("duplicate", "separate") for p in pairs)
     assert len({(p.new.id, p.existing.id) for p in pairs}) == len(pairs)
 
@@ -74,7 +74,7 @@ def test_due_consolidations_preserve_pinned_source_and_real_after_controls() -> 
     ids=["due", "pytest-selective", "pytest-obligation"],
 )
 def test_source_gold_retains_background_counts_and_competing_functions(path: Path, minimum: int) -> None:
-    panel = tomllib.loads(path.read_text())
+    panel = tomllib.loads(path.read_text(encoding="utf-8"))
     manifest_path = path.parent / panel["background_manifest"]
     manifest = json.loads(manifest_path.read_text())
     backgrounds = {}
