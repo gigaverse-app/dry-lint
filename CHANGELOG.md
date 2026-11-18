@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.1](https://github.com/gigaverse-app/dry-lint/compare/v1.12.0...v1.12.1) (2026-11-18)
+
+
+### Bug Fixes
+
+* **encoding:** decode every text read and git call as UTF-8 on every platform ([#199](https://github.com/gigaverse-app/dry-lint/issues/199)) ([fccd57a](https://github.com/gigaverse-app/dry-lint/commit/fccd57a71968f61953760c215970cbe2ac804328))
+
 ## [1.12.0](https://github.com/gigaverse-app/dry-lint/compare/v1.11.0...v1.12.0) (2026-11-12)
 
 
