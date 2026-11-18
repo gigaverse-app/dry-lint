@@ -76,5 +76,9 @@ preview = true
 explicit-preview-rules = true
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+# Research replay scripts reproduce recorded runs on Linux as validated; the product code is what must name UTF-8.
+"examples/research/**" = ["PLW1514"]
+
 [tool.ruff.lint.isort]
 known-local-folder = ["conftest"]
