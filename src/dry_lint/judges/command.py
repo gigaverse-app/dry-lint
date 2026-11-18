@@ -221,6 +221,7 @@ class CommandJudge:
             input=self.stdin(candidate),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=self.timeout,
             check=True,
             env=self.environment,

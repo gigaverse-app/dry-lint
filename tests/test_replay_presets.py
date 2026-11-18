@@ -110,7 +110,8 @@ def gold_file(path: Path, rows: list[dict]) -> Path:
             Function.model_validate(first["new"]).qualname,
             Function.model_validate(first["existing"]).qualname,
             "duplicate",
-        )
+        ),
+        encoding="utf-8",
     )
     return path
 

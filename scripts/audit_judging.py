@@ -60,7 +60,9 @@ def judged(number: int, body: str, labels: list[str], checks: list[dict]) -> Jud
 
 
 def gh(*args: str) -> object:
-    return json.loads(subprocess.run(["gh", *args], capture_output=True, text=True, check=True).stdout)
+    return json.loads(
+        subprocess.run(["gh", *args], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+    )
 
 
 def audit(repository: str, limit: int, state: str = "merged", fetch: Callable[..., object] = gh) -> list[Judged]:

@@ -101,7 +101,13 @@ class CommandLabeller:
 
     def ask(self, prompt: str) -> tuple[str, float | None]:
         done = subprocess.run(
-            shlex.split(self.command), input=prompt, capture_output=True, text=True, timeout=self.timeout, check=True
+            shlex.split(self.command),
+            input=prompt,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=self.timeout,
+            check=True,
         )
         return done.stdout, None
 
@@ -182,7 +188,11 @@ def allocate(available: dict[str, int], shapes: dict[str, int], size: int) -> di
 
 
 def read_answers(path: Path) -> list[Answer]:
-    return [Answer.model_validate_json(line) for line in path.read_text().splitlines() if line] if path.exists() else []
+    return (
+        [Answer.model_validate_json(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+        if path.exists()
+        else []
+    )
 
 
 def label(
@@ -225,7 +235,7 @@ def label(
                 break
             batch = list(pool.map(ask, jobs[start : start + workers]))
             spent += sum(a.usd or 0.0 for a in batch)
-            with answers.open("a") as file:
+            with answers.open("a", encoding="utf-8") as file:
                 file.writelines(a.model_dump_json() + "\n" for a in batch)
             known += batch
             if progress:
@@ -374,7 +384,7 @@ def summarise(
     """Write the gold file and the numbers it gives."""
     rows = gold(pairs, answers)
     gold_path.parent.mkdir(parents=True, exist_ok=True)
-    gold_path.write_text("".join(g.model_dump_json() + "\n" for _, g in rows))
+    gold_path.write_text("".join(g.model_dump_json() + "\n" for _, g in rows), encoding="utf-8")
     keys = {p.finding.candidate.key for p in pairs}
     asked = [a for a in answers if a.key in keys and a.label]
     by_key = Counter(a.key for a in asked)

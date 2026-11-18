@@ -93,7 +93,11 @@ class ConsumerInstallTests(unittest.TestCase):
                     cwd=consumer,
                 )
                 configured = subprocess.run(
-                    [str(python), "-m", "dry_lint", "config"], cwd=consumer, capture_output=True, text=True
+                    [str(python), "-m", "dry_lint", "config"],
+                    cwd=consumer,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
                 )
                 self.assertEqual(configured.returncode, 0, configured.stderr)
                 self.assertEqual(config.read_bytes(), before)
