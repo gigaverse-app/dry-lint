@@ -24,6 +24,7 @@ Duplicates between `report_at` and `fail_at` are reported as warnings and exit 0
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import subprocess
@@ -1178,6 +1179,10 @@ def lean_proof_blocks(root: Path, args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Python can default to a legacy code page for redirected stdout on Windows.
+    if argv is None and isinstance(sys.stdout, io.TextIOWrapper) and not sys.stdout.isatty():
+        if not os.environ.get("PYTHONIOENCODING"):
+            sys.stdout.reconfigure(encoding="utf-8", errors=sys.stdout.errors)
     args = parser().parse_args(argv)
     try:
         root = repository_root(args.root)
