@@ -196,6 +196,7 @@ def inside : Nat := by
 """
     repo.write("A.lean", source.format(comment=comment))
     repo.write("B.lean", source.format(comment=comment))
+    repo.write("Inline.lean", "def inline : Nat := by exact 0\n")
     repo.commit()
     assert main(["lean-proof-blocks", "--root", str(repo.root)]) == 0
     assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
