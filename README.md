@@ -93,6 +93,9 @@ uv downloads Python and runs dry-lint in its own environment, so nothing is adde
 look-alikes without calling a model or failing on findings. To inspect just your branch, replace
 `scan --judge none --limit 30` with `check --judge none --base origin/main` (use your default branch's name).
 
+To look for repeated proofs or helpers within a module as well, add `--include-same-file` to a single-repository
+scan. It ranks eligible declarations in the same file alongside cross-file matches when choosing nearest neighbours.
+
 For a permanent `dry-lint` command, then open a new terminal:
 
 ```bash
