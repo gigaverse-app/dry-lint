@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/gigaverse-app/dry-lint/compare/v1.15.0...v1.15.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **cli:** preserve Lean symbols in redirected reports ([#211](https://github.com/gigaverse-app/dry-lint/issues/211)) ([969340f](https://github.com/gigaverse-app/dry-lint/commit/969340f51a64406ff37d7a3510d274b47676260d))
+
 ## [1.15.0](https://github.com/gigaverse-app/dry-lint/compare/v1.14.0...v1.15.0) (2026-11-26)
 
 
