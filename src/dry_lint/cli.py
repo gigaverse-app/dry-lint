@@ -979,6 +979,14 @@ def parser() -> argparse.ArgumentParser:
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")
     main.add_argument("--version", action="version", version=f"dry-lint {__version__}")
     commands = main.add_subparsers(dest="command", required=True)
+    proof_blocks = commands.add_parser("lean-proof-blocks", help="Find repeated source blocks in Lean proofs.")
+    proof_blocks.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
+    proof_blocks.add_argument("--lines", type=int, default=3, help="Number of consecutive source lines to compare.")
+    proof_blocks.add_argument("--min-shared-chars", type=int, default=70, help="Minimum shared non-indentation text.")
+    proof_blocks.add_argument("--limit", type=int, default=20, help="Show at most this many groups.")
+    proof_blocks.add_argument(
+        "--allow-one-line-difference", action="store_true", help="Allow one differing interior line."
+    )
     exporting = commands.add_parser(
         "index", parents=[common], help="Export committed functions for reuse by peer repositories."
     )
@@ -1138,10 +1146,39 @@ COMMANDS = {
 }
 
 
+def lean_proof_blocks(root: Path, args: argparse.Namespace) -> int:
+    from dry_lint.lean_proof_blocks import find_proof_blocks
+
+    if args.limit < 0:
+        raise ValueError("--limit must be nonnegative")
+    settings = Settings.load(root)
+    groups = find_proof_blocks(
+        root,
+        settings.include,
+        settings.exclude,
+        lines=args.lines,
+        min_shared_chars=args.min_shared_chars,
+        allow_one_line_difference=args.allow_one_line_difference,
+    )
+    print(f"Found {len(groups)} repeated Lean proof blocks.")
+    for group in groups[: args.limit]:
+        print()
+        if all(block.code == group[0].code for block in group):
+            print("\n".join(f"{block.path}:{block.line}" for block in group))
+            print("\n".join(f"  {line}" for line in group[0].code))
+        else:
+            for block in group:
+                print(f"{block.path}:{block.line}")
+                print("\n".join(f"  {line}" for line in block.code))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         root = repository_root(args.root)
+        if args.command == "lean-proof-blocks":
+            return lean_proof_blocks(root, args)
         if args.env_file and (root / args.env_file).is_file():  # optional: the hook names .env whether or not it exists
             from dotenv import dotenv_values
 

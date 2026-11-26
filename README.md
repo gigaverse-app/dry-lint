@@ -80,6 +80,11 @@ On first use the language pack downloads its versioned Lean grammar.
 dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery skips declarations
 with syntax the static grammar cannot parse. Strict scans report a parse error for such files.
 Use `dry-lint scan --within-file --judge none` to find nearby proofs in the same Lean module.
+Use `dry-lint lean-proof-blocks` to look for repeated fragments inside `by` proofs, even when the
+surrounding declarations differ. It scans tracked Lean files selected by `include` and `exclude`
+and reports source ranges without running Lean or a judge. Use `--lines 5` for five-line fragments
+or `--allow-one-line-difference` when a line between shared lines has changed. The scanner uses
+proof ranges recognized by the static grammar and preserves identifiers and relative indentation.
 Lean itself remains the authority on whether two proofs can share a lemma.
 
 **Building with Lua or Luau for Roblox?** Enable the opt-in Luau parser for `.lua` and `.luau` files with

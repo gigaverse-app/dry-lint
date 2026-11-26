@@ -141,3 +141,95 @@ def test_within_file_scan_finds_local_proof_pairs_without_cross_file_matches(tmp
 
     assert main([*command, "--within-file", "--repo", f"example/project={repo.root}"]) == 2
     assert "--within-file scans a single repository" in capsys.readouterr().err
+
+
+def test_lean_proof_blocks_include_same_file_and_preserve_indentation(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    demo = """lemma {name} (p : Prop) (hp : p) : {goal} := by
+{indent}have h : p := hp
+{indent}have h' : p := h
+{indent}exact h'
+"""
+    a = demo.format(name="first", goal="p", indent="  ")
+    b = demo.format(name="second", goal="p ∨ False", indent="    ").replace(
+        "    have h : p := hp", "    left\n    have h : p := hp"
+    )
+    repo.write("A.lean", a + b)
+    repo.write("B.lean", demo.format(name="third", goal="p", indent="  "))
+    repo.write("Ignored.lean", demo.format(name="fourth", goal="p", indent="  "))
+    repo.write(".dry-lint.toml", 'exclude = ["Ignored.lean"]\n')
+    repo.commit()
+    repo.write("Untracked.lean", a)
+    command = ["lean-proof-blocks", "--root", str(repo.root), "--min-shared-chars", "25"]
+    assert main(command) == 0
+    assert capsys.readouterr().out == (
+        "Found 1 repeated Lean proof blocks.\n\n"
+        "A.lean:2\nA.lean:7\nB.lean:2\n  have h : p := hp\n  have h' : p := h\n  exact h'\n"
+    )
+    assert main([*command, "--limit", "0"]) == 0
+    assert capsys.readouterr().out == "Found 1 repeated Lean proof blocks.\n"
+
+
+def test_lean_proof_blocks_compare_real_source_in_recovered_tactic_ranges(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    # The static grammar recovers inside these induction tactics. The proof
+    # scanner must keep the source binders instead of losing them as error tokens.
+    proof = """theorem {name} {params} : 0 + r + {term} = r + {term} := by
+  have h : ∀ x : Nat, 0 + x = x := Nat.zero_add
+  induction r generalizing {vars} with
+  | zero => simp only [h]
+  | succ r ih => simp only [h]
+"""
+    repo.write("A.lean", proof.format(name="one", params="(r n : Nat)", term="n", vars="n"))
+    repo.write("B.lean", proof.format(name="two", params="(r n m : Nat)", term="n + m", vars="n m"))
+    repo.commit()
+    command = ["lean-proof-blocks", "--root", str(repo.root), "--min-shared-chars", "60"]
+    assert main(command) == 0
+    assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
+
+    assert main([*command, "--allow-one-line-difference"]) == 0
+    output = capsys.readouterr().out
+    assert "Found 1 repeated Lean proof blocks." in output
+    assert "A.lean:2\n" in output and "B.lean:2\n" in output
+    assert "induction r generalizing n with" in output
+    assert "induction r generalizing n m with" in output
+
+
+def test_lean_proof_blocks_skip_comments_and_outside_proofs(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    comment = """  /-
+  have something : Nat := 0 + 1 + 2 + 3 + 4
+  have other : Nat := 30 + 31 + 32 + 33 + 34
+  exact something + other
+  -/"""
+    source = """def outside : Nat :=
+  1 + 200000000000000000000000000 +
+  2 + 300000000000000000000000000 +
+  3 + 400000000000000000000000000
+def inside : Nat := by
+{comment}
+  exact 0
+"""
+    repo.write("A.lean", source.format(comment=comment))
+    repo.write("B.lean", source.format(comment=comment))
+    repo.write("Inline.lean", "def inline : Nat := by exact 0\n")
+    repo.commit()
+    assert main(["lean-proof-blocks", "--root", str(repo.root)]) == 0
+    assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
+
+
+@pytest.mark.parametrize(
+    ("option", "value", "error"),
+    [("--lines", "2", "--lines must be at least 3"), ("--limit", "-1", "--limit must be nonnegative")],
+)
+def test_lean_proof_blocks_validate_options(tmp_path, capsys, option, value, error):
+    repo = Repo(tmp_path / "project")
+    assert main(["lean-proof-blocks", "--root", str(repo.root), option, value]) == 2
+    assert error in capsys.readouterr().err
+
+
+def test_lean_proof_blocks_without_extra(tmp_path, capsys, monkeypatch):
+    repo = Repo(tmp_path / "project")
+    monkeypatch.setitem(sys.modules, "tree_sitter_language_pack", None)
+    assert main(["lean-proof-blocks", "--root", str(repo.root)]) == 2
+    assert "dry-lint[lean]" in capsys.readouterr().err
