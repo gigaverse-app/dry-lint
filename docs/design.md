@@ -81,6 +81,11 @@ Check and detect share source-revision identity and changed-owner selection. Mod
 primary-repository selection; an explicit whole-workspace function scan still includes peer owners.
 Both split-CI entry points share the guard against family policies that require a single change campaign.
 
+`dry-lint scan --within-file` compares declarations within each source file. It is useful for paired Lean
+proofs that live in one module. Candidates still need to be each other's closest match in that scope. The
+option uses a single checkout and reports declaration pairs. Use the ordinary `scan` for operation families
+or cross-file matches.
+
 Discovery comparers may opt into generic resources owned by a single `Detector.candidates()` call. Core supplies construction/index hooks only; plugin code owns validation, exact keys and encoding. Prepared resources may be reused while mutable query state remains private. Concurrent calls have independent scopes, and no scope survives the call. See [plugin resource ownership](plugins.md#optional-run-resources).
 
 ## Two jobs in CI
