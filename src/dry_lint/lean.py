@@ -5,6 +5,7 @@ import hashlib
 from tree_sitter import Node
 
 from dry_lint.extractor_capabilities import ExtractorCapabilities
+from dry_lint.functions import exact_source_hash
 from dry_lint.models import Function
 
 _IMPLEMENTATIONS = {"def", "abbrev", "opaque", "theorem", "instance"}
@@ -28,6 +29,8 @@ def _tokens(parts: list[Node]) -> list[str]:
 class LeanExtractor:
     name = "lean"
     version = "1"
+    # Layout and spelling can affect Lean macros, so hash the source exactly.
+    structure_hash = staticmethod(exact_source_hash)
     files = ("*.lean",)
     capabilities = ExtractorCapabilities(
         language_name="Lean", comment_prefix="--", index_distributions=("tree-sitter", "tree-sitter-language-pack")
@@ -98,7 +101,3 @@ class LeanExtractor:
             code=code,
             tokens=[*_tokens(parts), *(f"type:{token}" for token in _tokens(result_types))],
         )
-
-    def structure_hash(self, function: Function) -> str:
-        # Layout and spelling can affect Lean macros. Exact source makes reuse conservative.
-        return hashlib.sha256(function.code.encode("utf-8")).hexdigest()[:16]
