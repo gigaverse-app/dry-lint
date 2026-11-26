@@ -1,11 +1,9 @@
 """Lean 4 declarations for static comparison, without elaborating imports or running tactics."""
 
-import hashlib
-
 from tree_sitter import Node
 
 from dry_lint.extractor_capabilities import ExtractorCapabilities
-from dry_lint.functions import exact_source_hash
+from dry_lint.functions import exact_source_hash, text_digest
 from dry_lint.models import Function
 
 _IMPLEMENTATIONS = {"def", "abbrev", "opaque", "theorem", "instance"}
@@ -51,9 +49,8 @@ class LeanExtractor:
     def functions(self, path: str, source: str) -> list[Function]:
         found = []
         scopes: list[str] = []
-        encoded = source.encode("utf-8")
-        context_digest = hashlib.sha256(encoded).hexdigest()
-        for command in self.parser.parse(encoded).root_node.named_children:
+        context_digest = text_digest(source)
+        for command in self.parser.parse(source.encode("utf-8")).root_node.named_children:
             if command.type == "namespace":
                 name = command.child_by_field_name("name")
                 scopes.append(name.text.decode("utf-8") if name else "")

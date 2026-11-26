@@ -6,7 +6,6 @@ not an extension of pair scores or of the verdict reuse contract.
 """
 
 import ast
-import hashlib
 import json
 import symtable
 from collections import Counter, defaultdict
@@ -15,7 +14,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dry_lint.functions import _parse, docstring_statement
+from dry_lint.functions import _parse, docstring_statement, text_digest
 from dry_lint.models import Function, Run
 from dry_lint.operation_blocks import _NESTED, statement_regions
 
@@ -136,10 +135,6 @@ class FamilyBatch(BaseModel):
     limits: FamilyLimits
     nominations: list[FamilyNomination]
     stats: FamilyStats
-
-
-def _digest(text: str) -> str:
-    return hashlib.sha256(text.encode()).hexdigest()
 
 
 _MIN_DOMAIN_NAMES = 2
@@ -380,7 +375,7 @@ class PythonOperationFamilies:
             stats.source_bytes += size
             regions = self._function_regions(function, stats, skipped)
             for canonical, region in regions:
-                operation_id = _digest(GENERATOR + "\n" + canonical)
+                operation_id = text_digest(GENERATOR + "\n" + canonical)
                 if operation_id in overflow:
                     skipped["overfull_family_sites"] += 1
                     continue
@@ -418,7 +413,7 @@ class PythonOperationFamilies:
         def owner(key: str, regions: list[OperationRegion]) -> OperationOwner:
             if key not in snapshots:
                 function = selected[key].model_copy(deep=True)
-                snapshots[key] = function, _digest(function.model_dump_json())
+                snapshots[key] = function, text_digest(function.model_dump_json())
             function, source_id = snapshots[key]
             return OperationOwner(
                 owner_id=key, source_id=source_id, function=function, regions=regions, local_callers=callers[key]
@@ -494,7 +489,7 @@ class PythonOperationFamilies:
             nominations.append(
                 FamilyNomination(
                     operation_id=operation_id,
-                    nomination_id=_digest(operation_id + evidence),
+                    nomination_id=text_digest(operation_id + evidence),
                     canonical_operation=canonical,
                     owners=remaining,
                     benefit=benefit,

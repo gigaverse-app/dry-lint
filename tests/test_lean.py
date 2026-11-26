@@ -75,7 +75,7 @@ def test_missing_lean_extra_has_install_hint(monkeypatch):
 def test_detect_reports_a_changed_lean_proof_against_an_existing_file(tmp_path, lean):
     repo = Repo(tmp_path / "project")
     repo.write(".dry-lint/config.toml", 'extractors = ["lean"]\ncomparer = { use = "tfidf", max_df = 1.0 }')
-    proof = "theorem {name} (n : Nat) : n + 0 = n := by\n  exact Nat.add_zero n\n"
+    proof = "theorem {name} (ν : Nat) : ν + 0 = ν := by\n  exact Nat.add_zero ν\n"
     repo.write("Existing.lean", proof.format(name="first"))
     repo.commit()
     repo.git("switch", "-c", "feature")
