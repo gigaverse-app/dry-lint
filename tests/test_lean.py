@@ -233,3 +233,58 @@ def test_lean_proof_blocks_without_extra(tmp_path, capsys, monkeypatch):
     monkeypatch.setitem(sys.modules, "tree_sitter_language_pack", None)
     assert main(["lean-proof-blocks", "--root", str(repo.root)]) == 2
     assert "dry-lint[lean]" in capsys.readouterr().err
+
+
+def test_lean_proof_blocks_stop_recovery_at_the_next_declaration(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    # Reduced from a recovered by node that consumed the next theorem's binders.
+    source = """lemma interrupted (hS : ∀ v ∈ D.localPrimes, ↑q ∈ v.asIdeal)
+  have h_coset : (s.φ 1 : Gal(Ω/K) ⧸ O.toSubgroup) = ↑(s.φ 1 * (1 * s.φ 1 * 1⁻¹)) := by
+lemma following (hS : ∀ v ∈ D.localPrimes, ↑q ∈ v.asIdeal)
+    (hO : ∀ g h : Gal(Ω/K), (g : Gal(Ω/K) ⧸ O.toSubgroup) = h →
+      ∀ y : DiscreteUnits Ω, m • y ∈ fixedSUnits q D.subgroup → unitsRep h y = unitsRep g y)
+    {I : Set Gal(Ω/K)} {s : SplitPlaces m q I D.subgroup (Gal(Ω/K) ⧸ O.toSubgroup)}
+    (φ_coset : ∀ g ∈ D.subgroup, (s.φ g : Gal(Ω/K) ⧸ O.toSubgroup) = g)
+    {γ : Gal(Ω/K) ⧸ O.toSubgroup → Gal(Ω/K)}
+"""
+    repo.write("A.lean", source)
+    repo.write("B.lean", source)
+    repo.commit()
+    assert main(["lean-proof-blocks", "--root", str(repo.root), "--max-lines", "5"]) == 0
+    assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
+
+
+def test_lean_proof_blocks_rank_reuse_and_hide_contained_windows(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    longer = """theorem {name} (h : True) : True := by
+  have h1 : True := h
+  have h2 : True := h1
+  have h3 : True := h2
+  have h4 : True := h3
+  exact h4
+"""
+    shorter = """theorem {name} (longArgumentNameAlreadyInScope : True) : True := by
+  have unrelatedHypothesis : True := longArgumentNameAlreadyInScope
+  have anotherUnrelatedHypothesis : True := unrelatedHypothesis
+  exact anotherUnrelatedHypothesis
+"""
+    repo.write("LongA.lean", longer.format(name="longA"))
+    repo.write("LongB.lean", longer.format(name="longB"))
+    repo.write("ShortA.lean", shorter.format(name="shortA"))
+    repo.write("ShortB.lean", shorter.format(name="shortB"))
+    repo.write("Overlap.lean", "theorem overlap : True := by\n  skip\n  skip\n  skip\n  skip\n  trivial\n")
+    repo.commit()
+    command = ["lean-proof-blocks", "--root", str(repo.root), "--min-shared-chars", "1"]
+    assert main(command) == 0
+    before = capsys.readouterr().out
+    assert before.index("ShortA.lean:2") < before.index("LongA.lean:2")
+    assert "Overlap.lean:3" in before
+
+    assert main([*command, "--max-lines", "5"]) == 0
+    after = capsys.readouterr().out
+    assert after.startswith("Found 2 repeated Lean proof blocks.\n\nLongA.lean:2\nLongB.lean:2")
+    assert "  have h4 : True := h3\n  exact h4\n" in after
+    assert "Overlap.lean" not in after
+
+    assert main([*command, "--max-lines", "2"]) == 2
+    assert "--max-lines must be at least --lines" in capsys.readouterr().err

@@ -83,7 +83,9 @@ Use `dry-lint scan --within-file --judge none` to find nearby proofs in the same
 Use `dry-lint lean-proof-blocks` to look for repeated fragments inside `by` proofs, even when the
 surrounding declarations differ. It scans tracked Lean files selected by `include` and `exclude`
 and reports source ranges without running Lean or a judge. Use `--lines 5` for five-line fragments
-or `--allow-one-line-difference` when a line between shared lines has changed. The scanner uses
+or `--allow-one-line-difference` when a line between shared lines has changed. Use `--max-lines 8`
+to compare lengths from `--lines` up to eight, rank by repeated lines across disjoint copies, and
+hide smaller matches already covered by a longer match. The scanner uses
 proof ranges recognized by the static grammar and preserves identifiers and relative indentation.
 Lean itself remains the authority on whether two proofs can share a lemma.
 
