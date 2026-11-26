@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0](https://github.com/gigaverse-app/dry-lint/compare/v1.12.0...v1.13.0) (2026-11-26)
+
+
+### Features
+
+* detect similar Lean 4 definitions and proofs ([#201](https://github.com/gigaverse-app/dry-lint/issues/201)) ([0cf7576](https://github.com/gigaverse-app/dry-lint/commit/0cf7576db09738dd63ae755d2173a47d75c66d8e))
+
+
+### Bug Fixes
+
+* **encoding:** decode every text read and git call as UTF-8 on every platform ([#199](https://github.com/gigaverse-app/dry-lint/issues/199)) ([fccd57a](https://github.com/gigaverse-app/dry-lint/commit/fccd57a71968f61953760c215970cbe2ac804328))
+
 ## [1.12.0](https://github.com/gigaverse-app/dry-lint/compare/v1.11.0...v1.12.0) (2026-11-12)
 
 
