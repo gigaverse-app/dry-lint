@@ -264,11 +264,17 @@ class Detector:
             raise ValueError(f"{len(matches)} functions match {name!r}; give more of the qualified name")
         return matches[0]
 
-    def neighbours(self, function: Function) -> list[tuple[Function, float]]:
-        """The closest functions in other files, above the comparer's floor, before any rule."""
+    def neighbours(self, function: Function, *, within_file: bool = False) -> list[tuple[Function, float]]:
+        """The closest functions in the requested scope, above the comparer's floor, before any rule."""
         extractor = extractor_for(function.path, self.extractors)
 
         def allowed(other: Function) -> bool:
+            if within_file:
+                return (
+                    other.origin == function.origin
+                    and other.path == function.path
+                    and other.qualname != function.qualname
+                )
             if self.discovery_keys is not None and (
                 pair_key(function.qualname, other.qualname) in self.discovery_keys
                 or why_skipped(function, other, self.settings)
@@ -402,9 +408,9 @@ class Detector:
                 found.append(relative.model_copy(update={"lane": "relative", "parent": parent.key}))
         return found
 
-    def scan(self, *, settled: bool = False) -> list[Candidate]:
+    def scan(self, *, settled: bool = False, within_file: bool = False) -> list[Candidate]:
         """
-        Every pair in the repository that are each other's nearest neighbour across files: the backlog. With
+        Every pair that are each other's nearest neighbours in the requested scope. With
         `settled`, the pairs a rule settles (a declared pattern, an inline decision) follow, carrying the rule in
         `filtered`, so a report can count them.
         """
@@ -426,7 +432,7 @@ class Detector:
             return rank_candidates([p for p in pairs if p.filtered is None]) + self.settled(pairs, settled)
         best: dict[str, tuple[str, float]] = {}
         for function in self.functions:
-            near = self.neighbours(function)
+            near = self.neighbours(function, within_file=within_file)
             if near:
                 best[function.qualname] = (near[0][0].qualname, near[0][1])
         pairs = []

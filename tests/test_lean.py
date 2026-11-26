@@ -101,3 +101,27 @@ def test_detect_reports_a_changed_lean_proof_against_an_existing_file(tmp_path, 
     [pair] = json.loads(out.read_text(encoding="utf-8"))["candidates"]
     assert (pair["new"]["name"], pair["existing"]["name"]) == ("second", "first")
     assert pair["new"]["context_digest"] != pair["existing"]["context_digest"]
+
+
+def test_within_file_scan_finds_local_proof_pairs_without_cross_file_matches(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    repo.write(".dry-lint/config.toml", 'extractors = ["lean"]\ncomparer = { use = "tfidf", max_df = 1.0 }')
+    proof = "theorem {name} (n : Nat) : n + 0 = n := by\n  exact Nat.add_zero n\n"
+    repo.write("Local.lean", proof.format(name="first") + proof.format(name="second"))
+    repo.write("Elsewhere.lean", proof.format(name="external"))
+    repo.commit()
+
+    command = ["scan", "--root", str(repo.root), "--judge", "none", "--format", "json"]
+    assert main(command) == 0
+    [finding] = json.loads(capsys.readouterr().out)["findings"]
+    pair = finding["candidate"]
+    assert {pair["new"]["path"], pair["existing"]["path"]} == {"Local.lean", "Elsewhere.lean"}
+
+    assert main([*command, "--within-file"]) == 0
+    [finding] = json.loads(capsys.readouterr().out)["findings"]
+    pair = finding["candidate"]
+    assert pair["new"]["path"] == pair["existing"]["path"] == "Local.lean"
+    assert {pair["new"]["name"], pair["existing"]["name"]} == {"first", "second"}
+
+    assert main([*command, "--within-file", "--repo", f"example/project={repo.root}"]) == 2
+    assert "--within-file scans a single repository" in capsys.readouterr().err

@@ -291,3 +291,6 @@ def test_scan_nominates_families_across_the_whole_repository(repo, tmp_path):
         assert main(["scan", "--root", str(repo.root), "--report", str(target)]) == 0
     [family] = Report.model_validate_json(target.read_text()).families
     assert family.status == "unjudged" and len(family.request.members) == 3
+
+    assert main(["scan", "--within-file", "--root", str(repo.root), "--report", str(target)]) == 0
+    assert not Report.model_validate_json(target.read_text()).families

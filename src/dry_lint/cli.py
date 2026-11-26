@@ -520,8 +520,10 @@ def progress(root: Path, settings: Settings, args: argparse.Namespace) -> int:
 
 def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     require_family_format(settings, args)
+    if args.within_file and (args.repo or args.repo_index):
+        raise ValueError("--within-file scans a single repository; remove --repo and --repo-index")
     detector, _ = detector_for(root, settings, args)
-    found = detector.scan(settled=True)
+    found = detector.scan(settled=True, within_file=args.within_file)
     proposed = [c for c in found if c.filtered is None]
     # The limit applies to the pairs to judge; pairs a rule settled are only counted ("N skipped by rule").
     candidates = proposed[: args.limit] + [c for c in found if c.filtered is not None]
@@ -536,7 +538,7 @@ def scan(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     # The backlog view: every function is an owner, so every repeated operation in the repository is nominated.
     families = (
         family_discovery(root, settings, detector, detector.functions, run, staged=False)
-        if settings.discovery.families is not None
+        if settings.discovery.families is not None and not args.within_file
         else None
     )
     report = judged(
@@ -989,6 +991,7 @@ def parser() -> argparse.ArgumentParser:
     )
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
     sweep.add_argument("--limit", type=int, default=50, help="Judge and show at most this many pairs, closest first.")
+    sweep.add_argument("--within-file", action="store_true", help="Compare declarations only within the same file.")
     sweep.add_argument("--refresh", action="store_true", help="Re-judge verdicts from older versions of the judge.")
     ratcheting = commands.add_parser(
         "sweep", parents=[common], help="Scan all functions and shrink the accepted backlog."
