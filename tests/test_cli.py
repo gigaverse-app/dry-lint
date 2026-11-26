@@ -252,6 +252,22 @@ def test_scan_lists_the_repository_backlog(repo: Repo, tmp_path: Path, capsys) -
     assert "raise --limit" not in captured.err  # everything was shown
 
 
+def test_scan_can_include_same_file_helpers(repo: Repo, capsys) -> None:
+    repo.write("src/text.py", EXISTING + TWIN_SOURCE)
+    repo.write("src/widgets/caption.py", "")
+    args = ["scan", "--root", str(repo.root), "--judge", "none"]
+    assert main(args) == 0
+    assert "preview_caption_text" not in capsys.readouterr().out
+    assert main([*args, "--include-same-file"]) == 0
+    out = capsys.readouterr().out
+    assert "shorten_text" in out and "preview_caption_text" in out
+
+
+def test_same_file_scan_rejects_cross_repository_search(repo: Repo, capsys) -> None:
+    assert main(["scan", "--root", str(repo.root), "--include-same-file", "--repo", f"owner/primary={repo.root}"]) == 2
+    assert "--include-same-file requires a single repository" in capsys.readouterr().err
+
+
 def test_scan_says_when_its_limit_hides_pairs_and_keeps_json_parseable(repo: Repo, capsys) -> None:
     loader = "def load_{0}(store, key):\n    rows = store.read_rows(key)\n    return [row.decode() for row in rows]\n"
     repo.write("src/users.py", loader.format("users"))

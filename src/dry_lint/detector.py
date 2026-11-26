@@ -204,10 +204,12 @@ class Detector:
             resources.index(comparer, functions)
 
     @classmethod
-    def for_repository(cls, root: Path, settings: Settings, *, strict: bool = False) -> "Detector":
+    def for_repository(
+        cls, root: Path, settings: Settings, *, strict: bool = False, same_file: bool = False
+    ) -> "Detector":
         extractors = [load("extractors", choice) for choice in settings.extractors]
         functions = repository_functions(root, settings.include, settings.exclude, extractors, strict=strict)
-        return cls(functions, settings, load("comparers", settings.comparer), extractors)
+        return cls(functions, settings, load("comparers", settings.comparer), extractors, same_file=same_file)
 
     @classmethod
     def for_tree(cls, root: Path, revision: str, settings: Settings, *, strict: bool = False) -> "Detector":

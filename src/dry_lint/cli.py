@@ -372,7 +372,10 @@ def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tu
         if args.repo or args.repo_index:
             raise ValueError("Staged checks currently support a single repository")
         return Detector.for_tree(root, git(root, "write-tree"), settings, strict=strict), ""
+    include_same_file = args.command == "scan" and args.include_same_file
     if args.repo or args.repo_index:
+        if include_same_file:
+            raise ValueError("--include-same-file requires a single repository scan")
         if args.require_complete or args.baseline or args.command == "sweep":
             raise ValueError("Strict baselines currently cover one repository; run a separate check for peers")
         roots: dict[str, Path] = {}
@@ -400,7 +403,7 @@ def detector_for(root: Path, settings: Settings, args: argparse.Namespace) -> tu
         return Detector.for_workspace(roots, settings, indexes=indexes), primary
     if settings.discovery.enabled and args.command in {"check", "detect"}:
         return Detector.for_tree(root, "HEAD", settings, strict=strict), ""
-    return Detector.for_repository(root, settings, strict=strict), ""
+    return Detector.for_repository(root, settings, strict=strict, same_file=include_same_file), ""
 
 
 def card_key(args: argparse.Namespace, readme: str) -> str:
@@ -990,6 +993,9 @@ def parser() -> argparse.ArgumentParser:
         commands.add_parser("check", parents=[common], help="Detect, judge and report the functions a change touched.")
     )
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
+    sweep.add_argument(
+        "--include-same-file", action="store_true", help="Also compare declarations in the same source file."
+    )
     sweep.add_argument("--limit", type=int, default=50, help="Judge and show at most this many pairs, closest first.")
     sweep.add_argument("--within-file", action="store_true", help="Compare declarations only within the same file.")
     sweep.add_argument("--refresh", action="store_true", help="Re-judge verdicts from older versions of the judge.")
