@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.14.0](https://github.com/gigaverse-app/dry-lint/compare/v1.13.0...v1.14.0) (2026-11-26)
+
+
+### Features
+
+* **scan:** find look-alikes within a source file ([#204](https://github.com/gigaverse-app/dry-lint/issues/204)) ([e82c15d](https://github.com/gigaverse-app/dry-lint/commit/e82c15d8fa30450d5302420a5592706ccae16d53))
+* **scan:** include same-file comparisons on request ([#205](https://github.com/gigaverse-app/dry-lint/issues/205)) ([74a7f4f](https://github.com/gigaverse-app/dry-lint/commit/74a7f4f8f448c9b08457700aedbd8cab00590868))
+* **scan:** select extractors without editing repository config ([069392f](https://github.com/gigaverse-app/dry-lint/commit/069392f778ac9ad2bba77018f2add5dd61c821bc))
+
+
+### Bug Fixes
+
+* **lean:** compare complete string literals ([#202](https://github.com/gigaverse-app/dry-lint/issues/202)) ([3ef9118](https://github.com/gigaverse-app/dry-lint/commit/3ef9118b928d8c0e4ca8f44ca47610495ee20fea))
+
 ## [1.13.0](https://github.com/gigaverse-app/dry-lint/compare/v1.12.0...v1.13.0) (2026-11-26)
 
 
