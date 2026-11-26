@@ -1,3 +1,4 @@
+import io
 import json
 import sys
 
@@ -168,6 +169,26 @@ def test_lean_proof_blocks_include_same_file_and_preserve_indentation(tmp_path, 
     )
     assert main([*command, "--limit", "0"]) == 0
     assert capsys.readouterr().out == "Found 1 repeated Lean proof blocks.\n"
+
+
+@pytest.mark.parametrize("override", [None, "utf-16"])
+def test_redirected_cli_keeps_lean_symbols(tmp_path, lean, monkeypatch, override):
+    repo = Repo(tmp_path / "project")
+    proof = "theorem {name} (h : True) : True := by\n  have h₁ := h\n  have h₂ := h₁\n  exact h₂\n"
+    repo.write("A.lean", proof.format(name="one") + proof.format(name="two"))
+    repo.commit()
+    data = io.BytesIO()
+    output = io.TextIOWrapper(data, encoding=override or "cp1252")
+    monkeypatch.delenv("PYTHONIOENCODING", raising=False)
+    if override:
+        monkeypatch.setenv("PYTHONIOENCODING", override)
+    monkeypatch.setattr(sys, "stdout", output)
+    monkeypatch.setattr(
+        sys, "argv", ["dry-lint", "lean-proof-blocks", "--root", str(repo.root), "--min-shared-chars", "1"]
+    )
+    assert main() == 0
+    output.flush()
+    assert "have h₂ := h₁" in data.getvalue().decode(override or "utf-8")
 
 
 def test_lean_proof_blocks_compare_real_source_in_recovered_tactic_ranges(tmp_path, lean, capsys):
