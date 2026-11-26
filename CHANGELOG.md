@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.15.0](https://github.com/gigaverse-app/dry-lint/compare/v1.14.0...v1.15.0) (2026-11-26)
+
+
+### Features
+
+* **lean:** find repeated proof fragments ([#207](https://github.com/gigaverse-app/dry-lint/issues/207)) ([c067884](https://github.com/gigaverse-app/dry-lint/commit/c067884838187a0b7ffcc8b704bef0b389e94d7c))
+* **lean:** prioritize longer repeated proof blocks ([#210](https://github.com/gigaverse-app/dry-lint/issues/210)) ([381d941](https://github.com/gigaverse-app/dry-lint/commit/381d9418972bb2ea3fb529a4ee41d7617aa62fca))
+
 ## [1.14.0](https://github.com/gigaverse-app/dry-lint/compare/v1.13.0...v1.14.0) (2026-11-26)
 
 
