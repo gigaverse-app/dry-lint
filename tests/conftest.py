@@ -112,7 +112,7 @@ class Repo:
     def write(self, path: str, source: str) -> None:
         target = self.root / path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(textwrap.dedent(source).lstrip())
+        target.write_text(textwrap.dedent(source).lstrip(), encoding="utf-8")
 
     def commit(self, message: str = "change") -> None:
         self.git("add", "-A")

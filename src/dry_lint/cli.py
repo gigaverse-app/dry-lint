@@ -579,7 +579,7 @@ def detect(root: Path, settings: Settings, args: argparse.Namespace) -> int:
         found.models, found.changed_models = len(model_detector.functions), len(model_changed)
     text = found.model_dump_json(indent=1)
     if args.out:
-        args.out.write_text(text + "\n")
+        args.out.write_text(text + "\n", encoding="utf-8")
         proposed = sum(c.filtered is None for c in candidates)
         print(
             f"dry-lint: {len(changed)} changed function(s), {proposed} candidate pair(s) to judge, "

@@ -196,6 +196,15 @@ def function_calls(function: Function) -> list[str] | None:
     return node_calls(node) if node else None
 
 
+def text_digest(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def exact_source_hash(function: Function) -> str:
+    """Fingerprint a declaration when its language does not permit canonicalization."""
+    return text_digest(function.code)[:16]
+
+
 def structure_hash(function: Function) -> str:
     """
     A hash that changes when the logic changes, and not for comments, docstrings, formatting, decorators, renamed
@@ -203,8 +212,8 @@ def structure_hash(function: Function) -> str:
     """
     node = _function_node(function.code)
     if node is None:
-        return hashlib.sha256(function.code.encode()).hexdigest()[:16]
-    return hashlib.sha256(ast.dump(_Canonical().visit(node), annotate_fields=False).encode()).hexdigest()[:16]
+        return exact_source_hash(function)
+    return text_digest(ast.dump(_Canonical().visit(node), annotate_fields=False))[:16]
 
 
 def _is_stub(node: FunctionNode) -> bool:
