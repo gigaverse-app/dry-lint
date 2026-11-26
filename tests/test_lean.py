@@ -5,6 +5,7 @@ import pytest
 from tree_sitter_language_pack import downloaded_languages
 
 from dry_lint.cli import main
+from dry_lint.comparers import TfidfComparer
 from dry_lint.lean import LeanExtractor
 from dry_lint.plugins import load
 from dry_lint.settings import PluginChoice
@@ -64,6 +65,20 @@ def broken (x :
     assert "default" in instance.tokens
     with pytest.raises(ValueError, match="Cannot completely scan A.lean"):
         lean.validate_source("A.lean", source)
+
+
+@pytest.mark.parametrize("delimiter", ['"', 'r#"'])
+def test_string_declarations_compare_the_literal_instead_of_its_delimiters(lean, delimiter):
+    closing = '"' if delimiter == '"' else '"#'
+    help_text = f"{delimiter}Check this project\nsecond line\n{closing}"
+    workflow = f"{delimiter}name: Update Dependencies\nsecond line\n{closing}"
+    source = [help_text, workflow, help_text]
+    declarations = [lean.functions(f"{i}.lean", f"def message :=\n{text}\n")[0] for i, text in enumerate(source)]
+    help_def, workflow_def, duplicate = declarations
+    comparer = TfidfComparer(max_df=1.0)
+    comparer.index(declarations)
+    assert comparer.similarity(help_def, workflow_def) == 0
+    assert comparer.similarity(help_def, duplicate) == pytest.approx(1)
 
 
 def test_missing_lean_extra_has_install_hint(monkeypatch):

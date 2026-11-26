@@ -17,6 +17,11 @@ def _tokens(parts: list[Node]) -> list[str]:
         node = pending.pop()
         if node.type.endswith("comment"):
             continue
+        if node.type in {"str_lit", "raw_string"}:
+            # Quote delimiters and escapes are not shared behavior. Keep identical
+            # literals comparable without putting their potentially long text in the index.
+            tokens.append(f"str:{text_digest(node.text.decode('utf-8'))}")
+            continue
         if node.child_count:
             pending.extend(reversed(node.children))
         elif node.end_byte > node.start_byte:
@@ -26,7 +31,7 @@ def _tokens(parts: list[Node]) -> list[str]:
 
 class LeanExtractor:
     name = "lean"
-    version = "1"
+    version = "2"
     # Layout and spelling can affect Lean macros, so hash the source exactly.
     structure_hash = staticmethod(exact_source_hash)
     files = ("*.lean",)
