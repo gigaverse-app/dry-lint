@@ -982,6 +982,9 @@ def parser() -> argparse.ArgumentParser:
     proof_blocks = commands.add_parser("lean-proof-blocks", help="Find repeated source blocks in Lean proofs.")
     proof_blocks.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
     proof_blocks.add_argument("--lines", type=int, default=3, help="Number of consecutive source lines to compare.")
+    proof_blocks.add_argument(
+        "--max-lines", type=int, help="Scan lengths from --lines to this maximum and rank by repeated lines."
+    )
     proof_blocks.add_argument("--min-shared-chars", type=int, default=70, help="Minimum shared non-indentation text.")
     proof_blocks.add_argument("--limit", type=int, default=20, help="Show at most this many groups.")
     proof_blocks.add_argument(
@@ -1157,6 +1160,7 @@ def lean_proof_blocks(root: Path, args: argparse.Namespace) -> int:
         settings.include,
         settings.exclude,
         lines=args.lines,
+        max_lines=args.max_lines,
         min_shared_chars=args.min_shared_chars,
         allow_one_line_difference=args.allow_one_line_difference,
     )
