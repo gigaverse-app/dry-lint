@@ -664,3 +664,24 @@ adding one CPU neighbour recovered no additional known positive pair and exposed
 Earlier primary candidates were unchanged. Negative exposure is not a false report; the judge still decides.
 Budgets and judge defaults remain unchanged. Public pretrained
 weights may contain source contamination. Provider agreement alone does not establish accepted source labels.
+
+## Lean declaration coverage
+
+A duplicate scan can only compare declarations its extractor finds. To measure that first step, build the target
+Lean project with its pinned toolchain. From the dry-lint checkout, run the audit against source and artifacts
+from the same revision. Adjust the source root for the library layout.
+
+```sh
+uv run python scripts/audit_lean_coverage.py ../project/src ../project/.lake/build/lib/lean
+```
+
+The audit reads Lean's version 6 `.ilean` declaration and reference tables. It counts distinct source locations
+whose selected name follows `def`, `abbrev`, `lemma`, `theorem`, `instance` or `opaque` on the same line.
+A match requires the same source spelling within the extractor's reported line range. The audit includes
+one-line declarations and reports source modules with missing build artifacts separately. Add `--show-missed`
+to see which locations to investigate. See [CONTRIBUTING.md](../CONTRIBUTING.md) for Lean grammar setup.
+
+On the [Riemann Hypothesis project at c5451bd](https://github.com/leanprover-community/riemann-hypothesis/tree/c5451bd3ba92480e05c4218f5221bb2900c58706),
+dry-lint's version 2 Lean extractor matched **8,690 of 21,842 eligible sites (39.8%)** across all 801 compiled
+source modules. This measures discovery of declaration names and locations. Proof-body boundaries and duplicate
+ranking require separate evaluation.
