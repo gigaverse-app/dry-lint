@@ -103,6 +103,22 @@ def test_detect_reports_a_changed_lean_proof_against_an_existing_file(tmp_path, 
     assert pair["new"]["context_digest"] != pair["existing"]["context_digest"]
 
 
+def test_scan_can_select_lean_without_configuring_the_extractor(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    repo.write(".dry-lint/config.toml", 'comparer = { use = "tfidf", max_df = 1.0 }')
+    proof = "theorem {name} (n : Nat) : n + 0 = n := by\n  exact Nat.add_zero n\n"
+    repo.write("First.lean", proof.format(name="first"))
+    repo.write("Second.lean", proof.format(name="second"))
+    repo.commit()
+    command = ["scan", "--root", str(repo.root), "--judge", "none", "--format", "json"]
+
+    assert main(command) == 0
+    assert json.loads(capsys.readouterr().out)["findings"] == []
+    assert main([*command, "--extractor", "lean"]) == 0
+    [finding] = json.loads(capsys.readouterr().out)["findings"]
+    assert {finding["candidate"][side]["path"] for side in ["new", "existing"]} == {"First.lean", "Second.lean"}
+
+
 def test_within_file_scan_finds_local_proof_pairs_without_cross_file_matches(tmp_path, lean, capsys):
     repo = Repo(tmp_path / "project")
     repo.write(".dry-lint/config.toml", 'extractors = ["lean"]\ncomparer = { use = "tfidf", max_df = 1.0 }')

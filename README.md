@@ -69,8 +69,14 @@ Python, TypeScript and TSX work out of the box. TypeScript repositories need no 
 Node or build step: dry-lint installs its own tools and parses source without executing your code
 ([TypeScript and Bun](docs/typescript.md) covers monorepos).
 
-**Working with Lean 4?** Install `'dry-lint[lean]>=1,<2'` and set `extractors = ["lean"]` in
-`.dry-lint/config.toml`. On first use the language pack downloads its versioned Lean grammar.
+**Working with Lean 4?** Run this in your Git checkout to try a scan without editing the repository.
+
+```sh
+uvx --from 'dry-lint[lean]>=1,<2' dry-lint scan --extractor lean --judge none --limit 10
+```
+
+Set `extractors = ["lean"]` in `.dry-lint/config.toml` to use the same extractor for branch checks.
+On first use the language pack downloads its versioned Lean grammar.
 dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery skips declarations
 with syntax the static grammar cannot parse. Strict scans report a parse error for such files.
 Use `dry-lint scan --within-file --judge none` to find nearby proofs in the same Lean module.

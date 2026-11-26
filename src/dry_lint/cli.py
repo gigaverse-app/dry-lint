@@ -87,6 +87,9 @@ def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     settings = Settings.load(
         root, staged=args.command in {"check", "detect", "model-baseline", "schema-check"} and args.staged
     )
+    if args.command == "scan" and args.extractor:
+        configured = {choice.use: choice for choice in settings.extractors}
+        settings.extractors = [configured.get(name, PluginChoice(use=name)) for name in args.extractor]
     if args.detector:
         settings.comparer = PluginChoice(use=args.detector)
     if args.fail_at is not None:
@@ -993,6 +996,9 @@ def parser() -> argparse.ArgumentParser:
         commands.add_parser("check", parents=[common], help="Detect, judge and report the functions a change touched.")
     )
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
+    sweep.add_argument(
+        "--extractor", action="append", metavar="NAME", help="Use only these extractors for this scan. Repeat for more."
+    )
     sweep.add_argument(
         "--include-same-file", action="store_true", help="Also compare declarations in the same source file."
     )
