@@ -85,6 +85,8 @@ jobs:
           SUMS
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync ruff format --check .
+      - name: Fetch the pinned Lean grammar for offline extractor tests
+        run: uv run --no-sync python -c "from tree_sitter_language_pack import download; download(['lean'])"
       - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
         env:
           DRY_LINT_TEST_MINILM_DIR: ${{ runner.temp }}/minilm

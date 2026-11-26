@@ -7,6 +7,7 @@ uv sync --locked
 uvx pre-commit install
 uv run ruff check .
 uv run ruff format .
+uv run python -c "from tree_sitter_language_pack import download; download(['lean'])"
 uv run pytest -q --cov
 uv build
 ```

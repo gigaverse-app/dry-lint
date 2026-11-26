@@ -69,6 +69,12 @@ Python, TypeScript and TSX work out of the box. TypeScript repositories need no 
 Node or build step: dry-lint installs its own tools and parses source without executing your code
 ([TypeScript and Bun](docs/typescript.md) covers monorepos).
 
+**Working with Lean 4?** Install `'dry-lint[lean]>=1,<2'` and set `extractors = ["lean"]` in
+`.dry-lint/config.toml`. On first use the language pack downloads its versioned Lean grammar.
+dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery skips declarations
+with syntax the static grammar cannot parse. Strict scans report a parse error for such files.
+Lean itself remains the authority on whether two proofs can share a lemma.
+
 **Building with Lua or Luau for Roblox?** Enable the opt-in Luau parser for `.lua` and `.luau` files with
 `pip install 'dry-lint[luau]>=1,<2'` and `extractors = ["luau"]` in `.dry-lint/config.toml`.
 It compares functions and table methods, with Roblox service and instance calls included in the analysis.
