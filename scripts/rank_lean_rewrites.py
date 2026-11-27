@@ -2,37 +2,14 @@
 
 import argparse
 import json
-import re
-from bisect import bisect_left
 from collections import Counter
 from pathlib import Path
 
-from tree_sitter import Query, QueryCursor
-
-from dry_lint.lean import LeanExtractor
-from dry_lint.lean_upstream import lean_sources, local_site
-
-_SIMP_ONLY = re.compile(rb"\b(?:simp|simp_all)\s+only\s*$")
+from dry_lint.lean_rewrites import built_rewrite_modules
 
 
-def rank_module(path, source, artifacts, parser, query):
-    tree = parser.parse(source)
-    calls = []
-    for node in QueryCursor(query).captures(tree.root_node).get("rules", []):
-        if node.has_error or not _SIMP_ONLY.search(source[max(0, node.start_byte - 64) : node.start_byte]):
-            continue
-        rules = {child.text.strip() for child in node.named_children if not child.type.endswith("comment")}
-        if rules:
-            calls.append((node.start_point.row, rules))
-    calls.sort(key=lambda item: item[0])
-    rows = [row for row, _ in calls]
-    lines = source.decode().splitlines()
-    for name, coords in artifacts["decls"].items():
-        site = local_site(name, coords, lines)
-        if not site:
-            continue
-        start, length = site
-        within = calls[bisect_left(rows, start - 1) : bisect_left(rows, start - 1 + length)]
+def rank_module(path, declarations):
+    for name, start, within in declarations:
         counts = Counter(rule for _, rules in within for rule in rules)
         repeated = sum(count - 1 for count in counts.values())
         if repeated:
@@ -53,24 +30,17 @@ def main(argv=None):
     args = arg.parse_args(argv)
     if args.limit < 1:
         arg.error("--limit must be positive")
-    parser = LeanExtractor().parser
-    query = Query(parser.language, "(list_lit) @rules")
     findings = []
     built = unbuilt = 0
-    for path in lean_sources(args.source_root):
-        relative = path.relative_to(args.source_root)
-        artifact = (args.artifact_root / relative).with_suffix(".ilean")
-        if not artifact.is_file():
-            unbuilt += 1
-            continue
-        built += 1
-        source = path.read_bytes()
-        if source.count(b"only") < 2:
-            continue
-        data = json.loads(artifact.read_bytes())
-        if data.get("version") != 6:
-            arg.error(f"{artifact}: expected .ilean version 6")
-        findings.extend(rank_module(relative.as_posix(), source, data, parser, query))
+    try:
+        for path, declarations in built_rewrite_modules(args.source_root, args.artifact_root):
+            if declarations is None:
+                unbuilt += 1
+            else:
+                built += 1
+                findings.extend(rank_module(path, declarations))
+    except ValueError as exc:
+        arg.error(str(exc))
     if not built:
         arg.error("No matching .ilean artifacts. Build the project and check the two roots.")
     findings.sort(key=lambda row: (-row["repeat_mentions"], row["path"], row["line"]))
