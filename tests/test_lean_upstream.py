@@ -70,3 +70,51 @@ def test_reject_invalid_inputs(tmp_path):
     (tmp_path / "Bad.ilean").write_text('{"version": 5}', encoding="utf-8")
     with pytest.raises(ValueError, match="version 6"):
         find_upstream_citations(tmp_path, tmp_path, tmp_path)
+
+
+def test_cited_types_instances_and_names_on_their_own_line(tmp_path, capsys):
+    src, dep, build = tmp_path / "src", tmp_path / "dep", tmp_path / "build"
+    for root in (src, dep, build):
+        root.mkdir()
+    (src / "Local.lean").write_text(
+        "namespace Local\n"
+        "structure Shape where\n  side : Nat\n"
+        "class Sized (α : Type) where\n  size : α → Nat\n"
+        "inductive Colour where\n  | red\n"
+        "instance sizedShape : Sized Shape := ⟨Shape.side⟩\n"
+        "theorem\n    wrapped : True := trivial\n"
+        "end Local\n",
+        encoding="utf-8",
+    )
+    decls = {
+        "Local.Shape": [1, 0, 2, 12, 1, 10, 1, 15],
+        "Local.Shape.side": [2, 2, 2, 12, 2, 2, 2, 6],
+        "Local.Sized": [3, 0, 4, 16, 3, 6, 3, 11],
+        "Local.Colour": [5, 0, 6, 7, 5, 10, 5, 16],
+        "Local.sizedShape": [7, 0, 7, 49, 7, 9, 7, 19],
+        "Local.wrapped": [8, 0, 9, 29, 9, 4, 9, 11],
+    }
+    (build / "Local.ilean").write_text(json.dumps({"version": 6, "decls": decls}), encoding="utf-8")
+    (dep / "Port.lean").write_text(
+        "/-- Ported from " + ", ".join(f"`{name}`" for name in decls) + ". -/\ntheorem port : True := trivial\n",
+        encoding="utf-8",
+    )
+    args = ["lean-upstream", "--source-root", str(src), "--artifact-root", str(build), "--dependency", str(dep)]
+    assert main(args) == 0
+    found = {row["name"]: row["line"] for row in json.loads(capsys.readouterr().out)["declarations"]}
+    # A field is part of its structure, not a declaration with a keyword of its own.
+    assert found == {
+        "Local.Shape": 2,
+        "Local.Sized": 4,
+        "Local.Colour": 6,
+        "Local.sizedShape": 8,
+        "Local.wrapped": 10,
+    }
+
+
+def test_artifact_without_declarations_is_reported(tmp_path, capsys):
+    (tmp_path / "Bad.lean").touch()
+    (tmp_path / "Bad.ilean").write_text('{"version": 6, "module": "Bad"}', encoding="utf-8")
+    args = ["lean-upstream", "--source-root", str(tmp_path), "--dependency", str(tmp_path)]
+    assert main([*args, "--artifact-root", str(tmp_path)]) == 2
+    assert "Bad.ilean: expected .ilean version 6 with decls" in capsys.readouterr().err

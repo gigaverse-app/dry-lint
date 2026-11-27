@@ -10,7 +10,7 @@ from dry_lint.lean import LeanExtractor
 
 # Only match a complete, backtick-quoted qualified identifier.
 _CITATION = re.compile(rb"`([^\s`]+\.[^\s`]+)`")
-_DECL = re.compile(r"\b(?:theorem|lemma|def|abbrev|opaque)\s+$")
+_DECL = re.compile(r"\b(?:theorem|lemma|def|abbrev|opaque|instance|structure|class|inductive)\s+$")
 
 
 def lean_sources(root):
@@ -53,6 +53,8 @@ def local_site(name, coords, lines):
     # an extra guard against stale artifacts and compiler-generated auxiliaries.
     line = lines[row].encode("utf-16-le")
     prefix = line[: 2 * start_col].decode("utf-16-le", errors="replace")
+    if not prefix.strip() and row:
+        prefix = lines[row - 1] + "\n"  # The name starts its line: the keyword ends the line before.
     spelling = line[2 * start_col : 2 * end_col].decode("utf-16-le", errors="replace").removeprefix("_root_.")
     if _DECL.search(prefix) and spelling and (name == spelling or name.endswith("." + spelling)):
         return row + 1, end - row + 1
@@ -71,8 +73,8 @@ def find_upstream_citations(source_root, artifact_root, dependency_root, min_lin
             missing += 1
             continue
         data = json.loads(artifact.read_bytes())
-        if data.get("version") != 6:
-            raise ValueError(f"{artifact}: expected .ilean version 6")
+        if data.get("version") != 6 or not isinstance(data.get("decls"), dict):
+            raise ValueError(f"{artifact}: expected .ilean version 6 with decls")
         built += 1
         lines = path.read_text(encoding="utf-8").splitlines()
         for name, coords in data["decls"].items():
