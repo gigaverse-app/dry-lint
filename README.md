@@ -155,6 +155,7 @@ look-alikes without calling a model or failing on findings. To inspect just your
 
 To look for repeated proofs or helpers within a module as well, add `--include-same-file` to a single-repository
 scan. It ranks eligible declarations in the same file alongside cross-file matches when choosing nearest neighbours.
+Pass the same flag to `dry-lint explain` to ask about a pair that scan reported.
 
 To find lines that repeat inside functions whose other lines differ, run `dry-lint blocks`. It compares source
 lines in Python, TypeScript, Luau and Lean, needs no judge, and prints each repeated block with its locations

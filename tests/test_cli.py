@@ -263,6 +263,16 @@ def test_scan_can_include_same_file_helpers(repo: Repo, capsys) -> None:
     assert "shorten_text" in out and "preview_caption_text" in out
 
 
+def test_explain_ranks_a_pair_the_same_file_scan_reported(repo: Repo, capsys) -> None:
+    repo.write("src/text.py", EXISTING + TWIN_SOURCE)
+    repo.write("src/widgets/caption.py", "")
+    args = ["explain", "--root", str(repo.root), "preview_caption_text", "shorten_text"]
+    assert main(args) == 0
+    assert "not among the 0 look-alike(s)" in capsys.readouterr().out
+    assert main([*args, "--include-same-file"]) == 0
+    assert "proposed: #1 of the 1 look-alike(s) of preview_caption_text" in capsys.readouterr().out
+
+
 def test_same_file_scan_rejects_cross_repository_search(repo: Repo, capsys) -> None:
     assert main(["scan", "--root", str(repo.root), "--include-same-file", "--repo", f"owner/primary={repo.root}"]) == 2
     assert "--include-same-file requires a single repository" in capsys.readouterr().err

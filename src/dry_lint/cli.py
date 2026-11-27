@@ -735,7 +735,7 @@ def model_baseline(root: Path, settings: Settings, args: argparse.Namespace) -> 
 
 
 def explain(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    detector = Detector.for_repository(root, settings)
+    detector = Detector.for_repository(root, settings, same_file=args.include_same_file)
     a, b = detector.find(args.first), detector.find(args.second)
     pair = detector.pair(a, b, detector.comparer.similarity(a, b))
     lines = [f"{a.qualname} ~ {b.qualname}", f"  similarity {pair.similarity:.2f} ({pair.comparer})"]
@@ -1106,6 +1106,7 @@ def parser() -> argparse.ArgumentParser:
     include_option(explaining)
     extractor_option(explaining)
     explaining.add_argument("--within-file", action="store_true", help="Report both ranks in the same-file scan.")
+    explaining.add_argument("--include-same-file", action="store_true", help="Rank as `scan --include-same-file` does.")
     explaining.add_argument("first", help="A qualified name, or a suffix only one function has.")
     explaining.add_argument("second")
     measuring = commands.add_parser(
