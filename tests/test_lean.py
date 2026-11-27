@@ -64,11 +64,25 @@ def broken (x :
     (instance,) = lean.functions("A.lean", source)
     assert instance.qualname == "A.lean::zeroNat"
     assert "default" in instance.tokens
-    with pytest.raises(ValueError, match="Cannot completely scan A.lean"):
+    with pytest.raises(ValueError, match="Cannot completely scan A.lean: brackets do not balance .* line 5"):
         lean.validate_source("A.lean", source)
 
 
-def test_discovers_a_proof_that_uses_unsupported_notation_without_weakening_strict_validation(lean):
+@pytest.mark.parametrize(
+    ("source", "reason"),
+    [
+        ("def a := 1\n/- never /- closed -/\ndef b := 2\n", "the comment that starts on line 2 is never closed"),
+        ('def a := 1\ndef b : String :=\n  "open\n', "the string on line 3 is never closed"),
+        ("theorem a : True := by\n  exact (trivial\n", "brackets do not balance in the command on line 1"),
+    ],
+)
+def test_strict_validation_names_what_keeps_a_command_from_being_bounded(lean, source, reason):
+    with pytest.raises(ValueError) as error:
+        lean.validate_source("A.lean", source)
+    assert str(error.value) == f"Cannot completely scan A.lean: {reason}"
+
+
+def test_strict_validation_accepts_notation_that_only_lean_can_parse(lean):
     source = """postfix:max "ᴴ" => id
 namespace Example
 theorem first (n : Nat) : nᴴ = n := by
@@ -78,8 +92,7 @@ theorem second : True := by
   trivial
 end Example
 """
-    with pytest.raises(ValueError, match="Cannot completely scan A.lean"):
-        lean.validate_source("A.lean", source)
+    lean.validate_source("A.lean", source)
 
     first, second = lean.functions("A.lean", source)
     assert (first.qualname, first.line, first.end_line) == ("A.lean::Example.first", 3, 4)

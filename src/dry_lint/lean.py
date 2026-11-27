@@ -130,6 +130,25 @@ def _structure(source: str) -> tuple[str, tuple[tuple[int, int], ...]]:
     return "".join(parts), tuple(literals)
 
 
+def _open_comment(source: str) -> int | None:
+    """Where a block comment that is never closed starts."""
+    position = 0
+    while match := _OPAQUE.search(source, position):
+        start, position = match.span()
+        if match.group() == "/-":
+            depth = 1
+            while depth and (edge := _COMMENT_EDGE.search(source, position)):
+                depth += 1 if edge.group() == "/-" else -1
+                position = edge.end()
+            if depth:
+                return start
+    return None
+
+
+def _balanced(shape: str) -> bool:
+    return all(shape.count(opener) == shape.count(closer) for opener, closer in zip(_OPENERS, _CLOSERS, strict=True))
+
+
 def _closing(structure: str, position: int) -> int:
     """The offset after the bracket group that opens at or after this position."""
     depth = 0
@@ -280,8 +299,23 @@ class LeanExtractor:
         self.min_lines = min_lines
 
     def validate_source(self, path: str, source: str) -> None:
-        if self.parser.parse(source.encode("utf-8")).root_node.has_error:
-            raise ValueError(f"Cannot completely scan {path}: Lean grammar encountered unsupported or invalid syntax")
+        """
+        Reject a source whose commands this extractor cannot bound: a comment or a string that is never
+        closed, or a command whose brackets do not balance. Those are what `functions` relies on, so
+        notation that only Lean's own parser understands does not make a file incomplete.
+        """
+        if (comment := _open_comment(source)) is not None:
+            line = source.count("\n", 0, comment) + 1
+            raise ValueError(f"Cannot completely scan {path}: the comment that starts on line {line} is never closed")
+        lean = read_source(source)
+        if (quote := lean.structure.find('"')) >= 0:
+            raise ValueError(f"Cannot completely scan {path}: the string on line {lean.line(quote)} is never closed")
+        for command in lean.commands:
+            if not _balanced(lean.structure[command.start : command.end]):
+                line = lean.line(command.start)
+                raise ValueError(
+                    f"Cannot completely scan {path}: brackets do not balance in the command on line {line}"
+                )
 
     def functions(self, path: str, source: str) -> list[Function]:
         found = []
@@ -315,8 +349,7 @@ class LeanExtractor:
         length = code.count("\n") + 1
         if parts is None or length < self.min_lines:
             return None
-        shape = lean.structure[command.start : command.end]
-        if any(shape.count(opener) != shape.count(closer) for opener, closer in zip(_OPENERS, _CLOSERS, strict=True)):
+        if not _balanced(lean.structure[command.start : command.end]):
             # An open bracket means the text is cut short, or a syntax quotation holds a command keyword.
             return None
         result, result_end, body = parts
