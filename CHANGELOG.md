@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.1](https://github.com/gigaverse-app/dry-lint/compare/v1.17.0...v1.17.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* **lean:** read declarations from command boundaries in the source ([#219](https://github.com/gigaverse-app/dry-lint/issues/219)) ([01d8b02](https://github.com/gigaverse-app/dry-lint/commit/01d8b02256ccb5768b6a69c99577bef4938f0ee9))
+* **lean:** read proof blocks from the source layout ([#222](https://github.com/gigaverse-app/dry-lint/issues/222)) ([4aa559e](https://github.com/gigaverse-app/dry-lint/commit/4aa559e78edd3c699119bb4257d0bc4b5fd62db1))
+
 ## [1.17.0](https://github.com/gigaverse-app/dry-lint/compare/v1.16.0...v1.17.0) (2026-11-27)
 
 
