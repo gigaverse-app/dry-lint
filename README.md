@@ -77,9 +77,9 @@ uvx --from 'dry-lint[lean]>=1,<2' dry-lint scan --extractor lean --judge none --
 
 Set `extractors = ["lean"]` in `.dry-lint/config.toml` to use the same extractor for branch checks.
 On first use the language pack downloads its versioned Lean grammar.
-dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery can recover
-declarations when the static grammar identifies a named assignment and its body despite unsupported syntax.
-Strict scans still report a parse error in such files.
+dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery reads command
+boundaries from the source text, so notation introduced by imports does not hide a declaration.
+Strict scans still report a parse error for a file whose syntax the static grammar cannot parse.
 Use `--include` to work on one file or a directory without editing the repository configuration.
 Use the same include patterns and extractor when explaining a pair so the scores use the same source scope.
 
