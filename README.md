@@ -260,6 +260,7 @@ judges them; to use another judge, pass `--judge command --judge-command "your-l
 | Add structural matching | [The optional Dryer comparer](docs/detectors.md) ([compared on gigaverse-backend](docs/dryer-comparison.md)) |
 | Find copies across related repositories | [Workspace scans and shared ownership](docs/workspaces.md) |
 | Avoid cloning peer repositories in CI | [Versioned function indexes](docs/function-indexes.md) |
+| See it used on a Lean proof of the Riemann Hypothesis | [Mathematical engineering case study](docs/case-studies/riemann-proof.md) |
 | Audit existing duplication, shrink its baseline and show cleanup in your README | [Repository sweeps and ratchets](docs/sweeps.md) |
 
 ## How it works

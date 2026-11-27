@@ -98,6 +98,7 @@ extra:
   - docs/research-program.md
   - docs/case-studies/pytest-selective.md
   - docs/case-studies/pytest-obligation-cleanup.md
+  - docs/case-studies/riemann-proof.md
   - CONTRIBUTING.md
 nav:
 - Home: index.md
@@ -134,6 +135,7 @@ nav:
   - Research program: docs/research-program.md
   - "Case study: duplicate debt exposed four bugs": docs/case-studies/pytest-selective.md
   - "Case study: what a zero-duplication backlog improved": docs/case-studies/pytest-obligation-cleanup.md
+  - "Mathematical engineering: the Riemann Hypothesis proof": docs/case-studies/riemann-proof.md
 - Related tools: ecosystem.md
 - Contributing:
   - Development setup: CONTRIBUTING.md
