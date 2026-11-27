@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.0](https://github.com/gigaverse-app/dry-lint/compare/v1.22.0...v1.23.0) (2026-11-27)
+
+
+### Features
+
+* find Lean rewrite bundles shared across proofs ([#244](https://github.com/gigaverse-app/dry-lint/issues/244)) ([b99dfea](https://github.com/gigaverse-app/dry-lint/commit/b99dfead5b590290f478a06f203eea9e2d26a613))
+
 ## [1.22.0](https://github.com/gigaverse-app/dry-lint/compare/v1.21.0...v1.22.0) (2026-11-27)
 
 
