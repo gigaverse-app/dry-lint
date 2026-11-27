@@ -77,8 +77,9 @@ uvx --from 'dry-lint[lean]>=1,<2' dry-lint scan --extractor lean --judge none --
 
 Set `extractors = ["lean"]` in `.dry-lint/config.toml` to use the same extractor for branch checks.
 On first use the language pack downloads its versioned Lean grammar.
-dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery skips declarations
-with syntax the static grammar cannot parse. Strict scans report a parse error for such files.
+dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery can recover
+declarations when the static grammar identifies a named assignment and its body despite unsupported syntax.
+Strict scans still report a parse error in such files.
 Use `dry-lint scan --within-file --judge none` to find nearby proofs in the same Lean module.
 Use `dry-lint lean-proof-blocks` to look for repeated fragments inside `by` proofs, even when the
 surrounding declarations differ. It scans tracked Lean files selected by `include` and `exclude`
