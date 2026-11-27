@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.0](https://github.com/gigaverse-app/dry-lint/compare/v1.24.0...v1.25.0) (2026-11-27)
+
+
+### Features
+
+* **blocks:** report each repetition once, largest saving first ([#248](https://github.com/gigaverse-app/dry-lint/issues/248)) ([0e4b475](https://github.com/gigaverse-app/dry-lint/commit/0e4b4750aee43226308fdf4f78bd9fb97bf9d91e))
+
 ## [1.24.0](https://github.com/gigaverse-app/dry-lint/compare/v1.23.0...v1.24.0) (2026-11-27)
 
 
