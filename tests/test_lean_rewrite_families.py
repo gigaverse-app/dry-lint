@@ -59,3 +59,30 @@ def test_nested_declaration_owns_its_call(tmp_path, capsys):
     args = ["lean-rewrite-families", "--source-root", str(tmp_path), "--artifact-root", str(tmp_path)]
     assert main(args) == 0
     assert json.loads(capsys.readouterr().out)["findings"] == []
+
+
+def test_rank_concentrated_rules_before_generic_and_defer_overlapping_evidence(tmp_path, capsys):
+    source = []
+    decls = {}
+    for i in range(12):
+        name = f"proof{i}"
+        start = len(source)
+        source.append(f"lemma {name} : True := by")
+        if i < 5:
+            source.append("  simp only [everywhere, boilerplate]")
+        else:
+            source.extend(["  simp only [everywhere]", "  simp only [boilerplate]"])
+        if i < 4:
+            source.append("  simp only [frame, opposite, local]" if i < 3 else "  simp only [frame, opposite]")
+            source.append("  simp only [measure, integral]")
+        decls[name] = [start, 0, len(source) - 1, 50, start, 6, start, 6 + len(name)]
+    (tmp_path / "Demo.lean").write_text("\n".join(source), encoding="utf-8")
+    (tmp_path / "Demo.ilean").write_text(json.dumps({"version": 6, "decls": decls}), encoding="utf-8")
+    assert main(["lean-rewrite-families", "--source-root", str(tmp_path), "--artifact-root", str(tmp_path)]) == 0
+    found = json.loads(capsys.readouterr().out)["findings"]
+    assert [row["rules"] for row in found] == [
+        ["frame", "opposite"],
+        ["integral", "measure"],
+        ["boilerplate", "everywhere"],
+        ["frame", "local", "opposite"],
+    ]
