@@ -57,3 +57,16 @@ def test_unicode_selection_and_stale_end(coords):
     coords[5], coords[7] = col, col + len("Local.αβ")
     expected = (1, 1) if coords[2] == 0 else None
     assert local_site("Local.αβ", coords, [line]) == expected
+
+
+def test_reject_invalid_inputs(tmp_path):
+    from dry_lint.lean_upstream import find_upstream_citations
+
+    with pytest.raises(ValueError, match="positive"):
+        find_upstream_citations(tmp_path, tmp_path, tmp_path, 0)
+    with pytest.raises(ValueError, match="Missing source"):
+        find_upstream_citations(tmp_path / "missing", tmp_path, tmp_path)
+    (tmp_path / "Bad.lean").touch()
+    (tmp_path / "Bad.ilean").write_text('{"version": 5}', encoding="utf-8")
+    with pytest.raises(ValueError, match="version 6"):
+        find_upstream_citations(tmp_path, tmp_path, tmp_path)
