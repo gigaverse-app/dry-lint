@@ -734,7 +734,7 @@ The audit uses dry-lint's declaration ranges and the resolved names from version
 compares longer `:= by` proofs, seeds pairs with shared triples of references, and ranks them by how
 many lines contain shared references in order. The JSON includes the names and line numbers to inspect.
 
-On the 802-module Riemann Hypothesis snapshot at `7c4ccbd6`, the audit ranked 242 pairs from 3,264 eligible
+On the 802-module Riemann Hypothesis snapshot at `7c4ccbd6`, the audit ranked 245 pairs from 3,269 eligible
 proofs in 22 seconds. Its top pair was the Greenberg–Wiles arguments that choose distinct primes with
 prescribed Frobenius elements. Both now call one finite-family form of Chebotarev in
 [Riemann #9428](https://github.com/leanprover-community/riemann-hypothesis/pull/9428).
