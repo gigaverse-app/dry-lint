@@ -84,9 +84,11 @@ def overlaps(first, second):
 
 def rank_fragments(proofs):
     frequency = Counter(name for proof in proofs for name in {name for _, _, name in proof.references})
+    # Scale the frequency cutoff with the corpus so a larger scan retains the same variety of anchors.
+    common = max(150, len(proofs) // 20)
     ranked = []
     for proof in proofs:
-        refs = [ref for ref in proof.references if frequency[ref[2]] < 150]
+        refs = [ref for ref in proof.references if frequency[ref[2]] < common]
         names = [name for _, _, name in refs]
         candidates = []
         for start, stop, right, end in reference_windows(refs, names):
