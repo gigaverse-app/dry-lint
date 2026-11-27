@@ -280,3 +280,96 @@ def find_blocks(
         ]
         for group in groups
     ]
+
+
+def estimated_saving(group: list[Block]) -> int:
+    """
+    Lines saved by stating the block once: each copy becomes one call, and the shared definition costs
+    its lines and two more for a signature and a return. Two copies of a short block save nothing.
+    """
+    lines, copies = _shared_lines(tuple(group)), _distinct_copies(tuple(group))
+    return copies * (lines - 1) - (lines + 2)
+
+
+def stands_alone(code: tuple[str, ...]) -> bool:
+    """
+    Whether the lines could be lifted out as they are: they start at their outermost level, close every
+    bracket they open and do not end on a comma. A window that starts or ends inside a call or a list is
+    the tail of a longer repetition or the head of one.
+    """
+    if not code or code[0][:1].isspace() or code[-1].rstrip().endswith(","):
+        return False
+    depth = 0
+    for line in code:
+        for character in line:
+            if character in "([{":
+                depth += 1
+            elif character in ")]}":
+                depth -= 1
+                if depth < 0:
+                    return False
+    return depth == 0
+
+
+def without_claimed(groups: list[list[Block]], removed: dict[str, set[str]]) -> list[list[Block]]:
+    """Leave out copies a diff already removes half of, and groups left with fewer than two copies."""
+    kept = []
+    for group in groups:
+        open_copies = []
+        for block in group:
+            gone = set().union(
+                *(lines for path, lines in removed.items() if path == block.path or path.endswith("/" + block.path))
+            )
+            if 2 * sum(line.strip() in gone for line in block.code) < len(block.code):
+                open_copies.append(block)
+        if len(open_copies) == len(group) or _distinct_copies(tuple(open_copies)) > 1:
+            kept.append(open_copies)
+    return kept
+
+
+@dataclass(frozen=True)
+class Repetition:
+    """One repeated block and the number of overlapping matches that are reported with it."""
+
+    copies: list[Block]
+    saving: int
+    stands_alone: bool
+    variants: int = 0
+
+
+def fold_overlaps(groups: list[list[Block]]) -> list[Repetition]:
+    """
+    One entry per repetition, the largest first.
+
+    A repetition of ten lines in thirty places also matches as nine lines in thirty-one places, as the
+    same lines shifted by one, and so on. Matches are taken in order of `estimated_saving`, a
+    block that stands alone counting double, and a match is folded into an earlier one when that one
+    already covers at least half of its lines.
+    """
+    weighed = [(estimated_saving(group), stands_alone(group[0].compared_code), group) for group in groups]
+    order = sorted(range(len(groups)), key=lambda index: -weighed[index][0] * (2 if weighed[index][1] else 1))
+    owner: dict[tuple[str, int], int] = {}
+    kept: list[Repetition] = []
+    for index in order:
+        saving, alone, group = weighed[index]
+        cells = [(block.path, line) for block in group for line in range(block.line, block.end_line + 1)]
+        covering = [owner[cell] for cell in cells if cell in owner]
+        if 2 * len(covering) >= len(cells):
+            # The earlier match that covers most of this one.
+            into = max(set(covering), key=lambda entry: (covering.count(entry), -entry))
+            kept[into] = replace(kept[into], variants=kept[into].variants + 1)
+            continue
+        for cell in cells:
+            owner.setdefault(cell, len(kept))
+        kept.append(Repetition(group, saving, alone))
+    return kept
+
+
+def repeated_lines_by_file(repetitions: list[Repetition]) -> list[tuple[str, int]]:
+    """Each file with the lines in it that repeat a block reported elsewhere, the most first."""
+    lines: dict[str, set[int]] = defaultdict(set)
+    for repetition in repetitions:
+        # The first copy is the one that would stay.
+        for block in repetition.copies[1:]:
+            lines[block.path].update(range(block.line, block.end_line + 1))
+    return sorted(((path, len(found)) for path, found in lines.items()), key=lambda row: (-row[1], row[0]))

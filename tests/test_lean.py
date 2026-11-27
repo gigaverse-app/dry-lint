@@ -774,6 +774,6 @@ def test_blocks_reads_lean_proofs_through_the_shared_command(tmp_path, lean, cap
     command = ["blocks", "--root", str(repo.root), "--extractor", "lean", "--lines", "3", "--min-shared-chars", "25"]
     assert main(command) == 0
     assert capsys.readouterr().out == (
-        "Found 1 repeated blocks.\n\n"
+        "Found 1 repeated blocks.\n\n# 3 lines, 2 copies\n"
         "A.lean:3-5\nB.lean:3-5\n  have h : p := hp\n  have h' : p := h\n  have h'' : p := h'\n"
     )

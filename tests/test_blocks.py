@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from dry_lint.blocks import function_lines
+from dry_lint.blocks import Block, fold_overlaps, function_lines, stands_alone, without_claimed
 from dry_lint.cli import main
 from dry_lint.models import Function
 
@@ -36,6 +36,7 @@ def test_blocks_reports_source_lines_across_blank_lines_and_comments(tmp_path, c
     assert main(["blocks", "--root", str(repo.root), "--lines", "3", "--min-shared-chars", "40"]) == 0
     assert capsys.readouterr().out == (
         "Found 1 repeated blocks.\n\n"
+        "# 3 lines, 2 copies\n"
         "a.py:4-8\n"
         "b.py:7-11\n"
         "  response = client.get(key, timeout=30, retries=3)\n"
@@ -76,7 +77,9 @@ def test_blocks_reports_the_longest_match_once(tmp_path, capsys):
     repo.commit()
     assert main(["blocks", "--root", str(repo.root)]) == 0
     out = capsys.readouterr().out
-    assert out.startswith("Found 1 repeated blocks.\n\na.py:3-11\nb.py:3-11\nc.py:4-12\n  total = combine(")
+    assert out.startswith(
+        "Found 1 repeated blocks.\nStating each once would save about 13 lines.\n\n# 9 lines, 3 copies, saves about 13\na.py:3-11\nb.py:3-11\nc.py:4-12\n  total = combine("
+    )
     assert main(["blocks", "--root", str(repo.root), "--max-lines", "6", "--limit", "1"]) == 0
     assert "a.py:3-8\n" in capsys.readouterr().out
     assert main(["blocks", "--root", str(repo.root), "--include", "a.py"]) == 0
@@ -120,7 +123,7 @@ def test_blocks_with_a_gap_still_reports_copies_without_one(tmp_path, capsys):
     command = ["blocks", "--root", str(repo.root), "--lines", "4"]
     assert main(command) == 0
     exact = capsys.readouterr().out
-    assert exact.startswith("Found 1 repeated blocks.\n\na.py:2-5\nb.py:2-5\n")
+    assert exact.startswith("Found 1 repeated blocks.\n\n# 4 lines, 2 copies\na.py:2-5\nb.py:2-5\n")
     assert main([*command, "--max-gap-lines", "2"]) == 0
     assert capsys.readouterr().out == exact
 
@@ -144,7 +147,9 @@ def test_blocks_reads_typescript_and_selected_extractors(tmp_path, capsys):
     command = ["blocks", "--root", str(repo.root), "--lines", "3", "--extractor", "typescript"]
     assert main(command) == 0
     out = capsys.readouterr().out
-    assert out.startswith("Found 1 repeated blocks.\n\na.ts:3-6\nb.ts:3-6\n  const open = items.filter(")
+    assert out.startswith(
+        "Found 1 repeated blocks.\n\n# 3 lines, 2 copies\na.ts:3-6\nb.ts:3-6\n  const open = items.filter("
+    )
     assert main(["blocks", "--root", str(repo.root), "--lines", "3"]) == 0
     assert capsys.readouterr().out == out  # The default configuration reads TypeScript as well.
     assert main(["blocks", "--root", str(repo.root), "--lines", "3", "--extractor", "python"]) == 0
@@ -174,7 +179,9 @@ def test_blocks_keeps_a_long_match_whose_shorter_windows_are_too_small(tmp_path,
     repo.commit()
     # Six shared lines hold 78 characters; no window of three, four or five lines holds 70.
     assert main(["blocks", "--root", str(repo.root), "--lines", "3", "--min-shared-chars", "70"]) == 0
-    assert capsys.readouterr().out.startswith("Found 1 repeated blocks.\n\na.py:2-7\nb.py:2-7\n  step_0(state)\n")
+    assert capsys.readouterr().out.startswith(
+        "Found 1 repeated blocks.\nStating each once would save about 2 lines.\n\n# 6 lines, 2 copies, saves about 2\na.py:2-7\nb.py:2-7\n  step_0(state)\n"
+    )
 
 
 @pytest.mark.parametrize("command", [["blocks"], ["scan", "--judge", "none"]])
@@ -202,7 +209,9 @@ def test_blocks_compares_an_inner_function_once_and_skips_unreadable_files(tmp_p
     (repo.root / "latin1.py").write_bytes("def caf\xe9():\n    return 1\n".encode("latin-1"))
     repo.commit()
     assert main(["blocks", "--root", str(repo.root), "--lines", "3", "--min-shared-chars", "40"]) == 0
-    assert capsys.readouterr().out.startswith("Found 1 repeated blocks.\n\na.ts:4-9\na.ts:14-19\n")
+    assert capsys.readouterr().out.startswith(
+        "Found 1 repeated blocks.\nStating each once would save about 2 lines.\n\n# 6 lines, 2 copies, saves about 2, part of a statement\na.ts:4-9\na.ts:14-19\n"
+    )
 
 
 def test_function_lines_reads_a_nested_function_as_part_of_the_one_around_it():
@@ -221,3 +230,78 @@ def test_function_lines_reads_a_nested_function_as_part_of_the_one_around_it():
         [(1, "outer:"), (2, "  inner:"), (3, "    one"), (4, "  two")],
         [(6, "next:"), (8, "  three")],
     ]
+
+
+HANDLER = """
+def {name}(self, request, handle):
+    {first}
+    try:
+        community = lookup.cached_community(handle)
+    except CommunityNotFound as error:
+        return self.error_response(status.NOT_FOUND, error)
+    self.check_object_permissions(request, community)
+    try:
+        {call}
+    except RoomError as error:
+        return self.error_response(status.SERVER_ERROR, error)
+    return self.data_response(status.OK, {{}})
+"""
+
+
+def handlers(repo: Repo) -> None:
+    # Four handlers share the lookup; three of them go on to the same `try:` and so match a line further.
+    calls = ["rooms.open(community)", "rooms.close(community)", "rooms.mute(community)"]
+    source = "".join(HANDLER.format(name=f"h{i}", first=f"audit({i})", call=call) for i, call in enumerate(calls))
+    source += HANDLER.format(name="h3", first="audit(3)", call="x").split("    try:\n        x")[0]
+    repo.write("views.py", source + "    return None\n")
+    repo.commit()
+
+
+def test_blocks_reports_a_repetition_once_with_what_it_would_save(tmp_path, capsys):
+    repo = Repo(tmp_path / "project")
+    handlers(repo)
+    command = ["blocks", "--root", str(repo.root), "--min-shared-chars", "40"]
+    assert main(command) == 0
+    out = capsys.readouterr().out
+    # The lookup is in four places. The lookup plus `try:`, in three, is the same repetition again.
+    assert out.startswith(
+        "Found 1 repeated blocks.\nStating each once would save about 9 lines.\n\n"
+        "# 5 lines, 4 copies, saves about 9, 1 overlapping, see --overlaps\nviews.py:3-7\nviews.py:16-20\n"
+    )
+    assert out.count("\n# ") == 1
+    assert main([*command, "--overlaps"]) == 0
+    assert capsys.readouterr().out.startswith("Found 2 repeated blocks.\n\nviews.py:")
+    assert main([*command, "--by-file"]) == 0
+    assert capsys.readouterr().out.endswith("\n\n    15  views.py\n")
+
+
+def test_blocks_leaves_out_copies_a_diff_already_removes(tmp_path, capsys):
+    repo = Repo(tmp_path / "project")
+    handlers(repo)
+    lookup = HANDLER.split("{first}\n")[1].split("    try:\n        {call}")[0].splitlines()
+    claim = tmp_path / "open.diff"
+    # The open pull request removes these lines from the file, so every copy in it is already being handled.
+    claim.write_text(
+        "--- a/views.py\n+++ b/views.py\n" + "".join(f"-{line}\n" for line in lookup) + "+    community = find()\n",
+        encoding="utf-8",
+    )
+    command = ["blocks", "--root", str(repo.root), "--min-shared-chars", "40", "--claimed-diff", str(claim)]
+    assert main(command) == 0
+    assert capsys.readouterr().out == "Found 0 repeated blocks.\n"
+
+
+def test_a_block_stands_alone_when_it_starts_at_its_outer_level_and_closes_its_brackets():
+    assert stands_alone(("rows = load(", "    path,", ")"))
+    assert not stands_alone(())
+    assert not stands_alone(("    path,", ")", "save(rows)"))
+    assert not stands_alone((")", "save(rows)"))
+    assert not stands_alone(("rows = load(", "    path,"))
+    assert not stands_alone(("first: int = 0,", "second: int = 0,"))
+
+
+def test_claimed_copies_are_dropped_one_by_one_when_two_remain():
+    code = ("a = load(first)", "b = load(second)")
+    group = [Block(path, 1, code, end_line=2) for path in ("x.py", "y.py", "pkg/z.py")]
+    assert without_claimed([group], {"repo/pkg/z.py": set(code)}) == [group[:2]]
+    assert without_claimed([group], {"other.py": set(code)}) == [group]
+    assert [r.variants for r in fold_overlaps([group, group])] == [1]
