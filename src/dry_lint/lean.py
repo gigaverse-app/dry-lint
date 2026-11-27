@@ -2,6 +2,7 @@
 
 import re
 from bisect import bisect_left, bisect_right
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from dry_lint.extractor_capabilities import ExtractorCapabilities
@@ -100,6 +101,15 @@ class LeanSource:
         return tokens
 
 
+def _comment_end(source: str, position: int) -> int | None:
+    """Where the block comment that opens just before `position` closes; None when it never does."""
+    depth = 1
+    while depth and (edge := _COMMENT_EDGE.search(source, position)):
+        depth += 1 if edge.group() == "/-" else -1
+        position = edge.end()
+    return None if depth else position
+
+
 def _structure(source: str) -> tuple[str, tuple[tuple[int, int], ...]]:
     """Blank comments and mask literals without moving any other character."""
     parts, literals = [], []
@@ -110,12 +120,8 @@ def _structure(source: str) -> tuple[str, tuple[tuple[int, int], ...]]:
         if opening == "«":
             continue
         if match.group() == "/-":
-            depth = 1
-            while depth and (edge := _COMMENT_EDGE.search(source, position)):
-                depth += 1 if edge.group() == "/-" else -1
-                position = edge.end()
-            if depth:
-                position = len(source)
+            end = _comment_end(source, position)
+            position = len(source) if end is None else end
             # A doc comment stays visible as a mark: it introduces the command after it.
             doc = source.startswith("/--", start)
             masked = (_DOC if doc else " ") + _VISIBLE.sub(" ", source[start + 1 : position])
@@ -136,12 +142,10 @@ def _open_comment(source: str) -> int | None:
     while match := _OPAQUE.search(source, position):
         start, position = match.span()
         if match.group() == "/-":
-            depth = 1
-            while depth and (edge := _COMMENT_EDGE.search(source, position)):
-                depth += 1 if edge.group() == "/-" else -1
-                position = edge.end()
-            if depth:
+            end = _comment_end(source, position)
+            if end is None:
                 return start
+            position = end
     return None
 
 
@@ -316,6 +320,13 @@ class LeanExtractor:
                 raise ValueError(
                     f"Cannot completely scan {path}: brackets do not balance in the command on line {line}"
                 )
+
+    def block_runs(self, path: str, source: str) -> Iterator[list[tuple[int, str]]]:
+        """The lines `dry-lint blocks` compares: the steps of each tactic proof."""
+        from dry_lint.lean_proof_blocks import proof_lines
+
+        for start, run in proof_lines(source):
+            yield [(start + offset, line) for offset, line in enumerate(run)]
 
     def functions(self, path: str, source: str) -> list[Function]:
         found = []

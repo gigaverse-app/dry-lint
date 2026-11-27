@@ -1,6 +1,7 @@
 """The built-in extractor: Python, by its syntax tree."""
 
 import ast
+from collections.abc import Iterator
 
 from dry_lint.extractor_capabilities import ExtractorCapabilities
 from dry_lint.functions import function_nodes, node_calls, node_tokens, structure_hash
@@ -99,6 +100,27 @@ class PythonExtractor:
 
     def __init__(self, min_lines: int = 2) -> None:
         self.min_lines = min_lines
+
+    line_comment = "#"
+
+    def block_runs(self, path: str, source: str) -> Iterator[list[tuple[int, str]]]:
+        """The lines `dry-lint blocks` compares: each function's code, without its docstrings."""
+        from dry_lint.blocks import function_lines
+
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return
+        documented: set[int] = set()
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            first = node.body[0]
+            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
+                if isinstance(first.value.value, str):
+                    documented.update(range(first.lineno, (first.end_lineno or first.lineno) + 1))
+        for run in function_lines(self, path, source):
+            yield [(number, text) for number, text in run if number not in documented]
 
     def functions(self, path: str, source: str) -> list[Function]:
         found = []

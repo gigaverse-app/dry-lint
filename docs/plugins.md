@@ -65,6 +65,9 @@ empty. `structure_hash` must change when the logic changes and not for comments 
 renames only when the language's binding rules make that safe; conservative re-judging is preferable. Core
 calls it only for the functions in a candidate pair. `owner` is the enclosing class, if any.
 
+[`dry-lint blocks`](blocks.md#for-extractor-authors) works with these two methods alone. An extractor can set
+`line_comment` or define `block_runs` to refine which lines it compares.
+
 ### Language integration capabilities
 
 An extractor can declare its integrations once, on the class. Core consumes these capabilities without checking

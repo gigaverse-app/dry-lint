@@ -31,6 +31,7 @@ import subprocess
 import sys
 from contextlib import ExitStack
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -1011,6 +1012,20 @@ def parser() -> argparse.ArgumentParser:
     upstream.add_argument(
         "--min-lines", type=int, default=1, help="Minimum local declaration size, excluding its docstring."
     )
+    blocks = commands.add_parser(
+        "blocks", help="Find lines repeated inside functions, in every configured language. No judge, no key."
+    )
+    include_option(blocks)
+    extractor_option(blocks)
+    blocks.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
+    blocks.add_argument("--lines", type=int, default=5, help="Shortest repetition to report (default: 5).")
+    blocks.add_argument("--max-lines", type=int, help="Longest repetition to look for (default: 200).")
+    blocks.add_argument(
+        "--max-gap-lines", type=int, default=0, help="Allow up to this many unmatched lines between two exact anchors."
+    )
+    blocks.add_argument("--min-shared-chars", type=int, default=70, help="Minimum shared non-indentation text.")
+    blocks.add_argument("--limit", type=int, default=20, help="Show at most this many groups.")
+    blocks.add_argument("--allow-one-line-difference", action="store_true", help="Allow one differing interior line.")
     proof_blocks = commands.add_parser("lean-proof-blocks", help="Find repeated source blocks in Lean proofs.")
     include_option(proof_blocks)
     proof_blocks.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
@@ -1200,32 +1215,52 @@ COMMANDS = {
 }
 
 
+def block_options(args: argparse.Namespace) -> dict[str, Any]:
+    if args.limit < 0:
+        raise ValueError("--limit must be nonnegative")
+    return {
+        "lines": args.lines,
+        "max_lines": args.max_lines,
+        "max_gap_lines": args.max_gap_lines,
+        "min_shared_chars": args.min_shared_chars,
+        "allow_one_line_difference": args.allow_one_line_difference,
+    }
+
+
+def print_blocks(groups: list[list[Any]], limit: int, *, ranges: bool) -> None:
+    for group in groups[:limit]:
+        print()
+        same = all(block.code == group[0].code for block in group)
+        for block in group:
+            print(f"{block.path}:{block.line}-{block.end_line}" if ranges else f"{block.path}:{block.line}")
+            if not same:
+                print("\n".join(f"  {line}" for line in block.code))
+        if same:
+            print("\n".join(f"  {line}" for line in group[0].code))
+
+
+def blocks(root: Path, args: argparse.Namespace) -> int:
+    from dry_lint.blocks import find_blocks
+
+    options = block_options(args)
+    settings = Settings.load(root)
+    configured = {choice.use: choice for choice in settings.extractors}
+    choices = [configured.get(name, PluginChoice(use=name)) for name in args.extractor or configured]
+    extractors = [load("extractors", choice) for choice in choices]
+    groups = find_blocks(root, args.include or settings.include, settings.exclude, extractors, **options)
+    print(f"Found {len(groups)} repeated blocks.")
+    print_blocks(groups, args.limit, ranges=True)
+    return 0
+
+
 def lean_proof_blocks(root: Path, args: argparse.Namespace) -> int:
     from dry_lint.lean_proof_blocks import find_proof_blocks
 
-    if args.limit < 0:
-        raise ValueError("--limit must be nonnegative")
+    options = block_options(args)
     settings = Settings.load(root)
-    groups = find_proof_blocks(
-        root,
-        args.include or settings.include,
-        settings.exclude,
-        lines=args.lines,
-        max_lines=args.max_lines,
-        max_gap_lines=args.max_gap_lines,
-        min_shared_chars=args.min_shared_chars,
-        allow_one_line_difference=args.allow_one_line_difference,
-    )
+    groups = find_proof_blocks(root, args.include or settings.include, settings.exclude, **options)
     print(f"Found {len(groups)} repeated Lean proof blocks.")
-    for group in groups[: args.limit]:
-        print()
-        if all(block.code == group[0].code for block in group):
-            print("\n".join(f"{block.path}:{block.line}" for block in group))
-            print("\n".join(f"  {line}" for line in group[0].code))
-        else:
-            for block in group:
-                print(f"{block.path}:{block.line}")
-                print("\n".join(f"  {line}" for line in block.code))
+    print_blocks(groups, args.limit, ranges=False)
     return 0
 
 
@@ -1294,6 +1329,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(report, indent=2, ensure_ascii=True))
             return 0
         root = repository_root(args.root)
+        if args.command == "blocks":
+            return blocks(root, args)
         if args.command == "lean-proof-blocks":
             return lean_proof_blocks(root, args)
         if args.command == "lean-proof-families":
@@ -1327,7 +1364,8 @@ def main(argv: list[str] | None = None) -> int:
                 folder = settings.store.options().get("path")
                 args.store = original / folder if folder else default_store(original)
             return COMMANDS[args.command](root, settings, args)
-    except (subprocess.SubprocessError, httpx.HTTPError, ValueError, OSError) as error:
+    # ImportError: a plugin whose optional dependency is missing names the extra to install.
+    except (subprocess.SubprocessError, httpx.HTTPError, ValueError, OSError, ImportError) as error:
         detail = getattr(error, "stderr", None) or error
         print(f"dry-lint: {str(detail).strip()}", file=sys.stderr)
         return 2

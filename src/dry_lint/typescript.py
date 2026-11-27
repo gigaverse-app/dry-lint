@@ -270,6 +270,7 @@ class TypeScriptExtractor:
     name = "typescript"
     version = "3"
     files = ("*.ts", "*.tsx", "*.mts", "*.cts")
+    line_comment = "//"
     capabilities = ExtractorCapabilities(
         language_name="TypeScript and TSX",
         comment_prefix="//",
