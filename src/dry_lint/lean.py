@@ -1,5 +1,7 @@
 """Lean 4 declarations for static comparison, without elaborating imports or running tactics."""
 
+import re
+
 from tree_sitter import Node
 
 from dry_lint.extractor_capabilities import ExtractorCapabilities
@@ -7,6 +9,12 @@ from dry_lint.functions import exact_source_hash, text_digest
 from dry_lint.models import Function
 
 _IMPLEMENTATIONS = {"def", "abbrev", "opaque", "theorem", "instance"}
+_COMMAND_START = re.compile(
+    rb"^(?:@\[|#[a-zA-Z]|(?:(?:private|protected|public|noncomputable|local|scoped|unsafe|partial)\s+)*"
+    rb"(?:lemma|theorem|def|abbrev|opaque|instance|example|section|namespace|end|variable|open|"
+    rb"include|omit|attribute|set_option|mutual|structure|inductive|class|axiom|syntax|macro|"
+    rb"notation|infix[lr]?|prefix|postfix|universe|export|initialize)\b)"
+)
 
 
 def _tokens(parts: list[Node]) -> list[str]:
@@ -31,7 +39,7 @@ def _tokens(parts: list[Node]) -> list[str]:
 
 class LeanExtractor:
     name = "lean"
-    version = "2"
+    version = "3"
     # Layout and spelling can affect Lean macros, so hash the source exactly.
     structure_hash = staticmethod(exact_source_hash)
     files = ("*.lean",)
@@ -55,7 +63,8 @@ class LeanExtractor:
         found = []
         scopes: list[str] = []
         context_digest = text_digest(source)
-        for command in self.parser.parse(source.encode("utf-8")).root_node.named_children:
+        data = source.encode("utf-8")
+        for command in self.parser.parse(data).root_node.named_children:
             if command.type == "namespace":
                 name = command.child_by_field_name("name")
                 scopes.append(name.text.decode("utf-8") if name else "")
@@ -68,14 +77,14 @@ class LeanExtractor:
                 inner = command
                 while inner.type != "declaration" and (body := inner.child_by_field_name("body")):
                     inner = body
-                if inner.type == "declaration" and not command.has_error:
+                if inner.type == "declaration":
                     decl = next((n for n in inner.named_children if n.type in _IMPLEMENTATIONS), None)
-                    if decl is not None and (function := self._function(path, command, decl, scopes)):
+                    if decl is not None and (function := self._function(path, command, decl, scopes, data)):
                         function.context_digest = context_digest
                         found.append(function)
         return found
 
-    def _function(self, path: str, command: Node, decl: Node, scopes: list[str]) -> Function | None:
+    def _function(self, path: str, command: Node, decl: Node, scopes: list[str], source: bytes) -> Function | None:
         name = decl.child_by_field_name("name")
         parts = [
             node
@@ -85,10 +94,18 @@ class LeanExtractor:
                 decl.field_name_for_child(index) == "body" or node.type in {"match_alt", "where_struct", "where_decls"}
             )
         ]
-        code = command.text.decode("utf-8").rstrip()
+        if name is None or not parts:
+            return None
+        end = command.end_byte
+        if command.has_error:
+            recovered = _recovered_end(command, decl, name, parts, source)
+            if recovered is None:
+                return None
+            end = recovered
+        code = source[command.start_byte : end].decode("utf-8").rstrip()
         line = command.start_point.row + 1
         length = code.count("\n") + 1
-        if name is None or not parts or length < self.min_lines:
+        if length < self.min_lines:
             return None
         ident = name.text.decode("utf-8")
         owner = None if ident.startswith("_root_.") else ".".join(filter(None, scopes)) or None
@@ -103,3 +120,39 @@ class LeanExtractor:
             code=code,
             tokens=[*_tokens(parts), *(f"type:{token}" for token in _tokens(result_types))],
         )
+
+
+def _recovered_end(command: Node, decl: Node, name: Node, parts: list[Node], source: bytes) -> int | None:
+    """Recover a named assignment with an identifiable body bounded by its own command."""
+    if name.has_error or name.is_missing or any(part.is_missing or part.type == "ERROR" for part in parts):
+        return None
+    operator = decl.child_by_field_name("body")
+    if operator is None or operator.type != ":=" or operator.is_missing:
+        return None
+    if source[operator.end_byte : parts[0].start_byte].strip():
+        return None
+    # Attributes may introduce the declaration on a later line. Its name's line
+    # is inside this declaration and is therefore part of the prefix.
+    after_name = source[name.end_byte : command.end_byte].split(b"\n")[1:]
+    if any(
+        len(line) - len(line.lstrip()) <= decl.start_point.column and _COMMAND_START.match(line.lstrip())
+        for line in after_name
+    ):
+        return None
+
+    # The grammar can include the next command's doc comment in a recovered
+    # `by` node. End the snippet at the last non-comment token it actually saw.
+    pending = [parts[-1]]
+    while pending:
+        tail = pending.pop()
+        if tail.type.endswith("comment") or tail.end_byte <= tail.start_byte:
+            continue
+        if tail.child_count:
+            pending.extend(tail.children)
+            continue
+        line_end = source.find(b"\n", tail.end_byte)
+        suffix = source[tail.end_byte : line_end if line_end >= 0 else len(source)].strip()
+        if suffix and not suffix.startswith((b"--", b"/-")):
+            return None
+        return tail.end_byte
+    return None

@@ -685,3 +685,15 @@ On the [Riemann Hypothesis project at c5451bd](https://github.com/leanprover-com
 dry-lint's version 2 Lean extractor matched **8,690 of 21,842 eligible sites (39.8%)** across all 801 compiled
 source modules. This measures discovery of declaration names and locations. Proof-body boundaries and duplicate
 ranking require separate evaluation.
+
+On a second snapshot, [Riemann Hypothesis at 7c4ccbd6](https://github.com/leanprover-community/riemann-hypothesis/tree/7c4ccbd6),
+both extractors were measured against the same 802 Lake-built modules.
+
+| Extractor | Matched compiler declaration sites | Share of 21,971 eligible sites |
+| --- | ---: | ---: |
+| Version 2 | 8,815 | 40.1% |
+| Version 3, with recovery | 16,875 | 76.8% |
+
+The additional 8,060 sites include declarations whose bodies or types use notation the static grammar
+does not fully parse. Recovery requires a named assignment and a bounded body. The strict parse check
+still uses the complete syntax tree. The counts measure how many declarations a contributor can inspect.

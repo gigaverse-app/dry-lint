@@ -68,6 +68,51 @@ def broken (x :
         lean.validate_source("A.lean", source)
 
 
+def test_discovers_a_proof_that_uses_unsupported_notation_without_weakening_strict_validation(lean):
+    source = """postfix:max "ᴴ" => id
+namespace Example
+theorem first (n : Nat) : nᴴ = n := by
+  rfl
+/-- A later declaration. -/
+theorem second : True := by
+  trivial
+end Example
+"""
+    with pytest.raises(ValueError, match="Cannot completely scan A.lean"):
+        lean.validate_source("A.lean", source)
+
+    first, second = lean.functions("A.lean", source)
+    assert (first.qualname, first.line, first.end_line) == ("A.lean::Example.first", 3, 4)
+    assert first.code == "theorem first (n : Nat) : nᴴ = n := by\n  rfl"
+    assert first.tokens == ["by", "rfl", "type:n", "type:ᴴ", "type:=", "type:n"]
+    assert (second.qualname, second.line, second.end_line) == ("A.lean::Example.second", 6, 7)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "theorem first : True := by\n  have := (\ntheorem second : True := by\n  trivial\n",
+        "theorem first : True := by\n  trivial ?\n#check True\n",
+    ],
+)
+def test_skips_a_recovered_declaration_that_consumes_another_command(lean, source):
+    assert lean.functions("A.lean", source) == []
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "theorem : ℕ := \n",
+        "def first ( | 0 => ?_",
+        "def first ℕ := : by rfl",
+        "def first ℕ := \n",
+        "def first : ℕᴴ := 0 ) :)",
+    ],
+)
+def test_skips_incomplete_recovery_without_a_named_and_bounded_assignment(lean, source):
+    assert lean.functions("A.lean", source) == []
+
+
 @pytest.mark.parametrize("delimiter", ['"', 'r#"'])
 def test_string_declarations_compare_the_literal_instead_of_its_delimiters(lean, delimiter):
     closing = '"' if delimiter == '"' else '"#'
