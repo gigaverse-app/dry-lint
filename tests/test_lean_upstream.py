@@ -31,7 +31,7 @@ def test_rank_upstream_mentions(tmp_path, capsys):
         encoding="utf-8",
     )
     (dep / "Port.lean").write_text(
-        "/-! From `Local.small`.\nAdapted from `Local.big` and `Local.big`. -/\n"
+        "module\nimport Mathlib\n/-! From `Local.small`.\nAdapted from `Local.big` and `Local.big`. -/\n"
         "/-- Compare `Local.stale` and `Local.big`. -/\n"
         'def exampleString := "`Local.small`"\n-- `Local.small`\n',
         encoding="utf-8",
@@ -42,8 +42,8 @@ def test_rank_upstream_mentions(tmp_path, capsys):
     assert (result["built_modules"], result["unbuilt_modules"]) == (1, 1)
     big, small = result["declarations"]
     assert (big["name"], big["lines"], big["line"]) == ("Local.big", 2, 3)
-    assert big["citations"] == [{"path": "Port.lean", "line": i} for i in (2, 3)]
-    assert small["citations"] == [{"path": "Port.lean", "line": 1}]
+    assert big["citations"] == [{"path": "Port.lean", "line": i} for i in (4, 5)]
+    assert small["citations"] == [{"path": "Port.lean", "line": 3}]
     assert main(args + ["--min-lines", "3"]) == 0
     assert json.loads(capsys.readouterr().out)["declarations"] == []
     (build / "Local.ilean").unlink()

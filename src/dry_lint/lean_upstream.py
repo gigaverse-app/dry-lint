@@ -34,7 +34,8 @@ def dependency_citations(root, names):
         pending = [parser.parse(source).root_node]
         while pending:
             node = pending.pop()
-            if node.type in {"doc_comment", "module_doc_comment"}:
+            # After imports the grammar can label Lean module docs as ordinary block comments.
+            if node.type.endswith("comment") and node.text.startswith((b"/-!", b"/--")):
                 for offset, line in enumerate(node.text.splitlines(), node.start_point.row + 1):
                     for name in sorted(set(_CITATION.findall(line))):
                         if name in names:
