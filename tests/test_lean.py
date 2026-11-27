@@ -309,3 +309,59 @@ def test_lean_proof_blocks_rank_reuse_and_hide_contained_windows(tmp_path, lean,
 
     assert main([*command, "--max-lines", "2"]) == 2
     assert "--max-lines must be at least --lines" in capsys.readouterr().err
+
+
+def test_lean_proof_blocks_match_anchors_across_unequal_gaps(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    prefix = """  have first : True := proof
+  have second : True := first
+"""
+    suffix = """  have third : True := second
+  exact third
+"""
+    repo.write("A.lean", "theorem a (proof : True) : True := by\n" + prefix + suffix)
+    repo.write(
+        "B.lean",
+        "theorem b (proof : True) : True := by\n" + prefix + "  have extra : True := proof\n  clear extra\n" + suffix,
+    )
+    repo.commit()
+    command = ["lean-proof-blocks", "--root", str(repo.root), "--lines", "4"]
+    assert main([*command, "--allow-one-line-difference"]) == 0
+    assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
+
+    assert main([*command, "--max-gap-lines", "1"]) == 0
+    assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
+
+    assert main([*command, "--max-gap-lines", "2", "--max-lines", "5"]) == 0
+    output = capsys.readouterr().out
+    assert output.startswith("Found 1 repeated Lean proof blocks.\n\nA.lean:2\n")
+    assert "B.lean:2\n" in output and "  clear extra\n" in output
+
+    assert main([*command, "--max-gap-lines", "2", "--allow-one-line-difference"]) == 0
+    assert capsys.readouterr().out == output
+
+    assert main([*command, "--max-gap-lines", "-1"]) == 2
+    assert "--max-gap-lines must be nonnegative" in capsys.readouterr().err
+
+
+def test_lean_proof_blocks_gap_cannot_match_overlapping_windows(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    repo.write("One.lean", "theorem one : True := by\n" + "  skip\n" * 6 + "  trivial\n")
+    repo.commit()
+    assert (
+        main(
+            [
+                "lean-proof-blocks",
+                "--root",
+                str(repo.root),
+                "--lines",
+                "4",
+                "--max-gap-lines",
+                "2",
+                "--min-shared-chars",
+                "1",
+            ]
+        )
+        == 0
+    )
+    assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
