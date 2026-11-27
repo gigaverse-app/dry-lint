@@ -745,3 +745,13 @@ On the 802-module Riemann Hypothesis snapshot at `7c4ccbd6`, the audit ranked 24
 proofs in 22 seconds. Its top pair was the Greenberg–Wiles arguments that choose distinct primes with
 prescribed Frobenius elements. Both now call one finite-family form of Chebotarev in
 [Riemann #9428](https://github.com/leanprover-community/riemann-hypothesis/pull/9428).
+
+Pass `--within-proof` to find repetition inside a declaration, such as parallel cases of an
+induction or successive changes of variables. Repeated triples seed bounded comparisons, which
+can align across intervening references. The report gives the two disjoint source ranges and
+suppresses near-duplicate reports for the same ranges.
+
+On the same snapshot, the within-proof audit ranked **23 pairs from 3,269 proofs in 21.39 seconds**.
+The top match aligned 15 lines of the projective-line gluing calculation and independently
+recovered the repetition factored out by [Riemann #8902](https://github.com/leanprover-community/riemann-hypothesis/pull/8902).
+In the Bessel cutoff argument it matched the repeated measurability, Tonelli and Haar translation steps.

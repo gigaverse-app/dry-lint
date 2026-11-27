@@ -91,17 +91,20 @@ def distinct_references(rows: Iterable[tuple[Reference, ...]]) -> int:
     return len({row[0][2] for row in rows})
 
 
+def align_references(left, right, left_names, right_names):
+    blocks = SequenceMatcher(None, left_names, right_names, autojunk=False).get_matching_blocks()
+    return tuple((left[a + offset], right[b + offset]) for a, b, size in blocks for offset in range(size))
+
+
 def align_proofs(proofs: list[Proof]) -> Iterator[Alignment]:
     names = [[name for _, _, name in proof.references] for proof in proofs]
     frequency = Counter(name for sequence in names for name in set(sequence))
     for i, j in reference_candidates(names):
         left, right = proofs[i], proofs[j]
-        blocks = SequenceMatcher(None, names[i], names[j], autojunk=False).get_matching_blocks()
         rows = tuple(
-            (left.references[a + offset], right.references[b + offset])
-            for a, b, size in blocks
-            for offset in range(size)
-            if frequency[names[i][a + offset]] < 100
+            (a, b)
+            for a, b in align_references(left.references, right.references, names[i], names[j])
+            if frequency[a[2]] < 100
         )
         if distinct_references(rows) >= 7 and shared_line_count(rows) >= 6:
             yield Alignment(i, j, rows)
