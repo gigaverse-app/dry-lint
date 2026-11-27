@@ -697,3 +697,25 @@ both extractors were measured against the same 802 Lake-built modules.
 The additional 8,060 sites include declarations whose bodies or types use notation the static grammar
 does not fully parse. Recovery requires a named assignment and a bounded body. The strict parse check
 still uses the complete syntax tree. The counts measure how many declarations a contributor can inspect.
+
+## Lean import closure audit
+
+When a scan finds alternative formalizations, join its JSON report with Lake's compiled import graph to see
+whether both are used by the proof. Scan and build the same checkout, then pass each module that serves as
+an entry point for the development.
+
+```sh
+dry-lint scan --root ../proof --extractor lean --judge none --format json > scan.json
+uv run python scripts/audit_lean_imports.py scan.json --root ../proof --entry Main --entry Statements
+```
+
+The audit reads direct imports from version 6 `.ilean` files. It groups modules outside the selected closure
+by their imports and ranks groups with dry-lint matches to reachable declarations first. Use `--source-dir`
+and `--artifacts` for a custom Lake layout. The selected roots determine the result, so include library,
+executable and test entry points that matter to the project before considering a removal.
+
+At Riemann Hypothesis commit `7c4ccbd6`, the graph had 802 project modules, with 795 reachable from `Main`
+and `Statements`. Dry-lint matched `tiedCocycles` in a six-module group outside the closure with `tiedSelmer`
+inside it. The class-valued bounds in that group applied the cocycle bounds and translated them to classes.
+The audit surfaced the whole alternative route for review from that one pair. The resulting
+[proof PR](https://github.com/leanprover-community/riemann-hypothesis/pull/9409) proposes removing those six modules.

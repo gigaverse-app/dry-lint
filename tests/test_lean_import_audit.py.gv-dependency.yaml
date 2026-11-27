@@ -1,0 +1,5 @@
+dependencies:
+  - inputs:
+      - "//scripts/audit_lean_imports.py"
+    kind: content
+    reason: "The test loads the audit script with runpy."
