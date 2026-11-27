@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.19.0](https://github.com/gigaverse-app/dry-lint/compare/v1.18.0...v1.19.0) (2026-11-27)
+
+
+### Features
+
+* **lean:** find repeated reference sequences within proofs ([#225](https://github.com/gigaverse-app/dry-lint/issues/225)) ([723981c](https://github.com/gigaverse-app/dry-lint/commit/723981c510873e2a90e87fcf43354bb3bcf2b905))
+* **lean:** validate strict scans against what the extractor reads ([#230](https://github.com/gigaverse-app/dry-lint/issues/230)) ([fc3197c](https://github.com/gigaverse-app/dry-lint/commit/fc3197c1bed7c8930563d438b36fa800dd7a758f))
+
+
+### Performance Improvements
+
+* **index:** stop walking postings once no unseen document can reach the floor ([#228](https://github.com/gigaverse-app/dry-lint/issues/228)) ([92745d4](https://github.com/gigaverse-app/dry-lint/commit/92745d48c6e4aa1e17343c31aad18587ad66568d))
+
 ## [1.18.0](https://github.com/gigaverse-app/dry-lint/compare/v1.17.1...v1.18.0) (2026-11-27)
 
 
