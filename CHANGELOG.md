@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/gigaverse-app/dry-lint/compare/v1.19.0...v1.20.0) (2026-11-27)
+
+
+### Features
+
+* rank Lean proofs by repeated simp rules ([#227](https://github.com/gigaverse-app/dry-lint/issues/227)) ([06867a3](https://github.com/gigaverse-app/dry-lint/commit/06867a3241a344f98f7eb1979bc47fce9d88f402))
+
 ## [1.19.0](https://github.com/gigaverse-app/dry-lint/compare/v1.18.0...v1.19.0) (2026-11-27)
 
 
