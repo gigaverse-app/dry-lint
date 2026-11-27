@@ -980,6 +980,15 @@ def parser() -> argparse.ArgumentParser:
     main = argparse.ArgumentParser(prog="dry-lint", description="Find code that re-implements what already exists.")
     main.add_argument("--version", action="version", version=f"dry-lint {__version__}")
     commands = main.add_subparsers(dest="command", required=True)
+    upstream = commands.add_parser("lean-upstream", help="Find local declarations cited in upstream Lean docstrings.")
+    upstream.add_argument("--source-root", required=True, type=Path, help="Local Lake library source directory.")
+    upstream.add_argument(
+        "--artifact-root", type=Path, default=Path(".lake/build/lib/lean"), help="Matching Lake build output."
+    )
+    upstream.add_argument("--dependency", required=True, type=Path, help="Dependency source directory to search.")
+    upstream.add_argument(
+        "--min-lines", type=int, default=1, help="Minimum local declaration size, excluding its docstring."
+    )
     proof_blocks = commands.add_parser("lean-proof-blocks", help="Find repeated source blocks in Lean proofs.")
     proof_blocks.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
     proof_blocks.add_argument("--lines", type=int, default=3, help="Number of consecutive source lines to compare.")
@@ -1185,6 +1194,12 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.reconfigure(encoding="utf-8", errors=sys.stdout.errors)
     args = parser().parse_args(argv)
     try:
+        if args.command == "lean-upstream":
+            from dry_lint.lean_upstream import find_upstream_citations
+
+            report = find_upstream_citations(args.source_root, args.artifact_root, args.dependency, args.min_lines)
+            print(json.dumps(report, indent=2, ensure_ascii=True))
+            return 0
         root = repository_root(args.root)
         if args.command == "lean-proof-blocks":
             return lean_proof_blocks(root, args)

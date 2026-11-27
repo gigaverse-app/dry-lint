@@ -89,6 +89,14 @@ hide smaller matches already covered by a longer match. The scanner uses
 proof ranges recognized by the static grammar and preserves identifiers and relative indentation.
 Lean itself remains the authority on whether two proofs can share a lemma.
 
+A proof can also be ported to a dependency under a new name. After building the project with Lake,
+run `dry-lint lean-upstream --source-root src --dependency .lake/packages/TauCeti/TauCeti` to
+find upstream docstrings that cite local declarations by qualified name. The JSON report ranks
+declarations by their source length, gives a file and line for each citation, and counts modules
+without build metadata. Use `--artifact-root` for a nonstandard build directory. A citation may
+describe a specialization or a theorem the project already uses. Compare the statements and check
+any proposed replacement with Lean.
+
 **Building with Lua or Luau for Roblox?** Enable the opt-in Luau parser for `.lua` and `.luau` files with
 `pip install 'dry-lint[luau]>=1,<2'` and `extractors = ["luau"]` in `.dry-lint/config.toml`.
 It compares functions and table methods, with Roblox service and instance calls included in the analysis.
