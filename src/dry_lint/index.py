@@ -85,9 +85,7 @@ class TfidfIndex:
             weights = self.vectors[index]
             # Sum in the query's token order, as the full pass does, so a score is the same float.
             small, large = (weights, query) if len(weights) < len(query) else (query, weights)
-            shared = sorted(order[token] for token in small if token in large and token in order)
-            if not shared:
-                continue
+            shared = sorted(order[token] for token in small if token in large)
             score = 0.0
             for position in shared:
                 token = names[position]
