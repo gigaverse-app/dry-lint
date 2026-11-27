@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.0](https://github.com/gigaverse-app/dry-lint/compare/v1.16.0...v1.17.0) (2026-11-27)
+
+
+### Features
+
+* **cli:** focus scans and explain same-file pairs ([ade9692](https://github.com/gigaverse-app/dry-lint/commit/ade969206a3395c624beb110c116e53f6c9fbb5e))
+
 ## [1.16.0](https://github.com/gigaverse-app/dry-lint/compare/v1.15.1...v1.16.0) (2026-11-27)
 
 
