@@ -764,6 +764,28 @@ It matched repeated measurability and Tonelli steps in the Bessel cutoff argumen
 and the two coordinate-padding bounds in the Schwartz Fock tensor-product argument
 ([Riemann #9448](https://github.com/leanprover-community/riemann-hypothesis/pull/9448)).
 
+### Rewrite families across Lean proofs
+
+Build the project, then ask which proofs repeatedly expand the same definitions together.
+
+```sh
+dry-lint lean-rewrite-families --source-root src/Lib/DiscreteSeries/Bruhat \
+  --artifact-root .lake/build/lib/lean/Lib/DiscreteSeries/Bruhat
+```
+
+Within each module the command groups pairs of rule spellings that occur together in parsed
+`simp only` or `simp_all only` calls in at least three named declarations. Pairs with the same
+call sites produce a single finding listing all their shared rules. Results rank by declaration
+count, then by shared rule count. Repeat `--rule` to focus on particular definitions.
+Each finding gives the declaration and line of every call for inspection.
+
+On Riemann Hypothesis revision `8c828eda`, the first family in `FloorGroups.lean` included
+`floorOf` and `Fin.is_lt` in 19 calls across 11 declarations. Reading the sites revealed several
+coordinate calculations for the same sparse Gram matrix. After factoring the row argument and
+reusing the existing entry formula, rescanning the rebuilt module found five calls in four
+declarations for this pair. The counts measure explicit rewrites. Git measures the resulting
+change in proof length.
+
 ### Repeated rewrite lists inside one proof
 
 A proof can repeat the same algebra in several cases while naming the rewrite rules in different

@@ -2,6 +2,8 @@ import json
 import runpy
 from pathlib import Path
 
+from dry_lint.lean_rewrites import rule_lists
+
 audit = runpy.run_path(str(Path(__file__).parents[1] / "scripts/rank_lean_rewrites.py"))
 
 
@@ -41,7 +43,7 @@ def test_reads_lists_the_grammar_cannot_parse():
         '  exact absurd "simp only [Nat.mul_one]" id\n'
         "  simp only [\n"
     )
-    assert list(audit["rule_lists"](source)) == [
+    assert list(rule_lists(source)) == [
         (1, {"Nat.sub_add_cancel (by simpa using h)", "Nat.mul_one", "f (a, b)"}),
         (2, {"Nat.mul_one", "Nat.sub_add_cancel (by simpa using h)"}),
     ]

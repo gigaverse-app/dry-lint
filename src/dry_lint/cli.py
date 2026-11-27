@@ -1033,6 +1033,17 @@ def parser() -> argparse.ArgumentParser:
     blocks.add_argument("--min-shared-chars", type=int, default=70, help="Minimum shared non-indentation text.")
     blocks.add_argument("--limit", type=int, default=20, help="Show at most this many groups.")
     blocks.add_argument("--allow-one-line-difference", action="store_true", help="Allow one differing interior line.")
+    rewrites = commands.add_parser(
+        "lean-rewrite-families", help="Rank rewrite bundles shared across Lean declarations."
+    )
+    rewrites.add_argument("--source-root", required=True, type=Path, help="Local Lean source directory.")
+    rewrites.add_argument(
+        "--artifact-root", type=Path, default=Path(".lake/build/lib/lean"), help="Matching .ilean root."
+    )
+    rewrites.add_argument(
+        "--rule", action="append", default=[], help="Require this rule spelling at every site (repeatable)."
+    )
+    rewrites.add_argument("--limit", type=int, default=20, help="Maximum number of families to report.")
     constructors = commands.add_parser("lean-constructors", help="Rank families of repeated Lean record fields.")
     constructors.add_argument("--source-root", required=True, type=Path, help="Local Lean source directory.")
     constructors.add_argument("--min-sites", type=int, default=3, help="Minimum constructions per family.")
@@ -1343,6 +1354,13 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.reconfigure(encoding="utf-8", errors=sys.stdout.errors)
     args = parser().parse_args(argv)
     try:
+        if args.command == "lean-rewrite-families":
+            from dry_lint.lean_rewrites import find_rewrite_families
+
+            print(
+                json.dumps(find_rewrite_families(args.source_root, args.artifact_root, args.rule, args.limit), indent=2)
+            )
+            return 0
         if args.command == "lean-constructors":
             from dry_lint.lean_constructors import find_constructor_families
 
