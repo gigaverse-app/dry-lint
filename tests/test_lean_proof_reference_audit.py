@@ -74,3 +74,64 @@ def test_reference_audit_rejects_missing_or_incompatible_artifacts(tmp_path, cap
     with pytest.raises(SystemExit):
         audit["main"](args)
     assert "Invalid.ilean" in capsys.readouterr().err
+
+
+def test_family_command_aligns_three_declarations_and_does_not_join_disjoint_matches(repo, capsys):
+    from dry_lint.cli import main
+
+    shared = [f"Example.fact{i}" for i in range(14)]
+    other = [f"Other.fact{i}" for i in range(14)]
+    write_module(repo.root, "Left", shared + other, "pivot")
+    write_module(repo.root, "Middle", shared, "decoy")
+    write_module(repo.root, "Right", shared, "right")
+    write_module(repo.root, "Separate", other, "right")
+    repo.git("add", "src")
+    args = [
+        "lean-proof-families",
+        "--root",
+        str(repo.root),
+        "--source-root",
+        "src",
+        "--artifact-root",
+        "build",
+    ]
+
+    assert main([*args, "--format", "json", "--focus", "src/Right.lean"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["analyzed_proofs"] == 4
+    assert result["families_found"] == 1
+    [group] = result["families"]
+    assert group["score"] == 28
+    assert group["shared_lines"] == 14
+    assert [member["path"] for member in group["members"]] == ["src/Left.lean", "src/Middle.lean", "src/Right.lean"]
+    assert group["references"][0] == {"name": "Example.fact0", "lines": [2, 2, 2]}
+
+    assert main(args) == 0
+    output = capsys.readouterr().out
+    assert "3 declarations · at least 14 aligned lines each" in output
+    assert "2, 2, 2  Example.fact0" in output
+
+    assert main([*args, "--focus", "src/Separate.lean"]) == 0
+    assert "Found 0 Lean proof families across 4 analyzed declarations." in capsys.readouterr().out
+    assert main([*args, "--limit", "-1"]) == 2
+    assert "--limit must be nonnegative" in capsys.readouterr().err
+
+    broken = repo.root / "build/Right.ilean"
+    broken.write_text('{"version": 6, "module": "Right"}', encoding="utf-8")
+    assert main(args) == 2
+    assert "references" in capsys.readouterr().err
+
+
+def test_family_ranking_prefers_the_shared_core_with_more_lines():
+    from dry_lint.lean_proof_references import Alignment, rank_families
+
+    sites = [(i, 0, f"Example.fact{i}") for i in range(1, 11)]
+    collapsed = [(1, i, site[2]) for i, site in enumerate(sites)]
+    full = tuple(zip(sites, sites, strict=True))
+    short = full[:7]
+    packed = tuple(zip(sites, collapsed, strict=True))
+
+    [family] = rank_families([Alignment(0, 1, full), Alignment(0, 2, short), Alignment(1, 2, full)])
+    assert family.shared_lines == 10
+    assert family.members == (0, 1, 2)
+    assert not rank_families([Alignment(0, 1, full), Alignment(0, 2, packed)])

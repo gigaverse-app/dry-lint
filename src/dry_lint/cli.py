@@ -50,7 +50,7 @@ from dry_lint.judges import make_escalation, make_judge
 from dry_lint.judging import Judging, default_store, open_store
 from dry_lint.labelling import label, labeller, sample, summarise
 from dry_lint.ledger import counter_key
-from dry_lint.models import Candidate, CandidatesFile, Function, Run, evidence, qualified
+from dry_lint.models import Candidate, CandidatesFile, Function, Run, evidence, matches_any, qualified
 from dry_lint.plugins import load
 from dry_lint.presets import LISTED, PRESETS, resolve
 from dry_lint.replay import replay
@@ -1026,6 +1026,19 @@ def parser() -> argparse.ArgumentParser:
     proof_blocks.add_argument(
         "--allow-one-line-difference", action="store_true", help="Allow one differing interior line."
     )
+    proof_families = commands.add_parser(
+        "lean-proof-families", help="Find groups of Lean proofs with a shared argument."
+    )
+    proof_families.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the Git checkout.")
+    proof_families.add_argument("--source-root", type=Path, required=True, help="Lean module source root, such as src.")
+    proof_families.add_argument(
+        "--artifact-root", type=Path, default=Path(".lake/build/lib/lean"), help="Matching Lean .ilean directory."
+    )
+    proof_families.add_argument(
+        "--focus", action="append", metavar="PATTERN", help="Only show groups touching these Git-root-relative globs."
+    )
+    proof_families.add_argument("--limit", type=int, default=10, help="Show at most this many groups.")
+    proof_families.add_argument("--format", choices=("text", "json"), default="text")
     exporting = commands.add_parser(
         "index", parents=[common], help="Export committed functions for reuse by peer repositories."
     )
@@ -1216,6 +1229,57 @@ def lean_proof_blocks(root: Path, args: argparse.Namespace) -> int:
     return 0
 
 
+def lean_proof_families(root: Path, args: argparse.Namespace) -> int:
+    from dry_lint.lean import LeanExtractor
+    from dry_lint.lean_proof_references import align_proofs, collect_proofs, rank_families
+
+    if args.limit < 0:
+        raise ValueError("--limit must be nonnegative")
+    source_root = (root / args.source_root).resolve()
+    prefix = source_root.relative_to(root).as_posix()
+    paths = tracked_files(root, ["*.lean"] if prefix == "." else [f"{prefix}/*.lean"], [])
+    try:
+        extractor = LeanExtractor(min_lines=15)
+        proofs = list(
+            collect_proofs(source_root, root / args.artifact_root, extractor, (root / path for path in paths))
+        )
+    except (ImportError, KeyError, TypeError) as error:
+        raise ValueError(str(error)) from error
+    groups = []
+    for family in rank_families(align_proofs(proofs)):
+        members = [proofs[index].location() for index in family.members]
+        for member in members:
+            member["path"] = (Path(prefix) / member["path"]).as_posix()
+        if args.focus and not any(matches_any(member["path"], args.focus) for member in members):
+            continue
+        groups.append(
+            {
+                "score": family.score,
+                "shared_lines": family.shared_lines,
+                "members": members,
+                "references": [
+                    {"name": row[0][2], "lines": [reference[0] for reference in row]} for row in family.rows
+                ],
+            }
+        )
+    if args.format == "json":
+        print(
+            json.dumps(
+                {"analyzed_proofs": len(proofs), "families_found": len(groups), "families": groups[: args.limit]}
+            )
+        )
+        return 0
+    print(f"Found {len(groups)} Lean proof families across {len(proofs)} analyzed declarations.")
+    for group in groups[: args.limit]:
+        print(f"\n{len(group['members'])} declarations · at least {group['shared_lines']} aligned lines each")
+        for number, member in enumerate(group["members"], 1):
+            print(f"  {number}. {member['path']}:{member['start']} {member['name']}")
+        print("  Matched lines in declaration order")
+        for reference in group["references"]:
+            print(f"    {', '.join(map(str, reference['lines']))}  {reference['name']}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     # Python can default to a legacy code page for redirected stdout on Windows.
     if argv is None and isinstance(sys.stdout, io.TextIOWrapper) and not sys.stdout.isatty():
@@ -1232,6 +1296,8 @@ def main(argv: list[str] | None = None) -> int:
         root = repository_root(args.root)
         if args.command == "lean-proof-blocks":
             return lean_proof_blocks(root, args)
+        if args.command == "lean-proof-families":
+            return lean_proof_families(root, args)
         if args.env_file and (root / args.env_file).is_file():  # optional: the hook names .env whether or not it exists
             from dotenv import dotenv_values
 
