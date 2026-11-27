@@ -13,8 +13,10 @@ On Celery's `celery/` package (about 47,000 lines) the first result is one block
 `celery/bin/amqp.py`:
 
 ```text
-Found 43 repeated blocks.
+Found 46 repeated blocks.
+Stating each once would save about 150 lines.
 
+# 5 lines, 8 copies, saves about 25
 celery/bin/amqp.py:91-95
 celery/bin/amqp.py:115-119
 celery/bin/amqp.py:138-142
@@ -46,8 +48,24 @@ decide.
 
 ## What it reports
 
-Blocks are ranked by reuse: shared lines times the number of extra copies. A block is hidden when a longer
-block covers every copy of it, so each repetition appears once, at its longest.
+One entry per repetition, the largest saving first. Each entry starts with a summary line:
+
+```text
+# 5 lines, 31 copies, saves about 117, 14 overlapping, see --overlaps
+```
+
+- **saves about N** is an estimate of the lines that go if the block is stated once: each copy becomes one
+  call, and the shared definition costs the block's lines and two more. Two copies of a five-line block save
+  one line, so they sort last. The second line of the output adds the estimates up.
+- **part of a statement** marks a block that cannot be lifted out as it is: it starts inside a deeper level,
+  leaves a bracket open or closes one it did not open, or ends on a comma. Such a block counts half when the
+  entries are ordered.
+- **N overlapping** counts the other matches of the same repetition. Ten lines repeated in thirty places also
+  match as nine lines in thirty-one places and as the same lines shifted by one. A match is reported with
+  an earlier entry when that entry covers at least half of its lines. `--overlaps` lists every match.
+
+On a backend with 4,800 files the first entry was a five-line lookup written 31 times in one file. Without
+the grouping, four of the first eleven entries contained that lookup.
 
 | Option | Meaning |
 | --- | --- |
@@ -55,12 +73,42 @@ block covers every copy of it, so each repetition appears once, at its longest.
 | `--max-lines N` | The longest block to look for. Default 200. |
 | `--min-shared-chars N` | The least shared text, without indentation. Default 70. It keeps out blocks made of brackets and short keywords. |
 | `--allow-one-line-difference` | Also match blocks where one line between the first and the last differs. |
-| `--lines N --max-gap-lines G` | Match the first and second half of `N` lines with up to `G` different lines between them in each copy. Copies with nothing between the halves are reported too. |
+| `--lines N --max-gap-lines G` | Match the first and second half of `N` lines with up to `G` different lines between them in each copy. |
 | `--include GLOB` | Scan these tracked paths. The configured `exclude` still applies. Repeat for more. |
 | `--extractor NAME` | Read only this language. Repeat for more. |
-| `--limit N` | Print at most `N` blocks. Default 20. The first line always gives the total. |
+| `--limit N` | Print at most `N` entries. Default 20. The first line always gives the total. |
+| `--by-file` | Print the files with the most repeated lines instead of the blocks. The first copy of a block is not counted. |
+| `--overlaps` | Print every match, without grouping and without the summary lines. |
+| `--claimed-diff FILE` | Leave out copies that a unified diff already removes at least half of. Repeat for more. |
 
 Tests repeat their setup on purpose. To look at product code alone, pass `--include 'src/**'`.
+
+### Start with the largest file
+
+`--by-file` answers where to begin:
+
+```text
+$ dry-lint blocks --include 'celery/**' --by-file --limit 3
+Found 46 repeated blocks.
+Stating each once would save about 150 lines.
+
+    63  celery/bin/amqp.py
+    36  celery/backends/gcs.py
+    32  celery/concurrency/asynpool.py
+```
+
+### Skip what an open pull request already does
+
+In a repository where several people or agents clean up at once, a candidate may already be taken. Save
+the diffs of the open pull requests and pass them:
+
+```bash
+gh pr diff 123 > 123.diff
+dry-lint blocks --claimed-diff 123.diff
+```
+
+A copy is left out when the diff removes at least half of its lines from that file. Lines are compared as
+text, so every copy of a block in a file the diff edits counts as taken.
 
 ## How it relates to the other commands
 
@@ -78,19 +126,20 @@ Tests repeat their setup on purpose. To look at product code alone, pass `--incl
 
 Each run used one core and the default options.
 
-| Repository | Scope | Blocks | Time |
-| --- | --- | ---: | ---: |
-| [Celery](https://github.com/celery/celery) | `celery/**`, 47,000 lines of Python | 43 | 3.5 s |
-| [HTTPX](https://github.com/encode/httpx) | `httpx/**`, 8,800 lines of Python | 99 | 1.2 s |
-| [Zod](https://github.com/colinhacks/zod) | `packages/zod/src/**`, 90,000 lines of TypeScript | 172 | 4.9 s |
-| [Riemann Hypothesis proof](https://github.com/leanprover-community/riemann-hypothesis) | 805 Lean files, 479,000 lines | 6 | 7.1 s |
+| Repository | Scope | Matches | Entries | Estimated saving | Time |
+| --- | --- | ---: | ---: | ---: | ---: |
+| [Celery](https://github.com/celery/celery) | `celery/**`, Python | 47 | 46 | 150 lines | 3.4 s |
+| [HTTPX](https://github.com/encode/httpx) | `httpx/**`, Python | 99 | 45 | 870 lines | 1.2 s |
+| [Zod](https://github.com/colinhacks/zod) | `packages/zod/src/**`, TypeScript | 172 | 127 | 2,480 lines | 4.3 s |
+| [Riemann Hypothesis proof](https://github.com/leanprover-community/riemann-hypothesis) | 805 Lean files | 6 | 6 | 8 lines | 6.8 s |
 
-In HTTPX, 36 of the 99 blocks are parameter lists, repeated in up to sixteen request methods. In Zod, 59 of
-the 172 blocks are in locale files, where one function body appears in up to 61 files. Both are deliberate
-designs. The count says where repeated text is. It does not say that the text should be merged.
+"Matches" is what `--overlaps` lists and "Entries" is the default report. Measured on November 27, 2026.
 
-The Lean proof has six repeated blocks of five or more lines in its tactic proofs. With
-`--lines 3 --max-lines 12` the same scan reports 107.
+HTTPX's first entry is nine parameters of a request method, in fourteen methods. Zod's is ten lines of a
+format table that 57 locale files each carry. Both are deliberate designs, and both are marked "part of a
+statement". The estimate says how much text repeats. It does not say that the text should be merged.
+
+The Lean proof has six repeated blocks of five or more lines in its tactic proofs.
 
 ## For extractor authors
 

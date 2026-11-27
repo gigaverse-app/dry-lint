@@ -6,6 +6,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+from dry_lint.diffs import removed_lines
 from dry_lint.lean import LeanExtractor
 
 # Only match a complete, backtick-quoted qualified identifier.
@@ -59,21 +60,6 @@ def local_site(name, coords, lines):
     if _DECL.search(prefix) and spelling and (name == spelling or name.endswith("." + spelling)):
         return row + 1, end - row + 1
     return None
-
-
-def removed_lines(diffs):
-    """The lines each unified diff removes, without indentation, by the path it removes them from."""
-    removed = defaultdict(set)
-    for diff in diffs:
-        path = None
-        rows = diff.read_text(encoding="utf-8", errors="replace").splitlines()
-        for row, following in zip(rows, [*rows[1:], ""], strict=True):
-            # A removed Lean comment also starts with `--- `; a file header is followed by `+++ `.
-            if row.startswith("--- ") and following.startswith("+++ "):
-                path = row[4:].split("\t")[0].removeprefix("a/")
-            elif row.startswith("-") and path and row[1:].strip():
-                removed[path].add(row[1:].strip())
-    return removed
 
 
 def _claimed(path, body, removed):

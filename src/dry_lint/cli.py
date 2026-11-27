@@ -29,6 +29,7 @@ import json
 import os
 import subprocess
 import sys
+import warnings
 from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
@@ -1033,6 +1034,17 @@ def parser() -> argparse.ArgumentParser:
     blocks.add_argument("--min-shared-chars", type=int, default=70, help="Minimum shared non-indentation text.")
     blocks.add_argument("--limit", type=int, default=20, help="Show at most this many groups.")
     blocks.add_argument("--allow-one-line-difference", action="store_true", help="Allow one differing interior line.")
+    blocks.add_argument(
+        "--overlaps", action="store_true", help="List every match, including those that overlap a larger one."
+    )
+    blocks.add_argument("--by-file", action="store_true", help="List the files with the most repeated lines instead.")
+    blocks.add_argument(
+        "--claimed-diff",
+        type=Path,
+        action="append",
+        default=[],
+        help="A unified diff, such as an open pull request's. Copies it already removes are left out. Repeat for more.",
+    )
     rewrites = commands.add_parser(
         "lean-rewrite-families", help="Rank rewrite bundles shared across Lean declarations."
     )
@@ -1249,9 +1261,10 @@ def block_options(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def print_blocks(groups: list[list[Any]], limit: int, *, ranges: bool) -> None:
+def print_blocks(groups: list[list[Any]], limit: int, *, ranges: bool, blank: bool = True) -> None:
     for group in groups[:limit]:
-        print()
+        if blank:
+            print()
         same = all(block.code == group[0].code for block in group)
         for block in group:
             print(f"{block.path}:{block.line}-{block.end_line}" if ranges else f"{block.path}:{block.line}")
@@ -1262,7 +1275,8 @@ def print_blocks(groups: list[list[Any]], limit: int, *, ranges: bool) -> None:
 
 
 def blocks(root: Path, args: argparse.Namespace) -> int:
-    from dry_lint.blocks import find_blocks
+    from dry_lint.blocks import find_blocks, fold_overlaps, repeated_lines_by_file, without_claimed
+    from dry_lint.diffs import removed_lines
 
     options = block_options(args)
     settings = Settings.load(root)
@@ -1270,8 +1284,34 @@ def blocks(root: Path, args: argparse.Namespace) -> int:
     choices = [configured.get(name, PluginChoice(use=name)) for name in args.extractor or configured]
     extractors = [load("extractors", choice) for choice in choices]
     groups = find_blocks(root, args.include or settings.include, settings.exclude, extractors, **options)
-    print(f"Found {len(groups)} repeated blocks.")
-    print_blocks(groups, args.limit, ranges=True)
+    if args.claimed_diff:
+        groups = without_claimed(groups, removed_lines(args.claimed_diff))
+    if args.overlaps:
+        print(f"Found {len(groups)} repeated blocks.")
+        print_blocks(groups, args.limit, ranges=True)
+        return 0
+    repetitions = fold_overlaps(groups)
+    total = sum(max(repetition.saving, 0) for repetition in repetitions)
+    print(f"Found {len(repetitions)} repeated blocks.")
+    if total:
+        print(f"Stating each once would save about {total} lines.")
+    if args.by_file:
+        print()
+        for path, count in repeated_lines_by_file(repetitions)[: args.limit]:
+            print(f"{count:6}  {path}")
+        return 0
+    for repetition in repetitions[: args.limit]:
+        group = repetition.copies
+        print()
+        notes = [f"{len(group[0].compared_code)} lines", f"{len(group)} copies"]
+        if repetition.saving > 0:
+            notes.append(f"saves about {repetition.saving}")
+        if not repetition.stands_alone:
+            notes.append("part of a statement")
+        if repetition.variants:
+            notes.append(f"{repetition.variants} overlapping, see --overlaps")
+        print("# " + ", ".join(notes))
+        print_blocks([group], 1, ranges=True, blank=False)
     return 0
 
 
@@ -1353,6 +1393,8 @@ def main(argv: list[str] | None = None) -> int:
         if not os.environ.get("PYTHONIOENCODING"):
             sys.stdout.reconfigure(encoding="utf-8", errors=sys.stdout.errors)
     args = parser().parse_args(argv)
+    # Parsing a scanned file can warn about its escape sequences; that is the file's lint, not this one's.
+    warnings.filterwarnings("ignore", category=SyntaxWarning)
     try:
         if args.command == "lean-rewrite-families":
             from dry_lint.lean_rewrites import find_rewrite_families
