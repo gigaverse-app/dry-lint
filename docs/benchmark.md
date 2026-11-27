@@ -794,3 +794,21 @@ uses one matrix-entry calculation for four parity cases and one field simplifica
 defect-weight cases. The [shallow specialization refactor](https://github.com/leanprover-community/riemann-hypothesis/pull/9431)
 exchanges two finite sums once for both parities. The final column uses the same base with both
 patches applied and rebuilt.
+
+### Finding repeated Lean record constructions
+
+`dry-lint lean-constructors --source-root ../proof/src` ranks named, explicit `where`
+constructions that could share a constructor. The JSON lists the source locations, field inventory
+and shared fields. The default requires at least three sites. Pass `--min-sites 2` to include pairs.
+
+The scan compares direct fields by name, regardless of order. Within records with the same field
+inventory it looks for at least two assignments whose Lean tokens match at every site. The score
+counts repeat assignments beyond the first member. A reviewer must check that the types agree
+and that a common construction preserves the intended mathematics. Nested assignments stay in
+their enclosing field. Method-style fields and anonymous instances are outside this scan.
+
+At revision `8c828eda` of the Riemann Hypothesis project, the default scan found one family.
+The hyperbolic, diagonal, graph and shear splittings all set the middle frame to zero and
+discharge its two orthogonality obligations with `by simp`. The four proofs of the empty
+frame’s Gram identity used different syntax. Seeing the four sites together exposed that
+additional shared obligation and their common dimension argument.
