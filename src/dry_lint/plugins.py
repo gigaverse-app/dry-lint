@@ -27,6 +27,8 @@ from dry_lint.settings import PluginChoice, Settings
 class Extractor(Protocol):
     # Optional `capabilities: ExtractorCapabilities` declares model, report and index integrations.
     # Optional `comparison_helpers(source, caller)` returns same-file helpers for the source viewer.
+    # Optional `line_comment` is the marker that starts a comment line; `dry-lint blocks` skips such lines.
+    # Optional `block_runs(path, source)` yields the numbered lines `dry-lint blocks` compares, one list per run.
     name: str
     version: str
     files: tuple[str, ...]  # fnmatch globs over paths it reads, e.g. ("*.py",)

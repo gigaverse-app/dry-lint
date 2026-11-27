@@ -85,6 +85,7 @@ extra:
   - docs/sweeps.md
   - docs/model-duplication.md
   - docs/model-adoption.md
+  - docs/blocks.md
   - docs/operation-blocks.md
   - docs/cpu-recovery.md
   - docs/detectors.md
@@ -117,6 +118,7 @@ nav:
   - Sweep a repository and ratchet its debt: docs/sweeps.md
   - Detect duplicated model ownership: docs/model-duplication.md
   - Default model review: docs/model-adoption.md
+  - Find lines repeated inside functions: docs/blocks.md
   - Find a helper's work inside a larger function: docs/operation-blocks.md
   - Offline CPU recovery: docs/cpu-recovery.md
   - Dryer structural comparer: docs/detectors.md

@@ -716,3 +716,23 @@ def test_lean_proof_blocks_gap_cannot_match_overlapping_windows(tmp_path, lean, 
         == 0
     )
     assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
+
+
+def test_blocks_reads_lean_proofs_through_the_shared_command(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    demo = """lemma {name} (p : Prop) (hp : p) : {goal} := by
+  {first}
+  have h : p := hp
+  have h' : p := h
+  have h'' : p := h'
+  exact {last}
+"""
+    repo.write("A.lean", demo.format(name="first", goal="p", first="skip", last="h''"))
+    repo.write("B.lean", demo.format(name="second", goal="p ∨ False", first="left", last="h'"))
+    repo.commit()
+    command = ["blocks", "--root", str(repo.root), "--extractor", "lean", "--lines", "3", "--min-shared-chars", "25"]
+    assert main(command) == 0
+    assert capsys.readouterr().out == (
+        "Found 1 repeated blocks.\n\n"
+        "A.lean:3-5\nB.lean:3-5\n  have h : p := hp\n  have h' : p := h\n  have h'' : p := h'\n"
+    )

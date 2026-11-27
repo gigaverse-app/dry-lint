@@ -298,6 +298,7 @@ class LuauExtractor:
     name = "luau"
     version = "3"
     files = ("*.luau", "*.lua")
+    line_comment = "--"
     capabilities = ExtractorCapabilities(
         language_name="Luau",
         comment_prefix="--",

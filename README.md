@@ -92,6 +92,7 @@ uvx --from 'dry-lint[lean]>=1,<2' dry-lint explain --extractor lean \
 
 These patterns override the configured include list for the command. The configured exclusions still apply.
 Use `dry-lint scan --within-file --judge none` to find nearby proofs in the same Lean module.
+`dry-lint blocks --extractor lean` reports the longest repeated fragments of tactic proofs.
 Use `dry-lint lean-proof-blocks` to look for repeated fragments inside `by` proofs, even when the
 surrounding declarations differ. It scans tracked Lean files selected by `include` and `exclude`
 and reports source ranges without running Lean or a judge. Use `--lines 5` for five-line fragments
@@ -147,6 +148,10 @@ look-alikes without calling a model or failing on findings. To inspect just your
 
 To look for repeated proofs or helpers within a module as well, add `--include-same-file` to a single-repository
 scan. It ranks eligible declarations in the same file alongside cross-file matches when choosing nearest neighbours.
+
+To find lines that repeat inside functions whose other lines differ, run `dry-lint blocks`. It compares source
+lines in Python, TypeScript, Luau and Lean, needs no judge, and prints each repeated block with its locations
+([guide](docs/blocks.md)).
 
 For a permanent `dry-lint` command, then open a new terminal:
 
@@ -230,6 +235,7 @@ scan does not establish that a duplicate was removed. Cleanup credit requires ev
 | Command | Does |
 | --- | --- |
 | `check [--base REF \| --staged]` | detect, judge and report the functions a change touched (base: `origin/HEAD`) |
+| `blocks [--lines N] [--include GLOB] [--extractor NAME]` | lines repeated inside functions, in any configured language; no judge and no key ([guide](docs/blocks.md)) |
 | `scan [--limit N] [--refresh] [--repo OWNER/NAME=PATH ...]` | the repository's backlog, or cross-repository pairs from a combined workspace |
 | `sweep [--init \| --update]` | audit the configured repository; explicitly initialize or shrink its accepted backlog and README progress |
 | `config` | which judges, thresholds and budget would run, and what they cost |
