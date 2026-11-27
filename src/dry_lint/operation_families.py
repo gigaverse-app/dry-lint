@@ -14,7 +14,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dry_lint.functions import _parse, docstring_statement, text_digest
+from dry_lint.functions import _parse, dedent_lines, docstring_statement, text_digest
 from dry_lint.models import Function, Run
 from dry_lint.operation_blocks import _NESTED, statement_regions
 
@@ -534,9 +534,8 @@ class PythonOperationFamilies:
                 if index >= limits.max_function_nodes:
                     skipped["function_nodes"] += 1
                     return []
-            indent = min((len(line) - len(line.lstrip()) for line in lines if line.strip()), default=0)
-            normalized = "\n".join(line[indent:] for line in function.code.splitlines())
-            table = symtable.symtable(normalized, function.path, "exec")
+            indent, normalized = dedent_lines(function.code.splitlines())
+            table = symtable.symtable("\n".join(normalized), function.path, "exec")
             scope = next(child for child in table.get_children() if child.get_name() == node.name)
             locals_ = {
                 symbol.get_name() for symbol in scope.get_symbols() if symbol.is_local() and not symbol.is_imported()
