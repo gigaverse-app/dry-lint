@@ -4,7 +4,9 @@ import sys
 
 import pytest
 
+from dry_lint.blocks import function_lines
 from dry_lint.cli import main
+from dry_lint.models import Function
 
 from conftest import Repo
 
@@ -161,3 +163,41 @@ def test_a_missing_extra_is_named_without_a_traceback(tmp_path, capsys, monkeypa
     monkeypatch.setitem(sys.modules, "tree_sitter_language_pack", None)
     assert main([*command, "--root", str(repo.root), "--extractor", "lean"]) == 2
     assert "dry-lint[lean]" in capsys.readouterr().err
+
+
+def test_blocks_compares_an_inner_function_once_and_skips_unreadable_files(tmp_path, capsys):
+    repo = Repo(tmp_path / "project")
+    body = """
+    export function {name}(items: Item[]): number {{
+      function weigh(open: Item[]): number {{
+        const weights = open.map((item) => item.weight * item.quantity * {factor});
+        const total = weights.reduce((sum, weight) => sum + weight, 0);
+        const rounded = Math.round(total * 100) / 100;
+        return rounded;
+      }}
+      return weigh(items.filter((item) => item.state === "open"));
+    }}
+    """
+    repo.write("a.ts", body.format(name="gross", factor="1") + body.format(name="net", factor="0.8"))
+    (repo.root / "latin1.py").write_bytes("def caf\xe9():\n    return 1\n".encode("latin-1"))
+    repo.commit()
+    assert main(["blocks", "--root", str(repo.root), "--lines", "3", "--min-shared-chars", "40"]) == 0
+    assert capsys.readouterr().out.startswith("Found 1 repeated blocks.\n\na.ts:4-9\na.ts:14-19\n")
+
+
+def test_function_lines_reads_a_nested_function_as_part_of_the_one_around_it():
+    class Nested:
+        line_comment = ";"
+
+        def functions(self, path, source):
+            return [
+                Function(path=path, name="inner", line=2, end_line=3, code=""),
+                Function(path=path, name="outer", line=1, end_line=4, code=""),
+                Function(path=path, name="next", line=6, end_line=9, code=""),
+            ]
+
+    source = "outer:\n  inner:\n    one\n  two\n\nnext:\n  ; note\n  three\n"
+    assert list(function_lines(Nested(), "a.x", source)) == [
+        [(1, "outer:"), (2, "  inner:"), (3, "    one"), (4, "  two")],
+        [(6, "next:"), (8, "  three")],
+    ]
