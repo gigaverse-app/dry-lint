@@ -776,9 +776,21 @@ list in the same declaration. Each rule counts once per list. The JSON report gi
 to compare and counts missing build artifacts. Similar rewrite lists can serve different arguments,
 so the score measures repetition, not removable lines.
 
-On the elementary-divisors directory of the Riemann Hypothesis project at `7c4ccbd6`, the three
-highest scores were 41 for the swap-transvection action, 37 for shallow specialization and 35 for
-the defect weight. Checking the matrix entry uniformly, exchanging the two finite sums once, and
-normalizing all defect-weight cases with the same field identities brought those scores to 19, 3
-and 0. [Root-variable proofs](https://github.com/leanprover-community/riemann-hypothesis/pull/8716)
-and [shallow specialization](https://github.com/leanprover-community/riemann-hypothesis/pull/9431).
+Build each revision before scanning it and keep its source tree paired with its build output.
+A declaration can retain its original name and start line after its proof changes length.
+
+On Riemann Hypothesis revision `7c4ccbd6`, the highest-scoring proof in the elementary-divisors
+directory was the [coefficient shift](https://github.com/leanprover-community/riemann-hypothesis/pull/8969),
+with 152 repeated mentions. The next three proofs had the following scores.
+
+| Proof | Original | After refactor |
+| --- | ---: | ---: |
+| Swap-transvection action on a variable | 111 | 19 |
+| Shallow specialization of an entry form | 38 | 3 |
+| Defect weight of a root variable | 35 | 0 |
+
+The [root-variable refactor](https://github.com/leanprover-community/riemann-hypothesis/pull/8716)
+uses one matrix-entry calculation for four parity cases and one field simplification for six
+defect-weight cases. The [shallow specialization refactor](https://github.com/leanprover-community/riemann-hypothesis/pull/9431)
+exchanges two finite sums once for both parities. The final column uses the same base with both
+patches applied and rebuilt.
