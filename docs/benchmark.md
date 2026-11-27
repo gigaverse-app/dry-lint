@@ -752,10 +752,11 @@ induction or successive changes of variables. Repeated triples seed bounded comp
 can align across intervening references. The report gives the two disjoint source ranges and
 suppresses near-duplicate reports for the same ranges.
 
-On the same snapshot, with the Lean extractor at `edc715a`, the within-proof audit ranked
-**50 pairs from 5,938 proofs in 21.90 seconds**.
+On the same snapshot, with the Lean extractor at `f81fc81`, the within-proof audit ranked
+**50 pairs from 5,938 proofs in 12.34 seconds**.
 The top match aligned 15 lines of the projective-line gluing calculation and independently
 recovered the repetition factored out by [Riemann #8902](https://github.com/leanprover-community/riemann-hypothesis/pull/8902).
 It matched repeated measurability and Tonelli steps in the Bessel cutoff argument
-[Riemann #9445](https://github.com/leanprover-community/riemann-hypothesis/pull/9445)
-and the two coordinate-padding bounds in the proof that a tensor product of Schwartz Fock vectors is Schwartz.
+([Riemann #9445](https://github.com/leanprover-community/riemann-hypothesis/pull/9445))
+and the two coordinate-padding bounds in the Schwartz Fock tensor-product argument
+([Riemann #9448](https://github.com/leanprover-community/riemann-hypothesis/pull/9448)).

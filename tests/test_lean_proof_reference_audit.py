@@ -160,13 +160,13 @@ def test_reference_audit_reports_disjoint_fragments_inside_a_proof(tmp_path, cap
     ]
 
 
-@pytest.mark.parametrize("right_start", [7, 18])
-def test_reference_audit_rejects_overlapping_or_sparse_fragments(right_start):
+@pytest.mark.parametrize(("right_start", "size"), [(7, 8), (18, 8), (30, 6)])
+def test_reference_audit_rejects_overlapping_sparse_or_small_fragments(right_start, size):
     from dry_lint.lean_proof_references import Proof
 
     proof = Proof("Example.lean", "example", 1, 40, [])
     rows = []
-    for i, line in enumerate(range(1, 23, 3)):
+    for i, line in enumerate(range(1, 3 * size, 3)):
         name = f"Example.fact{i}"
         rows.append(((line, 0, name), (right_start + i, 0, name)))
     assert audit["fragment_match"](proof, rows) is None

@@ -45,8 +45,8 @@ def rank_proofs(proofs):
 def fragment_match(proof, rows):
     if distinct_references(rows) < 7 or (lines := shared_line_count(rows)) < 7:
         return None
-    left_start, right_start = rows[0][0][0], rows[0][1][0]
-    left_end, right_end = rows[-1][0][0], rows[-1][1][0]
+    (left_start, _, _), (right_start, _, _) = rows[0]
+    (left_end, _, _), (right_end, _, _) = rows[-1]
     if left_end >= right_start or max(left_end - left_start, right_end - right_start) >= 2 * lines:
         return None
     left = replace(proof, start=left_start, end=left_end)
