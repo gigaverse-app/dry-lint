@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.0](https://github.com/gigaverse-app/dry-lint/compare/v1.23.0...v1.24.0) (2026-11-27)
+
+
+### Features
+
+* rank independent Lean rewrite families by rule concentration ([#246](https://github.com/gigaverse-app/dry-lint/issues/246)) ([43f8cdc](https://github.com/gigaverse-app/dry-lint/commit/43f8cdc721f3b461b97ac90880646933bf485726))
+
 ## [1.23.0](https://github.com/gigaverse-app/dry-lint/compare/v1.22.0...v1.23.0) (2026-11-27)
 
 
