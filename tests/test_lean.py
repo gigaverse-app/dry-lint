@@ -526,6 +526,57 @@ def inside : Nat := by
     assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
 
 
+def test_lean_proof_blocks_follow_layout_where_the_grammar_loses_the_proof(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    # Reduced from the Riemann Hypothesis project. The grammar does not read the unbracketed `if` in the
+    # statement, and a scan of its `by` nodes found none of these steps.
+    proof = """lemma {name} (σ : Φ) : (weight σ : ℝ) = a / if σ ∈ bPlaces then x else x₁ := by
+  rw [weight_eq_ite]
+  split
+  · rw [cast_natB, cast_a, mul_div_cancel_left₀ _ (exp_ne_zero _)]
+  · exact cast_offWeight
+
+omit [Fintype anIndexTypeWithALongName] [DecidableEq anIndexTypeWithALongName]
+  [Fintype anotherIndexTypeWithALongName] [DecidableEq anotherIndexTypeWithALongName]
+  [Fintype aThirdIndexTypeWithALongName] [DecidableEq aThirdIndexTypeWithALongName] in
+lemma {name}Next (first : Fin (by exact 3))
+    (secondArgumentWithALongName : Nat) (thirdArgumentWithALongName : Nat)
+    (fourthArgumentWithALongName : Nat) (fifthArgumentWithALongName : Nat)
+    (sixthArgumentWithALongName : Nat) : True := by
+  trivial
+"""
+    repo.write("A.lean", proof.format(name="one"))
+    repo.write("B.lean", proof.format(name="two"))
+    repo.commit()
+    assert main(["lean-proof-blocks", "--root", str(repo.root), "--min-shared-chars", "60", "--max-lines", "8"]) == 0
+    assert capsys.readouterr().out == (
+        "Found 1 repeated Lean proof blocks.\n\nA.lean:2\nB.lean:2\n"
+        "  rw [weight_eq_ite]\n  split\n"
+        "  · rw [cast_natB, cast_a, mul_div_cancel_left₀ _ (exp_ne_zero _)]\n  · exact cast_offWeight\n"
+    )
+
+
+def test_lean_proof_blocks_skip_literals_and_blocks_without_layout(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    source = """def message : String := by
+  exact "a literal that continues
+  on a second line with enough characters to compare
+  and on a third line with enough characters to compare
+  and on a fourth line with enough characters to compare"
+theorem flushLeft : True ∧ True ∧ True := by
+refine ⟨?firstGoalWithALongName, ?secondGoalWithALongName, ?thirdGoalWithALongName⟩
+case firstGoalWithALongName => exact trivial
+case secondGoalWithALongName => exact trivial
+case thirdGoalWithALongName => exact trivial
+theorem unfinished : True := by
+"""
+    repo.write("A.lean", source)
+    repo.write("B.lean", source)
+    repo.commit()
+    assert main(["lean-proof-blocks", "--root", str(repo.root), "--min-shared-chars", "60"]) == 0
+    assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
+
+
 @pytest.mark.parametrize(
     ("option", "value", "error"),
     [("--lines", "2", "--lines must be at least 3"), ("--limit", "-1", "--limit must be nonnegative")],
