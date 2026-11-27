@@ -88,15 +88,13 @@ end Example
     assert (second.qualname, second.line, second.end_line) == ("A.lean::Example.second", 6, 7)
 
 
-@pytest.mark.parametrize(
-    "source",
-    [
-        "theorem first : True := by\n  have := (\ntheorem second : True := by\n  trivial\n",
-        "theorem first : True := by\n  trivial ?\n#check True\n",
-    ],
-)
-def test_skips_a_recovered_declaration_that_consumes_another_command(lean, source):
-    assert lean.functions("A.lean", source) == []
+def test_a_declaration_never_consumes_another_command(lean):
+    # An unbalanced declaration is not reported, and the command after it is read on its own.
+    unbalanced = "theorem first : True := by\n  have := (\ntheorem second : True := by\n  trivial\n"
+    (second,) = lean.functions("A.lean", unbalanced)
+    assert (second.name, second.line, second.end_line) == ("second", 3, 4)
+    (first,) = lean.functions("A.lean", "theorem first : True := by\n  trivial ?\n#check True\n")
+    assert first.code == "theorem first : True := by\n  trivial ?"
 
 
 @pytest.mark.parametrize(
@@ -111,6 +109,210 @@ def test_skips_a_recovered_declaration_that_consumes_another_command(lean, sourc
 )
 def test_skips_incomplete_recovery_without_a_named_and_bounded_assignment(lean, source):
     assert lean.functions("A.lean", source) == []
+
+
+# Lean 4.37.0-rc1 accepts this module. `lean -i` reports the ranges asserted below, except that dry-lint
+# starts a declaration after its doc comment and includes the commands that wrap it.
+CORE_SYNTAX = r"""/-! Module text with a keyword: theorem phantom : True := trivial -/
+namespace Outer.Inner
+universe u
+variable {α : Type u}
+
+/-- A doc comment is not part of the declaration it introduces.
+theorem inDoc : True := trivial -/
+@[simp]
+protected theorem first (a : Nat) : a + 0 = a := by
+  -- a comment that opens /- nothing
+  simp
+
+set_option maxRecDepth 600 in
+open Nat in
+/-- Wrapped twice. -/
+theorem second (a : Nat) : succ a = a + 1 := by
+  open Classical in
+  set_option maxRecDepth 700 in
+  rfl -- trailing words
+
+end Inner
+
+/-- Fields carry their own doc comments. -/
+structure Point where
+  /-- The first coordinate. -/
+  x : Nat
+  y : Nat
+  deriving Repr
+
+instance (priority := low) pointInhabited : Inhabited Point where
+  default := ⟨0, 0⟩
+
+private noncomputable def «odd name» : Point → Nat
+  | ⟨x, _⟩ => x
+
+mutual
+  def isEven : Nat → Bool
+    | 0 => true
+    | n + 1 => isOdd n
+  def isOdd : Nat → Bool
+    | 0 => false
+    | n + 1 => isEven n
+end
+
+def countdown (n : Nat) : List Nat :=
+  if h : n = 0 then [] else n :: countdown (n - 1)
+termination_by n
+decreasing_by omega
+
+#check countdown
+
+def quoted : List String := ["theorem \"fake\" : True := by",
+  r#"
+def raw : Nat := "1"
+"#, "--", "/-"]
+
+def character : Char :=
+  '"'
+
+abbrev Ωμ' : Nat :=
+  3
+
+theorem absLike (x : Nat) :
+    x ∣ x := by
+  exact Nat.dvd_refl x
+
+def helper (n : Nat) : Nat := go n
+where
+  /-- A local doc comment. -/
+  @[inline]
+  go : Nat → Nat
+    | 0 => 0
+    | k + 1 => go k
+
+end Outer
+theorem _root_.Outer.rooted : True := by
+  trivial
+"""
+
+
+def test_declaration_ranges_agree_with_the_compiler(lean):
+    found = LeanExtractor(min_lines=1).functions("Core.lean", CORE_SYNTAX)
+    assert [(f.qualname.removeprefix("Core.lean::"), f.line, f.end_line) for f in found] == [
+        ("Outer.Inner.first", 8, 11),
+        ("Outer.Inner.second", 13, 19),
+        ("Outer.pointInhabited", 30, 31),
+        ("Outer.«odd name»", 33, 34),
+        ("Outer.isEven", 37, 39),
+        ("Outer.isOdd", 40, 42),
+        ("Outer.countdown", 45, 48),
+        ("Outer.quoted", 52, 55),
+        ("Outer.character", 57, 58),
+        ("Outer.Ωμ'", 60, 61),
+        ("Outer.absLike", 63, 65),
+        ("Outer.helper", 67, 73),
+        ("Outer.rooted", 76, 77),
+    ]
+    by_name = {f.name: f for f in found}
+    assert by_name["second"].code.startswith("set_option maxRecDepth 600 in\nopen Nat in\n/-- Wrapped twice. -/\n")
+    # A comment after the last code is not part of the declaration.
+    assert by_name["second"].code.endswith("  set_option maxRecDepth 700 in\n  rfl")
+    assert by_name["second"].tokens[:8] == ["by", "open", "Classical", "in", "set_option", "maxRecDepth", "700", "in"]
+    assert by_name["isOdd"].code.endswith("| n + 1 => isEven n")
+    assert by_name["countdown"].tokens[-6:] == [
+        "termination_by",
+        "n",
+        "decreasing_by",
+        "omega",
+        "type:List",
+        "type:Nat",
+    ]
+    assert by_name["helper"].tokens[:6] == ["go", "n", "where", "@", "[", "inline"]
+    assert by_name["«odd name»"].tokens == ["|", "⟨", "x", ",", "_", "⟩", "=>", "x", "type:Point", "type:→", "type:Nat"]
+    assert by_name["absLike"].tokens == ["by", "exact", "Nat.dvd_refl", "x", "type:x", "type:∣", "type:x"]
+    literals = [token for token in by_name["quoted"].tokens if token.startswith("str:")]
+    assert len(literals) == len(set(literals)) == 4
+    assert by_name["character"].tokens[0].startswith("str:")
+
+
+@pytest.mark.parametrize(
+    "proof",
+    [
+        "theorem a (A : Matrix n n ℂ) : Aᴴᴴ = A := by\n  simp",
+        "theorem a (x : G ⧸ N) : x = x := by\n  rfl",
+        "theorem a (h : ∃ x : Nat, x = 1 ∧ True) : True := by\n  obtain ⟨x, -, h⟩ := h\n  exact h",
+        "theorem a : ∀ᶠ x in Filter.atTop, (0 : Nat) ≤ x := by\n  simp",
+        "theorem a (x : ℤ) :\n    |x| = |x| := by\n  rfl",
+        "theorem a (s t : Finset ℕ) (h : #s = #t) :\n    #t =\n    #s := by\n  exact h.symm",
+    ],
+)
+def test_notation_from_imports_does_not_hide_a_declaration(lean, proof):
+    # The Riemann Hypothesis project uses each of these. A grammar without the imported notation lost them.
+    source = f"{proof}\n\nomit [Fintype n] in\ntheorem b : True := by\n  trivial\n"
+    first, second = lean.functions("A.lean", source)
+    assert (first.name, first.code) == ("a", proof)
+    assert (second.name, second.line, second.end_line) == ("b", first.end_line + 2, first.end_line + 4)
+    assert second.tokens == ["by", "trivial", "type:True"]
+
+
+def test_scopes_close_by_component_and_other_commands_end_a_declaration(lean):
+    source = """@[expose] public section
+noncomputable section
+namespace New.Cohomology
+variable (h : ∑ i in s, f i = 1)
+def kept : Nat :=
+  1
+  deriving Inhabited
+
+grind_pattern kept => kept
+end Cohomology
+namespace «GL»
+class abbrev Both (α : Type) :=
+  Inhabited α, Nonempty α
+scoped[GL] notation "𝔤" => kept
+local instance localOne : Inhabited Nat :=
+  ⟨1⟩
+deriving instance Repr for Both
+def last : Nat :=
+  2
+end «GL»
+end New
+theorem outside : True := by
+  trivial
+"""
+    found = lean.functions("A.lean", source)
+    assert [(f.qualname.removeprefix("A.lean::"), f.line, f.end_line) for f in found] == [
+        ("New.Cohomology.kept", 5, 7),
+        ("New.GL.localOne", 15, 16),
+        ("New.GL.last", 18, 19),
+        ("outside", 22, 23),
+    ]
+    assert found[0].tokens == ["1", "deriving", "Inhabited", "type:Nat"]
+
+
+def test_term_keywords_and_one_line_alternatives_stay_inside_their_declaration(lean):
+    # Each shape is reduced from a Mathlib declaration whose compiler range the scan first got wrong.
+    source = """def cast (model : Nat) : Nat :=
+  unsafe unsafeCast model
+
+lemma eq {p : Walk v w} : p.Nil → v = w | .nil => rfl
+  -- a remark
+
+scoped [Pointwise] attribute [instance] cast
+local grind_pattern eq => p.Nil
+unsafe def last : Nat :=
+  1
+"""
+    cast, eq, last = LeanExtractor(min_lines=1).functions("A.lean", source)
+    assert (cast.line, cast.end_line, cast.tokens[:2]) == (1, 2, ["unsafe", "unsafeCast"])
+    assert (eq.line, eq.end_line) == (4, 4)
+    assert eq.tokens == ["|", ".", "nil", "=>", "rfl", "type:p.Nil", "type:→", "type:v", "type:=", "type:w"]
+    assert (last.line, last.end_line) == (9, 10)
+
+
+def test_an_unfinished_comment_or_attribute_ends_the_scan(lean):
+    proof = "theorem {name} : True := by\n  trivial\n"
+    (only,) = lean.functions("A.lean", proof.format(name="a") + "/- unfinished\n" + proof.format(name="b"))
+    assert (only.name, only.end_line) == ("a", 2)
+    (only,) = lean.functions("A.lean", proof.format(name="a") + "@[simp\n" + proof.format(name="b"))
+    assert (only.name, only.end_line) == ("a", 2)
 
 
 @pytest.mark.parametrize("delimiter", ['"', 'r#"'])

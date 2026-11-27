@@ -698,6 +698,13 @@ The additional 8,060 sites include declarations whose bodies or types use notati
 does not fully parse. Recovery requires a named assignment and a bounded body. The strict parse check
 still uses the complete syntax tree. The counts measure how many declarations a contributor can inspect.
 
+The version 4 extractor does not take declarations from the grammar. It masks comments and literals, starts a
+command at each line whose first word is a command keyword, and splits a declaration at its first unbracketed
+`:=`, `where` or pattern alternative. At c5451bd it matches **21,838 of 21,842 eligible sites (99.98%)** where
+version 3 matches 16,746. The four it leaves are `class abbrev` declarations, which define classes. A
+declaration with an unbalanced bracket is not reported: there the text is cut short, or a syntax quotation
+holds a command keyword.
+
 ## Lean import closure audit
 
 When a scan finds alternative formalizations, join its JSON report with Lake's compiled import graph to see
