@@ -12,6 +12,10 @@ from pathlib import Path
 from dry_lint.models import qualified
 
 PROOF_ASSIGNMENT = re.compile(r":=\s*by[ \t]*(?:--[^\n]*)?\n")
+# Lean records a private declaration as `_private.<Module>.0.<Name>`.
+_PRIVATE = re.compile(r"^_private\..+?\.0\.")
+#: A reference used by this many proofs says nothing about which of them share an argument.
+COMMON = 100
 Reference = tuple[int, int, str]
 
 
@@ -36,16 +40,22 @@ def declaration_references(artifact):
         for usage in detail["usages"]:
             if len(usage) >= 5 and usage[4] is not None:
                 row, column, _, _, context = usage
-                refs[context].append((row + 1, column, name))
+                refs[_PRIVATE.sub("", context)].append((row + 1, column, name))
     return refs
 
 
-def collect_proofs(source_root, artifacts, extractor, sources: Iterable[Path]) -> Iterator[Proof]:
+def collect_proofs(
+    source_root, artifacts, extractor, sources: Iterable[Path], unbuilt: list[Path] | None = None
+) -> Iterator[Proof]:
+    """Proofs of the built modules. A source without an artifact is an error, unless `unbuilt` collects them."""
     for source in sorted(sources):
         relative = source.relative_to(source_root)
         if any(part.startswith(".") for part in relative.parts):
             continue
         artifact = (artifacts / relative).with_suffix(".ilean")
+        if unbuilt is not None and not artifact.is_file():
+            unbuilt.append(source)
+            continue
         data = json.loads(artifact.read_bytes())
         if data.get("version") != 6 or data.get("module") != ".".join(relative.with_suffix("").parts):
             raise ValueError(f"{artifact}: expected version 6 .ilean data for {relative}")
@@ -71,7 +81,7 @@ def reference_candidates(names):
                 triples[triple].add(index)
     pairs = Counter()
     for hits in triples.values():
-        if 1 < len(hits) <= 16:
+        if 1 < len(hits) < COMMON:
             pairs.update(combinations(sorted(hits), 2))
     return (pair for pair, count in pairs.items() if count >= 2)
 
@@ -104,7 +114,7 @@ def align_proofs(proofs: list[Proof]) -> Iterator[Alignment]:
         rows = tuple(
             (a, b)
             for a, b in align_references(left.references, right.references, names[i], names[j])
-            if frequency[a[2]] < 100
+            if frequency[a[2]] < COMMON
         )
         if distinct_references(rows) >= 7 and shared_line_count(rows) >= 6:
             yield Alignment(i, j, rows)

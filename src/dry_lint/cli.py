@@ -1276,13 +1276,16 @@ def lean_proof_families(root: Path, args: argparse.Namespace) -> int:
     source_root = (root / args.source_root).resolve()
     prefix = source_root.relative_to(root).as_posix()
     paths = tracked_files(root, ["*.lean"] if prefix == "." else [f"{prefix}/*.lean"], [])
+    unbuilt: list[Path] = []
     try:
         extractor = LeanExtractor(min_lines=15)
         proofs = list(
-            collect_proofs(source_root, root / args.artifact_root, extractor, (root / path for path in paths))
+            collect_proofs(source_root, root / args.artifact_root, extractor, (root / path for path in paths), unbuilt)
         )
     except (ImportError, KeyError, TypeError) as error:
         raise ValueError(str(error)) from error
+    if unbuilt and len(unbuilt) == len(paths):
+        raise ValueError("No matching .ilean artifacts. Build the project and check the source and artifact roots.")
     groups = []
     for family in rank_families(align_proofs(proofs)):
         members = [proofs[index].location() for index in family.members]
@@ -1303,11 +1306,18 @@ def lean_proof_families(root: Path, args: argparse.Namespace) -> int:
     if args.format == "json":
         print(
             json.dumps(
-                {"analyzed_proofs": len(proofs), "families_found": len(groups), "families": groups[: args.limit]}
+                {
+                    "analyzed_proofs": len(proofs),
+                    "unbuilt_modules": len(unbuilt),
+                    "families_found": len(groups),
+                    "families": groups[: args.limit],
+                }
             )
         )
         return 0
     print(f"Found {len(groups)} Lean proof families across {len(proofs)} analyzed declarations.")
+    if unbuilt:
+        print(f"Skipped {len(unbuilt)} source modules without an .ilean file.")
     for group in groups[: args.limit]:
         print(f"\n{len(group['members'])} declarations · at least {group['shared_lines']} aligned lines each")
         for number, member in enumerate(group["members"], 1):
