@@ -2,14 +2,26 @@
 
 import argparse
 import json
+import subprocess
+import sys
 from collections import defaultdict
 from pathlib import Path
+
+#: `dry-lint scan --limit` when it is not given. The report does not say how many pairs the limit left out.
+DEFAULT_SCAN_LIMIT = 50
+
+
+def checkout_prefix(project):
+    """Where the project sits in its Git checkout, such as `proof/`: a scan names files from the top of it."""
+    found = subprocess.run(["git", "rev-parse", "--show-prefix"], cwd=project, capture_output=True, text=True)
+    return found.stdout.strip() if found.returncode == 0 else ""
 
 
 def import_graph(project, source_root, artifact_root):
     """Read imports from Lean itself and require an artifact for every source module."""
     graph = {}
     paths = {}
+    prefix = checkout_prefix(project)
     for source in sorted(source_root.rglob("*.lean")):
         relative = source.relative_to(source_root)
         if any(part.startswith(".") for part in relative.parts):
@@ -21,7 +33,7 @@ def import_graph(project, source_root, artifact_root):
         if data.get("version") != 6 or data.get("module") != module or "directImports" not in data:
             raise ValueError(f"{artifact}: expected Lean .ilean version 6 for {module}, with directImports")
         graph[module] = {name for name, *_ in data["directImports"]}
-        paths[source.relative_to(project).as_posix()] = module
+        paths[prefix + source.relative_to(project).as_posix()] = module
     return graph, paths
 
 
@@ -97,6 +109,13 @@ def main(argv=None):
         if missing:
             raise ValueError("Entry modules absent from the source inventory: " + ", ".join(sorted(missing)))
         scan = json.loads(args.scan_report.read_bytes())
+        if len(scan["findings"]) == DEFAULT_SCAN_LIMIT:
+            print(
+                f"{args.scan_report}: exactly {DEFAULT_SCAN_LIMIT} pairs, the default `scan --limit`. If the scan "
+                "printed that it shows the closest pairs of more, run it again with a larger --limit: "
+                "this audit sees only the pairs in the file.",
+                file=sys.stderr,
+            )
         report = summarize(graph, paths, args.entry, scan)
     except (OSError, ValueError, KeyError) as error:
         parser.error(str(error))

@@ -55,7 +55,7 @@ block covers every copy of it, so each repetition appears once, at its longest.
 | `--max-lines N` | The longest block to look for. Default 200. |
 | `--min-shared-chars N` | The least shared text, without indentation. Default 70. It keeps out blocks made of brackets and short keywords. |
 | `--allow-one-line-difference` | Also match blocks where one line between the first and the last differs. |
-| `--lines N --max-gap-lines G` | Match the first and second half of `N` lines with up to `G` different lines between them in each copy. |
+| `--lines N --max-gap-lines G` | Match the first and second half of `N` lines with up to `G` different lines between them in each copy. Copies with nothing between the halves are reported too. |
 | `--include GLOB` | Scan these tracked paths. The configured `exclude` still applies. Repeat for more. |
 | `--extractor NAME` | Read only this language. Repeat for more. |
 | `--limit N` | Print at most `N` blocks. Default 20. The first line always gives the total. |

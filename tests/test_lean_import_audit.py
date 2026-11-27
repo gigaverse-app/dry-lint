@@ -1,5 +1,6 @@
 import json
 import runpy
+import subprocess
 import sys
 from pathlib import Path
 
@@ -92,3 +93,36 @@ def test_audit_requires_complete_matching_artifacts(tmp_path, capsys):
     with pytest.raises(SystemExit):
         audit["main"](args)
     assert "Main.ilean" in capsys.readouterr().err
+
+
+def test_audit_matches_scan_paths_when_the_project_is_below_the_checkout(tmp_path, capsys):
+    # dry-lint names files from the top of the Git checkout, wherever --root points.
+    subprocess.run(["git", "init", "--quiet", str(tmp_path)], check=True)
+    project = tmp_path / "proof"
+    add_module(project, "Main", "Proof.Core")
+    add_module(project, "Proof.Core")
+    add_module(project, "Alternate")
+    inside, outside = (
+        {**candidate(module, name), "path": f"proof/src/{module.replace('.', '/')}.lean"}
+        for module, name in (("Proof.Core", "primary"), ("Alternate", "alternative"))
+    )
+    report = tmp_path / "scan.json"
+    report.write_text(json.dumps({"findings": [finding(inside, outside)]}), encoding="utf-8")
+    audit["main"]([str(report), "--root", str(project), "--entry", "Main"])
+    captured = capsys.readouterr()
+    assert json.loads(captured.out)["outside_import_closure"] == [
+        {"modules": ["Alternate"], "matches": [{"inside": inside, "outside": outside, "similarity": 0.9}]}
+    ]
+    assert captured.err == ""
+
+
+def test_audit_warns_when_the_scan_stopped_at_its_default_limit(tmp_path, capsys):
+    add_module(tmp_path, "Main")
+    add_module(tmp_path, "Alternate")
+    pair = finding(candidate("Main", "primary"), candidate("Alternate", "alternative"))
+    report = tmp_path / "scan.json"
+    report.write_text(json.dumps({"findings": [pair] * 50}), encoding="utf-8")
+    audit["main"]([str(report), "--root", str(tmp_path), "--entry", "Main"])
+    captured = capsys.readouterr()
+    assert len(json.loads(captured.out)["outside_import_closure"][0]["matches"]) == 50
+    assert "exactly 50 pairs, the default `scan --limit`" in captured.err

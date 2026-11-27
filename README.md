@@ -99,7 +99,7 @@ and reports source ranges without running Lean or a judge. Use `--lines 5` for f
 or `--allow-one-line-difference` when a line between shared lines has changed. Use `--max-lines 8`
 to compare lengths from `--lines` up to eight, rank by repeated lines across disjoint copies, and
 hide smaller matches already covered by a longer match. Use `--lines 4 --max-gap-lines 3` to
-find two shared two-line anchors separated by up to three different lines per copy. The scanner reads
+find two shared two-line anchors separated by up to three different lines per copy, or by none. The scanner reads
 each tactic block from the layout of the source, so it does not depend on the static grammar parsing the
 proof, and it preserves identifiers and relative indentation.
 Lean itself remains the authority on whether two proofs can share a lemma.
@@ -122,13 +122,19 @@ A family has the same ordered references at corresponding proof lines in every m
 gives each declaration and its aligned line numbers. `--focus` selects which groups to show while
 retaining matches in other files. Use `--artifact-root` for a custom .ilean directory and
 `--format json` for a report you can compare before and after a refactor. Rebuild after editing the
-sources so their line numbers and the compiler artifacts correspond.
+sources so their line numbers and the compiler artifacts correspond. A source module without an
+.ilean file is skipped and counted in the report. References used by 100 or more proofs are ignored,
+so a family that large is not reported.
 
 A proof can also be ported to a dependency under a new name. After building the project with Lake,
 run `dry-lint lean-upstream --source-root src --dependency .lake/packages/TauCeti/TauCeti` to
-find upstream docstrings that cite local declarations by qualified name. The JSON report ranks
+find upstream docstrings that cite local theorems, definitions, structures, classes, inductive types
+and named instances by qualified name. The JSON report ranks
 declarations by their source length, gives a file and line for each citation, and counts modules
-without build metadata. Use `--artifact-root` for a nonstandard build directory. A citation may
+without build metadata. Its `files` list adds the cited lines up per file, largest first, so the
+biggest replacements come first. On a project with many open pull requests, save each one's diff
+(`gh pr diff 123 > 123.diff`) and pass `--claimed-diff 123.diff` for each: a declaration is left out
+when a diff already removes a quarter or more of its lines, and `claimed_declarations` counts them. Use `--artifact-root` for a nonstandard build directory. A citation may
 describe a specialization or a theorem the project already uses. Compare the statements and check
 any proposed replacement with Lean.
 
@@ -152,6 +158,7 @@ look-alikes without calling a model or failing on findings. To inspect just your
 
 To look for repeated proofs or helpers within a module as well, add `--include-same-file` to a single-repository
 scan. It ranks eligible declarations in the same file alongside cross-file matches when choosing nearest neighbours.
+Pass the same flag to `dry-lint explain` to ask about a pair that scan reported.
 
 To find lines that repeat inside functions whose other lines differ, run `dry-lint blocks`. It compares source
 lines in Python, TypeScript, Luau and Lean, needs no judge, and prints each repeated block with its locations

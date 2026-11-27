@@ -712,9 +712,12 @@ whether both are used by the proof. Scan and build the same checkout, then pass 
 an entry point for the development.
 
 ```sh
-dry-lint scan --root ../proof --extractor lean --judge none --format json > scan.json
+dry-lint scan --root ../proof --extractor lean --judge none --limit 100000 --format json > scan.json
 uv run python scripts/audit_lean_imports.py scan.json --root ../proof --entry Main --entry Statements
 ```
+
+The audit sees only the pairs in the file, and a scan writes its 50 closest unless `--limit` says otherwise.
+When the scan prints that it is showing the closest of more pairs, raise `--limit` and run it again.
 
 The audit reads direct imports from version 6 `.ilean` files. It groups modules outside the selected closure
 by their imports and ranks groups with dry-lint matches to reachable declarations first. Use `--source-dir`
@@ -793,8 +796,9 @@ to focus on one development.
 uv run --extra lean python scripts/rank_lean_rewrites.py ../proof/src ../proof/.lake/build/lib/lean
 ```
 
-The score counts how often a rule in a parsed `simp only` or `simp_all only` list recurs in another
-list in the same declaration. Each rule counts once per list. The JSON report gives the call sites
+The score counts how often a rule in a `simp only` or `simp_all only` list recurs in another
+list in the same declaration. Each rule counts once per list. The lists are read from the source text
+with comments and strings masked, so a list the static grammar cannot parse still counts. The JSON report gives the call sites
 to compare and counts missing build artifacts. Similar rewrite lists can serve different arguments,
 so the score measures repetition, not removable lines.
 

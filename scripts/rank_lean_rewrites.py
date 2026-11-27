@@ -5,11 +5,11 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from dry_lint.lean_rewrites import built_rewrite_modules
+from dry_lint.lean_rewrites import built_rewrite_modules, declaration_calls
 
 
-def rank_module(path, declarations):
-    for name, start, within in declarations:
+def rank_module(path, source, artifacts):
+    for name, start, within in declaration_calls(source, artifacts):
         counts = Counter(rule for _, rules in within for rule in rules)
         repeated = sum(count - 1 for count in counts.values())
         if repeated:
@@ -33,12 +33,12 @@ def main(argv=None):
     findings = []
     built = unbuilt = 0
     try:
-        for path, declarations in built_rewrite_modules(args.source_root, args.artifact_root):
-            if declarations is None:
+        for path, source, data in built_rewrite_modules(args.source_root, args.artifact_root):
+            if source is None:
                 unbuilt += 1
             else:
                 built += 1
-                findings.extend(rank_module(path, declarations))
+                findings.extend(rank_module(path, source, data))
     except ValueError as exc:
         arg.error(str(exc))
     if not built:

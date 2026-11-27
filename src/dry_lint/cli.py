@@ -735,7 +735,7 @@ def model_baseline(root: Path, settings: Settings, args: argparse.Namespace) -> 
 
 
 def explain(root: Path, settings: Settings, args: argparse.Namespace) -> int:
-    detector = Detector.for_repository(root, settings)
+    detector = Detector.for_repository(root, settings, same_file=args.include_same_file)
     a, b = detector.find(args.first), detector.find(args.second)
     pair = detector.pair(a, b, detector.comparer.similarity(a, b))
     lines = [f"{a.qualname} ~ {b.qualname}", f"  similarity {pair.similarity:.2f} ({pair.comparer})"]
@@ -1012,6 +1012,13 @@ def parser() -> argparse.ArgumentParser:
     upstream.add_argument(
         "--min-lines", type=int, default=1, help="Minimum local declaration size, excluding its docstring."
     )
+    upstream.add_argument(
+        "--claimed-diff",
+        type=Path,
+        action="append",
+        default=[],
+        help="A unified diff, such as an open pull request's. Declarations it already removes are left out. Repeat for more.",
+    )
     blocks = commands.add_parser(
         "blocks", help="Find lines repeated inside functions, in every configured language. No judge, no key."
     )
@@ -1117,6 +1124,7 @@ def parser() -> argparse.ArgumentParser:
     include_option(explaining)
     extractor_option(explaining)
     explaining.add_argument("--within-file", action="store_true", help="Report both ranks in the same-file scan.")
+    explaining.add_argument("--include-same-file", action="store_true", help="Rank as `scan --include-same-file` does.")
     explaining.add_argument("first", help="A qualified name, or a suffix only one function has.")
     explaining.add_argument("second")
     measuring = commands.add_parser(
@@ -1287,13 +1295,16 @@ def lean_proof_families(root: Path, args: argparse.Namespace) -> int:
     source_root = (root / args.source_root).resolve()
     prefix = source_root.relative_to(root).as_posix()
     paths = tracked_files(root, ["*.lean"] if prefix == "." else [f"{prefix}/*.lean"], [])
+    unbuilt: list[Path] = []
     try:
         extractor = LeanExtractor(min_lines=15)
         proofs = list(
-            collect_proofs(source_root, root / args.artifact_root, extractor, (root / path for path in paths))
+            collect_proofs(source_root, root / args.artifact_root, extractor, (root / path for path in paths), unbuilt)
         )
     except (ImportError, KeyError, TypeError) as error:
         raise ValueError(str(error)) from error
+    if unbuilt and len(unbuilt) == len(paths):
+        raise ValueError("No matching .ilean artifacts. Build the project and check the source and artifact roots.")
     groups = []
     for family in rank_families(align_proofs(proofs)):
         members = [proofs[index].location() for index in family.members]
@@ -1314,11 +1325,18 @@ def lean_proof_families(root: Path, args: argparse.Namespace) -> int:
     if args.format == "json":
         print(
             json.dumps(
-                {"analyzed_proofs": len(proofs), "families_found": len(groups), "families": groups[: args.limit]}
+                {
+                    "analyzed_proofs": len(proofs),
+                    "unbuilt_modules": len(unbuilt),
+                    "families_found": len(groups),
+                    "families": groups[: args.limit],
+                }
             )
         )
         return 0
     print(f"Found {len(groups)} Lean proof families across {len(proofs)} analyzed declarations.")
+    if unbuilt:
+        print(f"Skipped {len(unbuilt)} source modules without an .ilean file.")
     for group in groups[: args.limit]:
         print(f"\n{len(group['members'])} declarations · at least {group['shared_lines']} aligned lines each")
         for number, member in enumerate(group["members"], 1):
@@ -1351,7 +1369,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "lean-upstream":
             from dry_lint.lean_upstream import find_upstream_citations
 
-            report = find_upstream_citations(args.source_root, args.artifact_root, args.dependency, args.min_lines)
+            report = find_upstream_citations(
+                args.source_root, args.artifact_root, args.dependency, args.min_lines, args.claimed_diff
+            )
             print(json.dumps(report, indent=2, ensure_ascii=True))
             return 0
         root = repository_root(args.root)

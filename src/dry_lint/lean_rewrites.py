@@ -6,28 +6,40 @@ from bisect import bisect_left
 from collections import defaultdict
 from itertools import combinations
 
-from tree_sitter import Query, QueryCursor
-
-from dry_lint.lean import LeanExtractor
+from dry_lint.lean import BRACKETS, read_source
 from dry_lint.lean_upstream import lean_sources, local_site
 
-_SIMP_ONLY = re.compile(rb"\b(?:simp|simp_all)\s+only\s*$")
+_SIMP_ONLY = re.compile(r"\b(?:simp|simp_all)\s+only\s*\[")
 
 
-def declaration_calls(source, artifacts, parser, query):
-    if b"only" not in source:
+def rule_lists(source):
+    """
+    The row and the rules of each `simp only [...]` list, read from the text with comments and
+    strings masked. The grammar loses some lists after syntax it cannot parse; the brackets are always there.
+    """
+    lean = read_source(source)
+    text = lean.structure
+    for call in _SIMP_ONLY.finditer(text):
+        rules = set()
+        depth, start = 1, call.end()
+        for position in range(start, len(text)):
+            depth += (text[position] in BRACKETS[0]) - (text[position] in BRACKETS[1])
+            if depth == 0 or (depth == 1 and text[position] == ","):
+                rules.add(" ".join(text[start:position].split()))
+                start = position + 1
+            if depth == 0:
+                break
+        rules.discard("")
+        if rules and depth == 0:
+            yield lean.line(call.end() - 1) - 1, rules
+
+
+def declaration_calls(source, artifacts):
+    if "only" not in source:
         return
-    tree = parser.parse(source)
-    calls = []
-    for node in QueryCursor(query).captures(tree.root_node).get("rules", []):
-        if node.has_error or not _SIMP_ONLY.search(source[max(0, node.start_byte - 64) : node.start_byte]):
-            continue
-        rules = {child.text.strip() for child in node.named_children if not child.type.endswith("comment")}
-        if rules:
-            calls.append((node.start_point.row, rules))
-    calls.sort(key=lambda item: item[0])
+    calls = list(rule_lists(source))
     rows = [row for row, _ in calls]
-    lines = source.decode().splitlines()
+    lines = source.splitlines()
     spans = []
     for name, coords in artifacts["decls"].items():
         site = local_site(name, coords, lines)
@@ -68,25 +80,23 @@ def rewrite_families(path, declarations, required_rules):
         common = set.intersection(*(calls[i][1] for i in sites))
         yield {
             "path": path,
-            "rules": sorted(rule.decode() for rule in common),
+            "rules": sorted(common),
             "proof_count": len(names),
             "sites": [{"name": owners[i], "line": calls[i][0] + 1} for i in sorted(sites, key=lambda i: calls[i][0])],
         }
 
 
 def built_rewrite_modules(source_root, artifact_root):
-    parser = LeanExtractor().parser
-    query = Query(parser.language, "(list_lit) @rules")
     for path in lean_sources(source_root):
         relative = path.relative_to(source_root)
         artifact = (artifact_root / relative).with_suffix(".ilean")
         if not artifact.is_file():
-            yield relative.as_posix(), None
+            yield relative.as_posix(), None, None
             continue
         data = json.loads(artifact.read_bytes())
         if data.get("version") != 6:
             raise ValueError(f"{artifact}: expected .ilean version 6")
-        yield relative.as_posix(), declaration_calls(path.read_bytes(), data, parser, query)
+        yield relative.as_posix(), path.read_text(encoding="utf-8"), data
 
 
 def find_rewrite_families(source_root, artifact_root, rules=(), limit=20):
@@ -94,13 +104,13 @@ def find_rewrite_families(source_root, artifact_root, rules=(), limit=20):
         raise ValueError("--limit must be positive")
     findings = []
     built = missing = 0
-    required = {rule.encode() for rule in rules}
-    for path, declarations in built_rewrite_modules(source_root, artifact_root):
-        if declarations is None:
+    required = set(rules)
+    for path, source, data in built_rewrite_modules(source_root, artifact_root):
+        if source is None:
             missing += 1
         else:
             built += 1
-            findings.extend(rewrite_families(path, declarations, required))
+            findings.extend(rewrite_families(path, declaration_calls(source, data), required))
     if not built:
         raise ValueError("No matching .ilean artifacts. Build the project and check the two roots.")
     findings.sort(key=lambda row: (-row["proof_count"], -len(row["rules"]), row["path"], row["rules"]))

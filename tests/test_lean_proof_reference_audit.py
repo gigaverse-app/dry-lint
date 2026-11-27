@@ -11,30 +11,35 @@ audit = runpy.run_path(str(SCRIPT))
 pytestmark = pytest.mark.skipif("lean" not in downloaded_languages(), reason="Prefetch the Lean grammar")
 
 
-def write_module(root, name, symbols, binder, *, include_proof=True, version=6):
+def write_module(root, name, symbols, binder, *, include_proof=True, version=6, private=False):
     source = root / "src" / f"{name}.lean"
     artifact = root / "build" / f"{name}.ilean"
     source.parent.mkdir(parents=True, exist_ok=True)
     artifact.parent.mkdir(parents=True, exist_ok=True)
     statements = (
-        [f"theorem {name} : True := by -- Different local names"]
+        [f"{'private ' * private}theorem {name} : True := by -- Different local names"]
         + [f"  have {binder}{i} := {symbol}" for i, symbol in enumerate(symbols)]
         + ["  trivial"]
         if include_proof
         else [f"def {name} : Nat :="] + ["  1 +" for _ in symbols] + ["  0"]
     )
     source.write_text("\n".join(statements) + "\n", encoding="utf-8")
+    declared = name
+    if private:
+        name = f"_private.{name}.0.{name}"  # How Lean names a private declaration in a module of the same name.
     references = [
         [0, "Lean.Meta", "Lean.Meta.common"],
         {"usages": [[2, 0, 2, 1, name]]},
-        [1, name, "local"],
+        [1, declared, "local"],
         {"usages": [[2, 0, 2, 1, name]]},
         [0, "Mathlib.Example", "Outside.statement"],
         {"usages": [[0, 10, 0, 20, name], [2, 0, 2, 1, None]]},
     ]
     for i, symbol in enumerate(symbols):
         references.extend([[0, "Mathlib.Example", symbol], {"usages": [[i + 1, 10, i + 1, 20, name]]}])
-    artifact.write_text(json.dumps({"version": version, "module": name, "references": references}), encoding="utf-8")
+    artifact.write_text(
+        json.dumps({"version": version, "module": declared, "references": references}), encoding="utf-8"
+    )
 
 
 def test_reference_audit_aligns_compiler_names_across_local_names(tmp_path, capsys, monkeypatch):
@@ -120,6 +125,48 @@ def test_family_command_aligns_three_declarations_and_does_not_join_disjoint_mat
     broken.write_text('{"version": 6, "module": "Right"}', encoding="utf-8")
     assert main(args) == 2
     assert "references" in capsys.readouterr().err
+
+
+def family_command(repo, *names, **module):
+    shared = [f"Example.fact{i}" for i in range(14)]
+    for name in names:
+        write_module(repo.root, name, shared, "step", **module.get(name, {}))
+    repo.git("add", "src")
+    return ["lean-proof-families", "--root", str(repo.root), "--source-root", "src", "--artifact-root", "build"]
+
+
+def test_family_command_includes_private_declarations(repo, capsys):
+    from dry_lint.cli import main
+
+    args = family_command(repo, "Left", "Middle", "Right", Right={"private": True})
+    assert main([*args, "--format", "json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["analyzed_proofs"] == 3
+    [group] = result["families"]
+    assert [member["name"] for member in group["members"]] == ["Left", "Middle", "Right"]
+
+
+def test_family_command_finds_a_family_of_more_than_sixteen(repo, capsys):
+    from dry_lint.cli import main
+
+    args = family_command(repo, *(f"Twin{i:02d}" for i in range(17)))
+    assert main([*args, "--format", "json"]) == 0
+    [group] = json.loads(capsys.readouterr().out)["families"]
+    assert len(group["members"]) == 17
+
+
+def test_family_command_skips_and_counts_modules_without_artifacts(repo, capsys):
+    from dry_lint.cli import main
+
+    args = family_command(repo, "Left", "Middle", "Right", "Unbuilt")
+    (repo.root / "build/Unbuilt.ilean").unlink()
+    assert main([*args, "--format", "json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert (result["analyzed_proofs"], result["unbuilt_modules"], result["families_found"]) == (3, 1, 1)
+    assert main(args) == 0
+    assert "Skipped 1 source modules without an .ilean file." in capsys.readouterr().out
+    assert main([*args, "--artifact-root", "elsewhere"]) == 2
+    assert "No matching .ilean artifacts" in capsys.readouterr().err
 
 
 def test_family_ranking_prefers_the_shared_core_with_more_lines():
