@@ -8,7 +8,7 @@ from pathlib import Path
 
 from tree_sitter import Query, QueryCursor
 
-from dry_lint.functions import tracked_files
+from dry_lint.functions import dedent_lines, tracked_files
 from dry_lint.lean import LeanExtractor
 
 _COMMAND_START = re.compile(
@@ -77,11 +77,6 @@ def _source_runs(
             yield path, start, run
 
 
-def _dedent(lines: list[str]) -> tuple[str, ...]:
-    left = min(len(line) - len(line.lstrip()) for line in lines)
-    return tuple(line[left:] for line in lines)
-
-
 def _find_groups(
     runs: Iterable[tuple[str, int, list[str]]],
     lines: int,
@@ -92,7 +87,8 @@ def _find_groups(
     found: dict[tuple[str, ...], list[ProofBlock]] = defaultdict(list)
     for path, start, run in runs:
         for offset in range(len(run) - lines + 1):
-            block = ProofBlock(path, start + offset, _dedent(run[offset : offset + lines]))
+            _, code = dedent_lines(run[offset : offset + lines])
+            block = ProofBlock(path, start + offset, code)
             # Hold the shape of the layout fixed even at the differing line.
             sizes = [len(line.strip()) for line in block.code]
             total = sum(sizes)
@@ -123,7 +119,8 @@ def _find_gapped_groups(
                 end = offset + lines + gap
                 anchors = first + run[offset + prefix + gap : end]
                 if sum(len(line.strip()) for line in anchors) >= min_shared_chars:
-                    found[_dedent(anchors)].append((path, start, run, offset, end))
+                    _, key = dedent_lines(anchors)
+                    found[key].append((path, start, run, offset, end))
 
     groups = set()
     for anchors, occurrences in found.items():
@@ -135,7 +132,8 @@ def _find_gapped_groups(
         copies = []
         for path, start, run, offset, end in sorted(occurrences, key=lambda row: (row[0], row[1] + row[4])):
             if start + offset >= end_by_path.get(path, 0):
-                copies.append(ProofBlock(path, start + offset, _dedent(run[offset:end]), anchors))
+                _, code = dedent_lines(run[offset:end])
+                copies.append(ProofBlock(path, start + offset, code, anchors))
                 end_by_path[path] = start + end
         if len({block.code for block in copies}) > 1:
             groups.add(tuple(copies))

@@ -28,11 +28,16 @@ def words(identifier: str) -> list[str]:
     return [part for part in parts if len(part) > 2 and part not in STOP_WORDS]
 
 
-def _parse(code: str) -> ast.Module | None:
-    lines = code.splitlines()
+def dedent_lines(lines: list[str]) -> tuple[int, tuple[str, ...]]:
+    """Remove the common indentation and return its size for restoring source coordinates."""
     indent = min((len(line) - len(line.lstrip()) for line in lines if line.strip()), default=0)
+    return indent, tuple(line[indent:] for line in lines)
+
+
+def _parse(code: str) -> ast.Module | None:
+    _, lines = dedent_lines(code.splitlines())
     try:
-        return ast.parse("\n".join(line[indent:] for line in lines))
+        return ast.parse("\n".join(lines))
     except SyntaxError:
         return None
 
