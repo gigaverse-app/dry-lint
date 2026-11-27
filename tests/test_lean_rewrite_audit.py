@@ -29,3 +29,21 @@ def test_counts_rules_across_distinct_lists(tmp_path, capsys):
     assert report["findings"] == [
         {"path": "Demo.lean", "line": 1, "name": "alpha", "repeat_mentions": 2, "call_lines": [2, 3]}
     ]
+
+
+def test_reads_lists_the_grammar_cannot_parse():
+    # The static grammar loses a list that holds a tactic block, and every list after some notations.
+    source = (
+        "theorem gamma (n : Nat) (h : 0 < n) : n = n := by\n"
+        "  simp only [Nat.sub_add_cancel (by simpa using h), Nat.mul_one, f (a, b)]\n"
+        "  simp only [Nat.mul_one, -- then cancel\n"
+        "    Nat.sub_add_cancel (by simpa using h)] at h ⊢\n"
+        '  exact absurd "simp only [Nat.mul_one]" id\n'
+        "  simp only [\n"
+    )
+    assert list(audit["rule_lists"](source)) == [
+        (1, {"Nat.sub_add_cancel (by simpa using h)", "Nat.mul_one", "f (a, b)"}),
+        (2, {"Nat.mul_one", "Nat.sub_add_cancel (by simpa using h)"}),
+    ]
+    [finding] = audit["rank_module"]("Demo.lean", source, {"decls": {"gamma": [0, 0, 5, 13, 0, 8, 0, 13]}})
+    assert (finding["repeat_mentions"], finding["call_lines"]) == (2, [2, 3])

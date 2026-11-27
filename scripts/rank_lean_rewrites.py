@@ -7,26 +7,38 @@ from bisect import bisect_left
 from collections import Counter
 from pathlib import Path
 
-from tree_sitter import Query, QueryCursor
-
-from dry_lint.lean import LeanExtractor
+from dry_lint.lean import BRACKETS, read_source
 from dry_lint.lean_upstream import lean_sources, local_site
 
-_SIMP_ONLY = re.compile(rb"\b(?:simp|simp_all)\s+only\s*$")
+_SIMP_ONLY = re.compile(r"\b(?:simp|simp_all)\s+only\s*\[")
 
 
-def rank_module(path, source, artifacts, parser, query):
-    tree = parser.parse(source)
-    calls = []
-    for node in QueryCursor(query).captures(tree.root_node).get("rules", []):
-        if node.has_error or not _SIMP_ONLY.search(source[max(0, node.start_byte - 64) : node.start_byte]):
-            continue
-        rules = {child.text.strip() for child in node.named_children if not child.type.endswith("comment")}
-        if rules:
-            calls.append((node.start_point.row, rules))
-    calls.sort(key=lambda item: item[0])
+def rule_lists(source):
+    """
+    The row and the rules of each `simp only [...]` list, read from the text with comments and
+    strings masked. The grammar loses some lists after syntax it cannot parse; the brackets are always there.
+    """
+    lean = read_source(source)
+    text = lean.structure
+    for call in _SIMP_ONLY.finditer(text):
+        rules = set()
+        depth, start = 1, call.end()
+        for position in range(start, len(text)):
+            depth += (text[position] in BRACKETS[0]) - (text[position] in BRACKETS[1])
+            if depth == 0 or (depth == 1 and text[position] == ","):
+                rules.add(" ".join(text[start:position].split()))
+                start = position + 1
+            if depth == 0:
+                break
+        rules.discard("")
+        if rules and depth == 0:
+            yield lean.line(call.end() - 1) - 1, rules
+
+
+def rank_module(path, source, artifacts):
+    calls = list(rule_lists(source))
     rows = [row for row, _ in calls]
-    lines = source.decode().splitlines()
+    lines = source.splitlines()
     for name, coords in artifacts["decls"].items():
         site = local_site(name, coords, lines)
         if not site:
@@ -53,8 +65,6 @@ def main(argv=None):
     args = arg.parse_args(argv)
     if args.limit < 1:
         arg.error("--limit must be positive")
-    parser = LeanExtractor().parser
-    query = Query(parser.language, "(list_lit) @rules")
     findings = []
     built = unbuilt = 0
     for path in lean_sources(args.source_root):
@@ -64,13 +74,13 @@ def main(argv=None):
             unbuilt += 1
             continue
         built += 1
-        source = path.read_bytes()
-        if source.count(b"only") < 2:
+        source = path.read_text(encoding="utf-8")
+        if source.count("only") < 2:
             continue
         data = json.loads(artifact.read_bytes())
         if data.get("version") != 6:
             arg.error(f"{artifact}: expected .ilean version 6")
-        findings.extend(rank_module(relative.as_posix(), source, data, parser, query))
+        findings.extend(rank_module(relative.as_posix(), source, data))
     if not built:
         arg.error("No matching .ilean artifacts. Build the project and check the two roots.")
     findings.sort(key=lambda row: (-row["repeat_mentions"], row["path"], row["line"]))
