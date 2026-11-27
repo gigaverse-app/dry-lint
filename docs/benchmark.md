@@ -760,3 +760,25 @@ It matched repeated measurability and Tonelli steps in the Bessel cutoff argumen
 ([Riemann #9445](https://github.com/leanprover-community/riemann-hypothesis/pull/9445))
 and the two coordinate-padding bounds in the Schwartz Fock tensor-product argument
 ([Riemann #9448](https://github.com/leanprover-community/riemann-hypothesis/pull/9448)).
+
+### Repeated rewrite lists inside one proof
+
+A proof can repeat the same algebra in several cases while naming the rewrite rules in different
+orders. Run this audit on a built Lean library, or pass matching source and artifact subdirectories
+to focus on one development.
+
+```sh
+uv run --extra lean python scripts/rank_lean_rewrites.py ../proof/src ../proof/.lake/build/lib/lean
+```
+
+The score counts how often a rule in a parsed `simp only` or `simp_all only` list recurs in another
+list in the same declaration. Each rule counts once per list. The JSON report gives the call sites
+to compare and counts missing build artifacts. Similar rewrite lists can serve different arguments,
+so the score measures repetition, not removable lines.
+
+On the elementary-divisors directory of the Riemann Hypothesis project at `7c4ccbd6`, the three
+highest scores were 41 for the swap-transvection action, 37 for shallow specialization and 35 for
+the defect weight. Checking the matrix entry uniformly, exchanging the two finite sums once, and
+normalizing all defect-weight cases with the same field identities brought those scores to 19, 3
+and 0. [Root-variable proofs](https://github.com/leanprover-community/riemann-hypothesis/pull/8716)
+and [shallow specialization](https://github.com/leanprover-community/riemann-hypothesis/pull/9431).
