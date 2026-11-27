@@ -775,8 +775,12 @@ dry-lint lean-rewrite-families --source-root src/Lib/DiscreteSeries/Bruhat \
 
 Within each module the command groups pairs of rule spellings that occur together in parsed
 `simp only` or `simp_all only` calls in at least three named declarations. Pairs with the same
-call sites produce a single finding listing all their shared rules. Results rank by declaration
-count, then by shared rule count. Repeat `--rule` to focus on particular definitions.
+call sites produce a single finding listing all their shared rules. The ranking multiplies the number of matching proofs by the fraction
+of the rarest shared rule's proofs captured by the finding. Every declaration counts once toward
+rule frequency, including those outside a family. Within a module, a finding moves behind the
+independent results if it shares a call site and at least two thirds of the smaller proof set with
+an earlier representative. Distinct call sites in the same proofs can still rank independently.
+Repeat `--rule` to focus on particular definitions.
 Each finding gives the declaration and line of every call for inspection.
 
 On Riemann Hypothesis revision `8c828eda`, the first family in `FloorGroups.lean` included
@@ -785,6 +789,22 @@ coordinate calculations for the same sparse Gram matrix. After factoring the row
 reusing the existing entry formula, rescanning the rebuilt module found five calls in four
 declarations for this pair. The counts measure explicit rewrites. Git measures the resulting
 change in proof length.
+
+A whole-project rescan on the same revision covered 802 modules and retained all 460 findings.
+The former top ten covered three modules. Inspecting the remaining nine after the first refactor
+gave the following audit, using the ranks from 1.23.0.
+
+| Previous ranks | What the sites showed |
+| --- | --- |
+| 2 | Nonzero side conditions in determinants, integer powers and integrals. The common Boolean rules did not identify one shared argument across all eleven proofs. |
+| 3, 5 | Two views of sparse Bessel coordinates in `BigCell`. Both include Weyl row computations already under review. The second also identifies the explicit block matrix and column comparison used in uniqueness. |
+| 4, 6, 7, 8 | Overlapping index case splits from the original [Gram-matrix refactor](https://github.com/leanprover-community/riemann-hypothesis/pull/9720). Each shares at least six proof sites with the first finding. |
+| 9, 10 | The same six proofs unfold the action of a Weyl element on the exchanged and fixed pairs. All nine sites of the first bundle occur in the second. |
+
+The revised top ten covers six modules. The BigCell `eStar` family moves from fifth to second,
+the Weyl-action family from ninth to seventh and the broad nonzero family from second to 159th.
+These measurements use one repository. A rank measures where to inspect, and a Lean build checks
+a proposed replacement.
 
 ### Repeated rewrite lists inside one proof
 

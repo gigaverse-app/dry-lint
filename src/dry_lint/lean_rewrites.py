@@ -3,7 +3,7 @@
 import json
 import re
 from bisect import bisect_left
-from collections import defaultdict
+from collections import Counter, defaultdict
 from itertools import combinations
 
 from dry_lint.lean import BRACKETS, read_source
@@ -99,10 +99,42 @@ def built_rewrite_modules(source_root, artifact_root):
         yield relative.as_posix(), path.read_text(encoding="utf-8"), data
 
 
+def rank_families(findings, proof_counts):
+    """Prioritize widely shared arguments with a locally distinctive rule and fresh evidence."""
+
+    def priority(finding):
+        frequency = min(proof_counts[rule] for rule in finding["rules"])
+        specificity = finding["proof_count"] / frequency
+        return (
+            -finding["proof_count"] * specificity,
+            -finding["proof_count"],
+            -len(finding["rules"]),
+            finding["path"],
+            finding["rules"],
+        )
+
+    representatives = defaultdict(list)
+    fresh, related = [], []
+    for finding in sorted(findings, key=priority):
+        sites = {(s["name"], s["line"]) for s in finding["sites"]}
+        proofs = {name for name, _ in sites}
+        prior = representatives[finding["path"]]
+        if any(
+            sites & seen_sites and 3 * len(proofs & seen) >= 2 * min(len(proofs), len(seen))
+            for seen, seen_sites in prior
+        ):
+            related.append(finding)
+        else:
+            prior.append((proofs, sites))
+            fresh.append(finding)
+    return fresh + related
+
+
 def find_rewrite_families(source_root, artifact_root, rules=(), limit=20):
     if limit < 1:
         raise ValueError("--limit must be positive")
     findings = []
+    proof_counts = Counter()
     built = missing = 0
     required = set(rules)
     for path, source, data in built_rewrite_modules(source_root, artifact_root):
@@ -110,8 +142,11 @@ def find_rewrite_families(source_root, artifact_root, rules=(), limit=20):
             missing += 1
         else:
             built += 1
-            findings.extend(rewrite_families(path, declaration_calls(source, data), required))
+            declarations = list(declaration_calls(source, data))
+            for _, _, calls in declarations:
+                proof_counts.update({rule for _, rules_in_call in calls for rule in rules_in_call})
+            findings.extend(rewrite_families(path, declarations, required))
     if not built:
         raise ValueError("No matching .ilean artifacts. Build the project and check the two roots.")
-    findings.sort(key=lambda row: (-row["proof_count"], -len(row["rules"]), row["path"], row["rules"]))
+    findings = rank_families(findings, proof_counts)
     return {"built_modules": built, "unbuilt_modules": missing, "findings": findings[:limit]}
