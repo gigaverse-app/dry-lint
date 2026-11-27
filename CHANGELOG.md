@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.0](https://github.com/gigaverse-app/dry-lint/compare/v1.17.1...v1.18.0) (2026-11-27)
+
+
+### Features
+
+* **lean:** align compiler references across proof families ([f81fc81](https://github.com/gigaverse-app/dry-lint/commit/f81fc810cd5c57b0c6f8229de0accef7b211e464))
+
 ## [1.17.1](https://github.com/gigaverse-app/dry-lint/compare/v1.17.0...v1.17.1) (2026-11-27)
 
 
