@@ -1012,6 +1012,13 @@ def parser() -> argparse.ArgumentParser:
     upstream.add_argument(
         "--min-lines", type=int, default=1, help="Minimum local declaration size, excluding its docstring."
     )
+    upstream.add_argument(
+        "--claimed-diff",
+        type=Path,
+        action="append",
+        default=[],
+        help="A unified diff, such as an open pull request's. Declarations it already removes are left out. Repeat for more.",
+    )
     blocks = commands.add_parser(
         "blocks", help="Find lines repeated inside functions, in every configured language. No judge, no key."
     )
@@ -1344,7 +1351,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "lean-upstream":
             from dry_lint.lean_upstream import find_upstream_citations
 
-            report = find_upstream_citations(args.source_root, args.artifact_root, args.dependency, args.min_lines)
+            report = find_upstream_citations(
+                args.source_root, args.artifact_root, args.dependency, args.min_lines, args.claimed_diff
+            )
             print(json.dumps(report, indent=2, ensure_ascii=True))
             return 0
         root = repository_root(args.root)

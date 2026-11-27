@@ -44,6 +44,19 @@ def test_rank_upstream_mentions(tmp_path, capsys):
     assert (big["name"], big["lines"], big["line"]) == ("Local.big", 2, 3)
     assert big["citations"] == [{"path": "Port.lean", "line": i} for i in (4, 5)]
     assert small["citations"] == [{"path": "Port.lean", "line": 3}]
+    assert result["files"] == [{"path": "Local.lean", "lines": 3, "declarations": 2, "cited_in": ["Port.lean"]}]
+    assert result["claimed_declarations"] == 0
+    # A pull request that already removes `big` claims it; one that touches another file does not.
+    claim = tmp_path / "claim.diff"
+    claim.write_text(
+        "--- a/src/Local.lean\n+++ b/src/Local.lean\n@@ -3,2 +2,0 @@\n--- a comment\n-lemma big : True := by\n-  trivial\n"
+        "--- a/Other.lean\n+++ b/Other.lean\n@@ -1 +0,0 @@\n-theorem small : True := trivial\n",
+        encoding="utf-8",
+    )
+    assert main([*args, "--claimed-diff", str(claim)]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert [row["name"] for row in result["declarations"]] == ["Local.small"]
+    assert (result["claimed_declarations"], result["files"][0]["lines"]) == (1, 1)
     assert main(args + ["--min-lines", "3"]) == 0
     assert json.loads(capsys.readouterr().out)["declarations"] == []
     (build / "Local.ilean").unlink()
