@@ -189,6 +189,44 @@ def test_within_file_scan_finds_local_proof_pairs_without_cross_file_matches(tmp
     assert "--within-file scans a single repository" in capsys.readouterr().err
 
 
+def test_focused_lean_scan_and_explanation_share_the_same_sources(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    repo.write(
+        ".dry-lint/config.toml",
+        'include = ["Other.lean"]\nexclude = ["Ignored.lean"]\ncomparer = { use = "tfidf", max_df = 1.0 }',
+    )
+    proof = "theorem {name} (n : Nat) : n + 0 = n := by\n  exact Nat.add_zero n\n"
+    for path in ("Local.lean", "Other.lean", "Ignored.lean"):
+        repo.write(path, proof.format(name="first") + proof.format(name="second"))
+    repo.commit()
+    focus = [
+        "--root",
+        str(repo.root),
+        "--extractor",
+        "lean",
+        "--within-file",
+        "--include",
+        "Local.lean",
+        "--include",
+        "Ignored.lean",
+    ]
+    assert main(["scan", *focus, "--judge", "none", "--format", "json"]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["functions"] == 2
+    [finding] = output["findings"]
+    assert finding["candidate"]["existing"]["path"] == finding["candidate"]["new"]["path"] == "Local.lean"
+
+    assert main(["explain", *focus, "first", "second"]) == 0
+    explanation = capsys.readouterr().out
+    assert "Local.lean::first ~ Local.lean::second" in explanation
+    assert "Nat.add_zero" in explanation
+    for name in ("first", "second"):
+        assert f"#1 of the 1 look-alike(s) of {name}" in explanation
+
+    assert main(["scan", *focus, "--repo", f"example/project={repo.root}"]) == 2
+    assert "--include scopes one checkout" in capsys.readouterr().err
+
+
 def test_lean_proof_blocks_include_same_file_and_preserve_indentation(tmp_path, lean, capsys):
     repo = Repo(tmp_path / "project")
     demo = """lemma {name} (p : Prop) (hp : p) : {goal} := by
@@ -214,6 +252,8 @@ def test_lean_proof_blocks_include_same_file_and_preserve_indentation(tmp_path, 
     )
     assert main([*command, "--limit", "0"]) == 0
     assert capsys.readouterr().out == "Found 1 repeated Lean proof blocks.\n"
+    assert main([*command, "--include", "B.lean"]) == 0
+    assert capsys.readouterr().out == "Found 0 repeated Lean proof blocks.\n"
 
 
 @pytest.mark.parametrize("override", [None, "utf-16"])

@@ -80,6 +80,17 @@ On first use the language pack downloads its versioned Lean grammar.
 dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery can recover
 declarations when the static grammar identifies a named assignment and its body despite unsupported syntax.
 Strict scans still report a parse error in such files.
+Use `--include` to work on one file or a directory without editing the repository configuration.
+Use the same include patterns and extractor when explaining a pair so the scores use the same source scope.
+
+```sh
+uvx --from 'dry-lint[lean]>=1,<2' dry-lint scan --extractor lean --judge none \
+  --include 'src/MatrixProof.lean' --within-file
+uvx --from 'dry-lint[lean]>=1,<2' dry-lint explain --extractor lean \
+  --include 'src/MatrixProof.lean' --within-file leftFormula rightFormula
+```
+
+These patterns override the configured include list for the command. The configured exclusions still apply.
 Use `dry-lint scan --within-file --judge none` to find nearby proofs in the same Lean module.
 Use `dry-lint lean-proof-blocks` to look for repeated fragments inside `by` proofs, even when the
 surrounding declarations differ. It scans tracked Lean files selected by `include` and `exclude`

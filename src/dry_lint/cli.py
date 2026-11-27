@@ -88,9 +88,14 @@ def settings_for(root: Path, args: argparse.Namespace) -> Settings:
     settings = Settings.load(
         root, staged=args.command in {"check", "detect", "model-baseline", "schema-check"} and args.staged
     )
-    if args.command == "scan" and args.extractor:
-        configured = {choice.use: choice for choice in settings.extractors}
-        settings.extractors = [configured.get(name, PluginChoice(use=name)) for name in args.extractor]
+    if args.command in {"scan", "explain"}:
+        if args.include:
+            if args.repo or args.repo_index:
+                raise ValueError("--include scopes one checkout; remove --repo and --repo-index")
+            settings.include = args.include
+        if args.extractor:
+            configured = {choice.use: choice for choice in settings.extractors}
+            settings.extractors = [configured.get(name, PluginChoice(use=name)) for name in args.extractor]
     if args.detector:
         settings.comparer = PluginChoice(use=args.detector)
     if args.fail_at is not None:
@@ -736,9 +741,11 @@ def explain(root: Path, settings: Settings, args: argparse.Namespace) -> int:
     shared = getattr(detector.comparer, "shared", None)
     if shared:
         lines.append(f"  shared: {', '.join(shared(a, b)) or 'nothing'}")
-    near = [other.qualname for other, _ in detector.neighbours(a)]
-    rank = f"#{near.index(b.qualname) + 1} of" if b.qualname in near else "not among"
-    lines.append(f"  proposed: {rank} the {len(near)} look-alike(s) of {a.name} above the floor")
+    directions = ((a, b), (b, a)) if args.within_file else ((a, b),)
+    for source, target in directions:
+        near = [other.qualname for other, _ in detector.neighbours(source, within_file=args.within_file)]
+        rank = f"#{near.index(target.qualname) + 1} of" if target.qualname in near else "not among"
+        lines.append(f"  proposed: {rank} the {len(near)} look-alike(s) of {source.name} above the floor")
     lines.append(f"  rule: {pair.filtered or 'none applies'}")
     store = open_store(settings, root, args.store)
     record = store.record(pair.key)
@@ -917,6 +924,21 @@ def progress_options(command: argparse.ArgumentParser) -> None:
     command.add_argument("--no-counter-card", action="store_true", help="Leave the counter sign out of the README.")
 
 
+def include_option(command: argparse.ArgumentParser) -> None:
+    command.add_argument(
+        "--include",
+        action="append",
+        metavar="PATTERN",
+        help="Scan tracked paths matching these Git-root-relative globs.",
+    )
+
+
+def extractor_option(command: argparse.ArgumentParser) -> None:
+    command.add_argument(
+        "--extractor", action="append", metavar="NAME", help="Use only these extractors. Repeat for more."
+    )
+
+
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
@@ -981,6 +1003,7 @@ def parser() -> argparse.ArgumentParser:
     main.add_argument("--version", action="version", version=f"dry-lint {__version__}")
     commands = main.add_subparsers(dest="command", required=True)
     proof_blocks = commands.add_parser("lean-proof-blocks", help="Find repeated source blocks in Lean proofs.")
+    include_option(proof_blocks)
     proof_blocks.add_argument("--root", type=Path, default=Path.cwd(), help="Any path inside the repository.")
     proof_blocks.add_argument("--lines", type=int, default=3, help="Number of matching source lines to compare.")
     proof_blocks.add_argument(
@@ -1011,9 +1034,8 @@ def parser() -> argparse.ArgumentParser:
         commands.add_parser("check", parents=[common], help="Detect, judge and report the functions a change touched.")
     )
     sweep = commands.add_parser("scan", parents=[common], help="Judge look-alike pairs across the whole repository.")
-    sweep.add_argument(
-        "--extractor", action="append", metavar="NAME", help="Use only these extractors for this scan. Repeat for more."
-    )
+    include_option(sweep)
+    extractor_option(sweep)
     sweep.add_argument(
         "--include-same-file", action="store_true", help="Also compare declarations in the same source file."
     )
@@ -1041,6 +1063,9 @@ def parser() -> argparse.ArgumentParser:
     rendering = commands.add_parser("report", parents=[common], help="Render a report.json.")
     rendering.add_argument("--from", dest="source", type=Path, required=True)
     explaining = commands.add_parser("explain", parents=[common], help="Why a pair is, or is not, reported.")
+    include_option(explaining)
+    extractor_option(explaining)
+    explaining.add_argument("--within-file", action="store_true", help="Report both ranks in the same-file scan.")
     explaining.add_argument("first", help="A qualified name, or a suffix only one function has.")
     explaining.add_argument("second")
     measuring = commands.add_parser(
@@ -1161,7 +1186,7 @@ def lean_proof_blocks(root: Path, args: argparse.Namespace) -> int:
     settings = Settings.load(root)
     groups = find_proof_blocks(
         root,
-        settings.include,
+        args.include or settings.include,
         settings.exclude,
         lines=args.lines,
         max_lines=args.max_lines,
