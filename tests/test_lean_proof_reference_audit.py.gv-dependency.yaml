@@ -1,0 +1,5 @@
+dependencies:
+  - inputs:
+      - "//scripts/audit_lean_proof_references.py"
+    kind: import
+    reason: "The test executes the proof-reference audit with runpy."
